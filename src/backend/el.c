@@ -175,10 +175,6 @@ L1:
     switch (op)
     {
         case OPconst:
-#if FLOATS_IN_CODE
-            if (!PARSER && FLT_CODESEG_CELEM(e))
-                flt_free_elem(e);
-#endif
             break;
 
         case OPvar:
@@ -1561,7 +1557,7 @@ elem * el_var(symbol *s)
          */
         elem *e2 = el_calloc();
         e2->Eoper = OPvar;
-        e2->EV.sp.Vsym = rtlsym[RTLSYM_TLS_ARRAY];
+        e2->EV.sp.Vsym = getRtlsym(RTLSYM_TLS_ARRAY);
         e2->Ety = e2->EV.sp.Vsym->ty();
 
         e->Eoper = OPind;
@@ -1603,12 +1599,12 @@ elem * el_var(symbol *s)
         if (config.wflags & WFexe)
         {
             // e => *(&s + *(FS:_tls_array))
-            e2 = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
+            e2 = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
         }
         else
         {
-            e2 = el_bin(OPmul,TYint,el_var(rtlsym[RTLSYM_TLS_INDEX]),el_long(TYint,REGSIZE));
-            ea = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
+            e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_long(TYint,REGSIZE));
+            ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
             e2 = el_bin(OPadd,ea->Ety,ea,e2);
         }
         e2 = el_una(OPind,TYsize_t,e2);
@@ -1665,8 +1661,8 @@ elem * el_var(symbol *s)
                 e1->ET = newpointer(s->Stype);
                 e1->ET->Tcount++;
 
-                e2 = el_bint(OPmul,tsint,el_var(rtlsym[RTLSYM_TLS_INDEX]),el_longt(tsint,4));
-                ea = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
+                e2 = el_bint(OPmul,tsint,el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_longt(tsint,4));
+                ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
                 e2 = el_bint(OPadd,ea->ET,ea,e2);
                 e2 = el_unat(OPind,tsint,e2);
 
@@ -1894,7 +1890,7 @@ elem *el_convfloat(elem *e)
     else if (loadconst(e, 0))
         return e;
 
-    changes++;
+    go.changes++;
     tym_t ty = e->Ety;
     int sz = tysize(ty);
     assert(sz <= sizeof(buffer));
@@ -1981,7 +1977,7 @@ elem *el_convxmm(elem *e)
         return e;
 #endif
 
-    changes++;
+    go.changes++;
     tym_t ty = e->Ety;
     int sz = tysize(ty);
     assert(sz <= sizeof(buffer));
@@ -2029,7 +2025,7 @@ elem *el_convstring(elem *e)
     if (tybasic(e->Ety) == TYcptr ||
         (tyfv(e->Ety) && config.flags3 & CFG3strcod))
     {
-        assert(OMFOBJ);         // option not done yet for others
+        assert(config.objfmt == OBJ_OMF);         // option not done yet for others
         s = symbol_generate(SCstatic, type_fake(mTYcs | e->Ety));
         s->Sfl = FLcsdata;
         s->Soffset = Coffset;
@@ -2158,7 +2154,7 @@ elem *el_convert(elem *e)
             break;
 
         case OPstring:
-            changes++;
+            go.changes++;
             e = el_convstring(e);
             break;
 
@@ -2598,9 +2594,9 @@ L1:
                     case TYulong4:
                     case TYllong2:
                     case TYullong2:
-                        if(n1->EV.Vcent.msw != n2->EV.Vcent.msw || n1->EV.Vcent.lsw != n2->EV.Vcent.lsw)
-			                goto nomatch;
-			            break;
+                        if (n1->EV.Vcent.msw != n2->EV.Vcent.msw || n1->EV.Vcent.lsw != n2->EV.Vcent.lsw)
+                            goto nomatch;
+                        break;
                     case TYcldouble:
 #if LNGDBLSIZE > 10
                         /* sizeof is 12, but actual size of each part is 10 */
@@ -2619,9 +2615,7 @@ L1:
                         goto nomatch;
 #endif
                     default:
-#ifdef DEBUG
                         elem_print(n1);
-#endif
                         assert(0);
                 }
                 break;
@@ -2657,7 +2651,6 @@ L1:
                 break;
             case OPasm:
             case OPstring:
-            case OPhstring:
                 if (n1->EV.ss.Vstrlen != (n = n2->EV.ss.Vstrlen) ||
                     n1->EV.ss.Voffset != n2->EV.ss.Voffset ||
                     memcmp(n1->EV.ss.Vstring,n2->EV.ss.Vstring,n))
@@ -2673,9 +2666,7 @@ L1:
                 break;
 #endif
             default:
-#ifdef DEBUG
                 WROP(op);
-#endif
                 assert(0);
         }
 ismatch:
@@ -2770,10 +2761,8 @@ targ_llong el_tolong(elem *e)
         e->EV.Vllong = type_size(e->EV.sp.Vsym->Stype);
     }
 #endif
-#ifdef DEBUG
     if (e->Eoper != OPconst)
         elem_print(e);
-#endif
     assert(e->Eoper == OPconst);
     ty = tybasic(typemask(e));
 L1:
@@ -2883,9 +2872,7 @@ L1:
             // Can happen as result of syntax errors
             assert(errcnt);
 #else
-#ifdef DEBUG
             elem_print(e);
-#endif
             assert(0);
 #endif
     }
@@ -3122,7 +3109,6 @@ void elem_print(elem *e)
                 break;
             case OPasm:
             case OPstring:
-            case OPhstring:
                 dbg_printf(" '%s',%lld\n",e->EV.ss.Vstring,(unsigned long long)e->EV.ss.Voffset);
                 break;
             case OPconst:

@@ -1785,6 +1785,15 @@ int MachObj::getsegment(const char *sectname, const char *segname,
     return seg;
 }
 
+/**********************************
+ * Reset code seg to existing seg.
+ * Used after a COMDAT for a function is done.
+ */
+
+void Obj::setcodeseg(int seg)
+{
+}
+
 /********************************
  * Define a new code segment.
  * Input:
@@ -2276,8 +2285,7 @@ if (!buf) halt();
     int save = buf->size();
     //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf->setsize(offset);
-    buf->reserve(nbytes);
+    buf->position(offset, nbytes);
     if (p)
     {
         buf->writen(p,nbytes);
@@ -2301,6 +2309,9 @@ void MachObj::addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val)
 {
     Relocation rel;
+#ifdef DEBUG
+    memset(&rel, 0, sizeof(rel));
+#endif
     rel.offset = offset;
     rel.targsym = targsym;
     rel.targseg = targseg;
@@ -2565,7 +2576,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 
         Outbuffer *buf = SegData[seg]->SDbuf;
         int save = buf->size();
-        buf->setsize(offset);
+        buf->position(offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf->write64(val);

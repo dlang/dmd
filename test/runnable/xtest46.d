@@ -3530,6 +3530,74 @@ void test2356()
 }
 
 /***************************************************/
+// 13652
+
+void test13652()
+{
+    // reduced case
+    uint[9][5] arr =
+        [[0, 0, 0,  0, 1, 5,  8, 0, 7],
+         [0, 3, 8,  0, 2, 0,  0, 6, 0],
+         [0, 0, 7,  0, 6, 8,  9, 4, 0],
+         [0, 0, 0,  0, 0, 1,  2, 9, 0],
+         [9, 7, 0,  0, 0, 0,  0, 8, 3]];
+    assert(arr[0][0] == 0 && arr[0][1] == 0 && arr[0][2] == 0 &&
+           arr[0][3] == 0 && arr[0][4] == 1 && arr[0][5] == 5 &&
+           arr[0][6] == 8 && arr[0][7] == 0 && arr[0][8] == 7);
+    assert(arr[1][0] == 0 && arr[1][1] == 3 && arr[1][2] == 8 &&
+           arr[1][3] == 0 && arr[1][4] == 2 && arr[1][5] == 0 &&
+           arr[1][6] == 0 && arr[1][7] == 6 && arr[1][8] == 0);
+    assert(arr[2][0] == 0 && arr[2][1] == 0 && arr[2][2] == 7 &&
+           arr[2][3] == 0 && arr[2][4] == 6 && arr[2][5] == 8 &&
+           arr[2][6] == 9 && arr[2][7] == 4 && arr[2][8] == 0);
+    assert(arr[3][0] == 0 && arr[3][1] == 0 && arr[3][2] == 0 &&
+           arr[3][3] == 0 && arr[3][4] == 0 && arr[3][5] == 1 &&
+           arr[3][6] == 2 && arr[3][7] == 9 && arr[3][8] == 0);
+    assert(arr[4][0] == 9 && arr[4][1] == 7 && arr[4][2] == 0 &&
+           arr[4][3] == 0 && arr[4][4] == 0 && arr[4][5] == 0 &&
+           arr[4][6] == 0 && arr[4][7] == 8 && arr[4][8] == 3);
+
+    // original case
+    uint[9][9] tbl =
+        [[0, 0, 0,  0, 1, 5,  8, 0, 7],
+         [0, 3, 8,  0, 2, 0,  0, 6, 0],
+         [0, 0, 7,  0, 6, 8,  9, 4, 0],
+         [0, 0, 0,  0, 0, 1,  2, 9, 0],
+         [9, 7, 0,  0, 0, 0,  0, 8, 3],
+         [0, 2, 1,  6, 0, 0,  0, 0, 0],
+         [0, 6, 9,  5, 4, 0,  3, 0, 0],
+         [0, 4, 0,  0, 8, 0,  6, 5, 0],
+         [2, 0, 5,  9, 3, 0,  0, 0, 0]];
+    assert(tbl[0][0] == 0 && tbl[0][1] == 0 && tbl[0][2] == 0 &&
+           tbl[0][3] == 0 && tbl[0][4] == 1 && tbl[0][5] == 5 &&
+           tbl[0][6] == 8 && tbl[0][7] == 0 && tbl[0][8] == 7);
+    assert(tbl[1][0] == 0 && tbl[1][1] == 3 && tbl[1][2] == 8 &&
+           tbl[1][3] == 0 && tbl[1][4] == 2 && tbl[1][5] == 0 &&
+           tbl[1][6] == 0 && tbl[1][7] == 6 && tbl[1][8] == 0);
+    assert(tbl[2][0] == 0 && tbl[2][1] == 0 && tbl[2][2] == 7 &&
+           tbl[2][3] == 0 && tbl[2][4] == 6 && tbl[2][5] == 8 &&
+           tbl[2][6] == 9 && tbl[2][7] == 4 && tbl[2][8] == 0);
+    assert(tbl[3][0] == 0 && tbl[3][1] == 0 && tbl[3][2] == 0 &&
+           tbl[3][3] == 0 && tbl[3][4] == 0 && tbl[3][5] == 1 &&
+           tbl[3][6] == 2 && tbl[3][7] == 9 && tbl[3][8] == 0);
+    assert(tbl[4][0] == 9 && tbl[4][1] == 7 && tbl[4][2] == 0 &&
+           tbl[4][3] == 0 && tbl[4][4] == 0 && tbl[4][5] == 0 &&
+           tbl[4][6] == 0 && tbl[4][7] == 8 && tbl[4][8] == 3);
+    assert(tbl[5][0] == 0 && tbl[5][1] == 2 && tbl[5][2] == 1 &&
+           tbl[5][3] == 6 && tbl[5][4] == 0 && tbl[5][5] == 0 &&
+           tbl[5][6] == 0 && tbl[5][7] == 0 && tbl[5][8] == 0);
+    assert(tbl[6][0] == 0 && tbl[6][1] == 6 && tbl[6][2] == 9 &&
+           tbl[6][3] == 5 && tbl[6][4] == 4 && tbl[6][5] == 0 &&
+           tbl[6][6] == 3 && tbl[6][7] == 0 && tbl[6][8] == 0);
+    assert(tbl[7][0] == 0 && tbl[7][1] == 4 && tbl[7][2] == 0 &&
+           tbl[7][3] == 0 && tbl[7][4] == 8 && tbl[7][5] == 0 &&
+           tbl[7][6] == 6 && tbl[7][7] == 5 && tbl[7][8] == 0);
+    assert(tbl[8][0] == 2 && tbl[8][1] == 0 && tbl[8][2] == 5 &&
+           tbl[8][3] == 9 && tbl[8][4] == 3 && tbl[8][5] == 0 &&
+           tbl[8][6] == 0 && tbl[8][6] == 0 && tbl[8][8] == 0);
+}
+
+/***************************************************/
 // 11238
 
 void test11238()
@@ -3841,6 +3909,22 @@ void test2486()
     // opSlice should return rvalue
     static assert(is(typeof(&S.opSlice) == int[] function() pure nothrow @nogc @safe));
     static assert(!__traits(compiles, foo(s[])));       // should be NG
+}
+
+/***************************************************/
+
+extern(C++) class C15080
+{
+    uint x = 1;
+    uint y = 2;
+}
+
+__gshared c15080 = new C15080();
+
+void test15080()
+{
+    assert(c15080.x == 1);
+    assert(c15080.y == 2);
 }
 
 /***************************************************/
@@ -7516,6 +7600,82 @@ void test14853()
     auto b1 = new Queue14853!uint;
 }
 
+/********************************************************/
+// 15045
+
+void test15045()
+{
+    void testName(T, bool r, string name)()
+    {
+        T t;
+
+        static assert(r ==          is(typeof(mixin("T."~name))));
+        static assert(r ==          is(typeof(mixin("t."~name))));
+        static assert(r == __traits(compiles, mixin("T."~name)));
+        static assert(r == __traits(compiles, mixin("t."~name)));
+        static assert(r == mixin("__traits(compiles, T."~name~")"));
+        static assert(r == mixin("__traits(compiles, t."~name~")"));
+
+        static assert(r ==                       __traits(hasMember, T, name) );
+        static assert(r ==                       __traits(hasMember, t, name) );
+        static assert(r == __traits(compiles,    __traits(getMember, T, name) ));
+        static assert(r == __traits(compiles,    __traits(getMember, t, name) ));
+        static assert(r == __traits(compiles, __traits(getOverloads, T, name) ));
+        static assert(r == __traits(compiles, __traits(getOverloads, t, name) ));
+    }
+    void test(T, bool r)()
+    {
+        testName!(T, r, "__ctor")();
+        testName!(T, r, "__dtor")();
+        testName!(T, r, "__xdtor")();
+        testName!(T, r, "__postblit")();
+        testName!(T, r, "__xpostblit")();
+    }
+
+    static struct X
+    {
+        this(int) {}
+        this(this) {}
+        ~this() {}
+    }
+
+    static struct S1
+    {
+        auto opDispatch(string name, A...)(A args) { }
+    }
+    static struct S2
+    {
+        X get() { return X(); };
+        alias get this;
+    }
+    static struct S3
+    {
+        X opDot() { return X(); };
+    }
+
+    test!(X, true)();
+    test!(S1, false)();
+    test!(S2, false)();
+    test!(S3, false)();
+}
+
+/***************************************************/
+// 15126
+
+struct Json15126
+{
+    ubyte[16] m_data;
+    int opDispatch(string prop)() const { return 0; }
+    int opDispatch(string prop)() { return 0; }
+}
+
+template isCustomSerializable15126(T)
+{
+    enum isCustomSerializable15126 = T.init.toRepresentation();
+}
+
+alias bug15126 = isCustomSerializable15126!Json15126;
+
 /***************************************************/
 
 int main()
@@ -7689,6 +7849,7 @@ int main()
     test148();
     test149();
     test2356();
+    test13652();
     test11238();
     test2540();
     test14348();
@@ -7810,6 +7971,7 @@ int main()
     test10542();
     test10539();
     test10634();
+    test15080();
     test7254();
     test13468();
     test11075();

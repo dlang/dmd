@@ -791,7 +791,7 @@ STATIC void cpp_dimension(targ_ullong u)
         CHAR('0' + (char)u - 1);
     else
     {   char buffer[sizeof(u) * 2 + 1];
-        char __ss *p;
+        char *p;
 
         buffer[sizeof(buffer) - 1] = 0;
         for (p = &buffer[sizeof(buffer) - 1]; u; u >>= 4)
@@ -812,7 +812,7 @@ STATIC void cpp_dimension_ld(targ_ldouble ld)
         CHAR('0' + (char)u - 1);
     else
     {   char buffer[sizeof(u) * 2 + 1];
-        char __ss *p;
+        char *p;
 
         buffer[sizeof(buffer) - 1] = 0;
         for (p = &buffer[sizeof(buffer) - 1]; u; u >>= 4)

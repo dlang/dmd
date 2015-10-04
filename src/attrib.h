@@ -68,8 +68,6 @@ public:
     Scope *newScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
 
-    static const char *stcToChars(char tmp[], StorageClass& stc);
-    static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -130,12 +128,16 @@ public:
     bool isunion;
     structalign_t alignment;
     int sem;                    // 1 if successful semantic()
+    unsigned anonoffset;        // offset of anonymous struct
+    unsigned anonstructsize;    // size of anonymous struct
+    unsigned anonalignsize;     // size of anonymous struct for alignment purposes
 
     AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind();
+    AnonDeclaration *isAnonDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

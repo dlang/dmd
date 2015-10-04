@@ -109,8 +109,7 @@ void WRBC(unsigned bc)
          "exit  ","asm   ","switch","ifthen","jmptab",
          "try   ","catch ","jump  ",
          "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch",
-         "jplace",
+         "jcatch"
         };
 
     assert(sizeof(bcs) / sizeof(bcs[0]) == BCMAX);
@@ -245,35 +244,31 @@ void WRblocklist(list_t bl)
 void WRdefnod()
 { register int i;
 
-  for (i = 0; i < deftop; i++)
-  {     dbg_printf("defnod[%d] in B%d = (",defnod[i].DNblock->Bdfoidx,i);
-        WReqn(defnod[i].DNelem);
+  for (i = 0; i < go.deftop; i++)
+  {     dbg_printf("defnod[%d] in B%d = (", go.defnod[i].DNblock->Bdfoidx, i);
+        WReqn(go.defnod[i].DNelem);
         dbg_printf(");\n");
   }
 }
 
 void WRFL(enum FL fl)
-{ static char fls[FLMAX][7] =
-        {"unde  ","const ","oper  ","func  ","data  ",
+{
+    static const char fls[FLMAX][7] =
+    {    "unde  ","const ","oper  ","func  ","data  ",
          "reg   ",
          "pseudo",
          "auto  ","fast  ","para  ","extrn ",
          "code  ","block ","udata ","cs    ","swit  ",
          "fltrg ","offst ","datsg ",
          "ctor  ","dtor  ","regsav","asm   ",
-#if TX86
          "ndp   ",
-#endif
-#if TARGET_SEGMENTED
          "farda ","csdat ",
-#endif
          "local ","tlsdat",
          "bprel ","frameh","blocko","alloca",
          "stack ","dsym  ",
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
          "got   ","gotoff",
-#endif
-        };
+         "funcar",
+    };
 
     if ((unsigned)fl >= (unsigned)FLMAX)
         dbg_printf("FL%d",fl);

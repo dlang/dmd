@@ -127,7 +127,7 @@ else
     __gshared size_t heapleft = 0;
     __gshared void* heapp;
 
-    extern (C++) void* allocmemory(size_t m_size)
+    extern (C) void* allocmemory(size_t m_size)
     {
         // 16 byte alignment is better (and sometimes needed) for doubles
         m_size = (m_size + 15) & ~15;
@@ -163,29 +163,32 @@ else
         goto L1;
     }
 
-    extern (C) void* _d_allocmemory(size_t m_size)
+    version(DigitalMars)
     {
-        return allocmemory(m_size);
-    }
+        extern (C) void* _d_allocmemory(size_t m_size)
+        {
+            return allocmemory(m_size);
+        }
 
-    extern (C) Object _d_newclass(const ClassInfo ci)
-    {
-        auto p = allocmemory(ci.init.length);
-        p[0 .. ci.init.length] = cast(void[])ci.init[];
-        return cast(Object)p;
-    }
+        extern (C) Object _d_newclass(const ClassInfo ci)
+        {
+            auto p = allocmemory(ci.init.length);
+            p[0 .. ci.init.length] = cast(void[])ci.init[];
+            return cast(Object)p;
+        }
 
-    extern (C) void* _d_newitemT(TypeInfo ti)
-    {
-        auto p = allocmemory(ti.tsize);
-        (cast(ubyte*)p)[0 .. ti.init.length] = 0;
-        return p;
-    }
+        extern (C) void* _d_newitemT(TypeInfo ti)
+        {
+            auto p = allocmemory(ti.tsize);
+            (cast(ubyte*)p)[0 .. ti.init.length] = 0;
+            return p;
+        }
 
-    extern (C) void* _d_newitemiT(TypeInfo ti)
-    {
-        auto p = allocmemory(ti.tsize);
-        p[0 .. ti.init.length] = ti.init[];
-        return p;
+        extern (C) void* _d_newitemiT(TypeInfo ti)
+        {
+            auto p = allocmemory(ti.tsize);
+            p[0 .. ti.init.length] = ti.init[];
+            return p;
+        }
     }
 }

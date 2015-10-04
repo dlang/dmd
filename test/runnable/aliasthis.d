@@ -402,6 +402,11 @@ void test7()
     // Expression::checkToBoolean
     static assert(!__traits(compiles, { if (s1){} }));
     static assert(!__traits(compiles, { if (s3){} }));
+
+    // SwitchStatement::semantic
+    static assert(!__traits(compiles, { switch (c0) { default: } }));
+    static assert(!__traits(compiles, { switch (c1) { default: } }));
+    static assert(!__traits(compiles, { switch (c3) { default: } }));
 }
 
 /***************************************************/
@@ -1192,6 +1197,46 @@ void test7945()
 }
 
 /***************************************************/
+// 7979
+
+void test7979()
+{
+    static struct N
+    {
+        int val;
+        alias val this;
+    }
+    N n = N(1);
+
+    switch (n)
+    {
+        case 0:
+            assert(0);
+        case 1:
+            break;
+        default:
+            assert(0);
+    }
+
+    static struct S
+    {
+        string val;
+        alias val this;
+    }
+    S s = S("b");
+
+    switch (s)
+    {
+        case "a":
+            assert(0);
+        case "b":
+            break;
+        default:
+            assert(0);
+    }
+}
+
+/***************************************************/
 // 7992
 
 struct S7992
@@ -1902,6 +1947,7 @@ int main()
     test7731();
     test7808();
     test7945();
+    test7979();
     test7992();
     test8169();
     test8735();

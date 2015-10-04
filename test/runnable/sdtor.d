@@ -3943,6 +3943,72 @@ void test14264()
 }
 
 /**********************************/
+// 14815
+
+int test14815()
+{
+    uint dtorCount;
+
+    struct S
+    {
+        uint x;
+        ~this() { ++dtorCount; }
+    }
+
+    S[2] sa1;
+    sa1[0].x = 42;
+    sa1 = (S[2]).init;      // S[2] <- rvalue
+    assert(sa1[0].x == 0);
+    assert(dtorCount == 2);
+
+    S[2] sa2;
+    sa2[0].x = 42;
+    S[] da2 = sa2[];
+    da2[] = (S[2]).init[];  // S[] <- rvalue slice
+    assert(sa2[0].x == 0);
+    assert(dtorCount == 4);
+
+    S[2] sa3;
+    S[2] sa4;
+    sa3[0].x = 42;
+    sa3 = sa4;              // S[2] <- lvalue
+    assert(sa3[0].x == 0);
+    assert(dtorCount == 6);
+
+    S[2] sa5;
+    S[] da4 = sa4[];
+    da4[] = sa5[];          // S[] <- lvalue slice
+    assert(sa4[0].x == 0);
+    assert(dtorCount == 8);
+
+    return 1;
+}
+static assert(test14815());
+
+/**********************************/
+// 14860
+
+int test14860()
+{
+    uint dtorCount;
+
+    struct S
+    {
+        uint x;
+        ~this() { ++dtorCount; }
+    }
+
+    S[] a = [S(42)];
+    a[] = S();
+
+    assert(a[0].x == 0);
+    assert(dtorCount == 1);
+
+    return 1;
+}
+static assert(test14860());
+
+/**********************************/
 // 14696
 
 void test14696(int len = 2)
@@ -4051,6 +4117,7 @@ void test14696(int len = 2)
     check({ foo(len != 2 ? makeS(1).get(len != 2 ? makeS(2).get() : null) : null); }, "foo.");
 }
 
+/**********************************/
 // 14838
 
 int test14838() pure nothrow @safe
@@ -4219,6 +4286,8 @@ int main()
     test13669();
     test13095();
     test14264();
+    test14815();
+    test14860();
     test14696();
     test14838();
 

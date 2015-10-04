@@ -109,26 +109,26 @@ STATIC code *getlvalue87(code *pcs,elem *e,regm_t keepmsk)
  */
 
 code *ndp_fstp(code *c, int i, tym_t ty)
-{   unsigned grex = I64 ? (REX_W << 16) : 0;
+{
     switch (tybasic(ty))
     {
         case TYfloat:
         case TYifloat:
         case TYcfloat:
-            c = genc1(c,0xD9,grex | modregrm(2,3,BPRM),FLndp,i); // FSTP m32real i[BP]
+            c = genc1(c,0xD9,modregrm(2,3,BPRM),FLndp,i); // FSTP m32real i[BP]
             break;
 
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
-            c = genc1(c,0xDD,grex | modregrm(2,3,BPRM),FLndp,i); // FSTP m64real i[BP]
+            c = genc1(c,0xDD,modregrm(2,3,BPRM),FLndp,i); // FSTP m64real i[BP]
             break;
 
         case TYldouble:
         case TYildouble:
         case TYcldouble:
-            c = genc1(c,0xDB,grex | modregrm(2,7,BPRM),FLndp,i); // FSTP m80real i[BP]
+            c = genc1(c,0xDB,modregrm(2,7,BPRM),FLndp,i); // FSTP m80real i[BP]
             break;
 
         default:
@@ -138,26 +138,26 @@ code *ndp_fstp(code *c, int i, tym_t ty)
 }
 
 code *ndp_fld(code *c, int i, tym_t ty)
-{   unsigned grex = I64 ? (REX_W << 16) : 0;
+{
     switch (tybasic(ty))
     {
         case TYfloat:
         case TYifloat:
         case TYcfloat:
-            c = genc1(c,0xD9,grex | modregrm(2,0,BPRM),FLndp,i);
+            c = genc1(c,0xD9,modregrm(2,0,BPRM),FLndp,i);
             break;
 
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
-            c = genc1(c,0xDD,grex | modregrm(2,0,BPRM),FLndp,i);
+            c = genc1(c,0xDD,modregrm(2,0,BPRM),FLndp,i);
             break;
 
         case TYldouble:
         case TYildouble:
         case TYcldouble:
-            c = genc1(c,0xDB,grex | modregrm(2,5,BPRM),FLndp,i); // FLD m80real i[BP]
+            c = genc1(c,0xDB,modregrm(2,5,BPRM),FLndp,i); // FLD m80real i[BP]
             break;
 
         default:

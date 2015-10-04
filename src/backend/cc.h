@@ -9,7 +9,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
@@ -210,9 +210,6 @@ typedef struct Srcpos
 #if M_UNIX
     short Sfilnum;              // file number
 #endif
-#if SOURCE_OFFSETS
-    unsigned long Sfiloff;      // byte offset
-#endif
 
     void print(const char *func);
 } Srcpos;
@@ -352,7 +349,7 @@ extern Cstate cstate;
 //  done on it, so it is stack and register variables.)
 #define symbol_isintab(s)       (sytab[(s)->Sclass] & SCSS)
 
-#if defined(__SC__) || defined(_MSC_VER)
+#if defined(__DMC__) || defined(_MSC_VER)
 typedef char enum_SC;
 #else
 typedef enum SC enum_SC;
@@ -595,14 +592,13 @@ enum BC {
     BCcatch     = 11,   // C++ catch block
     BCjump      = 12,   // Belem specifies (near) address to jump to
     BC_try      = 13,   // SEH: first block of try-except or try-finally
-                        // Jupiter, Mars: try-catch or try-finally
+                        // Mars: try-catch or try-finally
     BC_filter   = 14,   // SEH exception-filter (always exactly one block)
     BC_finally  = 15,   // first block of SEH termination-handler,
                         // or finally block
     BC_ret      = 16,   // last block of SEH termination-handler or finally block
     BC_except   = 17,   // first block of SEH exception-handler
-    BCjcatch    = 18,   // first block of Jupiter or Mars catch-block
-    BCjplace    = 19,   // Jupiter: placeholder
+    BCjcatch    = 18,   // first block of Mars catch-block
     BCMAX
 };
 
@@ -665,10 +661,8 @@ typedef struct FUNC_S
         #define Fnteh           0x08    // uses NT Structured EH
         #define Fdoinline       0x40    // do inline walk
         #define Foverridden     0x80    // ignore for overriding purposes
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        #define Fnowrite        0x100   // SCinline should never output definition
-#else
-        #define Fjmonitor       0x100   // Jupiter synchronized function
+#if MARS && TARGET_WINDOS
+        #define Fjmonitor       0x100   // Mars synchronized function
 #endif
         #define Fnosideeff      0x200   // function has no side effects
         #define F3badoparrow    0x400   // bad operator->()
@@ -677,6 +671,7 @@ typedef struct FUNC_S
         #define Fmember         0x2000  // D member function with 'this'
         #define Fnotailrecursion 0x4000 // no tail recursion optimizations
         #define Ffakeeh         0x8000  // allocate space for NT EH context sym anyway
+        #define Fnothrow        0x10000 // function does not throw (even if not marked 'nothrow')
     unsigned char Foper;        // operator number (OPxxxx) if Foperator
 
     Symbol *Fparsescope;        // use this scope to parse friend functions
@@ -747,18 +742,9 @@ typedef struct BASECLASS
     Classsym         *BCbase;           // base class Symbol
     struct BASECLASS *BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
-#if VBTABLES
     unsigned short    BCvbtbloff;       // for BCFvirtual, offset from start of
                                         //     vbtbl[] to entry for this virtual base.
                                         //     Valid in Sbase list
-#else
-    targ_size_t memoffset;      /* for BCFvirtual, offset from this to
-                                   pointer to virtual base class.
-                                   Valid in Sbase list
-                                 */
-    Symbol *param;              /* parameter for this Symbol (in        */
-                                /* Svirtbase list only)                 */
-#endif
     symlist_t         BCpublics;        // public members of base class (list is freeable)
     list_t            BCmptrlist;       // (in Smptrbase only) this is the vtbl
                                         // (NULL if not different from base class's vtbl
@@ -997,17 +983,14 @@ typedef struct STRUCT
     Funcsym *Sctor;             // constructor function
 
     Funcsym *Sdtor;             // basic destructor
-#if VBTABLES
     Funcsym *Sprimdtor;         // primary destructor
     Funcsym *Spriminv;          // primary invariant
     Funcsym *Sscaldeldtor;      // scalar deleting destructor
-#endif
 
     Funcsym *Sinvariant;        // basic invariant function
 
     Symbol *Svptr;              // Symbol of vptr
     Symbol *Svtbl;              // Symbol of vtbl[]
-#if VBTABLES
     Symbol *Svbptr;             // Symbol of pointer to vbtbl[]
     Symbol *Svbptr_parent;      // base class for which Svbptr is a member.
                                 // NULL if Svbptr is a member of this class
@@ -1015,7 +998,6 @@ typedef struct STRUCT
     Symbol *Svbtbl;             // virtual base offset table
     baseclass_t *Svbptrbase;    // list of all base classes in canonical
                                 // order that have their own vbtbl[]
-#endif
     Funcsym *Sopeq;             // X& X::operator =(X&)
     Funcsym *Sopeq2;            // Sopeq, but no copy of virtual bases
     Funcsym *Scpct;             // copy constructor
@@ -1191,12 +1173,6 @@ struct Symbol
     const char *prettyIdent;    // the symbol identifer as the user sees it
 #endif
 
-#if ELFOBJ || MACHOBJ
-    long          obj_si;       // Symbol index of coff or elf symbol
-    unsigned long dwarf_off;    // offset into .debug section
-    targ_size_t   code_off;     // rel. offset from start of block where var is initialized
-    targ_size_t   last_off;     // last offset using var
-#endif
 #if TARGET_OSX
     targ_size_t Slocalgotoffset;
 #endif
@@ -1297,12 +1273,7 @@ struct Symbol
     }_SXR;
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-#if SOURCE_4SYMS
-    Srcpos Ssrcpos;             // file position for definition
-#endif
-
-    char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
-                                // (the size is for static Symbols)
+    char Sident[1];             // identifier string (dynamic array)
 
     int needThis();             // !=0 if symbol needs a 'this' pointer
     bool Sisdead(bool anyiasm); // if variable is not referenced
@@ -1387,9 +1358,6 @@ struct PARAM
     PARAM *Pnext;               // next in list
     unsigned Pflags;
     #define PFexplicit  1       // this template argument was explicit, i.e. in < >
-#if SOURCE_4PARAMS
-    Srcpos Psrcpos;             // parameter source definition
-#endif
 
     PARAM *createTal(PARAM *);  // create template-argument-list blank from
                                 // template-parameter-list
@@ -1407,6 +1375,7 @@ struct PARAM
 
 enum FL
 {
+        // Change this, update debug.c too
         FLunde,
         FLconst,        // numerical constant
         FLoper,         // operator node
@@ -1431,13 +1400,13 @@ enum FL
         FLdtor,         // destructed object
         FLregsave,      // ref to saved register on stack, int contains offset
         FLasm,          // (code) an ASM code
-#if TX86
+
         FLndp,          // saved 8087 register
-#endif
-#if TARGET_SEGMENTED
+
+        // Segmented systems
         FLfardata,      // ref to far data segment
         FLcsdata,       // ref to code segment variable
-#endif
+
         FLlocalsize,    // replaced with # of locals in the stack frame
         FLtlsdata,      // thread local storage
         FLbprel,        // ref to variable at fixed offset from frame pointer
@@ -1446,13 +1415,13 @@ enum FL
         FLallocatmp,    // temp for built-in alloca()
         FLstack,        // offset from ESP rather than EBP
         FLdsymbol,      // it's a Dsymbol
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        // Change this, update debug.c too
+
+        // Global Offset Table
         FLgot,          // global offset table entry outside this object file
         FLgotoff,       // global offset table entry inside this object file
-        //FLoncedata,   // link once data
-        //FLoncecode,   // link once code
-#endif
+
+        FLfuncarg,      // argument to upcoming function call
+
         FLMAX
 };
 

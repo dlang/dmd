@@ -18,6 +18,7 @@
 
 #include "root.h"
 #include "stringtable.h"
+#include "rmem.h" // for d_size_t
 
 #include "arraytypes.h"
 #include "expression.h"
@@ -123,6 +124,15 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
+// These tables are for implicit conversion of binary ops;
+// the indices are the type of operand one, followed by operand two.
+extern unsigned char impcnvResult[TMAX][TMAX];
+extern unsigned char impcnvType1[TMAX][TMAX];
+extern unsigned char impcnvType2[TMAX][TMAX];
+
+// If !=0, give warning on implicit conversion
+extern unsigned char impcnvWarn[TMAX][TMAX];
+
 class Type : public RootObject
 {
 public:
@@ -218,15 +228,6 @@ public:
     static Type *basic[TMAX];
     static unsigned char sizeTy[TMAX];
     static StringTable stringtable;
-
-    // These tables are for implicit conversion of binary ops;
-    // the indices are the type of operand one, followed by operand two.
-    static unsigned char impcnvResult[TMAX][TMAX];
-    static unsigned char impcnvType1[TMAX][TMAX];
-    static unsigned char impcnvType2[TMAX][TMAX];
-
-    // If !=0, give warning on implicit conversion
-    static unsigned char impcnvWarn[TMAX][TMAX];
 
     Type(TY ty);
     virtual const char *kind();
@@ -924,12 +925,8 @@ public:
     virtual void accept(Visitor *v) { v->visit(this); }
 
     static Parameters *arraySyntaxCopy(Parameters *parameters);
-    static int isTPL(Parameters *parameters);
     static size_t dim(Parameters *parameters);
-    static Parameter *getNth(Parameters *parameters, size_t nth, size_t *pn = NULL);
-
-    typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
-    static int foreach(Parameters *parameters, ForeachDg dg, void *ctx, size_t *pn=NULL);
+    static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

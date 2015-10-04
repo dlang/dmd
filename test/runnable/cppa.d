@@ -229,13 +229,7 @@ void test11802()
     auto x = new D11802();
     x.x = 0;
     test11802x(x);
-    version(Win64)
-    {
-    }
-    else
-    {
-        assert(x.x == 9);
-    }
+    assert(x.x == 9);
 }
 
 
@@ -751,6 +745,136 @@ void test14200()
 }
 
 /****************************************/
+// check order of overloads in vtable
+
+extern (C++) class Statement {}
+extern (C++) class ErrorStatement {}
+extern (C++) class PeelStatement {}
+extern (C++) class ExpStatement {}
+extern (C++) class DtorExpStatement {}
+
+extern (C++) class Visitor
+{
+public:
+    int visit(Statement) { return 1; }
+    int visit(ErrorStatement) { return 2; }
+    int visit(PeelStatement) { return 3; }
+}
+
+extern (C++) class Visitor2 : Visitor
+{
+    int visit2(ExpStatement) { return 4; }
+    int visit2(DtorExpStatement) { return 5; }
+}
+
+extern(C++) bool testVtableCpp(Visitor2 sv);
+extern(C++) Visitor2 getVisitor2();
+
+bool testVtableD(Visitor2 sv)
+{
+    Statement s1;
+    ErrorStatement s2;
+    PeelStatement s3;
+    ExpStatement s4;
+    DtorExpStatement s5;
+
+    if (sv.visit(s1) != 1) return false;
+    if (sv.visit(s2) != 2) return false;
+    if (sv.visit(s3) != 3) return false;
+    if (sv.visit2(s4) != 4) return false;
+    if (sv.visit2(s5) != 5) return false;
+    return true;
+}
+
+void testVtable()
+{
+    Visitor2 dinst = new Visitor2;
+    if (!testVtableCpp(dinst))
+        assert(0);
+
+    Visitor2 cppinst = getVisitor2();
+    if (!testVtableD(cppinst))
+        assert(0);
+}
+
+/****************************************/
+/* problems detected by fuzzer */
+extern(C++) void fuzz1_cppvararg(long arg10, long arg11, bool arg12);
+extern(C++) void fuzz1_dvararg(long arg10, long arg11, bool arg12)
+{
+    fuzz1_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz1_checkValues(long arg10, long arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz1()
+{
+    long arg10 = 103;
+    long arg11 = 104;
+    bool arg12 = false;
+    fuzz1_dvararg(arg10, arg11, arg12);
+    fuzz1_cppvararg(arg10, arg11, arg12);
+}
+
+////////
+extern(C++) void fuzz2_cppvararg(ulong arg10, ulong arg11, bool arg12);
+extern(C++) void fuzz2_dvararg(ulong arg10, ulong arg11, bool arg12)
+{
+    fuzz2_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz2_checkValues(ulong arg10, ulong arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz2()
+{
+    ulong arg10 = 103;
+    ulong arg11 = 104;
+    bool arg12 = false;
+    fuzz2_dvararg(arg10, arg11, arg12);
+    fuzz2_cppvararg(arg10, arg11, arg12);
+}
+
+////////
+extern(C++) void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12);
+extern(C++) void fuzz3_dvararg(wchar arg10, wchar arg11, bool arg12)
+{
+    fuzz2_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz3()
+{
+    wchar arg10 = 103;
+    wchar arg11 = 104;
+    bool arg12 = false;
+    fuzz3_dvararg(arg10, arg11, arg12);
+    fuzz3_cppvararg(arg10, arg11, arg12);
+}
+
+void fuzz()
+{
+    fuzz1();
+    fuzz2();
+    fuzz3();
+}
+
+/****************************************/
 
 void main()
 {
@@ -781,6 +905,8 @@ void main()
     foo13337(S13337());
     test14195();
     test14200();
+    testVtable();
+    fuzz();
 
     printf("Success\n");
 }

@@ -1706,6 +1706,27 @@ code *cdnot(elem *e,regm_t *pretregs)
         op ^= (OPbool ^ OPnot);                 // switch operators
         goto L2;
     }
+    else if (config.target_cpu >= TARGET_80486 &&
+        tysize(e->Ety) == 1)
+    {
+        int jop = jmpopcode(e->E1);
+        retregs = mPSW;
+        c = codelem(e->E1,&retregs,FALSE);
+        retregs = *pretregs & BYTEREGS;
+        if (!retregs)
+            retregs = BYTEREGS;
+        c1 = allocreg(&retregs,&reg,TYint);
+
+        int iop = 0x0F90 | (jop & 0x0F);        // SETcc rm8
+        if (op == OPnot)
+            iop ^= 1;
+        c1 = gen2(c1,iop,grex | modregrmx(3,0,reg));
+        if (reg >= 4)
+            code_orrex(c1, REX);
+        if (op == OPbool)
+            *pretregs &= ~mPSW;
+        goto L4;
+    }
     else if (sz <= REGSIZE &&
         // NEG bytereg is too expensive
         (sz != 1 || config.target_cpu < TARGET_PentiumPro))
@@ -2900,7 +2921,14 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         else if (sz <= REGSIZE)
         {
-                cs.Iop = 0x8B ^ byte;
+                cs.Iop = 0x8B;                                  // MOV
+                if (sz <= 2 && !I16 &&
+                    config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed)
+                {
+                    cs.Iop = tyuns(tym) ? 0x0FB7 : 0x0FBF;      // MOVZX/MOVSX
+                    cs.Iflags &= ~CFopsize;
+                }
+                cs.Iop ^= byte;
         L2:     code_newreg(&cs,reg);
                 ce = gen(CNIL,&cs);     /* MOV reg,[idx]                */
                 if (byte && reg >= 4)
@@ -4315,13 +4343,9 @@ code *getoffset(elem *e,unsigned reg)
 #endif
     case FLdata:
     case FLudata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
-#endif
-#if TARGET_SEGMENTED
     case FLcsdata:
-#endif
     L4:
         cs.IEVsym2 = e->EV.sp.Vsym;
         cs.IEVoffset2 = e->EV.sp.Voffset;
@@ -4359,27 +4383,6 @@ code *getoffset(elem *e,unsigned reg)
         cs.IFL2 = fl;
         c = gen(c,&cs);
         break;
-
-#if 0 && TARGET_LINUX
-    case FLgot:
-    case FLgotoff:
-        {
-        gotref = 1;
-        symbol *s = e->EV.sp.Vsym;
-        // When using 8B (MOV), indicating that rm is used
-        // rm operands are always placed in IEV1 not IEV2
-        cs.IEVsym1 = s;
-        cs.IEVoffset1 = e->EV.sp.Voffset;
-        cs.Irm = modregrm(2,reg,BX);    // reg,disp32[EBX]
-        cs.IFL1 = fl;
-        cs.Iop = (fl == FLgotoff)
-                ? 0x8D                  // LEA reg, s[EBX]
-                : 0x8B;                 // MOV reg, s[EBX]
-        cs.Iflags = CFoff;              // want offset only
-        c = gen(NULL,&cs);
-        break;
-        }
-#endif
 
     case FLreg:
         /* Allow this since the tree optimizer puts & in front of       */
@@ -4490,6 +4493,7 @@ code *cdneg(elem *e,regm_t *pretregs)
         c = gen2(CNIL,0xF7,modregrm(3,3,msreg)); /* NEG msreg           */
         lsreg = findreglsw(retregs);
         gen2(c,0xF7,modregrm(3,3,lsreg));       /* NEG lsreg            */
+        code_orflag(c, CFpsw);                  // need flag result of previous NEG
         genc2(c,0x81,modregrm(3,3,msreg),0);    /* SBB msreg,0          */
   }
   else
@@ -5247,29 +5251,6 @@ code *cdhalt(elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     return gen1(NULL, 0xF4);            // HLT
-}
-
-/****************************************
- * Check to see if pointer is NULL.
- */
-
-code *cdnullcheck(elem *e,regm_t *pretregs)
-{   regm_t retregs;
-    regm_t scratch;
-    unsigned reg;
-    code *c;
-    code *cs;
-
-    assert(!I16);
-    retregs = *pretregs;
-    if ((retregs & allregs) == 0)
-        retregs |= allregs;
-    c = codelem(e->E1,&retregs,FALSE);
-    scratch = allregs & ~retregs;
-    cs = allocreg(&scratch,&reg,TYint);
-    unsigned rex = I64 ? REX_W : 0;
-    cs = genc1(cs,0x8B,(rex << 16) | buildModregrm(2,reg,findreg(retregs)),FLconst,0); // MOV reg,0[e]
-    return cat3(c,cs,fixresult(e,retregs,pretregs));
 }
 
 #endif // !SPP

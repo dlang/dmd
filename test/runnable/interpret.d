@@ -3324,6 +3324,77 @@ void test113()
 }
 
 /************************************************/
+// 14140
+
+struct S14140
+{
+    union
+    {
+        float[3][1] A;
+        float[3] flat;
+    }
+
+    this(in float[] args...)
+    {
+        flat[] = args[];
+    }
+}
+
+class C14140
+{
+    union
+    {
+        float[3][1] A;
+        float[3] flat;
+    }
+
+    this(in float[] args...)
+    {
+        flat[] = args[];
+    }
+}
+
+immutable s14140 = S14140(0, 1, 0);
+const c14140 = new C14140(0, 1, 0);
+
+void test14140()
+{
+    auto s = s14140;
+    assert(s.flat == [0, 1, 0]);
+
+    auto c = c14140;
+    assert(c.flat == [0, 1, 0]);
+}
+
+/************************************************/
+// 14862
+
+struct S14862
+{
+    union
+    {
+        struct { uint hi, lo; }
+        ulong data;
+    }
+
+    this(ulong data)
+    {
+        this.data = data;
+    }
+}
+
+void test14862()
+{
+           S14862 s14862 = S14862(123UL);
+      enum S14862 e14862 = S14862(123UL);
+    static S14862 g14862 = S14862(123UL);
+
+    assert(s14862.data == 123UL);   // OK
+    assert(e14862.data == 123UL);   // OK
+    assert(g14862.data == 123UL);   // OK <- fail
+}
+
+/************************************************/
 
 int main()
 {
@@ -3443,6 +3514,8 @@ int main()
     test8818();
     test9023();
     test9954();
+    test14140();
+    test14862();
 
     printf("Success\n");
     return 0;

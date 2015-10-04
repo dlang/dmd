@@ -189,6 +189,7 @@ Loop:
         case OPandass:
         case OPxorass:
         case OPorass:
+        case OPcmpxchg:
             if (ERTOL(e))
             {   local_exp(e->E2,1);
         case OPnegass:
@@ -217,7 +218,7 @@ Loop:
                            )
                         {   // Change (x += a),(x += b) to
                             // (x + a),(x += a + b)
-                            changes++;
+                            go.changes++;
                             e->E2 = el_bin(opeqtoop(op),e->E2->Ety,em->E2,e->E2);
                             em->Eoper = opeqtoop(op);
                             em->E2 = el_copytree(em->E2);
@@ -273,17 +274,9 @@ Loop:
             local_ambigref();
             break;
 
-        case OPnewarray:
-        case OPmultinewarray:
-            local_exp(e->E1,1);
-            local_exp(e->E2,1);
-            goto Lrd;
-
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:
-        case OParray:
-        case OPfield:
             local_exp(e->E1,1);
             local_exp(e->E2,1);
             local_ambigref();
@@ -356,7 +349,7 @@ Loop:
                                     dbg_printf(";\n");
                                 }
 #endif
-                                changes++;
+                                go.changes++;
                                 em->Ety = e->Ety;
                                 el_copy(e,em);
                                 em->E1 = em->E2 = NULL;
@@ -561,6 +554,7 @@ STATIC int local_getflags(elem *e,symbol *s)
             case OPandass:
             case OPxorass:
             case OPorass:
+            case OPcmpxchg:
                 if (e->E1->Eoper == OPvar)
                 {   symbol *s1;
 
@@ -582,8 +576,6 @@ STATIC int local_getflags(elem *e,symbol *s)
             case OPucallns:
             case OPcall:
             case OPcallns:
-            case OPnewarray:
-            case OPmultinewarray:
             case OPstrcat:
             case OPstrcpy:
             case OPmemcpy:
@@ -606,8 +598,6 @@ STATIC int local_getflags(elem *e,symbol *s)
                 break;
 
             case OPind:
-            case OParray:
-            case OPfield:
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:

@@ -71,21 +71,21 @@ void builddags()
         cmes("builddags()\n");
         assert(dfo);
         flowae();                       /* compute available expressions */
-        if (exptop <= 1)                /* if no AEs                    */
+        if (go.exptop <= 1)                /* if no AEs                    */
                 return;
         aetype = AEcse;
 #ifdef DEBUG
-        for (i = 0; i < exptop; i++)
+        for (i = 0; i < go.exptop; i++)
         {
-            //dbg_printf("expnod[%d] = %p\n",i,expnod[i]);
-            if (expnod[i])
-                elem_debug(expnod[i]);
+            //dbg_printf("go.expnod[%d] = %p\n",i,go.expnod[i]);
+            if (go.expnod[i])
+                elem_debug(go.expnod[i]);
         }
 #endif
 #if 0
-        dbg_printf("defkill  "); vec_println(defkill,exptop);
-        dbg_printf("starkill "); vec_println(starkill,exptop);
-        dbg_printf("vptrkill "); vec_println(vptrkill,exptop);
+        dbg_printf("defkill  "); vec_println(go.defkill,go.exptop);
+        dbg_printf("starkill "); vec_println(go.starkill,go.exptop);
+        dbg_printf("vptrkill "); vec_println(go.vptrkill,go.exptop);
 #endif
 
 #if 0
@@ -99,17 +99,17 @@ void builddags()
                 {
 #if 0
                         dbg_printf("dfo[%d] = %p\n",i,b);
-                        dbg_printf("b->Bin   "); vec_println(b->Bin,exptop);
-                        dbg_printf("b->Bout  "); vec_println(b->Bout,exptop);
+                        dbg_printf("b->Bin   "); vec_println(b->Bin,go.exptop);
+                        dbg_printf("b->Bout  "); vec_println(b->Bout,go.exptop);
                         aewalk(&(b->Belem),b->Bin);
-                        dbg_printf("b->Bin   "); vec_println(b->Bin,exptop);
-                        dbg_printf("b->Bout  "); vec_println(b->Bout,exptop);
+                        dbg_printf("b->Bin   "); vec_println(b->Bin,go.exptop);
+                        dbg_printf("b->Bout  "); vec_println(b->Bout,go.exptop);
 #else
                         aewalk(&(b->Belem),b->Bin);
 #endif
                         /* Bin and Bout would be equal at this point    */
                         /* except that we deleted some elems from       */
-                        /* expnod[] and so it's a subset of Bout        */
+                        /* go.expnod[] and so it's a subset of Bout        */
                         /* assert(veceq(b->Bin,b->Bout));               */
                 }
         }
@@ -117,7 +117,7 @@ void builddags()
         /* Do CSEs across extended basic blocks only. This is because   */
         /* the code generator can only track register contents          */
         /* properly across extended basic blocks.                       */
-        aevec = vec_calloc(exptop);
+        aevec = vec_calloc(go.exptop);
         for (i = 0; i < dfotop; i++)
         {       block *b;
 
@@ -171,7 +171,7 @@ STATIC void aeclear(elem *n,vec_t ae)
     assert(i);
     if (n->Ecount == 0)
     {
-        expnod[i] = 0;
+        go.expnod[i] = 0;
         vec_clearbit(i,ae);
         if (EUNA(n))
             aeclear(n->E1,ae);
@@ -195,15 +195,15 @@ STATIC void aewalk(elem **pn,vec_t ae)
         n = *pn;
         assert(n && ae);
         //printf("visiting  %d: (",n->Eexp); WReqn(*pn); dbg_printf(")\n");
-        //chkvecdim(exptop);
+        //chkvecdim(go.exptop);
         op = n->Eoper;
         if (n->Eexp)                            // if an AE
         {   // Try to find an equivalent AE, and point to it instead
-            assert(expnod[n->Eexp] == n);
+            assert(go.expnod[n->Eexp] == n);
             if (aetype == AEcse)
             {
-                foreach (i,exptop,ae)
-                {   elem *e = expnod[i];
+                foreach (i,go.exptop,ae)
+                {   elem *e = go.expnod[i];
 
                     // Attempt to replace n with e
                     if (e == NULL)              // if elem no longer exists
@@ -303,9 +303,9 @@ STATIC void aewalk(elem **pn,vec_t ae)
                         assert(t->Eoper == OPvar);
                         s = t->EV.sp.Vsym;
                         if (!(s->Sflags & SFLunambig))
-                                vec_subass(ae,starkill);
-                        foreach (i,exptop,ae)   /* for each ae elem     */
-                        {       elem *e = expnod[i];
+                                vec_subass(ae,go.starkill);
+                        foreach (i,go.exptop,ae)   /* for each ae elem     */
+                        {       elem *e = go.expnod[i];
 
                                 if (!e) continue;
                                 if (OTunary(e->Eoper))
@@ -330,9 +330,9 @@ STATIC void aewalk(elem **pn,vec_t ae)
                 }
                 else                    /* else ambiguous definition    */
                 {
-                    vec_subass(ae,defkill);
+                    vec_subass(ae,go.defkill);
                     if (OTcalldef(op))
-                        vec_subass(ae,vptrkill);
+                        vec_subass(ae,go.vptrkill);
                 }
 
                 // GEN the lvalue of an assignment operator
@@ -344,7 +344,7 @@ STATIC void aewalk(elem **pn,vec_t ae)
 #if TARGET_SEGMENTED
             if (op == OPvp_fp || op == OPcvp_fp)
                 /* Invalidate all other OPvp_fps     */
-                vec_subass(ae,vptrkill);
+                vec_subass(ae,go.vptrkill);
 #endif
 
             /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");
@@ -416,10 +416,6 @@ STATIC elem * delcse(elem **pe)
 #endif
         (*pe)->Nflags |= NFLdelcse;     // not generating node
         e->Ecount = 0;
-#if FLOATS_IN_CODE
-        if (FLT_CODESEG_CELEM(e))
-            flt_record_const(e);
-#endif
         *pe = e;
         return *pe;
 }
@@ -578,25 +574,25 @@ void boolopt()
         if (!dfo)
             compdfo();
         flowae();                       /* compute available expressions */
-        if (exptop <= 1)                /* if no AEs                    */
+        if (go.exptop <= 1)                /* if no AEs                    */
                 return;
 #if 0
-        for (i = 0; i < exptop; i++)
-                dbg_printf("expnod[%d] = 0x%x\n",i,expnod[i]);
-        dbg_printf("defkill  "); vec_println(defkill,exptop);
-        dbg_printf("starkill "); vec_println(starkill,exptop);
-        dbg_printf("vptrkill "); vec_println(vptrkill,exptop);
+        for (i = 0; i < go.exptop; i++)
+                dbg_printf("go.expnod[%d] = 0x%x\n",i,go.expnod[i]);
+        dbg_printf("defkill  "); vec_println(go.defkill,go.exptop);
+        dbg_printf("starkill "); vec_println(go.starkill,go.exptop);
+        dbg_printf("vptrkill "); vec_println(go.vptrkill,go.exptop);
 #endif
 
         /* Do CSEs across extended basic blocks only. This is because   */
         /* the code generator can only track register contents          */
         /* properly across extended basic blocks.                       */
-        aevec = vec_calloc(exptop);
-        aevecval = vec_calloc(exptop);
+        aevec = vec_calloc(go.exptop);
+        aevecval = vec_calloc(go.exptop);
 
         // Mark each expression that we know starts off with a non-zero value
-        for (i = 0; i < exptop; i++)
-        {   elem *e = expnod[i];
+        for (i = 0; i < go.exptop; i++)
+        {   elem *e = go.expnod[i];
 
             if (e)
             {   elem_debug(e);
@@ -653,7 +649,7 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
     assert(n && ae);
     elem_debug(n);
     /*dbg_printf("visiting: ("); WReqn(*pn); dbg_printf("), Eexp = %d\n",n->Eexp);*/
-    /*chkvecdim(exptop);*/
+    /*chkvecdim(go.exptop);*/
     op = n->Eoper;
     switch (op)
     {
@@ -792,9 +788,9 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
                 assert(t->Eoper == OPvar);
                 s = t->EV.sp.Vsym;
                 if (!(s->Sflags & SFLunambig))
-                        vec_subass(ae,starkill);
-                foreach (i,exptop,ae)   /* for each ae elem     */
-                {       elem *e = expnod[i];
+                        vec_subass(ae,go.starkill);
+                foreach (i,go.exptop,ae)   /* for each ae elem     */
+                {       elem *e = go.expnod[i];
 
                         if (!e) continue;
                         if (el_appears(e,s))
@@ -803,9 +799,9 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
         }
         else                    /* else ambiguous definition    */
         {
-            vec_subass(ae,defkill);
+            vec_subass(ae,go.defkill);
             if (OTcalldef(op))
-                vec_subass(ae,vptrkill);
+                vec_subass(ae,go.vptrkill);
         }
         /* GEN the lvalue of an assignment operator     */
         if (op == OPeq && (i1 = t->Eexp) != 0 && (i2 = n->E2->Eexp) != 0)
@@ -825,7 +821,7 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
 #if TARGET_SEGMENTED
         if (op == OPvp_fp || op == OPcvp_fp)
             /* Invalidate all other OPvp_fps */
-            vec_subass(ae,vptrkill);
+            vec_subass(ae,go.vptrkill);
 #endif
 
         /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");
@@ -841,17 +837,17 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
 
 STATIC void abeboolres(elem *n,vec_t ae,vec_t aeval)
 {
-    //printf("abeboolres()[%d %p] ", n->Eexp, expnod[n->Eexp]); WReqn(n); printf("\n");
+    //printf("abeboolres()[%d %p] ", n->Eexp, go.expnod[n->Eexp]); WReqn(n); printf("\n");
     elem_debug(n);
-    if (n->Eexp && expnod[n->Eexp])
+    if (n->Eexp && go.expnod[n->Eexp])
     {   /* Try to find an equivalent AE, and point to it instead */
-        assert(expnod[n->Eexp] == n);
+        assert(go.expnod[n->Eexp] == n);
         unsigned i;
-        foreach (i,exptop,ae)
-        {   elem *e = expnod[i];
+        foreach (i,go.exptop,ae)
+        {   elem *e = go.expnod[i];
 
             // Attempt to replace n with the boolean result of e
-            //printf("Looking at expnod[%d] = %p\n",i,e);
+            //printf("Looking at go.expnod[%d] = %p\n",i,e);
             assert(e);
             elem_debug(e);
             if (n != e && el_match(n,e))
@@ -867,7 +863,7 @@ STATIC void abeboolres(elem *n,vec_t ae,vec_t aeval)
                 n->EV.Vlong = vec_testbit(i,aeval) != 0;
                 n->Eoper = OPconst;
                 n->Ety = TYint;
-                changes++;
+                go.changes++;
                 break;
             }
         }
@@ -883,7 +879,7 @@ STATIC void abefree(elem *e,vec_t ae)
     //printf("abefree [%d %p]: ", e->Eexp, e); WReqn(e); dbg_printf("\n");
     assert(e->Eexp);
     vec_clearbit(e->Eexp,ae);
-    expnod[e->Eexp] = NULL;
+    go.expnod[e->Eexp] = NULL;
     if (EOP(e))
     {   if (EBIN(e))
         {   abefree(e->E2,ae);
@@ -906,9 +902,9 @@ STATIC void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
     while (1)
     {
         unsigned i = e->Eexp;
-        if (i && expnod[i])
+        if (i && go.expnod[i])
         {
-            //printf("abeset for expnod[%d] = %p: ",i,e); WReqn(e); dbg_printf("\n");
+            //printf("abeset for go.expnod[%d] = %p: ",i,e); WReqn(e); dbg_printf("\n");
             vec_setbit(i,ae);
             if (flag)
                 vec_setbit(i,aeval);

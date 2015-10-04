@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -75,11 +75,23 @@ union evc
 
 /********************** PUBLIC FUNCTIONS *******************/
 
-code *code_calloc(void);
+code *code_calloc();
 void code_free (code *);
-void code_term(void);
+void code_term();
 
 #define code_next(c)    ((c)->next)
+
+code *code_chunk_alloc();
+extern code *code_list;
+inline code *code_malloc()
+{
+    //printf("code %d\n", sizeof(code));
+    code *c = code_list ? code_list : code_chunk_alloc();
+    code_list = code_next(c);
+    //printf("code_malloc: %p\n",c);
+    return c;
+}
+
 
 extern con_t regcon;
 
@@ -89,7 +101,6 @@ extern con_t regcon;
  *      CSEpe           pointer to saved elem
  *      CSEregm         mask of register that was saved (so for multi-
  *                      register variables we know which part we have)
- *      cstop =         # of entries in table
  */
 
 struct CSE
@@ -155,7 +166,7 @@ extern unsigned usednteh;
 #define NTEHcpp         (NTEHexcspec | NTEHcleanup | NTEHtry)
 #define EHcleanup       0x20
 #define EHtry           0x40
-#define NTEHjmonitor    0x80    // uses Jupiter monitor
+#define NTEHjmonitor    0x80    // uses Mars monitor
 #define NTEHpassthru    0x100
 
 /********************** Code Generator State ***************/
@@ -163,6 +174,13 @@ extern unsigned usednteh;
 typedef struct CGstate
 {
     int stackclean;     // if != 0, then clean the stack after function call
+
+    LocalSection funcarg;       // where function arguments are placed
+    targ_size_t funcargtos;     // current high water level of arguments being moved onto
+                                // the funcarg section. It is filled from top to bottom,
+                                // as if they were 'pushed' on the stack.
+                                // Special case: if funcargtos==~0, then no
+                                // arguments are there.
 } CGstate;
 
 extern CGstate cgstate;
@@ -178,7 +196,7 @@ extern  regm_t FLOATREGS;
 extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
 extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
-extern  char needframe,usedalloca,gotref;
+extern  char needframe,gotref;
 extern  targ_size_t localsize,
         funcoffset,
         framehandleroffset;
@@ -188,6 +206,7 @@ extern  LocalSection Para;
 extern  LocalSection Fast;
 extern  LocalSection Auto;
 extern  LocalSection EEStack;
+extern  LocalSection Alloca;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -200,7 +219,6 @@ extern int pass;
 
 extern  int dfoidx;
 extern  struct CSE *csextab;
-extern  unsigned cstop;
 #if TX86
 extern  bool floatreg;
 #endif
@@ -271,7 +289,7 @@ code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
 cd_t cdfunc;
 cd_t cdstrthis;
-code *params(elem *, unsigned);
+code *pushParams(elem *, unsigned);
 code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
 
@@ -309,6 +327,7 @@ code *getoffset (elem *e , unsigned reg );
 cd_t cdneg;
 cd_t cdabs;
 cd_t cdpost;
+cd_t cdcmpxchg;
 cd_t cderr;
 cd_t cdinfo;
 cd_t cddctor;
@@ -316,7 +335,6 @@ cd_t cdddtor;
 cd_t cdctor;
 cd_t cddtor;
 cd_t cdmark;
-cd_t cdnullcheck;
 cd_t cdclassinit;
 
 /* cod3.c */
@@ -383,9 +401,10 @@ extern targ_size_t spoff;
 extern targ_size_t Foff;        // BP offset of floating register
 extern targ_size_t CSoff;       // offset of common sub expressions
 extern targ_size_t NDPoff;      // offset of saved 8087 registers
-extern int BPoff;                      // offset from BP
+extern targ_size_t pushoff;     // offset of saved registers
+extern bool pushoffuse;         // using pushoff
+extern int BPoff;               // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
-extern int AllocaOff;               // offset of alloca temporary
 
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
@@ -395,6 +414,7 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
 code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
 code* prolog_setupalloca();
 code* prolog_saveregs(code *c, regm_t topush);
+code* epilog_restoreregs(code *c, regm_t topop);
 code* prolog_trace(bool farfunc, unsigned* regsaved);
 code* prolog_gen_win64_varargs();
 code* prolog_genvarargs(symbol* sv, regm_t* namedargs);
@@ -606,8 +626,6 @@ struct seg_data
 
 
 
-#if 1 //ELFOBJ || MACHOBJ
-
 struct linnum_data
 {
     const char *filename;
@@ -618,7 +636,6 @@ struct linnum_data
     unsigned (*linoff)[2];      // [0] = line number, [1] = offset
 };
 
-#endif
 
 extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset

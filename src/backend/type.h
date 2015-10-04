@@ -9,7 +9,7 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
@@ -70,9 +70,6 @@ struct TYPE
     list_t Texcspec;            // tyfunc(): list of types of exception specification
 #if 0
     unsigned short Tstabidx;    // Index into stab types
-#endif
-#if SOURCE_4TYPES
-    Srcpos Tsrcpos;             /* position of type definition */
 #endif
 #if HTOD
     Symbol *Ttypedef;           // if this type came from a typedef, this is
@@ -206,10 +203,10 @@ int typematch(type *t1, type *t2, int relax);
 
 type *type_pointer(type *tnext);
 type *type_dyn_array(type *tnext);
-type *type_static_array(unsigned long long dim, type *tnext);
+extern "C" type *type_static_array(targ_size_t dim, type *tnext);
 type *type_assoc_array(type *tkey, type *tvalue);
 type *type_delegate(type *tnext);
-type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
+extern "C" type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
 type *type_enum(const char *name, type *tbase);
 type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);

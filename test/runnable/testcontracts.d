@@ -357,6 +357,40 @@ class Foo5204 : IFoo5204
 }
 
 /*******************************************/
+// 6417
+
+class Bug6417
+{
+    void bar()
+    in
+    {
+        int i = 14;
+        assert(i == 14);
+        auto dg = (){
+            //printf("in: i = %d\n", i);
+            assert(i == 14, "in contract failure");
+        };
+        dg();
+    }
+    out
+    {
+        int j = 10;
+        assert(j == 10);
+        auto dg = (){
+            //printf("out: j = %d\n", j);
+            assert(j == 10, "out contract failure");
+        };
+        dg();
+    }
+    body {}
+}
+
+void test6417()
+{
+    (new Bug6417).bar();
+}
+
+/*******************************************/
 // 7218
 
 void test7218()
@@ -578,6 +612,92 @@ void test8093()
 }
 
 /*******************************************/
+// 9383
+
+class A9383
+{
+    static void delegate() dg;
+    static int val;
+
+    void failInBase() { assert(typeid(this) is typeid(A9383)); }
+
+    // in-contract tests
+    void foo1(int i) in  { A9383.val = i; failInBase; } body { }                        // no closure
+    void foo2(int i) in  { A9383.val = i; failInBase; } body { int x; dg = { ++x; }; }  // closure [local]
+    void foo3(int i) in  { A9383.val = i; failInBase; } body {        dg = { ++i; }; }  // closure [parameter]
+    void foo4(int i) in  { A9383.val = i; failInBase; } body { }                        // no closure
+    void foo5(int i) in  { A9383.val = i; failInBase; } body { }                        // no closure
+    void foo6(int i) in  { A9383.val = i; failInBase; } body { int x; dg = { ++x; }; }  // closure [local]
+    void foo7(int i) in  { A9383.val = i; failInBase; } body {        dg = { ++i; }; }  // closure [parameter]
+
+    // out-contract tests
+    void bar1(int i) out { A9383.val = i;             } body { }                        // no closure
+    void bar2(int i) out { A9383.val = i;             } body { int x; dg = { ++x; }; }  // closure [local]
+    void bar3(int i) out { A9383.val = i;             } body {        dg = { ++i; }; }  // closure [parameter]
+    void bar4(int i) out { A9383.val = i;             } body { }                        // no closure
+    void bar5(int i) out { A9383.val = i;             } body { }                        // no closure
+    void bar6(int i) out { A9383.val = i;             } body { int x; dg = { ++x; }; }  // closure [local]
+    void bar7(int i) out { A9383.val = i;             } body {        dg = { ++i; }; }  // closure [parameter]
+}
+
+class B9383 : A9383
+{
+    static int val;
+
+    // in-contract tests
+    override void foo1(int i) in  { B9383.val = i; } body { }                           // -> no closure
+    override void foo2(int i) in  { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void foo3(int i) in  { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter]
+    override void foo4(int i) in  { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void foo5(int i) in  { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter] appears
+    override void foo6(int i) in  { B9383.val = i; } body { }                           // -> closure [local] disappears
+    override void foo7(int i) in  { B9383.val = i; } body { }                           // -> closure [parameter] disappears
+
+    // out-contract tests
+    override void bar1(int i) out { B9383.val = i; } body { }                           // -> no closure
+    override void bar2(int i) out { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void bar3(int i) out { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter]
+    override void bar4(int i) out { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void bar5(int i) out { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter] appears
+    override void bar6(int i) out { B9383.val = i; } body { }                           // -> closure [local] disappears
+    override void bar7(int i) out { B9383.val = i; } body { }                           // -> closure [parameter] disappears
+}
+
+void test9383()
+{
+    auto a = new A9383();
+    auto b = new B9383();
+
+    // base class in-contract is used from derived class.       // base                   derived
+    b.foo1(101); assert(A9383.val == 101 && B9383.val == 101);  // no closure          -> no closure
+    b.foo2(102); assert(A9383.val == 102 && B9383.val == 102);  // closure [local]     -> closure [local] appears
+    b.foo3(103); assert(A9383.val == 103 && B9383.val == 103);  // closure [parameter] -> closure [parameter]
+    b.foo4(104); assert(A9383.val == 104 && B9383.val == 104);  // no closure          -> closure [local] appears
+    b.foo5(105); assert(A9383.val == 105 && B9383.val == 105);  // no closure          -> closure [parameter] appears
+    b.foo6(106); assert(A9383.val == 106 && B9383.val == 106);  // closure [local]     -> closure [local] disappears
+    b.foo7(107); assert(A9383.val == 107 && B9383.val == 107);  // closure [parameter] -> closure [parameter] disappears
+
+    // base class out-contract is used from derived class.      // base                   derived
+    b.bar1(101); assert(A9383.val == 101 && B9383.val == 101);  // no closure          -> no closure
+    b.bar2(102); assert(A9383.val == 102 && B9383.val == 102);  // closure [local]     -> closure [local] appears
+    b.bar3(103); assert(A9383.val == 103 && B9383.val == 103);  // closure [parameter] -> closure [parameter]
+    b.bar4(104); assert(A9383.val == 104 && B9383.val == 104);  // no closure          -> closure [local] appears
+    b.bar5(105); assert(A9383.val == 105 && B9383.val == 105);  // no closure          -> closure [parameter] appears
+    b.bar6(106); assert(A9383.val == 106 && B9383.val == 106);  // closure [local]     -> closure [local] disappears
+    b.bar7(107); assert(A9383.val == 107 && B9383.val == 107);  // closure [parameter] -> closure [parameter] disappears
+
+    // in-contract in base class.
+    a.foo1(101); assert(A9383.val == 101);      // no closure
+    a.foo2(102); assert(A9383.val == 102);      // closure [local]
+    a.foo3(103); assert(A9383.val == 103);      // closure [parameter]
+
+    // out-contract in base class.
+    a.bar1(101); assert(A9383.val == 101);      // no closure
+    a.bar2(102); assert(A9383.val == 102);      // closure [local]
+    a.bar3(103); assert(A9383.val == 103);      // closure [parameter]
+}
+
+/*******************************************/
 // 10479
 
 class B10479
@@ -634,6 +754,25 @@ class C10981
 }
 
 /*******************************************/
+// 14779
+
+class C14779
+{
+    final void foo(int v)
+    in  { assert(v == 0); }
+    out { assert(v == 0); }
+    body
+    {
+    }
+}
+
+void test14779()
+{
+    auto c = new C14779();
+    c.foo(0);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -647,9 +786,12 @@ int main()
     test8();
     test9();
     test4785();
+    test6417();
     test7218();
     test8073();
     test8093();
+    test9383();
+    test14779();
 
     printf("Success\n");
     return 0;

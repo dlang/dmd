@@ -1119,6 +1119,28 @@ void test13879()
 }
 
 /***************************************************/
+// 14745
+
+void test14745()
+{
+    // qualified nested functions
+    auto foo1() pure immutable { return 0; }
+    auto foo2() pure const { return 0; }
+
+    // qualified lambdas (== implicitly marked as delegate literals)
+    auto lambda1 = () pure immutable { return 0; };
+    auto lambda2 = () pure const { return 0; };
+    static assert(is(typeof(lambda1) : typeof(&foo1)));
+    static assert(is(typeof(lambda2) : typeof(&foo2)));
+
+    // qualified delegate literals
+    auto dg1 = delegate () pure immutable { return 0; };
+    auto dg2 = delegate () pure const { return 0; };
+    static assert(is(typeof(dg1) : typeof(&foo1)));
+    static assert(is(typeof(dg2) : typeof(&foo2)));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1173,6 +1195,7 @@ int main()
     test11774();
     test12508();
     test13879();
+    test14745();
 
     printf("Success\n");
     return 0;

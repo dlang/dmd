@@ -53,7 +53,7 @@ symbol *except_gentables()
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
-        if (usedalloca)
+        if (Alloca.size)
             error(NULL, 0, 0, "cannot mix core.std.stdlib.alloca() and exception handling in %s()", funcsym_p->Sident);
 
         char name[13+5+1];
@@ -361,7 +361,7 @@ void except_fillInEHTable(symbol *s)
             {
                 block *bcatch = b->nthSucc(i);
 
-                pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
+                pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYnptr);
 
                 pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 

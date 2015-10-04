@@ -249,14 +249,14 @@ unsigned nteh_contextsym_size()
 #else
         assert(0);
 #endif
-        assert(usedalloca != 1);
     }
     else if (usednteh & NTEHcpp)
-    {   sz = 5 * 4;                     // C++ context record
-        assert(usedalloca != 1);
+    {
+        sz = 5 * 4;                     // C++ context record
     }
     else if (usednteh & NTEHpassthru)
-    {   sz = 1 * 4;
+    {
+        sz = 1 * 4;
     }
     else
         sz = 0;                         // no context record
@@ -362,21 +362,21 @@ code *nteh_prolog()
         c1 = gen(c1,&cs);                       // PUSH &scope_table
 
         cs.IFL2 = FLextern;
-        cs.IEVsym2 = rtlsym[RTLSYM_EXCEPT_HANDLER3];
-        makeitextern(rtlsym[RTLSYM_EXCEPT_HANDLER3]);
+        cs.IEVsym2 = getRtlsym(RTLSYM_EXCEPT_HANDLER3);
+        makeitextern(getRtlsym(RTLSYM_EXCEPT_HANDLER3));
     }
     c = gen(NULL,&cs);                          // PUSH &__except_handler3
 
     if (config.exe == EX_NT)
     {
-        makeitextern(rtlsym[RTLSYM_EXCEPT_LIST]);
+        makeitextern(getRtlsym(RTLSYM_EXCEPT_LIST));
     #if 0
         cs.Iop = 0xFF;
         cs.Irm = modregrm(0,6,BPRM);
         cs.Iflags = CFfs;
         cs.Irex = 0;
         cs.IFL1 = FLextern;
-        cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+        cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
         cs.IEVoffset1 = 0;
         gen(c,&cs);                             // PUSH FS:__except_list
     #else
@@ -386,7 +386,7 @@ code *nteh_prolog()
         cs.Iflags = CFfs;
         cs.Irex = 0;
         cs.IFL1 = FLextern;
-        cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+        cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
         cs.IEVoffset1 = 0;
         gen(c1,&cs);                            // MOV EDX,FS:__except_list
 
@@ -439,7 +439,7 @@ code *nteh_epilog()
     cs.Irm = modregrm(0,reg,BPRM);
     cs.Iflags |= CFfs;
     cs.IFL1 = FLextern;
-    cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+    cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
     cs.IEVoffset1 = 0;
     return gen(c,&cs);
 }
@@ -508,8 +508,7 @@ code *nteh_filter(block *b)
  */
 
 void nteh_framehandler(symbol *scopetable)
-{   code *c;
-
+{
     // Generate:
     //  MOV     EAX,&scope_table
     //  JMP     __cpp_framehandler
@@ -517,8 +516,12 @@ void nteh_framehandler(symbol *scopetable)
     if (scopetable)
     {
         symbol_debug(scopetable);
-        c = gencs(NULL,0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
-        gencs(c,0xE9,0,FLfunc,rtlsym[RTLSYM_CPP_HANDLER]);      // JMP __cpp_framehandler
+        code *c = gencs(NULL,0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
+#if MARS
+        gencs(c,0xE9,0,FLfunc,getRtlsym(RTLSYM_D_HANDLER));      // JMP _d_framehandler
+#else
+        gencs(c,0xE9,0,FLfunc,getRtlsym(RTLSYM_CPP_HANDLER));    // JMP __cpp_framehandler
+#endif
 
         pinholeopt(c,NULL);
         codout(c);
@@ -600,7 +603,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
         cs.Iflags = CFoff;
         cs.Irex = 0;
         cs.IFL2 = FLextern;
-        cs.IEVsym2 = rtlsym[RTLSYM_CPP_LONGJMP];
+        cs.IEVsym2 = getRtlsym(RTLSYM_CPP_LONGJMP);
         cs.IEVoffset2 = 0;
         c = gen(c,&cs);                         // PUSH &_cpp_longjmp_unwind
         stackpush += 4;
@@ -641,7 +644,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
         cs.Iflags = CFoff;
         cs.Irex = 0;
         cs.IFL2 = FLextern;
-        cs.IEVsym2 = rtlsym[RTLSYM_LONGJMP];
+        cs.IEVsym2 = getRtlsym(RTLSYM_LONGJMP);
         cs.IEVoffset2 = 0;
         c = gen(c,&cs);                 // PUSH &_seh_longjmp_unwind
         stackpush += 4;
@@ -668,10 +671,10 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
     stackpush += 4;
     genadjesp(c,4);
 
-    c = cat(c,params(e->E1,REGSIZE));
+    c = cat(c,pushParams(e->E1,REGSIZE));
 
-    c = cat(c,getregs(~rtlsym[RTLSYM_SETJMP3]->Sregsaved & (ALLREGS | mES)));
-    gencs(c,0xE8,0,FLfunc,rtlsym[RTLSYM_SETJMP3]);      // CALL __setjmp3
+    c = cat(c,getregs(~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES)));
+    gencs(c,0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3
 
     c = cod3_stackadj(c, -(stackpush - stackpushsave));
     genadjesp(c,-(stackpush - stackpushsave));
@@ -707,7 +710,7 @@ code *nteh_unwind(regm_t retregs,unsigned index)
 #else
     local_unwind = RTLSYM_LOCAL_UNWIND2;
 #endif
-    desregs = (~rtlsym[local_unwind]->Sregsaved & (ALLREGS)) | mask[reg];
+    desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
     c = getregs(desregs);
@@ -728,10 +731,10 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     //gencs(c,0xB8+AX,0,FLextern,nteh_scopetable());    // MOV EAX,&scope_table
     gencs(c,0x68,0,FLextern,nteh_scopetable());         // PUSH &scope_table
 
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __d_local_unwind2()
+    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
     cod3_stackadj(c, -12);
 #else
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __local_unwind2()
+    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
     cod3_stackadj(c, -8);
 #endif
 
@@ -767,7 +770,7 @@ code *linux_unwind(regm_t retregs,unsigned index)
 #else
     local_unwind = RTLSYM_LOCAL_UNWIND2;
 #endif
-    desregs = (~rtlsym[local_unwind]->Sregsaved & (ALLREGS)) | mask[reg];
+    desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
     c = getregs(desregs);
@@ -776,10 +779,10 @@ code *linux_unwind(regm_t retregs,unsigned index)
 #if MARS
 //    gencs(c,0x68,0,FLextern,nteh_scopetable());               // PUSH &scope_table
 
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __d_local_unwind2()
+    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
     cod3_stackadj(c, -4);
 #else
-    gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __local_unwind2()
+    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
     cod3_stackadj(c, -8);
 #endif
 
@@ -831,7 +834,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
 #endif
     }
 
-    s = rtlsym[RTLSYM_MONITOR_HANDLER];
+    s = getRtlsym(RTLSYM_MONITOR_HANDLER);
     c = gencs(c,0x68,0,FLextern,s);             // PUSH offset _d_monitor_handler
     makeitextern(s);
 
@@ -841,7 +844,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
     cs.Iflags = CFfs;
     cs.Irex = 0;
     cs.IFL1 = FLextern;
-    cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+    cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
     cs.IEVoffset1 = 0;
     gen(c,&cs);                         // PUSH FS:__except_list
 #else
@@ -851,14 +854,14 @@ code *nteh_monitor_prolog(Symbol *shandle)
     cs.Iflags = CFfs;
     cs.Irex = 0;
     cs.IFL1 = FLextern;
-    cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+    cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
     cs.IEVoffset1 = 0;
     c1 = gen(c1,&cs);                   // MOV EDX,FS:__except_list
 
     gen1(c,0x50 + DX);                  // PUSH EDX
 #endif
 
-    s = rtlsym[RTLSYM_MONITOR_PROLOG];
+    s = getRtlsym(RTLSYM_MONITOR_PROLOG);
     desregs = ~s->Sregsaved & ALLREGS;
     c = cat(c,getregs(desregs));
     c = gencs(c,0xE8,0,FLfunc,s);       // CALL _d_monitor_prolog
@@ -896,7 +899,7 @@ code *nteh_monitor_epilog(regm_t retregs)
 
     assert(config.flags2 & CFG2seh);    // BUG: figure out how to implement for other EX's
 
-    s = rtlsym[RTLSYM_MONITOR_EPILOG];
+    s = getRtlsym(RTLSYM_MONITOR_EPILOG);
     //desregs = ~s->Sregsaved & ALLREGS;
     desregs = 0;
     gensaverestore(retregs & desregs,&cs1,&cs2);
@@ -909,7 +912,7 @@ code *nteh_monitor_epilog(regm_t retregs)
     cs.Iflags = CFfs;
     cs.Irex = 0;
     cs.IFL1 = FLextern;
-    cs.IEVsym1 = rtlsym[RTLSYM_EXCEPT_LIST];
+    cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
     cs.IEVoffset1 = 0;
     cpop = gen(NULL,&cs);                       // POP FS:__except_list
 

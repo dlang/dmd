@@ -50,11 +50,6 @@ class DefaultStatement;
 class LabelStatement;
 
 // Back end
-#ifdef IN_GCC
-typedef union tree_node block;
-#else
-struct block;
-#endif
 struct code;
 
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
@@ -250,7 +245,7 @@ class WhileStatement : public Statement
 {
 public:
     Expression *condition;
-    Statement *body;
+    Statement *_body;
     Loc endloc;                 // location of closing curly bracket
 
     WhileStatement(Loc loc, Expression *c, Statement *b, Loc endloc);
@@ -265,7 +260,7 @@ public:
 class DoStatement : public Statement
 {
 public:
-    Statement *body;
+    Statement *_body;
     Expression *condition;
 
     DoStatement(Loc loc, Statement *b, Expression *c);
@@ -280,10 +275,10 @@ public:
 class ForStatement : public Statement
 {
 public:
-    Statement *init;
+    Statement *_init;
     Expression *condition;
     Expression *increment;
-    Statement *body;
+    Statement *_body;
     Loc endloc;                 // location of closing curly bracket
 
     // When wrapped in try/finally clauses, this points to the outermost one,
@@ -308,7 +303,7 @@ public:
     TOK op;                     // TOKforeach or TOKforeach_reverse
     Parameters *parameters;     // array of Parameter*'s
     Expression *aggr;
-    Statement *body;
+    Statement *_body;
     Loc endloc;                 // location of closing curly bracket
 
     VarDeclaration *key;
@@ -336,7 +331,7 @@ public:
     Parameter *prm;             // loop index variable
     Expression *lwr;
     Expression *upr;
-    Statement *body;
+    Statement *_body;
     Loc endloc;                 // location of closing curly bracket
 
     VarDeclaration *key;
@@ -389,7 +384,7 @@ class PragmaStatement : public Statement
 public:
     Identifier *ident;
     Expressions *args;          // array of Expression's
-    Statement *body;
+    Statement *_body;
 
     PragmaStatement(Loc loc, Identifier *ident, Expressions *args, Statement *body);
     Statement *syntaxCopy();
@@ -414,7 +409,7 @@ class SwitchStatement : public Statement
 {
 public:
     Expression *condition;
-    Statement *body;
+    Statement *_body;
     bool isFinal;
 
     DefaultStatement *sdefault;
@@ -439,7 +434,6 @@ public:
     Statement *statement;
 
     int index;          // which case it is (since we sort this)
-    block *cblock;      // back end: label for the block
 
     CaseStatement(Loc loc, Expression *exp, Statement *s);
     Statement *syntaxCopy();
@@ -469,9 +463,6 @@ class DefaultStatement : public Statement
 {
 public:
     Statement *statement;
-#ifdef IN_GCC
-    block *cblock;      // back end: label for the block
-#endif
 
     DefaultStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
@@ -556,7 +547,7 @@ class SynchronizedStatement : public Statement
 {
 public:
     Expression *exp;
-    Statement *body;
+    Statement *_body;
 
     SynchronizedStatement(Loc loc, Expression *exp, Statement *body);
     Statement *syntaxCopy();
@@ -571,7 +562,7 @@ class WithStatement : public Statement
 {
 public:
     Expression *exp;
-    Statement *body;
+    Statement *_body;
     VarDeclaration *wthis;
 
     WithStatement(Loc loc, Expression *exp, Statement *body);
@@ -584,7 +575,7 @@ public:
 class TryCatchStatement : public Statement
 {
 public:
-    Statement *body;
+    Statement *_body;
     Catches *catches;
 
     TryCatchStatement(Loc loc, Statement *body, Catches *catches);
@@ -615,7 +606,7 @@ public:
 class TryFinallyStatement : public Statement
 {
 public:
-    Statement *body;
+    Statement *_body;
     Statement *finalbody;
 
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
@@ -697,8 +688,6 @@ public:
     Statement *gotoTarget;      // interpret
 
     bool breaks;                // someone did a 'break ident'
-    block *lblock;              // back end
-    Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();

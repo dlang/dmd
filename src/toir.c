@@ -17,6 +17,11 @@
 #include        <string.h>
 #include        <time.h>
 
+#ifdef _MSC_VER
+#include        <stdarg.h>
+#undef va_start // mapped to _crt_va_start
+#endif
+
 #include        "expression.h"
 #include        "mtype.h"
 #include        "dsymbol.h"
@@ -96,19 +101,41 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     elem *ethis;
     FuncDeclaration *thisfd = irs->getFunc();
     Dsymbol *fdparent = fd->toParent2();
+    Dsymbol *fdp = fdparent;
+
+    /* These two are compiler generated functions for the in and out contracts,
+     * and are called from an overriding function, not just the one they're
+     * nested inside, so this hack is so they'll pass
+     */
+    if (fdparent != thisfd && (fd->ident == Id::require || fd->ident == Id::ensure))
+    {
+        FuncDeclaration *fdthis = thisfd;
+        for (size_t i = 0; ; )
+        {
+            if (i == fdthis->foverrides.dim)
+            {
+                if (i == 0)
+                    break;
+                fdthis = fdthis->foverrides[0];
+                i = 0;
+                continue;
+            }
+            if (fdthis->foverrides[i] == fdp)
+            {
+                fdparent = thisfd;
+                break;
+            }
+            i++;
+        }
+    }
 
     //printf("[%s] getEthis(thisfd = '%s', fd = '%s', fdparent = '%s')\n", loc.toChars(), thisfd->toPrettyChars(), fd->toPrettyChars(), fdparent->toPrettyChars());
-    if (fdparent == thisfd ||
-        /* These two are compiler generated functions for the in and out contracts,
-         * and are called from an overriding function, not just the one they're
-         * nested inside, so this hack is so they'll pass
-         */
-        fd->ident == Id::require || fd->ident == Id::ensure)
+    if (fdparent == thisfd)
     {
         /* Going down one nesting level, i.e. we're calling
          * a nested function from its enclosing function.
          */
-        if (irs->sclosure)
+        if (irs->sclosure && !(fd->ident == Id::require || fd->ident == Id::ensure))
         {
             ethis = el_var(irs->sclosure);
         }
@@ -191,7 +218,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                 if (!ad)
                 {
                   Lnoframe:
-                    irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toChars());
+                    irs->getFunc()->error(loc, "cannot get frame pointer to %s", fd->toPrettyChars());
                     return el_long(TYnptr, 0);      // error recovery
                 }
                 ClassDeclaration *cd = ad->isClassDeclaration();
@@ -281,7 +308,6 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
  */
 int intrinsic_op(FuncDeclaration *fd)
 {
-#if TX86
     fd = fd->toAliasFunc();
     const char *name = mangleExact(fd);
     //printf("intrinsic_op(%s)\n", name);
@@ -557,7 +583,6 @@ int intrinsic_op(FuncDeclaration *fd)
 
         return -1;
     }
-#endif
 
     return -1;
 }
@@ -746,7 +771,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, offset);
-        e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
+        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
         toTraceGC(irs, e, &fd->loc);
 
         // Assign block of memory to sclosure
@@ -849,6 +874,16 @@ RET retStyle(TypeFunction *tf)
         if (sz <= 16 && !(sz & (sz - 1)))
             return RETregs;
         return RETstack;
+    }
+    else if (global.params.isWindows && global.params.mscoff)
+    {
+        Type* tb = tns->baseElemOf();
+        if (tb->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+            if (sd->ident == Id::__c_long_double)
+                return RETregs;
+        }
     }
 
 Lagain:

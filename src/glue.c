@@ -248,9 +248,7 @@ void obj_start(char *srcfile)
 #endif
 
     el_reset();
-#if TX86
     cg87_reset();
-#endif
     out_reset();
 }
 
@@ -437,7 +435,7 @@ void genObjFile(Module *m, bool multiobj)
                       ebcov,
                       efilename,
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -534,7 +532,7 @@ static void genhelpers(Module *m)
         if (config.exe == EX_WIN64)
             efilename = addressElem(efilename, Type::tstring, true);
 
-        elem *e = el_var(rtlsym[rt]);
+        elem *e = el_var(getRtlsym(rt));
         e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
         block *b = block_calloc();
@@ -544,7 +542,7 @@ static void genhelpers(Module *m)
         ma->Sfunc->Fstartblock = b;
         ma->Sclass = SCglobal;
         ma->Sfl = 0;
-        ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+        ma->Sflags |= getRtlsym(rt)->Sflags & SFLexit;
         writefunc(ma);
     }
 }
@@ -856,7 +854,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         f->Fclass = (Classsym *)t;
     }
 
-#if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same
      * distance away from the function parameters, so that an overriding
      * function can call the nested fdensure or fdrequire of its overridden function
@@ -864,7 +861,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
      */
     if (fd->isVirtual() && (fd->fensure || fd->frequire))
         f->Fflags3 |= Ffakeeh;
-#endif
 
 #if TARGET_OSX
     s->Sclass = SCcomdat;
@@ -997,6 +993,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     IRState irs(m, fd);
     Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
+    AA *labels = NULL;
+    irs.labels = &labels;
 
     symbol *shidden = NULL;
     Symbol *sthis = NULL;
@@ -1462,6 +1460,7 @@ unsigned totym(Type *tx)
 
                 case LINKc:
                 case LINKcpp:
+                case LINKobjc:
                 Lc:
                     t = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS

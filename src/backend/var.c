@@ -28,10 +28,6 @@
 #include        "optab.c"
 #include        "tytab.c"
 
-#if __SC__ && _MSDOS
-unsigned __cdecl _stack = 100000;       // set default stack size
-#endif
-
 /* Global flags:
  */
 
@@ -53,7 +49,7 @@ linkage_t linkage;
 int linkage_spec = 0;           /* using the default                    */
 
 /* Function types       */
-/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall,Jupiter */
+/* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall,Mars */
 #if MEMMODELS == 1
 tym_t functypetab[LINK_MAXDIM] =
 {
@@ -68,11 +64,7 @@ tym_t functypetab[LINK_MAXDIM] =
 tym_t functypetab[LINK_MAXDIM][MEMMODELS] =
 {
     TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc,
-#if VBTABLES
     TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc,
-#else
-    TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc,
-#endif
     TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc,
     TYnpfunc, TYfpfunc, TYnpfunc, TYfpfunc, TYfpfunc,
     TYnfunc,  TYffunc,  TYnfunc,  TYffunc,  TYffunc,
@@ -201,29 +193,12 @@ symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
 
-/* From go.c */
-mftype mfoptim = 0;             // mask of optimizations to perform
-
-unsigned changes;               // # of optimizations performed
-struct DN *defnod = NULL;       // array of definition elems
-
-elem **expnod = NULL;   /* array of expression elems                    */
-block **expblk = NULL;  /* parallel array of block pointers             */
-
 unsigned
          maxblks = 0,   /* array max for all block stuff                */
                         /* dfoblks <= numblks <= maxblks                */
-         numcse,        /* number of common subexpressions              */
-         deftop = 0,    /* # of entries in defnod[]                     */
-         exptop = 0;    /* top of expnod[]                              */
+         numcse;        /* number of common subexpressions              */
 
-vec_t   defkill = NULL,         /* vector of AEs killed by an ambiguous */
-                                /* definition                           */
-        starkill = NULL,        /* vector of AEs killed by a definition */
-                                /* of something that somebody could be  */
-                                /* pointing to                          */
-        vptrkill = NULL;        /* vector of AEs killed by an access    */
-                                /* to a vptr                            */
+struct Go go;
 
 /* From debug.c */
 #if DEBUG

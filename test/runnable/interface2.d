@@ -114,7 +114,8 @@ void test4()
 {
     Z z = new Z();
     if (cast(K) z)
-    {   printf("not ok\n");
+    {
+        printf("not ok\n");
         assert(0);
     }
 }
@@ -231,7 +232,8 @@ class C9 : IC9
 }
 
 void f9(IA9 i1, IB9 i2)
-{   int i;
+{
+    int i;
 
     printf("f9\n");
     i = i1.i1();
@@ -682,12 +684,12 @@ interface Iface2
 
 class C1_20 : Iface1
 {
-    C2_20 func1(){    return null; }
+    C2_20 func1(){ return null; }
 }
 
 class C2_20 : Iface2
 {
-    C1_20 func2(){    return null; }
+    C1_20 func2(){ return null; }
 }
 
 void test20()
@@ -911,12 +913,64 @@ class C27 : I27
 }
 
 void test27()
-{   C27 c = new C27();
+{
+    C27 c = new C27();
     c.x = 8;
     I27 i = c;
     assert(i.foo() == 3);
     assert(I27.foo() == 3);
     assert(i.bar() == 87);
+}
+
+/*******************************************************/
+// 1747 & 2013
+
+void test1747()
+{
+    interface IA          { int mA(); }
+    interface IB : IA     { int mB(); }
+    interface IC : IB     { }
+    interface ID : IA, IC { int mD(); }
+
+    // offset:   0   +n  +n + ptrsize
+    //                  (IA)
+    //                   IB
+    //               IA, IC
+    static class C : ID
+    {
+        int mA() { return 1; }
+        int mB() { return 2; }
+        int mD() { return 3; }
+    }
+
+    C c = new C;    void* pc  = *cast(void**)&c;
+    ID id = c;      void* pid = *cast(void**)&id;
+    IC ic = c;      void* pic = *cast(void**)&ic;
+    IB ib = c;      void* pib = *cast(void**)&ib;
+    IA ia = c;      void* pia = *cast(void**)&ia;
+
+    //printf(" c = %p\n", pc);
+    //printf("id = %p\n", pid);
+    //printf("ic = %p\n", pic);
+    //printf("ib = %p\n", pib);
+    //printf("ia = %p\n", pia);
+
+    size_t n = pid - pc;
+    assert(pic == pc + n + (void*).sizeof);
+    assert(pib == pc + n + (void*).sizeof);     // OK <- NG
+    assert(pia == pc + n);
+
+    assert(id.mA() == 1);
+    assert(id.mB() == 2);   // OK <- NG (bugzilla 2013 case)
+    assert(id.mD() == 3);
+
+    assert(ic.mA() == 1);
+    assert(ic.mB() == 2);   // OK <- NG (bugzilla 2013 case)
+
+    assert(ib.mA() == 1);
+    assert(ib.mB() == 2);   // OK <- NG
+
+    assert(ia.mA() == 1);
 }
 
 /*******************************************************/
@@ -1097,6 +1151,7 @@ int main()
     test25();
     test26();
     test27();
+    test1747();
     test2553();
     test11034();
     testTypeid();

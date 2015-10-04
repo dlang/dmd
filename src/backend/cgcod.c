@@ -46,13 +46,15 @@ targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
 targ_size_t NDPoff;             // offset of saved 8087 registers
+targ_size_t pushoff;            // offset of saved registers
+bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
-int AllocaOff;                  // offset of alloca temporary
 LocalSection Para;              // section of function parameters
 LocalSection Auto;              // section of automatics and registers
 LocalSection Fast;              // section of fastpar
 LocalSection EEStack;           // offset of SCstack variables from ESP
+LocalSection Alloca;            // data for alloca() temporary
 
 REGSAVE regsave;
 
@@ -79,7 +81,6 @@ bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
 char needframe;         // if TRUE, then we will need the frame
                         // pointer (BP for the 8088)
-char usedalloca;        // if TRUE, then alloca() was called
 char gotref;            // !=0 if the GOTsym was referenced
 unsigned usednteh;              // if !=0, then used NT exception handling
 
@@ -110,8 +111,8 @@ regm_t allregs;                // ALLREGS optionally including mBP
 
 int dfoidx;                     /* which block we are in                */
 struct CSE *csextab = NULL;     /* CSE table (allocated for each function) */
-unsigned cstop;                 /* # of entries in CSE table (csextab[])   */
-unsigned csmax;                 /* amount of space in csextab[]         */
+size_t cstop;                   // # of entries in CSE table (csextab[])
+size_t csmax;                   // amount of space in csextab[]
 
 targ_size_t     funcoffset;     // offset of start of function
 targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
@@ -146,6 +147,8 @@ void codgen()
     cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinit;
+    Alloca.init();
+    anyiasm = 0;
 
 tryagain:
     #ifdef DEBUG
@@ -157,15 +160,16 @@ tryagain:
 
     // if no parameters, assume we don't need a stack frame
     needframe = 0;
-    usedalloca = 0;
     gotref = 0;
     stackchanged = 0;
     stackpush = 0;
     refparam = 0;
-    anyiasm = 0;
     calledafunc = 0;
-    cgstate.stackclean = 1;
     retsym = NULL;
+
+    cgstate.stackclean = 1;
+    cgstate.funcarg.init();
+    cgstate.funcargtos = ~0;
 
     regsave.reset();
 #if TX86
@@ -185,6 +189,9 @@ tryagain:
         except_reset();
     }
 #endif
+
+    // Set on a trial basis, turning it off if anything might throw
+    funcsym_p->Sfunc->Fflags3 |= Fnothrow;
 
     floatreg = FALSE;
 #if TX86
@@ -383,11 +390,13 @@ tryagain:
 #endif
 
     // Compute starting offset for switch tables
-#if ELFOBJ || MACHOBJ
-    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
-#else
-    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : Doffset;
-#endif
+    targ_size_t swoffset;
+    if (config.flags & CFGromable)
+        swoffset = coffset;
+    else if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
+        swoffset = CDoffset;
+    else
+        swoffset = Doffset;
     swoffset = align(0,swoffset);
 
     // Emit the generated code
@@ -627,7 +636,37 @@ code *prolog()
     tym_t tyf = funcsym_p->ty();
     tym_t tym = tybasic(tyf);
     unsigned farfunc = tyfarfunc(tym);
-    if (config.flags & CFGalwaysframe || funcsym_p->Sfunc->Fflags3 & Ffakeeh)
+
+    // Special Intel 64 bit ABI prolog setup for variadic functions
+    symbol *sv64 = NULL;                        // set to __va_argsave
+    if (I64 && variadic(funcsym_p->Stype))
+    {
+        /* The Intel 64 bit ABI scheme.
+         * abi_sysV_amd64.pdf
+         * Load arguments passed in registers into the varargs save area
+         * so they can be accessed by va_arg().
+         */
+        /* Look for __va_argsave
+         */
+        for (SYMIDX si = 0; si < globsym.top; si++)
+        {   symbol *s = globsym.tab[si];
+            if (s->Sident[0] == '_' && strcmp(s->Sident, "__va_argsave") == 0)
+            {
+                if (!(s->Sflags & SFLdead))
+                    sv64 = s;
+                break;
+            }
+        }
+    }
+
+    if (config.flags & CFGalwaysframe ||
+        funcsym_p->Sfunc->Fflags3 & Ffakeeh ||
+        /* The exception stack unwinding mechanism relies on the EBP chain being intact,
+         * so need frame if function can possibly throw
+         */
+        !(config.flags2 & CFG2seh) && !(funcsym_p->Sfunc->Fflags3 & Fnothrow) ||
+        sv64
+       )
         needframe = 1;
 
 Lagain:
@@ -649,7 +688,7 @@ Lagain:
      *  Auto.size    autos and regs
      *  regsave.off  any saved registers
      *  Foff    floating register
-     *  AllocaOff   alloca temporary
+     *  Alloca.size  alloca temporary
      *  CSoff   common subs
      *  NDPoff  any 8087 saved registers
      *          monitor context record
@@ -675,8 +714,10 @@ Lagain:
 #if NTEXCEPTIONS == 2
     Fast.size -= nteh_contextsym_size();
 #if MARS
+#if TARGET_WINDOS
     if (funcsym_p->Sfunc->Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
         Fast.size -= 5 * 4;
+#endif
 #endif
 #endif
 
@@ -716,13 +757,18 @@ Lagain:
 
     regsave.off = alignsection(Auto.size - regsave.top, regsave.alignment, bias);
 
-    unsigned floatregsize = floatreg ? (config.fpxmmregs || I32 ? 16 : DOUBLESIZE) : 0;
-    Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
+    if (floatreg)
+    {
+        unsigned floatregsize = config.fpxmmregs || I32 ? 16 : DOUBLESIZE;
+        Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
+    }
+    else
+        Foff = regsave.off;
 
-    assert(usedalloca != 1);
-    AllocaOff = alignsection(usedalloca ? (Foff - REGSIZE) : Foff, REGSIZE, bias);
+    Alloca.alignment = REGSIZE;
+    Alloca.offset = alignsection(Foff - Alloca.size, Alloca.alignment, bias);
 
-    CSoff = alignsection(AllocaOff - cstop * REGSIZE, REGSIZE, bias);
+    CSoff = alignsection(Alloca.offset - cstop * REGSIZE, REGSIZE, bias);
 
 #if TX86
     NDPoff = alignsection(CSoff - NDP::savetop * NDPSAVESIZE, REGSIZE, bias);
@@ -730,20 +776,46 @@ Lagain:
     NDPoff = CSoff;
 #endif
 
+    regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
+    pushoffuse = false;
+    pushoff = NDPoff;
+    if (config.flags4 & CFG4speed && (I32 || I64))
+    {
+        /* Instead of pushing the registers onto the stack one by one,
+         * allocate space in the stack frame and copy/restore them there.
+         */
+        int xmmtopush = numbitsset(topush & XMMREGS);   // XMM regs take 16 bytes
+        int gptopush = numbitsset(topush) - xmmtopush;  // general purpose registers to save
+        if (NDPoff || xmmtopush || cgstate.funcarg.size)
+        {
+            pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
+                    xmmtopush ? STACKALIGN : REGSIZE, bias);
+            pushoffuse = true;          // tell others we're using this strategy
+        }
+    }
+
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
-    localsize = -NDPoff;
+    cgstate.funcarg.alignment = STACKALIGN;
+    cgstate.funcarg.offset = alignsection(pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
 
-    regm_t topush = fregsaved & ~mfuncreg;     // mask of registers that need saving
-    int npush = numbitsset(topush);            // number of registers that need saving
-    npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
+    localsize = -cgstate.funcarg.offset;
+
+    //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
+        //(long long)Alloca.offset, (long long)cstop, (long long)CSoff, (long long)NDPoff, (long long)localsize);
+    assert((targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && calledafunc &&
         (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
     {
+        int npush = numbitsset(topush);            // number of registers that need saving
+        npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
+        if (pushoffuse)
+            npush = 0;
+
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
-        //       npush, Para.size, needframe, localsize);
+               //npush, Para.size, needframe, localsize);
 
         int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE;
         if (STACKALIGN == 16)
@@ -754,6 +826,7 @@ Lagain:
         else if (sz & 4)
             localsize += 4;
     }
+    cgstate.funcarg.offset = -localsize;
 
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
         //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Para.size,(int)localsize);
@@ -788,7 +861,7 @@ Lagain:
                 xlocalsize >= 0x1000 ||
                 (usednteh & ~NTEHjmonitor) ||
                 anyiasm ||
-                usedalloca
+                Alloca.size
                )
                 needframe = 1;
         }
@@ -822,7 +895,7 @@ Lagain:
     if (config.flags & CFGstack)        // if stack overflow check
     {
         cstackadj = prolog_frameadj(tyf, xlocalsize, enter, &pushalloc);
-        if (usedalloca)
+        if (Alloca.size)
             cstackadj = cat(cstackadj, prolog_setupalloca());
     }
     else if (needframe)                      /* if variables or parameters   */
@@ -830,20 +903,20 @@ Lagain:
         if (xlocalsize)                 /* if any stack offset          */
         {
             cstackadj = prolog_frameadj(tyf, xlocalsize, enter, &pushalloc);
-            if (usedalloca)
+            if (Alloca.size)
                 cstackadj = cat(cstackadj, prolog_setupalloca());
         }
         else
-            assert(usedalloca == 0);
+            assert(Alloca.size == 0);
     }
     else if (xlocalsize)
     {
-        assert(I32);
+        assert(I32 || I64);
         cstackadj = prolog_frameadj2(tyf, xlocalsize, &pushalloc);
         BPoff += REGSIZE;
     }
     else
-        assert((localsize | usedalloca) == 0 || (usednteh & NTEHjmonitor));
+        assert((localsize | Alloca.size) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
     c = cat(c, cstackadj);
     }
@@ -931,28 +1004,8 @@ Lcont:
     // the register!
     c = cat(c, prolog_loadparams(tyf, pushalloc, &namedargs));
 
-    // Special Intel 64 bit ABI prolog setup for variadic functions
-    if (I64 && variadic(funcsym_p->Stype))
-    {
-        /* The Intel 64 bit ABI scheme.
-         * abi_sysV_amd64.pdf
-         * Load arguments passed in registers into the varargs save area
-         * so they can be accessed by va_arg().
-         */
-        /* Look for __va_argsave
-         */
-        symbol *sv = NULL;
-        for (SYMIDX si = 0; si < globsym.top; si++)
-        {   symbol *s = globsym.tab[si];
-            if (s->Sident[0] == '_' && strcmp(s->Sident, "__va_argsave") == 0)
-            {   sv = s;
-                break;
-            }
-        }
-
-        if (sv && !(sv->Sflags & SFLdead))
-            c = cat(c, prolog_genvarargs(sv, &namedargs));
-    }
+    if (sv64)
+        c = cat(c, prolog_genvarargs(sv64, &namedargs));
 
     /* Alignment checks
      */
@@ -1047,6 +1100,10 @@ void stackoffsets(int flags)
             switch (s->Sclass)
             {
                 case SCfastpar:
+                    if (!(funcsym_p->Sfunc->Fflags3 & Ffakeeh))
+                        continue;   // don't need consistent stack frame
+                    break;
+
                 case SCshadowreg:
                 case SCparameter:
                     break;          // have to allocate space for parameters
@@ -1610,13 +1667,13 @@ void freenode(elem *e)
     if (e->Ecomsub--) return;             /* usage count                  */
     if (e->Ecount)                        /* if it was a CSE              */
     {
-        for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
+        for (size_t i = 0; i < arraysize(regcon.cse.value); i++)
         {   if (regcon.cse.value[i] == e)       /* if a register is holding it  */
             {   regcon.cse.mval &= ~mask[i];
                 regcon.cse.mops &= ~mask[i];    /* free masks                   */
             }
         }
-        for (unsigned i = 0; i < cstop; i++)
+        for (size_t i = 0; i < cstop; i++)
         {   if (csextab[i].e == e)
                 csextab[i].e = NULL;
         }
@@ -1957,7 +2014,7 @@ STATIC code * cse_save(regm_t ms)
         if (regm & ms)
         {
             elem *e = regcon.cse.value[findreg(regm)];
-            for (unsigned i = 0; i < csmax; i++)
+            for (size_t i = 0; i < csmax; i++)
             {
                 if (csextab[i].e == e)
                 {
@@ -1980,10 +2037,11 @@ STATIC code * cse_save(regm_t ms)
         }
     }
 
-    for (unsigned i = cstop; ms; i++)
+    for (size_t i = cstop; ms; i++)
     {
         if (i >= csmax)                 /* array overflow               */
-        {   unsigned cseinc;
+        {
+            size_t cseinc;
 
 #ifdef DEBUG
             cseinc = 8;                 /* flush out reallocation bugs  */
@@ -2221,7 +2279,7 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 
   /* create mask of what's in csextab[] */
   csemask = 0;
-  for (unsigned i = 0; i < cstop; i++)
+  for (size_t i = 0; i < cstop; i++)
   {     if (csextab[i].e)
             elem_debug(csextab[i].e);
         if (csextab[i].e == e)
@@ -2260,7 +2318,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
 
         if (!EOP(e))                    /* if not op or func            */
                 goto reload;            /* reload data                  */
-        for (unsigned i = cstop; i--;)           /* look through saved comsubs   */
+        for (size_t i = cstop; i--;)           /* look through saved comsubs   */
                 if (csextab[i].e == e)  /* found it             */
                 {   regm_t retregs;
 
@@ -2421,7 +2479,7 @@ done:
 
 STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
 {
-  for (unsigned i = cstop; i--;)
+  for (size_t i = cstop; i--;)
   {
         //printf("csextab[%d] = %p, regm = %s\n", i, csextab[i].e, regm_str(csextab[i].regm));
         if (csextab[i].e == e && csextab[i].regm & regm)

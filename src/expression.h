@@ -19,6 +19,8 @@
 #include "visitor.h"
 #include "tokens.h"
 
+#include "rmem.h"
+
 class Type;
 class TypeVector;
 struct Scope;
@@ -61,7 +63,7 @@ TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
 FuncDeclaration *hasThis(Scope *sc);
 Expression *fromConstInitializer(int result, Expression *e);
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc);
+bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors = false);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 Expression *valueNoDtor(Expression *e);
 int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
@@ -102,9 +104,6 @@ Type *getIndirection(Type *t);
 
 Expression *checkGC(Scope *sc, Expression *e);
 
-bool checkEscape(Scope *sc, Expression *e, bool gag);
-bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
-
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
  * or a tuple containing a TypeExp. (This is required by pragma(msg)).
  */
@@ -141,6 +140,7 @@ public:
 
     void print();
     char *toChars();
+    virtual void printAST(int ident = 0);
     void error(const char *format, ...);
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
@@ -312,6 +312,7 @@ public:
 
     DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
+    static Expression resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -409,14 +410,20 @@ public:
 class ArrayLiteralExp : public Expression
 {
 public:
+    Expression *basis;
     Expressions *elements;
     OwnedBy ownedByCtfe;
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
+    ArrayLiteralExp(Loc loc, Expression *basis, Expressions *elements);
+    ArrayLiteralExp(Loc loc, Expression *basis, size_t dim);
 
     Expression *syntaxCopy();
     bool equals(RootObject *o);
+    Expression *getElement(d_size_t i);
+    static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
+    Expressions *copyElements();
     Expression *semantic(Scope *sc);
     bool isBool(bool result);
     StringExp *toStringExp();
@@ -457,8 +464,7 @@ class StructLiteralExp : public Expression
 {
 public:
     StructDeclaration *sd;      // which aggregate this is for
-    Expressions *elements;      // parallels sd->fields[] with
-                                // NULL entries for fields to skip
+    Expressions *elements;      // parallels sd->fields[] with NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
 
     Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
@@ -733,6 +739,7 @@ public:
     Expression *resolveLoc(Loc loc, Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    void printAST(int ident);
 };
 
 typedef UnionExp (*fp_t)(Type *, Expression *, Expression *);
@@ -760,6 +767,7 @@ public:
     Expression *reorderSettingAAElem(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+    void printAST(int ident);
 };
 
 class BinAssignExp : public BinExp

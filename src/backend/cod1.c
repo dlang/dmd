@@ -42,8 +42,9 @@ enum MF
 };
 code * genf2(code *c,unsigned op,unsigned rm);
 
-targ_size_t paramsize(elem *e,unsigned stackalign);
-STATIC code * funccall (elem *,unsigned,unsigned,regm_t *,regm_t);
+targ_size_t paramsize(elem *e);
+STATIC code *funccall(elem *,unsigned,unsigned,regm_t *,regm_t,bool);
+static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos);
 
 /* array to convert from index register to r/m field    */
                                        /* AX CX DX BX SP BP SI DI       */
@@ -323,7 +324,7 @@ unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
             {
                 gensaverestore87(1 << i, &cs1, &cs2);
             }
-            else if (i >= XMM0 || I64)
+            else if (i >= XMM0 || I64 || cgstate.funcarg.size)
             {   unsigned idx;
                 cs1 = regsave.save(cs1, i, &idx);
                 cs2 = regsave.restore(cs2, i, idx);
@@ -801,34 +802,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   c = CNIL;
   switch (fl)
   {
-#if 0 && TARGET_LINUX
-    case FLgot:
-    case FLgotoff:
-        gotref = 1;
-        pcs->IEVsym1 = s;
-        pcs->IEVoffset1 = e->EV.sp.Voffset;
-        if (e->Eoper == OPvar && fl == FLgot)
-        {
-            code *c1;
-            unsigned saveop = pcs->Iop;
-            idxregs = allregs & ~keepmsk;       // get a scratch register
-            c = allocreg(&idxregs,&reg,TYptr);
-            pcs->Irm = modregrm(2,reg,BX);      // BX has GOT
-            pcs->Isib = 0;
-            //pcs->Iflags |= CFvolatile;
-            pcs->Iop = 0x8B;
-            c = gen(c,pcs);                     // MOV reg,disp[EBX]
-            pcs->Irm = modregrm(0,0,reg);
-            pcs->IEVoffset1 = 0;
-            pcs->Iop = saveop;
-        }
-        else
-        {
-            pcs->Irm = modregrm(2,0,BX);        // disp[EBX] is addr
-            pcs->Isib = 0;
-        }
-        break;
-#endif
     case FLoper:
 #ifdef DEBUG
         if (debugw) printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
@@ -852,9 +825,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 e1isadd = e1->Eoper == OPadd;
                 break;
             default:
-#ifdef DEBUG
                 elem_print(e);
-#endif
                 assert(0);
         }
         e1ty = tybasic(e1->Ety);
@@ -870,9 +841,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         f = FLconst;
         if (e1isadd &&
             ((e12->Eoper == OPrelconst
-#if TARGET_SEGMENTED
               && (f = el_fl(e12)) != FLfardata
-#endif
              ) ||
              (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
             !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
@@ -919,9 +888,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 {
                     regm_t scratchm;
 
-#if 0 && TARGET_LINUX
-                    assert(f != FLgot && f != FLgotoff);
-#endif
                     char ssflags = ssindex_array[ssi].ssflags;
                     if (ssflags & SSFLnobp && stackfl[f])
                         goto L6;
@@ -1000,21 +966,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     /* Load index register with result of e11   */
                     c = scodelem(e11,&idxregs,keepmsk,TRUE);
                     setaddrmode(pcs, idxregs);
-#if 0 && TARGET_LINUX
-                    if (e12->EV.sp.Vsym->Sfl == FLgot || e12->EV.sp.Vsym->Sfl == FLgotoff)
-                    {
-                        gotref = 1;
-#if 1
-                        reg = findreg(idxregs & (ALLREGS | mBP));
-                        pcs->Irm = modregrm(2,0,4);
-                        pcs->Isib = modregrm(0,reg,BX);
-#else
-                        pcs->Isib = modregrm(0,pcs->Irm,BX);
-                        pcs->Irm = modregrm(2,0,4);
-#endif
-                    }
-                    else
-#endif
                     if (stackfl[f])             /* if we need [EBP] too */
                     {   unsigned idx = pcs->Irm & 7;
                         if (pcs->Irex & REX_B)
@@ -1028,9 +979,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             {
                 idxregs = IDXREGS & ~keepmsk;   /* only these can be index regs */
                 assert(idxregs);
-#if 0 && TARGET_LINUX
-                assert(f != FLgot && f != FLgotoff);
-#endif
                 if (stackfl[f])                 /* if stack data type   */
                 {   idxregs &= mSI | mDI;       /* BX can't index off stack */
                     if (!idxregs) goto L1;      /* index regs aren't avail */
@@ -1365,12 +1313,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         goto L3;
     case FLdata:
     case FLudata:
-#if TARGET_SEGMENTED
     case FLcsdata:
-#endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLtlsdata:
 #endif
     L3:
@@ -1418,14 +1364,12 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             pcs->Iflags |= CFcs | CFoff;
         }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (I64 && config.flags3 & CFG3pic &&
             (fl == FLtlsdata || s->ty() & mTYthread))
         {
             pcs->Iflags |= CFopsize;
             pcs->Irex = 0x48;
         }
-#endif
         pcs->IEVsym1 = s;
         pcs->IEVoffset1 = e->EV.sp.Voffset;
         if (sz == 1)
@@ -1455,9 +1399,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
     }
 #endif
-#if TARGET_SEGMENTED
     case FLfardata:
-#endif
     case FLfunc:                                /* reading from code seg */
         if (config.exe & EX_flat)
             goto L3;
@@ -1483,8 +1425,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
 
     default:
-#ifdef DEBUG
         WRFL((enum FL)fl);
+#ifdef DEBUG
         symbol_print(s);
 #endif
         assert(0);
@@ -1852,6 +1794,675 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   return c;
 }
 
+/*******************************
+ * Extra information about each CLIB runtime library function.
+ */
+struct ClibInfo
+{
+    regm_t retregs16;   /* registers that 16 bit result is returned in  */
+    regm_t retregs32;   /* registers that 32 bit result is returned in  */
+    char pop;           /* # of bytes popped off of stack upon return   */
+    char flags;
+        #define INF32           1       // if 32 bit only
+        #define INFfloat        2       // if this is floating point
+        #define INFwkdone       4       // if weak extern is already done
+        #define INF64           8       // if 64 bit only
+        #define INFpushebx      0x10    // push EBX before load_localgot()
+    char push87;                        // # of pushes onto the 8087 stack
+    char pop87;                         // # of pops off of the 8087 stack
+};
+
+int clib_inited = false;          // true if initialized
+
+symbol *symboly(const char *name, regm_t desregs)
+{
+    symbol *s = symbol_calloc(name);
+    s->Stype = tsclib;
+    s->Sclass = SCextern;
+    s->Sfl = FLfunc;
+    s->Ssymnum = 0;
+    s->Sregsaved = ~desregs & (mBP | mES | ALLREGS);
+    return s;
+}
+
+void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
+{
+    static symbol *clibsyms[CLIBMAX];
+    static ClibInfo clibinfo[CLIBMAX];
+
+    if (!clib_inited)
+    {
+        for (size_t i = 0; i < CLIBMAX; ++i)
+        {
+            symbol *s = clibsyms[i];
+            if (s)
+            {
+                s->Sxtrnnum = 0;
+                s->Stypidx = 0;
+                clibinfo[i].flags &= ~INFwkdone;
+            }
+        }
+        clib_inited = true;
+    }
+
+    const unsigned ex_unix = (EX_LINUX   | EX_LINUX64   |
+                              EX_OSX     | EX_OSX64     |
+                              EX_FREEBSD | EX_FREEBSD64 |
+                              EX_OPENBSD | EX_OPENBSD64 |
+                              EX_SOLARIS | EX_SOLARIS64);
+
+    ClibInfo *cinfo = &clibinfo[clib];
+    symbol *s = clibsyms[clib];
+    if (!s)
+    {
+
+        switch (clib)
+        {
+            case CLIBlcmp:
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LCMP__" : "_LCMP@";
+                    s = symboly(name, 0);
+                }
+                break;
+            case CLIBlmul:
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LMUL__" : "_LMUL@";
+                    s = symboly(name, mAX|mCX|mDX);
+                    cinfo->retregs16 = mDX|mAX;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                break;
+            case CLIBldiv:
+                cinfo->retregs16 = mDX|mAX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__divdi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_alldiv", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LDIV__" : "_LDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                break;
+            case CLIBlmod:
+                cinfo->retregs16 = mCX|mBX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__moddi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_allrem", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__LDIV__" : "_LDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                break;
+            case CLIBuldiv:
+                cinfo->retregs16 = mDX|mAX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__udivdi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__ULDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_aulldiv", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                break;
+            case CLIBulmod:
+                cinfo->retregs16 = mCX|mBX;
+                if (config.exe & (EX_LINUX | EX_FREEBSD))
+                {
+                    s = symboly("__umoddi3", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else if (config.exe & (EX_OPENBSD | EX_SOLARIS))
+                {
+                    s = symboly("__LDIV2__", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpushebx;
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                else if (I32 && config.objfmt == OBJ_MSCOFF)
+                {
+                    s = symboly("_ms_aullrem", ALLREGS);
+                    cinfo->retregs32 = mDX|mAX;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
+                    s = symboly(name, (config.exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
+                    cinfo->retregs32 = mCX|mBX;
+                }
+                break;
+
+            // This section is only for Windows and DOS (i.e. machines without the x87 FPU)
+            case CLIBdmul:
+                s = symboly("_DMUL@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBddiv:
+                s = symboly("_DDIV@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdtst0:
+                s = symboly("_DTST0@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBdtst0exc:
+                s = symboly("_DTST0EXC@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBdcmp:
+                s = symboly("_DCMP@",0);
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdcmpexc:
+                s = symboly("_DCMPEXC@",0);
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdneg:
+                s = symboly("_DNEG@",I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBdadd:
+                s = symboly("_DADD@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBdsub:
+                s = symboly("_DSUB@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->pop = 8;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfmul:
+                s = symboly("_FMUL@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfdiv:
+                s = symboly("_FDIV@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBftst0:
+                s = symboly("_FTST0@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBftst0exc:
+                s = symboly("_FTST0EXC@",0);
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBfcmp:
+                s = symboly("_FCMP@",0);
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfcmpexc:
+                s = symboly("_FCMPEXC@",0);
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfneg:
+                s = symboly("_FNEG@",I16 ? FLOATREGS_16 : FLOATREGS_32);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                break;
+            case CLIBfadd:
+                s = symboly("_FADD@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            case CLIBfsub:
+                s = symboly("_FSUB@",mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+
+            case CLIBdbllng:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLLNG" : "_DBLLNG@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mDX | mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBlngdbl:
+            {
+                const char *name = (config.exe & ex_unix) ? "__LNGDBL" : "_LNGDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblint:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLINT" : "_DBLINT@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBintdbl:
+            {
+                const char *name = (config.exe & ex_unix) ? "__INTDBL" : "_INTDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdbluns:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLUNS" : "_DBLUNS@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBunsdbl:
+                // Y(DOUBLEREGS_32,"__UNSDBL"),         // CLIBunsdbl
+                // Y(DOUBLEREGS_16,"_UNSDBL@"),
+                // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _UNSDBL@     unsdbl
+            {
+                const char *name = (config.exe & ex_unix) ? "__UNSDBL" : "_UNSDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblulng:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLULNG" : "_DBLULNG@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = mDX|mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = (config.exe & ex_unix) ? INFfloat | INF32 : INFfloat;
+                cinfo->push87 = (config.exe & ex_unix) ? 0 : 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBulngdbl:
+            {
+                const char *name = (config.exe & ex_unix) ? "__ULNGDBL@" : "_ULNGDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblflt:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLFLT" : "_DBLFLT@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = FLOATREGS_16;
+                cinfo->retregs32 = FLOATREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBfltdbl:
+            {
+                const char *name = (config.exe & ex_unix) ? "__FLTDBL" : "_FLTDBL@";
+                s = symboly(name, I16 ? ALLREGS : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblllng:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLLLNG" : "_DBLLLNG@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = mDX|mAX;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBllngdbl:
+            {
+                const char *name = (config.exe & ex_unix) ? "__LLNGDBL" : "_LLNGDBL@";
+                s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                cinfo->retregs16 = DOUBLEREGS_16;
+                cinfo->retregs32 = DOUBLEREGS_32;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBdblullng:
+            {
+                if (config.exe == EX_WIN64)
+                {
+                    s = symboly("__DBLULLNG", DOUBLEREGS_32);
+                    cinfo->retregs32 = mAX;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = 2;
+                    cinfo->pop87 = 2;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__DBLULLNG" : "_DBLULLNG@";
+                    s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                    cinfo->retregs16 = DOUBLEREGS_16;
+                    cinfo->retregs32 = I64 ? mAX : mDX|mAX;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = (config.exe & ex_unix) ? 2 : 1;
+                    cinfo->pop87 = (config.exe & ex_unix) ? 2 : 1;
+                }
+                break;
+            }
+            case CLIBullngdbl:
+            {
+                if (config.exe == EX_WIN64)
+                {
+                    s = symboly("__ULLNGDBL", DOUBLEREGS_32);
+                    cinfo->retregs32 = mAX;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = 1;
+                    cinfo->pop87 = 1;
+                }
+                else
+                {
+                    const char *name = (config.exe & ex_unix) ? "__ULLNGDBL" : "_ULLNGDBL@";
+                    s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
+                    cinfo->retregs16 = DOUBLEREGS_16;
+                    cinfo->retregs32 = I64 ? mAX : DOUBLEREGS_32;
+                    cinfo->flags = INFfloat;
+                    cinfo->push87 = 1;
+                    cinfo->pop87 = 1;
+                }
+                break;
+            }
+            case CLIBdtst:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DTST" : "_DTST@";
+                s = symboly(name, 0);
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBvptrfptr:
+            {
+                const char *name = (config.exe & ex_unix) ? "__HTOFPTR" : "_HTOFPTR@";
+                s = symboly(name, mES|mBX);
+                cinfo->retregs16 = mES|mBX;
+                cinfo->retregs32 = mES|mBX;
+                break;
+            }
+            case CLIBcvptrfptr:
+            {
+                const char *name = (config.exe & ex_unix) ? "__HCTOFPTR" : "_HCTOFPTR@";
+                s = symboly(name, mES|mBX);
+                cinfo->retregs16 = mES|mBX;
+                cinfo->retregs32 = mES|mBX;
+                break;
+            }
+            case CLIB87topsw:
+            {
+                const char *name = (config.exe & ex_unix) ? "__87TOPSW" : "_87TOPSW@";
+                s = symboly(name, 0);
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBfltto87:
+            {
+                const char *name = (config.exe & ex_unix) ? "__FLTTO87" : "_FLTTO87@";
+                s = symboly(name, mST0);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                break;
+            }
+            case CLIBdblto87:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLTO87" : "_DBLTO87@";
+                s = symboly(name, mST0);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                break;
+            }
+            case CLIBdblint87:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLINT87" : "_DBLINT87@";
+                s = symboly(name, mST0|mAX);
+                cinfo->retregs16 = mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBdbllng87:
+            {
+                const char *name = (config.exe & ex_unix) ? "__DBLLNG87" : "_DBLLNG87@";
+                s = symboly(name, mST0|mAX|mDX);
+                cinfo->retregs16 = mDX|mAX;
+                cinfo->retregs32 = mAX;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBftst:
+            {
+                const char *name = (config.exe & ex_unix) ? "__FTST" : "_FTST@";
+                s = symboly(name, 0);
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBfcompp:
+            {
+                const char *name = (config.exe & ex_unix) ? "__FCOMPP" : "_FCOMPP@";
+                s = symboly(name, 0);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INFfloat;
+                cinfo->pop87 = 2;
+                break;
+            }
+            case CLIBftest:
+            {
+                const char *name = (config.exe & ex_unix) ? "__FTEST" : "_FTEST@";
+                s = symboly(name, 0);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBftest0:
+            {
+                const char *name = (config.exe & ex_unix) ? "__FTEST0" : "_FTEST0@";
+                s = symboly(name, 0);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INFfloat;
+                break;
+            }
+            case CLIBfdiv87:
+            {
+                const char *name = (config.exe & ex_unix) ? "__FDIVP" : "_FDIVP";
+                s = symboly(name, mST0|mAX|mBX|mCX|mDX);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 1;
+                break;
+            }
+
+            // Complex numbers
+            case CLIBcmul:
+            {
+                s = symboly("_Cmul", mST0|mST01);
+                cinfo->retregs16 = mST01;
+                cinfo->retregs32 = mST01;
+                cinfo->flags = INF32|INFfloat;
+                cinfo->push87 = 3;
+                cinfo->pop87 = 5;
+                break;
+            }
+            case CLIBcdiv:
+            {
+                s = symboly("_Cdiv", mAX|mCX|mDX|mST0|mST01);
+                cinfo->retregs16 = mST01;
+                cinfo->retregs32 = mST01;
+                cinfo->flags = INF32|INFfloat;
+                cinfo->push87 = 0;
+                cinfo->pop87 = 2;
+                break;
+            }
+            case CLIBccmp:
+            {
+                s = symboly("_Ccmp", mAX|mST0|mST01);
+                cinfo->retregs16 = mPSW;
+                cinfo->retregs32 = mPSW;
+                cinfo->flags = INF32|INFfloat;
+                cinfo->push87 = 0;
+                cinfo->pop87 = 4;
+                break;
+            }
+
+            case CLIBu64_ldbl:
+            {
+                const char *name = (config.exe & ex_unix) ? "__U64_LDBL" : "_U64_LDBL";
+                s = symboly(name, mST0);
+                cinfo->retregs16 = mST0;
+                cinfo->retregs32 = mST0;
+                cinfo->flags = INF32|INF64|INFfloat;
+                cinfo->push87 = 2;
+                cinfo->pop87 = 1;
+                break;
+            }
+            case CLIBld_u64:
+            {
+                const char *name = (config.exe & ex_unix) ? (config.objfmt == OBJ_ELF ||
+                                                             config.objfmt == OBJ_MACH ?
+                                                                "__LDBLULLNG" : "___LDBLULLNG")
+                                                          : "__LDBLULLNG";
+                s = symboly(name, mST0|mAX|mDX);
+                cinfo->retregs16 = 0;
+                cinfo->retregs32 = mDX|mAX;
+                cinfo->flags = INF32|INF64|INFfloat;
+                cinfo->push87 = 1;
+                cinfo->pop87 = 2;
+                break;
+            }
+                break;
+
+            default:
+                assert(0);
+        }
+        clibsyms[clib] = s;
+    }
+
+    *ps = s;
+    *pinfo = cinfo;
+}
 
 /********************************
  * Generate code sequence to call C runtime library support routine.
@@ -1861,418 +2472,28 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
  *              push/pop for speed.
  */
 
-int clib_inited = 0;            // != 0 if initialized
-
 code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 {
     //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
     //elem_print(e);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-  static symbol lib[] =
-  {
-/* Convert destroyed regs into saved regs       */
-#define Z(desregs)      (~(desregs) & (mBP| mES | ALLREGS))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define N(name) "_" name
-#else
-#define N(name) name
-#endif
 
-/* Shorthand to map onto SYMBOLY()              */
-#define Y(desregs,name)  SYMBOLY(FLfunc,Z(desregs),N(name),0)
+    symbol *s;
+    ClibInfo *cinfo;
+    getClibInfo(clib, &s, &cinfo);
 
-    Y(0,"_LCMP__"),                     // CLIBlcmp
-    Y(mAX|mCX|mDX,"_LMUL__"),           // CLIBlmul
-#if 1
-    Y(mAX|mBX|mCX|mDX,"_LDIV__"),       // CLIBldiv
-    Y(mAX|mBX|mCX|mDX,"_LDIV__"),       // CLIBlmod
-    Y(mAX|mBX|mCX|mDX,"_ULDIV__"),      // CLIBuldiv
-    Y(mAX|mBX|mCX|mDX,"_ULDIV__"),      // CLIBulmod
-#else
-    Y(ALLREGS,"_LDIV__"),               // CLIBldiv
-    Y(ALLREGS,"_LDIV__"),               // CLIBlmod
-    Y(ALLREGS,"_ULDIV__"),              // CLIBuldiv
-    Y(ALLREGS,"_ULDIV__"),              // CLIBulmod
-#endif
-#if 0
-    Y(DOUBLEREGS_16,"_DNEG"),
-    Y(mAX|mBX|mCX|mDX,"_DMUL"),         // CLIBdmul
-    Y(mAX|mBX|mCX|mDX,"_DDIV"),         // CLIBddiv
-    Y(0,"_DTST0"),                      // CLIBdtst0
-    Y(0,"_DTST0EXC"),                   // CLIBdtst0exc
-    Y(0,"_DCMP"),                       // CLIBdcmp
-    Y(0,"_DCMPEXC"),                    // CLIBdcmpexc
-
-    Y(mAX|mBX|mCX|mDX,"_DADD"),         // CLIBdadd
-    Y(mAX|mBX|mCX|mDX,"_DSUB"),         // CLIBdsub
-
-    Y(mAX|mBX|mCX|mDX,"_FMUL"),         // CLIBfmul
-    Y(mAX|mBX|mCX|mDX,"_FDIV"),         // CLIBfdiv
-    Y(0,"_FTST0"),                      // CLIBftst0
-    Y(0,"_FTST0EXC"),                   // CLIBftst0exc
-    Y(0,"_FCMP"),                       // CLIBfcmp
-    Y(0,"_FCMPEXC"),                    // CLIBfcmpexc
-    Y(FLOATREGS_32,"_FNEG"),            // CLIBfneg
-    Y(mAX|mBX|mCX|mDX,"_FADD"),         // CLIBfadd
-    Y(mAX|mBX|mCX|mDX,"_FSUB"),         // CLIBfsub
-#endif
-    Y(DOUBLEREGS_32,"_DBLLNG"),         // CLIBdbllng
-    Y(DOUBLEREGS_32,"_LNGDBL"),         // CLIBlngdbl
-    Y(DOUBLEREGS_32,"_DBLINT"),         // CLIBdblint
-    Y(DOUBLEREGS_32,"_INTDBL"),         // CLIBintdbl
-    Y(DOUBLEREGS_32,"_DBLUNS"),         // CLIBdbluns
-    Y(DOUBLEREGS_32,"_UNSDBL"),         // CLIBunsdbl
-    Y(mAX|mST0,"_DBLULNG"),             // CLIBdblulng
-#if 0
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULNGDBL@    ulngdbl
-#endif
-    Y(DOUBLEREGS_32,"_DBLFLT"),         // CLIBdblflt
-    Y(DOUBLEREGS_32,"_FLTDBL"),         // CLIBfltdbl
-
-    Y(DOUBLEREGS_32,"_DBLLLNG"),        // CLIBdblllng
-    Y(DOUBLEREGS_32,"_LLNGDBL"),        // CLIBllngdbl
-    Y(DOUBLEREGS_32,"_DBLULLNG"),       // CLIBdblullng
-    Y(DOUBLEREGS_32,"_ULLNGDBL"),       // CLIBullngdbl
-
-    Y(0,"_DTST"),                       // CLIBdtst
-    Y(mES|mBX,"_HTOFPTR"),              // CLIBvptrfptr
-    Y(mES|mBX,"_HCTOFPTR"),             // CLIBcvptrfptr
-    Y(0,"_87TOPSW"),                    // CLIB87topsw
-    Y(mST0,"_FLTTO87"),                 // CLIBfltto87
-    Y(mST0,"_DBLTO87"),                 // CLIBdblto87
-    Y(mST0|mAX,"_DBLINT87"),            // CLIBdblint87
-    Y(mST0|mAX|mDX,"_DBLLNG87"),        // CLIBdbllng87
-    Y(0,"_FTST"),                       // CLIBftst
-    Y(0,"_FCOMPP"),                     // CLIBfcompp
-    Y(0,"_FTEST"),                      // CLIBftest
-    Y(0,"_FTEST0"),                     // CLIBftest0
-    Y(mST0|mAX|mBX|mCX|mDX,"_FDIVP"),   // CLIBfdiv87
-
-    Y(mST0|mST01,"Cmul"),               // CLIBcmul
-    Y(mAX|mCX|mDX|mST0|mST01,"Cdiv"),   // CLIBcdiv
-    Y(mAX|mST0|mST01,"Ccmp"),           // CLIBccmp
-
-    Y(mST0,"_U64_LDBL"),                // CLIBu64_ldbl
-#if ELFOBJ || MACHOBJ
-    Y(mST0|mAX|mDX,"_LDBLULLNG"),       // CLIBld_u64
-#else
-    Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
-#endif
-  };
-  static symbol clibldiv2  = Y(mAX|mBX|mCX|mDX,"_LDIV2__");
-  static symbol clibuldiv2 = Y(mAX|mBX|mCX|mDX,"_ULDIV2__");
-
-  static symbol clibldiv3  = Y(mAX|mBX|mCX|mDX,"_divdi3");
-  static symbol clibuldiv3 = Y(mAX|mBX|mCX|mDX,"_udivdi3");
-  static symbol cliblmod3  = Y(mAX|mBX|mCX|mDX,"_moddi3");
-  static symbol clibulmod3 = Y(mAX|mBX|mCX|mDX,"_umoddi3");
-#else
-  static symbol lib[CLIBMAX] =
-  {
-/* Convert destroyed regs into saved regs       */
-#define Z(desregs)      (~(desregs) & (mBP| mES | ALLREGS))
-
-/* Shorthand to map onto SYMBOLY()              */
-#define Y(desregs,name)  SYMBOLY(FLfunc,Z(desregs),name,0)
-
-    Y(0,"_LCMP@"),
-    Y(mAX|mCX|mDX,"_LMUL@"),
-    Y(ALLREGS,"_LDIV@"),
-    Y(ALLREGS,"_LDIV@"),
-    Y(ALLREGS,"_ULDIV@"),
-    Y(ALLREGS,"_ULDIV@"),
-    Y(mAX|mBX|mCX|mDX,"_DMUL@"),
-    Y(mAX|mBX|mCX|mDX,"_DDIV@"),
-    Y(0,"_DTST0@"),
-    Y(0,"_DTST0EXC@"),
-    Y(0,"_DCMP@"),
-    Y(0,"_DCMPEXC@"),
-
-    /* _DNEG@ only really destroys EDX, but then EAX would hold */
-    /* 2 values, and we can't handle that.                      */
-
-    /* _DNEG@ only really destroys AX, but then BX,CX,DX would hold     */
-    /* 2 values, and we can't handle that.                              */
-
-    Y(DOUBLEREGS_16,"_DNEG@"),
-    Y(mAX|mBX|mCX|mDX,"_DADD@"),
-    Y(mAX|mBX|mCX|mDX,"_DSUB@"),
-
-    Y(mAX|mBX|mCX|mDX,"_FMUL@"),
-    Y(mAX|mBX|mCX|mDX,"_FDIV@"),
-    Y(0,"_FTST0@"),
-    Y(0,"_FTST0EXC@"),
-    Y(0,"_FCMP@"),
-    Y(0,"_FCMPEXC@"),
-    Y(FLOATREGS_16,"_FNEG@"),
-    Y(mAX|mBX|mCX|mDX,"_FADD@"),
-    Y(mAX|mBX|mCX|mDX,"_FSUB@"),
-    Y(DOUBLEREGS_16,"_DBLLNG@"),
-    Y(DOUBLEREGS_16,"_LNGDBL@"),
-    Y(DOUBLEREGS_16,"_DBLINT@"),
-    Y(DOUBLEREGS_16,"_INTDBL@"),
-    Y(DOUBLEREGS_16,"_DBLUNS@"),
-    Y(DOUBLEREGS_16,"_UNSDBL@"),
-    Y(DOUBLEREGS_16,"_DBLULNG@"),
-    Y(DOUBLEREGS_16,"_ULNGDBL@"),
-    Y(DOUBLEREGS_16,"_DBLFLT@"),
-    Y(ALLREGS,"_FLTDBL@"),
-
-    Y(DOUBLEREGS_16,"_DBLLLNG@"),
-    Y(DOUBLEREGS_16,"_LLNGDBL@"),
-#if 0
-    Y(DOUBLEREGS_16,"__DBLULLNG"),
-#else
-    Y(DOUBLEREGS_16,"_DBLULLNG@"),
-#endif
-    Y(DOUBLEREGS_16,"_ULLNGDBL@"),
-
-    Y(0,"_DTST@"),
-    Y(mES|mBX,"_HTOFPTR@"),             // CLIBvptrfptr
-    Y(mES|mBX,"_HCTOFPTR@"),            // CLIBcvptrfptr
-    Y(0,"_87TOPSW@"),                   // CLIB87topsw
-    Y(mST0,"_FLTTO87@"),                // CLIBfltto87
-    Y(mST0,"_DBLTO87@"),                // CLIBdblto87
-    Y(mST0|mAX,"_DBLINT87@"),           // CLIBdblint87
-    Y(mST0|mAX|mDX,"_DBLLNG87@"),       // CLIBdbllng87
-    Y(0,"_FTST@"),
-    Y(0,"_FCOMPP@"),                    // CLIBfcompp
-    Y(0,"_FTEST@"),                     // CLIBftest
-    Y(0,"_FTEST0@"),                    // CLIBftest0
-    Y(mST0|mAX|mBX|mCX|mDX,"_FDIVP"),   // CLIBfdiv87
-
-    // NOTE: desregs is wrong for 16 bit code, mBX should be included
-    Y(mST0|mST01,"_Cmul"),              // CLIBcmul
-    Y(mAX|mCX|mDX|mST0|mST01,"_Cdiv"),  // CLIBcdiv
-    Y(mAX|mST0|mST01,"_Ccmp"),          // CLIBccmp
-
-    Y(mST0,"_U64_LDBL"),                // CLIBu64_ldbl
-    Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
-
-
-    Y(DOUBLEREGS_32,"__DBLULLNG"),      // CLIBdblullng_win64
-    Y(DOUBLEREGS_32,"__ULLNGDBL"),      // CLIBullngdbl_win64
-  };
-#endif
-
-  static struct
-  {
-    regm_t retregs16;   /* registers that 16 bit result is returned in  */
-    regm_t retregs32;   /* registers that 32 bit result is returned in  */
-    char pop;           /* # of bytes popped off of stack upon return   */
-    char flags;
-        #define INF32           1       // if 32 bit only
-        #define INFfloat        2       // if this is floating point
-        #define INFwkdone       4       // if weak extern is already done
-        #define INF64           8       // if 64 bit only
-    char push87;                        // # of pushes onto the 8087 stack
-    char pop87;                         // # of pops off of the 8087 stack
-  } info[CLIBMAX] =
-  {
-    {0,0,0,0},                          /* _LCMP@       lcmp    */
-    {mDX|mAX,mDX|mAX,0,0},              // _LMUL@       lmul
-    {mDX|mAX,mDX|mAX,0,0},              // _LDIV@       ldiv
-    {mCX|mBX,mCX|mBX,0,0},              /* _LDIV@       lmod    */
-    {mDX|mAX,mDX|mAX,0,0},              /* _ULDIV@      uldiv   */
-    {mCX|mBX,mCX|mBX,0,0},              /* _ULDIV@      ulmod   */
-
-#if TARGET_WINDOS
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DMUL@       dmul
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DDIV@       ddiv
-    {0,0,0,2},                                          // _DTST0@
-    {0,0,0,2},                                          // _DTST0EXC@
-    {0,0,8,INFfloat,1,1},                               // _DCMP@       dcmp
-    {0,0,8,INFfloat,1,1},                               // _DCMPEXC@    dcmp
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,2},                  // _DNEG@       dneg
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DADD@       dadd
-    {DOUBLEREGS_16,DOUBLEREGS_32,8,INFfloat,1,1},       // _DSUB@       dsub
-
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FMUL@       fmul
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FDIV@       fdiv
-    {0,0,0,2},                                          // _FTST0@
-    {0,0,0,2},                                          // _FTST0EXC@
-    {0,0,0,INFfloat,1,1},                               // _FCMP@       fcmp
-    {0,0,0,INFfloat,1,1},                               // _FCMPEXC@    fcmp
-    {FLOATREGS_16,FLOATREGS_32,0,2},                    // _FNEG@       fneg
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FADD@       fadd
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _FSUB@       fsub
-#endif
-
-    {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLLNG@     dbllng
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LNGDBL@     lngdbl
-    {mAX,mAX,0,INFfloat,1,1},                           // _DBLINT@     dblint
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _INTDBL@     intdbl
-    {mAX,mAX,0,INFfloat,1,1},                           // _DBLUNS@     dbluns
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _UNSDBL@     unsdbl
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    {mDX|mAX,mAX,0,INF32|INFfloat,0,1},                 // _DBLULNG@    dblulng
-#else
-    {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLULNG@    dblulng
-#endif
-#if TARGET_WINDOS
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULNGDBL@    ulngdbl
-#endif
-    {FLOATREGS_16,FLOATREGS_32,0,INFfloat,1,1},         // _DBLFLT@     dblflt
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _FLTDBL@     fltdbl
-
-    {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLLLNG@
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LLNGDBL@
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    {DOUBLEREGS_16,mDX|mAX,0,INFfloat,2,2},             // _DBLULLNG@
-#else
-    {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLULLNG@
-#endif
-    {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _ULLNGDBL@
-
-    {0,0,0,2},                          // _DTST@       dtst
-    {mES|mBX,mES|mBX,0,0},              // _HTOFPTR@    vptrfptr
-    {mES|mBX,mES|mBX,0,0},              // _HCTOFPTR@   cvptrfptr
-    {0,0,0,2},                          // _87TOPSW@    87topsw
-    {mST0,mST0,0,INFfloat,1,0},         // _FLTTO87@    fltto87
-    {mST0,mST0,0,INFfloat,1,0},         // _DBLTO87@    dblto87
-    {mAX,mAX,0,2},                      // _DBLINT87@   dblint87
-    {mDX|mAX,mAX,0,2},                  // _DBLLNG87@   dbllng87
-    {0,0,0,2},                          // _FTST@
-    {mPSW,mPSW,0,INFfloat,0,2},         // _FCOMPP@
-    {mPSW,mPSW,0,2},                    // _FTEST@
-    {mPSW,mPSW,0,2},                    // _FTEST0@
-    {mST0,mST0,0,INFfloat,1,1},         // _FDIV@
-
-    {mST01,mST01,0,INF32|INFfloat,3,5}, // _Cmul
-    {mST01,mST01,0,INF32|INFfloat,0,2}, // _Cdiv
-    {mPSW, mPSW, 0,INF32|INFfloat,0,4}, // _Ccmp
-
-    {mST0,mST0,0,INF32|INF64|INFfloat,2,1},   // _U64_LDBL
-    {0,mDX|mAX,0,INF32|INF64|INFfloat,1,2},   // __LDBLULLNG
-
-#if TARGET_WINDOS
-    {0,mAX,0,INFfloat,2,2},                   // __DBLULLNG   CLIBdblullng_win64
-    {0,mAX,0,INFfloat,1,1},                   // __ULLNGDBL   CLIBullngdbl_win64
-#endif
-  };
-
-  if (!clib_inited)                             /* if not initialized   */
-  {
-        assert(sizeof(lib) / sizeof(lib[0]) == CLIBMAX);
-        assert(sizeof(info) / sizeof(info[0]) == CLIBMAX);
-        for (int i = 0; i < CLIBMAX; i++)
-        {   lib[i].Stype = tsclib;
-#if MARS
-            lib[i].Sxtrnnum = 0;
-            lib[i].Stypidx = 0;
-#endif
-        }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        clibldiv2.Stype = tsclib;
-        clibuldiv2.Stype = tsclib;
-        clibldiv3.Stype = tsclib;
-        clibuldiv3.Stype = tsclib;
-        cliblmod3.Stype = tsclib;
-        clibulmod3.Stype = tsclib;
-#if MARS
-        clibldiv2.Sxtrnnum = 0;
-        clibldiv2.Stypidx = 0;
-
-        clibuldiv2.Sxtrnnum = 0;
-        clibuldiv2.Stypidx = 0;
-
-        clibldiv3.Sxtrnnum = 0;
-        clibldiv3.Stypidx = 0;
-
-        clibuldiv3.Sxtrnnum = 0;
-        clibuldiv3.Stypidx = 0;
-
-        cliblmod3.Sxtrnnum = 0;
-        cliblmod3.Stypidx = 0;
-
-        clibulmod3.Sxtrnnum = 0;
-        clibulmod3.Stypidx = 0;
-#endif
-#endif
-        if (!I16)
-        {   /* Adjust table for 386     */
-            lib[CLIBdbllng].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBlngdbl].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBdblint].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBintdbl].Sregsaved  = Z(DOUBLEREGS_32);
-#if TARGET_WINDOS
-            lib[CLIBfneg].Sregsaved    = Z(FLOATREGS_32);
-            lib[CLIBdneg].Sregsaved    = Z(DOUBLEREGS_32);
-            lib[CLIBdbluns].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBunsdbl].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBdblulng].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBulngdbl].Sregsaved = Z(DOUBLEREGS_32);
-#endif
-            lib[CLIBdblflt].Sregsaved  = Z(DOUBLEREGS_32);
-            lib[CLIBfltdbl].Sregsaved  = Z(DOUBLEREGS_32);
-
-            lib[CLIBdblllng].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBllngdbl].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBdblullng].Sregsaved = Z(DOUBLEREGS_32);
-            lib[CLIBullngdbl].Sregsaved = Z(DOUBLEREGS_32);
-
-            if (I64)
-            {
-                info[CLIBullngdbl].retregs32 = mAX;
-                info[CLIBdblullng].retregs32 = mAX;
-            }
-            else if (config.objfmt == OBJ_MSCOFF)
-            {
-                strcpy(lib[CLIBldiv].Sident, "_ms_alldiv");
-                strcpy(lib[CLIBlmod].Sident, "_ms_allrem");   info[CLIBlmod].retregs32 = mAX|mDX;
-                strcpy(lib[CLIBuldiv].Sident, "_ms_aulldiv");
-                strcpy(lib[CLIBulmod].Sident, "_ms_aullrem"); info[CLIBulmod].retregs32 = mAX|mDX;
-            }
-        }
-        clib_inited++;
-  }
-#undef Z
-
-  assert(clib < CLIBMAX);
-#if TARGET_WINDOS
-  if (config.exe == EX_WIN64)
-  {
-        switch (clib)
-        {
-            case CLIBdblullng:  clib = CLIBdblullng_win64; break;
-            case CLIBullngdbl:  clib = CLIBullngdbl_win64; break;
-            case CLIBu64_ldbl:  assert(0); break;
-        }
-  }
-#endif
-  symbol *s = &lib[clib];
-  if (I16)
-        assert(!(info[clib].flags & (INF32 | INF64)));
-  code *cpop = CNIL;
-  code *c = getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
-  keepmask &= ~s->Sregsaved;
+    if (I16)
+        assert(!(cinfo->flags & (INF32 | INF64)));
+    code *cpop = CNIL;
+    code *c = getregs((~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
+    keepmask &= ~s->Sregsaved;
     int npushed = numbitsset(keepmask);
     gensaverestore2(keepmask, &c, &cpop);
-#if 0
-  while (keepmask)
-  {     unsigned keepreg;
 
-        if (keepmask & (mBP|ALLREGS))
-        {       keepreg = findreg(keepmask & (mBP|ALLREGS));
-                c = gen1(c,0x50 + keepreg);             /* PUSH keepreg */
-                cpop = cat(gen1(CNIL,0x58 + keepreg),cpop);     // POP keepreg
-                keepmask &= ~mask[keepreg];
-                npushed++;
-        }
-        if (keepmask & mES)
-        {       c = gen1(c,0x06);                       /* PUSH ES      */
-                cpop = cat(gen1(CNIL,0x07),cpop);       /* POP ES       */
-                keepmask &= ~mES;
-                npushed++;
-        }
-  }
-#endif
-
-    c = cat(c, save87regs(info[clib].push87));
-    for (int i = 0; i < info[clib].push87; i++)
+    c = cat(c, save87regs(cinfo->push87));
+    for (int i = 0; i < cinfo->push87; i++)
         c = cat(c, push87());
 
-    for (int i = 0; i < info[clib].pop87; i++)
+    for (int i = 0; i < cinfo->pop87; i++)
         pop87();
 
   if (config.target_cpu >= TARGET_80386 && clib == CLIBlmul && !I32)
@@ -2290,10 +2511,9 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   else
   {
         code *cgot = NULL;
-        bool pushebx = false;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        if (I32)
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
         {
+            // Note: not for OSX
             /* Pass EBX on the stack instead, this is because EBX is used
              * for shared library function calls
              */
@@ -2301,47 +2521,11 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             {
                 cgot = load_localgot();     // EBX gets set to this value
             }
-#if TARGET_LINUX || TARGET_FREEBSD
-            switch (clib)
-            {
-                case CLIBldiv:
-                    s = &clibldiv3;
-                    pushebx = true;
-                    break;
-                case CLIBlmod:
-                    s = &cliblmod3;
-                    pushebx = true;
-                    info[clib].retregs32 = mAX|mDX;
-                    break;
-                case CLIBuldiv:
-                    s = &clibuldiv3;
-                    pushebx = true;
-                    break;
-                case CLIBulmod:
-                    s = &clibulmod3;
-                    pushebx = true;
-                    info[clib].retregs32 = mAX|mDX;
-                    break;
-            }
-#else
-            switch (clib)
-            {   // EBX is a parameter to these, so push it on the stack before load_localgot()
-                case CLIBldiv:
-                case CLIBlmod:
-                    s = &clibldiv2;
-                    pushebx = true;
-                    break;
-                case CLIBuldiv:
-                case CLIBulmod:
-                    s = &clibuldiv2;
-                    pushebx = true;
-                    break;
-            }
-#endif
         }
-#endif
+
         makeitextern(s);
         int nalign = 0;
+        int pushebx = (cinfo->flags & INFpushebx) != 0;
         if (STACKALIGN == 16)
         {   // Align the stack (assume no args on stack)
             int npush = (npushed + pushebx) * REGSIZE + stackpush;
@@ -2352,16 +2536,19 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         }
         if (pushebx)
         {
-#if TARGET_LINUX || TARGET_FREEBSD
-            c = gen1(c, 0x50 + CX);                             // PUSH ECX
-            c = gen1(c, 0x50 + BX);                             // PUSH EBX
-            c = gen1(c, 0x50 + DX);                             // PUSH EDX
-            c = gen1(c, 0x50 + AX);                             // PUSH EAX
-            nalign += 4 * REGSIZE;
-#else
-            c = gen1(c, 0x50 + BX);                             // PUSH EBX
-            nalign += REGSIZE;
-#endif
+            if (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64))
+            {
+                c = gen1(c, 0x50 + CX);                             // PUSH ECX
+                c = gen1(c, 0x50 + BX);                             // PUSH EBX
+                c = gen1(c, 0x50 + DX);                             // PUSH EDX
+                c = gen1(c, 0x50 + AX);                             // PUSH EAX
+                nalign += 4 * REGSIZE;
+            }
+            else
+            {
+                c = gen1(c, 0x50 + BX);                             // PUSH EBX
+                nalign += REGSIZE;
+            }
         }
         c = cat(c, cgot);                                       // EBX = localgot
         c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
@@ -2372,16 +2559,16 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 #if SCPP & TX86
         if (I16 &&                                   // bug in Optlink for weak references
             config.flags3 & CFG3wkfloat &&
-            (info[clib].flags & (INFfloat | INFwkdone)) == INFfloat)
-        {   info[clib].flags |= INFwkdone;
-            makeitextern(rtlsym[RTLSYM_INTONLY]);
-            objmod->wkext(s,rtlsym[RTLSYM_INTONLY]);
+            (cinfo->flags & (INFfloat | INFwkdone)) == INFfloat)
+        {   cinfo->flags |= INFwkdone;
+            makeitextern(getRtlsym(RTLSYM_INTONLY));
+            objmod->wkext(s,getRtlsym(RTLSYM_INTONLY));
         }
 #endif
     }
     if (I16)
-        stackpush -= info[clib].pop;
-    regm_t retregs = I16 ? info[clib].retregs16 : info[clib].retregs32;
+        stackpush -= cinfo->pop;
+    regm_t retregs = I16 ? cinfo->retregs16 : cinfo->retregs32;
     return cat(cat(c,cpop),fixresult(e,retregs,pretregs));
 }
 
@@ -2618,8 +2805,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
     assert(e);
-    unsigned numpara = 0;
-    unsigned numalign = 0;
+    unsigned numpara = 0;               // bytes of parameters
+    unsigned numalign = 0;              // bytes to align stack before pushing parameters
     unsigned stackpushsave = stackpush;            // so we can compute # of parameters
     cgstate.stackclean++;
     code *c = CNIL;
@@ -2637,14 +2824,18 @@ code *cdfunc(elem *e,regm_t *pretregs)
         assert(n == np);
     }
 
+    symbol *sf = NULL;                  // symbol of the function being called
+    if (e->E1->Eoper == OPvar)
+        sf = e->E1->EV.sp.Vsym;
+
     /* Special handling for call to __tls_get_addr, we must save registers
      * before evaluating the parameter, so that the parameter load and call
      * are adjacent.
      */
-    if (np == 1 && e->E1->Eoper == OPvar)
-    {   symbol *s = e->E1->EV.sp.Vsym;
-        if (s == tls_get_addr_sym)
-            c = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
+    if (np == 1 && sf)
+    {
+        if (sf == tls_get_addr_sym)
+            c = getregs(~sf->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
     }
 
     unsigned stackalign = REGSIZE;
@@ -2658,7 +2849,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     for (int i = np; --i >= 0;)
     {
         elem *ep = parameters[i].e;
-        unsigned psize = paramsize(ep, stackalign);
+        unsigned psize = align(stackalign, paramsize(ep));     // align on stack boundary
         if (config.exe == EX_WIN64)
         {
             //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep->Ety); printf("\n");
@@ -2705,10 +2896,64 @@ code *cdfunc(elem *e,regm_t *pretregs)
      * pushed. We can reorder args that are constants or relconst's.
      */
 
+    /* Determine if we should use cgstate.funcarg for the parameters or push them
+     */
+    bool usefuncarg = FALSE;
+#if 0
+    printf("test1 %d %d %d %d %d %d %d %d\n", (config.flags4 & CFG4speed)!=0, !Alloca.size,
+        !(usednteh & ~NTEHjmonitor),
+        (int)numpara, !stackpush,
+        (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos),
+        (!typfunc(tyf) || sf && sf->Sflags & SFLexit), !I16);
+#endif
+    if (config.flags4 & CFG4speed &&
+        !Alloca.size &&
+        /* The cleanup code calls a local function, leaving the return address on
+         * the top of the stack. If parameters are placed there, the return address
+         * is stepped on.
+         * A better solution is turn this off only inside the cleanup code.
+         */
+        !(usednteh & ~NTEHjmonitor) &&
+        (numpara || config.exe == EX_WIN64) &&
+        stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack
+        (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos) &&
+        (!(typfunc(tyf) || tyf == TYhfunc) || sf && sf->Sflags & SFLexit) &&
+        !anyiasm && !I16
+       )
+    {
+        for (int i = 0; i < np; i++)
+        {
+            elem *ep = parameters[i].e;
+            int preg = parameters[i].reg;
+            //printf("parameter[%d] = %d, np = %d\n", i, preg, np);
+            if (preg == NOREG)
+            {
+                switch (ep->Eoper)
+                {
+                    case OPstrctor:
+                    case OPstrthis:
+                    case OPstrpar:
+#if TARGET_SEGMENTED
+                    case OPnp_fp:
+#endif
+                        goto Lno;
+                }
+            }
+        }
+
+        if (numpara > cgstate.funcarg.size)
+        {   // New high water mark
+            //printf("increasing size from %d to %d\n", (int)cgstate.funcarg.size, (int)numpara);
+            cgstate.funcarg.size = numpara;
+        }
+        usefuncarg = TRUE;
+    }
+  Lno: ;
+
     /* Adjust start of the stack so after all args are pushed,
      * the stack will be aligned.
      */
-    if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
+    if (!usefuncarg && STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
         c = cod3_stackadj(c, numalign);
@@ -2721,12 +2966,18 @@ code *cdfunc(elem *e,regm_t *pretregs)
     {
         //printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
+
+        // Allocate stack space for four entries anyway
+        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
     }
 
     int regsaved[XMM7 + 1];
     memset(regsaved, -1, sizeof(regsaved));
     code *crest = NULL;
     regm_t saved = 0;
+    targ_size_t funcargtossave = cgstate.funcargtos;
+    targ_size_t funcargtos = numpara;
+    //printf("funcargtos1 = %d\n", (int)funcargtos);
 
     /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
      * float and double parameters go into XMM0..XMM7
@@ -2746,7 +2997,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
             code *csave = NULL;
             regm_t overlap = msavereg & keepmsk;
             msavereg |= keepmsk;
-            code *cp = params(ep,stackalign);
+            code *cp;
+            if (usefuncarg)
+                cp = movParams(ep, stackalign, funcargtos);
+            else
+                cp = pushParams(ep,stackalign);
             regm_t tosave = keepmsk & ~msavereg;
             msavereg &= ~keepmsk | overlap;
 
@@ -2769,7 +3024,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
             // Alignment for parameter comes after it got pushed
             unsigned numalign = parameters[i].numalign;
-            if (numalign)
+            if (usefuncarg)
+            {
+                funcargtos -= align(stackalign, paramsize(ep)) + numalign;
+                cgstate.funcargtos = funcargtos;
+            }
+            else if (numalign)
             {
                 c = cod3_stackadj(c, numalign);
                 c = genadjesp(c, numalign);
@@ -2900,9 +3160,17 @@ code *cdfunc(elem *e,regm_t *pretregs)
     {   // Allocate stack space for four entries anyway
         // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
         {   unsigned sz = 4 * REGSIZE;
-            c = cod3_stackadj(c, sz);
-            c = genadjesp(c, sz);
-            stackpush += sz;
+            if (usefuncarg)
+            {
+                funcargtos -= sz;
+                cgstate.funcargtos = funcargtos;
+            }
+            else
+            {
+                c = cod3_stackadj(c, sz);
+                c = genadjesp(c, sz);
+                stackpush += sz;
+            }
         }
 
         /* Variadic functions store XMM parameters into their corresponding GP registers
@@ -2940,19 +3208,23 @@ code *cdfunc(elem *e,regm_t *pretregs)
         keepmsk |= mAX;
     }
 
+    //printf("funcargtos2 = %d\n", (int)funcargtos);
+    assert(!usefuncarg || (funcargtos == 0 && cgstate.funcargtos == 0));
     cgstate.stackclean--;
 
 #ifdef DEBUG
-    if (numpara != stackpush - stackpushsave)
+    if (!usefuncarg && numpara != stackpush - stackpushsave)
     {
         printf("function %s\n", funcsym_p->Sident);
         printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, stackpush, stackpushsave);
         elem_print(e);
     }
 #endif
-    assert(numpara == stackpush - stackpushsave);
+    assert(usefuncarg || numpara == stackpush - stackpushsave);
 
-    return cat(c,funccall(e,numpara,numalign,pretregs,keepmsk));
+    c = cat(c,funccall(e,numpara,numalign,pretregs,keepmsk,usefuncarg));
+    cgstate.funcargtos = funcargtossave;
+    return c;
 }
 
 /***********************************
@@ -2975,11 +3247,18 @@ code *cdstrthis(elem *e,regm_t *pretregs)
 }
 
 /******************************
- * Call function. All parameters are pushed onto the stack, numpara gives
- * the size of them all.
+ * Call function. All parameters have already been pushed onto the stack.
+ * Params:
+ *      e          = function call
+ *      numpara    = size in bytes of all the parameters
+ *      numalign   = amount the stack was aligned by before the parameters were pushed
+ *      pretregs   = where return value goes
+ *      keepmsk    = registers to not change when evaluating the function address
+ *      usefuncarg = using cgstate.funcarg, so no need to adjust stack after func return
  */
 
-STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretregs,regm_t keepmsk)
+STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
+        regm_t *pretregs,regm_t keepmsk, bool usefuncarg)
 {
     elem *e1;
     code *c,*ce,cs;
@@ -3006,15 +3285,19 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     {   /* Call function directly       */
         code *c1;
 
-#ifdef DEBUG
-        if (!tyfunc(tym1)) WRTYxx(tym1);
-#endif
+        if (!tyfunc(tym1))
+            WRTYxx(tym1);
         assert(tyfunc(tym1));
         s = e1->EV.sp.Vsym;
         if (s->Sflags & SFLexit)
             c = NULL;
         else if (s != tls_get_addr_sym)
             c = save87();               // assume 8087 regs are all trashed
+
+        // Function calls may throw Errors, unless marked that they don't
+        if (s == funcsym_p || !s->Sfunc || !(s->Sfunc->Fflags3 & Fnothrow))
+            funcsym_p->Sfunc->Fflags3 &= ~Fnothrow;
+
         if (s->Sflags & SFLexit)
             // Function doesn't return, so don't worry about registers
             // it may use
@@ -3026,8 +3309,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             c1 = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
         if (strcmp(s->Sident,"alloca") == 0)
         {
-#if 1
-            s = rtlsym[RTLSYM_ALLOCA];
+            s = getRtlsym(RTLSYM_ALLOCA);
             makeitextern(s);
             int areg = CX;
             if (config.exe == EX_WIN64)
@@ -3036,10 +3318,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             c1 = genc(c1,0x8D,modregrm(2,areg,BPRM),FLallocatmp,0,0,0);  // LEA areg,&localsize[BP]
             if (I64)
                 code_orrex(c1, REX_W);
-            usedalloca = 2;             // new way
-#else
-            usedalloca = 1;             // old way
-#endif
+            Alloca.size = REGSIZE;
         }
         if (sytab[s->Sclass] & SCSS)    // if function is on stack (!)
         {
@@ -3109,10 +3388,10 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
   else
   {     /* Call function via pointer    */
 
-#ifdef DEBUG
-        if (e1->Eoper != OPind
-                ) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
-#endif
+        // Function calls may throw Errors
+        funcsym_p->Sfunc->Fflags3 &= ~Fnothrow;
+
+        if (e1->Eoper != OPind) { WRFL((enum FL)el_fl(e1)); WROP(e1->Eoper); }
         c = save87();                   // assume 8087 regs are all trashed
         assert(e1->Eoper == OPind);
         elem *e11 = e1->E1;
@@ -3224,27 +3503,30 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 
     retregs = regmask(e->Ety, tym1);
 
-    // If stack needs cleanup
-    if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
-        (!typfunc(tym1) || config.exe == EX_WIN64) &&
-      !(s && s->Sflags & SFLexit))
+    if (!usefuncarg)
     {
-        if (tym1 == TYhfunc)
-        {   // Hidden parameter is popped off by the callee
-            c = genadjesp(c, -REGSIZE);
-            stackpush -= REGSIZE;
-            if (numpara + numalign > REGSIZE)
-                c = genstackclean(c, numpara + numalign - REGSIZE, retregs);
+        // If stack needs cleanup
+        if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
+            (!typfunc(tym1) || config.exe == EX_WIN64) &&
+          !(s && s->Sflags & SFLexit))
+        {
+            if (tym1 == TYhfunc)
+            {   // Hidden parameter is popped off by the callee
+                c = genadjesp(c, -REGSIZE);
+                stackpush -= REGSIZE;
+                if (numpara + numalign > REGSIZE)
+                    c = genstackclean(c, numpara + numalign - REGSIZE, retregs);
+            }
+            else
+                c = genstackclean(c,numpara + numalign,retregs);
         }
         else
-            c = genstackclean(c,numpara + numalign,retregs);
-    }
-    else
-    {
-        c = genadjesp(c,-numpara);
-        stackpush -= numpara;
-        if (numalign)
-            c = genstackclean(c,numalign,retregs);
+        {
+            c = genadjesp(c,-numpara);
+            stackpush -= numpara;
+            if (numalign)
+                c = genstackclean(c,numalign,retregs);
+        }
     }
 
     /* Special handling for functions which return a floating point
@@ -3284,20 +3566,13 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 }
 
 /***************************
- * Determine size of everything that will be pushed.
+ * Determine size of argument e that will be pushed.
  */
 
-targ_size_t paramsize(elem *e,unsigned stackalign)
+targ_size_t paramsize(elem *e)
 {
-    targ_size_t psize = 0;
+    assert(e->Eoper != OPparam);
     targ_size_t szb;
-
-    while (e->Eoper == OPparam)         /* if more params               */
-    {
-        elem *e2 = e->E2;
-        psize += paramsize(e->E1,stackalign);   // push them backwards
-        e = e2;
-    }
     tym_t tym = tybasic(e->Ety);
     if (tyscalar(tym))
         szb = size(tym);
@@ -3305,26 +3580,227 @@ targ_size_t paramsize(elem *e,unsigned stackalign)
         szb = type_size(e->ET);
     else
     {
-#ifdef DEBUG
         WRTYxx(tym);
-#endif
         assert(0);
     }
-    psize += align(stackalign,szb);     /* align on word stack boundary */
-    return psize;
+    return szb;
 }
 
 /***************************
- * Generate code to push parameter list.
+ * Generate code to move argument e on the stack.
+ */
+
+static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
+{
+    //printf("movParams(e = %p, stackalign = %d, funcargtos = %d)\n", e, stackalign, funcargtos);
+    //printf("movParams()\n"); elem_print(e);
+    assert(!I16);
+    code *cp = NULL;
+    assert(e && e->Eoper != OPparam);
+
+    tym_t tym = tybasic(e->Ety);
+    if (tyfloating(tym))
+        objmod->fltused();
+
+    int grex = I64 ? REX_W << 16 : 0;
+
+    targ_size_t szb = paramsize(e);               // size before alignment
+    targ_size_t sz = align(stackalign,szb);       // size after alignment
+    assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
+    assert((sz & (REGSIZE - 1)) == 0);
+    //printf("szb = %d sz = %d\n", (int)szb, (int)sz);
+
+    code *c = CNIL;
+    code cs;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+    switch (e->Eoper)
+    {
+        case OPstrctor:
+        case OPstrthis:
+        case OPstrpar:
+#if TARGET_SEGMENTED
+        case OPnp_fp:
+#endif
+            assert(0);
+        case OPrelconst:
+        {
+            int fl;
+            if (!evalinregister(e) &&
+                !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
+                ((fl = el_fl(e)) == FLdata || fl == FLudata || fl == FLextern)
+               )
+            {
+                // MOV -stackoffset[EBP],&variable
+                cs.Iop = 0xC7;
+                cs.Irm = modregrm(2,0,BPRM);
+                if (I64 && sz == 8)
+                    cs.Irex |= REX_W;
+                cs.IFL1 = FLfuncarg;
+                cs.IEVoffset1 = funcargtos - REGSIZE;
+                cs.IEVoffset2 = e->EV.sp.Voffset;
+                cs.IFL2 = fl;
+                cs.IEVsym2 = e->EV.sp.Vsym;
+                cs.Iflags |= CFoff;
+                c = gen(c,&cs);
+                return c;
+            }
+            break;
+        }
+        case OPconst:
+            if (!evalinregister(e))
+            {
+                cs.Iop = (sz == 1) ? 0xC6 : 0xC7;
+                cs.Irm = modregrm(2,0,BPRM);
+                cs.IFL1 = FLfuncarg;
+                cs.IEVoffset1 = funcargtos - sz;
+                cs.IFL2 = FLconst;
+                targ_size_t *p = (targ_size_t *) &(e->EV);
+                cs.IEV2.Vsize_t = *p;
+                if (I64 && tym == TYcldouble)
+                    // The alignment of EV.Vcldouble is not the same on the compiler
+                    // as on the target
+                    goto Lbreak;
+                if (I64 && sz >= 8)
+                {
+                    int i = sz;
+                    do
+                    {
+                        if (*p >= 0x80000000)
+                        {   // Use 64 bit register MOV, as the 32 bit one gets sign extended
+                            // MOV reg,imm64
+                            // MOV EA,reg
+                            goto Lbreak;
+                        }
+                        p = (targ_size_t *)((char *) p + REGSIZE);
+                        i -= REGSIZE;
+                    } while (i > 0);
+                    p = (targ_size_t *) &(e->EV);
+                }
+
+                int i = sz;
+                do
+                {   int regsize = REGSIZE;
+                    regm_t retregs = (sz == 1) ? BYTEREGS : allregs;
+                    unsigned reg;
+                    if (reghasvalue(retregs,*p,&reg))
+                    {
+                        cs.Iop = (cs.Iop & 1) | 0x88;
+                        cs.Irm |= modregrm(0,reg & 7,0); // MOV EA,reg
+                        if (reg & 8)
+                            cs.Irex |= REX_R;
+                        if (I64 && sz == 1 && reg >= 4)
+                            cs.Irex |= REX;
+                    }
+                    if (I64 && sz >= 8)
+                        cs.Irex |= REX_W;
+                    c = gen(c,&cs);           // MOV EA,const
+
+                    p = (targ_size_t *)((char *) p + regsize);
+                    cs.Iop = 0xC7;
+                    cs.Irm &= ~modregrm(0,7,0);
+                    cs.Irex &= ~REX_R;
+                    cs.IEVoffset1 += regsize;
+                    cs.IEV2.Vint = *p;
+                    i -= regsize;
+                } while (i > 0);
+                return c;
+            }
+        Lbreak:
+            break;
+        default:
+            break;
+    }
+    regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
+    if (tyvector(tym))
+    {
+        retregs = XMMREGS;
+        c = cat(c,codelem(e,&retregs,FALSE));
+        unsigned op = xmmstore(tym);
+        unsigned r = findreg(retregs);
+        c = genc1(c,op,modregxrm(2,r - XMM0,BPRM),FLfuncarg,funcargtos - 16);   // MOV funcarg[EBP],r
+        goto ret;
+    }
+    else if (tyfloating(tym))
+    {
+        if (config.inline8087)
+        {
+            retregs = tycomplex(tym) ? mST01 : mST0;
+            c = cat(c,codelem(e,&retregs,FALSE));
+
+            unsigned op;
+            unsigned r;
+            switch (tym)
+            {
+                case TYfloat:
+                case TYifloat:
+                case TYcfloat:
+                    op = 0xD9;
+                    r = 3;
+                    break;
+
+                case TYdouble:
+                case TYidouble:
+                case TYdouble_alias:
+                case TYcdouble:
+                    op = 0xDD;
+                    r = 3;
+                    break;
+
+                case TYldouble:
+                case TYildouble:
+                case TYcldouble:
+                    op = 0xDB;
+                    r = 7;
+                    break;
+
+                default:
+                    assert(0);
+            }
+            code *c2 = NULL;
+            if (tycomplex(tym))
+            {
+                // FSTP sz/2[ESP]
+                c2 = genc1(CNIL,op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz/2);
+                pop87();
+            }
+            pop87();
+            c2 = genc1(c2,op,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - sz);    // FSTP -sz[EBP]
+            c = cat(c,c2);
+            goto ret;
+        }
+    }
+    c = cat(c,scodelem(e,&retregs,0,TRUE));
+    if (sz <= REGSIZE)
+    {
+        unsigned r = findreg(retregs);
+        c = genc1(c,0x89,modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);   // MOV -REGSIZE[EBP],r
+        if (sz == 8)
+            code_orrex(c, REX_W);
+    }
+    else if (sz == REGSIZE * 2)
+    {
+        unsigned r = findregmsw(retregs);
+        c = genc1(c,0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
+        r = findreglsw(retregs);
+        c = genc1(c,0x89,grex | modregxrm(2,r,BPRM),FLfuncarg,funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
+    }
+    else
+        assert(0);
+ret:
+    return cat(cp,c);
+}
+
+
+/***************************
+ * Generate code to push argument e on the stack.
  * stackpush is incremented by stackalign for each PUSH.
  */
 
-code *params(elem *e,unsigned stackalign)
+code *pushParams(elem *e,unsigned stackalign)
 { code *c,*ce,cs;
   code *cp;
   unsigned reg;
-  targ_size_t szb;                      // size before alignment
-  targ_size_t sz;                       // size after alignment
   tym_t tym;
   regm_t retregs;
   elem *e1;
@@ -3333,17 +3809,10 @@ code *params(elem *e,unsigned stackalign)
   int fl;
 
   //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
+  //printf("params()\n"); elem_print(e);
   cp = NULL;
   stackchanged = 1;
-  assert(e);
-  while (e->Eoper == OPparam)           /* if more params               */
-  {
-        e2 = e->E2;
-        cp = cat(cp,params(e->E1,stackalign));  // push them backwards
-        freenode(e);
-        e = e2;
-  }
-  //printf("params()\n"); elem_print(e);
+  assert(e && e->Eoper != OPparam);
 
   tym = tybasic(e->Ety);
   if (tyfloating(tym))
@@ -3351,20 +3820,9 @@ code *params(elem *e,unsigned stackalign)
 
   int grex = I64 ? REX_W << 16 : 0;
 
-  /* sz = number of bytes pushed        */
-  if (tyscalar(tym))
-        szb = size(tym);
-  else if (tym == TYstruct || tym == TYarray)
-        szb = type_size(e->ET);
-  else
-  {
-#ifdef DEBUG
-        WRTYxx(tym);
-#endif
-        assert(0);
-  }
-  sz = align(stackalign,szb);           /* align on word stack boundary */
-  assert((sz & (stackalign - 1)) == 0); /* ensure that alignment worked */
+  targ_size_t szb = paramsize(e);               // size before alignment
+  targ_size_t sz = align(stackalign,szb);       // size after alignment
+  assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
   assert((sz & (REGSIZE - 1)) == 0);
 
   c = CNIL;
@@ -3524,9 +3982,7 @@ code *params(elem *e,unsigned stackalign)
                         c1 = codelem(e1,&retregs,FALSE);
                         break;
                     default:
-#ifdef DEBUG
                         elem_print(e1);
-#endif
                         assert(0);
                 }
                 reg = findreglsw(retregs);
@@ -3661,7 +4117,7 @@ code *params(elem *e,unsigned stackalign)
                 code_orflag(c,CFopsize);        // push a word
             c = genadjesp(c,stackalign);
             stackpush += stackalign;
-            ce = params(e1,stackalign);
+            ce = pushParams(e1,stackalign);
             goto L2;
         }
         break;
@@ -4138,9 +4594,7 @@ code *loaddata(elem *e,regm_t *pretregs)
             return load87(e,0,pretregs,NULL,-1);
         else
         {
-#ifdef DEBUG
             elem_print(e);
-#endif
             assert(0);
         }
         return c;
@@ -4275,11 +4729,11 @@ code *loaddata(elem *e,regm_t *pretregs)
     // See if we can use register that parameter was passed in
     if (regcon.params &&
         (e->EV.sp.Vsym->Sclass == SCfastpar || e->EV.sp.Vsym->Sclass == SCshadowreg) &&
-        regcon.params & mask[e->EV.sp.Vsym->Spreg] &&
-        !(e->Eoper == OPvar && e->EV.sp.Voffset > 0) && // Must be at the base of that variable
+        (regcon.params & mask[e->EV.sp.Vsym->Spreg] && e->EV.sp.Voffset == 0 ||
+         regcon.params & mask[e->EV.sp.Vsym->Spreg2] && e->EV.sp.Voffset == REGSIZE) &&
         sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
     {
-        reg = e->EV.sp.Vsym->Spreg;
+        reg = e->EV.sp.Voffset ? e->EV.sp.Vsym->Spreg2 : e->EV.sp.Vsym->Spreg;
         forregs = mask[reg];
 #ifdef DEBUG
         if (debugr)
@@ -4308,7 +4762,17 @@ code *loaddata(elem *e,regm_t *pretregs)
 #endif
         assert(forregs & BYTEREGS);
         if (!I16)
+        {
+            if (config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed &&
+                // Workaround for OSX linker bug:
+                //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
+                !(config.exe & EX_OSX64 && !(sytab[e->EV.sp.Vsym->Sclass] & SCSS))
+               )
+            {
+                op = tyuns(tym) ? 0x0FB6 : 0x0FBE;      // MOVZX/MOVSX
+            }
             c = cat(c,loadea(e,&cs,op,reg,0,0,0));    // MOV regL,data
+        }
         else
         {   nregm = tyuns(tym) ? BYTEREGS : mAX;
             if (*pretregs & nregm)
@@ -4341,7 +4805,16 @@ code *loaddata(elem *e,regm_t *pretregs)
     }
     else if (sz <= REGSIZE)
     {
-        ce = loadea(e,&cs,0x8B,reg,0,RMload,0); // MOV reg,data
+        unsigned op = 0x8B;                     // MOV reg,data
+        if (sz == 2 && !I16 && config.target_cpu >= TARGET_PentiumPro &&
+            // Workaround for OSX linker bug:
+            //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
+            !(config.exe & EX_OSX64 && !(sytab[e->EV.sp.Vsym->Sclass] & SCSS))
+           )
+        {
+            op = tyuns(tym) ? 0x0FB7 : 0x0FBF;  // MOVZX/MOVSX
+        }
+        ce = loadea(e,&cs,op,reg,0,RMload,0);
         c = cat(c,ce);
     }
     else if (sz <= 2 * REGSIZE && forregs & mES)

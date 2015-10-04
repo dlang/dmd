@@ -1,5 +1,5 @@
 // Copyright (C) 1996-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -32,7 +32,19 @@ Symbol *rtlsym[RTLSYM_MAX];
 #define FREGSAVED       (mBP | mBX | mSI | mDI)
 #endif
 
-static Symbol rtlsym2[RTLSYM_MAX];
+// Helper function for rtlsym_init()
+
+static Symbol *symbolz(const char *name, type *t, int fl, SYMFLGS flags, regm_t regsaved)
+{
+    Symbol *s = symbol_calloc(name);
+    s->Stype = t;
+    s->Ssymnum = -1;
+    s->Sclass = SCextern;
+    s->Sfl = fl;
+    s->Sregsaved = regsaved;
+    s->Sflags = flags;
+    return s;
+}
 
 /******************************************
  * Initialize rtl symbols.
@@ -47,23 +59,6 @@ void rtlsym_init()
 
         //printf("rtlsym_init(%s)\n", regm_str(FREGSAVED));
 
-        for (int i = 0; i < RTLSYM_MAX; i++)
-        {
-            rtlsym[i] = &rtlsym2[i];
-#ifdef DEBUG
-            rtlsym[i]->id = IDsymbol;
-#endif
-            rtlsym[i]->Stype = tsclib;
-            rtlsym[i]->Ssymnum = -1;
-            rtlsym[i]->Sclass = SCextern;
-            rtlsym[i]->Sfl = FLfunc;
-#if ELFOBJ || MACHOBJ
-            rtlsym[i]->obj_si = (unsigned)-1;
-            rtlsym[i]->dwarf_off = (unsigned)-1;
-#endif
-            rtlsym[i]->Sregsaved = FREGSAVED;
-        }
-
 #if MARS
         type *t = type_fake(TYnfunc);
         t->Tmangle = mTYman_c;
@@ -75,21 +70,12 @@ void rtlsym_init()
         tv->Tcount++;
 #endif
 
-#if MACHOBJ
-        type *tw = type_fake(TYnpfunc);
-        tw->Tmangle = mTYman_sys;
-        tw->Tcount++;
-#else
+        // Only used by dmd1 for RTLSYM_THROW
         type *tw = NULL;
-#endif
 
 #undef SYMBOL_Z
-#define SYMBOL_Z(e, fl, saved, n, flags, ty)                                \
-        if (ty) rtlsym[RTLSYM_##e]->Stype = (ty);                           \
-        if ((fl) != FLfunc) rtlsym[RTLSYM_##e]->Sfl = (fl);                 \
-        if (flags) rtlsym[RTLSYM_##e]->Sflags = (flags);                    \
-        if ((saved) != FREGSAVED) rtlsym[RTLSYM_##e]->Sregsaved = (saved);  \
-        strcpy(rtlsym[RTLSYM_##e]->Sident, (n));                            \
+#define SYMBOL_Z(e, fl, regsaved, n, flags, t) \
+        rtlsym[RTLSYM_##e] = symbolz(n, t, fl, flags, regsaved);
 
         RTLSYMS
     }
@@ -103,10 +89,9 @@ void rtlsym_init()
 #if MARS
 
 void rtlsym_reset()
-{   int i;
-
-    clib_inited = 0;
-    for (i = 0; i < RTLSYM_MAX; i++)
+{
+    clib_inited = 0;            // reset CLIB symbols, too
+    for (size_t i = 0; i < RTLSYM_MAX; i++)
     {   rtlsym[i]->Sxtrnnum = 0;
         rtlsym[i]->Stypidx = 0;
     }

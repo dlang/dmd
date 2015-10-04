@@ -11,6 +11,15 @@ class C1748(T) {}
 static assert(C1748!int.stringof == "C1748!int");
 
 /**************************************************
+    2354 pragma + single semicolon DeclarationBlock
+**************************************************/
+
+version(all)
+    pragma(msg, "true");
+else
+    pragma(msg, "false");
+
+/**************************************************
     2438
 **************************************************/
 
@@ -117,6 +126,19 @@ auto bug6650(X)(X y)
 
 static assert(!is(typeof(bug6650!(int)(6))));
 static assert(!is(typeof(bug6650!(int)(18))));
+
+/**************************************************
+    14710    VC-built DMD crashes on templated variadic function IFTI
+**************************************************/
+
+void bug14710a(T)(T val, T[] arr...)
+{
+}
+
+void bug14710b()
+{
+    bug14710a("", "");
+}
 
 /**************************************************
   6661 Templates instantiated only through is(typeof()) shouldn't cause errors

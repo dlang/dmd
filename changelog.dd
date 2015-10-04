@@ -1,13 +1,41 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.068.2.
+$(COMMENT Pending changelog for 2.069. This will get copied to dlang.org and
+    cleared when master gets merged into stable prior to 2.069.
 )
 
 $(BUGSTITLE Compiler Changes,
-$(LI The fix for $(BUGZILLA 14708) was reverted: destructor for temporary not called during stack unwinding, see $(DMDPR 5110).)
+$(LI $(RELATIVE_LINK2 objective-c-support, Basic support for Objective-C.))
+$(LI $(RELATIVE_LINK2 property-switch-deprecated, The $(TT -property) switch has
+    been deprecated.))
 )
 
 $(BUGSTITLE Compiler Changes,
+
+$(LI $(LNAME2 objective-c-support, Basic support for Objective-C.)
+
+    $(P Basic support for Objective-C classes, interfaces and instance methods.
+        This is implemented by adding a new linkage attribute, Objective-C, and
+        a compiler recognized UDA, @selector. The linkage attribute is to be
+        used on a class or interface. The UDA is attached to a method.
+    )
+)
+
+$(LI $(LNAME2 property-switch-deprecated, The $(TT -property) switch has
+    been deprecated.)
+
+    $(P The $(TT -property) switch used to disallow calling non-properties
+        without parentheses. The switch has not been used to build Phobos for
+        some time now. So naturally, code that's incompatible with
+        $(TT -property) has found its way in. This means, the switch has
+        effectively not been supported by D at large.
+    )
+
+    $(P Since the behaviour of the $(TT -property) switch was not well-liked,
+        it's been deprecated and made to have no effect when used.
+    )
+)
+
 )
 
 Macros:
@@ -17,6 +45,10 @@ Macros:
 
     RELATIVE_LINK2=<a href="#$1">$+</a>
     LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
+
+    STDMODREF = <a href="phobos/std_$1.html">$2</a>
+    XREF = <a href="phobos/std_$1.html#$2">$2</a>
+    CXREF = <a href="phobos/core_$1.html#$2">$2</a>
 
     BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
     PULL_REQUEST = $(LINK2 https://github.com/D-Programming-Language/$1/pull/$2, $1#$2)

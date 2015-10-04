@@ -25,9 +25,10 @@
 struct CtfeStatus
 {
     static int callDepth; // current number of recursive calls
-    static int stackTraceCallsToSuppress; /* When printing a stack trace,
-                                           * suppress this number of calls
-                                           */
+    /* When printing a stack trace,
+     * suppress this number of calls
+     */
+    static int stackTraceCallsToSuppress;
     static int maxCallDepth; // highest number of recursive calls
     static int numArrayAllocs; // Number of allocated arrays
     static int numAssignments; // total number of assignments executed
@@ -163,10 +164,6 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
  * assignment.
  */
 void assignInPlace(Expression *dest, Expression *src);
-
-/// Set all elements of 'ae' to 'val'. ae may be a multidimensional array.
-/// If 'wantRef', all elements of ae will hold references to the same val.
-void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef);
 
 /// Duplicate the elements array, then set field 'indexToChange' = newelem.
 Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expression *newelem);

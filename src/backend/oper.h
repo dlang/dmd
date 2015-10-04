@@ -10,7 +10,7 @@
  */
 
 
-#if __SC__
+#if __DMC__
 #pragma once
 #endif
 
@@ -55,6 +55,7 @@ enum OPER
         OPscale,                // ldexp
         OPyl2x,                 // y * log2(x)
         OPyl2xp1,               // y * log2(x + 1)
+        OPcmpxchg,                      // cmpxchg
 #endif
         OPstrlen,               /* strlen()                     */
         OPstrcpy,               /* strcpy()                     */
@@ -231,19 +232,6 @@ enum OPER
         OPvector,               // SIMD vector operations
         OPvecsto,               // SIMD vector store operations
 
-        // Jupiter operators
-        OParray,                // access Jupiter array, left is handle, right is index
-        OParraylength,          // evaluates array handle into array length
-        OPfield,                // access Jupiter object field, left is handle, right is offset
-        OPnewarray,             // allocate Jupiter array, left is dimension, right is type
-        OPmultinewarray,        // allocate multidimensional Jupiter array
-                                // left is dimensions, right is (numdims,type signature)
-        OPinstanceof,           // left is class id, right is handle
-        OPfinalinstanceof,      // left is class id, right is handle
-        OPcheckcast,            // left is class id, right is handle
-        OPhstring,              // handle to static string
-        OPnullcheck,            // check if pointer is null
-
 #if TX86
         OPinp,                  /* input from I/O port          */
         OPoutp,                 /* output to I/O port           */
@@ -316,7 +304,6 @@ extern unsigned char rel_unord[];
  *      OTrel2          < <= > >= operators
  *      OTdef           definition operator (assign call post asm)
  *      OTae            potential common subexpression operator
- *      OTexp           expression elem
  *      OTboolnop       operation is a nop if boolean result is desired
  */
 
@@ -340,7 +327,6 @@ extern const unsigned char opcost[OPMAX];
 #define _OTassign       0x10
 #define _OTdef          0x20
 #define _OTae           0x40
-#define _OTexp          0x80
 
 // optab3[]
 #define _OTboolnop      1
@@ -367,7 +353,6 @@ extern const unsigned char opcost[OPMAX];
 #define OTrel2(op)      ((op) >= OPle && (op) <= OPge)
 #define OTdef(op)       (optab2[op]&_OTdef)
 #define OTae(op)        (optab2[op]&_OTae)
-#define OTexp(op)       (optab2[op]&_OTexp)
 #define OTboolnop(op)   (optab3[op]&_OTboolnop)
 #define OTcalldef(op)   (OTcall(op) || (op) == OPstrcpy || (op) == OPstrcat || (op) == OPmemcpy)
 
@@ -391,17 +376,9 @@ extern const unsigned char opcost[OPMAX];
 
 /* ERTOL(e) is moved to el.c    */
 
-#if KEEPBITFIELDS
-#define Elvalue(e)      (((e)->E1->Eoper == OPbit) ? (e)->E1->E1 : (e)->E1)
-#define Eunambig(e)     (OTassign((e)->Eoper) && \
-                            ((e)->E1->Eoper == OPvar || \
-                                ((e)->E1->Eoper == OPbit && \
-                                 (e)->E1->E1->Eoper == OPvar)))
-#else
 #define Elvalue(e)      ((e)->E1)
 #define Eunambig(e)     (OTassign((e)->Eoper) && \
                             (e)->E1->Eoper == OPvar)
-#endif
 
 #define EOP(e)  (!OTleaf((e)->Eoper))
 

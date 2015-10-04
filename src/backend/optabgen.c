@@ -38,10 +38,9 @@ int _binary[] =
          OPbit,OPbrack,OParrowstar,OPmemcpy,OPmemcmp,OPmemset,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
-         OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
-         OPcheckcast,OPpair,OPrpair,
+         OPinfo,OPpair,OPrpair,
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
-         OPremquo,
+         OPremquo,OPcmpxchg,
 #if TX86
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
          OPvecsto,
@@ -51,7 +50,7 @@ int _unary[] =
         {OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
          OPabs,OPrndtol,OPrint,
          OPpreinc,OPpredec,
-         OPbool,OPstrlen,OPnullcheck,
+         OPbool,OPstrlen,
          OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,
          OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
          OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
@@ -61,7 +60,7 @@ int _unary[] =
          OP128_64,OPs64_128,OPu64_128,
          OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
          OParrow,OPnegass,
-         OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
+         OPctor,OPdtor,OPsetjmp,OPvoid,
          OPbsf,OPbsr,OPbswap,OPpopcnt,
          OPddtor,
          OPvector,
@@ -83,7 +82,7 @@ int _assoc[] = {OPadd,OPand,OPor,OPxor,OPmul};
 int _assign[] =
         {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
          OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
-         OPnegass,OPvecsto,
+         OPnegass,OPvecsto,OPcmpxchg,
         };
 int _wid[] =
         {OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
@@ -111,18 +110,18 @@ int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,
                 OPpostinc,OPpostdec,
                 OPcall,OPucall,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
-                OPnegass,OPnewarray,OPmultinewarray,
+                OPnegass,
                 OPbtc,OPbtr,OPbts,
-                OPvecsto,
+                OPvecsto,OPcmpxchg,
              };
 int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
-                OPnegass,OPctor,OPdtor,OPmark,OPvoid,OPnewarray,
-                OPmultinewarray,OPcheckcast,OPnullcheck,
+                OPnegass,OPctor,OPdtor,OPmark,OPvoid,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
+                OPcmpxchg,
 #if TX86 && MARS
                 OPva_start,
 #endif
@@ -134,7 +133,7 @@ int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
                 OPcall,OPcallns,OPinfo,OPmemset,
-                OPvecsto,
+                OPvecsto,OPcmpxchg,
                 };
 int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPabs,OPrndtol,OPrint,
@@ -150,8 +149,8 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPu32_64,OPs32_64,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
                 OP128_64,OPs64_128,OPu64_128,
-                OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
-                OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
+                OPsizeof,
+                OPcallns,OPucallns,OPpair,OPrpair,
                 OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,OPpopcnt,
                 OPgot,OPremquo,
                 OPnullptr,
@@ -163,36 +162,6 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
 #endif
                 };
-int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
-                OPstrlen,OPstrcmp,OPind,OPaddr,
-                OPnot,OPbool,OPcom,OPadd,OPmin,OPmul,OPand,OPor,OPstring,
-                OPxor,OPdiv,OPmod,OPshl,OPshr,OPashr,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
-                OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
-                OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
-                OPcomma,OPasm,OPsizeof,OPmemcmp,
-                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPu16_d,OPd_u16,
-                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
-                OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
-                OPd_ld, OPld_d,OPc_r,OPc_i,
-                OPu32_64,OPs32_64,OP64_32,OPmsw,
-                OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
-                OP128_64,OPs64_128,OPu64_128,
-                OPbit,OPind,OPucall,OPucallns,OPnullcheck,
-                OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,OPhstring,
-                OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
-                OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
-                OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
-                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,OPbtst,OPpopcnt,
-                OProl,OPror,OPvector,
-                OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
-                OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
-#if TX86
-                OPsqrt,OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
-#endif
-#if TARGET_SEGMENTED
-                OPvp_fp,OPcvp_fp,OPoffset,OPnp_fp,OPnp_f16p,OPf16p_np,
-#endif
-};
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs16_d,
                 OPf_d,OPu8_16,OPs8_16,
@@ -205,8 +174,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPnp_fp,OPvp_fp,OPcvp_fp,
 #endif
                 };
-int _lvalue[] = {OPvar,OPind,OPcomma,OPbit,
-                OPfield,OParray};
+int _lvalue[] = {OPvar,OPind,OPcomma,OPbit};
 
 FILE *fdeb;
 
@@ -242,14 +210,11 @@ int cost(unsigned op)
             case OPshl:
             case OPashr:
             case OPshr: c += 2; break;
-            case OPnewarray:
-            case OPmultinewarray:
             case OPcall:
             case OPucall:
             case OPcallns:
             case OPucallns:
                                 c += 10; break; // very high cost for function calls
-            case OParray:       c = 5; break;
         }
         return c;
 }
@@ -279,7 +244,6 @@ void dooptab()
         X2(_assign,_OTassign);
         X2(_def,_OTdef);
         X2(_ae,_OTae);
-        X2(_exp,_OTexp);
 
         X3(_boolnop,_OTboolnop);
 
@@ -484,17 +448,6 @@ void dotab()
         case OPpair:    X("pair",       elpair, cdpair);
         case OPrpair:   X("rpair",      elpair, cdpair);
 
-        case OPnewarray: X("newarray",  elnewarray,cderr);
-        case OPmultinewarray: X("mnewarray",    elmultinewarray,cderr);
-        case OPinstanceof: X("instanceof",      elinstanceof,cderr);
-        case OPfinalinstanceof: X("finalinstanceof",    elfinalinstanceof,cderr);
-        case OPcheckcast: X("checkcast",        elcheckcast,cderr);
-        case OParraylength: X("length", elarraylength,cderr);
-        case OParray:   X("array",      elarray,cderr);
-        case OPfield:   X("field",      elfield,cderr);
-        case OPhstring: X("hstring",    elhstring,cderr);
-        case OPnullcheck: X("nullcheck", elnullcheck,cdnullcheck);
-
         case OPor:      X("|",          elor,   cdorth);
         case OPoror:    X("||",         eloror, cdloglog);
         case OPandand:  X("&&",         elandand,cdloglog);
@@ -517,6 +470,7 @@ void dotab()
         case OPyl2x:    X("yl2x",       elzot,  cdscale);
         case OPyl2xp1:  X("yl2xp1",     elzot,  cdscale);
 #endif
+        case OPcmpxchg:     X("cas",        elzot,  cdcmpxchg);
         case OPrint:    X("rint",       evalu8, cdneg);
         case OPrndtol:  X("rndtol",     evalu8, cdrndtol);
         case OPstrlen:  X("strlen",     elzot,  cdstrlen);
@@ -696,7 +650,7 @@ void fltables()
         static char indatafl[] =        /* is FLxxxx a data type?       */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
           FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
-          FLstack,FLregsave,
+          FLstack,FLregsave,FLfuncarg,
 #if TX86
           FLndp,
 #endif
@@ -707,6 +661,7 @@ void fltables()
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
         { FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+          FLfuncarg,
 #if TX86
           FLndp,
 #endif
@@ -785,29 +740,24 @@ void fltables()
                 case FLblockoff: segfl[i] = CS; break;
                 case FLcs:      segfl[i] = SS;  break;
                 case FLregsave: segfl[i] = SS;  break;
-#if TX86
                 case FLndp:     segfl[i] = SS;  break;
-#endif
                 case FLswitch:  segfl[i] = -1;  break;
                 case FLfltreg:  segfl[i] = SS;  break;
                 case FLoffset:  segfl[i] = -1;  break;
-#if TARGET_SEGMENTED
                 case FLfardata: segfl[i] = -1;  break;
                 case FLcsdata:  segfl[i] = CS;  break;
-#endif
                 case FLdatseg:  segfl[i] = DS;  break;
                 case FLctor:    segfl[i] = -1;  break;
                 case FLdtor:    segfl[i] = -1;  break;
                 case FLdsymbol: segfl[i] = -1;  break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 case FLgot:     segfl[i] = -1;  break;
                 case FLgotoff:  segfl[i] = -1;  break;
-#endif
                 case FLlocalsize: segfl[i] = -1;        break;
                 case FLtlsdata: segfl[i] = -1;  break;
                 case FLframehandler:    segfl[i] = -1;  break;
                 case FLasm:     segfl[i] = -1;  break;
                 case FLallocatmp:       segfl[i] = SS;  break;
+                case FLfuncarg:         segfl[i] = SS;  break;
                 default:
                         printf("error in segfl[%d]\n", i);
                         exit(1);
@@ -841,7 +791,7 @@ void fltables()
 
 void dotytab()
 {
-    static tym_t _ptr[]      = { TYjhandle,TYnptr };
+    static tym_t _ptr[]      = { TYnptr };
 #if TARGET_SEGMENTED
     static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
 #endif
@@ -964,7 +914,6 @@ void dotytab()
 "long long[2]",          TYllong2,    TYullong2, TYllong2,    16,     0,      0,
 "unsigned long long[2]", TYullong2,   TYullong2, TYullong2,   16,     0,      0,
 
-"__near *",     TYjhandle,      TYjhandle, TYjhandle,   2,  0x20,       0x100,
 "nullptr_t",    TYnullptr,      TYnullptr, TYptr,       2,  0x20,       0x100,
 "*",            TYnptr,         TYnptr,    TYnptr,      2,  0x20,       0x100,
 "&",            TYref,          TYref,     TYref,       -1,     0,      0,

@@ -148,9 +148,7 @@ void symbol_print(symbol *s)
 #if SCPP
     if (s->Sclass == SCstruct)
     {
-#if VBTABLES
         dbg_printf("  Svbptr = %p, Svptr = %p\n",s->Sstruct->Svbptr,s->Sstruct->Svptr);
-#endif
     }
 #endif
 #endif
@@ -877,12 +875,10 @@ void symbol_free(symbol *s)
                         list_free(&b->BCmptrlist,MEM_PH_FREEFP);
                         baseclass_free(b);
                     }
-#if VBTABLES
                     for (b = st->Svbptrbase; b; b = bn)
                     {   bn = b->BCnext;
                         baseclass_free(b);
                     }
-#endif
                     param_free(&st->Sarglist);
                     param_free(&st->Spr_arglist);
                     struct_free(st);
@@ -1210,9 +1206,6 @@ symbol *symbol_hydrate(symbol **ps)
         symbol_debug(s);
         if (!isdehydrated(s->Stype))    // if this symbol is already dehydrated
             return s;                   // no need to do it again
-#if SOURCE_4SYMS
-        s->Ssrcpos.Sfilnum += File_Hydrate_Num; /* file number relative header build */
-#endif
         if (pstate.SThflag != FLAG_INPLACE && s->Sfl != FLreg)
             s->Sxtrnnum = 0;            // not written to .OBJ file yet
         type_hydrate(&s->Stype);
@@ -1287,18 +1280,14 @@ symbol *symbol_hydrate(symbol **ps)
                 baseclass_hydrate(&st->Svirtbase);
                 baseclass_hydrate(&st->Smptrbase);
                 baseclass_hydrate(&st->Sprimary);
-#if VBTABLES
                 baseclass_hydrate(&st->Svbptrbase);
-#endif
 
                 ph_hydrate(&st->Svecctor);
                 ph_hydrate(&st->Sctor);
                 ph_hydrate(&st->Sdtor);
-#if VBTABLES
                 ph_hydrate(&st->Sprimdtor);
                 ph_hydrate(&st->Spriminv);
                 ph_hydrate(&st->Sscaldeldtor);
-#endif
                 ph_hydrate(&st->Sinvariant);
                 ph_hydrate(&st->Svptr);
                 ph_hydrate(&st->Svtbl);
@@ -1310,11 +1299,9 @@ symbol *symbol_hydrate(symbol **ps)
                 ph_hydrate(&st->Stempsym);
                 param_hydrate(&st->Sarglist);
                 param_hydrate(&st->Spr_arglist);
-#if VBTABLES
                 ph_hydrate(&st->Svbptr);
                 ph_hydrate(&st->Svbptr_parent);
                 ph_hydrate(&st->Svbtbl);
-#endif
               }
               else
               {
@@ -1504,18 +1491,14 @@ void symbol_dehydrate(symbol **ps)
                 baseclass_dehydrate(&st->Svirtbase);
                 baseclass_dehydrate(&st->Smptrbase);
                 baseclass_dehydrate(&st->Sprimary);
-#if VBTABLES
                 baseclass_dehydrate(&st->Svbptrbase);
-#endif
 
                 ph_dehydrate(&st->Svecctor);
                 ph_dehydrate(&st->Sctor);
                 ph_dehydrate(&st->Sdtor);
-#if VBTABLES
                 ph_dehydrate(&st->Sprimdtor);
                 ph_dehydrate(&st->Spriminv);
                 ph_dehydrate(&st->Sscaldeldtor);
-#endif
                 ph_dehydrate(&st->Sinvariant);
                 ph_dehydrate(&st->Svptr);
                 ph_dehydrate(&st->Svtbl);
@@ -1527,11 +1510,9 @@ void symbol_dehydrate(symbol **ps)
                 ph_dehydrate(&st->Stempsym);
                 param_dehydrate(&st->Sarglist);
                 param_dehydrate(&st->Spr_arglist);
-#if VBTABLES
                 ph_dehydrate(&st->Svbptr);
                 ph_dehydrate(&st->Svbptr_parent);
                 ph_dehydrate(&st->Svbtbl);
-#endif
               }
               else
               {
@@ -1910,10 +1891,6 @@ STATIC void baseclass_hydrate(baseclass_t **pb)
         ph_hydrate(&b->BCbase);
         ph_hydrate(&b->BCpbase);
         list_hydrate(&b->BCpublics,(list_free_fp)symbol_hydrate);
-#if VBTABLES
-#else
-        symbol_hydrate(&b->param);
-#endif
         list_hydrate(&b->BCmptrlist,(list_free_fp)mptr_hydrate);
         symbol_hydrate(&b->BCvtbl);
         Classsym_hydrate(&b->BCparent);
@@ -1943,10 +1920,6 @@ STATIC void baseclass_dehydrate(baseclass_t **pb)
         ph_dehydrate(&b->BCbase);
         ph_dehydrate(&b->BCpbase);
         list_dehydrate(&b->BCpublics,(list_free_fp)symbol_dehydrate);
-#if VBTABLES
-#else
-        symbol_dehydrate(&b->param);
-#endif
         list_dehydrate(&b->BCmptrlist,(list_free_fp)mptr_dehydrate);
         symbol_dehydrate(&b->BCvtbl);
         Classsym_dehydrate(&b->BCparent);
@@ -1988,8 +1961,6 @@ baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase)
  * Calculate number of baseclasses in list.
  */
 
-#if VBTABLES
-
 int baseclass_nitems(baseclass_t *b)
 {   int i;
 
@@ -1997,8 +1968,6 @@ int baseclass_nitems(baseclass_t *b)
         i++;
     return i;
 }
-
-#endif
 
 
 /*****************************
@@ -2325,9 +2294,7 @@ void slist_reset()
     {
         Symbol *s = slist[i];
 
-#if MACHOBJ
         s->Soffset = 0;
-#endif
         s->Sxtrnnum = 0;
         s->Stypidx = 0;
         s->Sflags &= ~(STRoutdef | SFLweak);

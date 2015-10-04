@@ -14,7 +14,6 @@
 #include        <time.h>
 
 #include        "mars.h"
-#include        "lexer.h"
 #include        "statement.h"
 #include        "expression.h"
 #include        "mtype.h"
@@ -36,6 +35,7 @@
 #include        "global.h"
 #include        "dt.h"
 
+#include        "aav.h"
 #include        "rmem.h"
 #include        "target.h"
 #include        "visitor.h"
@@ -44,7 +44,6 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
-Blocks *Blocks_create();
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
 Symbol *toSymbol(Type *t);
@@ -85,31 +84,53 @@ block *block_calloc(Blockx *blx)
     return b;
 }
 
+/****************************************
+ * Our label symbol, with vector to keep track of forward references.
+ */
+
+struct Label
+{
+    block *lblock;      // The block to which the label is defined.
+    block *fwdrefs;     // The first use of the label before it is defined.
+};
+
+/****************************************
+ * Get or create a label declaration.
+ */
+
+static Label *getLabel(IRState *irs, Blockx *blx, Statement *s)
+{
+    Label **slot = (Label **)dmd_aaGet(irs->labels, (void *)s);
+
+    if (*slot == NULL)
+    {
+        Label *label = new Label();
+        label->lblock = blx ? block_calloc(blx) : block_calloc();
+        label->fwdrefs = NULL;
+        *slot = label;
+    }
+    return *slot;
+}
+
 /**************************************
  * Convert label to block.
  */
 
-block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
+block *labelToBlock(IRState *irs, Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
 {
     if (!label->statement)
     {
         error(loc, "undefined label %s", label->toChars());
         return NULL;
     }
-    LabelStatement *s = label->statement;
-    if (!s->lblock)
-    {   s->lblock = block_calloc(blx);
-        s->lblock->Btry = NULL;         // fill this in later
-
-        if (flag)
-        {
-            // Keep track of the forward reference to this block, so we can check it later
-            if (!s->fwdrefs)
-                s->fwdrefs = Blocks_create();
-            s->fwdrefs->push(blx->curblock);
-        }
+    Label *l = getLabel(irs, NULL, label->statement);
+    if (flag)
+    {
+        // Keep track of the forward reference to this block, so we can check it later
+        if (!l->fwdrefs)
+            l->fwdrefs = blx->curblock;
     }
-    return s->lblock;
+    return l->lblock;
 }
 
 /**************************************
@@ -236,8 +257,8 @@ public:
         mystate.contBlock->appendSucc(blx->curblock);
         mystate.contBlock->appendSucc(mystate.breakBlock);
 
-        if (s->body)
-            Statement_toIR(s->body, &mystate);
+        if (s->_body)
+            Statement_toIR(s->_body, &mystate);
         blx->curblock->appendSucc(mystate.contBlock);
 
         block_next(blx, BCgoto, mystate.contBlock);
@@ -259,8 +280,8 @@ public:
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
-        if (s->init)
-            Statement_toIR(s->init, &mystate);
+        if (s->_init)
+            Statement_toIR(s->_init, &mystate);
         block *bpre = blx->curblock;
         block_next(blx,BCgoto,NULL);
         block *bcond = blx->curblock;
@@ -281,8 +302,8 @@ public:
             bcond->appendSucc(blx->curblock);
         }
 
-        if (s->body)
-            Statement_toIR(s->body, &mystate);
+        if (s->_body)
+            Statement_toIR(s->_body, &mystate);
         /* End of the body goes to the continue block
          */
         blx->curblock->appendSucc(mystate.contBlock);
@@ -386,7 +407,7 @@ public:
         assert(s->label->statement);
         assert(s->tf == s->label->statement->tf);
 
-        block *bdest = labelToBlock(s->loc, blx, s->label, 1);
+        block *bdest = labelToBlock(irs, s->loc, blx, s->label, 1);
         if (!bdest)
             return;
         block *b = blx->curblock;
@@ -416,39 +437,31 @@ public:
         IRState mystate(irs,s);
         mystate.ident = s->ident;
 
-        if (s->lblock)
+        Label *label = getLabel(irs, blx, s);
+        // At last, we know which try block this label is inside
+        label->lblock->Btry = blx->tryblock;
+
+        // Go through the forward references and check.
+        if (label->fwdrefs)
         {
-            // At last, we know which try block this label is inside
-            s->lblock->Btry = blx->tryblock;
+            block *b = label->fwdrefs;
 
-            /* Go through the forward references and check.
-             */
-            if (s->fwdrefs)
+            if (b->Btry != label->lblock->Btry)
             {
-                for (size_t i = 0; i < s->fwdrefs->dim; i++)
-                {   block *b = (*s->fwdrefs)[i];
-
-                    if (b->Btry != s->lblock->Btry)
+                // Check that lblock is in an enclosing try block
+                for (block *bt = b->Btry; bt != label->lblock->Btry; bt = bt->Btry)
+                {
+                    if (!bt)
                     {
-                        // Check that lblock is in an enclosing try block
-                        for (block *bt = b->Btry; bt != s->lblock->Btry; bt = bt->Btry)
-                        {
-                            if (!bt)
-                            {
-                                //printf("b->Btry = %p, s->lblock->Btry = %p\n", b->Btry, s->lblock->Btry);
-                                s->error("cannot goto into try block");
-                                break;
-                            }
-                        }
+                        //printf("b->Btry = %p, label->lblock->Btry = %p\n", b->Btry, label->lblock->Btry);
+                        s->error("cannot goto into try block");
+                        break;
                     }
 
                 }
-                s->fwdrefs = NULL;
             }
         }
-        else
-            s->lblock = block_calloc(blx);
-        block_next(blx,BCgoto,s->lblock);
+        block_next(blx, BCgoto, label->lblock);
         bc->appendSucc(blx->curblock);
         if (s->statement)
             Statement_toIR(s->statement, &mystate);
@@ -502,10 +515,9 @@ public:
                 elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
                 block *b = blx->curblock;
                 block_appendexp(b, e);
-                block *bcase = block_calloc(blx);
-                cs->cblock = bcase;
+                Label *clabel = getLabel(irs, blx, cs);
                 block_next(blx, BCiftrue, NULL);
-                b->appendSucc(bcase);
+                b->appendSucc(clabel->lblock);
                 b->appendSucc(blx->curblock);
             }
 
@@ -515,7 +527,7 @@ public:
             block_next(blx, BCgoto, NULL);
             b->appendSucc(mystate.defaultBlock);
 
-            Statement_toIR(s->body, &mystate);
+            Statement_toIR(s->_body, &mystate);
 
             /* Have the end of the switch body fall through to the block
              * following the switch statement.
@@ -570,13 +582,13 @@ public:
             switch (s->condition->type->nextOf()->ty)
             {
                 case Tchar:
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_STRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_STRING)), eparam);
                     break;
                 case Twchar:
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_USTRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_USTRING)), eparam);
                     break;
                 case Tdchar:        // BUG: implement
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_DSTRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_DSTRING)), eparam);
                     break;
                 default:
                     assert(0);
@@ -614,7 +626,7 @@ public:
             }
         }
 
-        Statement_toIR(s->body, &mystate);
+        Statement_toIR(s->_body, &mystate);
 
         /* Have the end of the switch body fall through to the block
          * following the switch statement.
@@ -626,13 +638,12 @@ public:
     {
         Blockx *blx = irs->blx;
         block *bcase = blx->curblock;
-        if (!s->cblock)
-            s->cblock = block_calloc(blx);
-        block_next(blx,BCgoto,s->cblock);
+        Label *clabel = getLabel(irs, blx, s);
+        block_next(blx, BCgoto, clabel->lblock);
         block *bsw = irs->getSwitchBlock();
         if (bsw->BC == BCswitch)
-            bsw->appendSucc(s->cblock);        // second entry in pair
-        bcase->appendSucc(s->cblock);
+            bsw->appendSucc(clabel->lblock);   // second entry in pair
+        bcase->appendSucc(clabel->lblock);
         if (blx->tryblock != bsw->Btry)
             s->error("case cannot be in different try block level from switch");
         incUsage(irs, s->loc);
@@ -688,17 +699,10 @@ public:
 
     void visit(GotoCaseStatement *s)
     {
-        block *b;
         Blockx *blx = irs->blx;
-        block *bdest = s->cs->cblock;
-
-        if (!bdest)
-        {
-            bdest = block_calloc(blx);
-            s->cs->cblock = bdest;
-        }
-
-        b = blx->curblock;
+        Label *clabel = getLabel(irs, blx, s->cs);
+        block *bdest = clabel->lblock;
+        block *b = blx->curblock;
 
         // The rest is equivalent to GotoStatement
 
@@ -732,7 +736,7 @@ public:
 
         elem *efilename = el_ptr(toSymbol(blx->module));
         elem *elinnum = el_long(TYint, s->loc.linnum);
-        elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
+        elem *e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
         block_appendexp(blx->curblock, e);
     }
 
@@ -943,7 +947,7 @@ public:
             symbol_add(sp);
 
             // Perform initialization of with handle
-            ie = s->wthis->init->isExpInitializer();
+            ie = s->wthis->_init->isExpInitializer();
             assert(ie);
             ei = toElemDtor(ie->exp, irs);
             e = el_var(sp);
@@ -953,8 +957,8 @@ public:
             block_appendexp(blx->curblock,e);
         }
         // Execute with block
-        if (s->body)
-            Statement_toIR(s->body, irs);
+        if (s->_body)
+            Statement_toIR(s->_body, irs);
     }
 
 
@@ -969,7 +973,7 @@ public:
 
         incUsage(irs, s->loc);
         elem *e = toElemDtor(s->exp, irs);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_THROWC)),e);
         block_appendexp(blx->curblock, e);
     }
 
@@ -1008,9 +1012,9 @@ public:
         blx->tryblock = tryblock;
         block *breakblock = block_calloc(blx);
         block_goto(blx,BC_try,NULL);
-        if (s->body)
+        if (s->_body)
         {
-            Statement_toIR(s->body, &mystate);
+            Statement_toIR(s->_body, &mystate);
         }
         blx->tryblock = tryblock->Btry;
 
@@ -1103,8 +1107,8 @@ public:
         contblock->BC = BC_finally;
         bodyirs.finallyBlock = contblock;
 
-        if (s->body)
-            Statement_toIR(s->body, &bodyirs);
+        if (s->_body)
+            Statement_toIR(s->_body, &bodyirs);
         blx->tryblock = tryblock->Btry;     // back to previous tryblock
 
         setScopeIndex(blx,blx->curblock,previndex);
@@ -1210,7 +1214,7 @@ public:
                 case FLblock:
                     // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
                     label = c->IEVlsym1;
-                    b = labelToBlock(s->loc, blx, label);
+                    b = labelToBlock(irs, s->loc, blx, label);
                     basm->appendSucc(b);
                     c->IEV1.Vblock = b;
                     break;
@@ -1225,14 +1229,13 @@ public:
                     break;
             }
 
-#if TX86
             // Repeat for second operand
             switch (c->IFL2)
             {
                 case FLblockoff:
                 case FLblock:
                     label = c->IEVlsym2;
-                    b = labelToBlock(s->loc, blx, label);
+                    b = labelToBlock(irs, s->loc, blx, label);
                     basm->appendSucc(b);
                     c->IEV2.Vblock = b;
                     break;
@@ -1249,7 +1252,6 @@ public:
                         sym->Sflags |= SFLlivexit;
                     break;
             }
-#endif
             //c->print();
         }
 

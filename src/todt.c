@@ -40,13 +40,12 @@ typedef Array<struct dt_t *> Dts;
 
 dt_t **Type_toDt(Type *t, dt_t **pdt);
 dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
-void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
-void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteType);
-void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
+dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
+dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
+dt_t **membersToDt(AggregateDeclaration *cd, dt_t **pdt, ClassDeclaration * = NULL);
+dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t = 0, ClassDeclaration * = NULL);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
-dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts *dts);
-dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 Symbol *toSymbol(Dsymbol *s);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc);
@@ -55,18 +54,21 @@ Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol* toSymbol(StructLiteralExp *sle);
 Symbol* toSymbol(ClassReferenceExp *cre);
 void genTypeInfo(Type *t, Scope *sc);
+Symbol *toInitializer(AggregateDeclaration *ad);
+Symbol *toInitializer(EnumDeclaration *ed);
+FuncDeclaration *search_toString(StructDeclaration *sd);
 
 /* ================================================================ */
 
-dt_t *Initializer_toDt(Initializer *init)
+dt_t **Initializer_toDt(Initializer *init, dt_t **pdt)
 {
     class InitToDt : public Visitor
     {
     public:
-        dt_t *result;
+        dt_t **pdt;
 
-        InitToDt()
-            : result(NULL)
+        InitToDt(dt_t **pdt)
+            : pdt(pdt)
         {
         }
 
@@ -80,7 +82,7 @@ dt_t *Initializer_toDt(Initializer *init)
             /* Void initializers are set to 0, just because we need something
              * to set them to in the static data segment.
              */
-            dtnzeros(&result, vi->type->size());
+            pdt = dtnzeros(pdt, vi->type->size());
         }
 
         void visit(StructInitializer *si)
@@ -114,7 +116,8 @@ dt_t *Initializer_toDt(Initializer *init)
                 //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai->dim);
 
                 assert(length < ai->dim);
-                dt_t *dt = Initializer_toDt(ai->value[i]);
+                dt_t *dt = NULL;
+                Initializer_toDt(ai->value[i], &dt);
                 if (dts[length])
                     error(ai->loc, "duplicate initializations for index %d", length);
                 dts[length] = dt;
@@ -132,7 +135,8 @@ dt_t *Initializer_toDt(Initializer *init)
 
             dt_t *dtdefault = NULL;
 
-            dt_t **pdtend = &result;
+            dt_t *d = NULL;
+            dt_t **pdtend = &d;
             for (size_t i = 0; i < ai->dim; i++)
             {
                 dt_t *dt = dts[i];
@@ -171,17 +175,17 @@ dt_t *Initializer_toDt(Initializer *init)
                     {
                         error(ai->loc, "too many initializers, %d, for array[%d]", ai->dim, tadim);
                     }
+                    *pdt = d;
+                    pdt = pdtend;
                     break;
                 }
 
                 case Tpointer:
                 case Tarray:
                 {
-                    dt_t *dtarray = result;
-                    result = NULL;
                     if (tb->ty == Tarray)
-                        dtsize_t(&result, ai->dim);
-                    dtdtoff(&result, dtarray, 0);
+                        pdt = dtsize_t(pdt, ai->dim);
+                    pdt = dtdtoff(pdt, d, 0);
                     break;
                 }
 
@@ -195,13 +199,13 @@ dt_t *Initializer_toDt(Initializer *init)
         {
             //printf("ExpInitializer::toDt() %s\n", ei->exp->toChars());
             ei->exp = ei->exp->optimize(WANTvalue);
-            Expression_toDt(ei->exp, &result);
+            pdt = Expression_toDt(ei->exp, pdt);
         }
     };
 
-    InitToDt v;
+    InitToDt v(pdt);
     init->accept(&v);
-    return v.result;
+    return v.pdt;
 }
 
 /* ================================================================ */
@@ -263,7 +267,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             if (e->e1->op == TOKstructliteral)
             {
                 StructLiteralExp* sl = (StructLiteralExp *)e->e1;
-                dtxoff(pdt, toSymbol(sl), 0);
+                pdt = dtxoff(pdt, toSymbol(sl), 0);
                 return;
             }
             visit((UnaExp *)e);
@@ -376,7 +380,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             switch (t->ty)
             {
                 case Tarray:
-                    dtsize_t(pdt, e->len);
+                    pdt = dtsize_t(pdt, e->len);
                     pdt = dtabytes(pdt, 0, (e->len + 1) * e->sz, (char *)e->string);
                     break;
 
@@ -414,7 +418,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             dt_t **pdtend = &d;
             for (size_t i = 0; i < e->elements->dim; i++)
             {
-                pdtend = Expression_toDt((*e->elements)[i], pdtend);
+                pdtend = Expression_toDt(e->getElement(i), pdtend);
             }
             Type *t = e->type->toBasetype();
 
@@ -427,11 +431,11 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 case Tpointer:
                 case Tarray:
                     if (t->ty == Tarray)
-                        dtsize_t(pdt, e->elements->dim);
+                        pdt = dtsize_t(pdt, e->elements->dim);
                     if (d)
-                        dtdtoff(pdt, d, 0);
+                        pdt = dtdtoff(pdt, d, 0);
                     else
-                        dtsize_t(pdt, 0);
+                        pdt = dtsize_t(pdt, 0);
 
                     break;
 
@@ -440,60 +444,11 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             }
         }
 
-        void visit(StructLiteralExp *se)
+        void visit(StructLiteralExp *sle)
         {
-            //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", se->toChars(), se->ownedByCtfe);
-            assert(se->sd->fields.dim - se->sd->isNested() <= se->elements->dim);
-
-            unsigned offset = 0;
-            for (size_t i = 0; i < se->elements->dim; i++)
-            {
-                Expression *e = (*se->elements)[i];
-                if (!e)
-                    continue;
-
-                VarDeclaration *vd = NULL;
-                size_t k;
-                for (size_t j = i; j < se->elements->dim; j++)
-                {
-                    VarDeclaration *v2 = se->sd->fields[j];
-                    if (v2->offset < offset || (*se->elements)[j] == NULL)
-                        continue;
-
-                    // find the nearest field
-                    if (!vd)
-                    {
-                        vd = v2;
-                        k = j;
-                    }
-                    else if (v2->offset < vd->offset)
-                    {
-                        // Each elements should have no overlapping
-                        assert(!(vd->offset < v2->offset + v2->type->size() &&
-                                 v2->offset < vd->offset + vd->type->size()));
-                        vd = v2;
-                        k = j;
-                    }
-                }
-                if (vd)
-                {
-                    if (offset < vd->offset)
-                        pdt = dtnzeros(pdt, vd->offset - offset);
-                    e = (*se->elements)[k];
-
-                    dt_t *dt = NULL;
-                    Type *tb = vd->type->toBasetype();
-                    if (tb->ty == Tsarray)
-                        toDtElem(((TypeSArray *)tb), &dt, e);
-                    else
-                        Expression_toDt(e, &dt);           // convert e to an initializer dt
-                    pdt = dtcat(pdt, dt);
-
-                    offset = vd->offset + vd->type->size();
-                }
-            }
-            if (offset < se->sd->structsize)
-                pdt = dtnzeros(pdt, se->sd->structsize - offset);
+            //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", sle->toChars(), sle->ownedByCtfe);
+            assert(sle->sd->fields.dim - sle->sd->isNested() <= sle->elements->dim);
+            pdt = membersToDt(sle->sd, pdt, sle->elements);
         }
 
         void visit(SymOffExp *e)
@@ -510,7 +465,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 e->error("non-constant expression %s", e->toChars());
                 return;
             }
-            pdt =  dtxoff(pdt, toSymbol(e->var), e->offset);
+            pdt = dtxoff(pdt, toSymbol(e->var), e->offset);
         }
 
         void visit(VarExp *e)
@@ -520,7 +475,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
             VarDeclaration *v = e->var->isVarDeclaration();
             if (v && (v->isConst() || v->isImmutable()) &&
-                e->type->toBasetype()->ty != Tsarray && v->init)
+                e->type->toBasetype()->ty != Tsarray && v->_init)
             {
                 if (v->inuse)
                 {
@@ -528,14 +483,14 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     return;
                 }
                 v->inuse++;
-                *pdt = Initializer_toDt(v->init);
+                pdt = Initializer_toDt(v->_init, pdt);
                 v->inuse--;
                 return;
             }
             SymbolDeclaration *sd = e->var->isSymbolDeclaration();
             if (sd && sd->dsym)
             {
-                StructDeclaration_toDt(sd->dsym, pdt);
+                pdt = StructDeclaration_toDt(sd->dsym, pdt);
                 return;
             }
         #if 0
@@ -573,8 +528,8 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 Expression *elem;
                 if (e->e1->op == TOKarrayliteral)
                 {
-                    ArrayLiteralExp *ea = (ArrayLiteralExp *)e->e1;
-                    elem = (*ea->elements)[i];
+                    ArrayLiteralExp *ale = (ArrayLiteralExp *)e->e1;
+                    elem = ale->getElement(i);
                 }
                 else
                     elem = e->e1;
@@ -620,114 +575,258 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
 // Generate the data for the static initializer.
 
-void ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
+dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
 {
     //printf("ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
 
     // Put in first two members, the vtbl[] and the monitor
-    dtxoff(pdt, toVtblSymbol(cd), 0);
+    pdt = dtxoff(pdt, toVtblSymbol(cd), 0);
     if (!cd->cpp)
-        dtsize_t(pdt, 0);                    // monitor
+        pdt = dtsize_t(pdt, 0);             // monitor
 
     // Put in the rest
-    membersToDt(cd, pdt, cd);
+    pdt = membersToDt(cd, pdt, cd);
 
     //printf("-ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
+    return pdt;
 }
 
-void membersToDt(ClassDeclaration *cd, dt_t **pdt, ClassDeclaration *concreteType)
+dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
 {
-    unsigned offset;
+    //printf("+StructDeclaration::toDt(), this='%s'\n", sd->toChars());
+    pdt = membersToDt(sd, pdt);
 
-    //printf("ClassDeclaration::toDt2(this = '%s', cd = '%s')\n", cd->toChars(), concreteType->toChars());
-    if (cd->baseClass)
+    //printf("-StructDeclaration::toDt(), this='%s'\n", sd->toChars());
+    return pdt;
+}
+
+/****************************************************
+ * Put out initializers of ad->fields[].
+ * Although this is consistent with the elements[] version, we
+ * have to use this optimized version to reduce memory footprint.
+ */
+dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
+        ClassDeclaration *concreteType)
+{
+    //printf("membersToDt(ad = '%s')\n", ad->toChars());
+    ClassDeclaration *cd = ad->isClassDeclaration();
+
+    unsigned offset;
+    if (cd)
     {
-        membersToDt(cd->baseClass, pdt, concreteType);
-        offset = cd->baseClass->structsize;
+        if (ClassDeclaration *cdb = cd->baseClass)
+        {
+            pdt = membersToDt(cdb, pdt, concreteType);
+            offset = cdb->structsize;
+        }
+        else
+        {
+            if (cd->cpp)
+                offset = Target::ptrsize;       // allow room for __vptr
+            else
+                offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+        }
     }
     else
-    {
-        if (cd->cpp)
-            offset = Target::ptrsize;       // allow room for __vptr
-        else
-            offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
-    }
+        offset = 0;
 
-    // Note equivalence of this loop to struct's
-    for (size_t i = 0; i < cd->fields.dim; i++)
+    for (size_t i = 0; i < ad->fields.dim; i++)
     {
-        VarDeclaration *v = cd->fields[i];
+        if (ad->fields[i]->_init && ad->fields[i]->_init->isVoidInitializer())
+            continue;
 
-        //printf("\t\tv = '%s' v->offset = %2d, offset = %2d\n", v->toChars(), v->offset, offset);
-        dt_t *dt = NULL;
-        Initializer *init = v->init;
-        if (init)
+        VarDeclaration *vd = NULL;
+        size_t k;
+        for (size_t j = i; j < ad->fields.dim; j++)
         {
-            //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
-            ExpInitializer *ei = init->isExpInitializer();
-            Type *tb = v->type->toBasetype();
+            VarDeclaration *v2 = ad->fields[j];
+            if (v2->offset < offset)
+                continue;
+            if (v2->_init && v2->_init->isVoidInitializer())
+                continue;
+            // find the nearest field
+            if (!vd || v2->offset < vd->offset)
+            {
+                vd = v2;
+                k = j;
+                assert(vd == v2 || !vd->isOverlappedWith(v2));
+            }
+        }
+        if (!vd)
+            continue;
+
+        assert(offset <= vd->offset);
+        if (offset < vd->offset)
+            pdt = dtnzeros(pdt, vd->offset - offset);
+
+        dt_t *dt = NULL;
+        if (Initializer *init = vd->_init)
+        {
+            //printf("\t\t%s has initializer %s\n", vd->toChars(), init->toChars());
             if (init->isVoidInitializer())
-                ;
-            else if (ei && tb->ty == Tsarray)
+                continue;
+
+            /* Because of issue 14666, function local import does not invoke
+             * semantic2 pass for the imported module, and surprisingly there's
+             * no opportunity to do it today.
+             * As a workaround for the issue 9057, have to resolve forward reference
+             * in `init` before its use.
+             */
+            if (vd->sem < Semantic2Done && vd->_scope)
+                vd->semantic2(vd->_scope);
+
+            ExpInitializer *ei = init->isExpInitializer();
+            Type *tb = vd->type->toBasetype();
+            if (ei && tb->ty == Tsarray)
                 toDtElem(((TypeSArray *)tb), &dt, ei->exp);
             else
-                dt = Initializer_toDt(init);
+                Initializer_toDt(init, &dt);
         }
-        else if (v->offset >= offset)
+        else if (offset <= vd->offset)
         {
             //printf("\t\tdefault initializer\n");
-            Type_toDt(v->type, &dt);
+            Type_toDt(vd->type, &dt);
         }
-        if (dt)
-        {
-            if (v->offset < offset)
-                cd->error("duplicated union initialization for %s", v->toChars());
-            else
-            {
-                if (offset < v->offset)
-                    dtnzeros(pdt, v->offset - offset);
-                dtcat(pdt, dt);
-                offset = v->offset + v->type->size();
-            }
-        }
+        if (!dt)
+            continue;
+
+        pdt = dtcat(pdt, dt);
+        offset = vd->offset + vd->type->size();
     }
 
-    // Interface vptr initializations
-    toSymbol(cd);                                         // define csym
-
-    for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+    if (cd)
     {
-        BaseClass *b = (*cd->vtblInterfaces)[i];
+        // Interface vptr initializations
+        toSymbol(cd);                                         // define csym
 
-        for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
+        for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
         {
-            assert(cd2);
-            unsigned csymoffset = baseVtblOffset(cd2, b);
-            if (csymoffset != ~0)
+            BaseClass *b = (*cd->vtblInterfaces)[i];
+            for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
             {
-                if (offset < b->offset)
-                    dtnzeros(pdt, b->offset - offset);
-                dtxoff(pdt, toSymbol(cd2), csymoffset);
-                break;
+                assert(cd2);
+                unsigned csymoffset = baseVtblOffset(cd2, b);
+                if (csymoffset != ~0)
+                {
+                    if (offset < b->offset)
+                        pdt = dtnzeros(pdt, b->offset - offset);
+                    pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
+                    break;
+                }
             }
+            offset = b->offset + Target::ptrsize;
         }
-        offset = b->offset + Target::ptrsize;
     }
 
-    if (offset < cd->structsize)
-        dtnzeros(pdt, cd->structsize - offset);
+    if (offset < ad->structsize)
+        pdt = dtnzeros(pdt, ad->structsize - offset);
+
+    return pdt;
 }
 
-void StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
+/****************************************************
+ * Put out elements[].
+ */
+dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
+        Expressions *elements, size_t firstFieldIndex,
+        ClassDeclaration *concreteType)
 {
-    //printf("StructDeclaration::toDt(), this='%s'\n", sd->toChars());
-    StructLiteralExp *sle = StructLiteralExp::create(sd->loc, sd, NULL);
-    if (!sd->fill(sd->loc, sle->elements, true))
-        assert(0);
+    //printf("membersToDt(ad = '%s', elements = %s)\n", ad->toChars(), elements->toChars());
+    ClassDeclaration *cd = ad->isClassDeclaration();
 
-    //printf("sd->toDt sle = %s\n", sle->toChars());
-    sle->type = sd->type;
-    Expression_toDt(sle, pdt);
+    unsigned offset;
+    if (cd)
+    {
+        if (ClassDeclaration *cdb = cd->baseClass)
+        {
+            size_t index = 0;
+            for (ClassDeclaration *c = cdb->baseClass; c; c = c->baseClass)
+                index += c->fields.dim;
+            pdt = membersToDt(cdb, pdt, elements, index, concreteType);
+            offset = cdb->structsize;
+        }
+        else
+        {
+            if (cd->cpp)
+                offset = Target::ptrsize;       // allow room for __vptr
+            else
+                offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+        }
+    }
+    else
+        offset = 0;
+
+    assert(firstFieldIndex <= elements->dim &&
+           firstFieldIndex + ad->fields.dim <= elements->dim);
+    for (size_t i = 0; i < ad->fields.dim; i++)
+    {
+        if (!(*elements)[firstFieldIndex + i])
+            continue;
+
+        VarDeclaration *vd = NULL;
+        size_t k;
+        for (size_t j = i; j < ad->fields.dim; j++)
+        {
+            VarDeclaration *v2 = ad->fields[j];
+            if (v2->offset < offset)
+                continue;
+            if (!(*elements)[firstFieldIndex + j])
+                continue;
+            // find the nearest field
+            if (!vd || v2->offset < vd->offset)
+            {
+                vd = v2;
+                k = j;
+                assert(vd == v2 || !vd->isOverlappedWith(v2));
+            }
+        }
+        if (!vd)
+            continue;
+
+        assert(offset <= vd->offset);
+        if (offset < vd->offset)
+            pdt = dtnzeros(pdt, vd->offset - offset);
+
+        dt_t *dt = NULL;
+        Expression *e = (*elements)[firstFieldIndex + k];
+        Type *tb = vd->type->toBasetype();
+        if (tb->ty == Tsarray)
+            toDtElem(((TypeSArray *)tb), &dt, e);
+        else
+            Expression_toDt(e, &dt);    // convert e to an initializer dt
+
+        pdt = dtcat(pdt, dt);
+        offset = vd->offset + vd->type->size();
+    }
+
+    if (cd)
+    {
+        // Interface vptr initializations
+        toSymbol(cd);                                         // define csym
+
+        for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+        {
+            BaseClass *b = (*cd->vtblInterfaces)[i];
+            for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
+            {
+                assert(cd2);
+                unsigned csymoffset = baseVtblOffset(cd2, b);
+                if (csymoffset != ~0)
+                {
+                    if (offset < b->offset)
+                        pdt = dtnzeros(pdt, b->offset - offset);
+                    pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
+                    break;
+                }
+            }
+            offset = b->offset + Target::ptrsize;
+        }
+    }
+
+    if (offset < ad->structsize)
+        pdt = dtnzeros(pdt, ad->structsize - offset);
+
+    return pdt;
 }
 
 /* ================================================================= */
@@ -764,7 +863,7 @@ dt_t **Type_toDt(Type *t, dt_t **pdt)
 
         void visit(TypeStruct *t)
         {
-            StructDeclaration_toDt(t->sym, pdt);
+            pdt = StructDeclaration_toDt(t->sym, pdt);
         }
     };
 
@@ -789,19 +888,24 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         Type *tbn = tnext->toBasetype();
         while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
         {
-            TypeSArray *tsa = (TypeSArray *)tbn;
-            len *= tsa->dim->toInteger();
+            len *= ((TypeSArray *)tbn)->dim->toInteger();
             tnext = tbn->nextOf();
             tbn = tnext->toBasetype();
         }
         if (!e)                             // if not already supplied
             e = tsa->defaultInit(Loc());    // use default initializer
+
+        if (!e->type->implicitConvTo(tnext))    // Bugzilla 14996
+        {
+            // Bugzilla 1914, 3198
+            if (e->op == TOKstring)
+                len /= ((StringExp *)e)->len;
+            else if (e->op == TOKarrayliteral)
+                len /= ((ArrayLiteralExp *)e)->elements->dim;
+        }
+
         Expression_toDt(e, pdt);
         dt_optimize(*pdt);
-        if (e->op == TOKstring)
-            len /= ((StringExp *)e)->len;
-        if (e->op == TOKarrayliteral)
-            len /= ((ArrayLiteralExp *)e)->elements->dim;
         pdt = dtrepeat(pdt, *pdt, len - 1);
     }
     return pdt;
@@ -813,178 +917,529 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
 
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off)
 {
-#if 0
-    printf("ClassReferenceExp::toDtI() %d\n", e->op);
-#endif
-
-    dtxoff(pdt, toSymbol(e), off);
+    //printf("ClassReferenceExp::toDt() %d\n", e->op);
+    pdt = dtxoff(pdt, toSymbol(e), off);
     return pdt;
 }
 
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
 {
-#if 0
-    printf("ClassReferenceExp::toInstanceDt() %d\n", ce->op);
-#endif
-    dt_t *d = NULL;
-    dt_t **pdtend = &d;
+    //printf("ClassReferenceExp::toInstanceDt() %d\n", ce->op);
+    ClassDeclaration *cd = ce->originalClass();
 
-    Dts dts;
-    dts.setDim(ce->value->elements->dim);
-    dts.zero();
-    //assert(ce->value->elements->dim <= ce->value->sd->fields.dim);
-    for (size_t i = 0; i < ce->value->elements->dim; i++)
-    {
-        Expression *e = (*ce->value->elements)[i];
-        if (!e)
-            continue;
-        dt_t *dt = NULL;
-        Expression_toDt(e, &dt);           // convert e to an initializer dt
-        dts[i] = dt;
-    }
-    dtxoff(pdtend, toVtblSymbol(ce->originalClass()), 0);
-    dtsize_t(pdtend, 0);                    // monitor
+    pdt = dtxoff(pdt, toVtblSymbol(cd), 0);
+    if (!cd->cpp)
+        pdt = dtsize_t(pdt, 0);                 // monitor
+
     // Put in the rest
-    membersToDt(ce, &d, ce->originalClass(), &dts);
-    *pdt = d;
+    size_t firstFieldIndex = 0;
+    for (ClassDeclaration *c = cd->baseClass; c; c = c->baseClass)
+        firstFieldIndex += c->fields.dim;
+    pdt = membersToDt(cd, pdt, ce->value->elements, firstFieldIndex, cd);
+
     return pdt;
 }
 
-// Generates the data for the static initializer of class variable.
-// dts is an array of dt fields, which values have been evaluated in compile time.
-// cd - is a ClassDeclaration, for which initializing data is being built
-// this function, being alike to ClassDeclaration::toDt2, recursively builds the dt for all base classes.
-dt_t **membersToDt(ClassReferenceExp *ce, dt_t **pdt, ClassDeclaration *cd, Dts *dts)
+/****************************************************
+ */
+class TypeInfoDtVisitor : public Visitor
 {
-    unsigned offset;
-#define LOG 0
+public:
+    dt_t **pdt;
 
-#if LOG
-    printf("ClassReferenceExp::toDt2(this = '%s', cd = '%s')\n", ce->toChars(), cd->toChars());
-#endif
-    if (cd->baseClass)
+    /*
+     * Used in TypeInfo*::toDt to verify the runtime TypeInfo sizes
+     */
+    static void verifyStructSize(ClassDeclaration *typeclass, size_t expected)
     {
-        membersToDt(ce, pdt, cd->baseClass, dts);
-        offset = cd->baseClass->structsize;
-    }
-    else
-    {
-        offset = Target::ptrsize * 2;
-    }
-    for (size_t i = 0; i < cd->fields.dim; i++)
-    {
-        VarDeclaration *v = cd->fields[i];
-        int idx = ce->findFieldIndexByName(v);
-        assert(idx != -1);
-        dt_t *d = (*dts)[idx];
-
-        if (!d)
+        if (typeclass->structsize != expected)
         {
-            dt_t *dt = NULL;
-            Initializer *init = v->init;
-            if (init)
-            {   //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
-                ExpInitializer *ei = init->isExpInitializer();
-                Type *tb = v->type->toBasetype();
-                if (init->isVoidInitializer())
-                    ;
-                else if (ei && tb->ty == Tsarray)
-                    toDtElem((TypeSArray *)tb, &dt, ei->exp);
-                else
-                    dt = Initializer_toDt(init);
-            }
-            else if (v->offset >= offset)
-            {
-                //printf("\t\tdefault initializer\n");
-                Type_toDt(v->type, &dt);
-            }
-            if (dt)
-            {
-                if (v->offset < offset)
-                    ce->error("duplicated union initialization for %s", v->toChars());
-                else
-                {
-                    if (offset < v->offset)
-                        dtnzeros(pdt, v->offset - offset);
-                    dtcat(pdt, dt);
-                    offset = v->offset + v->type->size();
-                }
-            }
+#ifdef DEBUG
+            printf("expected = x%x, %s.structsize = x%x\n", (unsigned)expected,
+                typeclass->toChars(), (unsigned)typeclass->structsize);
+#endif
+            error(typeclass->loc, "mismatch between compiler and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+            fatal();
+        }
+    }
+
+    TypeInfoDtVisitor(dt_t **pdt)
+        : pdt(pdt)
+    {
+    }
+
+    void visit(TypeInfoDeclaration *d)
+    {
+        //printf("TypeInfoDeclaration::toDt() %s\n", toChars());
+        verifyStructSize(Type::dtypeinfo, 2 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::dtypeinfo), 0);        // vtbl for TypeInfo
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+    }
+
+    void visit(TypeInfoConstDeclaration *d)
+    {
+        //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
+        verifyStructSize(Type::typeinfoconst, 3 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfoconst), 0);    // vtbl for TypeInfo_Const
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+        Type *tm = d->tinfo->mutableOf();
+        tm = tm->merge();
+        genTypeInfo(tm, NULL);
+        pdt = dtxoff(pdt, toSymbol(tm->vtinfo), 0);
+    }
+
+    void visit(TypeInfoInvariantDeclaration *d)
+    {
+        //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
+        verifyStructSize(Type::typeinfoinvariant, 3 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfoinvariant), 0);    // vtbl for TypeInfo_Invariant
+        pdt = dtsize_t(pdt, 0);                                         // monitor
+        Type *tm = d->tinfo->mutableOf();
+        tm = tm->merge();
+        genTypeInfo(tm, NULL);
+        pdt = dtxoff(pdt, toSymbol(tm->vtinfo), 0);
+    }
+
+    void visit(TypeInfoSharedDeclaration *d)
+    {
+        //printf("TypeInfoSharedDeclaration::toDt() %s\n", toChars());
+        verifyStructSize(Type::typeinfoshared, 3 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfoshared), 0);   // vtbl for TypeInfo_Shared
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+        Type *tm = d->tinfo->unSharedOf();
+        tm = tm->merge();
+        genTypeInfo(tm, NULL);
+        pdt = dtxoff(pdt, toSymbol(tm->vtinfo), 0);
+    }
+
+    void visit(TypeInfoWildDeclaration *d)
+    {
+        //printf("TypeInfoWildDeclaration::toDt() %s\n", toChars());
+        verifyStructSize(Type::typeinfowild, 3 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfowild), 0); // vtbl for TypeInfo_Wild
+        pdt = dtsize_t(pdt, 0);                                 // monitor
+        Type *tm = d->tinfo->mutableOf();
+        tm = tm->merge();
+        genTypeInfo(tm, NULL);
+        pdt = dtxoff(pdt, toSymbol(tm->vtinfo), 0);
+    }
+
+    void visit(TypeInfoEnumDeclaration *d)
+    {
+        //printf("TypeInfoEnumDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfoenum, 7 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfoenum), 0); // vtbl for TypeInfo_Enum
+        pdt = dtsize_t(pdt, 0);                        // monitor
+
+        assert(d->tinfo->ty == Tenum);
+
+        TypeEnum *tc = (TypeEnum *)d->tinfo;
+        EnumDeclaration *sd = tc->sym;
+
+        /* Put out:
+         *  TypeInfo base;
+         *  string name;
+         *  void[] m_init;
+         */
+
+        // TypeInfo for enum members
+        if (sd->memtype)
+        {
+            genTypeInfo(sd->memtype, NULL);
+            pdt = dtxoff(pdt, toSymbol(sd->memtype->vtinfo), 0);
+        }
+        else
+            pdt = dtsize_t(pdt, 0);
+
+        // string name;
+        const char *name = sd->toPrettyChars();
+        size_t namelen = strlen(name);
+        pdt = dtsize_t(pdt, namelen);
+        pdt = dtxoff(pdt, d->csym, Type::typeinfoenum->structsize);
+
+        // void[] init;
+        if (!sd->members || d->tinfo->isZeroInit())
+        {
+            // 0 initializer, or the same as the base type
+            pdt = dtsize_t(pdt, 0);                     // init.length
+            pdt = dtsize_t(pdt, 0);                     // init.ptr
         }
         else
         {
-            if (v->offset < offset)
-                ce->error("duplicate union initialization for %s", v->toChars());
-            else
-            {
-                unsigned sz = dt_size(d);
-                unsigned vsz = v->type->size();
-                unsigned voffset = v->offset;
-
-                if (sz > vsz)
-                {
-                    assert(v->type->ty == Tsarray && vsz == 0);
-                    ce->error("zero length array %s has non-zero length initializer", v->toChars());
-                }
-
-                size_t dim = 1;
-                Type *vt;
-                for (vt = v->type->toBasetype();
-                     vt->ty == Tsarray;
-                     vt = vt->nextOf()->toBasetype())
-                {
-                    TypeSArray *tsa = (TypeSArray *)vt;
-                    dim *= tsa->dim->toInteger();
-                }
-                //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
-                assert(sz == vsz || sz * dim <= vsz);
-
-                for (size_t i = 0; i < dim; i++)
-                {
-                    if (offset < voffset)
-                        pdt = dtnzeros(pdt, voffset - offset);
-                    if (!d)
-                    {
-                        if (v->init)
-                            d = Initializer_toDt(v->init);
-                        else
-                            Type_toDt(vt, &d);
-                    }
-                    pdt = dtcat(pdt, d);
-                    d = NULL;
-                    offset = voffset + sz;
-                    voffset += vsz / dim;
-                    if (sz == vsz)
-                        break;
-                }
-            }
+            pdt = dtsize_t(pdt, sd->type->size());      // init.length
+            pdt = dtxoff(pdt, toInitializer(sd), 0);    // init.ptr
         }
+
+        // Put out name[] immediately following TypeInfo_Enum
+        pdt = dtnbytes(pdt, namelen + 1, name);
     }
 
-    // Interface vptr initializations
-    toSymbol(cd);                                         // define csym
-
-    for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+    void visit(TypeInfoPointerDeclaration *d)
     {
-        BaseClass *b = (*cd->vtblInterfaces)[i];
-        for (ClassDeclaration *cd2 = ce->originalClass(); 1; cd2 = cd2->baseClass)
-        {
-            assert(cd2);
-            unsigned csymoffset = baseVtblOffset(cd2, b);
-            if (csymoffset != ~0)
-            {
-                if (offset < b->offset)
-                    dtnzeros(pdt, b->offset - offset);
-                dtxoff(pdt, toSymbol(cd2), csymoffset);
-                break;
-            }
-        }
-        offset = b->offset + Target::ptrsize;
+        //printf("TypeInfoPointerDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfopointer, 3 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfopointer), 0);  // vtbl for TypeInfo_Pointer
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+
+        assert(d->tinfo->ty == Tpointer);
+
+        TypePointer *tc = (TypePointer *)d->tinfo;
+
+        genTypeInfo(tc->next, NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for type being pointed to
     }
 
-    if (offset < cd->structsize)
-        dtnzeros(pdt, cd->structsize - offset);
+    void visit(TypeInfoArrayDeclaration *d)
+    {
+        //printf("TypeInfoArrayDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfoarray, 3 * Target::ptrsize);
 
-#undef LOG
-    return pdt;
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfoarray), 0);    // vtbl for TypeInfo_Array
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+
+        assert(d->tinfo->ty == Tarray);
+
+        TypeDArray *tc = (TypeDArray *)d->tinfo;
+
+        genTypeInfo(tc->next, NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
+    }
+
+    void visit(TypeInfoStaticArrayDeclaration *d)
+    {
+        //printf("TypeInfoStaticArrayDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfostaticarray, 4 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfostaticarray), 0);  // vtbl for TypeInfo_StaticArray
+        pdt = dtsize_t(pdt, 0);                                         // monitor
+
+        assert(d->tinfo->ty == Tsarray);
+
+        TypeSArray *tc = (TypeSArray *)d->tinfo;
+
+        genTypeInfo(tc->next, NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->next->vtinfo), 0);   // TypeInfo for array of type
+
+        pdt = dtsize_t(pdt, tc->dim->toInteger());          // length
+    }
+
+    void visit(TypeInfoVectorDeclaration *d)
+    {
+        //printf("TypeInfoVectorDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfovector, 3 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfovector), 0);   // vtbl for TypeInfo_Vector
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+
+        assert(d->tinfo->ty == Tvector);
+
+        TypeVector *tc = (TypeVector *)d->tinfo;
+
+        genTypeInfo(tc->basetype, NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->basetype->vtinfo), 0); // TypeInfo for equivalent static array
+    }
+
+    void visit(TypeInfoAssociativeArrayDeclaration *d)
+    {
+        //printf("TypeInfoAssociativeArrayDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfoassociativearray, 4 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
+        pdt = dtsize_t(pdt, 0);                        // monitor
+
+        assert(d->tinfo->ty == Taarray);
+
+        TypeAArray *tc = (TypeAArray *)d->tinfo;
+
+        genTypeInfo(tc->next, NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->next->vtinfo), 0);   // TypeInfo for array of type
+
+        genTypeInfo(tc->index, NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->index->vtinfo), 0);  // TypeInfo for array of type
+    }
+
+    void visit(TypeInfoFunctionDeclaration *d)
+    {
+        //printf("TypeInfoFunctionDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfofunction, 5 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfofunction), 0); // vtbl for TypeInfo_Function
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+
+        assert(d->tinfo->ty == Tfunction);
+
+        TypeFunction *tc = (TypeFunction *)d->tinfo;
+
+        genTypeInfo(tc->next, NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->next->vtinfo), 0); // TypeInfo for function return value
+
+        const char *name = d->tinfo->deco;
+        assert(name);
+        size_t namelen = strlen(name);
+        pdt = dtsize_t(pdt, namelen);
+        pdt = dtxoff(pdt, d->csym, Type::typeinfofunction->structsize);
+
+        // Put out name[] immediately following TypeInfo_Function
+        pdt = dtnbytes(pdt, namelen + 1, name);
+    }
+
+    void visit(TypeInfoDelegateDeclaration *d)
+    {
+        //printf("TypeInfoDelegateDeclaration::toDt()\n");
+        verifyStructSize(Type::typeinfodelegate, 5 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+
+        assert(d->tinfo->ty == Tdelegate);
+
+        TypeDelegate *tc = (TypeDelegate *)d->tinfo;
+
+        genTypeInfo(tc->next->nextOf(), NULL);
+        pdt = dtxoff(pdt, toSymbol(tc->next->nextOf()->vtinfo), 0); // TypeInfo for delegate return value
+
+        const char *name = d->tinfo->deco;
+        assert(name);
+        size_t namelen = strlen(name);
+        pdt = dtsize_t(pdt, namelen);
+        pdt = dtxoff(pdt, d->csym, Type::typeinfodelegate->structsize);
+
+        // Put out name[] immediately following TypeInfo_Delegate
+        pdt = dtnbytes(pdt, namelen + 1, name);
+    }
+
+    void visit(TypeInfoStructDeclaration *d)
+    {
+        //printf("TypeInfoStructDeclaration::toDt() '%s'\n", d->toChars());
+        if (global.params.is64bit)
+            verifyStructSize(Type::typeinfostruct, 17 * Target::ptrsize);
+        else
+            verifyStructSize(Type::typeinfostruct, 15 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfostruct), 0); // vtbl for TypeInfo_Struct
+        pdt = dtsize_t(pdt, 0);                        // monitor
+
+        assert(d->tinfo->ty == Tstruct);
+
+        TypeStruct *tc = (TypeStruct *)d->tinfo;
+        StructDeclaration *sd = tc->sym;
+
+        if (!sd->members)
+            return;
+
+        if (TemplateInstance *ti = sd->isInstantiated())
+        {
+            if (!ti->needsCodegen())
+            {
+                assert(ti->minst || sd->requestTypeInfo);
+
+                /* ti->toObjFile() won't get called. So, store these
+                 * member functions into object file in here.
+                 */
+                if (sd->xeq && sd->xeq != StructDeclaration::xerreq)
+                    toObjFile(sd->xeq, global.params.multiobj);
+                if (sd->xcmp && sd->xcmp != StructDeclaration::xerrcmp)
+                    toObjFile(sd->xcmp, global.params.multiobj);
+                if (FuncDeclaration *ftostr = search_toString(sd))
+                    toObjFile(ftostr, global.params.multiobj);
+                if (sd->xhash)
+                    toObjFile(sd->xhash, global.params.multiobj);
+                if (sd->postblit)
+                    toObjFile(sd->postblit, global.params.multiobj);
+                if (sd->dtor)
+                    toObjFile(sd->dtor, global.params.multiobj);
+            }
+        }
+
+        /* Put out:
+         *  char[] name;
+         *  void[] init;
+         *  hash_t function(in void*) xtoHash;
+         *  bool function(in void*, in void*) xopEquals;
+         *  int function(in void*, in void*) xopCmp;
+         *  string function(const(void)*) xtoString;
+         *  StructFlags m_flags;
+         *  //xgetMembers;
+         *  xdtor;
+         *  xpostblit;
+         *  uint m_align;
+         *  version (X86_64)
+         *      TypeInfo m_arg1;
+         *      TypeInfo m_arg2;
+         *  xgetRTInfo
+         */
+
+        const char *name = sd->toPrettyChars();
+        size_t namelen = strlen(name);
+        pdt = dtsize_t(pdt, namelen);
+        pdt = dtxoff(pdt, d->csym, Type::typeinfostruct->structsize);
+
+        // void[] init;
+        pdt = dtsize_t(pdt, sd->structsize);            // init.length
+        if (sd->zeroInit)
+            pdt = dtsize_t(pdt, 0);                     // NULL for 0 initialization
+        else
+            pdt = dtxoff(pdt, toInitializer(sd), 0);    // init.ptr
+
+        if (FuncDeclaration *fd = sd->xhash)
+        {
+            pdt = dtxoff(pdt, toSymbol(fd), 0);
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            assert(tf->ty == Tfunction);
+            /* I'm a little unsure this is the right way to do it. Perhaps a better
+             * way would to automatically add these attributes to any struct member
+             * function with the name "toHash".
+             * So I'm leaving this here as an experiment for the moment.
+             */
+            if (!tf->isnothrow || tf->trust == TRUSTsystem /*|| tf->purity == PUREimpure*/)
+                warning(fd->loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf->toChars());
+        }
+        else
+            pdt = dtsize_t(pdt, 0);
+
+        if (sd->xeq)
+            pdt = dtxoff(pdt, toSymbol(sd->xeq), 0);
+        else
+            pdt = dtsize_t(pdt, 0);
+
+        if (sd->xcmp)
+            pdt = dtxoff(pdt, toSymbol(sd->xcmp), 0);
+        else
+            pdt = dtsize_t(pdt, 0);
+
+        if (FuncDeclaration *fd = search_toString(sd))
+        {
+            pdt = dtxoff(pdt, toSymbol(fd), 0);
+        }
+        else
+            pdt = dtsize_t(pdt, 0);
+
+        // StructFlags m_flags;
+        StructFlags::Type m_flags = 0;
+        if (tc->hasPointers()) m_flags |= StructFlags::hasPointers;
+        pdt = dtsize_t(pdt, m_flags);
+
+    #if 0
+        // xgetMembers
+        FuncDeclaration *sgetmembers = sd->findGetMembers();
+        if (sgetmembers)
+            pdt = dtxoff(pdt, toSymbol(sgetmembers), 0);
+        else
+            pdt = dtsize_t(pdt, 0);                     // xgetMembers
+    #endif
+
+        // xdtor
+        FuncDeclaration *sdtor = sd->dtor;
+        if (sdtor)
+            pdt = dtxoff(pdt, toSymbol(sdtor), 0);
+        else
+            pdt = dtsize_t(pdt, 0);                     // xdtor
+
+        // xpostblit
+        FuncDeclaration *spostblit = sd->postblit;
+        if (spostblit && !(spostblit->storage_class & STCdisable))
+            pdt = dtxoff(pdt, toSymbol(spostblit), 0);
+        else
+            pdt = dtsize_t(pdt, 0);                     // xpostblit
+
+        // uint m_align;
+        pdt = dtsize_t(pdt, tc->alignsize());
+
+        if (global.params.is64bit)
+        {
+            Type *t = sd->arg1type;
+            for (int i = 0; i < 2; i++)
+            {
+                // m_argi
+                if (t)
+                {
+                    genTypeInfo(t, NULL);
+                    pdt = dtxoff(pdt, toSymbol(t->vtinfo), 0);
+                }
+                else
+                    pdt = dtsize_t(pdt, 0);
+
+                t = sd->arg2type;
+            }
+        }
+
+        // xgetRTInfo
+        if (sd->getRTInfo)
+            Expression_toDt(sd->getRTInfo, pdt);
+        else if (m_flags & StructFlags::hasPointers)
+            pdt = dtsize_t(pdt, 1);
+        else
+            pdt = dtsize_t(pdt, 0);
+
+        // Put out name[] immediately following TypeInfo_Struct
+        pdt = dtnbytes(pdt, namelen + 1, name);
+    }
+
+    void visit(TypeInfoClassDeclaration *d)
+    {
+        //printf("TypeInfoClassDeclaration::toDt() %s\n", tinfo->toChars());
+        assert(0);
+    }
+
+    void visit(TypeInfoInterfaceDeclaration *d)
+    {
+        //printf("TypeInfoInterfaceDeclaration::toDt() %s\n", tinfo->toChars());
+        verifyStructSize(Type::typeinfointerface, 3 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfointerface), 0);    // vtbl for TypeInfoInterface
+        pdt = dtsize_t(pdt, 0);                                         // monitor
+
+        assert(d->tinfo->ty == Tclass);
+
+        TypeClass *tc = (TypeClass *)d->tinfo;
+        Symbol *s;
+
+        if (!tc->sym->vclassinfo)
+            tc->sym->vclassinfo = TypeInfoClassDeclaration::create(tc);
+        s = toSymbol(tc->sym->vclassinfo);
+        pdt = dtxoff(pdt, s, 0);    // ClassInfo for tinfo
+    }
+
+    void visit(TypeInfoTupleDeclaration *d)
+    {
+        //printf("TypeInfoTupleDeclaration::toDt() %s\n", tinfo->toChars());
+        verifyStructSize(Type::typeinfotypelist, 4 * Target::ptrsize);
+
+        pdt = dtxoff(pdt, toVtblSymbol(Type::typeinfotypelist), 0); // vtbl for TypeInfoInterface
+        pdt = dtsize_t(pdt, 0);                                     // monitor
+
+        assert(d->tinfo->ty == Ttuple);
+
+        TypeTuple *tu = (TypeTuple *)d->tinfo;
+
+        size_t dim = tu->arguments->dim;
+        pdt = dtsize_t(pdt, dim);                       // elements.length
+
+        dt_t *dtargs = NULL;
+        dt_t **pdtend = &dtargs;
+        for (size_t i = 0; i < dim; i++)
+        {
+            Parameter *arg = (*tu->arguments)[i];
+
+            genTypeInfo(arg->type, NULL);
+            Symbol *s = toSymbol(arg->type->vtinfo);
+            pdtend = dtxoff(pdtend, s, 0);
+        }
+
+        pdt = dtdtoff(pdt, dtargs, 0);                  // elements.ptr
+    }
+};
+
+dt_t **TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d)
+{
+    TypeInfoDtVisitor v(pdt);
+    d->accept(&v);
+    return v.pdt;
 }

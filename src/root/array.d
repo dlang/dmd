@@ -173,7 +173,7 @@ public:
 
     void zero()
     {
-        memset(data, 0, dim * (data[0]).sizeof);
+        data[0 .. dim] = T.init;
     }
 
     T pop()
@@ -198,5 +198,10 @@ public:
         }
         else
             assert(0);
+    }
+
+    extern (D) T[] opSlice()
+    {
+        return data[0 .. dim];
     }
 }

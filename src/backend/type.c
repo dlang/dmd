@@ -388,7 +388,7 @@ type *type_dyn_array(type *tnext)
  *      Tcount already incremented
  */
 
-type *type_static_array(unsigned long long dim, type *tnext)
+type *type_static_array(targ_size_t dim, type *tnext)
 {
     type *t = type_allocn(TYarray, tnext);
     t->Tdim = dim;
@@ -435,6 +435,8 @@ type *type_delegate(type *tnext)
  * Returns:
  *      Tcount already incremented
  */
+extern "C" // because of size_t on OSX 32
+{
 type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret)
 {
     param_t *paramtypes = NULL;
@@ -449,6 +451,7 @@ type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, typ
     t->Tparamtypes = paramtypes;
     t->Tcount++;
     return t;
+}
 }
 
 /***************************************
@@ -1477,9 +1480,6 @@ symbol *param_search(const char *name, param_t **pp)
             s->Sclass = SCparameter;
             s->Stype = p->Ptype;
             s->Stype->Tcount++;
-#if SOURCE_4PARAMS
-            s->Ssrcpos = p->Psrcpos;
-#endif
             p->Psym = s;
         }
     }
@@ -1500,9 +1500,6 @@ void param_hydrate(param_t **pp)
     {   while (*pp)
         {   assert(isdehydrated(*pp));
             p = (param_t *) ph_hydrate(pp);
-#if SOURCE_4PARAMS
-            p->Psrcpos.Sfilnum += File_Hydrate_Num;     /* file number relative header build */
-#endif
             param_debug(p);
 
             type_hydrate(&p->Ptype);

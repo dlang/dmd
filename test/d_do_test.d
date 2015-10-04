@@ -61,8 +61,8 @@ struct TestArgs
     string   requiredArgs;
     string   requiredArgsForLink;
     // reason for disabling the test (if empty, the test is not disabled)
-    string   disabled_reason;
-    @property bool disabled() { return disabled_reason != ""; }
+    string[] disabledPlatforms;
+    bool     disabled;
 }
 
 struct EnvData
@@ -227,7 +227,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // COMPILE_SEPARATELY can take optional compiler switches when link .o files
     testArgs.compileSeparately = findTestParameter(file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
 
-    findTestParameter(file, "DISABLED", testArgs.disabled_reason);
+    string disabledPlatformsStr;
+    findTestParameter(file, "DISABLED", disabledPlatformsStr);
+    testArgs.disabledPlatforms = split(disabledPlatformsStr);
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
@@ -508,8 +510,11 @@ int main(string[] args)
             (!testArgs.requiredArgs.empty ? " " : ""),
             testArgs.permuteArgs);
 
-    if (testArgs.disabled)
-        writefln("!!! [DISABLED: %s]", testArgs.disabled_reason);
+    if (testArgs.disabledPlatforms.canFind(envData.os, envData.os ~ envData.model))
+    {
+        testArgs.disabled = true;
+        writefln("!!! [DISABLED on %s]", envData.os);
+    }
     else
         write("\n");
 
