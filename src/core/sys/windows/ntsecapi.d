@@ -451,7 +451,7 @@ struct MSV1_0_NTLM3_RESPONSE {
     UCHAR[MSV1_0_CHALLENGE_LENGTH]      ChallengeFromClient;
     ULONG     AvPairsOff;
     UCHAR     _Buffer;
-    UCHAR*    Buffer() { return &_Buffer; }
+    UCHAR*    Buffer() return { return &_Buffer; }
 }
 alias MSV1_0_NTLM3_RESPONSE* PMSV1_0_NTLM3_RESPONSE;
 
@@ -501,7 +501,7 @@ struct MSV1_0_DERIVECRED_REQUEST {
     ULONG  DeriveCredType;
     ULONG  DeriveCredInfoLength;
     UCHAR  _DeriveCredSubmitBuffer;
-    UCHAR* DeriveCredSubmitBuffer() { return &_DeriveCredSubmitBuffer; }
+    UCHAR* DeriveCredSubmitBuffer() return { return &_DeriveCredSubmitBuffer; }
 }
 alias MSV1_0_DERIVECRED_REQUEST* PMSV1_0_DERIVECRED_REQUEST;
 
@@ -509,7 +509,7 @@ struct MSV1_0_DERIVECRED_RESPONSE {
     MSV1_0_PROTOCOL_MESSAGE_TYPE MessageType;
     ULONG  DeriveCredInfoLength;
     UCHAR  _DeriveCredReturnBuffer;
-    UCHAR* DeriveCredReturnBuffer() { return &_DeriveCredReturnBuffer; }
+    UCHAR* DeriveCredReturnBuffer() return { return &_DeriveCredReturnBuffer; }
 }
 alias MSV1_0_DERIVECRED_RESPONSE* PMSV1_0_DERIVECRED_RESPONSE;
 

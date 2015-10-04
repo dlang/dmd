@@ -36,7 +36,7 @@ struct OLETARGETDEVICE {
     USHORT otdEnvironmentOffset;
     USHORT otdEnvironmentSize;
     BYTE   _otdData;
-    BYTE*  otdData() { return &_otdData; }
+    BYTE*  otdData() return { return &_otdData; }
 }
 alias OLETARGETDEVICE* LPOLETARGETDEVICE;
 

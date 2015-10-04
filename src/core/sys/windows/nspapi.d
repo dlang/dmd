@@ -88,7 +88,7 @@ struct SERVICE_ADDRESSES {
     DWORD           dwAddressCount;
     SERVICE_ADDRESS _Addresses;
 
-    SERVICE_ADDRESS* Addresses() { return &_Addresses; }
+    SERVICE_ADDRESS* Addresses() return { return &_Addresses; }
 }
 alias SERVICE_ADDRESSES* PSERVICE_ADDRESSES, LPSERVICE_ADDRESSES;
 

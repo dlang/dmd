@@ -94,7 +94,7 @@ struct IP_INTERFACE_INFO {
     LONG                    NumAdapters;
     IP_ADAPTER_INDEX_MAP[1] _Adapter;
 
-    IP_ADAPTER_INDEX_MAP* Adapter() { return _Adapter.ptr; }
+    IP_ADAPTER_INDEX_MAP* Adapter() return { return _Adapter.ptr; }
 }
 alias IP_INTERFACE_INFO* PIP_INTERFACE_INFO;
 
@@ -102,6 +102,6 @@ struct IP_UNIDIRECTIONAL_ADAPTER_ADDRESS {
     ULONG     NumAdapters;
     IPAddr[1] _Address;
 
-    IPAddr* Address() { return _Address.ptr; }
+    IPAddr* Address() return { return _Address.ptr; }
 }
 alias IP_UNIDIRECTIONAL_ADAPTER_ADDRESS* PIP_UNIDIRECTIONAL_ADAPTER_ADDRESS;

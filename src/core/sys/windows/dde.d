@@ -71,7 +71,7 @@ struct DDEDATA {
     @property bool   reserved()  { return cast(bool)   (_bf & 0x4000); }
     @property bool   fAckReq()   { return cast(bool)   (_bf & 0x8000); }
 
-    @property byte*  Value() { return &_Value; }
+    @property byte*  Value() return { return &_Value; }
 
     @property ushort unused(ushort r) {
         _bf = cast(ushort) ((_bf & ~0x0FFF) | (r & 0x0FFF));
@@ -93,7 +93,7 @@ struct DDEPOKE {
     @property bool   fRelease()  { return cast(bool)   (_bf & 0x2000); }
     @property ubyte  fReserved() { return cast(ubyte)  ((_bf & 0xC000) >>> 14); }
 
-    @property byte*  Value() { return &_Value; }
+    @property byte*  Value() return { return &_Value; }
 
     @property ushort unused(ushort u) {
         _bf = cast(ushort) ((_bf & ~0x1FFF) | (u & 0x1FFF));
@@ -134,7 +134,7 @@ deprecated struct DDEUP {
     @property bool   fReserved() { return cast(bool)   (_bf & 0x4000); }
     @property bool   fAckReq()   { return cast(bool)   (_bf & 0x8000); }
 
-    @property byte*  rgb() { return &_rgb; }
+    @property byte*  rgb() return { return &_rgb; }
 
     @property ushort unused(ushort r) {
         _bf = cast(ushort) ((_bf & ~0x0FFF) | (r & 0x0FFF));

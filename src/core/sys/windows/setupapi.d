@@ -882,7 +882,7 @@ struct SP_INF_INFORMATION {
     DWORD InfStyle;
     DWORD InfCount;
     BYTE[1] _VersionData;
-    BYTE* VersionData() { return _VersionData.ptr; }
+    BYTE* VersionData() return { return _VersionData.ptr; }
 }
 alias SP_INF_INFORMATION* PSP_INF_INFORMATION;
 
@@ -1039,14 +1039,14 @@ deprecated alias SP_DEVICE_INTERFACE_DATA* PSP_INTERFACE_DEVICE_DATA;
 struct SP_DEVICE_INTERFACE_DETAIL_DATA_A {
     DWORD cbSize = SP_DEVICE_INTERFACE_DETAIL_DATA_A.sizeof;
     CHAR[1] _DevicePath;
-    CHAR* DevicePath() { return _DevicePath.ptr; }
+    CHAR* DevicePath() return { return _DevicePath.ptr; }
 }
 alias SP_DEVICE_INTERFACE_DETAIL_DATA_A* PSP_DEVICE_INTERFACE_DETAIL_DATA_A;
 
 struct SP_DEVICE_INTERFACE_DETAIL_DATA_W {
     DWORD  cbSize = SP_DEVICE_INTERFACE_DETAIL_DATA_W.sizeof;
     WCHAR[1] _DevicePath;
-    WCHAR* DevicePath() { return _DevicePath.ptr; }
+    WCHAR* DevicePath() return { return _DevicePath.ptr; }
 }
 alias SP_DEVICE_INTERFACE_DETAIL_DATA_W* PSP_DEVICE_INTERFACE_DETAIL_DATA_W;
 
@@ -1302,7 +1302,7 @@ struct SP_DRVINFO_DETAIL_DATA_A {
     CHAR[MAX_PATH] InfFileName;
     CHAR[LINE_LEN] DrvDescription;
     CHAR[1]        _HardwareID;
-    CHAR*          HardwareID() { return _HardwareID.ptr; }
+    CHAR*          HardwareID() return { return _HardwareID.ptr; }
 }
 alias SP_DRVINFO_DETAIL_DATA_A* PSP_DRVINFO_DETAIL_DATA_A;
 
@@ -1316,7 +1316,7 @@ struct SP_DRVINFO_DETAIL_DATA_W {
     WCHAR[MAX_PATH] InfFileName;
     WCHAR[LINE_LEN] DrvDescription;
     WCHAR[1]        _HardwareID;
-    WCHAR*          HardwareID() { return _HardwareID.ptr; }
+    WCHAR*          HardwareID() return { return _HardwareID.ptr; }
 }
 alias SP_DRVINFO_DETAIL_DATA_W* PSP_DRVINFO_DETAIL_DATA_W;
 

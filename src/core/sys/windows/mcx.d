@@ -75,7 +75,7 @@ struct MODEMDEVCAPS {
     DWORD dwMaxDCERate;
     BYTE  _abVariablePortion;
 
-    BYTE* abVariablePortion() { return &_abVariablePortion; }
+    BYTE* abVariablePortion() return { return &_abVariablePortion; }
 }
 alias MODEMDEVCAPS* PMODEMDEVCAPS, LPMODEMDEVCAPS;
 
@@ -93,6 +93,6 @@ struct MODEMSETTINGS {
     DWORD dwNegotiatedDCERate;
     BYTE  _abVariablePortion;
 
-    BYTE* abVariablePortion() { return &_abVariablePortion; }
+    BYTE* abVariablePortion() return { return &_abVariablePortion; }
 }
 alias MODEMSETTINGS* PMODEMSETTINGS, LPMODEMSETTINGS;

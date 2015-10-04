@@ -862,7 +862,7 @@ struct AVIPALCHANGE {
     BYTE        bNumEntries;
     WORD        wFlags;
     PALETTEENTRY[1] _peNew;
-    PALETTEENTRY* peNew() { return _peNew.ptr; }
+    PALETTEENTRY* peNew() return { return _peNew.ptr; }
 }
 
 const AVIGETFRAMEF_BESTDISPLAYFMT = 1;
