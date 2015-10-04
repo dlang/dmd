@@ -6,15 +6,15 @@
  * License: Placed into public domain
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winhttp.d)
  */
-module win32.winhttp;
+module core.sys.windows.winhttp;
 pragma(lib, "winhttp");
 // FIXME: Grouping of constants. Windows SDK doesn't make this entirely clear
 // FIXME: Verify WINHTTP_STATUS_CALLBACK function declaration works correctly
 
-import win32.w32api;
-import win32.winbase;
-import win32.windef;
-import win32.winsock2;  // Selective Imports BUG (: SOCKADDR_STORAGE;)
+import core.sys.windows.w32api;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
+import core.sys.windows.winsock2;  // Selective Imports BUG (: SOCKADDR_STORAGE;)
 
 alias HINTERNET = void*;
 alias LPHINTERNET = HINTERNET*;
