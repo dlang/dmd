@@ -1644,26 +1644,22 @@ void test99()
 
 void test100()
 {
-  {
-    real r = ulong.max;
-    printf("r = %Lg, ulong.max = %llu\n", r, ulong.max);
-    ulong d = cast(ulong)r;
-    printf("d = %llx, ulong.max = %llx\n", d, ulong.max);
-    assert(d == ulong.max);
-  }
-  static if(real.mant_dig == 64)
-  {
-    real r = ulong.max - 1;
-    printf("r = %Lg, ulong.max = %llu\n", r, ulong.max);
-    ulong d = cast(ulong)r;
-    printf("d = %llx, ulong.max = %llx\n", d, ulong.max);
-    assert(d == ulong.max - 1);
-  }
-  else static if(real.mant_dig == 53)
-  { //can't store ulong.max-1 in double
-  }
-  else
-     static assert(false, "Test not implemented for this platform");
+    static void check(ulong value)
+    {
+        real r = value;
+        ulong d = cast(ulong)r;
+        printf("ulong: %llu => real: %Lg => ulong: %llu\n", value, r, d);
+        assert(d == value);
+    }
+
+    // check biggest power of 2 representable in ulong: 2^63
+    check(1L << 63);
+
+    // check biggest representable uneven number
+    static if (real.mant_dig >= 64) // > 64: limited by ulong precision
+        check(ulong.max); // 2^64-1
+    else
+        check((1L << real.mant_dig) - 1);
 }
 
 /***************************************************/
