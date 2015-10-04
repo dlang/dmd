@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmcons.d)
  */
 module core.sys.windows.lmcons;
+version (Windows):
 
 private import core.sys.windows.windef;
 private import core.sys.windows.lmerr; // for NERR_BASE

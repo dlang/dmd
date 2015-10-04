@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_isguids.d)
  */
 module core.sys.windows.isguids;
+version (Windows):
 
 private import core.sys.windows.basetyps;
 

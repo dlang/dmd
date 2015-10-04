@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_mciavi.d)
  */
 module core.sys.windows.mciavi;
+version (Windows):
 
 private import core.sys.windows.mmsystem;
 

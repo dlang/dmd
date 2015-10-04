@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_olectl.d)
  */
 module core.sys.windows.olectl;
+version (Windows):
 
 // In conversion from MinGW, the following was deleted:
 //#define FONTSIZE(n) {n##0000, 0}

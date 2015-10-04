@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ddeml.d)
  */
 module core.sys.windows.ddeml;
+version (Windows):
 pragma(lib, "user32");
 
 private import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winnt;

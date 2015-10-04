@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ole.d)
  */
 module core.sys.windows.ole;
+version (Windows):
 
 private import core.sys.windows.windef, core.sys.windows.wingdi, core.sys.windows.uuid;
 

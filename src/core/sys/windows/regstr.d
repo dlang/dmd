@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_regstr.d)
  */
 module core.sys.windows.regstr;
+version (Windows):
 
 // TODO: fix possible conflict with shloj. Sort out NEC_98 issue.
 

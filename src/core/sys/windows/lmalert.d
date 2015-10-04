@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmalert.d)
  */
 module core.sys.windows.lmalert;
+version (Windows):
 pragma(lib, "netapi32");
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;

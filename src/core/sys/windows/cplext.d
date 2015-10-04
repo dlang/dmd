@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_cplext.d)
  */
 module core.sys.windows.cplext;
+version (Windows):
 
 enum : uint {
     CPLPAGE_MOUSE_BUTTONS      = 1,

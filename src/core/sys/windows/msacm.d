@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_msacm.d)
  */
 module core.sys.windows.msacm;
+version (Windows):
 
 private import core.sys.windows.basetsd, core.sys.windows.mmsystem, core.sys.windows.windef;
 

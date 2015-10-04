@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_cguid.d)
  */
 module core.sys.windows.cguid;
+version (Windows):
 
 private import core.sys.windows.basetyps;
 

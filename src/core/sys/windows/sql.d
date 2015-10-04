@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_sql.d)
  */
 module core.sys.windows.sql;
+version (Windows):
 
 public import core.sys.windows.sqltypes;
 private import core.sys.windows.windef;

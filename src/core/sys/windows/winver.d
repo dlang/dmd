@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winver.d)
  */
 module core.sys.windows.winver;
+version (Windows):
 pragma(lib, "version");
 
 private import core.sys.windows.windef;

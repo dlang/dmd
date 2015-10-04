@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_imagehlp.d)
  */
 module core.sys.windows.imagehlp;
+version (Windows):
 
 /* Comment from MinGW
     NOTE: This strictly does not belong in the Win32 API since it's

@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_wincon.d)
  */
 module core.sys.windows.wincon;
+version (Windows):
 pragma(lib, "kernel32");
 
 private import core.sys.windows.w32api, core.sys.windows.windef;

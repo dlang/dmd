@@ -5,6 +5,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_core.d)
  */
 module core.sys.windows.core;
+version (Windows):
 
 /**
  The core Windows API functions.

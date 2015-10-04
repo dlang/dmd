@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ole2.d)
  */
 module core.sys.windows.ole2;
+version (Windows):
 pragma(lib, "ole32");
 
 public import core.sys.windows.basetyps, core.sys.windows.objbase, core.sys.windows.oleauto, core.sys.windows.olectlid,

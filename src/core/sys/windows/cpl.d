@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_cpl.d)
  */
 module core.sys.windows.cpl;
+version (Windows):
 
 private import core.sys.windows.windef, core.sys.windows.winuser;
 

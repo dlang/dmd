@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_httpext.d)
  */
 module core.sys.windows.httpext;
+version (Windows):
 
 /* Comment from MinGW
        httpext.h - Header for ISAPI extensions.

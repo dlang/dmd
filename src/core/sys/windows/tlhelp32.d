@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_tlhelp32.d)
  */
 module core.sys.windows.tlhelp32;
+version (Windows):
 
 private import core.sys.windows.windef;
 

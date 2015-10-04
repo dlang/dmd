@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_setupapi.d)
  */
 module core.sys.windows.setupapi;
+version (Windows):
 pragma(lib, "setupapi");
 
 private import core.sys.windows.basetyps, core.sys.windows.commctrl, core.sys.windows.prsht, core.sys.windows.w32api,

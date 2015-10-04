@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_security.d)
  */
 module core.sys.windows.security;
+version (Windows):
 
 enum :SECURITY_STATUS{
     SEC_E_OK = 0,

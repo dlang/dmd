@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_dhcpcsdk.d)
  */
 module core.sys.windows.dhcpcsdk;
+version (Windows):
 
 private import core.sys.windows.w32api, core.sys.windows.windef;
 

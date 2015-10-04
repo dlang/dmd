@@ -8,6 +8,7 @@
  */
 
 module core.sys.windows.vfw;
+version (Windows):
 pragma(lib, "vfw32");
 
 private import

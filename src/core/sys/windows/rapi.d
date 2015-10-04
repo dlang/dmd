@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rapi.d)
  */
 module core.sys.windows.rapi;
+version (Windows):
 
 /* Comment from MinGW
    NOTE: This strictly does not belong in the Win32 API since it's

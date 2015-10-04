@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_nddeapi.d)
  */
 module core.sys.windows.nddeapi;
+version (Windows):
 
 private import core.sys.windows.windef;
 

@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winsvc.d)
  */
 module core.sys.windows.winsvc;
+version (Windows):
 pragma(lib, "advapi32");
 
 private import core.sys.windows.w32api, core.sys.windows.windef;

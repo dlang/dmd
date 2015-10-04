@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmremutl.d)
  */
 module core.sys.windows.lmremutl;
+version (Windows):
 pragma(lib, "netapi32");
 
 // D Conversion Note: DESC_CHAR is defined as TCHAR.

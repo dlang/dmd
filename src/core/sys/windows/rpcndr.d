@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcndr.d)
  */
 module core.sys.windows.rpcndr;
+version (Windows):
 pragma(lib, "rpcrt4");
 
 /* Translation notes:

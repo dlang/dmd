@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmmsg.d)
  */
 module core.sys.windows.lmmsg;
+version (Windows):
 pragma(lib, "netapi32");
 
 private import core.sys.windows.lmcons, core.sys.windows.windef, core.sys.windows.w32api;

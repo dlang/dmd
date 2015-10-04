@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_nb30.d)
  */
 module core.sys.windows.nb30;
+version (Windows):
 
 private import core.sys.windows.windef;
 

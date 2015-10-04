@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_sqltypes.d)
  */
 module core.sys.windows.sqltypes;
+version (Windows):
 
 /* Conversion notes:
   It's assumed that ODBC >= 0x0300.

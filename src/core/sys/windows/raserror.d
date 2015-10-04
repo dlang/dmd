@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_raserror.d)
  */
 module core.sys.windows.raserror;
+version (Windows):
 
 enum {
     SUCCESS = 0,

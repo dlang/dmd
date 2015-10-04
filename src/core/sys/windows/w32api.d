@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_w32api.d)
  */
 module core.sys.windows.w32api;
+version (Windows):
 
 enum __W32API_VERSION = 3.17;
 enum __W32API_MAJOR_VERSION = 3;

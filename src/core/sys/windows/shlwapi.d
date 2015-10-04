@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_shlwapi.d)
  */
 module core.sys.windows.shlwapi;
+version (Windows):
 pragma(lib, "shlwapi");
 
 /* Changes compared to MinGW:

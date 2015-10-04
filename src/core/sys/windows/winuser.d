@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winuser.d)
  */
 module core.sys.windows.winuser;
+version (Windows):
 pragma(lib, "user32");
 
 // Conversion Notes:

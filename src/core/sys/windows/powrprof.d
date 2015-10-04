@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_powrprof.d)
  */
 module core.sys.windows.powrprof;
+version (Windows):
 pragma(lib, "powrprof");
 
 private import core.sys.windows.windef;

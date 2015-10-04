@@ -10,9 +10,6 @@
  */
 
 module core.sys.windows.dbghelp_types;
-
-import core.sys.windows.windows;
-
 version (Windows):
 
 import core.sys.windows.windows;

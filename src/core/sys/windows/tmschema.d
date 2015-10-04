@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_tmschema.d)
  */
 module core.sys.windows.tmschema;
+version (Windows):
 
 /* BUTTON parts */
 enum {

@@ -12,6 +12,7 @@
  */
 
 module core.sys.windows.psapi;
+version (Windows):
 
 private import core.sys.windows.w32api;
 private import core.sys.windows.winbase;

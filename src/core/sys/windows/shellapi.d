@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_shellapi.d)
  */
 module core.sys.windows.shellapi;
+version (Windows):
 pragma(lib, "shell32");
 
 private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.basetyps;

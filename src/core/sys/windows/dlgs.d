@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_dlgs.d)
  */
 module core.sys.windows.dlgs;
+version (Windows):
 
 private import core.sys.windows.windef;
 

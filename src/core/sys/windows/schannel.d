@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_schannel.d)
  */
 module core.sys.windows.schannel;
+version (Windows):
 
 import core.sys.windows.wincrypt;
 private import core.sys.windows.windef;

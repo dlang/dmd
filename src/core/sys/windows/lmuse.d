@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmuse.d)
  */
 module core.sys.windows.lmuse;
+version (Windows):
 pragma(lib, "netapi32");
 
 import core.sys.windows.lmuseflg;

@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_windef.d)
  */
 module core.sys.windows.windef;
+version (Windows):
 
 public import core.sys.windows.winnt;
 private import core.sys.windows.w32api;

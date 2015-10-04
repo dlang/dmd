@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_sspi.d)
  */
 module core.sys.windows.sspi;
+version (Windows):
 
 import core.sys.windows.windef;
 import core.sys.windows.ntdef;

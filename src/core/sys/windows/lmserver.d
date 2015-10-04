@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmserver.d)
  */
 module core.sys.windows.lmserver;
+version (Windows):
 
 import core.sys.windows.winsvc;
 private import core.sys.windows.lmcons, core.sys.windows.windef;

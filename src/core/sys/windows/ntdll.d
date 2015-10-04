@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ntdll.d)
  */
 module core.sys.windows.ntdll;
+version (Windows):
 
 private import core.sys.windows.w32api;
 

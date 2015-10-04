@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_odbcinst.d)
  */
 module core.sys.windows.odbcinst;
+version (Windows):
 
 import core.sys.windows.sql;
 private import core.sys.windows.windef;

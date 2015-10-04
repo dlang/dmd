@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_errorrep.d)
  */
 module core.sys.windows.errorrep;
+version (Windows):
 
 private import core.sys.windows.w32api, core.sys.windows.windef;
 

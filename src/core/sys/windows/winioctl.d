@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winioctl.d)
  */
 module core.sys.windows.winioctl;
+version (Windows):
 
 // FIXME: check types of some constants
 

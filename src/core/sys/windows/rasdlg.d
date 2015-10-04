@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rasdlg.d)
  */
 module core.sys.windows.rasdlg;
+version (Windows):
 
 import core.sys.windows.ras;
 private import core.sys.windows.lmcons, core.sys.windows.windef;

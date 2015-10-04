@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winerror.d)
  */
 module core.sys.windows.winerror;
+version (Windows):
 
 /* Comments from the Mingw header:
  * WAIT_TIMEOUT is also defined in winbase.h

@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winbase.d)
  */
 module core.sys.windows.winbase;
+version (Windows):
 pragma(lib, "kernel32");
 
 /**

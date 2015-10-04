@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_intshcut.d)
  */
 module core.sys.windows.intshcut;
+version (Windows):
 
 private import core.sys.windows.unknwn, core.sys.windows.windef;
 

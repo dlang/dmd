@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcdce2.d)
  */
 module core.sys.windows.rpcdce2;
+version (Windows):
 
 import core.sys.windows.rpcdce;
 private import core.sys.windows.basetyps;

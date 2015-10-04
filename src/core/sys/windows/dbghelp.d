@@ -10,12 +10,11 @@
  */
 
 module core.sys.windows.dbghelp;
+version (Windows):
 
 import core.sys.windows.windows;
 
 public import core.sys.windows.dbghelp_types;
-
-version (Windows):
 
 extern(System)
 {

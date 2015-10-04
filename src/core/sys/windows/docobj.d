@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_docobj.d)
  */
 module core.sys.windows.docobj;
+version (Windows):
 
 private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.objidl, core.sys.windows.oleidl,
   core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;

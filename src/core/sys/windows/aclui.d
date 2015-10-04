@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_aclui.d)
  */
 module core.sys.windows.aclui;
+version (Windows):
 pragma(lib, "aclui");
 
 private import core.sys.windows.w32api;

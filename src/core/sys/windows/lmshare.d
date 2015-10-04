@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmshare.d)
  */
 module core.sys.windows.lmshare;
+version (Windows):
 pragma(lib, "netapi");
 
 import core.sys.windows.lmcons;

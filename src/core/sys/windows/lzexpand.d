@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lzexpand.d)
  */
 module core.sys.windows.lzexpand;
+version (Windows):
 pragma(lib, "lz32");
 
 private import core.sys.windows.winbase, core.sys.windows.windef;

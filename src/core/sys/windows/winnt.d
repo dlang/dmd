@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winnt.d)
  */
 module core.sys.windows.winnt;
+version (Windows):
 
 public import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winerror;
 private import core.sys.windows.w32api;

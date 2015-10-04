@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_iphlpapi.d)
  */
 module core.sys.windows.iphlpapi;
+version (Windows):
 
 import core.sys.windows.ipexport, core.sys.windows.iprtrmib, core.sys.windows.iptypes;
 private import core.sys.windows.winbase, core.sys.windows.windef;

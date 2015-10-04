@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcdcep.d)
  */
 module core.sys.windows.rpcdcep;
+version (Windows):
 
 private import core.sys.windows.basetyps;
 private import core.sys.windows.w32api;

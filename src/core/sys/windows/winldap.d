@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winldap.d)
  */
 module core.sys.windows.winldap;
+version (Windows):
 
 /* Comment from MinGW
   winldap.h - Header file for the Windows LDAP API

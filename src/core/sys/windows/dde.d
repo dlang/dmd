@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_dde.d)
  */
 module core.sys.windows.dde;
+version (Windows):
 pragma(lib, "user32");
 
 private import core.sys.windows.windef;

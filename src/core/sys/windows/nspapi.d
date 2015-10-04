@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_nspapi.d)
  */
 module core.sys.windows.nspapi;
+version (Windows):
 
 private import core.sys.windows.basetyps, core.sys.windows.windef;
 

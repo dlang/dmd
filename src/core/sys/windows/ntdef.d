@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ntdef.d)
  */
 module core.sys.windows.ntdef;
+version (Windows):
 
 private import core.sys.windows.basetsd, core.sys.windows.subauth, core.sys.windows.windef, core.sys.windows.winnt;
 

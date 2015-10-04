@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_olectlid.d)
  */
 module core.sys.windows.olectlid;
+version (Windows):
 
 private import core.sys.windows.basetyps;
 

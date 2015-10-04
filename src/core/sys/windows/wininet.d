@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_wininet.d)
  */
 module core.sys.windows.wininet;
+version (Windows):
 pragma(lib, "wininet");
 
 // FIXME: check types and grouping of constants

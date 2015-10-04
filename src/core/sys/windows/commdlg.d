@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_commdlg.d)
  */
 module core.sys.windows.commdlg;
+version (Windows):
 pragma(lib, "comdlg32");
 
 private import core.sys.windows.w32api;

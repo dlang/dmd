@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmrepl.d)
  */
 module core.sys.windows.lmrepl;
+version (Windows):
 pragma(lib, "netapi32");
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;

@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_accctrl.d)
  */
 module core.sys.windows.accctrl;
+version (Windows):
 
 private import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 

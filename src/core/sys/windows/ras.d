@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ras.d)
  */
 module core.sys.windows.ras;
+version (Windows):
 pragma(lib, "rasapi32");
 
 private import core.sys.windows.basetyps, core.sys.windows.lmcons, core.sys.windows.w32api, core.sys.windows.windef;

@@ -1,4 +1,5 @@
 module core.sys.windows.uuid;
+version (Windows):
 
 import core.sys.windows.basetyps;
 

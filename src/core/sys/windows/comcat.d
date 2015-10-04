@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_comcat.d)
  */
 module core.sys.windows.comcat;
+version (Windows):
 
 import core.sys.windows.windows, core.sys.windows.ole2;
 private import core.sys.windows.basetyps, core.sys.windows.cguid, core.sys.windows.objbase, core.sys.windows.unknwn,

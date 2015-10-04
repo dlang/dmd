@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rassapi.d)
  */
 module core.sys.windows.rassapi;
+version (Windows):
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 

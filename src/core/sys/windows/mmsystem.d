@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_mmsystem.d)
  */
 module core.sys.windows.mmsystem;
+version (Windows):
 pragma(lib, "winmm");
 
 /*  The #defines MAKEFOURCC, mmioFOURCC, sndAlias are used to define

@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_shlobj.d)
  */
 module core.sys.windows.shlobj;
+version (Windows):
 pragma(lib, "shell32");
 
 // TODO: fix bitfields

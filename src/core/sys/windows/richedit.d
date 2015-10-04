@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_richedit.d)
  */
 module core.sys.windows.richedit;
+version (Windows):
 
 private import core.sys.windows.windef, core.sys.windows.winuser;
 private import core.sys.windows.wingdi; // for LF_FACESIZE

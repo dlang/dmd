@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmwksta.d)
  */
 module core.sys.windows.lmwksta;
+version (Windows):
 pragma(lib, "netapi32");
 
 import core.sys.windows.lmuseflg;

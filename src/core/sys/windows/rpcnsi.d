@@ -9,6 +9,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcnsi.d)
  */
 module core.sys.windows.rpcnsi;
+version (Windows):
 pragma(lib, "rpcns4");
 
 private import core.sys.windows.basetyps, core.sys.windows.rpcdcep, core.sys.windows.rpcnsi, core.sys.windows.rpcdce,

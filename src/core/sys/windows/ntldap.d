@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ntldap.d)
  */
 module core.sys.windows.ntldap;
+version (Windows):
 
 /*  TOTHINKABOUT: These constants don't have ANSI/Unicode versioned
  *  aliases.  Should we merge them anyway?

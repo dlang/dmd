@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_dbt.d)
  */
 module core.sys.windows.dbt;
+version (Windows):
 
 import core.sys.windows.w32api, core.sys.windows.windef;
 import core.sys.windows.basetyps; // for GUID

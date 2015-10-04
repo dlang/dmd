@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_rpcnterr.d)
  */
 module core.sys.windows.rpcnterr;
+version (Windows):
 
 import core.sys.windows.winerror;
 

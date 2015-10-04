@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_winspool.d)
  */
 module core.sys.windows.winspool;
+version (Windows):
 pragma(lib, "winspool");
 
 private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.wingdi;

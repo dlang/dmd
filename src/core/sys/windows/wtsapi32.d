@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_wtsapi32.d)
  */
 module core.sys.windows.wtsapi32;
+version (Windows):
 pragma(lib, "wtsapi32");
 private import core.sys.windows.w32api;
 import core.sys.windows.windef;

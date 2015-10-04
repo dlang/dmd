@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_aclapi.d)
  */
 module core.sys.windows.aclapi;
+version (Windows):
 pragma(lib, "advapi32");
 
 import core.sys.windows.windows, core.sys.windows.accctrl;

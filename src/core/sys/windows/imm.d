@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_imm.d)
  */
 module core.sys.windows.imm;
+version (Windows):
 pragma(lib, "imm32");
 
 import core.sys.windows.windef, core.sys.windows.wingdi;

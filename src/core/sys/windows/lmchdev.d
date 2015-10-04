@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_lmchdev.d)
  */
 module core.sys.windows.lmchdev;
+version (Windows):
 
 // COMMENT: This file might be deprecated.
 

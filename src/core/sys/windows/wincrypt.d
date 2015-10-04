@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_wincrypt.d)
  */
 module core.sys.windows.wincrypt;
+version (Windows):
 
 private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 

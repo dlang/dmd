@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_custcntl.d)
  */
 module core.sys.windows.custcntl;
+version (Windows):
 
 private import core.sys.windows.windef;
 

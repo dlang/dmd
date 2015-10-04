@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_objsafe.d)
  */
 module core.sys.windows.objsafe;
+version (Windows):
 
 private import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef;
 

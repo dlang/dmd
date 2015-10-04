@@ -7,6 +7,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_commctrl.d)
  */
 module core.sys.windows.commctrl;
+version (Windows):
 pragma(lib, "comctl32");
 
 private import core.sys.windows.w32api, core.sys.windows.windef, core.sys.windows.winuser;

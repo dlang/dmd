@@ -8,6 +8,7 @@
  * Source: $(DRUNTIMESRC src/core/sys/windows/_ntsecapi.d)
  */
 module core.sys.windows.ntsecapi;
+version (Windows):
 
 private import
   core.sys.windows.basetyps, core.sys.windows.ntdef, core.sys.windows.windef, core.sys.windows.winnt, core.sys.windows.w32api;
