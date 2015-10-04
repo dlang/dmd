@@ -658,12 +658,15 @@ enum int INET_ADDRSTRLEN = 16;
 enum int INET6_ADDRSTRLEN = 46;
 
 
+
+
 struct sockaddr
 {
     short sa_family;
     ubyte[14] sa_data;
 }
-
+alias sockaddr SOCKADDR;
+alias SOCKADDR* PSOCKADDR, LPSOCKADDR;
 
 struct sockaddr_in
 {
@@ -672,6 +675,8 @@ struct sockaddr_in
     in_addr sin_addr;
     ubyte[8] sin_zero;
 }
+alias sockaddr_in SOCKADDR_IN;
+alias SOCKADDR_IN* PSOCKADDR_IN, LPSOCKADDR_IN;
 
 
 struct sockaddr_in6
