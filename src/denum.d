@@ -78,15 +78,18 @@ public:
                 printf("    member %s\n", em.toChars());
             }
         }
+
         /* Anonymous enum members get added to enclosing scope.
          */
         ScopeDsymbol scopesym = isAnonymous() ? sds : this;
+
         if (!isAnonymous())
         {
             ScopeDsymbol.addMember(sc, sds);
             if (!symtab)
                 symtab = new DsymbolTable();
         }
+
         if (members)
         {
             for (size_t i = 0; i < members.dim; i++)
@@ -122,6 +125,7 @@ public:
             return;
         }
         uint dprogress_save = Module.dprogress;
+
         Scope* scx = null;
         if (_scope)
         {
@@ -129,20 +133,26 @@ public:
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
         }
+
         parent = sc.parent;
         type = type.semantic(loc, sc);
+
         protection = sc.protection;
         if (sc.stc & STCdeprecated)
             isdeprecated = true;
         userAttribDecl = sc.userAttribDecl;
+
         semanticRun = PASSsemantic;
+
         if (!members && !memtype) // enum ident;
         {
             semanticRun = PASSsemanticdone;
             return;
         }
+
         if (!symtab)
             symtab = new DsymbolTable();
+
         /* The separate, and distinct, cases are:
          *  1. enum { ... }
          *  2. enum : memtype { ... }
@@ -151,9 +161,11 @@ public:
          *  5. enum ident : memtype;
          *  6. enum ident;
          */
+
         if (memtype)
         {
             memtype = memtype.semantic(loc, sc);
+
             /* Check to see if memtype is forward referenced
              */
             if (memtype.ty == Tenum)
@@ -191,16 +203,21 @@ public:
                 return;
             }
         }
+
         semanticRun = PASSsemanticdone;
+
         if (!members) // enum ident : memtype;
             return;
+
         if (members.dim == 0)
         {
             error("enum %s must have at least one member", toChars());
             errors = true;
             return;
         }
+
         Module.dprogress++;
+
         Scope* sce;
         if (isAnonymous())
             sce = sc;
@@ -211,6 +228,7 @@ public:
         }
         sce = sce.startCTFE();
         sce.setNoFree(); // needed for getMaxMinValue()
+
         /* Each enum member gets the sce scope
          */
         for (size_t i = 0; i < members.dim; i++)
@@ -219,6 +237,7 @@ public:
             if (em)
                 em._scope = sce;
         }
+
         if (!added)
         {
             /* addMember() is not called when the EnumDeclaration appears as a function statement,
@@ -247,6 +266,7 @@ public:
                 // Otherwise enum members are in the EnumDeclaration's symbol table
                 scopesym = this;
             }
+
             for (size_t i = 0; i < members.dim; i++)
             {
                 EnumMember em = (*members)[i].isEnumMember();
@@ -257,6 +277,7 @@ public:
                 }
             }
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             EnumMember em = (*members)[i].isEnumMember();
@@ -264,6 +285,7 @@ public:
                 em.semantic(em._scope);
         }
         //printf("defaultval = %lld\n", defaultval);
+
         //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
         //printf("members = %s\n", members->toChars());
     }
@@ -293,12 +315,14 @@ public:
             // Try one last time to resolve this enum
             semantic(_scope);
         }
+
         if (!members || !symtab || _scope)
         {
             error("is forward referenced when looking for '%s'", ident.toChars());
             //*(char*)0=0;
             return null;
         }
+
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
         return s;
     }
@@ -323,7 +347,9 @@ public:
     {
         //printf("EnumDeclaration::getMaxValue()\n");
         bool first = true;
+
         Expression* pval = (id == Id.max) ? &maxval : &minval;
+
         if (inuse)
         {
             error(loc, "recursive definition of .%s property", id.toChars());
@@ -331,6 +357,7 @@ public:
         }
         if (*pval)
             goto Ldone;
+
         if (_scope)
             semantic(_scope);
         if (errors)
@@ -345,6 +372,7 @@ public:
             error(loc, "has no .%s property because base type %s is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
             goto Lerrors;
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             EnumMember em = (*members)[i].isEnumMember();
@@ -352,6 +380,7 @@ public:
                 continue;
             if (em.errors)
                 goto Lerrors;
+
             Expression e = em.value;
             if (first)
             {
@@ -365,6 +394,7 @@ public:
                  * and let the semantic analyzer and constant
                  * folder give us the result.
                  */
+
                 /* Compute:
                  *   if (e > maxval)
                  *      maxval = e;
@@ -388,6 +418,7 @@ public:
             }
             return e;
         }
+
     Lerrors:
         *pval = new ErrorExp();
         return *pval;
@@ -398,6 +429,7 @@ public:
         //printf("EnumDeclaration::getDefaultValue() %p %s\n", this, toChars());
         if (defaultval)
             return defaultval;
+
         if (_scope)
             semantic(_scope);
         if (errors)
@@ -407,6 +439,7 @@ public:
             error(loc, "forward reference of %s.init", toChars());
             goto Lerrors;
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             EnumMember em = (*members)[i].isEnumMember();
@@ -415,6 +448,7 @@ public:
             defaultval = em.value;
             return defaultval;
         }
+
     Lerrors:
         defaultval = new ErrorExp();
         return defaultval;
@@ -524,16 +558,20 @@ public:
             goto Lerrors;
         if (errors || semanticRun >= PASSsemanticdone)
             return;
+
         semanticRun = PASSsemantic;
         if (_scope)
             sc = _scope;
+
         // The first enum member is special
         bool first = (this == (*ed.members)[0]);
+
         if (type)
         {
             type = type.semantic(loc, sc);
             assert(value); // "type id;" is not a valid enum member declaration
         }
+
         if (value)
         {
             Expression e = value;
@@ -562,6 +600,7 @@ public:
                         EnumMember em = (*ed.members)[i].isEnumMember();
                         if (!em || em == this || em.semanticRun < PASSsemanticdone || em.type)
                             continue;
+
                         //printf("[%d] em = %s, em->semanticRun = %d\n", i, toChars(), em->semanticRun);
                         Expression ev = em.value;
                         ev = ev.implicitCastTo(sc, ed.memtype);
@@ -578,12 +617,15 @@ public:
                     }
                 }
             }
+
             if (ed.memtype && !type)
             {
                 e = e.implicitCastTo(sc, ed.memtype);
                 e = e.ctfeInterpret();
+
                 // save origValue for better json output
                 origValue = e;
+
                 if (!ed.isAnonymous())
                     e = e.castTo(sc, ed.type);
             }
@@ -592,6 +634,7 @@ public:
                 e = e.implicitCastTo(sc, type);
                 e = e.ctfeInterpret();
                 assert(ed.isAnonymous());
+
                 // save origValue for better json output
                 origValue = e;
             }
@@ -611,8 +654,10 @@ public:
             Expression e = new IntegerExp(loc, 0, Type.tint32);
             e = e.implicitCastTo(sc, t);
             e = e.ctfeInterpret();
+
             // save origValue for better json output
             origValue = e;
+
             if (!ed.isAnonymous())
                 e = e.castTo(sc, ed.type);
             value = e;
@@ -638,11 +683,14 @@ public:
                 emprev.semantic(emprev._scope); // resolve it
             if (emprev.errors)
                 goto Lerrors;
+
             Expression eprev = emprev.value;
             Type tprev = eprev.type.equals(ed.type) ? ed.memtype : eprev.type;
+
             Expression emax = tprev.getProperty(ed.loc, Id.max, 0);
             emax = emax.semantic(sc);
             emax = emax.ctfeInterpret();
+
             // Set value to (eprev + 1).
             // But first check that (eprev != emax)
             assert(eprev);
@@ -660,6 +708,7 @@ public:
             e = e.semantic(sc);
             e = e.castTo(sc, eprev.type);
             e = e.ctfeInterpret();
+
             // save origValue (without cast) for better json output
             if (e.op != TOKerror) // avoid duplicate diagnostics
             {
@@ -668,6 +717,7 @@ public:
                 origValue = origValue.semantic(sc);
                 origValue = origValue.ctfeInterpret();
             }
+
             if (e.op == TOKerror)
                 goto Lerrors;
             if (e.type.isfloating())
@@ -684,6 +734,7 @@ public:
             }
             value = e;
         }
+
         assert(origValue);
         semanticRun = PASSsemanticdone;
     }
@@ -697,8 +748,10 @@ public:
         {
             assert(value);
             vd = new VarDeclaration(loc, type, ident, new ExpInitializer(loc, value.copy()));
+
             vd.storage_class = STCmanifest;
             vd.semantic(sc);
+
             vd.protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
             vd.parent = ed.isAnonymous() ? ed.parent : ed;
             vd.userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
