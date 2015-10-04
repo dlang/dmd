@@ -74,25 +74,21 @@ public:
             sc = sc.push(this);
             sc.linkage = LINKcpp; // note that namespaces imply C++ linkage
             sc.parent = this;
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 //printf("add %s to scope %s\n", s->toChars(), toChars());
                 s.addMember(sc, this);
             }
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 s.setScope(sc);
             }
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 s.importAll(sc);
             }
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 static if (LOG)
                 {
                     printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
@@ -121,9 +117,8 @@ public:
             assert(sc);
             sc = sc.push(this);
             sc.linkage = LINKcpp;
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 static if (LOG)
                 {
                     printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
@@ -151,9 +146,8 @@ public:
         {
             sc = sc.push(this);
             sc.linkage = LINKcpp;
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 s.semantic3(sc);
             }
             sc.pop();
@@ -169,9 +163,8 @@ public:
     {
         if (members)
         {
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 if (s)
                 {
                     if (s.apply(fp, param))
@@ -187,9 +180,8 @@ public:
         //printf("Nspace::hasPointers() %s\n", toChars());
         if (members)
         {
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 //printf(" s = %s %s\n", s->kind(), s->toChars());
                 if (s.hasPointers())
                 {
@@ -207,9 +199,8 @@ public:
             semantic(null); // try to resolve it
         if (members)
         {
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 //printf("\t%s\n", s->toChars());
                 s.setFieldOffset(ad, poffset, isunion);
             }
