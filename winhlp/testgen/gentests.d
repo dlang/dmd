@@ -63,6 +63,9 @@ int main()
 		File o = File(fn, "wb");
 		o.writeln("import std.format : format;");
 
+		auto fnB = "wintest" ~ model ~ "b.d";
+		File b = File(fnB, "wb");
+
 		void typeCheck(string name, string typeA, string typeB)
 		{
 			o.writefln("\tstatic if(!is(%s == %s)) pragma(msg, \"%%s(%%d): Error: type of %s is:\\n%%s\\nbut should be:\\n%%s\\n\".format(__FILE__, __LINE__, %s.stringof, %s.stringof));",
@@ -78,6 +81,7 @@ int main()
 			o.writefln("struct test_%s", m.name.replace(".", "_"));
 			o.writeln("{");
 			o.writefln("\tstatic import %s;", m.name);
+			b.writefln("\timport %s;", m.name);
 
 			void handleMembers(string[] prefix, Member[] members)
 			{
@@ -87,6 +91,7 @@ int main()
 					auto qname = (prefix ~ d.name).join(".");
 					auto lname = qname.replace(".", "_");
 					o.writefln("\talias %s = %s.%s;", lname, (m.name ~ prefix).join("."), d.name); // check existence
+					b.writefln("\talias local_%s = %s;", lname, qname);
 					if (qname in exclusions) o.writeln("/+");
 					switch (d.kind)
 					{
@@ -146,8 +151,9 @@ int main()
 		}
 
 		o.close();
+		b.close();
 
-		if (spawnProcess(["dmd", "-m" ~ model, "-I../../src", "-o-", fn]).wait() != 0)
+		if (spawnProcess(["dmd", "-m" ~ model, "-I../../src", "-o-", fn, fnB]).wait() != 0)
 			return 1;
 	}
 	return 0;
