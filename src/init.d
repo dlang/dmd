@@ -311,8 +311,7 @@ public:
                 for (size_t j = 0; j < nfields; j++)
                 {
                     VarDeclaration v2 = sd.fields[j];
-                    bool overlap = (vd.offset < v2.offset + v2.type.size() && v2.offset < vd.offset + vd.type.size());
-                    if (overlap && (*elements)[j])
+                    if (vd.isOverlappedWith(v2) && (*elements)[j])
                     {
                         error(loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
                         errors = true;
