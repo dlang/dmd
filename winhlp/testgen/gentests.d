@@ -83,8 +83,8 @@ int main()
 				scope(failure) stderr.writefln("Error processing member %s:", d.name);
 				auto qname = (prefix ~ d.name).join(".");
 				auto lname = qname.replace(".", "_");
-				if (qname in exclusions) o.writeln("/+");
 				o.writefln("\talias %s = %s.%s;", lname, (m.name ~ prefix).join("."), d.name); // check existence
+				if (qname in exclusions) o.writeln("/+");
 				switch (d.kind)
 				{
 					case "function":
@@ -116,7 +116,7 @@ int main()
 						break;
 					case "alias":
 						o.writefln("\talias aliasof_%s = %s;", lname, d.deco.demangleType());
-						o.writefln("\tstatic assert(is(%s == aliasof_%s));", lname, lname);
+						typeCheck(qname, lname, "aliasof_" ~ lname);
 						break;
 					case "struct":
 					case "union":
