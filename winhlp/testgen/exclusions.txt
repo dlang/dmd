@@ -164,19 +164,36 @@ CreateWindowA
 CreateWindowW
 
 
+## wants uint, not size_t (SIZE_T/INT_PTR)
+GlobalCompact
+LocalAlloc
+LocalReAlloc
+LocalShrink
+LocalCompact
+DialogBoxParamA
+DialogBoxIndirectParamA
+EndDialog
+
+
 
 # Types
 
-# wants non-const, even though should be const
+## wants non-const, even though should be const
 LPCDLGTEMPLATE
 LPCDLGTEMPLATEA
 LPCDLGTEMPLATEW
 
 
-# wants wrong signedness
+## wants wrong signedness
 CREATE_UNICODE_ENVIRONMENT
 LOCKFILE_FAIL_IMMEDIATELY
 LOCKFILE_EXCLUSIVE_LOCK
+
+
+## wants uint, not size_t
+LPOFNHOOKPROC
+OPENFILENAMEA.lpfnHook
+OPENFILENAMEW.lpfnHook
 
 
 # Values

@@ -2665,7 +2665,7 @@ struct RTL_CRITICAL_SECTION {
     LONG   RecursionCount;
     HANDLE OwningThread;
     HANDLE LockSemaphore;
-    DWORD  SpinCount;
+    ULONG_PTR SpinCount;
     alias Reserved = SpinCount;
 }
 alias RTL_CRITICAL_SECTION* PRTL_CRITICAL_SECTION;
