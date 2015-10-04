@@ -8,6 +8,7 @@
 
 module ddmd.denum;
 
+import core.stdc.stdio;
 import ddmd.access;
 import ddmd.backend;
 import ddmd.declaration;
@@ -97,7 +98,7 @@ public:
                 EnumMember em = (*members)[i].isEnumMember();
                 em.ed = this;
                 //printf("add %s to scope %s\n", em->toChars(), scopesym->toChars());
-                em.addMember(sc, scopesym);
+                em.addMember(sc, isAnonymous() ? scopesym : this);
             }
         }
         added = true;
@@ -499,7 +500,7 @@ public:
 
 /***********************************************************
  */
-extern (C++) final class EnumMember : Dsymbol
+extern (C++) final class EnumMember : VarDeclaration
 {
 public:
     /* Can take the following forms:
@@ -507,31 +508,28 @@ public:
      *  2. id = value
      *  3. type id = value
      */
-    Expression value;
+    @property ref value() { return (cast(ExpInitializer)_init).exp; }
 
     // A cast() is injected to 'value' after semantic(),
     // but 'origValue' will preserve the original value,
     // or previous value + 1 if none was specified.
     Expression origValue;
 
-    Type type;
+    Type origType;
 
     EnumDeclaration ed;
-    VarDeclaration vd;
 
-    extern (D) this(Loc loc, Identifier id, Expression value, Type type)
+    extern (D) this(Loc loc, Identifier id, Expression value, Type origType)
     {
-        super(id);
-        this.value = value;
+        super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
         this.origValue = value;
-        this.type = type;
-        this.loc = loc;
+        this.origType = origType;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new EnumMember(loc, ident, value ? value.syntaxCopy() : null, type ? type.syntaxCopy() : null);
+        return new EnumMember(loc, ident, value ? value.syntaxCopy() : null, origType ? origType.syntaxCopy() : null);
     }
 
     override const(char)* kind()
@@ -559,16 +557,22 @@ public:
         if (errors || semanticRun >= PASSsemanticdone)
             return;
 
-        semanticRun = PASSsemantic;
         if (_scope)
             sc = _scope;
+
+        protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
+        storage_class = STCmanifest;
+        userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
+
+        semanticRun = PASSsemantic;
 
         // The first enum member is special
         bool first = (this == (*ed.members)[0]);
 
-        if (type)
+        if (origType)
         {
-            type = type.semantic(loc, sc);
+            origType = origType.semantic(loc, sc);
+            type = origType;
             assert(value); // "type id;" is not a valid enum member declaration
         }
 
@@ -598,10 +602,10 @@ public:
                     for (size_t i = 0; i < ed.members.dim; i++)
                     {
                         EnumMember em = (*ed.members)[i].isEnumMember();
-                        if (!em || em == this || em.semanticRun < PASSsemanticdone || em.type)
+                        if (!em || em == this || em.semanticRun < PASSsemanticdone || em.origType)
                             continue;
 
-                        //printf("[%d] em = %s, em->semanticRun = %d\n", i, toChars(), em->semanticRun);
+                        //printf("[%d] em = %s, em.semanticRun = %d\n", i, toChars(), em.semanticRun);
                         Expression ev = em.value;
                         ev = ev.implicitCastTo(sc, ed.memtype);
                         ev = ev.ctfeInterpret();
@@ -618,7 +622,7 @@ public:
                 }
             }
 
-            if (ed.memtype && !type)
+            if (ed.memtype && !origType)
             {
                 e = e.implicitCastTo(sc, ed.memtype);
                 e = e.ctfeInterpret();
@@ -629,9 +633,9 @@ public:
                 if (!ed.isAnonymous())
                     e = e.castTo(sc, ed.type);
             }
-            else if (type)
+            else if (origType)
             {
-                e = e.implicitCastTo(sc, type);
+                e = e.implicitCastTo(sc, origType);
                 e = e.ctfeInterpret();
                 assert(ed.isAnonymous());
 
@@ -703,6 +707,7 @@ public:
                     emprev.ed.toChars(), emprev.toChars(), ed.memtype.toChars());
                 goto Lerrors;
             }
+
             // Now set e to (eprev + 1)
             e = new AddExp(loc, eprev, new IntegerExp(loc, 1, Type.tint32));
             e = e.semantic(sc);
@@ -734,6 +739,8 @@ public:
             }
             value = e;
         }
+        if (!origType)
+            type = value.type;
 
         assert(origValue);
         semanticRun = PASSsemanticdone;
@@ -744,20 +751,7 @@ public:
         semantic(sc);
         if (errors)
             return new ErrorExp();
-        if (!vd)
-        {
-            assert(value);
-            vd = new VarDeclaration(loc, type, ident, new ExpInitializer(loc, value.copy()));
-
-            vd.storage_class = STCmanifest;
-            vd.semantic(sc);
-
-            vd.protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
-            vd.parent = ed.isAnonymous() ? ed.parent : ed;
-            vd.userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
-        }
-        checkAccess(loc, sc, null, vd);
-        Expression e = new VarExp(loc, vd);
+        Expression e = new VarExp(loc, this);
         return e.semantic(sc);
     }
 
