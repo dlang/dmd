@@ -1,10 +1,14 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/*
+ * Some portions copyright (c) 1994-1995 by Symantec
+ * Copyright (c) 1999-2015 by Digital Mars
+ * All Rights Reserved
+ * http://www.digitalmars.com
+ * Written by Walter Bright
+ *
+ * This source file is made available for personal use
+ * only. The license is in backendlicense.txt
+ * For any other uses, please contact Digital Mars.
+ */
 
 module ddmd.dinifile;
 
