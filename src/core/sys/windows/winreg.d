@@ -166,7 +166,7 @@ extern (Windows) nothrow @nogc {
           DWORD dwFlags, LPDWORD pdwType, PVOID pvData, LPDWORD pcbData);
     }
 
-    deprecated {
+    //deprecated {
         LONG RegCreateKeyA(in HKEY, LPCSTR, PHKEY);
         LONG RegCreateKeyW(in HKEY, LPCWSTR, PHKEY);
         LONG RegEnumKeyA(in HKEY, DWORD, LPSTR, DWORD);
@@ -177,7 +177,7 @@ extern (Windows) nothrow @nogc {
         LONG RegQueryValueW(in HKEY, LPCWSTR, LPWSTR, PLONG);
         LONG RegSetValueA(in HKEY, LPCSTR, DWORD, LPCSTR, DWORD);
         LONG RegSetValueW(in HKEY, LPCWSTR, DWORD, LPCWSTR, DWORD);
-    }
+    //}
 }
 
 version (Unicode) {
@@ -207,13 +207,13 @@ version (Unicode) {
     static if (_WIN32_WINNT >= 0x600) {
         alias RegGetValueW RegGetValue;
     }
-    deprecated {
+    //deprecated {
         alias RegCreateKeyW RegCreateKey;
         alias RegEnumKeyW RegEnumKey;
         alias RegOpenKeyW RegOpenKey;
         alias RegQueryValueW RegQueryValue;
         alias RegSetValueW RegSetValue;
-    }
+    //}
 } else {
     alias VALENTA VALENT;
     alias RegConnectRegistryA RegConnectRegistry;
@@ -240,13 +240,13 @@ version (Unicode) {
     static if (_WIN32_WINNT >= 0x600) {
         alias RegGetValueA RegGetValue;
     }
-    deprecated {
+    //deprecated {
         alias RegCreateKeyA RegCreateKey;
         alias RegEnumKeyA RegEnumKey;
         alias RegOpenKeyA RegOpenKey;
         alias RegQueryValueA RegQueryValue;
         alias RegSetValueA RegSetValue;
-    }
+    //}
 }
 
 alias VALENT* PVALENT;
