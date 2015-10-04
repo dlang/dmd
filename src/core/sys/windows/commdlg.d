@@ -294,7 +294,7 @@ alias CommDlg_OpenSave_GetFolderPath
 
 // Callbacks.
 extern(Windows) {
-alias UINT_PTR function (HWND, UINT, WPARAM, LPARAM)
+alias UINT_PTR function (HWND, UINT, WPARAM, LPARAM) nothrow
     LPCCHOOKPROC, LPCFHOOKPROC, LPFRHOOKPROC, LPOFNHOOKPROC,
     LPPAGEPAINTHOOK, LPPAGESETUPHOOK, LPSETUPHOOKPROC, LPPRINTHOOKPROC;
 }
@@ -423,7 +423,7 @@ struct OPENFILENAMEA {
     WORD          nFileOffset;
     WORD          nFileExtension;
     LPCSTR        lpstrDefExt;
-    DWORD         lCustData;
+    LPARAM        lCustData;
     LPOFNHOOKPROC lpfnHook;
     LPCSTR        lpTemplateName;
 
@@ -453,7 +453,7 @@ struct OPENFILENAMEW {
     WORD          nFileOffset;
     WORD          nFileExtension;
     LPCWSTR       lpstrDefExt;
-    DWORD         lCustData;
+    LPARAM        lCustData;
     LPOFNHOOKPROC lpfnHook;
     LPCWSTR       lpTemplateName;
 
@@ -530,7 +530,7 @@ struct PRINTDLGA {
     WORD            nMaxPage;
     WORD            nCopies;
     HINSTANCE       hInstance;
-    DWORD           lCustData;
+    LPARAM          lCustData;
     LPPRINTHOOKPROC lpfnPrintHook;
     LPSETUPHOOKPROC lpfnSetupHook;
     LPCSTR          lpPrintTemplateName;
@@ -553,7 +553,7 @@ struct PRINTDLGW {
     WORD            nMaxPage;
     WORD            nCopies;
     HINSTANCE       hInstance;
-    DWORD           lCustData;
+    LPARAM          lCustData;
     LPPRINTHOOKPROC lpfnPrintHook;
     LPSETUPHOOKPROC lpfnSetupHook;
     LPCWSTR         lpPrintTemplateName;

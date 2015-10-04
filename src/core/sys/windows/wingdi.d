@@ -305,13 +305,13 @@ enum : BYTE {
     PFD_TYPE_COLORINDEX = 1
 }
 
-deprecated {
+//deprecated {
 // PIXELFORMATDESCRIPTOR.
 const byte
     PFD_MAIN_PLANE     = 0,
     PFD_OVERLAY_PLANE  = 1,
     PFD_UNDERLAY_PLANE = -1;
-}
+//}
 // PIXELFORMATDESCRIPTOR.dwFlags
 const DWORD
     PFD_DOUBLEBUFFER          = 0x00000001,

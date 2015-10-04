@@ -119,7 +119,7 @@ static if (_WIN32_WINNT >= 0x500) {
     mixin DECLARE_HANDLE!("HWINEVENTHOOK");
 }
 
-alias extern (Windows) INT_PTR function() FARPROC, NEARPROC, PROC;
+alias extern (Windows) INT_PTR function() nothrow FARPROC, NEARPROC, PROC;
 
 struct RECT {
     LONG left;

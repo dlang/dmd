@@ -256,7 +256,7 @@ enum DESKTOP_ENUMERATE       = 64;
 enum DESKTOP_WRITEOBJECTS    = 128;
 enum DESKTOP_SWITCHDESKTOP   = 256;
 
-enum CW_USEDEFAULT       = 0x80000000;
+enum int CW_USEDEFAULT = 0x80000000;
 
 enum {
     WS_OVERLAPPED       = 0,
@@ -2463,7 +2463,7 @@ enum {
 
 // Callbacks
 // ---------
-extern (Windows) {
+extern (Windows) nothrow {
     alias INT_PTR function(HWND, UINT, WPARAM, LPARAM)   DLGPROC;
     alias void function(HWND, UINT, UINT_PTR, DWORD)     TIMERPROC;
     alias BOOL function(HDC, LPARAM, int)                GRAYSTRINGPROC;
