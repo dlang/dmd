@@ -33,7 +33,8 @@ import core.sys.windows.windef, core.sys.windows.winver;
 private import core.sys.windows.basetyps, core.sys.windows.w32api, core.sys.windows.winnt;
 
 // FIXME:
-alias void va_list;
+//alias void va_list;
+import core.stdc.stdarg : va_list;
 
 
 // COMMPROP structure, used by GetCommProperties()

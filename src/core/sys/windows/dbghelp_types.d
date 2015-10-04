@@ -42,13 +42,7 @@ enum : ULONG
     CBA_DEBUG_INFO              = 0x10000000,
 }
 
-struct GUID
-{
-    uint     Data1;
-    ushort   Data2;
-    ushort   Data3;
-    ubyte[8] Data4;
-}
+public import core.sys.windows.basetyps : GUID;
 
 struct ADDRESS64
 {
@@ -88,12 +82,7 @@ struct STACKFRAME64
     KDHELP64   KdHelp;
 }
 
-enum : DWORD
-{
-    IMAGE_FILE_MACHINE_I386  = 0x014c,
-    IMGAE_FILE_MACHINE_IA64  = 0x0200,
-    IMAGE_FILE_MACHINE_AMD64 = 0x8664,
-}
+public import core.sys.windows.winnt : IMAGE_FILE_MACHINE_I386, IMAGE_FILE_MACHINE_IA64, IMAGE_FILE_MACHINE_AMD64;
 
 struct IMAGEHLP_LINE64
 {

@@ -62,8 +62,13 @@ const SYMOPT_CASE_INSENSITIVE  =  1;
 const SYMOPT_UNDNAME           =  2;
 const SYMOPT_DEFERRED_LOADS    =  4;
 const SYMOPT_NO_CPP            =  8;
-const SYMOPT_LOAD_LINES        = 16;
-const SYMOPT_OMAP_FIND_NEAREST = 32;
+//const SYMOPT_LOAD_LINES        = 16;
+//const SYMOPT_OMAP_FIND_NEAREST = 32;
+public import core.sys.windows.dbghelp_types :
+    SYMOPT_DEFERRED_LOAD,
+    SYMOPT_FAIL_CRITICAL_ERRORS,
+    SYMOPT_LOAD_LINES,
+    SYMOPT_DEBUG;
 
 const UNDNAME_COMPLETE               =     0;
 const UNDNAME_NO_LEADING_UNDERSCORES =     1;
@@ -195,12 +200,15 @@ struct STACKFRAME {
 }
 alias STACKFRAME* LPSTACKFRAME;
 
+/*
 struct API_VERSION {
     USHORT MajorVersion;
     USHORT MinorVersion;
     USHORT Revision;
     USHORT Reserved;
 }
+*/
+public import core.sys.windows.dbghelp_types : API_VERSION;
 alias API_VERSION* LPAPI_VERSION;
 
 enum SYM_TYPE {

@@ -1010,9 +1010,10 @@ LONG DIBINDEX(WORD n) {
 const CAPS1=94;
 const C1_TRANSPARENT=1;
 
-const SEEK_SET=0;
-const SEEK_CUR=1;
-const SEEK_END=2;
+//const SEEK_SET=0;
+//const SEEK_CUR=1;
+//const SEEK_END=2;
+public import core.stdc.stdio : SEEK_SET, SEEK_CUR, SEEK_END;
 
 alias DWORD MCIERROR;
 alias UINT MCIDEVICEID;
