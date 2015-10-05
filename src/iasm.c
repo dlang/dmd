@@ -2335,7 +2335,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
     em = s->isEnumMember();
     if (em)
     {
-        o1->disp = em->value->toInteger();
+        o1->disp = em->value()->toInteger();
         return;
     }
     o1->s = s;  // a C identifier
