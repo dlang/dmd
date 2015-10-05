@@ -6352,6 +6352,7 @@ public:
             // Elide codegen because this is really speculative.
             return false;
         }
+
         /* Even when this is reached to the codegen pass,
          * a non-root nested template should not generate code,
          * due to avoid ODR violation.
@@ -6359,11 +6360,20 @@ public:
         if (enclosing && enclosing.inNonRoot())
         {
             if (tinst)
-                return tinst.needsCodegen();
+            {
+                auto r = tinst.needsCodegen();
+                minst = tinst.minst; // cache result
+                return r;
+            }
             if (tnext)
-                return tnext.needsCodegen();
+            {
+                auto r = tnext.needsCodegen();
+                minst = tnext.minst; // cache result
+                return r;
+            }
             return false;
         }
+
         /* The issue is that if the importee is compiled with a different -debug
          * setting than the importer, the importer may believe it exists
          * in the compiled importee when it does not, when the instantiation
