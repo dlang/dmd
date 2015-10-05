@@ -706,7 +706,7 @@ extern (C++) int runLINK()
                 }
                 else
                 {
-                    printf("--- errorlevel %d\n", status);
+                    error(Loc(), "linker exited with status %d", status);
                     if (nme == 1)
                         error(Loc(), "no main function specified");
                 }
@@ -714,14 +714,14 @@ extern (C++) int runLINK()
         }
         else if (WIFSIGNALED(status))
         {
-            printf("--- killed by signal %d\n", WTERMSIG(status));
+            error(Loc(), "linker killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
     }
     else
     {
-        printf("Linking is not yet supported for this version of DMD.\n");
+        error(Loc(), "linking is not yet supported for this version of DMD.");
         return -1;
     }
 }
@@ -793,9 +793,9 @@ version (Windows)
         if (status)
         {
             if (status == -1)
-                printf("Can't run '%s', check PATH\n", cmd);
+                error(Loc(), "can't run '%s', check PATH", cmd);
             else
-                printf("--- errorlevel %d\n", status);
+                error(Loc(), "linker exited with status %d", cmd, status);
         }
         return status;
     }
@@ -893,7 +893,7 @@ extern (C++) int runProgram()
         }
         else if (WIFSIGNALED(status))
         {
-            printf("--- killed by signal %d\n", WTERMSIG(status));
+            error(Loc(), "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
