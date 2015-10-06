@@ -380,7 +380,7 @@ public:
 
     void visit(EnumMember s)
     {
-        visit(cast(Dsymbol)s);
+        visit(cast(VarDeclaration)s);
     }
 
     void visit(Import s)

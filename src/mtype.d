@@ -7101,6 +7101,13 @@ public:
             L2:
                 s = sm.toAlias();
             }
+
+            if (auto em = s.isEnumMember())
+            {
+                // It's not a type, it's an expression
+                *pe = em.getVarExp(loc, sc);
+                return;
+            }
             if (VarDeclaration v = s.isVarDeclaration())
             {
                 /* This is mostly same with DsymbolExp::semantic(), but we cannot use it
@@ -7138,12 +7145,6 @@ public:
                     *pe = new DsymbolExp(loc, fd, 1);
                     return;
                 }
-            }
-            if (EnumMember em = s.isEnumMember())
-            {
-                // It's not a type, it's an expression
-                *pe = em.getVarExp(loc, sc);
-                return;
             }
         L1:
             Type t = s.getType();
@@ -7316,6 +7317,8 @@ public:
         resolve(loc, sc, &e, &t, &s);
         if (t && t.ty != Tident)
             s = t.toDsymbol(sc);
+        if (e)
+            s = getDsymbol(e);
         return s;
     }
 
@@ -7875,6 +7878,12 @@ public:
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);
         s = s.toAlias();
+
+        if (auto em = s.isEnumMember())
+        {
+            return em.getVarExp(e.loc, sc);
+        }
+
         VarDeclaration v = s.isVarDeclaration();
         if (v && (!v.type || !v.type.deco))
         {
@@ -7901,11 +7910,7 @@ public:
         {
             return new TypeExp(e.loc, s.getType());
         }
-        EnumMember em = s.isEnumMember();
-        if (em)
-        {
-            return em.getVarExp(e.loc, sc);
-        }
+
         TemplateMixin tm = s.isTemplateMixin();
         if (tm)
         {
@@ -8731,6 +8736,12 @@ public:
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);
         s = s.toAlias();
+
+        if (auto em = s.isEnumMember())
+        {
+            return em.getVarExp(e.loc, sc);
+        }
+
         VarDeclaration v = s.isVarDeclaration();
         if (v && (!v.type || !v.type.deco))
         {
@@ -8757,11 +8768,7 @@ public:
         {
             return new TypeExp(e.loc, s.getType());
         }
-        EnumMember em = s.isEnumMember();
-        if (em)
-        {
-            return em.getVarExp(e.loc, sc);
-        }
+
         TemplateMixin tm = s.isTemplateMixin();
         if (tm)
         {
