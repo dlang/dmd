@@ -8,6 +8,7 @@
 
 module ddmd.dstruct;
 
+import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.argtypes;
 import ddmd.arraytypes;
@@ -104,15 +105,40 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
         override void visit(TypeStruct t)
         {
             StructDeclaration sd = t.sym;
+
+            /* Step 1: create TypeInfoDeclaration
+             */
+            if (!sc) // inline may request TypeInfo.
+            {
+                Scope scx;
+                scx._module = sd.getModule();
+                getTypeInfoType(t, &scx);
+            }
+            else
+            {
+                getTypeInfoType(t, sc);
+
+                // Bugzilla 15149, if the typeid operand type comes from a
+                // result of auto function, it may be yet speculative.
+                unSpeculative(sc, sd);
+            }
+            if (!sc || sc.minst)
+                sd.requestTypeInfo = true;
+
+            /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.
+             */
             if (!sd.members)
                 return; // opaque struct
-            if (sd.semanticRun >= PASSsemantic3)
-                return; // semantic3 will be done
             if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash && !search_toString(sd))
                 return; // none of TypeInfo-specific members
+
             // If the struct is in a non-root module, run semantic3 to get
             // correct symbols for the member function.
-            if (TemplateInstance ti = sd.isInstantiated())
+            if (sd.semanticRun >= PASSsemantic3)
+            {
+                // semantic3 is already done
+            }
+            else if (TemplateInstance ti = sd.isInstantiated())
             {
                 if (ti.minst && !ti.minst.isRoot())
                     Module.addDeferredSemantic3(sd);
@@ -125,16 +151,6 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                     Module.addDeferredSemantic3(sd);
                 }
             }
-            if (!sc) // inline may request TypeInfo.
-            {
-                Scope scx;
-                scx._module = sd.getModule();
-                getTypeInfoType(t, &scx);
-            }
-            else
-                getTypeInfoType(t, sc);
-            if (!sc || sc.minst)
-                sd.requestTypeInfo = true;
         }
 
         override void visit(TypeClass t)
@@ -153,6 +169,19 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                 }
             }
         }
+    }
+
+    if (sc)
+    {
+        if (!sc.func)
+            return;
+        if (sc.intypeof)
+            return;
+        if (sc.flags & (SCOPEctfe | SCOPEcompile))
+            return;
+
+        if (!sc.minst)
+            return; // don't have to generate TypeInfo inside speculative scope
     }
 
     scope FullTypeInfoVisitor v = new FullTypeInfoVisitor();
@@ -371,19 +400,24 @@ public:
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
         // this->ctor is already set in finalizeSize()
+
         dtor = buildDtor(this, sc2);
         postblit = buildPostBlit(this, sc2);
+
         buildOpAssign(this, sc2);
         buildOpEquals(this, sc2);
+
         xeq = buildXopEquals(this, sc2);
         xcmp = buildXopCmp(this, sc2);
         xhash = buildXtoHash(this, sc2);
+
         /* Even if the struct is merely imported and its semantic3 is not run,
          * the TypeInfo object would be speculatively stored in each object
          * files. To set correct function pointer, run semantic3 for xeq and xcmp.
          */
         //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
         //    Module::addDeferredSemantic3(this);
+
         /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
          * See semanticTypeInfo().
          */
