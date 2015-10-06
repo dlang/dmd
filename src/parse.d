@@ -4456,7 +4456,10 @@ public:
         case TOKdot:
         case TOKtypeof:
         case TOKvector:
-            if (isDeclaration(&token, 2, TOKreserved, null))
+            /* Bugzilla 15163: If tokens can be handled as
+             * old C-style declaration or D expression, prefer the latter.
+             */
+            if (isDeclaration(&token, 3, TOKreserved, null))
                 goto Ldeclaration;
             else
                 goto Lexp;
@@ -5714,6 +5717,7 @@ public:
      *      needId  0       no identifier
      *              1       identifier optional
      *              2       must have identifier
+     *              3       must have identifier, but don't recognize old C-style syntax.
      * Output:
      *      if *pt is not NULL, it is set to the ending token, which would be endtok
      */
@@ -5740,9 +5744,9 @@ public:
         {
             goto Lisnot;
         }
-        if (!isDeclarator(&t, &haveId, &haveTpl, endtok))
+        if (!isDeclarator(&t, &haveId, &haveTpl, endtok, needId != 3))
             goto Lisnot;
-        if (needId == 1 || (needId == 0 && !haveId) || (needId == 2 && haveId))
+        if (needId == 1 || (needId == 0 && !haveId) || ((needId == 2 || needId == 3) && haveId))
         {
             if (pt)
                 *pt = t;
@@ -5920,7 +5924,7 @@ public:
         return false;
     }
 
-    bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok)
+    bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok, bool allowAltSyntax = true)
     {
         // This code parallels parseDeclarator()
         Token* t = *pt;
@@ -5989,10 +5993,15 @@ public:
                 *haveId = true;
                 t = peek(t);
                 break;
+
             case TOKlparen:
+                if (!allowAltSyntax)
+                    return false;   // Do not recognize C-style declarations.
+
                 t = peek(t);
                 if (t.value == TOKrparen)
                     return false; // () is not a declarator
+
                 /* Regard ( identifier ) as not a declarator
                  * BUG: what about ( *identifier ) in
                  *      f(*p)(x);

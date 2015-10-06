@@ -915,3 +915,17 @@ void test14388()
      * and the second instantiation had created the AST duplication.
      */
 }
+
+/***************************************************/
+// 15163
+
+void function() func15164(int[] arr)
+{
+    return () { };
+}
+
+void test15163()
+{
+    auto arr = [[0]];
+    func15164(arr[0])();
+}
