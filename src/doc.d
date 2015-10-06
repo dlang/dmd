@@ -10,6 +10,7 @@ module ddmd.doc;
 
 import core.stdc.ctype;
 import core.stdc.stdlib;
+import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.time;
 import ddmd.aggregate;
@@ -329,6 +330,8 @@ extern (C++) static Dsymbol getEponymousMember(TemplateDeclaration td)
         return ad;
     if (FuncDeclaration fd = td.onemember.isFuncDeclaration())
         return fd;
+    if (auto em = td.onemember.isEnumMember())
+        return null;    // Keep backward compatibility. See compilable/ddoc9.d
     if (VarDeclaration vd = td.onemember.isVarDeclaration())
         return td.constraint ? null : vd;
     return null;
