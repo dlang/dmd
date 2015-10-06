@@ -7674,19 +7674,27 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
 extern (C++) bool definitelyValueParameter(Expression e)
 {
     // None of these can be value parameters
-    if (e.op == TOKtuple || e.op == TOKimport || e.op == TOKtype || e.op == TOKdottype || e.op == TOKtemplate || e.op == TOKdottd || e.op == TOKfunction || e.op == TOKerror || e.op == TOKthis || e.op == TOKsuper)
+    if (e.op == TOKtuple || e.op == TOKimport ||
+        e.op == TOKtype || e.op == TOKdottype ||
+        e.op == TOKtemplate || e.op == TOKdottd ||
+        e.op == TOKfunction || e.op == TOKerror ||
+        e.op == TOKthis || e.op == TOKsuper)
         return false;
+
     if (e.op != TOKdotvar)
         return true;
+
     /* Template instantiations involving a DotVar expression are difficult.
      * In most cases, they should be treated as a value parameter, and interpreted.
      * But they might also just be a fully qualified name, which should be treated
      * as an alias.
      */
+
     // x.y.f cannot be a value
     FuncDeclaration f = (cast(DotVarExp)e).var.isFuncDeclaration();
     if (f)
         return false;
+
     while (e.op == TOKdotvar)
     {
         e = (cast(DotVarExp)e).e1;
@@ -7694,16 +7702,20 @@ extern (C++) bool definitelyValueParameter(Expression e)
     // this.x.y and super.x.y couldn't possibly be valid values.
     if (e.op == TOKthis || e.op == TOKsuper)
         return false;
+
     // e.type.x could be an alias
     if (e.op == TOKdottype)
         return false;
+
     // var.x.y is the only other possible form of alias
     if (e.op != TOKvar)
         return true;
+
     VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
     // func.x.y is not an alias
     if (!v)
         return true;
+
     // TODO: Should we force CTFE if it is a global constant?
     return false;
 }
