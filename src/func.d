@@ -2204,6 +2204,7 @@ public:
     {
         if (!_scope)
             return true;
+
         if (!originalType) // semantic not yet run
         {
             TemplateInstance spec = isSpeculative();
@@ -2218,11 +2219,14 @@ public:
             if (olderrs != global.errors) // if errors compiling this function
                 return false;
         }
+
         // if inferring return type, sematic3 needs to be run
         if (inferRetType && type && !type.nextOf())
             return functionSemantic3();
+
         TemplateInstance ti;
-        if (isInstantiated() && !isVirtualMethod() && !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident))
+        if (isInstantiated() && !isVirtualMethod() &&
+            !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident))
         {
             AggregateDeclaration ad = isMember2();
             if (ad && ad.sizeok != SIZEOKdone)
@@ -2258,6 +2262,7 @@ public:
                 global.gag = 0;
             semantic3(_scope);
             global.gag = oldgag;
+
             // If it is a speculatively-instantiated template, and errors occur,
             // we need to mark the template as having errors.
             if (spec && global.errors != olderrs)
@@ -2265,6 +2270,7 @@ public:
             if (olderrs != global.errors) // if errors compiling this function
                 return false;
         }
+
         return true;
     }
 
