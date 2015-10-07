@@ -745,8 +745,8 @@ public:
     override void visit(EnumMember s)
     {
         objectStart();
-        jsonProperties(s);
-        property("type", "deco", s.type);
+        jsonProperties(cast(Dsymbol)s);
+        property("type", "deco", s.origType);
         objectEnd();
     }
 

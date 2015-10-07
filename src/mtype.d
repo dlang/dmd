@@ -2696,6 +2696,69 @@ public:
     }
 
     /***************************************
+     * Normalize `e` as the result of Type.resolve() process.
+     */
+    final void resolveExp(Expression e, Type *pt, Expression *pe, Dsymbol* ps)
+    {
+        *pt = null;
+        *pe = null;
+        *ps = null;
+
+        Dsymbol s;
+        switch (e.op)
+        {
+            case TOKerror:
+                *pt = Type.terror;
+                return;
+
+            case TOKtype:
+                *pt = e.type;
+                return;
+
+            case TOKvar:
+                s = (cast(VarExp)e).var;
+                if (s.isVarDeclaration())
+                    goto default;
+                //if (s.isOverDeclaration())
+                //    todo;
+                break;
+
+            case TOKtemplate:
+                // TemplateDeclaration
+                s = (cast(TemplateExp)e).td;
+                break;
+
+            case TOKimport:
+                s = (cast(ScopeExp)e).sds;
+                // TemplateDeclaration, TemplateInstance, Import, Package, Module
+                break;
+
+            case TOKfunction:
+                s = getDsymbol(e);
+                break;
+
+            //case TOKthis:
+            //case TOKsuper:
+
+            //case TOKtuple:
+
+            //case TOKoverloadset:
+
+            //case TOKdotvar:
+            //case TOKdottd:
+            //case TOKdotti:
+            //case TOKdottype:
+            //case TOKdot:
+
+            default:
+                *pe = e;
+                return;
+        }
+
+        *ps = s;
+    }
+
+    /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
     int hasWild()
@@ -6825,14 +6888,10 @@ public:
                 eindex = DsymbolExp.resolve(loc, sc, sindex, false);
             Expression e = new IndexExp(loc, DsymbolExp.resolve(loc, sc, s, false), eindex);
             e = e.semantic(sc);
-            if (e.op == TOKerror)
-                *pt = Type.terror;
-            else if (e.op == TOKtype)
-                *pt = (cast(TypeExp)e).type;
-            else
-                *pe = e;
+            resolveExp(e, pt, pe, ps);
             return;
         }
+
         // Convert oindex to Expression, then try to resolve to constant.
         if (tindex)
             tindex.resolve(loc, sc, &eindex, &tindex, &sindex);
@@ -6866,6 +6925,8 @@ public:
         *pe = isExpression(o);
         if (*pt)
             *pt = (*pt).semantic(loc, sc);
+        if (*pe)
+            resolveExp(*pe, pt, pe, ps);
     }
 
     final Expression toExpressionHelper(Expression e, size_t i = 0)
@@ -6956,12 +7017,7 @@ public:
 
                     ex = toExpressionHelper(ex, i + 1);
                     ex = ex.semantic(sc);
-                    if (ex.op == TOKerror)
-                        *pt = Type.terror;
-                    else if (ex.op == TOKtype)
-                        *pt = ex.type;
-                    else if ((*ps = getDsymbol(ex)) is null)
-                        *pe = ex;
+                    resolveExp(ex, pt, pe, ps);
                     return;
                 }
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
@@ -7019,12 +7075,7 @@ public:
 
                         e = toExpressionHelper(e, i);
                         e = e.semantic(sc);
-                        if (e.op == TOKerror)
-                            *pt = Type.terror;
-                        else if (e.op == TOKtype)
-                            *pt = e.type;
-                        else if ((*ps = getDsymbol(e)) is null)
-                            *pe = e;
+                        resolveExp(e, pt, pe, ps);
                         return;
                     }
                     else
@@ -7049,6 +7100,13 @@ public:
                 }
             L2:
                 s = sm.toAlias();
+            }
+
+            if (auto em = s.isEnumMember())
+            {
+                // It's not a type, it's an expression
+                *pe = em.getVarExp(loc, sc);
+                return;
             }
             if (VarDeclaration v = s.isVarDeclaration())
             {
@@ -7087,12 +7145,6 @@ public:
                     *pe = new DsymbolExp(loc, fd, 1);
                     return;
                 }
-            }
-            if (EnumMember em = s.isEnumMember())
-            {
-                // It's not a type, it's an expression
-                *pe = em.getVarExp(loc, sc);
-                return;
             }
         L1:
             Type t = s.getType();
@@ -7265,6 +7317,8 @@ public:
         resolve(loc, sc, &e, &t, &s);
         if (t && t.ty != Tident)
             s = t.toDsymbol(sc);
+        if (e)
+            s = getDsymbol(e);
         return s;
     }
 
@@ -7528,12 +7582,7 @@ public:
             {
                 auto e = toExpressionHelper(new TypeExp(loc, t));
                 e = e.semantic(sc);
-                if (e.op == TOKerror)
-                    goto Lerr;
-                else if (e.op == TOKtype)
-                    *pt = e.type;
-                else if ((*ps = getDsymbol(e)) is null)
-                    *pe = e;
+                resolveExp(e, pt, pe, ps);
             }
         }
         if (*pt)
@@ -7638,12 +7687,7 @@ public:
             {
                 auto e = toExpressionHelper(new TypeExp(loc, t));
                 e = e.semantic(sc);
-                if (e.op == TOKerror)
-                    goto Lerr;
-                else if (e.op == TOKtype)
-                    *pt = e.type;
-                else if ((*ps = getDsymbol(e)) is null)
-                    *pe = e;
+                resolveExp(e, pt, pe, ps);
             }
         }
         if (*pt)
@@ -7834,6 +7878,12 @@ public:
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);
         s = s.toAlias();
+
+        if (auto em = s.isEnumMember())
+        {
+            return em.getVarExp(e.loc, sc);
+        }
+
         VarDeclaration v = s.isVarDeclaration();
         if (v && (!v.type || !v.type.deco))
         {
@@ -7860,11 +7910,7 @@ public:
         {
             return new TypeExp(e.loc, s.getType());
         }
-        EnumMember em = s.isEnumMember();
-        if (em)
-        {
-            return em.getVarExp(e.loc, sc);
-        }
+
         TemplateMixin tm = s.isTemplateMixin();
         if (tm)
         {
@@ -8690,6 +8736,12 @@ public:
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);
         s = s.toAlias();
+
+        if (auto em = s.isEnumMember())
+        {
+            return em.getVarExp(e.loc, sc);
+        }
+
         VarDeclaration v = s.isVarDeclaration();
         if (v && (!v.type || !v.type.deco))
         {
@@ -8716,11 +8768,7 @@ public:
         {
             return new TypeExp(e.loc, s.getType());
         }
-        EnumMember em = s.isEnumMember();
-        if (em)
-        {
-            return em.getVarExp(e.loc, sc);
-        }
+
         TemplateMixin tm = s.isTemplateMixin();
         if (tm)
         {
