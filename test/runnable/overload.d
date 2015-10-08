@@ -1112,6 +1112,15 @@ alias ClassType15167 = C15167;
 alias ClassType15167 = C15167;
 static assert(is(ClassType15167 == C15167));
 
+int a15167;
+alias Var15167 = a15167;
+alias Var15167 = a15167;
+
+void f15167() {}
+alias Foo15167 = f15167;
+alias Func15167 = Foo15167;
+alias Func15167 = f15167;
+
 /***************************************************/
 
 int main()

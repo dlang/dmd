@@ -676,6 +676,9 @@ public:
             }
 
             Dsymbol sa = aliassym.toAlias();
+            if (sa == sx.toAlias())     // it's identical alias
+                return;
+
             if (auto fd = sa.isFuncDeclaration())
             {
                 aliassym = new FuncAliasDeclaration(ident, fd);
@@ -729,6 +732,9 @@ public:
              * aliassym is determined already. See the case in: test/compilable/test61.d
              */
             Dsymbol sa = aliassym.toAlias();
+            if (sa == s.toAlias())      // it's identical alias
+                return true;
+
             if (auto fd = sa.isFuncDeclaration())
             {
                 auto fa = new FuncAliasDeclaration(ident, fd);
