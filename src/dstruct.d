@@ -113,19 +113,26 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
                 Scope scx;
                 scx._module = sd.getModule();
                 getTypeInfoType(t, &scx);
+                sd.requestTypeInfo = true;
+            }
+            else if (!sc.minst)
+            {
+                // don't yet have to generate TypeInfo instance if
+                // the typeid(T) expression exists in speculative scope.
             }
             else
             {
                 getTypeInfoType(t, sc);
+                sd.requestTypeInfo = true;
 
                 // Bugzilla 15149, if the typeid operand type comes from a
                 // result of auto function, it may be yet speculative.
                 unSpeculative(sc, sd);
             }
-            if (!sc || sc.minst)
-                sd.requestTypeInfo = true;
 
             /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.
+             * This should be done even if typeid(T) exists in speculative scope.
+             * Because it may appear later in non-speculative scope.
              */
             if (!sd.members)
                 return; // opaque struct
@@ -179,9 +186,6 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             return;
         if (sc.flags & (SCOPEctfe | SCOPEcompile))
             return;
-
-        if (!sc.minst)
-            return; // don't have to generate TypeInfo inside speculative scope
     }
 
     scope FullTypeInfoVisitor v = new FullTypeInfoVisitor();
