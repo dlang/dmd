@@ -324,7 +324,6 @@
     <ClInclude Include="toir.h" />
     <ClInclude Include="tokens.h" />
     <ClInclude Include="total.h" />
-    <ClInclude Include="utf.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="backend\aa.h" />
     <ClInclude Include="backend\bcomplex.h" />

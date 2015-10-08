@@ -846,10 +846,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\utf.h"
-				>
-			</File>
-			<File
 				RelativePath=".\version.c"
 				>
 			</File>

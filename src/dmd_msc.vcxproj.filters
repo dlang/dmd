@@ -644,9 +644,6 @@
     <ClInclude Include="total.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="utf.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="version.h">
       <Filter>src</Filter>
     </ClInclude>
