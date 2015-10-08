@@ -7,7 +7,7 @@ fail_compilation/diag8510.d(15): Error: alias diag8510.S.a conflicts with alias 
 */
 
 alias int a;
-alias int a;
+alias long a;
 
 int g;
 struct S {

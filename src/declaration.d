@@ -670,7 +670,8 @@ public:
 
             if (type)
             {
-                ScopeDsymbol.multiplyDefined(Loc(), sx, this);
+                if (!overloadInsert(sx))
+                    ScopeDsymbol.multiplyDefined(Loc(), sx, this);
                 return;
             }
 
@@ -722,7 +723,7 @@ public:
         if (semanticRun >= PASSsemanticdone)
         {
             if (type)
-                return false;
+                return type.equals(s.toAlias().getType());
 
             /* When s is added in member scope by static if, mixin("code") or others,
              * aliassym is determined already. See the case in: test/compilable/test61.d
@@ -769,7 +770,7 @@ public:
     override Dsymbol toAlias()
     {
         //printf("[%s] AliasDeclaration::toAlias('%s', this = %p, aliassym = %p, kind = '%s', inuse = %d)\n",
-        //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym->kind() : "", inuse);
+        //    loc.toChars(), toChars(), this, aliassym, aliassym ? aliassym.kind() : "", inuse);
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
         if (inuse == 1 && type && _scope)
@@ -810,9 +811,12 @@ public:
             type = Type.terror;
             return aliassym;
         }
-        if (aliassym || type.deco)
+        if (aliassym)
         {
             // semantic is already done.
+
+            // Even if type.deco !is null, "alias T = const int;` needs semantic
+            // call to take the storage class `const` as type qualifier.
         }
         else if (_import && _import._scope)
         {
@@ -822,7 +826,9 @@ public:
             _import.semantic(null);
         }
         else if (_scope)
+        {
             semantic(_scope);
+        }
         inuse = 1;
         Dsymbol s = aliassym ? aliassym.toAlias() : this;
         inuse = 0;

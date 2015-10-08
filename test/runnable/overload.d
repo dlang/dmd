@@ -1083,6 +1083,36 @@ void test14858()
 }
 
 /***************************************************/
+// 15167
+
+version (all)
+    alias ulong CARD64_15167;
+
+static if (true)
+    alias ulong CARD64_15167;
+
+// ----
+
+alias Ulong15167 = ulong;
+alias Ulong15167 = ulong;
+static assert(is(Ulong15167 == ulong));
+
+alias UlongAlias15167 = ulong;
+alias Array15167 = UlongAlias15167[];
+alias Array15167 = UlongAlias15167[];
+static assert(is(Array15167 == ulong[]));
+
+struct S15167 {}
+alias StructType15167 = S15167;
+alias StructType15167 = S15167;
+static assert(is(StructType15167 == S15167));
+
+class C15167 {}
+alias ClassType15167 = C15167;
+alias ClassType15167 = C15167;
+static assert(is(ClassType15167 == C15167));
+
+/***************************************************/
 
 int main()
 {
