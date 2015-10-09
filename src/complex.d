@@ -99,12 +99,12 @@ struct complex_t
     }
 }
 
-real creall(complex_t x)
+extern (C++) real creall(complex_t x)
 {
     return x.re;
 }
 
-real cimagl(complex_t x)
+extern (C++) real cimagl(complex_t x)
 {
     return x.im;
 }
