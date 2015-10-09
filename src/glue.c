@@ -41,6 +41,7 @@
 #include "irstate.h"
 
 void clearStringTab();
+RET retStyle(TypeFunction *tf);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);

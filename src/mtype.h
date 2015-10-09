@@ -594,8 +594,6 @@ enum PURE
     PUREstrong = 4,     // parameters are values or immutable
 };
 
-RET retStyle(TypeFunction *tf);
-
 class TypeFunction : public TypeNext
 {
 public:

@@ -49,7 +49,6 @@ alias list_t = LIST*;
 alias type = TYPE;
 
 extern extern (C++) type* type_fake(tym_t);
-extern extern (C++) uint totym(Type tx);
 extern extern (C++) void type_incCount(type* t);
 extern extern (C++) void type_setIdent(type* t, char* ident);
 
