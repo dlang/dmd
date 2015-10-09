@@ -3332,11 +3332,14 @@ public:
             return false;
         if (!isThis() && !isNested())
             return false;
+
         // The current function
         FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
         if (!fdthis)
             return false; // out of function scope
+
         Dsymbol p = toParent2();
+
         // Function literals from fdthis to p must be delegates
         // TODO: here is similar to checkFrameAccess.
         for (Dsymbol s = fdthis; s && s != p; s = s.toParent2())
@@ -3355,44 +3358,45 @@ public:
                     break;
             }
         }
+
         if (isNested())
         {
             // The function that this function is in
-            FuncDeclaration fdv2 = p.isFuncDeclaration();
-            //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
-            //printf("fdv2 = %s in [%s]\n", fdv2->toChars(), fdv2->loc.toChars());
-            //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
-            if (fdv2 && fdv2 != fdthis)
+            FuncDeclaration fdv = p.isFuncDeclaration();
+            if (!fdv)
+                return false;
+            if (fdv == fdthis)
+                return false;
+
+            //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
+            //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
+            //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
+
+            // Add this function to the list of those which called us
+            if (fdthis != this)
             {
-                // Add this function to the list of those which called us
-                if (fdthis != this)
+                bool found = false;
+                for (size_t i = 0; i < siblingCallers.dim; ++i)
                 {
-                    bool found = false;
-                    for (size_t i = 0; i < siblingCallers.dim; ++i)
-                    {
-                        if (siblingCallers[i] == fdthis)
-                            found = true;
-                    }
-                    if (!found)
-                    {
-                        //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
-                        if (!sc.intypeof && !(sc.flags & SCOPEcompile))
-                            siblingCallers.push(fdthis);
-                    }
+                    if (siblingCallers[i] == fdthis)
+                        found = true;
+                }
+                if (!found)
+                {
+                    //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
+                    if (!sc.intypeof && !(sc.flags & SCOPEcompile))
+                        siblingCallers.push(fdthis);
                 }
             }
-            FuncDeclaration fdv = p.isFuncDeclaration();
-            if (fdv && fdthis && fdv != fdthis)
-            {
-                int lv = fdthis.getLevel(loc, sc, fdv);
-                if (lv == -2)
-                    return true; // error
-                if (lv == -1)
-                    return false; // downlevel call
-                if (lv == 0)
-                    return false; // same level call
-                // Uplevel call
-            }
+
+            int lv = fdthis.getLevel(loc, sc, fdv);
+            if (lv == -2)
+                return true; // error
+            if (lv == -1)
+                return false; // downlevel call
+            if (lv == 0)
+                return false; // same level call
+            // Uplevel call
         }
         return false;
     }
