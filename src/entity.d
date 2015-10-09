@@ -10,6 +10,8 @@ module ddmd.entity;
 
 import core.stdc.ctype;
 
+private:
+
 /*********************************************
  * Convert from named entity to its encoding.
  * For reference:
@@ -2371,7 +2373,7 @@ immutable NameId[][] namesTable =
     namesS, namesT, namesU, namesV, namesW, namesX, namesY, namesZ
 ];
 
-extern (C++) int HtmlNamedEntity(const(char)* p, size_t length)
+public int HtmlNamedEntity(const(char)* p, size_t length)
 {
     int tableIndex = tolower(*p) - 'a';
     if (tableIndex >= 0 && tableIndex < 26)
