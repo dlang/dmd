@@ -131,9 +131,8 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
 
         override void visit(ThisExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
-                result = v.checkNestedReference(sc, Loc());
+            if (e.var)
+                result = e.var.checkNestedReference(sc, Loc());
         }
 
         override void visit(DeclarationExp e)

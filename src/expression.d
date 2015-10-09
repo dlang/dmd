@@ -3883,7 +3883,7 @@ public:
 extern (C++) class ThisExp : Expression
 {
 public:
-    Declaration var;
+    VarDeclaration var;
 
     final extern (D) this(Loc loc)
     {
@@ -3899,7 +3899,9 @@ public:
         }
         if (type)
             return this;
+
         FuncDeclaration fd = hasThis(sc); // fd is the uplevel function with the 'this' variable
+
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
          */
@@ -3929,15 +3931,17 @@ public:
         }
         if (!fd)
             goto Lerr;
+
         assert(fd.vthis);
         var = fd.vthis;
         assert(var.parent);
         type = var.type;
-        if (var.isVarDeclaration().checkNestedReference(sc, loc))
+        if (var.checkNestedReference(sc, loc))
             return new ErrorExp();
         if (!sc.intypeof)
             sc.callSuper |= CSXthis;
         return this;
+
     Lerr:
         error("'this' is only defined in non-static member functions, not %s", sc.parent.toChars());
         return new ErrorExp();
@@ -3994,9 +3998,11 @@ public:
         }
         if (type)
             return this;
+
         FuncDeclaration fd = hasThis(sc);
         ClassDeclaration cd;
         Dsymbol s;
+
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
          */
@@ -4026,8 +4032,10 @@ public:
         }
         if (!fd)
             goto Lerr;
+
         var = fd.vthis;
         assert(var && var.parent);
+
         s = fd.toParent();
         while (s && s.isTemplateInstance())
             s = s.toParent();
@@ -4048,11 +4056,14 @@ public:
             type = cd.baseClass.type;
             type = type.castMod(var.type.mod);
         }
-        if (var.isVarDeclaration().checkNestedReference(sc, loc))
+
+        if (var.checkNestedReference(sc, loc))
             return new ErrorExp();
+
         if (!sc.intypeof)
             sc.callSuper |= CSXsuper;
         return this;
+
     Lerr:
         error("'super' is only allowed in non-static class member functions");
         return new ErrorExp();
