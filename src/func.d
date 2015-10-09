@@ -2279,31 +2279,29 @@ public:
     {
         if (ad && !isFuncLiteralDeclaration())
         {
-            VarDeclaration v;
+            Type thandle = ad.handleType();
+            assert(thandle);
+            thandle = thandle.addMod(type.mod);
+            thandle = thandle.addStorageClass(storage_class);
+            VarDeclaration v = new ThisDeclaration(loc, thandle);
+            v.storage_class |= STCparameter;
+            if (thandle.ty == Tstruct)
             {
-                Type thandle = ad.handleType();
-                assert(thandle);
-                thandle = thandle.addMod(type.mod);
-                thandle = thandle.addStorageClass(storage_class);
-                v = new ThisDeclaration(loc, thandle);
-                v.storage_class |= STCparameter;
-                if (thandle.ty == Tstruct)
-                {
-                    v.storage_class |= STCref;
-                    // if member function is marked 'inout', then 'this' is 'return ref'
-                    if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
-                        v.storage_class |= STCreturn;
-                }
-                if (type.ty == Tfunction && (cast(TypeFunction)type).isreturn)
+                v.storage_class |= STCref;
+                // if member function is marked 'inout', then 'this' is 'return ref'
+                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
                     v.storage_class |= STCreturn;
-                v.semantic(sc);
-                if (!sc.insert(v))
-                    assert(0);
-                v.parent = this;
-                return v;
             }
+            if (type.ty == Tfunction && (cast(TypeFunction)type).isreturn)
+                v.storage_class |= STCreturn;
+
+            v.semantic(sc);
+            if (!sc.insert(v))
+                assert(0);
+            v.parent = this;
+            return v;
         }
-        else if (isNested())
+        if (isNested())
         {
             /* The 'this' for a nested function is the link to the
              * enclosing function's stack frame.
