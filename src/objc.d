@@ -154,6 +154,8 @@ extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclara
 // MARK: semantic
 extern (C++) void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration fd, Scope* sc)
 {
+    import ddmd.tokens;
+
     if (!fd.userAttribDecl)
         return;
     Expressions* udas = fd.userAttribDecl.getAttributes();
@@ -161,15 +163,15 @@ extern (C++) void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration fd, 
     for (size_t i = 0; i < udas.dim; i++)
     {
         Expression uda = (*udas)[i];
-        assert(uda.type);
-        if (uda.type.ty != Ttuple)
+        assert(uda);
+        if (uda.op != TOKtuple)
             continue;
         Expressions* exps = (cast(TupleExp)uda).exps;
         for (size_t j = 0; j < exps.dim; j++)
         {
             Expression e = (*exps)[j];
-            assert(e.type);
-            if (e.type.ty != Tstruct)
+            assert(e);
+            if (e.op != TOKstructliteral)
                 continue;
             StructLiteralExp literal = cast(StructLiteralExp)e;
             assert(literal.sd);
