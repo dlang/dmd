@@ -18,6 +18,8 @@ import ddmd.id;
 import ddmd.mtype;
 import ddmd.visitor;
 
+extern extern (C++) uint totym(Type tx);
+
 extern (C++) final class ToCtypeVisitor : Visitor
 {
     alias visit = super.visit;

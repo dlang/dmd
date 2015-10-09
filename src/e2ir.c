@@ -43,6 +43,7 @@
 #include        "ctfe.h"
 
 typedef Array<elem *> Elems;
+RET retStyle(TypeFunction *tf);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
