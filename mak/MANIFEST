@@ -94,6 +94,7 @@ MANIFEST=\
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\termios.d \
 	src\core\sys\linux\time.d \
+	src\core\sys\linux\timerfd.d \
 	src\core\sys\linux\tipc.d \
 	\
 	src\core\sys\linux\sys\inotify.d \
