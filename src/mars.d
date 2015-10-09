@@ -26,6 +26,7 @@ import ddmd.arraytypes;
 import ddmd.gluelayer;
 import ddmd.builtin;
 import ddmd.cond;
+import ddmd.cpp;
 import ddmd.dinifile;
 import ddmd.dinterpret;
 import ddmd.dmodule;
@@ -741,6 +742,22 @@ Language changes listed by -transition=id:
                     if (!p[3])
                         goto Lnoarg;
                     global.params.docname = p + 3;
+                    break;
+                case 0:
+                    break;
+                default:
+                    goto Lerror;
+                }
+            }
+            else if (p[1] == 'C')
+            {
+                global.params.doCppHeaders = true;
+                switch (p[2])
+                {
+                case 'f':
+                    if (!p[3])
+                        goto Lnoarg;
+                    global.params.cppfilename = p + 3;
                     break;
                 case 0:
                     break;
@@ -1551,6 +1568,34 @@ Language changes listed by -transition=id:
             jsonfile._ref = 1;
             writeFile(Loc(), jsonfile);
         }
+    }
+    if (global.params.doCppHeaders)
+    {
+        OutBuffer buf;
+        genCppFiles(&buf, &modules);
+        // Write buf to file
+        const(char)* name = global.params.cppfilename;
+        /* The filename generation code here should be harmonized with Module::setOutfile()
+         */
+        const(char)* cppfilename;
+        if (name && *name)
+        {
+            cppfilename = FileName.defaultExt(name, global.cpp_ext);
+        }
+        else
+        {
+            // Generate json file name from first obj name
+            const(char)* n = (*global.params.objfiles)[0];
+            n = FileName.name(n);
+            //if (!FileName::absolute(name))
+            //name = FileName::combine(dir, name);
+            cppfilename = FileName.forceExt(n, global.cpp_ext);
+        }
+        ensurePathToNameExists(Loc(), cppfilename);
+        auto cppfile = new File(cppfilename);
+        cppfile.setbuffer(buf.data, buf.offset);
+        cppfile._ref = 1;
+        writeFile(Loc(), cppfile);
     }
     if (!global.errors && global.params.doDocComments)
     {

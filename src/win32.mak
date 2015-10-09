@@ -129,9 +129,9 @@ DDEBUG=-debug -g
 ##### Implementation variables (do not modify)
 
 # Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
+CFLAGS=-I$(INCLUDE) $(OPT) -DMARS=1 $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS=1 -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi
 
@@ -152,7 +152,7 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
 	traits.d utf.d visitor.d libomf.d scanomf.d typinf.d \
-	libmscoff.d scanmscoff.d
+	libmscoff.d scanmscoff.d cpp.d
 
 GLUE_SRCS=irstate.d toctype.d backend.d gluelayer.d
 
@@ -184,11 +184,11 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/file.d $(ROOT)/filename.d	\
 # D front end
 SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
+	enum.h errors.h expression.h globals.h hdrgen.h identifier.h	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
 	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h objc.d $(DMD_SRCS)
+	version.h visitor.h objc.d idgen.d $(DMD_SRCS)
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -275,6 +275,11 @@ trace:
 unittest:
 	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
 
+############################## Header gen ###############################
+
+frontend.h : $(FRONT_SRCS) $(ROOT_SRCS) gluelayer.d dmd_frontend.exe
+	dmd_frontend.exe -vtls -J. -d -C -Cffrontend.h -o- $(FRONT_SRCS) $(ROOT_SRCS) gluelayer.d -unittest -debug -c -version=NoBackend
+
 ################################ Libraries ##################################
 
 glue.lib : $(GLUEOBJ)
@@ -300,6 +305,7 @@ clean:
 	$(DEL) id.h id.d
 	$(DEL) verstr.h
 	$(DEL) optabgen.exe
+	$(DEL) $(HEADERS)
 
 install: detab install-copy
 
@@ -387,7 +393,7 @@ verstr.h : ..\VERSION
 .asm.obj:
 	$(CC) -c $(CFLAGS) $*
 
-iasm.obj : $(CH) $C\iasm.h iasm.c
+iasm.obj : $(CH) frontend.h $C\iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasm
 
 # D front/back end
@@ -502,13 +508,13 @@ glocal.obj : $C\rtlsym.h $C\glocal.c
 gloop.obj : $C\gloop.c
 	$(CC) -c $(MFLAGS) $C\gloop
 
-glue.obj : $(CH) $C\rtlsym.h mars.h module.h glue.c
+glue.obj : $(CH) $C\rtlsym.h frontend.h glue.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) glue
 
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
 
-msc.obj : $(CH) mars.h msc.c
+msc.obj : $(CH) frontend.h msc.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) msc
 
 mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
@@ -550,28 +556,28 @@ ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_pvoid
 
-tocvdebug.obj : $(CH) $C\rtlsym.h mars.h module.h tocvdebug.c
+tocvdebug.obj : $(CH) $C\rtlsym.h frontend.h tocvdebug.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocvdebug
 
-toobj.obj : $(CH) mars.h module.h toobj.c
+toobj.obj : $(CH) frontend.h toobj.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toobj
 
 type.obj : $C\type.c
 	$(CC) -c $(MFLAGS) $C\type
 
-todt.obj : mtype.h expression.h $C\dt.h todt.c
+todt.obj : frontend.h $C\dt.h todt.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) todt
 
-s2ir.obj : $C\rtlsym.h statement.h s2ir.c visitor.h
+s2ir.obj : $C\rtlsym.h frontend.h s2ir.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir
 
-e2ir.obj : $C\rtlsym.h expression.h toir.h e2ir.c
+e2ir.obj : $C\rtlsym.h frontend.h toir.h e2ir.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir
 
-toir.obj : $C\rtlsym.h expression.h toir.h toir.c
+toir.obj : $C\rtlsym.h frontend.h toir.h toir.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) toir
 
-tocsym.obj : $(CH) mars.h module.h tocsym.c
+tocsym.obj : $(CH) frontend.h tocsym.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym
 
 util2.obj : $C\util2.c

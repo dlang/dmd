@@ -14,21 +14,10 @@
 #include <time.h>
 #include <assert.h>
 
-#include "mars.h"
-#include "module.h"
-#include "mtype.h"
-#include "declaration.h"
-#include "statement.h"
-#include "enum.h"
-#include "aggregate.h"
-#include "init.h"
-#include "attrib.h"
-#include "id.h"
-#include "import.h"
-#include "template.h"
+#include "root.h"
+#include "stringtable.h"
+#include "frontend.h"
 
-#include "rmem.h"
-#include "target.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"

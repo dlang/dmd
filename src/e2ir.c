@@ -13,19 +13,10 @@
 #include        <string.h>
 #include        <time.h>
 
+#include        "root.h"
 #include        "port.h"
-#include        "target.h"
-
-#include        "expression.h"
-#include        "mtype.h"
-#include        "dsymbol.h"
-#include        "declaration.h"
-#include        "enum.h"
-#include        "aggregate.h"
-#include        "attrib.h"
-#include        "module.h"
-#include        "init.h"
-#include        "template.h"
+#include        "stringtable.h"
+#include        "frontend.h"
 
 #include        "mem.h" // for tk/mem_malloc
 
@@ -37,10 +28,8 @@
 #include        "type.h"
 #include        "dt.h"
 #include        "irstate.h"
-#include        "id.h"
 #include        "type.h"
 #include        "toir.h"
-#include        "ctfe.h"
 
 typedef Array<elem *> Elems;
 RET retStyle(TypeFunction *tf);

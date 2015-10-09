@@ -278,6 +278,7 @@ public:
     File* objfile;              // output .obj file
     File* hdrfile;              // 'header' file
     File* docfile;              // output documentation file
+    File* cppfile;              // output documentation file
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     int isDocFile;              // if it is a documentation input file, not D source
@@ -1280,6 +1281,11 @@ public:
     bool isCoreModule(Identifier ident)
     {
         return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
+    }
+
+    bool isDRootModule()
+    {
+        return parent && parent.ident == Identifier.idPool("root") && parent.parent && parent.parent.ident == Identifier.idPool("ddmd") && !parent.parent.parent;
     }
 
     // Back end

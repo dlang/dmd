@@ -22,17 +22,10 @@
 #include        <time.h>
 #include        <assert.h>
 
-#include        "mtype.h"
-#include        "expression.h"
-#include        "init.h"
-#include        "enum.h"
-#include        "aggregate.h"
-#include        "declaration.h"
-#include        "target.h"
-#include        "ctfe.h"
-#include        "arraytypes.h"
-#include        "visitor.h"
-#include        "template.h"
+#include        "root.h"
+#include        "stringtable.h"
+#include        "frontend.h"
+
 // Back end
 #include        "dt.h"
 

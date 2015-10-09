@@ -126,6 +126,9 @@ struct Param
     const(char)* docname;               // write documentation file to docname
     Array!(const(char)*)* ddocfiles;    // macro include files for Ddoc
 
+    bool doCppHeaders;                  // generate C++ header files
+    const(char)* cppfilename;           // write C++ header file to cppfilename
+
     bool doHdrGeneration;               // process embedded documentation comments
     const(char)* hdrdir;                // write 'header' file to docdir directory
     const(char)* hdrname;               // write 'header' file to docname
@@ -187,6 +190,7 @@ struct Global
     const(char)* dll_ext;
     const(char)* doc_ext;           // for Ddoc generated files
     const(char)* ddoc_ext;          // for Ddoc macro include files
+    const(char)* cpp_ext;           // for C++ generated headers
     const(char)* hdr_ext;           // for D 'header' import files
     const(char)* json_ext;          // for JSON files
     const(char)* map_ext;           // for .map files
@@ -250,6 +254,7 @@ struct Global
         hdr_ext = "di";
         doc_ext = "html";
         ddoc_ext = "ddoc";
+        cpp_ext = "h";
         json_ext = "json";
         map_ext = "map";
         static if (TARGET_WINDOS)

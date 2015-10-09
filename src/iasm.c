@@ -26,16 +26,9 @@
 
 
 // D compiler
-#include        "mars.h"
-#include        "mtype.h"
-#include        "statement.h"
-#include        "id.h"
-#include        "declaration.h"
-#include        "scope.h"
-#include        "init.h"
-#include        "enum.h"
-#include        "module.h"
-#include        "target.h"
+#include "root.h"
+#include "stringtable.h"
+#include "frontend.h"
 
 // C/C++ compiler
 #define SCOPE_H 1               // avoid conflicts with D's Scope
@@ -3530,7 +3523,7 @@ static code *asm_db_parse(OP *pop)
 
             case TOKstring:
                 len = asmtok->len;
-                q = asmtok->ustring;
+                q = (unsigned char *)asmtok->ustring;
             L3:
                 if (len)
                 {
