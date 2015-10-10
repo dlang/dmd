@@ -26,21 +26,6 @@ extern (C++) Symbol* toInitializer(AggregateDeclaration ad)
     return null;
 }
 
-extern (C++) Symbol* toModuleAssert(Module m)
-{
-    return null;
-}
-
-extern (C++) Symbol* toModuleUnittest(Module m)
-{
-    return null;
-}
-
-extern (C++) Symbol* toModuleArray(Module m)
-{
-    return null;
-}
-
 // glue
 
 extern (C++) void obj_write_deferred(Library library)
