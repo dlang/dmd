@@ -370,7 +370,7 @@ endif
 $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
 		&& printf \"$(VERSION)\" > verstr.h )
 $(shell test $(SYSCONFDIR) != "`cat SYSCONFDIR.imp 2> /dev/null`" \
-		&& echo -n '$(SYSCONFDIR)' > SYSCONFDIR.imp )
+		&& printf '$(SYSCONFDIR)' > SYSCONFDIR.imp )
 
 #########
 
