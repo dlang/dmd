@@ -465,7 +465,6 @@ public:
             return -1;
         if(_hnsecs > rhs._hnsecs)
             return 1;
-
         return 0;
     }
 
@@ -681,7 +680,6 @@ public:
             mixin("_hnsecs " ~ op ~ "= rhs._hnsecs;");
         else if(is(_Unqual!D == TickDuration))
             mixin("_hnsecs " ~ op ~ "= rhs.hnsecs;");
-
         return this;
     }
 
@@ -770,26 +768,24 @@ public:
     }
 
 
-    // Note: opBinary!"*" and opBinary!"/" have to be implemented separately
-    // because opBinary!"/" may throw TimeException, and opBinary!"*" is nothrow
-
     /++
-        Multiplies the duration by an integer value.
+        Multiplies or divides the duration by an integer value.
 
         The legal types of arithmetic for $(D Duration) using this operator
         overload are
 
         $(TABLE
         $(TR $(TD Duration) $(TD *) $(TD long) $(TD -->) $(TD Duration))
+        $(TR $(TD Duration) $(TD /) $(TD long) $(TD -->) $(TD Duration))
         )
 
         Params:
             value = The value to multiply this $(D Duration) by.
       +/
     Duration opBinary(string op)(long value) const nothrow @nogc
-        if(op == "*")
+        if(op == "*" || op == "/")
     {
-        return Duration(_hnsecs * value);
+        mixin("return Duration(_hnsecs " ~ op ~ " value);");
     }
 
     unittest
@@ -813,9 +809,27 @@ public:
         }
     }
 
+    unittest
+    {
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            assert((cast(D)Duration(5)) / 7 == Duration(0));
+            assert((cast(D)Duration(7)) / 5 == Duration(1));
+
+            assert((cast(D)Duration(5)) / -7 == Duration(0));
+            assert((cast(D)Duration(7)) / -5 == Duration(-1));
+
+            assert((cast(D)Duration(-5)) / 7 == Duration(0));
+            assert((cast(D)Duration(-7)) / 5 == Duration(-1));
+
+            assert((cast(D)Duration(-5)) / -7 == Duration(0));
+            assert((cast(D)Duration(-7)) / -5 == Duration(1));
+        }
+    }
+
 
     /++
-        Multiplies the duration by an integer value as well as
+        Multiplies/Divides the duration by an integer value as well as
         assigning the result to this $(D Duration).
 
         The legal types of arithmetic for $(D Duration) using this operator
@@ -823,17 +837,17 @@ public:
 
         $(TABLE
         $(TR $(TD Duration) $(TD *) $(TD long) $(TD -->) $(TD Duration))
+        $(TR $(TD Duration) $(TD /) $(TD long) $(TD -->) $(TD Duration))
         )
 
         Params:
-            value = The value to multiply this $(D Duration) by.
+            value = The value to multiply/divide this $(D Duration) by.
       +/
     ref Duration opOpAssign(string op)(long value) nothrow @nogc
-        if(op == "*")
+        if(op == "*" || op == "/")
     {
-        _hnsecs *= value;
-
-       return this;
+        mixin("_hnsecs " ~ op ~ "= value;");
+        return this;
     }
 
     unittest
@@ -868,93 +882,8 @@ public:
         static assert(!__traits(compiles, idur *= 12));
     }
 
-
-    /++
-        Divides the duration by an integer value.
-
-        The legal types of arithmetic for $(D Duration) using this operator
-        overload are
-
-        $(TABLE
-        $(TR $(TD Duration) $(TD /) $(TD long) $(TD -->) $(TD Duration))
-        )
-
-        Params:
-            value = The value to divide from this duration.
-
-        Throws:
-            $(D TimeException) if an attempt to divide by $(D 0) is made.
-      +/
-    Duration opBinary(string op)(long value) const
-        if(op == "/")
-    {
-        if(value == 0)
-            throw new TimeException("Attempted division by 0.");
-
-        return Duration(_hnsecs / value);
-    }
-
     unittest
     {
-        //Unfortunately, putting these inside of the foreach loop results in
-        //linker errors regarding multiple definitions and the lambdas.
-        _assertThrown!TimeException((){Duration(5) / 0;}());
-        _assertThrown!TimeException((){Duration(-5) / 0;}());
-        _assertThrown!TimeException((){(cast(const Duration)Duration(5)) / 0;}());
-        _assertThrown!TimeException((){(cast(const Duration)Duration(-5)) / 0;}());
-        _assertThrown!TimeException((){(cast(immutable Duration)Duration(5)) / 0;}());
-        _assertThrown!TimeException((){(cast(immutable Duration)Duration(-5)) / 0;}());
-
-        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
-        {
-            assert((cast(D)Duration(5)) / 7 == Duration(0));
-            assert((cast(D)Duration(7)) / 5 == Duration(1));
-
-            assert((cast(D)Duration(5)) / -7 == Duration(0));
-            assert((cast(D)Duration(7)) / -5 == Duration(-1));
-
-            assert((cast(D)Duration(-5)) / 7 == Duration(0));
-            assert((cast(D)Duration(-7)) / 5 == Duration(-1));
-
-            assert((cast(D)Duration(-5)) / -7 == Duration(0));
-            assert((cast(D)Duration(-7)) / -5 == Duration(1));
-        }
-    }
-
-
-    /++
-        Divides the duration by an integer value as well as
-        assigning the result to this $(D Duration).
-
-        The legal types of arithmetic for $(D Duration) using this operator
-        overload are
-
-        $(TABLE
-        $(TR $(TD Duration) $(TD /) $(TD long) $(TD -->) $(TD Duration))
-        )
-
-        Params:
-            value = The value to divide from this $(D Duration).
-
-        Throws:
-            $(D TimeException) if an attempt to divide by $(D 0) is made.
-      +/
-    ref Duration opOpAssign(string op)(long value)
-        if(op == "/")
-    {
-        if(value == 0)
-            throw new TimeException("Attempted division by 0.");
-
-        _hnsecs /= value;
-
-        return this;
-    }
-
-    unittest
-    {
-        _assertThrown!TimeException((){Duration(5) /= 0;}());
-        _assertThrown!TimeException((){Duration(-5) /= 0;}());
-
         static void test(Duration actual, long value, Duration expected, size_t line = __LINE__)
         {
             if((actual /= value) != expected)
