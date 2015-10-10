@@ -31,9 +31,6 @@ extern extern (C++) void obj_write_deferred(Library library);
 extern extern (C++) void genObjFile(Module m, bool multiobj);
 
 extern extern (C++) Symbol* toInitializer(AggregateDeclaration sd);
-extern extern (C++) Symbol* toModuleArray(Module m);
-extern extern (C++) Symbol* toModuleAssert(Module m);
-extern extern (C++) Symbol* toModuleUnittest(Module m);
 
 // type.h
 
