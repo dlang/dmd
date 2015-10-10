@@ -1049,7 +1049,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
             if (sm.ident)
             {
-                if (sm.ident.string[0] == '_' && sm.ident.string[1] == '_' && sm.ident != Id.ctor && sm.ident != Id.dtor && sm.ident != Id.__xdtor && sm.ident != Id.postblit && sm.ident != Id.__xpostblit)
+                if (sm.ident.string[0] == '_' &&
+                    sm.ident.string[1] == '_' &&
+                    sm.ident != Id.ctor &&
+                    sm.ident != Id.dtor &&
+                    sm.ident != Id.__xdtor &&
+                    sm.ident != Id.postblit &&
+                    sm.ident != Id.__xpostblit)
                 {
                     return 0;
                 }
@@ -1057,6 +1063,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     return 0;
                 }
+                if (sm.isTypeInfoDeclaration()) // Bugzilla 15177
+                    return 0;
+
                 //printf("\t%s\n", sm->ident->toChars());
                 /* Skip if already present in idents[]
                  */
@@ -1065,11 +1074,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     Identifier id = (*idents)[j];
                     if (id == sm.ident)
                         return 0;
-                    debug
-                    {
-                        // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
-                        assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
-                    }
+
+                    // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
+                    debug assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
                 }
                 idents.push(sm.ident);
             }
