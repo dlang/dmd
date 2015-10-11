@@ -54,6 +54,7 @@ enum CHECKACTION : ubyte
     D,            // call D assert on failure
     C,            // call C assert on failure
     halt,         // cause program halt on failure
+    context,      // call D assert with the error context on failure
 }
 
 enum CPU

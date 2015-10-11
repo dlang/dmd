@@ -5512,6 +5512,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AssertExp::semantic('%s')\n", exp.toChars());
         }
 
+        // save expression as a string before any semantic expansion
+        auto assertExpMsg = exp.msg ? null : exp.toChars();
+
         if (Expression ex = unaSemantic(exp, sc))
         {
             result = ex;
@@ -5522,9 +5525,84 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = exp.e1.optimize(WANTvalue);
         exp.e1 = exp.e1.toBoolean(sc);
 
+        if (!exp.msg && global.params.checkAction == CHECKACTION.context)
+        // no message - use assert expression as msg
+        {
+            /*
+            {
+              auto a = e1, b = e2;
+              assert(a == b, _d_assert_fail!"=="(a, b));
+            }()
+            */
+            const tok = exp.e1.op;
+            bool isEqualsCallExpression;
+            if (tok == TOK.call)
+            {
+                const callExp = cast(CallExp) exp.e1;
+                const callExpIdent = callExp.f.ident;
+                isEqualsCallExpression = callExpIdent == Id.__equals ||
+                                         callExpIdent == Id.eq;
+            }
+            if (tok == TOK.equal || tok == TOK.notEqual ||
+                tok == TOK.lessThan || tok == TOK.greaterThan ||
+                tok == TOK.lessOrEqual || tok == TOK.greaterOrEqual ||
+                tok == TOK.identity || tok == TOK.notIdentity ||
+                isEqualsCallExpression)
+            {
+                auto es = new Expressions();
+                auto tiargs = new Objects();
+                Loc loc = exp.e1.loc;
+
+                if (isEqualsCallExpression)
+                {
+                    auto callExp = cast(CallExp) exp.e1;
+                    auto args = callExp.arguments;
+
+                    // template args
+                    static immutable compMsg = "==";
+                    Expression comp = new StringExp(loc, cast(char*) compMsg.ptr);
+                    comp = comp.expressionSemantic(sc);
+                    tiargs.push(comp);
+                    tiargs.push((*args)[0].type);
+                    tiargs.push((*args)[1].type);
+
+                    // runtime args
+                    es.push((*args)[0]);
+                    es.push((*args)[1]);
+                }
+                else
+                {
+                    auto binExp = cast(EqualExp) exp.e1;
+
+                    // template args
+                    Expression comp = new StringExp(loc, cast(char*) Token.toChars(exp.e1.op));
+                    comp = comp.expressionSemantic(sc);
+                    tiargs.push(comp);
+                    tiargs.push(binExp.e1.type);
+                    tiargs.push(binExp.e2.type);
+
+                    // runtime args
+                    es.push(binExp.e1);
+                    es.push(binExp.e2);
+                }
+
+                Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
+                auto assertFail = new DotIdExp(loc, __assertFail, Id.object);
+
+                auto dt = new DotTemplateInstanceExp(loc, assertFail, Id._d_assert_fail, tiargs);
+                auto ec = CallExp.create(Loc.initial, dt, es);
+                exp.msg = ec;
+            }
+            else
+            {
+                OutBuffer buf;
+                buf.printf("%s failed", assertExpMsg);
+                exp.msg = new StringExp(Loc.initial, buf.extractString());
+            }
+        }
         if (exp.msg)
         {
-            exp.msg = exp.msg.expressionSemantic(sc);
+            exp.msg = expressionSemantic(exp.msg, sc);
             exp.msg = resolveProperties(sc, exp.msg);
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);

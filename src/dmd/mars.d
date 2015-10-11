@@ -1433,6 +1433,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.checkAction = CHECKACTION.C;
             else if (strcmp(p + 13, "halt") == 0)
                 params.checkAction = CHECKACTION.halt;
+            else if (strcmp(p + 13, "context") == 0)
+                params.checkAction = CHECKACTION.context;
             else
                 goto Lerror;
         }
