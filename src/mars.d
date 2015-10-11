@@ -16,7 +16,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 import ddmd.arraytypes;
-import ddmd.backend;
+import ddmd.gluelayer;
 import ddmd.builtin;
 import ddmd.cond;
 import ddmd.dinifile;

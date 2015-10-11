@@ -136,9 +136,8 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) HOST_DC="$(HOST_DC)"
 ############################### Rule Variables ###############################
 
 # D front end
-# mars.obj
-DMD_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d		\
-	arraytypes.d attrib.d backend.d builtin.d canthrow.d clone.d complex.d	\
+FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
+	arraytypes.d attrib.d builtin.d canthrow.d clone.d complex.d		\
 	cond.d constfold.d cppmangle.d ctfeexpr.d dcast.d dclass.d		\
 	declaration.d delegatize.d denum.d dimport.d dinifile.d dinterpret.d	\
 	dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d		\
@@ -148,7 +147,11 @@ DMD_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d		\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
 	traits.d utf.d visitor.d libomf.d scanomf.d typinf.d \
-	libmscoff.d scanmscoff.d irstate.d toctype.d
+	libmscoff.d scanmscoff.d
+
+GLUE_SRCS=irstate.d toctype.d backend.d gluelayer.d
+
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS)
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -188,7 +191,8 @@ GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c tocvdebug.c toir.h toir.c \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c objc_glue_stubs.c objc_glue.c gluestub.d
+	tk.c eh.c objc_glue_stubs.c objc_glue.c \
+	$(GLUE_SRCS)
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -244,7 +248,7 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: debdmd
 
-auto-tester-build: dmd checkwhitespace
+auto-tester-build: dmd checkwhitespace dmd_frontend.exe
 
 dmd: reldmd
 
@@ -271,6 +275,9 @@ backend.lib : $(BACKOBJ)
 	$(LIB) -p512 -n -c backend.lib $(BACKOBJ)
 
 LIBS= glue.lib backend.lib
+
+dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj verstr.h
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) verstr.h
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)

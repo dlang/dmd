@@ -8,32 +8,13 @@
 
 module ddmd.backend;
 
-import ddmd.aggregate;
-import ddmd.dmodule;
-import ddmd.dscope;
-import ddmd.expression;
-import ddmd.lib;
-import ddmd.mtype;
-import ddmd.root.file;
-
 struct Symbol;
 struct code;
 struct block;
 struct Blockx;
 struct elem;
 
-extern extern (C++) void backend_init();
-extern extern (C++) void backend_term();
-extern extern (C++) void obj_start(char* srcfile);
-extern extern (C++) void obj_end(Library library, File* objfile);
-extern extern (C++) void obj_write_deferred(Library library);
-
-extern extern (C++) void genObjFile(Module m, bool multiobj);
-
-extern extern (C++) Symbol* toInitializer(AggregateDeclaration sd);
-
 // type.h
-
 
 alias tym_t = uint;
 alias mangle_t = ubyte;

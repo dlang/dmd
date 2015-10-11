@@ -15,7 +15,7 @@ import ddmd.aliasthis;
 import ddmd.arrayop;
 import ddmd.arraytypes;
 import ddmd.attrib;
-import ddmd.backend;
+import ddmd.gluelayer;
 import ddmd.canthrow;
 import ddmd.clone;
 import ddmd.cond;
@@ -53,8 +53,6 @@ import ddmd.staticassert;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
-
-extern extern (C++) Statement asmSemantic(AsmStatement s, Scope* sc);
 
 extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
 {

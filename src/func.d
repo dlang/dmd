@@ -13,7 +13,7 @@ import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.attrib;
-import ddmd.backend;
+import ddmd.gluelayer;
 import ddmd.builtin;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
@@ -47,8 +47,6 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
-
-extern extern (C++) RET retStyle(TypeFunction tf);
 
 enum ILS : int
 {
