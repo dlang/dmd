@@ -11,7 +11,7 @@ module ddmd.dclass;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
-import ddmd.backend;
+import ddmd.gluelayer;
 import ddmd.clone;
 import ddmd.declaration;
 import ddmd.dmodule;

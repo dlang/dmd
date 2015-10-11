@@ -179,20 +179,20 @@ endif
 endif
 
 
-DMD_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes attrib backend builtin canthrow clone complex cond constfold	\
+FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
+	arraytypes attrib builtin canthrow clone complex cond constfold	\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dunittest dversion entity errors escape expression func	\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor \
-	typinf irstate toelfdebug toctype)
+	typinf)
 
 ifeq ($(D_OBJC),1)
-	DMD_SRCS += objc.d
+	FRONT_SRCS += objc.d
 else
-	DMD_SRCS += objc_stubs.d
+	FRONT_SRCS += objc_stubs.d
 endif
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array file filename	\
@@ -210,10 +210,14 @@ else
 endif
 
 ifeq (osx,$(OS))
-    DMD_SRCS += libmach.d scanmach.d
+    FRONT_SRCS += libmach.d scanmach.d
 else
-    DMD_SRCS += libelf.d scanelf.d
+    FRONT_SRCS += libelf.d scanelf.d
 endif
+
+GLUE_SRCS=$(addsuffix .d,backend irstate toelfdebug toctype gluelayer)
+
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS)
 
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
@@ -285,7 +289,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace
+auto-tester-build: dmd checkwhitespace dmd_frontend
 .PHONY: auto-tester-build
 
 glue.a: $(GLUE_OBJS)
@@ -293,6 +297,9 @@ glue.a: $(GLUE_OBJS)
 
 backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
+
+dmd_frontend: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)

@@ -18,13 +18,12 @@ import ddmd.dstruct;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.gluelayer;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
-
-extern(C++) void objc_initSymbols();
 
 struct ObjcSelector
 {

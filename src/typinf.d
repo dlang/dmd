@@ -15,10 +15,9 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.globals;
+import ddmd.gluelayer;
 import ddmd.mtype;
 import ddmd.visitor;
-
-extern (C++) void toObjFile(Dsymbol ds, bool multiobj);
 
 /****************************************************
  * Get the exact TypeInfo.
