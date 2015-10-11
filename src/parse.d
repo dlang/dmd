@@ -4438,6 +4438,16 @@ public:
                 Token* t = peek(&token);
                 if (t.value == TOKcolon)
                 {
+                    Token* nt = peek(t);
+                    if (nt.value == TOKcolon)
+                    {
+                        // skip ident::
+                        nextToken();
+                        nextToken();
+                        nextToken();
+                        error("use '.' for member lookup, not '::'");
+                        break;
+                    }
                     // It's a label
                     Identifier ident = token.ident;
                     nextToken();
@@ -6477,6 +6487,18 @@ public:
         {
         case TOKidentifier:
             {
+                Token* t1 = peek(&token);
+                Token* t2 = peek(t1);
+                if (t1.value == TOKmin && t2.value == TOKgt)
+                {
+                    // skip ident->
+                    nextToken();
+                    nextToken();
+                    nextToken();
+                    error("use '.' for member lookup, not '->'");
+                    goto Lerr;
+                }
+
                 if (peekNext() == TOKgoesto)
                     goto case_delegate;
                 id = token.ident;
