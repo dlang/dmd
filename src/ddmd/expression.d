@@ -8447,6 +8447,8 @@ extern (C++) final class AssertExp : UnaExp
         {
             printf("AssertExp::semantic('%s')\n", toChars());
         }
+        // save expression as a a string before any semantic expansion
+        auto assertExpMsg = msg ? null : toChars();
 
         if (Expression ex = unaSemantic(sc))
             return ex;
@@ -8461,6 +8463,13 @@ extern (C++) final class AssertExp : UnaExp
             msg = resolveProperties(sc, msg);
             msg = msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             msg = msg.optimize(WANTvalue);
+        }
+        else  // no message - use assert expression as msg
+        {
+            OutBuffer buf;
+            buf.printf("%s failed", assertExpMsg);
+            msg = new StringExp(Loc(), buf.extractString());
+            msg = ensureValidMsg(sc, msg);
         }
 
         if (e1.op == TOKerror)
@@ -8494,6 +8503,16 @@ extern (C++) final class AssertExp : UnaExp
         }
         type = Type.tvoid;
         return this;
+    }
+
+    private Expression ensureValidMsg(Scope* sc, Expression msg)
+    {
+        assert(msg !is null);  // must be present
+        msg = msg.semantic(sc);
+        msg = resolveProperties(sc, msg);
+        msg = msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
+        msg = msg.optimize(WANTvalue);
+        return msg;
     }
 
     override void accept(Visitor v)
