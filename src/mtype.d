@@ -504,8 +504,6 @@ public:
 
     TypeInfoDeclaration vtinfo;     // TypeInfo object for this Type
 
-    type* ctype;                    // for back end
-
     extern (C++) static __gshared Type tvoid;
     extern (C++) static __gshared Type tint8;
     extern (C++) static __gshared Type tuns8;
@@ -1257,7 +1255,6 @@ public:
         t.swto = null;
         t.swcto = null;
         t.vtinfo = null;
-        t.ctype = null;
         if (t.ty == Tstruct)
             (cast(TypeStruct)t).att = RECfwdref;
         if (t.ty == Tclass)
@@ -1429,7 +1426,6 @@ public:
         {
             t = this.nullAttributes();
             t.mod = mod & ~MODshared;
-            t.ctype = ctype;
             t = t.merge();
             t.fixTo(this);
         }

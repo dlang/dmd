@@ -160,8 +160,6 @@ public:
     Type *arrayof;      // array of this type
     TypeInfoDeclaration *vtinfo;        // TypeInfo object for this Type
 
-    type *ctype;        // for back end
-
     static Type *tvoid;
     static Type *tint8;
     static Type *tuns8;

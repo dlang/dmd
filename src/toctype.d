@@ -16,13 +16,16 @@ import ddmd.dstruct;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.mtype;
+import ddmd.root.aav;
 import ddmd.visitor;
 
 extern extern (C++) uint totym(Type tx);
 
 extern (C++) final class ToCtypeVisitor : Visitor
 {
+    __gshared static AA *ctypeMap;
     alias visit = super.visit;
+    type* ctype;
 public:
     extern (D) this()
     {
@@ -30,30 +33,30 @@ public:
 
     override void visit(Type t)
     {
-        t.ctype = type_fake(totym(t));
-        t.ctype.Tcount++;
+        ctype = type_fake(totym(t));
+        ctype.Tcount++;
     }
 
     override void visit(TypeSArray t)
     {
-        t.ctype = type_static_array(t.dim.toInteger(), Type_toCtype(t.next));
+        ctype = type_static_array(t.dim.toInteger(), Type_toCtype(t.next));
     }
 
     override void visit(TypeDArray t)
     {
-        t.ctype = type_dyn_array(Type_toCtype(t.next));
-        t.ctype.Tident = t.toPrettyChars(true);
+        ctype = type_dyn_array(Type_toCtype(t.next));
+        ctype.Tident = t.toPrettyChars(true);
     }
 
     override void visit(TypeAArray t)
     {
-        t.ctype = type_assoc_array(Type_toCtype(t.index), Type_toCtype(t.next));
+        ctype = type_assoc_array(Type_toCtype(t.index), Type_toCtype(t.next));
     }
 
     override void visit(TypePointer t)
     {
         //printf("TypePointer::toCtype() %s\n", t->toChars());
-        t.ctype = type_pointer(Type_toCtype(t.next));
+        ctype = type_pointer(Type_toCtype(t.next));
     }
 
     override void visit(TypeFunction t)
@@ -77,14 +80,14 @@ public:
             }
             ptypes[i] = tp;
         }
-        t.ctype = type_function(totym(t), ptypes, nparams, t.varargs == 1, Type_toCtype(t.next));
+        ctype = type_function(totym(t), ptypes, nparams, t.varargs == 1, Type_toCtype(t.next));
         if (nparams > 10)
             free(ptypes);
     }
 
     override void visit(TypeDelegate t)
     {
-        t.ctype = type_delegate(Type_toCtype(t.next));
+        ctype = type_delegate(Type_toCtype(t.next));
     }
 
     void addMod(Type t)
@@ -96,18 +99,18 @@ public:
         case MODconst:
         case MODwild:
         case MODwildconst:
-            t.ctype.Tty |= mTYconst;
+            ctype.Tty |= mTYconst;
             break;
         case MODshared:
-            t.ctype.Tty |= mTYshared;
+            ctype.Tty |= mTYshared;
             break;
         case MODshared | MODconst:
         case MODshared | MODwild:
         case MODshared | MODwildconst:
-            t.ctype.Tty |= mTYshared | mTYconst;
+            ctype.Tty |= mTYshared | mTYconst;
             break;
         case MODimmutable:
-            t.ctype.Tty |= mTYimmutable;
+            ctype.Tty |= mTYimmutable;
             break;
         default:
             assert(0);
@@ -123,20 +126,22 @@ public:
             StructDeclaration sym = t.sym;
             if (sym.ident == Id.__c_long_double)
             {
-                t.ctype = type_fake(TYdouble);
-                t.ctype.Tcount++;
+                ctype = type_fake(TYdouble);
+                ctype.Tcount++;
                 return;
             }
-            t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0);
+            ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0);
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
             if (global.params.symdebug)
             {
+                setCtype(t, ctype);
+
                 for (size_t i = 0; i < sym.fields.dim; i++)
                 {
                     VarDeclaration v = sym.fields[i];
-                    symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                    symbol_struct_addField(cast(Symbol*)ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
             }
             return;
@@ -144,11 +149,11 @@ public:
 
         // Copy mutable version of backend type and add modifiers
         type* mctype = Type_toCtype(t.castMod(0));
-        t.ctype = type_alloc(tybasic(mctype.Tty));
-        t.ctype.Tcount++;
-        if (t.ctype.Tty == TYstruct)
+        ctype = type_alloc(tybasic(mctype.Tty));
+        ctype.Tcount++;
+        if (ctype.Tty == TYstruct)
         {
-            t.ctype.Ttag = mctype.Ttag; // structure tag name
+            ctype.Ttag = mctype.Ttag; // structure tag name
         }
         addMod(t);
         //printf("t = %p, Tflags = x%x\n", ctype, ctype->Tflags);
@@ -162,15 +167,15 @@ public:
             if (!t.sym.memtype)
             {
                 // Bugzilla 13792
-                t.ctype = Type_toCtype(Type.tvoid);
+                ctype = Type_toCtype(Type.tvoid);
             }
             else if (t.sym.memtype.toBasetype().ty == Tint32)
             {
-                t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
+                ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
             }
             else
             {
-                t.ctype = Type_toCtype(t.sym.memtype);
+                ctype = Type_toCtype(t.sym.memtype);
             }
             return;
         }
@@ -181,15 +186,15 @@ public:
         {
             Classsym* s = mctype.Ttag;
             assert(s);
-            t.ctype = type_alloc(TYenum);
-            t.ctype.Ttag = s; // enum tag name
-            t.ctype.Tcount++;
-            t.ctype.Tnext = mctype.Tnext;
-            t.ctype.Tnext.Tcount++;
+            ctype = type_alloc(TYenum);
+            ctype.Ttag = s; // enum tag name
+            ctype.Tcount++;
+            ctype.Tnext = mctype.Tnext;
+            ctype.Tnext.Tcount++;
             addMod(t);
         }
         else
-            t.ctype = mctype;
+            ctype = mctype;
         //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
     }
 
@@ -197,12 +202,14 @@ public:
     {
         //printf("TypeClass::toCtype() %s\n", toChars());
         type* tc = type_struct_class(t.sym.toPrettyChars(true), t.sym.alignsize, t.sym.structsize, null, null, false, true, true);
-        t.ctype = type_pointer(tc);
+        ctype = type_pointer(tc);
         /* Add in fields of the class
          * (after setting ctype to avoid infinite recursion)
          */
         if (global.params.symdebug)
         {
+            setCtype(t, ctype);
+
             for (size_t i = 0; i < t.sym.fields.dim; i++)
             {
                 VarDeclaration v = t.sym.fields[i];
@@ -210,14 +217,28 @@ public:
             }
         }
     }
+
+    static void setCtype(Type t, type* ctype)
+    {
+        auto pctype = cast(type**)dmd_aaGet(&ctypeMap, cast(void*)t);
+        *pctype = ctype;
+    }
+
+    static type *toCtype(Type t)
+    {
+        auto pctype = cast(type**)dmd_aaGet(&ctypeMap, cast(void*)t);
+
+        if (!*pctype)
+        {
+            scope v = new ToCtypeVisitor();
+            t.accept(v);
+            *pctype = v.ctype;
+        }
+        return *pctype;
+    }
 }
 
 extern (C++) type* Type_toCtype(Type t)
 {
-    if (!t.ctype)
-    {
-        scope ToCtypeVisitor v = new ToCtypeVisitor();
-        t.accept(v);
-    }
-    return t.ctype;
+    return ToCtypeVisitor.toCtype(t);
 }
