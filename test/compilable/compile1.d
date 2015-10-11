@@ -929,3 +929,11 @@ void test15163()
     auto arr = [[0]];
     func15164(arr[0])();
 }
+
+/**************************************************
+    3438
+**************************************************/
+import core.vararg;
+struct S3438_1 { this(int x, int y = 1) { } }
+struct S3438_2 { this(int x, ...) { } }
+struct S3438_3 { this(int x, int[] arr...) { } }
