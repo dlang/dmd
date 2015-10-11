@@ -1475,7 +1475,7 @@ public:
                     nextToken();
                     loc = token.loc; // todo
                     Type spectype = null;
-                    if (isDeclaration(&token, 2, TOKreserved, null))
+                    if (isDeclaration(&token, NeedDeclaratorId.must, TOKreserved, null))
                     {
                         spectype = parseType(&tp_ident);
                     }
@@ -1493,7 +1493,7 @@ public:
                     if (token.value == TOKcolon) // : Type
                     {
                         nextToken();
-                        if (isDeclaration(&token, 0, TOKreserved, null))
+                        if (isDeclaration(&token, NeedDeclaratorId.no, TOKreserved, null))
                             spec = parseType();
                         else
                             spec = parseCondExp();
@@ -1502,7 +1502,7 @@ public:
                     if (token.value == TOKassign) // = Type
                     {
                         nextToken();
-                        if (isDeclaration(&token, 0, TOKreserved, null))
+                        if (isDeclaration(&token, NeedDeclaratorId.no, TOKreserved, null))
                             def = parseType();
                         else
                             def = parseCondExp();
@@ -1748,7 +1748,7 @@ public:
         while (token.value != endtok)
         {
             // See if it is an Expression or a Type
-            if (isDeclaration(&token, 0, TOKreserved, null))
+            if (isDeclaration(&token, NeedDeclaratorId.no, TOKreserved, null))
             {
                 // Template argument is a type
                 Type ta = parseType();
@@ -3364,7 +3364,7 @@ public:
                         nextToken();
                         return t;
                     }
-                    else if (isDeclaration(&token, 0, TOKrbracket, null))
+                    else if (isDeclaration(&token, NeedDeclaratorId.no, TOKrbracket, null))
                     {
                         // This can be one of two things:
                         //  1 - an associative array declaration, T[type]
@@ -3443,7 +3443,7 @@ public:
                     t = new TypeDArray(t); // []
                     nextToken();
                 }
-                else if (isDeclaration(&token, 0, TOKrbracket, null))
+                else if (isDeclaration(&token, NeedDeclaratorId.no, TOKrbracket, null))
                 {
                     // It's an associative array declaration
                     //printf("it's an associative array\n");
@@ -3578,7 +3578,7 @@ public:
                             nextToken();
                             *palt |= 2;
                         }
-                        else if (isDeclaration(&token, 0, TOKrbracket, null))
+                        else if (isDeclaration(&token, NeedDeclaratorId.no, TOKrbracket, null))
                         {
                             // It's an associative array
                             //printf("it's an associative array\n");
@@ -4459,7 +4459,7 @@ public:
             /* Bugzilla 15163: If tokens can be handled as
              * old C-style declaration or D expression, prefer the latter.
              */
-            if (isDeclaration(&token, 3, TOKreserved, null))
+            if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOKreserved, null))
                 goto Ldeclaration;
             else
                 goto Lexp;
@@ -4942,7 +4942,7 @@ public:
                     check(TOKassign);
                     param = new Parameter(storageClass, at, ai, null);
                 }
-                else if (isDeclaration(&token, 2, TOKassign, null))
+                else if (isDeclaration(&token, NeedDeclaratorId.must, TOKassign, null))
                 {
                     Identifier ai;
                     Type at = parseType(&ai);
@@ -5711,17 +5711,22 @@ public:
             error(e.loc, "%s must be parenthesized when next to operator %s", e.toChars(), Token.toChars(value));
     }
 
+    enum NeedDeclaratorId
+    {
+        no,             // Declarator part must have no identifier
+        opt,            // Declarator part identifier is optional
+        must,           // Declarator part must have identifier
+        mustIfDstyle,   // Declarator part must have identifier, but don't recognize old C-style syntax
+    }
+
     /************************************
      * Determine if the scanner is sitting on the start of a declaration.
-     * Input:
-     *      needId  0       no identifier
-     *              1       identifier optional
-     *              2       must have identifier
-     *              3       must have identifier, but don't recognize old C-style syntax.
+     * Params:
+     *      needId
      * Output:
      *      if *pt is not NULL, it is set to the ending token, which would be endtok
      */
-    bool isDeclaration(Token* t, int needId, TOK endtok, Token** pt)
+    bool isDeclaration(Token* t, NeedDeclaratorId needId, TOK endtok, Token** pt)
     {
         //printf("isDeclaration(needId = %d)\n", needId);
         int haveId = 0;
@@ -5744,9 +5749,12 @@ public:
         {
             goto Lisnot;
         }
-        if (!isDeclarator(&t, &haveId, &haveTpl, endtok, needId != 3))
+        if (!isDeclarator(&t, &haveId, &haveTpl, endtok, needId != NeedDeclaratorId.mustIfDstyle))
             goto Lisnot;
-        if (needId == 1 || (needId == 0 && !haveId) || ((needId == 2 || needId == 3) && haveId))
+        if ((needId == NeedDeclaratorId.no && !haveId) ||
+            (needId == NeedDeclaratorId.opt) ||
+            (needId == NeedDeclaratorId.must && haveId) ||
+            (needId == NeedDeclaratorId.mustIfDstyle && haveId))
         {
             if (pt)
                 *pt = t;
@@ -5907,7 +5915,7 @@ public:
             if (t.value != TOKlparen)
                 goto Lfalse;
             t = peek(t);
-            if (!isDeclaration(t, 0, TOKrparen, &t))
+            if (!isDeclaration(t, NeedDeclaratorId.no, TOKrparen, &t))
             {
                 goto Lfalse;
             }
@@ -5947,7 +5955,7 @@ public:
                 {
                     t = peek(t);
                 }
-                else if (isDeclaration(t, 0, TOKrbracket, &t))
+                else if (isDeclaration(t, NeedDeclaratorId.no, TOKrbracket, &t))
                 {
                     // It's an associative array declaration
                     t = peek(t);
@@ -6044,7 +6052,7 @@ public:
                     {
                         t = peek(t);
                     }
-                    else if (isDeclaration(t, 0, TOKrbracket, &t))
+                    else if (isDeclaration(t, NeedDeclaratorId.no, TOKrbracket, &t))
                     {
                         // It's an associative array declaration
                         t = peek(t);
@@ -6165,7 +6173,7 @@ public:
                 if (t.value == TOKlparen)
                 {
                     t = peek(t);
-                    if (!isDeclaration(t, 0, TOKrparen, &t))
+                    if (!isDeclaration(t, NeedDeclaratorId.no, TOKrparen, &t))
                         return false;
                     t = peek(t); // skip past closing ')'
                     goto L2;
@@ -6740,7 +6748,7 @@ public:
                 nextToken();
                 check(TOKlparen, "typeid");
                 RootObject o;
-                if (isDeclaration(&token, 0, TOKreserved, null))
+                if (isDeclaration(&token, NeedDeclaratorId.no, TOKreserved, null))
                 {
                     // argument is a type
                     o = parseType();
@@ -7085,7 +7093,7 @@ public:
                 static if (CCASTSYNTAX)
                 {
                     // If cast
-                    if (isDeclaration(tk, 0, TOKrparen, &tk))
+                    if (isDeclaration(tk, NeedDeclaratorId.no, TOKrparen, &tk))
                     {
                         tk = peek(tk); // skip over right parenthesis
                         switch (tk.value)
