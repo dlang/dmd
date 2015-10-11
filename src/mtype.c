@@ -2754,7 +2754,7 @@ int Type::covariant(Type *t)
             return 3;   // forward references
         }
     }
-    if (t1n->implicitConvTo(t2n))
+    if (t1n->ty == t2n->ty && t1n->implicitConvTo(t2n))
         goto Lcovariant;
 
     goto Lnotcovariant;
