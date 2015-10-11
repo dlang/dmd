@@ -7168,35 +7168,7 @@ public:
                 *pt = Type.terror;
                 return;
             }
-            if (t != this)
-            {
-                if (reliesOnTident(t))
-                {
-                    if (s._scope)
-                        t = t.semantic(loc, s._scope);
-                    else
-                    {
-                        /* Attempt to find correct scope in which to evaluate t.
-                         * Not sure if this is right or not, or if we should just
-                         * give forward reference error if s->scope is not set.
-                         */
-                        for (Scope* scx = sc; 1; scx = scx.enclosing)
-                        {
-                            if (!scx)
-                            {
-                                error(loc, "forward reference to '%s'", t.toChars());
-                                *pt = Type.terror;
-                                return;
-                            }
-                            if (scx.scopesym == scopesym)
-                            {
-                                t = t.semantic(loc, scx);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+
             if (t.ty == Ttuple)
                 *pt = t;
             else
