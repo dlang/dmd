@@ -4045,6 +4045,34 @@ bool bug9170()
 static assert(bug9170());
 
 /**************************************************
+    9937 Excess float precision shouldn't pass from CTFE to runtime
+**************************************************/
+
+const float bug9937a = float.max*2;
+const float bug9937b = float.infinity;
+static assert(bug9937a == bug9937b);
+
+const double bug9937c = double.max*2;
+const double bug9937d = double.infinity;
+static assert(bug9937c == bug9937d);
+
+const idouble bug9937e = double.max*2i;
+const idouble bug9937f = idouble.infinity;
+static assert(bug9937e == bug9937f);
+static assert(bug9937e.im == double.infinity);
+
+const cfloat bug9937g = float.max*-2 + double.max*2i;
+const cfloat bug9937h = -float.infinity + ifloat.infinity;
+static assert(bug9937g == bug9937h);
+
+const cdouble bug9937i = idouble.max*-2i + idouble.max*2;
+const cdouble bug9937j = double.infinity + idouble.infinity;
+static assert(bug9937i == bug9937j);
+
+static const real[1] bug9937k = [3.3];
+static assert(bug9937k[0] == 3.3L);
+
+/**************************************************
     6792 ICE with pointer cast of indexed array
 **************************************************/
 
