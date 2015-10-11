@@ -4371,6 +4371,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AssertExp::semantic('%s')\n", exp.toChars());
         }
 
+        // save expression as a a string before any semantic expansion
+        auto assertExpMsg = exp.msg ? null : exp.toChars();
+
         if (Expression ex = unaSemantic(exp, sc))
         {
             result = ex;
@@ -4387,6 +4390,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.msg = resolveProperties(sc, exp.msg);
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);
+        }
+        else  // no message - use assert expression as msg
+        {
+            OutBuffer buf;
+            buf.printf("%s failed", assertExpMsg);
+            Loc loc;
+            exp.msg = new StringExp(loc, buf.extractString());
+            exp.msg = ensureValidMsg(sc, exp.msg);
         }
 
         if (exp.e1.op == TOK.error)
@@ -4424,6 +4435,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         exp.type = Type.tvoid;
         result = exp;
+    }
+
+    private Expression ensureValidMsg(Scope* sc, Expression msg)
+    {
+        assert(msg !is null);  // must be present
+        msg = expressionSemantic(msg, sc);
+        msg = resolveProperties(sc, msg);
+        msg = msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
+        msg = msg.optimize(WANTvalue);
+        return msg;
     }
 
     override void visit(DotIdExp exp)

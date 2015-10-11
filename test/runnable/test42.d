@@ -6062,6 +6062,35 @@ void test14510()
     fun14510(vec);
 }
 
+void test8765()
+{
+    try
+    {
+        int a = 0;
+        assert(a == 1);
+    }
+    catch (Throwable e)
+    {
+        // no-message -> assert expression
+        assert(e.msg == "assert(a == 1) failed");
+    }
+}
+
+void test9255()
+{
+    try
+    {
+        int x = 0;
+        assert(x == 1);
+    }
+    catch (Throwable e)
+    {
+        version(Windows)
+            assert(e.file == r"runnable\test42.d");
+        else
+            assert(e.file == "runnable/test42.d");
+    }
+}
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=16027
 
@@ -6406,6 +6435,7 @@ int main()
     test246();
     test8454();
     test8423();
+    test8765();
     test8496();
     test8840();
     test8889();
@@ -6417,6 +6447,7 @@ int main()
     test8796();
     test9171();
     test9248();
+    test9255();
     test14682a();
     test14682b();
     test9739();
