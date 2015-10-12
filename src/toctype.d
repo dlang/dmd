@@ -87,45 +87,39 @@ public:
         t.ctype = type_delegate(Type_toCtype(t.next));
     }
 
+    void addMod(Type t)
+    {
+        switch (t.mod)
+        {
+        case 0:
+            assert(0);
+        case MODconst:
+        case MODwild:
+        case MODwildconst:
+            t.ctype.Tty |= mTYconst;
+            break;
+        case MODshared:
+            t.ctype.Tty |= mTYshared;
+            break;
+        case MODshared | MODconst:
+        case MODshared | MODwild:
+        case MODshared | MODwildconst:
+            t.ctype.Tty |= mTYshared | mTYconst;
+            break;
+        case MODimmutable:
+            t.ctype.Tty |= mTYimmutable;
+            break;
+        default:
+            assert(0);
+        }
+    }
+
     override void visit(TypeStruct t)
     {
         //printf("TypeStruct::toCtype() '%s'\n", t->sym->toChars());
-        Type tm = t.mutableOf();
-        if (tm.ctype)
+        if (t.mod == 0)
         {
-            t.ctype = type_alloc(tybasic(tm.ctype.Tty));
-            t.ctype.Tcount++;
-            if (t.ctype.Tty == TYstruct)
-            {
-                t.ctype.Ttag = tm.ctype.Ttag; // structure tag name
-            }
-            // Add modifiers
-            switch (t.mod)
-            {
-            case 0:
-                assert(0);
-            case MODconst:
-            case MODwild:
-            case MODwildconst:
-                t.ctype.Tty |= mTYconst;
-                break;
-            case MODshared:
-                t.ctype.Tty |= mTYshared;
-                break;
-            case MODshared | MODconst:
-            case MODshared | MODwild:
-            case MODshared | MODwildconst:
-                t.ctype.Tty |= mTYshared | mTYconst;
-                break;
-            case MODimmutable:
-                t.ctype.Tty |= mTYimmutable;
-                break;
-            default:
-                assert(0);
-            }
-        }
-        else
-        {
+            // Create a new backend type
             StructDeclaration sym = t.sym;
             if (sym.ident == Id.__c_long_double)
             {
@@ -134,7 +128,6 @@ public:
                 return;
             }
             t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0);
-            tm.ctype = t.ctype;
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
@@ -146,62 +139,57 @@ public:
                     symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
             }
+            return;
         }
+
+        // Copy mutable version of backend type and add modifiers
+        type* mctype = Type_toCtype(t.castMod(0));
+        t.ctype = type_alloc(tybasic(mctype.Tty));
+        t.ctype.Tcount++;
+        if (t.ctype.Tty == TYstruct)
+        {
+            t.ctype.Ttag = mctype.Ttag; // structure tag name
+        }
+        addMod(t);
         //printf("t = %p, Tflags = x%x\n", ctype, ctype->Tflags);
     }
 
     override void visit(TypeEnum t)
     {
         //printf("TypeEnum::toCtype() '%s'\n", t->sym->toChars());
-        Type tm = t.mutableOf();
-        if (tm.ctype && tybasic(tm.ctype.Tty) == TYenum)
+        if (t.mod == 0)
         {
-            Classsym* s = tm.ctype.Ttag;
+            if (!t.sym.memtype)
+            {
+                // Bugzilla 13792
+                t.ctype = Type_toCtype(Type.tvoid);
+            }
+            else if (t.sym.memtype.toBasetype().ty == Tint32)
+            {
+                t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
+            }
+            else
+            {
+                t.ctype = Type_toCtype(t.sym.memtype);
+            }
+            return;
+        }
+
+        // Copy mutable version of backend type and add modifiers
+        type* mctype = Type_toCtype(t.castMod(0));
+        if (tybasic(mctype.Tty) == TYenum)
+        {
+            Classsym* s = mctype.Ttag;
             assert(s);
             t.ctype = type_alloc(TYenum);
             t.ctype.Ttag = s; // enum tag name
             t.ctype.Tcount++;
-            t.ctype.Tnext = tm.ctype.Tnext;
+            t.ctype.Tnext = mctype.Tnext;
             t.ctype.Tnext.Tcount++;
-            // Add modifiers
-            switch (t.mod)
-            {
-            case 0:
-                assert(0);
-            case MODconst:
-            case MODwild:
-            case MODwildconst:
-                t.ctype.Tty |= mTYconst;
-                break;
-            case MODshared:
-                t.ctype.Tty |= mTYshared;
-                break;
-            case MODshared | MODconst:
-            case MODshared | MODwild:
-            case MODshared | MODwildconst:
-                t.ctype.Tty |= mTYshared | mTYconst;
-                break;
-            case MODimmutable:
-                t.ctype.Tty |= mTYimmutable;
-                break;
-            default:
-                assert(0);
-            }
-        }
-        else if (!t.sym.memtype)
-        {
-            // Bugzilla 13792
-            t.ctype = Type_toCtype(Type.tvoid);
-        }
-        else if (t.sym.memtype.toBasetype().ty == Tint32)
-        {
-            t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
-            tm.ctype = t.ctype;
+            addMod(t);
         }
         else
-        {
-            t.ctype = Type_toCtype(t.sym.memtype);
-        }
+            t.ctype = mctype;
         //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
     }
 
