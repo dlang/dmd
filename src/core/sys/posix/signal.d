@@ -149,7 +149,12 @@ else version( linux )
         return sig;
     }
 }
-// Note: it appears that FreeBSD/OSX do not support realtime signals
+else version (FreeBSD) {
+    // https://github.com/freebsd/freebsd/blob/e79c62ff68fc74d88cb6f479859f6fae9baa5101/sys/sys/signal.h#L117
+    enum SIGRTMIN = 65;
+    enum SIGRTMAX = 126;
+}
+// Note: it appears that FreeBSD (prior to 7) and OSX do not support realtime signals
 
 version( linux )
 {
