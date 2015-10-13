@@ -1070,6 +1070,60 @@ void test11774()
 }
 
 /***************************************************/
+// 12421
+
+void test12421()
+{
+    void test(string decl, bool polymorphic = true)()
+    {
+        // parse AliasDeclaration in Statement
+        mixin("alias f = " ~ decl ~ ";");
+        assert(f(1) == 1);
+      static if (polymorphic)
+        assert(f("s") == "s");
+
+        // parse AliasDeclaration in DeclDefs
+        mixin("template X() { alias g = " ~ decl ~ "; }");
+        alias g = X!().g;
+        assert(g(1) == 1);
+      static if (polymorphic)
+        assert(g("s") == "s");
+    }
+
+    test!(q{      x  => x });
+    test!(q{ (    x) => x });
+    test!(q{ (int x) => x }, false);
+
+    test!(q{ (    x){ return x; } });
+    test!(q{ (int x){ return x; } }, false);
+
+    test!(q{ function     (    x) => x });
+    test!(q{ function     (int x) => x }, false);
+    test!(q{ function int (    x) => x }, false);
+    test!(q{ function int (int x) => x }, false);
+
+    test!(q{ delegate     (    x) => x });
+    test!(q{ delegate     (int x) => x }, false);
+    test!(q{ delegate int (    x) => x }, false);
+    test!(q{ delegate int (int x) => x }, false);
+
+    test!(q{ function     (    x){ return x; } });
+    test!(q{ function     (int x){ return x; } }, false);
+    test!(q{ function int (    x){ return x; } }, false);
+    test!(q{ function int (int x){ return x; } }, false);
+
+    test!(q{ delegate     (    x){ return x; } });
+    test!(q{ delegate     (int x){ return x; } }, false);
+    test!(q{ delegate int (    x){ return x; } }, false);
+    test!(q{ delegate int (int x){ return x; } }, false);
+
+    // This is problematic case, and should be disallowed in the future.
+    alias f = x => y;
+    int y = 10;
+    assert(f(1) == 10);;
+}
+
+/***************************************************/
 // 12508
 
 interface A12508(T)
@@ -1193,6 +1247,7 @@ int main()
     test10928();
     test11661();
     test11774();
+    test12421();
     test12508();
     test13879();
     test14745();

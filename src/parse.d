@@ -3865,16 +3865,45 @@ public:
                     if (token.value == TOKlparen)
                         tpl = parseTemplateParameterList();
                     check(TOKassign);
-                    storage_class = STCundefined;
-                    link = linkage;
-                    structalign = 0;
-                    udas = null;
-                    parseStorageClasses(storage_class, link, structalign, udas);
-                    if (udas)
-                        error("user defined attributes not allowed for %s declarations", Token.toChars(tok));
-                    t = parseType();
-                    Declaration v = new AliasDeclaration(loc, ident, t);
+
+                    Declaration v;
+                    if (token.value == TOKfunction ||
+                        token.value == TOKdelegate ||
+                        token.value == TOKlparen &&
+                            skipAttributes(peekPastParen(&token), &tk) &&
+                            (tk.value == TOKgoesto || tk.value == TOKlcurly) ||
+                        token.value == TOKlcurly ||
+                        token.value == TOKidentifier && peekNext() == TOKgoesto
+                       )
+                    {
+                        // function (parameters) { statements... }
+                        // delegate (parameters) { statements... }
+                        // (parameters) { statements... }
+                        // (parameters) => expression
+                        // { statements... }
+                        // identifier => expression
+
+                        Dsymbol s = parseFunctionLiteral();
+                        v = new AliasDeclaration(loc, ident, s);
+                    }
+                    else
+                    {
+                        // StorageClasses type
+
+                        storage_class = STCundefined;
+                        link = linkage;
+                        structalign = 0;
+                        udas = null;
+                        parseStorageClasses(storage_class, link, structalign, udas);
+
+                        if (udas)
+                            error("user defined attributes not allowed for %s declarations", Token.toChars(tok));
+
+                        t = parseType();
+                        v = new AliasDeclaration(loc, ident, t);
+                    }
                     v.storage_class = storage_class;
+
                     Dsymbol s = v;
                     if (tpl)
                     {
@@ -3890,6 +3919,7 @@ public:
                         s = new LinkDeclaration(link, a2);
                     }
                     a.push(s);
+
                     switch (token.value)
                     {
                     case TOKsemicolon:
@@ -3919,6 +3949,7 @@ public:
                 }
                 return a;
             }
+
             // alias StorageClasses type ident;
         }
         else if (token.value == TOKtypedef)
