@@ -2,8 +2,8 @@ LIBRARY odbc32
 EXETYPE NT
 SUBSYSTEM WINDOWS
 EXPORTS
-_SQLAllocEnv@4 = SQLAllocEnv
 _SQLAllocConnect@8 = SQLAllocConnect
+_SQLAllocEnv@4 = SQLAllocEnv
 _SQLAllocHandle@12 = SQLAllocHandle
 _SQLColAttribute@28 = SQLColAttribute
 _SQLConnect@28 = SQLConnect
