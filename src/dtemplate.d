@@ -7334,8 +7334,8 @@ public:
         }
         //printf("%s->appendToModuleMember() enclosing = %s mi = %s\n",
         //    toPrettyChars(),
-        //    enclosing ? enclosing.toPrettyChars() : NULL,
-        //    mi ? mi.toPrettyChars() : NULL);
+        //    enclosing ? enclosing.toPrettyChars() : null,
+        //    mi ? mi.toPrettyChars() : null);
         if (!mi || mi.isRoot())
         {
             /* If the instantiated module is speculative or root, insert to the
