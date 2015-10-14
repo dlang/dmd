@@ -14,7 +14,7 @@ version (Windows):
 
 import core.sys.windows.windows;
 
-alias CHAR TCHAR;
+public import core.sys.windows.winnt : TCHAR;
 
 /*
 enum ADDRESS_MODE : DWORD
