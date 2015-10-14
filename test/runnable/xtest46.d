@@ -7677,6 +7677,24 @@ template isCustomSerializable15126(T)
 alias bug15126 = isCustomSerializable15126!Json15126;
 
 /***************************************************/
+// 15141
+
+class A15141
+{
+    abstract void method();
+}
+
+class B15141 : A15141 { }
+
+void test15141()
+{
+    auto a = Object.factory(__MODULE__ ~ ".A15141");
+    assert(a is null);
+    auto b = Object.factory(__MODULE__ ~ ".B15141");
+    assert(b is null); // OK <- oops
+}
+
+/***************************************************/
 
 int main()
 {
@@ -7989,6 +8007,7 @@ int main()
     test13952();
     test13985();
     test14211();
+    test15141();
 
     printf("Success\n");
     return 0;
