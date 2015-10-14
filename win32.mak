@@ -21,7 +21,7 @@ GCSTUB=lib\gcstub.obj
 
 DOCFMT=
 
-target : import copydir copy implibs $(DRUNTIME) $(GCSTUB)
+target : import copydir copy $(DRUNTIME) $(GCSTUB)
 
 $(mak\COPY)
 $(mak\DOCS)
