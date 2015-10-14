@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS:=stderr_msg unittest_assert
+TESTS:=stderr_msg unittest_assert invalid_memory_operation
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS:=$(TESTS) line_trace
 endif
@@ -14,26 +14,19 @@ SED:=sed
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
-$(ROOT)/%.done: $(ROOT)/%
-	@echo Testing $*
-	$(QUIET)$(ROOT)/$* $(RUN_ARGS)
-	@touch $@
-
-$(ROOT)/stderr_msg.done: $(ROOT)/stderr_msg
-	@echo Testing stderr_msg
-	$(QUIET)./$(ROOT)/stderr_msg $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF "stderr_msg msg"
-	@touch $@
-
-$(ROOT)/unittest_assert.done: $(ROOT)/unittest_assert
-	@echo Testing unittest_assert
-	$(QUIET)./$(ROOT)/unittest_assert $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF "unittest_assert msg"
-	@touch $@
-
 $(ROOT)/line_trace.done: $(ROOT)/line_trace
 	@echo Testing line_trace
-	@rm -f $(ROOT)/line_trace.output
-	$(QUIET)./$(ROOT)/line_trace $(RUN_ARGS) > $(ROOT)/line_trace.output
+	$(QUIET)$(ROOT)/line_trace $(RUN_ARGS) > $(ROOT)/line_trace.output
 	$(QUIET)$(SED) "s/\[0x[0-9a-f]*\]/\[ADDR\]/g" $(ROOT)/line_trace.output | $(DIFF) line_trace.exp -
+	@rm -f $(ROOT)/line_trace.output
+	@touch $@
+
+$(ROOT)/stderr_msg.done: STDERR_EXP="stderr_msg msg"
+$(ROOT)/unittest_assert.done: STDERR_EXP="unittest_assert msg"
+$(ROOT)/invalid_memory_operation.done: STDERR_EXP="InvalidMemoryOperationError"
+$(ROOT)/%.done: $(ROOT)/%
+	@echo Testing $*
+	$(QUIET)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
 	@touch $@
 
 $(ROOT)/unittest_assert: DFLAGS+=-unittest

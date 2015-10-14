@@ -2571,16 +2571,13 @@ unittest
         import core.exception;
         static class C1
         {
-            // preallocate to not call new in destructor
-            __gshared E exc = new E("test onFinalizeError");
-            ~this()
-            {
-                throw exc;
-            }
+            E exc;
+            this(E exc) { this.exc = exc; }
+            ~this() { throw exc; }
         }
 
         bool caught = false;
-        C1 c = new C1;
+        C1 c = new C1(new E("test onFinalizeError"));
         try
         {
             GC.runFinalizers((cast(uint*)&C1.__dtor)[0..1]);
@@ -2613,16 +2610,12 @@ unittest
         import core.exception;
         static struct S1
         {
-            // preallocate to not call new in destructor
-            __gshared E exc = new E("test onFinalizeError");
-            ~this()
-            {
-                throw exc;
-            }
+            E exc;
+            ~this() { throw exc; }
         }
 
         bool caught = false;
-        S1* s = new S1;
+        S1* s = new S1(new E("test onFinalizeError"));
         try
         {
             GC.runFinalizers((cast(char*)(typeid(S1).xdtor))[0..1]);
