@@ -137,7 +137,7 @@ private
         // Declared as an extern instead of importing core.exception
         // to avoid inlining - see issue 13725.
         void onInvalidMemoryOperationError() nothrow;
-        void onOutOfMemoryError() nothrow;
+        void onOutOfMemoryErrorNoGC() @nogc nothrow;
     }
 
     enum
@@ -199,14 +199,14 @@ debug (LOGGING)
                 {
                     data = cast(Log*)cstdlib.malloc(allocdim * Log.sizeof);
                     if (!data && allocdim)
-                        onOutOfMemoryError();
+                        onOutOfMemoryErrorNoGC();
                 }
                 else
                 {   Log *newdata;
 
                     newdata = cast(Log*)cstdlib.malloc(allocdim * Log.sizeof);
                     if (!newdata && allocdim)
-                        onOutOfMemoryError();
+                        onOutOfMemoryErrorNoGC();
                     memcpy(newdata, data, dim * Log.sizeof);
                     cstdlib.free(data);
                     data = newdata;
@@ -296,7 +296,7 @@ struct GC
         gcLock.__ctor();
         gcx = cast(Gcx*)cstdlib.calloc(1, Gcx.sizeof);
         if (!gcx)
-            onOutOfMemoryError();
+            onOutOfMemoryErrorNoGC();
         gcx.initialize();
 
         if (config.initReserve)
@@ -526,7 +526,7 @@ struct GC
 
         auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits);
         if (!p)
-            onOutOfMemoryError();
+            onOutOfMemoryErrorNoGC();
 
         debug (SENTINEL)
         {
@@ -1805,7 +1805,7 @@ struct Gcx
             // tryAlloc will succeed if a new pool was allocated above, if it fails allocate a new pool now
             if (!tryAlloc() && (!newPool(1, false) || !tryAlloc()))
                 // out of luck or memory
-                onOutOfMemoryError();
+                onOutOfMemoryErrorNoGC();
         }
         assert(p !is null);
 
@@ -2021,7 +2021,7 @@ struct Gcx
             enum initSize = 64 * 1024; // Windows VirtualAlloc granularity
             immutable ncap = _cap ? 2 * _cap : initSize / Range.sizeof;
             auto p = cast(Range*)os_mem_map(ncap * Range.sizeof);
-            if (p is null) onOutOfMemoryError();
+            if (p is null) onOutOfMemoryErrorNoGC();
             if (_p !is null)
             {
                 p[0 .. _length] = _p[0 .. _length];
@@ -2722,13 +2722,13 @@ struct Pool
 
         pagetable = cast(ubyte*)cstdlib.malloc(npages);
         if (!pagetable)
-            onOutOfMemoryError();
+            onOutOfMemoryErrorNoGC();
 
         if(isLargeObject)
         {
             bPageOffsets = cast(uint*)cstdlib.malloc(npages * uint.sizeof);
             if (!bPageOffsets)
-                onOutOfMemoryError();
+                onOutOfMemoryErrorNoGC();
         }
 
         memset(pagetable, B_FREE, npages);

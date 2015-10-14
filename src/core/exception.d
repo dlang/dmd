@@ -130,6 +130,7 @@ class FinalizeError : Error
     this( TypeInfo ci, string file = __FILE__, size_t line = __LINE__, Throwable next = null ) @safe pure nothrow @nogc
     {
         super( "Finalization error", file, line, next );
+        super.info = SuppressTraceInfo.instance;
         info = ci;
     }
 
@@ -214,7 +215,14 @@ class OutOfMemoryError : Error
 {
     this(string file = __FILE__, size_t line = __LINE__, Throwable next = null ) @safe pure nothrow @nogc
     {
-        super( "Memory allocation failed", file, line, next );
+        this(true, file, line, next);
+    }
+
+    this(bool trace, string file = __FILE__, size_t line = __LINE__, Throwable next = null ) @safe pure nothrow @nogc
+    {
+        super("Memory allocation failed", file, line, next);
+        if (!trace)
+            this.info = SuppressTraceInfo.instance;
     }
 
     override string toString() const @trusted
@@ -256,6 +264,7 @@ class InvalidMemoryOperationError : Error
     this(string file = __FILE__, size_t line = __LINE__, Throwable next = null ) @safe pure nothrow @nogc
     {
         super( "Invalid memory operation", file, line, next );
+        this.info = SuppressTraceInfo.instance;
     }
 
     override string toString() const @trusted
@@ -519,6 +528,12 @@ extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure
     throw staticError!OutOfMemoryError();
 }
 
+extern (C) void onOutOfMemoryErrorNoGC() @trusted nothrow @nogc
+{
+    // suppress stacktrace until they are @nogc
+    throw staticError!OutOfMemoryError(false);
+}
+
 
 /**
  * A callback for invalid memory operations in D.  An
@@ -663,4 +678,18 @@ private T staticError(T, Args...)(auto ref Args args)
     auto res = (cast(T function() @trusted pure nothrow @nogc) &get)();
     res.__ctor(args);
     return res;
+}
+
+// Suppress traceinfo generation when the GC cannot be used.  Workaround for
+// Bugzilla 14993. We should make stack traces @nogc instead.
+private class SuppressTraceInfo : Throwable.TraceInfo
+{
+    override int opApply(scope int delegate(ref const(char[]))) const { return 0; }
+    override int opApply(scope int delegate(ref size_t, ref const(char[]))) const { return 0; }
+    override string toString() const { return null; }
+    static SuppressTraceInfo instance() @trusted @nogc pure nothrow
+    {
+        static immutable SuppressTraceInfo it = new SuppressTraceInfo;
+        return cast(SuppressTraceInfo)it;
+    }
 }
