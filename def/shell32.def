@@ -2,7 +2,7 @@ LIBRARY shell32
 EXETYPE NT
 SUBSYSTEM WINDOWS
 EXPORTS
-_CDefFolderMenu_Create2@36 = CDefFolderMenu_Create
+_CDefFolderMenu_Create2@36 = CDefFolderMenu_Create2
 _CDefFolderMenu_Create@36 = CDefFolderMenu_Create
 _CallCPLEntry16@24 = CallCPLEntry16
 _CheckEscapesA@8 = CheckEscapesA
@@ -247,6 +247,34 @@ _Shell_NotifyIcon@8 = Shell_NotifyIcon
 _Shell_NotifyIconA@8 = Shell_NotifyIconA
 _Shell_NotifyIconW@8 = Shell_NotifyIconW
 _SignalFileOpen@4 = SignalFileOpen
+_StrChrA@8 = StrChrA
+_StrChrIA@8 = StrChrIA
+_StrChrIW@8 = StrChrIW
+_StrChrW@8 = StrChrW
+_StrCmpNA@12 = StrCmpNA
+_StrCmpNIA@12 = StrCmpNIA
+_StrCmpNIW@12 = StrCmpNIW
+_StrCmpNW@12 = StrCmpNW
+_StrCpyNA@12 = StrCpyNA
+_StrCpyNW@12 = StrCpyNW
+_StrNCmpA@12 = StrNCmpA
+_StrNCmpIA@12 = StrNCmpIA
+_StrNCmpIW@12 = StrNCmpIW
+_StrNCmpW@12 = StrNCmpW
+_StrNCpyA@12 = StrNCpyA
+_StrNCpyW@12 = StrNCpyW
+_StrRChrA@12 = StrRChrA
+_StrRChrIA@12 = StrRChrIA
+_StrRChrIW@12 = StrRChrIW
+_StrRChrW@12 = StrRChrW
+_StrRStrA@12 = StrRStrA
+_StrRStrIA@12 = StrRStrIA
+_StrRStrIW@12 = StrRStrIW
+_StrRStrW@12 = StrRStrW
+_StrStrA@8 = StrStrA
+_StrStrIA@8 = StrStrIA
+_StrStrIW@8 = StrStrIW
+_StrStrW@8 = StrStrW
 _WOWShellExecute@28 = WOWShellExecute
 _Win32DeleteFile@4 = Win32DeleteFile
 _WriteCabinetState@4 = WriteCabinetState
