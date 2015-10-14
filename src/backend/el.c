@@ -623,6 +623,22 @@ elem * el_same(elem **pe)
     return el_copytree(e);
 }
 
+/*************************
+ * Thin wrapper of exp2_copytotemp. Different from el_same,
+ * always makes a temporary.
+ */
+elem *el_copytotmp(elem **pe)
+{
+    //printf("copytotemp()\n");
+    elem *e = *pe;
+    if (e)
+    {
+        *pe = exp2_copytotemp(e);
+        e = (*pe)->E2;
+    }
+    return el_copytree(e);
+}
+
 /**************************
  * Replace symbol s1 with s2 in tree.
  */
