@@ -21,7 +21,7 @@ GCSTUB=lib\gcstub.obj
 
 DOCFMT=
 
-target : import copydir copy $(DRUNTIME) $(GCSTUB)
+target : import copydir copy implibs $(DRUNTIME) $(GCSTUB)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -1119,6 +1119,44 @@ $(IMPDIR)\core\sys\windows\wtypes.d : src\core\sys\windows\wtypes.d
 
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
 	copy $** $@
+
+################### Win32 Import Libraries ###################
+
+IMPLIBS= \
+	lib\win32\glu32.lib \
+	lib\win32\odbc32.lib \
+	lib\win32\opengl32.lib \
+	lib\win32\rpcrt4.lib \
+	lib\win32\shell32.lib \
+	lib\win32\version.lib \
+	lib\win32\wininet.lib \
+	lib\win32\winspool.lib
+
+implibs : $(IMPLIBS)
+
+lib\win32\glu32.lib : def\glu32.def
+	implib $@ $**
+
+lib\win32\odbc32.lib : def\odbc32.def
+	implib $@ $**
+
+lib\win32\opengl32.lib : def\opengl32.def
+	implib $@ $**
+
+lib\win32\rpcrt4.lib : def\rpcrt4.def
+	implib $@ $**
+
+lib\win32\shell32.lib : def\shell32.def
+	implib $@ $**
+
+lib\win32\version.lib : def\version.def
+	implib $@ $**
+
+lib\win32\wininet.lib : def\wininet.def
+	implib $@ $**
+
+lib\win32\winspool.lib : def\winspool.def
+	implib $@ $**
 
 ################### C\ASM Targets ############################
 
