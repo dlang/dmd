@@ -1984,14 +1984,6 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
     }
     scope ids = new InlineDoState(parent, fd);
 
-    // When the function is actually expanded
-    if (TemplateInstance ti = fd.isInstantiated())
-    {
-        // change ti to non-speculative root instance
-        if (!ti.minst)
-            ti.minst = ti.tempdecl.getModule().importedFrom;
-    }
-
     if (asStatements)
         as = new Statements();
     VarDeclaration vret = null;
