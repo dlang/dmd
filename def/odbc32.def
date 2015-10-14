@@ -1,0 +1,21 @@
+LIBRARY odbc32
+EXETYPE NT
+SUBSYSTEM WINDOWS
+EXPORTS
+_SQLAllocEnv@4 = SQLAllocEnv
+_SQLAllocConnect@8 = SQLAllocConnect
+_SQLAllocHandle@12 = SQLAllocHandle
+_SQLColAttribute@28 = SQLColAttribute
+_SQLConnect@28 = SQLConnect
+_SQLDisconnect@4 = SQLDisconnect
+_SQLDriverConnect@32 = SQLDriverConnect
+_SQLExecDirect@16 = SQLExecDirect
+_SQLFetch@4 = SQLFetch
+_SQLFreeConnect@4 = SQLFreeConnect
+_SQLFreeEnv@4 = SQLFreeEnv
+_SQLFreeStmt@8 = SQLFreeStmt
+_SQLGetData@28 = SQLGetData
+_SQLGetInfo@20 = SQLGetInfo
+_SQLNumResultCols@8 = SQLNumResultCols
+_SQLSetConnectOption@12 = SQLSetConnectOption
+_SQLSetStmtOption@12 = SQLSetStmtOption
