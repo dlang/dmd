@@ -1,0 +1,12 @@
+etc.c.curl.LONG
+
+etc.c.odbc.sql
+etc.c.odbc.sqltypes
+etc.c.odbc.sqlext
+etc.c.odbc.sqlucode
+
+std.concurrency.MessageBox
+
+std.uuid
+
+std.windows.registry.REGSAM
