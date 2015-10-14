@@ -1,5 +1,6 @@
-LIBRARY     GLU32
-
+LIBRARY GLU32
+EXETYPE NT
+SUBSYSTEM WINDOWS
 EXPORTS
     _gluBeginCurve@4                = gluBeginCurve                       ; gluBeginCurve
     _gluBeginPolygon@4              = gluBeginPolygon                     ; gluBeginPolygon

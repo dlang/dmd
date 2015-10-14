@@ -1,5 +1,6 @@
-LIBRARY     OPENGL32
-
+LIBRARY OPENGL32
+EXETYPE NT
+SUBSYSTEM WINDOWS
 EXPORTS
 ;    _GlmfBeginGlsBlock@4            = GlmfBeginGlsBlock                    GlmfBeginGlsBlock
 ;    _GlmfCloseMetaFile@4            = GlmfCloseMetaFile                    GlmfCloseMetaFile
