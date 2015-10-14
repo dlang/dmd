@@ -101,10 +101,12 @@ struct CacheInfo
     /// data size is much greater than code size for critical loops).
     size_t size;
     /// Number of ways of associativity, eg:
-    /// 1 = direct mapped
-    /// 2 = 2-way set associative
-    /// 3 = 3-way set associative
-    /// ubyte.max = fully associative
+    /// $(UL
+    /// $(LI 1 = direct mapped)
+    /// $(LI 2 = 2-way set associative)
+    /// $(LI 3 = 3-way set associative)
+    /// $(LI ubyte.max = fully associative)
+    /// )
     ubyte associativity;
     /// Number of bytes read into the cache when a cache miss occurs.
     uint lineSize;
@@ -219,18 +221,22 @@ public:
     ///
     /// The major 32-bit x86 microarchitecture 'dynasties' have been:
     ///
-    /// * Intel P6 (PentiumPro, PII, PIII, PM, Core, Core2).
-    /// * AMD Athlon (K7, K8, K10).
-    /// * Intel NetBurst (Pentium 4, Pentium D).
-    /// * In-order Pentium (Pentium1, PMMX, Atom)
+    /// $(UL
+    /// $(LI Intel P6 (PentiumPro, PII, PIII, PM, Core, Core2). )
+    /// $(LI AMD Athlon (K7, K8, K10). )
+    /// $(LI Intel NetBurst (Pentium 4, Pentium D). )
+    /// $(LI In-order Pentium (Pentium1, PMMX, Atom) )
+    /// )
     ///
     /// Other early CPUs (Nx586, AMD K5, K6, Centaur C3, Transmeta,
     /// Cyrix, Rise) were mostly in-order.
     ///
     /// Some new processors do not fit into the existing categories:
     ///
-    /// * Intel Atom 230/330 (family 6, model 0x1C) is an in-order core.
-    /// * Centaur Isiah = VIA Nano (family 6, model F) is an out-of-order core.
+    /// $(UL
+    /// $(LI Intel Atom 230/330 (family 6, model 0x1C) is an in-order core. )
+    /// $(LI Centaur Isiah = VIA Nano (family 6, model F) is an out-of-order core. )
+    /// )
     ///
     /// Within each dynasty, the optimisation techniques are largely
     /// identical (eg, use instruction pairing for group 4). Major
