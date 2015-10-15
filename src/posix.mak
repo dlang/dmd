@@ -289,7 +289,9 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: dmd
 
-auto-tester-build: dmd checkwhitespace dmd_frontend
+auto-tester-prebuild: checkwhitespace
+
+auto-tester-build: dmd dmd_frontend
 .PHONY: auto-tester-build
 
 glue.a: $(GLUE_OBJS)
@@ -298,14 +300,14 @@ glue.a: $(GLUE_OBJS)
 backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
-dmd_frontend: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+dmd_frontend: auto-tester-prebuild $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+dmd: auto-tester-prebuild $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+dmd: auto-tester-prebuild $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 endif
 
