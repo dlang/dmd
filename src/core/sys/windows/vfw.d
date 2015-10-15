@@ -3,7 +3,7 @@
  *
  * written in the D programming language
  *
- * License: Placed into public domain
+ * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source: $(DRUNTIMESRC src/core/sys/windows/_vfw.d)
  */
 

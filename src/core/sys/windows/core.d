@@ -1,7 +1,7 @@
 /**
  * Helper module for the Windows API
  *
- * License: Placed into public domain
+ * License: $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source: $(DRUNTIMESRC src/core/sys/windows/_core.d)
  */
 module core.sys.windows.core;

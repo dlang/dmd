@@ -1,6 +1,6 @@
 /*
     Written by Christopher E. Miller
-    Placed into public domain.
+    $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
 */
 
 
