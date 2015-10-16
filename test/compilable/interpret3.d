@@ -6708,7 +6708,7 @@ static assert(test11510());
 
 struct MultiArray11534
 {
-    this(size_t[] sizes...)
+    void set(size_t[] sizes...)
     {
         storage = new size_t[5];
     }
@@ -6721,7 +6721,8 @@ struct MultiArray11534
 }
 
 enum test11534 = () {
-    auto m = MultiArray11534(3,2,1);
+    auto m = MultiArray11534();
+    m.set(3,2,1);
     auto start = m.raw_ptr;   //this trigger the bug
     //auto start = m.storage.ptr + 1; //this obviously works
     return 0;
