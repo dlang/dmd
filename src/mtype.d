@@ -7979,23 +7979,6 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        if (v)
-        {
-            if (v.toParent() != sym)
-                sym.error(e.loc, "'%s' is not a member", v.toChars());
-            version (none)
-            {
-                // *(&e + offset)
-                checkAccess(e.loc, sc, e, d);
-                Expression b = new AddrExp(e.loc, e);
-                b.type = e.type.pointerTo();
-                b = new AddExp(e.loc, b, new IntegerExp(e.loc, v.offset, Type.tint32));
-                b.type = v.type.pointerTo();
-                b = new PtrExp(e.loc, b);
-                b.type = v.type.addMod(e.type.mod);
-                return b;
-            }
-        }
         auto de = new DotVarExp(e.loc, e, d);
         return de.semantic(sc);
     }
