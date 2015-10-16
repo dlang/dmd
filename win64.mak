@@ -632,13 +632,397 @@ $(IMPDIR)\core\sys\solaris\sys\types.d : src\core\sys\solaris\sys\types.d
 $(IMPDIR)\core\sys\solaris\sys\priocntl.d : src\core\sys\solaris\sys\priocntl.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\windows\accctrl.d : src\core\sys\windows\accctrl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\aclapi.d : src\core\sys\windows\aclapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\aclui.d : src\core\sys\windows\aclui.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\basetsd.d : src\core\sys\windows\basetsd.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\basetyps.d : src\core\sys\windows\basetyps.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\cderr.d : src\core\sys\windows\cderr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\cguid.d : src\core\sys\windows\cguid.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\windows\com.d : src\core\sys\windows\com.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\comcat.d : src\core\sys\windows\comcat.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\commctrl.d : src\core\sys\windows\commctrl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\commdlg.d : src\core\sys\windows\commdlg.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\core.d : src\core\sys\windows\core.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\cpl.d : src\core\sys\windows\cpl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\cplext.d : src\core\sys\windows\cplext.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\custcntl.d : src\core\sys\windows\custcntl.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\windows\dbghelp.d : src\core\sys\windows\dbghelp.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\windows\dbghelp_types.d : src\core\sys\windows\dbghelp_types.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\dbt.d : src\core\sys\windows\dbt.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\dde.d : src\core\sys\windows\dde.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ddeml.d : src\core\sys\windows\ddeml.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\dhcpcsdk.d : src\core\sys\windows\dhcpcsdk.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\dlgs.d : src\core\sys\windows\dlgs.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\windows\dll.d : src\core\sys\windows\dll.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\docobj.d : src\core\sys\windows\docobj.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\errorrep.d : src\core\sys\windows\errorrep.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\exdisp.d : src\core\sys\windows\exdisp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\exdispid.d : src\core\sys\windows\exdispid.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\httpext.d : src\core\sys\windows\httpext.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\idispids.d : src\core\sys\windows\idispids.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\imagehlp.d : src\core\sys\windows\imagehlp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\imm.d : src\core\sys\windows\imm.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\intshcut.d : src\core\sys\windows\intshcut.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ipexport.d : src\core\sys\windows\ipexport.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\iphlpapi.d : src\core\sys\windows\iphlpapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ipifcons.d : src\core\sys\windows\ipifcons.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\iprtrmib.d : src\core\sys\windows\iprtrmib.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\iptypes.d : src\core\sys\windows\iptypes.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\isguids.d : src\core\sys\windows\isguids.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lm.d : src\core\sys\windows\lm.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmaccess.d : src\core\sys\windows\lmaccess.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmalert.d : src\core\sys\windows\lmalert.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmapibuf.d : src\core\sys\windows\lmapibuf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmat.d : src\core\sys\windows\lmat.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmaudit.d : src\core\sys\windows\lmaudit.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmbrowsr.d : src\core\sys\windows\lmbrowsr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmchdev.d : src\core\sys\windows\lmchdev.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmconfig.d : src\core\sys\windows\lmconfig.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmcons.d : src\core\sys\windows\lmcons.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmerr.d : src\core\sys\windows\lmerr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmerrlog.d : src\core\sys\windows\lmerrlog.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmmsg.d : src\core\sys\windows\lmmsg.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmremutl.d : src\core\sys\windows\lmremutl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmrepl.d : src\core\sys\windows\lmrepl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmserver.d : src\core\sys\windows\lmserver.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmshare.d : src\core\sys\windows\lmshare.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmsname.d : src\core\sys\windows\lmsname.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmstats.d : src\core\sys\windows\lmstats.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmsvc.d : src\core\sys\windows\lmsvc.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmuse.d : src\core\sys\windows\lmuse.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmuseflg.d : src\core\sys\windows\lmuseflg.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lmwksta.d : src\core\sys\windows\lmwksta.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\lzexpand.d : src\core\sys\windows\lzexpand.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\mapi.d : src\core\sys\windows\mapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\mciavi.d : src\core\sys\windows\mciavi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\mcx.d : src\core\sys\windows\mcx.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\mgmtapi.d : src\core\sys\windows\mgmtapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\mmsystem.d : src\core\sys\windows\mmsystem.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\msacm.d : src\core\sys\windows\msacm.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\mshtml.d : src\core\sys\windows\mshtml.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\mswsock.d : src\core\sys\windows\mswsock.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\nb30.d : src\core\sys\windows\nb30.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\nddeapi.d : src\core\sys\windows\nddeapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\nspapi.d : src\core\sys\windows\nspapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ntdef.d : src\core\sys\windows\ntdef.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ntdll.d : src\core\sys\windows\ntdll.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ntldap.d : src\core\sys\windows\ntldap.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ntsecapi.d : src\core\sys\windows\ntsecapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ntsecpkg.d : src\core\sys\windows\ntsecpkg.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\oaidl.d : src\core\sys\windows\oaidl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\objbase.d : src\core\sys\windows\objbase.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\objfwd.d : src\core\sys\windows\objfwd.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\objidl.d : src\core\sys\windows\objidl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\objsafe.d : src\core\sys\windows\objsafe.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ocidl.d : src\core\sys\windows\ocidl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\odbcinst.d : src\core\sys\windows\odbcinst.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ole.d : src\core\sys\windows\ole.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ole2.d : src\core\sys\windows\ole2.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ole2ver.d : src\core\sys\windows\ole2ver.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\oleacc.d : src\core\sys\windows\oleacc.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\oleauto.d : src\core\sys\windows\oleauto.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\olectl.d : src\core\sys\windows\olectl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\olectlid.d : src\core\sys\windows\olectlid.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\oledlg.d : src\core\sys\windows\oledlg.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\oleidl.d : src\core\sys\windows\oleidl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\pbt.d : src\core\sys\windows\pbt.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\powrprof.d : src\core\sys\windows\powrprof.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\prsht.d : src\core\sys\windows\prsht.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\psapi.d : src\core\sys\windows\psapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rapi.d : src\core\sys\windows\rapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\ras.d : src\core\sys\windows\ras.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rasdlg.d : src\core\sys\windows\rasdlg.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\raserror.d : src\core\sys\windows\raserror.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rassapi.d : src\core\sys\windows\rassapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\reason.d : src\core\sys\windows\reason.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\regstr.d : src\core\sys\windows\regstr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\richedit.d : src\core\sys\windows\richedit.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\richole.d : src\core\sys\windows\richole.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpc.d : src\core\sys\windows\rpc.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpcdce.d : src\core\sys\windows\rpcdce.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpcdce2.d : src\core\sys\windows\rpcdce2.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpcdcep.d : src\core\sys\windows\rpcdcep.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpcndr.d : src\core\sys\windows\rpcndr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpcnsi.d : src\core\sys\windows\rpcnsi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpcnsip.d : src\core\sys\windows\rpcnsip.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\rpcnterr.d : src\core\sys\windows\rpcnterr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\schannel.d : src\core\sys\windows\schannel.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\secext.d : src\core\sys\windows\secext.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\security.d : src\core\sys\windows\security.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\servprov.d : src\core\sys\windows\servprov.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\setupapi.d : src\core\sys\windows\setupapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\shellapi.d : src\core\sys\windows\shellapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\shldisp.d : src\core\sys\windows\shldisp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\shlguid.d : src\core\sys\windows\shlguid.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\shlobj.d : src\core\sys\windows\shlobj.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\shlwapi.d : src\core\sys\windows\shlwapi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\snmp.d : src\core\sys\windows\snmp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\sql.d : src\core\sys\windows\sql.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\sqlext.d : src\core\sys\windows\sqlext.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\sqltypes.d : src\core\sys\windows\sqltypes.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\sqlucode.d : src\core\sys\windows\sqlucode.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\sspi.d : src\core\sys\windows\sspi.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\windows\stacktrace.d : src\core\sys\windows\stacktrace.d
@@ -647,13 +1031,100 @@ $(IMPDIR)\core\sys\windows\stacktrace.d : src\core\sys\windows\stacktrace.d
 $(IMPDIR)\core\sys\windows\stat.d : src\core\sys\windows\stat.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\windows\subauth.d : src\core\sys\windows\subauth.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\windows\threadaux.d : src\core\sys\windows\threadaux.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\tlhelp32.d : src\core\sys\windows\tlhelp32.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\tmschema.d : src\core\sys\windows\tmschema.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\unknwn.d : src\core\sys\windows\unknwn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\uuid.d : src\core\sys\windows\uuid.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\vfw.d : src\core\sys\windows\vfw.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\w32api.d : src\core\sys\windows\w32api.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winbase.d : src\core\sys\windows\winbase.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winber.d : src\core\sys\windows\winber.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\wincon.d : src\core\sys\windows\wincon.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\wincrypt.d : src\core\sys\windows\wincrypt.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\windef.d : src\core\sys\windows\windef.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\windows\windows.d : src\core\sys\windows\windows.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\windows\winerror.d : src\core\sys\windows\winerror.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\wingdi.d : src\core\sys\windows\wingdi.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winhttp.d : src\core\sys\windows\winhttp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\wininet.d : src\core\sys\windows\wininet.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winioctl.d : src\core\sys\windows\winioctl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winldap.d : src\core\sys\windows\winldap.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winnetwk.d : src\core\sys\windows\winnetwk.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winnls.d : src\core\sys\windows\winnls.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winnt.d : src\core\sys\windows\winnt.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winperf.d : src\core\sys\windows\winperf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winreg.d : src\core\sys\windows\winreg.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\windows\winsock2.d : src\core\sys\windows\winsock2.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winspool.d : src\core\sys\windows\winspool.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winsvc.d : src\core\sys\windows\winsvc.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winuser.d : src\core\sys\windows\winuser.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\winver.d : src\core\sys\windows\winver.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\wtsapi32.d : src\core\sys\windows\wtsapi32.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\wtypes.d : src\core\sys\windows\wtypes.d
 	copy $** $@
 
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d

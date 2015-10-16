@@ -135,9 +135,6 @@ version( Windows )
         import core.sys.windows.windows;
         import core.sys.windows.threadaux;   // for OpenThreadHandle
 
-        const DWORD TLS_OUT_OF_INDEXES  = 0xFFFFFFFF;
-        const CREATE_SUSPENDED = 0x00000004;
-
         extern (Windows) alias uint function(void*) btex_fptr;
         extern (C) uintptr_t _beginthreadex(void*, uint, btex_fptr, void*, uint, uint*) nothrow;
 

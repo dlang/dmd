@@ -1,6 +1,6 @@
 /*
     Written by Christopher E. Miller
-    Placed into public domain.
+    $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
 */
 
 
@@ -658,12 +658,24 @@ enum int INET_ADDRSTRLEN = 16;
 enum int INET6_ADDRSTRLEN = 46;
 
 
+
+
 struct sockaddr
 {
     short sa_family;
     ubyte[14] sa_data;
 }
+alias sockaddr SOCKADDR;
+alias SOCKADDR* PSOCKADDR, LPSOCKADDR;
 
+struct SOCKADDR_STORAGE
+{
+    short     ss_family;
+    char[6]   __ss_pad1;
+    long      __ss_align;
+    char[112] __ss_pad2;
+}
+alias SOCKADDR_STORAGE* PSOCKADDR_STORAGE;
 
 struct sockaddr_in
 {
@@ -672,6 +684,8 @@ struct sockaddr_in
     in_addr sin_addr;
     ubyte[8] sin_zero;
 }
+alias sockaddr_in SOCKADDR_IN;
+alias SOCKADDR_IN* PSOCKADDR_IN, LPSOCKADDR_IN;
 
 
 struct sockaddr_in6
