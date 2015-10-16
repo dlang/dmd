@@ -1669,7 +1669,7 @@ unittest
     }
 
     {
-        auto e = new Exception("msg", new Exception("It's an Excepton!"), "hello", 42);
+        auto e = new Exception("msg", new Exception("It's an Exception!"), "hello", 42);
         assert(e.file == "hello");
         assert(e.line == 42);
         assert(e.next !is null);
@@ -1732,7 +1732,7 @@ unittest
     }
 
     {
-        auto e = new Error("msg", new Exception("It's an Excepton!"));
+        auto e = new Error("msg", new Exception("It's an Exception!"));
         assert(e.file is null);
         assert(e.line == 0);
         assert(e.next !is null);
