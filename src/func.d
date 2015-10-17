@@ -1324,13 +1324,15 @@ public:
                 // extern (C) functions always conflict each other.
                 if (f1.ident == f2.ident &&
                     f1.toParent2() == f2.toParent2() &&
-                    f1.linkage == LINKc && f2.linkage == LINKc)
+                    (f1.linkage != LINKd && f1.linkage != LINKcpp) &&
+                    (f2.linkage != LINKd && f2.linkage != LINKcpp))
                 {
                     auto tf1 = cast(TypeFunction)f1.type;
                     auto tf2 = cast(TypeFunction)f2.type;
-                    f2.error("%s cannot be overloaded with another extern (C) function at %s",
+                    f2.error("%s cannot be overloaded with %sextern (%s) function at %s",
                             parametersTypeToChars(tf2.parameters, tf2.varargs),
-                            f1.loc.toChars());
+                            (f1.linkage == f2.linkage ? "another " : "").ptr,
+                            linkageToChars(f1.linkage), f1.loc.toChars());
                     f2.type = Type.terror;
                     f2.errors = true;
                     return 0;
