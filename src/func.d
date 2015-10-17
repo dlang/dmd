@@ -1327,6 +1327,19 @@ public:
                     (f1.linkage != LINKd && f1.linkage != LINKcpp) &&
                     (f2.linkage != LINKd && f2.linkage != LINKcpp))
                 {
+                    /* Allow the hack that is actually used in druntime,
+                     * to ignore function attributes for extern (C) functions.
+                     * TODO: Must be reconsidered in the future.
+                     *
+                     *  extern(C):
+                     *  alias sigfn_t  = void function(int);
+                     *  alias sigfn_t2 = void function(int) nothrow @nogc;
+                     *  sigfn_t  bsd_signal(int sig, sigfn_t  func);
+                     *  sigfn_t2 bsd_signal(int sig, sigfn_t2 func) nothrow @nogc;  // no error
+                     */
+                    if (f1.fbody is null || f2.fbody is null)
+                        return 0;
+
                     auto tf1 = cast(TypeFunction)f1.type;
                     auto tf2 = cast(TypeFunction)f2.type;
                     f2.error("%s cannot be overloaded with %sextern (%s) function at %s",
