@@ -77,3 +77,12 @@ extern (C) void f_MixExtern1() {}   // conflict
 
 extern (D) void f_MixExtern2(int) {}
 extern (C) void f_MixExtern2() {}   // no error
+
+extern (C) void f_ExternC4(int sig);
+extern (C) void f_ExternC4(int sig) @nogc;      // no error
+
+extern (C) void f_ExternC5(int sig) {}
+extern (C) void f_ExternC5(int sig) @nogc;      // no error
+
+extern (C) void f_ExternC6(int sig);
+extern (C) void f_ExternC6(int sig) @nogc {}    // no error
