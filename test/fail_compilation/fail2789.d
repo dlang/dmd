@@ -86,3 +86,21 @@ extern (C) void f_ExternC5(int sig) @nogc;      // no error
 
 extern (C) void f_ExternC6(int sig);
 extern (C) void f_ExternC6(int sig) @nogc {}    // no error
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail2789.d(103): Error: function fail2789.mul14147 (const(int[]) left, const(int[]) right) conflicts with previous declaration at fail_compilation/fail2789.d(99)
+---
+*/
+struct S14147(alias func)
+{
+}
+pure auto mul14147(const int[] left, const int[] right)
+{
+    S14147!(a => a) s;
+}
+pure auto mul14147(const int[] left, const int[] right)
+{
+    S14147!(a => a) s;
+}
