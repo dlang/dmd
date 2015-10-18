@@ -8306,7 +8306,20 @@ public:
             {
                 return getProperty(e.loc, ident, flag);
             }
-            return sym.getMemtype(Loc()).dotExp(sc, e, ident, flag);
+
+            Expression res = sym.getMemtype(Loc()).dotExp(sc, e, ident, 1);
+            if (flag != 1 && !res)
+            {
+                if (auto ns = sym.search_correct(ident))
+                    e.error("no property '%s' for type '%s'. Did you mean '%s.%s' ?", ident.toChars(), toChars(), toChars(),
+                        ns.toChars());
+                else
+                    e.error("no property '%s' for type '%s'", ident.toChars(),
+                        toChars());
+
+                return new ErrorExp();
+            }
+            return res;
         }
         EnumMember m = s.isEnumMember();
         return m.getVarExp(e.loc, sc);
