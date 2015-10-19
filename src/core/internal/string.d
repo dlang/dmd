@@ -15,7 +15,7 @@ nothrow:
 
 alias UnsignedStringBuf = char[20];
 
-char[] unsignedToTempString(ulong value, char[] buf, uint radix) @safe
+char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
 {
     size_t i = buf.length;
     do
@@ -41,7 +41,7 @@ private struct TempStringNoAlloc
 
 auto unsignedToTempString(ulong value, uint radix) @safe
 {
-    TempStringNoAlloc result;
+    TempStringNoAlloc result = void;
     result._len = unsignedToTempString(value, result._buf, radix).length & 0xff;
     return result;
 }
@@ -130,6 +130,64 @@ unittest
     assert(long.min.signedToTempString(10) == "-9223372036854775808");
     assert(long.max.signedToTempString(2) == "111111111111111111111111111111111111111111111111111111111111111");
     assert(long.min.signedToTempString(2) == "-1000000000000000000000000000000000000000000000000000000000000000");
+}
+
+
+/********************************
+ * Determine number of digits that will result from a
+ * conversion of value to a string.
+ * Params:
+ *      value = number to convert
+ *      radix = radix
+ * Returns:
+ *      number of digits
+ */
+int numDigits(uint radix = 10)(ulong value) @safe
+{
+     int n = 1;
+     while (1)
+     {
+        if (value <= uint.max)
+        {
+            uint v = cast(uint)value;
+            while (1)
+            {
+                if (v < radix)
+                    return n;
+                if (v < radix * radix)
+                    return n + 1;
+                if (v < radix * radix * radix)
+                    return n + 2;
+                if (v < radix * radix * radix * radix)
+                    return n + 3;
+                n += 4;
+                v /= radix * radix * radix * radix;
+            }
+        }
+        n += 4;
+        value /= radix * radix * radix * radix;
+     }
+}
+
+unittest
+{
+    assert(0.numDigits == 1);
+    assert(9.numDigits == 1);
+    assert(10.numDigits == 2);
+    assert(99.numDigits == 2);
+    assert(100.numDigits == 3);
+    assert(999.numDigits == 3);
+    assert(1000.numDigits == 4);
+    assert(9999.numDigits == 4);
+    assert(10000.numDigits == 5);
+    assert(99999.numDigits == 5);
+    assert(uint.max.numDigits == 10);
+    assert(ulong.max.numDigits == 20);
+
+    assert(0.numDigits!2 == 1);
+    assert(1.numDigits!2 == 1);
+    assert(2.numDigits!2 == 2);
+    assert(3.numDigits!2 == 2);
 }
 
 int dstrcmp( in char[] s1, in char[] s2 ) @trusted
