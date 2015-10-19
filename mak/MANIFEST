@@ -95,6 +95,7 @@ MANIFEST=\
 	src\core\sys\linux\termios.d \
 	src\core\sys\linux\time.d \
 	src\core\sys\linux\tipc.d \
+	src\core\sys\linux\unistd.d \
 	\
 	src\core\sys\linux\sys\inotify.d \
 	src\core\sys\linux\sys\mman.d \
@@ -404,6 +405,9 @@ MANIFEST=\
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	src\rt\tracegc.d \
+	\
+	src\rt\backtrace\dwarf.d \
+	src\rt\backtrace\elf.d \
 	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
