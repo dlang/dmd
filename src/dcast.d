@@ -255,8 +255,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              * This is to support doing things like implicitly converting a mutable unique
              * pointer to an immutable pointer.
              */
-            Type typeb = e.type.toBasetype();
+
             Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
             if (typeb.ty != Tpointer || tb.ty != Tpointer)
                 return MATCHnomatch;
             Type t1b = e.e1.type.toBasetype();
@@ -647,9 +649,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("ArrayLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            Type typeb = e.type.toBasetype();
             Type tb = t.toBasetype();
-            if ((tb.ty == Tarray || tb.ty == Tsarray) && (typeb.ty == Tarray || typeb.ty == Tsarray))
+            Type typeb = e.type.toBasetype();
+
+            if ((tb.ty == Tarray || tb.ty == Tsarray) &&
+                (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
                 result = MATCHexact;
                 Type typen = typeb.nextOf().toBasetype();
@@ -719,8 +723,9 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(AssocArrayLiteralExp e)
         {
-            Type typeb = e.type.toBasetype();
             Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
             if (tb.ty == Taarray && typeb.ty == Taarray)
             {
                 result = MATCHexact;
@@ -881,9 +886,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             //printf("\tresult = %d\n", result);
             if (result != MATCHnomatch)
                 return;
+
+            Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
             // Look for pointers to functions where the functions are overloaded.
-            t = t.toBasetype();
-            if (e.e1.op == TOKoverloadset && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
+            if (e.e1.op == TOKoverloadset &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
                 OverExp eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
@@ -892,7 +901,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     Dsymbol s = eo.vars.a[i];
                     FuncDeclaration f2 = s.isFuncDeclaration();
                     assert(f2);
-                    if (f2.overloadExactMatch(t.nextOf()))
+                    if (f2.overloadExactMatch(tb.nextOf()))
                     {
                         if (f)
                         {
@@ -907,7 +916,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     }
                 }
             }
-            if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && t.ty == Tpointer && t.nextOf().ty == Tfunction && e.e1.op == TOKvar)
+
+            if (e.e1.op == TOKvar &&
+                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
             {
                 /* I don't think this can ever happen -
                  * it should have been
@@ -928,16 +940,21 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             //printf("\tresult = %d\n", result);
             if (result != MATCHnomatch)
                 return;
+
+            Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
             // Look for pointers to functions where the functions are overloaded.
-            t = t.toBasetype();
-            if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
+            if (typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
                 if (FuncDeclaration f = e.var.isFuncDeclaration())
                 {
-                    f = f.overloadExactMatch(t.nextOf());
+                    f = f.overloadExactMatch(tb.nextOf());
                     if (f)
                     {
-                        if ((t.ty == Tdelegate && (f.needThis() || f.isNested())) || (t.ty == Tpointer && !(f.needThis() || f.isNested())))
+                        if ((tb.ty == Tdelegate && (f.needThis() || f.isNested())) ||
+                            (tb.ty == Tpointer && !(f.needThis() || f.isNested())))
                         {
                             result = MATCHexact;
                         }
@@ -956,11 +973,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = e.type.implicitConvTo(t);
             if (result != MATCHnomatch)
                 return;
+
+            Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
             // Look for pointers to functions where the functions are overloaded.
-            t = t.toBasetype();
-            if (e.type.ty == Tdelegate && t.ty == Tdelegate)
+            if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
             {
-                if (e.func && e.func.overloadExactMatch(t.nextOf()))
+                if (e.func && e.func.overloadExactMatch(tb.nextOf()))
                     result = MATCHexact;
             }
         }
@@ -1594,14 +1614,17 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = se;
                 return;
             }
+
             Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
             //printf("\ttype = %s\n", e->type->toChars());
-            if (tb.ty == Tdelegate && e.type.toBasetype().ty != Tdelegate)
+            if (tb.ty == Tdelegate && typeb.ty != Tdelegate)
             {
                 visit(cast(Expression)e);
                 return;
             }
-            Type typeb = e.type.toBasetype();
+
             if (typeb.equals(tb))
             {
                 if (!copied)
@@ -1815,18 +1838,20 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(AddrExp e)
         {
-            Type tb;
             version (none)
             {
                 printf("AddrExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             result = e;
-            tb = t.toBasetype();
-            e.type = e.type.toBasetype();
-            if (!tb.equals(e.type))
+
+            Type tb = t.toBasetype();
+            Type typeb = e.type.toBasetype();
+
+            if (!tb.equals(typeb))
             {
                 // Look for pointers to functions where the functions are overloaded.
-                if (e.e1.op == TOKoverloadset && (t.ty == Tpointer || t.ty == Tdelegate) && t.nextOf().ty == Tfunction)
+                if (e.e1.op == TOKoverloadset &&
+                    (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
                 {
                     OverExp eo = cast(OverExp)e.e1;
                     FuncDeclaration f = null;
@@ -1835,7 +1860,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                         Dsymbol s = eo.vars.a[i];
                         FuncDeclaration f2 = s.isFuncDeclaration();
                         assert(f2);
-                        if (f2.overloadExactMatch(t.nextOf()))
+                        if (f2.overloadExactMatch(tb.nextOf()))
                         {
                             if (f)
                             {
@@ -1858,7 +1883,10 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                         return;
                     }
                 }
-                if (e.type.ty == Tpointer && e.type.nextOf().ty == Tfunction && tb.ty == Tpointer && tb.nextOf().ty == Tfunction && e.e1.op == TOKvar)
+
+                if (e.e1.op == TOKvar &&
+                    typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+                    tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
                 {
                     VarExp ve = cast(VarExp)e.e1;
                     FuncDeclaration f = ve.var.isFuncDeclaration();
@@ -1922,9 +1950,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 return;
             }
             ArrayLiteralExp ae = e;
-            Type typeb = e.type.toBasetype();
+
             Type tb = t.toBasetype();
-            if ((tb.ty == Tarray || tb.ty == Tsarray) && (typeb.ty == Tarray || typeb.ty == Tsarray))
+            Type typeb = e.type.toBasetype();
+
+            if ((tb.ty == Tarray || tb.ty == Tsarray) &&
+                (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
                 if (tb.nextOf().toBasetype().ty == Tvoid && typeb.nextOf().toBasetype().ty != Tvoid)
                 {
@@ -2002,9 +2033,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = e;
                 return;
             }
-            Type typeb = e.type.toBasetype();
+
             Type tb = t.toBasetype();
-            if (tb.ty == Taarray && typeb.ty == Taarray && tb.nextOf().toBasetype().ty != Tvoid)
+            Type typeb = e.type.toBasetype();
+
+            if (tb.ty == Taarray && typeb.ty == Taarray &&
+                tb.nextOf().toBasetype().ty != Tvoid)
             {
                 AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e.copy();
                 ae.keys = e.keys.copy();
@@ -2176,9 +2210,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         override void visit(SliceExp e)
         {
             //printf("SliceExp::castTo e = %s, type = %s, t = %s\n", e->toChars(), e->type->toChars(), t->toChars());
-            Type typeb = e.type.toBasetype();
+
             Type tb = t.toBasetype();
-            if (e.type.equals(t) || typeb.ty != Tarray || (tb.ty != Tarray && tb.ty != Tsarray))
+            Type typeb = e.type.toBasetype();
+
+            if (e.type.equals(t) || typeb.ty != Tarray ||
+                (tb.ty != Tarray && tb.ty != Tsarray))
             {
                 visit(cast(Expression)e);
                 return;
