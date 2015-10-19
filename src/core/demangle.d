@@ -1722,19 +1722,7 @@ char[] demangleType( const(char)[] buf, char[] dst = null )
  */
 char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
 {
-    static size_t numToString(char[] dst, size_t val) @safe pure nothrow
-    {
-        char[20] buf = void;
-        size_t i = buf.length;
-        do
-        {
-            buf[--i] = cast(char)(val % 10 + '0');
-        } while (val /= 10);
-        immutable len = buf.length - i;
-        if (dst.length >= len)
-            dst[0 .. len] = buf[i .. $];
-        return len;
-    }
+    import core.internal.string : numDigits, unsignedToTempString;
 
     static struct DotSplitter
     {
@@ -1764,7 +1752,7 @@ char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
 
     size_t len = "_D".length;
     foreach (comp; DotSplitter(fqn))
-        len += numToString(null, comp.length) + comp.length;
+        len += numDigits(comp.length) + comp.length;
     len += T.mangleof.length;
     if (dst.length < len) dst.length = len;
 
@@ -1772,7 +1760,9 @@ char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
     dst[0 .. i] = "_D";
     foreach (comp; DotSplitter(fqn))
     {
-        i += numToString(dst[i .. $], comp.length);
+        const ndigits = numDigits(comp.length);
+        unsignedToTempString(comp.length, dst[i .. i + ndigits]);
+        i += ndigits;
         dst[i .. i + comp.length] = comp[];
         i += comp.length;
     }
