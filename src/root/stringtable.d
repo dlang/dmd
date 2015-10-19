@@ -8,7 +8,7 @@
 
 module ddmd.root.stringtable;
 
-import core.stdc.stdint, core.stdc.string;
+import core.stdc.string;
 import ddmd.root.rmem;
 
 enum POOL_BITS = 12;
@@ -18,24 +18,22 @@ enum POOL_SIZE = (1U << POOL_BITS);
 // MurmurHash2 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 // https://sites.google.com/site/murmurhash/
-extern (C++) static uint32_t calcHash(const(char)* key, size_t len)
+private uint calcHash(const(char)* key, size_t len) pure nothrow @nogc
 {
     // 'm' and 'r' are mixing constants generated offline.
     // They're not really 'magic', they just happen to work well.
-    const(uint32_t) m = 0x5bd1e995;
-    const(int) r = 24;
+    enum uint m = 0x5bd1e995;
+    enum int r = 24;
     // Initialize the hash to a 'random' value
-    uint32_t h = cast(uint32_t)len;
+    uint h = cast(uint)len;
     // Mix 4 bytes at a time into the hash
-    const(uint8_t)* data = cast(const(uint8_t)*)key;
+    const(ubyte)* data = cast(const(ubyte)*)key;
     while (len >= 4)
     {
-        uint32_t k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
+        uint k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
         k *= m;
         k ^= k >> r;
-        k *= m;
-        h *= m;
-        h ^= k;
+        h = (h * m) ^ (k * m);
         data += 4;
         len -= 4;
     }
@@ -60,7 +58,7 @@ extern (C++) static uint32_t calcHash(const(char)* key, size_t len)
     return h;
 }
 
-extern (C++) static size_t nextpow2(size_t val)
+private size_t nextpow2(size_t val) pure nothrow @nogc @safe
 {
     size_t res = 1;
     while (res < val)
@@ -68,12 +66,12 @@ extern (C++) static size_t nextpow2(size_t val)
     return res;
 }
 
-extern (C++) __gshared const(double) loadFactor = 0.8;
+enum loadFactor = 0.8;
 
 struct StringEntry
 {
-    uint32_t hash;
-    uint32_t vptr;
+    uint hash;
+    uint vptr;
 }
 
 // StringValue is a variable-length structure. It has neither proper c'tors nor a
@@ -104,7 +102,7 @@ struct StringTable
 private:
     StringEntry* table;
     size_t tabledim;
-    uint8_t** pools;
+    ubyte** pools;
     size_t npools;
     size_t nfill;
     size_t count;
@@ -210,13 +208,13 @@ public:
     }
 
 private:
-    extern (C++) uint32_t allocValue(const(char)* s, size_t length)
+    extern (C++) uint allocValue(const(char)* s, size_t length)
     {
         const(size_t) nbytes = StringValue.sizeof + length + 1;
         if (!npools || nfill + nbytes > POOL_SIZE)
         {
-            pools = cast(uint8_t**)mem.xrealloc(pools, ++npools * (pools[0]).sizeof);
-            pools[npools - 1] = cast(uint8_t*)mem.xmalloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
+            pools = cast(ubyte**)mem.xrealloc(pools, ++npools * (pools[0]).sizeof);
+            pools[npools - 1] = cast(ubyte*)mem.xmalloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
             nfill = 0;
         }
         StringValue* sv = cast(StringValue*)&pools[npools - 1][nfill];
@@ -224,12 +222,12 @@ private:
         sv.length = length;
         .memcpy(sv.lstring(), s, length);
         sv.lstring()[length] = 0;
-        const(uint32_t) vptr = cast(uint32_t)(npools << POOL_BITS | nfill);
+        const(uint) vptr = cast(uint)(npools << POOL_BITS | nfill);
         nfill += nbytes + (-nbytes & 7); // align to 8 bytes
         return vptr;
     }
 
-    extern (C++) StringValue* getValue(uint32_t vptr)
+    extern (C++) StringValue* getValue(uint vptr)
     {
         if (!vptr)
             return null;
