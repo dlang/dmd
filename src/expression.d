@@ -3866,13 +3866,10 @@ public:
             if (!f.functionSemantic())
                 return new ErrorExp();
 
-            if (!f.type.deco)
-            {
-                const(char)* trailMsg = f.inferRetType ? "inferred return type of function call " : "";
-                .error(loc, "forward reference to %s'%s'", trailMsg, f.toChars());
+            if (!hasOverloads && f.checkForwardRef(loc))
                 return new ErrorExp();
-            }
-            FuncDeclaration fd = s.isFuncDeclaration();
+
+            auto fd = s.isFuncDeclaration();
             fd.type = f.type;
             return new VarExp(loc, fd, hasOverloads);
         }
@@ -8200,13 +8197,10 @@ public:
             L1:
                 {
                     assert(ds);
-                    if (FuncDeclaration f = ds.isFuncDeclaration())
+                    if (auto f = ds.isFuncDeclaration())
                     {
-                        if (!f.type.deco)
-                        {
-                            error("forward reference to %s", f.toChars());
+                        if (f.checkForwardRef(loc))
                             return new ErrorExp();
-                        }
                     }
                     const(char)* s = mangle(ds);
                     Expression e = new StringExp(loc, cast(void*)s, strlen(s));
@@ -9903,7 +9897,7 @@ public:
         if (!type)
         {
             e1 = e1org; // Bugzilla 10922, avoid recursive expression printing
-            error("forward reference to inferred return type of function call %s", toChars());
+            error("forward reference to inferred return type of function call '%s'", toChars());
             return new ErrorExp();
         }
         if (f && f.tintro)
@@ -9986,6 +9980,46 @@ public:
     }
 }
 
+FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
+{
+    if (e.op == TOKaddress)
+    {
+        auto ae1 = (cast(AddrExp)e).e1;
+        if (ae1.op == TOKvar)
+        {
+            auto ve = cast(VarExp)ae1;
+            if (hasOverloads)
+                *hasOverloads = ve.hasOverloads;
+            return ve.var.isFuncDeclaration();
+        }
+        if (ae1.op == TOKdotvar)
+        {
+            auto dve = cast(DotVarExp)ae1;
+            if (hasOverloads)
+                *hasOverloads = dve.hasOverloads;
+            return dve.var.isFuncDeclaration();
+        }
+    }
+    else
+    {
+        if (e.op == TOKsymoff)
+        {
+            auto soe = cast(SymOffExp)e;
+            if (hasOverloads)
+                *hasOverloads = soe.hasOverloads;
+            return soe.var.isFuncDeclaration();
+        }
+        if (e.op == TOKdelegate)
+        {
+            auto dge = cast(DelegateExp)e;
+            if (hasOverloads)
+                *hasOverloads = dge.hasOverloads;
+            return dge.func.isFuncDeclaration();
+        }
+    }
+    return null;
+}
+
 /***********************************************************
  */
 extern (C++) final class AddrExp : UnaExp
@@ -10054,14 +10088,15 @@ public:
             error("cannot take address of %s", e1.toChars());
             return new ErrorExp();
         }
-        if (!e1.type.deco)
+
+        bool hasOverloads;
+        if (auto f = isFuncAddress(this, &hasOverloads))
         {
-            /* No deco means semantic() was not run on the type.
-             * We have to run semantic() on the symbol to get the right type:
-             *  auto x = &bar;
-             *  pure: int bar() { return 1;}
-             * otherwise the 'pure' is missing from the type assigned to x.
-             */
+            if (!hasOverloads && f.checkForwardRef(loc))
+                return new ErrorExp();
+        }
+        else if (!e1.type.deco)
+        {
             if (e1.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)e1;

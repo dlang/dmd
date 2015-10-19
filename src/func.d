@@ -2321,6 +2321,29 @@ public:
         return !errors && !semantic3Errors;
     }
 
+    /****************************************************
+     * Check that this function type is properly resolved.
+     * If not, report "forward reference error" and return true.
+     */
+    final bool checkForwardRef(Loc loc)
+    {
+        if (!functionSemantic())
+            return true;
+
+        /* No deco means the functionSemantic() call could not resolve
+         * forward referenes in the type of this function.
+         */
+        if (!type.deco)
+        {
+            bool inSemantic3 = (inferRetType && semanticRun >= PASSsemantic3);
+            .error(loc, "forward reference to %s'%s'",
+                (inSemantic3 ? "inferred return type of function " : "").ptr,
+                toChars());
+            return true;
+        }
+        return false;
+    }
+
     // called from semantic3
     final VarDeclaration declareThis(Scope* sc, AggregateDeclaration ad)
     {

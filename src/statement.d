@@ -1150,7 +1150,13 @@ public:
             exp = exp.addDtorHook(sc);
             if (checkNonAssignmentArrayOp(exp))
                 exp = new ErrorExp();
+            if (auto f = isFuncAddress(exp))
+            {
+                if (f.checkForwardRef(exp.loc))
+                    exp = new ErrorExp();
+            }
             discardValue(exp);
+
             exp = exp.optimize(WANTvalue);
             exp = checkGC(sc, exp);
             if (exp.op == TOKerror)
@@ -4386,6 +4392,11 @@ public:
             exp = resolveProperties(sc, exp);
             if (exp.checkType())
                 exp = new ErrorExp();
+            if (auto f = isFuncAddress(exp))
+            {
+                if (fd.inferRetType && f.checkForwardRef(exp.loc))
+                    exp = new ErrorExp();
+            }
             if (checkNonAssignmentArrayOp(exp))
                 exp = new ErrorExp();
 
