@@ -1832,16 +1832,14 @@ public:
             default:
                 goto Ldone;
             }
-            uinteger_t n2 = n * base;
-            if ((n2 / base != n || n2 + d < n))
+            // Avoid expensive overflow check if we aren't at risk of overflow
+            if (n <= 0x0FFF_FFFF_FFFF_FFFFUL)
+                n = n * base + d;
+            else
             {
-                overflow = true;
-            }
-            n = n2 + d;
-            // if n needs more than 64 bits
-            if (n.sizeof > 8 && n > 0xFFFFFFFFFFFFFFFFUL)
-            {
-                overflow = true;
+                import core.checkedint;
+                n = mulu(n, base, overflow);
+                n = addu(n, d, overflow);
             }
         }
     Ldone:
