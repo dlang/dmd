@@ -2,7 +2,7 @@ language: d
 d:
   - dmd
   - gdc
-  - ldc
+  - ldc-0.16.0-beta2
 
 script: ./travis.sh
 
@@ -11,10 +11,6 @@ addons:
   apt:
     packages:
     - gdb
-
-matrix:
-  allow_failures:
-    - d: ldc
 
 env:
   - SELF_COMPILE=0
