@@ -1793,6 +1793,7 @@ public:
                     assert(tret.ty != Tvoid);
                     if (vresult || returnLabel)
                         buildResultVar(scout ? scout : sc2, tret);
+
                     /* Cannot move this loop into NrvoWalker, because
                      * returns[i] may be in the nested delegate for foreach-body.
                      */
@@ -1817,6 +1818,7 @@ public:
                         else
                         {
                             exp = exp.optimize(WANTvalue);
+
                             /* Bugzilla 10789:
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */

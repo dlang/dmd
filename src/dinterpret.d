@@ -3295,13 +3295,16 @@ public:
             printf("%s BinExp::interpretAssignCommon() %s\n", e.loc.toChars(), e.toChars());
         }
         result = CTFEExp.cantexp;
+
         Expression e1 = e.e1;
         if (!istate)
         {
             e.error("value of %s is not known at compile time", e1.toChars());
             return;
         }
+
         ++CtfeStatus.numAssignments;
+
         /* Before we begin, we need to know if this is a reference assignment
          * (dynamic array, AA, or class) or a value assignment.
          * Determining this for slice assignments are tricky: we need to know
@@ -3326,18 +3329,23 @@ public:
                 }
             }
         }
+
         // ---------------------------------------
         //      Deal with reference assignment
         // ---------------------------------------
         // If it is a construction of a ref variable, it is a ref assignment
-        if (e.op == TOKconstruct && e1.op == TOKvar && ((cast(VarExp)e1).var.storage_class & STCref) != 0)
+        if (e.op == TOKconstruct && e1.op == TOKvar &&
+            ((cast(VarExp)e1).var.storage_class & STCref) != 0)
         {
             assert(!fp);
+
             Expression newval = interpret(e.e2, istate, ctfeNeedLvalue);
             if (exceptionOrCant(newval))
                 return;
+
             VarDeclaration v = (cast(VarExp)e1).var.isVarDeclaration();
             setValue(v, newval);
+
             // Get the value to return. Note that 'newval' is an Lvalue,
             // so if we need an Rvalue, we have to interpret again.
             if (goal == ctfeNeedRvalue)
@@ -3346,6 +3354,7 @@ public:
                 result = e1; // VarExp is a CTFE reference
             return;
         }
+
         if (fp)
         {
             while (e1.op == TOKcast)
@@ -3354,6 +3363,7 @@ public:
                 e1 = ce.e1;
             }
         }
+
         // ---------------------------------------
         //      Interpret left hand side
         // ---------------------------------------
@@ -3380,6 +3390,7 @@ public:
                 ie = cast(IndexExp)ie.e1;
                 ++depth;
             }
+
             // Get the AA value to be modified.
             Expression aggregate = interpret(ie.e1, istate);
             if (exceptionOrCant(aggregate))
@@ -3387,6 +3398,7 @@ public:
             if (aggregate.op == TOKassocarrayliteral)
             {
                 existingAA = cast(AssocArrayLiteralExp)aggregate;
+
                 // Normal case, ultimate parent AA already exists
                 // We need to walk from the deepest index up, checking that an AA literal
                 // already exists on each level.
@@ -3394,16 +3406,19 @@ public:
                 lastIndex = resolveSlice(lastIndex); // only happens with AA assignment
                 if (exceptionOrCant(lastIndex))
                     return;
+
                 while (depth > 0)
                 {
                     // Walk the syntax tree to find the indexExp at this depth
                     IndexExp xe = cast(IndexExp)e1;
                     for (int d = 0; d < depth; ++d)
                         xe = cast(IndexExp)xe.e1;
+
                     Expression ekey = interpret(xe.e2, istate);
                     if (exceptionOrCant(ekey))
                         return;
                     ekey = resolveSlice(ekey); // only happens with AA assignment
+
                     // Look up this index in it up in the existing AA, to get the next level of AA.
                     AssocArrayLiteralExp newAA = cast(AssocArrayLiteralExp)findKeyInAA(e.loc, existingAA, ekey);
                     if (exceptionOrCant(newAA))
@@ -3423,6 +3438,7 @@ public:
                     existingAA = newAA;
                     --depth;
                 }
+
                 if (fp)
                     oldval = findKeyInAA(e.loc, existingAA, lastIndex);
             }
@@ -3437,6 +3453,7 @@ public:
                  *     aa[j] op= newval;
                  */
                 oldval = copyLiteral(e.e1.type.defaultInitLiteral(e.loc)).copy();
+
                 Expression newaae = oldval;
                 while (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == Taarray)
                 {
@@ -3444,10 +3461,12 @@ public:
                     if (exceptionOrCant(ekey))
                         return;
                     ekey = resolveSlice(ekey); // only happens with AA assignment
+
                     auto keysx = new Expressions();
                     auto valuesx = new Expressions();
                     keysx.push(ekey);
                     valuesx.push(newaae);
+
                     auto aae = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
                     aae.type = (cast(IndexExp)e1).e1.type;
                     aae.ownedByCtfe = OWNEDctfe;
@@ -3459,6 +3478,7 @@ public:
                     newaae = aae;
                     e1 = (cast(IndexExp)e1).e1;
                 }
+
                 // We must set to aggregate with newaae
                 e1 = interpret(e1, istate, ctfeNeedLvalue);
                 if (exceptionOrCant(e1))
@@ -3513,6 +3533,7 @@ public:
                 lastIndex = ie.e2;
             }
         }
+
         // If it isn't a simple assignment, we need the existing value
         if (fp && !oldval)
         {
@@ -3520,6 +3541,7 @@ public:
             if (exceptionOrCant(oldval))
                 return;
         }
+
         // ---------------------------------------
         //      Interpret right hand side
         // ---------------------------------------
@@ -3542,6 +3564,7 @@ public:
             if (exceptionOrCant(newval))
                 return;
         }
+
         // ----------------------------------------------------
         //  Deal with read-modify-write assignments.
         //  Set 'newval' to the final assignment value
@@ -3570,9 +3593,14 @@ public:
                     }
                 }
                 oldval = resolveSlice(oldval);
+
                 newval = (*fp)(e.loc, e.type, oldval, newval).copy();
             }
-            else if (e.e2.type.isintegral() && (e.op == TOKaddass || e.op == TOKminass || e.op == TOKplusplus || e.op == TOKminusminus))
+            else if (e.e2.type.isintegral() &&
+                     (e.op == TOKaddass ||
+                      e.op == TOKminass ||
+                      e.op == TOKplusplus ||
+                      e.op == TOKminusminus))
             {
                 newval = pointerArithmetic(e.loc, e.op, e.type, oldval, newval).copy();
             }
@@ -3589,6 +3617,7 @@ public:
                 return;
             }
         }
+
         if (existingAA)
         {
             if (existingAA.ownedByCtfe != OWNEDctfe)
@@ -3597,9 +3626,11 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
+
             //printf("\t+L%d existingAA = %s, lastIndex = %s, oldval = %s, newval = %s\n",
             //    __LINE__, existingAA->toChars(), lastIndex->toChars(), oldval ? oldval->toChars() : NULL, newval->toChars());
             assignAssocArrayElement(e.loc, existingAA, lastIndex, newval);
+
             // Determine the return value
             result = ctfeCast(e.loc, e.type, e.type, fp && post ? oldval : newval);
             return;
@@ -3611,14 +3642,17 @@ public:
              * into:
              *  arr = new_length_array; (result is n)
              */
+
             // Determine the return value
             result = ctfeCast(e.loc, e.type, e.type, fp && post ? oldval : newval);
             if (exceptionOrCant(result))
                 return;
+
             size_t oldlen = cast(size_t)oldval.toInteger();
             size_t newlen = cast(size_t)newval.toInteger();
             if (oldlen == newlen) // no change required -- we're done!
                 return;
+
             // We have changed it into a reference assignment
             // Note that returnValue is still the new length.
             e1 = (cast(ArrayLengthExp)e1).e1;
@@ -3632,12 +3666,15 @@ public:
             e1 = interpret(e1, istate, ctfeNeedLvalue);
             if (exceptionOrCant(e1))
                 return;
+
             if (oldlen != 0) // Get the old array literal.
                 oldval = interpret(e1, istate);
             newval = changeArrayLiteralLength(e.loc, cast(TypeArray)t, oldval, oldlen, newlen).copy();
+
             e1 = assignToLvalue(e, e1, newval);
             if (exceptionOrCant(e1))
                 return;
+
             return;
         }
         if (!isBlockAssignment)
@@ -3645,6 +3682,7 @@ public:
             newval = ctfeCast(e.loc, e.type, e.type, newval);
             if (exceptionOrCant(newval))
                 return;
+
             // Determine the return value
             if (goal == ctfeNeedLvalue) // Bugzilla 14371
                 result = e1;
@@ -3655,6 +3693,7 @@ public:
         }
         if (exceptionOrCant(newval))
             return;
+
         static if (LOGASSIGN)
         {
             printf("ASSIGN: %s=%s\n", e1.toChars(), newval.toChars());
@@ -3697,10 +3736,12 @@ public:
             return;
         }
         assert(result);
+
         /* Assignment to a CTFE reference.
          */
         if (Expression ex = assignToLvalue(e, e1, newval))
             result = ex;
+
         return;
     }
 

@@ -1735,13 +1735,16 @@ public:
 bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
 {
     int cost;
+
     enum CANINLINE_LOG = 0;
     static if (CANINLINE_LOG)
     {
         printf("FuncDeclaration.canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, fd.toPrettyChars());
     }
+
     if (fd.needThis() && !hasthis)
         return false;
+
     if (fd.inlineNest)
     {
         static if (CANINLINE_LOG)
@@ -1750,6 +1753,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         }
         return false;
     }
+
     if (fd.semanticRun < PASSsemantic3 && !hdrscan)
     {
         if (!fd.fbody)
@@ -1761,6 +1765,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
             return false;
         assert(fd.semanticRun >= PASSsemantic3done);
     }
+
     switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
     case ILSyes:
@@ -1780,6 +1785,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     default:
         assert(0);
     }
+
     switch (fd.inlining)
     {
     case PINLINEdefault:
@@ -1791,23 +1797,33 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     default:
         assert(0);
     }
+
     if (fd.type)
     {
         assert(fd.type.ty == Tfunction);
         TypeFunction tf = cast(TypeFunction)fd.type;
-        if (tf.varargs == 1) // no variadic parameter lists
+
+        // no variadic parameter lists
+        if (tf.varargs == 1)
             goto Lno;
+
         /* Don't inline a function that returns non-void, but has
          * no return expression.
          * No statement inlining for non-voids.
          */
-        if (tf.next && tf.next.ty != Tvoid && (!(fd.hasReturnExp & 1) || statementsToo) && !hdrscan)
+        if (tf.next && tf.next.ty != Tvoid &&
+            (!(fd.hasReturnExp & 1) || statementsToo) &&
+            !hdrscan)
+        {
             goto Lno;
+        }
+
         /* Bugzilla 14560: If fd returns void, all explicit `return;`s
          * must not appear in the expanded result.
          * See also ReturnStatement.inlineAsStatement().
          */
     }
+
     // cannot inline constructor calls because we need to convert:
     //      return;
     // to:
@@ -1816,10 +1832,19 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     // require() has magic properties too
     // see bug 7699
     // no nested references to this frame
-    if (!fd.fbody || fd.ident == Id.ensure || (fd.ident == Id.require && fd.toParent().isFuncDeclaration() && fd.toParent().isFuncDeclaration().needThis()) || !hdrscan && (fd.isSynchronized() || fd.isImportedSymbol() || fd.hasNestedFrameRefs() || (fd.isVirtual() && !fd.isFinalFunc())))
+    if (!fd.fbody ||
+        fd.ident == Id.ensure ||
+        (fd.ident == Id.require &&
+         fd.toParent().isFuncDeclaration() &&
+         fd.toParent().isFuncDeclaration().needThis()) ||
+        !hdrscan && (fd.isSynchronized() ||
+                     fd.isImportedSymbol() ||
+                     fd.hasNestedFrameRefs() ||
+                     (fd.isVirtual() && !fd.isFinalFunc())))
     {
         goto Lno;
     }
+
     {
         scope InlineCostVisitor icv = new InlineCostVisitor();
         icv.hasthis = hasthis;
@@ -1832,10 +1857,12 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     {
         printf("cost = %d for %s\n", cost, fd.toChars());
     }
+
     if (tooCostly(cost))
         goto Lno;
     if (!statementsToo && cost > COST_MAX)
         goto Lno;
+
     if (!hdrscan)
     {
         // Don't modify inlineStatus for header content scan
@@ -1843,8 +1870,10 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
             fd.inlineStatusStmt = ILSyes;
         else
             fd.inlineStatusExp = ILSyes;
+
         scope InlineScanVisitor v = new InlineScanVisitor();
         fd.accept(v); // Don't scan recursively for header content scan
+
         if (fd.inlineStatusExp == ILSuninitialized)
         {
             // Need to redo cost computation, as some statements or expressions have been inlined
@@ -1858,10 +1887,12 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
             {
                 printf("recomputed cost = %d for %s\n", cost, fd.toChars());
             }
+
             if (tooCostly(cost))
                 goto Lno;
             if (!statementsToo && cost > COST_MAX)
                 goto Lno;
+
             if (statementsToo)
                 fd.inlineStatusStmt = ILSyes;
             else
@@ -1873,9 +1904,11 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         printf("\t2: yes %s\n", fd.toChars());
     }
     return true;
+
 Lno:
     if (fd.inlining == PINLINEalways)
         fd.error("cannot inline function");
+
     if (!hdrscan) // Don't modify inlineStatus for header content scan
     {
         if (statementsToo)
@@ -1902,10 +1935,13 @@ public void inlineScanModule(Module m)
     if (m.semanticRun != PASSsemantic3done)
         return;
     m.semanticRun = PASSinline;
+
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
     // gets imported, it is unaffected by context.
+
     //printf("Module = %p\n", m.sc.scopesym);
+
     foreach (i; 0 .. m.members.dim)
     {
         Dsymbol s = (*m.members)[i];
@@ -1950,6 +1986,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
 
     if (asStatements)
         as = new Statements();
+
     VarDeclaration vret = null;
     if (eret)
     {
@@ -1967,9 +2004,11 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             vret.storage_class |= STCtemp | STCforeach | STCref;
             vret.linkage = LINKd;
             vret.parent = parent;
+
             Expression de = new DeclarationExp(fd.loc, vret);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
+
             Expression ex = new VarExp(fd.loc, vret);
             ex.type = vret.type;
             ex = new ConstructExp(fd.loc, ex, eret);
@@ -1977,28 +2016,29 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             e = Expression.combine(e, ex);
         }
     }
+
     // Set up vthis
     if (ethis)
     {
-        VarDeclaration vthis;
-        ExpInitializer ei;
-        VarExp ve;
         if (ethis.type.ty == Tpointer)
         {
             Type t = ethis.type.nextOf();
             ethis = new PtrExp(ethis.loc, ethis);
             ethis.type = t;
         }
-        ei = new ExpInitializer(ethis.loc, ethis);
-        vthis = new VarDeclaration(ethis.loc, ethis.type, Id.This, ei);
+        auto ei = new ExpInitializer(ethis.loc, ethis);
+
+        auto vthis = new VarDeclaration(ethis.loc, ethis.type, Id.This, ei);
         if (ethis.type.ty != Tclass)
             vthis.storage_class = STCref;
         else
             vthis.storage_class = STCin;
         vthis.linkage = LINKd;
         vthis.parent = parent;
-        ve = new VarExp(vthis.loc, vthis);
+
+        auto ve = new VarExp(vthis.loc, vthis);
         ve.type = vthis.type;
+
         ei.exp = new AssignExp(vthis.loc, ve, ethis);
         ei.exp.type = ve.type;
         if (ethis.type.ty != Tclass)
@@ -2007,8 +2047,10 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
              */
             ei.exp.op = TOKconstruct;
         }
+
         ids.vthis = vthis;
     }
+
     // Set up parameters
     if (ethis)
     {
@@ -2016,6 +2058,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         de.type = Type.tvoid;
         e = Expression.combine(e, de);
     }
+
     if (!asStatements && fd.nrvo_var)
     {
         if (vret)
@@ -2031,8 +2074,10 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             vd.storage_class = STCtemp | STCrvalue;
             vd.linkage = tf.linkage;
             vd.parent = parent;
+
             ids.from.push(fd.nrvo_var);
             ids.to.push(vd);
+
             Expression de = new DeclarationExp(Loc(), vd);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
@@ -2043,21 +2088,22 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         assert(fd.parameters.dim == arguments.dim);
         foreach (i; 0 .. arguments.dim)
         {
-            VarDeclaration vfrom = (*fd.parameters)[i];
-            VarDeclaration vto;
-            Expression arg = (*arguments)[i];
-            ExpInitializer ei;
-            VarExp ve;
-            ei = new ExpInitializer(arg.loc, arg);
-            vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
+            auto vfrom = (*fd.parameters)[i];
+
+            auto arg = (*arguments)[i];
+            auto ei = new ExpInitializer(arg.loc, arg);
+
+            auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
             vto.storage_class |= vfrom.storage_class & (STCtemp | STCin | STCout | STClazy | STCref);
             vto.linkage = vfrom.linkage;
             vto.parent = parent;
             //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
             //printf("vto.parent = '%s'\n", parent.toChars());
-            ve = new VarExp(vto.loc, vto);
+
+            auto ve = new VarExp(vto.loc, vto);
             //ve.type = vto.type;
             ve.type = arg.type;
+
             if (vfrom.storage_class & (STCout | STCref))
                 ei.exp = new ConstructExp(vto.loc, ve, arg);
             else
@@ -2066,8 +2112,10 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             //ve.type.print();
             //arg.type.print();
             //ei.exp.print();
+
             ids.from.push(vfrom);
             ids.to.push(vto);
+
             auto de = new DeclarationExp(Loc(), vto);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
@@ -2083,6 +2131,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             }
         }
     }
+
     if (asStatements)
     {
         if (e)
@@ -2105,9 +2154,11 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         //eb.type.print();
         //eb.print();
         //eb.print();
+
         // Bugzilla 11322:
         if (tf.isref)
             e = e.toLvalue(null, null);
+
         /* There's a problem if what the function returns is used subsequently as an
          * lvalue, as in a struct return that is then used as a 'this'.
          * If we take the address of the return value, we will be taking the address
@@ -2128,25 +2179,32 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
              *   tret __inlineretval = e;
              */
             auto ei = new ExpInitializer(fd.loc, e);
+
             Identifier tmp = Identifier.generateId("__inlineretval");
             auto vd = new VarDeclaration(fd.loc, tf.next, tmp, ei);
             vd.storage_class = (tf.isref ? STCref : 0) | STCtemp | STCrvalue;
             vd.linkage = tf.linkage;
             vd.parent = parent;
+
             auto ve = new VarExp(fd.loc, vd);
             ve.type = tf.next;
+
             ei.exp = new ConstructExp(fd.loc, ve, e);
             ei.exp.type = ve.type;
+
             auto de = new DeclarationExp(Loc(), vd);
             de.type = Type.tvoid;
+
             // Chain the two together:
             //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
             e = Expression.combine(de, ve);
+
             //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }
         eresult = e;
     }
     //printf("%s.expandInline = { %s }\n", fd.toChars(), e.toChars());
+
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
     parent.inlineStatusExp = ILSuninitialized;
