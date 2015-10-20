@@ -40,6 +40,7 @@ enum CMhex    = 0x2;
 enum CMidchar = 0x4;
 enum CMzerosecond = 0x8;
 enum CMdigitsecond = 0x10;
+enum CMsinglechar = 0x20;
 
 bool isoctal(char c)
 {
@@ -64,6 +65,11 @@ bool isZeroSecond(char c)
 bool isDigitSecond(char c)
 {
     return (cmtable[c] & CMdigitsecond) != 0;
+}
+
+bool issinglechar(char c)
+{
+    return (cmtable[c] & CMsinglechar) != 0;
 }
 
 static this()
@@ -97,6 +103,21 @@ static this()
                 break;
 
             default:
+                break;
+        }
+
+        switch (c)
+        {
+            case '\\':
+            case '\n':
+            case '\r':
+            case 0:
+            case 0x1A:
+            case '\'':
+                break;
+            default:
+                if (!(c & 0x80))
+                    cmtable[c] |= CMsinglechar;
                 break;
         }
     }
@@ -292,7 +313,14 @@ public:
                 return;
 
             case '\'':
-                t.value = charConstant(t, 0);
+                if (issinglechar(p[1]) && p[2] == '\'')
+                {
+                    t.uns64value = p[1];        // simple one character literal
+                    t.value = TOKcharv;
+                    p += 3;
+                }
+                else
+                    t.value = charConstant(t);
                 return;
             case 'r':
                 if (p[1] != '"')
@@ -1633,7 +1661,7 @@ public:
 
     /**************************************
      */
-    final TOK charConstant(Token* t, int wide)
+    final TOK charConstant(Token* t)
     {
         uint c;
         TOK tk = TOKcharv;
