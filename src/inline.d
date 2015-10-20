@@ -2009,9 +2009,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
 
-            Expression ex = new VarExp(fd.loc, vret);
-            ex.type = vret.type;
-            ex = new ConstructExp(fd.loc, ex, eret, vret.isRef());
+            Expression ex = new ConstructExp(fd.loc, vret, eret);
             ex.type = vret.type;
             e = Expression.combine(e, ex);
         }
@@ -2036,11 +2034,8 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         vthis.linkage = LINKd;
         vthis.parent = parent;
 
-        auto ve = new VarExp(vthis.loc, vthis);
-        ve.type = vthis.type;
-
-        ei.exp = new ConstructExp(vthis.loc, ve, ethis, vthis.isRef());
-        ei.exp.type = ve.type;
+        ei.exp = new ConstructExp(vthis.loc, vthis, ethis);
+        ei.exp.type = vthis.type;
 
         ids.vthis = vthis;
     }
@@ -2095,12 +2090,8 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             //printf("vto.parent = '%s'\n", parent.toChars());
 
             // Even if vto is STClazy, `vto = arg` is handled correctly in glue layer.
-            auto ve = new VarExp(vto.loc, vto);
-            ve.type = vto.type;
-
-            ei.exp = new BlitExp(vto.loc, ve, arg, (vfrom.storage_class & (STCout | STCref)) != 0);
+            ei.exp = new BlitExp(vto.loc, vto, arg);
             ei.exp.type = vto.type;
-            //ve.type.print();
             //arg.type.print();
             //ei.exp.print();
 
@@ -2177,18 +2168,15 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             vd.linkage = tf.linkage;
             vd.parent = parent;
 
-            auto ve = new VarExp(fd.loc, vd);
-            ve.type = tf.next;
-
-            ei.exp = new ConstructExp(fd.loc, ve, e, vd.isRef());
-            ei.exp.type = ve.type;
+            ei.exp = new ConstructExp(fd.loc, vd, e);
+            ei.exp.type = vd.type;
 
             auto de = new DeclarationExp(Loc(), vd);
             de.type = Type.tvoid;
 
             // Chain the two together:
             //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
-            e = Expression.combine(de, ve);
+            e = Expression.combine(de, new VarExp(fd.loc, vd));
 
             //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }

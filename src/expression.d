@@ -12413,11 +12413,23 @@ public:
 extern (C++) final class ConstructExp : AssignExp
 {
 public:
-    extern (D) this(Loc loc, Expression e1, Expression e2, bool isRefInit = false)
+    extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, e1, e2);
         op = TOKconstruct;
-        if (isRefInit)
+    }
+
+    // Internal use only. If `v` is a reference variable, the assinment
+    // will become a reference initialization automatically.
+    extern (D) this(Loc loc, VarDeclaration v, Expression e2)
+    {
+        auto ve = new VarExp(loc, v);
+        assert(v.type && ve.type);
+
+        super(loc, ve, e2);
+        op = TOKconstruct;
+
+        if (v.storage_class & (STCref | STCout))
             memset |= MemorySet.referenceInit;
     }
 
@@ -12432,11 +12444,23 @@ public:
 extern (C++) final class BlitExp : AssignExp
 {
 public:
-    extern (D) this(Loc loc, Expression e1, Expression e2, bool isRefInit = false)
+    extern (D) this(Loc loc, Expression e1, Expression e2)
     {
         super(loc, e1, e2);
         op = TOKblit;
-        if (isRefInit)
+    }
+
+    // Internal use only. If `v` is a reference variable, the assinment
+    // will become a reference rebinding automatically.
+    extern (D) this(Loc loc, VarDeclaration v, Expression e2)
+    {
+        auto ve = new VarExp(loc, v);
+        assert(v.type && ve.type);
+
+        super(loc, ve, e2);
+        op = TOKblit;
+
+        if (v.storage_class & (STCref | STCout))
             memset |= MemorySet.referenceInit;
     }
 

@@ -1830,10 +1830,8 @@ public:
                         if (vresult)
                         {
                             // Create: return vresult = exp;
-                            auto ve = new VarExp(Loc(), vresult);
-                            ve.type = vresult.type;
-                            exp = new BlitExp(rs.loc, ve, exp, f.isref);
-                            exp.type = ve.type;
+                            exp = new BlitExp(rs.loc, vresult, exp);
+                            exp.type = vresult.type;
                             if (rs.caseDim)
                                 exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
                         }
@@ -2017,8 +2015,7 @@ public:
                      */
                     Expression e = new VarExp(Loc(), v_arguments);
                     e = new DotIdExp(Loc(), e, Id.elements);
-                    Expression e1 = new VarExp(Loc(), _arguments);
-                    e = new ConstructExp(Loc(), e1, e);
+                    e = new ConstructExp(Loc(), _arguments, e);
                     e = e.semantic(sc2);
                     _arguments._init = new ExpInitializer(Loc(), e);
                     auto de = new DeclarationExp(Loc(), _arguments);
