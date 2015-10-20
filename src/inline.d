@@ -2098,10 +2098,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             auto ve = new VarExp(vto.loc, vto);
             ve.type = vto.type;
 
-            if (vfrom.storage_class & (STCout | STCref))
-                ei.exp = new ConstructExp(vto.loc, ve, arg, true);
-            else
-                ei.exp = new BlitExp(vto.loc, ve, arg);
+            ei.exp = new BlitExp(vto.loc, ve, arg, (vfrom.storage_class & (STCout | STCref)) != 0);
             ei.exp.type = vto.type;
             //ve.type.print();
             //arg.type.print();

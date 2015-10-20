@@ -1510,8 +1510,7 @@ public:
                 checkFrameAccess(loc, sc, (cast(TypeStruct)tv.toBasetype()).sym);
 
                 Expression e = tv.defaultInitLiteral(loc);
-                Expression e1 = new VarExp(loc, this);
-                e = new BlitExp(loc, e1, e);
+                e = new BlitExp(loc, new VarExp(loc, this), e);
                 e = e.semantic(sc);
                 _init = new ExpInitializer(loc, e);
                 goto Ldtor;
@@ -1526,10 +1525,8 @@ public:
                  * Must do same check in interpreter.
                  */
                 Expression e = new IntegerExp(loc, 0, Type.tint32);
-                Expression e1;
-                e1 = new VarExp(loc, this);
-                e = new BlitExp(loc, e1, e);
-                e.type = e1.type; // don't type check this, it would fail
+                e = new BlitExp(loc, new VarExp(loc, this), e);
+                e.type = type;      // don't type check this, it would fail
                 _init = new ExpInitializer(loc, e);
                 goto Ldtor;
             }

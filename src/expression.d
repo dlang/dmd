@@ -12432,10 +12432,12 @@ public:
 extern (C++) final class BlitExp : AssignExp
 {
 public:
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    extern (D) this(Loc loc, Expression e1, Expression e2, bool isRefInit = false)
     {
         super(loc, e1, e2);
         op = TOKblit;
+        if (isRefInit)
+            memset |= MemorySet.referenceInit;
     }
 
     override void accept(Visitor v)

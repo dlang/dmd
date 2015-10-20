@@ -1832,10 +1832,7 @@ public:
                             // Create: return vresult = exp;
                             auto ve = new VarExp(Loc(), vresult);
                             ve.type = vresult.type;
-                            if (f.isref)
-                                exp = new ConstructExp(rs.loc, ve, exp);
-                            else
-                                exp = new BlitExp(rs.loc, ve, exp);
+                            exp = new BlitExp(rs.loc, ve, exp, f.isref);
                             exp.type = ve.type;
                             if (rs.caseDim)
                                 exp = Expression.combine(exp, new IntegerExp(rs.caseDim));

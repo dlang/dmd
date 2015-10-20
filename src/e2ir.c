@@ -2700,7 +2700,8 @@ elem *toElem(Expression *e, IRState *irs)
              */
             if (ae->memset & MemorySet_referenceInit)
             {
-                assert(ae->op == TOKconstruct && ae->e1->op == TOKvar);
+                assert(ae->op == TOKconstruct || ae->op == TOKblit);
+                assert(ae->e1->op == TOKvar);
 
                 VarExp *ve = (VarExp *)ae->e1;
                 Declaration *d = ve->var;

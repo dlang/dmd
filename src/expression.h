@@ -1195,7 +1195,7 @@ public:
 class BlitExp : public AssignExp
 {
 public:
-    BlitExp(Loc loc, Expression *e1, Expression *e2);
+    BlitExp(Loc loc, Expression *e1, Expression *e2, bool isRefInit = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 
