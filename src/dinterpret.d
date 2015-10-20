@@ -3334,8 +3334,8 @@ public:
         //      Deal with reference assignment
         // ---------------------------------------
         // If it is a construction of a ref variable, it is a ref assignment
-        if (e.op == TOKconstruct && e1.op == TOKvar &&
-            ((cast(VarExp)e1).var.storage_class & STCref) != 0)
+        if ((e.op == TOKconstruct || e.op == TOKblit) &&
+            ((cast(AssignExp)e).memset & MemorySet.referenceInit))
         {
             assert(!fp);
 

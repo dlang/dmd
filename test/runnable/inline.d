@@ -820,6 +820,50 @@ void test9785_2() {
 }
 
 /**********************************/
+// 15207
+
+struct Vec15207
+{
+    float x, y, z;
+
+    this(float x_, float y_, float z_)
+    {
+        x = x_;
+        y = y_;
+        z = z_;
+    }
+
+    Vec15207 clone()
+    {
+        // When the variable 'res' is replaced with a STCref temporary,
+        // this line was accidentally changed to reference initialization.
+        Vec15207 res = this;
+
+        return res;
+    }
+}
+
+class C15207
+{
+    Vec15207 a;
+
+    this()
+    {
+        a = Vec15207(1, 2, 3).clone();
+
+        assert(a.x == 1);
+        assert(a.y == 2);
+        assert(a.z == 3);
+        printf("%f %f %f\n", a.x, a.y, a.z);
+    }
+}
+
+void test15207()
+{
+    auto c = new C15207();
+}
+
+/**********************************/
 
 int main()
 {
@@ -849,6 +893,7 @@ int main()
     test7625();
     test9785();
     test9785_2();
+    test15207();
 
     printf("Success\n");
     return 0;

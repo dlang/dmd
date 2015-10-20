@@ -1168,7 +1168,7 @@ public:
 enum MemorySet
 {
     MemorySet_blockAssign     = 1,    // setting the contents of an array
-    MemorySet_refValueInit    = 2,    // setting the content of ref variable
+    MemorySet_referenceInit   = 2,    // setting the reference of STCref variable
 };
 
 class AssignExp : public BinExp
@@ -1188,7 +1188,7 @@ public:
 class ConstructExp : public AssignExp
 {
 public:
-    ConstructExp(Loc loc, Expression *e1, Expression *e2);
+    ConstructExp(Loc loc, Expression *e1, Expression *e2, bool isRefInit = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 

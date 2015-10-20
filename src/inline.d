@@ -2011,7 +2011,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
 
             Expression ex = new VarExp(fd.loc, vret);
             ex.type = vret.type;
-            ex = new ConstructExp(fd.loc, ex, eret);
+            ex = new ConstructExp(fd.loc, ex, eret, vret.isRef());
             ex.type = vret.type;
             e = Expression.combine(e, ex);
         }
@@ -2039,14 +2039,8 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         auto ve = new VarExp(vthis.loc, vthis);
         ve.type = vthis.type;
 
-        ei.exp = new AssignExp(vthis.loc, ve, ethis);
+        ei.exp = new ConstructExp(vthis.loc, ve, ethis, vthis.isRef());
         ei.exp.type = ve.type;
-        if (ethis.type.ty != Tclass)
-        {
-            /* This is a reference initialization, not a simple assignment.
-             */
-            ei.exp.op = TOKconstruct;
-        }
 
         ids.vthis = vthis;
     }
@@ -2101,11 +2095,10 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             //printf("vto.parent = '%s'\n", parent.toChars());
 
             auto ve = new VarExp(vto.loc, vto);
-            //ve.type = vto.type;
             ve.type = arg.type;
 
             if (vfrom.storage_class & (STCout | STCref))
-                ei.exp = new ConstructExp(vto.loc, ve, arg);
+                ei.exp = new ConstructExp(vto.loc, ve, arg, true);
             else
                 ei.exp = new BlitExp(vto.loc, ve, arg);
             ei.exp.type = ve.type;
@@ -2189,7 +2182,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             auto ve = new VarExp(fd.loc, vd);
             ve.type = tf.next;
 
-            ei.exp = new ConstructExp(fd.loc, ve, e);
+            ei.exp = new ConstructExp(fd.loc, ve, e, vd.isRef());
             ei.exp.type = ve.type;
 
             auto de = new DeclarationExp(Loc(), vd);
@@ -2203,7 +2196,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         }
         eresult = e;
     }
-    //printf("%s.expandInline = { %s }\n", fd.toChars(), e.toChars());
+    //printf("[%s] %s expandInline = { %s }\n", fd.loc.toChars(), fd.toPrettyChars(), e.toChars());
 
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements

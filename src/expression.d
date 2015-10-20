@@ -11445,7 +11445,7 @@ public:
 enum MemorySet
 {
     blockAssign     = 1,    // setting the contents of an array
-    refValueInit    = 2,    // setting the content of ref variable
+    referenceInit   = 2,    // setting the reference of STCref variable
 }
 
 /***********************************************************
@@ -11770,13 +11770,6 @@ public:
             //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
             op = TOKconstruct;
 
-            if (e1.op == TOKvar && (cast(VarExp)e1).var.storage_class & (STCout | STCref))
-            {
-                // Bugzilla 14944, even if e1 is a ref variable,
-                // make an initialization of referenced memory.
-                memset |= MemorySet.refValueInit;
-            }
-
             // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
             if (e1.op == TOKindex)
             {
@@ -11785,13 +11778,16 @@ public:
                     return e1x;
             }
         }
+        else if (op == TOKconstruct && e1.op == TOKvar &&
+                 (cast(VarExp)e1).var.storage_class & (STCout | STCref))
+        {
+            memset |= MemorySet.referenceInit;
+        }
 
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
          */
-        if (op == TOKconstruct && e1.op == TOKvar &&
-            (cast(VarExp)e1).var.storage_class & (STCout | STCref) &&
-            !(memset & MemorySet.refValueInit))
+        if (memset & MemorySet.referenceInit)
         {
             // If this is an initialization of a reference,
             // do nothing
@@ -12417,10 +12413,12 @@ public:
 extern (C++) final class ConstructExp : AssignExp
 {
 public:
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    extern (D) this(Loc loc, Expression e1, Expression e2, bool isRefInit = false)
     {
         super(loc, e1, e2);
         op = TOKconstruct;
+        if (isRefInit)
+            memset |= MemorySet.referenceInit;
     }
 
     override void accept(Visitor v)
