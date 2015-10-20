@@ -2094,14 +2094,15 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
             //printf("vto.parent = '%s'\n", parent.toChars());
 
+            // Even if vto is STClazy, `vto = arg` is handled correctly in glue layer.
             auto ve = new VarExp(vto.loc, vto);
-            ve.type = arg.type;
+            ve.type = vto.type;
 
             if (vfrom.storage_class & (STCout | STCref))
                 ei.exp = new ConstructExp(vto.loc, ve, arg, true);
             else
                 ei.exp = new BlitExp(vto.loc, ve, arg);
-            ei.exp.type = ve.type;
+            ei.exp.type = vto.type;
             //ve.type.print();
             //arg.type.print();
             //ei.exp.print();
