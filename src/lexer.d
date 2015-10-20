@@ -38,6 +38,8 @@ immutable ubyte[256] cmtable;
 enum CMoctal  = 0x1;
 enum CMhex    = 0x2;
 enum CMidchar = 0x4;
+enum CMzerosecond = 0x8;
+enum CMdigitsecond = 0x10;
 
 bool isoctal(char c)
 {
@@ -54,6 +56,16 @@ bool isidchar(char c)
     return (cmtable[c] & CMidchar) != 0;
 }
 
+bool isZeroSecond(char c)
+{
+    return (cmtable[c] & CMzerosecond) != 0;
+}
+
+bool isDigitSecond(char c)
+{
+    return (cmtable[c] & CMdigitsecond) != 0;
+}
+
 static this()
 {
     foreach (const c; 0 .. cmtable.length)
@@ -64,6 +76,29 @@ static this()
             cmtable[c] |= CMhex;
         if (isalnum(c) || c == '_')
             cmtable[c] |= CMidchar;
+
+        switch (c)
+        {
+            case 'x': case 'X':
+            case 'b': case 'B':
+                cmtable[c] |= CMzerosecond;
+                break;
+
+            case '0': .. case '9':
+            case 'e': case 'E':
+            case 'f': case 'F':
+            case 'l': case 'L':
+            case 'p': case 'P':
+            case 'u': case 'U':
+            case 'i':
+            case '.':
+            case '_':
+                cmtable[c] |= CMzerosecond | CMdigitsecond;
+                break;
+
+            default:
+                break;
+        }
     }
 }
 
@@ -235,17 +270,27 @@ public:
                 continue;
                 // skip white space
             case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
+                if (!isZeroSecond(p[1]))        // if numeric literal does not continue
+                {
+                    ++p;
+                    t.uns64value = 0;
+                    t.value = TOKint32v;
+                    return;
+                }
+                goto Lnumber;
+
+            case '1': .. case '9':
+                if (!isDigitSecond(p[1]))       // if numeric literal does not continue
+                {
+                    t.uns64value = *p - '0';
+                    ++p;
+                    t.value = TOKint32v;
+                    return;
+                }
+            Lnumber:
                 t.value = number(t);
                 return;
+
             case '\'':
                 t.value = charConstant(t, 0);
                 return;
