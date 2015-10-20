@@ -11442,14 +11442,18 @@ public:
     }
 }
 
+enum MemorySet
+{
+    blockAssign     = 1,    // setting the contents of an array
+    refValueInit    = 2,    // setting the content of ref variable
+}
+
 /***********************************************************
  */
 extern (C++) class AssignExp : BinExp
 {
 public:
-    // &1 != 0 if setting the contents of an array
-    // &2 != 0 if setting the content of ref variable
-    int ismemset;
+    int memset;         // combination of MemorySet flags
 
     /************************************************************/
     /* op can be TOKassign, TOKconstruct, or TOKblit */
@@ -11770,7 +11774,7 @@ public:
             {
                 // Bugzilla 14944, even if e1 is a ref variable,
                 // make an initialization of referenced memory.
-                ismemset |= 2;
+                memset |= MemorySet.refValueInit;
             }
 
             // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
@@ -11787,7 +11791,7 @@ public:
          */
         if (op == TOKconstruct && e1.op == TOKvar &&
             (cast(VarExp)e1).var.storage_class & (STCout | STCref) &&
-            !(ismemset & 2))
+            !(memset & MemorySet.refValueInit))
         {
             // If this is an initialization of a reference,
             // do nothing
@@ -12219,8 +12223,7 @@ public:
         {
             // Check for block assignment. If it is of type void[], void[][], etc,
             // '= null' is the only allowable block assignment (Bug 7493)
-            // memset
-            ismemset |= 1; // make it easy for back end to tell what this is
+            memset |= MemorySet.blockAssign;    // make it easy for back end to tell what this is
             e2x = e2x.implicitCastTo(sc, t1.nextOf());
             if (op != TOKblit && e2x.isLvalue() && e1.checkPostblit(sc, t1.nextOf()))
             {
@@ -12336,7 +12339,7 @@ public:
         if ((t2.ty == Tarray || t2.ty == Tsarray) && isArrayOpValid(e2))
         {
             // Look for valid array operations
-            if (!(ismemset & 1) &&
+            if (!(memset & MemorySet.blockAssign) &&
                 e1.op == TOKslice &&
                 (isUnaArrayOp(e2.op) || isBinArrayOp(e2.op)))
             {
@@ -12348,7 +12351,7 @@ public:
 
             // Drop invalid array operations in e2
             //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-            if (checkNonAssignmentArrayOp(e2, !(ismemset & 1) && op == TOKassign))
+            if (checkNonAssignmentArrayOp(e2, !(memset & MemorySet.blockAssign) && op == TOKassign))
                 return new ErrorExp();
 
             // Remains valid array assignments

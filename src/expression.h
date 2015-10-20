@@ -1165,12 +1165,16 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+enum MemorySet
+{
+    MemorySet_blockAssign     = 1,    // setting the contents of an array
+    MemorySet_refValueInit    = 2,    // setting the content of ref variable
+};
+
 class AssignExp : public BinExp
 {
 public:
-    // &1 != 0 if setting the contents of an array
-    // &2 != 0 if setting the content of ref variable
-    int ismemset;
+    int memset;         // combination of MemorySet flags
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
