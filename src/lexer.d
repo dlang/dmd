@@ -67,24 +67,21 @@ static this()
     }
 }
 
-version (unittest)
+unittest
 {
-    void unittest_lexer()
-    {
-        //printf("unittest_lexer()\n");
-        /* Not much here, just trying things out.
-         */
-        const(char)* text = "int";
-        scope Lexer lex1 = new Lexer(null, cast(char*)text, 0, text.sizeof, 0, 0);
-        TOK tok;
-        tok = lex1.nextToken();
-        //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
-        assert(tok == TOKint32);
-        tok = lex1.nextToken();
-        assert(tok == TOKeof);
-        tok = lex1.nextToken();
-        assert(tok == TOKeof);
-    }
+    //printf("lexer.unittest\n");
+    /* Not much here, just trying things out.
+     */
+    string text = "int";
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    TOK tok;
+    tok = lex1.nextToken();
+    //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
+    assert(tok == TOKint32);
+    tok = lex1.nextToken();
+    assert(tok == TOKeof);
+    tok = lex1.nextToken();
+    assert(tok == TOKeof);
 }
 
 /***********************************************************
@@ -101,12 +98,22 @@ public:
     const(char)* p;         // current character
     const(char)* line;      // start of current line
     Token token;
-    int doDocComment;       // collect doc comment information
-    int anyToken;           // !=0 means seen at least one token
-    int commentToken;       // !=0 means comments are TOKcomment's
+    bool doDocComment;      // collect doc comment information
+    bool anyToken;          // seen at least one token
+    bool commentToken;      // comments are TOKcomment's
     bool errors;            // errors occurred during lexing or parsing
 
-    final extern (D) this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset, int doDocComment, int commentToken)
+    /*********************
+     * Creat a Lexer.
+     * Params:
+     *  filename = used for error messages
+     *  base = source code, ending in a 0 byte
+     *  begoffset = starting offset into base[]
+     *  endoffset = last offset into base[]
+     *  doDocComment = handle documentation comments
+     *  commentToken = comments become TOKcomment's
+     */
+    this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset, bool doDocComment, bool commentToken)
     {
         scanloc = Loc(filename, 1, 1);
         //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -153,16 +160,6 @@ public:
                 break;
             }
             endOfLine();
-        }
-    }
-
-    final static void initLexer()
-    {
-        Identifier.initTable();
-        Token.initTokens();
-        version (unittest)
-        {
-            unittest_lexer();
         }
     }
 

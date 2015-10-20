@@ -576,8 +576,9 @@ extern (C++) struct Token
 
     static __gshared const(char)*[TOKMAX] tochars;
 
-    static void initTokens()
+    static this()
     {
+        Identifier.initTable();
         foreach (kw; keywords)
         {
             //printf("keyword[%d] = '%s'\n",u, keywords[u].name);

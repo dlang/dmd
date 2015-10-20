@@ -1191,7 +1191,6 @@ Language changes listed by -transition=id:
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
     objc_tryMain_dObjc();
     // Initialization
-    Lexer.initLexer();
     Type._init();
     Id.initialize();
     Module._init();
