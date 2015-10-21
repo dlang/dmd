@@ -266,7 +266,7 @@ public:
 
     override final void semantic(Scope* sc)
     {
-        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
+        //printf("StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent.toChars(), toChars(), sizeok);
 
         //static int count; if (++count == 20) assert(0);
 
@@ -275,6 +275,7 @@ public:
         uint dprogress_save = Module.dprogress;
         int errors = global.errors;
 
+        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent.toChars(), toChars(), sizeok);
         Scope* scx = null;
         if (_scope)
         {
@@ -290,6 +291,8 @@ public:
         }
         assert(parent && !isAnonymous());
 
+        if (this.errors)
+           type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {

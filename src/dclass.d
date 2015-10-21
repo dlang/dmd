@@ -394,7 +394,7 @@ public:
     override void semantic(Scope* sc)
     {
         //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-        //printf("\tparent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
+        //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc->parent.toChars() : "");
         //printf("sc->stc = %x\n", sc->stc);
 
         //{ static int n;  if (++n == 20) *(char*)0=0; }
@@ -427,6 +427,8 @@ public:
         }
         assert(parent && !isAnonymous());
 
+        if (this.errors)
+           type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
@@ -1462,6 +1464,8 @@ public:
         }
         assert(parent && !isAnonymous());
 
+        if (this.errors)
+           type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
