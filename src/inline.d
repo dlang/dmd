@@ -2180,6 +2180,14 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
 
             //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }
+
+        // Bugzilla 15210
+        if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid)
+        {
+            e = new CastExp(e.loc, e, Type.tvoid);
+            e.type = Type.tvoid;
+        }
+
         eresult = e;
     }
     //printf("[%s] %s expandInline = { %s }\n", fd.loc.toChars(), fd.toPrettyChars(), e.toChars());

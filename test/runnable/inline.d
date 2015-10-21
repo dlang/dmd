@@ -736,18 +736,47 @@ void test14753(string) { }
 
 /**********************************/
 
-struct S14975 {
+struct S14975
+{
     int bar;
 
-    pragma(inline, true) this(int bar) {
+    pragma(inline, true) this(int bar)
+    {
         this.bar = bar;
     }
 }
 
-void test14975() {
+void test14975()
+{
     S14975 baz = 1;
     if (baz.bar != 1)
         assert(0);
+}
+
+/**********************************/
+// 15210
+
+struct BigInt15210 {}
+
+struct Tuple15210(Types...)
+{
+    Types field;
+
+    void opAssign(R)(R rhs)
+    {
+        field = rhs.field;
+    }
+}
+
+void test15210()
+{
+    alias X = Tuple15210!BigInt15210;
+
+    X[BigInt15210] cache;
+
+    auto x = X();
+
+    cache[BigInt15210()] = x;
 }
 
 /**********************************/
@@ -890,6 +919,7 @@ int main()
     test14754();
     test14606();
     test14975();
+    test15210();
     test7625();
     test9785();
     test9785_2();
