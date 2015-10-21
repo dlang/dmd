@@ -155,17 +155,14 @@ extern (C++) void dmd_aaRehash(AA** paa)
     }
 }
 
-version (unittest)
+unittest
 {
-    extern (C++) void unittest_aa()
-    {
-        AA* aa = null;
-        Value v = dmd_aaGetRvalue(aa, null);
-        assert(!v);
-        Value* pv = dmd_aaGet(&aa, null);
-        assert(pv);
-        *pv = cast(void*)3;
-        v = dmd_aaGetRvalue(aa, null);
-        assert(v == cast(void*)3);
-    }
+    AA* aa = null;
+    Value v = dmd_aaGetRvalue(aa, null);
+    assert(!v);
+    Value* pv = dmd_aaGet(&aa, null);
+    assert(pv);
+    *pv = cast(void*)3;
+    v = dmd_aaGetRvalue(aa, null);
+    assert(v == cast(void*)3);
 }

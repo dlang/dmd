@@ -210,55 +210,52 @@ void* speller(const(char)* seed, scope dg_speller_t dg, const(char)* charset)
     return null; // didn't find it
 }
 
-version (unittest)
+unittest
 {
-    void unittest_speller()
+    static __gshared const(char)*** cases =
+    [
+        ["hello", "hell", "y"],
+        ["hello", "hel", "y"],
+        ["hello", "ello", "y"],
+        ["hello", "llo", "y"],
+        ["hello", "hellox", "y"],
+        ["hello", "helloxy", "y"],
+        ["hello", "xhello", "y"],
+        ["hello", "xyhello", "y"],
+        ["hello", "ehllo", "y"],
+        ["hello", "helol", "y"],
+        ["hello", "abcd", "n"],
+        ["hello", "helxxlo", "y"],
+        ["hello", "ehlxxlo", "n"],
+        ["hello", "heaao", "y"],
+        ["_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y"],
+        [null, null, null]
+    ];
+    //printf("unittest_speller()\n");
+
+    void* dgarg;
+
+    void* speller_test(const(char)* s, ref int cost)
     {
-        static __gshared const(char)*** cases =
-        [
-            ["hello", "hell", "y"],
-            ["hello", "hel", "y"],
-            ["hello", "ello", "y"],
-            ["hello", "llo", "y"],
-            ["hello", "hellox", "y"],
-            ["hello", "helloxy", "y"],
-            ["hello", "xhello", "y"],
-            ["hello", "xyhello", "y"],
-            ["hello", "ehllo", "y"],
-            ["hello", "helol", "y"],
-            ["hello", "abcd", "n"],
-            ["hello", "helxxlo", "y"],
-            ["hello", "ehlxxlo", "n"],
-            ["hello", "heaao", "y"],
-            ["_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y"],
-            [null, null, null]
-        ];
-        //printf("unittest_speller()\n");
-
-        void* dgarg;
-
-        void* speller_test(const(char)* s, ref int cost)
-        {
-            //printf("speller_test(%s, %s)\n", dgarg, s);
-            cost = 0;
-            if (strcmp(cast(char*)dgarg, s) == 0)
-                return dgarg;
-            return null;
-        }
-
-        dgarg = cast(char*)"hell";
-        const(void)* p = speller(cast(const(char)*)"hello", &speller_test, idchars);
-        assert(p !is null);
-        for (int i = 0; cases[i][0]; i++)
-        {
-            //printf("case [%d]\n", i);
-            dgarg = cast(void*)cases[i][1];
-            void* p2 = speller(cases[i][0], &speller_test, idchars);
-            if (p2)
-                assert(cases[i][2][0] == 'y');
-            else
-                assert(cases[i][2][0] == 'n');
-        }
-        //printf("unittest_speller() success\n");
+        //printf("speller_test(%s, %s)\n", dgarg, s);
+        cost = 0;
+        if (strcmp(cast(char*)dgarg, s) == 0)
+            return dgarg;
+        return null;
     }
+
+    dgarg = cast(char*)"hell";
+    const(void)* p = speller(cast(const(char)*)"hello", &speller_test, idchars);
+    assert(p !is null);
+    for (int i = 0; cases[i][0]; i++)
+    {
+        //printf("case [%d]\n", i);
+        dgarg = cast(void*)cases[i][1];
+        void* p2 = speller(cases[i][0], &speller_test, idchars);
+        if (p2)
+            assert(cases[i][2][0] == 'y');
+        else
+            assert(cases[i][2][0] == 'n');
+    }
+    //printf("unittest_speller() success\n");
 }

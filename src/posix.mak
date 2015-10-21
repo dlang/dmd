@@ -180,13 +180,13 @@ endif
 
 
 FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes attrib builtin canthrow clone complex cond constfold	\
+	arraytypes attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
-	dtemplate dunittest dversion entity errors escape expression func	\
+	dtemplate dversion entity errors escape expression func			\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
-	sideeffect statement staticassert target tokens traits utf visitor \
+	sideeffect statement staticassert target tokens traits utf visitor	\
 	typinf)
 
 ifeq ($(D_OBJC),1)
