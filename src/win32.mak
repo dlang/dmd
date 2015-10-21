@@ -266,6 +266,9 @@ reldmd:
 trace:
 	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
 
+unittest:
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+
 ################################ Libraries ##################################
 
 glue.lib : $(GLUEOBJ)
@@ -285,7 +288,7 @@ $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) verstr.h
 ############################ Maintenance Targets #############################
 
 clean:
-	$(DEL) *.obj *.lib *.map
+	$(DEL) *.obj *.lib *.map *.lst
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	$(DEL) id.h id.d
