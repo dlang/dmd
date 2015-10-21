@@ -1165,12 +1165,16 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+enum MemorySet
+{
+    MemorySet_blockAssign     = 1,    // setting the contents of an array
+    MemorySet_referenceInit   = 2,    // setting the reference of STCref variable
+};
+
 class AssignExp : public BinExp
 {
 public:
-    // &1 != 0 if setting the contents of an array
-    // &2 != 0 if setting the content of ref variable
-    int ismemset;
+    int memset;         // combination of MemorySet flags
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
@@ -1185,6 +1189,7 @@ class ConstructExp : public AssignExp
 {
 public:
     ConstructExp(Loc loc, Expression *e1, Expression *e2);
+    ConstructExp(Loc loc, VarDeclaration *v, Expression *e2);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1192,6 +1197,7 @@ class BlitExp : public AssignExp
 {
 public:
     BlitExp(Loc loc, Expression *e1, Expression *e2);
+    BlitExp(Loc loc, VarDeclaration *v, Expression *e2);
     void accept(Visitor *v) { v->visit(this); }
 };
 
