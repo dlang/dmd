@@ -89,96 +89,6 @@ extern (C++) static void collectUnitTests(Dsymbols* symbols, AA* uniqueUnitTests
 
 /************************ TraitsExp ************************************/
 
-bool isTypeArithmetic(Type t)
-{
-    return t.isintegral() || t.isfloating();
-}
-
-bool isTypeFloating(Type t)
-{
-    return t.isfloating();
-}
-
-bool isTypeIntegral(Type t)
-{
-    return t.isintegral();
-}
-
-bool isTypeScalar(Type t)
-{
-    return t.isscalar();
-}
-
-bool isTypeUnsigned(Type t)
-{
-    return t.isunsigned();
-}
-
-bool isTypeAssociativeArray(Type t)
-{
-    return t.toBasetype().ty == Taarray;
-}
-
-bool isTypeStaticArray(Type t)
-{
-    return t.toBasetype().ty == Tsarray;
-}
-
-bool isTypeAbstractClass(Type t)
-{
-    return t.toBasetype().ty == Tclass && (cast(TypeClass)t.toBasetype()).sym.isAbstract();
-}
-
-bool isTypeFinalClass(Type t)
-{
-    return t.toBasetype().ty == Tclass && ((cast(TypeClass)t.toBasetype()).sym.storage_class & STCfinal) != 0;
-}
-
-bool isFuncAbstractFunction(FuncDeclaration f)
-{
-    return f.isAbstract();
-}
-
-bool isFuncVirtualFunction(FuncDeclaration f)
-{
-    return f.isVirtual();
-}
-
-bool isFuncVirtualMethod(FuncDeclaration f)
-{
-    return f.isVirtualMethod();
-}
-
-bool isFuncFinalFunction(FuncDeclaration f)
-{
-    return f.isFinalFunc();
-}
-
-bool isFuncStaticFunction(FuncDeclaration f)
-{
-    return !f.needThis() && !f.isNested();
-}
-
-bool isFuncOverrideFunction(FuncDeclaration f)
-{
-    return f.isOverride();
-}
-
-bool isDeclRef(Declaration d)
-{
-    return d.isRef();
-}
-
-bool isDeclOut(Declaration d)
-{
-    return d.isOut();
-}
-
-bool isDeclLazy(Declaration d)
-{
-    return (d.storage_class & STClazy) != 0;
-}
-
 // callback for TypeFunction::attributesApply
 struct PushAttributes
 {
@@ -249,13 +159,6 @@ extern (C++) void initTraitsStringTable()
         StringValue* sv = traitsStringTable.insert(s, strlen(s));
         sv.ptrvalue = cast(void*)traits[idx];
     }
-}
-
-bool isTemplate(Dsymbol s)
-{
-    if (!s.toAlias().isOverloadable())
-        return false;
-    return overloadApply(s, sm => sm.isTemplateDeclaration() !is null) != 0;
 }
 
 /**
@@ -547,43 +450,51 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
     if (e.ident == Id.isArithmetic)
     {
-        return isTypeX(&isTypeArithmetic);
+        return isTypeX(t => t.isintegral() || t.isfloating());
     }
     else if (e.ident == Id.isFloating)
     {
-        return isTypeX(&isTypeFloating);
+        return isTypeX(t => t.isfloating());
     }
     else if (e.ident == Id.isIntegral)
     {
-        return isTypeX(&isTypeIntegral);
+        return isTypeX(t => t.isintegral());
     }
     else if (e.ident == Id.isScalar)
     {
-        return isTypeX(&isTypeScalar);
+        return isTypeX(t => t.isscalar());
     }
     else if (e.ident == Id.isUnsigned)
     {
-        return isTypeX(&isTypeUnsigned);
+        return isTypeX(t => t.isunsigned());
     }
     else if (e.ident == Id.isAssociativeArray)
     {
-        return isTypeX(&isTypeAssociativeArray);
+        return isTypeX(t => t.toBasetype().ty == Taarray);
     }
     else if (e.ident == Id.isStaticArray)
     {
-        return isTypeX(&isTypeStaticArray);
+        return isTypeX(t => t.toBasetype().ty == Tsarray);
     }
     else if (e.ident == Id.isAbstractClass)
     {
-        return isTypeX(&isTypeAbstractClass);
+        return isTypeX(t => t.toBasetype().ty == Tclass &&
+                            (cast(TypeClass)t.toBasetype()).sym.isAbstract());
     }
     else if (e.ident == Id.isFinalClass)
     {
-        return isTypeX(&isTypeFinalClass);
+        return isTypeX(t => t.toBasetype().ty == Tclass &&
+                            ((cast(TypeClass)t.toBasetype()).sym.storage_class & STCfinal) != 0);
     }
     else if (e.ident == Id.isTemplate)
     {
-        return isDsymX(&isTemplate);
+        return isDsymX((s)
+        {
+            if (!s.toAlias().isOverloadable())
+                return false;
+            return overloadApply(s,
+                sm => sm.isTemplateDeclaration() !is null) != 0;
+        });
     }
     else if (e.ident == Id.isPOD)
     {
@@ -642,39 +553,39 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     else if (e.ident == Id.isAbstractFunction)
     {
-        return isFuncX(&isFuncAbstractFunction);
+        return isFuncX(f => f.isAbstract());
     }
     else if (e.ident == Id.isVirtualFunction)
     {
-        return isFuncX(&isFuncVirtualFunction);
+        return isFuncX(f => f.isVirtual());
     }
     else if (e.ident == Id.isVirtualMethod)
     {
-        return isFuncX(&isFuncVirtualMethod);
+        return isFuncX(f => f.isVirtualMethod());
     }
     else if (e.ident == Id.isFinalFunction)
     {
-        return isFuncX(&isFuncFinalFunction);
+        return isFuncX(f => f.isFinalFunc());
     }
     else if (e.ident == Id.isOverrideFunction)
     {
-        return isFuncX(&isFuncOverrideFunction);
+        return isFuncX(f => f.isOverride());
     }
     else if (e.ident == Id.isStaticFunction)
     {
-        return isFuncX(&isFuncStaticFunction);
+        return isFuncX(f => !f.needThis() && !f.isNested());
     }
     else if (e.ident == Id.isRef)
     {
-        return isDeclX(&isDeclRef);
+        return isDeclX(d => d.isRef());
     }
     else if (e.ident == Id.isOut)
     {
-        return isDeclX(&isDeclOut);
+        return isDeclX(d => d.isOut());
     }
     else if (e.ident == Id.isLazy)
     {
-        return isDeclX(&isDeclLazy);
+        return isDeclX(d => (d.storage_class & STClazy) != 0);
     }
     else if (e.ident == Id.identifier)
     {
