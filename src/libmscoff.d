@@ -8,8 +8,12 @@
 
 module ddmd.libmscoff;
 
-import core.stdc.stdlib, core.stdc.string, core.sys.windows.windows, core.sys.windows.stat, core.stdc.time, core.stdc.stdio, core.stdc.stdarg, core.stdc.string;
-import ddmd.globals, ddmd.lib, ddmd.mars, ddmd.root.array, ddmd.root.file, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.stringtable, ddmd.scanmscoff, ddmd.errors;
+import core.stdc.stdlib, core.stdc.string, core.sys.windows.windows,
+    core.sys.windows.stat, core.stdc.time, core.stdc.stdio, core.stdc.stdarg,
+    core.stdc.string;
+import ddmd.globals, ddmd.lib, ddmd.mars, ddmd.root.array, ddmd.root.file,
+    ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.port,
+    ddmd.root.stringtable, ddmd.scanmscoff, ddmd.errors;
 
 enum LOG = false;
 
@@ -56,7 +60,8 @@ public:
     {
         static if (LOG)
         {
-            printf("LibMSCoff::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
+            printf("LibMSCoff::setFilename(dir = '%s', filename = '%s')\n",
+                dir ? dir : "", filename ? filename : "");
         }
         const(char)* arg = filename;
         if (!arg || !*arg)
@@ -161,7 +166,8 @@ public:
                     goto Lcorrupt;
                 }
                 //printf("header->object_name = '%.*s'\n", MSCOFF_OBJECT_NAME_SIZE, header->object_name);
-                if (memcmp(cast(char*)header.object_name, cast(char*)"/               ", MSCOFF_OBJECT_NAME_SIZE) == 0)
+                if (memcmp(cast(char*)header.object_name,
+                        cast(char*)"/               ", MSCOFF_OBJECT_NAME_SIZE) == 0)
                 {
                     if (!flm)
                     {
@@ -184,15 +190,18 @@ public:
                             reason = __LINE__;
                             goto Lcorrupt;
                         }
-                        number_of_symbols = Port.readlongLE(cast(char*)buf + offset + 4 + number_of_members * 4);
+                        number_of_symbols = Port.readlongLE(
+                            cast(char*)buf + offset + 4 + number_of_members * 4);
                         indices = cast(ushort*)(cast(char*)buf + offset + 4 + number_of_members * 4 + 4);
-                        string_table = cast(char*)(cast(char*)buf + offset + 4 + number_of_members * 4 + 4 + number_of_symbols * 2);
+                        string_table = cast(char*)(
+                            cast(char*)buf + offset + 4 + number_of_members * 4 + 4 + number_of_symbols * 2);
                         if (size <= (4 + number_of_members * 4 + 4 + number_of_symbols * 2))
                         {
                             reason = __LINE__;
                             goto Lcorrupt;
                         }
-                        string_table_length = size - (4 + number_of_members * 4 + 4 + number_of_symbols * 2);
+                        string_table_length = size - (
+                            4 + number_of_members * 4 + 4 + number_of_symbols * 2);
                         /* The number of strings in the string_table must be number_of_symbols; check it
                          * The strings must also be in ascending lexical order; not checked.
                          */
@@ -217,7 +226,8 @@ public:
                         }
                     }
                 }
-                else if (memcmp(cast(char*)header.object_name, cast(char*)"//              ", MSCOFF_OBJECT_NAME_SIZE) == 0)
+                else if (memcmp(cast(char*)header.object_name,
+                        cast(char*)"//              ", MSCOFF_OBJECT_NAME_SIZE) == 0)
                 {
                     if (!lnm)
                     {
@@ -251,7 +261,8 @@ public:
                     {
                         /* Pick long name out of longnames[]
                          */
-                        uint foff = strtoul(cast(char*)header.object_name + 1, &endptr, 10);
+                        uint foff = strtoul(cast(char*)header.object_name + 1, &endptr,
+                            10);
                         uint i;
                         for (i = 0; 1; i++)
                         {
@@ -449,7 +460,8 @@ private:
         }
 
         auto ctx = Context(this, om);
-        scanMSCoffObjModule(&ctx, &Context.addSymbol, om.base, om.length, om.name, loc);
+        scanMSCoffObjModule(&ctx, &Context.addSymbol, om.base, om.length, om.name,
+            loc);
     }
 
     /*****************************************************************************/
@@ -558,7 +570,8 @@ private:
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
         // Sort objsymbols[] in module offset order
-        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, &MSCoffObjSymbol_offset_cmp);
+        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof,
+            &MSCoffObjSymbol_offset_cmp);
         uint lastoffset;
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -658,7 +671,8 @@ private:
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf->offset = x%x\n", cast(uint)moffset, cast(uint)libbuf.offset);
+            printf("moffset = x%x, libbuf->offset = x%x\n", cast(uint)moffset,
+                cast(uint)libbuf.offset);
         }
         assert(libbuf.offset == moffset);
     }

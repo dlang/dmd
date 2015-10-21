@@ -62,7 +62,8 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
     {
         // This fix by Tim Matthews
         char[MAX_PATH + 1] resolved_name;
-        if (GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1) && FileName.exists(resolved_name.ptr))
+        if (GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1) &&
+                FileName.exists(resolved_name.ptr))
         {
             filename = FileName.replaceName(resolved_name.ptr, inifile);
             if (FileName.exists(filename))
@@ -171,7 +172,8 @@ void updateRealEnvironment(StringTable* environment)
  *      buffer[len] = contents of configuration file
  *      sections[] = section names
  */
-void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
+void parseConfFile(StringTable* environment, const(char)* filename,
+    const(char)* path, size_t length, ubyte* buffer, Strings* sections)
 {
     /********************
      * Skip spaces.
@@ -219,8 +221,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         buf.reset();
         // First, expand the macros.
         // Macros are bracketed by % characters.
-      Kloop:
-        for (size_t k = 0; k < i - linestart; ++k)
+        Kloop: for (size_t k = 0; k < i - linestart; ++k)
         {
             // The line is buffer[linestart..i]
             char* line = cast(char*)&buffer[linestart];
@@ -345,7 +346,8 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                 {
                     if (!writeToEnv(environment, strdup(pn)))
                     {
-                        error(Loc(filename, lineNum, 0), "Use 'NAME=value' syntax, not '%s'", pn);
+                        error(Loc(filename, lineNum, 0), "Use 'NAME=value' syntax, not '%s'",
+                            pn);
                         fatal();
                     }
                     static if (LOG)
@@ -359,4 +361,3 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         }
     }
 }
-

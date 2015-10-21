@@ -38,11 +38,11 @@ import ddmd.visitor;
  */
 struct BaseClass
 {
-    Type type;          // (before semantic processing)
-    Prot protection;    // protection for the base interface
+    Type type; // (before semantic processing)
+    Prot protection; // protection for the base interface
 
     ClassDeclaration sym;
-    uint offset;        // 'this' pointer offset
+    uint offset; // 'this' pointer offset
 
     // for interfaces: Array of FuncDeclaration's making up the vtbl[]
     FuncDeclarations vtbl;
@@ -176,8 +176,8 @@ public:
     ClassDeclaration baseClass; // NULL only if this is Object
     FuncDeclaration staticCtor;
     FuncDeclaration staticDtor;
-    Dsymbols vtbl;              // Array of FuncDeclaration's making up the vtbl[]
-    Dsymbols vtblFinal;         // More FuncDeclaration's that aren't in vtbl[]
+    Dsymbols vtbl; // Array of FuncDeclaration's making up the vtbl[]
+    Dsymbols vtblFinal; // More FuncDeclaration's that aren't in vtbl[]
 
     // Array of BaseClass's; first is super, rest are Interface's
     BaseClasses* baseclasses;
@@ -192,12 +192,12 @@ public:
     // the ClassInfo object for this ClassDeclaration
     TypeInfoClassDeclaration vclassinfo;
 
-    bool com;           // true if this is a COM class (meaning it derives from IUnknown)
-    bool cpp;           // true if this is a C++ interface
-    bool isscope;       // true if this is a scope class
-    bool isabstract;    // true if abstract class
-    int inuse;          // to prevent recursive attempts
-    Baseok baseok;      // set the progress of base classes resolving
+    bool com; // true if this is a COM class (meaning it derives from IUnknown)
+    bool cpp; // true if this is a C++ interface
+    bool isscope; // true if this is a scope class
+    bool isabstract; // true if abstract class
+    int inuse; // to prevent recursive attempts
+    Baseok baseok; // set the progress of base classes resolving
 
     Objc_ClassDeclaration objc;
 
@@ -357,7 +357,8 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
-        ClassDeclaration cd = s ? cast(ClassDeclaration)s : new ClassDeclaration(loc, ident, null);
+        ClassDeclaration cd = s ? cast(ClassDeclaration)s : new ClassDeclaration(loc,
+            ident, null);
         cd.storage_class |= storage_class;
         cd.baseclasses.setDim(this.baseclasses.dim);
         for (size_t i = 0; i < cd.baseclasses.dim; i++)
@@ -414,7 +415,8 @@ public:
             if (storage_class & STCdeprecated)
                 isdeprecated = true;
             if (storage_class & STCauto)
-                error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+                error(
+                    "storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
             if (storage_class & STCscope)
                 isscope = true;
             if (storage_class & STCabstract)
@@ -618,7 +620,9 @@ public:
                     com = true;
                 if (cpp && !b.sym.isCPPinterface())
                 {
-                    .error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b.sym.toPrettyChars());
+                    .error(loc,
+                        "C++ class '%s' cannot implement D interface '%s'",
+                        toPrettyChars(), b.sym.toPrettyChars());
                 }
             }
             interfaceSemantic(sc);
@@ -714,15 +718,21 @@ public:
                 // Use the base class's 'this' member
                 if (storage_class & STCstatic)
                     error("static class cannot inherit from nested class %s", baseClass.toChars());
-                if (toParent2() != baseClass.toParent2() && (!toParent2() || !baseClass.toParent2().getType() || !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
+                if (toParent2() != baseClass.toParent2() && (!toParent2() ||
+                        !baseClass.toParent2().getType() ||
+                        !baseClass.toParent2().getType().isBaseOf(toParent2().getType(),
+                        null)))
                 {
                     if (toParent2())
                     {
-                        error("is nested within %s, but super class %s is nested within %s", toParent2().toChars(), baseClass.toChars(), baseClass.toParent2().toChars());
+                        error("is nested within %s, but super class %s is nested within %s",
+                            toParent2().toChars(), baseClass.toChars(),
+                            baseClass.toParent2().toChars());
                     }
                     else
                     {
-                        error("is not nested, but super class %s is nested within %s", baseClass.toChars(), baseClass.toParent2().toChars());
+                        error("is not nested, but super class %s is nested within %s",
+                            baseClass.toChars(), baseClass.toParent2().toChars());
                     }
                     enclosing = null;
                 }
@@ -791,7 +801,7 @@ public:
         //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
         //members->print();
 
-        version (none)  // FIXME
+        version (none) // FIXME
         {
         LafterSizeok:
             // The additions of special member functions should have its own
@@ -840,7 +850,8 @@ public:
         //    this() { }
         if (!ctor && baseClass && baseClass.ctor)
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
+            FuncDeclaration fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null,
+                null, 1);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
@@ -860,7 +871,8 @@ public:
             }
             else
             {
-                error("cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass.toPrettyChars());
+                error("cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                    baseClass.toPrettyChars());
             }
         }
         dtor = buildDtor(this, sc2);
@@ -881,15 +893,14 @@ public:
         }
         // Verify fields of a synchronized class are not public
         if (storage_class & STCsynchronized)
-        foreach (vd; this.fields)
-        {
-            if (!vd.isThisDeclaration() &&
-                !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+            foreach (vd; this.fields)
             {
-                vd.error("Field members of a synchronized class cannot be %s",
-                    protectionToChars(vd.prot().kind));
+                if (!vd.isThisDeclaration() && !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+                {
+                    vd.error("Field members of a synchronized class cannot be %s",
+                        protectionToChars(vd.prot().kind));
+                }
             }
-        }
         if (deferred && !global.gag)
         {
             deferred.semantic2(sc);
@@ -1335,7 +1346,8 @@ public:
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        InterfaceDeclaration id = s ? cast(InterfaceDeclaration)s : new InterfaceDeclaration(loc, ident, null);
+        InterfaceDeclaration id = s ? cast(InterfaceDeclaration)s : new InterfaceDeclaration(loc,
+            ident, null);
         return ClassDeclaration.syntaxCopy(id);
     }
 

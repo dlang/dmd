@@ -65,7 +65,7 @@ struct Ungag
 enum PROTKIND : int
 {
     PROTundefined,
-    PROTnone,           // no access
+    PROTnone, // no access
     PROTprivate,
     PROTpackage,
     PROTprotected,
@@ -143,16 +143,16 @@ struct Prot
 
 enum PASS : int
 {
-    PASSinit,           // initial state
-    PASSsemantic,       // semantic() started
-    PASSsemanticdone,   // semantic() done
-    PASSsemantic2,      // semantic2() started
-    PASSsemantic2done,  // semantic2() done
-    PASSsemantic3,      // semantic3() started
-    PASSsemantic3done,  // semantic3() done
-    PASSinline,         // inline started
-    PASSinlinedone,     // inline done
-    PASSobj,            // toObjFile() run
+    PASSinit, // initial state
+    PASSsemantic, // semantic() started
+    PASSsemanticdone, // semantic() done
+    PASSsemantic2, // semantic2() started
+    PASSsemantic2done, // semantic2() done
+    PASSsemantic3, // semantic3() started
+    PASSsemantic3done, // semantic3() done
+    PASSinline, // inline started
+    PASSinlinedone, // inline done
+    PASSobj, // toObjFile() run
 }
 
 alias PASSinit = PASS.PASSinit;
@@ -168,10 +168,10 @@ alias PASSobj = PASS.PASSobj;
 
 enum : int
 {
-    IgnoreNone              = 0x00, // default
-    IgnorePrivateMembers    = 0x01, // don't find private members
-    IgnoreErrors            = 0x02, // don't give error messages
-    IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
+    IgnoreNone = 0x00, // default
+    IgnorePrivateMembers = 0x01, // don't find private members
+    IgnoreErrors = 0x02, // don't give error messages
+    IgnoreAmbiguous = 0x04, // return NULL if ambiguous
 }
 
 extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
@@ -183,16 +183,16 @@ extern (C++) class Dsymbol : RootObject
 public:
     Identifier ident;
     Dsymbol parent;
-    Symbol* csym;           // symbol for code generator
-    Symbol* isym;           // import version of csym
-    const(char)* comment;   // documentation comment for this Dsymbol
-    Loc loc;                // where defined
-    Scope* _scope;          // !=null means context to use for semantic()
-    bool errors;            // this symbol failed to pass semantic()
+    Symbol* csym; // symbol for code generator
+    Symbol* isym; // import version of csym
+    const(char)* comment; // documentation comment for this Dsymbol
+    Loc loc; // where defined
+    Scope* _scope; // !=null means context to use for semantic()
+    bool errors; // this symbol failed to pass semantic()
     PASS semanticRun;
 
-    char* depmsg;           // customized deprecation message
-    UserAttributeDeclaration userAttribDecl;    // user defined attributes
+    char* depmsg; // customized deprecation message
+    UserAttributeDeclaration userAttribDecl; // user defined attributes
 
     // !=null means there's a ddoc unittest associated with this symbol
     // (only use this with ddoc)
@@ -675,16 +675,23 @@ public:
                 {
                     sm = s.search_correct(ti.name);
                     if (sm)
-                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                        .error(
+                            loc,
+                            "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?",
+                            ti.name.toChars(), s.kind(), s.toPrettyChars(),
+                            sm.kind(), sm.toChars());
                     else
-                        .error(loc, "template identifier '%s' is not a member of %s '%s'", ti.name.toChars(), s.kind(), s.toPrettyChars());
+                        .error(loc,
+                            "template identifier '%s' is not a member of %s '%s'",
+                            ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
                 }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
                 {
-                    .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
+                    .error(loc, "%s.%s is not a template, it is a %s",
+                        s.toPrettyChars(), ti.name.toChars(), sm.kind());
                     return null;
                 }
                 ti.tempdecl = td;
@@ -870,8 +877,8 @@ public:
                         continue;
                     if (!s)
                         s = *ps;
-                    else if ((   s .isOverloadable() || isOverloadableAlias(  s)) &&
-                             ((*ps).isOverloadable() || isOverloadableAlias(*ps)))
+                    else if ((s.isOverloadable() || isOverloadableAlias(s)) &&
+                            ((*ps).isOverloadable() || isOverloadableAlias(*ps)))
                     {
                         // keep head of overload set
                         FuncDeclaration f1 = s.isFuncDeclaration();
@@ -1193,12 +1200,12 @@ public:
 extern (C++) class ScopeDsymbol : Dsymbol
 {
 public:
-    Dsymbols* members;      // all Dsymbol's in this scope
-    DsymbolTable symtab;    // members[] sorted into table
+    Dsymbols* members; // all Dsymbol's in this scope
+    DsymbolTable symtab; // members[] sorted into table
 
 private:
-    Dsymbols* imports;      // imported Dsymbol's
-    PROTKIND* prots;        // array of PROTKIND, one for each import
+    Dsymbols* imports; // imported Dsymbol's
+    PROTKIND* prots; // array of PROTKIND, one for each import
 
 public:
     final extern (D) this()
@@ -1249,7 +1256,8 @@ public:
                 //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
                 /* Don't find private members if ss is a module
                  */
-                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateMembers : IgnoreNone));
+                Dsymbol s2 = ss.search(loc, ident,
+                    sflags | (ss.isModule() ? IgnorePrivateMembers : IgnoreNone));
                 if (!s)
                 {
                     s = s2;
@@ -1265,7 +1273,9 @@ public:
                          * alias is deprecated or less accessible, prefer
                          * the other.
                          */
-                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != PROTnone)
+                        if (s.isDeprecated() ||
+                                s.prot().isMoreRestrictiveThan(s2.prot()) &&
+                                s2.prot().kind != PROTnone)
                             s = s2;
                     }
                     else
@@ -1275,7 +1285,9 @@ public:
                          */
                         Import i1 = s.isImport();
                         Import i2 = s2.isImport();
-                        if (!(i1 && i2 && (i1.mod == i2.mod || (!i1.parent.isImport() && !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
+                        if (!(i1 && i2 && (i1.mod == i2.mod ||
+                                (!i1.parent.isImport() &&
+                                !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
                         {
                             /* Bugzilla 8668:
                              * Public selective import adds AliasDeclaration in module.
@@ -1287,7 +1299,8 @@ public:
                             /* If both s2 and s are overloadable (though we only
                              * need to check s once)
                              */
-                            if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
+                            if ((s2.isOverloadSet() || s2.isOverloadable()) &&
+                                    (a || s.isOverloadable()))
                             {
                                 a = mergeOverloadSet(ident, a, s2);
                                 continue;
@@ -1311,7 +1324,8 @@ public:
                         a = mergeOverloadSet(ident, a, s);
                     s = a;
                 }
-                if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate && !s.parent.isTemplateMixin())
+                if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate &&
+                        !s.parent.isTemplateMixin())
                 {
                     if (!s.isImport())
                         error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
@@ -1355,7 +1369,8 @@ public:
                 Dsymbol s2 = os.a[j];
                 if (s.toAlias() == s2.toAlias())
                 {
-                    if (s2.isDeprecated() || (s2.prot().isMoreRestrictiveThan(s.prot()) && s.prot().kind != PROTnone))
+                    if (s2.isDeprecated() ||
+                            (s2.prot().isMoreRestrictiveThan(s.prot()) && s.prot().kind != PROTnone))
                     {
                         os.a[j] = s;
                     }
@@ -1405,16 +1420,20 @@ public:
         version (none)
         {
             printf("ScopeDsymbol::multiplyDefined()\n");
-            printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1, s1.toChars(), s1.kind(), s1.parent ? s1.parent.toChars() : "");
-            printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2.toChars(), s2.kind(), s2.parent ? s2.parent.toChars() : "");
+            printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1,
+                s1.toChars(), s1.kind(), s1.parent ? s1.parent.toChars() : "");
+            printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2,
+                s2.toChars(), s2.kind(), s2.parent ? s2.parent.toChars() : "");
         }
         if (loc.filename)
         {
-            .error(loc, "%s at %s conflicts with %s at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "%s at %s conflicts with %s at %s", s1.toPrettyChars(),
+                s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
         }
         else
         {
-            s1.error(s1.loc, "conflicts with %s %s at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            s1.error(s1.loc, "conflicts with %s %s at %s", s2.kind(),
+                s2.toPrettyChars(), s2.locToChars());
         }
     }
 
@@ -1440,7 +1459,8 @@ public:
             {
                 Scope sc;
                 auto parameters = new Parameters();
-                Parameters* p = new Parameter(STCin, Type.tchar.constOf().arrayOf(), null, null);
+                Parameters* p = new Parameter(STCin, Type.tchar.constOf().arrayOf(),
+                    null, null);
                 parameters.push(p);
                 Type tret = null;
                 tfgetmembers = new TypeFunction(parameters, tret, 0, LINKd);
@@ -1488,6 +1508,7 @@ public:
             ++n;
             return 0;
         }
+
         _foreach(null, members, &dimDg, &n);
         return n;
     }
@@ -1517,7 +1538,7 @@ public:
         return res ? sym : null;
     }
 
-    extern (D)   alias ForeachDg    = int delegate(size_t idx, Dsymbol s);
+    extern (D) alias ForeachDg = int delegate(size_t idx, Dsymbol s);
 
     /***************************************
      * Expands attribute declarations in members in depth first
@@ -1529,7 +1550,8 @@ public:
      * Returns:
      *  last value returned by dg()
      */
-    extern (D) static int _foreach(Scope* sc, Dsymbols* members, scope ForeachDg dg, size_t* pn = null)
+    extern (D) static int _foreach(Scope* sc, Dsymbols* members,
+        scope ForeachDg dg, size_t* pn = null)
     {
         assert(dg);
         if (!members)
@@ -1588,7 +1610,8 @@ public:
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
         Expression eold = null;
-        for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
+        for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope,
+                e))
         {
             if (e.op == TOKimport)
             {
@@ -1631,9 +1654,9 @@ public:
 extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
 public:
-    Expression exp;         // IndexExp or SliceExp
-    TypeTuple type;         // for tuple[length]
-    TupleDeclaration td;    // for tuples of objects
+    Expression exp; // IndexExp or SliceExp
+    TypeTuple type; // for tuple[length]
+    TupleDeclaration td; // for tuples of objects
     Scope* sc;
 
     extern (D) this(Scope* sc, Expression e)
@@ -1745,11 +1768,14 @@ public:
                     /* It is for an expression tuple, so the
                      * length will be a const.
                      */
-                    Expression e = new IntegerExp(Loc(), (cast(TupleExp)ce).exps.dim, Type.tsize_t);
-                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc(), e));
+                    Expression e = new IntegerExp(Loc(), (cast(TupleExp)ce).exps.dim,
+                        Type.tsize_t);
+                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar,
+                        new ExpInitializer(Loc(), e));
                     v.storage_class |= STCtemp | STCstatic | STCconst;
                 }
-                else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
+                else if (ce.type && (t = ce.type.toBasetype()) !is null &&
+                        (t.ty == Tstruct || t.ty == Tclass))
                 {
                     // Look for opDollar
                     assert(exp.op == TOKarray || exp.op == TOKslice);
@@ -1791,7 +1817,8 @@ public:
                          */
                         if (exp.op == TOKarray && (cast(ArrayExp)exp).arguments.dim != 1)
                         {
-                            exp.error("%s only defines opDollar for one dimension", ad.toChars());
+                            exp.error("%s only defines opDollar for one dimension",
+                                ad.toChars());
                             return null;
                         }
                         Declaration d = s.isDeclaration();
@@ -1804,7 +1831,8 @@ public:
                     t = e.type.toBasetype();
                     if (t && t.ty == Tfunction)
                         e = new CallExp(e.loc, e);
-                    v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
+                    v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(),
+                        e));
                     v.storage_class |= STCtemp | STCctfe | STCrvalue;
                 }
                 else
@@ -1844,7 +1872,7 @@ public:
 extern (C++) final class OverloadSet : Dsymbol
 {
 public:
-    Dsymbols a;     // array of Dsymbols
+    Dsymbols a; // array of Dsymbols
 
     extern (D) this(Identifier ident, OverloadSet os = null)
     {

@@ -83,7 +83,7 @@ version (NoBackend)
 
     version (OSX)
     {
-        extern(C++) void objc_initSymbols()
+        extern (C++) void objc_initSymbols()
         {
         }
     }
@@ -116,6 +116,6 @@ else
 
     version (OSX)
     {
-        extern(C++) void objc_initSymbols();
+        extern (C++) void objc_initSymbols();
     }
 }

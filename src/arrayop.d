@@ -32,7 +32,8 @@ extern (C++) __gshared AA* arrayfuncs;
 /**************************************
  * Structure to contain information needed to insert an array op call
  */
-extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* sc, Loc loc)
+extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* sc,
+    Loc loc)
 {
     auto fparams = new Parameters();
     Expression loopbody = buildArrayLoop(exp, fparams);
@@ -43,7 +44,10 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
      */
     Parameter p = (*fparams)[0];
     // foreach (i; 0 .. p.length)
-    Statement s1 = new ForeachRangeStatement(Loc(), TOKforeach, new Parameter(0, null, Id.p, null), new IntegerExp(Loc(), 0, Type.tsize_t), new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)), new ExpStatement(Loc(), loopbody), Loc());
+    Statement s1 = new ForeachRangeStatement(Loc(), TOKforeach, new Parameter(0,
+        null, Id.p, null), new IntegerExp(Loc(), 0, Type.tsize_t),
+        new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)),
+        new ExpStatement(Loc(), loopbody), Loc());
     //printf("%s\n", s1->toChars());
     Statement s2 = new ReturnStatement(Loc(), new IdentifierExp(Loc(), p.ident));
     //printf("s2: %s\n", s2->toChars());
@@ -140,7 +144,8 @@ extern (C++) bool checkNonAssignmentArrayOp(Expression e, bool suggestion = fals
         const(char)* s = "";
         if (suggestion)
             s = " (possible missing [])";
-        e.error("array operation %s without destination memory not allowed%s", e.toChars(), s);
+        e.error("array operation %s without destination memory not allowed%s", e.toChars(),
+            s);
         return true;
     }
     return false;
@@ -373,7 +378,8 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                 Type t1 = e.e1.type.toBasetype();
                 Type t2 = e.e2.type.toBasetype();
                 e.e1.accept(this);
-                if (t1.ty == Tarray && (t2.ty == Tarray && !t1.equivalent(tb) || t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
+                if (t1.ty == Tarray && (t2.ty == Tarray && !t1.equivalent(tb) ||
+                        t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
                 {
                     // Bugzilla 12780: if A is narrower than B
                     //  A[] op B[]
@@ -382,7 +388,8 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     buf.writestring(t1.nextOf().mutableOf().deco);
                 }
                 e.e2.accept(this);
-                if (t2.ty == Tarray && (t1.ty == Tarray && !t2.equivalent(tb) || t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
+                if (t2.ty == Tarray && (t1.ty == Tarray && !t2.equivalent(tb) ||
+                        t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
                 {
                     // Bugzilla 12780: if B is narrower than A:
                     //  A[] op B[]
@@ -640,7 +647,8 @@ extern (C++) bool isArrayOpOperand(Expression e)
     Type tb = e.type.toBasetype();
     if (tb.ty == Tarray)
     {
-        return (isUnaArrayOp(e.op) || isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOKassign);
+        return (isUnaArrayOp(e.op) || isBinArrayOp(e.op) ||
+            isBinAssignArrayOp(e.op) || e.op == TOKassign);
     }
     return false;
 }

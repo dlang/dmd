@@ -140,7 +140,9 @@ extern (C++) static void skipDataType(ubyte** pp)
  *      module_name     name of the object module (used for error messages)
  *      loc             location to use for error printing
  */
-extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx,
+    const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen,
+    const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
@@ -244,7 +246,8 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
             {
-                static __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
+                static __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8',
+                    '6'];
                 if (recLen == (omfstr1).sizeof)
                 {
                     for (uint i = 0; i < (omfstr1).sizeof; i++)
@@ -252,7 +255,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                             goto L1;
                     easyomf = 1;
                     break;
-                L1:
+        L1:
                 }
             }
             // Recognize .IMPDEF Import Definition Records
@@ -268,7 +271,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                     parseName(&p, name.ptr);
                     (*pAddSymbol)(pctx, name.ptr, 0);
                     break;
-                L2:
+        L2:
                 }
             }
             break;
@@ -276,8 +279,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
             // ignore
         }
     }
-Ret:
-    for (size_t u = 1; u < names.dim; u++)
+    Ret: for (size_t u = 1; u < names.dim; u++)
         free(cast(void*)names[u]);
 }
 
@@ -287,7 +289,8 @@ Ret:
  * Returns:
  *      true for corrupt OMF data
  */
-extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize)
+extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name,
+    void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize)
 {
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.

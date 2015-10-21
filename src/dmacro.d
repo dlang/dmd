@@ -20,12 +20,12 @@ import ddmd.utf;
 struct Macro
 {
 private:
-    Macro* next;            // next in list
-    const(char)* name;      // macro name
-    size_t namelen;         // length of macro name
-    const(char)* text;      // macro replacement text
-    size_t textlen;         // length of replacement text
-    int inuse;              // macro is in use (don't expand)
+    Macro* next; // next in list
+    const(char)* name; // macro name
+    size_t namelen; // length of macro name
+    const(char)* text; // macro replacement text
+    size_t textlen; // length of replacement text
+    int inuse; // macro is in use (don't expand)
 
     extern (D) this(const(char)* name, size_t namelen, const(char)* text, size_t textlen)
     {
@@ -51,7 +51,8 @@ private:
     }
 
 public:
-    extern (C++) static Macro* define(Macro** ptable, const(char)* name, size_t namelen, const(char)* text, size_t textlen)
+    extern (C++) static Macro* define(Macro** ptable, const(char)* name,
+        size_t namelen, const(char)* text, size_t textlen)
     {
         //printf("Macro::define('%.*s' = '%.*s')\n", namelen, name, textlen, text);
         Macro* table;
@@ -75,11 +76,13 @@ public:
      * Expand macro in place in buf.
      * Only look at the text in buf from start to end.
      */
-    extern (C++) void expand(OutBuffer* buf, size_t start, size_t* pend, const(char)* arg, size_t arglen)
+    extern (C++) void expand(OutBuffer* buf, size_t start, size_t* pend,
+        const(char)* arg, size_t arglen)
     {
         version (none)
         {
-            printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, arglen, arg);
+            printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, arglen,
+                arg);
             printf("Buf is: '%.*s'\n", *pend - start, buf.data + start);
         }
         // limit recursive expansion
@@ -87,7 +90,8 @@ public:
         static __gshared const(int) nestLimit = 1000;
         if (nest > nestLimit)
         {
-            error(Loc(), "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);
+            error(Loc(), "DDoc macro expansion limit exceeded; more than %d expansions.",
+                nestLimit);
             return;
         }
         nest++;
@@ -240,7 +244,11 @@ public:
                             buf.remove(u, v + 1 - u);
                             end -= v + 1 - u;
                         }
-                        else if (m.inuse && ((arglen == marglen && memcmp(arg, marg, arglen) == 0) || (arglen + 4 == marglen && marg[0] == 0xFF && marg[1] == '{' && memcmp(arg, marg + 2, arglen) == 0 && marg[marglen - 2] == 0xFF && marg[marglen - 1] == '}')))
+                        else if (m.inuse && ((arglen == marglen && memcmp(arg,
+                                marg, arglen) == 0) || (arglen + 4 == marglen &&
+                                marg[0] == 0xFF && marg[1] == '{' && memcmp(arg,
+                                marg + 2, arglen) == 0 &&
+                                marg[marglen - 2] == 0xFF && marg[marglen - 1] == '}')))
                         {
                             /* Recursive expansion:
                              *   marg is same as arg (with blue paint added)
@@ -303,7 +311,8 @@ extern (C++) char* memdup(const(char)* p, size_t len)
  *              1..9:   get nth argument
  *              -1:     get 2nd through end
  */
-extern (C++) size_t extractArgN(const(char)* p, size_t end, const(char)** pmarg, size_t* pmarglen, int n)
+extern (C++) size_t extractArgN(const(char)* p, size_t end,
+    const(char)** pmarg, size_t* pmarglen, int n)
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.

@@ -144,7 +144,8 @@ extern (C++) void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclarat
     cd.objc.objc = true;
 }
 
-extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration id, Scope* sc)
+extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration id,
+    Scope* sc)
 {
     if (sc.linkage == LINKobjc)
         id.objc.objc = true;

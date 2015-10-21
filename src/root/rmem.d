@@ -163,7 +163,7 @@ else
         goto L1;
     }
 
-    version(DigitalMars)
+    version (DigitalMars)
     {
         extern (C) void* _d_allocmemory(size_t m_size)
         {

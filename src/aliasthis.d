@@ -34,7 +34,7 @@ public:
 
     extern (D) this(Loc loc, Identifier ident)
     {
-        super(null);    // it's anonymous (no identifier)
+        super(null); // it's anonymous (no identifier)
         this.loc = loc;
         this.ident = ident;
     }
@@ -54,7 +54,9 @@ public:
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "alias this can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc,
+                "alias this can only be a member of aggregate, not %s %s", p.kind(),
+                p.toChars());
             return;
         }
         assert(ad.members);
@@ -94,7 +96,9 @@ public:
             assert(t);
             if (ad.type.implicitConvTo(t) > MATCHnomatch)
             {
-                .error(loc, "alias this is not reachable as %s already converts to %s", ad.toChars(), t.toChars());
+                .error(loc,
+                    "alias this is not reachable as %s already converts to %s",
+                    ad.toChars(), t.toChars());
             }
         }
         ad.aliasthis = s;

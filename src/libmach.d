@@ -61,7 +61,8 @@ public:
     {
         static if (LOG)
         {
-            printf("LibMach::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
+            printf("LibMach::setFilename(dir = '%s', filename = '%s')\n",
+                dir ? dir : "", filename ? filename : "");
         }
         const(char)* arg = filename;
         if (!arg || !*arg)
@@ -151,8 +152,10 @@ public:
                     reason = __LINE__;
                     goto Lcorrupt;
                 }
-                if (memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF       ", 16) == 0 ||
-                    memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF SORTED", 16) == 0)
+                if (memcmp(header.object_name.ptr,
+                        cast(char*)"__.SYMDEF       ", 16) == 0 ||
+                        memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF SORTED",
+                        16) == 0)
                 {
                     /* Instead of rescanning the object modules we pull from a
                      * library, just use the already created symbol table.
@@ -177,10 +180,12 @@ public:
                     om.length = cast(uint)(size + MachLibHeader.sizeof);
                     om.offset = 0;
                     om.name = cast(char*)(om.base + MachLibHeader.sizeof);
-                    om.file_time = cast(uint)strtoul(header.file_time.ptr, &endptr, 10);
+                    om.file_time = cast(uint)strtoul(header.file_time.ptr, &endptr,
+                        10);
                     om.user_id = cast(uint)strtoul(header.user_id.ptr, &endptr, 10);
                     om.group_id = cast(uint)strtoul(header.group_id.ptr, &endptr, 10);
-                    om.file_mode = cast(uint)strtoul(header.file_mode.ptr, &endptr, 8);
+                    om.file_mode = cast(uint)strtoul(header.file_mode.ptr, &endptr,
+                        8);
                     om.scan = 0; // don't scan object module for symbols
                     objmodules.push(om);
                 }
@@ -318,7 +323,8 @@ public:
                     s = tab.lookup(name, strlen(name));
                     assert(s);
                     MachObjSymbol* os = cast(MachObjSymbol*)s.ptrvalue;
-                    error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                    error("multiple definition of %s: %s and %s: %s", om.name,
+                        name, os.om.name, os.name);
                 }
             }
             else

@@ -51,9 +51,9 @@ import ddmd.visitor;
 
 struct HdrGenState
 {
-    bool hdrgen;        // true if generating header file
-    bool ddoc;          // true if generating Ddoc file
-    bool fullQual;      // fully qualify types when printing
+    bool hdrgen; // true if generating header file
+    bool ddoc; // true if generating Ddoc file
+    bool fullQual; // fully qualify types when printing
     int tpltMember;
     int autoMember;
     int forStmtInit;
@@ -616,7 +616,11 @@ public:
         while (t)
         {
             buf.writestring(t.toChars());
-            if (t.next && t.value != TOKmin && t.value != TOKcomma && t.next.value != TOKcomma && t.value != TOKlbracket && t.next.value != TOKlbracket && t.next.value != TOKrbracket && t.value != TOKlparen && t.next.value != TOKlparen && t.next.value != TOKrparen && t.value != TOKdot && t.next.value != TOKdot)
+            if (t.next && t.value != TOKmin && t.value != TOKcomma &&
+                    t.next.value != TOKcomma && t.value != TOKlbracket &&
+                    t.next.value != TOKlbracket && t.next.value != TOKrbracket &&
+                    t.value != TOKlparen && t.next.value != TOKlparen &&
+                    t.next.value != TOKrparen && t.value != TOKdot && t.next.value != TOKdot)
             {
                 buf.writeByte(' ');
             }
@@ -855,7 +859,8 @@ public:
         t.inuse--;
     }
 
-    void visitFuncIdentWithPrefix(TypeFunction t, Identifier ident, TemplateDeclaration td, bool isPostfixStyle)
+    void visitFuncIdentWithPrefix(TypeFunction t, Identifier ident,
+        TemplateDeclaration td, bool isPostfixStyle)
     {
         if (t.inuse)
         {
@@ -1467,7 +1472,9 @@ public:
             RootObject oarg = (*ti.tiargs)[0];
             if (Type t = isType(oarg))
             {
-                if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
+                if (t.equals(Type.tstring) || t.equals(Type.twstring) ||
+                        t.equals(Type.tdstring) || t.mod == 0 &&
+                        (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
                 {
                     buf.writestring(t.toChars());
                     return;
@@ -1475,7 +1482,8 @@ public:
             }
             else if (Expression e = isExpression(oarg))
             {
-                if (e.op == TOKint64 || e.op == TOKfloat64 || e.op == TOKnull || e.op == TOKstring || e.op == TOKthis)
+                if (e.op == TOKint64 || e.op == TOKfloat64 || e.op == TOKnull ||
+                        e.op == TOKstring || e.op == TOKthis)
                 {
                     buf.writestring(e.toChars());
                     return;
@@ -1753,7 +1761,8 @@ public:
 
     void bodyToBuffer(FuncDeclaration f)
     {
-        if (!f.fbody || (hgs.hdrgen && !global.params.useInline && !hgs.autoMember && !hgs.tpltMember))
+        if (!f.fbody || (hgs.hdrgen && !global.params.useInline &&
+                !hgs.autoMember && !hgs.tpltMember))
         {
             buf.writeByte(';');
             buf.writenl();
@@ -2283,7 +2292,8 @@ public:
                 else if (c <= 0xFFFF)
                     buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
                 else
-                    buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x", c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
+                    buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x", c & 0xFF,
+                        (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
                 break;
             }
         }
@@ -2875,7 +2885,9 @@ public:
             if (p.ident)
                 buf.writestring(p.ident.toChars());
         }
-        else if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident.len > 3 && strncmp((cast(TypeIdentifier)p.type).ident.string, "__T", 3) == 0)
+        else if (p.type.ty == Tident &&
+                (cast(TypeIdentifier)p.type).ident.len > 3 &&
+                strncmp((cast(TypeIdentifier)p.type).ident.string, "__T", 3) == 0)
         {
             // print parameter name, instead of undetermined type parameter
             buf.writestring(p.ident.toChars());
@@ -3011,38 +3023,22 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         const(char)* id;
     }
 
-    static __gshared SCstring* table =
-    [
-        SCstring(STCauto, TOKauto),
-        SCstring(STCscope, TOKscope),
-        SCstring(STCstatic, TOKstatic),
-        SCstring(STCextern, TOKextern),
-        SCstring(STCconst, TOKconst),
-        SCstring(STCfinal, TOKfinal),
-        SCstring(STCabstract, TOKabstract),
-        SCstring(STCsynchronized, TOKsynchronized),
-        SCstring(STCdeprecated, TOKdeprecated),
-        SCstring(STCoverride, TOKoverride),
-        SCstring(STClazy, TOKlazy),
-        SCstring(STCalias, TOKalias),
-        SCstring(STCout, TOKout),
-        SCstring(STCin, TOKin),
-        SCstring(STCmanifest, TOKenum),
-        SCstring(STCimmutable, TOKimmutable),
-        SCstring(STCshared, TOKshared),
-        SCstring(STCnothrow, TOKnothrow),
-        SCstring(STCwild, TOKwild),
-        SCstring(STCpure, TOKpure),
-        SCstring(STCref, TOKref),
-        SCstring(STCtls),
-        SCstring(STCgshared, TOKgshared),
-        SCstring(STCnogc, TOKat, "@nogc"),
-        SCstring(STCproperty, TOKat, "@property"),
-        SCstring(STCsafe, TOKat, "@safe"),
-        SCstring(STCtrusted, TOKat, "@trusted"),
-        SCstring(STCsystem, TOKat, "@system"),
-        SCstring(STCdisable, TOKat, "@disable"),
-        SCstring(0, TOKreserved)
+    static __gshared SCstring* table = [
+        SCstring(STCauto, TOKauto), SCstring(STCscope, TOKscope),
+        SCstring(STCstatic, TOKstatic), SCstring(STCextern, TOKextern),
+        SCstring(STCconst, TOKconst), SCstring(STCfinal, TOKfinal),
+        SCstring(STCabstract, TOKabstract), SCstring(STCsynchronized,
+        TOKsynchronized), SCstring(STCdeprecated, TOKdeprecated),
+        SCstring(STCoverride, TOKoverride), SCstring(STClazy, TOKlazy),
+        SCstring(STCalias, TOKalias), SCstring(STCout, TOKout), SCstring(STCin,
+        TOKin), SCstring(STCmanifest, TOKenum), SCstring(STCimmutable,
+        TOKimmutable), SCstring(STCshared, TOKshared), SCstring(STCnothrow,
+        TOKnothrow), SCstring(STCwild, TOKwild), SCstring(STCpure, TOKpure),
+        SCstring(STCref, TOKref), SCstring(STCtls), SCstring(STCgshared,
+        TOKgshared), SCstring(STCnogc, TOKat, "@nogc"), SCstring(STCproperty,
+        TOKat, "@property"), SCstring(STCsafe, TOKat, "@safe"),
+        SCstring(STCtrusted, TOKat, "@trusted"), SCstring(STCsystem, TOKat,
+        "@system"), SCstring(STCdisable, TOKat, "@disable"), SCstring(0, TOKreserved)
     ];
     for (int i = 0; table[i].stc; i++)
     {
@@ -3159,7 +3155,8 @@ extern (C++) const(char)* protectionToChars(PROTKIND kind)
 }
 
 // Print the full function signature with correct ident, attributes and template args
-extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf,
+    Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);

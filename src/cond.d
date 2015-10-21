@@ -160,6 +160,7 @@ public:
 
     static bool isPredefined(const(char)* ident)
     {
+        //dfmt off
         static __gshared const(char)** reserved =
         [
             "DigitalMars",
@@ -254,6 +255,7 @@ public:
             "none",
             null
         ];
+        //dfmt on
         for (uint i = 0; reserved[i]; i++)
         {
             if (strcmp(ident, reserved[i]) == 0)
@@ -314,7 +316,10 @@ public:
             }
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
                 inc = 1;
-            if (!definedInModule && (!ident || (!isPredefined(ident.toChars()) && ident != Identifier.idPool(Token.toChars(TOKunittest)) && ident != Identifier.idPool(Token.toChars(TOKassert)))))
+            if (!definedInModule && (!ident ||
+                    (!isPredefined(ident.toChars()) &&
+                    ident != Identifier.idPool(Token.toChars(TOKunittest)) &&
+                    ident != Identifier.idPool(Token.toChars(TOKassert)))))
                 printDepsConditional(sc, this, "depsVersion ");
         }
         return (inc == 1);
@@ -332,7 +337,7 @@ extern (C++) final class StaticIfCondition : Condition
 {
 public:
     Expression exp;
-    int nest;           // limit circular dependencies
+    int nest; // limit circular dependencies
 
     extern (D) this(Loc loc, Expression exp)
     {
@@ -349,7 +354,8 @@ public:
     {
         version (none)
         {
-            printf("StaticIfCondition::include(sc = %p, sds = %p) this=%p inc = %d\n", sc, sds, this, inc);
+            printf("StaticIfCondition::include(sc = %p, sds = %p) this=%p inc = %d\n",
+                sc, sds, this, inc);
             if (sds)
             {
                 printf("\ts = '%s', kind = %s\n", sds.toChars(), sds.kind());
@@ -359,7 +365,9 @@ public:
         {
             if (exp.op == TOKerror || nest > 100)
             {
-                error(loc, (nest > 1000) ? "unresolvable circular static if expression" : "error evaluating static if expression");
+                error(loc,
+                    (nest > 1000) ? "unresolvable circular static if expression"
+                    : "error evaluating static if expression");
                 goto Lerror;
             }
             if (!sc)
@@ -386,7 +394,8 @@ public:
             if (!e.type.isBoolean())
             {
                 if (e.type.toBasetype() != Type.terror)
-                    exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
+                    exp.error("expression %s of type %s does not have a boolean value",
+                        exp.toChars(), e.type.toChars());
                 goto Lerror;
             }
             e = e.ctfeInterpret();
@@ -400,7 +409,8 @@ public:
                 inc = 2;
             else
             {
-                e.error("expression %s is not constant or does not evaluate to a bool", e.toChars());
+                e.error("expression %s is not constant or does not evaluate to a bool",
+                    e.toChars());
                 goto Lerror;
             }
         }

@@ -136,7 +136,8 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
              */
             if (!sd.members)
                 return; // opaque struct
-            if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash && !search_toString(sd))
+            if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash &&
+                    !search_toString(sd))
                 return; // none of TypeInfo-specific members
 
             // If the struct is in a non-root module, run semantic3 to get
@@ -207,9 +208,9 @@ struct StructFlags
 
 enum StructPOD : int
 {
-    ISPODno,    // struct is not POD
-    ISPODyes,   // struct is POD
-    ISPODfwd,   // POD not yet computed
+    ISPODno, // struct is not POD
+    ISPODyes, // struct is POD
+    ISPODfwd, // POD not yet computed
 }
 
 alias ISPODno = StructPOD.ISPODno;
@@ -221,20 +222,20 @@ alias ISPODfwd = StructPOD.ISPODfwd;
 extern (C++) class StructDeclaration : AggregateDeclaration
 {
 public:
-    int zeroInit;               // !=0 if initialize with 0 fill
-    bool hasIdentityAssign;     // true if has identity opAssign
-    bool hasIdentityEquals;     // true if has identity opEquals
+    int zeroInit; // !=0 if initialize with 0 fill
+    bool hasIdentityAssign; // true if has identity opAssign
+    bool hasIdentityEquals; // true if has identity opEquals
     FuncDeclarations postblits; // Array of postblit functions
-    FuncDeclaration postblit;   // aggregate postblit
+    FuncDeclaration postblit; // aggregate postblit
 
-    FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
-    FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
-    FuncDeclaration xhash;      // TypeInfo_Struct.xtoHash
-    extern (C++) static __gshared FuncDeclaration xerreq;   // object.xopEquals
-    extern (C++) static __gshared FuncDeclaration xerrcmp;  // object.xopCmp
+    FuncDeclaration xeq; // TypeInfo_Struct.xopEquals
+    FuncDeclaration xcmp; // TypeInfo_Struct.xopCmp
+    FuncDeclaration xhash; // TypeInfo_Struct.xtoHash
+    extern (C++) static __gshared FuncDeclaration xerreq; // object.xopEquals
+    extern (C++) static __gshared FuncDeclaration xerrcmp; // object.xopCmp
 
-    structalign_t alignment;    // alignment applied outside of the struct
-    StructPOD ispod;            // if struct is POD
+    structalign_t alignment; // alignment applied outside of the struct
+    StructPOD ispod; // if struct is POD
 
     // For 64 bit Efl function call/return ABI
     Type arg1type;
@@ -258,7 +259,8 @@ public:
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        StructDeclaration sd = s ? cast(StructDeclaration)s : new StructDeclaration(loc, ident);
+        StructDeclaration sd = s ? cast(StructDeclaration)s : new StructDeclaration(loc,
+            ident);
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
@@ -436,13 +438,17 @@ public:
                 sc = sc.push();
                 sc.tinst = null;
                 sc.minst = null;
-                FuncDeclaration fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
+                FuncDeclaration fcall = resolveFuncCall(loc, sc, scall, null, null,
+                    null, 1);
                 sc = sc.pop();
                 global.endGagging(xerrors);
                 if (fcall && fcall.isStatic())
                 {
-                    error(fcall.loc, "static opCall is hidden by constructors and can never be called");
-                    errorSupplemental(fcall.loc, "Please use a factory method instead, or replace all constructors with static opCall.");
+                    error(fcall.loc,
+                        "static opCall is hidden by constructors and can never be called");
+                    errorSupplemental(
+                        fcall.loc,
+                        "Please use a factory method instead, or replace all constructors with static opCall.");
                 }
             }
         }
@@ -675,7 +681,9 @@ public:
                 StringExp se = cast(StringExp)e;
                 Type typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
-                if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) && (tynto == Tchar || tynto == Twchar || tynto == Tdchar) && se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
+                if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) &&
+                        (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                        se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
                 {
                     e = se.castTo(sc, t);
                     goto L1;

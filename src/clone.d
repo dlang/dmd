@@ -261,7 +261,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         {
             VarDeclaration v = sd.fields[i];
             // this.v = s.v;
-            auto ec = new AssignExp(loc, new DotVarExp(loc, new ThisExp(loc), v, 0), new DotVarExp(loc, new IdentifierExp(loc, Id.p), v, 0));
+            auto ec = new AssignExp(loc, new DotVarExp(loc, new ThisExp(loc), v,
+                0), new DotVarExp(loc, new IdentifierExp(loc, Id.p), v, 0));
             e = Expression.combine(e, ec);
         }
     }
@@ -772,7 +773,8 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
             uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
@@ -809,13 +811,15 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
             uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
             ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
         }
-        a.push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
+        a.push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc,
+            ex)));
     }
     /* Build our own "postblit" which executes a
      */
@@ -929,7 +933,8 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
             uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
@@ -1023,7 +1028,8 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
             {
                 // What should do?
             }
-            StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) | (ad.invs[i].type.mod & MODshared ? STCshared : 0);
+            StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) | (
+                ad.invs[i].type.mod & MODshared ? STCshared : 0);
             if (i == 0)
                 stcx = stcy;
             else if (stcx ^ stcy)
@@ -1031,7 +1037,8 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                 version (all)
                 {
                     // currently rejects
-                    ad.error(ad.invs[i].loc, "mixing invariants with shared/synchronized differene is not supported");
+                    ad.error(ad.invs[i].loc,
+                        "mixing invariants with shared/synchronized differene is not supported");
                     e = null;
                     break;
                 }

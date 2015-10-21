@@ -106,7 +106,8 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
                 if (v.storage_class & STCvariadic)
                 {
                     if (tb.ty == Tarray || tb.ty == Tsarray)
-                        error(e.loc, "escaping reference to variadic parameter %s", v);
+                        error(e.loc, "escaping reference to variadic parameter %s",
+                            v);
                 }
             }
         }
@@ -184,7 +185,9 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
                         return;
                     if (v.storage_class & STCvariadic)
                     {
-                        error(e.loc, "escaping reference to the payload of variadic parameter %s", v);
+                        error(e.loc,
+                            "escaping reference to the payload of variadic parameter %s",
+                            v);
                         return;
                     }
                 }
@@ -281,7 +284,9 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     error(loc, "escaping reference to local variable %s", v);
                     return;
                 }
-                if (global.params.useDIP25 && (v.storage_class & (STCref | STCout)) && !(v.storage_class & (STCreturn | STCforeach)))
+                if (global.params.useDIP25 &&
+                        (v.storage_class & (STCref | STCout)) &&
+                        !(v.storage_class & (STCreturn | STCforeach)))
                 {
                     if (sc.func.flags & FUNCFLAGreturnInprocess)
                     {
@@ -351,7 +356,9 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     {
                         if (v.storage_class & STCvariadic)
                         {
-                            error(e.loc, "escaping reference to the payload of variadic parameter %s", v);
+                            error(e.loc,
+                                "escaping reference to the payload of variadic parameter %s",
+                                v);
                             return;
                         }
                     }
@@ -436,7 +443,8 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
             }
             else
             {
-                error(e.loc, "escaping reference to stack allocated value returned by %s", e);
+                error(e.loc, "escaping reference to stack allocated value returned by %s",
+                    e);
                 return;
             }
         }

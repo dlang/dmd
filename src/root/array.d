@@ -24,7 +24,7 @@ private:
     T[SMALLARRAYCAP] smallarray; // inline storage for small arrays
 
 public:
-    ~this()
+     ~this()
     {
         if (data != &smallarray[0])
             mem.xfree(data);

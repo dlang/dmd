@@ -28,15 +28,15 @@ import ddmd.root.stringtable;
 import ddmd.tokens;
 import ddmd.utf;
 
-enum LS = 0x2028;       // UTF line separator
-enum PS = 0x2029;       // UTF paragraph separator
+enum LS = 0x2028; // UTF line separator
+enum PS = 0x2029; // UTF paragraph separator
 
 /********************************************
  * Do our own char maps
  */
 immutable ubyte[256] cmtable;
-enum CMoctal  = 0x1;
-enum CMhex    = 0x2;
+enum CMoctal = 0x1;
+enum CMhex = 0x2;
 enum CMidchar = 0x4;
 
 bool isoctal(char c)
@@ -91,17 +91,17 @@ class Lexer
 public:
     __gshared OutBuffer stringbuffer;
 
-    Loc scanloc;            // for error messages
+    Loc scanloc; // for error messages
 
-    const(char)* base;      // pointer to start of buffer
-    const(char)* end;       // past end of buffer
-    const(char)* p;         // current character
-    const(char)* line;      // start of current line
+    const(char)* base; // pointer to start of buffer
+    const(char)* end; // past end of buffer
+    const(char)* p; // current character
+    const(char)* line; // start of current line
     Token token;
-    bool doDocComment;      // collect doc comment information
-    bool anyToken;          // seen at least one token
-    bool commentToken;      // comments are TOKcomment's
-    bool errors;            // errors occurred during lexing or parsing
+    bool doDocComment; // collect doc comment information
+    bool anyToken; // seen at least one token
+    bool commentToken; // comments are TOKcomment's
+    bool errors; // errors occurred during lexing or parsing
 
     /*********************
      * Creates a Lexer.
@@ -113,7 +113,8 @@ public:
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOKcomment's
      */
-    this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset, bool doDocComment, bool commentToken)
+    this(const(char)* filename, const(char)* base, size_t begoffset,
+        size_t endoffset, bool doDocComment, bool commentToken)
     {
         scanloc = Loc(filename, 1, 1);
         //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -390,7 +391,7 @@ public:
                         else if (id == Id.TIMESTAMP)
                         {
                             t.ustring = cast(char*)timestamp;
-                        Lstr:
+            Lstr:
                             t.value = TOKstring;
                             t.postfix = 0;
                             t.len = cast(uint)strlen(cast(char*)t.ustring);
@@ -1098,7 +1099,8 @@ public:
                         break;
                     if (!ishex(cast(char)c))
                     {
-                        error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
+                        error("escape hex sequence has %d hex digits instead of %d",
+                            n, ndigits);
                         break;
                     }
                 }
@@ -1122,7 +1124,8 @@ public:
                     c = HtmlNamedEntity(idstart, p - idstart);
                     if (c == ~0)
                     {
-                        error("unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
+                        error("unnamed character entity &%.*s;", cast(int)(p - idstart),
+                            idstart);
                         c = ' ';
                     }
                     p++;
@@ -1130,7 +1133,8 @@ public:
                 default:
                     if (isalpha(*p) || (p != idstart && isdigit(*p)))
                         continue;
-                    error("unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
+                    error("unterminated named entity &%.*s;", cast(int)(p - idstart + 1),
+                        idstart);
                     break;
                 }
                 break;
@@ -1835,6 +1839,7 @@ public:
             else
             {
                 import core.checkedint;
+
                 n = mulu(n, base, overflow);
                 n = addu(n, d, overflow);
             }
@@ -1891,7 +1896,8 @@ public:
             break;
         }
         if (base == 8 && n >= 8)
-            error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+            error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead",
+                n, p - psuffix, psuffix, n, p - psuffix, psuffix);
         TOK result;
         switch (flags)
         {
@@ -2107,7 +2113,8 @@ public:
         if (errno == ERANGE)
         {
             const(char)* suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
-            error(scanloc, "number '%s%s' is not representable", cast(char*)stringbuffer.data, suffix);
+            error(scanloc, "number '%s%s' is not representable",
+                cast(char*)stringbuffer.data, suffix);
         }
         debug
         {
@@ -2374,7 +2381,8 @@ public:
                     linestart = 0;
                     /* Trim preceding whitespace up to preceding \n
                      */
-                    while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+                    while (buf.offset && (buf.data[buf.offset - 1] == ' ' ||
+                            buf.data[buf.offset - 1] == '\t'))
                         buf.offset--;
                     continue;
                 }
@@ -2405,7 +2413,8 @@ public:
                 linestart = 1;
                 /* Trim trailing whitespace
                  */
-                while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
+                while (buf.offset && (buf.data[buf.offset - 1] == ' ' ||
+                        buf.data[buf.offset - 1] == '\t'))
                     buf.offset--;
                 break;
             }

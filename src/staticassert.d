@@ -70,7 +70,8 @@ public:
         if (!e.type.isBoolean())
         {
             if (e.type.toBasetype() != Type.terror)
-                exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
+                exp.error("expression %s of type %s does not have a boolean value",
+                    exp.toChars(), e.type.toChars());
             return;
         }
         uint olderrs = global.errors;

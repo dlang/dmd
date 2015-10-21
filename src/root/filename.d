@@ -8,14 +8,17 @@
 
 module ddmd.root.filename;
 
-import core.stdc.ctype, core.stdc.errno, core.stdc.stdlib, core.stdc.string, core.sys.posix.stdlib, core.sys.posix.sys.stat, core.sys.windows.windows;
-import ddmd.root.array, ddmd.root.file, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.root.rootobject;
+import core.stdc.ctype, core.stdc.errno, core.stdc.stdlib, core.stdc.string,
+    core.sys.posix.stdlib, core.sys.posix.sys.stat, core.sys.windows.windows;
+import ddmd.root.array, ddmd.root.file, ddmd.root.outbuffer, ddmd.root.rmem,
+    ddmd.root.rootobject;
 
 version (Windows) extern (C) int mkdir(const char*);
 version (Windows) alias _mkdir = mkdir;
 version (Posix) extern (C) char* canonicalize_file_name(const char*);
 version (Windows) extern (C) int stricmp(const char*, const char*);
-version (Windows) extern (Windows) DWORD GetFullPathNameA(LPCTSTR lpFileName, DWORD nBufferLength, LPTSTR lpBuffer, LPTSTR* lpFilePart);
+version (Windows) extern (Windows) DWORD GetFullPathNameA(LPCTSTR lpFileName,
+    DWORD nBufferLength, LPTSTR lpBuffer, LPTSTR* lpFilePart);
 
 alias Strings = Array!(const(char)*);
 alias Files = Array!(File*);
@@ -94,14 +97,14 @@ struct FileName
                 return e + 1;
                 version (Posix)
                 {
-                case '/':
+            case '/':
                     break;
                 }
                 version (Windows)
                 {
-                case '\\':
-                case ':':
-                case '/':
+            case '\\':
+            case ':':
+            case '/':
                     break;
                 }
             default:
@@ -149,15 +152,15 @@ struct FileName
             {
                 version (Posix)
                 {
-                case '/':
+            case '/':
                     return e + 1;
                 }
                 version (Windows)
                 {
-                case '/':
-                case '\\':
+            case '/':
+            case '\\':
                     return e + 1;
-                case ':':
+            case ':':
                     /* The ':' is a drive letter only if it is the second
                      * character or the last character,
                      * otherwise it is an ADS (Alternate Data Stream) separator.
@@ -315,15 +318,15 @@ struct FileName
                         continue;
                         version (OSX)
                         {
-                        case ',':
+                    case ',':
                         }
                         version (Windows)
                         {
-                        case ';':
+                    case ';':
                         }
                         version (Posix)
                         {
-                        case ':':
+                    case ':':
                         }
                         p++;
                         break;
@@ -338,7 +341,7 @@ struct FileName
                         // ignore carriage returns
                         version (Posix)
                         {
-                        case '~':
+                    case '~':
                             {
                                 char* home = getenv("HOME");
                                 if (home)
@@ -350,8 +353,8 @@ struct FileName
                         }
                         version (none)
                         {
-                        case ' ':
-                        case '\t':
+                    case ' ':
+                    case '\t':
                             // tabs in filenames?
                             if (!instring) // if not in string
                                 break;
@@ -582,7 +585,8 @@ struct FileName
                     version (Windows)
                     {
                         size_t len = strlen(path);
-                        if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) || len == strlen(p))
+                        if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) || len == strlen(
+                                p))
                         {
                             mem.xfree(cast(void*)p);
                             return 0;

@@ -33,10 +33,10 @@ extern (C++) final class Import : Dsymbol
 public:
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
      */
-    Identifiers* packages;  // array of Identifier's representing packages
-    Identifier id;          // module Identifier
+    Identifiers* packages; // array of Identifier's representing packages
+    Identifier id; // module Identifier
     Identifier aliasId;
-    int isstatic;           // !=0 if static import
+    int isstatic; // !=0 if static import
     PROTKIND protection;
 
     // Pairs of alias=name to bind into current namespace
@@ -44,12 +44,13 @@ public:
     Identifiers aliases;
 
     Module mod;
-    Package pkg;            // leftmost package/module
+    Package pkg; // leftmost package/module
 
     // corresponding AliasDeclarations for alias=name pairs
     AliasDeclarations aliasdecls;
 
-    extern (D) this(Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
+    extern (D) this(Loc loc, Identifiers* packages, Identifier id, Identifier aliasId,
+        int isstatic)
     {
         super(null);
         assert(id);
@@ -131,7 +132,10 @@ public:
         {
             if (pkg && pkg.isModule())
             {
-                .error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?", pkg.toChars(), pkg.toPrettyChars(), id.toChars());
+                .error(
+                    loc,
+                    "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
+                    pkg.toChars(), pkg.toPrettyChars(), id.toChars());
                 mod = pkg.isModule(); // Error recovery - treat as import of that module
                 return;
             }
@@ -145,7 +149,8 @@ public:
             {
                 if (s.isAliasDeclaration())
                 {
-                    .error(loc, "%s %s conflicts with %s", s.kind(), s.toPrettyChars(), id.toChars());
+                    .error(loc, "%s %s conflicts with %s", s.kind(),
+                        s.toPrettyChars(), id.toChars());
                 }
                 else if (Package p = s.isPackage())
                 {
@@ -166,16 +171,21 @@ public:
                     }
                     if (!mod)
                     {
-                        .error(loc, "can only import from a module, not from package %s.%s", p.toPrettyChars(), id.toChars());
+                        .error(loc,
+                            "can only import from a module, not from package %s.%s",
+                            p.toPrettyChars(), id.toChars());
                     }
                 }
                 else if (pkg)
                 {
-                    .error(loc, "can only import from a module, not from package %s.%s", pkg.toPrettyChars(), id.toChars());
+                    .error(loc,
+                        "can only import from a module, not from package %s.%s",
+                        pkg.toPrettyChars(), id.toChars());
                 }
                 else
                 {
-                    .error(loc, "can only import from a module, not from package %s", id.toChars());
+                    .error(loc, "can only import from a module, not from package %s",
+                        id.toChars());
                 }
             }
         }
@@ -285,7 +295,9 @@ public:
                 {
                     Dsymbol s = mod.search_correct(names[i]);
                     if (s)
-                        mod.error(loc, "import '%s' not found, did you mean %s '%s'?", names[i].toChars(), s.kind(), s.toChars());
+                        mod.error(loc,
+                            "import '%s' not found, did you mean %s '%s'?",
+                            names[i].toChars(), s.kind(), s.toChars());
                     else
                         mod.error(loc, "import '%s' not found", names[i].toChars());
                     ad.type = Type.terror;
@@ -295,7 +307,10 @@ public:
         }
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
-        if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) && sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string, "__main") != 0)
+        if (global.params.moduleDeps !is null && !(id == Id.object &&
+                sc._module.ident == Id.object) &&
+                sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string,
+                "__main") != 0)
         {
             /* The grammar of the file is:
              *      ImportDeclaration

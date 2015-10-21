@@ -32,7 +32,8 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
     Prot access_ret = Prot(PROTnone);
     static if (LOG)
     {
-        printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n", ad.toChars(), smember.toChars());
+        printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n",
+            ad.toChars(), smember.toChars());
     }
     assert(ad.isStructDeclaration() || ad.isClassDeclaration());
     if (smember.toParent() == ad)
@@ -74,7 +75,8 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
     }
     static if (LOG)
     {
-        printf("-AggregateDeclaration::getAccess(this = '%s', smember = '%s') = %d\n", ad.toChars(), smember.toChars(), access_ret);
+        printf("-AggregateDeclaration::getAccess(this = '%s', smember = '%s') = %d\n",
+            ad.toChars(), smember.toChars(), access_ret);
     }
     return access_ret;
 }
@@ -85,12 +87,15 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
  *      false   is not accessible
  *      true    is accessible
  */
-extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration dthis, AggregateDeclaration cdscope)
+extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc,
+    AggregateDeclaration dthis, AggregateDeclaration cdscope)
 {
     assert(dthis);
     version (none)
     {
-        printf("isAccessible for %s.%s in function %s() in scope %s\n", dthis.toChars(), smember.toChars(), sfunc ? sfunc.toChars() : "NULL", cdscope ? cdscope.toChars() : "NULL");
+        printf("isAccessible for %s.%s in function %s() in scope %s\n",
+            dthis.toChars(), smember.toChars(), sfunc ? sfunc.toChars() : "NULL",
+            cdscope ? cdscope.toChars() : "NULL");
     }
     if (hasPrivateAccess(dthis, sfunc) || isFriendOf(dthis, cdscope))
     {
@@ -102,7 +107,8 @@ extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateD
             {
                 BaseClass* b = (*cdthis.baseclasses)[i];
                 Prot access = getAccess(b.sym, smember);
-                if (access.kind >= PROTprotected || isAccessible(smember, sfunc, b.sym, cdscope))
+                if (access.kind >= PROTprotected || isAccessible(smember, sfunc, b.sym,
+                        cdscope))
                 {
                     return true;
                 }
@@ -138,7 +144,9 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
     AggregateDeclaration cdscope = sc.getStructClassScope();
     static if (LOG)
     {
-        printf("AggregateDeclaration::checkAccess() for %s.%s in function %s() in scope %s\n", ad.toChars(), smember.toChars(), f ? f.toChars() : null, cdscope ? cdscope.toChars() : null);
+        printf("AggregateDeclaration::checkAccess() for %s.%s in function %s() in scope %s\n",
+            ad.toChars(), smember.toChars(), f ? f.toChars() : null,
+            cdscope ? cdscope.toChars() : null);
     }
     Dsymbol smemberparent = smember.toParent();
     if (!smemberparent || !smemberparent.isAggregateDeclaration())
@@ -156,7 +164,9 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
     if (smemberparent == ad)
     {
         access = smember.prot();
-        result = access.kind >= PROTpublic || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == PROTpackage && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
+        result = access.kind >= PROTpublic || hasPrivateAccess(ad, f) ||
+            isFriendOf(ad, cdscope) || (access.kind == PROTpackage &&
+            hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
         static if (LOG)
         {
             printf("result1 = %d\n", result);
@@ -203,7 +213,8 @@ extern (C++) bool isFriendOf(AggregateDeclaration ad, AggregateDeclaration cd)
 {
     static if (LOG)
     {
-        printf("AggregateDeclaration::isFriendOf(this = '%s', cd = '%s')\n", ad.toChars(), cd ? cd.toChars() : "null");
+        printf("AggregateDeclaration::isFriendOf(this = '%s', cd = '%s')\n",
+            ad.toChars(), cd ? cd.toChars() : "null");
     }
     if (ad == cd)
         return true;
@@ -231,7 +242,8 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
 {
     static if (LOG)
     {
-        printf("hasPackageAccess(s = '%s', sc = '%p', s->protection.pkg = '%s')\n", s.toChars(), sc, s.prot().pkg ? s.prot().pkg.toChars() : "NULL");
+        printf("hasPackageAccess(s = '%s', sc = '%p', s->protection.pkg = '%s')\n",
+            s.toChars(), sc, s.prot().pkg ? s.prot().pkg.toChars() : "NULL");
     }
     Package pkg = null;
     if (s.prot().pkg)
@@ -243,7 +255,8 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
         {
             if (Module m = s.isModule())
             {
-                DsymbolTable dst = Package.resolve(m.md ? m.md.packages : null, null, null);
+                DsymbolTable dst = Package.resolve(m.md ? m.md.packages : null, null,
+                    null);
                 assert(dst);
                 Dsymbol s2 = dst.lookup(m.ident);
                 assert(s2);
@@ -314,7 +327,8 @@ extern (C++) bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
             cd = smemberparent.isAggregateDeclaration();
         static if (LOG)
         {
-            printf("AggregateDeclaration::hasPrivateAccess(class %s, member %s)\n", ad.toChars(), smember.toChars());
+            printf("AggregateDeclaration::hasPrivateAccess(class %s, member %s)\n",
+                ad.toChars(), smember.toChars());
         }
         if (ad == cd) // smember is a member of this class
         {
@@ -384,9 +398,11 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     }
     if (!e)
     {
-        if (d.prot().kind == PROTprivate && d.getAccessModule() != sc._module || d.prot().kind == PROTpackage && !hasPackageAccess(sc, d))
+        if (d.prot().kind == PROTprivate && d.getAccessModule() != sc._module ||
+                d.prot().kind == PROTpackage && !hasPackageAccess(sc, d))
         {
-            error(loc, "%s %s is not accessible from module %s", d.kind(), d.toPrettyChars(), sc._module.toChars());
+            error(loc, "%s %s is not accessible from module %s", d.kind(),
+                d.toPrettyChars(), sc._module.toChars());
             return true;
         }
     }

@@ -37,9 +37,12 @@ struct OmfObjSymbol
 alias OmfObjModules = Array!(OmfObjModule*);
 alias OmfObjSymbols = Array!(OmfObjSymbol*);
 
-extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc);
+extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx,
+    const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen,
+    const(char)* module_name, Loc loc);
 
-extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize);
+extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name,
+    void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize);
 
 extern (C++) uint OMFObjSize(const(void)* base, uint length, const(char)* name);
 
@@ -161,7 +164,8 @@ public:
             bool islibrary;
             const(char)* module_name;
 
-            extern (D) this(LibOMF lib, ubyte* pstart, uint pagesize, bool islibrary, const(char)* module_name)
+            extern (D) this(LibOMF lib, ubyte* pstart, uint pagesize,
+                bool islibrary, const(char)* module_name)
             {
                 this.lib = lib;
                 this.pstart = pstart;
@@ -171,7 +175,8 @@ public:
                 this.module_name = module_name;
             }
 
-            extern (C++) static void addOmfObjModule(void* pctx, char* name, void* base, size_t length)
+            extern (C++) static void addOmfObjModule(void* pctx, char* name,
+                void* base, size_t length)
             {
                 Context* ctx = cast(Context*)pctx;
                 auto om = new OmfObjModule();
@@ -242,7 +247,8 @@ public:
                 s = tab.lookup(name, strlen(name));
                 assert(s);
                 OmfObjSymbol* os = cast(OmfObjSymbol*)s.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                error("multiple definition of %s: %s and %s: %s", om.name,
+                    name, os.om.name, os.name);
             }
         }
         else
@@ -312,23 +318,19 @@ private:
             symSize += (len + 4 + 1) & ~1;
         }
         bucksForHash = cast(ushort)((objsymbols.dim + objmodules.dim + HASHMOD - 3) / (HASHMOD - 2));
-        bucksForSize = cast(ushort)((symSize + BUCKETSIZE - padding - padding - 1) / (BUCKETSIZE - padding));
+        bucksForSize = cast(ushort)(
+            (symSize + BUCKETSIZE - padding - padding - 1) / (BUCKETSIZE - padding));
         ndicpages = (bucksForHash > bucksForSize) ? bucksForHash : bucksForSize;
         //printf("ndicpages = %u\n",ndicpages);
         // Find prime number greater than ndicpages
-        static __gshared uint* primes =
-        [
-            1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43,
-            47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103,
-            107, 109, 113, 127, 131, 137, 139, 149, 151, 157,
-            163, 167, 173, 179, 181, 191, 193, 197, 199, 211,
-            223, 227, 229, 233, 239, 241, 251, 257, 263, 269,
-            271, 277, 281, 283, 293, 307, 311, 313, 317, 331,
-            337, 347, 349, 353, 359, 367, 373, 379, 383, 389,
-            397, 401, 409, 419, 421, 431, 433, 439, 443, 449,
-            457, 461, 463, 467, 479, 487, 491, 499, 503, 509,
-            0
-        ];
+        static __gshared uint* primes = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
+            31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101,
+            103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167,
+            173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239,
+            241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313,
+            317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397,
+            401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467,
+            479, 487, 491, 499, 503, 509, 0];
         //521,523,541,547,
         for (size_t i = 0; 1; i++)
         {
@@ -611,7 +613,8 @@ enum BUCKETSIZE = (BUCKETPAGE - HASHMOD - 1);
  * Returns:
  *      false   failure
  */
-extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
+extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry,
+    uint entrylen)
 {
     ushort uStartIndex;
     ushort uStep;

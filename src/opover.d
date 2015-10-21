@@ -476,7 +476,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
-                const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+                const(bool) maybeSlice = (ae.arguments.dim == 0 ||
+                    ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
                 IntervalExp ie = null;
                 if (maybeSlice && ae.arguments.dim)
                 {
@@ -510,7 +511,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                          */
                         Expressions* a = cast(Expressions*)ae.arguments.copy();
                         Objects* tiargs = opToArg(sc, e.op);
-                        result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opIndexUnary, tiargs);
+                        result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opIndexUnary,
+                            tiargs);
                         result = new CallExp(e.loc, result, a);
                         if (maybeSlice) // op(a[]) might be: a.opSliceUnary!(op)()
                             result = result.trySemantic(sc);
@@ -539,7 +541,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             a.push(ie.upr);
                         }
                         Objects* tiargs = opToArg(sc, e.op);
-                        result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opSliceUnary, tiargs);
+                        result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opSliceUnary,
+                            tiargs);
                         result = new CallExp(e.loc, result, a);
                         result = result.semantic(sc);
                         result = Expression.combine(e0, result);
@@ -623,7 +626,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
             Expression ae1old = ae.e1;
-            const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+            const(bool) maybeSlice = (ae.arguments.dim == 0 ||
+                ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
             IntervalExp ie = null;
             if (maybeSlice && ae.arguments.dim)
             {
@@ -646,7 +650,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 {
                     // If the non-aggregate expression ae->e1 is indexable or sliceable,
                     // convert it to the corresponding concrete expression.
-                    if (t1b.ty == Tpointer || t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Taarray || t1b.ty == Ttuple || ae.e1.op == TOKtype)
+                    if (t1b.ty == Tpointer || t1b.ty == Tsarray ||
+                            t1b.ty == Tarray || t1b.ty == Taarray ||
+                            t1b.ty == Ttuple || ae.e1.op == TOKtype)
                     {
                         // Convert to SliceExp
                         if (maybeSlice)
@@ -830,7 +836,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (ad1 && search_function(ad1, Id.opUnary))
                     return;
             }
-            if (!s && !s_r && e.op != TOKequal && e.op != TOKnotequal && e.op != TOKassign && e.op != TOKplusplus && e.op != TOKminusminus)
+            if (!s && !s_r && e.op != TOKequal && e.op != TOKnotequal &&
+                    e.op != TOKassign && e.op != TOKplusplus && e.op != TOKminusminus)
             {
                 /* Try the new D2 scheme, opBinary and opBinaryRight
                  */
@@ -902,7 +909,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (m.count > 1)
                 {
                     // Error, ambiguous
-                    e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                    e.error("overloads %s and %s both match argument list for %s",
+                        m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
                 else if (m.last <= MATCHnomatch)
                 {
@@ -968,7 +976,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         m.last = MATCHnomatch;
                         if (s_r)
                         {
-                            functionResolve(&m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
+                            functionResolve(&m, s_r, e.loc, sc, tiargs, e.e1.type,
+                                &args2);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
                                 result = new ErrorExp();
@@ -988,7 +997,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         if (m.count > 1)
                         {
                             // Error, ambiguous
-                            e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                            e.error("overloads %s and %s both match argument list for %s",
+                                m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                         }
                         else if (m.last <= MATCHnomatch)
                         {
@@ -1147,7 +1157,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
-                const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+                const(bool) maybeSlice = (ae.arguments.dim == 0 ||
+                    ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
                 IntervalExp ie = null;
                 if (maybeSlice && ae.arguments.dim)
                 {
@@ -1186,7 +1197,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         Expressions* a = cast(Expressions*)ae.arguments.copy();
                         a.insert(0, e.e2);
                         Objects* tiargs = opToArg(sc, e.op);
-                        result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opIndexOpAssign, tiargs);
+                        result = new DotTemplateInstanceExp(e.loc, ae.e1,
+                            Id.opIndexOpAssign, tiargs);
                         result = new CallExp(e.loc, result, a);
                         if (maybeSlice) // (a[] op= e2) might be: a.opSliceOpAssign!(op)(e2)
                             result = result.trySemantic(sc);
@@ -1220,7 +1232,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             a.push(ie.upr);
                         }
                         Objects* tiargs = opToArg(sc, e.op);
-                        result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opSliceOpAssign, tiargs);
+                        result = new DotTemplateInstanceExp(e.loc, ae.e1,
+                            Id.opSliceOpAssign, tiargs);
                         result = new CallExp(e.loc, result, a);
                         result = result.semantic(sc);
                         result = Expression.combine(e0, result);
@@ -1308,7 +1321,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (m.count > 1)
                 {
                     // Error, ambiguous
-                    e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                    e.error("overloads %s and %s both match argument list for %s",
+                        m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
                 else if (m.last <= MATCHnomatch)
                 {
@@ -1437,7 +1451,8 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             if (!(m.lastf == lastf && m.count == 2 && count == 1))
             {
                 // Error, ambiguous
-                e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                e.error("overloads %s and %s both match argument list for %s",
+                    m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
             }
         }
         else if (m.last <= MATCHnomatch)
@@ -1528,7 +1543,8 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
-extern (C++) Expression build_overload(Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
+extern (C++) Expression build_overload(Loc loc, Scope* sc, Expression ethis,
+    Expression earg, Dsymbol d)
 {
     assert(d);
     Expression e;
@@ -1792,14 +1808,14 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
     return true;
 }
 
-extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
+extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis,
+    FuncDeclaration fstart, Parameters* parameters)
 {
     MOD mod = ethis.type.mod;
     MATCH match = MATCHnomatch;
     FuncDeclaration fd_best;
     FuncDeclaration fd_ambig;
-    overloadApply(fstart, (Dsymbol s)
-    {
+    overloadApply(fstart, (Dsymbol s) {
         auto f = s.isFuncDeclaration();
         if (!f)
             return 0;
@@ -1830,10 +1846,10 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
         inferApplyArgTypesY(cast(TypeFunction)fd_best.type, parameters);
         if (fd_ambig)
         {
-            .error(ethis.loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
-                ethis.toChars(), fstart.ident.toChars(),
-                fd_best.loc.toChars(), fd_best.type.toChars(),
-                fd_ambig.loc.toChars(), fd_ambig.type.toChars());
+            .error(ethis.loc,
+                "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
+                ethis.toChars(), fstart.ident.toChars(), fd_best.loc.toChars(),
+                fd_best.type.toChars(), fd_ambig.loc.toChars(), fd_ambig.type.toChars());
             fd_best = null;
         }
     }
@@ -1846,7 +1862,8 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
  *      1 match for this function
  *      0 no match for this function
  */
-extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* parameters, int flags = 0)
+extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* parameters,
+    int flags = 0)
 {
     size_t nparams;
     Parameter p;

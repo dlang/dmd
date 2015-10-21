@@ -32,6 +32,7 @@ import ddmd.root.port;
 import ddmd.utf;
 import ddmd.visitor;
 
+//dfmt off
 extern (C++) __gshared const(char)*[TMAX] mangleChar =
 [
     Tarray : "A",
@@ -80,6 +81,7 @@ extern (C++) __gshared const(char)*[TMAX] mangleChar =
     Tvector : "@",
     Tnull : "n", // same as TypeNone
 ];
+//dfmt on
 
 unittest
 {
@@ -236,7 +238,8 @@ public:
             assert(0);
         }
         buf.writeByte(mc);
-        if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn)
+        if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref ||
+                ta.trust || ta.isreturn)
         {
             if (ta.purity)
                 buf.writestring("Na");
@@ -387,7 +390,8 @@ public:
     {
         size_t len = strlen(id);
         if (len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
-            s.error("excessive length %llu for symbol, possible recursive expansion?", len);
+            s.error("excessive length %llu for symbol, possible recursive expansion?",
+                len);
         else
         {
             buf.printf("%llu", cast(ulong)len);
@@ -432,7 +436,9 @@ public:
             assert(len > 0);
             for (size_t i = 0; i < len; i++)
             {
-                assert(buf.data[i] == '_' || buf.data[i] == '@' || buf.data[i] == '?' || buf.data[i] == '$' || isalnum(buf.data[i]) || buf.data[i] & 0x80);
+                assert(buf.data[i] == '_' || buf.data[i] == '@' ||
+                    buf.data[i] == '?' || buf.data[i] == '$' ||
+                    isalnum(buf.data[i]) || buf.data[i] & 0x80);
             }
         }
     }
@@ -552,7 +558,13 @@ public:
             /* These are reserved to the compiler, so keep simple
              * names for them.
              */
-            if (cd.ident == Id.Exception && cd.parent.ident == Id.object || cd.ident == Id.TypeInfo || cd.ident == Id.TypeInfo_Struct || cd.ident == Id.TypeInfo_Class || cd.ident == Id.TypeInfo_Tuple || cd == ClassDeclaration.object || cd == Type.typeinfoclass || cd == Module.moduleinfo || strncmp(cd.ident.toChars(), "TypeInfo_", 9) == 0)
+            if (cd.ident == Id.Exception && cd.parent.ident == Id.object ||
+                    cd.ident == Id.TypeInfo || cd.ident == Id.TypeInfo_Struct ||
+                    cd.ident == Id.TypeInfo_Class ||
+                    cd.ident == Id.TypeInfo_Tuple ||
+                    cd == ClassDeclaration.object || cd == Type.typeinfoclass ||
+                    cd == Module.moduleinfo || strncmp(cd.ident.toChars(), "TypeInfo_",
+                    9) == 0)
             {
                 // Don't mangle parent
                 ad.parent = null;
@@ -695,7 +707,8 @@ public:
             for (size_t u = 0; u < e.len;)
             {
                 uint c;
-                const(char)* p = utf_decodeWchar(cast(ushort*)e.string, e.len, &u, &c);
+                const(char)* p = utf_decodeWchar(cast(ushort*)e.string, e.len, &u,
+                    &c);
                 if (p)
                     e.error("%s", p);
                 else
@@ -723,7 +736,8 @@ public:
         buf.reserve(1 + 11 + 2 * qlen);
         buf.writeByte(m);
         buf.printf("%d_", cast(int)qlen); // nbytes <= 11
-        for (char* p = cast(char*)buf.data + buf.offset, pend = p + 2 * qlen; p < pend; p += 2, ++q)
+        for (char* p = cast(char*)buf.data + buf.offset, pend = p + 2 * qlen; p < pend;
+                p += 2, ++q)
         {
             char hi = *q >> 4 & 0xF;
             p[0] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');

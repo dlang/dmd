@@ -60,7 +60,8 @@ public:
     {
         static if (LOG)
         {
-            printf("LibElf::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
+            printf("LibElf::setFilename(dir = '%s', filename = '%s')\n",
+                dir ? dir : "", filename ? filename : "");
         }
         const(char)* arg = filename;
         if (!arg || !*arg)
@@ -192,7 +193,8 @@ public:
                     {
                         /* Pick long name out of file name table
                          */
-                        uint foff = cast(uint)strtoul(header.object_name.ptr + 1, &endptr, 10);
+                        uint foff = cast(uint)strtoul(header.object_name.ptr + 1, &endptr,
+                            10);
                         uint i;
                         for (i = 0; 1; i++)
                         {
@@ -236,7 +238,8 @@ public:
                     om.file_time = strtoul(header.file_time.ptr, &endptr, 10);
                     om.user_id = cast(uint)strtoul(header.user_id.ptr, &endptr, 10);
                     om.group_id = cast(uint)strtoul(header.group_id.ptr, &endptr, 10);
-                    om.file_mode = cast(uint)strtoul(header.file_mode.ptr, &endptr, 8);
+                    om.file_mode = cast(uint)strtoul(header.file_mode.ptr, &endptr,
+                        8);
                     om.scan = 0; // don't scan object module for symbols
                     objmodules.push(om);
                 }
@@ -371,7 +374,8 @@ public:
                 s = tab.lookup(name, strlen(name));
                 assert(s);
                 ElfObjSymbol* os = cast(ElfObjSymbol*)s.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                error("multiple definition of %s: %s and %s: %s", om.name,
+                    name, os.om.name, os.name);
             }
         }
         else
@@ -624,7 +628,9 @@ extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         // "name/           1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //        name       file_time   u_id gr_id  fmode    fsize   trailer
-        len = snprintf(buffer, ElfLibHeader.sizeof, "%-16s%-12llu%-6u%-6u%-8o%-10u`", om.name, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
+        len = snprintf(buffer, ElfLibHeader.sizeof,
+            "%-16s%-12llu%-6u%-6u%-8o%-10u`", om.name, cast(long)om.file_time,
+            om.user_id, om.group_id, om.file_mode, om.length);
         // adding '/' after the name field
         const(size_t) name_length = strlen(om.name);
         assert(name_length < ELF_OBJECT_NAME_SIZE);
@@ -635,7 +641,9 @@ extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         // "/162007         1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //     name_offset   file_time   u_id gr_id  fmode    fsize   trailer
-        len = snprintf(buffer, ElfLibHeader.sizeof, "/%-15d%-12llu%-6u%-6u%-8o%-10u`", om.name_offset, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
+        len = snprintf(buffer, ElfLibHeader.sizeof,
+            "/%-15d%-12llu%-6u%-6u%-8o%-10u`", om.name_offset,
+            cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
     }
     assert(ElfLibHeader.sizeof > 0 && len == ElfLibHeader.sizeof - 1);
     // replace trailing \0 with \n

@@ -84,7 +84,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("associative array literal in @nogc function %s may cause GC allocation", f.toChars());
+            e.error("associative array literal in @nogc function %s may cause GC allocation",
+                f.toChars());
             err = true;
             return;
         }
@@ -135,7 +136,8 @@ public:
         {
             if (f.setGC())
             {
-                e.error("indexing an associative array in @nogc function %s may cause GC allocation", f.toChars());
+                e.error("indexing an associative array in @nogc function %s may cause GC allocation",
+                    f.toChars());
                 err = true;
                 return;
             }
@@ -149,7 +151,8 @@ public:
         {
             if (f.setGC())
             {
-                e.error("setting 'length' in @nogc function %s may cause GC allocation", f.toChars());
+                e.error("setting 'length' in @nogc function %s may cause GC allocation",
+                    f.toChars());
                 err = true;
                 return;
             }
@@ -183,7 +186,9 @@ public:
 extern (C++) Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
-    if (e && e.op != TOKerror && f && sc.intypeof != 1 && !(sc.flags & SCOPEctfe) && (f.type.ty == Tfunction && (cast(TypeFunction)f.type).isnogc || (f.flags & FUNCFLAGnogcInprocess) || global.params.vgc))
+    if (e && e.op != TOKerror && f && sc.intypeof != 1 && !(sc.flags & SCOPEctfe) &&
+            (f.type.ty == Tfunction && (cast(TypeFunction)f.type).isnogc ||
+            (f.flags & FUNCFLAGnogcInprocess) || global.params.vgc))
     {
         scope NOGCVisitor gcv = new NOGCVisitor(f);
         walkPostorder(e, gcv);

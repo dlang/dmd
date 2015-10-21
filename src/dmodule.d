@@ -99,9 +99,9 @@ extern (C++) const(char)* lookForSourceFile(const(char)* filename)
 
 enum PKG : int
 {
-    PKGunknown,     // not yet determined whether it's a package.d or not
-    PKGmodule,      // already determined that's an actual package.d
-    PKGpackage,     // already determined that's an actual package
+    PKGunknown, // not yet determined whether it's a package.d or not
+    PKGmodule, // already determined that's an actual package.d
+    PKGpackage, // already determined that's an actual package
 }
 
 alias PKGunknown = PKG.PKGunknown;
@@ -114,7 +114,7 @@ extern (C++) class Package : ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Module mod;     // !=null if isPkgMod == PKGmodule
+    Module mod; // !=null if isPkgMod == PKGmodule
 
     final extern (D) this(Identifier ident)
     {
@@ -258,10 +258,10 @@ extern (C++) final class Module : Package
 public:
     extern (C++) static __gshared Module rootModule;
     extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
-    extern (C++) static __gshared Modules amodules;     // array of all modules
-    extern (C++) static __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
-    extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
-    extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
+    extern (C++) static __gshared Modules amodules; // array of all modules
+    extern (C++) static __gshared Dsymbols deferred; // deferred Dsymbol's needing semantic() run on them
+    extern (C++) static __gshared Dsymbols deferred3; // deferred Dsymbol's needing semantic3() run on them
+    extern (C++) static __gshared uint dprogress; // progress resolving the deferred list
 
     static void _init()
     {
@@ -270,19 +270,19 @@ public:
 
     extern (C++) static __gshared AggregateDeclaration moduleinfo;
 
-    const(char)* arg;           // original argument name
-    ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
-    File* srcfile;              // input source file
-    File* objfile;              // output .obj file
-    File* hdrfile;              // 'header' file
-    File* docfile;              // output documentation file
-    uint errors;                // if any errors in file
-    uint numlines;              // number of lines in source file
-    int isDocFile;              // if it is a documentation input file, not D source
-    bool isPackageFile;         // if it is a package.d
+    const(char)* arg; // original argument name
+    ModuleDeclaration* md; // if !=null, the contents of the ModuleDeclaration declaration
+    File* srcfile; // input source file
+    File* objfile; // output .obj file
+    File* hdrfile; // 'header' file
+    File* docfile; // output documentation file
+    uint errors; // if any errors in file
+    uint numlines; // number of lines in source file
+    int isDocFile; // if it is a documentation input file, not D source
+    bool isPackageFile; // if it is a package.d
     int needmoduleinfo;
 
-    int selfimports;            // 0: don't know, 1: does not, 2: does
+    int selfimports; // 0: don't know, 1: does not, 2: does
 
     /*************************************
      * Return true if module imports itself.
@@ -301,7 +301,7 @@ public:
         return selfimports == 2;
     }
 
-    int rootimports;            // 0: don't know, 1: does not, 2: does
+    int rootimports; // 0: don't know, 1: does not, 2: does
 
     /*************************************
      * Return true if module imports root module.
@@ -331,31 +331,31 @@ public:
 
     int insearch;
     Identifier searchCacheIdent;
-    Dsymbol searchCacheSymbol;  // cached value of search
-    int searchCacheFlags;       // cached flags
+    Dsymbol searchCacheSymbol; // cached value of search
+    int searchCacheFlags; // cached flags
 
     // module from command line we're imported from,
     // i.e. a module that will be taken all the
     // way to an object file
     Module importedFrom;
 
-    Dsymbols* decldefs;         // top level declarations for this Module
+    Dsymbols* decldefs; // top level declarations for this Module
 
-    Modules aimports;           // all imported modules
+    Modules aimports; // all imported modules
 
-    uint debuglevel;            // debug level
-    Strings* debugids;          // debug identifiers
-    Strings* debugidsNot;       // forward referenced debug identifiers
+    uint debuglevel; // debug level
+    Strings* debugids; // debug identifiers
+    Strings* debugidsNot; // forward referenced debug identifiers
 
-    uint versionlevel;          // version level
-    Strings* versionids;        // version identifiers
-    Strings* versionidsNot;     // forward referenced version identifiers
+    uint versionlevel; // version level
+    Strings* versionids; // version identifiers
+    Strings* versionidsNot; // forward referenced version identifiers
 
-    Macro* macrotable;          // document comment macros
-    Escape* escapetable;        // document comment escapes
+    Macro* macrotable; // document comment macros
+    Escape* escapetable; // document comment escapes
 
-    size_t nameoffset;          // offset of module name from start of ModuleInfo
-    size_t namelen;             // length of module name in characters
+    size_t nameoffset; // offset of module name from start of ModuleInfo
+    size_t namelen; // length of module name in characters
 
     extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
     {
@@ -364,26 +364,32 @@ public:
         //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
         this.arg = filename;
         srcfilename = FileName.defaultExt(filename, global.mars_ext);
-        if (global.run_noext && global.params.run && !FileName.ext(filename) && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
+        if (global.run_noext && global.params.run && !FileName.ext(filename) &&
+                FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
         {
             FileName.free(srcfilename);
             srcfilename = FileName.removeExt(filename); // just does a mem.strdup(filename)
         }
-        else if (!FileName.equalsExt(srcfilename, global.mars_ext) && !FileName.equalsExt(srcfilename, global.hdr_ext) && !FileName.equalsExt(srcfilename, "dd"))
+        else if (!FileName.equalsExt(srcfilename, global.mars_ext) &&
+                !FileName.equalsExt(srcfilename, global.hdr_ext) &&
+                !FileName.equalsExt(srcfilename, "dd"))
         {
             error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
             fatal();
         }
         srcfile = new File(srcfilename);
-        objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
+        objfile = setOutfile(global.params.objname, global.params.objdir,
+            filename, global.obj_ext);
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
-            hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
+            hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg,
+                global.hdr_ext);
         //objfile = new File(objfilename);
     }
 
-    static Module create(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+    static Module create(const(char)* filename, Identifier ident, int doDocComment,
+        int doHdrGen)
     {
         return new Module(filename, ident, doDocComment, doHdrGen);
     }
@@ -502,15 +508,22 @@ public:
             if (!strcmp(srcfile.toChars(), "object.d"))
             {
                 .error(loc, "cannot find source code for runtime library file 'object.d'");
-                errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-                errorSupplemental(loc, "config file: %s", FileName.canonicalName(global.inifilename));
+                errorSupplemental(
+                    loc,
+                    "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
+                errorSupplemental(loc, "config file: %s",
+                    FileName.canonicalName(global.inifilename));
             }
             else
             {
                 // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
-                bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name.name(), "package.d") == 0);
+                bool isPackageMod = (strcmp(toChars(), "package") != 0) &&
+                    (strcmp(srcfile.name.name(), "package.d") == 0);
                 if (isPackageMod)
-                    .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
+                    .error(
+                        loc,
+                        "importing package '%s' requires a 'package.d' file which cannot be found in '%s'",
+                        toChars(), srcfile.toChars());
                 else
                     error(loc, "is in file '%s' which cannot be read", srcfile.toChars());
             }
@@ -618,13 +631,15 @@ public:
                                 uint u2;
                                 if (++pu > pumax)
                                 {
-                                    error("surrogate UTF-16 high value %04x at EOF", u);
+                                    error("surrogate UTF-16 high value %04x at EOF",
+                                        u);
                                     fatal();
                                 }
                                 u2 = le ? Port.readwordLE(pu) : Port.readwordBE(pu);
                                 if (u2 < 0xDC00 || u2 > 0xDFFF)
                                 {
-                                    error("surrogate UTF-16 low value %04x out of range", u2);
+                                    error("surrogate UTF-16 low value %04x out of range",
+                                        u2);
                                     fatal();
                                 }
                                 u = (u - 0xD7C0) << 10;
@@ -708,7 +723,8 @@ public:
                 // It's UTF-8
                 if (buf[0] >= 0x80)
                 {
-                    error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
+                    error("source file must start with BOM or ASCII character, not \\x%02X",
+                        buf[0]);
                     fatal();
                 }
             }
@@ -753,7 +769,9 @@ public:
             Module m = ppack ? ppack.isModule() : null;
             if (m && strcmp(m.srcfile.name.name(), "package.d") != 0)
             {
-                .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
+                .error(md.loc,
+                    "package name '%s' conflicts with usage as a module name in file %s",
+                    ppack.toPrettyChars(), m.srcfile.toChars());
             }
         }
         else
@@ -792,29 +810,34 @@ public:
             }
             if (arreq)
             {
-                scope Parser p = new Parser(loc, this, code_ArrayEq, strlen(cast(const(char)*)code_ArrayEq), 0);
+                scope Parser p = new Parser(loc, this, code_ArrayEq,
+                    strlen(cast(const(char)*)code_ArrayEq), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayPostblit, strlen(cast(const(char)*)code_ArrayPostblit), 0);
+                scope Parser p = new Parser(loc, this, code_ArrayPostblit,
+                    strlen(cast(const(char)*)code_ArrayPostblit), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayDtor, strlen(cast(const(char)*)code_ArrayDtor), 0);
+                scope Parser p = new Parser(loc, this, code_ArrayDtor,
+                    strlen(cast(const(char)*)code_ArrayDtor), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopeq)
             {
-                scope Parser p = new Parser(loc, this, code_xopEquals, strlen(cast(const(char)*)code_xopEquals), 0);
+                scope Parser p = new Parser(loc, this, code_xopEquals,
+                    strlen(cast(const(char)*)code_xopEquals), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopcmp)
             {
-                scope Parser p = new Parser(loc, this, code_xopCmp, strlen(cast(const(char)*)code_xopCmp), 0);
+                scope Parser p = new Parser(loc, this, code_xopCmp,
+                    strlen(cast(const(char)*)code_xopCmp), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
@@ -857,11 +880,16 @@ public:
             if (Module mprev = prev.isModule())
             {
                 if (FileName.compare(srcname, mprev.srcfile.toChars()) != 0)
-                    error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
+                    error(loc,
+                        "from file %s conflicts with another module %s from file %s",
+                        srcname, mprev.toChars(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
-                    error(loc, "from file %s is specified twice on the command line", srcname);
+                    error(loc, "from file %s is specified twice on the command line",
+                        srcname);
                 else
-                    error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
+                    error(loc,
+                        "from file %s must be imported with 'import %s;'", srcname,
+                        toPrettyChars());
                 // Bugzilla 14446: Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
             }
@@ -876,7 +904,8 @@ public:
                     pkg.mod = this;
                 }
                 else
-                    error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());
+                    error(md ? md.loc : loc,
+                        "from file %s conflicts with package name %s", srcname, pkg.toChars());
             }
             else
                 assert(global.errors);
@@ -1272,8 +1301,8 @@ struct ModuleDeclaration
 {
     Loc loc;
     Identifier id;
-    Identifiers* packages;  // array of Identifier's representing packages
-    bool isdeprecated;      // if it is a deprecated module
+    Identifiers* packages; // array of Identifier's representing packages
+    bool isdeprecated; // if it is a deprecated module
     Expression msg;
 
     /* =========================== ModuleDeclaration ===================== */

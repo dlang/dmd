@@ -23,7 +23,9 @@ enum LOG = false;
  *      module_name     name of the object module (used for error messages)
  *      loc             location to use for error printing
  */
-extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx,
+    char* name, int pickAny) pAddSymbol, void* base, size_t buflen,
+    const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
@@ -65,9 +67,12 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         break;
     default:
         if (buf[0] == 0x80)
-            error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
+            error(loc,
+                "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff",
+                module_name);
         else
-            error(loc, "MS-Coff object module %s has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
+            error(loc, "MS-Coff object module %s has magic = %x, should be %x",
+                module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
         return;
     }
     // Get string table:  string_table[0..string_len]
@@ -100,7 +105,8 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         {
             printf("Symbol %d:\n", i);
         }
-        off = header.PointerToSymbolTable + i * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
+        off = header.PointerToSymbolTable + i * (
+            is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
         if (off > buflen)
         {
             reason = __LINE__;
@@ -174,49 +180,47 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
     }
 }
 
-align(1)
-struct BIGOBJ_HEADER
+align(1) struct BIGOBJ_HEADER
 {
-    WORD Sig1;                  // IMAGE_FILE_MACHINE_UNKNOWN
-    WORD Sig2;                  // 0xFFFF
-    WORD Version;               // 2
-    WORD Machine;               // identifies type of target machine
-    DWORD TimeDateStamp;        // creation date, number of seconds since 1970
-    BYTE[16]  UUID;             //  { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
-                                //    '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
-    DWORD[4] unused;            // { 0, 0, 0, 0 }
-    DWORD NumberOfSections;     // number of sections
+    WORD Sig1; // IMAGE_FILE_MACHINE_UNKNOWN
+    WORD Sig2; // 0xFFFF
+    WORD Version; // 2
+    WORD Machine; // identifies type of target machine
+    DWORD TimeDateStamp; // creation date, number of seconds since 1970
+    BYTE[16] UUID; //  { '\xc7', '\xa1', '\xba', '\xd1', '\xee', '\xba', '\xa9', '\x4b',
+    //    '\xaf', '\x20', '\xfa', '\xf6', '\x6a', '\xa4', '\xdc', '\xb8' };
+    DWORD[4] unused; // { 0, 0, 0, 0 }
+    DWORD NumberOfSections; // number of sections
     DWORD PointerToSymbolTable; // file offset of symbol table
-    DWORD NumberOfSymbols;      // number of entries in the symbol table
+    DWORD NumberOfSymbols; // number of entries in the symbol table
 }
 
-align(1)
-struct IMAGE_FILE_HEADER
+align(1) struct IMAGE_FILE_HEADER
 {
-    WORD  Machine;
-    WORD  NumberOfSections;
+    WORD Machine;
+    WORD NumberOfSections;
     DWORD TimeDateStamp;
     DWORD PointerToSymbolTable;
     DWORD NumberOfSymbols;
-    WORD  SizeOfOptionalHeader;
-    WORD  Characteristics;
+    WORD SizeOfOptionalHeader;
+    WORD Characteristics;
 }
 
 enum SYMNMLEN = 8;
 
-enum IMAGE_FILE_MACHINE_UNKNOWN = 0;            // applies to any machine type
-enum IMAGE_FILE_MACHINE_I386    = 0x14C;        // x86
-enum IMAGE_FILE_MACHINE_AMD64   = 0x8664;       // x86_64
+enum IMAGE_FILE_MACHINE_UNKNOWN = 0; // applies to any machine type
+enum IMAGE_FILE_MACHINE_I386 = 0x14C; // x86
+enum IMAGE_FILE_MACHINE_AMD64 = 0x8664; // x86_64
 
-enum IMAGE_SYM_DEBUG     = -2;
-enum IMAGE_SYM_ABSOLUTE  = -1;
+enum IMAGE_SYM_DEBUG = -2;
+enum IMAGE_SYM_ABSOLUTE = -1;
 enum IMAGE_SYM_UNDEFINED = 0;
 
 enum IMAGE_SYM_CLASS_EXTERNAL = 2;
-enum IMAGE_SYM_CLASS_STATIC   = 3;
-enum IMAGE_SYM_CLASS_LABEL    = 6;
+enum IMAGE_SYM_CLASS_STATIC = 3;
+enum IMAGE_SYM_CLASS_LABEL = 6;
 enum IMAGE_SYM_CLASS_FUNCTION = 101;
-enum IMAGE_SYM_CLASS_FILE     = 103;
+enum IMAGE_SYM_CLASS_FILE = 103;
 
 align(1) struct SymbolTable32
 {

@@ -26,10 +26,13 @@ import ddmd.root.rmem;
 
 version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int putenv(const char*);
-version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
-version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
+version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*,
+    const char*);
+version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*,
+    const char*);
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
-version (CRuntime_Microsoft) extern (Windows) uint GetShortPathNameA(const char* lpszLongPath, char* lpszShortPath, uint cchBuffer);
+version (CRuntime_Microsoft) extern (Windows) uint GetShortPathNameA(
+    const char* lpszLongPath, char* lpszShortPath, uint cchBuffer);
 
 static if (__linux__ || __APPLE__)
 {
@@ -616,7 +619,8 @@ extern (C++) int runLINK()
         /* Standard libraries must go after user specified libraries
          * passed with -l.
          */
-        const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
+        const(char)* libname = global.params.symdebug ? global.params.debuglibname
+            : global.params.defaultlibname;
         size_t slen = strlen(libname);
         if (slen)
         {
@@ -946,7 +950,8 @@ version (Windows)
                 if (end - arg > 8 && memicmp(arg + 1, "LIBPATH:", 8) == 0)
                 {
                     arg += 9;
-                    char* q = cast(char*)memcpy((new char[](end - arg + 1)).ptr, arg, end - arg);
+                    char* q = cast(char*)memcpy((new char[](end - arg + 1)).ptr, arg,
+                        end - arg);
                     q[end - arg] = 0;
                     Strings* paths = FileName.splitPath(q);
                     libpaths.append(paths);

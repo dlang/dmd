@@ -120,7 +120,7 @@ public:
 extern (C++) final class VoidInitializer : Initializer
 {
 public:
-    Type type;      // type that this will initialize to
+    Type type; // type that this will initialize to
 
     extern (D) this(Loc loc)
     {
@@ -208,8 +208,8 @@ public:
 extern (C++) final class StructInitializer : Initializer
 {
 public:
-    Identifiers field;      // of Identifier *'s
-    Initializers value;     // parallel array of Initializer *'s
+    Identifiers field; // of Identifier *'s
+    Initializers value; // parallel array of Initializer *'s
 
     extern (D) this(Loc loc)
     {
@@ -254,7 +254,10 @@ public:
             StructDeclaration sd = (cast(TypeStruct)t).sym;
             if (sd.ctor)
             {
-                error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead", sd.kind(), sd.toChars(), sd.toChars());
+                error(
+                    loc,
+                    "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
+                    sd.kind(), sd.toChars(), sd.toChars());
                 return new ErrorInitializer();
             }
             sd.size(loc);
@@ -278,9 +281,12 @@ public:
                     {
                         s = sd.search_correct(id);
                         if (s)
-                            error(loc, "'%s' is not a member of '%s', did you mean %s '%s'?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(loc,
+                                "'%s' is not a member of '%s', did you mean %s '%s'?",
+                                id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
-                            error(loc, "'%s' is not a member of '%s'", id.toChars(), sd.toChars());
+                            error(loc, "'%s' is not a member of '%s'", id.toChars(),
+                                sd.toChars());
                         return new ErrorInitializer();
                     }
                     s = s.toAlias();
@@ -289,7 +295,9 @@ public:
                     {
                         if (fieldi >= nfields)
                         {
-                            error(loc, "%s.%s is not a per-instance initializable field", sd.toChars(), s.toChars());
+                            error(loc,
+                                "%s.%s is not a per-instance initializable field",
+                                sd.toChars(), s.toChars());
                             return new ErrorInitializer();
                         }
                         if (s == sd.fields[fieldi])
@@ -313,7 +321,9 @@ public:
                     VarDeclaration v2 = sd.fields[j];
                     if (vd.isOverlappedWith(v2) && (*elements)[j])
                     {
-                        error(loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
+                        error(loc,
+                            "overlapping initialization for field %s and %s",
+                            v2.toChars(), vd.toChars());
                         errors = true;
                         continue;
                     }
@@ -340,7 +350,8 @@ public:
             auto ie = new ExpInitializer(loc, sle);
             return ie.semantic(sc, t, needInterpret);
         }
-        else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && value.dim == 0)
+        else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) &&
+                value.dim == 0)
         {
             TOK tok = (t.ty == Tdelegate) ? TOKdelegate : TOKfunction;
             /* Rewrite as empty delegate literal { }
@@ -385,11 +396,11 @@ public:
 extern (C++) final class ArrayInitializer : Initializer
 {
 public:
-    Expressions index;      // indices
-    Initializers value;     // of Initializer *'s
-    size_t dim;             // length of array being initialized
-    Type type;              // type that array will be used to initialize
-    bool sem;               // true if semantic() is run
+    Expressions index; // indices
+    Initializers value; // of Initializer *'s
+    size_t dim; // length of array being initialized
+    Type type; // type that array will be used to initialize
+    bool sem; // true if semantic() is run
 
     extern (D) this(Loc loc)
     {
@@ -594,7 +605,8 @@ public:
             dinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
             if (dim > edim)
             {
-                error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
+                error(loc, "array initializer has %u elements, but array length is %lld",
+                    dim, edim);
                 goto Lerr;
             }
         }
@@ -602,7 +614,8 @@ public:
             goto Lerr;
         if (cast(uinteger_t)dim * t.nextOf().size() >= amax)
         {
-            error(loc, "array dimension %u exceeds max of %u", cast(uint)dim, cast(uint)(amax / t.nextOf().size()));
+            error(loc, "array dimension %u exceeds max of %u", cast(uint)dim,
+                cast(uint)(amax / t.nextOf().size()));
             goto Lerr;
         }
         return this;
@@ -779,7 +792,8 @@ public:
             ScopeExp se = cast(ScopeExp)exp;
             TemplateInstance ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
-                se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
+                se.error("cannot infer type from %s %s, possible circular dependency",
+                    se.sds.kind(), se.toChars());
             else
                 se.error("cannot infer type from %s %s", se.sds.kind(), se.toChars());
             return new ErrorInitializer();
@@ -797,7 +811,8 @@ public:
         if (exp.op == TOKdelegate)
         {
             DelegateExp se = cast(DelegateExp)exp;
-            if (se.hasOverloads && se.func.isFuncDeclaration() && !se.func.isFuncDeclaration().isUnique())
+            if (se.hasOverloads && se.func.isFuncDeclaration() &&
+                    !se.func.isFuncDeclaration().isUnique())
             {
                 exp.error("cannot infer type from overloaded function symbol %s", exp.toChars());
                 return new ErrorInitializer();
@@ -862,7 +877,8 @@ public:
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(exp))
         {
-            exp.error("cannot use non-constant CTFE pointer in an initializer '%s'", exp.toChars());
+            exp.error("cannot use non-constant CTFE pointer in an initializer '%s'",
+                exp.toChars());
             return new ErrorInitializer();
         }
         Type tb = t.toBasetype();
@@ -880,14 +896,17 @@ public:
             StringExp se = cast(StringExp)exp;
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
-            if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) && (tynto == Tchar || tynto == Twchar || tynto == Tdchar) && se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
+            if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) &&
+                    (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                    se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
             {
                 exp = se.castTo(sc, t);
                 goto L1;
             }
         }
         // Look for implicit constructor call
-        if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !exp.implicitConvTo(t))
+        if (tb.ty == Tstruct && !(ti.ty == Tstruct &&
+                tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !exp.implicitConvTo(t))
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.ctor)
@@ -906,7 +925,8 @@ public:
         }
         // Look for the case of statically initializing an array
         // with a single member.
-        if (tb.ty == Tsarray && !tb.nextOf().equals(ti.toBasetype().nextOf()) && exp.implicitConvTo(tb.nextOf()))
+        if (tb.ty == Tsarray && !tb.nextOf().equals(ti.toBasetype().nextOf()) &&
+                exp.implicitConvTo(tb.nextOf()))
         {
             /* If the variable is not actually used in compile time, array creation is
              * redundant. So delay it until invocation of toExpression() or toDt().
@@ -938,7 +958,8 @@ public:
                 }
                 if (dim1 != dim2)
                 {
-                    exp.error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);
+                    exp.error("mismatched array lengths, %d and %d", cast(int)dim1,
+                        cast(int)dim2);
                     exp = new ErrorExp();
                 }
             }
@@ -961,7 +982,8 @@ public:
         {
             //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t->toChars(), exp->toChars());
             Type tb = t.toBasetype();
-            Expression e = (exp.op == TOKconstruct || exp.op == TOKblit) ? (cast(AssignExp)exp).e2 : exp;
+            Expression e = (exp.op == TOKconstruct || exp.op == TOKblit) ? (cast(AssignExp)exp).e2
+                : exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
             {
                 TypeSArray tsa = cast(TypeSArray)tb;
