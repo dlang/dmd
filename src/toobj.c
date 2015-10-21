@@ -1099,7 +1099,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
                 StringExp *se = (StringExp *)e;
                 char *name = (char *)mem.xmalloc(se->len + 1);
-                memcpy(name, se->string, se->len);
+                memcpy(name, se->stringdata, se->len);
                 name[se->len] = 0;
 
                 /* Embed the library names into the object file.

@@ -1725,7 +1725,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             else
                 utf_encode(sz, s, cast(dchar_t)v);
             // Add terminating 0
-            memset(cast(char*)s + len * sz, 0, sz);
+            memset(cast(char*)s + len * sz, 0xFF, sz);
             emplaceExp!(StringExp)(&ue, loc, s, len);
             StringExp es = cast(StringExp)ue.exp();
             es.sz = sz;

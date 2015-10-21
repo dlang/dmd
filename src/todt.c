@@ -381,14 +381,15 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             {
                 case Tarray:
                     pdt = dtsize_t(pdt, e->len);
-                    pdt = dtabytes(pdt, 0, (e->len + 1) * e->sz, (char *)e->string);
+                    pdt = dtabytes(pdt, 0, e->len * e->sz, (char *)e->stringdata);
+                    pdt = dtnzeros(pdt, e->sz);
                     break;
 
                 case Tsarray:
                 {
                     TypeSArray *tsa = (TypeSArray *)t;
 
-                    pdt = dtnbytes(pdt, e->len * e->sz, (const char *)e->string);
+                    pdt = dtnbytes(pdt, e->len * e->sz, (const char *)e->stringdata);
                     if (tsa->dim)
                     {
                         dinteger_t dim = tsa->dim->toInteger();
@@ -401,7 +402,8 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     break;
                 }
                 case Tpointer:
-                    pdt = dtabytes(pdt, 0, (e->len + 1) * e->sz, (char *)e->string);
+                    pdt = dtabytes(pdt, 0, e->len * e->sz, (char *)e->stringdata);
+                    pdt = dtnzeros(pdt, e->sz);
                     break;
 
                 default:

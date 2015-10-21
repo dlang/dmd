@@ -564,7 +564,7 @@ public:
                 else
                 {
                     StringExp *se = (StringExp *)(cs->exp);
-                    Symbol *si = toStringSymbol((char *)se->string, se->len, se->sz);
+                    Symbol *si = toStringSymbol((char *)se->stringdata, se->len, se->sz);
                     dtsize_t(&dt, se->len);
                     dtxoff(&dt, si, 0);
                 }
