@@ -50,16 +50,13 @@ extern (C++) const(char)* importHint(const(char)* s)
     return null; // didn't find it
 }
 
-version (unittest)
+unittest
 {
-    extern (C++) void unittest_importHint()
-    {
-        const(char)* p;
-        p = importHint("printf");
-        assert(p);
-        p = importHint("fabs");
-        assert(p);
-        p = importHint("xxxxx");
-        assert(!p);
-    }
+    const(char)* p;
+    p = importHint("printf");
+    assert(p);
+    p = importHint("fabs");
+    assert(p);
+    p = importHint("xxxxx");
+    assert(!p);
 }

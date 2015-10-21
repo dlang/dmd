@@ -25,7 +25,6 @@ import ddmd.dmodule;
 import ddmd.doc;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.dunittest;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
@@ -266,7 +265,6 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
         printf("DMD %s DEBUG\n", global._version);
         fflush(stdout); // avoid interleaving with stderr output when redirecting
     }
-    unittests();
     // Check for malformed input
     if (argc < 1 || !argv)
     {
