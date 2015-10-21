@@ -40,53 +40,6 @@ import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
 
-/**
- * Collects all unit test functions from the given array of symbols.
- *
- * This is a helper function used by the implementation of __traits(getUnitTests).
- *
- * Input:
- *      symbols             array of symbols to collect the functions from
- *      uniqueUnitTests     an associative array (should actually be a set) to
- *                          keep track of already collected functions. We're
- *                          using an AA here to avoid doing a linear search of unitTests
- *
- * Output:
- *      unitTests           array of DsymbolExp's of the collected unit test functions
- *      uniqueUnitTests     updated with symbols from unitTests[ ]
- */
-extern (C++) static void collectUnitTests(Dsymbols* symbols, AA* uniqueUnitTests, Expressions* unitTests)
-{
-    if (!symbols)
-        return;
-    for (size_t i = 0; i < symbols.dim; i++)
-    {
-        Dsymbol symbol = (*symbols)[i];
-        UnitTestDeclaration unitTest = symbol.isUnitTestDeclaration();
-        if (unitTest)
-        {
-            if (!dmd_aaGetRvalue(uniqueUnitTests, cast(void*)unitTest))
-            {
-                auto ad = new FuncAliasDeclaration(unitTest.ident, unitTest, 0);
-                ad.protection = unitTest.protection;
-                Expression e = new DsymbolExp(Loc(), ad);
-                unitTests.push(e);
-                bool* value = cast(bool*)dmd_aaGet(&uniqueUnitTests, cast(void*)unitTest);
-                *value = true;
-            }
-        }
-        else
-        {
-            AttribDeclaration attrDecl = symbol.isAttribDeclaration();
-            if (attrDecl)
-            {
-                Dsymbols* decl = attrDecl.include(null, null);
-                collectUnitTests(decl, uniqueUnitTests, unitTests);
-            }
-        }
-    }
-}
-
 /************************ TraitsExp ************************************/
 
 // callback for TypeFunction::attributesApply
@@ -1185,24 +1138,50 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (imp) // Bugzilla 10990
             s = imp.mod;
 
-        ScopeDsymbol _scope = s.isScopeDsymbol();
-        if (!_scope)
+        auto sds = s.isScopeDsymbol();
+        if (!sds)
         {
             e.error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s",
                 s.toChars(), s.kind());
             return new ErrorExp();
         }
 
-        auto unitTests = new Expressions();
-        Dsymbols* symbols = _scope.members;
-        if (global.params.useUnitTests && symbols)
+        auto exps = new Expressions();
+        if (global.params.useUnitTests)
         {
-            // Should actually be a set
             AA* uniqueUnitTests = null;
-            collectUnitTests(symbols, uniqueUnitTests, unitTests);
+
+            void collectUnitTests(Dsymbols* a)
+            {
+                if (!a)
+                    return;
+                foreach (s; *a)
+                {
+                    if (auto atd = s.isAttribDeclaration())
+                    {
+                        collectUnitTests(atd.include(null, null));
+                        continue;
+                    }
+                    if (auto ud = s.isUnitTestDeclaration())
+                    {
+                        if (dmd_aaGetRvalue(uniqueUnitTests, cast(void*)ud))
+                            continue;
+
+                        auto ad = new FuncAliasDeclaration(ud.ident, ud, 0);
+                        ad.protection = ud.protection;
+
+                        auto e = new DsymbolExp(Loc(), ad);
+                        exps.push(e);
+
+                        auto pv = cast(bool*)dmd_aaGet(&uniqueUnitTests, cast(void*)ud);
+                        *pv = true;
+                    }
+                }
+            }
+            collectUnitTests(sds.members);
         }
-        auto tup = new TupleExp(e.loc, unitTests);
-        return tup.semantic(sc);
+        auto te = new TupleExp(e.loc, exps);
+        return te.semantic(sc);
     }
     else if (e.ident == Id.getVirtualIndex)
     {
