@@ -3606,7 +3606,7 @@ static code *asm_db_parse(OP *pop)
                 else if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;
-                    q = (unsigned char *)se->string;
+                    q = (unsigned char *)se->stringdata;
                     len = se->len;
                     goto L3;
                 }

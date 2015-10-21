@@ -1199,7 +1199,6 @@ public:
                 if (c == tc)
                 {
                     t.len = cast(uint)stringbuffer.offset;
-                    stringbuffer.writeByte(0);
                     t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
                     memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
                     stringPostfix(t);
@@ -1268,7 +1267,6 @@ public:
                     stringbuffer.writeByte(v);
                 }
                 t.len = cast(uint)stringbuffer.offset;
-                stringbuffer.writeByte(0);
                 t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
                 memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
                 stringPostfix(t);
@@ -1462,7 +1460,6 @@ public:
         else
             error("delimited string must end in %c\"", delimright);
         t.len = cast(uint)stringbuffer.offset;
-        stringbuffer.writeByte(0);
         t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
         memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
         stringPostfix(t);
@@ -1495,9 +1492,8 @@ public:
                 if (--nest == 0)
                 {
                     t.len = cast(uint)(p - 1 - pstart);
-                    t.ustring = cast(char*)mem.xmalloc(t.len + 1);
+                    t.ustring = cast(char*)mem.xmalloc(t.len);
                     memcpy(t.ustring, pstart, t.len);
-                    t.ustring[t.len] = 0;
                     stringPostfix(t);
                     return TOKstring;
                 }
@@ -1553,7 +1549,6 @@ public:
                 break;
             case '"':
                 t.len = cast(uint)stringbuffer.offset;
-                stringbuffer.writeByte(0);
                 t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
                 memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
                 stringPostfix(t);

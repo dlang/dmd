@@ -1374,12 +1374,12 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb = se->type->toBasetype();
             if (tb->ty == Tarray)
             {
-                Symbol *si = toStringSymbol((const char *)se->string, se->len, se->sz);
+                Symbol *si = toStringSymbol((const char *)se->stringdata, se->len, se->sz);
                 e = el_pair(TYdarray, el_long(TYsize_t, se->len), el_ptr(si));
             }
             else if (tb->ty == Tsarray)
             {
-                Symbol *si = toStringSymbol((const char *)se->string, se->len, se->sz);
+                Symbol *si = toStringSymbol((const char *)se->stringdata, se->len, se->sz);
                 e = el_var(si);
 
                 e->Ejty = e->Ety = TYstruct;
@@ -1391,9 +1391,11 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_calloc();
                 e->Eoper = OPstring;
                 // freed in el_free
-                e->EV.ss.Vstring = (char *)mem_malloc((se->len + 1) * se->sz);
-                memcpy(e->EV.ss.Vstring, se->string, (se->len + 1) * se->sz);
-                e->EV.ss.Vstrlen = (se->len + 1) * se->sz;
+                unsigned len = se->len * se->sz;
+                e->EV.ss.Vstring = (char *)mem_malloc(len + se->sz);
+                memcpy(e->EV.ss.Vstring, se->stringdata, len);
+                memset(e->EV.ss.Vstring + len, 0, se->sz);
+                e->EV.ss.Vstrlen = len + se->sz;
                 e->Ety = TYnptr;
             }
             else
@@ -5586,14 +5588,14 @@ elem *toElemDtor(Expression *e, IRState *irs)
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %p\n", stringTab);
-    assert(str[len * sz] == 0);
     StringValue *sv = stringTab->update(str, len * sz);
     if (!sv->ptrvalue)
     {
         Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
         si->Salignment = 1;
         si->Sdt = NULL;
-        dtnbytes(&si->Sdt, (len + 1) * sz, str);
+        dt_t **pdt = dtnbytes(&si->Sdt, len * sz, str);
+        dtnzeros(pdt, 1);
         si->Sfl = FLdata;
         out_readonly(si);
         outdata(si);
