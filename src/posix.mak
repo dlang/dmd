@@ -165,6 +165,9 @@ endif
 ifdef ENABLE_LTO
 CFLAGS  += -flto
 endif
+ifdef ENABLE_UNITTEST
+DFLAGS  += -unittest -cov
+endif
 
 # Uniqe extra flags if necessary
 DMD_FLAGS  := -I$(ROOT) -Wuninitialized
@@ -312,7 +315,7 @@ endif
 clean:
 	rm -f newdelete.o $(GLUE_OBJS) $(BACK_OBJS) dmd optab.o id.o	\
 		idgen $(idgen_output) optabgen $(optabgen_output)	\
-		verstr.h SYSCONFDIR.imp core *.cov *.deps *.gcda *.gcno *.a
+		verstr.h SYSCONFDIR.imp core *.cov *.deps *.gcda *.gcno *.a *.lst
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
