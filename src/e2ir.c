@@ -1391,9 +1391,11 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_calloc();
                 e->Eoper = OPstring;
                 // freed in el_free
-                e->EV.ss.Vstring = (char *)mem_malloc((se->len + 1) * se->sz);
-                memcpy(e->EV.ss.Vstring, se->string, (se->len + 1) * se->sz);
-                e->EV.ss.Vstrlen = (se->len + 1) * se->sz;
+                unsigned len = se->len * se->sz;
+                e->EV.ss.Vstring = (char *)mem_malloc(len + se->sz);
+                memcpy(e->EV.ss.Vstring, se->string, len);
+                memset(e->EV.ss.Vstring + len, 0, se->sz);
+                e->EV.ss.Vstrlen = len + se->sz;
                 e->Ety = TYnptr;
             }
             else
@@ -5593,7 +5595,8 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
         Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
         si->Salignment = 1;
         si->Sdt = NULL;
-        dtnbytes(&si->Sdt, (len + 1) * sz, str);
+        dt_t **pdt = dtnbytes(&si->Sdt, len * sz, str);
+        dtnzeros(pdt, sz);
         si->Sfl = FLdata;
         out_readonly(si);
         outdata(si);
