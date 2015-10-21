@@ -1513,6 +1513,19 @@ void test12237()
 }
 
 /********************************************************/
+// 15094
+
+void test15094()
+{
+    static struct Foo { int i; }
+    static struct Bar { Foo foo; }
+
+    Bar bar;
+    auto n = __traits(getMember, bar.foo, "i");
+    assert(n == bar.foo.i);
+}
+
+/********************************************************/
 
 int main()
 {
@@ -1553,6 +1566,7 @@ int main()
     test_getFunctionAttributes();
     test_isOverrideFunction();
     test12237();
+    test15094();
 
     writeln("Success");
     return 0;
