@@ -104,7 +104,7 @@ public:
     bool errors;            // errors occurred during lexing or parsing
 
     /*********************
-     * Creat a Lexer.
+     * Creates a Lexer.
      * Params:
      *  filename = used for error messages
      *  base = source code, ending in a 0 byte
