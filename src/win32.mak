@@ -263,6 +263,9 @@ debdmd:
 reldmd:
 	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -inline" "LFLAGS=-L/delexe/la" $(TARGETEXE)
 
+profile:
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -profile" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+
 trace:
 	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
 
