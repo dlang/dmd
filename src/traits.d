@@ -55,62 +55,60 @@ struct PushAttributes
     }
 }
 
-extern (C++) __gshared const(char)** traits =
-[
-    "isAbstractClass",
-    "isArithmetic",
-    "isAssociativeArray",
-    "isFinalClass",
-    "isPOD",
-    "isNested",
-    "isFloating",
-    "isIntegral",
-    "isScalar",
-    "isStaticArray",
-    "isUnsigned",
-    "isVirtualFunction",
-    "isVirtualMethod",
-    "isAbstractFunction",
-    "isFinalFunction",
-    "isOverrideFunction",
-    "isStaticFunction",
-    "isRef",
-    "isOut",
-    "isLazy",
-    "hasMember",
-    "identifier",
-    "getProtection",
-    "parent",
-    "getMember",
-    "getOverloads",
-    "getVirtualFunctions",
-    "getVirtualMethods",
-    "classInstanceSize",
-    "allMembers",
-    "derivedMembers",
-    "isSame",
-    "compiles",
-    "parameters",
-    "getAliasThis",
-    "getAttributes",
-    "getFunctionAttributes",
-    "getUnitTests",
-    "getVirtualIndex",
-    "getPointerBitmap",
-    null
-];
 extern (C++) __gshared StringTable traitsStringTable;
 
-extern (C++) void initTraitsStringTable()
+static this()
 {
+    static immutable string[] names =
+    [
+        "isAbstractClass",
+        "isArithmetic",
+        "isAssociativeArray",
+        "isFinalClass",
+        "isPOD",
+        "isNested",
+        "isFloating",
+        "isIntegral",
+        "isScalar",
+        "isStaticArray",
+        "isUnsigned",
+        "isVirtualFunction",
+        "isVirtualMethod",
+        "isAbstractFunction",
+        "isFinalFunction",
+        "isOverrideFunction",
+        "isStaticFunction",
+        "isRef",
+        "isOut",
+        "isLazy",
+        "hasMember",
+        "identifier",
+        "getProtection",
+        "parent",
+        "getMember",
+        "getOverloads",
+        "getVirtualFunctions",
+        "getVirtualMethods",
+        "classInstanceSize",
+        "allMembers",
+        "derivedMembers",
+        "isSame",
+        "compiles",
+        "parameters",
+        "getAliasThis",
+        "getAttributes",
+        "getFunctionAttributes",
+        "getUnitTests",
+        "getVirtualIndex",
+        "getPointerBitmap",
+    ];
+
     traitsStringTable._init(40);
-    for (size_t idx = 0;; idx++)
+
+    foreach (s; names)
     {
-        const(char)* s = traits[idx];
-        if (!s)
-            break;
-        StringValue* sv = traitsStringTable.insert(s, strlen(s));
-        sv.ptrvalue = cast(void*)traits[idx];
+        auto sv = traitsStringTable.insert(s.ptr, s.length);
+        sv.ptrvalue = cast(void*)s.ptr;
     }
 }
 
