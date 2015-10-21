@@ -3779,10 +3779,9 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
         v.type = vthis.type;
         if (ad.isStructDeclaration())
             v = v.addressOf();
-        Expression se = new StringExp(Loc(), cast(char*)"null this");
-        se = se.semantic(sc);
-        se.type = Type.tchar.arrayOf();
-        e = new AssertExp(loc, v, se);
+        e = new StringExp(Loc(), cast(char*)"null this");
+        e = new AssertExp(loc, v, e);
+        e = e.semantic(sc);
     }
     return e;
 }
