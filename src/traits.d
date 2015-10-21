@@ -89,151 +89,94 @@ extern (C++) static void collectUnitTests(Dsymbols* symbols, AA* uniqueUnitTests
 
 /************************ TraitsExp ************************************/
 
-extern (C++) bool isTypeArithmetic(Type t)
+bool isTypeArithmetic(Type t)
 {
     return t.isintegral() || t.isfloating();
 }
 
-extern (C++) bool isTypeFloating(Type t)
+bool isTypeFloating(Type t)
 {
     return t.isfloating();
 }
 
-extern (C++) bool isTypeIntegral(Type t)
+bool isTypeIntegral(Type t)
 {
     return t.isintegral();
 }
 
-extern (C++) bool isTypeScalar(Type t)
+bool isTypeScalar(Type t)
 {
     return t.isscalar();
 }
 
-extern (C++) bool isTypeUnsigned(Type t)
+bool isTypeUnsigned(Type t)
 {
     return t.isunsigned();
 }
 
-extern (C++) bool isTypeAssociativeArray(Type t)
+bool isTypeAssociativeArray(Type t)
 {
     return t.toBasetype().ty == Taarray;
 }
 
-extern (C++) bool isTypeStaticArray(Type t)
+bool isTypeStaticArray(Type t)
 {
     return t.toBasetype().ty == Tsarray;
 }
 
-extern (C++) bool isTypeAbstractClass(Type t)
+bool isTypeAbstractClass(Type t)
 {
     return t.toBasetype().ty == Tclass && (cast(TypeClass)t.toBasetype()).sym.isAbstract();
 }
 
-extern (C++) bool isTypeFinalClass(Type t)
+bool isTypeFinalClass(Type t)
 {
     return t.toBasetype().ty == Tclass && ((cast(TypeClass)t.toBasetype()).sym.storage_class & STCfinal) != 0;
 }
 
-extern (C++) Expression isTypeX(TraitsExp e, bool function(Type t) fp)
-{
-    int result = 0;
-    if (!e.args || !e.args.dim)
-        goto Lfalse;
-    for (size_t i = 0; i < e.args.dim; i++)
-    {
-        Type t = getType((*e.args)[i]);
-        if (!t || !fp(t))
-            goto Lfalse;
-    }
-    result = 1;
-
-Lfalse:
-    return new IntegerExp(e.loc, result, Type.tbool);
-}
-
-extern (C++) bool isFuncAbstractFunction(FuncDeclaration f)
+bool isFuncAbstractFunction(FuncDeclaration f)
 {
     return f.isAbstract();
 }
 
-extern (C++) bool isFuncVirtualFunction(FuncDeclaration f)
+bool isFuncVirtualFunction(FuncDeclaration f)
 {
     return f.isVirtual();
 }
 
-extern (C++) bool isFuncVirtualMethod(FuncDeclaration f)
+bool isFuncVirtualMethod(FuncDeclaration f)
 {
     return f.isVirtualMethod();
 }
 
-extern (C++) bool isFuncFinalFunction(FuncDeclaration f)
+bool isFuncFinalFunction(FuncDeclaration f)
 {
     return f.isFinalFunc();
 }
 
-extern (C++) bool isFuncStaticFunction(FuncDeclaration f)
+bool isFuncStaticFunction(FuncDeclaration f)
 {
     return !f.needThis() && !f.isNested();
 }
 
-extern (C++) bool isFuncOverrideFunction(FuncDeclaration f)
+bool isFuncOverrideFunction(FuncDeclaration f)
 {
     return f.isOverride();
 }
 
-extern (C++) Expression isFuncX(TraitsExp e, bool function(FuncDeclaration f) fp)
-{
-    int result = 0;
-    if (!e.args || !e.args.dim)
-        goto Lfalse;
-    for (size_t i = 0; i < e.args.dim; i++)
-    {
-        Dsymbol s = getDsymbol((*e.args)[i]);
-        if (!s)
-            goto Lfalse;
-        FuncDeclaration f = s.isFuncDeclaration();
-        if (!f || !fp(f))
-            goto Lfalse;
-    }
-    result = 1;
-
-Lfalse:
-    return new IntegerExp(e.loc, result, Type.tbool);
-}
-
-extern (C++) bool isDeclRef(Declaration d)
+bool isDeclRef(Declaration d)
 {
     return d.isRef();
 }
 
-extern (C++) bool isDeclOut(Declaration d)
+bool isDeclOut(Declaration d)
 {
     return d.isOut();
 }
 
-extern (C++) bool isDeclLazy(Declaration d)
+bool isDeclLazy(Declaration d)
 {
     return (d.storage_class & STClazy) != 0;
-}
-
-extern (C++) Expression isDeclX(TraitsExp e, bool function(Declaration d) fp)
-{
-    int result = 0;
-    if (!e.args || !e.args.dim)
-        goto Lfalse;
-    for (size_t i = 0; i < e.args.dim; i++)
-    {
-        Dsymbol s = getDsymbol((*e.args)[i]);
-        if (!s)
-            goto Lfalse;
-        Declaration d = s.isDeclaration();
-        if (!d || !fp(d))
-            goto Lfalse;
-    }
-    result = 1;
-
-Lfalse:
-    return new IntegerExp(e.loc, result, Type.tbool);
 }
 
 // callback for TypeFunction::attributesApply
@@ -308,28 +251,11 @@ extern (C++) void initTraitsStringTable()
     }
 }
 
-extern (C++) bool isTemplate(Dsymbol s)
+bool isTemplate(Dsymbol s)
 {
     if (!s.toAlias().isOverloadable())
         return false;
     return overloadApply(s, sm => sm.isTemplateDeclaration() !is null) != 0;
-}
-
-extern (C++) Expression isSymbolX(TraitsExp e, bool function(Dsymbol s) fp)
-{
-    int result = 0;
-    if (!e.args || !e.args.dim)
-        goto Lfalse;
-    for (size_t i = 0; i < e.args.dim; i++)
-    {
-        Dsymbol s = getDsymbol((*e.args)[i]);
-        if (!s || !fp(s))
-            goto Lfalse;
-    }
-    result = 1;
-
-Lfalse:
-    return new IntegerExp(e.loc, result, Type.tbool);
 }
 
 /**
@@ -583,45 +509,81 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     size_t dim = e.args ? e.args.dim : 0;
 
+    Expression isX(T)(bool function(T) fp)
+    {
+        int result = 0;
+        if (!dim)
+            goto Lfalse;
+        foreach (o; *e.args)
+        {
+            static if (is(T == Type))
+                auto y = getType(o);
+
+            static if (is(T : Dsymbol))
+            {
+                auto s = getDsymbol(o);
+                if (!s)
+                    goto Lfalse;
+            }
+            static if (is(T == Dsymbol))
+                alias y = s;
+            static if (is(T == Declaration))
+                auto y = s.isDeclaration();
+            static if (is(T == FuncDeclaration))
+                auto y = s.isFuncDeclaration();
+
+            if (!y || !fp(y))
+                goto Lfalse;
+        }
+        result = 1;
+
+    Lfalse:
+        return new IntegerExp(e.loc, result, Type.tbool);
+    }
+    alias isTypeX = isX!Type;
+    alias isDsymX = isX!Dsymbol;
+    alias isDeclX = isX!Declaration;
+    alias isFuncX = isX!FuncDeclaration;
+
     if (e.ident == Id.isArithmetic)
     {
-        return isTypeX(e, &isTypeArithmetic);
+        return isTypeX(&isTypeArithmetic);
     }
     else if (e.ident == Id.isFloating)
     {
-        return isTypeX(e, &isTypeFloating);
+        return isTypeX(&isTypeFloating);
     }
     else if (e.ident == Id.isIntegral)
     {
-        return isTypeX(e, &isTypeIntegral);
+        return isTypeX(&isTypeIntegral);
     }
     else if (e.ident == Id.isScalar)
     {
-        return isTypeX(e, &isTypeScalar);
+        return isTypeX(&isTypeScalar);
     }
     else if (e.ident == Id.isUnsigned)
     {
-        return isTypeX(e, &isTypeUnsigned);
+        return isTypeX(&isTypeUnsigned);
     }
     else if (e.ident == Id.isAssociativeArray)
     {
-        return isTypeX(e, &isTypeAssociativeArray);
+        return isTypeX(&isTypeAssociativeArray);
     }
     else if (e.ident == Id.isStaticArray)
     {
-        return isTypeX(e, &isTypeStaticArray);
+        return isTypeX(&isTypeStaticArray);
     }
     else if (e.ident == Id.isAbstractClass)
     {
-        return isTypeX(e, &isTypeAbstractClass);
+        return isTypeX(&isTypeAbstractClass);
     }
     else if (e.ident == Id.isFinalClass)
     {
-        return isTypeX(e, &isTypeFinalClass);
+        return isTypeX(&isTypeFinalClass);
     }
     else if (e.ident == Id.isTemplate)
     {
-        return isSymbolX(e, &isTemplate);
+        return isDsymX(&isTemplate);
     }
     else if (e.ident == Id.isPOD)
     {
@@ -680,39 +642,39 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     else if (e.ident == Id.isAbstractFunction)
     {
-        return isFuncX(e, &isFuncAbstractFunction);
+        return isFuncX(&isFuncAbstractFunction);
     }
     else if (e.ident == Id.isVirtualFunction)
     {
-        return isFuncX(e, &isFuncVirtualFunction);
+        return isFuncX(&isFuncVirtualFunction);
     }
     else if (e.ident == Id.isVirtualMethod)
     {
-        return isFuncX(e, &isFuncVirtualMethod);
+        return isFuncX(&isFuncVirtualMethod);
     }
     else if (e.ident == Id.isFinalFunction)
     {
-        return isFuncX(e, &isFuncFinalFunction);
+        return isFuncX(&isFuncFinalFunction);
     }
     else if (e.ident == Id.isOverrideFunction)
     {
-        return isFuncX(e, &isFuncOverrideFunction);
+        return isFuncX(&isFuncOverrideFunction);
     }
     else if (e.ident == Id.isStaticFunction)
     {
-        return isFuncX(e, &isFuncStaticFunction);
+        return isFuncX(&isFuncStaticFunction);
     }
     else if (e.ident == Id.isRef)
     {
-        return isDeclX(e, &isDeclRef);
+        return isDeclX(&isDeclRef);
     }
     else if (e.ident == Id.isOut)
     {
-        return isDeclX(e, &isDeclOut);
+        return isDeclX(&isDeclOut);
     }
     else if (e.ident == Id.isLazy)
     {
-        return isDeclX(e, &isDeclLazy);
+        return isDeclX(&isDeclLazy);
     }
     else if (e.ident == Id.identifier)
     {
