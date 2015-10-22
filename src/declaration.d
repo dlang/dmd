@@ -1496,6 +1496,7 @@ public:
                     error("reference to scope class must be scope");
             }
         }
+
         if (!_init && !fd)
         {
             // If not mutable, initializable by constructor only
@@ -1505,10 +1506,18 @@ public:
             storage_class |= STCinit; // remember we had an explicit initializer
         else if (storage_class & STCmanifest)
             error("manifest constants must have initializers");
+
         bool isBlit = false;
-        if (!_init && !sc.inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd && (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) || (storage_class & STCout)) && type.size() != 0)
+        if (!_init &&
+            !sc.inunion &&
+            !(storage_class & (STCstatic | STCgshared | STCextern)) &&
+            fd &&
+            (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) ||
+             (storage_class & STCout)) &&
+            type.size() != 0)
         {
             // Provide a default initializer
+
             //printf("Providing default initializer for '%s'\n", toChars());
             if (type.needsNested())
             {
@@ -1516,18 +1525,20 @@ public:
                 while (tv.toBasetype().ty == Tsarray)
                     tv = tv.toBasetype().nextOf();
                 assert(tv.toBasetype().ty == Tstruct);
+
                 /* Nested struct requires valid enclosing frame pointer.
                  * In StructLiteralExp::toElem(), it's calculated.
                  */
                 checkFrameAccess(loc, sc, (cast(TypeStruct)tv.toBasetype()).sym);
+
                 Expression e = tv.defaultInitLiteral(loc);
-                Expression e1 = new VarExp(loc, this);
-                e = new BlitExp(loc, e1, e);
+                e = new BlitExp(loc, new VarExp(loc, this), e);
                 e = e.semantic(sc);
                 _init = new ExpInitializer(loc, e);
                 goto Ldtor;
             }
-            else if (type.ty == Tstruct && (cast(TypeStruct)type).sym.zeroInit == 1)
+            if (type.ty == Tstruct &&
+                (cast(TypeStruct)type).sym.zeroInit == 1)
             {
                 /* If a struct is all zeros, as a special case
                  * set it's initializer to the integer 0.
@@ -1536,14 +1547,12 @@ public:
                  * Must do same check in interpreter.
                  */
                 Expression e = new IntegerExp(loc, 0, Type.tint32);
-                Expression e1;
-                e1 = new VarExp(loc, this);
-                e = new BlitExp(loc, e1, e);
-                e.type = e1.type; // don't type check this, it would fail
+                e = new BlitExp(loc, new VarExp(loc, this), e);
+                e.type = type;      // don't type check this, it would fail
                 _init = new ExpInitializer(loc, e);
                 goto Ldtor;
             }
-            else if (type.baseElemOf().ty == Tvoid)
+            if (type.baseElemOf().ty == Tvoid)
             {
                 error("%s does not have a default initializer", type.toChars());
             }
@@ -1551,6 +1560,7 @@ public:
             {
                 _init = getExpInitializer();
             }
+
             // Default initializer is always a blit
             isBlit = true;
         }

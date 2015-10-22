@@ -83,7 +83,8 @@ void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
  */
 bool ISREF(Declaration *var, Type *tb)
 {
-    return (var->isParameter() && config.exe == EX_WIN64 && (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy))
+    return (config.exe == EX_WIN64 && var->isParameter() &&
+            (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy))
             || var->isOut() || var->isRef();
 }
 
@@ -92,8 +93,8 @@ bool ISREF(Declaration *var, Type *tb)
 bool ISWIN64REF(Declaration *var)
 {
     return (config.exe == EX_WIN64 && var->isParameter() &&
-            (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy)) &&
-            !(var->isOut() || var->isRef());
+            (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy))
+            && !(var->isOut() || var->isRef());
 }
 
 /******************************************
@@ -946,7 +947,6 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(SymbolExp *se)
         {
             elem *e;
-            tym_t tym;
             Type *tb = (se->op == TOKsymoff) ? se->var->type->toBasetype() : se->type->toBasetype();
             int offset = (se->op == TOKsymoff) ? ((SymOffExp*)se)->offset : 0;
             VarDeclaration *v = se->var->isVarDeclaration();
@@ -1090,7 +1090,6 @@ elem *toElem(Expression *e, IRState *irs)
             }
             else if (ISREF(se->var, tb))
             {
-                // Static arrays are really passed as pointers to the array
                 // Out parameters are really references
                 e = el_var(s);
                 e->Ety = TYnptr;
@@ -1114,13 +1113,17 @@ elem *toElem(Expression *e, IRState *irs)
                     e->Ety = TYnptr;
                     e = el_una(OPind, 0, e);
                 }
-                if (tb->ty == Tfunction)
-                {
+
+                tym_t tym;
+                if (se->var->storage_class & STClazy)
+                    tym = TYdelegate;       // Tdelegate as C type
+                else if (tb->ty == Tfunction)
                     tym = s->Stype->Tty;
-                }
                 else
                     tym = totym(se->type);
+
                 e->Ejty = e->Ety = tym;
+
                 if (tybasic(tym) == TYstruct)
                 {
                     e->ET = Type_toCtype(se->type);
@@ -2506,7 +2509,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Type *ta = are->e1->type->toBasetype();
 
                 // which we do if the 'next' types match
-                if (ae->ismemset & 1)
+                if (ae->memset & MemorySet_blockAssign)
                 {
                     // Do a memset for array[]=v
                     //printf("Lpair %s\n", ae->toChars());
@@ -2696,11 +2699,14 @@ elem *toElem(Expression *e, IRState *irs)
 
             /* Look for reference initializations
              */
-            if (ae->op == TOKconstruct && ae->e1->op == TOKvar && !(ae->ismemset & 2))
+            if (ae->memset & MemorySet_referenceInit)
             {
+                assert(ae->op == TOKconstruct || ae->op == TOKblit);
+                assert(ae->e1->op == TOKvar);
+
                 VarExp *ve = (VarExp *)ae->e1;
-                Declaration *s = ve->var;
-                if (s->storage_class & (STCout | STCref))
+                Declaration *d = ve->var;
+                if (d->storage_class & (STCout | STCref))
                 {
                     e = toElem(ae->e2, irs);
                     e = addressElem(e, ae->e2->type);
@@ -2742,6 +2748,14 @@ elem *toElem(Expression *e, IRState *irs)
                     e1x->ET = Type_toCtype(ae->e1->type);
                 //printf("e1  = \n"); elem_print(e1);
                 //printf("e1x = \n"); elem_print(e1x);
+            }
+
+            // inlining may generate lazy variable initialization
+            if (ae->e1->op == TOKvar && (((VarExp *)ae->e1)->var->storage_class & STClazy))
+            {
+                assert(ae->op == TOKconstruct || ae->op == TOKblit);
+                e = el_bin(OPeq, tym, e1, toElem(ae->e2, irs));
+                goto Lret;
             }
 
             /* This will work if we can distinguish an assignment from

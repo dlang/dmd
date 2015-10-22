@@ -1791,6 +1791,7 @@ public:
                     assert(tret.ty != Tvoid);
                     if (vresult || returnLabel)
                         buildResultVar(scout ? scout : sc2, tret);
+
                     /* Cannot move this loop into NrvoWalker, because
                      * returns[i] may be in the nested delegate for foreach-body.
                      */
@@ -1815,6 +1816,7 @@ public:
                         else
                         {
                             exp = exp.optimize(WANTvalue);
+
                             /* Bugzilla 10789:
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
@@ -1826,13 +1828,8 @@ public:
                         if (vresult)
                         {
                             // Create: return vresult = exp;
-                            auto ve = new VarExp(Loc(), vresult);
-                            ve.type = vresult.type;
-                            if (f.isref)
-                                exp = new ConstructExp(rs.loc, ve, exp);
-                            else
-                                exp = new BlitExp(rs.loc, ve, exp);
-                            exp.type = ve.type;
+                            exp = new BlitExp(rs.loc, vresult, exp);
+                            exp.type = vresult.type;
                             if (rs.caseDim)
                                 exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
                         }
@@ -2016,8 +2013,7 @@ public:
                      */
                     Expression e = new VarExp(Loc(), v_arguments);
                     e = new DotIdExp(Loc(), e, Id.elements);
-                    Expression e1 = new VarExp(Loc(), _arguments);
-                    e = new ConstructExp(Loc(), e1, e);
+                    e = new ConstructExp(Loc(), _arguments, e);
                     e = e.semantic(sc2);
                     _arguments._init = new ExpInitializer(Loc(), e);
                     auto de = new DeclarationExp(Loc(), _arguments);
@@ -3779,10 +3775,9 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
         v.type = vthis.type;
         if (ad.isStructDeclaration())
             v = v.addressOf();
-        Expression se = new StringExp(Loc(), cast(char*)"null this");
-        se = se.semantic(sc);
-        se.type = Type.tchar.arrayOf();
-        e = new AssertExp(loc, v, se);
+        e = new StringExp(Loc(), cast(char*)"null this");
+        e = new AssertExp(loc, v, e);
+        e = e.semantic(sc);
     }
     return e;
 }

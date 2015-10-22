@@ -736,18 +736,47 @@ void test14753(string) { }
 
 /**********************************/
 
-struct S14975 {
+struct S14975
+{
     int bar;
 
-    pragma(inline, true) this(int bar) {
+    pragma(inline, true) this(int bar)
+    {
         this.bar = bar;
     }
 }
 
-void test14975() {
+void test14975()
+{
     S14975 baz = 1;
     if (baz.bar != 1)
         assert(0);
+}
+
+/**********************************/
+// 15210
+
+struct BigInt15210 {}
+
+struct Tuple15210(Types...)
+{
+    Types field;
+
+    void opAssign(R)(R rhs)
+    {
+        field = rhs.field;
+    }
+}
+
+void test15210()
+{
+    alias X = Tuple15210!BigInt15210;
+
+    X[BigInt15210] cache;
+
+    auto x = X();
+
+    cache[BigInt15210()] = x;
 }
 
 /**********************************/
@@ -850,6 +879,50 @@ void test9785_3() @nogc
 }
 
 /**********************************/
+// 15207
+
+struct Vec15207
+{
+    float x, y, z;
+
+    this(float x_, float y_, float z_)
+    {
+        x = x_;
+        y = y_;
+        z = z_;
+    }
+
+    Vec15207 clone()
+    {
+        // When the variable 'res' is replaced with a STCref temporary,
+        // this line was accidentally changed to reference initialization.
+        Vec15207 res = this;
+
+        return res;
+    }
+}
+
+class C15207
+{
+    Vec15207 a;
+
+    this()
+    {
+        a = Vec15207(1, 2, 3).clone();
+
+        assert(a.x == 1);
+        assert(a.y == 2);
+        assert(a.z == 3);
+        printf("%f %f %f\n", a.x, a.y, a.z);
+    }
+}
+
+void test15207()
+{
+    auto c = new C15207();
+}
+
+/**********************************/
 
 int main()
 {
@@ -876,10 +949,12 @@ int main()
     test14754();
     test14606();
     test14975();
+    test15210();
     test7625();
     test9785();
     test9785_2();
     test9785_3();
+    test15207();
 
     printf("Success\n");
     return 0;
