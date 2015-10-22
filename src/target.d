@@ -22,13 +22,13 @@ import ddmd.root.outbuffer;
 struct Target
 {
     extern (C++) static __gshared int ptrsize;
-    extern (C++) static __gshared int realsize;             // size a real consumes in memory
-    extern (C++) static __gshared int realpad;              // 'padding' added to the CPU real size to bring it up to realsize
-    extern (C++) static __gshared int realalignsize;        // alignment for reals
+    extern (C++) static __gshared int realsize; // size a real consumes in memory
+    extern (C++) static __gshared int realpad; // 'padding' added to the CPU real size to bring it up to realsize
+    extern (C++) static __gshared int realalignsize; // alignment for reals
     extern (C++) static __gshared bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
-    extern (C++) static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
-    extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
-    extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
+    extern (C++) static __gshared int c_longsize; // size of a C 'long' or 'unsigned long' type
+    extern (C++) static __gshared int c_long_doublesize; // size of a C 'long double'
+    extern (C++) static __gshared int classinfosize; // size of 'ClassInfo'
 
     extern (C++) static void _init()
     {
@@ -41,7 +41,8 @@ struct Target
             ptrsize = 8;
             classinfosize = 0x98; // 152
         }
-        if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+        if (global.params.isLinux || global.params.isFreeBSD ||
+                global.params.isOpenBSD || global.params.isSolaris)
         {
             realsize = 12;
             realpad = 2;
@@ -97,7 +98,8 @@ struct Target
         case Tcomplex80:
             return Target.realalignsize;
         case Tcomplex32:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+            if (global.params.isLinux || global.params.isOSX ||
+                    global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
                 return 4;
             break;
         case Tint64:
@@ -105,7 +107,8 @@ struct Target
         case Tfloat64:
         case Timaginary64:
         case Tcomplex64:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+            if (global.params.isLinux || global.params.isOSX ||
+                    global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
                 return global.params.is64bit ? 8 : 4;
             break;
         default:
@@ -177,7 +180,8 @@ struct Target
         {
             return Type.tchar.pointerTo();
         }
-        else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris || global.params.isOSX)
+        else if (global.params.isLinux || global.params.isFreeBSD ||
+                global.params.isOpenBSD || global.params.isSolaris || global.params.isOSX)
         {
             if (global.params.is64bit)
             {

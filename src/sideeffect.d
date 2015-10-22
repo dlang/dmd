@@ -175,7 +175,8 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
                 Type t = ce.e1.type.toBasetype();
                 if (t.ty == Tdelegate)
                     t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                if (t.ty == Tfunction &&
+                        (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
                 {
                 }
                 else
@@ -254,7 +255,8 @@ extern (C++) void discardValue(Expression e)
                 Type t = ce.e1.type.toBasetype();
                 if (t.ty == Tdelegate)
                     t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                if (t.ty == Tfunction &&
+                        (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
                 {
                     const(char)* s;
                     if (ce.f)
@@ -266,7 +268,8 @@ extern (C++) void discardValue(Expression e)
                     }
                     else
                         s = ce.e1.toChars();
-                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
+                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
+                        s, e.type.toChars());
                 }
             }
         }
@@ -325,7 +328,8 @@ extern (C++) void discardValue(Expression e)
             CommaExp firstComma = ce;
             while (firstComma.e1.op == TOKcomma)
                 firstComma = cast(CommaExp)firstComma.e1;
-            if (firstComma.e1.op == TOKdeclaration && ce.e2.op == TOKvar && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
+            if (firstComma.e1.op == TOKdeclaration && ce.e2.op == TOKvar &&
+                    (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
             {
                 return;
             }

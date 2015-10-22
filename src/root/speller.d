@@ -40,7 +40,8 @@ bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost)
     return false;
 }
 
-void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, size_t index, int* cost)
+void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg,
+    const(char)* charset, size_t index, int* cost)
 {
     if (!seedlen)
         return null;
@@ -99,7 +100,8 @@ void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* 
     return p; // return "best" result
 }
 
-void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, int flag)
+void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset,
+    int flag)
 {
     if (!seedlen)
         return null;
@@ -212,25 +214,38 @@ void* speller(const(char)* seed, scope dg_speller_t dg, const(char)* charset)
 
 unittest
 {
-    static __gshared const(char)*** cases =
-    [
-        ["hello", "hell", "y"],
-        ["hello", "hel", "y"],
-        ["hello", "ello", "y"],
-        ["hello", "llo", "y"],
-        ["hello", "hellox", "y"],
-        ["hello", "helloxy", "y"],
-        ["hello", "xhello", "y"],
-        ["hello", "xyhello", "y"],
-        ["hello", "ehllo", "y"],
-        ["hello", "helol", "y"],
-        ["hello", "abcd", "n"],
-        ["hello", "helxxlo", "y"],
-        ["hello", "ehlxxlo", "n"],
-        ["hello", "heaao", "y"],
-        ["_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y"],
-        [null, null, null]
-    ];
+    static __gshared const(char)*** cases = [
+        ["hello", "hell", "y"
+    ], [
+        "hello", "hel", "y"
+    ], [
+        "hello", "ello", "y"
+    ], [
+        "hello", "llo", "y"
+    ], [
+        "hello", "hellox", "y"
+    ], [
+        "hello", "helloxy", "y"
+    ], [
+        "hello", "xhello", "y"
+    ], [
+        "hello", "xyhello", "y"
+    ], [
+        "hello", "ehllo", "y"
+    ], [
+        "hello", "helol", "y"
+    ], [
+        "hello", "abcd", "n"
+    ], [
+        "hello", "helxxlo", "y"
+    ], [
+        "hello", "ehlxxlo", "n"
+    ], [
+        "hello", "heaao", "y"
+    ], [
+        "_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678",
+        "y"
+    ], [null, null, null]];
     //printf("unittest_speller()\n");
 
     void* dgarg;

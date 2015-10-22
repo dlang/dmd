@@ -169,7 +169,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         }
                         else
                         {
-                            s.error("Internal Compiler Error: C++ %s template value parameter is not supported", tv.valType.toChars());
+                            s.error("Internal Compiler Error: C++ %s template value parameter is not supported",
+                                tv.valType.toChars());
                             assert(0);
                         }
                     }
@@ -185,12 +186,15 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         Expression e = isExpression(o);
                         if (!d && !e)
                         {
-                            s.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o.toChars());
+                            s.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)",
+                                o.toChars());
                             assert(0);
                         }
                         if (d && d.isFuncDeclaration())
                         {
-                            bool is_nested = d.toParent() && !d.toParent().isModule() && (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINKcpp;
+                            bool is_nested = d.toParent() &&
+                                !d.toParent().isModule() &&
+                                (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINKcpp;
                             if (is_nested)
                                 buf.writeByte('X');
                             buf.writeByte('L');
@@ -206,7 +210,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                             mangle_variable(vd, true);
                             buf.writeByte('E');
                         }
-                        else if (d && d.isTemplateDeclaration() && d.isTemplateDeclaration().onemember)
+                        else if (d && d.isTemplateDeclaration() &&
+                                d.isTemplateDeclaration().onemember)
                         {
                             if (!substitute(d))
                             {
@@ -215,7 +220,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         }
                         else
                         {
-                            s.error("Internal Compiler Error: %s is unsupported parameter for C++ template", o.toChars());
+                            s.error("Internal Compiler Error: %s is unsupported parameter for C++ template",
+                                o.toChars());
                             assert(0);
                         }
                     }
@@ -320,7 +326,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         // Replace ::std::basic_string < char, ::std::char_traits<char>, ::std::allocator<char> >
                         // with Ss
                         //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
-                        if (buf.offset - off >= 26 && memcmp(buf.data + off, cast(char*)"IcSt11char_traitsIcESaIcEE", 26) == 0)
+                        if (buf.offset - off >= 26 && memcmp(buf.data + off,
+                                cast(char*)"IcSt11char_traitsIcESaIcEE", 26) == 0)
                         {
                             buf.remove(off - 2, 28);
                             buf.insert(off - 2, cast(const(char)*)"Ss", 2);
@@ -329,7 +336,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         buf.setsize(off);
                         source_name(se, true);
                     }
-                    else if (s.ident == Id.basic_istream || s.ident == Id.basic_ostream || s.ident == Id.basic_iostream)
+                    else if (s.ident == Id.basic_istream ||
+                            s.ident == Id.basic_ostream || s.ident == Id.basic_iostream)
                     {
                         /* Replace
                          * ::std::basic_istream<char,  std::char_traits<char> > with Si
@@ -341,7 +349,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         source_name(se, true);
                         components_on = true;
                         //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
-                        if (buf.offset - off >= 21 && memcmp(buf.data + off, cast(char*)"IcSt11char_traitsIcEE", 21) == 0)
+                        if (buf.offset - off >= 21 && memcmp(buf.data + off,
+                                cast(char*)"IcSt11char_traitsIcEE", 21) == 0)
                         {
                             buf.remove(off, 21);
                             char[2] mbuf;
@@ -382,7 +391,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         {
             if (!(d.storage_class & (STCextern | STCgshared)))
             {
-                d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
+                d.error(
+                    "Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
                 assert(0);
             }
             Dsymbol p = d.toParent();
@@ -427,13 +437,15 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 prefix_name(p);
                 // See ABI 5.1.8 Compression
                 // Replace ::std::allocator with Sa
-                if (buf.offset >= 17 && memcmp(buf.data, cast(char*)"_ZN3std9allocator", 17) == 0)
+                if (buf.offset >= 17 && memcmp(buf.data, cast(char*)"_ZN3std9allocator",
+                        17) == 0)
                 {
                     buf.remove(3, 14);
                     buf.insert(3, cast(const(char)*)"Sa", 2);
                 }
                 // Replace ::std::basic_string with Sb
-                if (buf.offset >= 21 && memcmp(buf.data, cast(char*)"_ZN3std12basic_string", 21) == 0)
+                if (buf.offset >= 21 && memcmp(buf.data,
+                        cast(char*)"_ZN3std12basic_string", 21) == 0)
                 {
                     buf.remove(3, 18);
                     buf.insert(3, cast(const(char)*)"Sb", 2);
@@ -482,7 +494,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 if (t.ty == Tsarray)
                 {
                     // Mangle static arrays as pointers
-                    t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+                    t.error(
+                        Loc(),
+                        "Internal Compiler Error: unable to pass static array to extern(C++) function.");
                     t.error(Loc(), "Use pointer instead.");
                     assert(0);
                     //t = t->nextOf()->pointerTo();
@@ -491,7 +505,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                  * then don't mark it const
                  */
                 this.is_top_level = true;
-                if ((t.ty == Tenum || t.ty == Tstruct || t.ty == Tpointer || t.isTypeBasic()) && t.isConst())
+                if ((t.ty == Tenum || t.ty == Tstruct || t.ty == Tpointer ||
+                        t.isTypeBasic()) && t.isConst())
                     t.mutableOf().accept(this);
                 else
                     t.accept(this);
@@ -537,7 +552,10 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         {
             if (t.isImmutable() || t.isShared())
             {
-                t.error(Loc(), "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", t.toChars());
+                t.error(
+                    Loc(),
+                    "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)",
+                    t.toChars());
             }
             else
             {
@@ -949,11 +967,15 @@ else static if (TARGET_WINDOS)
         {
             if (type.isImmutable() || type.isShared())
             {
-                type.error(Loc(), "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", type.toChars());
+                type.error(
+                    Loc(),
+                    "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)",
+                    type.toChars());
             }
             else
             {
-                type.error(Loc(), "Internal Compiler Error: unsupported type %s\n", type.toChars());
+                type.error(Loc(), "Internal Compiler Error: unsupported type %s\n",
+                    type.toChars());
             }
             assert(0); // Assert, because this error should be handled in frontend
         }
@@ -979,15 +1001,15 @@ else static if (TARGET_WINDOS)
             {
                 switch (type.ty)
                 {
-                    case Tint64:
-                    case Tuns64:
-                    case Tint128:
-                    case Tuns128:
-                    case Tfloat80:
-                    case Twchar:
-                        if (checkTypeSaved(type))
-                            return;
-                    default:
+                case Tint64:
+                case Tuns64:
+                case Tint128:
+                case Tuns128:
+                case Tfloat80:
+                case Twchar:
+                    if (checkTypeSaved(type))
+                        return;
+                default:
                 }
             }
             mangleModifier(type);
@@ -1401,7 +1423,8 @@ else static if (TARGET_WINDOS)
                 // <flags> ::= Y <calling convention flag>
                 buf.writeByte('Y');
             }
-            const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, cast(bool)d.needThis(), d.isCtorDeclaration() || d.isDtorDeclaration());
+            const(char)* args = mangleFunctionType(cast(TypeFunction)d.type,
+                cast(bool)d.needThis(), d.isCtorDeclaration() || d.isDtorDeclaration());
             buf.writestring(args);
         }
 
@@ -1411,7 +1434,8 @@ else static if (TARGET_WINDOS)
             assert(d);
             if (!(d.storage_class & (STCextern | STCgshared)))
             {
-                d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
+                d.error(
+                    "Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
                 assert(0);
             }
             buf.writeByte('?');
@@ -1535,7 +1559,8 @@ else static if (TARGET_WINDOS)
                         }
                         else
                         {
-                            sym.error("Internal Compiler Error: C++ %s template value parameter is not supported", tv.valType.toChars());
+                            sym.error("Internal Compiler Error: C++ %s template value parameter is not supported",
+                                tv.valType.toChars());
                             assert(0);
                         }
                     }
@@ -1551,7 +1576,8 @@ else static if (TARGET_WINDOS)
                         Expression e = isExpression(o);
                         if (!d && !e)
                         {
-                            sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template", o.toChars());
+                            sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template",
+                                o.toChars());
                             assert(0);
                         }
                         if (d && d.isFuncDeclaration())
@@ -1569,7 +1595,8 @@ else static if (TARGET_WINDOS)
                                 tmp.buf.writeByte('E');
                             tmp.mangleVariable((cast(VarExp)e).var.isVarDeclaration());
                         }
-                        else if (d && d.isTemplateDeclaration() && d.isTemplateDeclaration().onemember)
+                        else if (d && d.isTemplateDeclaration() &&
+                                d.isTemplateDeclaration().onemember)
                         {
                             Dsymbol ds = d.isTemplateDeclaration().onemember;
                             if (flags & IS_DMC)
@@ -1600,7 +1627,8 @@ else static if (TARGET_WINDOS)
                         }
                         else
                         {
-                            sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o.toChars());
+                            sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)",
+                                o.toChars());
                             assert(0);
                         }
                     }
@@ -1793,7 +1821,8 @@ else static if (TARGET_WINDOS)
             cur.accept(this);
         }
 
-        const(char)* mangleFunctionType(TypeFunction type, bool needthis = false, bool noreturn = false)
+        const(char)* mangleFunctionType(TypeFunction type, bool needthis = false,
+            bool noreturn = false)
         {
             scope VisualCPPMangler tmp = new VisualCPPMangler(this);
             // Calling convention
@@ -1874,7 +1903,9 @@ else static if (TARGET_WINDOS)
                     }
                     if (t.ty == Tsarray)
                     {
-                        t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+                        t.error(
+                            Loc(),
+                            "Internal Compiler Error: unable to pass static array to extern(C++) function.");
                         t.error(Loc(), "Use pointer instead.");
                         assert(0);
                     }

@@ -42,7 +42,7 @@ import ddmd.visitor;
 extern (C++) class AttribDeclaration : Dsymbol
 {
 public:
-    Dsymbols* decl;     // array of Dsymbol's
+    Dsymbols* decl; // array of Dsymbol's
 
     final extern (D) this(Dsymbols* decl)
     {
@@ -78,10 +78,14 @@ public:
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    final static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage, Prot protection, int explicitProtection, structalign_t structalign, PINLINE inlining)
+    final static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+        Prot protection, int explicitProtection, structalign_t structalign, PINLINE inlining)
     {
         Scope* sc2 = sc;
-        if (stc != sc.stc || linkage != sc.linkage || !protection.isSubsetOf(sc.protection) || explicitProtection != sc.explicitProtection || structalign != sc.structalign || inlining != sc.inlining)
+        if (stc != sc.stc || linkage != sc.linkage ||
+                !protection.isSubsetOf(sc.protection) ||
+                explicitProtection != sc.explicitProtection ||
+                structalign != sc.structalign || inlining != sc.inlining)
         {
             // create new one for changes
             sc2 = sc.copy();
@@ -352,7 +356,8 @@ public:
             scstc &= ~(STCsafe | STCtrusted | STCsystem);
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
-        return createNewScope(sc, scstc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
+        return createNewScope(sc, scstc, sc.linkage, sc.protection,
+            sc.explicitProtection, sc.structalign, sc.inlining);
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -450,7 +455,8 @@ public:
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, this.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
+        return createNewScope(sc, sc.stc, this.linkage, sc.protection,
+            sc.explicitProtection, sc.structalign, sc.inlining);
     }
 
     override char* toChars()
@@ -514,7 +520,8 @@ public:
     {
         if (pkg_identifiers)
             semantic(sc);
-        return createNewScope(sc, sc.stc, sc.linkage, this.protection, 1, sc.structalign, sc.inlining);
+        return createNewScope(sc, sc.stc, sc.linkage, this.protection, 1,
+            sc.structalign, sc.inlining);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -531,7 +538,8 @@ public:
             Module m = sc._module;
             Package pkg = m.parent ? m.parent.isPackage() : null;
             if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
-                error("does not bind to one of ancestor packages of module '%s'", m.toPrettyChars(true));
+                error("does not bind to one of ancestor packages of module '%s'",
+                    m.toPrettyChars(true));
         }
         return AttribDeclaration.addMember(sc, sds);
     }
@@ -578,7 +586,8 @@ public:
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, this.salign, sc.inlining);
+        return createNewScope(sc, sc.stc, sc.linkage, sc.protection,
+            sc.explicitProtection, this.salign, sc.inlining);
     }
 
     override void accept(Visitor v)
@@ -594,10 +603,10 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 public:
     bool isunion;
     structalign_t alignment;
-    int sem;        // 1 if successful semantic()
-    uint anonoffset;        // offset of anonymous struct
-    uint anonstructsize;    // size of anonymous struct
-    uint anonalignsize;     // size of anonymous struct for alignment purposes
+    int sem; // 1 if successful semantic()
+    uint anonoffset; // offset of anonymous struct
+    uint anonstructsize; // size of anonymous struct
+    uint anonalignsize; // size of anonymous struct for alignment purposes
 
     extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
     {
@@ -620,7 +629,8 @@ public:
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "%s can only be a part of an aggregate, not %s %s", kind(), p.kind(), p.toChars());
+            .error(loc, "%s can only be a part of an aggregate, not %s %s",
+                kind(), p.kind(), p.toChars());
             return;
         }
         alignment = sc.structalign;
@@ -687,7 +697,9 @@ public:
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
              */
-            anonoffset = AggregateDeclaration.placeField(poffset, anonstructsize, anonalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
+            anonoffset = AggregateDeclaration.placeField(poffset,
+                anonstructsize, anonalignsize, alignment, &ad.structsize,
+                &ad.alignsize, isunion);
             // Add to the anon fields the base offset of this anonymous aggregate
             //printf("anon fields, anonoffset = %d\n", anonoffset);
             for (size_t i = fieldstart; i < ad.fields.dim; i++)
@@ -720,7 +732,7 @@ public:
 extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
 public:
-    Expressions* args;      // array of Expression's
+    Expressions* args; // array of Expression's
 
     extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
     {
@@ -734,7 +746,8 @@ public:
     {
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
+        return new PragmaDeclaration(loc, ident,
+            Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
     }
 
     override void semantic(Scope* sc)
@@ -756,7 +769,8 @@ public:
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
                     {
-                        errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i].toChars());
+                        errorSupplemental(loc,
+                            "while evaluating pragma(msg, %s)", (*args)[i].toChars());
                         return;
                     }
                     StringExp se = e.toStringExp();
@@ -884,7 +898,8 @@ public:
                     dchar_t c = p[i];
                     if (c < 0x80)
                     {
-                        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c != 0 && strchr("$%().:?@[]_", c))
+                        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' &&
+                                c <= '9' || c != 0 && strchr("$%().:?@[]_", c))
                         {
                             ++i;
                             continue;
@@ -895,7 +910,8 @@ public:
                             break;
                         }
                     }
-                    if (const(char)* msg = utf_decodeChar(cast(char*)se.string, se.len, &i, &c))
+                    if (const(char)* msg = utf_decodeChar(cast(char*)se.string, se.len,
+                            &i, &c))
                     {
                         error("%s", msg);
                         break;
@@ -984,7 +1000,8 @@ public:
                 inlining = PINLINEdefault;
             else if (args.dim != 1)
             {
-                error("one boolean expression expected for pragma(inline), not %d", args.dim);
+                error("one boolean expression expected for pragma(inline), not %d",
+                    args.dim);
                 args.setDim(1);
                 (*args)[0] = new ErrorExp();
             }
@@ -1004,7 +1021,8 @@ public:
                 else if (e.isBool(false))
                     inlining = PINLINEnever;
             }
-            return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, inlining);
+            return createNewScope(sc, sc.stc, sc.linkage, sc.protection,
+                sc.explicitProtection, sc.structalign, inlining);
         }
         return sc;
     }
@@ -1026,7 +1044,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 {
 public:
     Condition condition;
-    Dsymbols* elsedecl;     // array of Dsymbol's for else block
+    Dsymbols* elsedecl; // array of Dsymbol's for else block
 
     final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
@@ -1039,7 +1057,8 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new ConditionalDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new ConditionalDeclaration(condition.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -1052,7 +1071,8 @@ public:
         }
         else
         {
-            bool res = (Dsymbol.oneMembers(decl, ps, ident) && *ps is null && Dsymbol.oneMembers(elsedecl, ps, ident) && *ps is null);
+            bool res = (Dsymbol.oneMembers(decl, ps, ident) && *ps is null &&
+                Dsymbol.oneMembers(elsedecl, ps, ident) && *ps is null);
             *ps = null;
             return res;
         }
@@ -1129,7 +1149,8 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new StaticIfDeclaration(condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
+        return new StaticIfDeclaration(condition.syntaxCopy(),
+            Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
     /****************************************
@@ -1261,12 +1282,14 @@ public:
             Expression e = exp.ctfeInterpret();
             StringExp se = e.toStringExp();
             if (!se)
-                exp.error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
+                exp.error("argument to mixin must be a string, not (%s) of type %s",
+                    exp.toChars(), exp.type.toChars());
             else
             {
                 se = se.toUTF8(sc);
                 uint errors = global.errors;
-                scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
+                scope Parser p = new Parser(loc, sc._module, cast(char*)se.string,
+                    se.len, 0);
                 p.nextToken();
                 decl = p.parseDeclDefs(0);
                 if (p.token.value != TOKeof)
@@ -1331,7 +1354,8 @@ public:
     {
         //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
         assert(!s);
-        return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
+        return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts),
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)

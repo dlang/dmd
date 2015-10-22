@@ -26,7 +26,9 @@ enum LOG = false;
  *      module_name     name of the object module (used for error messages)
  *      loc             location to use for error printing
  */
-extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx,
+    char* name, int pickAny) pAddSymbol, void* base, size_t buflen,
+    const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
@@ -50,12 +52,16 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
     {
         if (header.cputype != CPU_TYPE_I386)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
+            error(loc,
+                "Mach-O object module %s has cputype = %d, should be %d",
+                module_name, header.cputype, CPU_TYPE_I386);
             return;
         }
         if (header.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
+            error(loc,
+                "Mach-O object module %s has file type = %d, should be %d",
+                module_name, header.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
@@ -72,12 +78,16 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
             goto Lcorrupt;
         if (header64.cputype != CPU_TYPE_X86_64)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            error(loc,
+                "Mach-O object module %s has cputype = %d, should be %d",
+                module_name, header64.cputype, CPU_TYPE_X86_64);
             return;
         }
         if (header64.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
+            error(loc,
+                "Mach-O object module %s has file type = %d, should be %d",
+                module_name, header64.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)
@@ -97,7 +107,8 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
     symtab_command* symtab_commands = null;
     dysymtab_command* dysymtab_commands = null;
     // Commands immediately follow mach_header
-    char* commands = cast(char*)buf + (header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
+    char* commands = cast(char*)buf + (
+        header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
     for (uint32_t i = 0; i < ncmds; i++)
     {
         load_command* command = cast(load_command*)commands;
@@ -251,8 +262,8 @@ struct segment_command
     uint32_t vmsize;
     uint32_t fileoff;
     uint32_t filesize;
-    int32_t  maxprot;
-    int32_t  initprot;
+    int32_t maxprot;
+    int32_t initprot;
     uint32_t nsects;
     uint32_t flags;
 }
@@ -266,8 +277,8 @@ struct segment_command_64
     uint64_t vmsize;
     uint64_t fileoff;
     uint64_t filesize;
-    int32_t  maxprot;
-    int32_t  initprot;
+    int32_t maxprot;
+    int32_t initprot;
     uint32_t nsects;
     uint32_t flags;
 }
@@ -306,9 +317,9 @@ struct dysymtab_command
     uint32_t nlocrel;
 }
 
-enum LC_SEGMENT    = 1;
-enum LC_SYMTAB     = 2;
-enum LC_DYSYMTAB   = 11;
+enum LC_SEGMENT = 1;
+enum LC_SYMTAB = 2;
+enum LC_DYSYMTAB = 11;
 enum LC_SEGMENT_64 = 0x19;
 
 struct load_command
@@ -317,12 +328,12 @@ struct load_command
     uint32_t cmdsize;
 }
 
-enum N_EXT  = 1;
+enum N_EXT = 1;
 enum N_STAB = 0xE0;
 enum N_PEXT = 0x10;
 enum N_TYPE = 0x0E;
 enum N_UNDF = 0;
-enum N_ABS  = 2;
+enum N_ABS = 2;
 enum N_INDR = 10;
 enum N_PBUD = 12;
 enum N_SECT = 14;

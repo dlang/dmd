@@ -243,7 +243,9 @@ private:
         for (size_t i = hash & (tabledim - 1), j = 1;; ++j)
         {
             StringValue* sv;
-            if (!table[i].vptr || table[i].hash == hash && (sv = getValue(table[i].vptr)).length == length && .memcmp(s, sv.lstring(), length) == 0)
+            if (!table[i].vptr || table[i].hash == hash &&
+                    (sv = getValue(table[i].vptr)).length == length &&
+                    .memcmp(s, sv.lstring(), length) == 0)
                 return i;
             i = (i + j) & (tabledim - 1);
         }

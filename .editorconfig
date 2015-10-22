@@ -7,3 +7,8 @@ indent_style = space
 indent_size = 4
 trim_trailing_whitespace = true
 charset = utf-8
+
+[*.{d,di}]
+dfmt_split_operator_at_line_end = true
+dfmt_space_after_cast = false
+max_line_length = 120

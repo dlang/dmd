@@ -450,12 +450,14 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         if (e2.type.isreal())
         {
             real_t r2 = e2.toReal();
-            c = complex_t(Port.fmodl(e1.toReal(), r2), Port.fmodl(e1.toImaginary(), r2));
+            c = complex_t(Port.fmodl(e1.toReal(), r2), Port.fmodl(e1.toImaginary(),
+                r2));
         }
         else if (e2.type.isimaginary())
         {
             real_t i2 = e2.toImaginary();
-            c = complex_t(Port.fmodl(e1.toReal(), i2), Port.fmodl(e1.toImaginary(), i2));
+            c = complex_t(Port.fmodl(e1.toReal(), i2), Port.fmodl(e1.toImaginary(),
+                i2));
         }
         else
             assert(0);
@@ -940,7 +942,8 @@ extern (C++) UnionExp Identity(TOK op, Loc loc, Type type, Expression e1, Expres
         }
         else
         {
-            ue = Equal((op == TOKidentity) ? TOKequal : TOKnotequal, loc, type, e1, e2);
+            ue = Equal((op == TOKidentity) ? TOKequal : TOKnotequal, loc, type, e1,
+                e2);
             return ue;
         }
     }
@@ -1438,7 +1441,8 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         uinteger_t i = e2.toInteger();
         if (i >= length)
         {
-            e1.error("array index %llu is out of bounds %s[0 .. %llu]", i, e1.toChars(), length);
+            e1.error("array index %llu is out of bounds %s[0 .. %llu]", i, e1.toChars(),
+                length);
             emplaceExp!(ErrorExp)(&ue);
         }
         else if (e1.op == TOKarrayliteral)
@@ -1463,7 +1467,8 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
             ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
             if (i >= ale.elements.dim)
             {
-                e1.error("array index %llu is out of bounds %s[0 .. %u]", i, e1.toChars(), ale.elements.dim);
+                e1.error("array index %llu is out of bounds %s[0 .. %u]", i,
+                    e1.toChars(), ale.elements.dim);
                 emplaceExp!(ErrorExp)(&ue);
             }
             else
@@ -1551,7 +1556,8 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
             es.type = type;
         }
     }
-    else if (e1.op == TOKarrayliteral && lwr.op == TOKint64 && upr.op == TOKint64 && !hasSideEffect(e1))
+    else if (e1.op == TOKarrayliteral && lwr.op == TOKint64 &&
+            upr.op == TOKint64 && !hasSideEffect(e1))
     {
         ArrayLiteralExp es1 = cast(ArrayLiteralExp)e1;
         uinteger_t ilwr = lwr.toInteger();
@@ -1565,7 +1571,8 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         {
             auto elements = new Expressions();
             elements.setDim(cast(size_t)(iupr - ilwr));
-            memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
+            memcpy(elements.tdata(), es1.elements.tdata() + ilwr,
+                cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
             emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elements);
             ue.exp().type = type;
         }
@@ -1579,7 +1586,8 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
 /* Set a slice of char/integer array literal 'existingAE' from a string 'newval'.
  * existingAE[firstIndex..firstIndex+newval.length] = newval.
  */
-extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, StringExp newval, size_t firstIndex)
+extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE,
+    StringExp newval, size_t firstIndex)
 {
     size_t newlen = newval.len;
     size_t sz = newval.sz;
@@ -1609,7 +1617,8 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
 /* Set a slice of string 'existingSE' from a char array literal 'newae'.
  *   existingSE[firstIndex..firstIndex+newae.length] = newae.
  */
-extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
+extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE,
+    ArrayLiteralExp newae, size_t firstIndex)
 {
     void* s = existingSE.string;
     for (size_t j = 0; j < newae.elements.dim; j++)
@@ -1635,7 +1644,8 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
 /* Set a slice of string 'existingSE' from a string 'newstr'.
  *   existingSE[firstIndex..firstIndex+newstr.length] = newstr.
  */
-extern (C++) void sliceAssignStringFromString(StringExp existingSE, StringExp newstr, size_t firstIndex)
+extern (C++) void sliceAssignStringFromString(StringExp existingSE,
+    StringExp newstr, size_t firstIndex)
 {
     void* s = existingSE.string;
     size_t sz = existingSE.sz;
@@ -1646,7 +1656,8 @@ extern (C++) void sliceAssignStringFromString(StringExp existingSE, StringExp ne
 /* Compare a string slice with another string slice.
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  se2[lo2..lo2+len])
  */
-extern (C++) int sliceCmpStringWithString(StringExp se1, StringExp se2, size_t lo1, size_t lo2, size_t len)
+extern (C++) int sliceCmpStringWithString(StringExp se1, StringExp se2,
+    size_t lo1, size_t lo2, size_t len)
 {
     void* s1 = se1.string;
     void* s2 = se2.string;
@@ -1658,7 +1669,8 @@ extern (C++) int sliceCmpStringWithString(StringExp se1, StringExp se2, size_t l
 /* Compare a string slice with an array literal slice
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  ae2[lo2..lo2+len])
  */
-extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len)
+extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2,
+    size_t lo1, size_t lo2, size_t len)
 {
     void* s = se1.string;
     size_t sz = se1.sz;
@@ -1928,10 +1940,11 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if ((e1.op == TOKarrayliteral || e1.op == TOKnull) && e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
+    else if ((e1.op == TOKarrayliteral || e1.op == TOKnull) &&
+            e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
     {
-        auto elems = (e1.op == TOKarrayliteral)
-                ? ArrayLiteralExp.copyElements(e1) : new Expressions();
+        auto elems = (e1.op == TOKarrayliteral) ? ArrayLiteralExp.copyElements(e1)
+            : new Expressions();
         elems.push(e2);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);

@@ -8,7 +8,9 @@
 
 module ddmd.root.file;
 
-import core.stdc.errno, core.stdc.stdio, core.stdc.stdlib, core.stdc.string, core.sys.posix.fcntl, core.sys.posix.sys.types, core.sys.posix.unistd, core.sys.posix.utime, core.sys.windows.windows;
+import core.stdc.errno, core.stdc.stdio, core.stdc.stdlib, core.stdc.string,
+    core.sys.posix.fcntl, core.sys.posix.sys.types, core.sys.posix.unistd,
+    core.sys.posix.utime, core.sys.windows.windows;
 import ddmd.root.array, ddmd.root.filename, ddmd.root.rmem;
 
 version (Windows) alias WIN32_FIND_DATAA = WIN32_FIND_DATA;
@@ -127,7 +129,8 @@ struct File
             DWORD size;
             DWORD numread;
             char* name = this.name.toChars();
-            HANDLE h = CreateFileA(name, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
+            HANDLE h = CreateFileA(name, GENERIC_READ, FILE_SHARE_READ, null,
+                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
             if (h == INVALID_HANDLE_VALUE)
                 goto err1;
             if (!_ref)
@@ -193,7 +196,8 @@ struct File
         {
             DWORD numwritten;
             char* name = this.name.toChars();
-            HANDLE h = CreateFileA(name, GENERIC_WRITE, 0, null, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
+            HANDLE h = CreateFileA(name, GENERIC_WRITE, 0, null, CREATE_ALWAYS,
+                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
             if (h == INVALID_HANDLE_VALUE)
                 goto err;
             if (WriteFile(h, buffer, cast(DWORD)len, &numwritten, null) != TRUE)

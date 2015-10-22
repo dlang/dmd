@@ -98,80 +98,82 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
  */
 extern (C++) void ObjectNotFound(Identifier id)
 {
-    Type.error(Loc(), "%s not found. object.d may be incorrectly installed or corrupt.", id.toChars());
+    Type.error(Loc(),
+        "%s not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
 }
 
-enum STCundefined           = 0L;
-enum STCstatic              = (1L << 0);
-enum STCextern              = (1L << 1);
-enum STCconst               = (1L << 2);
-enum STCfinal               = (1L << 3);
-enum STCabstract            = (1L << 4);
-enum STCparameter           = (1L << 5);
-enum STCfield               = (1L << 6);
-enum STCoverride            = (1L << 7);
-enum STCauto                = (1L << 8);
-enum STCsynchronized        = (1L << 9);
-enum STCdeprecated          = (1L << 10);
-enum STCin                  = (1L << 11);   // in parameter
-enum STCout                 = (1L << 12);   // out parameter
-enum STClazy                = (1L << 13);   // lazy parameter
-enum STCforeach             = (1L << 14);   // variable for foreach loop
+enum STCundefined = 0L;
+enum STCstatic = (1L << 0);
+enum STCextern = (1L << 1);
+enum STCconst = (1L << 2);
+enum STCfinal = (1L << 3);
+enum STCabstract = (1L << 4);
+enum STCparameter = (1L << 5);
+enum STCfield = (1L << 6);
+enum STCoverride = (1L << 7);
+enum STCauto = (1L << 8);
+enum STCsynchronized = (1L << 9);
+enum STCdeprecated = (1L << 10);
+enum STCin = (1L << 11); // in parameter
+enum STCout = (1L << 12); // out parameter
+enum STClazy = (1L << 13); // lazy parameter
+enum STCforeach = (1L << 14); // variable for foreach loop
 //                            (1L << 15)
-enum STCvariadic            = (1L << 16);   // variadic function argument
-enum STCctorinit            = (1L << 17);   // can only be set inside constructor
-enum STCtemplateparameter   = (1L << 18);   // template parameter
-enum STCscope               = (1L << 19);
-enum STCimmutable           = (1L << 20);
-enum STCref                 = (1L << 21);
-enum STCinit                = (1L << 22);   // has explicit initializer
-enum STCmanifest            = (1L << 23);   // manifest constant
-enum STCnodtor              = (1L << 24);   // don't run destructor
-enum STCnothrow             = (1L << 25);   // never throws exceptions
-enum STCpure                = (1L << 26);   // pure function
-enum STCtls                 = (1L << 27);   // thread local
-enum STCalias               = (1L << 28);   // alias parameter
-enum STCshared              = (1L << 29);   // accessible from multiple threads
-enum STCgshared             = (1L << 30);   // accessible from multiple threads, but not typed as "shared"
-enum STCwild                = (1L << 31);   // for "wild" type constructor
-enum STCproperty            = (1L << 32);
-enum STCsafe                = (1L << 33);
-enum STCtrusted             = (1L << 34);
-enum STCsystem              = (1L << 35);
-enum STCctfe                = (1L << 36);   // can be used in CTFE, even if it is static
-enum STCdisable             = (1L << 37);   // for functions that are not callable
-enum STCresult              = (1L << 38);   // for result variables passed to out contracts
-enum STCnodefaultctor       = (1L << 39);   // must be set inside constructor
-enum STCtemp                = (1L << 40);   // temporary variable
-enum STCrvalue              = (1L << 41);   // force rvalue for variables
-enum STCnogc                = (1L << 42);   // @nogc
-enum STCvolatile            = (1L << 43);   // destined for volatile in the back end
-enum STCreturn              = (1L << 44);   // 'return ref' for function parameters
-enum STCautoref             = (1L << 45);   // Mark for the already deduced 'auto ref' parameter
-enum STCinference           = (1L << 46);   // do attribute inference
+enum STCvariadic = (1L << 16); // variadic function argument
+enum STCctorinit = (1L << 17); // can only be set inside constructor
+enum STCtemplateparameter = (1L << 18); // template parameter
+enum STCscope = (1L << 19);
+enum STCimmutable = (1L << 20);
+enum STCref = (1L << 21);
+enum STCinit = (1L << 22); // has explicit initializer
+enum STCmanifest = (1L << 23); // manifest constant
+enum STCnodtor = (1L << 24); // don't run destructor
+enum STCnothrow = (1L << 25); // never throws exceptions
+enum STCpure = (1L << 26); // pure function
+enum STCtls = (1L << 27); // thread local
+enum STCalias = (1L << 28); // alias parameter
+enum STCshared = (1L << 29); // accessible from multiple threads
+enum STCgshared = (1L << 30); // accessible from multiple threads, but not typed as "shared"
+enum STCwild = (1L << 31); // for "wild" type constructor
+enum STCproperty = (1L << 32);
+enum STCsafe = (1L << 33);
+enum STCtrusted = (1L << 34);
+enum STCsystem = (1L << 35);
+enum STCctfe = (1L << 36); // can be used in CTFE, even if it is static
+enum STCdisable = (1L << 37); // for functions that are not callable
+enum STCresult = (1L << 38); // for result variables passed to out contracts
+enum STCnodefaultctor = (1L << 39); // must be set inside constructor
+enum STCtemp = (1L << 40); // temporary variable
+enum STCrvalue = (1L << 41); // force rvalue for variables
+enum STCnogc = (1L << 42); // @nogc
+enum STCvolatile = (1L << 43); // destined for volatile in the back end
+enum STCreturn = (1L << 44); // 'return ref' for function parameters
+enum STCautoref = (1L << 45); // Mark for the already deduced 'auto ref' parameter
+enum STCinference = (1L << 46); // do attribute inference
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
-enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
+enum STC_FUNCATTR = (
+        STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
 
-extern (C++) __gshared const(StorageClass) STCStorageClass =
-    (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+extern (C++) __gshared const(StorageClass) STCStorageClass = (
+    STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match
 {
-    int count;              // number of matches found
-    MATCH last;             // match level of lastf
-    FuncDeclaration lastf;  // last matching function we found
-    FuncDeclaration nextf;  // current matching function
-    FuncDeclaration anyf;   // pick a func, any func, to use for error recovery
+    int count; // number of matches found
+    MATCH last; // match level of lastf
+    FuncDeclaration lastf; // last matching function we found
+    FuncDeclaration nextf; // current matching function
+    FuncDeclaration anyf; // pick a func, any func, to use for error recovery
 }
 
 enum Semantic : int
 {
-    SemanticStart,          // semantic has not been run
-    SemanticIn,             // semantic() is in progress
-    SemanticDone,           // semantic() has been run
-    Semantic2Done,          // semantic2() has been run
+    SemanticStart, // semantic has not been run
+    SemanticIn, // semantic() is in progress
+    SemanticDone, // semantic() has been run
+    Semantic2Done, // semantic2() has been run
 }
 
 alias SemanticStart = Semantic.SemanticStart;
@@ -185,11 +187,11 @@ extern (C++) class Declaration : Dsymbol
 {
 public:
     Type type;
-    Type originalType;  // before semantic analysis
+    Type originalType; // before semantic analysis
     StorageClass storage_class;
     Prot protection;
     LINK linkage;
-    int inuse;          // used to detect cycles
+    int inuse; // used to detect cycles
 
     // overridden symbol with pragma(mangle, "...")
     const(char)* mangleOverride;
@@ -235,7 +237,8 @@ public:
             {
                 if (scx.func == parent && (scx.flags & SCOPEcontract))
                 {
-                    const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
+                    const(char)* s = isParameter() &&
+                        parent.ident != Id.ensure ? "parameter" : "result";
                     if (!flag)
                         error(loc, "cannot modify %s '%s' in contract", s, toChars());
                     return 2; // do not report type related errors
@@ -396,8 +399,8 @@ extern (C++) final class TupleDeclaration : Declaration
 {
 public:
     Objects* objects;
-    bool isexp;             // true: expression tuple
-    TypeTuple tupletype;    // !=null if this is a type tuple
+    bool isexp; // true: expression tuple
+    TypeTuple tupletype; // !=null if this is a type tuple
 
     extern (D) this(Loc loc, Identifier id, Objects* objects)
     {
@@ -524,8 +527,8 @@ extern (C++) final class AliasDeclaration : Declaration
 {
 public:
     Dsymbol aliassym;
-    Dsymbol overnext;   // next in overload list
-    Dsymbol _import;    // !=null if unresolved internal alias for selective import
+    Dsymbol overnext; // next in overload list
+    Dsymbol _import; // !=null if unresolved internal alias for selective import
 
     extern (D) this(Loc loc, Identifier id, Type type)
     {
@@ -551,7 +554,8 @@ public:
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
-        AliasDeclaration sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy()) : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
+        AliasDeclaration sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy())
+            : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
         sa.storage_class = storage_class;
         return sa;
     }
@@ -899,7 +903,7 @@ public:
 extern (C++) final class OverDeclaration : Declaration
 {
 public:
-    Dsymbol overnext;   // next in overload list
+    Dsymbol overnext; // next in overload list
     Dsymbol aliassym;
     bool hasOverloads;
 
@@ -984,16 +988,14 @@ public:
     {
         if (!hasOverloads)
         {
-            if (aliassym.isFuncDeclaration() ||
-                aliassym.isTemplateDeclaration())
+            if (aliassym.isFuncDeclaration() || aliassym.isTemplateDeclaration())
             {
                 return aliassym;
             }
         }
 
         Dsymbol result = null;
-        overloadApply(aliassym, (Dsymbol s)
-        {
+        overloadApply(aliassym, (Dsymbol s) {
             if (result)
             {
                 result = null;
@@ -1026,20 +1028,20 @@ extern (C++) class VarDeclaration : Declaration
 public:
     Initializer _init;
     uint offset;
-    bool noscope;                   // no auto semantics
-    FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
-    bool isargptr;                  // if parameter that _argptr points to
+    bool noscope; // no auto semantics
+    FuncDeclarations nestedrefs; // referenced by these lexically nested functions
+    bool isargptr; // if parameter that _argptr points to
     structalign_t alignment;
-    bool ctorinit;                  // it has been initialized in a ctor
+    bool ctorinit; // it has been initialized in a ctor
 
     // 1: it has been allocated on the stack
     // 2: on stack, run destructor anyway
     short onstack;
 
-    int canassign;                  // it can be assigned to
-    bool overlapped;                // if it is a field and has overlapping
-    Dsymbol aliassym;               // if redone as alias to another symbol
-    VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
+    int canassign; // it can be assigned to
+    bool overlapped; // if it is a field and has overlapping
+    Dsymbol aliassym; // if redone as alias to another symbol
+    VarDeclaration lastVar; // Linked list of variables for goto-skips-init detection
 
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
@@ -1049,8 +1051,8 @@ public:
     // if the destructor should be run. Used to prevent
     // dtor calls on postblitted vars
     VarDeclaration rundtor;
-    Expression edtor;               // if !=null, does the destruction of the variable
-    IntRange* range;                // if !=null, the variable is known to be within the range
+    Expression edtor; // if !=null, does the destruction of the variable
+    IntRange* range; // if !=null, the variable is known to be within the range
 
     final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init)
     {
@@ -1076,7 +1078,8 @@ public:
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null);
+        auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident,
+            _init ? _init.syntaxCopy() : null);
         v.storage_class = storage_class;
         return v;
     }
@@ -1085,7 +1088,8 @@ public:
     {
         version (none)
         {
-            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
+            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n",
+                toChars(), sc.parent ? sc.parent.toChars() : null, sem);
             printf(" type = %s\n", type ? type.toChars() : "null");
             printf(" stc = x%x\n", sc.stc);
             printf(" storage_class = x%llx\n", storage_class);
@@ -1191,7 +1195,8 @@ public:
         {
             if (inferred)
             {
-                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
+                error("type %s is inferred from initializer %s, and variables cannot be of type void",
+                    type.toChars(), _init.toChars());
             }
             else
                 error("variables cannot be of type void");
@@ -1213,7 +1218,8 @@ public:
             }
         }
         if ((storage_class & STCauto) && !inferred)
-            error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+            error(
+                "storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
         if (tb.ty == Ttuple)
         {
             /* Instead, declare variables for each of the tuple elements
@@ -1286,7 +1292,8 @@ public:
                         if ((*exps)[0] != ve)
                         {
                             Expression e0 = (*exps)[0];
-                            (*exps)[0] = new CommaExp(loc, new DeclarationExp(loc, v), e0);
+                            (*exps)[0] = new CommaExp(loc, new DeclarationExp(loc,
+                                v), e0);
                             (*exps)[0].type = e0.type;
                             iexps.remove(pos);
                             iexps.insert(pos, exps);
@@ -1305,7 +1312,9 @@ public:
                 size_t tedim = te.exps.dim;
                 if (tedim != nelems)
                 {
-                    .error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", cast(int)tedim, cast(int)nelems);
+                    .error(loc,
+                        "tuple of %d elements cannot be assigned to tuple of %d elements",
+                        cast(int)tedim, cast(int)nelems);
                     for (size_t u = tedim; u < nelems; u++) // fill dummy expression
                         te.exps.push(new ErrorExp());
                 }
@@ -1385,7 +1394,9 @@ public:
             }
             storage_class &= ~stc; // strip off
         }
-        if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+        if (
+                storage_class & (
+                STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
         {
         }
         else
@@ -1393,11 +1404,14 @@ public:
             AggregateDeclaration aad = parent.isAggregateDeclaration();
             if (aad)
             {
-                if (global.params.vfield && storage_class & (STCconst | STCimmutable) && _init && !_init.isVoidInitializer())
+                if (global.params.vfield &&
+                        storage_class & (STCconst | STCimmutable) && _init &&
+                        !_init.isVoidInitializer())
                 {
                     const(char)* p = loc.toChars();
                     const(char)* s = (storage_class & STCimmutable) ? "immutable" : "const";
-                    fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), toChars(), s);
+                    fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "",
+                        ad.toPrettyChars(), toChars(), s);
                 }
                 storage_class |= STCfield;
                 if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
@@ -1413,7 +1427,8 @@ public:
             }
             else if (aad && aad.sizeok == SIZEOKdone)
             {
-                error("cannot be further field because it will change the determined %s size", aad.toChars());
+                error("cannot be further field because it will change the determined %s size",
+                    aad.toChars());
             }
             /* Templates cannot add fields to aggregates
              */
@@ -1442,7 +1457,10 @@ public:
         }
         if (type.hasWild())
         {
-            if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) || isDataseg())
+            if (
+                    storage_class & (
+                    STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) ||
+                    isDataseg())
             {
                 error("only parameters or stack based variables can be inout");
             }
@@ -1466,7 +1484,8 @@ public:
                 }
             }
         }
-        if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+        if (!(storage_class & (STCctfe | STCref | STCresult)) &&
+                tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
             if (!_init)
             {
@@ -1486,9 +1505,13 @@ public:
         FuncDeclaration fd = parent.isFuncDeclaration();
         if (type.isscope() && !noscope)
         {
-            if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
+            if (
+                    storage_class & (
+                    STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) ||
+                    !fd)
             {
-                error("globals, statics, fields, manifest constants, ref and out parameters cannot be scope");
+                error(
+                    "globals, statics, fields, manifest constants, ref and out parameters cannot be scope");
             }
             if (!(storage_class & STCscope))
             {
@@ -1506,7 +1529,11 @@ public:
         else if (storage_class & STCmanifest)
             error("manifest constants must have initializers");
         bool isBlit = false;
-        if (!_init && !sc.inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd && (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) || (storage_class & STCout)) && type.size() != 0)
+        if (!_init && !sc.inunion &&
+                !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
+                (
+                !(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) ||
+                (storage_class & STCout)) && type.size() != 0)
         {
             // Provide a default initializer
             //printf("Providing default initializer for '%s'\n", toChars());
@@ -1566,7 +1593,9 @@ public:
             {
                 // If local variable, use AssignExp to handle all the various
                 // possibilities.
-                if (fd && !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) && !_init.isVoidInitializer())
+                if (fd &&
+                        !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) &&
+                        !_init.isVoidInitializer())
                 {
                     //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                     if (!ei)
@@ -1638,7 +1667,8 @@ public:
                 else
                 {
                     // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-                    _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+                    _init = _init.semantic(sc, type,
+                        sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                 }
             }
             else if (parent.isAggregateDeclaration())
@@ -1646,7 +1676,8 @@ public:
                 _scope = scx ? scx : sc.copy();
                 _scope.setNoFree();
             }
-            else if (storage_class & (STCconst | STCimmutable | STCmanifest) || type.isConst() || type.isImmutable())
+            else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                    type.isConst() || type.isImmutable())
             {
                 /* Because we may need the results of a const declaration in a
                  * subsequent type, such as an array dimension, before semantic2()
@@ -1692,7 +1723,9 @@ public:
                             {
                                 // The only allowable initializer is a (non-copy) constructor
                                 if (exp.isLvalue())
-                                    error("of type struct %s uses this(this), which is not allowed in static initialization", tb2.toChars());
+                                    error(
+                                        "of type struct %s uses this(this), which is not allowed in static initialization",
+                                        tb2.toChars());
                             }
                         }
                         ei.exp = exp;
@@ -1791,7 +1824,8 @@ public:
                 if (ts.sym == ad)
                 {
                     const(char)* s = (t.ty == Tsarray) ? "static array of " : "";
-                    ad.error("cannot have field %s with %ssame struct type", toChars(), s);
+                    ad.error("cannot have field %s with %ssame struct type", toChars(),
+                        s);
                     return;
                 }
                 if (ts.sym.sizeok != SIZEOKdone && ts.sym._scope)
@@ -1815,7 +1849,8 @@ public:
             return;
         uint memsize = cast(uint)t.size(loc); // size of member
         uint memalignsize = Target.fieldalign(t); // size of member for alignment purposes
-        offset = AggregateDeclaration.placeField(poffset, memsize, memalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
+        offset = AggregateDeclaration.placeField(poffset, memsize,
+            memalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
         //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
     }
@@ -1871,14 +1906,17 @@ public:
             {
                 if ((type.ty == Tclass) && type.isMutable())
                 {
-                    error("is mutable. Only const and immutable class enum are allowed, not %s", type.toChars());
+                    error("is mutable. Only const and immutable class enum are allowed, not %s",
+                        type.toChars());
                 }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable())
+                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct &&
+                        type.nextOf().isMutable())
                 {
                     ExpInitializer ei = _init.isExpInitializer();
                     if (ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
-                        error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type.toChars());
+                        error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s",
+                            type.toChars());
                     }
                 }
             }
@@ -1893,7 +1931,8 @@ public:
                 else if (type.ty == Tpointer && type.nextOf().ty == Tstruct)
                 {
                     ExpInitializer ei = _init.isExpInitializer();
-                    if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+                    if (ei && ei.exp.op == TOKaddress &&
+                            (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
                         error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
                     }
@@ -1906,14 +1945,17 @@ public:
             {
                 ExpInitializer ei = _init.isExpInitializer();
                 if (ei && ei.exp.op == TOKclassreference)
-                    error("is mutable. Only const or immutable class thread local variable are allowed, not %s", type.toChars());
+                    error("is mutable. Only const or immutable class thread local variable are allowed, not %s",
+                        type.toChars());
             }
-            else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable() && !type.nextOf().isShared())
+            else if (type.ty == Tpointer && type.nextOf().ty == Tstruct &&
+                    type.nextOf().isMutable() && !type.nextOf().isShared())
             {
                 ExpInitializer ei = _init.isExpInitializer();
                 if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                 {
-                    error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s", type.toChars());
+                    error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s",
+                        type.toChars());
                 }
             }
         }
@@ -1928,7 +1970,10 @@ public:
     override final AggregateDeclaration isThis()
     {
         AggregateDeclaration ad = null;
-        if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe)))
+        if (
+                !(
+                storage_class & (
+                STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe)))
         {
             for (Dsymbol s = this; s; s = s.parent)
             {
@@ -1955,7 +2000,8 @@ public:
 
     override final bool isImportedSymbol()
     {
-        if (protection.kind == PROTexport && !_init && (storage_class & STCstatic || parent.isModule()))
+        if (protection.kind == PROTexport && !_init &&
+                (storage_class & STCstatic || parent.isModule()))
             return true;
         return false;
     }
@@ -1969,7 +2015,9 @@ public:
         version (none)
         {
             printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
-            printf("%llx, isModule: %p, isTemplateInstance: %p\n", storage_class & (STCstatic | STCconst), parent.isModule(), parent.isTemplateInstance());
+            printf("%llx, isModule: %p, isTemplateInstance: %p\n",
+                storage_class & (STCstatic | STCconst), parent.isModule(),
+                parent.isTemplateInstance());
             printf("parent = '%s'\n", parent.toChars());
         }
         if (!canTakeAddressOf())
@@ -1981,7 +2029,8 @@ public:
             type = Type.terror;
             return false;
         }
-        return (storage_class & (STCstatic | STCextern | STCtls | STCgshared) || parent.isModule() || parent.isTemplateInstance());
+        return (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
+            parent.isModule() || parent.isTemplateInstance());
     }
 
     /************************************
@@ -2008,8 +2057,7 @@ public:
 
     final bool isOverlappedWith(VarDeclaration v)
     {
-        return (  offset < v.offset + v.type.size() &&
-                v.offset <   offset +   type.size());
+        return (offset < v.offset + v.type.size() && v.offset < offset + type.size());
     }
 
     override final bool hasPointers()
@@ -2074,7 +2122,8 @@ public:
                 // _ArrayDtor(v[0 .. n])
                 e = new VarExp(loc, this);
                 uinteger_t n = type.size() / sd.type.size();
-                e = new SliceExp(loc, e, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+                e = new SliceExp(loc, e, new IntegerExp(loc, 0, Type.tsize_t),
+                    new IntegerExp(loc, n, Type.tsize_t));
                 // Prevent redundant bounds check
                 (cast(SliceExp)e).upperIsInBounds = true;
                 (cast(SliceExp)e).lowerIsLessThanUpper = true;
@@ -2178,7 +2227,7 @@ public:
         }
 
         e = e.copy();
-        e.loc = loc;    // for better error message
+        e.loc = loc; // for better error message
         return e;
     }
 

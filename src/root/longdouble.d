@@ -12,4 +12,3 @@ real ldouble(T)(T x)
 {
     return cast(real)x;
 }
-

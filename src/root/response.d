@@ -170,8 +170,8 @@ extern (C++) bool response_expand(Strings* args)
                     case '\t':
                         if (!instring)
                         {
-                        case '\n':
-                        case 0:
+                    case '\n':
+                    case 0:
                             *d = 0; // terminate argument
                             goto Lnextarg;
                         }

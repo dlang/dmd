@@ -41,12 +41,12 @@ public:
      *  5. enum id : memtype;
      *  6. enum id;
      */
-    Type type;              // the TypeEnum
-    Type memtype;           // type of the members
+    Type type; // the TypeEnum
+    Type memtype; // type of the members
     Prot protection;
     Expression maxval;
     Expression minval;
-    Expression defaultval;  // default initializer
+    Expression defaultval; // default initializer
     bool isdeprecated;
     bool added;
     int inuse;
@@ -370,7 +370,9 @@ public:
         }
         if (!(memtype && memtype.isintegral()))
         {
-            error(loc, "has no .%s property because base type %s is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
+            error(loc,
+                "has no .%s property because base type %s is not an integral type",
+                id.toChars(), memtype ? memtype.toChars() : "");
             goto Lerrors;
         }
 
@@ -400,7 +402,8 @@ public:
                  *   if (e > maxval)
                  *      maxval = e;
                  */
-                Expression ec = new CmpExp(id == Id.max ? TOKgt : TOKlt, em.loc, e, *pval);
+                Expression ec = new CmpExp(id == Id.max ? TOKgt : TOKlt, em.loc, e,
+                    *pval);
                 inuse++;
                 ec = ec.semantic(em._scope);
                 inuse--;
@@ -508,7 +511,10 @@ public:
      *  2. id = value
      *  3. type id = value
      */
-    @property ref value() { return (cast(ExpInitializer)_init).exp; }
+    @property ref value()
+    {
+        return (cast(ExpInitializer)_init).exp;
+    }
 
     // A cast() is injected to 'value' after semantic(),
     // but 'origValue' will preserve the original value,
@@ -529,7 +535,8 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new EnumMember(loc, ident, value ? value.syntaxCopy() : null, origType ? origType.syntaxCopy() : null);
+        return new EnumMember(loc, ident, value ? value.syntaxCopy() : null,
+            origType ? origType.syntaxCopy() : null);
     }
 
     override const(char)* kind()
@@ -718,7 +725,8 @@ public:
             if (e.op != TOKerror) // avoid duplicate diagnostics
             {
                 assert(emprev.origValue);
-                origValue = new AddExp(loc, emprev.origValue, new IntegerExp(loc, 1, Type.tint32));
+                origValue = new AddExp(loc, emprev.origValue, new IntegerExp(loc, 1,
+                    Type.tint32));
                 origValue = origValue.semantic(sc);
                 origValue = origValue.ctfeInterpret();
             }

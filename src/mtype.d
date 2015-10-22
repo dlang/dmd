@@ -57,8 +57,8 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
 
-enum LOGDOTEXP = 0;         // log ::dotExp()
-enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
+enum LOGDOTEXP = 0; // log ::dotExp()
+enum LOGDEFAULTINIT = 0; // log ::defaultInit()
 
 extern (C++) __gshared int Tsize_t = Tuns32;
 extern (C++) __gshared int Tptrdiff_t = Tint32;
@@ -137,7 +137,8 @@ extern (C++) MOD MODmerge(MOD mod1, MOD mod2)
         mod1 &= ~MODshared;
         mod2 &= ~MODshared;
     }
-    if (mod1 == 0 || mod1 == MODmutable || mod1 == MODconst || mod2 == 0 || mod2 == MODmutable || mod2 == MODconst)
+    if (mod1 == 0 || mod1 == MODmutable || mod1 == MODconst || mod2 == 0 ||
+            mod2 == MODmutable || mod2 == MODconst)
     {
         // If either type is mutable or const, the result will be const.
         result |= MODconst;
@@ -299,12 +300,12 @@ Lnot:
     return t;
 }
 
-enum TFLAGSintegral     = 1;
-enum TFLAGSfloating     = 2;
-enum TFLAGSunsigned     = 4;
-enum TFLAGSreal         = 8;
-enum TFLAGSimaginary    = 0x10;
-enum TFLAGScomplex      = 0x20;
+enum TFLAGSintegral = 1;
+enum TFLAGSfloating = 2;
+enum TFLAGSunsigned = 4;
+enum TFLAGSreal = 8;
+enum TFLAGSimaginary = 0x10;
+enum TFLAGScomplex = 0x20;
 
 extern (C++) Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
 {
@@ -347,9 +348,9 @@ extern (C++) Expression semanticLength(Scope* sc, Type t, Expression exp)
 
 enum ENUMTY : int
 {
-    Tarray,     // slice array, aka T[]
-    Tsarray,    // static array, aka T[dimension]
-    Taarray,    // associative array, aka T[type]
+    Tarray, // slice array, aka T[]
+    Tsarray, // static array, aka T[dimension]
+    Taarray, // associative array, aka T[type]
     Tpointer,
     Treference,
     Tfunction,
@@ -448,12 +449,12 @@ alias TY = ubyte;
 
 enum MODFlags : int
 {
-    MODconst        = 1,    // type is const
-    MODimmutable    = 4,    // type is immutable
-    MODshared       = 2,    // type is shared
-    MODwild         = 8,    // type is wild
-    MODwildconst    = (MODwild | MODconst), // type is wild const
-    MODmutable      = 0x10, // type is mutable (only used in wildcard matching)
+    MODconst = 1, // type is const
+    MODimmutable = 4, // type is immutable
+    MODshared = 2, // type is shared
+    MODwild = 8, // type is wild
+    MODwildconst = (MODwild | MODconst), // type is wild const
+    MODmutable = 0x10, // type is mutable (only used in wildcard matching)
 }
 
 alias MODconst = MODFlags.MODconst;
@@ -480,22 +481,22 @@ public:
      * Note that there is no "shared immutable", because that is just immutable
      * Naked == no MOD bits
      */
-    Type cto;       // MODconst                 ? naked version of this type : const version
-    Type ito;       // MODimmutable             ? naked version of this type : immutable version
-    Type sto;       // MODshared                ? naked version of this type : shared mutable version
-    Type scto;      // MODshared | MODconst     ? naked version of this type : shared const version
-    Type wto;       // MODwild                  ? naked version of this type : wild version
-    Type wcto;      // MODwildconst             ? naked version of this type : wild const version
-    Type swto;      // MODshared | MODwild      ? naked version of this type : shared wild version
-    Type swcto;     // MODshared | MODwildconst ? naked version of this type : shared wild const version
+    Type cto; // MODconst                 ? naked version of this type : const version
+    Type ito; // MODimmutable             ? naked version of this type : immutable version
+    Type sto; // MODshared                ? naked version of this type : shared mutable version
+    Type scto; // MODshared | MODconst     ? naked version of this type : shared const version
+    Type wto; // MODwild                  ? naked version of this type : wild version
+    Type wcto; // MODwildconst             ? naked version of this type : wild const version
+    Type swto; // MODshared | MODwild      ? naked version of this type : shared wild version
+    Type swcto; // MODshared | MODwildconst ? naked version of this type : shared wild const version
 
-    Type pto;       // merged pointer to this type
-    Type rto;       // reference to this type
-    Type arrayof;   // array of this type
+    Type pto; // merged pointer to this type
+    Type rto; // reference to this type
+    Type arrayof; // array of this type
 
-    TypeInfoDeclaration vtinfo;     // TypeInfo object for this Type
+    TypeInfoDeclaration vtinfo; // TypeInfo object for this Type
 
-    type* ctype;                    // for back end
+    type* ctype; // for back end
 
     extern (C++) static __gshared Type tvoid;
     extern (C++) static __gshared Type tint8;
@@ -524,17 +525,17 @@ public:
 
     // Some special types
     extern (C++) static __gshared Type tshiftcnt;
-    extern (C++) static __gshared Type tvoidptr;    // void*
-    extern (C++) static __gshared Type tstring;     // immutable(char)[]
-    extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
-    extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
-    extern (C++) static __gshared Type tvalist;     // va_list alias
-    extern (C++) static __gshared Type terror;      // for error recovery
-    extern (C++) static __gshared Type tnull;       // for null type
+    extern (C++) static __gshared Type tvoidptr; // void*
+    extern (C++) static __gshared Type tstring; // immutable(char)[]
+    extern (C++) static __gshared Type twstring; // immutable(wchar)[]
+    extern (C++) static __gshared Type tdstring; // immutable(dchar)[]
+    extern (C++) static __gshared Type tvalist; // va_list alias
+    extern (C++) static __gshared Type terror; // for error recovery
+    extern (C++) static __gshared Type tnull; // for null type
 
-    extern (C++) static __gshared Type tsize_t;     // matches size_t alias
-    extern (C++) static __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
-    extern (C++) static __gshared Type thash_t;     // matches hash_t alias
+    extern (C++) static __gshared Type tsize_t; // matches size_t alias
+    extern (C++) static __gshared Type tptrdiff_t; // matches ptrdiff_t alias
+    extern (C++) static __gshared Type thash_t; // matches hash_t alias
 
     extern (C++) static __gshared ClassDeclaration dtypeinfo;
     extern (C++) static __gshared ClassDeclaration typeinfoclass;
@@ -559,30 +560,29 @@ public:
     extern (C++) static __gshared Type[TMAX] basic;
     extern (C++) static __gshared StringTable stringtable;
 
-    extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
-        {
-            ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
-            sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
-            sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
-            sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
-            sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
-            sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
-            sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
-            sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
-            sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
-            sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
-            sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
-            sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
-            sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
-            sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
-            sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
-            sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
-            sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
-            sizeTy[Terror] = __traits(classInstanceSize, TypeError);
-            sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
-            sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
-            return sizeTy;
-        }();
+    extern (C++) static __gshared ubyte[TMAX] sizeTy = () {
+        ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
+        sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
+        sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
+        sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
+        sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
+        sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
+        sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
+        sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
+        sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
+        sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
+        sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
+        sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
+        sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
+        sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
+        sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
+        sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
+        sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
+        sizeTy[Terror] = __traits(classInstanceSize, TypeError);
+        sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
+        sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+        return sizeTy;
+    }();
 
     final extern (D) this(TY ty)
     {
@@ -718,7 +718,8 @@ public:
                  * covariant. Do this test first because it can work on
                  * forward references.
                  */
-                if ((cast(TypeClass)t1n).sym == (cast(TypeClass)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
+                if ((cast(TypeClass)t1n).sym == (cast(TypeClass)t2n).sym &&
+                        MODimplicitConv(t1n.mod, t2n.mod))
                     goto Lcovariant;
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
@@ -731,7 +732,8 @@ public:
             }
             if (t1n.ty == Tstruct && t2n.ty == Tstruct)
             {
-                if ((cast(TypeStruct)t1n).sym == (cast(TypeStruct)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
+                if ((cast(TypeStruct)t1n).sym == (cast(TypeStruct)t2n).sym &&
+                        MODimplicitConv(t1n.mod, t2n.mod))
                     goto Lcovariant;
             }
             else if (t1n.ty == t2n.ty && t1n.implicitConvTo(t2n))
@@ -827,33 +829,11 @@ public:
     {
         stringtable._init(14000);
         // Set basic types
-        static __gshared TY* basetab =
-        [
-            Tvoid,
-            Tint8,
-            Tuns8,
-            Tint16,
-            Tuns16,
-            Tint32,
-            Tuns32,
-            Tint64,
-            Tuns64,
-            Tint128,
-            Tuns128,
-            Tfloat32,
-            Tfloat64,
-            Tfloat80,
-            Timaginary32,
-            Timaginary64,
-            Timaginary80,
-            Tcomplex32,
-            Tcomplex64,
-            Tcomplex80,
-            Tbool,
-            Tchar,
-            Twchar,
-            Tdchar,
-            Terror
+        static __gshared TY* basetab = [
+            Tvoid, Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32, Tint64,
+            Tuns64, Tint128, Tuns128, Tfloat32, Tfloat64, Tfloat80,
+            Timaginary32, Timaginary64, Timaginary80, Tcomplex32, Tcomplex64,
+            Tcomplex80, Tbool, Tchar, Twchar, Tdchar, Terror
         ];
         for (size_t i = 0; basetab[i] != Terror; i++)
         {
@@ -2047,7 +2027,8 @@ public:
                 }
                 else if (d.isFuncDeclaration())
                 {
-                    FuncDeclaration fd = resolveFuncCall(Loc(), null, d, null, this, null, 1);
+                    FuncDeclaration fd = resolveFuncCall(Loc(), null, d, null, this,
+                        null, 1);
                     if (fd && fd.errors)
                         return Type.terror;
                     if (fd && !fd.type.nextOf() && !fd.functionSemantic())
@@ -2074,7 +2055,8 @@ public:
             if (td)
             {
                 assert(td._scope);
-                FuncDeclaration fd = resolveFuncCall(Loc(), null, td, null, this, null, 1);
+                FuncDeclaration fd = resolveFuncCall(Loc(), null, td, null, this, null,
+                    1);
                 if (fd && fd.errors)
                     return Type.terror;
                 if (fd && fd.functionSemantic())
@@ -2463,7 +2445,9 @@ public:
             if (this != Type.terror)
             {
                 if (s)
-                    error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident.toChars(), toChars(), s.toChars());
+                    error(loc,
+                        "no property '%s' for type '%s', did you mean '%s'?",
+                        ident.toChars(), toChars(), s.toChars());
                 else
                     error(loc, "no property '%s' for type '%s'", ident.toChars(), toChars());
             }
@@ -2554,18 +2538,11 @@ public:
         assert(ty == Tstruct || ty == Tclass);
         auto sym = toDsymbol(sc).isAggregateDeclaration();
         assert(sym);
-        if (ident != Id.__sizeof &&
-            ident != Id.__xalignof &&
-            ident != Id._init &&
-            ident != Id._mangleof &&
-            ident != Id.stringof &&
-            ident != Id.offsetof &&
-            // Bugzilla 15045: Don't forward special built-in member functions.
-            ident != Id.ctor &&
-            ident != Id.dtor &&
-            ident != Id.__xdtor &&
-            ident != Id.postblit &&
-            ident != Id.__xpostblit)
+        if (ident != Id.__sizeof && ident != Id.__xalignof && ident != Id._init &&
+                ident != Id._mangleof && ident != Id.stringof &&
+                ident != Id.offsetof && // Bugzilla 15045: Don't forward special built-in member functions.
+                ident != Id.ctor && ident != Id.dtor &&
+                ident != Id.__xdtor && ident != Id.postblit && ident != Id.__xpostblit)
         {
             /* Look for overloaded opDot() to see if we should forward request
              * to it.
@@ -2698,7 +2675,7 @@ public:
     /***************************************
      * Normalize `e` as the result of Type.resolve() process.
      */
-    final void resolveExp(Expression e, Type *pt, Expression *pe, Dsymbol* ps)
+    final void resolveExp(Expression e, Type* pt, Expression* pe, Dsymbol* ps)
     {
         *pt = null;
         *pe = null;
@@ -2707,35 +2684,35 @@ public:
         Dsymbol s;
         switch (e.op)
         {
-            case TOKerror:
-                *pt = Type.terror;
-                return;
+        case TOKerror:
+            *pt = Type.terror;
+            return;
 
-            case TOKtype:
-                *pt = e.type;
-                return;
+        case TOKtype:
+            *pt = e.type;
+            return;
 
-            case TOKvar:
-                s = (cast(VarExp)e).var;
-                if (s.isVarDeclaration())
-                    goto default;
-                //if (s.isOverDeclaration())
-                //    todo;
-                break;
+        case TOKvar:
+            s = (cast(VarExp)e).var;
+            if (s.isVarDeclaration())
+                goto default;
+            //if (s.isOverDeclaration())
+            //    todo;
+            break;
 
-            case TOKtemplate:
-                // TemplateDeclaration
-                s = (cast(TemplateExp)e).td;
-                break;
+        case TOKtemplate:
+            // TemplateDeclaration
+            s = (cast(TemplateExp)e).td;
+            break;
 
-            case TOKimport:
-                s = (cast(ScopeExp)e).sds;
-                // TemplateDeclaration, TemplateInstance, Import, Package, Module
-                break;
+        case TOKimport:
+            s = (cast(ScopeExp)e).sds;
+            // TemplateDeclaration, TemplateInstance, Import, Package, Module
+            break;
 
-            case TOKfunction:
-                s = getDsymbol(e);
-                break;
+        case TOKfunction:
+            s = getDsymbol(e);
+            break;
 
             //case TOKthis:
             //case TOKsuper:
@@ -2750,9 +2727,9 @@ public:
             //case TOKdottype:
             //case TOKdot:
 
-            default:
-                *pe = e;
-                return;
+        default:
+            *pe = e;
+            return;
         }
 
         *ps = s;
@@ -2891,11 +2868,16 @@ public:
             }
             if (t.iscomplex())
             {
-                fprintf(global.stdmsg, "%s: use of complex type '%s' is scheduled for deprecation, use 'std.complex.Complex!(%s)' instead\n", p ? p : "", toChars(), rt.toChars());
+                fprintf(
+                    global.stdmsg, "%s: use of complex type '%s' is scheduled for deprecation, use 'std.complex.Complex!(%s)' instead\n",
+                    p ? p : "", toChars(), rt.toChars());
             }
             else
             {
-                fprintf(global.stdmsg, "%s: use of imaginary type '%s' is scheduled for deprecation, use '%s' instead\n", p ? p : "", toChars(), rt.toChars());
+                fprintf(
+                    global.stdmsg,
+                    "%s: use of imaginary type '%s' is scheduled for deprecation, use '%s' instead\n",
+                    p ? p : "", toChars(), rt.toChars());
             }
         }
     }
@@ -4031,7 +4013,8 @@ public:
             if (flags & (TFLAGSreal | TFLAGSimaginary) && tob.flags & TFLAGScomplex)
                 return MATCHnomatch;
             // Disallow implicit conversion to-from real and imaginary
-            if ((flags & (TFLAGSreal | TFLAGSimaginary)) != (tob.flags & (TFLAGSreal | TFLAGSimaginary)))
+            if ((flags & (TFLAGSreal | TFLAGSimaginary)) != (
+                    tob.flags & (TFLAGSreal | TFLAGSimaginary)))
                 return MATCHnomatch;
         }
         return MATCHconvert;
@@ -4165,7 +4148,8 @@ public:
             return terror;
         case 2:
             // invalid size
-            error(loc, "%d byte vector type %s is not supported on this platform", sz, toChars());
+            error(loc, "%d byte vector type %s is not supported on this platform",
+                sz, toChars());
             return terror;
         case 3:
             // invalid base type
@@ -4383,7 +4367,8 @@ public:
                 auto params = new Parameters();
                 params.push(new Parameter(0, Type.tvoid.arrayOf(), null, null));
                 params.push(new Parameter(0, Type.tsize_t, null, null));
-                adReverse_fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), Id.adReverse);
+                adReverse_fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(),
+                    Id.adReverse);
             }
             fd = adReverse_fd;
             ec = new VarExp(Loc(), fd);
@@ -4548,17 +4533,23 @@ public:
             if (d1 != d2)
             {
             Loverflow:
-                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
+                error(loc,
+                    "%s size %llu * %llu exceeds 16MiB size limit for static array",
+                    toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
                 goto Lerror;
             }
             Type tbx = tbn.baseElemOf();
-            if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
+            if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members ||
+                    tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
                 /* To avoid meaningess error message, skip the total size limit check
                  * when the bottom of element type is opaque.
                  */
             }
-            else if (tbn.isintegral() || tbn.isfloating() || tbn.ty == Tpointer || tbn.ty == Tarray || tbn.ty == Tsarray || tbn.ty == Taarray || (tbn.ty == Tstruct && ((cast(TypeStruct)tbn).sym.sizeok == SIZEOKdone)) || tbn.ty == Tclass)
+            else if (tbn.isintegral() || tbn.isfloating() || tbn.ty == Tpointer ||
+                    tbn.ty == Tarray || tbn.ty == Tsarray || tbn.ty == Taarray ||
+                    (tbn.ty == Tstruct && ((cast(TypeStruct)tbn).sym.sizeok == SIZEOKdone)) ||
+                    tbn.ty == Tclass)
             {
                 /* Only do this for types that don't need to have semantic()
                  * run on them for the size, since they may be forward referenced.
@@ -4607,7 +4598,8 @@ public:
         return Type.terror;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeSArray::resolve() %s\n", toChars());
         next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -4940,7 +4932,8 @@ public:
         return merge();
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeDArray::resolve() %s\n", toChars());
         next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -5074,7 +5067,7 @@ public:
 extern (C++) final class TypeAArray : TypeArray
 {
 public:
-    Type index;     // key type
+    Type index; // key type
     Loc loc;
     Scope* sc;
 
@@ -5124,7 +5117,8 @@ public:
             sc.setNoFree();
         // Deal with the case where we thought the index was a type, but
         // in reality it was an expression.
-        if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray || index.ty == Ttypeof || index.ty == Treturn)
+        if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray ||
+                index.ty == Ttypeof || index.ty == Treturn)
         {
             Expression e;
             Type t;
@@ -5208,11 +5202,14 @@ public:
             {
                 if (search_function(sd, Id.eq))
                 {
-                    error(loc, "%sAA key type %s does not have 'bool opEquals(ref const %s) const'", s, sd.toChars(), sd.toChars());
+                    error(loc,
+                        "%sAA key type %s does not have 'bool opEquals(ref const %s) const'",
+                        s, sd.toChars(), sd.toChars());
                 }
                 else
                 {
-                    error(loc, "%sAA key type %s does not support const equality", s, sd.toChars());
+                    error(loc, "%sAA key type %s does not support const equality",
+                        s, sd.toChars());
                 }
                 return Type.terror;
             }
@@ -5220,11 +5217,16 @@ public:
             {
                 if (search_function(sd, Id.eq))
                 {
-                    error(loc, "%sAA key type %s should have 'size_t toHash() const nothrow @safe' if opEquals defined", s, sd.toChars());
+                    error(
+                        loc,
+                        "%sAA key type %s should have 'size_t toHash() const nothrow @safe' if opEquals defined",
+                        s, sd.toChars());
                 }
                 else
                 {
-                    error(loc, "%sAA key type %s supports const equality but doesn't support const hashing", s, sd.toChars());
+                    error(loc,
+                        "%sAA key type %s supports const equality but doesn't support const hashing",
+                        s, sd.toChars());
                 }
                 return Type.terror;
             }
@@ -5266,7 +5268,9 @@ public:
                     if (fcmp.vtblIndex < cd.vtbl.dim && cd.vtbl[fcmp.vtblIndex] != fcmp)
                     {
                         const(char)* s = (index.toBasetype().ty != Tclass) ? "bottom of " : "";
-                        error(loc, "%sAA key type %s now requires equality rather than comparison", s, cd.toChars());
+                        error(loc,
+                            "%sAA key type %s now requires equality rather than comparison",
+                            s, cd.toChars());
                         errorSupplemental(loc, "Please override Object.opEquals and toHash.");
                     }
                 }
@@ -5294,7 +5298,8 @@ public:
         return merge();
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeAArray::resolve() %s\n", toChars());
         // Deal with the case where we thought the index was a type, but
@@ -5653,7 +5658,8 @@ public:
     {
         static if (LOGDOTEXP)
         {
-            printf("TypeReference::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
+            printf("TypeReference::dotExp(e = '%s', ident = '%s')\n", e.toChars(),
+                ident.toChars());
         }
         // References just forward things along
         return next.dotExp(sc, e, ident, flag);
@@ -5681,8 +5687,8 @@ public:
 
 enum RET : int
 {
-    RETregs         = 1,    // returned in registers
-    RETstack        = 2,    // returned on stack
+    RETregs = 1, // returned in registers
+    RETstack = 2, // returned on stack
 }
 
 alias RETregs = RET.RETregs;
@@ -5690,10 +5696,10 @@ alias RETstack = RET.RETstack;
 
 enum TRUST : int
 {
-    TRUSTdefault    = 0,
-    TRUSTsystem     = 1,    // @system (same as TRUSTdefault)
-    TRUSTtrusted    = 2,    // @trusted
-    TRUSTsafe       = 3,    // @safe
+    TRUSTdefault = 0,
+    TRUSTsystem = 1, // @system (same as TRUSTdefault)
+    TRUSTtrusted = 2, // @trusted
+    TRUSTsafe = 3, // @safe
 }
 
 alias TRUSTdefault = TRUST.TRUSTdefault;
@@ -5703,8 +5709,8 @@ alias TRUSTsafe = TRUST.TRUSTsafe;
 
 enum TRUSTformat : int
 {
-    TRUSTformatDefault,     // do not emit @system when trust == TRUSTdefault
-    TRUSTformatSystem,      // emit @system when trust == TRUSTdefault
+    TRUSTformatDefault, // do not emit @system when trust == TRUSTdefault
+    TRUSTformatSystem, // emit @system when trust == TRUSTdefault
 }
 
 alias TRUSTformatDefault = TRUSTformat.TRUSTformatDefault;
@@ -5712,11 +5718,11 @@ alias TRUSTformatSystem = TRUSTformat.TRUSTformatSystem;
 
 enum PURE : int
 {
-    PUREimpure      = 0,    // not pure at all
-    PUREfwdref      = 1,    // it's pure, but not known which level yet
-    PUREweak        = 2,    // no mutable globals are read or written
-    PUREconst       = 3,    // parameters are values or const
-    PUREstrong      = 4,    // parameters are values or immutable
+    PUREimpure = 0, // not pure at all
+    PUREfwdref = 1, // it's pure, but not known which level yet
+    PUREweak = 2, // no mutable globals are read or written
+    PUREconst = 3, // parameters are values or const
+    PUREstrong = 4, // parameters are values or immutable
 }
 
 alias PUREimpure = PURE.PUREimpure;
@@ -5732,22 +5738,23 @@ extern (C++) final class TypeFunction : TypeNext
 public:
     // .next is the return type
 
-    Parameters* parameters;     // function parameters
-    int varargs;                // 1: T t, ...) style for variable number of arguments
-                                // 2: T t ...) style for variable number of arguments
-    bool isnothrow;             // true: nothrow
-    bool isnogc;                // true: is @nogc
-    bool isproperty;            // can be called without parentheses
-    bool isref;                 // true: returns a reference
-    bool isreturn;              // true: 'this' is returned by ref
-    LINK linkage;               // calling convention
-    TRUST trust;                // level of trust
+    Parameters* parameters; // function parameters
+    int varargs; // 1: T t, ...) style for variable number of arguments
+    // 2: T t ...) style for variable number of arguments
+    bool isnothrow; // true: nothrow
+    bool isnogc; // true: is @nogc
+    bool isproperty; // can be called without parentheses
+    bool isref; // true: returns a reference
+    bool isreturn; // true: 'this' is returned by ref
+    LINK linkage; // calling convention
+    TRUST trust; // level of trust
     PURE purity = PUREimpure;
-    ubyte iswild;               // bit0: inout on params, bit1: inout on qualifier
-    Expressions* fargs;         // function arguments
+    ubyte iswild; // bit0: inout on params, bit1: inout on qualifier
+    Expressions* fargs; // function arguments
     int inuse;
 
-    extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
+    extern (D) this(Parameters* parameters, Type treturn, int varargs,
+        LINK linkage, StorageClass stc = 0)
     {
         super(Tfunction, treturn);
         //if (!treturn) *(char*)0=0;
@@ -5777,7 +5784,8 @@ public:
             this.trust = TRUSTtrusted;
     }
 
-    static TypeFunction create(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
+    static TypeFunction create(Parameters* parameters, Type treturn, int varargs,
+        LINK linkage, StorageClass stc = 0)
     {
         return new TypeFunction(parameters, treturn, varargs, linkage, stc);
     }
@@ -5825,8 +5833,10 @@ public:
             tf.parameters = parameters.copy();
             for (size_t i = 0; i < parameters.dim; i++)
             {
-                Parameter p = cast(Parameter)mem.xmalloc(__traits(classInstanceSize, Parameter));
-                memcpy(cast(void*)p, cast(void*)(*parameters)[i], __traits(classInstanceSize, Parameter));
+                Parameter p = cast(Parameter)mem.xmalloc(__traits(classInstanceSize,
+                    Parameter));
+                memcpy(cast(void*)p, cast(void*)(*parameters)[i],
+                    __traits(classInstanceSize, Parameter));
                 (*tf.parameters)[i] = p;
             }
         }
@@ -5919,13 +5929,16 @@ public:
                     errors = true;
                 }
                 else if (!(fparam.storageClass & (STCref | STCout)) &&
-                         (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
+                        (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
                 {
                     Type tb2 = t.baseElemOf();
-                    if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members ||
-                        tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
+                    if (tb2.ty == Tstruct &&
+                            !(cast(TypeStruct)tb2).sym.members ||
+                            tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
                     {
-                        error(loc, "cannot have parameter of opaque type %s by value", fparam.type.toChars());
+                        error(loc,
+                            "cannot have parameter of opaque type %s by value",
+                            fparam.type.toChars());
                         errors = true;
                     }
                 }
@@ -5951,7 +5964,8 @@ public:
                 {
                     if (ubyte m = fparam.type.mod & (MODimmutable | MODconst | MODwild))
                     {
-                        error(loc, "cannot have %s out parameter of type %s", MODtoChars(m), t.toChars());
+                        error(loc, "cannot have %s out parameter of type %s",
+                            MODtoChars(m), t.toChars());
                         errors = true;
                     }
                     else
@@ -5961,7 +5975,10 @@ public:
                             tv = tv.nextOf().toBasetype();
                         if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.noDefaultCtor)
                         {
-                            error(loc, "cannot have out parameter of type %s because the default construction is disabled", fparam.type.toChars());
+                            error(
+                                loc,
+                                "cannot have out parameter of type %s because the default construction is disabled",
+                                fparam.type.toChars());
                             errors = true;
                         }
                     }
@@ -6030,22 +6047,26 @@ public:
 
                             // Bugzilla 12744: If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
-                            StorageClass stc  = fparam.storageClass | narg.storageClass;
+                            StorageClass stc = fparam.storageClass | narg.storageClass;
                             StorageClass stc1 = fparam.storageClass & (STCref | STCout | STClazy);
-                            StorageClass stc2 =   narg.storageClass & (STCref | STCout | STClazy);
+                            StorageClass stc2 = narg.storageClass & (STCref | STCout | STClazy);
                             if (stc1 && stc2 && stc1 != stc2)
                             {
-                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STCref) ? (fparam.storageClass & STCauto) : 0));
-                                OutBuffer buf2;  stcToBuffer(&buf2, stc2);
+                                OutBuffer buf1;
+                                stcToBuffer(&buf1,
+                                    stc1 | ((stc1 & STCref) ? (fparam.storageClass & STCauto) : 0));
+                                OutBuffer buf2;
+                                stcToBuffer(&buf2, stc2);
 
-                                error(loc, "incompatible parameter storage classes '%s' and '%s'",
+                                error(loc,
+                                    "incompatible parameter storage classes '%s' and '%s'",
                                     buf1.peekString(), buf2.peekString());
                                 errors = true;
                                 stc = stc1 | (stc & ~(STCref | STCout | STClazy));
                             }
 
-                            (*newparams)[j] = new Parameter(
-                                stc, narg.type, narg.ident, narg.defaultArg);
+                            (*newparams)[j] = new Parameter(stc, narg.type,
+                                narg.ident, narg.defaultArg);
                         }
                         fparam.type = new TypeTuple(newparams);
                     }
@@ -6071,12 +6092,14 @@ public:
                         }
                         else
                             fparam.storageClass &= ~STCref; // value parameter
-                        fparam.storageClass &= ~STCauto;    // Bugzilla 14656
+                        fparam.storageClass &= ~STCauto; // Bugzilla 14656
                         fparam.storageClass |= STCautoref;
                     }
                     else
                     {
-                        error(loc, "'auto' can only be used as part of 'auto ref' for template function parameters");
+                        error(
+                            loc,
+                            "'auto' can only be used as part of 'auto ref' for template function parameters");
                         errors = true;
                     }
                 }
@@ -6089,7 +6112,9 @@ public:
             wildparams |= 2;
         if (wildreturn && !wildparams)
         {
-            error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
+            error(loc,
+                "inout on return means inout must be on a parameter as well for %s",
+                toChars());
             errors = true;
         }
         tf.iswild = wildparams;
@@ -6249,10 +6274,12 @@ public:
     override Type addStorageClass(StorageClass stc)
     {
         TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
-        if ((stc & STCpure && !t.purity) || (stc & STCnothrow && !t.isnothrow) || (stc & STCnogc && !t.isnogc) || (stc & STCsafe && t.trust < TRUSTtrusted))
+        if ((stc & STCpure && !t.purity) || (stc & STCnothrow && !t.isnothrow) ||
+                (stc & STCnogc && !t.isnogc) || (stc & STCsafe && t.trust < TRUSTtrusted))
         {
             // Klunky to change these
-            auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage, 0);
+            auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage,
+                0);
             tf.mod = t.mod;
             tf.fargs = fargs;
             tf.purity = t.purity;
@@ -6279,7 +6306,8 @@ public:
 
     /** For each active attribute (ref/const/nogc/etc) call fp with a void* for the
      work param and a string representation of the attribute. */
-    int attributesApply(void* param, int function(void*, const(char)*) fp, TRUSTformat trustFormat = TRUSTformatDefault)
+    int attributesApply(void* param, int function(void*, const(char)*) fp,
+        TRUSTformat trustFormat = TRUSTformatDefault)
     {
         int res = 0;
         if (purity)
@@ -6870,7 +6898,8 @@ public:
     /*************************************
      * Resolve a tuple index.
      */
-    final void resolveTupleIndex(Loc loc, Scope* sc, Dsymbol s, Expression* pe, Type* pt, Dsymbol* ps, RootObject oindex)
+    final void resolveTupleIndex(Loc loc, Scope* sc, Dsymbol s, Expression* pe,
+        Type* pt, Dsymbol* ps, RootObject oindex)
     {
         *pt = null;
         *ps = null;
@@ -6886,7 +6915,8 @@ public:
                 eindex = new TypeExp(loc, tindex);
             else if (sindex)
                 eindex = DsymbolExp.resolve(loc, sc, sindex, false);
-            Expression e = new IndexExp(loc, DsymbolExp.resolve(loc, sc, s, false), eindex);
+            Expression e = new IndexExp(loc, DsymbolExp.resolve(loc, sc, s, false),
+                eindex);
             e = e.semantic(sc);
             resolveExp(e, pt, pe, ps);
             return;
@@ -6940,29 +6970,29 @@ public:
             switch (id.dyncast())
             {
                 // ... '. ident'
-                case DYNCAST_IDENTIFIER:
-                    e = new DotIdExp(e.loc, e, cast(Identifier)id);
-                    break;
+            case DYNCAST_IDENTIFIER:
+                e = new DotIdExp(e.loc, e, cast(Identifier)id);
+                break;
 
                 // ... '. name!(tiargs)'
-                case DYNCAST_DSYMBOL:
-                    auto ti = (cast(Dsymbol)id).isTemplateInstance();
-                    assert(ti);
-                    e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
-                    break;
+            case DYNCAST_DSYMBOL:
+                auto ti = (cast(Dsymbol)id).isTemplateInstance();
+                assert(ti);
+                e = new DotTemplateInstanceExp(e.loc, e, ti.name, ti.tiargs);
+                break;
 
                 // ... '[type]'
-                case DYNCAST_TYPE:          // Bugzilla 1215
-                    e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
-                    break;
+            case DYNCAST_TYPE: // Bugzilla 1215
+                e = new ArrayExp(loc, e, new TypeExp(loc, cast(Type)id));
+                break;
 
                 // ... '[expr]'
-                case DYNCAST_EXPRESSION:    // Bugzilla 1215
-                    e = new ArrayExp(loc, e, cast(Expression)id);
-                    break;
+            case DYNCAST_EXPRESSION: // Bugzilla 1215
+                e = new ArrayExp(loc, e, cast(Expression)id);
+                break;
 
-                default:
-                    assert(0);
+            default:
+                assert(0);
             }
         }
         return e;
@@ -7033,7 +7063,8 @@ public:
                     goto L3;
                 if (VarDeclaration v = s.isVarDeclaration())
                 {
-                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) || v.type.isConst() || v.type.isImmutable())
+                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                            v.type.isConst() || v.type.isImmutable())
                     {
                         // Bugzilla 13087: this.field is not constant always
                         if (!v.isThisDeclaration())
@@ -7050,7 +7081,8 @@ public:
                             if (!t && s.isTupleDeclaration()) // expression tuple?
                                 goto L3;
                         }
-                        else if (s.isTemplateInstance() || s.isImport() || s.isPackage() || s.isModule())
+                        else if (s.isTemplateInstance() || s.isImport() ||
+                                s.isPackage() || s.isModule())
                         {
                             goto L3;
                         }
@@ -7090,9 +7122,13 @@ public:
                             assert(id.dyncast() == DYNCAST_IDENTIFIER);
                             sm = s.search_correct(cast(Identifier)id);
                             if (sm)
-                                error(loc, "identifier '%s' of '%s' is not defined, did you mean %s '%s'?", id.toChars(), toChars(), sm.kind(), sm.toChars());
+                                error(loc,
+                                    "identifier '%s' of '%s' is not defined, did you mean %s '%s'?",
+                                    id.toChars(), toChars(), sm.kind(), sm.toChars());
                             else
-                                error(loc, "identifier '%s' of '%s' is not defined", id.toChars(), toChars());
+                                error(loc,
+                                    "identifier '%s' of '%s' is not defined",
+                                    id.toChars(), toChars());
                         }
                         *pe = new ErrorExp();
                     }
@@ -7179,13 +7215,16 @@ public:
             const(char)* p = mutableOf().unSharedOf().toChars();
             const(char)* n = importHint(p);
             if (n)
-                error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
+                error(loc, "'%s' is not defined, perhaps you need to import %s; ?",
+                    p, n);
             else
             {
                 auto id = new Identifier(p, TOKidentifier);
                 s = sc.search_correct(id);
                 if (s)
-                    error(loc, "undefined identifier '%s', did you mean %s '%s'?", p, s.kind(), s.toChars());
+                    error(loc,
+                        "undefined identifier '%s', did you mean %s '%s'?", p,
+                        s.kind(), s.toChars());
                 else
                     error(loc, "undefined identifier '%s'", p);
             }
@@ -7235,7 +7274,8 @@ public:
      *      if expression, *pe is set
      *      if type, *pt is set
      */
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
         if ((ident.equals(Id._super) || ident.equals(Id.This)) && !hasThis(sc))
@@ -7360,7 +7400,8 @@ public:
         return t;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         // Note close similarity to TypeIdentifier::resolve()
         Dsymbol s;
@@ -7483,7 +7524,8 @@ public:
         return s;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         *pe = null;
         *pt = null;
@@ -7626,7 +7668,8 @@ public:
         return s;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         *pe = null;
         *pt = null;
@@ -7645,7 +7688,9 @@ public:
             t = func.type.nextOf();
             if (!t)
             {
-                error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc.func.toChars());
+                error(loc,
+                    "cannot use typeof(return) inside function %s with inferred return type",
+                    sc.func.toChars());
                 goto Lerr;
             }
         }
@@ -7697,12 +7742,12 @@ public:
 // Whether alias this dependency is recursive or not.
 enum AliasThisRec : int
 {
-    RECno           = 0,    // no alias this recursion
-    RECyes          = 1,    // alias this has recursive dependency
-    RECfwdref       = 2,    // not yet known
-    RECtypeMask     = 3,    // mask to read no/yes/fwdref
-    RECtracing      = 0x4,  // mark in progress of implicitConvTo/deduceWild
-    RECtracingDT    = 0x8,  // mark in progress of deduceType
+    RECno = 0, // no alias this recursion
+    RECyes = 1, // alias this has recursive dependency
+    RECfwdref = 2, // not yet known
+    RECtypeMask = 3, // mask to read no/yes/fwdref
+    RECtracing = 0x4, // mark in progress of implicitConvTo/deduceWild
+    RECtracingDT = 0x8, // mark in progress of deduceType
 }
 
 alias RECno = AliasThisRec.RECno;
@@ -7798,7 +7843,8 @@ public:
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e.loc, ev);
                 auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
+                vd.storage_class |= STCtemp | STCctfe | (
+                    ev.isLvalue() ? STCref | STCforeach : STCrvalue);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }
@@ -8198,7 +8244,8 @@ public:
     {
         if (equals(to))
             return MATCHexact;
-        if (ty == to.ty && sym == (cast(TypeStruct)to).sym && MODimplicitConv(mod, to.mod))
+        if (ty == to.ty && sym == (cast(TypeStruct)to).sym && MODimplicitConv(mod,
+                to.mod))
             return MATCHconst;
         return MATCHnomatch;
     }
@@ -8281,7 +8328,8 @@ public:
     {
         static if (LOGDOTEXP)
         {
-            printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n", e.toChars(), ident.toChars(), toChars());
+            printf("TypeEnum::dotExp(e = '%s', ident = '%s') '%s'\n",
+                e.toChars(), ident.toChars(), toChars());
         }
         // Bugzilla 14010
         if (ident == Id._mangleof)
@@ -8311,11 +8359,10 @@ public:
             if (flag != 1 && !res)
             {
                 if (auto ns = sym.search_correct(ident))
-                    e.error("no property '%s' for type '%s'. Did you mean '%s.%s' ?", ident.toChars(), toChars(), toChars(),
-                        ns.toChars());
+                    e.error("no property '%s' for type '%s'. Did you mean '%s.%s' ?",
+                        ident.toChars(), toChars(), toChars(), ns.toChars());
                 else
-                    e.error("no property '%s' for type '%s'", ident.toChars(),
-                        toChars());
+                    e.error("no property '%s' for type '%s'", ident.toChars(), toChars());
 
                 return new ErrorExp();
             }
@@ -8572,7 +8619,8 @@ public:
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e.loc, ev);
                 auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
+                vd.storage_class |= STCtemp | STCctfe | (
+                    ev.isLvalue() ? STCref | STCforeach : STCrvalue);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }
@@ -9025,7 +9073,7 @@ public:
 extern (C++) final class TypeTuple : Type
 {
 public:
-    Parameters* arguments;  // types making up the tuple
+    Parameters* arguments; // types making up the tuple
 
     extern (D) this(Parameters* arguments)
     {
@@ -9153,7 +9201,8 @@ public:
         Expression e;
         static if (LOGDOTEXP)
         {
-            printf("TypeTuple::getProperty(type = '%s', ident = '%s')\n", toChars(), ident.toChars());
+            printf("TypeTuple::getProperty(type = '%s', ident = '%s')\n",
+                toChars(), ident.toChars());
         }
         if (ident == Id.length)
         {
@@ -9265,7 +9314,8 @@ public:
         return t.semantic(loc, sc);
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt,
+        Dsymbol* ps, bool intypeid = false)
     {
         next.resolve(loc, sc, pe, pt, ps, intypeid);
         if (*pe)
@@ -9297,7 +9347,8 @@ public:
                 uinteger_t i2 = upr.toUInteger();
                 if (!(i1 <= i2 && i2 <= td.objects.dim))
                 {
-                    error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td.objects.dim);
+                    error(loc, "slice [%llu..%llu] is out of range of [0..%u]",
+                        i1, i2, td.objects.dim);
                     goto Ldefault;
                 }
                 if (i1 == 0 && i2 == td.objects.dim)
@@ -9368,7 +9419,8 @@ public:
         //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
         {
             Type tb = to.toBasetype();
-            if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)
+            if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray ||
+                    tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)
                 return MATCHconst;
         }
         return MATCHnomatch;
@@ -9413,14 +9465,16 @@ public:
         this.defaultArg = defaultArg;
     }
 
-    static Parameter create(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg)
+    static Parameter create(StorageClass storageClass, Type type,
+        Identifier ident, Expression defaultArg)
     {
         return new Parameter(storageClass, type, ident, defaultArg);
     }
 
     Parameter syntaxCopy()
     {
-        return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null);
+        return new Parameter(storageClass, type ? type.syntaxCopy() : null,
+            ident, defaultArg ? defaultArg.syntaxCopy() : null);
     }
 
     /****************************************************

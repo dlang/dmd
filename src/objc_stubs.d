@@ -84,7 +84,8 @@ extern (C++) void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclarat
     cd.error("Objective-C classes not supported");
 }
 
-extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration id, Scope* sc)
+extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration id,
+    Scope* sc)
 {
     if (sc.linkage == LINKobjc)
         id.error("Objective-C interfaces not supported");

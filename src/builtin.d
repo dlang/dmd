@@ -23,7 +23,8 @@ import ddmd.tokens;
 
 private:
 
-extern (C++) alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
+extern (C++) alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd,
+    Expressions* arguments);
 
 __gshared StringTable builtins;
 

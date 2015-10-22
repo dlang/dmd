@@ -1,4 +1,3 @@
-
 /* Compiler implementation of the D programming language
  * Copyright (c) 1999-2014 by Digital Mars
  * All Rights Reserved
@@ -17,15 +16,15 @@ import ddmd.dclass;
  * Emit symbolic debug info in Dwarf2 format.
  */
 
-extern(C++) void toDebug(EnumDeclaration ed)
+extern (C++) void toDebug(EnumDeclaration ed)
 {
     //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
 }
 
-extern(C++) void toDebug(StructDeclaration sd)
+extern (C++) void toDebug(StructDeclaration sd)
 {
 }
 
-extern(C++) void toDebug(ClassDeclaration cd)
+extern (C++) void toDebug(ClassDeclaration cd)
 {
 }

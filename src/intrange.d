@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2015 by Digital Mars
 // All Rights Reserved
@@ -169,12 +168,18 @@ struct SignExtendedNumber
                 return extreme(!a.negative);
             rvVal = 1UL << 63;
             aAbs >>= 1;
-            if (aAbs & 0xAAAAAAAAAAAAAAAAUL) rvVal >>= 1;
-            if (aAbs & 0xCCCCCCCCCCCCCCCCUL) rvVal >>= 2;
-            if (aAbs & 0xF0F0F0F0F0F0F0F0UL) rvVal >>= 4;
-            if (aAbs & 0xFF00FF00FF00FF00UL) rvVal >>= 8;
-            if (aAbs & 0xFFFF0000FFFF0000UL) rvVal >>= 16;
-            if (aAbs & 0xFFFFFFFF00000000UL) rvVal >>= 32;
+            if (aAbs & 0xAAAAAAAAAAAAAAAAUL)
+                rvVal >>= 1;
+            if (aAbs & 0xCCCCCCCCCCCCCCCCUL)
+                rvVal >>= 2;
+            if (aAbs & 0xF0F0F0F0F0F0F0F0UL)
+                rvVal >>= 4;
+            if (aAbs & 0xFF00FF00FF00FF00UL)
+                rvVal >>= 8;
+            if (aAbs & 0xFFFF0000FFFF0000UL)
+                rvVal >>= 16;
+            if (aAbs & 0xFFFFFFFF00000000UL)
+                rvVal >>= 32;
         }
         bool rvNeg = negative != a.negative;
         rvVal = copySign(rvVal, rvNeg);
@@ -235,12 +240,21 @@ struct SignExtendedNumber
         // Why is this a size_t? Looks like a bug.
         size_t r, s;
 
-        r = (v > 0xFFFFFFFFUL) << 5; v >>= r;
-        s = (v > 0xFFFFUL    ) << 4; v >>= s; r |= s;
-        s = (v > 0xFFUL      ) << 3; v >>= s; r |= s;
-        s = (v > 0xFUL       ) << 2; v >>= s; r |= s;
-        s = (v > 0x3UL       ) << 1; v >>= s; r |= s;
-                                               r |= (v >> 1);
+        r = (v > 0xFFFFFFFFUL) << 5;
+        v >>= r;
+        s = (v > 0xFFFFUL) << 4;
+        v >>= s;
+        r |= s;
+        s = (v > 0xFFUL) << 3;
+        v >>= s;
+        r |= s;
+        s = (v > 0xFUL) << 2;
+        v >>= s;
+        r |= s;
+        s = (v > 0x3UL) << 1;
+        v >>= s;
+        r |= s;
+        r |= (v >> 1);
 
         uinteger_t allowableShift = 63 - r;
         if (a.value > allowableShift)
@@ -254,7 +268,8 @@ struct SignExtendedNumber
         if (a.negative || a.value > 64)
             return negative ? SignExtendedNumber(-1, true) : SignExtendedNumber(0);
         else if (isMinimum())
-            return a.value == 0 ? this : SignExtendedNumber(-1UL << (64 - a.value), true);
+            return a.value == 0 ? this : SignExtendedNumber(-1UL << (64 - a.value),
+                true);
 
         uinteger_t x = value ^ -cast(int)negative;
         x >>= a.value;
@@ -434,8 +449,7 @@ struct IntRange
 
     bool containsZero() const
     {
-        return (imin.negative && !imax.negative)
-            || (!imin.negative && imin.value == 0);
+        return (imin.negative && !imax.negative) || (!imin.negative && imin.value == 0);
     }
 
     IntRange absNeg() const
@@ -447,15 +461,13 @@ struct IntRange
         else
         {
             SignExtendedNumber imaxAbsNeg = -imax;
-            return IntRange(imaxAbsNeg < imin ? imaxAbsNeg : imin,
-                            SignExtendedNumber(0));
+            return IntRange(imaxAbsNeg < imin ? imaxAbsNeg : imin, SignExtendedNumber(0));
         }
     }
 
     IntRange unionWith(const ref IntRange other) const
     {
-        return IntRange(imin < other.imin ? imin : other.imin,
-                        imax > other.imax ? imax : other.imax);
+        return IntRange(imin < other.imin ? imin : other.imin, imax > other.imax ? imax : other.imax);
     }
 
     void unionOrAssign(IntRange other, ref bool union_)
@@ -470,13 +482,13 @@ struct IntRange
     ref const(IntRange) dump(const(char)* funcName, Expression e) const
     {
         printf("[(%c)%#018llx, (%c)%#018llx] @ %s ::: %s\n",
-               imin.negative?'-':'+', cast(ulong)imin.value,
-               imax.negative?'-':'+', cast(ulong)imax.value,
-               funcName, e.toChars());
+            imin.negative ? '-' : '+', cast(ulong)imin.value,
+            imax.negative ? '-' : '+', cast(ulong)imax.value, funcName, e.toChars());
         return this;
     }
 
-    void splitBySign(ref IntRange negRange, ref bool hasNegRange, ref IntRange nonNegRange, ref bool hasNonNegRange) const
+    void splitBySign(ref IntRange negRange, ref bool hasNegRange,
+        ref IntRange nonNegRange, ref bool hasNonNegRange) const
     {
         hasNegRange = imin.negative;
         if (hasNegRange)

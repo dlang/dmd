@@ -10,10 +10,11 @@ module ddmd.scanelf;
 
 version (linux)
     import core.sys.linux.elf;
+
 else version (FreeBSD)
     import core.sys.freebsd.sys.elf;
-else version (Solaris)
-    import core.sys.solaris.elf;
+
+else version (Solaris) import core.sys.solaris.elf;
 
 import core.stdc.string;
 import ddmd.globals;
@@ -34,7 +35,9 @@ extern (C++) __gshared char* elf = [0x7F, 'E', 'L', 'F']; // ELF file signature
  *      module_name     name of the object module (used for error messages)
  *      loc             location to use for error printing
  */
-extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx,
+    char* name, int pickAny) pAddSymbol, void* base, size_t buflen,
+    const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
@@ -56,7 +59,8 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
     }
     if (buf[EI_VERSION] != EV_CURRENT)
     {
-        error(loc, "ELF object module %s has EI_VERSION = %d, should be %d", module_name, buf[EI_VERSION], EV_CURRENT);
+        error(loc, "ELF object module %s has EI_VERSION = %d, should be %d",
+            module_name, buf[EI_VERSION], EV_CURRENT);
         return;
     }
     if (buf[EI_DATA] != ELFDATA2LSB)
@@ -84,7 +88,8 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                 /* sh_link gives the particular string table section
                  * used for the symbol names.
                  */
-                Elf32_Shdr* string_section = cast(Elf32_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * section.sh_link);
+                Elf32_Shdr* string_section = cast(Elf32_Shdr*)(
+                    buf + eh.e_shoff + eh.e_shentsize * section.sh_link);
                 if (string_section.sh_type != SHT_STRTAB)
                 {
                     reason = __LINE__;
@@ -94,8 +99,9 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                 for (uint offset = 0; offset < section.sh_size; offset += Elf32_Sym.sizeof)
                 {
                     Elf32_Sym* sym = cast(Elf32_Sym*)(buf + section.sh_offset + offset);
-                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
-                    {
+                    if (((sym.st_info >> 4) == STB_GLOBAL ||
+                            (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
+                            {
                         char* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
                         (*pAddSymbol)(pctx, name, 1);
@@ -129,7 +135,8 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                 /* sh_link gives the particular string table section
                  * used for the symbol names.
                  */
-                Elf64_Shdr* string_section = cast(Elf64_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * section.sh_link);
+                Elf64_Shdr* string_section = cast(Elf64_Shdr*)(
+                    buf + eh.e_shoff + eh.e_shentsize * section.sh_link);
                 if (string_section.sh_type != SHT_STRTAB)
                 {
                     reason = 3;
@@ -139,8 +146,9 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                 for (uint offset = 0; offset < section.sh_size; offset += Elf64_Sym.sizeof)
                 {
                     Elf64_Sym* sym = cast(Elf64_Sym*)(buf + section.sh_offset + offset);
-                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
-                    {
+                    if (((sym.st_info >> 4) == STB_GLOBAL ||
+                            (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
+                            {
                         char* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
                         (*pAddSymbol)(pctx, name, 1);
@@ -158,7 +166,8 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
     {
         /* String table section
          */
-        Elf32_Shdr* string_section = cast(Elf32_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * eh.e_shstrndx);
+        Elf32_Shdr* string_section = cast(Elf32_Shdr*)(
+            buf + eh.e_shoff + eh.e_shentsize * eh.e_shstrndx);
         if (string_section.sh_type != SHT_STRTAB)
         {
             //printf("buf = %p, e_shentsize = %d, e_shstrndx = %d\n", buf, eh->e_shentsize, eh->e_shstrndx);

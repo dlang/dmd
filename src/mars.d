@@ -100,7 +100,8 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
 
 extern (C++) static void logo()
 {
-    printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
+    printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8,
+        global._version, global.copyright, global.written);
 }
 
 extern (C++) static void usage()
@@ -197,7 +198,8 @@ Usage:
   -wi            warnings as messages (compilation will continue)
   -X             generate JSON file
   -Xffilename    write JSON file to filename
-", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
+",
+        FileName.canonicalName(global.inifilename), fpic, m32mscoff);
 }
 
 extern (C++) __gshared Module entrypoint = null;
@@ -216,8 +218,7 @@ extern (C++) void genCmain(Scope* sc)
     /* The D code to be generated is provided as D source code in the form of a string.
      * Note that Solaris, for unknown reasons, requires both a main() and an _main()
      */
-    static __gshared const(char)* cmaincode =
-    q{
+    static __gshared const(char)* cmaincode = q{
         extern(C)
         {
             int _d_run_main(int argc, char **argv, void* mainFunc);
@@ -231,7 +232,8 @@ extern (C++) void genCmain(Scope* sc)
     };
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
-    scope Parser p = new Parser(m, cmaincode, strlen(cast(const(char)*)cmaincode), 0);
+    scope Parser p = new Parser(m, cmaincode, strlen(cast(const(char)*)cmaincode),
+        0);
     p.scanloc = Loc();
     p.nextToken();
     m.members = p.parseModule();
@@ -408,7 +410,8 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len,
+        inifile.buffer, &sections);
     Strings dflags;
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
     environment.reset(7); // erase cached environment updates
@@ -419,7 +422,8 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     char[80] envsection;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len,
+        inifile.buffer, &sections);
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
     updateRealEnvironment(&environment);
     environment.reset(1); // don't need environment cache any more
@@ -504,7 +508,8 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
             }
             else if (strcmp(p + 1, "fPIC") == 0)
             {
-                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD ||
+                        TARGET_OPENBSD || TARGET_SOLARIS)
                 {
                     global.params.pic = 1;
                 }
@@ -983,9 +988,11 @@ Language changes listed by -transition=id:
                 if (length)
                 {
                     const(char)* ext = FileName.ext(arguments[i + 1]);
-                    if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
+                    if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext,
+                            "di") == 0)
                     {
-                        error(Loc(), "-run must be followed by a source file, not '%s'", arguments[i + 1]);
+                        error(Loc(),
+                            "-run must be followed by a source file, not '%s'", arguments[i + 1]);
                         break;
                     }
                     files.push(arguments[i + 1]);
@@ -1027,7 +1034,9 @@ Language changes listed by -transition=id:
         }
     }
     if (global.params.is64bit != is64bit)
-        error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
+        error(Loc(),
+            "the architecture must not be changed in the %s section of %s",
+            envsection.ptr, global.inifilename);
     if (global.params.enforcePropertySyntax)
     {
         /*NOTE: -property used to disallow calling non-properties
@@ -1036,8 +1045,7 @@ Language changes listed by -transition=id:
          that the switch has effectively not been supported. Time to
          remove it from dmd.
          Step 1 (2.069): Deprecate -property and ignore it. */
-        deprecation(Loc(), "The -property switch is deprecated and has no " ~
-            "effect anymore.");
+        deprecation(Loc(), "The -property switch is deprecated and has no " ~ "effect anymore.");
         /* Step 2: Remove -property. Throw an error when it's set.
          Do this by removing global.params.enforcePropertySyntax and the code
          above that sets it. Let it be handled as an unrecognized switch.
@@ -1092,14 +1100,16 @@ Language changes listed by -transition=id:
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            global.params.objname = cast(char*)FileName.forceExt(global.params.objname, global.obj_ext);
+            global.params.objname = cast(char*)FileName.forceExt(global.params.objname,
+                global.obj_ext);
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
             if (global.params.objdir)
             {
                 const(char)* name = FileName.name(global.params.objname);
-                global.params.objname = cast(char*)FileName.combine(global.params.objdir, name);
+                global.params.objname = cast(char*)FileName.combine(global.params.objdir,
+                    name);
             }
         }
     }
@@ -1269,7 +1279,8 @@ Language changes listed by -transition=id:
                 libmodules.push(files[i]);
                 continue;
             }
-            static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+            static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD ||
+                    TARGET_OPENBSD || TARGET_SOLARIS)
             {
                 if (FileName.equals(ext, global.dll_ext))
                 {
@@ -1314,7 +1325,8 @@ Language changes listed by -transition=id:
             /* Examine extension to see if it is a valid
              * D source file extension
              */
-            if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
+            if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext,
+                    global.hdr_ext) || FileName.equals(ext, "dd"))
             {
                 ext--; // skip onto '.'
                 assert(*ext == '.');
@@ -1345,7 +1357,8 @@ Language changes listed by -transition=id:
          * its path and extension.
          */
         Identifier id = Identifier.idPool(name);
-        auto m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
+        auto m = new Module(files[i], id, global.params.doDocComments,
+            global.params.doHdrGeneration);
         modules.push(m);
         if (firstmodule)
         {
@@ -1797,7 +1810,8 @@ extern (C++) static const(char)* parse_arch_arg(Strings* args, const(char)* arch
         const(char)* p = (*args)[i];
         if (p[0] == '-')
         {
-            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
+            if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 ||
+                    strcmp(p + 1, "m64") == 0)
                 arch = p + 2;
             else if (strcmp(p + 1, "run") == 0)
                 break;

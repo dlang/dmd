@@ -22,14 +22,14 @@ version (Windows) extern (C) int isatty(int);
 
 enum COLOR : int
 {
-    COLOR_BLACK     = 0,
-    COLOR_RED       = 1,
-    COLOR_GREEN     = 2,
-    COLOR_BLUE      = 4,
-    COLOR_YELLOW    = COLOR_RED | COLOR_GREEN,
-    COLOR_MAGENTA   = COLOR_RED | COLOR_BLUE,
-    COLOR_CYAN      = COLOR_GREEN | COLOR_BLUE,
-    COLOR_WHITE     = COLOR_RED | COLOR_GREEN | COLOR_BLUE,
+    COLOR_BLACK = 0,
+    COLOR_RED = 1,
+    COLOR_GREEN = 2,
+    COLOR_BLUE = 4,
+    COLOR_YELLOW = COLOR_RED | COLOR_GREEN,
+    COLOR_MAGENTA = COLOR_RED | COLOR_BLUE,
+    COLOR_CYAN = COLOR_GREEN | COLOR_BLUE,
+    COLOR_WHITE = COLOR_RED | COLOR_GREEN | COLOR_BLUE,
 }
 
 alias COLOR_BLACK = COLOR.COLOR_BLACK;
@@ -99,7 +99,9 @@ extern (C++) void setConsoleColor(COLOR color, bool bright)
     {
         HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
         WORD attr = consoleAttributes(h);
-        attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) | ((color & COLOR_RED) ? FOREGROUND_RED : 0) | ((color & COLOR_GREEN) ? FOREGROUND_GREEN : 0) | ((color & COLOR_BLUE) ? FOREGROUND_BLUE : 0) | (bright ? FOREGROUND_INTENSITY : 0);
+        attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) | (
+            (color & COLOR_RED) ? FOREGROUND_RED : 0) | ((color & COLOR_GREEN) ? FOREGROUND_GREEN
+            : 0) | ((color & COLOR_BLUE) ? FOREGROUND_BLUE : 0) | (bright ? FOREGROUND_INTENSITY : 0);
         SetConsoleTextAttribute(h, attr);
     }
     else
@@ -132,7 +134,8 @@ extern (C++) void error(Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
+extern (C++) void error(const(char)* filename, uint linnum, uint charnum,
+    const(char)* format, ...)
 {
     Loc loc;
     loc.filename = cast(char*)filename;
@@ -185,7 +188,8 @@ extern (C++) void deprecationSupplemental(Loc loc, const(char)* format, ...)
 }
 
 // Just print, doesn't care about gagging
-extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header,
+    const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
     char* p = loc.toChars();
     if (global.params.color)
@@ -209,7 +213,8 @@ extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header, c
 }
 
 // header is "Error: " by default (see errors.h)
-extern (C++) void verror(Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
+extern (C++) void verror(Loc loc, const(char)* format, va_list ap,
+    const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
 {
     global.errors++;
     if (!global.gag)
@@ -250,7 +255,8 @@ extern (C++) void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
         verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
 }
 
-extern (C++) void vdeprecation(Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+extern (C++) void vdeprecation(Loc loc, const(char)* format, va_list ap,
+    const(char)* p1 = null, const(char)* p2 = null)
 {
     static __gshared const(char)* header = "Deprecation: ";
     if (global.params.useDeprecated == 0)

@@ -14,25 +14,29 @@ import core.stdc.stdio;
 import core.stdc.errno;
 import core.math;
 
-version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
-version(CRuntime_Microsoft)   extern(C++) struct longdouble { real r; }
-version(CRuntime_Microsoft)   extern(C++) size_t ld_sprint(char* str, int fmt, longdouble x);
+version (CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
+version (CRuntime_Microsoft) extern (C++) struct longdouble
+{
+    real r;
+}
+
+version (CRuntime_Microsoft) extern (C++) size_t ld_sprint(char* str, int fmt, longdouble x);
 
 extern (C) float strtof(const(char)* p, char** endp);
 extern (C) double strtod(const(char)* p, char** endp);
 
-version(CRuntime_Microsoft)
+version (CRuntime_Microsoft)
     extern (C++) longdouble strtold_dm(const(char)* p, char** endp);
 else
     extern (C) real strtold(const(char)* p, char** endp);
 
-version(CRuntime_Microsoft)
+version (CRuntime_Microsoft)
 {
-    enum _OVERFLOW = 3;   /* overflow range error */
-    enum _UNDERFLOW = 4;   /* underflow range error */
+    enum _OVERFLOW = 3; /* overflow range error */
+    enum _UNDERFLOW = 4; /* underflow range error */
 
-    extern (C) int _atoflt(float* value, const char * str);
-    extern (C) int _atodbl(double* value, const char * str);
+    extern (C) int _atoflt(float* value, const char* str);
+    extern (C) int _atodbl(double* value, const char* str);
 }
 
 extern (C++) struct Port
@@ -42,7 +46,7 @@ extern (C++) struct Port
     enum ldbl_max = real.max;
     enum ldbl_nan = real.nan;
     enum ldbl_infinity = real.infinity;
-    version(DigitalMars)
+    version (DigitalMars)
     {
         static __gshared bool yl2x_supported = true;
         static __gshared bool yl2xp1_supported = true;
@@ -131,7 +135,7 @@ extern (C++) struct Port
         return isNan(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
     }
 
-    version(CRuntime_Microsoft)
+    version (CRuntime_Microsoft)
     {
         static int isSignallingNan(longdouble ld)
         {
@@ -154,7 +158,7 @@ extern (C++) struct Port
         version (CRuntime_Microsoft)
         {
             float r;
-            if(endp)
+            if (endp)
             {
                 r = .strtod(p, endp); // does not set errno for underflows, but unused
             }
@@ -169,7 +173,8 @@ extern (C++) struct Port
         {
             auto r = .strtof(p, endp);
         }
-        version (CRuntime_DigitalMars) __locale_decpoint = save;
+        version (CRuntime_DigitalMars)
+            __locale_decpoint = save;
         return r;
     }
 
@@ -183,7 +188,7 @@ extern (C++) struct Port
         version (CRuntime_Microsoft)
         {
             double r;
-            if(endp)
+            if (endp)
             {
                 r = .strtod(p, endp); // does not set errno for underflows, but unused
             }
@@ -198,7 +203,8 @@ extern (C++) struct Port
         {
             auto r = .strtod(p, endp);
         }
-        version (CRuntime_DigitalMars) __locale_decpoint = save;
+        version (CRuntime_DigitalMars)
+            __locale_decpoint = save;
         return r;
     }
 
@@ -214,13 +220,14 @@ extern (C++) struct Port
             auto r = .strtold_dm(p, endp).r;
         else
             auto r = .strtold(p, endp);
-        version (CRuntime_DigitalMars) __locale_decpoint = save;
+        version (CRuntime_DigitalMars)
+            __locale_decpoint = save;
         return r;
     }
 
     static size_t ld_sprint(char* str, int fmt, real x)
     {
-        version(CRuntime_Microsoft)
+        version (CRuntime_Microsoft)
         {
             return .ld_sprint(str, fmt, longdouble(x));
         }
@@ -246,13 +253,13 @@ extern (C++) struct Port
 
     static void yl2x_impl(real* x, real* y, real* res)
     {
-        version(DigitalMars)
+        version (DigitalMars)
             *res = yl2x(*x, *y);
     }
 
     static void yl2xp1_impl(real* x, real* y, real* res)
     {
-        version(DigitalMars)
+        version (DigitalMars)
             *res = yl2xp1(*x, *y);
     }
 
