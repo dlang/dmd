@@ -72,17 +72,21 @@ struct BaseClass
     extern (C++) bool fillVtbl(ClassDeclaration cd, FuncDeclarations* vtbl, int newinstance)
     {
         bool result = false;
+
         //printf("BaseClass::fillVtbl(this='%s', cd='%s')\n", sym->toChars(), cd->toChars());
         if (vtbl)
             vtbl.setDim(sym.vtbl.dim);
+
         // first entry is ClassInfo reference
         for (size_t j = sym.vtblOffset(); j < sym.vtbl.dim; j++)
         {
             FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
             FuncDeclaration fd;
             TypeFunction tf;
+
             //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd->toChars() : "null");
             assert(ifd);
+
             // Find corresponding function in this class
             tf = (ifd.type.ty == Tfunction) ? cast(TypeFunction)ifd.type : null;
             assert(tf); // should always be non-null
@@ -93,9 +97,11 @@ struct BaseClass
                 // Check that calling conventions match
                 if (fd.linkage != ifd.linkage)
                     fd.error("linkage doesn't match interface function");
+
                 // Check that it is current
                 if (newinstance && fd.toParent() != cd && ifd.toParent() == sym)
                     cd.error("interface function '%s' is not implemented", ifd.toFullSignature());
+
                 if (fd.toParent() == cd)
                     result = true;
             }
@@ -105,6 +111,7 @@ struct BaseClass
                 // BUG: should mark this class as abstract?
                 if (!cd.isAbstract())
                     cd.error("interface function '%s' is not implemented", ifd.toFullSignature());
+
                 fd = null;
             }
             if (vtbl)
@@ -125,8 +132,10 @@ struct BaseClass
         {
             BaseClass* b = &baseInterfaces[i];
             BaseClass* b2 = sym.interfaces[i];
+
             assert(b2.vtbl.dim == 0); // should not be filled yet
             memcpy(b, b2, BaseClass.sizeof);
+
             if (i) // single inheritance is i==0
                 vtblInterfaces.push(b); // only need for M.I.
             b.copyBaseInterfaces(vtblInterfaces);
@@ -204,7 +213,9 @@ public:
     final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, bool inObject = false)
     {
         super(loc, id);
+
         static __gshared const(char)* msg = "only object.d can define this reserved class name";
+
         if (baseclasses)
         {
             // Actually, this is a transfer
@@ -212,14 +223,18 @@ public:
         }
         else
             this.baseclasses = new BaseClasses();
+
         //printf("ClassDeclaration(%s), dim = %d\n", id->toChars(), this->baseclasses->dim);
+
         // For forward references
         type = new TypeClass(this);
+
         if (id)
         {
             // Look for special class names
             if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
                 error("illegal class name");
+
             // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
             if (id.toChars()[0] == 'T')
             {
@@ -326,12 +341,14 @@ public:
                     Type.typeinfovector = this;
                 }
             }
+
             if (id == Id.Object)
             {
                 if (!inObject)
                     error("%s", msg);
                 object = this;
             }
+
             if (id == Id.Throwable)
             {
                 if (!inObject)
@@ -357,8 +374,12 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
-        ClassDeclaration cd = s ? cast(ClassDeclaration)s : new ClassDeclaration(loc, ident, null);
+        ClassDeclaration cd =
+            s ? cast(ClassDeclaration)s
+              : new ClassDeclaration(loc, ident, null);
+
         cd.storage_class |= storage_class;
+
         cd.baseclasses.setDim(this.baseclasses.dim);
         for (size_t i = 0; i < cd.baseclasses.dim; i++)
         {
@@ -366,20 +387,25 @@ public:
             auto b2 = new BaseClass(b.type.syntaxCopy(), b.protection);
             (*cd.baseclasses)[i] = b2;
         }
+
         return ScopeDsymbol.syntaxCopy(cd);
     }
 
     override void semantic(Scope* sc)
     {
         //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
-        //printf("\tparent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
+        //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc->parent.toChars() : "");
         //printf("sc->stc = %x\n", sc->stc);
+
         //{ static int n;  if (++n == 20) *(char*)0=0; }
+
         if (semanticRun >= PASSsemanticdone)
             return;
         uint dprogress_save = Module.dprogress;
         int errors = global.errors;
+
         //printf("+ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+
         Scope* scx = null;
         if (_scope)
         {
@@ -387,10 +413,12 @@ public:
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
         }
+
         if (!parent)
         {
             assert(sc.parent && (sc.func || !ident));
             parent = sc.parent;
+
             if (!ident) // if anonymous class
             {
                 const(char)* id = "__anonclass";
@@ -398,6 +426,9 @@ public:
             }
         }
         assert(parent && !isAnonymous());
+
+        if (this.errors)
+           type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
@@ -405,11 +436,14 @@ public:
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
+
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
+
         if (semanticRun == PASSinit)
         {
             protection = sc.protection;
+
             storage_class |= sc.stc;
             if (storage_class & STCdeprecated)
                 isdeprecated = true;
@@ -419,7 +453,9 @@ public:
                 isscope = true;
             if (storage_class & STCabstract)
                 isabstract = true;
+
             userAttribDecl = sc.userAttribDecl;
+
             if (sc.linkage == LINKcpp)
                 cpp = true;
             if (sc.linkage == LINKobjc)
@@ -431,19 +467,24 @@ public:
             return;
         }
         semanticRun = PASSsemantic;
+
         if (baseok < BASEOKdone)
         {
             baseok = BASEOKin;
+
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
             {
                 _scope = scx ? scx : sc.copy();
                 _scope.setNoFree();
+
                 BaseClass* b = (*baseclasses)[i];
                 //printf("+ %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
                 b.type = b.type.semantic(loc, sc);
                 //printf("- %s [%d] b->type = %s\n", toChars(), i, b->type->toChars());
+
                 _scope = null;
+
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
                 {
@@ -461,6 +502,7 @@ public:
                 else
                     i++;
             }
+
             if (baseok >= BASEOKdone)
             {
                 //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
@@ -468,6 +510,7 @@ public:
                     return;
                 goto Lancestorsdone;
             }
+
             // See if there's a base class as first in baseclasses[]
             if (baseclasses.dim)
             {
@@ -492,6 +535,7 @@ public:
                 }
                 if (tc.sym.isInterfaceDeclaration())
                     goto L7;
+
                 for (ClassDeclaration cdb = tc.sym; cdb; cdb = cdb.baseClass)
                 {
                     if (cdb == this)
@@ -501,6 +545,7 @@ public:
                         goto L7;
                     }
                 }
+
                 /* Bugzilla 11034: Essentially, class inheritance hierarchy
                  * and instance size of each classes are orthogonal information.
                  * Therefore, even if tc->sym->sizeof == SIZEOKnone,
@@ -508,6 +553,7 @@ public:
                  */
                 baseClass = tc.sym;
                 b.sym = baseClass;
+
                 if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
                     tc.sym.semantic(null); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
@@ -519,6 +565,7 @@ public:
                 }
             L7:
             }
+
             // Treat the remaining entries in baseclasses as interfaces
             // Check for errors, handle forward references
             for (size_t i = (baseClass ? 1 : 0); i < baseclasses.dim;)
@@ -533,6 +580,7 @@ public:
                     baseclasses.remove(i);
                     continue;
                 }
+
                 // Check for duplicate interfaces
                 for (size_t j = (baseClass ? 1 : 0); j < i; j++)
                 {
@@ -553,7 +601,9 @@ public:
                         tc.checkDeprecated(loc, sc);
                     }
                 }
+
                 b.sym = tc.sym;
+
                 if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
                     tc.sym.semantic(null); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
@@ -575,6 +625,7 @@ public:
                 return;
             }
             baseok = BASEOKdone;
+
             // If no base class, and this is not an Object, use Object as base class
             if (!baseClass && ident != Id.Object && !cpp)
             {
@@ -583,12 +634,15 @@ public:
                     error("missing or corrupt object.d");
                     fatal();
                 }
+
                 Type t = object.type;
                 t = t.semantic(loc, sc).toBasetype();
                 assert(t.ty == Tclass);
                 TypeClass tc = cast(TypeClass)t;
+
                 auto b = new BaseClass(tc, Prot(PROTpublic));
                 baseclasses.shift(b);
+
                 baseClass = tc.sym;
                 assert(!baseClass.isInterfaceDeclaration());
                 b.sym = baseClass;
@@ -597,6 +651,7 @@ public:
             {
                 if (baseClass.storage_class & STCfinal)
                     error("cannot inherit from final class %s", baseClass.toChars());
+
                 // Inherit properties from base class
                 if (baseClass.isCOMclass())
                     com = true;
@@ -607,6 +662,7 @@ public:
                 enclosing = baseClass.enclosing;
                 storage_class |= baseClass.storage_class & STC_TYPECTOR;
             }
+
             interfaces_dim = baseclasses.dim - (baseClass ? 1 : 0);
             interfaces = baseclasses.tdata() + (baseClass ? 1 : 0);
             for (size_t i = 0; i < interfaces_dim; i++)
@@ -618,13 +674,15 @@ public:
                     com = true;
                 if (cpp && !b.sym.isCPPinterface())
                 {
-                    .error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b.sym.toPrettyChars());
+                    .error(loc, "C++ class '%s' cannot implement D interface '%s'",
+                        toPrettyChars(), b.sym.toPrettyChars());
                 }
             }
             interfaceSemantic(sc);
         }
     Lancestorsdone:
         //printf("\tClassDeclaration::semantic(%s) baseok = %d\n", toChars(), baseok);
+
         if (!members) // if opaque declaration
         {
             semanticRun = PASSsemanticdone;
@@ -633,6 +691,7 @@ public:
         if (!symtab)
         {
             symtab = new DsymbolTable();
+
             /* Bugzilla 12152: The semantic analysis of base classes should be finished
              * before the members semantic analysis of this class, in order to determine
              * vtbl in this class. However if a base class refers the member of this class,
@@ -644,6 +703,7 @@ public:
                 Dsymbol s = (*members)[i];
                 s.addMember(sc, this);
             }
+
             Scope* sc2 = sc.push(this);
             sc2.stc &= STCsafe | STCtrusted | STCsystem;
             sc2.parent = this;
@@ -659,6 +719,7 @@ public:
             sc2.explicitProtection = 0;
             sc2.structalign = STRUCTALIGN_DEFAULT;
             sc2.userAttribDecl = null;
+
             /* Set scope so if there are forward references, we still might be able to
              * resolve individual members like enums.
              */
@@ -668,6 +729,7 @@ public:
                 //printf("[%d] setScope %s %s, sc2 = %p\n", i, s->kind(), s->toChars(), sc2);
                 s.setScope(sc2);
             }
+
             sc2.pop();
         }
         for (size_t i = 0; i < baseclasses.dim; i++)
@@ -688,15 +750,18 @@ public:
                 return;
             }
         }
+
         if (baseok == BASEOKdone)
         {
             baseok = BASEOKsemanticdone;
+
             // initialize vtbl
             if (baseClass)
             {
                 // Copy vtbl[] from base class
                 vtbl.setDim(baseClass.vtbl.dim);
                 memcpy(vtbl.tdata(), baseClass.vtbl.tdata(), (void*).sizeof * vtbl.dim);
+
                 vthis = baseClass.vthis;
             }
             else
@@ -706,6 +771,7 @@ public:
                 if (vtblOffset())
                     vtbl.push(this); // leave room for classinfo as first member
             }
+
             /* If this is a nested class, add the hidden 'this'
              * member which is a pointer to the enclosing scope.
              */
@@ -714,15 +780,23 @@ public:
                 // Use the base class's 'this' member
                 if (storage_class & STCstatic)
                     error("static class cannot inherit from nested class %s", baseClass.toChars());
-                if (toParent2() != baseClass.toParent2() && (!toParent2() || !baseClass.toParent2().getType() || !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
+                if (toParent2() != baseClass.toParent2() &&
+                    (!toParent2() ||
+                     !baseClass.toParent2().getType() ||
+                     !baseClass.toParent2().getType().isBaseOf(toParent2().getType(), null)))
                 {
                     if (toParent2())
                     {
-                        error("is nested within %s, but super class %s is nested within %s", toParent2().toChars(), baseClass.toChars(), baseClass.toParent2().toChars());
+                        error("is nested within %s, but super class %s is nested within %s",
+                            toParent2().toChars(),
+                            baseClass.toChars(),
+                            baseClass.toParent2().toChars());
                     }
                     else
                     {
-                        error("is not nested, but super class %s is nested within %s", baseClass.toChars(), baseClass.toParent2().toChars());
+                        error("is not nested, but super class %s is nested within %s",
+                            baseClass.toChars(),
+                            baseClass.toParent2().toChars());
                     }
                     enclosing = null;
                 }
@@ -730,9 +804,11 @@ public:
             else
                 makeNested();
         }
+
         // it might be determined already, by AggregateDeclaration::size().
         if (sizeok != SIZEOKdone)
             sizeok = SIZEOKnone;
+
         Scope* sc2 = sc.push(this);
         //sc2->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
         //sc2->stc |= storage_class & STC_TYPECTOR;
@@ -755,17 +831,21 @@ public:
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.semantic(sc2);
         }
+
         finalizeSize(sc2);
+
         if (sizeok == SIZEOKfwd)
         {
             // semantic() failed due to forward references
@@ -778,7 +858,9 @@ public:
             fields.setDim(0);
             structsize = 0;
             alignsize = 0;
+
             sc2.pop();
+
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
             _scope._module.addDeferredSemantic(this);
@@ -786,37 +868,38 @@ public:
             //printf("\tsemantic('%s') failed due to forward references\n", toChars());
             return;
         }
+
         Module.dprogress++;
         semanticRun = PASSsemanticdone;
         //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
         //members->print();
 
-        version (none)  // FIXME
+    version (none)  // FIXME
+    {
+    LafterSizeok:
+        // The additions of special member functions should have its own
+        // sub-semantic analysis pass, and have to be deferred sometimes.
+        // See the case in compilable/test14838.d
+        for (size_t i = 0; i < fields.dim; i++)
         {
-        LafterSizeok:
-            // The additions of special member functions should have its own
-            // sub-semantic analysis pass, and have to be deferred sometimes.
-            // See the case in compilable/test14838.d
-            for (size_t i = 0; i < fields.dim; i++)
-            {
-                VarDeclaration v = fields[i];
-                Type tb = v.type.baseElemOf();
-                if (tb.ty != Tstruct)
-                    continue;
-                StructDeclaration sd = (cast(TypeStruct)tb).sym;
-                if (sd.semanticRun >= PASSsemanticdone)
-                    continue;
+            VarDeclaration v = fields[i];
+            Type tb = v.type.baseElemOf();
+            if (tb.ty != Tstruct)
+                continue;
+            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            if (sd.semanticRun >= PASSsemanticdone)
+                continue;
 
-                sc2.pop();
+            sc2.pop();
 
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                _scope._module.addDeferredSemantic(this);
+            _scope = scx ? scx : sc.copy();
+            _scope.setNoFree();
+            _scope._module.addDeferredSemantic(this);
 
-                //printf("\tdeferring %s\n", toChars());
-                return;
-            }
+            //printf("\tdeferring %s\n", toChars());
+            return;
         }
+    }
 
         /* Look for special member functions.
          * They must be in this class, not in a base class.
@@ -824,7 +907,9 @@ public:
         // Can be in base class
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
+
         // this->ctor is already set in finalizeSize()
+
         if (!ctor && noDefaultCtor)
         {
             // A class object is always created by constructor, so this check is legitimate.
@@ -835,6 +920,7 @@ public:
                     .error(v.loc, "field %s must be initialized in constructor", v.toChars());
             }
         }
+
         // If this class has no constructor, but base class has a default
         // ctor, create a constructor:
         //    this() { }
@@ -860,17 +946,23 @@ public:
             }
             else
             {
-                error("cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass.toPrettyChars());
+                error("cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                    baseClass.toPrettyChars());
             }
         }
+
         dtor = buildDtor(this, sc2);
+
         if (FuncDeclaration f = hasIdentityOpAssign(this, sc2))
         {
             if (!(f.storage_class & STCdisable))
                 error(f.loc, "identity assignment operator overload is illegal");
         }
+
         inv = buildInv(this, sc2);
+
         sc2.pop();
+
         if (global.errors != errors)
         {
             // The type is no good.
@@ -879,11 +971,13 @@ public:
             if (deferred)
                 deferred.errors = true;
         }
+
         if (deferred && !global.gag)
         {
             deferred.semantic2(sc);
             deferred.semantic3(sc);
         }
+
         version (none)
         {
             if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
@@ -934,8 +1028,10 @@ public:
                 if (!cd.baseClass && cd._scope)
                     cd.error("base class is forward referenced by %s", toChars());
             }
+
             if (this == cd.baseClass)
                 return true;
+
             cd = cd.baseClass;
         }
         return false;
@@ -964,12 +1060,14 @@ public:
                 --inuse;
             }
         }
+
         if (!members || !symtab) // opaque or addMember is not yet done
         {
             error("is forward referenced when looking for '%s'", ident.toChars());
             //*(char*)0=0;
             return null;
         }
+
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
         if (!s)
         {
@@ -1017,10 +1115,12 @@ public:
     {
         if (sizeok != SIZEOKnone)
             return;
+
         // Set the offsets of the fields and determine the size of the class
         if (baseClass)
         {
             assert(baseClass.sizeok == SIZEOKdone);
+
             alignsize = baseClass.alignsize;
             structsize = baseClass.structsize;
             if (cpp && global.params.isWindows)
@@ -1119,6 +1219,7 @@ public:
         //printf("ClassDeclaration::findFunc(%s, %s) %s\n", ident->toChars(), tf->toChars(), toChars());
         FuncDeclaration fdmatch = null;
         FuncDeclaration fdambig = null;
+
         ClassDeclaration cd = this;
         Dsymbols* vtbl = &cd.vtbl;
         while (1)
@@ -1128,6 +1229,7 @@ public:
                 FuncDeclaration fd = (*vtbl)[i].isFuncDeclaration();
                 if (!fd)
                     continue;
+
                 // the first entry might be a ClassInfo
                 //printf("\t[%d] = %s\n", i, fd->toChars());
                 if (ident == fd.ident && fd.type.covariant(tf) == 1)
@@ -1137,39 +1239,43 @@ public:
                         goto Lfd;
                     if (fd == fdmatch)
                         goto Lfdmatch;
+
                     {
-                        // Function type matcing: exact > covariant
-                        MATCH m1 = tf.equals(fd.type) ? MATCHexact : MATCHnomatch;
-                        MATCH m2 = tf.equals(fdmatch.type) ? MATCHexact : MATCHnomatch;
-                        if (m1 > m2)
-                            goto Lfd;
-                        else if (m1 < m2)
-                            goto Lfdmatch;
+                    // Function type matcing: exact > covariant
+                    MATCH m1 = tf.equals(fd.type) ? MATCHexact : MATCHnomatch;
+                    MATCH m2 = tf.equals(fdmatch.type) ? MATCHexact : MATCHnomatch;
+                    if (m1 > m2)
+                        goto Lfd;
+                    else if (m1 < m2)
+                        goto Lfdmatch;
                     }
                     {
-                        MATCH m1 = (tf.mod == fd.type.mod) ? MATCHexact : MATCHnomatch;
-                        MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCHexact : MATCHnomatch;
-                        if (m1 > m2)
-                            goto Lfd;
-                        else if (m1 < m2)
-                            goto Lfdmatch;
+                    MATCH m1 = (tf.mod == fd.type.mod) ? MATCHexact : MATCHnomatch;
+                    MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCHexact : MATCHnomatch;
+                    if (m1 > m2)
+                        goto Lfd;
+                    else if (m1 < m2)
+                        goto Lfdmatch;
                     }
                     {
-                        // The way of definition: non-mixin > mixin
-                        MATCH m1 = fd.parent.isClassDeclaration() ? MATCHexact : MATCHnomatch;
-                        MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCHexact : MATCHnomatch;
-                        if (m1 > m2)
-                            goto Lfd;
-                        else if (m1 < m2)
-                            goto Lfdmatch;
+                    // The way of definition: non-mixin > mixin
+                    MATCH m1 = fd.parent.isClassDeclaration() ? MATCHexact : MATCHnomatch;
+                    MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCHexact : MATCHnomatch;
+                    if (m1 > m2)
+                        goto Lfd;
+                    else if (m1 < m2)
+                        goto Lfdmatch;
                     }
+
                     fdambig = fd;
                     //printf("Lambig fdambig = %s %s [%s]\n", fdambig->toChars(), fdambig->type->toChars(), fdambig->loc.toChars());
                     continue;
+
                 Lfd:
                     fdmatch = fd, fdambig = null;
                     //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch->toChars(), fdmatch->type->toChars(), fdmatch->loc.toChars());
                     continue;
+
                 Lfdmatch:
                     continue;
                 }
@@ -1182,6 +1288,7 @@ public:
         }
         if (fdambig)
             error("ambiguous virtual function %s", fdambig.toChars());
+
         return fdmatch;
     }
 
@@ -1200,16 +1307,20 @@ public:
     final uint setBaseInterfaceOffsets(uint baseOffset)
     {
         assert(vtblInterfaces); // Bugzilla 12984
+
         // set the offset of base interfaces from this (most derived) class/interface.
         uint offset = baseOffset;
+
         //if (vtblInterfaces->dim) printf("\n%s->finalizeSize()\n", toChars());
         for (size_t i = 0; i < vtblInterfaces.dim; i++)
         {
             BaseClass* b = (*vtblInterfaces)[i];
             uint thissize = Target.ptrsize;
+
             alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
             b.offset = offset;
             //printf("\tvtblInterfaces[%d] b->sym = %s, offset = %d\n", i, b->sym->toChars(), b->offset);
+
             // Take care of single inheritance offsets
             while (b.baseInterfaces_dim)
             {
@@ -1217,6 +1328,7 @@ public:
                 b.offset = offset;
                 //printf("\tvtblInterfaces[%d] +  sym = %s, offset = %d\n", i, b->sym->toChars(), b->offset);
             }
+
             offset += thissize;
             if (alignsize < thissize)
                 alignsize = thissize;
@@ -1324,7 +1436,9 @@ public:
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        InterfaceDeclaration id = s ? cast(InterfaceDeclaration)s : new InterfaceDeclaration(loc, ident, null);
+        InterfaceDeclaration id =
+            s ? cast(InterfaceDeclaration)s
+              : new InterfaceDeclaration(loc, ident, null);
         return ClassDeclaration.syntaxCopy(id);
     }
 
@@ -1334,6 +1448,7 @@ public:
         if (semanticRun >= PASSsemanticdone)
             return;
         int errors = global.errors;
+
         Scope* scx = null;
         if (_scope)
         {
@@ -1341,12 +1456,16 @@ public:
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
         }
+
         if (!parent)
         {
             assert(sc.parent && sc.func);
             parent = sc.parent;
         }
         assert(parent && !isAnonymous());
+
+        if (this.errors)
+           type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
@@ -1354,14 +1473,18 @@ public:
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
+
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
+
         if (semanticRun == PASSinit)
         {
             protection = sc.protection;
+
             storage_class |= sc.stc;
             if (storage_class & STCdeprecated)
                 isdeprecated = true;
+
             userAttribDecl = sc.userAttribDecl;
         }
         else if (symtab)
@@ -1373,17 +1496,22 @@ public:
             }
         }
         semanticRun = PASSsemantic;
+
         if (baseok < BASEOKdone)
         {
             baseok = BASEOKin;
+
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
             {
                 _scope = scx ? scx : sc.copy();
                 _scope.setNoFree();
+
                 BaseClass* b = (*baseclasses)[i];
                 b.type = b.type.semantic(loc, sc);
+
                 _scope = null;
+
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
                 {
@@ -1401,6 +1529,7 @@ public:
                 else
                     i++;
             }
+
             if (baseok >= BASEOKdone)
             {
                 //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
@@ -1408,9 +1537,12 @@ public:
                     return;
                 goto Lancestorsdone;
             }
+
             if (!baseclasses.dim && sc.linkage == LINKcpp)
                 cpp = true;
+
             objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
+
             // Check for errors, handle forward references
             for (size_t i = 0; i < baseclasses.dim;)
             {
@@ -1424,6 +1556,7 @@ public:
                     baseclasses.remove(i);
                     continue;
                 }
+
                 // Check for duplicate interfaces
                 for (size_t j = 0; j < i; j++)
                 {
@@ -1450,7 +1583,9 @@ public:
                         tc.checkDeprecated(loc, sc);
                     }
                 }
+
                 b.sym = tc.sym;
+
                 if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
                     tc.sym.semantic(null); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
@@ -1471,6 +1606,7 @@ public:
                 return;
             }
             baseok = BASEOKdone;
+
             interfaces_dim = baseclasses.dim;
             interfaces = baseclasses.tdata();
             for (size_t i = 0; i < interfaces_dim; i++)
@@ -1483,9 +1619,11 @@ public:
                 if (b.sym.isCPPinterface())
                     cpp = true;
             }
+
             interfaceSemantic(sc);
         }
     Lancestorsdone:
+
         if (!members) // if opaque declaration
         {
             semanticRun = PASSsemanticdone;
@@ -1493,6 +1631,7 @@ public:
         }
         if (!symtab)
             symtab = new DsymbolTable();
+
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
             BaseClass* b = (*baseclasses)[i];
@@ -1510,22 +1649,27 @@ public:
                 return;
             }
         }
+
         if (baseok == BASEOKdone)
         {
             baseok = BASEOKsemanticdone;
+
             // initialize vtbl
             if (vtblOffset())
                 vtbl.push(this); // leave room at vtbl[0] for classinfo
+
             // Cat together the vtbl[]'s from base interfaces
             for (size_t i = 0; i < interfaces_dim; i++)
             {
                 BaseClass* b = interfaces[i];
+
                 // Skip if b has already appeared
                 for (size_t k = 0; k < i; k++)
                 {
                     if (b == interfaces[k])
                         goto Lcontinue;
                 }
+
                 // Copy vtbl[] from base class
                 if (b.sym.vtblOffset())
                 {
@@ -1541,14 +1685,17 @@ public:
                 {
                     vtbl.append(&b.sym.vtbl);
                 }
+
             Lcontinue:
             }
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.addMember(sc, this);
         }
+
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
@@ -1563,7 +1710,9 @@ public:
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
+
         finalizeSize(sc2);
+
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
@@ -1573,25 +1722,32 @@ public:
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s.setScope(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.semantic(sc2);
         }
+
         semanticRun = PASSsemanticdone;
+
         if (global.errors != errors)
         {
             // The type is no good.
             type = Type.terror;
         }
+
         //members->print();
         sc2.pop();
+
         //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
+
         version (none)
         {
             if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
@@ -1607,6 +1763,7 @@ public:
     {
         structsize = Target.ptrsize * 2;
         sizeok = SIZEOKdone;
+
         // set the offset of base interfaces
         setBaseInterfaceOffsets(0);
     }
@@ -1637,6 +1794,7 @@ public:
                     *poffset = b.offset;
                     if (j && cd.isInterfaceDeclaration())
                         *poffset = OFFSET_RUNTIME;
+
                     /* TODO: Even though it's an interface to base interface upcast,
                      * I think we can avoid runtime offset determination ultimately.
                      * (I doubt that it was just a workaround for the bug in the
@@ -1657,6 +1815,7 @@ public:
         }
         if (cd.baseClass && isBaseOf(cd.baseClass, poffset))
             return true;
+
         if (poffset)
             *poffset = 0;
         return false;
@@ -1683,6 +1842,7 @@ public:
                 return true;
             }
         }
+
         if (poffset)
             *poffset = 0;
         return false;

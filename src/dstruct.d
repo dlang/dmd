@@ -258,18 +258,24 @@ public:
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        StructDeclaration sd = s ? cast(StructDeclaration)s : new StructDeclaration(loc, ident);
+        StructDeclaration sd =
+            s ? cast(StructDeclaration)s
+              : new StructDeclaration(loc, ident);
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
     override final void semantic(Scope* sc)
     {
-        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
+        //printf("StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent.toChars(), toChars(), sizeok);
+
         //static int count; if (++count == 20) assert(0);
+
         if (semanticRun >= PASSsemanticdone)
             return;
         uint dprogress_save = Module.dprogress;
         int errors = global.errors;
+
+        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent.toChars(), toChars(), sizeok);
         Scope* scx = null;
         if (_scope)
         {
@@ -277,12 +283,16 @@ public:
             scx = _scope; // save so we don't make redundant copies
             _scope = null;
         }
+
         if (!parent)
         {
             assert(sc.parent && sc.func);
             parent = sc.parent;
         }
         assert(parent && !isAnonymous());
+
+        if (this.errors)
+           type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
@@ -290,17 +300,22 @@ public:
             if (ti && isError(ti))
                 (cast(TypeStruct)type).sym = this;
         }
+
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
+
         if (semanticRun == PASSinit)
         {
             protection = sc.protection;
+
             alignment = sc.structalign;
+
             storage_class |= sc.stc;
             if (storage_class & STCdeprecated)
                 isdeprecated = true;
             if (storage_class & STCabstract)
                 error("structs, unions cannot be abstract");
+
             userAttribDecl = sc.userAttribDecl;
         }
         else if (symtab && !scx)
@@ -309,6 +324,7 @@ public:
             return;
         }
         semanticRun = PASSsemantic;
+
         if (!members) // if opaque declaration
         {
             semanticRun = PASSsemanticdone;
@@ -316,6 +332,7 @@ public:
         }
         if (!symtab)
             symtab = new DsymbolTable();
+
         if (sizeok == SIZEOKnone) // if not already done the addMember step
         {
             for (size_t i = 0; i < members.dim; i++)
@@ -325,6 +342,7 @@ public:
                 s.addMember(sc, this);
             }
         }
+
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
@@ -334,9 +352,11 @@ public:
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
+
         if (sizeok == SIZEOKdone)
             goto LafterSizeok;
         sizeok = SIZEOKnone;
+
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
@@ -346,17 +366,21 @@ public:
             //printf("struct: setScope %s %s\n", s->kind(), s->toChars());
             s.setScope(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.semantic(sc2);
         }
+
         finalizeSize(sc2);
+
         if (sizeok == SIZEOKfwd)
         {
             // semantic() failed because of forward references.
@@ -369,7 +393,9 @@ public:
             fields.setDim(0);
             structsize = 0;
             alignsize = 0;
+
             sc2.pop();
+
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
             _scope._module.addDeferredSemantic(this);
@@ -377,8 +403,10 @@ public:
             //printf("\tdeferring %s\n", toChars());
             return;
         }
+
         Module.dprogress++;
         //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
     LafterSizeok:
         // The additions of special member functions should have its own
         // sub-semantic analysis pass, and have to be deferred sometimes.
@@ -392,17 +420,21 @@ public:
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
+
             sc2.pop();
+
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
             _scope._module.addDeferredSemantic(this);
             //printf("\tdeferring %s\n", toChars());
             return;
         }
+
         /* Look for special member functions.
          */
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
+
         // this->ctor is already set in finalizeSize()
 
         dtor = buildDtor(this, sc2);
@@ -426,7 +458,9 @@ public:
          * See semanticTypeInfo().
          */
         inv = buildInv(this, sc2);
+
         sc2.pop();
+
         if (ctor)
         {
             Dsymbol scall = search(Loc(), Id.call);
@@ -439,6 +473,7 @@ public:
                 FuncDeclaration fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
                 sc = sc.pop();
                 global.endGagging(xerrors);
+
                 if (fcall && fcall.isStatic())
                 {
                     error(fcall.loc, "static opCall is hidden by constructors and can never be called");
@@ -446,8 +481,10 @@ public:
                 }
             }
         }
+
         Module.dprogress++;
         semanticRun = PASSsemanticdone;
+
         TypeTuple tup = toArgTypes(type);
         size_t dim = tup.arguments.dim;
         if (dim >= 1)
@@ -457,8 +494,10 @@ public:
             if (dim == 2)
                 arg2type = (*tup.arguments)[1].type;
         }
+
         if (sc.func)
             semantic2(sc);
+
         if (global.errors != errors)
         {
             // The type is no good.
@@ -467,11 +506,13 @@ public:
             if (deferred)
                 deferred.errors = true;
         }
+
         if (deferred && !global.gag)
         {
             deferred.semantic2(sc);
             deferred.semantic3(sc);
         }
+
         version (none)
         {
             if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
@@ -485,34 +526,51 @@ public:
 
     final void semanticTypeInfoMembers()
     {
-        if (xeq && xeq._scope && xeq.semanticRun < PASSsemantic3done)
+        if (xeq &&
+            xeq._scope &&
+            xeq.semanticRun < PASSsemantic3done)
         {
             uint errors = global.startGagging();
             xeq.semantic3(xeq._scope);
             if (global.endGagging(errors))
                 xeq = xerreq;
         }
-        if (xcmp && xcmp._scope && xcmp.semanticRun < PASSsemantic3done)
+
+        if (xcmp &&
+            xcmp._scope &&
+            xcmp.semanticRun < PASSsemantic3done)
         {
             uint errors = global.startGagging();
             xcmp.semantic3(xcmp._scope);
             if (global.endGagging(errors))
                 xcmp = xerrcmp;
         }
+
         FuncDeclaration ftostr = search_toString(this);
-        if (ftostr && ftostr._scope && ftostr.semanticRun < PASSsemantic3done)
+        if (ftostr &&
+            ftostr._scope &&
+            ftostr.semanticRun < PASSsemantic3done)
         {
             ftostr.semantic3(ftostr._scope);
         }
-        if (xhash && xhash._scope && xhash.semanticRun < PASSsemantic3done)
+
+        if (xhash &&
+            xhash._scope &&
+            xhash.semanticRun < PASSsemantic3done)
         {
             xhash.semantic3(xhash._scope);
         }
-        if (postblit && postblit._scope && postblit.semanticRun < PASSsemantic3done)
+
+        if (postblit &&
+            postblit._scope &&
+            postblit.semanticRun < PASSsemantic3done)
         {
             postblit.semantic3(postblit._scope);
         }
-        if (dtor && dtor._scope && dtor.semanticRun < PASSsemantic3done)
+
+        if (dtor &&
+            dtor._scope &&
+            dtor.semanticRun < PASSsemantic3done)
         {
             dtor.semantic3(dtor._scope);
         }
@@ -523,11 +581,13 @@ public:
         //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
         if (_scope && !symtab)
             semantic(_scope);
+
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
             error("is forward referenced when looking for '%s'", ident.toChars());
             return null;
         }
+
         return ScopeDsymbol.search(loc, ident, flags);
     }
 
@@ -634,6 +694,7 @@ public:
     {
         if (!elements)
             return true;
+
         size_t nfields = fields.dim - isNested();
         size_t offset = 0;
         for (size_t i = 0; i < elements.dim; i++)
@@ -641,6 +702,7 @@ public:
             Expression e = (*elements)[i];
             if (!e)
                 continue;
+
             e = resolveProperties(sc, e);
             if (i >= nfields)
             {
@@ -659,11 +721,13 @@ public:
                 return false;
             }
             offset = cast(uint)(v.offset + v.type.size());
+
             Type t = v.type;
             if (stype)
                 t = t.addMod(stype.mod);
             Type origType = t;
             Type tb = t.toBasetype();
+
             /* Look for case of initializing a static array with a too-short
              * string literal, such as:
              *  char[5] foo = "abc";
@@ -675,12 +739,16 @@ public:
                 StringExp se = cast(StringExp)e;
                 Type typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
-                if (!se.committed && (typeb.ty == Tarray || typeb.ty == Tsarray) && (tynto == Tchar || tynto == Twchar || tynto == Tdchar) && se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
+                if (!se.committed &&
+                    (typeb.ty == Tarray || typeb.ty == Tsarray) &&
+                    (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                    se.length(cast(int)tb.nextOf().size()) < (cast(TypeSArray)tb).dim.toInteger())
                 {
                     e = se.castTo(sc, t);
                     goto L1;
                 }
             }
+
             while (!e.implicitConvTo(t) && tb.ty == Tsarray)
             {
                 /* Static array initialization, as in:
@@ -691,10 +759,12 @@ public:
             }
             if (!e.implicitConvTo(t))
                 t = origType; // restore type for better diagnostic
+
             e = e.implicitCastTo(sc, t);
         L1:
             if (e.op == TOKerror)
                 return false;
+
             (*elements)[i] = e.isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
         }
         return true;
@@ -713,9 +783,12 @@ public:
         // If we've already determined whether this struct is POD.
         if (ispod != ISPODfwd)
             return (ispod == ISPODyes);
+
         ispod = ISPODyes;
+
         if (enclosing || postblit || dtor)
             ispod = ISPODno;
+
         // Recursively check all fields are POD.
         for (size_t i = 0; i < fields.dim; i++)
         {
@@ -725,6 +798,7 @@ public:
                 ispod = ISPODno;
                 break;
             }
+
             Type tv = v.type.baseElemOf();
             if (tv.ty == Tstruct)
             {
@@ -737,6 +811,7 @@ public:
                 }
             }
         }
+
         return (ispod == ISPODyes);
     }
 
