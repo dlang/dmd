@@ -10225,17 +10225,20 @@ public:
         //static int x; assert(++x < 10);
         if (type)
             return this;
+
         if (Expression ex = unaSemantic(sc))
             return ex;
         Expression e1x = resolveProperties(sc, e1);
         if (e1x.op == TOKerror)
             return e1x;
         e1 = e1x;
+
         if (!e1.type)
         {
             error("cannot cast %s", e1.toChars());
             return new ErrorExp();
         }
+
         if (!to) // Handle cast(const) and cast(immutable), etc.
             to = e1.type.castMod(mod);
         to = to.semantic(loc, sc);
@@ -10246,24 +10249,32 @@ public:
             error("cannot cast %s to tuple type %s", e1.toChars(), to.toChars());
             return new ErrorExp();
         }
-        if (e1.op == TOKtemplate)
+
+        if (e1.type.ty != Tvoid ||
+            e1.op == TOKfunction && to.ty == Tvoid ||
+            e1.op == TOKtype ||
+            e1.op == TOKtemplate)
         {
-            error("cannot cast template %s to type %s", e1.toChars(), to.toChars());
-            return new ErrorExp();
+            if (e1.checkValue())
+                return new ErrorExp();
         }
+
         // cast(void) is used to mark e1 as unused, so it is safe
         if (to.ty == Tvoid)
         {
             type = to;
             return this;
         }
+
         if (!to.equals(e1.type) && mod == cast(ubyte)~0)
         {
             if (Expression e = op_overload(sc))
                 return e.implicitCastTo(sc, to);
         }
+
         Type t1b = e1.type.toBasetype();
         Type tob = to.toBasetype();
+
         if (tob.ty == Tstruct && !tob.equals(t1b))
         {
             /* Look to replace:
@@ -10271,6 +10282,7 @@ public:
              * with:
              *  S(t)
              */
+
             // Rewrite as to.call(e1)
             Expression e = new TypeExp(loc, to);
             e = new CallExp(loc, e, e1);
@@ -10278,41 +10290,52 @@ public:
             if (e)
                 return e;
         }
+
         if (!t1b.equals(tob) && (t1b.ty == Tarray || t1b.ty == Tsarray))
         {
             if (checkNonAssignmentArrayOp(e1))
                 return new ErrorExp();
         }
+
         // Look for casting to a vector type
         if (tob.ty == Tvector && t1b.ty != Tvector)
         {
             return new VectorExp(loc, e1, to);
         }
+
         Expression ex = e1.castTo(sc, to);
         if (ex.op == TOKerror)
             return ex;
+
         // Check for unsafe casts
         if (sc.func && !sc.intypeof)
         {
             // Disallow unsafe casts
+
             // Implicit conversions are always safe
             if (t1b.implicitConvTo(tob))
                 goto Lsafe;
+
             if (!tob.hasPointers())
                 goto Lsafe;
+
             if (tob.ty == Tclass && t1b.ty == Tclass)
             {
                 ClassDeclaration cdfrom = t1b.isClassHandle();
                 ClassDeclaration cdto = tob.isClassHandle();
+
                 int offset;
                 if (!cdfrom.isBaseOf(cdto, &offset))
                     goto Lunsafe;
+
                 if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
                     goto Lunsafe;
+
                 if (!MODimplicitConv(t1b.mod, tob.mod))
                     goto Lunsafe;
                 goto Lsafe;
             }
+
             if (tob.ty == Tarray && t1b.ty == Tsarray) // Bugzilla 12502
                 t1b = t1b.nextOf().arrayOf();
             if (tob.ty == Tarray && t1b.ty == Tarray)
@@ -10327,12 +10350,17 @@ public:
                 Type tobn = tob.nextOf().toBasetype();
                 Type t1bn = t1b.nextOf().toBasetype();
                 // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
-                bool sfwrd = tobn.ty == Tstruct && !(cast(StructDeclaration)(cast(TypeStruct)tobn).sym).members || t1bn.ty == Tstruct && !(cast(StructDeclaration)(cast(TypeStruct)t1bn).sym).members;
-                if (!sfwrd && !tobn.hasPointers() && tobn.ty != Tfunction && t1bn.ty != Tfunction && tobn.size() <= t1bn.size() && MODimplicitConv(t1bn.mod, tobn.mod))
+                bool sfwrd = tobn.ty == Tstruct && !(cast(TypeStruct)tobn).sym.members ||
+                             t1bn.ty == Tstruct && !(cast(TypeStruct)t1bn).sym.members;
+                if (!sfwrd && !tobn.hasPointers() &&
+                    tobn.ty != Tfunction && t1bn.ty != Tfunction &&
+                    tobn.size() <= t1bn.size() &&
+                    MODimplicitConv(t1bn.mod, tobn.mod))
                 {
                     goto Lsafe;
                 }
             }
+
         Lunsafe:
             if (sc.func.setUnsafe())
             {
@@ -10340,6 +10368,7 @@ public:
                 return new ErrorExp();
             }
         }
+
     Lsafe:
         return ex;
     }
