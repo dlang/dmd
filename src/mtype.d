@@ -7500,49 +7500,49 @@ public:
             return;
         }
         inuse++;
-        Type t;
+
+        /* Currently we cannot evalute 'exp' in speculative context, because
+         * the type implementation may leak to the final execution. Consider:
+         *
+         * struct S(T) {
+         *   string toString() const { return "x"; }
+         * }
+         * void main() {
+         *   alias X = typeof(S!int());
+         *   assert(typeid(X).xtoString(null) == "x");
+         * }
+         */
+        Scope* sc2 = sc.push();
+        sc2.intypeof = 1;
+        exp = exp.semantic(sc2);
+        exp = resolvePropertiesOnly(sc2, exp);
+        sc2.pop();
+
+        if (exp.op == TOKtype)
         {
-            /* Currently we cannot evalute 'exp' in speculative context, because
-             * the type implementation may leak to the final execution. Consider:
-             *
-             * struct S(T) {
-             *   string toString() const { return "x"; }
-             * }
-             * void main() {
-             *   alias X = typeof(S!int());
-             *   assert(typeid(X).xtoString(null) == "x");
-             * }
-             */
-            Scope* sc2 = sc.push();
-            sc2.intypeof = 1;
-            exp = exp.semantic(sc2);
-            exp = resolvePropertiesOnly(sc2, exp);
-            sc2.pop();
-            if (exp.op == TOKtype)
+            error(loc, "argument %s to typeof is not an expression", exp.toChars());
+            goto Lerr;
+        }
+        if (exp.op == TOKimport)
+        {
+            ScopeDsymbol sds = (cast(ScopeExp)exp).sds;
+            if (sds.isPackage())
             {
-                error(loc, "argument %s to typeof is not an expression", exp.toChars());
+                error(loc, "%s has no type", exp.toChars());
                 goto Lerr;
             }
-            else if (exp.op == TOKimport)
-            {
-                ScopeDsymbol sds = (cast(ScopeExp)exp).sds;
-                if (sds.isPackage())
-                {
-                    error(loc, "%s has no type", exp.toChars());
-                    goto Lerr;
-                }
-            }
-            t = exp.type;
-            if (!t)
-            {
-                error(loc, "expression (%s) has no type", exp.toChars());
-                goto Lerr;
-            }
-            if (t.ty == Ttypeof)
-            {
-                error(loc, "forward reference to %s", toChars());
-                goto Lerr;
-            }
+        }
+
+        Type t = exp.type;
+        if (!t)
+        {
+            error(loc, "expression (%s) has no type", exp.toChars());
+            goto Lerr;
+        }
+        if (t.ty == Ttypeof)
+        {
+            error(loc, "forward reference to %s", toChars());
+            goto Lerr;
         }
         if (idents.dim == 0)
             *pt = t;
