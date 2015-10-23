@@ -4428,6 +4428,19 @@ public:
         return value;
     }
 
+    /********************************
+     * Convert string contents to a 0 terminated string,
+     * allocated by mem.xmalloc().
+     */
+    final char* toStringz()
+    {
+        auto nbytes = len * sz;
+        char* s = cast(char*)mem.xmalloc(nbytes + sz);
+        memcpy(s, string, nbytes);
+        memset(s + nbytes, 0, sz);
+        return s;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -7602,12 +7615,14 @@ public:
 
     override Expression semantic(Scope* sc)
     {
-        const(char)* name;
-        StringExp se;
         static if (LOGSEMANTIC)
         {
             printf("FileExp::semantic('%s')\n", toChars());
         }
+        const(char)* name;
+        char* namez;
+        StringExp se;
+
         sc = sc.startCTFE();
         e1 = e1.semantic(sc);
         e1 = resolveProperties(sc, e1);
@@ -7620,24 +7635,24 @@ public:
         }
         se = cast(StringExp)e1;
         se = se.toUTF8(sc);
-        name = cast(char*)se.string;
+        namez = se.toStringz();
         if (!global.params.fileImppath)
         {
-            error("need -Jpath switch to import text file %s", name);
+            error("need -Jpath switch to import text file %s", namez);
             goto Lerror;
         }
         /* Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
          * ('Path Traversal') attacks.
          * http://cwe.mitre.org/data/definitions/22.html
          */
-        name = FileName.safeSearchPath(global.filePath, name);
+        name = FileName.safeSearchPath(global.filePath, namez);
         if (!name)
         {
             error("file %s cannot be found or not in a path specified with -J", se.toChars());
             goto Lerror;
         }
         if (global.params.verbose)
-            fprintf(global.stdmsg, "file      %s\t(%s)\n", cast(char*)se.string, name);
+            fprintf(global.stdmsg, "file      %.*s\t(%s)\n", cast(int)se.len, se.string, name);
         if (global.params.moduleDeps !is null)
         {
             OutBuffer* ob = global.params.moduleDeps;
@@ -7650,7 +7665,7 @@ public:
             ob.writestring(") : ");
             if (global.params.moduleDepsFile)
                 ob.writestring("string : ");
-            ob.writestring(cast(char*)se.string);
+            ob.write(se.string, se.len);
             ob.writestring(" (");
             escapePath(ob, name);
             ob.writestring(")");

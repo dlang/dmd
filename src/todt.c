@@ -381,7 +381,8 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             {
                 case Tarray:
                     pdt = dtsize_t(pdt, e->len);
-                    pdt = dtabytes(pdt, 0, (e->len + 1) * e->sz, (char *)e->string);
+                case Tpointer:
+                    pdt = dtabytes(pdt, 0, e->len * e->sz, (const char *)e->string, (unsigned)e->sz);
                     break;
 
                 case Tsarray:
@@ -400,9 +401,6 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     }
                     break;
                 }
-                case Tpointer:
-                    pdt = dtabytes(pdt, 0, (e->len + 1) * e->sz, (char *)e->string);
-                    break;
 
                 default:
                     printf("StringExp::toDt(type = %s)\n", e->type->toChars());

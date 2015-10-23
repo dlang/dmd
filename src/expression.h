@@ -380,6 +380,7 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     unsigned charAt(uinteger_t i);
     void accept(Visitor *v) { v->visit(this); }
+    char *toStringz();
 };
 
 // Tuple

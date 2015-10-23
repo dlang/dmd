@@ -413,7 +413,7 @@ public:
         char* depmsg = null;
         StringExp se = msg.toStringExp();
         if (se)
-            depmsg = cast(char*)se.string;
+            depmsg = se.toStringz();
         else
             msg.error("string expected, not '%s'", msg.toChars());
         Scope* scx = sc.push();
@@ -1266,7 +1266,8 @@ public:
             {
                 se = se.toUTF8(sc);
                 uint errors = global.errors;
-                scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
+                auto cstr = se.toStringz();
+                scope Parser p = new Parser(loc, sc._module, cstr, se.len, 0);
                 p.nextToken();
                 decl = p.parseDeclDefs(0);
                 if (p.token.value != TOKeof)
