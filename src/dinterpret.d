@@ -1057,6 +1057,19 @@ public:
         return false;
     }
 
+    static Expressions* copyArrayOnWrite(Expressions* exps, Expressions* original)
+    {
+        if (exps is original)
+        {
+            if (!original)
+                exps = new Expressions();
+            else
+                exps = original.copy();
+            ++CtfeStatus.numArrayAllocs;
+        }
+        return exps;
+    }
+
     /******************************** Statement ***************************/
 
     override void visit(Statement s)
@@ -2564,11 +2577,7 @@ public:
              */
             if (ex !is exp)
             {
-                if (expsx is e.exps)
-                {
-                    expsx = e.exps.copy();
-                    ++CtfeStatus.numArrayAllocs;
-                }
+                expsx = copyArrayOnWrite(expsx, e.exps);
                 (*expsx)[i] = ex;
             }
         }
@@ -2634,11 +2643,7 @@ public:
              */
             if (ex !is exp)
             {
-                if (expsx is e.elements)
-                {
-                    expsx = e.elements.copy();
-                    ++CtfeStatus.numArrayAllocs;
-                }
+                expsx = copyArrayOnWrite(expsx, e.elements);
                 (*expsx)[i] = ex;
             }
         }
@@ -2698,16 +2703,8 @@ public:
             if (ek !is ekey ||
                 ev !is evalue)
             {
-                if (keysx is e.keys)
-                {
-                    keysx = e.keys.copy();
-                    ++CtfeStatus.numArrayAllocs;
-                }
-                if (valuesx is e.values)
-                {
-                    valuesx = e.values.copy();
-                    ++CtfeStatus.numArrayAllocs;
-                }
+                keysx = copyArrayOnWrite(keysx, e.keys);
+                valuesx = copyArrayOnWrite(valuesx, e.values);
                 (*keysx)[i] = ek;
                 (*valuesx)[i] = ev;
             }
@@ -2735,16 +2732,8 @@ public:
                     continue;
 
                 // Remove ekey
-                if (keysx is e.keys)
-                {
-                    keysx = e.keys.copy();
-                    ++CtfeStatus.numArrayAllocs;
-                }
-                if (valuesx is e.values)
-                {
-                    valuesx = e.values.copy();
-                    ++CtfeStatus.numArrayAllocs;
-                }
+                keysx = copyArrayOnWrite(keysx, e.keys);
+                valuesx = copyArrayOnWrite(valuesx, e.values);
                 keysx.remove(i - 1);
                 valuesx.remove(i - 1);
 
@@ -2793,12 +2782,7 @@ public:
             auto ne = new NullExp(e.loc);
             ne.type = e.sd.vthis.type;
 
-            if (!e.elements)
-                expsx = new Expressions();
-            else
-                expsx = e.elements.copy();
-            ++CtfeStatus.numArrayAllocs;
-
+            expsx = copyArrayOnWrite(expsx, e.elements);
             expsx.push(ne);
             ++dim;
         }
@@ -2831,11 +2815,7 @@ public:
              */
             if (ex !is exp)
             {
-                if (expsx is e.elements)
-                {
-                    expsx = e.elements.copy();
-                    ++CtfeStatus.numArrayAllocs;
-                }
+                expsx = copyArrayOnWrite(expsx, e.elements);
                 (*expsx)[i] = ex;
             }
         }
