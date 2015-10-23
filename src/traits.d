@@ -801,7 +801,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         ex = ex.ctfeInterpret();
         StringExp se = ex.toStringExp();
-        if (!se || se.length() == 0)
+        if (!se || se.len == 0)
         {
             e.error("string expected as second argument of __traits %s instead of %s", e.ident.toChars(), ex.toChars());
             return new ErrorExp();
