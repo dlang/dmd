@@ -546,12 +546,16 @@ public:
                 if (!s2.overloadInsert(this))
                 {
                     sds.multiplyDefined(Loc(), this, s2);
+                    errors = true;
                 }
             }
             if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
             {
                 if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
+                {
                     error(".%s property cannot be redefined", ident.toChars());
+                    errors = true;
+                }
             }
         }
     }

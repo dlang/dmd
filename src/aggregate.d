@@ -125,6 +125,7 @@ public:
         //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
         if (!members)
             return;
+
         if (_scope && sizeok == SIZEOKfwd) // Bugzilla 12531
             semantic(null);
         if (_scope)
@@ -132,6 +133,7 @@ public:
             error("has forward references");
             return;
         }
+
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
@@ -141,12 +143,14 @@ public:
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             //printf("\t[%d] %s\n", i, s->toChars());
             s.semantic2(sc2);
         }
+
         sc2.pop();
     }
 
@@ -155,6 +159,7 @@ public:
         //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
         if (!members)
             return;
+
         StructDeclaration sd = isStructDeclaration();
         if (!sc) // from runDeferredSemantic3 for TypeInfo generation
         {
@@ -162,6 +167,7 @@ public:
             sd.semanticTypeInfoMembers();
             return;
         }
+
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
@@ -171,12 +177,15 @@ public:
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.semantic3(sc2);
         }
+
         sc2.pop();
+
         // don't do it for unused deprecated types
         // or error types
         if (!getRTInfo && Type.rtinfo && (!isDeprecated() || global.params.useDeprecated) && (type && type.ty != Terror))
@@ -214,10 +223,12 @@ public:
         if (sizeok != SIZEOKdone && _scope)
         {
             semantic(null);
+
             // Determine the instance size of base class first.
             if (ClassDeclaration cd = isClassDeclaration())
                 cd.baseClass.size(loc);
         }
+
         if (sizeok != SIZEOKdone && members)
         {
             /* See if enough is done to determine the size,
@@ -240,6 +251,7 @@ public:
                          */
                         if (v.storage_class & STCmanifest)
                             return 0;
+
                         if (v._scope)
                             v.semantic(null);
                         if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
@@ -260,8 +272,10 @@ public:
                     goto L1;
             }
             finalizeSize(null);
+
         L1:
         }
+
         if (!members)
         {
             error(loc, "unknown size");
@@ -510,12 +524,14 @@ public:
         case cast(structalign_t)1:
             // No alignment
             break;
+
         case cast(structalign_t)STRUCTALIGN_DEFAULT:
             // Alignment in Target::fieldalignsize must match what the
             // corresponding C compiler's default alignment behavior is.
             assert(size > 0 && !(size & (size - 1)));
             *poffset = (*poffset + size - 1) & ~(size - 1);
             break;
+
         default:
             // Align on alignment boundary, which must be a positive power of 2
             assert(alignment > 0 && !(alignment & (alignment - 1)));
@@ -537,7 +553,8 @@ public:
      * paggalignsize: size of aggregate for alignment purposes (updated)
      * isunion:       the aggregate is a union
      */
-    final static uint placeField(uint* nextoffset, uint memsize, uint memalignsize, structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
+    final static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
+        structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
     {
         uint ofs = *nextoffset;
         alignmember(alignment, memalignsize, &ofs);
@@ -547,6 +564,7 @@ public:
             *paggsize = ofs;
         if (!isunion)
             *nextoffset = ofs;
+
         if (alignment == STRUCTALIGN_DEFAULT)
         {
             if (global.params.is64bit && memalignsize == 16)
@@ -560,8 +578,10 @@ public:
             if (memalignsize < alignment)
                 memalignsize = alignment;
         }
+
         if (*paggalignsize < memalignsize)
             *paggalignsize = memalignsize;
+
         return memoffset;
     }
 
@@ -595,6 +615,7 @@ public:
             return;
         if (storage_class & STCstatic)
             return;
+
         // If nested struct, add in hidden 'this' pointer to outer scope
         Dsymbol s = toParent2();
         if (!s)
@@ -649,7 +670,9 @@ public:
         Dsymbol s = search(Loc(), Id.ctor);
         if (s)
         {
-            if (!(s.isCtorDeclaration() || s.isTemplateDeclaration() || s.isOverloadSet()))
+            if (!(s.isCtorDeclaration() ||
+                  s.isTemplateDeclaration() ||
+                  s.isOverloadSet()))
             {
                 s.error("is not a constructor; identifiers starting with __ are reserved for the implementation");
                 errors = true;

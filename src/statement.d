@@ -4238,9 +4238,13 @@ public:
                 exp = inferType(exp, tret);
             else if (fld && fld.treq)
                 exp = inferType(exp, fld.treq.nextOf().nextOf());
+
             exp = exp.semantic(sc);
             exp = resolveProperties(sc, exp);
-            if (exp.type && exp.type.ty != Tvoid || exp.op == TOKfunction || exp.op == TOKtype || exp.op == TOKtemplate)
+            if (exp.type && exp.type.ty != Tvoid ||
+                exp.op == TOKfunction ||
+                exp.op == TOKtype ||
+                exp.op == TOKtemplate)
             {
                 // don't make error for void expression
                 if (exp.checkValue())
@@ -4248,10 +4252,12 @@ public:
             }
             if (checkNonAssignmentArrayOp(exp))
                 exp = new ErrorExp();
+
             // Extract side-effect part
             exp = Expression.extractLast(exp, &e0);
             if (exp.op == TOKcall)
                 exp = valueNoDtor(exp);
+
             /* Void-return function can have void typed expression
              * on return statement.
              */
@@ -4264,6 +4270,7 @@ public:
                     exp = new CastExp(loc, exp, Type.tvoid);
                     exp = exp.semantic(sc);
                 }
+
                 /* Replace:
                  *      return exp;
                  * with:

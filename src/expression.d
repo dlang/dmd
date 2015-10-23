@@ -10267,17 +10267,20 @@ public:
         //static int x; assert(++x < 10);
         if (type)
             return this;
+
         if (Expression ex = unaSemantic(sc))
             return ex;
         Expression e1x = resolveProperties(sc, e1);
         if (e1x.op == TOKerror)
             return e1x;
         e1 = e1x;
+
         if (!e1.type)
         {
             error("cannot cast %s", e1.toChars());
             return new ErrorExp();
         }
+
         if (!to) // Handle cast(const) and cast(immutable), etc.
             to = e1.type.castMod(mod);
         to = to.semantic(loc, sc);
@@ -10288,24 +10291,32 @@ public:
             error("cannot cast %s to tuple type %s", e1.toChars(), to.toChars());
             return new ErrorExp();
         }
-        if (e1.op == TOKtemplate)
+
+        if (e1.type.ty != Tvoid ||
+            e1.op == TOKfunction && to.ty == Tvoid ||
+            e1.op == TOKtype ||
+            e1.op == TOKtemplate)
         {
-            error("cannot cast template %s to type %s", e1.toChars(), to.toChars());
-            return new ErrorExp();
+            if (e1.checkValue())
+                return new ErrorExp();
         }
+
         // cast(void) is used to mark e1 as unused, so it is safe
         if (to.ty == Tvoid)
         {
             type = to;
             return this;
         }
+
         if (!to.equals(e1.type) && mod == cast(ubyte)~0)
         {
             if (Expression e = op_overload(sc))
                 return e.implicitCastTo(sc, to);
         }
+
         Type t1b = e1.type.toBasetype();
         Type tob = to.toBasetype();
+
         if (tob.ty == Tstruct && !tob.equals(t1b))
         {
             /* Look to replace:
@@ -10313,6 +10324,7 @@ public:
              * with:
              *  S(t)
              */
+
             // Rewrite as to.call(e1)
             Expression e = new TypeExp(loc, to);
             e = new CallExp(loc, e, e1);
@@ -10320,41 +10332,52 @@ public:
             if (e)
                 return e;
         }
+
         if (!t1b.equals(tob) && (t1b.ty == Tarray || t1b.ty == Tsarray))
         {
             if (checkNonAssignmentArrayOp(e1))
                 return new ErrorExp();
         }
+
         // Look for casting to a vector type
         if (tob.ty == Tvector && t1b.ty != Tvector)
         {
             return new VectorExp(loc, e1, to);
         }
+
         Expression ex = e1.castTo(sc, to);
         if (ex.op == TOKerror)
             return ex;
+
         // Check for unsafe casts
         if (sc.func && !sc.intypeof)
         {
             // Disallow unsafe casts
+
             // Implicit conversions are always safe
             if (t1b.implicitConvTo(tob))
                 goto Lsafe;
+
             if (!tob.hasPointers())
                 goto Lsafe;
+
             if (tob.ty == Tclass && t1b.ty == Tclass)
             {
                 ClassDeclaration cdfrom = t1b.isClassHandle();
                 ClassDeclaration cdto = tob.isClassHandle();
+
                 int offset;
                 if (!cdfrom.isBaseOf(cdto, &offset))
                     goto Lunsafe;
+
                 if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
                     goto Lunsafe;
+
                 if (!MODimplicitConv(t1b.mod, tob.mod))
                     goto Lunsafe;
                 goto Lsafe;
             }
+
             if (tob.ty == Tarray && t1b.ty == Tsarray) // Bugzilla 12502
                 t1b = t1b.nextOf().arrayOf();
             if (tob.ty == Tarray && t1b.ty == Tarray)
@@ -10369,12 +10392,17 @@ public:
                 Type tobn = tob.nextOf().toBasetype();
                 Type t1bn = t1b.nextOf().toBasetype();
                 // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
-                bool sfwrd = tobn.ty == Tstruct && !(cast(StructDeclaration)(cast(TypeStruct)tobn).sym).members || t1bn.ty == Tstruct && !(cast(StructDeclaration)(cast(TypeStruct)t1bn).sym).members;
-                if (!sfwrd && !tobn.hasPointers() && tobn.ty != Tfunction && t1bn.ty != Tfunction && tobn.size() <= t1bn.size() && MODimplicitConv(t1bn.mod, tobn.mod))
+                bool sfwrd = tobn.ty == Tstruct && !(cast(TypeStruct)tobn).sym.members ||
+                             t1bn.ty == Tstruct && !(cast(TypeStruct)t1bn).sym.members;
+                if (!sfwrd && !tobn.hasPointers() &&
+                    tobn.ty != Tfunction && t1bn.ty != Tfunction &&
+                    tobn.size() <= t1bn.size() &&
+                    MODimplicitConv(t1bn.mod, tobn.mod))
                 {
                     goto Lsafe;
                 }
             }
+
         Lunsafe:
             if (sc.func.setUnsafe())
             {
@@ -10382,6 +10410,7 @@ public:
                 return new ErrorExp();
             }
         }
+
     Lsafe:
         return ex;
     }
@@ -11484,14 +11513,18 @@ public:
     }
 }
 
+enum MemorySet
+{
+    blockAssign     = 1,    // setting the contents of an array
+    referenceInit   = 2,    // setting the reference of STCref variable
+}
+
 /***********************************************************
  */
 extern (C++) class AssignExp : BinExp
 {
 public:
-    // &1 != 0 if setting the contents of an array
-    // &2 != 0 if setting the content of ref variable
-    int ismemset;
+    int memset;         // combination of MemorySet flags
 
     /************************************************************/
     /* op can be TOKassign, TOKconstruct, or TOKblit */
@@ -11510,7 +11543,9 @@ public:
         //printf("e2->op = %d, '%s'\n", e2->op, Token::toChars(e2->op));
         if (type)
             return this;
+
         Expression e1old = e1;
+
         if (e2.op == TOKcomma)
         {
             /* Rewrite to get rid of the comma from rvalue
@@ -11520,6 +11555,7 @@ public:
             Expression e = Expression.combine(e0, this);
             return e.semantic(sc);
         }
+
         /* Look for operator overloading of a[arguments] = e2.
          * Do it before e1->semantic() otherwise the ArrayExp will have been
          * converted to unary operator overloading already.
@@ -11530,8 +11566,12 @@ public:
             ArrayExp ae = cast(ArrayExp)e1;
             ae.e1 = ae.e1.semantic(sc);
             ae.e1 = resolveProperties(sc, ae.e1);
+
             Expression ae1old = ae.e1;
-            const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+            const(bool) maybeSlice =
+                (ae.arguments.dim == 0 ||
+                 ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+
             IntervalExp ie = null;
             if (maybeSlice && ae.arguments.dim)
             {
@@ -11545,6 +11585,7 @@ public:
                 Expression e0 = null;
                 Expression ae1save = ae.e1;
                 ae.lengthVar = null;
+
                 Type t1b = ae.e1.type.toBasetype();
                 AggregateDeclaration ad = isAggregate(t1b);
                 if (!ad)
@@ -11557,10 +11598,12 @@ public:
                         goto Lfallback;
                     if (result.op == TOKerror)
                         return result;
+
                     result = e2.semantic(sc);
                     if (result.op == TOKerror)
                         return result;
                     e2 = result;
+
                     /* Rewrite (a[arguments] = e2) as:
                      *      a.opIndexAssign(e2, arguments)
                      */
@@ -11578,6 +11621,7 @@ public:
                         return result;
                     }
                 }
+
             Lfallback:
                 if (maybeSlice && search_function(ad, Id.sliceass))
                 {
@@ -11585,10 +11629,12 @@ public:
                     result = resolveOpDollar(sc, ae, ie, &e0);
                     if (result.op == TOKerror)
                         return result;
+
                     result = e2.semantic(sc);
                     if (result.op == TOKerror)
                         return result;
                     e2 = result;
+
                     /* Rewrite (a[i..j] = e2) as:
                      *      a.opSliceAssign(e2, i, j)
                      */
@@ -11605,6 +11651,7 @@ public:
                     result = Expression.combine(e0, result);
                     return result;
                 }
+
                 // No operator overloading member function found yet, but
                 // there might be an alias this to try.
                 if (ad.aliasthis && t1b != ae.att1)
@@ -11623,10 +11670,12 @@ public:
             ae.e1 = ae1old; // recovery
             ae.lengthVar = null;
         }
+
         /* Run this->e1 semantic.
          */
         {
             Expression e1x = e1;
+
             /* With UFCS, e.f = value
              * Could mean:
              *      .f(e, value)
@@ -11660,6 +11709,7 @@ public:
             }
             else
                 e1x = e1x.semantic(sc);
+
             /* We have f = value.
              * Could mean:
              *      f(value)
@@ -11674,6 +11724,7 @@ public:
             assert(e1.type);
         }
         Type t1 = e1.type.toBasetype();
+
         /* Run this->e2 semantic.
          * Different from other binary expressions, the analysis of e2
          * depends on the result of e1 in assignments.
@@ -11688,10 +11739,12 @@ public:
                 return new ErrorExp();
             e2 = e2x;
         }
+
         /* Rewrite tuple assignment as a tuple of assignments.
          */
         {
             Expression e2x = e2;
+
         Ltupleassign:
             if (e1.op == TOKtuple && e2x.op == TOKtuple)
             {
@@ -11724,6 +11777,7 @@ public:
                 }
                 return e.semantic(sc);
             }
+
             /* Look for form: e1 = e2->aliasthis.
              */
             if (e1.op == TOKtuple)
@@ -11731,8 +11785,10 @@ public:
                 TupleDeclaration td = isAliasThisTuple(e2x);
                 if (!td)
                     goto Lnomatch;
+
                 assert(e1.type.ty == Ttuple);
                 TypeTuple tt = cast(TypeTuple)e1.type;
+
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e2x.loc, e2x);
                 auto v = new VarDeclaration(e2x.loc, null, id, ei);
@@ -11742,16 +11798,19 @@ public:
                 Expression e0 = new DeclarationExp(e2x.loc, v);
                 Expression ev = new VarExp(e2x.loc, v);
                 ev.type = e2x.type;
+
                 auto iexps = new Expressions();
                 iexps.push(ev);
                 for (size_t u = 0; u < iexps.dim; u++)
                 {
                 Lexpand:
                     Expression e = (*iexps)[u];
+
                     Parameter arg = Parameter.getNth(tt.arguments, u);
                     //printf("[%d] iexps->dim = %d, ", u, iexps->dim);
                     //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
                     //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+
                     if (!arg || !e.type.implicitConvTo(arg.type))
                     {
                         // expand initializer to tuple
@@ -11773,6 +11832,7 @@ public:
             }
         Lnomatch:
         }
+
         /* Inside constructor, if this is the first assignment of object field,
          * rewrite this to initializing the field.
          */
@@ -11780,12 +11840,7 @@ public:
         {
             //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
             op = TOKconstruct;
-            if (e1.op == TOKvar && (cast(VarExp)e1).var.storage_class & (STCout | STCref))
-            {
-                // Bugzilla 14944, even if e1 is a ref variable,
-                // make an initialization of referenced memory.
-                ismemset |= 2;
-            }
+
             // Bugzilla 13515: set Index::modifiable flag for complex AA element initialization
             if (e1.op == TOKindex)
             {
@@ -11794,10 +11849,16 @@ public:
                     return e1x;
             }
         }
+        else if (op == TOKconstruct && e1.op == TOKvar &&
+                 (cast(VarExp)e1).var.storage_class & (STCout | STCref))
+        {
+            memset |= MemorySet.referenceInit;
+        }
+
         /* If it is an assignment from a 'foreign' type,
          * check for operator overloading.
          */
-        if (op == TOKconstruct && e1.op == TOKvar && (cast(VarExp)e1).var.storage_class & (STCout | STCref) && !(ismemset & 2))
+        if (memset & MemorySet.referenceInit)
         {
             // If this is an initialization of a reference,
             // do nothing
@@ -11807,6 +11868,7 @@ public:
             Expression e1x = e1;
             Expression e2x = e2;
             StructDeclaration sd = (cast(TypeStruct)t1).sym;
+
             if (op == TOKconstruct)
             {
                 Type t2 = e2x.type.toBasetype();
@@ -11814,11 +11876,16 @@ public:
                 {
                     CallExp ce;
                     DotVarExp dve;
-                    if (sd.ctor && e2x.op == TOKcall && (ce = cast(CallExp)e2x, ce.e1.op == TOKdotvar) && (dve = cast(DotVarExp)ce.e1, dve.var.isCtorDeclaration()) && e2x.type.implicitConvTo(t1))
+                    if (sd.ctor &&
+                        e2x.op == TOKcall &&
+                        (ce = cast(CallExp)e2x, ce.e1.op == TOKdotvar) &&
+                        (dve = cast(DotVarExp)ce.e1, dve.var.isCtorDeclaration()) &&
+                        e2x.type.implicitConvTo(t1))
                     {
                         /* Look for form of constructor call which is:
                          *    __ctmp.ctor(arguments...)
                          */
+
                         /* Before calling the constructor, initialize
                          * variable with a bit copy of the default
                          * initializer
@@ -11835,6 +11902,7 @@ public:
                             ae.e2 = sd.isNested() ? t1.defaultInitLiteral(loc) : t1.defaultInit(loc);
                         }
                         ae.type = e1x.type;
+
                         /* Replace __ctmp being constructed with e1.
                          * We need to copy constructor call expression,
                          * because it may be used in other place.
@@ -11843,6 +11911,7 @@ public:
                         dvx.e1 = e1x;
                         CallExp cx = cast(CallExp)ce.copy();
                         cx.e1 = dvx;
+
                         Expression e = new CommaExp(loc, ae, cx);
                         e = e.semantic(sc);
                         return e;
@@ -11862,13 +11931,16 @@ public:
                             Expression e = new CondExp(loc, econd.econd, ea1, ea2);
                             return e.semantic(sc);
                         }
+
                         if (e2x.isLvalue())
                         {
                             if (!e2x.type.implicitConvTo(e1x.type))
                             {
-                                error("conversion error from %s to %s", e2x.type.toChars(), e1x.type.toChars());
+                                error("conversion error from %s to %s",
+                                    e2x.type.toChars(), e1x.type.toChars());
                                 return new ErrorExp();
                             }
+
                             /* Rewrite as:
                              *  (e1 = e2).postblit();
                              *
@@ -11902,6 +11974,7 @@ public:
                         Expression einit;
                         einit = new BlitExp(loc, e1x, e1x.type.defaultInit(loc));
                         einit.type = e1x.type;
+
                         Expression e;
                         e = new DotIdExp(loc, e1x, Id.ctor);
                         e = new CallExp(loc, e, e2x);
@@ -11918,6 +11991,7 @@ public:
                          */
                         e2x = typeDotIdExp(e2x.loc, e1x.type, Id.call);
                         e2x = new CallExp(loc, e2x, this.e2);
+
                         e2x = e2x.semantic(sc);
                         e2x = resolveProperties(sc, e2x);
                         if (e2x.op == TOKerror)
@@ -11959,35 +12033,46 @@ public:
                     IndexExp ie = cast(IndexExp)e1x;
                     Type t2 = e2x.type.toBasetype();
                     Expression e0 = null;
+
                     Expression ea = ie.e1;
                     Expression ek = ie.e2;
                     Expression ev = e2x;
                     if (!isTrivialExp(ea))
                     {
-                        auto v = new VarDeclaration(loc, ie.e1.type, Identifier.generateId("__aatmp"), new ExpInitializer(loc, ie.e1));
-                        v.storage_class |= STCtemp | STCctfe | (ea.isLvalue() ? STCforeach | STCref : STCrvalue);
+                        auto v = new VarDeclaration(loc, ie.e1.type,
+                            Identifier.generateId("__aatmp"),
+                            new ExpInitializer(loc, ie.e1));
+                        v.storage_class |= STCtemp | STCctfe
+                                        | (ea.isLvalue() ? STCforeach | STCref : STCrvalue);
                         v.semantic(sc);
                         e0 = combine(e0, new DeclarationExp(loc, v));
                         ea = new VarExp(loc, v);
                     }
                     if (!isTrivialExp(ek))
                     {
-                        auto v = new VarDeclaration(loc, ie.e2.type, Identifier.generateId("__aakey"), new ExpInitializer(loc, ie.e2));
-                        v.storage_class |= STCtemp | STCctfe | (ek.isLvalue() ? STCforeach | STCref : STCrvalue);
+                        auto v = new VarDeclaration(loc, ie.e2.type,
+                            Identifier.generateId("__aakey"),
+                            new ExpInitializer(loc, ie.e2));
+                        v.storage_class |= STCtemp | STCctfe
+                                        | (ek.isLvalue() ? STCforeach | STCref : STCrvalue);
                         v.semantic(sc);
                         e0 = combine(e0, new DeclarationExp(loc, v));
                         ek = new VarExp(loc, v);
                     }
                     if (!isTrivialExp(ev))
                     {
-                        auto v = new VarDeclaration(loc, e2x.type, Identifier.generateId("__aaval"), new ExpInitializer(loc, e2x));
-                        v.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCforeach | STCref : STCrvalue);
+                        auto v = new VarDeclaration(loc, e2x.type,
+                            Identifier.generateId("__aaval"),
+                            new ExpInitializer(loc, e2x));
+                        v.storage_class |= STCtemp | STCctfe
+                                        | (ev.isLvalue() ? STCforeach | STCref : STCrvalue);
                         v.semantic(sc);
                         e0 = combine(e0, new DeclarationExp(loc, v));
                         ev = new VarExp(loc, v);
                     }
                     if (e0)
                         e0 = e0.semantic(sc);
+
                     AssignExp ae = cast(AssignExp)copy();
                     ae.e1 = new IndexExp(loc, ea, ek);
                     ae.e1 = ae.e1.semantic(sc);
@@ -12017,11 +12102,13 @@ public:
                             ex = ex.semantic(sc);
                             ex = ex.optimize(WANTvalue);
                             ex = ex.modifiableLvalue(sc, ex); // allocate new slot
+
                             ey = new ConstructExp(loc, ex, ey);
                             ey = ey.semantic(sc);
                             if (ey.op == TOKerror)
                                 return ey;
                             ex = e;
+
                             // Bugzilla 14144: The whole expression should have the common type
                             // of opAssign() return and assigned AA entry.
                             // Even if there's no common type, expression should be typed as void.
@@ -12047,6 +12134,7 @@ public:
             }
             else
                 assert(op == TOKblit);
+
             e1 = e1x;
             e2 = e2x;
         }
@@ -12184,30 +12272,37 @@ public:
                 return e1x;
             e1 = e1x;
         }
+
         /* Tweak e2 based on the type of e1.
          */
         Expression e2x = e2;
         Type t2 = e2x.type.toBasetype();
+
         // If it is a array, get the element type. Note that it may be
         // multi-dimensional.
         Type telem = t1;
         while (telem.ty == Tarray)
             telem = telem.nextOf();
-        if (e1.op == TOKslice && t1.nextOf() && (telem.ty != Tvoid || e2x.op == TOKnull) && e2x.implicitConvTo(t1.nextOf()))
+
+        if (e1.op == TOKslice && t1.nextOf() &&
+            (telem.ty != Tvoid || e2x.op == TOKnull) &&
+            e2x.implicitConvTo(t1.nextOf()))
         {
             // Check for block assignment. If it is of type void[], void[][], etc,
             // '= null' is the only allowable block assignment (Bug 7493)
-            // memset
-            ismemset |= 1; // make it easy for back end to tell what this is
+            memset |= MemorySet.blockAssign;    // make it easy for back end to tell what this is
             e2x = e2x.implicitCastTo(sc, t1.nextOf());
             if (op != TOKblit && e2x.isLvalue() && e1.checkPostblit(sc, t1.nextOf()))
             {
                 return new ErrorExp();
             }
         }
-        else if (e1.op == TOKslice && (t2.ty == Tarray || t2.ty == Tsarray) && t2.nextOf().implicitConvTo(t1.nextOf()))
+        else if (e1.op == TOKslice &&
+                 (t2.ty == Tarray || t2.ty == Tsarray) &&
+                 t2.nextOf().implicitConvTo(t1.nextOf()))
         {
             // Check element-wise assignment.
+
             /* If assigned elements number is known at compile time,
              * check the mismatch.
              */
@@ -12230,21 +12325,36 @@ public:
                     return new ErrorExp();
                 }
             }
-            if (op != TOKblit && (e2x.op == TOKslice && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op == TOKcast && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op != TOKslice && e2x.isLvalue()))
+
+            if (op != TOKblit &&
+                (e2x.op == TOKslice && (cast(UnaExp)e2x).e1.isLvalue() ||
+                 e2x.op == TOKcast && (cast(UnaExp)e2x).e1.isLvalue() ||
+                 e2x.op != TOKslice && e2x.isLvalue()))
             {
                 if (e1.checkPostblit(sc, t1.nextOf()))
                     return new ErrorExp();
             }
-            if (0 && global.params.warnings && !global.gag && op == TOKassign && e2x.op != TOKslice && e2x.op != TOKassign && e2x.op != TOKarrayliteral && e2x.op != TOKstring && !(e2x.op == TOKadd || e2x.op == TOKmin || e2x.op == TOKmul || e2x.op == TOKdiv || e2x.op == TOKmod || e2x.op == TOKxor || e2x.op == TOKand || e2x.op == TOKor || e2x.op == TOKpow || e2x.op == TOKtilde || e2x.op == TOKneg))
+
+            if (0 && global.params.warnings && !global.gag && op == TOKassign &&
+                e2x.op != TOKslice && e2x.op != TOKassign &&
+                e2x.op != TOKarrayliteral && e2x.op != TOKstring &&
+                !(e2x.op == TOKadd || e2x.op == TOKmin ||
+                  e2x.op == TOKmul || e2x.op == TOKdiv ||
+                  e2x.op == TOKmod || e2x.op == TOKxor ||
+                  e2x.op == TOKand || e2x.op == TOKor ||
+                  e2x.op == TOKpow ||
+                  e2x.op == TOKtilde || e2x.op == TOKneg))
             {
                 const(char)* e1str = e1.toChars();
                 const(char)* e2str = e2x.toChars();
                 warning("explicit element-wise assignment %s = (%s)[] is better than %s = %s", e1str, e2str, e1str, e2str);
             }
+
             Type t2n = t2.nextOf();
             Type t1n = t1.nextOf();
             int offset;
-            if (t2n.equivalent(t1n) || t1n.isBaseOf(t2n, &offset) && offset == 0)
+            if (t2n.equivalent(t1n) ||
+                t1n.isBaseOf(t2n, &offset) && offset == 0)
             {
                 /* Allow copy of distinct qualifier elements.
                  * eg.
@@ -12269,7 +12379,10 @@ public:
         }
         else
         {
-            if (0 && global.params.warnings && !global.gag && op == TOKassign && t1.ty == Tarray && t2.ty == Tsarray && e2x.op != TOKslice && t2.implicitConvTo(t1))
+            if (0 && global.params.warnings && !global.gag && op == TOKassign &&
+                t1.ty == Tarray && t2.ty == Tsarray &&
+                e2x.op != TOKslice &&
+                t2.implicitConvTo(t1))
             {
                 // Disallow ar[] = sa (Converted to ar[] = sa[])
                 // Disallow da   = sa (Converted to da   = sa[])
@@ -12287,26 +12400,33 @@ public:
             return e2x;
         e2 = e2x;
         t2 = e2.type.toBasetype();
+
         /* Look for array operations
          */
         if ((t2.ty == Tarray || t2.ty == Tsarray) && isArrayOpValid(e2))
         {
             // Look for valid array operations
-            if (!(ismemset & 1) && e1.op == TOKslice && (isUnaArrayOp(e2.op) || isBinArrayOp(e2.op)))
+            if (!(memset & MemorySet.blockAssign) &&
+                e1.op == TOKslice &&
+                (isUnaArrayOp(e2.op) || isBinArrayOp(e2.op)))
             {
                 type = e1.type;
                 if (op == TOKconstruct) // Bugzilla 10282: tweak mutability of e1 element
                     e1.type = e1.type.nextOf().mutableOf().arrayOf();
                 return arrayOp(this, sc);
             }
+
             // Drop invalid array operations in e2
             //  d = a[] + b[], d = (a[] + b[])[0..2], etc
-            if (checkNonAssignmentArrayOp(e2, !(ismemset & 1) && op == TOKassign))
+            if (checkNonAssignmentArrayOp(e2, !(memset & MemorySet.blockAssign) && op == TOKassign))
                 return new ErrorExp();
+
             // Remains valid array assignments
             //  d = d[], d = [1,2,3], etc
         }
-        if (e1.op == TOKvar && ((cast(VarExp)e1).var.storage_class & STCscope) && op == TOKassign)
+        if (e1.op == TOKvar &&
+            ((cast(VarExp)e1).var.storage_class & STCscope) &&
+            op == TOKassign)
         {
             error("cannot rebind scope variables");
         }
@@ -12314,6 +12434,7 @@ public:
         {
             error("cannot modify compiler-generated variable __ctfe");
         }
+
         type = e1.type;
         assert(type);
         return op == TOKassign ? reorderSettingAAElem(sc) : this;
@@ -12369,6 +12490,20 @@ public:
         op = TOKconstruct;
     }
 
+    // Internal use only. If `v` is a reference variable, the assinment
+    // will become a reference initialization automatically.
+    extern (D) this(Loc loc, VarDeclaration v, Expression e2)
+    {
+        auto ve = new VarExp(loc, v);
+        assert(v.type && ve.type);
+
+        super(loc, ve, e2);
+        op = TOKconstruct;
+
+        if (v.storage_class & (STCref | STCout))
+            memset |= MemorySet.referenceInit;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -12384,6 +12519,20 @@ public:
     {
         super(loc, e1, e2);
         op = TOKblit;
+    }
+
+    // Internal use only. If `v` is a reference variable, the assinment
+    // will become a reference rebinding automatically.
+    extern (D) this(Loc loc, VarDeclaration v, Expression e2)
+    {
+        auto ve = new VarExp(loc, v);
+        assert(v.type && ve.type);
+
+        super(loc, ve, e2);
+        op = TOKblit;
+
+        if (v.storage_class & (STCref | STCout))
+            memset |= MemorySet.referenceInit;
     }
 
     override void accept(Visitor v)
