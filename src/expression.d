@@ -4263,13 +4263,24 @@ public:
     }
 
     /**********************************
-     * Return the code unit count of string.
-     * Input:
-     *      encSize     code unit size of the target encoding.
+     * Return the number of code units the string would be if it were re-encoded
+     * as tynto.
+     * Params:
+     *      tynto = code unit type of the target encoding
+     * Returns:
+     *      number of code units
      */
-    size_t length(int encSize = 4)
+    final size_t numberOfCodeUnits(int tynto)
     {
-        assert(encSize == 1 || encSize == 2 || encSize == 4);
+        int encSize;
+        switch (tynto)
+        {
+            case Tchar:  encSize = 1; break;
+            case Twchar: encSize = 2; break;
+            case Tdchar: encSize = 4; break;
+            default:
+                assert(0);
+        }
         if (sz == encSize)
             return len;
         size_t result = 0;

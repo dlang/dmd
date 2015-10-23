@@ -548,12 +548,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                 }
                                 return;
                             }
-                            int szto = cast(int)t.nextOf().size();
                             if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                             {
                                 if (e.committed && tynto != tyn)
                                     return;
-                                size_t fromlen = e.length(szto);
+                                size_t fromlen = e.numberOfCodeUnits(tynto);
                                 size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
                                 if (tolen < fromlen)
                                     return;
@@ -573,12 +572,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         else if (e.type.ty == Tarray)
                         {
                             TY tynto = t.nextOf().ty;
-                            int sznto = cast(int)t.nextOf().size();
                             if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                             {
                                 if (e.committed && tynto != tyn)
                                     return;
-                                size_t fromlen = e.length(sznto);
+                                size_t fromlen = e.numberOfCodeUnits(tynto);
                                 size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
                                 if (tolen < fromlen)
                                     return;
