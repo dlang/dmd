@@ -1010,6 +1010,8 @@ extern (C++) Expression paintFloatInt(Expression fromVal, Type to)
  ***********************************************/
 /**   e = OP e
  */
+/* DEAD: Logic is now found in constfold.d in functions:
+    Neg, Com */
 extern (C++) void intUnary(TOK op, IntegerExp e)
 {
     switch (op)
@@ -1027,6 +1029,8 @@ extern (C++) void intUnary(TOK op, IntegerExp e)
 
 /** dest = e1 OP e2;
  */
+/* DEAD: Logic is now found in constfold.d in functions:
+    And, Or, Xor, Add, Min, Mul, Div, Mod, Pow, Shl, Shr, Ushr, Identity, Equal */
 extern (C++) void intBinary(TOK op, IntegerExp dest, Type type, IntegerExp e1, IntegerExp e2)
 {
     dinteger_t result;
