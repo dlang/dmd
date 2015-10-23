@@ -966,50 +966,10 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
         size_t len = es1.len;
         if (es2.len < len)
             len = es2.len;
-        int cmp = memcmp(es1.string, es2.string, sz * len);
-        if (cmp == 0)
-            cmp = cast(int)(es1.len - es2.len);
-        switch (op)
-        {
-        case TOKlt:
-            n = cmp < 0;
-            break;
-        case TOKle:
-            n = cmp <= 0;
-            break;
-        case TOKgt:
-            n = cmp > 0;
-            break;
-        case TOKge:
-            n = cmp >= 0;
-            break;
-        case TOKleg:
-            n = 1;
-            break;
-        case TOKlg:
-            n = cmp != 0;
-            break;
-        case TOKunord:
-            n = 0;
-            break;
-        case TOKue:
-            n = cmp == 0;
-            break;
-        case TOKug:
-            n = cmp > 0;
-            break;
-        case TOKuge:
-            n = cmp >= 0;
-            break;
-        case TOKul:
-            n = cmp < 0;
-            break;
-        case TOKule:
-            n = cmp <= 0;
-            break;
-        default:
-            assert(0);
-        }
+        int rawCmp = memcmp(es1.string, es2.string, sz * len);
+        if (rawCmp == 0)
+            rawCmp = cast(int)(es1.len - es2.len);
+        n = specificCmp(op, rawCmp);
     }
     else if (e1.isConst() != 1 || e2.isConst() != 1)
     {
@@ -1027,96 +987,7 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
         r1 = e1.toImaginary();
         r2 = e2.toImaginary();
     L1:
-        // Don't rely on compiler, handle NAN arguments separately
-        // (DMC does do it correctly)
-        if (Port.isNan(r1) || Port.isNan(r2)) // if unordered
-        {
-            switch (op)
-            {
-            case TOKlt:
-                n = 0;
-                break;
-            case TOKle:
-                n = 0;
-                break;
-            case TOKgt:
-                n = 0;
-                break;
-            case TOKge:
-                n = 0;
-                break;
-            case TOKleg:
-                n = 0;
-                break;
-            case TOKlg:
-                n = 0;
-                break;
-            case TOKunord:
-                n = 1;
-                break;
-            case TOKue:
-                n = 1;
-                break;
-            case TOKug:
-                n = 1;
-                break;
-            case TOKuge:
-                n = 1;
-                break;
-            case TOKul:
-                n = 1;
-                break;
-            case TOKule:
-                n = 1;
-                break;
-            default:
-                assert(0);
-            }
-        }
-        else
-        {
-            switch (op)
-            {
-            case TOKlt:
-                n = r1 < r2;
-                break;
-            case TOKle:
-                n = r1 <= r2;
-                break;
-            case TOKgt:
-                n = r1 > r2;
-                break;
-            case TOKge:
-                n = r1 >= r2;
-                break;
-            case TOKleg:
-                n = 1;
-                break;
-            case TOKlg:
-                n = r1 != r2;
-                break;
-            case TOKunord:
-                n = 0;
-                break;
-            case TOKue:
-                n = r1 == r2;
-                break;
-            case TOKug:
-                n = r1 > r2;
-                break;
-            case TOKuge:
-                n = r1 >= r2;
-                break;
-            case TOKul:
-                n = r1 < r2;
-                break;
-            case TOKule:
-                n = r1 <= r2;
-                break;
-            default:
-                assert(0);
-            }
-        }
+        n = realCmp(op, r1, r2);
     }
     else if (e1.type.iscomplex())
     {
@@ -1129,93 +1000,9 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
         n1 = e1.toInteger();
         n2 = e2.toInteger();
         if (e1.type.isunsigned() || e2.type.isunsigned())
-        {
-            switch (op)
-            {
-            case TOKlt:
-                n = (cast(dinteger_t)n1) < (cast(dinteger_t)n2);
-                break;
-            case TOKle:
-                n = (cast(dinteger_t)n1) <= (cast(dinteger_t)n2);
-                break;
-            case TOKgt:
-                n = (cast(dinteger_t)n1) > (cast(dinteger_t)n2);
-                break;
-            case TOKge:
-                n = (cast(dinteger_t)n1) >= (cast(dinteger_t)n2);
-                break;
-            case TOKleg:
-                n = 1;
-                break;
-            case TOKlg:
-                n = (cast(dinteger_t)n1) != (cast(dinteger_t)n2);
-                break;
-            case TOKunord:
-                n = 0;
-                break;
-            case TOKue:
-                n = (cast(dinteger_t)n1) == (cast(dinteger_t)n2);
-                break;
-            case TOKug:
-                n = (cast(dinteger_t)n1) > (cast(dinteger_t)n2);
-                break;
-            case TOKuge:
-                n = (cast(dinteger_t)n1) >= (cast(dinteger_t)n2);
-                break;
-            case TOKul:
-                n = (cast(dinteger_t)n1) < (cast(dinteger_t)n2);
-                break;
-            case TOKule:
-                n = (cast(dinteger_t)n1) <= (cast(dinteger_t)n2);
-                break;
-            default:
-                assert(0);
-            }
-        }
+            n = intUnsignedCmp(op, n1, n2);
         else
-        {
-            switch (op)
-            {
-            case TOKlt:
-                n = n1 < n2;
-                break;
-            case TOKle:
-                n = n1 <= n2;
-                break;
-            case TOKgt:
-                n = n1 > n2;
-                break;
-            case TOKge:
-                n = n1 >= n2;
-                break;
-            case TOKleg:
-                n = 1;
-                break;
-            case TOKlg:
-                n = n1 != n2;
-                break;
-            case TOKunord:
-                n = 0;
-                break;
-            case TOKue:
-                n = n1 == n2;
-                break;
-            case TOKug:
-                n = n1 > n2;
-                break;
-            case TOKuge:
-                n = n1 >= n2;
-                break;
-            case TOKul:
-                n = n1 < n2;
-                break;
-            case TOKule:
-                n = n1 <= n2;
-                break;
-            default:
-                assert(0);
-            }
-        }
+            n = intSignedCmp(op, n1, n2);
     }
     emplaceExp!(IntegerExp)(&ue, loc, n, type);
     return ue;
