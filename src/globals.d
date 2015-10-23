@@ -13,6 +13,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.root.array;
 import ddmd.root.filename;
+import ddmd.root.longdouble;
 import ddmd.root.outbuffer;
 
 template xversion(string s)
@@ -340,11 +341,11 @@ alias d_int64 = int64_t;
 alias d_uns64 = uint64_t;
 alias d_float32 = float;
 alias d_float64 = double;
-alias d_float80 = real;
+alias d_float80 = longdouble;
 alias d_char = d_uns8;
 alias d_wchar = d_uns16;
 alias d_dchar = d_uns32;
-alias real_t = real;
+alias real_t = longdouble;
 
 // file location
 struct Loc

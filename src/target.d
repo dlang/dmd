@@ -349,7 +349,7 @@ extern (C++) static void encodeReal(Expression e, ubyte* buffer)
 // the value as a new RealExp.
 extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
 {
-    real value;
+    real_t value;
     switch (type.ty)
     {
     case Tfloat32:
