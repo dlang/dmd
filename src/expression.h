@@ -356,9 +356,9 @@ public:
 
 class StringExp : public Expression
 {
-public:
     void *string;       // char, wchar, or dchar data
     size_t len;         // number of chars, wchars, or dchars
+public:
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
     utf8_t postfix;      // 'c', 'w', 'd'
@@ -380,6 +380,9 @@ public:
     unsigned charAt(uinteger_t i);
     void accept(Visitor *v) { v->visit(this); }
     char *toStringz();
+    size_t numberOfCodeUnits(int tynto = 0);
+    void writeTo(void* dest, bool zero, int tyto = 0);
+    char *toPtr();
 };
 
 // Tuple

@@ -4270,11 +4270,12 @@ public:
      * Returns:
      *      number of code units
      */
-    final size_t numberOfCodeUnits(int tynto)
+    final size_t numberOfCodeUnits(int tynto = 0)
     {
         int encSize;
         switch (tynto)
         {
+            case 0:      return len;
             case Tchar:  encSize = 1; break;
             case Twchar: encSize = 2; break;
             case Tdchar: encSize = 4; break;
@@ -4321,6 +4322,48 @@ public:
             assert(0);
         }
         return result;
+    }
+
+    /**********************************************
+     * Write the contents of the string to dest.
+     * Use numberOfCodeUnits() to determine size of result.
+     * Params:
+     *  dest = destination
+     *  tyto = encoding type of the result
+     *  zero = add terminating 0
+     */
+    void writeTo(void* dest, bool zero, int tyto = 0)
+    {
+        int encSize;
+        switch (tyto)
+        {
+            case 0:      encSize = sz; break;
+            case Tchar:  encSize = 1; break;
+            case Twchar: encSize = 2; break;
+            case Tdchar: encSize = 4; break;
+            default:
+                assert(0);
+        }
+        if (sz == encSize)
+        {
+            memcpy(dest, string, len * sz);
+            if (zero)
+                memset(dest + len * sz, 0, sz);
+        }
+        else
+            assert(0);
+    }
+
+    /**************************************************
+     * If the string data is UTF-8 and can be accessed directly,
+     * return a pointer to it.
+     * Do not assume a terminating 0.
+     * Returns:
+     *  pointer to string data if possible, null if not
+     */
+    char* toPtr()
+    {
+        return (sz == 1) ? cast(char*)string : null;
     }
 
     override StringExp toStringExp()
@@ -4447,8 +4490,7 @@ public:
     {
         auto nbytes = len * sz;
         char* s = cast(char*)mem.xmalloc(nbytes + sz);
-        memcpy(s, string, nbytes);
-        memset(s + nbytes, 0, sz);
+        writeTo(s, true);
         return s;
     }
 

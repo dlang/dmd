@@ -40,7 +40,7 @@
 #include        "target.h"
 #include        "visitor.h"
 
-Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+Symbol *toStringSymbol(StringExp *se);
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
@@ -564,8 +564,8 @@ public:
                 else
                 {
                     StringExp *se = (StringExp *)(cs->exp);
-                    Symbol *si = toStringSymbol((char *)se->string, se->len, se->sz);
-                    dtsize_t(&dt, se->len);
+                    Symbol *si = toStringSymbol(se);
+                    dtsize_t(&dt, se->numberOfCodeUnits());
                     dtxoff(&dt, si, 0);
                 }
             }

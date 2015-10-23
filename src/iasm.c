@@ -3470,6 +3470,7 @@ static code *asm_db_parse(OP *pop)
     {
         size_t len;
         unsigned char *q;
+        unsigned char *qstart = NULL;
 
         if (usBytes+usSize > usMaxbytes)
         {
@@ -3571,6 +3572,11 @@ static code *asm_db_parse(OP *pop)
 
                     usBytes += len * usSize;
                 }
+                if (qstart)
+                {
+                    mem_free(qstart);
+                    qstart = NULL;
+                }
                 break;
 
             case TOKidentifier:
@@ -3606,8 +3612,14 @@ static code *asm_db_parse(OP *pop)
                 else if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;
-                    q = (unsigned char *)se->string;
-                    len = se->len;
+                    len = se->numberOfCodeUnits();
+                    q = (unsigned char *)se->toPtr();
+                    if (!q)
+                    {
+                        qstart = (unsigned char *)mem_malloc(len * se->sz);
+                        se->writeTo(qstart, false);
+                        q = qstart;
+                    }
                     goto L3;
                 }
                 goto Ldefault;
