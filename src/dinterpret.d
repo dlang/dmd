@@ -2778,64 +2778,69 @@ public:
             result = e;
             return;
         }
-        size_t elemdim = e.elements ? e.elements.dim : 0;
-        Expressions* expsx = null;
-        for (size_t i = 0; i < e.sd.fields.dim; i++)
+
+        size_t dim = e.elements ? e.elements.dim : 0;
+        auto expsx = e.elements;
+
+        if (dim != e.sd.fields.dim)
         {
-            VarDeclaration v = e.sd.fields[i];
-            Expression ex = null;
-            Expression exp = null;
-            if (i >= elemdim)
+            // guaranteed by AggregateDeclaration.fill and TypeStruct.defaultInitLiteral
+            assert(e.sd.isNested() && dim == e.sd.fields.dim - 1);
+
+            /* If a nested struct has no initialized hidden pointer,
+             * set it to null to match the runtime behaviour.
+             */
+            auto ne = new NullExp(e.loc);
+            ne.type = e.sd.vthis.type;
+
+            if (!e.elements)
+                expsx = new Expressions();
+            else
+                expsx = e.elements.copy();
+            ++CtfeStatus.numArrayAllocs;
+
+            expsx.push(ne);
+            ++dim;
+        }
+        assert(dim == e.sd.fields.dim);
+
+        foreach (i; 0 .. dim)
+        {
+            auto v = e.sd.fields[i];
+            Expression exp = (*expsx)[i];
+            Expression ex;
+            if (!exp)
             {
-                /* If a nested struct has no initialized hidden pointer,
-                 * set it to null to match the runtime behaviour.
-                 */
-                if (i == e.sd.fields.dim - 1 && e.sd.isNested())
-                {
-                    // Context field has not been filled
-                    ex = new NullExp(e.loc);
-                    ex.type = v.type;
-                }
+                ex = voidInitLiteral(v.type, v).copy();
             }
             else
             {
-                exp = (*e.elements)[i];
-                if (!exp)
+                ex = interpret(exp, istate);
+                if (exceptionOrCant(ex))
+                    return;
+                if ((v.type.ty != ex.type.ty) && v.type.ty == Tsarray)
                 {
-                    ex = voidInitLiteral(v.type, v).copy();
-                }
-                else
-                {
-                    ex = interpret(exp, istate);
-                    if (exceptionOrCant(ex))
-                        return;
-                    if ((v.type.ty != ex.type.ty) && v.type.ty == Tsarray)
-                    {
-                        // Block assignment from inside struct literals
-                        TypeSArray tsa = cast(TypeSArray)v.type;
-                        size_t len = cast(size_t)tsa.dim.toInteger();
-                        ex = createBlockDuplicatedArrayLiteral(ex.loc, v.type, ex, len);
-                    }
+                    // Block assignment from inside struct literals
+                    auto tsa = cast(TypeSArray)v.type;
+                    auto len = cast(size_t)tsa.dim.toInteger();
+                    ex = createBlockDuplicatedArrayLiteral(ex.loc, v.type, ex, len);
                 }
             }
+
             /* If any changes, do Copy On Write
              */
-            if (ex != exp)
+            if (ex !is exp)
             {
-                if (!expsx)
+                if (expsx is e.elements)
                 {
-                    expsx = new Expressions();
+                    expsx = e.elements.copy();
                     ++CtfeStatus.numArrayAllocs;
-                    expsx.setDim(e.sd.fields.dim);
-                    for (size_t j = 0; j < e.elements.dim; j++)
-                    {
-                        (*expsx)[j] = (*e.elements)[j];
-                    }
                 }
                 (*expsx)[i] = ex;
             }
         }
-        if (e.elements && expsx)
+
+        if (expsx !is e.elements)
         {
             expandTuples(expsx);
             if (expsx.dim != e.sd.fields.dim)
@@ -2844,13 +2849,13 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            auto se = new StructLiteralExp(e.loc, e.sd, expsx);
-            se.type = e.type;
-            se.ownedByCtfe = OWNEDctfe;
-            result = se;
-            return;
+            auto sle = new StructLiteralExp(e.loc, e.sd, expsx);
+            sle.type = e.type;
+            sle.ownedByCtfe = OWNEDctfe;
+            result = sle;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     // Create an array literal of type 'newtype' with dimensions given by
