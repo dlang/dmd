@@ -2652,8 +2652,6 @@ public:
 
     override void visit(AssocArrayLiteralExp e)
     {
-        Expressions* keysx = e.keys;
-        Expressions* valuesx = e.values;
         static if (LOG)
         {
             printf("%s AssocArrayLiteralExp::interpret() %s\n", e.loc.toChars(), e.toChars());
@@ -2663,36 +2661,43 @@ public:
             result = e;
             return;
         }
-        for (size_t i = 0; i < e.keys.dim; i++)
+
+        auto keysx = e.keys;
+        auto valuesx = e.values;
+        for (size_t i = 0; i < keysx.dim; i++)
         {
-            Expression ekey = (*e.keys)[i];
-            Expression evalue = (*e.values)[i];
-            Expression ex = interpret(ekey, istate);
-            if (exceptionOrCant(ex))
+            auto ekey = (*keysx)[i];
+            auto evalue = (*valuesx)[i];
+
+            auto ek = interpret(ekey, istate);
+            if (exceptionOrCant(ek))
                 return;
+            auto ev = interpret(evalue, istate);
+            if (exceptionOrCant(ev))
+                return;
+
             /* If any changes, do Copy On Write
              */
-            if (ex != ekey)
+            if (ek !is ekey ||
+                ev !is evalue)
             {
-                if (keysx == e.keys)
-                    keysx = cast(Expressions*)e.keys.copy();
-                (*keysx)[i] = ex;
-            }
-            ex = interpret(evalue, istate);
-            if (exceptionOrCant(ex))
-                return;
-            /* If any changes, do Copy On Write
-             */
-            if (ex != evalue)
-            {
-                if (valuesx == e.values)
-                    valuesx = cast(Expressions*)e.values.copy();
-                (*valuesx)[i] = ex;
+                if (keysx is e.keys)
+                {
+                    keysx = e.keys.copy();
+                    ++CtfeStatus.numArrayAllocs;
+                }
+                if (valuesx is e.values)
+                {
+                    valuesx = e.values.copy();
+                    ++CtfeStatus.numArrayAllocs;
+                }
+                (*keysx)[i] = ek;
+                (*valuesx)[i] = ev;
             }
         }
-        if (keysx != e.keys)
+        if (keysx !is e.keys)
             expandTuples(keysx);
-        if (valuesx != e.values)
+        if (valuesx !is e.values)
             expandTuples(valuesx);
         if (keysx.dim != valuesx.dim)
         {
@@ -2700,39 +2705,49 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
+
         /* Remove duplicate keys
          */
         for (size_t i = 1; i < keysx.dim; i++)
         {
-            Expression ekey = (*keysx)[i - 1];
+            auto ekey = (*keysx)[i - 1];
             for (size_t j = i; j < keysx.dim; j++)
             {
-                Expression ekey2 = (*keysx)[j];
-                int eq = ctfeEqual(e.loc, TOKequal, ekey, ekey2);
-                if (eq) // if a match
+                auto ekey2 = (*keysx)[j];
+                if (!ctfeEqual(e.loc, TOKequal, ekey, ekey2))
+                    continue;
+
+                // Remove ekey
+                if (keysx is e.keys)
                 {
-                    // Remove ekey
-                    if (keysx == e.keys)
-                        keysx = cast(Expressions*)e.keys.copy();
-                    if (valuesx == e.values)
-                        valuesx = cast(Expressions*)e.values.copy();
-                    keysx.remove(i - 1);
-                    valuesx.remove(i - 1);
-                    i -= 1; // redo the i'th iteration
-                    break;
+                    keysx = e.keys.copy();
+                    ++CtfeStatus.numArrayAllocs;
                 }
+                if (valuesx is e.values)
+                {
+                    valuesx = e.values.copy();
+                    ++CtfeStatus.numArrayAllocs;
+                }
+                keysx.remove(i - 1);
+                valuesx.remove(i - 1);
+
+                i -= 1; // redo the i'th iteration
+                break;
             }
         }
-        if (keysx != e.keys || valuesx != e.values)
+
+        if (keysx !is e.keys ||
+            valuesx !is e.values)
         {
-            AssocArrayLiteralExp ae;
-            ae = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
-            ae.type = e.type;
-            ae.ownedByCtfe = OWNEDctfe;
-            result = ae;
-            return;
+            assert(keysx !is e.keys &&
+                   valuesx !is e.values);
+            auto aae = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
+            aae.type = e.type;
+            aae.ownedByCtfe = OWNEDctfe;
+            result = aae;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     override void visit(StructLiteralExp e)
