@@ -2595,6 +2595,7 @@ public:
             result = e;
             return;
         }
+
         Type tn = e.type.toBasetype().nextOf().toBasetype();
         bool wantCopy = (tn.ty == Tsarray || tn.ty == Tstruct);
 
@@ -2602,54 +2603,47 @@ public:
         if (exceptionOrCant(basis))
             return;
 
-        Expressions* expsx = null;
-        size_t dim = e.elements ? e.elements.dim : 0;
+        auto expsx = e.elements;
+        size_t dim = expsx ? expsx.dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
-            Expression exp = (*e.elements)[i];
+            Expression exp = (*expsx)[i];
             Expression ex;
             if (!exp)
             {
                 ex = copyLiteral(basis).copy();
-                goto Lcow;
             }
+            else
+            {
+                // segfault bug 6250
+                assert(exp.op != TOKindex || (cast(IndexExp)exp).e1 != e);
 
-            // segfault bug 6250
-            assert(exp.op != TOKindex || (cast(IndexExp)exp).e1 != e);
+                ex = interpret(exp, istate);
+                if (exceptionOrCant(ex))
+                    return;
 
-            ex = interpret(exp, istate);
-            if (exceptionOrCant(ex))
-                return;
-
-            /* Each elements should have distinct CFE memory.
-             *  int[1] z = 7;
-             *  int[1][] pieces = [z,z];    // here
-             */
-            if (wantCopy || ex == exp && expsx)
-                ex = copyLiteral(ex).copy();
-
-            if (ex == exp && !expsx)
-                continue;
+                /* Each elements should have distinct CTFE memory.
+                 *  int[1] z = 7;
+                 *  int[1][] pieces = [z,z];    // here
+                 */
+                if (wantCopy)
+                    ex = copyLiteral(ex).copy();
+            }
 
             /* If any changes, do Copy On Write
              */
-        Lcow:
-            if (!expsx)
+            if (ex !is exp)
             {
-                expsx = new Expressions();
-                ++CtfeStatus.numArrayAllocs;
-                expsx.setDim(dim);
-                for (size_t j = 0; j < i; j++)
+                if (expsx is e.elements)
                 {
-                    auto el = (*e.elements)[j];
-                    if (!el)
-                        el = e.basis;
-                    (*expsx)[j] = copyLiteral(el).copy();
+                    expsx = e.elements.copy();
+                    ++CtfeStatus.numArrayAllocs;
                 }
+                (*expsx)[i] = ex;
             }
-            (*expsx)[i] = ex;
         }
-        if (expsx)
+
+        if (expsx !is e.elements)
         {
             // todo: all tuple expansions should go in semantic phase.
             expandTuples(expsx);
@@ -2659,19 +2653,18 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            auto ae = new ArrayLiteralExp(e.loc, basis, expsx);
-            ae.type = e.type;
-            ae.ownedByCtfe = OWNEDctfe;
-            result = ae;
-            return;
+            auto ale = new ArrayLiteralExp(e.loc, basis, expsx);
+            ale.type = e.type;
+            ale.ownedByCtfe = OWNEDctfe;
+            result = ale;
         }
-        if ((cast(TypeNext)e.type).next.mod & (MODconst | MODimmutable))
+        else if ((cast(TypeNext)e.type).next.mod & (MODconst | MODimmutable))
         {
             // If it's immutable, we don't need to dup it
             result = e;
-            return;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     override void visit(AssocArrayLiteralExp e)
