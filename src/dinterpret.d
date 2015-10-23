@@ -2518,13 +2518,15 @@ public:
         }
         if (exceptionOrCant(interpret(e.e0, istate, ctfeNeedNothing)))
             return;
-        Expressions* expsx = null;
-        for (size_t i = 0; i < e.exps.dim; i++)
+
+        auto expsx = e.exps;
+        for (size_t i = 0; i < expsx.dim; i++)
         {
-            Expression exp = (*e.exps)[i];
+            Expression exp = (*expsx)[i];
             Expression ex = interpret(exp, istate);
             if (exceptionOrCant(ex))
                 return;
+
             // A tuple of assignments can contain void (Bug 5676).
             if (goal == ctfeNeedNothing)
                 continue;
@@ -2533,33 +2535,29 @@ public:
                 e.error("CTFE internal error: void element %s in tuple", exp.toChars());
                 assert(0);
             }
+
             /* If any changes, do Copy On Write
              */
-            if (ex != exp)
+            if (ex !is exp)
             {
-                if (!expsx)
+                if (expsx is e.exps)
                 {
-                    expsx = new Expressions();
+                    expsx = e.exps.copy();
                     ++CtfeStatus.numArrayAllocs;
-                    expsx.setDim(e.exps.dim);
-                    for (size_t j = 0; j < i; j++)
-                    {
-                        (*expsx)[j] = (*e.exps)[j];
-                    }
                 }
                 (*expsx)[i] = ex;
             }
         }
-        if (expsx)
+
+        if (expsx !is e.exps)
         {
+            expandTuples(expsx);
             auto te = new TupleExp(e.loc, expsx);
-            expandTuples(te.exps);
             te.type = new TypeTuple(te.exps);
             result = te;
-            return;
         }
-        result = e;
-        return;
+        else
+            result = e;
     }
 
     override void visit(ArrayLiteralExp e)
