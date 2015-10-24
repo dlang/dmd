@@ -235,16 +235,6 @@ Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 /// True if type is TypeInfo_Class
 bool isTypeInfo_Class(Type *type);
 
-/***********************************************
-      In-place integer operations
-***********************************************/
-
-/// e = OP e
-void intUnary(TOK op, IntegerExp *e);
-
-/// dest = e1 OP e2;
-void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp *e2);
-
 
 /***********************************************
       COW const-folding operations
