@@ -3046,7 +3046,7 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 
 /**
 Calculates the hash value of $(D arg) with $(D seed) initial value.
-Result may be non-equals with $(D typeid(T).getHash(&arg))
+Result may be non-equals with `typeid(T).getHash(&arg)`
 The $(D seed) value may be used for hash chaining:
 ----
 struct Test
