@@ -6099,9 +6099,9 @@ public:
             tf.inuse = 0;
             errors = true;
         }
-        if (tf.isproperty && (tf.varargs || Parameter.dim(tf.parameters) > 2))
+        if (tf.isproperty && (tf.varargs || Parameter.dim(tf.parameters) > 1))
         {
-            error(loc, "properties can only have zero, one, or two parameter");
+            error(loc, "@property functions can only have zero or one parameters");
             errors = true;
         }
         if (tf.varargs == 1 && tf.linkage != LINKd && Parameter.dim(tf.parameters) == 0)
