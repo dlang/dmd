@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail334.d(10): Error: properties can only have zero, one, or two parameter
+fail_compilation/fail334.d(10): Error: @property functions can only have zero or one parameters
 ---
 */
 
