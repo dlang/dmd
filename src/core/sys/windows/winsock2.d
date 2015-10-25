@@ -319,9 +319,22 @@ enum: int
 
     TCP_NODELAY =    1,
 
-    IP_MULTICAST_LOOP =  0x4,
-    IP_ADD_MEMBERSHIP =  0x5,
-    IP_DROP_MEMBERSHIP = 0x6,
+    IP_OPTIONS                  = 1,
+
+    IP_HDRINCL                  = 2,
+    IP_TOS                      = 3,
+    IP_TTL                      = 4,
+    IP_MULTICAST_IF             = 9,
+    IP_MULTICAST_TTL            = 10,
+    IP_MULTICAST_LOOP           = 11,
+    IP_ADD_MEMBERSHIP           = 12,
+    IP_DROP_MEMBERSHIP          = 13,
+    IP_DONTFRAGMENT             = 14,
+    IP_ADD_SOURCE_MEMBERSHIP    = 15,
+    IP_DROP_SOURCE_MEMBERSHIP   = 16,
+    IP_BLOCK_SOURCE             = 17,
+    IP_UNBLOCK_SOURCE           = 18,
+    IP_PKTINFO                  = 19,
 
     IPV6_UNICAST_HOPS =    4,
     IPV6_MULTICAST_IF =    9,
