@@ -324,7 +324,7 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
     if (type.isfloating())
     {
         complex_t c;
-        d_float80 r;
+        longdouble r;
         if (e1.type.isreal())
         {
             r = e1.toReal();
@@ -373,7 +373,7 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
     if (type.isfloating())
     {
         complex_t c;
-        d_float80 r;
+        longdouble r;
         //e1->type->print();
         //e2->type->print();
         if (e2.type.isreal())
@@ -387,8 +387,8 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
                     // https://issues.dlang.org/show_bug.cgi?id=14952
                     // This can be removed once compiling with DMD 2.068 or
                     // older is no longer supported.
-                    d_float80 r1 = e1.toReal();
-                    d_float80 r2 = e2.toReal();
+                    longdouble r1 = e1.toReal();
+                    longdouble r2 = e2.toReal();
                     emplaceExp!(RealExp)(&ue, loc, r1 / r2, type);
                 }
                 else
