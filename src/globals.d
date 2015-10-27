@@ -341,9 +341,6 @@ alias d_uns64 = uint64_t;
 alias d_float32 = float;
 alias d_float64 = double;
 alias d_float80 = real;
-alias d_char = d_uns8;
-alias d_wchar = d_uns16;
-alias d_dchar = d_uns32;
 alias real_t = real;
 
 // file location
