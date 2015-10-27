@@ -8,8 +8,10 @@
 
 module ddmd.root.longdouble;
 
-real ldouble(T)(T x)
+alias longdouble = real;
+
+longdouble ldouble(T)(T x)
 {
-    return cast(real)x;
+    return cast(longdouble)x;
 }
 

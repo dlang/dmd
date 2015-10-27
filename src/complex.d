@@ -8,17 +8,19 @@
 
 module ddmd.complex;
 
+import ddmd.root.longdouble;
+
 struct complex_t
 {
-    real re = 0;
-    real im = 0;
-    this(real re)
+    longdouble re = 0;
+    longdouble im = 0;
+    this(longdouble re)
     {
         this.re = re;
         this.im = 0;
     }
 
-    this(real re, real im)
+    this(longdouble re, longdouble im)
     {
         this.re = re;
         this.im = im;
@@ -53,26 +55,26 @@ struct complex_t
         return complex_t(re * y.re - im * y.im, im * y.re + re * y.im);
     }
 
-    complex_t opMul_r(real x)
+    complex_t opMul_r(longdouble x)
     {
         return complex_t(x) * this;
     }
 
-    complex_t opMul(real y)
+    complex_t opMul(longdouble y)
     {
         return this * complex_t(y);
     }
 
-    complex_t opDiv(real y)
+    complex_t opDiv(longdouble y)
     {
         return this / complex_t(y);
     }
 
     complex_t opDiv(complex_t y)
     {
-        real abs_y_re = y.re < 0 ? -y.re : y.re;
-        real abs_y_im = y.im < 0 ? -y.im : y.im;
-        real r, den;
+        longdouble abs_y_re = y.re < 0 ? -y.re : y.re;
+        longdouble abs_y_im = y.im < 0 ? -y.im : y.im;
+        longdouble r, den;
 
         if (abs_y_re < abs_y_im)
         {
@@ -99,12 +101,12 @@ struct complex_t
     }
 }
 
-extern (C++) real creall(complex_t x)
+extern (C++) longdouble creall(complex_t x)
 {
     return x.re;
 }
 
-extern (C++) real cimagl(complex_t x)
+extern (C++) longdouble cimagl(complex_t x)
 {
     return x.im;
 }

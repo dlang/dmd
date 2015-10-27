@@ -1914,7 +1914,7 @@ private:
         char[__traits(classInstanceSize, AddrExp)] addrexp;
         char[__traits(classInstanceSize, IndexExp)] indexexp;
         char[__traits(classInstanceSize, SliceExp)] sliceexp;
-        // Ensure that the union is suitably aligned.
+        // Ensure that the union is suitably aligned.  XXX: ???
         real for_alignment_only;
     }
 

@@ -432,7 +432,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 }
             case Tfloat80:
                 {
-                    real f;
+                    longdouble f;
                     if (e.type.isunsigned())
                     {
                         f = ldouble(value);
