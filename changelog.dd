@@ -5,6 +5,7 @@ $(COMMENT Pending changelog for 2.069.0.
 
 $(BUGSTITLE Library Changes,
 $(LI $(RELATIVE_LINK2 backtraces-with-line-numbers, Backtraces now include file name and line number.))
+$(LI $(RELATIVE_LINK2 link-against-vs2015, support to link against VS2015 libraries))
 )
 
 $(BUGSTITLE Library Changes,
@@ -30,7 +31,19 @@ $(LI $(LNAME2 backtraces-with-line-numbers, Backtraces now include file name and
     ??:? __libc_start_main [0xc3ae96ff]
     )
 )
+
+$(LI $(LNAME2 link-against-vs2015, support to link against VS2015 libraries)
+
+    $(P Support for linking against the Microsoft runtime library distributed with VS 2015
+    has been added. This affects both the 64-bit build for Win64 and the 32-bit build
+    targeting the MS runtime (-m32mscoff).)
+
+    $(P The compiler detects the library version to adjust the link command line automatically.
+    If you don't use dmd for linking, make sure to add legacy_stdio_definitions.lib to your
+    command line when linking against the VS2015 runtime.)
 )
+)
+
 
 Macros:
     TITLE=Change Log
