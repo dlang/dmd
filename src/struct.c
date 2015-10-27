@@ -495,6 +495,13 @@ void StructDeclaration::semantic(Scope *sc)
 
         id = Id::cmp;
     }
+
+    {
+        Dsymbol *fopequals = search_function(this, Id::eq);
+        Dsymbol *fopcmp    = search_function(this, Id::cmp);
+        if (fopcmp && (!fopequals))
+            deprecation(loc, "has `opCmp` without matching `opEquals`");
+    }
 #endif
 #if DMDV2
     dtor = buildDtor(sc2);
