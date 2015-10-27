@@ -425,6 +425,9 @@ $(IMPDIR)\core\sys\linux\sys\mman.d : src\core\sys\linux\sys\mman.d
 $(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\socket.d : src\core\sys\linux\sys\socket.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\sysinfo.d : src\core\sys\linux\sys\sysinfo.d
 	copy $** $@
 
