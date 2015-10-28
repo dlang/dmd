@@ -240,10 +240,6 @@ typedef float                   d_float32;
 typedef double                  d_float64;
 typedef longdouble              d_float80;
 
-typedef d_uns8                  d_char;
-typedef d_uns16                 d_wchar;
-typedef d_uns32                 d_dchar;
-
 typedef longdouble real_t;
 
 // file location

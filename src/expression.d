@@ -4368,8 +4368,8 @@ public:
                 return memcmp(cast(char*)string, cast(char*)se2.string, len1);
             case 2:
                 {
-                    d_wchar* s1 = cast(d_wchar*)string;
-                    d_wchar* s2 = cast(d_wchar*)se2.string;
+                    wchar* s1 = cast(wchar*)string;
+                    wchar* s2 = cast(wchar*)se2.string;
                     for (size_t u = 0; u < len; u++)
                     {
                         if (s1[u] != s2[u])
@@ -4378,8 +4378,8 @@ public:
                 }
             case 4:
                 {
-                    d_dchar* s1 = cast(d_dchar*)string;
-                    d_dchar* s2 = cast(d_dchar*)se2.string;
+                    dchar* s1 = cast(dchar*)string;
+                    dchar* s2 = cast(dchar*)se2.string;
                     for (size_t u = 0; u < len; u++)
                     {
                         if (s1[u] != s2[u])
