@@ -164,6 +164,9 @@ extern (C) int rt_init()
        rt_init. */
     if (atomicOp!"+="(_initCount, 1) > 1) return 1;
 
+    version (CRuntime_Microsoft)
+        init_msvc();
+
     _d_monitor_staticctor();
     _d_critical_init();
 
@@ -325,8 +328,6 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     }
     version (CRuntime_Microsoft)
     {
-        init_msvc();
-
         // enable full precision for reals
         version(Win64)
             asm
