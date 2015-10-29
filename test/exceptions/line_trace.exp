@@ -2,8 +2,8 @@ object.Exception@src/line_trace.d(17): exception
 ----------------
 src/line_trace.d:17 void line_trace.f1() [ADDR]
 src/line_trace.d:5 _Dmain [ADDR]
-src/rt/dmain2.d:471 _D2rt6dmain211_d_run_mainUiPPaPUAAaZiZ6runAllMFZ9__lambda1MFZv [ADDR]
-src/rt/dmain2.d:446 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [ADDR]
-src/rt/dmain2.d:471 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).runAll() [ADDR]
-src/rt/dmain2.d:446 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [ADDR]
-src/rt/dmain2.d:479 _d_run_main [ADDR]
+src/rt/dmain2.d:472 _D2rt6dmain211_d_run_mainUiPPaPUAAaZiZ6runAllMFZ9__lambda1MFZv [ADDR]
+src/rt/dmain2.d:447 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [ADDR]
+src/rt/dmain2.d:472 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).runAll() [ADDR]
+src/rt/dmain2.d:447 void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [ADDR]
+src/rt/dmain2.d:480 _d_run_main [ADDR]
