@@ -2,7 +2,7 @@ language: d
 d:
   - dmd
   - gdc
-  - ldc-0.16.1
+  - ldc
 
 script: ./travis.sh
 
