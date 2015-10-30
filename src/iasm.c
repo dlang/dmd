@@ -2037,6 +2037,7 @@ static code *asm_genloc(Loc loc, code *c)
 /*******************************
  */
 
+struct AsmErr {};
 static void asmerr(const char *format, ...)
 {
     va_list ap;
@@ -2044,7 +2045,7 @@ static void asmerr(const char *format, ...)
     verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    exit(EXIT_FAILURE);
+    throw AsmErr();
 }
 
 /*******************************
@@ -4528,7 +4529,7 @@ regm_t iasm_regs(block *bp)
 
 /************************ AsmStatement ***************************************/
 
-Statement* asmSemantic(AsmStatement *s, Scope *sc)
+static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
@@ -4707,4 +4708,13 @@ AFTER_EMIT:
     }
     //return asmstate.bReturnax;
     return s;
+}
+
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
+{
+    try {
+        return asmSemanticImpl(s, sc);
+    } catch (AsmErr) {
+        return NULL; // somehow this just works
+    }
 }
