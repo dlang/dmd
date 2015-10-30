@@ -4376,6 +4376,7 @@ public:
                             return s1[u] - s2[u];
                     }
                 }
+                break;
             case 4:
                 {
                     dchar* s1 = cast(dchar*)string;
@@ -7235,7 +7236,9 @@ public:
         // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
         // See issue 3841.
         // Should we also prevent double to float (type->isfloating() && type->size() < t2 ->size()) ?
-        if (op == TOKmulass || op == TOKdivass || op == TOKmodass || TOKaddass || op == TOKminass || op == TOKpowass)
+        if (op == TOKaddass || op == TOKminass ||
+            op == TOKmulass || op == TOKdivass || op == TOKmodass ||
+            op == TOKpowass)
         {
             if ((type.isintegral() && t2.isfloating()))
             {
