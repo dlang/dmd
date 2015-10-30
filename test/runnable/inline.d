@@ -893,6 +893,29 @@ void test15207()
 }
 
 /**********************************/
+// 15253
+
+struct MessageType15253
+{
+    MessageType15253[] messageTypes;
+
+    const void toString1(scope void delegate(const(char)[]) sink)
+    {
+        messageTypes[0].toString1(sink);
+    }
+}
+
+struct ProtoPackage15253
+{
+    MessageType15253[] messageTypes;
+
+    const void toString1(scope void delegate(const(char)[]) sink)
+    {
+        messageTypes[0].toString1(sink);
+    }
+}
+
+/**********************************/
 
 int main()
 {

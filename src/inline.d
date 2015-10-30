@@ -2101,16 +2101,6 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             auto de = new DeclarationExp(Loc(), vto);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
-
-            /* If function pointer or delegate parameters are present,
-             * inline scan again because if they are initialized to a symbol,
-             * any calls to the fp or dg can be inlined.
-             */
-            if (vfrom.type.ty == Tdelegate ||
-                vfrom.type.ty == Tpointer && vfrom.type.nextOf().ty == Tfunction)
-            {
-                again = true;
-            }
         }
     }
 
