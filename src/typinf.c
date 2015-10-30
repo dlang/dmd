@@ -589,15 +589,19 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     for (int i = 0; i < 2; i++)
     {
         if (fdx)
-        {   fd = fdx->overloadExactMatch(tfeqptr);
+        {
+            fd = fdx->overloadExactMatch(tfeqptr);
             if (fd)
                 dtxoff(pdt, fd->toSymbol(), 0);
             else
-                //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
+            {
+                fdx->deprecation(loc, "must be declared as `extern (D) int %s(%s)` "
+                    "or it will be ignored by TypeInfo",
+                    fdx->toChars(), sd->toChars());
                 dtsize_t(pdt, 0);
+            }
         }
         else
-            //fdx->error("must be declared as extern (D) int %s(%s*)", fdx->toChars(), sd->toChars());
             dtsize_t(pdt, 0);
 
         s = search_function(sd, Id::cmp);
