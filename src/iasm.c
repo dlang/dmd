@@ -3955,7 +3955,7 @@ static OPND *asm_add_exp()
                     o1->disp -= o2->disp;
                     o2->disp = 0;
                 }
-                else
+                else if (o2)
                     o2->disp = - o2->disp;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
