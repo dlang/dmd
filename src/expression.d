@@ -4376,6 +4376,7 @@ public:
                             return s1[u] - s2[u];
                     }
                 }
+                break;
             case 4:
                 {
                     dchar* s1 = cast(dchar*)string;
