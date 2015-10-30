@@ -168,6 +168,9 @@ endif
 ifdef ENABLE_UNITTEST
 DFLAGS  += -unittest -cov
 endif
+ifdef ENABLE_PROFILE
+DFLAGS  += -profile
+endif
 
 # Uniqe extra flags if necessary
 DMD_FLAGS  := -I$(ROOT) -Wuninitialized
