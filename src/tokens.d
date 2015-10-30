@@ -668,7 +668,6 @@ extern (C++) struct Token
         Token.tochars[TOKcall] = "call";
         Token.tochars[TOKidentity] = "is";
         Token.tochars[TOKnotidentity] = "!is";
-        Token.tochars[TOKorass] = "|=";
         Token.tochars[TOKidentifier] = "identifier";
         Token.tochars[TOKat] = "@";
         Token.tochars[TOKpow] = "^^";
