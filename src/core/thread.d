@@ -1706,12 +1706,12 @@ private:
     {
         assert( t );
         assert( !t.next && !t.prev );
-        assert( t.isRunning );
     }
     body
     {
         slock.lock_nothrow();
         scope(exit) slock.unlock_nothrow();
+        assert(t.isRunning); // check this with slock to ensure pthread_create already returned
         assert(!suspendDepth); // must be 0 b/c it's only set with slock held
 
         if (rmAboutToStart)
