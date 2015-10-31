@@ -542,6 +542,52 @@ version( CRuntime_Glibc )
             mcontext_t  uc_mcontext;
         }
     }
+    else version (SystemZ)
+    {
+        public import core.sys.posix.signal : sigset_t;
+
+        enum NGREG = 27;
+
+        alias greg_t = c_ulong;
+        alias gregset_t = align(8) greg_t[NGREG];
+
+        align(8) struct __psw_t
+        {
+            c_ulong mask;
+            c_ulong addr;
+        }
+
+        union fpreg_t
+        {
+            double d;
+            float  f;
+        }
+
+        struct fpregset_t
+        {
+            uint        fpc;
+            fpreg_t[16] fprs;
+        }
+
+        struct  mcontext_t
+        {
+            __psw_t     psw;
+            c_ulong[16] gregs;
+            uint[16]    aregs;
+            fpregset_t  fpregs;
+        }
+
+        struct ucontext
+        {
+            c_ulong    uc_flags;
+            ucontext*  uc_link;
+            stack_t    uc_stack;
+            mcontext_t uc_mcontext;
+            sigset_t   uc_sigmask;
+        }
+
+        alias ucontext_t = ucontext;
+    }
     else
         static assert(0, "unimplemented");
 }
