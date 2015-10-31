@@ -2145,7 +2145,20 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             if (vfrom.type.ty == Tdelegate ||
                 vfrom.type.ty == Tpointer && vfrom.type.nextOf().ty == Tfunction)
             {
-                again = true;
+                if (arg.op == TOKvar)
+                {
+                    VarExp ve = cast(VarExp)arg;
+                    if (ve.var.isFuncDeclaration())
+                        again = true;
+                }
+                else if (arg.op == TOKsymoff)
+                {
+                    SymOffExp se = cast(SymOffExp)arg;
+                    if (se.var.isFuncDeclaration())
+                        again = true;
+                }
+                else if (arg.op == TOKfunction || arg.op == TOKdelegate)
+                    again = true;
             }
         }
     }
