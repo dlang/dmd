@@ -58,10 +58,10 @@ else
   # Auto-bootstrapping, will download dmd automatically
   HOST_DMD_VER=2.068.2
   HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
-  # dmd.2.067.1.osx.zip or dmd.2.067.1.freebsd-64.zip
-  HOST_DMD_ZIP=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),).zip
-  # http://downloads.dlang.org/releases/2.x/2.067.1/dmd.2.067.1.osx.zip
-  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_ZIP)
+  # dmd.2.068.2.osx.zip or dmd.2.068.2.linux.tar.xz
+  HOST_DMD_BASENAME=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),)
+  # http://downloads.dlang.org/releases/2.x/2.068.2/dmd.2.068.2.linux.tar.xz
+  HOST_DMD_URL=http://downloads.dlang.org/releases/2.x/$(HOST_DMD_VER)/$(HOST_DMD_BASENAME)
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
   HOST_DMD_PATH=$(HOST_DMD)
   HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
@@ -326,8 +326,12 @@ clean:
 ifneq (,$(AUTO_BOOTSTRAP))
 $(HOST_DMD_PATH):
 	mkdir -p ${HOST_DMD_ROOT}
-	TMPFILE=$$(mktemp deleteme.XXXXXXXX) && curl -fsSL ${HOST_DMD_URL} > $${TMPFILE}.zip && \
-		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip
+ifneq (,$(shell which xz 2>/dev/null))
+	curl -fsSL ${HOST_DMD_URL}.tar.xz | tar -C ${HOST_DMD_ROOT} -Jxf - || rm -rf ${HOST_DMD_ROOT}
+else
+	TMPFILE=$$(mktemp deleteme.XXXXXXXX) &&	curl -fsSL ${HOST_DMD_URL}.zip > $${TMPFILE}.zip && \
+		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip;
+endif
 endif
 
 ######## generate a default dmd.conf
