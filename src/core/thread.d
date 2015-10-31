@@ -271,11 +271,8 @@ else version( Posix )
             //Thread.add( obj );
             scope( exit )
             {
-                // NOTE: isRunning should be set to false after the thread is
-                //       removed or a double-removal could occur between this
-                //       function and thread_suspendAll.
                 Thread.remove( obj );
-                atomicStore!(MemoryOrder.raw)(obj.m_isRunning,false);
+                atomicStore!(MemoryOrder.raw)(obj.m_isRunning, false);
             }
             Thread.add( &obj.m_main );
 
@@ -2012,6 +2009,7 @@ extern (C) void thread_init()
  */
 extern (C) void thread_term()
 {
+    assert(Thread.sm_tbeg && Thread.sm_tlen == 1);
     Thread.termLocks();
 
     version( OSX )
