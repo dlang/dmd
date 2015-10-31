@@ -3983,6 +3983,9 @@ static OPND *asm_mul_exp()
             case TOKmul:
                 asm_token();
                 o2 = asm_br_exp();
+
+                o1 && o2 || asmerr("bad operand"); // TOKmul is always binary
+
 #ifdef EXTRA_DEBUG
                 printf("Star  o1.isint=%d, o2.isint=%d, lbra_seen=%d\n",
                     asm_isint(o1), asm_isint(o2), asm_TKlbra_seen );
