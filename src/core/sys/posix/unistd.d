@@ -826,6 +826,11 @@ else version( Solaris )
     enum W_OK       = 2;
     enum X_OK       = 1;
 
+    enum F_ULOCK    = 0;
+    enum F_LOCK     = 1;
+    enum F_TLOCK    = 2;
+    enum F_TEST     = 3;
+
     enum
     {
         // large file compilation environment configuration
@@ -1283,16 +1288,12 @@ else version( Solaris )
     pid_t      getsid(pid_t);
     char*      getwd(char*); // LEGACY
     int        lchown(in char*, uid_t, gid_t);
-    int        lockf(int, int, off_t);
     int        nice(int);
-    ssize_t    pread(int, void*, size_t, off_t);
-    ssize_t    pwrite(int, in void*, size_t, off_t);
     pid_t      setpgrp();
     int        setregid(gid_t, gid_t);
     int        setreuid(uid_t, uid_t);
     void       swab(in void*, void*, ssize_t);
     void       sync();
-    int        truncate(in char*, off_t);
     useconds_t ualarm(useconds_t, useconds_t);
     int        usleep(useconds_t);
     pid_t      vfork();
