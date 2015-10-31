@@ -56,7 +56,7 @@ ifeq (,$(AUTO_BOOTSTRAP))
   HOST_DMD_RUN:=$(HOST_DMD)
 else
   # Auto-bootstrapping, will download dmd automatically
-  HOST_DMD_VER=2.067.1
+  HOST_DMD_VER=2.068.2
   HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
   # dmd.2.067.1.osx.zip or dmd.2.067.1.freebsd-64.zip
   HOST_DMD_ZIP=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),).zip
