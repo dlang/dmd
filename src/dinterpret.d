@@ -1470,7 +1470,7 @@ public:
                 result = e; // bubbled up from ReturnStatement
                 return;
             }
-            e = interpret(s.increment, istate); // TODO: ctfeNeedNothing is better?
+            e = interpret(s.increment, istate, ctfeNeedNothing);
             if (exceptionOrCant(e))
                 return;
         }
@@ -5459,9 +5459,9 @@ public:
         if (exceptionOrCant(e1))
             return;
         // If the expression has been cast to void, do nothing.
-        if (e.to.ty == Tvoid && goal == ctfeNeedNothing)
+        if (e.to.ty == Tvoid)
         {
-            result = e1;
+            result = CTFEExp.voidexp;
             return;
         }
         if (e.to.ty == Tpointer && e1.op != TOKnull)

@@ -7664,3 +7664,17 @@ struct Tok15233 {}
 enum tup15233 = TT15233!(Tok15233(), "foo");
 static assert(tup15233[0] == Tok15233());
 static assert(tup15233[1] == "foo");
+
+/**************************************************
+    15251 - void cast in ForStatement.increment
+**************************************************/
+
+int test15251()
+{
+    for (ubyte lwr = 19;
+        lwr != 20;
+        cast(void)++lwr)    // have to to be evaluated with ctfeNeedNothing
+    {}
+    return 1;
+}
+static assert(test15251());
