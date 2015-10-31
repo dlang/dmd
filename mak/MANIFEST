@@ -170,6 +170,7 @@ MANIFEST=\
 	src\core\sys\solaris\execinfo.d \
 	src\core\sys\solaris\libelf.d \
 	src\core\sys\solaris\link.d \
+	src\core\sys\solaris\time.d \
 	\
 	src\core\sys\solaris\sys\elf.d \
 	src\core\sys\solaris\sys\elf_386.d \

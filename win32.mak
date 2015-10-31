@@ -592,6 +592,9 @@ $(IMPDIR)\core\sys\solaris\libelf.d : src\core\sys\solaris\libelf.d
 $(IMPDIR)\core\sys\solaris\link.d : src\core\sys\solaris\link.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\solaris\time.d : src\core\sys\solaris\time.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\solaris\sys\elf.d : src\core\sys\solaris\sys\elf.d
 	copy $** $@
 

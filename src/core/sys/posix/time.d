@@ -247,13 +247,16 @@ else version( FreeBSD )
 }
 else version (Solaris)
 {
+    enum CLOCK_PROCESS_CPUTIME_ID = 5; // <sys/time_impl.h>
+    enum CLOCK_THREAD_CPUTIME_ID  = 2; // <sys/time_impl.h>
+
     struct itimerspec
     {
         timespec it_interval;
         timespec it_value;
     }
 
-    enum CLOCK_REALTIME = 0; // <sys/time_impl.h>
+    enum CLOCK_REALTIME = 3; // <sys/time_impl.h>
     enum TIMER_ABSOLUTE = 0x1;
 
     alias int clockid_t;

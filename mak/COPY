@@ -139,6 +139,7 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\execinfo.d \
 	$(IMPDIR)\core\sys\solaris\libelf.d \
 	$(IMPDIR)\core\sys\solaris\link.d \
+	$(IMPDIR)\core\sys\solaris\time.d \
 	$(IMPDIR)\core\sys\solaris\sys\elf.d \
 	$(IMPDIR)\core\sys\solaris\sys\elf_386.d \
 	$(IMPDIR)\core\sys\solaris\sys\elf_amd64.d \
