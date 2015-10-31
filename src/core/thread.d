@@ -2577,14 +2577,6 @@ extern (C) void thread_suspendAll() nothrow
         if( ++suspendDepth > 1 )
             return;
 
-        // NOTE: I'd really prefer not to check isRunning within this loop but
-        //       not doing so could be problematic if threads are terminated
-        //       abnormally and a new thread is created with the same thread
-        //       address before the next GC run.  This situation might cause
-        //       the same thread to be suspended twice, which would likely
-        //       cause the second suspend to fail, the garbage collection to
-        //       abort, and Bad Things to occur.
-
         Thread.criticalRegionLock.lock_nothrow();
         auto t = Thread.sm_tbeg;
         while (t)
