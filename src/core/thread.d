@@ -1198,16 +1198,16 @@ class Thread
     {
         synchronized( slock )
         {
-            int ret = 0;
-
-            for( Thread t = sm_tbeg; t; t = t.next )
+            auto t = sm_tbeg;
+            while (t)
             {
-                ret = dg( t );
-                if( ret )
-                    break;
+                auto tn = t.next;
+                if (auto ret = dg(t))
+                    return ret;
+                t = tn;
             }
-            return ret;
         }
+        return 0;
     }
 
 
@@ -1787,10 +1787,12 @@ private:
     in
     {
         assert( t );
-        assert( t.next || t.prev );
     }
     body
     {
+        // Thread was already removed earlier, might happen b/c of thread_detachInstance
+        if (!t.next && !t.prev)
+            return;
         slock.lock_nothrow();
         {
             // NOTE: When a thread is removed from the global thread list its
@@ -1810,6 +1812,7 @@ private:
                 t.next.prev = t.prev;
             if( sm_tbeg is t )
                 sm_tbeg = t.next;
+            t.prev = t.next = null;
             --sm_tlen;
         }
         // NOTE: Don't null out t.next or t.prev because opApply currently
@@ -2288,11 +2291,13 @@ shared static ~this()
     // NOTE: The functionality related to garbage collection must be minimally
     //       operable after this dtor completes.  Therefore, only minimal
     //       cleanup may occur.
-
-    for( Thread t = Thread.sm_tbeg; t; t = t.next )
+    auto t = Thread.sm_tbeg;
+    while (t)
     {
-        if( !t.isRunning )
-            Thread.remove( t );
+        auto tn = t.next;
+        if (!t.isRunning)
+            Thread.remove(t);
+        t = tn;
     }
 }
 
@@ -2610,8 +2615,10 @@ extern (C) void thread_suspendAll() nothrow
         //       abort, and Bad Things to occur.
 
         Thread.criticalRegionLock.lock_nothrow();
-        for (Thread t = Thread.sm_tbeg; t !is null; t = t.next)
+        auto t = Thread.sm_tbeg;
+        while (t)
         {
+            auto tn = t.next;
             Duration waittime = dur!"usecs"(10);
         Lagain:
             if (!t.isRunning)
@@ -2630,6 +2637,7 @@ extern (C) void thread_suspendAll() nothrow
             {
                 suspend(t);
             }
+            t = tn;
         }
         Thread.criticalRegionLock.unlock_nothrow();
     }
