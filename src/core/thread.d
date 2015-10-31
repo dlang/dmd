@@ -385,15 +385,10 @@ else version( Posix )
                 // NOTE: Since registers are being pushed and popped from the
                 //       stack, any other stack data used by this function should
                 //       be gone before the stack cleanup code is called below.
-                Thread  obj = Thread.getThis();
+                Thread obj = Thread.getThis();
+                assert(obj !is null);
 
-                // NOTE: The thread reference returned by getThis is set within
-                //       the thread startup code, so it is possible that this
-                //       handler may be called before the reference is set.  In
-                //       this case it is safe to simply suspend and not worry
-                //       about the stack pointers as the thread will not have
-                //       any references to GC-managed data.
-                if( obj && !obj.m_lock )
+                if( !obj.m_lock )
                 {
                     obj.m_curr.tstack = getStackTop();
                 }
@@ -413,7 +408,7 @@ else version( Posix )
 
                 sigsuspend( &sigres );
 
-                if( obj && !obj.m_lock )
+                if( !obj.m_lock )
                 {
                     obj.m_curr.tstack = obj.m_curr.bstack;
                 }
