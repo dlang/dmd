@@ -402,7 +402,7 @@ else version( Posix )
                 status = sigdelset( &sigres, resumeSignalNumber );
                 assert( status == 0 );
 
-                version (FreeBSD) Thread.sm_suspendagain = false;
+                version (FreeBSD) obj.m_suspendagain = false;
                 status = sem_post( &suspendCount );
                 assert( status == 0 );
 
@@ -417,9 +417,10 @@ else version( Posix )
             // avoid deadlocks on FreeBSD, see Issue 13416
             version (FreeBSD)
             {
-                if (THR_IN_CRITICAL(pthread_self()))
+                auto obj = Thread.getThis();
+                if (THR_IN_CRITICAL(obj.m_addr))
                 {
-                    Thread.sm_suspendagain = true;
+                    obj.m_suspendagain = true;
                     if (sem_post(&suspendCount)) assert(0);
                     return;
                 }
@@ -1395,7 +1396,7 @@ private:
     version (FreeBSD)
     {
         // set when suspend failed and should be retried, see Issue 13416
-        static shared bool sm_suspendagain;
+        shared bool m_suspendagain;
     }
 
 
@@ -2376,9 +2377,27 @@ private __gshared uint suspendDepth = 0;
  *
  * Throws:
  *  ThreadError if the suspend operation fails for a running thread.
+ * Returns:
+ *  Whether the thread is now suspended (true) or terminated (false).
  */
-private void suspend( Thread t ) nothrow
+private bool suspend( Thread t ) nothrow
 {
+    Duration waittime = dur!"usecs"(10);
+ Lagain:
+    if (!t.isRunning)
+    {
+        Thread.remove(t);
+        return false;
+    }
+    else if (t.m_isInCriticalRegion)
+    {
+        Thread.criticalRegionLock.unlock_nothrow();
+        Thread.sleep(waittime);
+        if (waittime < dur!"msecs"(10)) waittime *= 2;
+        Thread.criticalRegionLock.lock_nothrow();
+        goto Lagain;
+    }
+
     version( Windows )
     {
         if( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
@@ -2386,7 +2405,7 @@ private void suspend( Thread t ) nothrow
             if( !t.isRunning )
             {
                 Thread.remove( t );
-                return;
+                return false;
             }
             onThreadError( "Unable to suspend thread" );
         }
@@ -2445,7 +2464,7 @@ private void suspend( Thread t ) nothrow
             if( !t.isRunning )
             {
                 Thread.remove( t );
-                return;
+                return false;
             }
             onThreadError( "Unable to suspend thread" );
         }
@@ -2506,26 +2525,14 @@ private void suspend( Thread t ) nothrow
     {
         if( t.m_addr != pthread_self() )
         {
-        Lagain:
             if( pthread_kill( t.m_addr, suspendSignalNumber ) != 0 )
             {
                 if( !t.isRunning )
                 {
                     Thread.remove( t );
-                    return;
+                    return false;
                 }
                 onThreadError( "Unable to suspend thread" );
-            }
-            while (sem_wait(&suspendCount) != 0)
-            {
-                if (errno != EINTR)
-                    onThreadError( "Unable to wait for semaphore" );
-                errno = 0;
-            }
-            version (FreeBSD)
-            {
-                // avoid deadlocks, see Issue 13416
-                if (Thread.sm_suspendagain) goto Lagain;
             }
         }
         else if( !t.m_lock )
@@ -2533,6 +2540,7 @@ private void suspend( Thread t ) nothrow
             t.m_curr.tstack = getStackTop();
         }
     }
+    return true;
 }
 
 /**
@@ -2573,31 +2581,50 @@ extern (C) void thread_suspendAll() nothrow
             return;
 
         Thread.criticalRegionLock.lock_nothrow();
+        scope (exit) Thread.criticalRegionLock.unlock_nothrow();
+        size_t cnt;
         auto t = Thread.sm_tbeg;
         while (t)
         {
             auto tn = t.next;
-            Duration waittime = dur!"usecs"(10);
-        Lagain:
-            if (!t.isRunning)
-            {
-                Thread.remove(t);
-            }
-            else if (t.m_isInCriticalRegion)
-            {
-                Thread.criticalRegionLock.unlock_nothrow();
-                Thread.sleep(waittime);
-                if (waittime < dur!"msecs"(10)) waittime *= 2;
-                Thread.criticalRegionLock.lock_nothrow();
-                goto Lagain;
-            }
-            else
-            {
-                suspend(t);
-            }
+            if (suspend(t))
+                ++cnt;
             t = tn;
         }
-        Thread.criticalRegionLock.unlock_nothrow();
+
+        version (OSX)
+        {}
+        else version (Posix)
+        {
+            // subtract own thread
+            assert(cnt >= 1);
+            --cnt;
+        Lagain:
+            // wait for semaphore notifications
+            for (; cnt; --cnt)
+            {
+                while (sem_wait(&suspendCount) != 0)
+                {
+                    if (errno != EINTR)
+                        onThreadError("Unable to wait for semaphore");
+                    errno = 0;
+                }
+            }
+            version (FreeBSD)
+            {
+                // avoid deadlocks, see Issue 13416
+                t = Thread.sm_tbeg;
+                while (t)
+                {
+                    auto tn = t.next;
+                    if (t.m_suspendagain && suspend(t))
+                        ++cnt;
+                    t = tn;
+                }
+                if (cnt)
+                    goto Lagain;
+             }
+        }
     }
 }
 
