@@ -206,7 +206,7 @@ version(CoreDdoc) enum ClockType
     precise = 3,
 
     /++
-        $(BLUE Linux-Only)
+        $(BLUE Linux,Solaris-Only)
 
         Uses $(D CLOCK_PROCESS_CPUTIME_ID).
       +/
@@ -243,7 +243,7 @@ version(CoreDdoc) enum ClockType
     second = 6,
 
     /++
-        $(BLUE Linux-Only)
+        $(BLUE Linux,Solaris-Only)
 
         Uses $(D CLOCK_THREAD_CPUTIME_ID).
       +/
@@ -305,6 +305,15 @@ else version(FreeBSD) enum ClockType
     uptimeCoarse = 9,
     uptimePrecise = 10,
 }
+else version(Solaris) enum ClockType
+{
+    normal = 0,
+    coarse = 2,
+    precise = 3,
+    processCPUTime = 4,
+    second = 6,
+    threadCPUTime = 7,
+}
 else
 {
     // It needs to be decided (and implemented in an appropriate version branch
@@ -348,6 +357,19 @@ version(Posix)
             case uptime: return CLOCK_UPTIME;
             case uptimeCoarse: return CLOCK_UPTIME_FAST;
             case uptimePrecise: return CLOCK_UPTIME_PRECISE;
+            case second: assert(0);
+            }
+        }
+        else version(Solaris)
+        {
+            import core.sys.solaris.time;
+            with(ClockType) final switch(clockType)
+            {
+            case coarse: return CLOCK_MONOTONIC;
+            case normal: return CLOCK_MONOTONIC;
+            case precise: return CLOCK_MONOTONIC;
+            case processCPUTime: return CLOCK_PROCESS_CPUTIME_ID;
+            case threadCPUTime: return CLOCK_THREAD_CPUTIME_ID;
             case second: assert(0);
             }
         }
