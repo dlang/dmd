@@ -2547,20 +2547,20 @@ public:
      * There's four result types.
      *
      * 1. If the 'tthis' matches only one candidate, it's an "exact match".
-     *    Returns the function and 't' is set to its type.
+     *    Returns the function and 'hasOverloads' is set to false.
      *      eg. If 'tthis" is mutable and there's only one mutable method.
      * 2. If there's two or more match candidates, but a candidate function will be
      *    a "better match".
-     *    Returns NULL but 't' is set to the candidate type.
+     *    Returns the better match function but 'hasOverloads' is set to true.
      *      eg. If 'tthis' is mutable, and there's both mutable and const methods,
      *          the mutable method will be a better match.
      * 3. If there's two or more match candidates, but there's no better match,
-     *    Returns NULL and 't' is set to NULL to represent "ambiguous match".
+     *    Returns null and 'hasOverloads' is set to true to represent "ambiguous match".
      *      eg. If 'tthis' is mutable, and there's two or more mutable methods.
-     * 4. If there's no candidates, it's "no match" and returns NULL with error report.
+     * 4. If there's no candidates, it's "no match" and returns null with error report.
      *      e.g. If 'tthis' is const but there's no const methods.
      */
-    final FuncDeclaration overloadModMatch(Loc loc, Type tthis, ref Type t)
+    final FuncDeclaration overloadModMatch(Loc loc, Type tthis, ref bool hasOverloads)
     {
         //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
         Match m;
@@ -2608,6 +2608,7 @@ public:
 
         LlastIsBetter:
             //printf("\tlastbetter\n");
+            m.count++; // count up
             return 0;
 
         LcurrIsBetter:
@@ -2624,21 +2625,17 @@ public:
             return 0;
         });
 
-        if (m.count == 1)   // exact match
+        if (m.count == 1)       // exact match
         {
-            t = m.lastf.type;
+            hasOverloads = false;
         }
-        else if (m.count > 1)
+        else if (m.count > 1)   // better or ambiguous match
         {
-            if (!m.nextf)   // better match
-                t = m.lastf.type;
-            else            // ambiguous match
-                t = null;
-            m.lastf = null;
+            hasOverloads = true;
         }
-        else                // no match
+        else                    // no match
         {
-            t = null;
+            hasOverloads = true;
             auto tf = cast(TypeFunction)this.type;
             assert(tthis);
             assert(!MODimplicitConv(tthis.mod, tf.mod)); // modifier mismatch
@@ -2646,7 +2643,8 @@ public:
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
                 MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
-                .error(loc, "%smethod %s is not callable using a %sobject", funcBuf.peekString(), this.toPrettyChars(), thisBuf.peekString());
+                .error(loc, "%smethod %s is not callable using a %sobject",
+                    funcBuf.peekString(), this.toPrettyChars(), thisBuf.peekString());
             }
         }
         return m.lastf;
