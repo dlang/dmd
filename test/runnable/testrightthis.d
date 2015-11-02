@@ -468,6 +468,41 @@ void test7()
 }
 
 /********************************************************/
+// 4350
+
+template Mix4350() { int b; }
+
+struct S4350
+{
+    int a;
+
+    mixin Mix4350 mix;
+
+    int c;
+    template Func() { void call(int n) { c = n; } }
+    alias func = Func!();
+}
+
+void test4350()
+{
+    S4350 s;
+
+    s.a = 1;
+    s.mix.b = 2;
+    s.func.call(3);
+    assert(s.a == 1);
+    assert(s.b == 2);
+    assert(s.c == 3);
+
+    with (s) { a = 2; }
+    with (s) { mix.b = 3; }
+    with (s) { func.call(4); }
+    assert(s.a == 2);
+    assert(s.b == 3);
+    assert(s.c == 4);
+}
+
+/********************************************************/
 // 6430
 
 auto bug6430(int a)
@@ -604,6 +639,7 @@ int main()
     test5();
     test6();
     test7();
+    test4350();
     test9619();
     test9633();
 
