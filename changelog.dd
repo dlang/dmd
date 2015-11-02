@@ -1,39 +1,36 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.069. This will get copied to dlang.org and
+$(COMMENT Pending changelog for 2.070. This will get copied to dlang.org and
     cleared when master gets merged into stable prior to 2.069.
 )
 
 $(BUGSTITLE Compiler Changes,
-$(LI $(RELATIVE_LINK2 objective-c-support, Basic support for Objective-C.))
-$(LI $(RELATIVE_LINK2 property-switch-deprecated, The $(TT -property) switch has
-    been deprecated.))
+)
+
+$(BUGSTITLE Language Changes,
+$(LI $(RELATIVE_LINK2 alias-funclit, Add syntactic support to make an alias to a function literal.))
 )
 
 $(BUGSTITLE Compiler Changes,
 
-$(LI $(LNAME2 objective-c-support, Basic support for Objective-C.)
-
-    $(P Basic support for Objective-C classes, interfaces and instance methods.
-        This is implemented by adding a new linkage attribute, Objective-C, and
-        a compiler recognized UDA, @selector. The linkage attribute is to be
-        used on a class or interface. The UDA is attached to a method.
-    )
 )
 
-$(LI $(LNAME2 property-switch-deprecated, The $(TT -property) switch has
-    been deprecated.)
+$(BUGSTITLE Language Changes,
 
-    $(P The $(TT -property) switch used to disallow calling non-properties
-        without parentheses. The switch has not been used to build Phobos for
-        some time now. So naturally, code that's incompatible with
-        $(TT -property) has found its way in. This means, the switch has
-        effectively not been supported by D at large.
-    )
+$(LI $(LNAME2 alias-funclit, Add syntactic support to make an alias to a function literal.)
 
-    $(P Since the behaviour of the $(TT -property) switch was not well-liked,
-        it's been deprecated and made to have no effect when used.
-    )
+    $(P Example:)
+
+        ---
+        alias less1 = (a, b) => a < b;
+        alias less2 = (a, b) => a > b;
+
+        import std.algorithm : sort, equal;
+
+        int[] arr = [4, 1, 3, 2];
+        assert(equal(sort!less1(arr), [1, 2, 3, 4]));
+        assert(equal(sort!less2(arr), [4, 3, 2, 1]));
+        ---
 )
 
 )
