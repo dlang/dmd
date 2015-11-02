@@ -8,6 +8,7 @@
 
 module ddmd.aliasthis;
 
+import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.declaration;
 import ddmd.dscope;
@@ -57,6 +58,7 @@ public:
             .error(loc, "alias this can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
             return;
         }
+
         assert(ad.members);
         Dsymbol s = ad.search(loc, ident);
         if (!s)
@@ -73,6 +75,7 @@ public:
             .error(loc, "there can be only one alias this");
             return;
         }
+
         if (ad.type.ty == Tstruct && (cast(TypeStruct)ad.type).sym != ad)
         {
             AggregateDeclaration ad2 = (cast(TypeStruct)ad.type).sym;
@@ -80,10 +83,12 @@ public:
             ad.aliasthis = ad2.aliasthis;
             return;
         }
+
         /* disable the alias this conversion so the implicit conversion check
          * doesn't use it.
          */
         ad.aliasthis = null;
+
         Dsymbol sx = s;
         if (sx.isAliasDeclaration())
             sx = sx.toAlias();
@@ -97,6 +102,7 @@ public:
                 .error(loc, "alias this is not reachable as %s already converts to %s", ad.toChars(), t.toChars());
             }
         }
+
         ad.aliasthis = s;
     }
 
@@ -130,14 +136,16 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
         {
             if (e.op == TOKvar)
             {
-                if (FuncDeclaration f = (cast(VarExp)e).var.isFuncDeclaration())
+                if (auto fd = (cast(VarExp)e).var.isFuncDeclaration())
                 {
                     // Bugzilla 13009: Support better match for the overloaded alias this.
-                    Type t;
-                    f = f.overloadModMatch(loc, tthis, t);
-                    if (f && t)
+                    bool hasOverloads;
+                    if (auto f = fd.overloadModMatch(loc, tthis, hasOverloads))
                     {
-                        e = new VarExp(loc, f, 0); // use better match
+                        if (!hasOverloads)
+                            fd = f;     // use exact match
+                        e = new VarExp(loc, fd, hasOverloads);
+                        e.type = f.type;
                         e = new CallExp(loc, e);
                         goto L1;
                     }
