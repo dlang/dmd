@@ -3538,9 +3538,11 @@ STATIC elem * eleq(elem *e, goal_t goal)
         if (tysize(e1->Ety) == 2 * REGSIZE &&
             e1->Eoper == OPvar &&
             (e2->Eoper == OPpair || e2->Eoper == OPrpair) &&
-            goal == GOALnone
+            goal == GOALnone &&
+            !el_appears(e2, e1->EV.sp.Vsym)
            )
         {
+            //printf("** before:\n"); WReqn(e); printf("\n");
             tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
             if (tyfloating(e1->Ety) && REGSIZE >= 4)
                 ty = (REGSIZE == 8) ? TYdouble : TYfloat;
@@ -3555,8 +3557,8 @@ STATIC elem * eleq(elem *e, goal_t goal)
             {
                 e->E2 = e2->E1;
                 eb = el_bin(OPeq,ty,eb,e2->E2);
-                e2->E1 = eb;
-                e2->E2 = e;
+                e2->E1 = e;
+                e2->E2 = eb;
             }
             else
             {
@@ -3567,6 +3569,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
             }
 
             e2->Eoper = OPcomma;
+            //printf("** after:\n"); WReqn(e2); printf("\n");
             return optelem(e2,goal);
         }
 
