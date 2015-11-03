@@ -1808,20 +1808,19 @@ struct T13009
     void put(char c) {}
 }
 
-struct S13009
+struct S13009(bool rev)
 {
     T13009 t;
 
-    @property
-    T13009 getT()
+    static if (!rev)
     {
-        return t;
+        @property       T13009  getT()       { return t; }
+        @property inout(T13009) getT() inout { return t; }
     }
-
-    @property
-    inout(T13009) getT() inout
+    else
     {
-        return t;
+        @property inout(T13009) getT() inout { return t; }
+        @property       T13009  getT()       { return t; }
     }
 
     alias getT this;
@@ -1829,25 +1828,30 @@ struct S13009
 
 void test13009()
 {
-    alias MS   =                    S13009;
-    alias CS   =              const(S13009);
-    alias WS   =        inout(      S13009);
-    alias WCS  =        inout(const S13009);
-    alias SMS  = shared(            S13009);
-    alias SCS  = shared(      const S13009);
-    alias SWS  = shared(inout       S13009);
-    alias SWCS = shared(inout const S13009);
-    alias IS   =          immutable(S13009);
+    foreach (bool rev; Seq!(false, true))
+    {
+        alias S = S13009!rev;
 
-    alias MSput  = MS .put;
-    alias CSput  = CS .put;
-    alias WSput  = WS .put;
-    alias WCSput = WCS.put;
-    static assert(!__traits(compiles, { alias SMSput  = SMS .put; }));
-    static assert(!__traits(compiles, { alias SCSput  = SCS .put; }));
-    static assert(!__traits(compiles, { alias SWSput  = SWS .put; }));
-    static assert(!__traits(compiles, { alias SWCSput = SWCS.put; }));
-    alias ISput  = IS .put;
+        alias MS   =                    S;
+        alias CS   =              const(S);
+        alias WS   =        inout(      S);
+        alias WCS  =        inout(const S);
+        alias SMS  = shared(            S);
+        alias SCS  = shared(      const S);
+        alias SWS  = shared(inout       S);
+        alias SWCS = shared(inout const S);
+        alias IS   =          immutable(S);
+
+        alias MSput  = MS .put;
+        alias CSput  = CS .put;
+        alias WSput  = WS .put;
+        alias WCSput = WCS.put;
+        static assert(!__traits(compiles, { alias SMSput  = SMS .put; }));
+        static assert(!__traits(compiles, { alias SCSput  = SCS .put; }));
+        static assert(!__traits(compiles, { alias SWSput  = SWS .put; }));
+        static assert(!__traits(compiles, { alias SWCSput = SWCS.put; }));
+        alias ISput  = IS .put;
+    }
 }
 
 /***************************************************/
