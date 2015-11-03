@@ -509,32 +509,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
-        /* disable the alias this conversion so the implicit conversion check
-         * doesn't use it.
+        ad.aliasthis = s;
+
+        /* Check that the alias this type is equivalent with ad.type.
+         * Note: Currently other indirect circular alias this definitions
+         * (e.g. A -> B -> A) are just allowed, and those will be detected
+         * during the actual implicit conversion tests.
          */
-        ad.aliasthis = null;
-
-        Dsymbol sx = s;
-        if (sx.isAliasDeclaration())
-            sx = sx.toAlias();
-        Declaration d = sx.isDeclaration();
-        if (d && !d.isTupleDeclaration())
+        auto att = ad.type.aliasthisOf();
+        if (att && (ad.type.equivalent(att) || att.isBaseOf(ad.type, null)))
         {
-            /* https://issues.dlang.org/show_bug.cgi?id=18429
-             *
-             * If the identifier in the AliasThis declaration
-             * is defined later and is a voldemort type, we must
-             * perform semantic on the declaration to deduce the type.
-             */
-            if (!d.type)
-                d.dsymbolSemantic(sc);
+            error(dsym.loc, "alias this is not reachable as `%s` already converts to `%s`", ad.toChars(), att.toChars());
 
-            Type t = d.type;
-            assert(t);
-            if (ad.type.implicitConvTo(t) > MATCH.nomatch)
-            {
-                error(dsym.loc, "alias this is not reachable as `%s` already converts to `%s`", ad.toChars(), t.toChars());
-            }
         }
 
         ad.aliasthis = s;
