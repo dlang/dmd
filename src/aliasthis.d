@@ -76,26 +76,20 @@ public:
             return;
         }
 
-        /* disable the alias this conversion so the implicit conversion check
-         * doesn't use it.
-         */
-        ad.aliasthis = null;
-
-        Dsymbol sx = s;
-        if (sx.isAliasDeclaration())
-            sx = sx.toAlias();
-        Declaration d = sx.isDeclaration();
-        if (d && !d.isTupleDeclaration())
-        {
-            Type t = d.type;
-            assert(t);
-            if (ad.type.implicitConvTo(t) > MATCHnomatch)
-            {
-                .error(loc, "alias this is not reachable as %s already converts to %s", ad.toChars(), t.toChars());
-            }
-        }
-
         ad.aliasthis = s;
+
+        /* Check that the alias this type is equivalent with ad.type.
+         * Note: Currently other indirect circular alias this definitions
+         * (e.g. A -> B -> A) are just allowed, and those will be detected
+         * during the actual implicit conversion tests.
+         */
+        auto att = ad.type.aliasthisOf();
+        if (att && (ad.type.equivalent(att) || att.isBaseOf(ad.type, null)))
+        {
+            .error(loc, "alias this is not reachable as %s already converts to %s",
+                ad.toChars(), att.toChars());
+            errors = true;
+        }
     }
 
     override const(char)* kind() const
