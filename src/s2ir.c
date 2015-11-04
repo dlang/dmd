@@ -992,7 +992,7 @@ void SwitchStatement::toIR(IRState *irs)
                 StringExp *se = (StringExp *)(cs->exp);
                 unsigned len = se->len;
                 dtsize_t(&dt, len);
-                dtabytes(&dt, TYnptr, 0, se->len * se->sz, (char *)se->string);
+                dtabytes(&dt, TYnptr, 0, se->len * se->sz, (char *)se->string, 0);
             }
         }
 

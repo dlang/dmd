@@ -88,7 +88,7 @@ void Module::genmoduleinfo()
     const char *name = toPrettyChars();
     size_t namelen = strlen(name);
     dtsize_t(&dt, namelen);
-    dtabytes(&dt, TYnptr, 0, namelen + 1, name);
+    dtabytes(&dt, TYnptr, 0, namelen, name, 1);
 
     ClassDeclarations aclasses;
 
@@ -387,7 +387,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         namelen = strlen(name);
     }
     dtsize_t(&dt, namelen);
-    dtabytes(&dt, TYnptr, 0, namelen + 1, name);
+    dtabytes(&dt, TYnptr, 0, namelen, name, 1);
 
     // vtbl[]
     dtsize_t(&dt, vtbl.dim);
@@ -849,7 +849,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     const char *name = toPrettyChars();
     size_t namelen = strlen(name);
     dtsize_t(&dt, namelen);
-    dtabytes(&dt, TYnptr, 0, namelen + 1, name);
+    dtabytes(&dt, TYnptr, 0, namelen, name, 1);
 
     // vtbl[]
     dtsize_t(&dt, 0);

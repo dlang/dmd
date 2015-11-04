@@ -542,7 +542,7 @@ dt_t **StringExp::toDt(dt_t **pdt)
     {
         case Tarray:
             dtsize_t(pdt, len);
-            pdt = dtabytes(pdt, TYnptr, 0, (len + 1) * sz, (char *)string);
+            pdt = dtabytes(pdt, TYnptr, 0, len * sz, (char *)string, sz);
             break;
 
         case Tsarray:
@@ -562,7 +562,7 @@ dt_t **StringExp::toDt(dt_t **pdt)
             break;
         }
         case Tpointer:
-            pdt = dtabytes(pdt, TYnptr, 0, (len + 1) * sz, (char *)string);
+            pdt = dtabytes(pdt, TYnptr, 0, len * sz, (char *)string, sz);
             break;
 
         default:

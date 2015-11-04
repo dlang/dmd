@@ -310,7 +310,7 @@ void TypeInfoTypedefDeclaration::toDt(dt_t **pdt)
     const char *name = sd->toPrettyChars();
     size_t namelen = strlen(name);
     dtsize_t(pdt, namelen);
-    dtabytes(pdt, 0, namelen + 1, name);
+    dtabytes(pdt, 0, namelen, name, 1);
 
     // void[] init;
     if (tinfo->isZeroInit() || !sd->init)
@@ -352,7 +352,7 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
     const char *name = sd->toPrettyChars();
     size_t namelen = strlen(name);
     dtsize_t(pdt, namelen);
-    dtabytes(pdt, 0, namelen + 1, name);
+    dtabytes(pdt, 0, namelen, name, 1);
 
     // void[] init;
     if (!sd->defaultval || tinfo->isZeroInit())
@@ -450,7 +450,7 @@ void TypeInfoFunctionDeclaration::toDt(dt_t **pdt)
     assert(name);
     size_t namelen = strlen(name);
     dtsize_t(pdt, namelen);
-    dtabytes(pdt, 0, namelen + 1, name);
+    dtabytes(pdt, 0, namelen, name, 1);
 }
 
 void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
@@ -470,7 +470,7 @@ void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
     assert(name);
     size_t namelen = strlen(name);
     dtsize_t(pdt, namelen);
-    dtabytes(pdt, 0, namelen + 1, name);
+    dtabytes(pdt, 0, namelen, name, 1);
 }
 
 void TypeInfoStructDeclaration::toDt(dt_t **pdt)
@@ -510,7 +510,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     const char *name = sd->toPrettyChars();
     size_t namelen = strlen(name);
     dtsize_t(pdt, namelen);
-    //dtabytes(pdt, 0, namelen + 1, name);
+    //dtabytes(pdt, 0, namelen, name, 1);
     dtxoff(pdt, toSymbol(), offset);
     offset += namelen + 1;
 

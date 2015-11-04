@@ -858,6 +858,7 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
     }
     else
         assert(0);
+    return NULL;
 }
 
 
