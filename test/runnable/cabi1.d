@@ -20,6 +20,12 @@ extern (C) Foo5 ctest5();
 extern (C) Foo6 ctest6();
 extern (C) S7 ctest10();
 
+version(Windows)
+    version = Windows_or_32bit;
+else version(X86)
+    version = Windows_or_32bit;
+
+
 void test1()
 {
     Foo1 f1 = ctest1();
@@ -34,17 +40,11 @@ void test1()
     Foo4 f4 = ctest4();
     assert(f4.i == 0x12345678);
 
-version (Win64)
-{
-}
-else
-{
     Foo5 f5 = ctest5();
     assert(f5.i == 0x12345678);
     assert(f5.j == 0x21436587);
-}
 
-version (X86)
+version(Windows_or_32bit)
 {
     Foo6 f6 = ctest6();
     assert(f6.i == 0x12345678);
@@ -52,15 +52,9 @@ version (X86)
     assert(f6.k == 0x24163857);
 }
 
-version (Win64)
-{
-}
-else
-{
     S7 s7 = ctest10();
     assert(s7.a == 2.5);
     assert(s7.b == 1.5);
-}
 }
 
 /*******************************************/
