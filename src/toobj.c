@@ -1098,9 +1098,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 assert(e->op == TOKstring);
 
                 StringExp *se = (StringExp *)e;
-                char *name = (char *)mem.xmalloc(se->len + 1);
-                memcpy(name, se->string, se->len);
-                name[se->len] = 0;
+                char *name = (char *)mem.xmalloc(se->numberOfCodeUnits() + 1);
+                se->writeTo(name, true);
 
                 /* Embed the library names into the object file.
                  * The linker will then automatically

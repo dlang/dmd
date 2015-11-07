@@ -55,6 +55,7 @@ Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+Symbol *toStringSymbol(StringExp *se);
 void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
@@ -1377,14 +1378,13 @@ elem *toElem(Expression *e, IRState *irs)
             Type *tb = se->type->toBasetype();
             if (tb->ty == Tarray)
             {
-                Symbol *si = toStringSymbol((const char *)se->string, se->len, se->sz);
-                e = el_pair(TYdarray, el_long(TYsize_t, se->len), el_ptr(si));
+                Symbol *si = toStringSymbol(se);
+                e = el_pair(TYdarray, el_long(TYsize_t, se->numberOfCodeUnits()), el_ptr(si));
             }
             else if (tb->ty == Tsarray)
             {
-                Symbol *si = toStringSymbol((const char *)se->string, se->len, se->sz);
+                Symbol *si = toStringSymbol(se);
                 e = el_var(si);
-
                 e->Ejty = e->Ety = TYstruct;
                 e->ET = si->Stype;
                 e->ET->Tcount++;
@@ -1394,11 +1394,10 @@ elem *toElem(Expression *e, IRState *irs)
                 e = el_calloc();
                 e->Eoper = OPstring;
                 // freed in el_free
-                unsigned len = se->len * se->sz;
-                e->EV.ss.Vstring = (char *)mem_malloc(len + se->sz);
-                memcpy(e->EV.ss.Vstring, se->string, len);
-                memset(e->EV.ss.Vstring + len, 0, se->sz);
-                e->EV.ss.Vstrlen = len + se->sz;
+                unsigned len = (se->numberOfCodeUnits() + 1) * se->sz;
+                e->EV.ss.Vstring = (char *)mem_malloc(len);
+                se->writeTo(e->EV.ss.Vstring, true);
+                e->EV.ss.Vstrlen = len;
                 e->Ety = TYnptr;
             }
             else
@@ -5596,13 +5595,18 @@ elem *toElemDtor(Expression *e, IRState *irs)
 
 /*******************************************************
  * Write read-only string to object file, create a local symbol for it.
- * str[len] must be 0.
+ * Makes a copy of str's contents, does not keep a reference to it.
+ * Params:
+ *      str = string
+ *      len = number of code units in string
+ *      sz = number of bytes per code unit
+ * Returns:
+ *      Symbol
  */
 
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %p\n", stringTab);
-    assert(str[len * sz] == 0);
     StringValue *sv = stringTab->update(str, len * sz);
     if (!sv->ptrvalue)
     {
@@ -5619,6 +5623,28 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
     return (Symbol *)sv->ptrvalue;
 }
 
+/*******************************************************
+ * Turn StringExp into Symbol.
+ */
+
+Symbol *toStringSymbol(StringExp *se)
+{
+    Symbol *si;
+    int n = se->numberOfCodeUnits();
+    char* p = se->toPtr();
+    if (p)
+    {
+        si = toStringSymbol(p, n, se->sz);
+    }
+    else
+    {
+        p = (char *)mem.xmalloc(n * se->sz);
+        se->writeTo(p, false);
+        si = toStringSymbol(p, n, se->sz);
+        mem.xfree(p);
+    }
+    return si;
+}
 
 /******************************************************
  * Return an elem that is the file, line, and function suitable

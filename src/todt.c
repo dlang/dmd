@@ -377,26 +377,33 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             Type *t = e->type->toBasetype();
 
             // BUG: should implement some form of static string pooling
+            int n = e->numberOfCodeUnits();
+            char *p = e->toPtr();
+            if (!p)
+            {
+                p = (char *)mem.xmalloc(n * e->sz);
+                e->writeTo(p, false);
+            }
             switch (t->ty)
             {
                 case Tarray:
-                    pdt = dtsize_t(pdt, e->len);
+                    pdt = dtsize_t(pdt, n);
                 case Tpointer:
-                    pdt = dtabytes(pdt, 0, e->len * e->sz, (const char *)e->string, (unsigned)e->sz);
+                    pdt = dtabytes(pdt, 0, n * e->sz, p, (unsigned)e->sz);
                     break;
 
                 case Tsarray:
                 {
                     TypeSArray *tsa = (TypeSArray *)t;
 
-                    pdt = dtnbytes(pdt, e->len * e->sz, (const char *)e->string);
+                    pdt = dtnbytes(pdt, n * e->sz, p);
                     if (tsa->dim)
                     {
                         dinteger_t dim = tsa->dim->toInteger();
-                        if (e->len < dim)
+                        if (n < dim)
                         {
                             // Pad remainder with 0
-                            pdt = dtnzeros(pdt, (dim - e->len) * tsa->next->size());
+                            pdt = dtnzeros(pdt, (dim - n) * tsa->next->size());
                         }
                     }
                     break;
@@ -406,6 +413,8 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                     printf("StringExp::toDt(type = %s)\n", e->type->toChars());
                     assert(0);
             }
+            if (p != e->toPtr())
+                mem.xfree(p);
         }
 
         void visit(ArrayLiteralExp *e)
@@ -897,7 +906,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         {
             // Bugzilla 1914, 3198
             if (e->op == TOKstring)
-                len /= ((StringExp *)e)->len;
+                len /= ((StringExp *)e)->numberOfCodeUnits();
             else if (e->op == TOKarrayliteral)
                 len /= ((ArrayLiteralExp *)e)->elements->dim;
         }
