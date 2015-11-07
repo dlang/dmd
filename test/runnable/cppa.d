@@ -469,8 +469,21 @@ extern (C++, std)
 	{
 	}
 
-	struct basic_string(T, C = char_traits!T, A = allocator!T)
+	// https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
+	version (none)
 	{
+	    extern (C++, __cxx11)
+	    {
+		struct basic_string(T, C = char_traits!T, A = allocator!T)
+		{
+		}
+	    }
+	}
+	else
+	{
+	    struct basic_string(T, C = char_traits!T, A = allocator!T)
+	    {
+	    }
 	}
 
 	struct basic_istream(T, C = char_traits!T)
