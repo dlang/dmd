@@ -500,6 +500,12 @@ extern (C++, std)
     }
 
     class exception { }
+
+    // 14956
+    extern(C++, N14956)
+    {
+        struct S14956 { }
+    }
 }
 
 extern (C++)
@@ -758,6 +764,11 @@ void test14200()
   test14200a(1);
   test14200b(1.0f, 1, 1.0);
 }
+
+/****************************************/
+// 14956
+
+extern(C++) void test14956(S14956 s);
 
 /****************************************/
 // check order of overloads in vtable
@@ -1104,6 +1115,7 @@ void main()
     foo13337(S13337());
     test14195();
     test14200();
+    test14956(S14956());
     testVtable();
     fuzz();
     testeh();

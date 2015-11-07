@@ -481,6 +481,17 @@ void test14200a(int a) {};
 void test14200b(float a, int b, double c) {};
 
 /******************************************/
+// 14956
+
+namespace std {
+    namespace N14956 {
+	struct S14956 { };
+    }
+}
+
+void test14956(std::N14956::S14956 s) { }
+
+/******************************************/
 // check order of overloads in vtable
 
 class Statement;
