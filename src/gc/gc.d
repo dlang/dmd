@@ -48,7 +48,6 @@ import rt.util.container.treap;
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
-import core.sync.mutex;
 import core.thread;
 static import core.memory;
 private alias BlkAttr = core.memory.GC.BlkAttr;
@@ -256,20 +255,6 @@ debug (LOGGING)
 const uint GCVERSION = 1;       // increment every time we change interface
                                 // to GC.
 
-// This just makes Mutex final to de-virtualize member function calls.
-final class GCMutex : Mutex
-{
-    final override void lock() nothrow @trusted @nogc
-    {
-        super.lock_nothrow();
-    }
-
-    final override void unlock() nothrow @trusted @nogc
-    {
-        super.unlock_nothrow();
-    }
-}
-
 struct GC
 {
     // For passing to debug code (not thread safe)
@@ -280,10 +265,8 @@ struct GC
 
     Gcx *gcx;                   // implementation
 
-    // We can't allocate a Mutex on the GC heap because we are the GC.
-    // Store it in the static data segment instead.
-    __gshared GCMutex gcLock;    // global lock
-    __gshared void[__traits(classInstanceSize, GCMutex)] mutexStorage;
+    import core.internal.spinlock;
+    static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.lengthy);
 
     __gshared Config config;
 
@@ -291,9 +274,6 @@ struct GC
     {
         config.initialize();
 
-        mutexStorage[] = typeid(GCMutex).initializer[];
-        gcLock = cast(GCMutex) mutexStorage.ptr;
-        gcLock.__ctor();
         gcx = cast(Gcx*)cstdlib.calloc(1, Gcx.sizeof);
         if (!gcx)
             onOutOfMemoryErrorNoGC();
