@@ -51,18 +51,6 @@ pure nothrow @nogc {
     ubyte HIBYTE(ushort w) {
         return cast(ubyte) (w >>> 8);
     }
-
-    template max(T) {
-        T max(T a, T b) {
-            return a > b ? a : b;
-        }
-    }
-
-    template min(T) {
-        T min(T a, T b) {
-            return a < b ? a : b;
-        }
-    }
 }
 
 enum void* NULL = null;
