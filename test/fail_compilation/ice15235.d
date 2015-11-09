@@ -29,23 +29,23 @@ fail_compilation/ice15235.d(49): Error: bad integral operand
 
 void main() {static assert(__LINE__ == 30);
 	asm {
-		mov [+], EAX; // syntax error
-		mov [-], EAX; // syntax error
-		mov [*], EAX; // [s]segfault[/s] syntax error
-		mov [****], EAX; // [s]segfault[/s] syntax error
-		mov [/], EAX; // syntax error
-		mov [%], EAX; // syntax error
+		mov [+], EAX;
+		mov [-], EAX;
+		mov [*], EAX;
+		mov [****], EAX;
+		mov [/], EAX;
+		mov [%], EAX;
 	};
 	asm {
-		mov [EBX+], EAX; // syntax error
-		mov [EBX-], EAX; // segfault
-		mov [EBX+*], EAX; // segfault
-		mov [EBX*], EAX; // segfault
-		mov [EBX*EBX*], EAX; // segfault
-		mov [*EBX], EAX; // segfault
-		mov [/EBX], EAX; // syntax error
-		mov [EBX/], EAX; // syntax error
-		mov [%EBX], EAX; // syntax error
-		mov [EBX%], EAX; // syntax error
+		mov [EBX+], EAX;
+		mov [EBX-], EAX;
+		mov [EBX+*], EAX;
+		mov [EBX*], EAX;
+		mov [EBX*EBX*], EAX;
+		mov [*EBX], EAX;
+		mov [/EBX], EAX;
+		mov [EBX/], EAX;
+		mov [%EBX], EAX;
+		mov [EBX%], EAX;
 	};
 };
