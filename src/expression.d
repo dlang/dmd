@@ -3556,19 +3556,12 @@ public:
                     }
                 }
                 s = s.toAlias();
+
                 // Same as wthis.ident
-                if (s.needThis() || s.isTemplateDeclaration())
-                {
-                    e = new VarExp(loc, withsym.withstate.wthis);
-                    e = new DotIdExp(loc, e, ident);
-                }
-                else
-                {
-                    Type t = withsym.withstate.wthis.type;
-                    if (t.ty == Tpointer)
-                        t = (cast(TypePointer)t).next;
-                    e = typeDotIdExp(loc, t, ident);
-                }
+                //  TODO: DotIdExp.semantic will find 'ident' from 'wthis' again.
+                //  The redudancy should be removed.
+                e = new VarExp(loc, withsym.withstate.wthis);
+                e = new DotIdExp(loc, e, ident);
                 e = e.semantic(sc);
             }
             else
