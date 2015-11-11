@@ -6,6 +6,8 @@
  */
 module core.sys.linux.sys.socket;
 
+public import core.sys.posix.sys.socket;
+
 version(linux):
 extern(C):
 @nogc:
