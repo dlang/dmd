@@ -7878,9 +7878,9 @@ public:
             ve = ve.semantic(sc);
             return ve;
         }
-        if (s.getType())
+        if (auto t = s.getType())
         {
-            return new TypeExp(e.loc, s.getType());
+            return (new TypeExp(e.loc, t)).semantic(sc);
         }
 
         TemplateMixin tm = s.isTemplateMixin();
@@ -8732,9 +8732,9 @@ public:
             ve = ve.semantic(sc);
             return ve;
         }
-        if (s.getType())
+        if (auto t = s.getType())
         {
-            return new TypeExp(e.loc, s.getType());
+            return (new TypeExp(e.loc, t)).semantic(sc);
         }
 
         TemplateMixin tm = s.isTemplateMixin();
