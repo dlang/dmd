@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -58,21 +58,16 @@ RET retStyle(TypeFunction *tf);
                                  (s)->Slinnum = (loc).linnum, \
                                  (s)->Scharnum = (loc).charnum)
 
-#define SEH     (TARGET_WINDOS)
 
 /***********************************************
  * Generate code to set index into scope table.
  */
 
-#if SEH
 void setScopeIndex(Blockx *blx, block *b, int scope_index)
 {
-    if (!global.params.is64bit)
+    if (config.ehmethod == EH_WIN32)
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
 }
-#else
-#define setScopeIndex(blx, b, scope_index) ;
-#endif
 
 /****************************************
  * Allocate a new block, and set the tryblock.
@@ -991,10 +986,8 @@ public:
     {
         Blockx *blx = irs->blx;
 
-#if SEH
-        if (!global.params.is64bit)
+        if (config.ehmethod == EH_WIN32)
             nteh_declarvars(blx);
-#endif
 
         IRState mystate(irs, s);
 
@@ -1083,10 +1076,8 @@ public:
 
         Blockx *blx = irs->blx;
 
-#if SEH
-        if (!global.params.is64bit)
+        if (config.ehmethod == EH_WIN32)
             nteh_declarvars(blx);
-#endif
 
         block *tryblock = block_goto(blx, BCgoto, NULL);
 
