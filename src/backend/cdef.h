@@ -608,6 +608,18 @@ typedef enum LINKAGE
     LINK_MAXDIM                 /* array dimension                      */
 } linkage_t;
 
+/**********************************
+ * Exception handling method
+ */
+
+enum EHmethod
+{
+    EH_NONE,                    // no exception handling
+    EH_WIN32,                   // Win32 SEH
+    EH_WIN64,                   // Win64 SEH (not supported yet)
+    EH_DM,                      // Digital Mars method
+    EH_DWARF,                   // Dwarf method
+};
 
 // This part of the configuration is saved in the precompiled header for use
 // in comparing to make sure it hasn't changed.
@@ -837,6 +849,7 @@ struct Config
 #define THRESHMAX 0xFFFF        // if threshold == THRESHMAX, all data defaults
                                 // to near
     enum LINKAGE linkage;       // default function call linkage
+    enum EHmethod ehmethod;     // exception handling method
 };
 
 // Configuration that is not saved in precompiled header

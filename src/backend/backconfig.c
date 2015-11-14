@@ -71,6 +71,7 @@ void out_config_init(
     if (model == 64)
     {   config.exe = EX_WIN64;
         config.fpxmmregs = TRUE;
+        config.ehmethod = EH_DM;
 
         // Not sure we really need these two lines, try removing them later
         config.flags |= CFGnoebp;
@@ -79,7 +80,9 @@ void out_config_init(
         config.objfmt = OBJ_MSCOFF;
     }
     else
-    {   config.exe = EX_NT;
+    {
+        config.exe = EX_NT;
+        config.ehmethod = EH_WIN32;
         config.flags2 |= CFG2seh;       // Win32 eh
         config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
     }
@@ -106,6 +109,7 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
+    config.ehmethod = EH_DM;
 #endif
 #if TARGET_OSX
     config.fpxmmregs = TRUE;
@@ -124,6 +128,7 @@ void out_config_init(
     }
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
+    config.ehmethod = EH_DM;
 #endif
 #if TARGET_FREEBSD
     if (model == 64)
@@ -143,6 +148,7 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
+    config.ehmethod = EH_DM;
 #endif
 #if TARGET_OPENBSD
     if (model == 64)
@@ -160,6 +166,7 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
+    config.ehmethod = EH_DM;
 #endif
 #if TARGET_SOLARIS
     if (model == 64)
@@ -177,6 +184,7 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
+    config.ehmethod = EH_DM;
 #endif
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;
