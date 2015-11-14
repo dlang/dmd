@@ -70,6 +70,12 @@ static char __file__[] = __FILE__;      // for tassert.h
 
 #define OFFSET_FAC REGSIZE
 
+#if TARGET_LINUX
+const bool genEhFrame = true;
+#else
+const bool genEhFrame = false;
+#endif
+
 int dwarf_getsegment(const char *name, int align)
 {
 #if ELFOBJ
@@ -140,6 +146,8 @@ void append_addr(Outbuffer *buf, targ_size_t addr)
 /************************  DWARF DEBUG OUTPUT ********************************/
 
 // Dwarf Symbolic Debugging Information
+
+// CFA = value of the stack pointer at the call site in the previous frame
 
 struct CFA_reg
 {
@@ -214,6 +222,13 @@ static CFA_state CFA_state_init_64 =       // initial CFA state as defined by CI
 static CFA_state CFA_state_current;     // current CFA state
 static Outbuffer cfa_buf;               // CFA instructions
 
+/***********************************
+ * Set the location, i.e. the offset from the start
+ * of the function. It must always be greater than
+ * the current location.
+ * Params:
+ *      location = offset from the start of the function
+ */
 void dwarf_CFA_set_loc(size_t location)
 {
     assert(location >= CFA_state_current.location);
@@ -235,6 +250,12 @@ void dwarf_CFA_set_loc(size_t location)
     CFA_state_current.location = location;
 }
 
+/*******************************************
+ * Set the frame register, and its offset.
+ * Params:
+ *      reg = machine register
+ *      offset = offset from frame register
+ */
 void dwarf_CFA_set_reg_offset(int reg, int offset)
 {
     int dw_reg = dwarf_regno(reg);
@@ -272,6 +293,12 @@ void dwarf_CFA_set_reg_offset(int reg, int offset)
     CFA_state_current.offset = offset;
 }
 
+/***********************************************
+ * Set reg to be at offset from frame register.
+ * Params:
+ *      reg = machine register
+ *      offset = offset from frame register
+ */
 void dwarf_CFA_offset(int reg, int offset)
 {
     int dw_reg = dwarf_regno(reg);
@@ -292,6 +319,11 @@ void dwarf_CFA_offset(int reg, int offset)
     CFA_state_current.regstates[dw_reg].offset = offset;
 }
 
+/**************************************
+ * Set total size of arguments pushed on the stack.
+ * Params:
+ *      sz = total size
+ */
 void dwarf_CFA_args_size(size_t sz)
 {
     cfa_buf.writeByte(DW_CFA_GNU_args_size);
@@ -466,7 +498,7 @@ static DebugLineHeader debugline;
 unsigned typidx_tab[TYMAX];
 
 #if MACHOBJ
-const char* debug_frame = "__debug_frame";
+const char* debug_frame_name = "__debug_frame";
 const char* debug_str = "__debug_str";
 const char* debug_ranges = "__debug_ranges";
 const char* debug_loc = "__debug_loc";
@@ -475,8 +507,9 @@ const char* debug_abbrev = "__debug_abbrev";
 const char* debug_info = "__debug_info";
 const char* debug_pubnames = "__debug_pubnames";
 const char* debug_aranges = "__debug_aranges";
+const char* eh_frame_name = "__eh_frame";
 #elif ELFOBJ
-const char* debug_frame = ".debug_frame";
+const char* debug_frame_name = ".debug_frame";
 const char* debug_str = ".debug_str";
 const char* debug_ranges = ".debug_ranges";
 const char* debug_loc = ".debug_loc";
@@ -485,9 +518,15 @@ const char* debug_abbrev = ".debug_abbrev";
 const char* debug_info = ".debug_info";
 const char* debug_pubnames = ".debug_pubnames";
 const char* debug_aranges = ".debug_aranges";
+const char* eh_frame_name = ".eh_frame";
 #endif
 
-void dwarf_initfile(const char *filename)
+/*****************************************
+ * Append .debug_frame header to buf.
+ * Params:
+ *      buf = write raw data here
+ */
+void writeDebugFrameHeader(Outbuffer *buf)
 {
     #pragma pack(1)
     struct DebugFrameHeader
@@ -528,12 +567,214 @@ void dwarf_initfile(const char *filename)
     }
     assert(debugFrameHeader.data_alignment_factor == 0x80 - OFFSET_FAC);
 
-    int seg = dwarf_getsegment(debug_frame, 1);
+    buf->writen(&debugFrameHeader,debugFrameHeader.length + 4);
+}
+
+/*****************************************
+ * Append .eh_frame header to buf.
+ * Almost identical to .debug_frame
+ * Params:
+ *      buf = write raw data here
+ */
+void writeEhFrameHeader(Outbuffer *buf)
+{
+    #pragma pack(1)
+    struct EhFrameHeader
+    {
+        unsigned length;
+        unsigned CIE_id;
+        unsigned char version;
+        unsigned char augmentation[3];
+        unsigned char code_alignment_factor;
+        unsigned char data_alignment_factor;
+        unsigned char return_address_register;
+        unsigned char augmentation_length;
+        unsigned char address_pointer_encoding;
+        unsigned char opcodes[5];
+    };
+    #pragma pack()
+    static EhFrameHeader ehFrameHeader =
+    {
+        0,              // length
+        0,              // CIE_id
+        1,              // version
+      { 'z','R',0 },    // augmentation
+        1,              // code alignment factor
+        0x7C,           // data alignment factor (-4)
+        8,              // return address register
+        1,              // augmentation_length
+        DW_EH_PE_pcrel | DW_EH_PE_sdata4,       // address_pointer_encoding
+      {
+        DW_CFA_def_cfa, 4,4,    // r4,4 [r7,8]
+        DW_CFA_offset   +8,1,   // r8,1 [r16,1]
+      }
+    };
+    if (I64)
+    {
+        ehFrameHeader.data_alignment_factor = 0x78;          // (-8)
+        ehFrameHeader.return_address_register = 16;
+        ehFrameHeader.opcodes[1] = 7;                        // RSP
+        ehFrameHeader.opcodes[2] = 8;
+        ehFrameHeader.opcodes[3] = DW_CFA_offset + 16;       // RIP
+    }
+    assert(ehFrameHeader.data_alignment_factor == 0x80 - OFFSET_FAC);
+
+    unsigned pad = -sizeof(EhFrameHeader) & (I64 ? 7 : 3);      // pad to addressing unit size boundary
+    ehFrameHeader.length = sizeof(EhFrameHeader) - 4 + pad;
+    assert(sizeof(EhFrameHeader) == 4 + 4 + 14);
+
+    buf->reserve(sizeof(EhFrameHeader) + pad);
+    buf->writen(&ehFrameHeader, sizeof(EhFrameHeader));
+    for (unsigned i = 0; i < pad; ++i)
+        buf->writeByten(DW_CFA_nop);
+}
+
+/*********************************************
+ * Generate function's Frame Description Entry into .debug_frame
+ * Params:
+ *      dfseg = SegData[] index for .debug_frame
+ *      sfunc = the function
+ */
+void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
+{
+    if (I64)
+    {
+        #pragma pack(1)
+        struct DebugFrameFDE
+        {
+            unsigned length;
+            unsigned CIE_pointer;
+            unsigned long long initial_location;
+            unsigned long long address_range;
+        };
+        #pragma pack()
+        static DebugFrameFDE debugFrameFDE =
+        {   20,             // length
+            0,              // CIE_pointer
+            0,              // initial_location
+            0,              // address_range
+        };
+
+        // Pad to 8 byte boundary
+        for (unsigned n = (-cfa_buf.size() & 7); n; n--)
+            cfa_buf.writeByte(DW_CFA_nop);
+
+        debugFrameFDE.length = 20 + cfa_buf.size();
+        debugFrameFDE.address_range = sfunc->Ssize;
+        // Do we need this?
+        //debugFrameFDE.initial_location = sfunc->Soffset;
+
+        debug_frame_secidx = SegData[dfseg]->SDshtidx;
+        Outbuffer *debug_frame_buf = SegData[dfseg]->SDbuf;
+        unsigned debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
+        debug_frame_buf->reserve(1000);
+        debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
+        debug_frame_buf->write(&cfa_buf);
+
+#if ELFOBJ
+        // Absolute address for debug_frame, relative offset for eh_frame
+        dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
+#endif
+        dwarf_addrel64(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg,0);
+    }
+    else
+    {
+        #pragma pack(1)
+        struct DebugFrameFDE
+        {
+            unsigned length;
+            unsigned CIE_pointer;
+            unsigned initial_location;
+            unsigned address_range;
+        };
+        #pragma pack()
+        static DebugFrameFDE debugFrameFDE =
+        {   12,             // length
+            0,              // CIE_pointer
+            0,              // initial_location
+            0,              // address_range
+        };
+
+        // Pad to 4 byte boundary
+        for (unsigned n = (-cfa_buf.size() & 3); n; n--)
+            cfa_buf.writeByte(DW_CFA_nop);
+
+        debugFrameFDE.length = 12 + cfa_buf.size();
+        debugFrameFDE.address_range = sfunc->Ssize;
+        // Do we need this?
+        //debugFrameFDE.initial_location = sfunc->Soffset;
+
+        debug_frame_secidx = SegData[dfseg]->SDshtidx;
+        Outbuffer *debug_frame_buf = SegData[dfseg]->SDbuf;
+        unsigned debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
+        debug_frame_buf->reserve(1000);
+        debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
+        debug_frame_buf->write(&cfa_buf);
+
+#if ELFOBJ
+        // Absolute address for debug_frame, relative offset for eh_frame
+        dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
+#endif
+        dwarf_addrel(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg);
+    }
+}
+
+/*********************************************
+ * Generate function's Frame Description Entry into .eh_frame
+ * Params:
+ *      dfseg = SegData[] index for .eh_frame
+ *      sfunc = the function
+ */
+void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
+{
+    unsigned CIE_offset = 0;                    // offset of enclosing CIE
+    Outbuffer *buf = SegData[dfseg]->SDbuf;
+    unsigned offset = buf->p - buf->buf;
+
+    #pragma pack(1)
+    struct EhFrameFDE
+    {
+        unsigned length;
+        unsigned CIE_pointer;
+        unsigned PC_begin;
+        unsigned PC_range;
+        unsigned char augmentation_length;
+    };
+    #pragma pack()
+    assert(sizeof(EhFrameFDE) == 17);
+
+    EhFrameFDE ehFrameFDE;
+
+    // Pad to byte boundary
+    const unsigned pad = I64 ? 8 : 4;
+    for (unsigned n = (-(sizeof(EhFrameFDE) + cfa_buf.size()) & (pad - 1)); n; n--)
+        cfa_buf.writeByte(DW_CFA_nop);
+
+    ehFrameFDE.length = 13 + cfa_buf.size();
+    ehFrameFDE.CIE_pointer = (offset + 4) - CIE_offset;
+    ehFrameFDE.PC_begin = 0;  /* maybe sfunc->Soffset */
+    ehFrameFDE.PC_range = sfunc->Ssize;
+    ehFrameFDE.augmentation_length = 0;
+
+    debug_frame_secidx = SegData[dfseg]->SDshtidx;
+    buf->reserve(1000);
+    buf->writen(&ehFrameFDE,sizeof(ehFrameFDE));
+    buf->write(&cfa_buf);
+
+    dwarf_addrel(dfseg,offset + 8,sfunc->Sseg); // offset of PC_begin
+}
+
+void dwarf_initfile(const char *filename)
+{
+    int seg = dwarf_getsegment(genEhFrame ? eh_frame_name : debug_frame_name, 1);
     debug_frame_secidx = SegData[seg]->SDshtidx;
     Outbuffer *debug_frame_buf = SegData[seg]->SDbuf;
     debug_frame_buf->reserve(1000);
 
-    debug_frame_buf->writen(&debugFrameHeader,debugFrameHeader.length + 4);
+    if (genEhFrame)
+        writeEhFrameHeader(debug_frame_buf);
+    else
+        writeDebugFrameHeader(debug_frame_buf);
 
     /* ======================================== */
 
@@ -1010,96 +1251,17 @@ void dwarf_func_term(Symbol *sfunc)
         return;
 #endif
 
-   unsigned funcabbrevcode;
+    unsigned funcabbrevcode;
 
-    /* Put out the start of the debug_frame entry for this function
-     */
-    Outbuffer *debug_frame_buf;
-    unsigned debug_frame_buf_offset;
-
-    if (I64)
+    if (genEhFrame)
     {
-        #pragma pack(1)
-        struct DebugFrameFDE
-        {
-            unsigned length;
-            unsigned CIE_pointer;
-            unsigned long long initial_location;
-            unsigned long long address_range;
-        };
-        #pragma pack()
-        static DebugFrameFDE debugFrameFDE =
-        {   20,             // length
-            0,              // CIE_pointer
-            0,              // initial_location
-            0,              // address_range
-        };
-
-        // Pad to 8 byte boundary
-        int n;
-        for (n = (-cfa_buf.size() & 7); n; n--)
-            cfa_buf.writeByte(DW_CFA_nop);
-
-        debugFrameFDE.length = 20 + cfa_buf.size();
-        debugFrameFDE.address_range = sfunc->Ssize;
-        // Do we need this?
-        //debugFrameFDE.initial_location = sfunc->Soffset;
-
-        IDXSEC dfseg;
-        dfseg = dwarf_getsegment(debug_frame, 1);
-        debug_frame_secidx = SegData[dfseg]->SDshtidx;
-        debug_frame_buf = SegData[dfseg]->SDbuf;
-        debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
-        debug_frame_buf->reserve(1000);
-        debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
-        debug_frame_buf->write(&cfa_buf);
-
-#if ELFOBJ
-        dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
-#endif
-        dwarf_addrel64(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg,0);
+        IDXSEC dfseg = dwarf_getsegment(eh_frame_name, 1);
+        writeEhFrameFDE(dfseg, sfunc);
     }
     else
     {
-        #pragma pack(1)
-        struct DebugFrameFDE
-        {
-            unsigned length;
-            unsigned CIE_pointer;
-            unsigned initial_location;
-            unsigned address_range;
-        };
-        #pragma pack()
-        static DebugFrameFDE debugFrameFDE =
-        {   12,             // length
-            0,              // CIE_pointer
-            0,              // initial_location
-            0,              // address_range
-        };
-
-        // Pad to 4 byte boundary
-        int n;
-        for (n = (-cfa_buf.size() & 3); n; n--)
-            cfa_buf.writeByte(DW_CFA_nop);
-
-        debugFrameFDE.length = 12 + cfa_buf.size();
-        debugFrameFDE.address_range = sfunc->Ssize;
-        // Do we need this?
-        //debugFrameFDE.initial_location = sfunc->Soffset;
-
-        IDXSEC dfseg;
-        dfseg = dwarf_getsegment(debug_frame, 1);
-        debug_frame_secidx = SegData[dfseg]->SDshtidx;
-        debug_frame_buf = SegData[dfseg]->SDbuf;
-        debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
-        debug_frame_buf->reserve(1000);
-        debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
-        debug_frame_buf->write(&cfa_buf);
-
-#if ELFOBJ
-        dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
-#endif
-        dwarf_addrel(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg);
+        IDXSEC dfseg = dwarf_getsegment(debug_frame_name, 1);
+        writeDebugFrameFDE(dfseg, sfunc);
     }
 
     IDXSEC seg = sfunc->Sseg;
