@@ -2015,7 +2015,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_NT && tyfunc(s->ty()) &&
+                config.exe == EX_WIN32 && tyfunc(s->ty()) &&
                 !variadic(s->Stype))
 #endif
             {
