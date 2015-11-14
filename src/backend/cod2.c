@@ -5038,13 +5038,13 @@ code *cdinfo(elem *e,regm_t *pretregs)
             c = cat(c,codelem(e->E1,&retregs,FALSE));
             break;
         case OPmark:
-            if (0 && config.exe == EX_NT)
+            if (0 && config.exe == EX_WIN32)
             {   unsigned idx;
 
                 idx = except_index_get();
                 except_mark();
                 c = codelem(e->E2,pretregs,FALSE);
-                if (config.exe == EX_NT && idx != except_index_get())
+                if (config.exe == EX_WIN32 && idx != except_index_get())
                 {   usednteh |= NTEHcleanup;
                     c = cat(c,nteh_gensindex(idx - 1));
                 }
@@ -5082,7 +5082,7 @@ code *cddctor(elem *e,regm_t *pretregs)
         MOV     sindex[BP],index
      */
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
     {   usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
     }
@@ -5120,7 +5120,7 @@ code *cdddtor(elem *e,regm_t *pretregs)
     L1: NOP
     */
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
     {   usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
     }
@@ -5185,7 +5185,7 @@ code *cdctor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCctor;
@@ -5207,7 +5207,7 @@ code *cddtor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCdtor;
