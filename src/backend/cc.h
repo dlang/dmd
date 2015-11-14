@@ -433,7 +433,7 @@ typedef struct block
         struct
         {
 #if MARS
-            Symbol *jcatchvar;          // __j_throw() fills in this
+            Symbol *jcatchvar;          // __d_throw() fills in this
             #define jcatchvar BS.BI_TRY.jcatchvar
 #endif
             int Bscope_index;           // index into scope table
@@ -446,7 +446,7 @@ typedef struct block
     } BS;
     Srcpos      Bsrcpos;        // line number (0 if not known)
     unsigned char BC;           // exit condition (enum BC)
-// NEW
+
     unsigned char Balign;       // alignment
 
     unsigned short Bflags;              // flags (BFLxxxx)
@@ -592,13 +592,13 @@ enum BC {
     BCcatch     = 11,   // C++ catch block
     BCjump      = 12,   // Belem specifies (near) address to jump to
     BC_try      = 13,   // SEH: first block of try-except or try-finally
-                        // Mars: try-catch or try-finally
+                        // D: try-catch or try-finally
     BC_filter   = 14,   // SEH exception-filter (always exactly one block)
     BC_finally  = 15,   // first block of SEH termination-handler,
-                        // or finally block
-    BC_ret      = 16,   // last block of SEH termination-handler or finally block
+                        // or D finally block
+    BC_ret      = 16,   // last block of SEH termination-handler or D _finally block
     BC_except   = 17,   // first block of SEH exception-handler
-    BCjcatch    = 18,   // first block of Mars catch-block
+    BCjcatch    = 18,   // D catch block
     BCMAX
 };
 
