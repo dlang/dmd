@@ -18,6 +18,7 @@ import ddmd.builtin;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
 import ddmd.declaration;
+import ddmd.delegatize;
 import ddmd.dinterpret;
 import ddmd.dmodule;
 import ddmd.doc;
@@ -3338,23 +3339,7 @@ public:
         Dsymbol p = toParent2();
 
         // Function literals from fdthis to p must be delegates
-        // TODO: here is similar to checkFrameAccess.
-        for (Dsymbol s = fdthis; s && s != p; s = s.toParent2())
-        {
-            // function literal has reference to enclosing scope is delegate
-            if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
-                fld.tok = TOKdelegate;
-            if (FuncDeclaration fd = s.isFuncDeclaration())
-            {
-                if (!fd.isThis() && !fd.isNested())
-                    break;
-            }
-            if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
-            {
-                if (ad2.storage_class & STCstatic)
-                    break;
-            }
-        }
+        checkNestedRef(fdthis, p);
 
         if (isNested())
         {

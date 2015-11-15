@@ -1,3 +1,4 @@
+/+
 template map(fun...)
 {
     auto map(R)(R r)
@@ -50,5 +51,5 @@ class Bar
         ); // compiles <- error
     }
 }
-
++/
 void main() {}

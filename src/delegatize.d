@@ -11,6 +11,7 @@ module ddmd.delegatize;
 import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
+import ddmd.dsymbol;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
@@ -164,4 +165,30 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
     scope LambdaCheckForNestedRef v = new LambdaCheckForNestedRef(sc);
     walkPostorder(e, v);
     return v.result;
+}
+
+bool checkNestedRef(Dsymbol s, Dsymbol p)
+{
+    while (s)
+    {
+        if (s == p) // hit!
+            return false;
+
+        if (auto fd = s.isFuncDeclaration())
+        {
+            if (!fd.isThis() && !fd.isNested())
+                break;
+
+            // Bugzilla 15332: change to delegate if fd is actually nested.
+            if (auto fld = fd.isFuncLiteralDeclaration())
+                fld.tok = TOKdelegate;
+        }
+        if (auto ad = s.isAggregateDeclaration())
+        {
+            if (ad.storage_class & STCstatic)
+                break;
+        }
+        s = s.toParent2();
+    }
+    return true;
 }
