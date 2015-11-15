@@ -3813,8 +3813,7 @@ public:
         }
         if (Type t = s.getType())
         {
-            auto te = new TypeExp(loc, t);
-            return te.semantic(sc);
+            return (new TypeExp(loc, t)).semantic(sc);
         }
         if (TupleDeclaration tup = s.isTupleDeclaration())
         {
@@ -5204,6 +5203,9 @@ public:
 
     override Expression semantic(Scope* sc)
     {
+        if (type.ty == Terror)
+            return new ErrorExp();
+
         //printf("TypeExp::semantic(%s)\n", type->toChars());
         Expression e;
         Type t;
@@ -8101,10 +8103,9 @@ public:
                     //printf("'%s' is an overload set\n", o->toChars());
                     return new OverExp(loc, o);
                 }
-                Type t = s.getType();
-                if (t)
+                if (auto t = s.getType())
                 {
-                    return new TypeExp(loc, t);
+                    return (new TypeExp(loc, t)).semantic(sc);
                 }
                 TupleDeclaration tup = s.isTupleDeclaration();
                 if (tup)
