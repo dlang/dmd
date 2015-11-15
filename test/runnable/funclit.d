@@ -204,6 +204,11 @@ void test4v()
     static assert(!__traits(compiles, { tcvarg4(0, a => a); }));
 }
 
+// A lambda in function default argument should be deduced to delegate, by the
+// preparation inferType call in TypeFunction.semantic.
+void test4_findRoot(scope bool delegate(real lo, real hi) tolerance = (real a, real b) => false)
+{}
+
 /***************************************************/
 // on CallExp::e1
 
