@@ -1188,6 +1188,7 @@ Language changes listed by -transition=id:
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
     objc_tryMain_dObjc();
+
     // Initialization
     Type._init();
     Id.initialize();
@@ -1196,7 +1197,7 @@ Language changes listed by -transition=id:
     Expression._init();
     objc_tryMain_init();
     builtin_init();
-    initTraitsStringTable();
+
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
