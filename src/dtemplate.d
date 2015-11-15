@@ -2435,7 +2435,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
 
             Dsymbol s = ti.inst.toAlias();
             FuncDeclaration fd;
-            if (TemplateDeclaration tdx = s.isTemplateDeclaration())
+            if (auto tdx = s.isTemplateDeclaration())
             {
                 Objects dedtypesX;      // empty tiargs
 
@@ -2482,7 +2482,12 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
                 return 0;
 
             if (fd.type.ty != Tfunction)
-                goto Lerror;
+            {
+                m.lastf = fd;   // to propagate "error match"
+                m.count = 1;
+                m.last = MATCHnomatch;
+                return 1;
+            }
 
             Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
 
