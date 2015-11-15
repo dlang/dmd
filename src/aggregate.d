@@ -313,6 +313,9 @@ public:
         foreach (i; 0 .. nfields)
         {
             auto vd = fields[i];
+            if (vd.errors)
+                continue;
+
             auto vx = vd;
             if (vd._init && vd._init.isVoidInitializer())
                 vx = null;
