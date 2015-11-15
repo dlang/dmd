@@ -969,6 +969,16 @@ elem *toElem(Expression *e, IRState *irs)
                 return;
             }
 
+            if (FuncLiteralDeclaration *fld = se->var->isFuncLiteralDeclaration())
+            {
+                if (fld->tok == TOKreserved)
+                {
+                    // change to non-nested
+                    fld->tok = TOKfunction;
+                    fld->vthis = NULL;
+                }
+            }
+
             Symbol *s = toSymbol(se->var);
             FuncDeclaration *fd = NULL;
             if (se->var->toParent2())

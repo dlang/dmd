@@ -2689,21 +2689,6 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         if (!tf.callMatch(tthis_best, fargs))
             goto Lnomatch;
 
-        if (auto fld = m.lastf.isFuncLiteralDeclaration())
-        {
-            if ((sc.flags & SCOPEconstraint) || sc.intypeof)
-            {
-                // Inside template constraint, or inside typeof,
-                // nested reference check doesn't work correctly.
-            }
-            else if (fld.tok == TOKreserved)
-            {
-                // change to non-nested
-                fld.tok = TOKfunction;
-                fld.vthis = null;
-            }
-        }
-
         /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
          * that same template. Thus, the function type can be incomplete. Complete it.
          *
@@ -6155,13 +6140,48 @@ public:
         }
         else if (tinst)
         {
-            /* Template function instantiation should run semantic3 immediately
-             * for attribute inference.
-             */
+            bool doSemantic3 = false;
             if (sc.func && aliasdecl && aliasdecl.toAlias().isFuncDeclaration())
             {
-                trySemantic3(sc2);
+                /* Template function instantiation should run semantic3 immediately
+                 * for attribute inference.
+                 */
+                doSemantic3 = true;
             }
+            else if (sc.func)
+            {
+                /* A lambda function in template arguments might capture the
+                 * instantiated scope context. For the correct context inference,
+                 * all instantiated functions should run the semantic3 immediately.
+                 * See also compilable/test14973.d
+                 */
+                foreach (oarg; tdtypes)
+                {
+                    auto s = getDsymbol(oarg);
+                    if (!s)
+                        continue;
+
+                    if (auto td = s.isTemplateDeclaration())
+                    {
+                        if (!td.literal)
+                            continue;
+                        assert(td.members && td.members.dim == 1);
+                        s = (*td.members)[0];
+                    }
+                    if (auto fld = s.isFuncLiteralDeclaration())
+                    {
+                        if (fld.tok == TOKreserved)
+                        {
+                            doSemantic3 = true;
+                            break;
+                        }
+                    }
+                }
+                //printf("[%s] %s doSemantic3 = %d\n", loc.toChars(), toChars(), doSemantic3);
+            }
+            if (doSemantic3)
+                trySemantic3(sc2);
+
             TemplateInstance ti = tinst;
             int nest = 0;
             while (ti && !ti.deferred && ti.tinst)

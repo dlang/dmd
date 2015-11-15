@@ -2888,7 +2888,7 @@ public:
         int level;
         Dsymbol s;
         Dsymbol fdparent;
-        //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd->toChars());
+        //printf("FuncDeclaration::getLevel(fd = '%s')\n", fd.toChars());
         fdparent = fd.toParent2();
         if (fdparent == this)
             return -1;
@@ -2896,7 +2896,7 @@ public:
         level = 0;
         while (fd != s && fdparent != s.toParent2())
         {
-            //printf("\ts = %s, '%s'\n", s->kind(), s->toChars());
+            //printf("\ts = %s, '%s'\n", s.kind(), s.toChars());
             FuncDeclaration thisfd = s.isFuncDeclaration();
             if (thisfd)
             {
@@ -3324,6 +3324,16 @@ public:
     final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
+
+        if (auto fld = this.isFuncLiteralDeclaration())
+        {
+            if (fld.tok == TOKreserved)
+            {
+                fld.tok = TOKfunction;
+                fld.vthis = null;
+            }
+        }
+
         if (!parent || parent == sc.parent)
             return false;
         if (ident == Id.require || ident == Id.ensure)
