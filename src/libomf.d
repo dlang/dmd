@@ -18,13 +18,13 @@ import core.stdc.stdlib;
 import core.stdc.stdarg;
 import ddmd.globals;
 import ddmd.lib;
-import ddmd.mars;
 import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
 import ddmd.errors;
+import ddmd.utils;
 
 import ddmd.scanomf;
 

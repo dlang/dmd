@@ -18,7 +18,6 @@ import core.stdc.stdarg;
 import core.stdc.string;
 import ddmd.globals;
 import ddmd.lib;
-import ddmd.mars;
 import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
@@ -27,6 +26,7 @@ import ddmd.root.port;
 import ddmd.root.stringtable;
 import ddmd.scanmscoff;
 import ddmd.errors;
+import ddmd.utils;
 
 enum LOG = false;
 

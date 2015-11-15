@@ -46,7 +46,6 @@ import ddmd.identifier;
 import ddmd.imphint;
 import ddmd.inline;
 import ddmd.intrange;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.nspace;
 import ddmd.opover;
@@ -65,6 +64,7 @@ import ddmd.tokens;
 import ddmd.traits;
 import ddmd.typinf;
 import ddmd.utf;
+import ddmd.utils;
 import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
