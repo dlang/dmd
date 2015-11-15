@@ -139,10 +139,10 @@ private
 
     extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
 
-    extern (C) void gc_addRoot( in void* p ) nothrow;
+    extern (C) void gc_addRoot( in void* p ) nothrow @nogc;
     extern (C) void gc_addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
 
-    extern (C) void gc_removeRoot( in void* p ) nothrow;
+    extern (C) void gc_removeRoot( in void* p ) nothrow @nogc;
     extern (C) void gc_removeRange( in void* p ) nothrow @nogc;
     extern (C) void gc_runFinalizers( in void[] segment );
 }
@@ -703,7 +703,7 @@ struct GC
      * }
      * ---
      */
-    static void addRoot( in void* p ) nothrow /* FIXME pure */
+    static void addRoot( in void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_addRoot( p );
     }
@@ -717,7 +717,7 @@ struct GC
      * Params:
      *  p = A pointer into a GC-managed memory block or null.
      */
-    static void removeRoot( in void* p ) nothrow /* FIXME pure */
+    static void removeRoot( in void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_removeRoot( p );
     }
