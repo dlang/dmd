@@ -790,25 +790,24 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 #endif
         case BCgoto:
             nextb = list_block(bl->Bsucc);
-            if (((MARS /*&& config.flags2 & CFG2seh*/) ||
+            if ((MARS ||
                  funcsym_p->Sfunc->Fflags3 & Fnteh) &&
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
-            {   int toindex;
-                int fromindex;
-
+            {
                 bl->Bcode = NULL;
+                retregs = 0;
                 c = gencodelem(c,e,&retregs,TRUE);
-                toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
+                int toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
                 assert(bl->Btry);
-                fromindex = bl->Btry->Bscope_index;
+                int fromindex = bl->Btry->Bscope_index;
 #if MARS
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl->Btry &&
                         list_block(list_next(bl->Btry->Bsucc))->BC == BCjcatch)
                     {
-                        goto L2;
+                        goto L2;        // it's a try-catch, not a try-finally
                     }
                 }
 #endif
@@ -867,6 +866,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 goto L2;
             }
         case_goto:
+            retregs = 0;
             c = gencodelem(c,e,&retregs,TRUE);
             if (anyspill)
             {   // Add in the epilog code
@@ -917,12 +917,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     c = cod3_stackadj(c, nalign);
                 }
                 // CALL bl->Bsucc
-                c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bl->Bsucc));
+                c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)bl->nthSucc(0));
                 regcon.immed.mval = 0;
                 if (nalign)
                     c = cod3_stackadj(c, -nalign);
-                // JMP list_next(bl->Bsucc)
-                nextb = list_block(list_next(bl->Bsucc));
+                // JMP bl->nthSucc(1)
+                nextb = bl->nthSucc(1);
                 goto L2;
             }
 #else       // Not so good because altering return addr always causes branch misprediction
@@ -938,6 +938,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 #endif
 
         case BC_ret:
+            retregs = 0;
             c = gencodelem(c,e,&retregs,TRUE);
             bl->Bcode = gen1(c,0xC3);   // RET
             break;
@@ -991,10 +992,15 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             }
             else
             {
-        case BCret:
-        case BCexit:
                 c = gencodelem(c,e,&retregs,TRUE);
             }
+            goto L4;
+
+        case BCret:
+        case BCexit:
+            retregs = 0;
+            c = gencodelem(c,e,&retregs,TRUE);
+        L4:
             bl->Bcode = c;
             if (retregs == mST0)
             {   assert(stackused == 1);
@@ -1005,9 +1011,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 pop87();
                 pop87();                // account for return value
             }
-            if (bl->BC == BCexit && config.flags4 & CFG4optimized)
-                mfuncreg = mfuncregsave;
-            if (MARS || usednteh & NTEH_try)
+            if (bl->BC == BCexit)
+            {
+                if (config.flags4 & CFG4optimized)
+                    mfuncreg = mfuncregsave;
+            }
+            else if (MARS || usednteh & NTEH_try)
             {   block *bt;
 
                 bt = bl;
