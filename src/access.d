@@ -51,28 +51,28 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
             Prot access = getAccess(b.sym, smember);
             switch (access.kind)
             {
-            case PROTnone:
-                break;
+                case PROTnone:
+                    break;
 
-            case PROTprivate:
-                access_ret = Prot(PROTnone); // private members of base class not accessible
-                break;
+                case PROTprivate:
+                    access_ret = Prot(PROTnone); // private members of base class not accessible
+                    break;
 
-            case PROTpackage:
-            case PROTprotected:
-            case PROTpublic:
-            case PROTexport:
-                // If access is to be tightened
-                if (b.protection.isMoreRestrictiveThan(access))
-                    access = b.protection;
+                case PROTpackage:
+                case PROTprotected:
+                case PROTpublic:
+                case PROTexport:
+                    // If access is to be tightened
+                    if (b.protection.isMoreRestrictiveThan(access))
+                        access = b.protection;
 
-                // Pick path with loosest access
-                if (access_ret.isMoreRestrictiveThan(access))
-                    access_ret = access;
-                break;
+                    // Pick path with loosest access
+                    if (access_ret.isMoreRestrictiveThan(access))
+                        access_ret = access;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
     }

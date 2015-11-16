@@ -749,55 +749,55 @@ extern (C++) struct Token
         const(char)* p = &buffer[0];
         switch (value)
         {
-        case TOKint32v:
-            sprintf(&buffer[0], "%d", cast(d_int32)int64value);
-            break;
+            case TOKint32v:
+                sprintf(&buffer[0], "%d", cast(d_int32)int64value);
+                break;
 
-        case TOKuns32v:
-        case TOKcharv:
-        case TOKwcharv:
-        case TOKdcharv:
-            sprintf(&buffer[0], "%uU", cast(d_uns32)uns64value);
-            break;
+            case TOKuns32v:
+            case TOKcharv:
+            case TOKwcharv:
+            case TOKdcharv:
+                sprintf(&buffer[0], "%uU", cast(d_uns32)uns64value);
+                break;
 
-        case TOKint64v:
-            sprintf(&buffer[0], "%lldL", cast(long)int64value);
-            break;
+            case TOKint64v:
+                sprintf(&buffer[0], "%lldL", cast(long)int64value);
+                break;
 
-        case TOKuns64v:
-            sprintf(&buffer[0], "%lluUL", cast(ulong)uns64value);
-            break;
+            case TOKuns64v:
+                sprintf(&buffer[0], "%lluUL", cast(ulong)uns64value);
+                break;
 
-        case TOKfloat32v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
-            strcat(&buffer[0], "f");
-            break;
+            case TOKfloat32v:
+                Port.ld_sprint(&buffer[0], 'g', float80value);
+                strcat(&buffer[0], "f");
+                break;
 
-        case TOKfloat64v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
-            break;
+            case TOKfloat64v:
+                Port.ld_sprint(&buffer[0], 'g', float80value);
+                break;
 
-        case TOKfloat80v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
-            strcat(&buffer[0], "L");
-            break;
+            case TOKfloat80v:
+                Port.ld_sprint(&buffer[0], 'g', float80value);
+                strcat(&buffer[0], "L");
+                break;
 
-        case TOKimaginary32v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
-            strcat(&buffer[0], "fi");
-            break;
+            case TOKimaginary32v:
+                Port.ld_sprint(&buffer[0], 'g', float80value);
+                strcat(&buffer[0], "fi");
+                break;
 
-        case TOKimaginary64v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
-            strcat(&buffer[0], "i");
-            break;
+            case TOKimaginary64v:
+                Port.ld_sprint(&buffer[0], 'g', float80value);
+                strcat(&buffer[0], "i");
+                break;
 
-        case TOKimaginary80v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
-            strcat(&buffer[0], "Li");
-            break;
+            case TOKimaginary80v:
+                Port.ld_sprint(&buffer[0], 'g', float80value);
+                strcat(&buffer[0], "Li");
+                break;
 
-        case TOKstring:
+            case TOKstring:
             {
                 OutBuffer buf;
                 buf.writeByte('"');
@@ -807,25 +807,25 @@ extern (C++) struct Token
                     utf_decodeChar(cast(char*)ustring, len, &i, &c);
                     switch (c)
                     {
-                    case 0:
-                        break;
+                        case 0:
+                            break;
 
-                    case '"':
-                    case '\\':
-                        buf.writeByte('\\');
-                    default:
-                        if (c <= 0x7F)
-                        {
-                            if (isprint(c))
-                                buf.writeByte(c);
+                        case '"':
+                        case '\\':
+                            buf.writeByte('\\');
+                        default:
+                            if (c <= 0x7F)
+                            {
+                                if (isprint(c))
+                                    buf.writeByte(c);
+                                else
+                                    buf.printf("\\x%02x", c);
+                            }
+                            else if (c <= 0xFFFF)
+                                buf.printf("\\u%04x", c);
                             else
-                                buf.printf("\\x%02x", c);
-                        }
-                        else if (c <= 0xFFFF)
-                            buf.printf("\\u%04x", c);
-                        else
-                            buf.printf("\\U%08x", c);
-                        continue;
+                                buf.printf("\\U%08x", c);
+                            continue;
                     }
                     break;
                 }
@@ -833,10 +833,10 @@ extern (C++) struct Token
                 if (postfix)
                     buf.writeByte(postfix);
                 p = buf.extractString();
+                break;
             }
-            break;
 
-        case TOKxstring:
+            case TOKxstring:
             {
                 OutBuffer buf;
                 buf.writeByte('x');
@@ -854,40 +854,40 @@ extern (C++) struct Token
                 p = cast(char*)buf.extractData();
                 break;
             }
-        case TOKidentifier:
-        case TOKenum:
-        case TOKstruct:
-        case TOKimport:
-        case TOKwchar:
-        case TOKdchar:
-        case TOKbool:
-        case TOKchar:
-        case TOKint8:
-        case TOKuns8:
-        case TOKint16:
-        case TOKuns16:
-        case TOKint32:
-        case TOKuns32:
-        case TOKint64:
-        case TOKuns64:
-        case TOKint128:
-        case TOKuns128:
-        case TOKfloat32:
-        case TOKfloat64:
-        case TOKfloat80:
-        case TOKimaginary32:
-        case TOKimaginary64:
-        case TOKimaginary80:
-        case TOKcomplex32:
-        case TOKcomplex64:
-        case TOKcomplex80:
-        case TOKvoid:
-            p = ident.toChars();
-            break;
+            case TOKidentifier:
+            case TOKenum:
+            case TOKstruct:
+            case TOKimport:
+            case TOKwchar:
+            case TOKdchar:
+            case TOKbool:
+            case TOKchar:
+            case TOKint8:
+            case TOKuns8:
+            case TOKint16:
+            case TOKuns16:
+            case TOKint32:
+            case TOKuns32:
+            case TOKint64:
+            case TOKuns64:
+            case TOKint128:
+            case TOKuns128:
+            case TOKfloat32:
+            case TOKfloat64:
+            case TOKfloat80:
+            case TOKimaginary32:
+            case TOKimaginary64:
+            case TOKimaginary80:
+            case TOKcomplex32:
+            case TOKcomplex64:
+            case TOKcomplex80:
+            case TOKvoid:
+                p = ident.toChars();
+                break;
 
-        default:
-            p = toChars(value);
-            break;
+            default:
+                p = toChars(value);
+                break;
         }
         return p;
     }

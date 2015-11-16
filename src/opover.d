@@ -38,33 +38,33 @@ extern (C++) bool isCommutative(TOK op)
 {
     switch (op)
     {
-    case TOKadd:
-    case TOKmul:
-    case TOKand:
-    case TOKor:
-    case TOKxor:
+        case TOKadd:
+        case TOKmul:
+        case TOKand:
+        case TOKor:
+        case TOKxor:
 
-    // EqualExp
-    case TOKequal:
-    case TOKnotequal:
+        // EqualExp
+        case TOKequal:
+        case TOKnotequal:
 
-    // CmpExp
-    case TOKlt:
-    case TOKle:
-    case TOKgt:
-    case TOKge:
-    case TOKunord:
-    case TOKlg:
-    case TOKleg:
-    case TOKule:
-    case TOKul:
-    case TOKuge:
-    case TOKug:
-    case TOKue:
-        return true;
+        // CmpExp
+        case TOKlt:
+        case TOKle:
+        case TOKgt:
+        case TOKge:
+        case TOKunord:
+        case TOKlg:
+        case TOKleg:
+        case TOKule:
+        case TOKul:
+        case TOKuge:
+        case TOKug:
+        case TOKue:
+            return true;
 
-    default:
-        break;
+        default:
+            break;
     }
     return false;
 }
@@ -396,60 +396,60 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
      */
     switch (op)
     {
-    case TOKaddass:
-        op = TOKadd;
-        break;
+        case TOKaddass:
+            op = TOKadd;
+            break;
 
-    case TOKminass:
-        op = TOKmin;
-        break;
+        case TOKminass:
+            op = TOKmin;
+            break;
 
-    case TOKmulass:
-        op = TOKmul;
-        break;
+        case TOKmulass:
+            op = TOKmul;
+            break;
 
-    case TOKdivass:
-        op = TOKdiv;
-        break;
+        case TOKdivass:
+            op = TOKdiv;
+            break;
 
-    case TOKmodass:
-        op = TOKmod;
-        break;
+        case TOKmodass:
+            op = TOKmod;
+            break;
 
-    case TOKandass:
-        op = TOKand;
-        break;
+        case TOKandass:
+            op = TOKand;
+            break;
 
-    case TOKorass:
-        op = TOKor;
-        break;
+        case TOKorass:
+            op = TOKor;
+            break;
 
-    case TOKxorass:
-        op = TOKxor;
-        break;
+        case TOKxorass:
+            op = TOKxor;
+            break;
 
-    case TOKshlass:
-        op = TOKshl;
-        break;
+        case TOKshlass:
+            op = TOKshl;
+            break;
 
-    case TOKshrass:
-        op = TOKshr;
-        break;
+        case TOKshrass:
+            op = TOKshr;
+            break;
 
-    case TOKushrass:
-        op = TOKushr;
-        break;
+        case TOKushrass:
+            op = TOKushr;
+            break;
 
-    case TOKcatass:
-        op = TOKcat;
-        break;
+        case TOKcatass:
+            op = TOKcat;
+            break;
 
-    case TOKpowass:
-        op = TOKpow;
-        break;
+        case TOKpowass:
+            op = TOKpow;
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
     Expression e = new StringExp(Loc(), cast(char*)Token.toChars(op));
     e = e.semantic(sc);
@@ -1069,48 +1069,48 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         // need to reverse the sense of the op
                         switch (e.op)
                         {
-                        case TOKlt:
-                            e.op = TOKgt;
-                            break;
+                            case TOKlt:
+                                e.op = TOKgt;
+                                break;
 
-                        case TOKgt:
-                            e.op = TOKlt;
-                            break;
+                            case TOKgt:
+                                e.op = TOKlt;
+                                break;
 
-                        case TOKle:
-                            e.op = TOKge;
-                            break;
+                            case TOKle:
+                                e.op = TOKge;
+                                break;
 
-                        case TOKge:
-                            e.op = TOKle;
-                            break;
+                            case TOKge:
+                                e.op = TOKle;
+                                break;
 
-                        // Floating point compares
-                        case TOKule:
-                            e.op = TOKuge;
-                            break;
+                            // Floating point compares
+                            case TOKule:
+                                e.op = TOKuge;
+                                break;
 
-                        case TOKul:
-                            e.op = TOKug;
-                            break;
+                            case TOKul:
+                                e.op = TOKug;
+                                break;
 
-                        case TOKuge:
-                            e.op = TOKule;
-                            break;
+                            case TOKuge:
+                                e.op = TOKule;
+                                break;
 
-                        case TOKug:
-                            e.op = TOKul;
-                            break;
+                            case TOKug:
+                                e.op = TOKul;
+                                break;
 
-                        // These are symmetric
-                        case TOKunord:
-                        case TOKlg:
-                        case TOKleg:
-                        case TOKue:
-                            break;
+                            // These are symmetric
+                            case TOKunord:
+                            case TOKlg:
+                            case TOKleg:
+                            case TOKue:
+                                break;
 
-                        default:
-                            break;
+                            default:
+                                break;
                         }
                         return;
                     }
@@ -1574,42 +1574,42 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             // need to reverse the sense of the op
             switch (e.op)
             {
-            case TOKlt:
-                e.op = TOKgt;
-                break;
+                case TOKlt:
+                    e.op = TOKgt;
+                    break;
 
-            case TOKgt:
-                e.op = TOKlt;
-                break;
+                case TOKgt:
+                    e.op = TOKlt;
+                    break;
 
-            case TOKle:
-                e.op = TOKge;
-                break;
+                case TOKle:
+                    e.op = TOKge;
+                    break;
 
-            case TOKge:
-                e.op = TOKle;
-                break;
+                case TOKge:
+                    e.op = TOKle;
+                    break;
 
-            // Floating point compares
-            case TOKule:
-                e.op = TOKuge;
-                break;
+                // Floating point compares
+                case TOKule:
+                    e.op = TOKuge;
+                    break;
 
-            case TOKul:
-                e.op = TOKug;
-                break;
+                case TOKul:
+                    e.op = TOKug;
+                    break;
 
-            case TOKuge:
-                e.op = TOKule;
-                break;
+                case TOKuge:
+                    e.op = TOKule;
+                    break;
 
-            case TOKug:
-                e.op = TOKul;
-                break;
+                case TOKug:
+                    e.op = TOKul;
+                    break;
 
-            // The rest are symmetric
-            default:
-                break;
+                // The rest are symmetric
+                default:
+                    break;
             }
         }
 
@@ -1716,72 +1716,72 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
         tab = aggr.type.toBasetype();
         switch (tab.ty)
         {
-        case Tarray:
-        case Tsarray:
-        case Ttuple:
-        case Taarray:
-            break;
+            case Tarray:
+            case Tsarray:
+            case Ttuple:
+            case Taarray:
+                break;
 
-        case Tclass:
-            ad = (cast(TypeClass)tab).sym;
-            goto Laggr;
+            case Tclass:
+                ad = (cast(TypeClass)tab).sym;
+                goto Laggr;
 
-        case Tstruct:
-            ad = (cast(TypeStruct)tab).sym;
-            goto Laggr;
+            case Tstruct:
+                ad = (cast(TypeStruct)tab).sym;
+                goto Laggr;
 
-        Laggr:
-            if (!sliced)
-            {
-                sapply = search_function(ad, idapply);
-                if (sapply)
+            Laggr:
+                if (!sliced)
                 {
-                    // opApply aggregate
+                    sapply = search_function(ad, idapply);
+                    if (sapply)
+                    {
+                        // opApply aggregate
+                        break;
+                    }
+
+                    if (fes.aggr.op != TOKtype)
+                    {
+                        Expression rinit = new ArrayExp(aggr.loc, fes.aggr);
+                        rinit = rinit.trySemantic(sc);
+                        if (rinit) // if application of [] succeeded
+                        {
+                            aggr = rinit;
+                            sliced = 1;
+                            continue;
+                        }
+                    }
+                }
+
+                if (ad.search(Loc(), idfront))
+                {
+                    // range aggregate
                     break;
                 }
 
-                if (fes.aggr.op != TOKtype)
+                if (ad.aliasthis)
                 {
-                    Expression rinit = new ArrayExp(aggr.loc, fes.aggr);
-                    rinit = rinit.trySemantic(sc);
-                    if (rinit) // if application of [] succeeded
-                    {
-                        aggr = rinit;
-                        sliced = 1;
-                        continue;
-                    }
+                    if (att == tab)
+                        goto Lerr;
+                    if (!att && tab.checkAliasThisRec())
+                        att = tab;
+                    aggr = resolveAliasThis(sc, aggr);
+                    continue;
                 }
-            }
+                goto Lerr;
 
-            if (ad.search(Loc(), idfront))
-            {
-                // range aggregate
+            case Tdelegate:
+                if (aggr.op == TOKdelegate)
+                {
+                    sapply = (cast(DelegateExp)aggr).func;
+                }
                 break;
-            }
 
-            if (ad.aliasthis)
-            {
-                if (att == tab)
-                    goto Lerr;
-                if (!att && tab.checkAliasThisRec())
-                    att = tab;
-                aggr = resolveAliasThis(sc, aggr);
-                continue;
-            }
-            goto Lerr;
+            case Terror:
+                break;
 
-        case Tdelegate:
-            if (aggr.op == TOKdelegate)
-            {
-                sapply = (cast(DelegateExp)aggr).func;
-            }
-            break;
-
-        case Terror:
-            break;
-
-        default:
-            goto Lerr;
+            default:
+                goto Lerr;
         }
         break;
     }
@@ -1853,26 +1853,26 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
     Type tab = taggr.toBasetype();
     switch (tab.ty)
     {
-    case Tarray:
-    case Tsarray:
-    case Ttuple:
-        if (fes.parameters.dim == 2)
-        {
-            if (!p.type)
+        case Tarray:
+        case Tsarray:
+        case Ttuple:
+            if (fes.parameters.dim == 2)
             {
-                p.type = Type.tsize_t; // key type
+                if (!p.type)
+                {
+                    p.type = Type.tsize_t; // key type
+                    p.type = p.type.addStorageClass(p.storageClass);
+                }
+                p = (*fes.parameters)[1];
+            }
+            if (!p.type && tab.ty != Ttuple)
+            {
+                p.type = tab.nextOf(); // value type
                 p.type = p.type.addStorageClass(p.storageClass);
             }
-            p = (*fes.parameters)[1];
-        }
-        if (!p.type && tab.ty != Ttuple)
-        {
-            p.type = tab.nextOf(); // value type
-            p.type = p.type.addStorageClass(p.storageClass);
-        }
-        break;
+            break;
 
-    case Taarray:
+        case Taarray:
         {
             TypeAArray taa = cast(TypeAArray)tab;
             if (fes.parameters.dim == 2)
@@ -1893,54 +1893,54 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             }
             break;
         }
-    case Tclass:
-        ad = (cast(TypeClass)tab).sym;
-        goto Laggr;
+        case Tclass:
+            ad = (cast(TypeClass)tab).sym;
+            goto Laggr;
 
-    case Tstruct:
-        ad = (cast(TypeStruct)tab).sym;
-        goto Laggr;
+        case Tstruct:
+            ad = (cast(TypeStruct)tab).sym;
+            goto Laggr;
 
-    Laggr:
-        if (fes.parameters.dim == 1)
-        {
-            if (!p.type)
+        Laggr:
+            if (fes.parameters.dim == 1)
             {
-                /* Look for a front() or back() overload
-                 */
-                Identifier id = (fes.op == TOKforeach) ? Id.Ffront : Id.Fback;
-                Dsymbol s = ad.search(Loc(), id);
-                FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
-                if (fd)
+                if (!p.type)
                 {
-                    // Resolve inout qualifier of front type
-                    p.type = fd.type.nextOf();
-                    if (p.type)
+                    /* Look for a front() or back() overload
+                     */
+                    Identifier id = (fes.op == TOKforeach) ? Id.Ffront : Id.Fback;
+                    Dsymbol s = ad.search(Loc(), id);
+                    FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
+                    if (fd)
                     {
-                        p.type = p.type.substWildTo(tab.mod);
-                        p.type = p.type.addStorageClass(p.storageClass);
+                        // Resolve inout qualifier of front type
+                        p.type = fd.type.nextOf();
+                        if (p.type)
+                        {
+                            p.type = p.type.substWildTo(tab.mod);
+                            p.type = p.type.addStorageClass(p.storageClass);
+                        }
                     }
+                    else if (s && s.isTemplateDeclaration())
+                    {
+                    }
+                    else if (s && s.isDeclaration())
+                        p.type = (cast(Declaration)s).type;
+                    else
+                        break;
                 }
-                else if (s && s.isTemplateDeclaration())
-                {
-                }
-                else if (s && s.isDeclaration())
-                    p.type = (cast(Declaration)s).type;
-                else
-                    break;
+                break;
             }
             break;
-        }
-        break;
 
-    case Tdelegate:
+        case Tdelegate:
         {
             if (!inferApplyArgTypesY(cast(TypeFunction)tab.nextOf(), fes.parameters))
                 return false;
             break;
         }
-    default:
-        break; // ignore error, caught later
+        default:
+            break; // ignore error, caught later
     }
     return true;
 }

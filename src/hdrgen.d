@@ -1231,32 +1231,32 @@ public:
 
         switch (d.linkage)
         {
-        case LINKd:
-            p = "D";
-            break;
+            case LINKd:
+                p = "D";
+                break;
 
-        case LINKc:
-            p = "C";
-            break;
+            case LINKc:
+                p = "C";
+                break;
 
-        case LINKcpp:
-            p = "C++";
-            break;
+            case LINKcpp:
+                p = "C++";
+                break;
 
-        case LINKwindows:
-            p = "Windows";
-            break;
+            case LINKwindows:
+                p = "Windows";
+                break;
 
-        case LINKpascal:
-            p = "Pascal";
-            break;
+            case LINKpascal:
+                p = "Pascal";
+                break;
 
-        case LINKobjc:
-            p = "Objective-C";
-            break;
+            case LINKobjc:
+                p = "Objective-C";
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         buf.writestring("extern (");
         buf.writestring(p);
@@ -2165,7 +2165,7 @@ public:
         L1:
             switch (t.ty)
             {
-            case Tenum:
+                case Tenum:
                 {
                     TypeEnum te = cast(TypeEnum)t;
                     buf.printf("cast(%s)", te.sym.toChars());
@@ -2173,16 +2173,16 @@ public:
                     goto L1;
                 }
 
-            case Twchar:
-                // BUG: need to cast(wchar)
-            case Tdchar:
-                // BUG: need to cast(dchar)
-                if (cast(uinteger_t)v > 0xFF)
-                {
-                    buf.printf("'\\U%08x'", v);
-                    break;
-                }
-            case Tchar:
+                case Twchar:
+                    // BUG: need to cast(wchar)
+                case Tdchar:
+                    // BUG: need to cast(dchar)
+                    if (cast(uinteger_t)v > 0xFF)
+                    {
+                        buf.printf("'\\U%08x'", v);
+                        break;
+                    }
+                case Tchar:
                 {
                     size_t o = buf.offset;
                     if (v == '\'')
@@ -2196,69 +2196,69 @@ public:
                     break;
                 }
 
-            case Tint8:
-                buf.writestring("cast(byte)");
-                goto L2;
+                case Tint8:
+                    buf.writestring("cast(byte)");
+                    goto L2;
 
-            case Tint16:
-                buf.writestring("cast(short)");
-                goto L2;
+                case Tint16:
+                    buf.writestring("cast(short)");
+                    goto L2;
 
-            case Tint32:
-            L2:
-                buf.printf("%d", cast(int)v);
-                break;
+                case Tint32:
+                L2:
+                    buf.printf("%d", cast(int)v);
+                    break;
 
-            case Tuns8:
-                buf.writestring("cast(ubyte)");
-                goto L3;
-
-            case Tuns16:
-                buf.writestring("cast(ushort)");
-                goto L3;
-
-            case Tuns32:
-            L3:
-                buf.printf("%uu", cast(uint)v);
-                break;
-
-            case Tint64:
-                buf.printf("%lldL", v);
-                break;
-
-            case Tuns64:
-            L4:
-                buf.printf("%lluLU", v);
-                break;
-
-            case Tbool:
-                buf.writestring(v ? "true" : "false");
-                break;
-
-            case Tpointer:
-                buf.writestring("cast(");
-                buf.writestring(t.toChars());
-                buf.writeByte(')');
-                if (Target.ptrsize == 4)
+                case Tuns8:
+                    buf.writestring("cast(ubyte)");
                     goto L3;
-                else if (Target.ptrsize == 8)
-                    goto L4;
-                else
-                    assert(0);
 
-            default:
-                /* This can happen if errors, such as
-                 * the type is painted on like in fromConstInitializer().
-                 */
-                if (!global.errors)
-                {
-                    debug
+                case Tuns16:
+                    buf.writestring("cast(ushort)");
+                    goto L3;
+
+                case Tuns32:
+                L3:
+                    buf.printf("%uu", cast(uint)v);
+                    break;
+
+                case Tint64:
+                    buf.printf("%lldL", v);
+                    break;
+
+                case Tuns64:
+                L4:
+                    buf.printf("%lluLU", v);
+                    break;
+
+                case Tbool:
+                    buf.writestring(v ? "true" : "false");
+                    break;
+
+                case Tpointer:
+                    buf.writestring("cast(");
+                    buf.writestring(t.toChars());
+                    buf.writeByte(')');
+                    if (Target.ptrsize == 4)
+                        goto L3;
+                    else if (Target.ptrsize == 8)
+                        goto L4;
+                    else
+                        assert(0);
+
+                default:
+                    /* This can happen if errors, such as
+                     * the type is painted on like in fromConstInitializer().
+                     */
+                    if (!global.errors)
                     {
-                        t.print();
+                        debug
+                        {
+                            t.print();
+                        }
+                        assert(0);
                     }
-                    assert(0);
-                }
-                break;
+                    break;
             }
         }
         else if (v & 0x8000000000000000L)
@@ -2296,20 +2296,20 @@ public:
             Type t = type.toBasetype();
             switch (t.ty)
             {
-            case Tfloat32:
-            case Timaginary32:
-            case Tcomplex32:
-                buf.writeByte('F');
-                break;
+                case Tfloat32:
+                case Timaginary32:
+                case Tcomplex32:
+                    buf.writeByte('F');
+                    break;
 
-            case Tfloat80:
-            case Timaginary80:
-            case Tcomplex80:
-                buf.writeByte('L');
-                break;
+                case Tfloat80:
+                case Timaginary80:
+                case Tcomplex80:
+                    buf.writeByte('L');
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
             }
             if (t.isimaginary())
                 buf.writeByte('i');
@@ -2370,22 +2370,22 @@ public:
             uint c = e.charAt(i);
             switch (c)
             {
-            case '"':
-            case '\\':
-                buf.writeByte('\\');
-            default:
-                if (c <= 0xFF)
-                {
-                    if (c <= 0x7F && isprint(c))
-                        buf.writeByte(c);
+                case '"':
+                case '\\':
+                    buf.writeByte('\\');
+                default:
+                    if (c <= 0xFF)
+                    {
+                        if (c <= 0x7F && isprint(c))
+                            buf.writeByte(c);
+                        else
+                            buf.printf("\\x%02x", c);
+                    }
+                    else if (c <= 0xFFFF)
+                        buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
                     else
-                        buf.printf("\\x%02x", c);
-                }
-                else if (c <= 0xFFFF)
-                    buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
-                else
-                    buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x", c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
-                break;
+                        buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x", c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
+                    break;
             }
         }
         if (hgs.ddoc)
@@ -3187,20 +3187,20 @@ extern (C++) const(char)* trustToChars(TRUST trust)
 {
     switch (trust)
     {
-    case TRUSTdefault:
-        return null;
+        case TRUSTdefault:
+            return null;
 
-    case TRUSTsystem:
-        return "@system";
+        case TRUSTsystem:
+            return "@system";
 
-    case TRUSTtrusted:
-        return "@trusted";
+        case TRUSTtrusted:
+            return "@trusted";
 
-    case TRUSTsafe:
-        return "@safe";
+        case TRUSTsafe:
+            return "@safe";
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
 }
 
@@ -3219,29 +3219,29 @@ extern (C++) const(char)* linkageToChars(LINK linkage)
 {
     switch (linkage)
     {
-    case LINKdefault:
-        return null;
+        case LINKdefault:
+            return null;
 
-    case LINKd:
-        return "D";
+        case LINKd:
+            return "D";
 
-    case LINKc:
-        return "C";
+        case LINKc:
+            return "C";
 
-    case LINKcpp:
-        return "C++";
+        case LINKcpp:
+            return "C++";
 
-    case LINKwindows:
-        return "Windows";
+        case LINKwindows:
+            return "Windows";
 
-    case LINKpascal:
-        return "Pascal";
+        case LINKpascal:
+            return "Pascal";
 
-    case LINKobjc:
-        return "Objective-C";
+        case LINKobjc:
+            return "Objective-C";
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
 }
 
@@ -3263,29 +3263,29 @@ extern (C++) const(char)* protectionToChars(PROTKIND kind)
 {
     switch (kind)
     {
-    case PROTundefined:
-        return null;
+        case PROTundefined:
+            return null;
 
-    case PROTnone:
-        return "none";
+        case PROTnone:
+            return "none";
 
-    case PROTprivate:
-        return "private";
+        case PROTprivate:
+            return "private";
 
-    case PROTpackage:
-        return "package";
+        case PROTpackage:
+            return "package";
 
-    case PROTprotected:
-        return "protected";
+        case PROTprotected:
+            return "protected";
 
-    case PROTpublic:
-        return "public";
+        case PROTpublic:
+            return "public";
 
-    case PROTexport:
-        return "export";
+        case PROTexport:
+            return "export";
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
 }
 

@@ -79,17 +79,17 @@ extern (C++) bool MODimplicitConv(MOD modfrom, MOD modto)
 
     switch (X(modfrom & ~MODshared, modto & ~MODshared))
     {
-    case X(0, MODconst):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODwildconst):
-    case X(MODwildconst, MODconst):
-        return (modfrom & MODshared) == (modto & MODshared);
+        case X(0, MODconst):
+        case X(MODwild, MODconst):
+        case X(MODwild, MODwildconst):
+        case X(MODwildconst, MODconst):
+            return (modfrom & MODshared) == (modto & MODshared);
 
-    case X(MODimmutable, MODconst):
-    case X(MODimmutable, MODwildconst):
-        return true;
-    default:
-        return false;
+        case X(MODimmutable, MODconst):
+        case X(MODimmutable, MODwildconst):
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -110,18 +110,18 @@ extern (C++) MATCH MODmethodConv(MOD modfrom, MOD modto)
 
     switch (X(modfrom, modto))
     {
-    case X(0, MODwild):
-    case X(MODimmutable, MODwild):
-    case X(MODconst, MODwild):
-    case X(MODwildconst, MODwild):
-    case X(MODshared, MODshared | MODwild):
-    case X(MODshared | MODimmutable, MODshared | MODwild):
-    case X(MODshared | MODconst, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
-        return MATCHconst;
+        case X(0, MODwild):
+        case X(MODimmutable, MODwild):
+        case X(MODconst, MODwild):
+        case X(MODwildconst, MODwild):
+        case X(MODshared, MODshared | MODwild):
+        case X(MODshared | MODimmutable, MODshared | MODwild):
+        case X(MODshared | MODconst, MODshared | MODwild):
+        case X(MODshared | MODwildconst, MODshared | MODwild):
+            return MATCHconst;
 
-    default:
-        return MATCHnomatch;
+        default:
+            return MATCHnomatch;
     }
 }
 
@@ -165,45 +165,45 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
 {
     switch (mod)
     {
-    case 0:
-        break;
+        case 0:
+            break;
 
-    case MODimmutable:
-        buf.writestring(Token.tochars[TOKimmutable]);
-        break;
+        case MODimmutable:
+            buf.writestring(Token.tochars[TOKimmutable]);
+            break;
 
-    case MODshared:
-        buf.writestring(Token.tochars[TOKshared]);
-        break;
+        case MODshared:
+            buf.writestring(Token.tochars[TOKshared]);
+            break;
 
-    case MODshared | MODconst:
-        buf.writestring(Token.tochars[TOKshared]);
-        buf.writeByte(' ');
-        /* fall through */
-    case MODconst:
-        buf.writestring(Token.tochars[TOKconst]);
-        break;
+        case MODshared | MODconst:
+            buf.writestring(Token.tochars[TOKshared]);
+            buf.writeByte(' ');
+            /* fall through */
+        case MODconst:
+            buf.writestring(Token.tochars[TOKconst]);
+            break;
 
-    case MODshared | MODwild:
-        buf.writestring(Token.tochars[TOKshared]);
-        buf.writeByte(' ');
-        /* fall through */
-    case MODwild:
-        buf.writestring(Token.tochars[TOKwild]);
-        break;
+        case MODshared | MODwild:
+            buf.writestring(Token.tochars[TOKshared]);
+            buf.writeByte(' ');
+            /* fall through */
+        case MODwild:
+            buf.writestring(Token.tochars[TOKwild]);
+            break;
 
-    case MODshared | MODwildconst:
-        buf.writestring(Token.tochars[TOKshared]);
-        buf.writeByte(' ');
-        /* fall through */
-    case MODwildconst:
-        buf.writestring(Token.tochars[TOKwild]);
-        buf.writeByte(' ');
-        buf.writestring(Token.tochars[TOKconst]);
-        break;
+        case MODshared | MODwildconst:
+            buf.writestring(Token.tochars[TOKshared]);
+            buf.writeByte(' ');
+            /* fall through */
+        case MODwildconst:
+            buf.writestring(Token.tochars[TOKwild]);
+            buf.writeByte(' ');
+            buf.writestring(Token.tochars[TOKconst]);
+            break;
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
 }
 
@@ -1527,44 +1527,44 @@ public:
         {
             switch (t.mod)
             {
-            case 0:
-                mto = t;
-                break;
+                case 0:
+                    mto = t;
+                    break;
 
-            case MODconst:
-                cto = t;
-                break;
+                case MODconst:
+                    cto = t;
+                    break;
 
-            case MODwild:
-                wto = t;
-                break;
+                case MODwild:
+                    wto = t;
+                    break;
 
-            case MODwildconst:
-                wcto = t;
-                break;
+                case MODwildconst:
+                    wcto = t;
+                    break;
 
-            case MODshared:
-                sto = t;
-                break;
+                case MODshared:
+                    sto = t;
+                    break;
 
-            case MODshared | MODconst:
-                scto = t;
-                break;
+                case MODshared | MODconst:
+                    scto = t;
+                    break;
 
-            case MODshared | MODwild:
-                swto = t;
-                break;
+                case MODshared | MODwild:
+                    swto = t;
+                    break;
 
-            case MODshared | MODwildconst:
-                swcto = t;
-                break;
+                case MODshared | MODwildconst:
+                    swcto = t;
+                    break;
 
-            case MODimmutable:
-                ito = t;
-                break;
+                case MODimmutable:
+                    ito = t;
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
             }
         }
         assert(mod != t.mod);
@@ -1576,64 +1576,64 @@ public:
 
         switch (mod)
         {
-        case 0:
-            break;
+            case 0:
+                break;
 
-        case MODconst:
-            cto = mto;
-            t.cto = this;
-            break;
+            case MODconst:
+                cto = mto;
+                t.cto = this;
+                break;
 
-        case MODwild:
-            wto = mto;
-            t.wto = this;
-            break;
+            case MODwild:
+                wto = mto;
+                t.wto = this;
+                break;
 
-        case MODwildconst:
-            wcto = mto;
-            t.wcto = this;
-            break;
+            case MODwildconst:
+                wcto = mto;
+                t.wcto = this;
+                break;
 
-        case MODshared:
-            sto = mto;
-            t.sto = this;
-            break;
+            case MODshared:
+                sto = mto;
+                t.sto = this;
+                break;
 
-        case MODshared | MODconst:
-            scto = mto;
-            t.scto = this;
-            break;
+            case MODshared | MODconst:
+                scto = mto;
+                t.scto = this;
+                break;
 
-        case MODshared | MODwild:
-            swto = mto;
-            t.swto = this;
-            break;
+            case MODshared | MODwild:
+                swto = mto;
+                t.swto = this;
+                break;
 
-        case MODshared | MODwildconst:
-            swcto = mto;
-            t.swcto = this;
-            break;
+            case MODshared | MODwildconst:
+                swcto = mto;
+                t.swcto = this;
+                break;
 
-        case MODimmutable:
-            t.ito = this;
-            if (t.cto)
-                t.cto.ito = this;
-            if (t.sto)
-                t.sto.ito = this;
-            if (t.scto)
-                t.scto.ito = this;
-            if (t.wto)
-                t.wto.ito = this;
-            if (t.wcto)
-                t.wcto.ito = this;
-            if (t.swto)
-                t.swto.ito = this;
-            if (t.swcto)
-                t.swcto.ito = this;
-            break;
+            case MODimmutable:
+                t.ito = this;
+                if (t.cto)
+                    t.cto.ito = this;
+                if (t.sto)
+                    t.sto.ito = this;
+                if (t.scto)
+                    t.scto.ito = this;
+                if (t.wto)
+                    t.wto.ito = this;
+                if (t.wcto)
+                    t.wcto.ito = this;
+                if (t.swto)
+                    t.swto.ito = this;
+                if (t.swcto)
+                    t.swcto.ito = this;
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
 
         check();
@@ -1648,163 +1648,163 @@ public:
     {
         switch (mod)
         {
-        case 0:
-            if (cto)
-                assert(cto.mod == MODconst);
-            if (ito)
-                assert(ito.mod == MODimmutable);
-            if (sto)
-                assert(sto.mod == MODshared);
-            if (scto)
-                assert(scto.mod == (MODshared | MODconst));
-            if (wto)
-                assert(wto.mod == MODwild);
-            if (wcto)
-                assert(wcto.mod == MODwildconst);
-            if (swto)
-                assert(swto.mod == (MODshared | MODwild));
-            if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
-            break;
+            case 0:
+                if (cto)
+                    assert(cto.mod == MODconst);
+                if (ito)
+                    assert(ito.mod == MODimmutable);
+                if (sto)
+                    assert(sto.mod == MODshared);
+                if (scto)
+                    assert(scto.mod == (MODshared | MODconst));
+                if (wto)
+                    assert(wto.mod == MODwild);
+                if (wcto)
+                    assert(wcto.mod == MODwildconst);
+                if (swto)
+                    assert(swto.mod == (MODshared | MODwild));
+                if (swcto)
+                    assert(swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        case MODconst:
-            if (cto)
-                assert(cto.mod == 0);
-            if (ito)
-                assert(ito.mod == MODimmutable);
-            if (sto)
-                assert(sto.mod == MODshared);
-            if (scto)
-                assert(scto.mod == (MODshared | MODconst));
-            if (wto)
-                assert(wto.mod == MODwild);
-            if (wcto)
-                assert(wcto.mod == MODwildconst);
-            if (swto)
-                assert(swto.mod == (MODshared | MODwild));
-            if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
-            break;
+            case MODconst:
+                if (cto)
+                    assert(cto.mod == 0);
+                if (ito)
+                    assert(ito.mod == MODimmutable);
+                if (sto)
+                    assert(sto.mod == MODshared);
+                if (scto)
+                    assert(scto.mod == (MODshared | MODconst));
+                if (wto)
+                    assert(wto.mod == MODwild);
+                if (wcto)
+                    assert(wcto.mod == MODwildconst);
+                if (swto)
+                    assert(swto.mod == (MODshared | MODwild));
+                if (swcto)
+                    assert(swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        case MODwild:
-            if (cto)
-                assert(cto.mod == MODconst);
-            if (ito)
-                assert(ito.mod == MODimmutable);
-            if (sto)
-                assert(sto.mod == MODshared);
-            if (scto)
-                assert(scto.mod == (MODshared | MODconst));
-            if (wto)
-                assert(wto.mod == 0);
-            if (wcto)
-                assert(wcto.mod == MODwildconst);
-            if (swto)
-                assert(swto.mod == (MODshared | MODwild));
-            if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
-            break;
+            case MODwild:
+                if (cto)
+                    assert(cto.mod == MODconst);
+                if (ito)
+                    assert(ito.mod == MODimmutable);
+                if (sto)
+                    assert(sto.mod == MODshared);
+                if (scto)
+                    assert(scto.mod == (MODshared | MODconst));
+                if (wto)
+                    assert(wto.mod == 0);
+                if (wcto)
+                    assert(wcto.mod == MODwildconst);
+                if (swto)
+                    assert(swto.mod == (MODshared | MODwild));
+                if (swcto)
+                    assert(swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        case MODwildconst:
-            assert(!cto || cto.mod == MODconst);
-            assert(!ito || ito.mod == MODimmutable);
-            assert(!sto || sto.mod == MODshared);
-            assert(!scto || scto.mod == (MODshared | MODconst));
-            assert(!wto || wto.mod == MODwild);
-            assert(!wcto || wcto.mod == 0);
-            assert(!swto || swto.mod == (MODshared | MODwild));
-            assert(!swcto || swcto.mod == (MODshared | MODwildconst));
-            break;
+            case MODwildconst:
+                assert(!cto || cto.mod == MODconst);
+                assert(!ito || ito.mod == MODimmutable);
+                assert(!sto || sto.mod == MODshared);
+                assert(!scto || scto.mod == (MODshared | MODconst));
+                assert(!wto || wto.mod == MODwild);
+                assert(!wcto || wcto.mod == 0);
+                assert(!swto || swto.mod == (MODshared | MODwild));
+                assert(!swcto || swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        case MODshared:
-            if (cto)
-                assert(cto.mod == MODconst);
-            if (ito)
-                assert(ito.mod == MODimmutable);
-            if (sto)
-                assert(sto.mod == 0);
-            if (scto)
-                assert(scto.mod == (MODshared | MODconst));
-            if (wto)
-                assert(wto.mod == MODwild);
-            if (wcto)
-                assert(wcto.mod == MODwildconst);
-            if (swto)
-                assert(swto.mod == (MODshared | MODwild));
-            if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
-            break;
+            case MODshared:
+                if (cto)
+                    assert(cto.mod == MODconst);
+                if (ito)
+                    assert(ito.mod == MODimmutable);
+                if (sto)
+                    assert(sto.mod == 0);
+                if (scto)
+                    assert(scto.mod == (MODshared | MODconst));
+                if (wto)
+                    assert(wto.mod == MODwild);
+                if (wcto)
+                    assert(wcto.mod == MODwildconst);
+                if (swto)
+                    assert(swto.mod == (MODshared | MODwild));
+                if (swcto)
+                    assert(swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        case MODshared | MODconst:
-            if (cto)
-                assert(cto.mod == MODconst);
-            if (ito)
-                assert(ito.mod == MODimmutable);
-            if (sto)
-                assert(sto.mod == MODshared);
-            if (scto)
-                assert(scto.mod == 0);
-            if (wto)
-                assert(wto.mod == MODwild);
-            if (wcto)
-                assert(wcto.mod == MODwildconst);
-            if (swto)
-                assert(swto.mod == (MODshared | MODwild));
-            if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
-            break;
+            case MODshared | MODconst:
+                if (cto)
+                    assert(cto.mod == MODconst);
+                if (ito)
+                    assert(ito.mod == MODimmutable);
+                if (sto)
+                    assert(sto.mod == MODshared);
+                if (scto)
+                    assert(scto.mod == 0);
+                if (wto)
+                    assert(wto.mod == MODwild);
+                if (wcto)
+                    assert(wcto.mod == MODwildconst);
+                if (swto)
+                    assert(swto.mod == (MODshared | MODwild));
+                if (swcto)
+                    assert(swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        case MODshared | MODwild:
-            if (cto)
-                assert(cto.mod == MODconst);
-            if (ito)
-                assert(ito.mod == MODimmutable);
-            if (sto)
-                assert(sto.mod == MODshared);
-            if (scto)
-                assert(scto.mod == (MODshared | MODconst));
-            if (wto)
-                assert(wto.mod == MODwild);
-            if (wcto)
-                assert(wcto.mod == MODwildconst);
-            if (swto)
-                assert(swto.mod == 0);
-            if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
-            break;
+            case MODshared | MODwild:
+                if (cto)
+                    assert(cto.mod == MODconst);
+                if (ito)
+                    assert(ito.mod == MODimmutable);
+                if (sto)
+                    assert(sto.mod == MODshared);
+                if (scto)
+                    assert(scto.mod == (MODshared | MODconst));
+                if (wto)
+                    assert(wto.mod == MODwild);
+                if (wcto)
+                    assert(wcto.mod == MODwildconst);
+                if (swto)
+                    assert(swto.mod == 0);
+                if (swcto)
+                    assert(swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        case MODshared | MODwildconst:
-            assert(!cto || cto.mod == MODconst);
-            assert(!ito || ito.mod == MODimmutable);
-            assert(!sto || sto.mod == MODshared);
-            assert(!scto || scto.mod == (MODshared | MODconst));
-            assert(!wto || wto.mod == MODwild);
-            assert(!wcto || wcto.mod == MODwildconst);
-            assert(!swto || swto.mod == (MODshared | MODwild));
-            assert(!swcto || swcto.mod == 0);
-            break;
+            case MODshared | MODwildconst:
+                assert(!cto || cto.mod == MODconst);
+                assert(!ito || ito.mod == MODimmutable);
+                assert(!sto || sto.mod == MODshared);
+                assert(!scto || scto.mod == (MODshared | MODconst));
+                assert(!wto || wto.mod == MODwild);
+                assert(!wcto || wcto.mod == MODwildconst);
+                assert(!swto || swto.mod == (MODshared | MODwild));
+                assert(!swcto || swcto.mod == 0);
+                break;
 
-        case MODimmutable:
-            if (cto)
-                assert(cto.mod == MODconst);
-            if (ito)
-                assert(ito.mod == 0);
-            if (sto)
-                assert(sto.mod == MODshared);
-            if (scto)
-                assert(scto.mod == (MODshared | MODconst));
-            if (wto)
-                assert(wto.mod == MODwild);
-            if (wcto)
-                assert(wcto.mod == MODwildconst);
-            if (swto)
-                assert(swto.mod == (MODshared | MODwild));
-            if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
-            break;
+            case MODimmutable:
+                if (cto)
+                    assert(cto.mod == MODconst);
+                if (ito)
+                    assert(ito.mod == 0);
+                if (sto)
+                    assert(sto.mod == MODshared);
+                if (scto)
+                    assert(scto.mod == (MODshared | MODconst));
+                if (wto)
+                    assert(wto.mod == MODwild);
+                if (wcto)
+                    assert(wcto.mod == MODwildconst);
+                if (swto)
+                    assert(swto.mod == (MODshared | MODwild));
+                if (swcto)
+                    assert(swcto.mod == (MODshared | MODwildconst));
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
 
         Type tn = nextOf();
@@ -1813,20 +1813,20 @@ public:
             // Verify transitivity
             switch (mod)
             {
-            case 0:
-            case MODconst:
-            case MODwild:
-            case MODwildconst:
-            case MODshared:
-            case MODshared | MODconst:
-            case MODshared | MODwild:
-            case MODshared | MODwildconst:
-            case MODimmutable:
-                assert(tn.mod == MODimmutable || (tn.mod & mod) == mod);
-                break;
+                case 0:
+                case MODconst:
+                case MODwild:
+                case MODwildconst:
+                case MODshared:
+                case MODshared | MODconst:
+                case MODshared | MODwild:
+                case MODshared | MODwildconst:
+                case MODimmutable:
+                    assert(tn.mod == MODimmutable || (tn.mod & mod) == mod);
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
             tn.check();
         }
@@ -1911,44 +1911,44 @@ public:
         Type t;
         switch (mod)
         {
-        case 0:
-            t = unSharedOf().mutableOf();
-            break;
+            case 0:
+                t = unSharedOf().mutableOf();
+                break;
 
-        case MODconst:
-            t = unSharedOf().constOf();
-            break;
+            case MODconst:
+                t = unSharedOf().constOf();
+                break;
 
-        case MODwild:
-            t = unSharedOf().wildOf();
-            break;
+            case MODwild:
+                t = unSharedOf().wildOf();
+                break;
 
-        case MODwildconst:
-            t = unSharedOf().wildConstOf();
-            break;
+            case MODwildconst:
+                t = unSharedOf().wildConstOf();
+                break;
 
-        case MODshared:
-            t = mutableOf().sharedOf();
-            break;
+            case MODshared:
+                t = mutableOf().sharedOf();
+                break;
 
-        case MODshared | MODconst:
-            t = sharedConstOf();
-            break;
+            case MODshared | MODconst:
+                t = sharedConstOf();
+                break;
 
-        case MODshared | MODwild:
-            t = sharedWildOf();
-            break;
+            case MODshared | MODwild:
+                t = sharedWildOf();
+                break;
 
-        case MODshared | MODwildconst:
-            t = sharedWildConstOf();
-            break;
+            case MODshared | MODwildconst:
+                t = sharedWildConstOf();
+                break;
 
-        case MODimmutable:
-            t = immutableOf();
-            break;
+            case MODimmutable:
+                t = immutableOf();
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         return t;
     }
@@ -1968,91 +1968,91 @@ public:
             //printf("addMod(%x) %s\n", mod, toChars());
             switch (mod)
             {
-            case 0:
-                break;
+                case 0:
+                    break;
 
-            case MODconst:
-                if (isShared())
-                {
+                case MODconst:
+                    if (isShared())
+                    {
+                        if (isWild())
+                            t = sharedWildConstOf();
+                        else
+                            t = sharedConstOf();
+                    }
+                    else
+                    {
+                        if (isWild())
+                            t = wildConstOf();
+                        else
+                            t = constOf();
+                    }
+                    break;
+
+                case MODwild:
+                    if (isShared())
+                    {
+                        if (isConst())
+                            t = sharedWildConstOf();
+                        else
+                            t = sharedWildOf();
+                    }
+                    else
+                    {
+                        if (isConst())
+                            t = wildConstOf();
+                        else
+                            t = wildOf();
+                    }
+                    break;
+
+                case MODwildconst:
+                    if (isShared())
+                        t = sharedWildConstOf();
+                    else
+                        t = wildConstOf();
+                    break;
+
+                case MODshared:
+                    if (isWild())
+                    {
+                        if (isConst())
+                            t = sharedWildConstOf();
+                        else
+                            t = sharedWildOf();
+                    }
+                    else
+                    {
+                        if (isConst())
+                            t = sharedConstOf();
+                        else
+                            t = sharedOf();
+                    }
+                    break;
+
+                case MODshared | MODconst:
                     if (isWild())
                         t = sharedWildConstOf();
                     else
                         t = sharedConstOf();
-                }
-                else
-                {
-                    if (isWild())
-                        t = wildConstOf();
-                    else
-                        t = constOf();
-                }
-                break;
+                    break;
 
-            case MODwild:
-                if (isShared())
-                {
+                case MODshared | MODwild:
                     if (isConst())
                         t = sharedWildConstOf();
                     else
                         t = sharedWildOf();
-                }
-                else
-                {
-                    if (isConst())
-                        t = wildConstOf();
-                    else
-                        t = wildOf();
-                }
-                break;
+                    break;
 
-            case MODwildconst:
-                if (isShared())
+                case MODshared | MODwildconst:
                     t = sharedWildConstOf();
-                else
-                    t = wildConstOf();
-                break;
+                    break;
 
-            case MODshared:
-                if (isWild())
-                {
-                    if (isConst())
-                        t = sharedWildConstOf();
-                    else
-                        t = sharedWildOf();
-                }
-                else
-                {
-                    if (isConst())
-                        t = sharedConstOf();
-                    else
-                        t = sharedOf();
-                }
-                break;
+                case MODimmutable:
+                    t = immutableOf();
+                    break;
 
-            case MODshared | MODconst:
-                if (isWild())
-                    t = sharedWildConstOf();
-                else
-                    t = sharedConstOf();
-                break;
-
-            case MODshared | MODwild:
-                if (isConst())
-                    t = sharedWildConstOf();
-                else
-                    t = sharedWildOf();
-                break;
-
-            case MODshared | MODwildconst:
-                t = sharedWildConstOf();
-                break;
-
-            case MODimmutable:
-                t = immutableOf();
-                break;
-
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
         return t;
@@ -2929,30 +2929,30 @@ public:
         uinteger_t m;
         switch (toBasetype().ty)
         {
-        case Tbool:
-            m = 1;
-            break;
-        case Tchar:
-        case Tint8:
-        case Tuns8:
-            m = 0xFF;
-            break;
-        case Twchar:
-        case Tint16:
-        case Tuns16:
-            m = 0xFFFFU;
-            break;
-        case Tdchar:
-        case Tint32:
-        case Tuns32:
-            m = 0xFFFFFFFFU;
-            break;
-        case Tint64:
-        case Tuns64:
-            m = 0xFFFFFFFFFFFFFFFFUL;
-            break;
-        default:
-            assert(0);
+            case Tbool:
+                m = 1;
+                break;
+            case Tchar:
+            case Tint8:
+            case Tuns8:
+                m = 0xFF;
+                break;
+            case Twchar:
+            case Tint16:
+            case Tuns16:
+                m = 0xFFFFU;
+                break;
+            case Tdchar:
+            case Tint32:
+            case Tuns32:
+                m = 0xFFFFFFFFU;
+                break;
+            case Tint64:
+            case Tuns64:
+                m = 0xFFFFFFFFFFFFFFFFUL;
+                break;
+            default:
+                assert(0);
         }
         return m;
     }
@@ -2990,23 +2990,23 @@ public:
             Type rt;
             switch (t.ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-                rt = Type.tfloat32;
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                    rt = Type.tfloat32;
+                    break;
 
-            case Tcomplex64:
-            case Timaginary64:
-                rt = Type.tfloat64;
-                break;
+                case Tcomplex64:
+                case Timaginary64:
+                    rt = Type.tfloat64;
+                    break;
 
-            case Tcomplex80:
-            case Timaginary80:
-                rt = Type.tfloat80;
-                break;
+                case Tcomplex80:
+                case Timaginary80:
+                    rt = Type.tfloat80;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
             if (t.iscomplex())
             {
@@ -3409,127 +3409,127 @@ public:
         uint flags = 0;
         switch (ty)
         {
-        case Tvoid:
-            d = Token.toChars(TOKvoid);
-            break;
+            case Tvoid:
+                d = Token.toChars(TOKvoid);
+                break;
 
-        case Tint8:
-            d = Token.toChars(TOKint8);
-            flags |= TFLAGSintegral;
-            break;
+            case Tint8:
+                d = Token.toChars(TOKint8);
+                flags |= TFLAGSintegral;
+                break;
 
-        case Tuns8:
-            d = Token.toChars(TOKuns8);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tuns8:
+                d = Token.toChars(TOKuns8);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Tint16:
-            d = Token.toChars(TOKint16);
-            flags |= TFLAGSintegral;
-            break;
+            case Tint16:
+                d = Token.toChars(TOKint16);
+                flags |= TFLAGSintegral;
+                break;
 
-        case Tuns16:
-            d = Token.toChars(TOKuns16);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tuns16:
+                d = Token.toChars(TOKuns16);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Tint32:
-            d = Token.toChars(TOKint32);
-            flags |= TFLAGSintegral;
-            break;
+            case Tint32:
+                d = Token.toChars(TOKint32);
+                flags |= TFLAGSintegral;
+                break;
 
-        case Tuns32:
-            d = Token.toChars(TOKuns32);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tuns32:
+                d = Token.toChars(TOKuns32);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Tfloat32:
-            d = Token.toChars(TOKfloat32);
-            flags |= TFLAGSfloating | TFLAGSreal;
-            break;
+            case Tfloat32:
+                d = Token.toChars(TOKfloat32);
+                flags |= TFLAGSfloating | TFLAGSreal;
+                break;
 
-        case Tint64:
-            d = Token.toChars(TOKint64);
-            flags |= TFLAGSintegral;
-            break;
+            case Tint64:
+                d = Token.toChars(TOKint64);
+                flags |= TFLAGSintegral;
+                break;
 
-        case Tuns64:
-            d = Token.toChars(TOKuns64);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tuns64:
+                d = Token.toChars(TOKuns64);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Tint128:
-            d = Token.toChars(TOKint128);
-            flags |= TFLAGSintegral;
-            break;
+            case Tint128:
+                d = Token.toChars(TOKint128);
+                flags |= TFLAGSintegral;
+                break;
 
-        case Tuns128:
-            d = Token.toChars(TOKuns128);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tuns128:
+                d = Token.toChars(TOKuns128);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Tfloat64:
-            d = Token.toChars(TOKfloat64);
-            flags |= TFLAGSfloating | TFLAGSreal;
-            break;
+            case Tfloat64:
+                d = Token.toChars(TOKfloat64);
+                flags |= TFLAGSfloating | TFLAGSreal;
+                break;
 
-        case Tfloat80:
-            d = Token.toChars(TOKfloat80);
-            flags |= TFLAGSfloating | TFLAGSreal;
-            break;
+            case Tfloat80:
+                d = Token.toChars(TOKfloat80);
+                flags |= TFLAGSfloating | TFLAGSreal;
+                break;
 
-        case Timaginary32:
-            d = Token.toChars(TOKimaginary32);
-            flags |= TFLAGSfloating | TFLAGSimaginary;
-            break;
+            case Timaginary32:
+                d = Token.toChars(TOKimaginary32);
+                flags |= TFLAGSfloating | TFLAGSimaginary;
+                break;
 
-        case Timaginary64:
-            d = Token.toChars(TOKimaginary64);
-            flags |= TFLAGSfloating | TFLAGSimaginary;
-            break;
+            case Timaginary64:
+                d = Token.toChars(TOKimaginary64);
+                flags |= TFLAGSfloating | TFLAGSimaginary;
+                break;
 
-        case Timaginary80:
-            d = Token.toChars(TOKimaginary80);
-            flags |= TFLAGSfloating | TFLAGSimaginary;
-            break;
+            case Timaginary80:
+                d = Token.toChars(TOKimaginary80);
+                flags |= TFLAGSfloating | TFLAGSimaginary;
+                break;
 
-        case Tcomplex32:
-            d = Token.toChars(TOKcomplex32);
-            flags |= TFLAGSfloating | TFLAGScomplex;
-            break;
+            case Tcomplex32:
+                d = Token.toChars(TOKcomplex32);
+                flags |= TFLAGSfloating | TFLAGScomplex;
+                break;
 
-        case Tcomplex64:
-            d = Token.toChars(TOKcomplex64);
-            flags |= TFLAGSfloating | TFLAGScomplex;
-            break;
+            case Tcomplex64:
+                d = Token.toChars(TOKcomplex64);
+                flags |= TFLAGSfloating | TFLAGScomplex;
+                break;
 
-        case Tcomplex80:
-            d = Token.toChars(TOKcomplex80);
-            flags |= TFLAGSfloating | TFLAGScomplex;
-            break;
+            case Tcomplex80:
+                d = Token.toChars(TOKcomplex80);
+                flags |= TFLAGSfloating | TFLAGScomplex;
+                break;
 
-        case Tbool:
-            d = "bool";
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tbool:
+                d = "bool";
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Tchar:
-            d = Token.toChars(TOKchar);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tchar:
+                d = Token.toChars(TOKchar);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Twchar:
-            d = Token.toChars(TOKwchar);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Twchar:
+                d = Token.toChars(TOKwchar);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        case Tdchar:
-            d = Token.toChars(TOKdchar);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
-            break;
+            case Tdchar:
+                d = Token.toChars(TOKdchar);
+                flags |= TFLAGSintegral | TFLAGSunsigned;
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         this.dstring = d;
         this.flags = flags;
@@ -3553,72 +3553,72 @@ public:
         //printf("TypeBasic::size()\n");
         switch (ty)
         {
-        case Tint8:
-        case Tuns8:
-            size = 1;
-            break;
+            case Tint8:
+            case Tuns8:
+                size = 1;
+                break;
 
-        case Tint16:
-        case Tuns16:
-            size = 2;
-            break;
+            case Tint16:
+            case Tuns16:
+                size = 2;
+                break;
 
-        case Tint32:
-        case Tuns32:
-        case Tfloat32:
-        case Timaginary32:
-            size = 4;
-            break;
+            case Tint32:
+            case Tuns32:
+            case Tfloat32:
+            case Timaginary32:
+                size = 4;
+                break;
 
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
-        case Timaginary64:
-            size = 8;
-            break;
+            case Tint64:
+            case Tuns64:
+            case Tfloat64:
+            case Timaginary64:
+                size = 8;
+                break;
 
-        case Tfloat80:
-        case Timaginary80:
-            size = Target.realsize;
-            break;
+            case Tfloat80:
+            case Timaginary80:
+                size = Target.realsize;
+                break;
 
-        case Tcomplex32:
-            size = 8;
-            break;
+            case Tcomplex32:
+                size = 8;
+                break;
 
-        case Tcomplex64:
-        case Tint128:
-        case Tuns128:
-            size = 16;
-            break;
+            case Tcomplex64:
+            case Tint128:
+            case Tuns128:
+                size = 16;
+                break;
 
-        case Tcomplex80:
-            size = Target.realsize * 2;
-            break;
+            case Tcomplex80:
+                size = Target.realsize * 2;
+                break;
 
-        case Tvoid:
-            //size = Type::size();      // error message
-            size = 1;
-            break;
+            case Tvoid:
+                //size = Type::size();      // error message
+                size = 1;
+                break;
 
-        case Tbool:
-            size = 1;
-            break;
+            case Tbool:
+                size = 1;
+                break;
 
-        case Tchar:
-            size = 1;
-            break;
+            case Tchar:
+                size = 1;
+                break;
 
-        case Twchar:
-            size = 2;
-            break;
+            case Twchar:
+                size = 2;
+                break;
 
-        case Tdchar:
-            size = 4;
-            break;
+            case Tdchar:
+                size = 4;
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         //printf("TypeBasic::size() = %d\n", size);
         return size;
@@ -3639,114 +3639,114 @@ public:
         {
             switch (ty)
             {
-            case Tint8:
-                ivalue = 0x7F;
-                goto Livalue;
-            case Tuns8:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Tint16:
-                ivalue = 0x7FFFU;
-                goto Livalue;
-            case Tuns16:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tint32:
-                ivalue = 0x7FFFFFFFU;
-                goto Livalue;
-            case Tuns32:
-                ivalue = 0xFFFFFFFFU;
-                goto Livalue;
-            case Tint64:
-                ivalue = 0x7FFFFFFFFFFFFFFFL;
-                goto Livalue;
-            case Tuns64:
-                ivalue = 0xFFFFFFFFFFFFFFFFUL;
-                goto Livalue;
-            case Tbool:
-                ivalue = 1;
-                goto Livalue;
-            case Tchar:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Twchar:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0x10FFFFU;
-                goto Livalue;
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                fvalue = FLT_MAX;
-                goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                fvalue = DBL_MAX;
-                goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                fvalue = Port.ldbl_max;
-                goto Lfvalue;
-            default:
-                break;
+                case Tint8:
+                    ivalue = 0x7F;
+                    goto Livalue;
+                case Tuns8:
+                    ivalue = 0xFF;
+                    goto Livalue;
+                case Tint16:
+                    ivalue = 0x7FFFU;
+                    goto Livalue;
+                case Tuns16:
+                    ivalue = 0xFFFFU;
+                    goto Livalue;
+                case Tint32:
+                    ivalue = 0x7FFFFFFFU;
+                    goto Livalue;
+                case Tuns32:
+                    ivalue = 0xFFFFFFFFU;
+                    goto Livalue;
+                case Tint64:
+                    ivalue = 0x7FFFFFFFFFFFFFFFL;
+                    goto Livalue;
+                case Tuns64:
+                    ivalue = 0xFFFFFFFFFFFFFFFFUL;
+                    goto Livalue;
+                case Tbool:
+                    ivalue = 1;
+                    goto Livalue;
+                case Tchar:
+                    ivalue = 0xFF;
+                    goto Livalue;
+                case Twchar:
+                    ivalue = 0xFFFFU;
+                    goto Livalue;
+                case Tdchar:
+                    ivalue = 0x10FFFFU;
+                    goto Livalue;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    fvalue = FLT_MAX;
+                    goto Lfvalue;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    fvalue = DBL_MAX;
+                    goto Lfvalue;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    fvalue = Port.ldbl_max;
+                    goto Lfvalue;
+                default:
+                    break;
             }
         }
         else if (ident == Id.min)
         {
             switch (ty)
             {
-            case Tint8:
-                ivalue = -128;
-                goto Livalue;
-            case Tuns8:
-                ivalue = 0;
-                goto Livalue;
-            case Tint16:
-                ivalue = -32768;
-                goto Livalue;
-            case Tuns16:
-                ivalue = 0;
-                goto Livalue;
-            case Tint32:
-                ivalue = -2147483647 - 1;
-                goto Livalue;
-            case Tuns32:
-                ivalue = 0;
-                goto Livalue;
-            case Tint64:
-                ivalue = (-9223372036854775807L - 1L);
-                goto Livalue;
-            case Tuns64:
-                ivalue = 0;
-                goto Livalue;
-            case Tbool:
-                ivalue = 0;
-                goto Livalue;
-            case Tchar:
-                ivalue = 0;
-                goto Livalue;
-            case Twchar:
-                ivalue = 0;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0;
-                goto Livalue;
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                error(loc, "use .min_normal property instead of .min");
-                return new ErrorExp();
-            default:
-                break;
+                case Tint8:
+                    ivalue = -128;
+                    goto Livalue;
+                case Tuns8:
+                    ivalue = 0;
+                    goto Livalue;
+                case Tint16:
+                    ivalue = -32768;
+                    goto Livalue;
+                case Tuns16:
+                    ivalue = 0;
+                    goto Livalue;
+                case Tint32:
+                    ivalue = -2147483647 - 1;
+                    goto Livalue;
+                case Tuns32:
+                    ivalue = 0;
+                    goto Livalue;
+                case Tint64:
+                    ivalue = (-9223372036854775807L - 1L);
+                    goto Livalue;
+                case Tuns64:
+                    ivalue = 0;
+                    goto Livalue;
+                case Tbool:
+                    ivalue = 0;
+                    goto Livalue;
+                case Tchar:
+                    ivalue = 0;
+                    goto Livalue;
+                case Twchar:
+                    ivalue = 0;
+                    goto Livalue;
+                case Tdchar:
+                    ivalue = 0;
+                    goto Livalue;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    error(loc, "use .min_normal property instead of .min");
+                    return new ErrorExp();
+                default:
+                    break;
             }
         }
         else if (ident == Id.min_normal)
@@ -3754,224 +3754,224 @@ public:
         Lmin_normal:
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                fvalue = FLT_MIN;
-                goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                fvalue = DBL_MIN;
-                goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                fvalue = LDBL_MIN;
-                goto Lfvalue;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    fvalue = FLT_MIN;
+                    goto Lfvalue;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    fvalue = DBL_MIN;
+                    goto Lfvalue;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    fvalue = LDBL_MIN;
+                    goto Lfvalue;
+                default:
+                    break;
             }
         }
         else if (ident == Id.nan)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-            case Timaginary32:
-            case Timaginary64:
-            case Timaginary80:
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
+                case Tcomplex32:
+                case Tcomplex64:
+                case Tcomplex80:
+                case Timaginary32:
+                case Timaginary64:
+                case Timaginary80:
+                case Tfloat32:
+                case Tfloat64:
+                case Tfloat80:
                 {
                     fvalue = Port.ldbl_nan;
                     goto Lfvalue;
                 }
-            default:
-                break;
+                default:
+                    break;
             }
         }
         else if (ident == Id.infinity)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-            case Timaginary32:
-            case Timaginary64:
-            case Timaginary80:
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
-                fvalue = Port.ldbl_infinity;
-                goto Lfvalue;
-            default:
-                break;
+                case Tcomplex32:
+                case Tcomplex64:
+                case Tcomplex80:
+                case Timaginary32:
+                case Timaginary64:
+                case Timaginary80:
+                case Tfloat32:
+                case Tfloat64:
+                case Tfloat80:
+                    fvalue = Port.ldbl_infinity;
+                    goto Lfvalue;
+                default:
+                    break;
             }
         }
         else if (ident == Id.dig)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = FLT_DIG;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = DBL_DIG;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = LDBL_DIG;
-                goto Lint;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    ivalue = FLT_DIG;
+                    goto Lint;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    ivalue = DBL_DIG;
+                    goto Lint;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    ivalue = LDBL_DIG;
+                    goto Lint;
+                default:
+                    break;
             }
         }
         else if (ident == Id.epsilon)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                fvalue = FLT_EPSILON;
-                goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                fvalue = DBL_EPSILON;
-                goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                fvalue = LDBL_EPSILON;
-                goto Lfvalue;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    fvalue = FLT_EPSILON;
+                    goto Lfvalue;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    fvalue = DBL_EPSILON;
+                    goto Lfvalue;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    fvalue = LDBL_EPSILON;
+                    goto Lfvalue;
+                default:
+                    break;
             }
         }
         else if (ident == Id.mant_dig)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = FLT_MANT_DIG;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = DBL_MANT_DIG;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = LDBL_MANT_DIG;
-                goto Lint;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    ivalue = FLT_MANT_DIG;
+                    goto Lint;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    ivalue = DBL_MANT_DIG;
+                    goto Lint;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    ivalue = LDBL_MANT_DIG;
+                    goto Lint;
+                default:
+                    break;
             }
         }
         else if (ident == Id.max_10_exp)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = FLT_MAX_10_EXP;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = DBL_MAX_10_EXP;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = LDBL_MAX_10_EXP;
-                goto Lint;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    ivalue = FLT_MAX_10_EXP;
+                    goto Lint;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    ivalue = DBL_MAX_10_EXP;
+                    goto Lint;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    ivalue = LDBL_MAX_10_EXP;
+                    goto Lint;
+                default:
+                    break;
             }
         }
         else if (ident == Id.max_exp)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = FLT_MAX_EXP;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = DBL_MAX_EXP;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = LDBL_MAX_EXP;
-                goto Lint;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    ivalue = FLT_MAX_EXP;
+                    goto Lint;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    ivalue = DBL_MAX_EXP;
+                    goto Lint;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    ivalue = LDBL_MAX_EXP;
+                    goto Lint;
+                default:
+                    break;
             }
         }
         else if (ident == Id.min_10_exp)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = FLT_MIN_10_EXP;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = DBL_MIN_10_EXP;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = LDBL_MIN_10_EXP;
-                goto Lint;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    ivalue = FLT_MIN_10_EXP;
+                    goto Lint;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    ivalue = DBL_MIN_10_EXP;
+                    goto Lint;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    ivalue = LDBL_MIN_10_EXP;
+                    goto Lint;
+                default:
+                    break;
             }
         }
         else if (ident == Id.min_exp)
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = FLT_MIN_EXP;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = DBL_MIN_EXP;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = LDBL_MIN_EXP;
-                goto Lint;
-            default:
-                break;
+                case Tcomplex32:
+                case Timaginary32:
+                case Tfloat32:
+                    ivalue = FLT_MIN_EXP;
+                    goto Lint;
+                case Tcomplex64:
+                case Timaginary64:
+                case Tfloat64:
+                    ivalue = DBL_MIN_EXP;
+                    goto Lint;
+                case Tcomplex80:
+                case Timaginary80:
+                case Tfloat80:
+                    ivalue = LDBL_MIN_EXP;
+                    goto Lint;
+                default:
+                    break;
             }
         }
         return Type.getProperty(loc, ident, flag);
@@ -4012,44 +4012,44 @@ public:
         {
             switch (ty)
             {
-            case Tcomplex32:
-                t = tfloat32;
-                goto L1;
+                case Tcomplex32:
+                    t = tfloat32;
+                    goto L1;
 
-            case Tcomplex64:
-                t = tfloat64;
-                goto L1;
+                case Tcomplex64:
+                    t = tfloat64;
+                    goto L1;
 
-            case Tcomplex80:
-                t = tfloat80;
-                goto L1;
-            L1:
-                e = e.castTo(sc, t);
-                break;
+                case Tcomplex80:
+                    t = tfloat80;
+                    goto L1;
+                L1:
+                    e = e.castTo(sc, t);
+                    break;
 
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
-                break;
+                case Tfloat32:
+                case Tfloat64:
+                case Tfloat80:
+                    break;
 
-            case Timaginary32:
-                t = tfloat32;
-                goto L2;
+                case Timaginary32:
+                    t = tfloat32;
+                    goto L2;
 
-            case Timaginary64:
-                t = tfloat64;
-                goto L2;
+                case Timaginary64:
+                    t = tfloat64;
+                    goto L2;
 
-            case Timaginary80:
-                t = tfloat80;
-                goto L2;
-            L2:
-                e = new RealExp(e.loc, ldouble(0.0), t);
-                break;
+                case Timaginary80:
+                    t = tfloat80;
+                    goto L2;
+                L2:
+                    e = new RealExp(e.loc, ldouble(0.0), t);
+                    break;
 
-            default:
-                e = Type.getProperty(e.loc, ident, flag);
-                break;
+                default:
+                    e = Type.getProperty(e.loc, ident, flag);
+                    break;
             }
         }
         else if (ident == Id.im)
@@ -4057,50 +4057,50 @@ public:
             Type t2;
             switch (ty)
             {
-            case Tcomplex32:
-                t = timaginary32;
-                t2 = tfloat32;
-                goto L3;
+                case Tcomplex32:
+                    t = timaginary32;
+                    t2 = tfloat32;
+                    goto L3;
 
-            case Tcomplex64:
-                t = timaginary64;
-                t2 = tfloat64;
-                goto L3;
+                case Tcomplex64:
+                    t = timaginary64;
+                    t2 = tfloat64;
+                    goto L3;
 
-            case Tcomplex80:
-                t = timaginary80;
-                t2 = tfloat80;
-                goto L3;
-            L3:
-                e = e.castTo(sc, t);
-                e.type = t2;
-                break;
+                case Tcomplex80:
+                    t = timaginary80;
+                    t2 = tfloat80;
+                    goto L3;
+                L3:
+                    e = e.castTo(sc, t);
+                    e.type = t2;
+                    break;
 
-            case Timaginary32:
-                t = tfloat32;
-                goto L4;
+                case Timaginary32:
+                    t = tfloat32;
+                    goto L4;
 
-            case Timaginary64:
-                t = tfloat64;
-                goto L4;
+                case Timaginary64:
+                    t = tfloat64;
+                    goto L4;
 
-            case Timaginary80:
-                t = tfloat80;
-                goto L4;
-            L4:
-                e = e.copy();
-                e.type = t;
-                break;
+                case Timaginary80:
+                    t = tfloat80;
+                    goto L4;
+                L4:
+                    e = e.copy();
+                    e.type = t;
+                    break;
 
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
-                e = new RealExp(e.loc, ldouble(0.0), this);
-                break;
+                case Tfloat32:
+                case Tfloat64:
+                case Tfloat80:
+                    e = new RealExp(e.loc, ldouble(0.0), this);
+                    break;
 
-            default:
-                e = Type.getProperty(e.loc, ident, flag);
-                break;
+                default:
+                    e = Type.getProperty(e.loc, ident, flag);
+                    break;
             }
         }
         else
@@ -4237,26 +4237,26 @@ public:
 
         switch (ty)
         {
-        case Tchar:
-            value = 0xFF;
-            break;
+            case Tchar:
+                value = 0xFF;
+                break;
 
-        case Twchar:
-        case Tdchar:
-            value = 0xFFFF;
-            break;
+            case Twchar:
+            case Tdchar:
+                value = 0xFFFF;
+                break;
 
-        case Timaginary32:
-        case Timaginary64:
-        case Timaginary80:
-        case Tfloat32:
-        case Tfloat64:
-        case Tfloat80:
-            return new RealExp(loc, Port.snan, this);
+            case Timaginary32:
+            case Timaginary64:
+            case Timaginary80:
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                return new RealExp(loc, Port.snan, this);
 
-        case Tcomplex32:
-        case Tcomplex64:
-        case Tcomplex80:
+            case Tcomplex32:
+            case Tcomplex64:
+            case Tcomplex80:
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
                 complex_t cvalue;
@@ -4265,12 +4265,12 @@ public:
                 return new ComplexExp(loc, cvalue, this);
             }
 
-        case Tvoid:
-            error(loc, "void does not have a default initializer");
-            return new ErrorExp();
+            case Tvoid:
+                error(loc, "void does not have a default initializer");
+                return new ErrorExp();
 
-        default:
-            break;
+            default:
+                break;
         }
         return new IntegerExp(loc, value, this);
     }
@@ -4279,21 +4279,21 @@ public:
     {
         switch (ty)
         {
-        case Tchar:
-        case Twchar:
-        case Tdchar:
-        case Timaginary32:
-        case Timaginary64:
-        case Timaginary80:
-        case Tfloat32:
-        case Tfloat64:
-        case Tfloat80:
-        case Tcomplex32:
-        case Tcomplex64:
-        case Tcomplex80:
-            return false; // no
-        default:
-            return true; // yes
+            case Tchar:
+            case Twchar:
+            case Tdchar:
+            case Timaginary32:
+            case Timaginary64:
+            case Timaginary80:
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+            case Tcomplex32:
+            case Tcomplex64:
+            case Tcomplex80:
+                return false; // no
+            default:
+                return true; // yes
         }
     }
 
@@ -4352,23 +4352,23 @@ public:
         int sz = cast(int)t.size(loc);
         switch (Target.checkVectorType(sz, t.nextOf()))
         {
-        case 0:
-            // valid
-            break;
-        case 1:
-            // no support at all
-            error(loc, "SIMD vector types not supported on this platform");
-            return terror;
-        case 2:
-            // invalid size
-            error(loc, "%d byte vector type %s is not supported on this platform", sz, toChars());
-            return terror;
-        case 3:
-            // invalid base type
-            error(loc, "vector type %s is not supported on this platform", toChars());
-            return terror;
-        default:
-            assert(0);
+            case 0:
+                // valid
+                break;
+            case 1:
+                // no support at all
+                error(loc, "SIMD vector types not supported on this platform");
+                return terror;
+            case 2:
+                // invalid size
+                error(loc, "%d byte vector type %s is not supported on this platform", sz, toChars());
+                return terror;
+            case 3:
+                // invalid base type
+                error(loc, "vector type %s is not supported on this platform", toChars());
+                return terror;
+            default:
+                assert(0);
         }
         return merge();
     }
@@ -4783,7 +4783,7 @@ public:
         }
         switch (tbn.ty)
         {
-        case Ttuple:
+            case Ttuple:
             {
                 // Index the tuple to get the type
                 assert(dim);
@@ -4797,12 +4797,12 @@ public:
                 Type telem = (*tt.arguments)[cast(size_t)d].type;
                 return telem.addMod(this.mod);
             }
-        case Tfunction:
-        case Tnone:
-            error(loc, "can't have array of %s", tbn.toChars());
-            goto Lerror;
-        default:
-            break;
+            case Tfunction:
+            case Tnone:
+                error(loc, "can't have array of %s", tbn.toChars());
+                goto Lerror;
+            default:
+                break;
         }
         if (tbn.isscope())
         {
@@ -5139,16 +5139,16 @@ public:
         Type tbn = tn.toBasetype();
         switch (tbn.ty)
         {
-        case Ttuple:
-            return tbn;
-        case Tfunction:
-        case Tnone:
-            error(loc, "can't have array of %s", tbn.toChars());
-            return Type.terror;
-        case Terror:
-            return Type.terror;
-        default:
-            break;
+            case Ttuple:
+                return tbn;
+            case Tfunction:
+            case Tnone:
+                error(loc, "can't have array of %s", tbn.toChars());
+                return Type.terror;
+            case Terror:
+                return Type.terror;
+            default:
+                break;
         }
         if (tn.isscope())
         {
@@ -5394,15 +5394,15 @@ public:
 
         switch (index.toBasetype().ty)
         {
-        case Tfunction:
-        case Tvoid:
-        case Tnone:
-        case Ttuple:
-            error(loc, "can't have associative array key of %s", index.toBasetype().toChars());
-        case Terror:
-            return Type.terror;
-        default:
-            break;
+            case Tfunction:
+            case Tvoid:
+            case Tnone:
+            case Ttuple:
+                error(loc, "can't have associative array key of %s", index.toBasetype().toChars());
+            case Terror:
+                return Type.terror;
+            default:
+                break;
         }
         Type tbase = index.baseElemOf();
         while (tbase.ty == Tarray)
@@ -5511,15 +5511,15 @@ public:
 
         switch (next.toBasetype().ty)
         {
-        case Tfunction:
-        case Tvoid:
-        case Tnone:
-        case Ttuple:
-            error(loc, "can't have associative array of %s", next.toChars());
-        case Terror:
-            return Type.terror;
-        default:
-            break;
+            case Tfunction:
+            case Tvoid:
+            case Tnone:
+            case Ttuple:
+                error(loc, "can't have associative array of %s", next.toChars());
+            case Terror:
+                return Type.terror;
+            default:
+                break;
         }
         if (next.isscope())
         {
@@ -5701,12 +5701,12 @@ public:
         Type n = next.semantic(loc, sc);
         switch (n.toBasetype().ty)
         {
-        case Ttuple:
-            error(loc, "can't have pointer to %s", n.toChars());
-        case Terror:
-            return Type.terror;
-        default:
-            break;
+            case Ttuple:
+                error(loc, "can't have pointer to %s", n.toChars());
+            case Terror:
+                return Type.terror;
+            default:
+                break;
         }
         if (n != next)
         {
@@ -6865,12 +6865,12 @@ public:
 
                     switch (tb.ty)
                     {
-                    case Tsarray:
-                        tsa = cast(TypeSArray)tb;
-                        sz = tsa.dim.toInteger();
-                        if (sz != nargs - u)
-                            goto Nomatch;
-                    case Tarray:
+                        case Tsarray:
+                            tsa = cast(TypeSArray)tb;
+                            sz = tsa.dim.toInteger();
+                            if (sz != nargs - u)
+                                goto Nomatch;
+                        case Tarray:
                         {
                             TypeArray ta = cast(TypeArray)tb;
                             for (; u < nargs; u++)
@@ -6905,13 +6905,13 @@ public:
                             }
                             goto Ldone;
                         }
-                    case Tclass:
-                        // Should see if there's a constructor match?
-                        // Or just leave it ambiguous?
-                        goto Ldone;
+                        case Tclass:
+                            // Should see if there's a constructor match?
+                            // Or just leave it ambiguous?
+                            goto Ldone;
 
-                    default:
-                        goto Nomatch;
+                        default:
+                            goto Nomatch;
                     }
                 }
                 goto Nomatch;

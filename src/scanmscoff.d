@@ -64,17 +64,17 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
 
     switch (header.Machine)
     {
-    case IMAGE_FILE_MACHINE_UNKNOWN:
-    case IMAGE_FILE_MACHINE_I386:
-    case IMAGE_FILE_MACHINE_AMD64:
-        break;
+        case IMAGE_FILE_MACHINE_UNKNOWN:
+        case IMAGE_FILE_MACHINE_I386:
+        case IMAGE_FILE_MACHINE_AMD64:
+            break;
 
-    default:
-        if (buf[0] == 0x80)
-            error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
-        else
-            error(loc, "MS-Coff object module %s has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
-        return;
+        default:
+            if (buf[0] == 0x80)
+                error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
+            else
+                error(loc, "MS-Coff object module %s has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
+            return;
     }
 
     // Get string table:  string_table[0..string_len]
@@ -154,36 +154,36 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         }
         switch (n.SectionNumber)
         {
-        case IMAGE_SYM_DEBUG:
-            continue;
-        case IMAGE_SYM_ABSOLUTE:
-            if (strcmp(p, "@comp.id") == 0)
+            case IMAGE_SYM_DEBUG:
                 continue;
-            break;
-        case IMAGE_SYM_UNDEFINED:
-            // A non-zero value indicates a common block
-            if (n.Value)
+            case IMAGE_SYM_ABSOLUTE:
+                if (strcmp(p, "@comp.id") == 0)
+                    continue;
                 break;
-            continue;
+            case IMAGE_SYM_UNDEFINED:
+                // A non-zero value indicates a common block
+                if (n.Value)
+                    break;
+                continue;
 
-        default:
-            break;
+            default:
+                break;
         }
         switch (n.StorageClass)
         {
-        case IMAGE_SYM_CLASS_EXTERNAL:
-            break;
-        case IMAGE_SYM_CLASS_STATIC:
-            if (n.Value == 0) // if it's a section name
+            case IMAGE_SYM_CLASS_EXTERNAL:
+                break;
+            case IMAGE_SYM_CLASS_STATIC:
+                if (n.Value == 0) // if it's a section name
+                    continue;
                 continue;
-            continue;
-        case IMAGE_SYM_CLASS_FUNCTION:
-        case IMAGE_SYM_CLASS_FILE:
-        case IMAGE_SYM_CLASS_LABEL:
-            continue;
+            case IMAGE_SYM_CLASS_FUNCTION:
+            case IMAGE_SYM_CLASS_FILE:
+            case IMAGE_SYM_CLASS_LABEL:
+                continue;
 
-        default:
-            continue;
+            default:
+                continue;
         }
         (*pAddSymbol)(pctx, p, 1);
     }

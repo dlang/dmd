@@ -590,20 +590,20 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 Dsymbol s = null;
                 switch (e.op)
                 {
-                case TOKoverloadset:
-                    s = (cast(OverExp)e).vars;
-                    break;
+                    case TOKoverloadset:
+                        s = (cast(OverExp)e).vars;
+                        break;
 
-                case TOKimport:
-                    s = (cast(ScopeExp)e).sds;
-                    break;
+                    case TOKimport:
+                        s = (cast(ScopeExp)e).sds;
+                        break;
 
-                case TOKvar:
-                    s = (cast(VarExp)e).var;
-                    break;
+                    case TOKvar:
+                        s = (cast(VarExp)e).var;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
                 }
                 if (!s || s.ident != Id.cmp)
                     e = null; // there's no valid member 'opCmp'
@@ -918,37 +918,37 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     FuncDeclaration xpostblit = null;
     switch (sd.postblits.dim)
     {
-    case 0:
-        break;
+        case 0:
+            break;
 
-    case 1:
-        xpostblit = sd.postblits[0];
-        break;
+        case 1:
+            xpostblit = sd.postblits[0];
+            break;
 
-    default:
-        Expression e = null;
-        stc = STCsafe | STCnothrow | STCpure | STCnogc;
-        for (size_t i = 0; i < sd.postblits.dim; i++)
-        {
-            FuncDeclaration fd = sd.postblits[i];
-            stc = mergeFuncAttrs(stc, fd);
-            if (stc & STCdisable)
+        default:
+            Expression e = null;
+            stc = STCsafe | STCnothrow | STCpure | STCnogc;
+            for (size_t i = 0; i < sd.postblits.dim; i++)
             {
-                e = null;
-                break;
+                FuncDeclaration fd = sd.postblits[i];
+                stc = mergeFuncAttrs(stc, fd);
+                if (stc & STCdisable)
+                {
+                    e = null;
+                    break;
+                }
+                Expression ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new CallExp(loc, ex);
+                e = Expression.combine(e, ex);
             }
-            Expression ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, fd, 0);
-            ex = new CallExp(loc, ex);
-            e = Expression.combine(e, ex);
-        }
-        auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__aggrPostblit);
-        dd.storage_class |= STCinference;
-        dd.fbody = new ExpStatement(loc, e);
-        sd.members.push(dd);
-        dd.semantic(sc);
-        xpostblit = dd;
-        break;
+            auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__aggrPostblit);
+            dd.storage_class |= STCinference;
+            dd.fbody = new ExpStatement(loc, e);
+            sd.members.push(dd);
+            dd.semantic(sc);
+            xpostblit = dd;
+            break;
     }
     // Add an __xpostblit alias to make the inclusive postblit accessible
     if (xpostblit)
@@ -1049,37 +1049,37 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     FuncDeclaration xdtor = null;
     switch (ad.dtors.dim)
     {
-    case 0:
-        break;
+        case 0:
+            break;
 
-    case 1:
-        xdtor = ad.dtors[0];
-        break;
+        case 1:
+            xdtor = ad.dtors[0];
+            break;
 
-    default:
-        e = null;
-        stc = STCsafe | STCnothrow | STCpure | STCnogc;
-        for (size_t i = 0; i < ad.dtors.dim; i++)
-        {
-            FuncDeclaration fd = ad.dtors[i];
-            stc = mergeFuncAttrs(stc, fd);
-            if (stc & STCdisable)
+        default:
+            e = null;
+            stc = STCsafe | STCnothrow | STCpure | STCnogc;
+            for (size_t i = 0; i < ad.dtors.dim; i++)
             {
-                e = null;
-                break;
+                FuncDeclaration fd = ad.dtors[i];
+                stc = mergeFuncAttrs(stc, fd);
+                if (stc & STCdisable)
+                {
+                    e = null;
+                    break;
+                }
+                Expression ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new CallExp(loc, ex);
+                e = Expression.combine(ex, e);
             }
-            Expression ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, fd, 0);
-            ex = new CallExp(loc, ex);
-            e = Expression.combine(ex, e);
-        }
-        auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__aggrDtor);
-        dd.storage_class |= STCinference;
-        dd.fbody = new ExpStatement(loc, e);
-        ad.members.push(dd);
-        dd.semantic(sc);
-        xdtor = dd;
-        break;
+            auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__aggrDtor);
+            dd.storage_class |= STCinference;
+            dd.fbody = new ExpStatement(loc, e);
+            ad.members.push(dd);
+            dd.semantic(sc);
+            xdtor = dd;
+            break;
     }
     // Add an __xdtor alias to make the inclusive dtor accessible
     if (xdtor)
@@ -1107,43 +1107,43 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
     switch (ad.invs.dim)
     {
-    case 0:
-        return null;
+        case 0:
+            return null;
 
-    case 1:
-        // Don't return invs[0] so it has uniquely generated name.
-        /* fall through */
+        case 1:
+            // Don't return invs[0] so it has uniquely generated name.
+            /* fall through */
 
-    default:
-        Expression e = null;
-        StorageClass stcx = 0;
-        for (size_t i = 0; i < ad.invs.dim; i++)
-        {
-            stc = mergeFuncAttrs(stc, ad.invs[i]);
-            if (stc & STCdisable)
+        default:
+            Expression e = null;
+            StorageClass stcx = 0;
+            for (size_t i = 0; i < ad.invs.dim; i++)
             {
-                // What should do?
-            }
-            StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) | (ad.invs[i].type.mod & MODshared ? STCshared : 0);
-            if (i == 0)
-                stcx = stcy;
-            else if (stcx ^ stcy)
-            {
-                version (all)
+                stc = mergeFuncAttrs(stc, ad.invs[i]);
+                if (stc & STCdisable)
                 {
-                    // currently rejects
-                    ad.error(ad.invs[i].loc, "mixing invariants with shared/synchronized differene is not supported");
-                    e = null;
-                    break;
+                    // What should do?
                 }
+                StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) | (ad.invs[i].type.mod & MODshared ? STCshared : 0);
+                if (i == 0)
+                    stcx = stcy;
+                else if (stcx ^ stcy)
+                {
+                    version (all)
+                    {
+                        // currently rejects
+                        ad.error(ad.invs[i].loc, "mixing invariants with shared/synchronized differene is not supported");
+                        e = null;
+                        break;
+                    }
+                }
+                e = Expression.combine(e, new CallExp(loc, new VarExp(loc, ad.invs[i])));
             }
-            e = Expression.combine(e, new CallExp(loc, new VarExp(loc, ad.invs[i])));
-        }
-        InvariantDeclaration inv;
-        inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant);
-        inv.fbody = new ExpStatement(loc, e);
-        ad.members.push(inv);
-        inv.semantic(sc);
-        return inv;
+            InvariantDeclaration inv;
+            inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant);
+            inv.fbody = new ExpStatement(loc, e);
+            ad.members.push(inv);
+            inv.semantic(sc);
+            return inv;
     }
 }

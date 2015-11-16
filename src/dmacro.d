@@ -353,86 +353,86 @@ Largstart:
         char c = p[v];
         switch (c)
         {
-        case ',':
-            if (!inexp && !instring && !incomment && parens == 1)
-            {
-                argn++;
-                if (argn == 1 && n == -1)
+            case ',':
+                if (!inexp && !instring && !incomment && parens == 1)
                 {
-                    v++;
-                    goto Largstart;
+                    argn++;
+                    if (argn == 1 && n == -1)
+                    {
+                        v++;
+                        goto Largstart;
+                    }
+                    if (argn == n)
+                        break;
+                    if (argn + 1 == n)
+                    {
+                        v++;
+                        goto Largstart;
+                    }
                 }
-                if (argn == n)
+                continue;
+
+            case '(':
+                if (!inexp && !instring && !incomment)
+                    parens++;
+                continue;
+
+            case ')':
+                if (!inexp && !instring && !incomment && --parens == 0)
+                {
                     break;
-                if (argn + 1 == n)
-                {
-                    v++;
-                    goto Largstart;
                 }
-            }
-            continue;
+                continue;
 
-        case '(':
-            if (!inexp && !instring && !incomment)
-                parens++;
-            continue;
-
-        case ')':
-            if (!inexp && !instring && !incomment && --parens == 0)
-            {
-                break;
-            }
-            continue;
-
-        case '"':
-        case '\'':
-            if (!inexp && !incomment && intag)
-            {
-                if (c == instring)
-                    instring = 0;
-                else if (!instring)
-                    instring = c;
-            }
-            continue;
-
-        case '<':
-            if (!inexp && !instring && !incomment)
-            {
-                if (v + 6 < end && p[v + 1] == '!' && p[v + 2] == '-' && p[v + 3] == '-')
+            case '"':
+            case '\'':
+                if (!inexp && !incomment && intag)
                 {
-                    incomment = 1;
-                    v += 3;
+                    if (c == instring)
+                        instring = 0;
+                    else if (!instring)
+                        instring = c;
                 }
-                else if (v + 2 < end && isalpha(p[v + 1]))
-                    intag = 1;
-            }
-            continue;
+                continue;
 
-        case '>':
-            if (!inexp)
-                intag = 0;
-            continue;
+            case '<':
+                if (!inexp && !instring && !incomment)
+                {
+                    if (v + 6 < end && p[v + 1] == '!' && p[v + 2] == '-' && p[v + 3] == '-')
+                    {
+                        incomment = 1;
+                        v += 3;
+                    }
+                    else if (v + 2 < end && isalpha(p[v + 1]))
+                        intag = 1;
+                }
+                continue;
 
-        case '-':
-            if (!inexp && !instring && incomment && v + 2 < end && p[v + 1] == '-' && p[v + 2] == '>')
-            {
-                incomment = 0;
-                v += 2;
-            }
-            continue;
+            case '>':
+                if (!inexp)
+                    intag = 0;
+                continue;
 
-        case 0xFF:
-            if (v + 1 < end)
-            {
-                if (p[v + 1] == '{')
-                    inexp++;
-                else if (p[v + 1] == '}')
-                    inexp--;
-            }
-            continue;
+            case '-':
+                if (!inexp && !instring && incomment && v + 2 < end && p[v + 1] == '-' && p[v + 2] == '>')
+                {
+                    incomment = 0;
+                    v += 2;
+                }
+                continue;
 
-        default:
-            continue;
+            case 0xFF:
+                if (v + 1 < end)
+                {
+                    if (p[v + 1] == '{')
+                        inexp++;
+                    else if (p[v + 1] == '}')
+                        inexp--;
+                }
+                continue;
+
+            default:
+                continue;
         }
         break;
     }

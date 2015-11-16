@@ -47,16 +47,16 @@ extern (C++) int isConst(Expression e)
     //printf("Expression::isConst(): %s\n", e->toChars());
     switch (e.op)
     {
-    case TOKint64:
-    case TOKfloat64:
-    case TOKcomplex80:
-        return 1;
-    case TOKnull:
-        return 0;
-    case TOKsymoff:
-        return 2;
-    default:
-        return 0;
+        case TOKint64:
+        case TOKfloat64:
+        case TOKcomplex80:
+            return 1;
+        case TOKnull:
+            return 0;
+        case TOKsymoff:
+            return 2;
+        default:
+            return 0;
     }
     assert(0);
 }
@@ -183,44 +183,44 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
 
         switch (x)
         {
-        case 0 + 0:
-            v = complex_t(r1 + r2, 0);
-            break;
+            case 0 + 0:
+                v = complex_t(r1 + r2, 0);
+                break;
 
-        case 0 + 1:
-            v = complex_t(r1, i2);
-            break;
+            case 0 + 1:
+                v = complex_t(r1, i2);
+                break;
 
-        case 0 + 2:
-            v = complex_t(r1 + creall(c2), cimagl(c2));
-            break;
+            case 0 + 2:
+                v = complex_t(r1 + creall(c2), cimagl(c2));
+                break;
 
-        case 3 + 0:
-            v = complex_t(r2, i1);
-            break;
+            case 3 + 0:
+                v = complex_t(r2, i1);
+                break;
 
-        case 3 + 1:
-            v = complex_t(0, i1 + i2);
-            break;
+            case 3 + 1:
+                v = complex_t(0, i1 + i2);
+                break;
 
-        case 3 + 2:
-            v = complex_t(creall(c2), i1 + cimagl(c2));
-            break;
+            case 3 + 2:
+                v = complex_t(creall(c2), i1 + cimagl(c2));
+                break;
 
-        case 6 + 0:
-            v = complex_t(creall(c1) + r2, cimagl(c2));
-            break;
+            case 6 + 0:
+                v = complex_t(creall(c1) + r2, cimagl(c2));
+                break;
 
-        case 6 + 1:
-            v = complex_t(creall(c1), cimagl(c1) + i2);
-            break;
+            case 6 + 1:
+                v = complex_t(creall(c1), cimagl(c1) + i2);
+                break;
 
-        case 6 + 2:
-            v = c1 + c2;
-            break;
+            case 6 + 2:
+                v = c1 + c2;
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         emplaceExp!(ComplexExp)(&ue, loc, v, type);
     }
@@ -300,43 +300,43 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
 
         switch (x)
         {
-        case 0 + 0:
-            v = complex_t(r1 - r2, 0);
-            break;
+            case 0 + 0:
+                v = complex_t(r1 - r2, 0);
+                break;
 
-        case 0 + 1:
-            v = complex_t(r1, -i2);
-            break;
+            case 0 + 1:
+                v = complex_t(r1, -i2);
+                break;
 
-        case 0 + 2:
-            v = complex_t(r1 - creall(c2), -cimagl(c2));
-            break;
+            case 0 + 2:
+                v = complex_t(r1 - creall(c2), -cimagl(c2));
+                break;
 
-        case 3 + 0:
-            v = complex_t(-r2, i1);
-            break;
+            case 3 + 0:
+                v = complex_t(-r2, i1);
+                break;
 
-        case 3 + 1:
-            v = complex_t(0, i1 - i2);
-            break;
+            case 3 + 1:
+                v = complex_t(0, i1 - i2);
+                break;
 
-        case 3 + 2:
-            v = complex_t(-creall(c2), i1 - cimagl(c2));
-            break;
+            case 3 + 2:
+                v = complex_t(-creall(c2), i1 - cimagl(c2));
+                break;
 
-        case 6 + 0:
-            v = complex_t(creall(c1) - r2, cimagl(c1));
-            break;
+            case 6 + 0:
+                v = complex_t(creall(c1) - r2, cimagl(c1));
+                break;
 
-        case 6 + 1:
-            v = complex_t(creall(c1), cimagl(c1) - i2);
-            break;
+            case 6 + 1:
+                v = complex_t(creall(c1), cimagl(c1) - i2);
+                break;
 
-        case 6 + 2:
-            v = c1 - c2;
-            break;
-        default:
-            assert(0);
+            case 6 + 2:
+                v = c1 - c2;
+                break;
+            default:
+                assert(0);
         }
         emplaceExp!(ComplexExp)(&ue, loc, v, type);
     }
@@ -652,47 +652,47 @@ extern (C++) UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
     uint count = cast(uint)dcount;
     switch (e1.type.toBasetype().ty)
     {
-    case Tint8:
-        value = cast(d_int8)value >> count;
-        break;
+        case Tint8:
+            value = cast(d_int8)value >> count;
+            break;
 
-    case Tuns8:
-    case Tchar:
-        value = cast(d_uns8)value >> count;
-        break;
+        case Tuns8:
+        case Tchar:
+            value = cast(d_uns8)value >> count;
+            break;
 
-    case Tint16:
-        value = cast(d_int16)value >> count;
-        break;
+        case Tint16:
+            value = cast(d_int16)value >> count;
+            break;
 
-    case Tuns16:
-    case Twchar:
-        value = cast(d_uns16)value >> count;
-        break;
+        case Tuns16:
+        case Twchar:
+            value = cast(d_uns16)value >> count;
+            break;
 
-    case Tint32:
-        value = cast(d_int32)value >> count;
-        break;
+        case Tint32:
+            value = cast(d_int32)value >> count;
+            break;
 
-    case Tuns32:
-    case Tdchar:
-        value = cast(d_uns32)value >> count;
-        break;
+        case Tuns32:
+        case Tdchar:
+            value = cast(d_uns32)value >> count;
+            break;
 
-    case Tint64:
-        value = cast(d_int64)value >> count;
-        break;
+        case Tint64:
+            value = cast(d_int64)value >> count;
+            break;
 
-    case Tuns64:
-        value = cast(d_uns64)value >> count;
-        break;
+        case Tuns64:
+            value = cast(d_uns64)value >> count;
+            break;
 
-    case Terror:
-        emplaceExp!(ErrorExp)(&ue);
-        return ue;
+        case Terror:
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
     emplaceExp!(IntegerExp)(&ue, loc, value, type);
     return ue;
@@ -708,37 +708,37 @@ extern (C++) UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
     uint count = cast(uint)dcount;
     switch (e1.type.toBasetype().ty)
     {
-    case Tint8:
-    case Tuns8:
-    case Tchar:
-        // Possible only with >>>=. >>> always gets promoted to int.
-        value = (value & 0xFF) >> count;
-        break;
+        case Tint8:
+        case Tuns8:
+        case Tchar:
+            // Possible only with >>>=. >>> always gets promoted to int.
+            value = (value & 0xFF) >> count;
+            break;
 
-    case Tint16:
-    case Tuns16:
-    case Twchar:
-        // Possible only with >>>=. >>> always gets promoted to int.
-        value = (value & 0xFFFF) >> count;
-        break;
+        case Tint16:
+        case Tuns16:
+        case Twchar:
+            // Possible only with >>>=. >>> always gets promoted to int.
+            value = (value & 0xFFFF) >> count;
+            break;
 
-    case Tint32:
-    case Tuns32:
-    case Tdchar:
-        value = (value & 0xFFFFFFFF) >> count;
-        break;
+        case Tint32:
+        case Tuns32:
+        case Tdchar:
+            value = (value & 0xFFFFFFFF) >> count;
+            break;
 
-    case Tint64:
-    case Tuns64:
-        value = cast(d_uns64)value >> count;
-        break;
+        case Tint64:
+        case Tuns64:
+            value = cast(d_uns64)value >> count;
+            break;
 
-    case Terror:
-        emplaceExp!(ErrorExp)(&ue);
-        return ue;
+        case Terror:
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
     emplaceExp!(IntegerExp)(&ue, loc, value, type);
     return ue;
@@ -1160,43 +1160,43 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             real_t r = e1.toReal();
             switch (typeb.ty)
             {
-            case Tint8:
-                result = cast(d_int8)r;
-                break;
+                case Tint8:
+                    result = cast(d_int8)r;
+                    break;
 
-            case Tchar:
-            case Tuns8:
-                result = cast(d_uns8)r;
-                break;
+                case Tchar:
+                case Tuns8:
+                    result = cast(d_uns8)r;
+                    break;
 
-            case Tint16:
-                result = cast(d_int16)r;
-                break;
+                case Tint16:
+                    result = cast(d_int16)r;
+                    break;
 
-            case Twchar:
-            case Tuns16:
-                result = cast(d_uns16)r;
-                break;
+                case Twchar:
+                case Tuns16:
+                    result = cast(d_uns16)r;
+                    break;
 
-            case Tint32:
-                result = cast(d_int32)r;
-                break;
+                case Tint32:
+                    result = cast(d_int32)r;
+                    break;
 
-            case Tdchar:
-            case Tuns32:
-                result = cast(d_uns32)r;
-                break;
+                case Tdchar:
+                case Tuns32:
+                    result = cast(d_uns32)r;
+                    break;
 
-            case Tint64:
-                result = cast(d_int64)r;
-                break;
+                case Tint64:
+                    result = cast(d_int64)r;
+                    break;
 
-            case Tuns64:
-                result = cast(d_uns64)r;
-                break;
+                case Tuns64:
+                    result = cast(d_uns64)r;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
             emplaceExp!(IntegerExp)(&ue, loc, result, type);
         }
@@ -1477,20 +1477,20 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
         dinteger_t val;
         switch (sz)
         {
-        case 1:
-            val = (cast(char*)s)[j];
-            break;
+            case 1:
+                val = (cast(char*)s)[j];
+                break;
 
-        case 2:
-            val = (cast(utf16_t*)s)[j];
-            break;
+            case 2:
+                val = (cast(utf16_t*)s)[j];
+                break;
 
-        case 4:
-            val = (cast(utf32_t*)s)[j];
-            break;
+            case 4:
+                val = (cast(utf32_t*)s)[j];
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         (*existingAE.elements)[j + firstIndex] = new IntegerExp(newval.loc, val, elemType);
     }
@@ -1507,20 +1507,20 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
         uint val = cast(uint)newae.getElement(j).toInteger();
         switch (existingSE.sz)
         {
-        case 1:
-            (cast(char*)s)[j + firstIndex] = cast(char)val;
-            break;
+            case 1:
+                (cast(char*)s)[j + firstIndex] = cast(char)val;
+                break;
 
-        case 2:
-            (cast(utf16_t*)s)[j + firstIndex] = cast(utf16_t)val;
-            break;
+            case 2:
+                (cast(utf16_t*)s)[j + firstIndex] = cast(utf16_t)val;
+                break;
 
-        case 4:
-            (cast(utf32_t*)s)[j + firstIndex] = cast(utf32_t)val;
-            break;
+            case 4:
+                (cast(utf32_t*)s)[j + firstIndex] = cast(utf32_t)val;
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
     }
 }
@@ -1561,20 +1561,20 @@ extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, siz
         uint val1;
         switch (sz)
         {
-        case 1:
-            val1 = (cast(char*)s)[j + lo1];
-            break;
+            case 1:
+                val1 = (cast(char*)s)[j + lo1];
+                break;
 
-        case 2:
-            val1 = (cast(utf16_t*)s)[j + lo1];
-            break;
+            case 2:
+                val1 = (cast(utf16_t*)s)[j + lo1];
+                break;
 
-        case 4:
-            val1 = (cast(utf32_t*)s)[j + lo1];
-            break;
+            case 4:
+                val1 = (cast(utf32_t*)s)[j + lo1];
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         int c = val1 - val2;
         if (c)

@@ -522,16 +522,16 @@ public:
         t = t.toBasetype();
         switch (t.ty)
         {
-        case Tsarray:
-        case Tarray:
-            break;
+            case Tsarray:
+            case Tarray:
+                break;
 
-        case Tvector:
-            t = (cast(TypeVector)t).basetype;
-            break;
+            case Tvector:
+                t = (cast(TypeVector)t).basetype;
+                break;
 
-        case Taarray:
-        case Tstruct: // consider implicit constructor call
+            case Taarray:
+            case Tstruct: // consider implicit constructor call
             {
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
@@ -547,13 +547,13 @@ public:
                 auto ei = new ExpInitializer(e.loc, e);
                 return ei.semantic(sc, t, needInterpret);
             }
-        case Tpointer:
-            if (t.nextOf().ty != Tfunction)
-                break;
+            case Tpointer:
+                if (t.nextOf().ty != Tfunction)
+                    break;
 
-        default:
-            error(loc, "cannot use array to initialize %s", t.toChars());
-            goto Lerr;
+            default:
+                error(loc, "cannot use array to initialize %s", t.toChars());
+                goto Lerr;
         }
 
         type = t;
@@ -655,22 +655,22 @@ public:
             t = type.toBasetype();
             switch (t.ty)
             {
-            case Tsarray:
-                edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                break;
+                case Tsarray:
+                    edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                    break;
 
-            case Tvector:
-                t = (cast(TypeVector)t).basetype;
-                edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                break;
+                case Tvector:
+                    t = (cast(TypeVector)t).basetype;
+                    edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                    break;
 
-            case Tpointer:
-            case Tarray:
-                edim = dim;
-                break;
+                case Tpointer:
+                case Tarray:
+                    edim = dim;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
         else

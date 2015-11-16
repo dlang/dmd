@@ -229,23 +229,23 @@ public:
     {
         switch (op)
         {
-        case TOKcantexp:
-            return cast(char*)"<cant>";
+            case TOKcantexp:
+                return cast(char*)"<cant>";
 
-        case TOKvoidexp:
-            return cast(char*)"<void>";
+            case TOKvoidexp:
+                return cast(char*)"<void>";
 
-        case TOKbreak:
-            return cast(char*)"<break>";
+            case TOKbreak:
+                return cast(char*)"<break>";
 
-        case TOKcontinue:
-            return cast(char*)"<continue>";
+            case TOKcontinue:
+                return cast(char*)"<continue>";
 
-        case TOKgoto:
-            return cast(char*)"<goto>";
+            case TOKgoto:
+                return cast(char*)"<goto>";
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
     }
 
@@ -282,31 +282,31 @@ extern (C++) bool needToCopyLiteral(Expression expr)
     {
         switch (expr.op)
         {
-        case TOKarrayliteral:
-            return (cast(ArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
-        case TOKassocarrayliteral:
-            return (cast(AssocArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
-        case TOKstructliteral:
-            return (cast(StructLiteralExp)expr).ownedByCtfe == OWNEDcode;
-        case TOKstring:
-        case TOKthis:
-        case TOKvar:
-            return false;
-        case TOKassign:
-            return false;
-        case TOKindex:
-        case TOKdotvar:
-        case TOKslice:
-        case TOKcast:
-            expr = (cast(UnaExp)expr).e1;
-            continue;
-        case TOKcat:
-            return needToCopyLiteral((cast(BinExp)expr).e1) || needToCopyLiteral((cast(BinExp)expr).e2);
-        case TOKcatass:
-            expr = (cast(BinExp)expr).e2;
-            continue;
-        default:
-            return false;
+            case TOKarrayliteral:
+                return (cast(ArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            case TOKassocarrayliteral:
+                return (cast(AssocArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            case TOKstructliteral:
+                return (cast(StructLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            case TOKstring:
+            case TOKthis:
+            case TOKvar:
+                return false;
+            case TOKassign:
+                return false;
+            case TOKindex:
+            case TOKdotvar:
+            case TOKslice:
+            case TOKcast:
+                expr = (cast(UnaExp)expr).e1;
+                continue;
+            case TOKcat:
+                return needToCopyLiteral((cast(BinExp)expr).e1) || needToCopyLiteral((cast(BinExp)expr).e2);
+            case TOKcatass:
+                expr = (cast(BinExp)expr).e2;
+                continue;
+            default:
+                return false;
         }
     }
 }
@@ -626,20 +626,20 @@ extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, ui
     {
         switch (sz)
         {
-        case 1:
-            s[elemi] = cast(char)value;
-            break;
+            case 1:
+                s[elemi] = cast(char)value;
+                break;
 
-        case 2:
-            (cast(ushort*)s)[elemi] = cast(ushort)value;
-            break;
+            case 2:
+                (cast(ushort*)s)[elemi] = cast(ushort)value;
+                break;
 
-        case 4:
-            (cast(uint*)s)[elemi] = value;
-            break;
+            case 4:
+                (cast(uint*)s)[elemi] = value;
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
     }
     auto se = new StringExp(loc, s, dim);
@@ -948,34 +948,34 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
         int n;
         switch (op)
         {
-        case TOKlt:
-            n = (ofs1 < ofs2);
-            break;
+            case TOKlt:
+                n = (ofs1 < ofs2);
+                break;
 
-        case TOKle:
-            n = (ofs1 <= ofs2);
-            break;
+            case TOKle:
+                n = (ofs1 <= ofs2);
+                break;
 
-        case TOKgt:
-            n = (ofs1 > ofs2);
-            break;
+            case TOKgt:
+                n = (ofs1 > ofs2);
+                break;
 
-        case TOKge:
-            n = (ofs1 >= ofs2);
-            break;
+            case TOKge:
+                n = (ofs1 >= ofs2);
+                break;
 
-        case TOKidentity:
-        case TOKequal:
-            n = (ofs1 == ofs2);
-            break;
+            case TOKidentity:
+            case TOKequal:
+                n = (ofs1 == ofs2);
+                break;
 
-        case TOKnotidentity:
-        case TOKnotequal:
-            n = (ofs1 != ofs2);
-            break;
+            case TOKnotidentity:
+            case TOKnotequal:
+                n = (ofs1 != ofs2);
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         return n;
     }
@@ -987,45 +987,45 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
     {
         switch (op)
         {
-        case TOKlt:
-            cmp = null1 && !null2;
-            break;
+            case TOKlt:
+                cmp = null1 && !null2;
+                break;
 
-        case TOKgt:
-            cmp = !null1 && null2;
-            break;
+            case TOKgt:
+                cmp = !null1 && null2;
+                break;
 
-        case TOKle:
-            cmp = null1;
-            break;
+            case TOKle:
+                cmp = null1;
+                break;
 
-        case TOKge:
-            cmp = null2;
-            break;
+            case TOKge:
+                cmp = null2;
+                break;
 
-        case TOKidentity:
-        case TOKequal:
-        case TOKnotidentity: // 'cmp' gets inverted below
-        case TOKnotequal:
-            cmp = (null1 == null2);
-            break;
+            case TOKidentity:
+            case TOKequal:
+            case TOKnotidentity: // 'cmp' gets inverted below
+            case TOKnotequal:
+                cmp = (null1 == null2);
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
     }
     else
     {
         switch (op)
         {
-        case TOKidentity:
-        case TOKequal:
-        case TOKnotidentity: // 'cmp' gets inverted below
-        case TOKnotequal:
-            cmp = 0;
-            break;
-        default:
-            return -1; // memory blocks are different
+            case TOKidentity:
+            case TOKequal:
+            case TOKnotidentity: // 'cmp' gets inverted below
+            case TOKnotequal:
+                cmp = 0;
+                break;
+            default:
+                return -1; // memory blocks are different
         }
     }
     if (op == TOKnotidentity || op == TOKnotequal)
@@ -1080,44 +1080,44 @@ private bool numCmp(N)(TOK op, N n1, N n2)
 {
     switch (op)
     {
-    case TOKlt:
-        return n1 < n2;
+        case TOKlt:
+            return n1 < n2;
 
-    case TOKle:
-        return n1 <= n2;
+        case TOKle:
+            return n1 <= n2;
 
-    case TOKgt:
-        return n1 > n2;
+        case TOKgt:
+            return n1 > n2;
 
-    case TOKge:
-        return n1 >= n2;
+        case TOKge:
+            return n1 >= n2;
 
-    case TOKleg:
-        return true;
+        case TOKleg:
+            return true;
 
-    case TOKlg:
-        return n1 != n2;
+        case TOKlg:
+            return n1 != n2;
 
-    case TOKunord:
-        return false;
+        case TOKunord:
+            return false;
 
-    case TOKue:
-        return n1 == n2;
+        case TOKue:
+            return n1 == n2;
 
-    case TOKug:
-        return n1 > n2;
+        case TOKug:
+            return n1 > n2;
 
-    case TOKuge:
-        return n1 >= n2;
+        case TOKuge:
+            return n1 >= n2;
 
-    case TOKul:
-        return n1 < n2;
+        case TOKul:
+            return n1 < n2;
 
-    case TOKule:
-        return n1 <= n2;
+        case TOKule:
+            return n1 <= n2;
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
 }
 
@@ -1147,24 +1147,24 @@ extern (C++) int realCmp(TOK op, real_t r1, real_t r2)
     {
         switch (op)
         {
-        case TOKlt:
-        case TOKle:
-        case TOKgt:
-        case TOKge:
-        case TOKleg:
-        case TOKlg:
-            return 0;
+            case TOKlt:
+            case TOKle:
+            case TOKgt:
+            case TOKge:
+            case TOKleg:
+            case TOKlg:
+                return 0;
 
-        case TOKunord:
-        case TOKue:
-        case TOKug:
-        case TOKuge:
-        case TOKul:
-        case TOKule:
-            return 1;
+            case TOKunord:
+            case TOKue:
+            case TOKug:
+            case TOKuge:
+            case TOKul:
+            case TOKule:
+                return 1;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
     }
     else
@@ -1856,20 +1856,20 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
         {
             switch (oldse.sz)
             {
-            case 1:
-                (cast(char*)s)[cast(size_t)(indxlo + elemi)] = cast(char)defaultValue;
-                break;
+                case 1:
+                    (cast(char*)s)[cast(size_t)(indxlo + elemi)] = cast(char)defaultValue;
+                    break;
 
-            case 2:
-                (cast(utf16_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf16_t)defaultValue;
-                break;
+                case 2:
+                    (cast(utf16_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf16_t)defaultValue;
+                    break;
 
-            case 4:
-                (cast(utf32_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf32_t)defaultValue;
-                break;
+                case 4:
+                    (cast(utf32_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf32_t)defaultValue;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
         emplaceExp!(StringExp)(&ue, loc, s, newlen);

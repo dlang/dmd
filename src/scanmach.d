@@ -109,20 +109,20 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
         //printf("cmd = 0x%02x, cmdsize = %u\n", command->cmd, command->cmdsize);
         switch (command.cmd)
         {
-        case LC_SEGMENT:
-            segment_commands = cast(segment_command*)command;
-            break;
-        case LC_SEGMENT_64:
-            segment_commands64 = cast(segment_command_64*)command;
-            break;
-        case LC_SYMTAB:
-            symtab_commands = cast(symtab_command*)command;
-            break;
-        case LC_DYSYMTAB:
-            dysymtab_commands = cast(dysymtab_command*)command;
-            break;
-        default:
-            break;
+            case LC_SEGMENT:
+                segment_commands = cast(segment_command*)command;
+                break;
+            case LC_SEGMENT_64:
+                segment_commands64 = cast(segment_command_64*)command;
+                break;
+            case LC_SYMTAB:
+                symtab_commands = cast(symtab_command*)command;
+                break;
+            case LC_DYSYMTAB:
+                dysymtab_commands = cast(dysymtab_command*)command;
+                break;
+            default:
+                break;
         }
         commands += command.cmdsize;
     }
@@ -171,22 +171,22 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                     }
                     switch (s.n_type & N_TYPE)
                     {
-                    case N_UNDF:
-                        if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            (*pAddSymbol)(pctx, name, 1);
-                        break;
-                    case N_ABS:
-                        break;
-                    case N_SECT:
-                        if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            (*pAddSymbol)(pctx, name, 1);
-                        break;
-                    case N_PBUD:
-                        break;
-                    case N_INDR:
-                        break;
-                    default:
-                        break;
+                        case N_UNDF:
+                            if (s.n_type & N_EXT && s.n_value != 0) // comdef
+                                (*pAddSymbol)(pctx, name, 1);
+                            break;
+                        case N_ABS:
+                            break;
+                        case N_SECT:
+                            if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
+                                (*pAddSymbol)(pctx, name, 1);
+                            break;
+                        case N_PBUD:
+                            break;
+                        case N_INDR:
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -225,22 +225,22 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                     }
                     switch (s.n_type & N_TYPE)
                     {
-                    case N_UNDF:
-                        if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            (*pAddSymbol)(pctx, name, 1);
-                        break;
-                    case N_ABS:
-                        break;
-                    case N_SECT:
-                        if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            (*pAddSymbol)(pctx, name, 1);
-                        break;
-                    case N_PBUD:
-                        break;
-                    case N_INDR:
-                        break;
-                    default:
-                        break;
+                        case N_UNDF:
+                            if (s.n_type & N_EXT && s.n_value != 0) // comdef
+                                (*pAddSymbol)(pctx, name, 1);
+                            break;
+                        case N_ABS:
+                            break;
+                        case N_SECT:
+                            if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
+                                (*pAddSymbol)(pctx, name, 1);
+                            break;
+                        case N_PBUD:
+                            break;
+                        case N_INDR:
+                            break;
+                        default:
+                            break;
                     }
                 }
             }

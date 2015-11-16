@@ -169,34 +169,34 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
 
         switch (recTyp)
         {
-        case LNAMES:
-        case LLNAMES:
-            while (p + 1 < pnext)
-            {
-                parseName(&p, name.ptr);
-                names.push(strdup(name.ptr));
-            }
-            break;
+            case LNAMES:
+            case LLNAMES:
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name.ptr);
+                    names.push(strdup(name.ptr));
+                }
+                break;
 
-        case PUBDEF:
-            if (easyomf)
-                recTyp = PUB386; // convert to MS format
-        case PUB386:
-            if (!(parseIdx(&p) | parseIdx(&p)))
-                p += 2; // skip seg, grp, frame
-            while (p + 1 < pnext)
-            {
-                parseName(&p, name.ptr);
-                p += (recTyp == PUBDEF) ? 2 : 4; // skip offset
-                parseIdx(&p); // skip type index
-                (*pAddSymbol)(pctx, name.ptr, 0);
-            }
-            break;
+            case PUBDEF:
+                if (easyomf)
+                    recTyp = PUB386; // convert to MS format
+            case PUB386:
+                if (!(parseIdx(&p) | parseIdx(&p)))
+                    p += 2; // skip seg, grp, frame
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name.ptr);
+                    p += (recTyp == PUBDEF) ? 2 : 4; // skip offset
+                    parseIdx(&p); // skip type index
+                    (*pAddSymbol)(pctx, name.ptr, 0);
+                }
+                break;
 
-        case COMDAT:
-            if (easyomf)
-                recTyp = COMDAT + 1; // convert to MS format
-        case COMDAT + 1:
+            case COMDAT:
+                if (easyomf)
+                    recTyp = COMDAT + 1; // convert to MS format
+            case COMDAT + 1:
             {
                 int pickAny = 0;
 
@@ -232,7 +232,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                 (*pAddSymbol)(pctx, names[idx], pickAny);
                 break;
             }
-        case COMDEF:
+            case COMDEF:
             {
                 while (p + 1 < pnext)
                 {
@@ -243,56 +243,56 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                 }
                 break;
             }
-        case ALIAS:
-            while (p + 1 < pnext)
-            {
-                parseName(&p, name.ptr);
-                (*pAddSymbol)(pctx, name.ptr, 0);
-                parseName(&p, name.ptr);
-            }
-            break;
-
-        case MODEND:
-        case M386END:
-            result = 1;
-            goto Ret;
-
-        case COMENT:
-            // Recognize Phar Lap EASY-OMF format
-            {
-                static __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
-
-                if (recLen == (omfstr1).sizeof)
+            case ALIAS:
+                while (p + 1 < pnext)
                 {
-                    for (uint i = 0; i < (omfstr1).sizeof; i++)
-                        if (*p++ != omfstr1[i])
-                            goto L1;
-                    easyomf = 1;
-                    break;
-                L1:
-                }
-            }
-            // Recognize .IMPDEF Import Definition Records
-            {
-                static __gshared ubyte* omfstr2 = [0, 0xA0, 1];
-
-                if (recLen >= 7)
-                {
-                    p++;
-                    for (uint i = 1; i < (omfstr2).sizeof; i++)
-                        if (*p++ != omfstr2[i])
-                            goto L2;
-                    p++; // skip OrdFlag field
                     parseName(&p, name.ptr);
                     (*pAddSymbol)(pctx, name.ptr, 0);
-                    break;
-                L2:
+                    parseName(&p, name.ptr);
                 }
-            }
-            break;
+                break;
 
-        default:
-            // ignore
+            case MODEND:
+            case M386END:
+                result = 1;
+                goto Ret;
+
+            case COMENT:
+                // Recognize Phar Lap EASY-OMF format
+                {
+                    static __gshared ubyte* omfstr1 = [0x80, 0xAA, '8', '0', '3', '8', '6'];
+
+                    if (recLen == (omfstr1).sizeof)
+                    {
+                        for (uint i = 0; i < (omfstr1).sizeof; i++)
+                            if (*p++ != omfstr1[i])
+                                goto L1;
+                        easyomf = 1;
+                        break;
+                    L1:
+                    }
+                }
+                // Recognize .IMPDEF Import Definition Records
+                {
+                    static __gshared ubyte* omfstr2 = [0, 0xA0, 1];
+
+                    if (recLen >= 7)
+                    {
+                        p++;
+                        for (uint i = 1; i < (omfstr2).sizeof; i++)
+                            if (*p++ != omfstr2[i])
+                                goto L2;
+                        p++; // skip OrdFlag field
+                        parseName(&p, name.ptr);
+                        (*pAddSymbol)(pctx, name.ptr, 0);
+                        break;
+                    L2:
+                    }
+                }
+                break;
+
+            default:
+                // ignore
         }
     }
 Ret:
@@ -332,20 +332,20 @@ extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, v
 
         switch (recTyp)
         {
-        case LHEADR:
-        case THEADR:
-            if (!base)
-            {
-                base = p;
-                p += 3;
-                parseName(&p, name.ptr);
-                if (name[0] == 'C' && name[1] == 0) // old C compilers did this
-                    base = pnext; // skip past THEADR
-            }
-            break;
+            case LHEADR:
+            case THEADR:
+                if (!base)
+                {
+                    base = p;
+                    p += 3;
+                    parseName(&p, name.ptr);
+                    if (name[0] == 'C' && name[1] == 0) // old C compilers did this
+                        base = pnext; // skip past THEADR
+                }
+                break;
 
-        case MODEND:
-        case M386END:
+            case MODEND:
+            case M386END:
             {
                 if (base)
                 {
@@ -358,8 +358,8 @@ extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, v
                 pnext = cast(ubyte*)buf + t;
                 break;
             }
-        default:
-            // ignore
+            default:
+                // ignore
         }
     }
     return (base !is null); // missing MODEND record

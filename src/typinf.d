@@ -81,44 +81,44 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     //printf("Type::getTypeInfoDeclaration() %s\n", t->toChars());
     switch (t.ty)
     {
-    case Tpointer:
-        return TypeInfoPointerDeclaration.create(t);
+        case Tpointer:
+            return TypeInfoPointerDeclaration.create(t);
 
-    case Tarray:
-        return TypeInfoArrayDeclaration.create(t);
+        case Tarray:
+            return TypeInfoArrayDeclaration.create(t);
 
-    case Tsarray:
-        return TypeInfoStaticArrayDeclaration.create(t);
+        case Tsarray:
+            return TypeInfoStaticArrayDeclaration.create(t);
 
-    case Taarray:
-        return TypeInfoAssociativeArrayDeclaration.create(t);
+        case Taarray:
+            return TypeInfoAssociativeArrayDeclaration.create(t);
 
-    case Tstruct:
-        return TypeInfoStructDeclaration.create(t);
+        case Tstruct:
+            return TypeInfoStructDeclaration.create(t);
 
-    case Tvector:
-        return TypeInfoVectorDeclaration.create(t);
+        case Tvector:
+            return TypeInfoVectorDeclaration.create(t);
 
-    case Tenum:
-        return TypeInfoEnumDeclaration.create(t);
+        case Tenum:
+            return TypeInfoEnumDeclaration.create(t);
 
-    case Tfunction:
-        return TypeInfoFunctionDeclaration.create(t);
+        case Tfunction:
+            return TypeInfoFunctionDeclaration.create(t);
 
-    case Tdelegate:
-        return TypeInfoDelegateDeclaration.create(t);
+        case Tdelegate:
+            return TypeInfoDelegateDeclaration.create(t);
 
-    case Ttuple:
-        return TypeInfoTupleDeclaration.create(t);
+        case Ttuple:
+            return TypeInfoTupleDeclaration.create(t);
 
-    case Tclass:
-        if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
-            return TypeInfoInterfaceDeclaration.create(t);
-        else
-            return TypeInfoClassDeclaration.create(t);
+        case Tclass:
+            if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
+                return TypeInfoInterfaceDeclaration.create(t);
+            else
+                return TypeInfoClassDeclaration.create(t);
 
-    default:
-        return TypeInfoDeclaration.create(t, 0);
+        default:
+            return TypeInfoDeclaration.create(t, 0);
     }
 }
 

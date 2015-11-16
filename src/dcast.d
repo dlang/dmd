@@ -342,88 +342,88 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             switch (ty)
             {
-            case Tbool:
-            case Tint8:
-            case Tchar:
-            case Tuns8:
-            case Tint16:
-            case Tuns16:
-            case Twchar:
-                ty = Tint32;
-                break;
+                case Tbool:
+                case Tint8:
+                case Tchar:
+                case Tuns8:
+                case Tint16:
+                case Tuns16:
+                case Twchar:
+                    ty = Tint32;
+                    break;
 
-            case Tdchar:
-                ty = Tuns32;
-                break;
+                case Tdchar:
+                    ty = Tuns32;
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
             }
 
             // Only allow conversion if no change in value
             dinteger_t value = e.toInteger();
             switch (toty)
             {
-            case Tbool:
-                if ((value & 1) != value)
-                    return;
-                break;
+                case Tbool:
+                    if ((value & 1) != value)
+                        return;
+                    break;
 
-            case Tint8:
-                if (ty == Tuns64 && value & ~0x7FU)
-                    return;
-                else if (cast(byte)value != value)
-                    return;
-                break;
+                case Tint8:
+                    if (ty == Tuns64 && value & ~0x7FU)
+                        return;
+                    else if (cast(byte)value != value)
+                        return;
+                    break;
 
-            case Tchar:
-                if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
-                    return;
-            case Tuns8:
-                //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
-                if (cast(ubyte)value != value)
-                    return;
-                break;
+                case Tchar:
+                    if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
+                        return;
+                case Tuns8:
+                    //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
+                    if (cast(ubyte)value != value)
+                        return;
+                    break;
 
-            case Tint16:
-                if (ty == Tuns64 && value & ~0x7FFFU)
-                    return;
-                else if (cast(short)value != value)
-                    return;
-                break;
+                case Tint16:
+                    if (ty == Tuns64 && value & ~0x7FFFU)
+                        return;
+                    else if (cast(short)value != value)
+                        return;
+                    break;
 
-            case Twchar:
-                if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
-                    return;
-            case Tuns16:
-                if (cast(ushort)value != value)
-                    return;
-                break;
+                case Twchar:
+                    if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
+                        return;
+                case Tuns16:
+                    if (cast(ushort)value != value)
+                        return;
+                    break;
 
-            case Tint32:
-                if (ty == Tuns32)
-                {
-                }
-                else if (ty == Tuns64 && value & ~0x7FFFFFFFU)
-                    return;
-                else if (cast(int)value != value)
-                    return;
-                break;
+                case Tint32:
+                    if (ty == Tuns32)
+                    {
+                    }
+                    else if (ty == Tuns64 && value & ~0x7FFFFFFFU)
+                        return;
+                    else if (cast(int)value != value)
+                        return;
+                    break;
 
-            case Tuns32:
-                if (ty == Tint32)
-                {
-                }
-                else if (cast(uint)value != value)
-                    return;
-                break;
+                case Tuns32:
+                    if (ty == Tint32)
+                    {
+                    }
+                    else if (cast(uint)value != value)
+                        return;
+                    break;
 
-            case Tdchar:
-                if (value > 0x10FFFFU)
-                    return;
-                break;
+                case Tdchar:
+                    if (value > 0x10FFFFU)
+                        return;
+                    break;
 
-            case Tfloat32:
+                case Tfloat32:
                 {
                     float f;
                     if (e.type.isunsigned())
@@ -441,7 +441,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
 
-            case Tfloat64:
+                case Tfloat64:
                 {
                     double f;
                     if (e.type.isunsigned())
@@ -459,7 +459,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
 
-            case Tfloat80:
+                case Tfloat80:
                 {
                     real f;
                     if (e.type.isunsigned())
@@ -477,21 +477,21 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
 
-            case Tpointer:
-                //printf("type = %s\n", type->toBasetype()->toChars());
-                //printf("t = %s\n", t->toBasetype()->toChars());
-                if (ty == Tpointer && e.type.toBasetype().nextOf().ty == t.toBasetype().nextOf().ty)
-                {
-                    /* Allow things like:
-                     *      const char* P = cast(char *)3;
-                     *      char* q = P;
-                     */
-                    break;
-                }
+                case Tpointer:
+                    //printf("type = %s\n", type->toBasetype()->toChars());
+                    //printf("t = %s\n", t->toBasetype()->toChars());
+                    if (ty == Tpointer && e.type.toBasetype().nextOf().ty == t.toBasetype().nextOf().ty)
+                    {
+                        /* Allow things like:
+                         *      const char* P = cast(char *)3;
+                         *      char* q = P;
+                         */
+                        break;
+                    }
 
-            default:
-                visit(cast(Expression)e);
-                return;
+                default:
+                    visit(cast(Expression)e);
+                    return;
             }
 
             //printf("MATCHconvert\n");
@@ -571,106 +571,106 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 {
                     switch (t.ty)
                     {
-                    case Tsarray:
-                        if (e.type.ty == Tsarray)
-                        {
-                            TY tynto = t.nextOf().ty;
-                            if (tynto == tyn)
+                        case Tsarray:
+                            if (e.type.ty == Tsarray)
                             {
-                                if ((cast(TypeSArray)e.type).dim.toInteger() == (cast(TypeSArray)t).dim.toInteger())
+                                TY tynto = t.nextOf().ty;
+                                if (tynto == tyn)
+                                {
+                                    if ((cast(TypeSArray)e.type).dim.toInteger() == (cast(TypeSArray)t).dim.toInteger())
+                                    {
+                                        result = MATCHexact;
+                                    }
+                                    return;
+                                }
+                                if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                                {
+                                    if (e.committed && tynto != tyn)
+                                        return;
+                                    size_t fromlen = e.numberOfCodeUnits(tynto);
+                                    size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                                    if (tolen < fromlen)
+                                        return;
+                                    if (tolen != fromlen)
+                                    {
+                                        // implicit length extending
+                                        result = MATCHconvert;
+                                        return;
+                                    }
+                                }
+                                if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                                 {
                                     result = MATCHexact;
+                                    return;
                                 }
-                                return;
                             }
-                            if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                            else if (e.type.ty == Tarray)
                             {
-                                if (e.committed && tynto != tyn)
-                                    return;
-                                size_t fromlen = e.numberOfCodeUnits(tynto);
-                                size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                                if (tolen < fromlen)
-                                    return;
-                                if (tolen != fromlen)
+                                TY tynto = t.nextOf().ty;
+                                if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
                                 {
-                                    // implicit length extending
-                                    result = MATCHconvert;
-                                    return;
+                                    if (e.committed && tynto != tyn)
+                                        return;
+                                    size_t fromlen = e.numberOfCodeUnits(tynto);
+                                    size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                                    if (tolen < fromlen)
+                                        return;
+                                    if (tolen != fromlen)
+                                    {
+                                        // implicit length extending
+                                        result = MATCHconvert;
+                                        return;
+                                    }
                                 }
-                            }
-                            if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
-                            {
-                                result = MATCHexact;
-                                return;
-                            }
-                        }
-                        else if (e.type.ty == Tarray)
-                        {
-                            TY tynto = t.nextOf().ty;
-                            if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
-                            {
-                                if (e.committed && tynto != tyn)
-                                    return;
-                                size_t fromlen = e.numberOfCodeUnits(tynto);
-                                size_t tolen = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                                if (tolen < fromlen)
-                                    return;
-                                if (tolen != fromlen)
+                                if (tynto == tyn)
                                 {
-                                    // implicit length extending
-                                    result = MATCHconvert;
+                                    result = MATCHexact;
+                                    return;
+                                }
+                                if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                                {
+                                    result = MATCHexact;
                                     return;
                                 }
                             }
-                            if (tynto == tyn)
+                            /* fall through */
+                        case Tarray:
+                        case Tpointer:
+                            Type tn = t.nextOf();
+                            MATCH m = MATCHexact;
+                            if (e.type.nextOf().mod != tn.mod)
                             {
-                                result = MATCHexact;
-                                return;
+                                if (!tn.isConst())
+                                    return;
+                                m = MATCHconst;
                             }
-                            if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                            if (!e.committed)
                             {
-                                result = MATCHexact;
-                                return;
+                                switch (tn.ty)
+                                {
+                                    case Tchar:
+                                        if (e.postfix == 'w' || e.postfix == 'd')
+                                            m = MATCHconvert;
+                                        result = m;
+                                        return;
+                                    case Twchar:
+                                        if (e.postfix != 'w')
+                                            m = MATCHconvert;
+                                        result = m;
+                                        return;
+                                    case Tdchar:
+                                        if (e.postfix != 'd')
+                                            m = MATCHconvert;
+                                        result = m;
+                                        return;
+                                    default:
+                                        break;
+                                }
                             }
-                        }
-                        /* fall through */
-                    case Tarray:
-                    case Tpointer:
-                        Type tn = t.nextOf();
-                        MATCH m = MATCHexact;
-                        if (e.type.nextOf().mod != tn.mod)
-                        {
-                            if (!tn.isConst())
-                                return;
-                            m = MATCHconst;
-                        }
-                        if (!e.committed)
-                        {
-                            switch (tn.ty)
-                            {
-                            case Tchar:
-                                if (e.postfix == 'w' || e.postfix == 'd')
-                                    m = MATCHconvert;
-                                result = m;
-                                return;
-                            case Twchar:
-                                if (e.postfix != 'w')
-                                    m = MATCHconvert;
-                                result = m;
-                                return;
-                            case Tdchar:
-                                if (e.postfix != 'd')
-                                    m = MATCHconvert;
-                                result = m;
-                                return;
-                            default:
-                                break;
-                            }
-                        }
-                        break;
+                            break;
 
-                    default:
-                        break;
+                        default:
+                            break;
                     }
                 }
             }
@@ -1793,12 +1793,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
 
             {
-                OutBuffer buffer;
-                size_t newlen = 0;
-                int tfty = typeb.nextOf().toBasetype().ty;
-                int ttty = tb.nextOf().toBasetype().ty;
-                switch (X(tfty, ttty))
-                {
+            OutBuffer buffer;
+            size_t newlen = 0;
+            int tfty = typeb.nextOf().toBasetype().ty;
+            int ttty = tb.nextOf().toBasetype().ty;
+            switch (X(tfty, ttty))
+            {
                 case X(Tchar, Tchar):
                 case X(Twchar, Twchar):
                 case X(Tdchar, Tdchar):
@@ -1905,7 +1905,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 default:
                     assert(typeb.nextOf().size() != tb.nextOf().size());
                     goto Lcast;
-                }
+            }
             }
         L2:
             assert(copied);
@@ -3300,26 +3300,26 @@ extern (C++) Expression integralPromotions(Expression e, Scope* sc)
     //printf("integralPromotions %s %s\n", e->toChars(), e->type->toChars());
     switch (e.type.toBasetype().ty)
     {
-    case Tvoid:
-        e.error("void has no value");
-        return new ErrorExp();
+        case Tvoid:
+            e.error("void has no value");
+            return new ErrorExp();
 
-    case Tint8:
-    case Tuns8:
-    case Tint16:
-    case Tuns16:
-    case Tbool:
-    case Tchar:
-    case Twchar:
-        e = e.castTo(sc, Type.tint32);
-        break;
+        case Tint8:
+        case Tuns8:
+        case Tint16:
+        case Tuns16:
+        case Tbool:
+        case Tchar:
+        case Twchar:
+            e = e.castTo(sc, Type.tint32);
+            break;
 
-    case Tdchar:
-        e = e.castTo(sc, Type.tuns32);
-        break;
+        case Tdchar:
+            e = e.castTo(sc, Type.tuns32);
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
     return e;
 }

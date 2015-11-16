@@ -79,36 +79,36 @@ public:
             char c = cast(char)*s;
             switch (c)
             {
-            case '\n':
-                buf.writestring("\\n");
-                break;
-            case '\r':
-                buf.writestring("\\r");
-                break;
-            case '\t':
-                buf.writestring("\\t");
-                break;
-            case '\"':
-                buf.writestring("\\\"");
-                break;
-            case '\\':
-                buf.writestring("\\\\");
-                break;
-            case '\b':
-                buf.writestring("\\b");
-                break;
-            case '\f':
-                buf.writestring("\\f");
-                break;
-            default:
-                if (c < 0x20)
-                    buf.printf("\\u%04x", c);
-                else
-                {
-                    // Note that UTF-8 chars pass through here just fine
-                    buf.writeByte(c);
-                }
-                break;
+                case '\n':
+                    buf.writestring("\\n");
+                    break;
+                case '\r':
+                    buf.writestring("\\r");
+                    break;
+                case '\t':
+                    buf.writestring("\\t");
+                    break;
+                case '\"':
+                    buf.writestring("\\\"");
+                    break;
+                case '\\':
+                    buf.writestring("\\\\");
+                    break;
+                case '\b':
+                    buf.writestring("\\b");
+                    break;
+                case '\f':
+                    buf.writestring("\\f");
+                    break;
+                default:
+                    if (c < 0x20)
+                        buf.printf("\\u%04x", c);
+                    else
+                    {
+                        // Note that UTF-8 chars pass through here just fine
+                        buf.writeByte(c);
+                    }
+                    break;
             }
         }
     }
@@ -239,21 +239,21 @@ public:
     {
         switch (trust)
         {
-        case TRUSTdefault:
-            // Should not be printed
-            //property(name, "default");
-            break;
-        case TRUSTsystem:
-            property(name, "system");
-            break;
-        case TRUSTtrusted:
-            property(name, "trusted");
-            break;
-        case TRUSTsafe:
-            property(name, "safe");
-            break;
-        default:
-            assert(false);
+            case TRUSTdefault:
+                // Should not be printed
+                //property(name, "default");
+                break;
+            case TRUSTsystem:
+                property(name, "system");
+                break;
+            case TRUSTtrusted:
+                property(name, "trusted");
+                break;
+            case TRUSTsafe:
+                property(name, "safe");
+                break;
+            default:
+                assert(false);
         }
     }
 
@@ -261,24 +261,24 @@ public:
     {
         switch (purity)
         {
-        case PUREimpure:
-            // Should not be printed
-            //property(name, "impure");
-            break;
-        case PUREweak:
-            property(name, "weak");
-            break;
-        case PUREconst:
-            property(name, "const");
-            break;
-        case PUREstrong:
-            property(name, "strong");
-            break;
-        case PUREfwdref:
-            property(name, "fwdref");
-            break;
-        default:
-            assert(false);
+            case PUREimpure:
+                // Should not be printed
+                //property(name, "impure");
+                break;
+            case PUREweak:
+                property(name, "weak");
+                break;
+            case PUREconst:
+                property(name, "const");
+                break;
+            case PUREstrong:
+                property(name, "strong");
+                break;
+            case PUREfwdref:
+                property(name, "fwdref");
+                break;
+            default:
+                assert(false);
         }
     }
 
@@ -286,28 +286,28 @@ public:
     {
         switch (linkage)
         {
-        case LINKdefault:
-            // Should not be printed
-            //property(name, "default");
-            break;
-        case LINKd:
-            // Should not be printed
-            //property(name, "d");
-            break;
-        case LINKc:
-            property(name, "c");
-            break;
-        case LINKcpp:
-            property(name, "cpp");
-            break;
-        case LINKwindows:
-            property(name, "windows");
-            break;
-        case LINKpascal:
-            property(name, "pascal");
-            break;
-        default:
-            assert(false);
+            case LINKdefault:
+                // Should not be printed
+                //property(name, "default");
+                break;
+            case LINKd:
+                // Should not be printed
+                //property(name, "d");
+                break;
+            case LINKc:
+                property(name, "c");
+                break;
+            case LINKcpp:
+                property(name, "cpp");
+                break;
+            case LINKwindows:
+                property(name, "windows");
+                break;
+            case LINKpascal:
+                property(name, "pascal");
+                break;
+            default:
+                assert(false);
         }
     }
 

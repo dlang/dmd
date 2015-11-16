@@ -680,11 +680,11 @@ public:
 
         switch (id.dyncast())
         {
-        case DYNCAST_IDENTIFIER:
-            sm = s.search(loc, cast(Identifier)id);
-            break;
+            case DYNCAST_IDENTIFIER:
+                sm = s.search(loc, cast(Identifier)id);
+                break;
 
-        case DYNCAST_DSYMBOL:
+            case DYNCAST_DSYMBOL:
             {
                 // It's a template instance
                 //printf("\ttemplate instance id\n");
@@ -714,10 +714,10 @@ public:
                 break;
             }
 
-        case DYNCAST_TYPE:
-        case DYNCAST_EXPRESSION:
-        default:
-            assert(0);
+            case DYNCAST_TYPE:
+            case DYNCAST_EXPRESSION:
+            default:
+                assert(0);
         }
         return sm;
     }

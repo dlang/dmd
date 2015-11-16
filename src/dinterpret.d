@@ -3149,28 +3149,28 @@ public:
         UnionExp ue;
         switch (e.op)
         {
-        case TOKneg:
-            ue = Neg(e.type, e1);
-            break;
+            case TOKneg:
+                ue = Neg(e.type, e1);
+                break;
 
-        case TOKtilde:
-            ue = Com(e.type, e1);
-            break;
+            case TOKtilde:
+                ue = Com(e.type, e1);
+                break;
 
-        case TOKnot:
-            ue = Not(e.type, e1);
-            break;
+            case TOKnot:
+                ue = Not(e.type, e1);
+                break;
 
-        case TOKtobool:
-            ue = Bool(e.type, e1);
-            break;
+            case TOKtobool:
+                ue = Bool(e.type, e1);
+                break;
 
-        case TOKvector:
-            result = e;
-            return; // do nothing
+            case TOKvector:
+                result = e;
+                return; // do nothing
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         result = ue.copy();
     }
@@ -3331,82 +3331,82 @@ public:
     {
         switch (e.op)
         {
-        case TOKadd:
-            interpretCommon(e, &Add);
-            return;
+            case TOKadd:
+                interpretCommon(e, &Add);
+                return;
 
-        case TOKmin:
-            interpretCommon(e, &Min);
-            return;
+            case TOKmin:
+                interpretCommon(e, &Min);
+                return;
 
-        case TOKmul:
-            interpretCommon(e, &Mul);
-            return;
+            case TOKmul:
+                interpretCommon(e, &Mul);
+                return;
 
-        case TOKdiv:
-            interpretCommon(e, &Div);
-            return;
+            case TOKdiv:
+                interpretCommon(e, &Div);
+                return;
 
-        case TOKmod:
-            interpretCommon(e, &Mod);
-            return;
+            case TOKmod:
+                interpretCommon(e, &Mod);
+                return;
 
-        case TOKshl:
-            interpretCommon(e, &Shl);
-            return;
+            case TOKshl:
+                interpretCommon(e, &Shl);
+                return;
 
-        case TOKshr:
-            interpretCommon(e, &Shr);
-            return;
+            case TOKshr:
+                interpretCommon(e, &Shr);
+                return;
 
-        case TOKushr:
-            interpretCommon(e, &Ushr);
-            return;
+            case TOKushr:
+                interpretCommon(e, &Ushr);
+                return;
 
-        case TOKand:
-            interpretCommon(e, &And);
-            return;
+            case TOKand:
+                interpretCommon(e, &And);
+                return;
 
-        case TOKor:
-            interpretCommon(e, &Or);
-            return;
+            case TOKor:
+                interpretCommon(e, &Or);
+                return;
 
-        case TOKxor:
-            interpretCommon(e, &Xor);
-            return;
+            case TOKxor:
+                interpretCommon(e, &Xor);
+                return;
 
-        case TOKpow:
-            interpretCommon(e, &Pow);
-            return;
+            case TOKpow:
+                interpretCommon(e, &Pow);
+                return;
 
-        case TOKequal:
-        case TOKnotequal:
-            interpretCompareCommon(e, &ctfeEqual);
-            return;
+            case TOKequal:
+            case TOKnotequal:
+                interpretCompareCommon(e, &ctfeEqual);
+                return;
 
-        case TOKidentity:
-        case TOKnotidentity:
-            interpretCompareCommon(e, &ctfeIdentity);
-            return;
+            case TOKidentity:
+            case TOKnotidentity:
+                interpretCompareCommon(e, &ctfeIdentity);
+                return;
 
-        case TOKlt:
-        case TOKle:
-        case TOKgt:
-        case TOKge:
-        case TOKleg:
-        case TOKlg:
-        case TOKunord:
-        case TOKue:
-        case TOKug:
-        case TOKuge:
-        case TOKul:
-        case TOKule:
-            interpretCompareCommon(e, &ctfeCmp);
-            return;
+            case TOKlt:
+            case TOKle:
+            case TOKgt:
+            case TOKge:
+            case TOKleg:
+            case TOKlg:
+            case TOKunord:
+            case TOKue:
+            case TOKug:
+            case TOKuge:
+            case TOKul:
+            case TOKule:
+                interpretCompareCommon(e, &ctfeCmp);
+                return;
 
-        default:
-            printf("be = '%s' %s at [%s]\n", Token.toChars(e.op), e.toChars(), e.loc.toChars());
-            assert(0);
+            default:
+                printf("be = '%s' %s at [%s]\n", Token.toChars(e.op), e.toChars(), e.loc.toChars());
+                assert(0);
         }
     }
 
@@ -3983,20 +3983,20 @@ public:
                 dinteger_t value = newval.toInteger();
                 switch (existingSE.sz)
                 {
-                case 1:
-                    (cast(char*)s)[index] = cast(char)value;
-                    break;
+                    case 1:
+                        (cast(char*)s)[index] = cast(char)value;
+                        break;
 
-                case 2:
-                    (cast(utf16_t*)s)[index] = cast(utf16_t)value;
-                    break;
+                    case 2:
+                        (cast(utf16_t*)s)[index] = cast(utf16_t)value;
+                        break;
 
-                case 4:
-                    (cast(utf32_t*)s)[index] = cast(utf32_t)value;
-                    break;
+                    case 4:
+                        (cast(utf32_t*)s)[index] = cast(utf32_t)value;
+                        break;
 
-                default:
-                    assert(0);
+                    default:
+                        assert(0);
                 }
                 return null;
             }
@@ -4271,20 +4271,20 @@ public:
             {
                 switch (existingSE.sz)
                 {
-                case 1:
-                    (cast(char*)s)[cast(size_t)(i + firstIndex)] = cast(char)value;
-                    break;
+                    case 1:
+                        (cast(char*)s)[cast(size_t)(i + firstIndex)] = cast(char)value;
+                        break;
 
-                case 2:
-                    (cast(utf16_t*)s)[cast(size_t)(i + firstIndex)] = cast(utf16_t)value;
-                    break;
+                    case 2:
+                        (cast(utf16_t*)s)[cast(size_t)(i + firstIndex)] = cast(utf16_t)value;
+                        break;
 
-                case 4:
-                    (cast(utf32_t*)s)[cast(size_t)(i + firstIndex)] = cast(utf32_t)value;
-                    break;
+                    case 4:
+                        (cast(utf32_t*)s)[cast(size_t)(i + firstIndex)] = cast(utf32_t)value;
+                        break;
 
-                default:
-                    assert(0);
+                    default:
+                        assert(0);
                 }
             }
             if (goal == ctfeNeedNothing)
@@ -4511,60 +4511,60 @@ public:
     {
         switch (e.op)
         {
-        case TOKaddass:
-            interpretAssignCommon(e, &Add);
-            return;
+            case TOKaddass:
+                interpretAssignCommon(e, &Add);
+                return;
 
-        case TOKminass:
-            interpretAssignCommon(e, &Min);
-            return;
+            case TOKminass:
+                interpretAssignCommon(e, &Min);
+                return;
 
-        case TOKcatass:
-            interpretAssignCommon(e, &ctfeCat);
-            return;
+            case TOKcatass:
+                interpretAssignCommon(e, &ctfeCat);
+                return;
 
-        case TOKmulass:
-            interpretAssignCommon(e, &Mul);
-            return;
+            case TOKmulass:
+                interpretAssignCommon(e, &Mul);
+                return;
 
-        case TOKdivass:
-            interpretAssignCommon(e, &Div);
-            return;
+            case TOKdivass:
+                interpretAssignCommon(e, &Div);
+                return;
 
-        case TOKmodass:
-            interpretAssignCommon(e, &Mod);
-            return;
+            case TOKmodass:
+                interpretAssignCommon(e, &Mod);
+                return;
 
-        case TOKshlass:
-            interpretAssignCommon(e, &Shl);
-            return;
+            case TOKshlass:
+                interpretAssignCommon(e, &Shl);
+                return;
 
-        case TOKshrass:
-            interpretAssignCommon(e, &Shr);
-            return;
+            case TOKshrass:
+                interpretAssignCommon(e, &Shr);
+                return;
 
-        case TOKushrass:
-            interpretAssignCommon(e, &Ushr);
-            return;
+            case TOKushrass:
+                interpretAssignCommon(e, &Ushr);
+                return;
 
-        case TOKandass:
-            interpretAssignCommon(e, &And);
-            return;
+            case TOKandass:
+                interpretAssignCommon(e, &And);
+                return;
 
-        case TOKorass:
-            interpretAssignCommon(e, &Or);
-            return;
+            case TOKorass:
+                interpretAssignCommon(e, &Or);
+                return;
 
-        case TOKxorass:
-            interpretAssignCommon(e, &Xor);
-            return;
+            case TOKxorass:
+                interpretAssignCommon(e, &Xor);
+                return;
 
-        case TOKpowass:
-            interpretAssignCommon(e, &Pow);
-            return;
+            case TOKpowass:
+                interpretAssignCommon(e, &Pow);
+                return;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
     }
 
@@ -4599,21 +4599,21 @@ public:
         }
         switch (e.op)
         {
-        case TOKlt:
-        case TOKle:
-            ret *= -1;
-            /* fall through */
-        case TOKgt:
-        case TOKge:
-            *p1 = (cast(BinExp)e).e1;
-            *p2 = (cast(BinExp)e).e2;
-            if (!(isPointer((*p1).type) && isPointer((*p2).type)))
-                ret = 0;
-            break;
+            case TOKlt:
+            case TOKle:
+                ret *= -1;
+                /* fall through */
+            case TOKgt:
+            case TOKge:
+                *p1 = (cast(BinExp)e).e1;
+                *p2 = (cast(BinExp)e).e2;
+                if (!(isPointer((*p1).type) && isPointer((*p2).type)))
+                    ret = 0;
+                break;
 
-        default:
-            ret = 0;
-            break;
+            default:
+                ret = 0;
+                break;
         }
         return ret;
     }
@@ -4624,20 +4624,20 @@ public:
     {
         switch (op)
         {
-        case TOKge:
-            return TOKlt;
+            case TOKge:
+                return TOKlt;
 
-        case TOKgt:
-            return TOKle;
+            case TOKgt:
+                return TOKle;
 
-        case TOKle:
-            return TOKgt;
+            case TOKle:
+                return TOKgt;
 
-        case TOKlt:
-            return TOKge;
+            case TOKlt:
+                return TOKge;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
     }
 
@@ -6644,74 +6644,74 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
 
             switch (sz)
             {
-            case 1:
-                if (rvs)
-                {
-                    // find the start of the string
-                    --indx;
-                    buflen = 1;
-                    while (indx > 0 && buflen < 4)
+                case 1:
+                    if (rvs)
                     {
+                        // find the start of the string
+                        --indx;
+                        buflen = 1;
+                        while (indx > 0 && buflen < 4)
+                        {
+                            Expression r = (*ale.elements)[indx];
+                            assert(r.op == TOKint64);
+                            char x = cast(char)(cast(IntegerExp)r).getInteger();
+                            if ((x & 0xC0) != 0x80)
+                                break;
+                            ++buflen;
+                        }
+                    }
+                    else
+                        buflen = (indx + 4 > len) ? len - indx : 4;
+                    for (size_t i = 0; i < buflen; ++i)
+                    {
+                        Expression r = (*ale.elements)[indx + i];
+                        assert(r.op == TOKint64);
+                        utf8buf[i] = cast(char)(cast(IntegerExp)r).getInteger();
+                    }
+                    n = 0;
+                    errmsg = utf_decodeChar(&utf8buf[0], buflen, &n, &rawvalue);
+                    break;
+
+                case 2:
+                    if (rvs)
+                    {
+                        // find the start of the string
+                        --indx;
+                        buflen = 1;
                         Expression r = (*ale.elements)[indx];
                         assert(r.op == TOKint64);
-                        char x = cast(char)(cast(IntegerExp)r).getInteger();
-                        if ((x & 0xC0) != 0x80)
-                            break;
-                        ++buflen;
+                        ushort x = cast(ushort)(cast(IntegerExp)r).getInteger();
+                        if (indx > 0 && x >= 0xDC00 && x <= 0xDFFF)
+                        {
+                            --indx;
+                            ++buflen;
+                        }
                     }
-                }
-                else
-                    buflen = (indx + 4 > len) ? len - indx : 4;
-                for (size_t i = 0; i < buflen; ++i)
-                {
-                    Expression r = (*ale.elements)[indx + i];
-                    assert(r.op == TOKint64);
-                    utf8buf[i] = cast(char)(cast(IntegerExp)r).getInteger();
-                }
-                n = 0;
-                errmsg = utf_decodeChar(&utf8buf[0], buflen, &n, &rawvalue);
-                break;
-
-            case 2:
-                if (rvs)
-                {
-                    // find the start of the string
-                    --indx;
-                    buflen = 1;
-                    Expression r = (*ale.elements)[indx];
-                    assert(r.op == TOKint64);
-                    ushort x = cast(ushort)(cast(IntegerExp)r).getInteger();
-                    if (indx > 0 && x >= 0xDC00 && x <= 0xDFFF)
+                    else
+                        buflen = (indx + 2 > len) ? len - indx : 2;
+                    for (size_t i = 0; i < buflen; ++i)
                     {
-                        --indx;
-                        ++buflen;
+                        Expression r = (*ale.elements)[indx + i];
+                        assert(r.op == TOKint64);
+                        utf16buf[i] = cast(ushort)(cast(IntegerExp)r).getInteger();
                     }
-                }
-                else
-                    buflen = (indx + 2 > len) ? len - indx : 2;
-                for (size_t i = 0; i < buflen; ++i)
-                {
-                    Expression r = (*ale.elements)[indx + i];
-                    assert(r.op == TOKint64);
-                    utf16buf[i] = cast(ushort)(cast(IntegerExp)r).getInteger();
-                }
-                n = 0;
-                errmsg = utf_decodeWchar(&utf16buf[0], buflen, &n, &rawvalue);
-                break;
+                    n = 0;
+                    errmsg = utf_decodeWchar(&utf16buf[0], buflen, &n, &rawvalue);
+                    break;
 
-            case 4:
-                {
-                    if (rvs)
-                        --indx;
-                    Expression r = (*ale.elements)[indx];
-                    assert(r.op == TOKint64);
-                    rawvalue = cast(dchar_t)(cast(IntegerExp)r).getInteger();
-                    n = 1;
-                }
-                break;
+                case 4:
+                    {
+                        if (rvs)
+                            --indx;
+                        Expression r = (*ale.elements)[indx];
+                        assert(r.op == TOKint64);
+                        rawvalue = cast(dchar_t)(cast(IntegerExp)r).getInteger();
+                        n = 1;
+                    }
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
             if (!rvs)
                 indx += n;
@@ -6723,46 +6723,46 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
 
             switch (se.sz)
             {
-            case 1:
-                if (rvs)
-                {
-                    // find the start of the string
-                    char* s = cast(char*)se.string;
-                    --indx;
-                    while (indx > 0 && ((s[indx] & 0xC0) == 0x80))
+                case 1:
+                    if (rvs)
+                    {
+                        // find the start of the string
+                        char* s = cast(char*)se.string;
                         --indx;
-                    saveindx = indx;
-                }
-                errmsg = utf_decodeChar(cast(char*)se.string, se.len, &indx, &rawvalue);
-                if (rvs)
-                    indx = saveindx;
-                break;
+                        while (indx > 0 && ((s[indx] & 0xC0) == 0x80))
+                            --indx;
+                        saveindx = indx;
+                    }
+                    errmsg = utf_decodeChar(cast(char*)se.string, se.len, &indx, &rawvalue);
+                    if (rvs)
+                        indx = saveindx;
+                    break;
 
-            case 2:
-                if (rvs)
-                {
-                    // find the start
-                    ushort* s = cast(ushort*)se.string;
-                    --indx;
-                    if (s[indx] >= 0xDC00 && s[indx] <= 0xDFFF)
+                case 2:
+                    if (rvs)
+                    {
+                        // find the start
+                        ushort* s = cast(ushort*)se.string;
                         --indx;
-                    saveindx = indx;
-                }
-                errmsg = utf_decodeWchar(cast(ushort*)se.string, se.len, &indx, &rawvalue);
-                if (rvs)
-                    indx = saveindx;
-                break;
+                        if (s[indx] >= 0xDC00 && s[indx] <= 0xDFFF)
+                            --indx;
+                        saveindx = indx;
+                    }
+                    errmsg = utf_decodeWchar(cast(ushort*)se.string, se.len, &indx, &rawvalue);
+                    if (rvs)
+                        indx = saveindx;
+                    break;
 
-            case 4:
-                if (rvs)
-                    --indx;
-                rawvalue = (cast(uint*)se.string)[indx];
-                if (!rvs)
-                    ++indx;
-                break;
+                case 4:
+                    if (rvs)
+                        --indx;
+                    rawvalue = (cast(uint*)se.string)[indx];
+                    if (!rvs)
+                        ++indx;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
         if (errmsg)
@@ -6776,18 +6776,18 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
         int charlen = 1; // How many codepoints are involved?
         switch (charType.size())
         {
-        case 1:
-            charlen = utf_codeLengthChar(rawvalue);
-            utf_encodeChar(&utf8buf[0], rawvalue);
-            break;
-        case 2:
-            charlen = utf_codeLengthWchar(rawvalue);
-            utf_encodeWchar(&utf16buf[0], rawvalue);
-            break;
-        case 4:
-            break;
-        default:
-            assert(0);
+            case 1:
+                charlen = utf_codeLengthChar(rawvalue);
+                utf_encodeChar(&utf8buf[0], rawvalue);
+                break;
+            case 2:
+                charlen = utf_codeLengthWchar(rawvalue);
+                utf_encodeWchar(&utf16buf[0], rawvalue);
+                break;
+            case 4:
+                break;
+            default:
+                assert(0);
         }
         if (rvs)
             currentIndex = indx;
@@ -6805,17 +6805,17 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
             dchar_t codepoint;
             switch (charType.size())
             {
-            case 1:
-                codepoint = utf8buf[k];
-                break;
-            case 2:
-                codepoint = utf16buf[k];
-                break;
-            case 4:
-                codepoint = rawvalue;
-                break;
-            default:
-                assert(0);
+                case 1:
+                    codepoint = utf8buf[k];
+                    break;
+                case 2:
+                    codepoint = utf16buf[k];
+                    break;
+                case 4:
+                    codepoint = rawvalue;
+                    break;
+                default:
+                    assert(0);
             }
             val = new IntegerExp(str.loc, codepoint, charType);
 

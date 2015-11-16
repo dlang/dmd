@@ -694,19 +694,19 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, size_t* pidx, dchar_
     size_t n = UTF8_STRIDE[u];
     switch (n)
     {
-    case 1:
-        // ASCII
-        return UTF8_DECODE_OK;
+        case 1:
+            // ASCII
+            return UTF8_DECODE_OK;
 
-    case 2:
-    case 3:
-    case 4:
-        // multi-byte UTF-8
-        break;
+        case 2:
+        case 3:
+        case 4:
+            // multi-byte UTF-8
+            break;
 
-    default:
-        // 5- or 6-byte sequence
-        return UTF8_DECODE_OUTSIDE_CODE_SPACE;
+        default:
+            // 5- or 6-byte sequence
+            return UTF8_DECODE_OUTSIDE_CODE_SPACE;
     }
     if (len < i + n) // source too short
         return UTF8_DECODE_TRUNCATED_SEQUENCE;

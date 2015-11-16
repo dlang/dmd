@@ -593,113 +593,113 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             char p = 0;
             switch (t.ty)
             {
-            case Tvoid:
-                c = 'v';
-                break;
+                case Tvoid:
+                    c = 'v';
+                    break;
 
-            case Tint8:
-                c = 'a';
-                break;
+                case Tint8:
+                    c = 'a';
+                    break;
 
-            case Tuns8:
-                c = 'h';
-                break;
+                case Tuns8:
+                    c = 'h';
+                    break;
 
-            case Tint16:
-                c = 's';
-                break;
+                case Tint16:
+                    c = 's';
+                    break;
 
-            case Tuns16:
-                c = 't';
-                break;
+                case Tuns16:
+                    c = 't';
+                    break;
 
-            case Tint32:
-                c = 'i';
-                break;
+                case Tint32:
+                    c = 'i';
+                    break;
 
-            case Tuns32:
-                c = 'j';
-                break;
+                case Tuns32:
+                    c = 'j';
+                    break;
 
-            case Tfloat32:
-                c = 'f';
-                break;
+                case Tfloat32:
+                    c = 'f';
+                    break;
 
-            case Tint64:
-                c = (Target.c_longsize == 8 ? 'l' : 'x');
-                break;
+                case Tint64:
+                    c = (Target.c_longsize == 8 ? 'l' : 'x');
+                    break;
 
-            case Tuns64:
-                c = (Target.c_longsize == 8 ? 'm' : 'y');
-                break;
+                case Tuns64:
+                    c = (Target.c_longsize == 8 ? 'm' : 'y');
+                    break;
 
-            case Tint128:
-                c = 'n';
-                break;
+                case Tint128:
+                    c = 'n';
+                    break;
 
-            case Tuns128:
-                c = 'o';
-                break;
+                case Tuns128:
+                    c = 'o';
+                    break;
 
-            case Tfloat64:
-                c = 'd';
-                break;
+                case Tfloat64:
+                    c = 'd';
+                    break;
 
-            case Tfloat80:
-                c = (Target.realsize - Target.realpad == 16) ? 'g' : 'e';
-                break;
+                case Tfloat80:
+                    c = (Target.realsize - Target.realpad == 16) ? 'g' : 'e';
+                    break;
 
-            case Tbool:
-                c = 'b';
-                break;
+                case Tbool:
+                    c = 'b';
+                    break;
 
-            case Tchar:
-                c = 'c';
-                break;
+                case Tchar:
+                    c = 'c';
+                    break;
 
-            case Twchar:
-                c = 't';
-                break;
-                // unsigned short
+                case Twchar:
+                    c = 't';
+                    break;
+                    // unsigned short
 
-            case Tdchar:
-                c = 'w';
-                break;
-                // wchar_t (UTF-32)
+                case Tdchar:
+                    c = 'w';
+                    break;
+                    // wchar_t (UTF-32)
 
-            case Timaginary32:
-                p = 'G';
-                c = 'f';
-                break;
+                case Timaginary32:
+                    p = 'G';
+                    c = 'f';
+                    break;
 
-            case Timaginary64:
-                p = 'G';
-                c = 'd';
-                break;
+                case Timaginary64:
+                    p = 'G';
+                    c = 'd';
+                    break;
 
-            case Timaginary80:
-                p = 'G';
-                c = 'e';
-                break;
+                case Timaginary80:
+                    p = 'G';
+                    c = 'e';
+                    break;
 
-            case Tcomplex32:
-                p = 'C';
-                c = 'f';
-                break;
+                case Tcomplex32:
+                    p = 'C';
+                    c = 'f';
+                    break;
 
-            case Tcomplex64:
-                p = 'C';
-                c = 'd';
-                break;
+                case Tcomplex64:
+                    p = 'C';
+                    c = 'd';
+                    break;
 
-            case Tcomplex80:
-                p = 'C';
-                c = 'e';
-                break;
+                case Tcomplex80:
+                    p = 'C';
+                    c = 'e';
+                    break;
 
-            default:
-                visit(cast(Type)t);
-                return;
+                default:
+                    visit(cast(Type)t);
+                    return;
             }
             if (t.isImmutable() || t.isShared())
             {
@@ -1054,88 +1054,88 @@ else static if (TARGET_WINDOS)
             mangleModifier(type);
             switch (type.ty)
             {
-            case Tvoid:
-                buf.writeByte('X');
-                break;
+                case Tvoid:
+                    buf.writeByte('X');
+                    break;
 
-            case Tint8:
-                buf.writeByte('C');
-                break;
+                case Tint8:
+                    buf.writeByte('C');
+                    break;
 
-            case Tuns8:
-                buf.writeByte('E');
-                break;
+                case Tuns8:
+                    buf.writeByte('E');
+                    break;
 
-            case Tint16:
-                buf.writeByte('F');
-                break;
+                case Tint16:
+                    buf.writeByte('F');
+                    break;
 
-            case Tuns16:
-                buf.writeByte('G');
-                break;
+                case Tuns16:
+                    buf.writeByte('G');
+                    break;
 
-            case Tint32:
-                buf.writeByte('H');
-                break;
+                case Tint32:
+                    buf.writeByte('H');
+                    break;
 
-            case Tuns32:
-                buf.writeByte('I');
-                break;
+                case Tuns32:
+                    buf.writeByte('I');
+                    break;
 
-            case Tfloat32:
-                buf.writeByte('M');
-                break;
+                case Tfloat32:
+                    buf.writeByte('M');
+                    break;
 
-            case Tint64:
-                buf.writestring("_J");
-                break;
+                case Tint64:
+                    buf.writestring("_J");
+                    break;
 
-            case Tuns64:
-                buf.writestring("_K");
-                break;
+                case Tuns64:
+                    buf.writestring("_K");
+                    break;
 
-            case Tint128:
-                buf.writestring("_L");
-                break;
+                case Tint128:
+                    buf.writestring("_L");
+                    break;
 
-            case Tuns128:
-                buf.writestring("_M");
-                break;
+                case Tuns128:
+                    buf.writestring("_M");
+                    break;
 
-            case Tfloat64:
-                buf.writeByte('N');
-                break;
+                case Tfloat64:
+                    buf.writeByte('N');
+                    break;
 
-            case Tbool:
-                buf.writestring("_N");
-                break;
+                case Tbool:
+                    buf.writestring("_N");
+                    break;
 
-            case Tchar:
-                buf.writeByte('D');
-                break;
+                case Tchar:
+                    buf.writeByte('D');
+                    break;
 
-            case Tdchar:
-                buf.writeByte('I');
-                break;
-                // unsigned int
+                case Tdchar:
+                    buf.writeByte('I');
+                    break;
+                    // unsigned int
 
-            case Tfloat80:
-                if (flags & IS_DMC)
-                    buf.writestring("_Z"); // DigitalMars long double
-                else
-                    buf.writestring("_T"); // Intel long double
-                break;
+                case Tfloat80:
+                    if (flags & IS_DMC)
+                        buf.writestring("_Z"); // DigitalMars long double
+                    else
+                        buf.writestring("_T"); // Intel long double
+                    break;
 
-            case Twchar:
-                if (flags & IS_DMC)
-                    buf.writestring("_Y"); // DigitalMars wchar_t
-                else
-                    buf.writestring("_W"); // Visual C++ wchar_t
-                break;
+                case Twchar:
+                    if (flags & IS_DMC)
+                        buf.writestring("_Y"); // DigitalMars wchar_t
+                    else
+                        buf.writestring("_W"); // Visual C++ wchar_t
+                    break;
 
-            default:
-                visit(cast(Type)type);
-                return;
+                default:
+                    visit(cast(Type)type);
+                    return;
             }
             flags &= ~IS_NOT_TOP_TYPE;
             flags &= ~IGNORE_CONST;
@@ -1349,34 +1349,34 @@ else static if (TARGET_WINDOS)
             buf.writeByte('W');
             switch (type.sym.memtype.ty)
             {
-            case Tchar:
-            case Tint8:
-                buf.writeByte('0');
-                break;
-            case Tuns8:
-                buf.writeByte('1');
-                break;
-            case Tint16:
-                buf.writeByte('2');
-                break;
-            case Tuns16:
-                buf.writeByte('3');
-                break;
-            case Tint32:
-                buf.writeByte('4');
-                break;
-            case Tuns32:
-                buf.writeByte('5');
-                break;
-            case Tint64:
-                buf.writeByte('6');
-                break;
-            case Tuns64:
-                buf.writeByte('7');
-                break;
-            default:
-                visit(cast(Type)type);
-                break;
+                case Tchar:
+                case Tint8:
+                    buf.writeByte('0');
+                    break;
+                case Tuns8:
+                    buf.writeByte('1');
+                    break;
+                case Tint16:
+                    buf.writeByte('2');
+                    break;
+                case Tuns16:
+                    buf.writeByte('3');
+                    break;
+                case Tint32:
+                    buf.writeByte('4');
+                    break;
+                case Tuns32:
+                    buf.writeByte('5');
+                    break;
+                case Tint64:
+                    buf.writeByte('6');
+                    break;
+                case Tuns64:
+                    buf.writeByte('7');
+                    break;
+                default:
+                    visit(cast(Type)type);
+                    break;
             }
 
             mangleIdent(type.sym);
@@ -1446,30 +1446,30 @@ else static if (TARGET_WINDOS)
                 {
                     switch (d.protection.kind)
                     {
-                    case PROTprivate:
-                        buf.writeByte('E');
-                        break;
-                    case PROTprotected:
-                        buf.writeByte('M');
-                        break;
-                    default:
-                        buf.writeByte('U');
-                        break;
+                        case PROTprivate:
+                            buf.writeByte('E');
+                            break;
+                        case PROTprotected:
+                            buf.writeByte('M');
+                            break;
+                        default:
+                            buf.writeByte('U');
+                            break;
                     }
                 }
                 else
                 {
                     switch (d.protection.kind)
                     {
-                    case PROTprivate:
-                        buf.writeByte('A');
-                        break;
-                    case PROTprotected:
-                        buf.writeByte('I');
-                        break;
-                    default:
-                        buf.writeByte('Q');
-                        break;
+                        case PROTprivate:
+                            buf.writeByte('A');
+                            break;
+                        case PROTprotected:
+                            buf.writeByte('I');
+                            break;
+                        default:
+                            buf.writeByte('Q');
+                            break;
                     }
                 }
                 if (global.params.is64bit)
@@ -1488,15 +1488,15 @@ else static if (TARGET_WINDOS)
                 // <flags> ::= <virtual/protection flag> <calling convention flag>
                 switch (d.protection.kind)
                 {
-                case PROTprivate:
-                    buf.writeByte('C');
-                    break;
-                case PROTprotected:
-                    buf.writeByte('K');
-                    break;
-                default:
-                    buf.writeByte('S');
-                    break;
+                    case PROTprivate:
+                        buf.writeByte('C');
+                        break;
+                    case PROTprotected:
+                        buf.writeByte('K');
+                        break;
+                    default:
+                        buf.writeByte('S');
+                        break;
                 }
             }
             else // top-level function
@@ -1530,15 +1530,15 @@ else static if (TARGET_WINDOS)
             {
                 switch (d.protection.kind)
                 {
-                case PROTprivate:
-                    buf.writeByte('0');
-                    break;
-                case PROTprotected:
-                    buf.writeByte('1');
-                    break;
-                default:
-                    buf.writeByte('2');
-                    break;
+                    case PROTprivate:
+                        buf.writeByte('0');
+                        break;
+                    case PROTprotected:
+                        buf.writeByte('1');
+                        break;
+                    default:
+                        buf.writeByte('2');
+                        break;
                 }
             }
 
@@ -1930,24 +1930,24 @@ else static if (TARGET_WINDOS)
             {
                 switch (type.linkage)
                 {
-                case LINKc:
-                    tmp.buf.writeByte('A');
-                    break;
-                case LINKcpp:
-                    if (needthis && type.varargs != 1)
-                        tmp.buf.writeByte('E'); // thiscall
-                    else
-                        tmp.buf.writeByte('A'); // cdecl
-                    break;
-                case LINKwindows:
-                    tmp.buf.writeByte('G'); // stdcall
-                    break;
-                case LINKpascal:
-                    tmp.buf.writeByte('C');
-                    break;
-                default:
-                    tmp.visit(cast(Type)type);
-                    break;
+                    case LINKc:
+                        tmp.buf.writeByte('A');
+                        break;
+                    case LINKcpp:
+                        if (needthis && type.varargs != 1)
+                            tmp.buf.writeByte('E'); // thiscall
+                        else
+                            tmp.buf.writeByte('A'); // cdecl
+                        break;
+                    case LINKwindows:
+                        tmp.buf.writeByte('G'); // stdcall
+                        break;
+                    case LINKpascal:
+                        tmp.buf.writeByte('C');
+                        break;
+                    default:
+                        tmp.visit(cast(Type)type);
+                        break;
                 }
             }
 

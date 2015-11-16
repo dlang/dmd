@@ -721,51 +721,51 @@ public:
                 stc |= STCwild;
             switch (stc & STC_TYPECTOR)
             {
-            case STCimmutable:
-            case STCimmutable | STCconst:
-            case STCimmutable | STCwild:
-            case STCimmutable | STCwild | STCconst:
-            case STCimmutable | STCshared:
-            case STCimmutable | STCshared | STCconst:
-            case STCimmutable | STCshared | STCwild:
-            case STCimmutable | STCshared | STCwild | STCconst:
-                // Don't use immutableOf(), as that will do a merge()
-                type = type.makeImmutable();
-                break;
+                case STCimmutable:
+                case STCimmutable | STCconst:
+                case STCimmutable | STCwild:
+                case STCimmutable | STCwild | STCconst:
+                case STCimmutable | STCshared:
+                case STCimmutable | STCshared | STCconst:
+                case STCimmutable | STCshared | STCwild:
+                case STCimmutable | STCshared | STCwild | STCconst:
+                    // Don't use immutableOf(), as that will do a merge()
+                    type = type.makeImmutable();
+                    break;
 
-            case STCconst:
-                type = type.makeConst();
-                break;
+                case STCconst:
+                    type = type.makeConst();
+                    break;
 
-            case STCwild:
-                type = type.makeWild();
-                break;
+                case STCwild:
+                    type = type.makeWild();
+                    break;
 
-            case STCwild | STCconst:
-                type = type.makeWildConst();
-                break;
+                case STCwild | STCconst:
+                    type = type.makeWildConst();
+                    break;
 
-            case STCshared:
-                type = type.makeShared();
-                break;
+                case STCshared:
+                    type = type.makeShared();
+                    break;
 
-            case STCshared | STCconst:
-                type = type.makeSharedConst();
-                break;
+                case STCshared | STCconst:
+                    type = type.makeSharedConst();
+                    break;
 
-            case STCshared | STCwild:
-                type = type.makeSharedWild();
-                break;
+                case STCshared | STCwild:
+                    type = type.makeSharedWild();
+                    break;
 
-            case STCshared | STCwild | STCconst:
-                type = type.makeSharedWildConst();
-                break;
+                case STCshared | STCwild | STCconst:
+                    type = type.makeSharedWildConst();
+                    break;
 
-            case 0:
-                break;
+                case 0:
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
 
             type = type.semantic(loc, sc);
@@ -931,78 +931,78 @@ public:
             bool doesoverride = false;
             switch (vi)
             {
-            case -1:
-            Lintro:
-                /* Didn't find one, so
-                 * This is an 'introducing' function which gets a new
-                 * slot in the vtbl[].
-                 */
+                case -1:
+                Lintro:
+                    /* Didn't find one, so
+                     * This is an 'introducing' function which gets a new
+                     * slot in the vtbl[].
+                     */
 
-                // Verify this doesn't override previous final function
-                if (cd.baseClass)
-                {
-                    Dsymbol s = cd.baseClass.search(loc, ident);
-                    if (s)
+                    // Verify this doesn't override previous final function
+                    if (cd.baseClass)
                     {
-                        FuncDeclaration f2 = s.isFuncDeclaration();
-                        if (f2)
+                        Dsymbol s = cd.baseClass.search(loc, ident);
+                        if (s)
                         {
-                            f2 = f2.overloadExactMatch(type);
-                            if (f2 && f2.isFinalFunc() && f2.prot().kind != PROTprivate)
-                                error("cannot override final function %s", f2.toPrettyChars());
-                        }
-                    }
-                }
-
-                if (isFinalFunc())
-                {
-                    // Don't check here, as it may override an interface function
-                    //if (isOverride())
-                    //    error("is marked as override, but does not override any function");
-                    cd.vtblFinal.push(this);
-                }
-                else
-                {
-                    //printf("\tintroducing function\n");
-                    introducing = 1;
-                    if (cd.cpp && Target.reverseCppOverloads)
-                    {
-                        // with dmc, overloaded functions are grouped and in reverse order
-                        vtblIndex = cast(int)cd.vtbl.dim;
-                        for (size_t i = 0; i < cd.vtbl.dim; i++)
-                        {
-                            if (cd.vtbl[i].ident == ident && cd.vtbl[i].parent == parent)
+                            FuncDeclaration f2 = s.isFuncDeclaration();
+                            if (f2)
                             {
-                                vtblIndex = cast(int)i;
-                                break;
+                                f2 = f2.overloadExactMatch(type);
+                                if (f2 && f2.isFinalFunc() && f2.prot().kind != PROTprivate)
+                                    error("cannot override final function %s", f2.toPrettyChars());
                             }
                         }
-                        // shift all existing functions back
-                        for (size_t i = cd.vtbl.dim; i > vtblIndex; i--)
-                        {
-                            FuncDeclaration fd = cd.vtbl[i - 1].isFuncDeclaration();
-                            assert(fd);
-                            fd.vtblIndex++;
-                        }
-                        cd.vtbl.insert(vtblIndex, this);
+                    }
+
+                    if (isFinalFunc())
+                    {
+                        // Don't check here, as it may override an interface function
+                        //if (isOverride())
+                        //    error("is marked as override, but does not override any function");
+                        cd.vtblFinal.push(this);
                     }
                     else
                     {
-                        // Append to end of vtbl[]
-                        vi = cast(int)cd.vtbl.dim;
-                        cd.vtbl.push(this);
-                        vtblIndex = vi;
+                        //printf("\tintroducing function\n");
+                        introducing = 1;
+                        if (cd.cpp && Target.reverseCppOverloads)
+                        {
+                            // with dmc, overloaded functions are grouped and in reverse order
+                            vtblIndex = cast(int)cd.vtbl.dim;
+                            for (size_t i = 0; i < cd.vtbl.dim; i++)
+                            {
+                                if (cd.vtbl[i].ident == ident && cd.vtbl[i].parent == parent)
+                                {
+                                    vtblIndex = cast(int)i;
+                                    break;
+                                }
+                            }
+                            // shift all existing functions back
+                            for (size_t i = cd.vtbl.dim; i > vtblIndex; i--)
+                            {
+                                FuncDeclaration fd = cd.vtbl[i - 1].isFuncDeclaration();
+                                assert(fd);
+                                fd.vtblIndex++;
+                            }
+                            cd.vtbl.insert(vtblIndex, this);
+                        }
+                        else
+                        {
+                            // Append to end of vtbl[]
+                            vi = cast(int)cd.vtbl.dim;
+                            cd.vtbl.push(this);
+                            vtblIndex = vi;
+                        }
                     }
-                }
-                break;
+                    break;
 
-            case -2:
-                // can't determine because of fwd refs
-                cd.sizeok = SIZEOKfwd; // can't finish due to forward reference
-                Module.dprogress = dprogress_save;
-                return;
+                case -2:
+                    // can't determine because of fwd refs
+                    cd.sizeok = SIZEOKfwd; // can't finish due to forward reference
+                    Module.dprogress = dprogress_save;
+                    return;
 
-            default:
+                default:
                 {
                     FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
                     FuncDeclaration fdc = cd.vtbl[vi].isFuncDeclaration();
@@ -1091,15 +1091,15 @@ public:
                 vi = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
                 switch (vi)
                 {
-                case -1:
-                    break;
+                    case -1:
+                        break;
 
-                case -2:
-                    cd.sizeok = SIZEOKfwd; // can't finish due to forward reference
-                    Module.dprogress = dprogress_save;
-                    return;
+                    case -2:
+                        cd.sizeok = SIZEOKfwd; // can't finish due to forward reference
+                        Module.dprogress = dprogress_save;
+                        return;
 
-                default:
+                    default:
                     {
                         FuncDeclaration fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
                         Type ti = null;
@@ -1232,18 +1232,18 @@ public:
             // Check parameters to see if they are either () or (char[][] args)
             switch (nparams)
             {
-            case 0:
-                break;
+                case 0:
+                    break;
 
-            case 1:
+                case 1:
                 {
                     Parameter fparam0 = Parameter.getNth(f.parameters, 0);
                     if (fparam0.type.ty != Tarray || fparam0.type.nextOf().ty != Tarray || fparam0.type.nextOf().nextOf().ty != Tchar || fparam0.storageClass & (STCout | STCref | STClazy))
                         goto Lmainerr;
                     break;
                 }
-            default:
-                goto Lmainerr;
+                default:
+                    goto Lmainerr;
             }
 
             if (!f.nextOf())
@@ -2581,27 +2581,27 @@ public:
                 //printf("\tbaseclass cov = %d\n", cov);
                 switch (cov)
                 {
-                case 0:
-                    // types are distinct
-                    break;
+                    case 0:
+                        // types are distinct
+                        break;
 
-                case 1:
-                    bestvi = vi; // covariant, but not identical
-                    break;
-                    // keep looking for an exact match
+                    case 1:
+                        bestvi = vi; // covariant, but not identical
+                        break;
+                        // keep looking for an exact match
 
-                case 2:
-                    mismatchvi = vi;
-                    mismatchstc = stc;
-                    mismatch = fdv; // overrides, but is not covariant
-                    break;
-                    // keep looking for an exact match
+                    case 2:
+                        mismatchvi = vi;
+                        mismatchstc = stc;
+                        mismatch = fdv; // overrides, but is not covariant
+                        break;
+                        // keep looking for an exact match
 
-                case 3:
-                    return -2; // forward references
+                    case 3:
+                        return -2; // forward references
 
-                default:
-                    assert(0);
+                    default:
+                        assert(0);
                 }
             }
         }

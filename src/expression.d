@@ -1447,8 +1447,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 Type tret = p.isLazyArray();
                 switch (tb.ty)
                 {
-                case Tsarray:
-                case Tarray:
+                    case Tsarray:
+                    case Tarray:
                     {
                         /* Create a static array variable v of type arg->type:
                          *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
@@ -1484,7 +1484,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                         }
                         break;
                     }
-                case Tclass:
+                    case Tclass:
                     {
                         /* Set arg to be:
                          *      new Tclass(arg0, arg1, ..., argn)
@@ -1496,13 +1496,13 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                         arg = new NewExp(loc, null, null, p.type, args);
                         break;
                     }
-                default:
-                    if (!arg)
-                    {
-                        error(loc, "not enough arguments");
-                        return true;
-                    }
-                    break;
+                    default:
+                        if (!arg)
+                        {
+                            error(loc, "not enough arguments");
+                            return true;
+                        }
+                        break;
                 }
                 arg = arg.semantic(sc);
                 //printf("\targ = '%s'\n", arg->toChars());
@@ -1676,16 +1676,16 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 // Promote floats to doubles
                 switch (arg.type.ty)
                 {
-                case Tfloat32:
-                    arg = arg.castTo(sc, Type.tfloat64);
-                    break;
+                    case Tfloat32:
+                        arg = arg.castTo(sc, Type.tfloat64);
+                        break;
 
-                case Timaginary32:
-                    arg = arg.castTo(sc, Type.timaginary64);
-                    break;
+                    case Timaginary32:
+                        arg = arg.castTo(sc, Type.timaginary64);
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
                 }
                 if (tf.varargs == 1)
                 {
@@ -2113,52 +2113,52 @@ extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression 
     Expression e;
     switch (op)
     {
-    case TOKaddass:
-        e = new AddExp(loc, e1, e2);
-        break;
+        case TOKaddass:
+            e = new AddExp(loc, e1, e2);
+            break;
 
-    case TOKminass:
-        e = new MinExp(loc, e1, e2);
-        break;
+        case TOKminass:
+            e = new MinExp(loc, e1, e2);
+            break;
 
-    case TOKmulass:
-        e = new MulExp(loc, e1, e2);
-        break;
+        case TOKmulass:
+            e = new MulExp(loc, e1, e2);
+            break;
 
-    case TOKdivass:
-        e = new DivExp(loc, e1, e2);
-        break;
+        case TOKdivass:
+            e = new DivExp(loc, e1, e2);
+            break;
 
-    case TOKmodass:
-        e = new ModExp(loc, e1, e2);
-        break;
+        case TOKmodass:
+            e = new ModExp(loc, e1, e2);
+            break;
 
-    case TOKandass:
-        e = new AndExp(loc, e1, e2);
-        break;
+        case TOKandass:
+            e = new AndExp(loc, e1, e2);
+            break;
 
-    case TOKorass:
-        e = new OrExp(loc, e1, e2);
-        break;
+        case TOKorass:
+            e = new OrExp(loc, e1, e2);
+            break;
 
-    case TOKxorass:
-        e = new XorExp(loc, e1, e2);
-        break;
+        case TOKxorass:
+            e = new XorExp(loc, e1, e2);
+            break;
 
-    case TOKshlass:
-        e = new ShlExp(loc, e1, e2);
-        break;
+        case TOKshlass:
+            e = new ShlExp(loc, e1, e2);
+            break;
 
-    case TOKshrass:
-        e = new ShrExp(loc, e1, e2);
-        break;
+        case TOKshrass:
+            e = new ShrExp(loc, e1, e2);
+            break;
 
-    case TOKushrass:
-        e = new UshrExp(loc, e1, e2);
-        break;
+        case TOKushrass:
+            e = new UshrExp(loc, e1, e2);
+            break;
 
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
     return e;
 }
@@ -3128,16 +3128,16 @@ public:
         // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
         switch (rmwOp)
         {
-        case TOKplusplus:
-        case TOKpreplusplus:
-            rmwOp = TOKaddass;
-            break;
-        case TOKminusminus:
-        case TOKpreminusminus:
-            rmwOp = TOKminass;
-            break;
-        default:
-            break;
+            case TOKplusplus:
+            case TOKpreplusplus:
+                rmwOp = TOKaddass;
+                break;
+            case TOKminusminus:
+            case TOKpreminusminus:
+                rmwOp = TOKminass;
+                break;
+            default:
+                break;
         }
 
         deprecation("read-modify-write operations are not allowed for shared variables. Use core.atomic.atomicOp!\"%s\"(%s, %s) instead.", Token.tochars[rmwOp], toChars(), ex ? ex.toChars() : "1");
@@ -3413,56 +3413,56 @@ private:
          */
         switch (type.toBasetype().ty)
         {
-        case Tbool:
-            value = (value != 0);
-            break;
+            case Tbool:
+                value = (value != 0);
+                break;
 
-        case Tint8:
-            value = cast(d_int8)value;
-            break;
+            case Tint8:
+                value = cast(d_int8)value;
+                break;
 
-        case Tchar:
-        case Tuns8:
-            value = cast(d_uns8)value;
-            break;
+            case Tchar:
+            case Tuns8:
+                value = cast(d_uns8)value;
+                break;
 
-        case Tint16:
-            value = cast(d_int16)value;
-            break;
+            case Tint16:
+                value = cast(d_int16)value;
+                break;
 
-        case Twchar:
-        case Tuns16:
-            value = cast(d_uns16)value;
-            break;
+            case Twchar:
+            case Tuns16:
+                value = cast(d_uns16)value;
+                break;
 
-        case Tint32:
-            value = cast(d_int32)value;
-            break;
+            case Tint32:
+                value = cast(d_int32)value;
+                break;
 
-        case Tdchar:
-        case Tuns32:
-            value = cast(d_uns32)value;
-            break;
-
-        case Tint64:
-            value = cast(d_int64)value;
-            break;
-
-        case Tuns64:
-            value = cast(d_uns64)value;
-            break;
-
-        case Tpointer:
-            if (Target.ptrsize == 4)
+            case Tdchar:
+            case Tuns32:
                 value = cast(d_uns32)value;
-            else if (Target.ptrsize == 8)
-                value = cast(d_uns64)value;
-            else
-                assert(0);
-            break;
+                break;
 
-        default:
-            break;
+            case Tint64:
+                value = cast(d_int64)value;
+                break;
+
+            case Tuns64:
+                value = cast(d_uns64)value;
+                break;
+
+            case Tpointer:
+                if (Target.ptrsize == 4)
+                    value = cast(d_uns32)value;
+                else if (Target.ptrsize == 8)
+                    value = cast(d_uns64)value;
+                else
+                    assert(0);
+                break;
+
+            default:
+                break;
         }
     }
 }
@@ -4363,60 +4363,60 @@ public:
 
         switch (postfix)
         {
-        case 'd':
-            for (u = 0; u < len;)
-            {
-                p = utf_decodeChar(cast(char*)string, len, &u, &c);
-                if (p)
+            case 'd':
+                for (u = 0; u < len;)
                 {
-                    error("%s", p);
-                    return new ErrorExp();
-                }
-                else
-                {
-                    buffer.write4(c);
-                    newlen++;
-                }
-            }
-            buffer.write4(0);
-            string = buffer.extractData();
-            len = newlen;
-            sz = 4;
-            type = new TypeDArray(Type.tdchar.immutableOf());
-            committed = 1;
-            break;
-
-        case 'w':
-            for (u = 0; u < len;)
-            {
-                p = utf_decodeChar(cast(char*)string, len, &u, &c);
-                if (p)
-                {
-                    error("%s", p);
-                    return new ErrorExp();
-                }
-                else
-                {
-                    buffer.writeUTF16(c);
-                    newlen++;
-                    if (c >= 0x10000)
+                    p = utf_decodeChar(cast(char*)string, len, &u, &c);
+                    if (p)
+                    {
+                        error("%s", p);
+                        return new ErrorExp();
+                    }
+                    else
+                    {
+                        buffer.write4(c);
                         newlen++;
+                    }
                 }
-            }
-            buffer.writeUTF16(0);
-            string = buffer.extractData();
-            len = newlen;
-            sz = 2;
-            type = new TypeDArray(Type.twchar.immutableOf());
-            committed = 1;
-            break;
+                buffer.write4(0);
+                string = buffer.extractData();
+                len = newlen;
+                sz = 4;
+                type = new TypeDArray(Type.tdchar.immutableOf());
+                committed = 1;
+                break;
 
-        case 'c':
-            committed = 1;
+            case 'w':
+                for (u = 0; u < len;)
+                {
+                    p = utf_decodeChar(cast(char*)string, len, &u, &c);
+                    if (p)
+                    {
+                        error("%s", p);
+                        return new ErrorExp();
+                    }
+                    else
+                    {
+                        buffer.writeUTF16(c);
+                        newlen++;
+                        if (c >= 0x10000)
+                            newlen++;
+                    }
+                }
+                buffer.writeUTF16(0);
+                string = buffer.extractData();
+                len = newlen;
+                sz = 2;
+                type = new TypeDArray(Type.twchar.immutableOf());
+                committed = 1;
+                break;
 
-        default:
-            type = new TypeDArray(Type.tchar.immutableOf());
-            break;
+            case 'c':
+                committed = 1;
+
+            default:
+                type = new TypeDArray(Type.tchar.immutableOf());
+                break;
         }
         type = type.semantic(loc, sc);
         //type = type->immutableOf();
@@ -4453,41 +4453,41 @@ public:
 
         switch (sz)
         {
-        case 1:
-            for (size_t u = 0; u < len;)
-            {
-                if (const(char)* p = utf_decodeChar(cast(char*)string, len, &u, &c))
+            case 1:
+                for (size_t u = 0; u < len;)
                 {
-                    error("%s", p);
-                    return 0;
+                    if (const(char)* p = utf_decodeChar(cast(char*)string, len, &u, &c))
+                    {
+                        error("%s", p);
+                        return 0;
+                    }
+                    result += utf_codeLength(encSize, c);
                 }
-                result += utf_codeLength(encSize, c);
-            }
-            break;
+                break;
 
-        case 2:
-            for (size_t u = 0; u < len;)
-            {
-                if (const(char)* p = utf_decodeWchar(cast(utf16_t*)string, len, &u, &c))
+            case 2:
+                for (size_t u = 0; u < len;)
                 {
-                    error("%s", p);
-                    return 0;
+                    if (const(char)* p = utf_decodeWchar(cast(utf16_t*)string, len, &u, &c))
+                    {
+                        error("%s", p);
+                        return 0;
+                    }
+                    result += utf_codeLength(encSize, c);
                 }
-                result += utf_codeLength(encSize, c);
-            }
-            break;
+                break;
 
-        case 4:
-            for (size_t u = 0; u < len;)
-            {
-                c = *(cast(utf32_t*)(cast(char*)string + u));
-                u += 4;
-                result += utf_codeLength(encSize, c);
-            }
-            break;
+            case 4:
+                for (size_t u = 0; u < len;)
+                {
+                    c = *(cast(utf32_t*)(cast(char*)string + u));
+                    u += 4;
+                    result += utf_codeLength(encSize, c);
+                }
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         return result;
     }
@@ -4579,10 +4579,10 @@ public:
         {
             switch (sz)
             {
-            case 1:
-                return memcmp(cast(char*)string, cast(char*)se2.string, len1);
+                case 1:
+                    return memcmp(cast(char*)string, cast(char*)se2.string, len1);
 
-            case 2:
+                case 2:
                 {
                     wchar* s1 = cast(wchar*)string;
                     wchar* s2 = cast(wchar*)se2.string;
@@ -4591,9 +4591,9 @@ public:
                         if (s1[u] != s2[u])
                             return s1[u] - s2[u];
                     }
+                    break;
                 }
-                break;
-            case 4:
+                case 4:
                 {
                     dchar* s1 = cast(dchar*)string;
                     dchar* s2 = cast(dchar*)se2.string;
@@ -4602,10 +4602,10 @@ public:
                         if (s1[u] != s2[u])
                             return s1[u] - s2[u];
                     }
+                    break;
                 }
-                break;
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
         return cast(int)(len1 - len2);
@@ -4641,20 +4641,20 @@ public:
         uint value;
         switch (sz)
         {
-        case 1:
-            value = (cast(char*)string)[cast(size_t)i];
-            break;
+            case 1:
+                value = (cast(char*)string)[cast(size_t)i];
+                break;
 
-        case 2:
-            value = (cast(ushort*)string)[cast(size_t)i];
-            break;
+            case 2:
+                value = (cast(ushort*)string)[cast(size_t)i];
+                break;
 
-        case 4:
-            value = (cast(uint*)string)[cast(size_t)i];
-            break;
+            case 4:
+                value = (cast(uint*)string)[cast(size_t)i];
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
         return value;
     }
@@ -7171,104 +7171,104 @@ public:
         {
             switch (tok2)
             {
-            case TOKtypedef:
-                goto Lno;
+                case TOKtypedef:
+                    goto Lno;
 
-            case TOKstruct:
-                if (targ.ty != Tstruct)
-                    goto Lno;
-                if ((cast(TypeStruct)targ).sym.isUnionDeclaration())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKunion:
-                if (targ.ty != Tstruct)
-                    goto Lno;
-                if (!(cast(TypeStruct)targ).sym.isUnionDeclaration())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKclass:
-                if (targ.ty != Tclass)
-                    goto Lno;
-                if ((cast(TypeClass)targ).sym.isInterfaceDeclaration())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKinterface:
-                if (targ.ty != Tclass)
-                    goto Lno;
-                if (!(cast(TypeClass)targ).sym.isInterfaceDeclaration())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKconst:
-                if (!targ.isConst())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKimmutable:
-                if (!targ.isImmutable())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKshared:
-                if (!targ.isShared())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKwild:
-                if (!targ.isWild())
-                    goto Lno;
-                tded = targ;
-                break;
-
-            case TOKsuper:
-                // If class or interface, get the base class and interfaces
-                if (targ.ty != Tclass)
-                    goto Lno;
-                else
-                {
-                    ClassDeclaration cd = (cast(TypeClass)targ).sym;
-                    auto args = new Parameters();
-                    args.reserve(cd.baseclasses.dim);
-                    if (cd._scope && !cd.symtab)
-                        cd.semantic(cd._scope);
-                    for (size_t i = 0; i < cd.baseclasses.dim; i++)
-                    {
-                        BaseClass* b = (*cd.baseclasses)[i];
-                        args.push(new Parameter(STCin, b.type, null, null));
-                    }
-                    tded = new TypeTuple(args);
-                }
-                break;
-
-            case TOKenum:
-                if (targ.ty != Tenum)
-                    goto Lno;
-                if (id)
-                    tded = (cast(TypeEnum)targ).sym.getMemtype(loc);
-                else
+                case TOKstruct:
+                    if (targ.ty != Tstruct)
+                        goto Lno;
+                    if ((cast(TypeStruct)targ).sym.isUnionDeclaration())
+                        goto Lno;
                     tded = targ;
-                if (tded.ty == Terror)
-                    return new ErrorExp();
-                break;
+                    break;
 
-            case TOKdelegate:
-                if (targ.ty != Tdelegate)
-                    goto Lno;
-                tded = (cast(TypeDelegate)targ).next; // the underlying function type
-                break;
+                case TOKunion:
+                    if (targ.ty != Tstruct)
+                        goto Lno;
+                    if (!(cast(TypeStruct)targ).sym.isUnionDeclaration())
+                        goto Lno;
+                    tded = targ;
+                    break;
 
-            case TOKfunction:
-            case TOKparameters:
+                case TOKclass:
+                    if (targ.ty != Tclass)
+                        goto Lno;
+                    if ((cast(TypeClass)targ).sym.isInterfaceDeclaration())
+                        goto Lno;
+                    tded = targ;
+                    break;
+
+                case TOKinterface:
+                    if (targ.ty != Tclass)
+                        goto Lno;
+                    if (!(cast(TypeClass)targ).sym.isInterfaceDeclaration())
+                        goto Lno;
+                    tded = targ;
+                    break;
+
+                case TOKconst:
+                    if (!targ.isConst())
+                        goto Lno;
+                    tded = targ;
+                    break;
+
+                case TOKimmutable:
+                    if (!targ.isImmutable())
+                        goto Lno;
+                    tded = targ;
+                    break;
+
+                case TOKshared:
+                    if (!targ.isShared())
+                        goto Lno;
+                    tded = targ;
+                    break;
+
+                case TOKwild:
+                    if (!targ.isWild())
+                        goto Lno;
+                    tded = targ;
+                    break;
+
+                case TOKsuper:
+                    // If class or interface, get the base class and interfaces
+                    if (targ.ty != Tclass)
+                        goto Lno;
+                    else
+                    {
+                        ClassDeclaration cd = (cast(TypeClass)targ).sym;
+                        auto args = new Parameters();
+                        args.reserve(cd.baseclasses.dim);
+                        if (cd._scope && !cd.symtab)
+                            cd.semantic(cd._scope);
+                        for (size_t i = 0; i < cd.baseclasses.dim; i++)
+                        {
+                            BaseClass* b = (*cd.baseclasses)[i];
+                            args.push(new Parameter(STCin, b.type, null, null));
+                        }
+                        tded = new TypeTuple(args);
+                    }
+                    break;
+
+                case TOKenum:
+                    if (targ.ty != Tenum)
+                        goto Lno;
+                    if (id)
+                        tded = (cast(TypeEnum)targ).sym.getMemtype(loc);
+                    else
+                        tded = targ;
+                    if (tded.ty == Terror)
+                        return new ErrorExp();
+                    break;
+
+                case TOKdelegate:
+                    if (targ.ty != Tdelegate)
+                        goto Lno;
+                    tded = (cast(TypeDelegate)targ).next; // the underlying function type
+                    break;
+
+                case TOKfunction:
+                case TOKparameters:
                 {
                     if (targ.ty != Tfunction)
                         goto Lno;
@@ -7295,40 +7295,40 @@ public:
                     tded = new TypeTuple(args);
                     break;
                 }
-            case TOKreturn:
-                /* Get the 'return type' for the function,
-                 * delegate, or pointer to function.
-                 */
-                if (targ.ty == Tfunction)
-                    tded = (cast(TypeFunction)targ).next;
-                else if (targ.ty == Tdelegate)
-                {
-                    tded = (cast(TypeDelegate)targ).next;
-                    tded = (cast(TypeFunction)tded).next;
-                }
-                else if (targ.ty == Tpointer && (cast(TypePointer)targ).next.ty == Tfunction)
-                {
-                    tded = (cast(TypePointer)targ).next;
-                    tded = (cast(TypeFunction)tded).next;
-                }
-                else
-                    goto Lno;
-                break;
+                case TOKreturn:
+                    /* Get the 'return type' for the function,
+                     * delegate, or pointer to function.
+                     */
+                    if (targ.ty == Tfunction)
+                        tded = (cast(TypeFunction)targ).next;
+                    else if (targ.ty == Tdelegate)
+                    {
+                        tded = (cast(TypeDelegate)targ).next;
+                        tded = (cast(TypeFunction)tded).next;
+                    }
+                    else if (targ.ty == Tpointer && (cast(TypePointer)targ).next.ty == Tfunction)
+                    {
+                        tded = (cast(TypePointer)targ).next;
+                        tded = (cast(TypeFunction)tded).next;
+                    }
+                    else
+                        goto Lno;
+                    break;
 
-            case TOKargTypes:
-                /* Generate a type tuple of the equivalent types used to determine if a
-                 * function argument of this type can be passed in registers.
-                 * The results of this are highly platform dependent, and intended
-                 * primarly for use in implementing va_arg().
-                 */
-                tded = toArgTypes(targ);
-                if (!tded)
-                    goto Lno;
-                // not valid for a parameter
-                break;
+                case TOKargTypes:
+                    /* Generate a type tuple of the equivalent types used to determine if a
+                     * function argument of this type can be passed in registers.
+                     * The results of this are highly platform dependent, and intended
+                     * primarly for use in implementing va_arg().
+                     */
+                    tded = toArgTypes(targ);
+                    if (!tded)
+                        goto Lno;
+                    // not valid for a parameter
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
             goto Lyes;
         }
@@ -7676,20 +7676,20 @@ public:
                     {
                         switch (t1.ty)
                         {
-                        case Timaginary32:
-                            t2 = Type.tfloat32;
-                            break;
+                            case Timaginary32:
+                                t2 = Type.tfloat32;
+                                break;
 
-                        case Timaginary64:
-                            t2 = Type.tfloat64;
-                            break;
+                            case Timaginary64:
+                                t2 = Type.tfloat64;
+                                break;
 
-                        case Timaginary80:
-                            t2 = Type.tfloat80;
-                            break;
+                            case Timaginary80:
+                                t2 = Type.tfloat80;
+                                break;
 
-                        default:
-                            assert(0);
+                            default:
+                                assert(0);
                         }
                         e2 = e2.castTo(sc, t2);
                     }
@@ -7715,20 +7715,20 @@ public:
                     Type t3;
                     switch (t1.ty)
                     {
-                    case Timaginary32:
-                        t3 = Type.tfloat32;
-                        break;
+                        case Timaginary32:
+                            t3 = Type.tfloat32;
+                            break;
 
-                    case Timaginary64:
-                        t3 = Type.tfloat64;
-                        break;
+                        case Timaginary64:
+                            t3 = Type.tfloat64;
+                            break;
 
-                    case Timaginary80:
-                        t3 = Type.tfloat80;
-                        break;
+                        case Timaginary80:
+                            t3 = Type.tfloat80;
+                            break;
 
-                    default:
-                        assert(0);
+                        default:
+                            assert(0);
                     }
                     e2 = e2.castTo(sc, t3);
                     Expression e = new AssignExp(loc, e1, e2);
@@ -8263,24 +8263,24 @@ public:
             Dsymbol ds;
             switch (e1.op)
             {
-            case TOKimport:
-                ds = (cast(ScopeExp)e1).sds;
-                goto L1;
-            case TOKvar:
-                ds = (cast(VarExp)e1).var;
-                goto L1;
-            case TOKdotvar:
-                ds = (cast(DotVarExp)e1).var;
-                goto L1;
-            case TOKoverloadset:
-                ds = (cast(OverExp)e1).vars;
-                goto L1;
-            case TOKtemplate:
+                case TOKimport:
+                    ds = (cast(ScopeExp)e1).sds;
+                    goto L1;
+                case TOKvar:
+                    ds = (cast(VarExp)e1).var;
+                    goto L1;
+                case TOKdotvar:
+                    ds = (cast(DotVarExp)e1).var;
+                    goto L1;
+                case TOKoverloadset:
+                    ds = (cast(OverExp)e1).vars;
+                    goto L1;
+                case TOKtemplate:
                 {
                     TemplateExp te = cast(TemplateExp)e1;
                     ds = te.fd ? cast(Dsymbol)te.fd : te.td;
                 }
-            L1:
+                L1:
                 {
                     assert(ds);
                     if (FuncDeclaration f = ds.isFuncDeclaration())
@@ -8296,8 +8296,8 @@ public:
                     e = e.semantic(sc);
                     return e;
                 }
-            default:
-                break;
+                default:
+                    break;
             }
         }
 
@@ -8876,28 +8876,28 @@ public:
         Dsymbol s = null;
         switch (e.op)
         {
-        case TOKoverloadset:
-            s = (cast(OverExp)e).vars;
-            break;
+            case TOKoverloadset:
+                s = (cast(OverExp)e).vars;
+                break;
 
-        case TOKdottd:
-            s = (cast(DotTemplateExp)e).td;
-            break;
+            case TOKdottd:
+                s = (cast(DotTemplateExp)e).td;
+                break;
 
-        case TOKimport:
-            s = (cast(ScopeExp)e).sds;
-            break;
+            case TOKimport:
+                s = (cast(ScopeExp)e).sds;
+                break;
 
-        case TOKdotvar:
-            s = (cast(DotVarExp)e).var;
-            break;
+            case TOKdotvar:
+                s = (cast(DotVarExp)e).var;
+                break;
 
-        case TOKvar:
-            s = (cast(VarExp)e).var;
-            break;
+            case TOKvar:
+                s = (cast(VarExp)e).var;
+                break;
 
-        default:
-            return false;
+            default:
+                return false;
         }
         return ti.updateTempDecl(sc, s);
     }
@@ -10424,21 +10424,21 @@ public:
         Type tb = e1.type.toBasetype();
         switch (tb.ty)
         {
-        case Tpointer:
-            type = (cast(TypePointer)tb).next;
-            break;
+            case Tpointer:
+                type = (cast(TypePointer)tb).next;
+                break;
 
-        case Tsarray:
-        case Tarray:
-            error("using * on an array is no longer supported; use *(%s).ptr instead", e1.toChars());
-            type = (cast(TypeArray)tb).next;
-            e1 = e1.castTo(sc, type.pointerTo());
-            break;
+            case Tsarray:
+            case Tarray:
+                error("using * on an array is no longer supported; use *(%s).ptr instead", e1.toChars());
+                type = (cast(TypeArray)tb).next;
+                e1 = e1.castTo(sc, type.pointerTo());
+                break;
 
-        default:
-            error("can only * a pointer, not a '%s'", e1.type.toChars());
-        case Terror:
-            return new ErrorExp();
+            default:
+                error("can only * a pointer, not a '%s'", e1.type.toChars());
+            case Terror:
+                return new ErrorExp();
         }
         if (checkValue())
             return new ErrorExp();
@@ -10706,7 +10706,7 @@ public:
         Type tb = e1.type.toBasetype();
         switch (tb.ty)
         {
-        case Tclass:
+            case Tclass:
             {
                 TypeClass tc = cast(TypeClass)tb;
                 ClassDeclaration cd = tc.sym;
@@ -10719,62 +10719,62 @@ public:
                 }
                 break;
             }
-        case Tpointer:
-            tb = (cast(TypePointer)tb).next.toBasetype();
-            if (tb.ty == Tstruct)
-            {
-                TypeStruct ts = cast(TypeStruct)tb;
-                StructDeclaration sd = ts.sym;
-                FuncDeclaration f = sd.aggDelete;
-                FuncDeclaration fd = sd.dtor;
+            case Tpointer:
+                tb = (cast(TypePointer)tb).next.toBasetype();
+                if (tb.ty == Tstruct)
+                {
+                    TypeStruct ts = cast(TypeStruct)tb;
+                    StructDeclaration sd = ts.sym;
+                    FuncDeclaration f = sd.aggDelete;
+                    FuncDeclaration fd = sd.dtor;
 
-                if (!f)
-                {
-                    semanticTypeInfo(sc, ts);
-                    break;
-                }
+                    if (!f)
+                    {
+                        semanticTypeInfo(sc, ts);
+                        break;
+                    }
 
-                /* Construct:
-                 *      ea = copy e1 to a tmp to do side effects only once
-                 *      eb = call destructor
-                 *      ec = call deallocator
-                 */
-                Expression ea = null;
-                Expression eb = null;
-                Expression ec = null;
-                VarDeclaration v = null;
-                if (fd && f)
-                {
-                    Identifier id = Identifier.idPool("__tmpea");
-                    v = new VarDeclaration(loc, e1.type, id, new ExpInitializer(loc, e1));
-                    v.storage_class |= STCtemp;
-                    v.semantic(sc);
-                    v.parent = sc.parent;
-                    ea = new DeclarationExp(loc, v);
-                    ea.type = v.type;
+                    /* Construct:
+                     *      ea = copy e1 to a tmp to do side effects only once
+                     *      eb = call destructor
+                     *      ec = call deallocator
+                     */
+                    Expression ea = null;
+                    Expression eb = null;
+                    Expression ec = null;
+                    VarDeclaration v = null;
+                    if (fd && f)
+                    {
+                        Identifier id = Identifier.idPool("__tmpea");
+                        v = new VarDeclaration(loc, e1.type, id, new ExpInitializer(loc, e1));
+                        v.storage_class |= STCtemp;
+                        v.semantic(sc);
+                        v.parent = sc.parent;
+                        ea = new DeclarationExp(loc, v);
+                        ea.type = v.type;
+                    }
+                    if (fd)
+                    {
+                        Expression e = ea ? new VarExp(loc, v) : e1;
+                        e = new DotVarExp(Loc(), e, fd, 0);
+                        eb = new CallExp(loc, e);
+                        eb = eb.semantic(sc);
+                    }
+                    if (f)
+                    {
+                        Type tpv = Type.tvoid.pointerTo();
+                        Expression e = ea ? new VarExp(loc, v) : e1.castTo(sc, tpv);
+                        e = new CallExp(loc, new VarExp(loc, f), e);
+                        ec = e.semantic(sc);
+                    }
+                    ea = combine(ea, eb);
+                    ea = combine(ea, ec);
+                    assert(ea);
+                    return ea;
                 }
-                if (fd)
-                {
-                    Expression e = ea ? new VarExp(loc, v) : e1;
-                    e = new DotVarExp(Loc(), e, fd, 0);
-                    eb = new CallExp(loc, e);
-                    eb = eb.semantic(sc);
-                }
-                if (f)
-                {
-                    Type tpv = Type.tvoid.pointerTo();
-                    Expression e = ea ? new VarExp(loc, v) : e1.castTo(sc, tpv);
-                    e = new CallExp(loc, new VarExp(loc, f), e);
-                    ec = e.semantic(sc);
-                }
-                ea = combine(ea, eb);
-                ea = combine(ea, ec);
-                assert(ea);
-                return ea;
-            }
-            break;
+                break;
 
-        case Tarray:
+            case Tarray:
             {
                 Type tv = tb.nextOf().baseElemOf();
                 if (tv.ty == Tstruct)
@@ -10786,9 +10786,9 @@ public:
                 }
                 break;
             }
-        default:
-            error("cannot delete type %s", e1.type.toChars());
-            goto Lerr;
+            default:
+                error("cannot delete type %s", e1.type.toChars());
+                goto Lerr;
         }
         return this;
 
@@ -11832,35 +11832,35 @@ public:
 
         switch (t1b.ty)
         {
-        case Tpointer:
-            if ((cast(TypePointer)t1b).next.ty == Tfunction)
-            {
-                error("cannot index function pointer %s", e1.toChars());
-                return new ErrorExp();
-            }
-            e2 = e2.implicitCastTo(sc, Type.tsize_t);
-            if (e2.type == Type.terror)
-                return new ErrorExp();
-            e2 = e2.optimize(WANTvalue);
-            if (e2.op == TOKint64 && e2.toInteger() == 0)
-            {
-            }
-            else if (sc.func && sc.func.setUnsafe())
-            {
-                error("safe function '%s' cannot index pointer '%s'", sc.func.toPrettyChars(), e1.toChars());
-                return new ErrorExp();
-            }
-            type = (cast(TypeNext)t1b).next;
-            break;
+            case Tpointer:
+                if ((cast(TypePointer)t1b).next.ty == Tfunction)
+                {
+                    error("cannot index function pointer %s", e1.toChars());
+                    return new ErrorExp();
+                }
+                e2 = e2.implicitCastTo(sc, Type.tsize_t);
+                if (e2.type == Type.terror)
+                    return new ErrorExp();
+                e2 = e2.optimize(WANTvalue);
+                if (e2.op == TOKint64 && e2.toInteger() == 0)
+                {
+                }
+                else if (sc.func && sc.func.setUnsafe())
+                {
+                    error("safe function '%s' cannot index pointer '%s'", sc.func.toPrettyChars(), e1.toChars());
+                    return new ErrorExp();
+                }
+                type = (cast(TypeNext)t1b).next;
+                break;
 
-        case Tarray:
-            e2 = e2.implicitCastTo(sc, Type.tsize_t);
-            if (e2.type == Type.terror)
-                return new ErrorExp();
-            type = (cast(TypeNext)t1b).next;
-            break;
+            case Tarray:
+                e2 = e2.implicitCastTo(sc, Type.tsize_t);
+                if (e2.type == Type.terror)
+                    return new ErrorExp();
+                type = (cast(TypeNext)t1b).next;
+                break;
 
-        case Tsarray:
+            case Tsarray:
             {
                 e2 = e2.implicitCastTo(sc, Type.tsize_t);
                 if (e2.type == Type.terror)
@@ -11868,7 +11868,7 @@ public:
                 type = t1b.nextOf();
                 break;
             }
-        case Taarray:
+            case Taarray:
             {
                 TypeAArray taa = cast(TypeAArray)t1b;
                 /* We can skip the implicit conversion if they differ only by
@@ -11886,7 +11886,7 @@ public:
                 type = taa.next;
                 break;
             }
-        case Ttuple:
+            case Ttuple:
             {
                 e2 = e2.implicitCastTo(sc, Type.tsize_t);
                 if (e2.type == Type.terror)
@@ -11927,9 +11927,9 @@ public:
                     e = new TypeExp(e1.loc, Parameter.getNth(tup.arguments, cast(size_t)index).type);
                 return e;
             }
-        default:
-            error("%s must be an array or pointer type, not %s", e1.toChars(), e1.type.toChars());
-            return new ErrorExp();
+            default:
+                error("%s must be an array or pointer type, not %s", e1.toChars(), e1.type.toChars());
+                return new ErrorExp();
         }
 
         if (t1b.ty == Tsarray || t1b.ty == Tarray)
@@ -13617,23 +13617,23 @@ public:
         {
             switch (type.toBasetype().ty)
             {
-            case Tfloat32:
-            case Timaginary32:
-                type = Type.tcomplex32;
-                break;
+                case Tfloat32:
+                case Timaginary32:
+                    type = Type.tcomplex32;
+                    break;
 
-            case Tfloat64:
-            case Timaginary64:
-                type = Type.tcomplex64;
-                break;
+                case Tfloat64:
+                case Timaginary64:
+                    type = Type.tcomplex64;
+                    break;
 
-            case Tfloat80:
-            case Timaginary80:
-                type = Type.tcomplex80;
-                break;
+                case Tfloat80:
+                case Timaginary80:
+                    type = Type.tcomplex80;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
         return this;
@@ -13749,23 +13749,23 @@ public:
         {
             switch (type.ty)
             {
-            case Tfloat32:
-            case Timaginary32:
-                type = Type.tcomplex32;
-                break;
+                case Tfloat32:
+                case Timaginary32:
+                    type = Type.tcomplex32;
+                    break;
 
-            case Tfloat64:
-            case Timaginary64:
-                type = Type.tcomplex64;
-                break;
+                case Tfloat64:
+                case Timaginary64:
+                    type = Type.tcomplex64;
+                    break;
 
-            case Tfloat80:
-            case Timaginary80:
-                type = Type.tcomplex80;
-                break;
+                case Tfloat80:
+                case Timaginary80:
+                    type = Type.tcomplex80;
+                    break;
 
-            default:
-                assert(0);
+                default:
+                    assert(0);
             }
         }
         return this;
@@ -14015,20 +14015,20 @@ public:
                 {
                     switch (t1.toBasetype().ty)
                     {
-                    case Timaginary32:
-                        type = Type.tfloat32;
-                        break;
+                        case Timaginary32:
+                            type = Type.tfloat32;
+                            break;
 
-                    case Timaginary64:
-                        type = Type.tfloat64;
-                        break;
+                        case Timaginary64:
+                            type = Type.tfloat64;
+                            break;
 
-                    case Timaginary80:
-                        type = Type.tfloat80;
-                        break;
+                        case Timaginary80:
+                            type = Type.tfloat80;
+                            break;
 
-                    default:
-                        assert(0);
+                        default:
+                            assert(0);
                     }
 
                     // iy * iv = -yv
@@ -14125,20 +14125,20 @@ public:
                 {
                     switch (t1.toBasetype().ty)
                     {
-                    case Timaginary32:
-                        type = Type.tfloat32;
-                        break;
+                        case Timaginary32:
+                            type = Type.tfloat32;
+                            break;
 
-                    case Timaginary64:
-                        type = Type.tfloat64;
-                        break;
+                        case Timaginary64:
+                            type = Type.tfloat64;
+                            break;
 
-                    case Timaginary80:
-                        type = Type.tfloat80;
-                        break;
+                        case Timaginary80:
+                            type = Type.tfloat80;
+                            break;
 
-                    default:
-                        assert(0);
+                        default:
+                            assert(0);
                     }
                 }
                 else
@@ -14863,41 +14863,41 @@ public:
         switch (op)
         {
             // Refer rel_integral[] table
-        case TOKunord:
-            altop = TOKerror;
-            break;
+            case TOKunord:
+                altop = TOKerror;
+                break;
 
-        case TOKlg:
-            altop = TOKnotequal;
-            break;
+            case TOKlg:
+                altop = TOKnotequal;
+                break;
 
-        case TOKleg:
-            altop = TOKerror;
-            break;
+            case TOKleg:
+                altop = TOKerror;
+                break;
 
-        case TOKule:
-            altop = TOKle;
-            break;
+            case TOKule:
+                altop = TOKle;
+                break;
 
-        case TOKul:
-            altop = TOKlt;
-            break;
+            case TOKul:
+                altop = TOKlt;
+                break;
 
-        case TOKuge:
-            altop = TOKge;
-            break;
+            case TOKuge:
+                altop = TOKge;
+                break;
 
-        case TOKug:
-            altop = TOKgt;
-            break;
+            case TOKug:
+                altop = TOKgt;
+                break;
 
-        case TOKue:
-            altop = TOKequal;
-            break;
+            case TOKue:
+                altop = TOKequal;
+                break;
 
-        default:
-            altop = TOKreserved;
-            break;
+            default:
+                altop = TOKreserved;
+                break;
         }
         if (altop == TOKerror && (t1.ty == Tarray || t1.ty == Tsarray || t2.ty == Tarray || t2.ty == Tsarray))
         {
@@ -14958,7 +14958,7 @@ public:
         Type t2b = e2.type.toBasetype();
         switch (t2b.ty)
         {
-        case Taarray:
+            case Taarray:
             {
                 TypeAArray ta = cast(TypeAArray)t2b;
 
@@ -14975,10 +14975,10 @@ public:
                 type = ta.nextOf().pointerTo();
                 break;
             }
-        default:
-            error("rvalue of in expression must be an associative array, not %s", e2.type.toChars());
-        case Terror:
-            return new ErrorExp();
+            default:
+                error("rvalue of in expression must be an associative array, not %s", e2.type.toChars());
+            case Terror:
+                return new ErrorExp();
         }
         return this;
     }
@@ -15314,23 +15314,23 @@ public:
                 return ex;
             switch (e1.type.toBasetype().ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-                e2 = e2.castTo(sc, e1.type);
-                break;
-            default:
-                break;
+                case Tcomplex32:
+                case Tcomplex64:
+                case Tcomplex80:
+                    e2 = e2.castTo(sc, e1.type);
+                    break;
+                default:
+                    break;
             }
             switch (e2.type.toBasetype().ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-                e1 = e1.castTo(sc, e2.type);
-                break;
-            default:
-                break;
+                case Tcomplex32:
+                case Tcomplex64:
+                case Tcomplex80:
+                    e1 = e1.castTo(sc, e2.type);
+                    break;
+                default:
+                    break;
             }
             if (type.toBasetype().ty == Tarray)
             {

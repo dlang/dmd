@@ -96,27 +96,27 @@ struct Target
         assert(type.isTypeBasic());
         switch (type.ty)
         {
-        case Tfloat80:
-        case Timaginary80:
-        case Tcomplex80:
-            return Target.realalignsize;
+            case Tfloat80:
+            case Timaginary80:
+            case Tcomplex80:
+                return Target.realalignsize;
 
-        case Tcomplex32:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
-                return 4;
-            break;
+            case Tcomplex32:
+                if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+                    return 4;
+                break;
 
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
-        case Timaginary64:
-        case Tcomplex64:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
-                return global.params.is64bit ? 8 : 4;
-            break;
+            case Tint64:
+            case Tuns64:
+            case Tfloat64:
+            case Timaginary64:
+            case Tcomplex64:
+                if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+                    return global.params.is64bit ? 8 : 4;
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
         return cast(uint)type.size(Loc());
     }
@@ -214,21 +214,21 @@ struct Target
 
         switch (type.ty)
         {
-        case Tvoid:
-        case Tint8:
-        case Tuns8:
-        case Tint16:
-        case Tuns16:
-        case Tint32:
-        case Tuns32:
-        case Tfloat32:
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
-            break;
+            case Tvoid:
+            case Tint8:
+            case Tuns8:
+            case Tint16:
+            case Tuns16:
+            case Tint32:
+            case Tuns32:
+            case Tfloat32:
+            case Tint64:
+            case Tuns64:
+            case Tfloat64:
+                break;
 
-        default:
-            return 3; // wrong base type
+            default:
+                return 3; // wrong base type
         }
         return 0;
     }
@@ -247,37 +247,37 @@ struct Target
         // Write the expression into the buffer.
         switch (e.type.ty)
         {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
-            encodeInteger(e, buffer.ptr);
-            break;
+            case Tint32:
+            case Tuns32:
+            case Tint64:
+            case Tuns64:
+                encodeInteger(e, buffer.ptr);
+                break;
 
-        case Tfloat32:
-        case Tfloat64:
-            encodeReal(e, buffer.ptr);
-            break;
+            case Tfloat32:
+            case Tfloat64:
+                encodeReal(e, buffer.ptr);
+                break;
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
 
         // Interpret the buffer as a new type.
         switch (type.ty)
         {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
-            return decodeInteger(e.loc, type, buffer.ptr);
+            case Tint32:
+            case Tuns32:
+            case Tint64:
+            case Tuns64:
+                return decodeInteger(e.loc, type, buffer.ptr);
 
-        case Tfloat32:
-        case Tfloat64:
-            return decodeReal(e.loc, type, buffer.ptr);
+            case Tfloat32:
+            case Tfloat64:
+                return decodeReal(e.loc, type, buffer.ptr);
 
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
 
         return null; // avoid warning
@@ -301,12 +301,12 @@ struct Target
     {
         switch (linkage)
         {
-        case LINKcpp:
-            if (global.params.isOSX)
-                buf.prependbyte('_');
-            break;
-        default:
-            break;
+            case LINKcpp:
+                if (global.params.isOSX)
+                    buf.prependbyte('_');
+                break;
+            default:
+                break;
         }
     }
 }
@@ -347,20 +347,20 @@ extern (C++) static void encodeReal(Expression e, ubyte* buffer)
 {
     switch (e.type.ty)
     {
-    case Tfloat32:
+        case Tfloat32:
         {
             float* p = cast(float*)buffer;
             *p = cast(float)e.toReal();
             break;
         }
-    case Tfloat64:
+        case Tfloat64:
         {
             double* p = cast(double*)buffer;
             *p = cast(double)e.toReal();
             break;
         }
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
 }
 
@@ -371,20 +371,20 @@ extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
     real value;
     switch (type.ty)
     {
-    case Tfloat32:
+        case Tfloat32:
         {
             float* p = cast(float*)buffer;
             value = ldouble(*p);
             break;
         }
-    case Tfloat64:
+        case Tfloat64:
         {
             double* p = cast(double*)buffer;
             value = ldouble(*p);
             break;
         }
-    default:
-        assert(0);
+        default:
+            assert(0);
     }
 
     return new RealExp(loc, value, type);
