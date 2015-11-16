@@ -70,17 +70,9 @@ public:
                 .error(loc, "undefined identifier %s", ident.toChars());
             return;
         }
-        else if (ad.aliasthis && s != ad.aliasthis)
+        if (ad.aliasthis && s != ad.aliasthis)
         {
             .error(loc, "there can be only one alias this");
-            return;
-        }
-
-        if (ad.type.ty == Tstruct && (cast(TypeStruct)ad.type).sym != ad)
-        {
-            AggregateDeclaration ad2 = (cast(TypeStruct)ad.type).sym;
-            assert(ad2.type == Type.terror);
-            ad.aliasthis = ad2.aliasthis;
             return;
         }
 

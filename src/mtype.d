@@ -2030,64 +2030,60 @@ public:
 
     final Type aliasthisOf()
     {
-        AggregateDeclaration ad = isAggregate(this);
-        if (ad && ad.aliasthis)
+        auto ad = isAggregate(this);
+        if (!ad || !ad.aliasthis)
+            return null;
+
+        auto s = ad.aliasthis;
+        if (s.isAliasDeclaration())
+            s = s.toAlias();
+
+        if (s.isTupleDeclaration())
+            return null;
+
+        if (auto vd = s.isVarDeclaration())
         {
-            Dsymbol s = ad.aliasthis;
-            if (s.isAliasDeclaration())
-                s = s.toAlias();
-            Declaration d = s.isDeclaration();
-            if (d && !d.isTupleDeclaration())
-            {
-                assert(d.type);
-                Type t = d.type;
-                if (d.isVarDeclaration() && d.needThis())
-                {
-                    t = t.addMod(this.mod);
-                }
-                else if (d.isFuncDeclaration())
-                {
-                    FuncDeclaration fd = resolveFuncCall(Loc(), null, d, null, this, null, 1);
-                    if (fd && fd.errors)
-                        return Type.terror;
-                    if (fd && !fd.type.nextOf() && !fd.functionSemantic())
-                        fd = null;
-                    if (fd)
-                    {
-                        t = fd.type.nextOf();
-                        if (!t) // issue 14185
-                            return Type.terror;
-                        t = t.substWildTo(mod == 0 ? MODmutable : mod);
-                    }
-                    else
-                        return Type.terror;
-                }
-                return t;
-            }
-            EnumDeclaration ed = s.isEnumDeclaration();
-            if (ed)
-            {
-                Type t = ed.type;
-                return t;
-            }
-            TemplateDeclaration td = s.isTemplateDeclaration();
-            if (td)
-            {
-                assert(td._scope);
-                FuncDeclaration fd = resolveFuncCall(Loc(), null, td, null, this, null, 1);
-                if (fd && fd.errors)
-                    return Type.terror;
-                if (fd && fd.functionSemantic())
-                {
-                    Type t = fd.type.nextOf();
-                    t = t.substWildTo(mod == 0 ? MODmutable : mod);
-                    return t;
-                }
-                else
-                    return Type.terror;
-            }
-            //printf("%s\n", s->kind());
+            auto t = vd.type;
+            if (vd.needThis())
+                t = t.addMod(this.mod);
+            return t;
         }
+        if (auto fd = s.isFuncDeclaration())
+        {
+            fd = resolveFuncCall(Loc(), null, fd, null, this, null, 1);
+            if (!fd || fd.errors || !fd.functionSemantic())
+                return Type.terror;
+
+            auto t = fd.type.nextOf();
+            if (!t) // issue 14185
+                return Type.terror;
+            t = t.substWildTo(mod == 0 ? MODmutable : mod);
+            return t;
+        }
+        if (auto d = s.isDeclaration())
+        {
+            assert(d.type);
+            return d.type;
+        }
+        if (auto ed = s.isEnumDeclaration())
+        {
+            return ed.type;
+        }
+        if (auto td = s.isTemplateDeclaration())
+        {
+            assert(td._scope);
+            auto fd = resolveFuncCall(Loc(), null, td, null, this, null, 1);
+            if (!fd || fd.errors || !fd.functionSemantic())
+                return Type.terror;
+
+            auto t = fd.type.nextOf();
+            if (!t)
+                return Type.terror;
+            t = t.substWildTo(mod == 0 ? MODmutable : mod);
+            return t;
+        }
+
+        //printf("%s\n", s.kind());
         return null;
     }
 
@@ -8135,7 +8131,7 @@ public:
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
-        //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
+        //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym)
         {
             m = MATCHexact; // exact match
