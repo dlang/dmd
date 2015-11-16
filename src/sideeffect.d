@@ -136,7 +136,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
 {
     switch (e.op)
     {
-        // Sort the cases by most frequently used first
+    // Sort the cases by most frequently used first
     case TOKassign:
     case TOKplusplus:
     case TOKminusminus:
@@ -219,8 +219,7 @@ extern (C++) void discardValue(Expression e)
                  */
                 return;
             }
-            break;
-            // complain
+            break; // complain
         }
     case TOKerror:
         return;

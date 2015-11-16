@@ -904,7 +904,7 @@ public:
                 {
                     // Don't check here, as it may override an interface function
                     //if (isOverride())
-                    //error("is marked as override, but does not override any function");
+                    //    error("is marked as override, but does not override any function");
                     cd.vtblFinal.push(this);
                 }
                 else
@@ -1043,7 +1043,7 @@ public:
                          * an interface function?
                          */
                         //if (!isOverride())
-                        //warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+                        //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
                         if (fdv.tintro)
                             ti = fdv.tintro;
                         else if (!type.equals(fdv.type))
@@ -1521,8 +1521,7 @@ public:
                 {
                     Parameter fparam = (*f.parameters)[i];
                     if (!fparam.ident)
-                        continue;
-                    // never used, so ignore
+                        continue; // never used, so ignore
                     if (fparam.type.ty == Ttuple)
                     {
                         TypeTuple t = cast(TypeTuple)fparam.type;
@@ -2742,8 +2741,7 @@ public:
              * non-variadic one.
              */
             if (tf.varargs && !tg.varargs)
-                goto L1;
-            // less specialized
+                goto L1; // less specialized
             static if (LOG_LEASTAS)
             {
                 printf("  matches %d, so is least as specialized\n", m);
@@ -3128,8 +3126,7 @@ public:
                 continue;
             Type tprmi = (fparam.storageClass & (STClazy | STCout | STCref)) ? fparam.type : getIndirection(fparam.type);
             if (!tprmi)
-                continue;
-            // there is no mutable indirection
+                continue; // there is no mutable indirection
             //printf("\t[%d] tprmi = %d %s\n", i, tprmi->ty, tprmi->toChars());
             if (traverseIndirections(tprmi, t))
                 return false;

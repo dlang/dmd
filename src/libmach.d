@@ -221,16 +221,15 @@ public:
                     if (m == objmodules.dim)
                     {
                         reason = __LINE__;
-                        goto Lcorrupt;
-                        // didn't find it
+                        goto Lcorrupt; // didn't find it
                     }
                     MachObjModule* om = objmodules[m];
                     //printf("\tom offset = x%x\n", (char *)om->base - (char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);
-                        //                  if (mstart == m)
-                        //                      mstart++;
+                        //if (mstart == m)
+                        //    mstart++;
                         break;
                     }
                 }
@@ -405,8 +404,8 @@ private:
             moffset += 8 + strlen(os.name) + 1;
         }
         moffset = (moffset + 3) & ~3;
-        //    if (moffset & 4)
-        //      moffset += 4;
+        //if (moffset & 4)
+        //    moffset += 4;
         uint hoffset = moffset;
         static if (LOG)
         {
@@ -474,8 +473,8 @@ private:
         }
         while (libbuf.offset & 3)
             libbuf.writeByte(0);
-        //    if (libbuf->offset & 4)
-        //      libbuf->write(pad, 4);
+        //if (libbuf->offset & 4)
+        //    libbuf->write(pad, 4);
         static if (LOG)
         {
             printf("\tlibbuf->moffset = x%x\n", libbuf.offset);

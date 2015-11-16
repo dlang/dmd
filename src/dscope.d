@@ -574,7 +574,7 @@ struct Scope
             //assert(sc != sc->enclosing);
             //assert(!sc->enclosing || sc != sc->enclosing->enclosing);
             //if (++i == 10)
-            //assert(0);
+            //    assert(0);
         }
     }
 

@@ -43,10 +43,10 @@ extern (C++) bool isCommutative(TOK op)
     case TOKand:
     case TOKor:
     case TOKxor:
-        // EqualExp
+    // EqualExp
     case TOKequal:
     case TOKnotequal:
-        // CmpExp
+    // CmpExp
     case TOKlt:
     case TOKle:
     case TOKgt:
@@ -1020,7 +1020,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         case TOKge:
                             e.op = TOKle;
                             break;
-                            // Floating point compares
+                        // Floating point compares
                         case TOKule:
                             e.op = TOKuge;
                             break;
@@ -1033,7 +1033,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         case TOKug:
                             e.op = TOKul;
                             break;
-                            // These are symmetric
+                        // These are symmetric
                         case TOKunord:
                         case TOKlg:
                         case TOKleg:
@@ -1470,7 +1470,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             case TOKge:
                 e.op = TOKle;
                 break;
-                // Floating point compares
+            // Floating point compares
             case TOKule:
                 e.op = TOKuge;
                 break;
@@ -1483,7 +1483,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             case TOKug:
                 e.op = TOKul;
                 break;
-                // The rest are symmetric
+            // The rest are symmetric
             default:
                 break;
             }
@@ -1786,8 +1786,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             break;
         }
     default:
-        break;
-        // ignore error, caught later
+        break; // ignore error, caught later
     }
     return true;
 }
@@ -1862,11 +1861,9 @@ extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* paramet
      */
     nparams = Parameter.dim(tf.parameters);
     if (nparams == 0 || tf.varargs)
-        goto Lnomatch;
-    // not enough parameters
+        goto Lnomatch; // not enough parameters
     if (parameters.dim != nparams)
-        goto Lnomatch;
-    // not enough parameters
+        goto Lnomatch; // not enough parameters
     for (size_t u = 0; u < nparams; u++)
     {
         p = (*parameters)[u];

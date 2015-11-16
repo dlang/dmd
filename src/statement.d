@@ -4521,8 +4521,7 @@ public:
                         Statement s = new ReturnStatement(Loc(), new IntegerExp(sc.fes.cases.dim + 1));
                         return s;
                     }
-                    break;
-                    // can't break to it
+                    break; // can't break to it
                 }
                 LabelStatement ls = scx.slabel;
                 if (ls && ls.ident == ident)
@@ -4621,8 +4620,7 @@ public:
                         Statement s = new ReturnStatement(Loc(), new IntegerExp(sc.fes.cases.dim + 1));
                         return s;
                     }
-                    break;
-                    // can't continue to it
+                    break; // can't continue to it
                 }
                 ls = scx.slabel;
                 if (ls && ls.ident == ident)

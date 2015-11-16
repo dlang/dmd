@@ -1564,7 +1564,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             }
             else
             {
-                //                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+                //arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
             }
             //printf("arg: %s\n", arg->toChars());
             //printf("type: %s\n", arg->type->toChars());
@@ -1660,7 +1660,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             }
             if (tb.ty == Tstruct)
             {
-                //                arg = callCpCtor(sc, arg);
+                //arg = callCpCtor(sc, arg);
             }
             // Give error for overloaded function addresses
             if (arg.op == TOKsymoff)
@@ -6965,7 +6965,7 @@ public:
                         Parameter arg = Parameter.getNth(params, i);
                         assert(arg && arg.type);
                         /* If one of the default arguments was an error,
-                         don't return an invalid tuple
+                           don't return an invalid tuple
                          */
                         if (tok2 == TOKparameters && arg.defaultArg && arg.defaultArg.op == TOKerror)
                             return new ErrorExp();

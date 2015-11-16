@@ -1388,8 +1388,7 @@ struct DocComment
                     if (isIdStart(p))
                         break;
                     if (namelen)
-                        goto Ltext;
-                    // continuation of prev macro
+                        goto Ltext; // continuation of prev macro
                     goto Lskipline;
                 }
                 break;
@@ -1415,8 +1414,7 @@ struct DocComment
             if (*p != '=')
             {
                 if (namelen)
-                    goto Ltext;
-                // continuation of prev macro
+                    goto Ltext; // continuation of prev macro
                 goto Lskipline;
             }
             p++;
@@ -1455,8 +1453,7 @@ struct DocComment
         }
     Ldone:
         if (namelen)
-            goto L1;
-        // write out last one
+            goto L1; // write out last one
     }
 
     /**************************************

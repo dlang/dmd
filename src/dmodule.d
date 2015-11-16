@@ -361,7 +361,7 @@ public:
     {
         super(ident);
         const(char)* srcfilename;
-        //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
+        //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
         this.arg = filename;
         srcfilename = FileName.defaultExt(filename, global.mars_ext);
         if (global.run_noext && global.params.run && !FileName.ext(filename) && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
@@ -1268,6 +1268,8 @@ public:
     }
 }
 
+/***********************************************************
+ */
 struct ModuleDeclaration
 {
     Loc loc;
@@ -1276,7 +1278,6 @@ struct ModuleDeclaration
     bool isdeprecated;      // if it is a deprecated module
     Expression msg;
 
-    /* =========================== ModuleDeclaration ===================== */
     extern (D) this(Loc loc, Identifiers* packages, Identifier id)
     {
         this.loc = loc;

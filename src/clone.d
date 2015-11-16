@@ -128,8 +128,7 @@ extern (C++) bool needOpAssign(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd->toChars());
     if (sd.hasIdentityAssign)
-        goto Lneed;
-    // because has identity==elaborate opAssign
+        goto Lneed; // because has identity==elaborate opAssign
     if (sd.dtor || sd.postblit)
         goto Lneed;
     /* If any of the fields need an opAssign, then we
@@ -529,9 +528,8 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     }
     else
     {
-        version (none)
+        version (none) // FIXME: doesn't work for recursive alias this
         {
-            // FIXME: doesn't work for recursive alias this
             /* Check opCmp member exists.
              * Consider 'alias this', but except opDispatch.
              */

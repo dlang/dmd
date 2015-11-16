@@ -327,9 +327,9 @@ private:
             337, 347, 349, 353, 359, 367, 373, 379, 383, 389,
             397, 401, 409, 419, 421, 431, 433, 439, 443, 449,
             457, 461, 463, 467, 479, 487, 491, 499, 503, 509,
+            //521,523,541,547,
             0
         ];
-        //521,523,541,547,
         for (size_t i = 0; 1; i++)
         {
             if (primes[i] == 0)
@@ -367,8 +367,8 @@ private:
      */
     bool FillDict(ubyte* bucketsP, ushort ndicpages)
     {
-        enum LIBIDMAX = (512 - 0x25 - 3 - 4);
         // max size that will fit in dictionary
+        enum LIBIDMAX = (512 - 0x25 - 3 - 4);
         ubyte[4 + LIBIDMAX + 2 + 1] entry;
         //printf("FillDict()\n");
         // Add each of the module names

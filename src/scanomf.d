@@ -35,8 +35,7 @@ enum PEDATA = 0x84;
 enum PIDATA = 0x86;
 enum COMENT = 0x88;
 enum MODEND = 0x8A;
-enum M386END = 0x8B;
-/* 32 bit module end record */
+enum M386END = 0x8B; /* 32 bit module end record */
 enum EXTDEF = 0x8C;
 enum TYPDEF = 0x8E;
 enum PUBDEF = 0x90;
