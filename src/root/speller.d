@@ -8,7 +8,9 @@
 
 module ddmd.root.speller;
 
-import core.stdc.limits, core.stdc.stdlib, core.stdc.string;
+import core.stdc.limits;
+import core.stdc.stdlib;
+import core.stdc.string;
 
 alias dg_speller_t = void* delegate(const(char)*, ref int);
 
