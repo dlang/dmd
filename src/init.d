@@ -513,8 +513,7 @@ public:
             t = (cast(TypeVector)t).basetype;
             break;
         case Taarray:
-        case Tstruct:
-            // consider implicit constructor call
+        case Tstruct: // consider implicit constructor call
             {
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])

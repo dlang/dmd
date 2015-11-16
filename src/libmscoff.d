@@ -336,16 +336,15 @@ public:
                     if (m == objmodules.dim)
                     {
                         reason = __LINE__;
-                        goto Lcorrupt;
-                        // didn't find it
+                        goto Lcorrupt; // didn't find it
                     }
                     MSCoffObjModule* om = objmodules[m];
                     //printf("\tom offset = x%x\n", (char *)om->base - (char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);
-                        //                  if (mstart == m)
-                        //                      mstart++;
+                        //if (mstart == m)
+                        //    mstart++;
                         break;
                     }
                 }

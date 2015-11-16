@@ -981,8 +981,7 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
             break;
         case TOKidentity:
         case TOKequal:
-        case TOKnotidentity:
-            // 'cmp' gets inverted below
+        case TOKnotidentity: // 'cmp' gets inverted below
         case TOKnotequal:
             cmp = (null1 == null2);
             break;
@@ -996,8 +995,7 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
         {
         case TOKidentity:
         case TOKequal:
-        case TOKnotidentity:
-            // 'cmp' gets inverted below
+        case TOKnotidentity: // 'cmp' gets inverted below
         case TOKnotequal:
             cmp = 0;
             break;

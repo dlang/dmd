@@ -892,9 +892,11 @@ public:
             if (!flag)
                 sparam.semantic(paramscope);
             if (!paramscope.insert(sparam)) // TODO: This check can make more early
+            {
+                // in TemplateDeclaration::semantic, and
+                // then we don't need to make sparam if flags == 0
                 goto Lnomatch;
-            // in TemplateDeclaration::semantic, and
-            // then we don't need to make sparam if flags == 0
+            }
         }
         if (!flag)
         {
@@ -1224,8 +1226,7 @@ public:
                     if (!tp.ident.equals(tid.ident) || tid.idents.dim)
                         continue;
                     if (fvarargs) // variadic function doesn't
-                        goto Lnomatch;
-                    // go with variadic template
+                        goto Lnomatch; // go with variadic template
                     goto L1;
                 }
                 fptupindex = IDX_NOTFOUND;
@@ -3676,8 +3677,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                             i++;
                         }
                         if (i >= dim)
-                            break;
-                        // match if all remained parameters are dependent
+                            break; // match if all remained parameters are dependent
                         goto Lnomatch;
                     }
                     RootObject o2 = (*tp.tempinst.tiargs)[i];
@@ -6039,7 +6039,7 @@ public:
         declareParameters(paramscope);
         paramscope.pop();
         // Add members of template instance to template instance symbol table
-        //    parent = scope->scopesym;
+        //parent = scope->scopesym;
         symtab = new DsymbolTable();
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -6606,14 +6606,12 @@ public:
                         if (farg.isLvalue())
                         {
                             if (!(fparam.storageClass & STCref))
-                                goto Lnotequals;
-                            // auto ref's don't match
+                                goto Lnotequals; // auto ref's don't match
                         }
                         else
                         {
                             if (fparam.storageClass & STCref)
-                                goto Lnotequals;
-                            // auto ref's don't match
+                                goto Lnotequals; // auto ref's don't match
                         }
                     }
                 }
@@ -7649,16 +7647,14 @@ public:
                             for (Dsymbol p = enclosing; p; p = p.parent)
                             {
                                 if (p == dparent)
-                                    goto L1;
-                                // enclosing is most nested
+                                    goto L1; // enclosing is most nested
                             }
                             for (Dsymbol p = dparent; p; p = p.parent)
                             {
                                 if (p == enclosing)
                                 {
                                     enclosing = dparent;
-                                    goto L1;
-                                    // dparent is most nested
+                                    goto L1; // dparent is most nested
                                 }
                             }
                             error("%s is nested in both %s and %s", toChars(), enclosing.toChars(), dparent.toChars());
@@ -7913,8 +7909,8 @@ public:
             Dsymbol s = (*members)[i];
             //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
             //printf("test: enclosing = %d, sc2->parent = %s\n", enclosing, sc2->parent->toChars());
-            //      if (enclosing)
-            //          s->parent = sc->parent;
+            //if (enclosing)
+            //    s->parent = sc->parent;
             //printf("test3: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
             s.semantic(sc2);
             //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());

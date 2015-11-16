@@ -7281,7 +7281,7 @@ public:
                         Parameter arg = Parameter.getNth(params, i);
                         assert(arg && arg.type);
                         /* If one of the default arguments was an error,
-                         don't return an invalid tuple
+                           don't return an invalid tuple
                          */
                         if (tok2 == TOKparameters && arg.defaultArg && arg.defaultArg.op == TOKerror)
                             return new ErrorExp();

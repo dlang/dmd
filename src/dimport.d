@@ -189,8 +189,8 @@ public:
             mod = Module.load(loc, packages, id);
             if (mod)
             {
-                dst.insert(id, mod); // id may be different from mod.ident,
-                // if so then insert alias
+                // id may be different from mod.ident, if so then insert alias
+                dst.insert(id, mod);
             }
         }
         if (mod && !mod.importedFrom)

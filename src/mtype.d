@@ -4000,8 +4000,8 @@ public:
                     return MATCHnomatch;
                 /* Can't change sign if same size
                  */
-                /*if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
-                 return MATCHnomatch;*/
+                //if (sz == tosz && (flags ^ tob->flags) & TFLAGSunsigned)
+                //    return MATCHnomatch;
             }
         }
         else if (flags & TFLAGSfloating)

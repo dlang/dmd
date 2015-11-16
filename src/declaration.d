@@ -1030,9 +1030,9 @@ public:
             printf("linkage = %d\n", sc.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
-        //    if (sem > SemanticStart)
-        //      return;
-        //    sem = SemanticIn;
+        //if (sem > SemanticStart)
+        //    return;
+        //sem = SemanticIn;
         if (sem >= SemanticDone)
             return;
         Scope* scx = null;
@@ -2047,7 +2047,7 @@ public:
                  * could be set.
                  */
                 //if (cd->isInterfaceDeclaration())
-                //error("interface %s cannot be scope", cd->toChars());
+                //    error("interface %s cannot be scope", cd->toChars());
                 if (cd.cpp)
                 {
                     // Destructors are not supported on extern(C++) classes

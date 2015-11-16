@@ -1533,7 +1533,7 @@ Language changes listed by -transition=id:
                 const(char)* n = (*global.params.objfiles)[0];
                 n = FileName.name(n);
                 //if (!FileName::absolute(name))
-                //name = FileName::combine(dir, name);
+                //    name = FileName::combine(dir, name);
                 jsonfilename = FileName.forceExt(n, global.json_ext);
             }
             ensurePathToNameExists(Loc(), jsonfilename);
@@ -1707,7 +1707,7 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
                         goto Laddc;
                     *p = 0;
                     //if (wildcard)
-                    //wildcardexpand();     // not implemented
+                    //    wildcardexpand();     // not implemented
                     break;
                 case '\\':
                     slash++;
@@ -1716,7 +1716,7 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
                 case 0:
                     *p = 0;
                     //if (wildcard)
-                    //wildcardexpand();     // not implemented
+                    //    wildcardexpand();     // not implemented
                     return;
                 default:
                 Laddc:

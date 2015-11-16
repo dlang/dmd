@@ -785,20 +785,20 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
              *  # types are possible return type, then parameter types
              */
             /* ABI says:
-             "The type of a non-static member function is considered to be different,
-             for the purposes of substitution, from the type of a namespace-scope or
-             static member function whose type appears similar. The types of two
-             non-static member functions are considered to be different, for the
-             purposes of substitution, if the functions are members of different
-             classes. In other words, for the purposes of substitution, the class of
-             which the function is a member is considered part of the type of
-             function."
+                "The type of a non-static member function is considered to be different,
+                for the purposes of substitution, from the type of a namespace-scope or
+                static member function whose type appears similar. The types of two
+                non-static member functions are considered to be different, for the
+                purposes of substitution, if the functions are members of different
+                classes. In other words, for the purposes of substitution, the class of
+                which the function is a member is considered part of the type of
+                function."
 
-             BUG: Right now, types of functions are never merged, so our simplistic
-             component matcher always finds them to be different.
-             We should use Type.equals on these, and use different
-             TypeFunctions for non-static member functions, and non-static
-             member functions of different classes.
+                BUG: Right now, types of functions are never merged, so our simplistic
+                component matcher always finds them to be different.
+                We should use Type.equals on these, and use different
+                TypeFunctions for non-static member functions, and non-static
+                member functions of different classes.
              */
             if (substitute(t))
                 return;
@@ -948,6 +948,13 @@ else static if (TARGET_WINDOS)
         alias visit = super.visit;
         const(char)*[VC_SAVED_IDENT_CNT] saved_idents;
         Type[VC_SAVED_TYPE_CNT] saved_types;
+
+        // IS_NOT_TOP_TYPE: when we mangling one argument, we can call visit several times (for base types of arg type)
+        // but we must save only arg type:
+        // For example: if we have an int** argument, we should save "int**" but visit will be called for "int**", "int*", "int"
+        // This flag is set up by the visit(NextType, ) function  and should be reset when the arg type output is finished.
+        // MANGLE_RETURN_TYPE: return type shouldn't be saved and substituted in arguments
+        // IGNORE_CONST: in some cases we should ignore CV-modifiers.
 
         enum Flags : int
         {
