@@ -8,7 +8,8 @@
 
 module ddmd.root.aav;
 
-import core.stdc.stdlib, core.stdc.string;
+import core.stdc.stdlib;
+import core.stdc.string;
 import ddmd.root.rmem;
 
 extern (C++) size_t hash(size_t a)

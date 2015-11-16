@@ -8,8 +8,18 @@
 
 module ddmd.root.file;
 
-import core.stdc.errno, core.stdc.stdio, core.stdc.stdlib, core.stdc.string, core.sys.posix.fcntl, core.sys.posix.sys.types, core.sys.posix.unistd, core.sys.posix.utime, core.sys.windows.windows;
-import ddmd.root.array, ddmd.root.filename, ddmd.root.rmem;
+import core.stdc.errno;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.posix.fcntl;
+import core.sys.posix.sys.types;
+import core.sys.posix.unistd;
+import core.sys.posix.utime;
+import core.sys.windows.windows;
+import ddmd.root.array;
+import ddmd.root.filename;
+import ddmd.root.rmem;
 
 version (Windows) alias WIN32_FIND_DATAA = WIN32_FIND_DATA;
 
