@@ -2,40 +2,55 @@ Ddoc
 
 $(SPEC_S Functions,
 
-$(P
-$(RELATIVE_LINK2 contracts, Contracts)
-$(RELATIVE_LINK2 function-return-values, Function Return Values)
-$(RELATIVE_LINK2 function-declarations, Functions Without Bodies)
-$(RELATIVE_LINK2 pure-functions, Pure Functions)
-$(RELATIVE_LINK2 nothrow-functions, Nothrow Functions)
-$(RELATIVE_LINK2 ref-functions, Ref Functions)
-$(RELATIVE_LINK2 auto-functions, Auto Functions)
-$(RELATIVE_LINK2 auto-ref-functions, Auto Ref Functions)
-$(RELATIVE_LINK2 inout-functions, Inout Functions)
-$(RELATIVE_LINK2 optional-parenthesis, Optional Parentheses)
-$(RELATIVE_LINK2 property-functions, Property Functions)
-$(RELATIVE_LINK2 virtual-functions, Virtual Functions)
-$(RELATIVE_LINK2 function-inheritance, Function Inheritance and Overriding)
-$(RELATIVE_LINK2 inline-functions, Inline Functions)
-$(RELATIVE_LINK2 function-overloading, Function Overloading)
-$(RELATIVE_LINK2 overload-sets, Overload Sets)
-$(RELATIVE_LINK2 parameters, Function Parameters)
-$(RELATIVE_LINK2 function-default-args, Function Default Arguments)
-$(RELATIVE_LINK2 variadic, Variadic Functions)
-$(RELATIVE_LINK2 variadicnested, Nested Functions)
-$(RELATIVE_LINK2 closures, Delegates, Function Pointers, and  Closures)
-$(RELATIVE_LINK2 anonymous, Anonymous Functions and Anonymous Delegates)
-$(RELATIVE_LINK2 main, $(D main()) Function)
-$(RELATIVE_LINK2 function-templates, Function Templates)
-$(RELATIVE_LINK2 interpretation, Compile Time Function Execution (CTFE))
-$(RELATIVE_LINK2 string-mixins, String Mixins and Compile Time Function Execution)
-$(RELATIVE_LINK2 function-safety, Function Safety)
-$(RELATIVE_LINK2 safe-functions, Safe Functions)
-$(RELATIVE_LINK2 trusted-functions, Trusted Functions)
-$(RELATIVE_LINK2 system-functions, System Functions)
-$(RELATIVE_LINK2 function-attribute-inference, Function Attribute Inference)
-$(RELATIVE_LINK2 pseudo-member, Uniform Function Call Syntax (UFCS))
+$(NOT_EBOOK 
+$(DIVC page-contents quickindex,
+    $(DIVC page-contents-header,
+        $(H3 Contents)
+    )
+    $(OL
+        $(LI $(RELATIVE_LINK2 grammar, Grammar))
+        $(LI $(RELATIVE_LINK2 contracts, Contracts))
+        $(LI $(RELATIVE_LINK2 function-return-values, Function Return Values))
+        $(LI $(RELATIVE_LINK2 function-declarations, Functions Without Bodies))
+        $(LI $(RELATIVE_LINK2 pure-functions, Pure Functions))
+        $(LI $(RELATIVE_LINK2 nothrow-functions, Nothrow Functions))
+        $(LI $(RELATIVE_LINK2 ref-functions, Ref Functions))
+        $(LI $(RELATIVE_LINK2 auto-functions, Auto Functions))
+        $(LI $(RELATIVE_LINK2 auto-ref-functions, Auto Ref Functions))
+        $(LI $(RELATIVE_LINK2 inout-functions, Inout Functions))
+        $(LI $(RELATIVE_LINK2 optional-parenthesis, Optional Parentheses))
+        $(LI $(RELATIVE_LINK2 property-functions, Property Functions))
+        $(LI $(RELATIVE_LINK2 virtual-functions, Virtual Functions))
+        $(LI $(RELATIVE_LINK2 function-inheritance, Function Inheritance and Overriding))
+        $(LI $(RELATIVE_LINK2 inline-functions, Inline Functions))
+        $(LI $(RELATIVE_LINK2 function-overloading, Function Overloading)$(OL
+            $(LI $(RELATIVE_LINK2 overload-sets, Overload Sets))
+        ))
+        $(LI $(RELATIVE_LINK2 parameters, Function Parameters)$(OL
+            $(LI $(RELATIVE_LINK2 function-default-args, Function Default Arguments))
+            $(LI $(RELATIVE_LINK2 variadic, Variadic Functions))
+        ))
+        $(LI $(RELATIVE_LINK2 nested, Nested Functions)$(OL
+            $(LI $(RELATIVE_LINK2 closures, Delegates, Function Pointers, and  Closures))
+            $(LI $(RELATIVE_LINK2 anonymous, Anonymous Functions and Anonymous Delegates))
+        ))
+        $(LI $(RELATIVE_LINK2 main, main() Function))
+        $(LI $(RELATIVE_LINK2 function-templates, Function Templates))
+        $(LI $(RELATIVE_LINK2 interpretation, Compile Time Function Execution (CTFE))$(OL
+            $(LI $(RELATIVE_LINK2 string-mixins, String Mixins and Compile Time Function Execution))
+        ))
+        $(LI $(RELATIVE_LINK2 function-safety, Function Safety)$(OL
+            $(LI $(RELATIVE_LINK2 safe-functions, Safe Functions))
+            $(LI $(RELATIVE_LINK2 trusted-functions, Trusted Functions))
+            $(LI $(RELATIVE_LINK2 system-functions, System Functions))
+        ))
+        $(LI $(RELATIVE_LINK2 function-attribute-inference, Function Attribute Inference))
+        $(LI $(RELATIVE_LINK2 pseudo-member, Uniform Function Call Syntax (UFCS)))
+    )
 )
+)
+
+$(H4 $(LNAME2 grammar, Grammar))
 
 $(GRAMMAR
 $(GNAME FuncDeclaration):
