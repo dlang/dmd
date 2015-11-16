@@ -385,7 +385,8 @@ struct Loc
 
     extern (C++) bool equals(ref const(Loc) loc)
     {
-        return (!global.params.showColumns || charnum == loc.charnum) && linnum == loc.linnum && FileName.equals(filename, loc.filename);
+        return (!global.params.showColumns || charnum == loc.charnum) &&
+               linnum == loc.linnum && FileName.equals(filename, loc.filename);
     }
 }
 

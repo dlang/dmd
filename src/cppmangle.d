@@ -307,7 +307,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                  * 3. there is no CV-qualifier or a ref-qualifier for a member function
                  * ABI 5.1.8
                  */
-                if (p.ident == Id.std && is_initial_qualifier(p) && !qualified)
+                if (p.ident == Id.std &&
+                    is_initial_qualifier(p) &&
+                    !qualified)
                 {
                     if (s.ident == Id.allocator)
                     {
@@ -593,109 +595,31 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             char p = 0;
             switch (t.ty)
             {
-                case Tvoid:
-                    c = 'v';
-                    break;
+                case Tvoid:         c = 'v';    break;
+                case Tint8:         c = 'a';    break;
+                case Tuns8:         c = 'h';    break;
+                case Tint16:        c = 's';    break;
+                case Tuns16:        c = 't';    break;
+                case Tint32:        c = 'i';    break;
+                case Tuns32:        c = 'j';    break;
+                case Tfloat32:      c = 'f';    break;
+                case Tint64:        c = (Target.c_longsize == 8 ? 'l' : 'x');   break;
+                case Tuns64:        c = (Target.c_longsize == 8 ? 'm' : 'y');   break;
+                case Tint128:       c = 'n';    break;
+                case Tuns128:       c = 'o';    break;
+                case Tfloat64:      c = 'd';    break;
+                case Tfloat80:      c = (Target.realsize - Target.realpad == 16) ? 'g' : 'e';   break;
+                case Tbool:         c = 'b';    break;
+                case Tchar:         c = 'c';    break;
+                case Twchar:        c = 't';    break;  // unsigned short
+                case Tdchar:        c = 'w';    break;  // wchar_t (UTF-32)
 
-                case Tint8:
-                    c = 'a';
-                    break;
-
-                case Tuns8:
-                    c = 'h';
-                    break;
-
-                case Tint16:
-                    c = 's';
-                    break;
-
-                case Tuns16:
-                    c = 't';
-                    break;
-
-                case Tint32:
-                    c = 'i';
-                    break;
-
-                case Tuns32:
-                    c = 'j';
-                    break;
-
-                case Tfloat32:
-                    c = 'f';
-                    break;
-
-                case Tint64:
-                    c = (Target.c_longsize == 8 ? 'l' : 'x');
-                    break;
-
-                case Tuns64:
-                    c = (Target.c_longsize == 8 ? 'm' : 'y');
-                    break;
-
-                case Tint128:
-                    c = 'n';
-                    break;
-
-                case Tuns128:
-                    c = 'o';
-                    break;
-
-                case Tfloat64:
-                    c = 'd';
-                    break;
-
-                case Tfloat80:
-                    c = (Target.realsize - Target.realpad == 16) ? 'g' : 'e';
-                    break;
-
-                case Tbool:
-                    c = 'b';
-                    break;
-
-                case Tchar:
-                    c = 'c';
-                    break;
-
-                case Twchar:
-                    c = 't';
-                    break;
-                    // unsigned short
-
-                case Tdchar:
-                    c = 'w';
-                    break;
-                    // wchar_t (UTF-32)
-
-                case Timaginary32:
-                    p = 'G';
-                    c = 'f';
-                    break;
-
-                case Timaginary64:
-                    p = 'G';
-                    c = 'd';
-                    break;
-
-                case Timaginary80:
-                    p = 'G';
-                    c = 'e';
-                    break;
-
-                case Tcomplex32:
-                    p = 'C';
-                    c = 'f';
-                    break;
-
-                case Tcomplex64:
-                    p = 'C';
-                    c = 'd';
-                    break;
-
-                case Tcomplex80:
-                    p = 'C';
-                    c = 'e';
-                    break;
+                case Timaginary32:  p = 'G'; c = 'f';   break;
+                case Timaginary64:  p = 'G'; c = 'd';   break;
+                case Timaginary80:  p = 'G'; c = 'e';   break;
+                case Tcomplex32:    p = 'C'; c = 'f';   break;
+                case Tcomplex64:    p = 'C'; c = 'd';   break;
+                case Tcomplex80:    p = 'C'; c = 'e';   break;
 
                 default:
                     visit(cast(Type)t);
@@ -1054,70 +978,22 @@ else static if (TARGET_WINDOS)
             mangleModifier(type);
             switch (type.ty)
             {
-                case Tvoid:
-                    buf.writeByte('X');
-                    break;
-
-                case Tint8:
-                    buf.writeByte('C');
-                    break;
-
-                case Tuns8:
-                    buf.writeByte('E');
-                    break;
-
-                case Tint16:
-                    buf.writeByte('F');
-                    break;
-
-                case Tuns16:
-                    buf.writeByte('G');
-                    break;
-
-                case Tint32:
-                    buf.writeByte('H');
-                    break;
-
-                case Tuns32:
-                    buf.writeByte('I');
-                    break;
-
-                case Tfloat32:
-                    buf.writeByte('M');
-                    break;
-
-                case Tint64:
-                    buf.writestring("_J");
-                    break;
-
-                case Tuns64:
-                    buf.writestring("_K");
-                    break;
-
-                case Tint128:
-                    buf.writestring("_L");
-                    break;
-
-                case Tuns128:
-                    buf.writestring("_M");
-                    break;
-
-                case Tfloat64:
-                    buf.writeByte('N');
-                    break;
-
-                case Tbool:
-                    buf.writestring("_N");
-                    break;
-
-                case Tchar:
-                    buf.writeByte('D');
-                    break;
-
-                case Tdchar:
-                    buf.writeByte('I');
-                    break;
-                    // unsigned int
+                case Tvoid:     buf.writeByte('X');     break;
+                case Tint8:     buf.writeByte('C');     break;
+                case Tuns8:     buf.writeByte('E');     break;
+                case Tint16:    buf.writeByte('F');     break;
+                case Tuns16:    buf.writeByte('G');     break;
+                case Tint32:    buf.writeByte('H');     break;
+                case Tuns32:    buf.writeByte('I');     break;
+                case Tfloat32:  buf.writeByte('M');     break;
+                case Tint64:    buf.writestring("_J");  break;
+                case Tuns64:    buf.writestring("_K");  break;
+                case Tint128:   buf.writestring("_L");  break;
+                case Tuns128:   buf.writestring("_M");  break;
+                case Tfloat64:  buf.writeByte('N');     break;
+                case Tbool:     buf.writestring("_N");  break;
+                case Tchar:     buf.writeByte('D');     break;
+                case Tdchar:    buf.writeByte('I');     break;  // unsigned int
 
                 case Tfloat80:
                     if (flags & IS_DMC)

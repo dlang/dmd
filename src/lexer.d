@@ -170,7 +170,9 @@ public:
      *  doDocComment = handle documentation comments
      *  commentToken = comments become TOKcomment's
      */
-    this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset, bool doDocComment, bool commentToken)
+    this(const(char)* filename,
+        const(char)* base, size_t begoffset, size_t endoffset,
+        bool doDocComment, bool commentToken)
     {
         scanloc = Loc(filename, 1, 1);
         //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -364,56 +366,17 @@ public:
                     t.value = escapeStringConstant(t, 0);
                     return;
 
-                case 'a':
-                case 'b':
-                case 'c':
-                case 'd':
-                case 'e':
-                case 'f':
-                case 'g':
-                case 'h':
-                case 'i':
-                case 'j':
-                case 'k':
-                case 'l':
-                case 'm':
-                case 'n':
-                case 'o':
-                case 'p':
-                /*case 'q': case 'r':*/
-                case 's':
-                case 't':
-                case 'u':
-                case 'v':
-                case 'w':
-                /*case 'x':*/
-                case 'y':
+                case 'a':   case 'b':   case 'c':   case 'd':   case 'e':
+                case 'f':   case 'g':   case 'h':   case 'i':   case 'j':
+                case 'k':   case 'l':   case 'm':   case 'n':   case 'o':
+                case 'p':   /*case 'q': case 'r':*/ case 's':   case 't':
+                case 'u':   case 'v':   case 'w': /*case 'x':*/ case 'y':
                 case 'z':
-                case 'A':
-                case 'B':
-                case 'C':
-                case 'D':
-                case 'E':
-                case 'F':
-                case 'G':
-                case 'H':
-                case 'I':
-                case 'J':
-                case 'K':
-                case 'L':
-                case 'M':
-                case 'N':
-                case 'O':
-                case 'P':
-                case 'Q':
-                case 'R':
-                case 'S':
-                case 'T':
-                case 'U':
-                case 'V':
-                case 'W':
-                case 'X':
-                case 'Y':
+                case 'A':   case 'B':   case 'C':   case 'D':   case 'E':
+                case 'F':   case 'G':   case 'H':   case 'I':   case 'J':
+                case 'K':   case 'L':   case 'M':   case 'N':   case 'O':
+                case 'P':   case 'Q':   case 'R':   case 'S':   case 'T':
+                case 'U':   case 'V':   case 'W':   case 'X':   case 'Y':
                 case 'Z':
                 case '_':
                 case_ident:
@@ -977,65 +940,18 @@ public:
                         t.value = TOKxor; // ^
                     return;
 
-                case '(':
-                    p++;
-                    t.value = TOKlparen;
-                    return;
-
-                case ')':
-                    p++;
-                    t.value = TOKrparen;
-                    return;
-
-                case '[':
-                    p++;
-                    t.value = TOKlbracket;
-                    return;
-
-                case ']':
-                    p++;
-                    t.value = TOKrbracket;
-                    return;
-
-                case '{':
-                    p++;
-                    t.value = TOKlcurly;
-                    return;
-
-                case '}':
-                    p++;
-                    t.value = TOKrcurly;
-                    return;
-
-                case '?':
-                    p++;
-                    t.value = TOKquestion;
-                    return;
-
-                case ',':
-                    p++;
-                    t.value = TOKcomma;
-                    return;
-
-                case ';':
-                    p++;
-                    t.value = TOKsemicolon;
-                    return;
-
-                case ':':
-                    p++;
-                    t.value = TOKcolon;
-                    return;
-
-                case '$':
-                    p++;
-                    t.value = TOKdollar;
-                    return;
-
-                case '@':
-                    p++;
-                    t.value = TOKat;
-                    return;
+                case '(':   p++;    t.value = TOKlparen;    return;
+                case ')':   p++;    t.value = TOKrparen;    return;
+                case '[':   p++;    t.value = TOKlbracket;  return;
+                case ']':   p++;    t.value = TOKrbracket;  return;
+                case '{':   p++;    t.value = TOKlcurly;    return;
+                case '}':   p++;    t.value = TOKrcurly;    return;
+                case '?':   p++;    t.value = TOKquestion;  return;
+                case ',':   p++;    t.value = TOKcomma;     return;
+                case ';':   p++;    t.value = TOKsemicolon; return;
+                case ':':   p++;    t.value = TOKcolon;     return;
+                case '$':   p++;    t.value = TOKdollar;    return;
+                case '@':   p++;    t.value = TOKat;        return;
 
                 case '*':
                     p++;
@@ -1185,42 +1101,20 @@ public:
                 p++;
                 break;
 
-            case 'a':
-                c = 7;
-                goto Lconsume;
-
-            case 'b':
-                c = 8;
-                goto Lconsume;
-
-            case 'f':
-                c = 12;
-                goto Lconsume;
-
-            case 'n':
-                c = 10;
-                goto Lconsume;
-
-            case 'r':
-                c = 13;
-                goto Lconsume;
-
-            case 't':
-                c = 9;
-                goto Lconsume;
-
-            case 'v':
-                c = 11;
-                goto Lconsume;
+            case 'a':   c = 7;      goto Lconsume;
+            case 'b':   c = 8;      goto Lconsume;
+            case 'f':   c = 12;     goto Lconsume;
+            case 'n':   c = 10;     goto Lconsume;
+            case 'r':   c = 13;     goto Lconsume;
+            case 't':   c = 9;      goto Lconsume;
+            case 'v':   c = 11;     goto Lconsume;
 
             case 'u':
                 ndigits = 4;
                 goto Lhex;
-
             case 'U':
                 ndigits = 8;
                 goto Lhex;
-
             case 'x':
                 ndigits = 2;
             Lhex:
@@ -1874,14 +1768,8 @@ public:
             c = *p;
             switch (c)
             {
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
+                case '0': case '1': case '2': case '3':
+                case '4': case '5': case '6': case '7':
                     n = c - '0';
                     ++p;
                     base = 8;
@@ -1931,18 +1819,13 @@ public:
             c = *p;
             switch (c)
             {
-                case '0':
-                case '1':
+                case '0': case '1':
                     ++p;
                     d = c - '0';
                     break;
 
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
+                case '2': case '3':
+                case '4': case '5': case '6': case '7':
                     if (base == 2 && !err)
                     {
                         error("binary digit expected");
@@ -1952,8 +1835,7 @@ public:
                     d = c - '0';
                     break;
 
-                case '8':
-                case '9':
+                case '8': case '9':
                     ++p;
                     if (base < 10 && !err)
                     {
@@ -1963,18 +1845,8 @@ public:
                     d = c - '0';
                     break;
 
-                case 'a':
-                case 'b':
-                case 'c':
-                case 'd':
-                case 'e':
-                case 'f':
-                case 'A':
-                case 'B':
-                case 'C':
-                case 'D':
-                case 'E':
-                case 'F':
+                case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+                case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
                     ++p;
                     if (base != 16)
                     {
@@ -2088,7 +1960,8 @@ public:
         }
 
         if (base == 8 && n >= 8)
-            error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+            error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead",
+                n, p - psuffix, psuffix, n, p - psuffix, psuffix);
 
         TOK result;
         switch (flags)
@@ -2663,7 +2536,9 @@ public:
 
         // It's a line comment if the start of the doc comment comes
         // after other non-whitespace on the same line.
-        const(char)** dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
+        const(char)** dc = (lineComment && anyToken)
+                           ? &t.lineComment
+                           : &t.blockComment;
 
         // Combine with previous doc comment, if any
         if (*dc)

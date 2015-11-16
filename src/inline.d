@@ -178,7 +178,9 @@ public:
          * Otherwise, we can't handle return statements nested in if's.
          */
 
-        if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
+        if (s.elsebody && s.ifbody &&
+            s.ifbody.isReturnStatement() &&
+            s.elsebody.isReturnStatement())
         {
             s.ifbody.accept(this);
             s.elsebody.accept(this);
@@ -388,7 +390,11 @@ public:
         }
 
         // These can contain functions, which when copied, get output twice.
-        if (e.declaration.isStructDeclaration() || e.declaration.isClassDeclaration() || e.declaration.isFuncDeclaration() || e.declaration.isAttribDeclaration() || e.declaration.isTemplateMixin())
+        if (e.declaration.isStructDeclaration() ||
+            e.declaration.isClassDeclaration() ||
+            e.declaration.isFuncDeclaration() ||
+            e.declaration.isAttribDeclaration() ||
+            e.declaration.isTemplateMixin())
         {
             cost = COST_MAX;
             return;

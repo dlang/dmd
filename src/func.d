@@ -351,7 +351,9 @@ public:
     override void visit(TryFinallyStatement s)
     {
         DtorExpStatement des;
-        if (fd.nrvo_can && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null && fd.nrvo_var == des.var)
+        if (fd.nrvo_can &&
+            s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null &&
+            fd.nrvo_var == des.var)
         {
             /* Normally local variable dtors are called regardless exceptions.
              * But for nrvo_var, its dtor should be called only when exception is thrown.
@@ -513,7 +515,9 @@ public:
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
-        FuncDeclaration f = s ? cast(FuncDeclaration)s : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
+        FuncDeclaration f =
+            s ? cast(FuncDeclaration)s
+              : new FuncDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
         f.outId = outId;
         f.frequire = frequire ? frequire.syntaxCopy() : null;
         f.fensure = fensure ? fensure.syntaxCopy() : null;
@@ -666,24 +670,15 @@ public:
                 }
             }
 
-            if (tf.isref)
-                sc.stc |= STCref;
-            if (tf.isnothrow)
-                sc.stc |= STCnothrow;
-            if (tf.isnogc)
-                sc.stc |= STCnogc;
-            if (tf.isproperty)
-                sc.stc |= STCproperty;
-            if (tf.purity == PUREfwdref)
-                sc.stc |= STCpure;
-            if (tf.trust != TRUSTdefault)
-                sc.stc &= ~(STCsafe | STCsystem | STCtrusted);
-            if (tf.trust == TRUSTsafe)
-                sc.stc |= STCsafe;
-            if (tf.trust == TRUSTsystem)
-                sc.stc |= STCsystem;
-            if (tf.trust == TRUSTtrusted)
-                sc.stc |= STCtrusted;
+            if (tf.isref)                   sc.stc |= STCref;
+            if (tf.isnothrow)               sc.stc |= STCnothrow;
+            if (tf.isnogc)                  sc.stc |= STCnogc;
+            if (tf.isproperty)              sc.stc |= STCproperty;
+            if (tf.purity == PUREfwdref)    sc.stc |= STCpure;
+            if (tf.trust != TRUSTdefault)   sc.stc &= ~(STCsafe | STCsystem | STCtrusted);
+            if (tf.trust == TRUSTsafe)      sc.stc |= STCsafe;
+            if (tf.trust == TRUSTsystem)    sc.stc |= STCsystem;
+            if (tf.trust == TRUSTtrusted)   sc.stc |= STCtrusted;
 
             if (isCtorDeclaration())
             {
@@ -787,13 +782,13 @@ public:
             // It's used for mangling, ddoc, and json output.
             TypeFunction tfo = cast(TypeFunction)originalType;
             TypeFunction tfx = cast(TypeFunction)type;
-            tfo.mod = tfx.mod;
-            tfo.isref = tfx.isref;
-            tfo.isnothrow = tfx.isnothrow;
-            tfo.isnogc = tfx.isnogc;
+            tfo.mod        = tfx.mod;
+            tfo.isref      = tfx.isref;
+            tfo.isnothrow  = tfx.isnothrow;
+            tfo.isnogc     = tfx.isnogc;
             tfo.isproperty = tfx.isproperty;
-            tfo.purity = tfx.purity;
-            tfo.trust = tfx.trust;
+            tfo.purity     = tfx.purity;
+            tfo.trust      = tfx.trust;
 
             storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
         }
@@ -926,7 +921,8 @@ public:
             /* Find index of existing function in base class's vtbl[] to override
              * (the index will be the same as in cd's current vtbl[])
              */
-            int vi = cd.baseClass ? findVtblIndex(cast(Dsymbols*)&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.dim) : -1;
+            int vi = cd.baseClass ? findVtblIndex(cast(Dsymbols*)&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.dim)
+                                  : -1;
 
             bool doesoverride = false;
             switch (vi)
@@ -1032,7 +1028,10 @@ public:
 
                     doesoverride = true;
                     if (!isOverride())
-                        .deprecation(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
+                    {
+                        .deprecation(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
+                            fdv.toPrettyChars(), toPrettyChars());
+                    }
                     if (fdc.toParent() == parent)
                     {
                         // If both are mixins, or both are not, then error.
@@ -1238,8 +1237,13 @@ public:
                 case 1:
                 {
                     Parameter fparam0 = Parameter.getNth(f.parameters, 0);
-                    if (fparam0.type.ty != Tarray || fparam0.type.nextOf().ty != Tarray || fparam0.type.nextOf().nextOf().ty != Tchar || fparam0.storageClass & (STCout | STCref | STClazy))
+                    if (fparam0.type.ty != Tarray ||
+                        fparam0.type.nextOf().ty != Tarray ||
+                        fparam0.type.nextOf().nextOf().ty != Tchar ||
+                        fparam0.storageClass & (STCout | STCref | STClazy))
+                    {
                         goto Lmainerr;
+                    }
                     break;
                 }
                 default:
@@ -1276,7 +1280,8 @@ public:
                 tf.isnogc = f.isnogc;
                 tf.purity = f.purity;
                 tf.trust = f.trust;
-                auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
+                auto fd = new FuncDeclaration(loc, loc,
+                    Id.require, STCundefined, tf);
                 fd.fbody = frequire;
                 Statement s1 = new ExpStatement(loc, fd);
                 Expression e = new CallExp(loc, new VarExp(loc, fd, 0), cast(Expressions*)null);
@@ -1308,7 +1313,8 @@ public:
                 tf.isnogc = f.isnogc;
                 tf.purity = f.purity;
                 tf.trust = f.trust;
-                auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
+                auto fd = new FuncDeclaration(loc, loc,
+                    Id.ensure, STCundefined, tf);
                 fd.fbody = fensure;
                 Statement s1 = new ExpStatement(loc, fd);
                 Expression eresult = null;
@@ -1326,7 +1332,12 @@ public:
          * the function body.
          */
         TemplateInstance ti;
-        if (fbody && (isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) || isInstantiated() && !isVirtualMethod() && !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident)))
+        if (fbody &&
+            (isFuncLiteralDeclaration() ||
+             (storage_class & STCinference) ||
+             (inferRetType && !isCtorDeclaration()) ||
+             isInstantiated() && !isVirtualMethod() &&
+             !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident)))
         {
             if (f.purity == PUREimpure) // purity not specified
                 flags |= FUNCFLAGpurityInprocess;
@@ -1486,7 +1497,10 @@ public:
             sc2.sw = null;
             sc2.fes = fes;
             sc2.linkage = LINKd;
-            sc2.stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STCoverride | STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref | STCreturn | STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
+            sc2.stc &= ~(STCauto | STCscope | STCstatic | STCabstract |
+                         STCdeprecated | STCoverride |
+                         STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref | STCreturn |
+                         STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
             sc2.protection = Prot(PROTpublic);
             sc2.explicitProtection = 0;
             sc2.structalign = STRUCTALIGN_DEFAULT;
@@ -1719,7 +1733,10 @@ public:
                 if (!fbody)
                     fbody = new CompoundStatement(Loc(), new Statements());
 
-                assert(type == f || (type.ty == Tfunction && f.purity == PUREimpure && (cast(TypeFunction)type).purity >= PUREfwdref));
+                assert(type == f ||
+                       (type.ty == Tfunction &&
+                        f.purity == PUREimpure &&
+                        (cast(TypeFunction)type).purity >= PUREfwdref));
                 f = cast(TypeFunction)type;
 
                 if (inferRetType)
@@ -1811,7 +1828,9 @@ public:
                     sc2.fieldinit = null;
                     sc2.fieldinit_dim = 0;
 
-                    if (cd && !(sc2.callSuper & CSXany_ctor) && cd.baseClass && cd.baseClass.ctor)
+                    if (cd &&
+                        !(sc2.callSuper & CSXany_ctor) &&
+                        cd.baseClass && cd.baseClass.ctor)
                     {
                         sc2.callSuper = 0;
 
@@ -1897,7 +1916,10 @@ public:
                             /* Add an assert(0, msg); where the missing return
                              * should be.
                              */
-                            e = new AssertExp(endloc, new IntegerExp(0), new StringExp(loc, cast(char*)"missing return expression"));
+                            e = new AssertExp(
+                                endloc,
+                                new IntegerExp(0),
+                                new StringExp(loc, cast(char*)"missing return expression"));
                         }
                         else
                             e = new HaltExp(endloc);
@@ -2257,7 +2279,9 @@ public:
                     ClassDeclaration cd = isThis() ? isThis().isClassDeclaration() : parent.isClassDeclaration();
                     if (cd)
                     {
-                        if (!global.params.is64bit && global.params.isWindows && !isStatic() && !sbody.usesEH() && !global.params.trace)
+                        if (!global.params.is64bit &&
+                            global.params.isWindows &&
+                            !isStatic() && !sbody.usesEH() && !global.params.trace)
                         {
                             /* The back end uses the "jmonitor" hack for syncing;
                              * no need to do the sync at this level.
@@ -2396,7 +2420,8 @@ public:
             return functionSemantic3();
 
         TemplateInstance ti;
-        if (isInstantiated() && !isVirtualMethod() && !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident))
+        if (isInstantiated() && !isVirtualMethod() &&
+            !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident))
         {
             AggregateDeclaration ad = isMember2();
             if (ad && ad.sizeok != SIZEOKdone)
@@ -2505,7 +2530,8 @@ public:
             FuncAliasDeclaration fa2 = fd2.isFuncAliasDeclaration();
             if (fa1 && fa2)
             {
-                return fa1.toAliasFunc().equals(fa2.toAliasFunc()) && fa1.hasOverloads == fa2.hasOverloads;
+                return fa1.toAliasFunc().equals(fa2.toAliasFunc()) &&
+                       fa1.hasOverloads == fa2.hasOverloads;
             }
 
             if (fa1 && (fd1 = fa1.toAliasFunc()).isUnique() && !fa1.hasOverloads)
@@ -2515,7 +2541,8 @@ public:
             if ((fa1 !is null) != (fa2 !is null))
                 return false;
 
-            return fd1.toParent().equals(fd2.toParent()) && fd1.ident.equals(fd2.ident) && fd1.type.equals(fd2.type);
+            return fd1.toParent().equals(fd2.toParent()) &&
+                   fd1.ident.equals(fd2.ident) && fd1.type.equals(fd2.type);
         }
         return false;
     }
@@ -2670,7 +2697,10 @@ public:
                 printf("fd->type = %s\n", fd.type.toChars());
             }
             // fd->type can be NULL for overloaded constructors
-            if (type && fd.type && fd.type.covariant(type) && fd.type.mod == type.mod && !isFuncAliasDeclaration())
+            if (type && fd.type &&
+                fd.type.covariant(type) &&
+                fd.type.mod == type.mod &&
+                !isFuncAliasDeclaration())
             {
                 //printf("\tfalse: conflict %s\n", kind());
                 return false;
@@ -3071,7 +3101,8 @@ public:
         {
             const(char)* xstatic = isStatic() ? "static " : "";
             // better diagnostics for static functions
-            .error(loc, "%s%s %s cannot access frame of function %s", xstatic, kind(), toPrettyChars(), fd.toPrettyChars());
+            .error(loc, "%s%s %s cannot access frame of function %s",
+                xstatic, kind(), toPrettyChars(), fd.toPrettyChars());
             return -2;
         }
         return 1;
@@ -3328,7 +3359,8 @@ public:
             Parameter fparam = Parameter.getNth(tf.parameters, i);
             if (!fparam.type)
                 continue;
-            Type tprmi = (fparam.storageClass & (STClazy | STCout | STCref)) ? fparam.type : getIndirection(fparam.type);
+            Type tprmi = (fparam.storageClass & (STClazy | STCout | STCref))
+                         ? fparam.type : getIndirection(fparam.type);
             if (!tprmi)
                 continue; // there is no mutable indirection
 
@@ -3353,7 +3385,9 @@ public:
     {
         FuncDeclaration f = toAliasFunc();
         //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
-        return ((f.storage_class & STCstatic) == 0) && (f.linkage == LINKd) && (f.toParent2().isFuncDeclaration() !is null);
+        return ((f.storage_class & STCstatic) == 0) &&
+               (f.linkage == LINKd) &&
+               (f.toParent2().isFuncDeclaration() !is null);
     }
 
     override final bool needThis()
@@ -3389,10 +3423,18 @@ public:
         version (none)
         {
             printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-            printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
-            printf("result is %d\n", isMember() && !(isStatic() || protection == PROTprivate || protection == PROTpackage) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc()));
+            printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n",
+                isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
+            printf("result is %d\n",
+                isMember() &&
+                !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
+                p.isClassDeclaration() &&
+                !(p.isInterfaceDeclaration() && isFinalFunc()));
         }
-        return isMember() && !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
+        return isMember() &&
+               !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) &&
+               p.isClassDeclaration() &&
+               !(p.isInterfaceDeclaration() && isFinalFunc());
     }
 
     bool isFinalFunc()
@@ -3405,25 +3447,37 @@ public:
         {
             printf("FuncDeclaration::isFinalFunc(%s), %x\n", toChars(), Declaration.isFinal());
             printf("%p %d %d %d\n", isMember(), isStatic(), Declaration.isFinal(), ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal));
-            printf("result is %d\n", isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal)));
+            printf("result is %d\n",
+                isMember() &&
+                (Declaration.isFinal() ||
+                 ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal)));
             if (cd)
                 printf("\tmember of %s\n", cd.toChars());
         }
-        return isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal));
+        return isMember() &&
+               (Declaration.isFinal() ||
+                ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal));
     }
 
     bool addPreInvariant()
     {
         AggregateDeclaration ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) &&
+               global.params.useInvariants &&
+               (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
+               !naked);
     }
 
     bool addPostInvariant()
     {
         AggregateDeclaration ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) &&
+               ad.inv &&
+               global.params.useInvariants &&
+               (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) &&
+               !naked);
     }
 
     override const(char)* kind()
@@ -4147,7 +4201,8 @@ extern (C++) static void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rh
  *      flags           1: do not issue error message on no match, just return NULL
  *                      2: overloadResolve only
  */
-extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
+extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
+    Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
 {
     if (!s)
         return null; // no match
@@ -4167,7 +4222,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         }
     }
 
-    if (tiargs && arrayObjectIsError(tiargs) || fargs && arrayObjectIsError(cast(Objects*)fargs))
+    if (tiargs && arrayObjectIsError(tiargs) ||
+        fargs && arrayObjectIsError(cast(Objects*)fargs))
     {
         return null;
     }
@@ -4227,7 +4283,9 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
     {
         if (td && !fd) // all of overloads are templates
         {
-            .error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:", td.kind(), td.parent.toPrettyChars(), td.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
+            .error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
+                td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
+                tiargsBuf.peekString(), fargsBuf.peekString());
 
             // Display candidate templates (even if there are no multiple overloads)
             int numToDisplay = numOverloadsDisplay;
@@ -4316,7 +4374,11 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         TypeFunction tf2 = cast(TypeFunction)m.nextf.type;
         const(char)* lastprms = parametersTypeToChars(tf1.parameters, tf1.varargs);
         const(char)* nextprms = parametersTypeToChars(tf2.parameters, tf2.varargs);
-        .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s\nand:\n%s:     %s%s", s.parent.toPrettyChars(), s.ident.toChars(), fargsBuf.peekString(), m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms);
+        .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s\nand:\n%s:     %s%s",
+            s.parent.toPrettyChars(), s.ident.toChars(),
+            fargsBuf.peekString(),
+            m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms,
+            m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms);
     }
     return null;
 }
@@ -4690,7 +4752,8 @@ public:
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "constructor can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc, "constructor can only be a member of aggregate, not %s %s",
+                p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;
@@ -4834,7 +4897,8 @@ public:
         StructDeclaration ad = p.isStructDeclaration();
         if (!ad)
         {
-            .error(loc, "postblit can only be a member of struct/union, not %s %s", p.kind(), p.toChars());
+            .error(loc, "postblit can only be a member of struct/union, not %s %s",
+                p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;
@@ -4923,7 +4987,8 @@ public:
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "destructor can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc, "destructor can only be a member of aggregate, not %s %s",
+                p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;
@@ -5022,7 +5087,8 @@ public:
         if (!p.isScopeDsymbol())
         {
             const(char)* s = (isSharedStaticCtorDeclaration() ? "shared " : "");
-            .error(loc, "%sstatic constructor can only be member of module/aggregate/template, not %s %s", s, p.kind(), p.toChars());
+            .error(loc, "%sstatic constructor can only be member of module/aggregate/template, not %s %s",
+                s, p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;
@@ -5328,7 +5394,8 @@ public:
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            .error(loc, "invariant can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc, "invariant can only be a member of aggregate, not %s %s",
+                p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;
@@ -5425,7 +5492,8 @@ public:
         Dsymbol p = parent.pastMixin();
         if (!p.isScopeDsymbol())
         {
-            .error(loc, "unittest can only be a member of module/aggregate/template, not %s %s", p.kind(), p.toChars());
+            .error(loc, "unittest can only be a member of module/aggregate/template, not %s %s",
+                p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;
@@ -5526,7 +5594,8 @@ public:
         Dsymbol p = parent.pastMixin();
         if (!p.isAggregateDeclaration())
         {
-            .error(loc, "allocator can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc, "allocator can only be a member of aggregate, not %s %s",
+                p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;
@@ -5620,7 +5689,8 @@ public:
         Dsymbol p = parent.pastMixin();
         if (!p.isAggregateDeclaration())
         {
-            .error(loc, "deallocator can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            .error(loc, "deallocator can only be a member of aggregate, not %s %s",
+                p.kind(), p.toChars());
             type = Type.terror;
             errors = true;
             return;

@@ -336,19 +336,19 @@ struct Scope
         if (cs != callSuper)
         {
             // Have ALL branches called a constructor?
-            int aAll = (cs & (CSXthis_ctor | CSXsuper_ctor)) != 0;
+            int aAll = (cs        & (CSXthis_ctor | CSXsuper_ctor)) != 0;
             int bAll = (callSuper & (CSXthis_ctor | CSXsuper_ctor)) != 0;
 
             // Have ANY branches called a constructor?
-            bool aAny = (cs & CSXany_ctor) != 0;
+            bool aAny = (cs        & CSXany_ctor) != 0;
             bool bAny = (callSuper & CSXany_ctor) != 0;
 
             // Have any branches returned?
-            bool aRet = (cs & CSXreturn) != 0;
+            bool aRet = (cs        & CSXreturn) != 0;
             bool bRet = (callSuper & CSXreturn) != 0;
 
             // Have any branches halted?
-            bool aHalt = (cs & CSXhalt) != 0;
+            bool aHalt = (cs        & CSXhalt) != 0;
             bool bHalt = (callSuper & CSXhalt) != 0;
 
             bool ok = true;
@@ -357,7 +357,8 @@ struct Scope
             {
                 callSuper = CSXhalt;
             }
-            else if ((!aHalt && aRet && !aAny && bAny) || (!bHalt && bRet && !bAny && aAny))
+            else if ((!aHalt && aRet && !aAny && bAny) ||
+                     (!bHalt && bRet && !bAny && aAny))
             {
                 // If one has returned without a constructor call, there must be never
                 // have been ctor calls in the other.
@@ -462,7 +463,10 @@ struct Scope
             //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
             if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
             {
-                if (ident == Id.length && sc.scopesym.isArrayScopeSymbol() && sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
+                if (ident == Id.length &&
+                    sc.scopesym.isArrayScopeSymbol() &&
+                    sc.enclosing &&
+                    sc.enclosing.search(loc, ident, null, flags))
                 {
                     warning(s.loc, "array 'length' hides other 'length' name in outer scope");
                 }

@@ -79,9 +79,9 @@ extern (C++) bool MODimplicitConv(MOD modfrom, MOD modto)
 
     switch (X(modfrom & ~MODshared, modto & ~MODshared))
     {
-        case X(0, MODconst):
-        case X(MODwild, MODconst):
-        case X(MODwild, MODwildconst):
+        case X(0,            MODconst):
+        case X(MODwild,      MODconst):
+        case X(MODwild,      MODwildconst):
         case X(MODwildconst, MODconst):
             return (modfrom & MODshared) == (modto & MODshared);
 
@@ -110,13 +110,13 @@ extern (C++) MATCH MODmethodConv(MOD modfrom, MOD modto)
 
     switch (X(modfrom, modto))
     {
-        case X(0, MODwild):
+        case X(0,            MODwild):
         case X(MODimmutable, MODwild):
-        case X(MODconst, MODwild):
+        case X(MODconst,     MODwild):
         case X(MODwildconst, MODwild):
-        case X(MODshared, MODshared | MODwild):
+        case X(MODshared,                MODshared | MODwild):
         case X(MODshared | MODimmutable, MODshared | MODwild):
-        case X(MODshared | MODconst, MODshared | MODwild):
+        case X(MODshared | MODconst,     MODshared | MODwild):
         case X(MODshared | MODwildconst, MODshared | MODwild):
             return MATCHconst;
 
@@ -142,7 +142,8 @@ extern (C++) MOD MODmerge(MOD mod1, MOD mod2)
         mod1 &= ~MODshared;
         mod2 &= ~MODshared;
     }
-    if (mod1 == 0 || mod1 == MODmutable || mod1 == MODconst || mod2 == 0 || mod2 == MODmutable || mod2 == MODconst)
+    if (mod1 == 0 || mod1 == MODmutable || mod1 == MODconst ||
+        mod2 == 0 || mod2 == MODmutable || mod2 == MODconst)
     {
         // If either type is mutable or const, the result will be const.
         result |= MODconst;
@@ -224,14 +225,10 @@ extern (C++) char* MODtoChars(MOD mod)
 extern (C++) StorageClass ModToStc(uint mod)
 {
     StorageClass stc = 0;
-    if (mod & MODimmutable)
-        stc |= STCimmutable;
-    if (mod & MODconst)
-        stc |= STCconst;
-    if (mod & MODwild)
-        stc |= STCwild;
-    if (mod & MODshared)
-        stc |= STCshared;
+    if (mod & MODimmutable) stc |= STCimmutable;
+    if (mod & MODconst)     stc |= STCconst;
+    if (mod & MODwild)      stc |= STCwild;
+    if (mod & MODshared)    stc |= STCshared;
     return stc;
 }
 
@@ -743,7 +740,8 @@ public:
                  * covariant. Do this test first because it can work on
                  * forward references.
                  */
-                if ((cast(TypeClass)t1n).sym == (cast(TypeClass)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
+                if ((cast(TypeClass)t1n).sym == (cast(TypeClass)t2n).sym &&
+                    MODimplicitConv(t1n.mod, t2n.mod))
                     goto Lcovariant;
 
                 // If t1n is forward referenced:
@@ -757,7 +755,8 @@ public:
             }
             if (t1n.ty == Tstruct && t2n.ty == Tstruct)
             {
-                if ((cast(TypeStruct)t1n).sym == (cast(TypeStruct)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
+                if ((cast(TypeStruct)t1n).sym == (cast(TypeStruct)t2n).sym &&
+                    MODimplicitConv(t1n.mod, t2n.mod))
                     goto Lcovariant;
             }
             else if (t1n.ty == t2n.ty && t1n.implicitConvTo(t2n))
@@ -1527,48 +1526,20 @@ public:
         {
             switch (t.mod)
             {
-                case 0:
-                    mto = t;
-                    break;
-
-                case MODconst:
-                    cto = t;
-                    break;
-
-                case MODwild:
-                    wto = t;
-                    break;
-
-                case MODwildconst:
-                    wcto = t;
-                    break;
-
-                case MODshared:
-                    sto = t;
-                    break;
-
-                case MODshared | MODconst:
-                    scto = t;
-                    break;
-
-                case MODshared | MODwild:
-                    swto = t;
-                    break;
-
-                case MODshared | MODwildconst:
-                    swcto = t;
-                    break;
-
-                case MODimmutable:
-                    ito = t;
-                    break;
-
+                case 0:                           mto = t;  break;
+                case MODconst:                    cto = t;  break;
+                case MODwild:                     wto = t;  break;
+                case MODwildconst:               wcto = t;  break;
+                case MODshared:                   sto = t;  break;
+                case MODshared | MODconst:       scto = t;  break;
+                case MODshared | MODwild:        swto = t;  break;
+                case MODshared | MODwildconst:  swcto = t;  break;
+                case MODimmutable:                ito = t;  break;
                 default:
                     break;
             }
         }
         assert(mod != t.mod);
-
         auto X(T, U)(T m, U n)
         {
             return ((m << 4) | n);
@@ -1616,20 +1587,13 @@ public:
 
             case MODimmutable:
                 t.ito = this;
-                if (t.cto)
-                    t.cto.ito = this;
-                if (t.sto)
-                    t.sto.ito = this;
-                if (t.scto)
-                    t.scto.ito = this;
-                if (t.wto)
-                    t.wto.ito = this;
-                if (t.wcto)
-                    t.wcto.ito = this;
-                if (t.swto)
-                    t.swto.ito = this;
-                if (t.swcto)
-                    t.swcto.ito = this;
+                if (t.  cto) t.  cto.ito = this;
+                if (t.  sto) t.  sto.ito = this;
+                if (t. scto) t. scto.ito = this;
+                if (t.  wto) t.  wto.ito = this;
+                if (t. wcto) t. wcto.ito = this;
+                if (t. swto) t. swto.ito = this;
+                if (t.swcto) t.swcto.ito = this;
                 break;
 
             default:
@@ -1649,158 +1613,102 @@ public:
         switch (mod)
         {
             case 0:
-                if (cto)
-                    assert(cto.mod == MODconst);
-                if (ito)
-                    assert(ito.mod == MODimmutable);
-                if (sto)
-                    assert(sto.mod == MODshared);
-                if (scto)
-                    assert(scto.mod == (MODshared | MODconst));
-                if (wto)
-                    assert(wto.mod == MODwild);
-                if (wcto)
-                    assert(wcto.mod == MODwildconst);
-                if (swto)
-                    assert(swto.mod == (MODshared | MODwild));
-                if (swcto)
-                    assert(swcto.mod == (MODshared | MODwildconst));
+                if (  cto) assert(  cto.mod == MODconst);
+                if (  ito) assert(  ito.mod == MODimmutable);
+                if (  sto) assert(  sto.mod == MODshared);
+                if ( scto) assert( scto.mod == (MODshared | MODconst));
+                if (  wto) assert(  wto.mod == MODwild);
+                if ( wcto) assert( wcto.mod == MODwildconst);
+                if ( swto) assert( swto.mod == (MODshared | MODwild));
+                if (swcto) assert(swcto.mod == (MODshared | MODwildconst));
                 break;
 
             case MODconst:
-                if (cto)
-                    assert(cto.mod == 0);
-                if (ito)
-                    assert(ito.mod == MODimmutable);
-                if (sto)
-                    assert(sto.mod == MODshared);
-                if (scto)
-                    assert(scto.mod == (MODshared | MODconst));
-                if (wto)
-                    assert(wto.mod == MODwild);
-                if (wcto)
-                    assert(wcto.mod == MODwildconst);
-                if (swto)
-                    assert(swto.mod == (MODshared | MODwild));
-                if (swcto)
-                    assert(swcto.mod == (MODshared | MODwildconst));
+                if (  cto) assert(  cto.mod == 0);
+                if (  ito) assert(  ito.mod == MODimmutable);
+                if (  sto) assert(  sto.mod == MODshared);
+                if ( scto) assert( scto.mod == (MODshared | MODconst));
+                if (  wto) assert(  wto.mod == MODwild);
+                if ( wcto) assert( wcto.mod == MODwildconst);
+                if ( swto) assert( swto.mod == (MODshared | MODwild));
+                if (swcto) assert(swcto.mod == (MODshared | MODwildconst));
                 break;
 
             case MODwild:
-                if (cto)
-                    assert(cto.mod == MODconst);
-                if (ito)
-                    assert(ito.mod == MODimmutable);
-                if (sto)
-                    assert(sto.mod == MODshared);
-                if (scto)
-                    assert(scto.mod == (MODshared | MODconst));
-                if (wto)
-                    assert(wto.mod == 0);
-                if (wcto)
-                    assert(wcto.mod == MODwildconst);
-                if (swto)
-                    assert(swto.mod == (MODshared | MODwild));
-                if (swcto)
-                    assert(swcto.mod == (MODshared | MODwildconst));
+                if (  cto) assert(  cto.mod == MODconst);
+                if (  ito) assert(  ito.mod == MODimmutable);
+                if (  sto) assert(  sto.mod == MODshared);
+                if ( scto) assert( scto.mod == (MODshared | MODconst));
+                if (  wto) assert(  wto.mod == 0);
+                if ( wcto) assert( wcto.mod == MODwildconst);
+                if ( swto) assert( swto.mod == (MODshared | MODwild));
+                if (swcto) assert(swcto.mod == (MODshared | MODwildconst));
                 break;
 
             case MODwildconst:
-                assert(!cto || cto.mod == MODconst);
-                assert(!ito || ito.mod == MODimmutable);
-                assert(!sto || sto.mod == MODshared);
-                assert(!scto || scto.mod == (MODshared | MODconst));
-                assert(!wto || wto.mod == MODwild);
-                assert(!wcto || wcto.mod == 0);
-                assert(!swto || swto.mod == (MODshared | MODwild));
+                assert(!  cto ||   cto.mod == MODconst);
+                assert(!  ito ||   ito.mod == MODimmutable);
+                assert(!  sto ||   sto.mod == MODshared);
+                assert(! scto ||  scto.mod == (MODshared | MODconst));
+                assert(!  wto ||   wto.mod == MODwild);
+                assert(! wcto ||  wcto.mod == 0);
+                assert(! swto ||  swto.mod == (MODshared | MODwild));
                 assert(!swcto || swcto.mod == (MODshared | MODwildconst));
                 break;
 
             case MODshared:
-                if (cto)
-                    assert(cto.mod == MODconst);
-                if (ito)
-                    assert(ito.mod == MODimmutable);
-                if (sto)
-                    assert(sto.mod == 0);
-                if (scto)
-                    assert(scto.mod == (MODshared | MODconst));
-                if (wto)
-                    assert(wto.mod == MODwild);
-                if (wcto)
-                    assert(wcto.mod == MODwildconst);
-                if (swto)
-                    assert(swto.mod == (MODshared | MODwild));
-                if (swcto)
-                    assert(swcto.mod == (MODshared | MODwildconst));
+                if (  cto) assert(  cto.mod == MODconst);
+                if (  ito) assert(  ito.mod == MODimmutable);
+                if (  sto) assert(  sto.mod == 0);
+                if ( scto) assert( scto.mod == (MODshared | MODconst));
+                if (  wto) assert(  wto.mod == MODwild);
+                if ( wcto) assert( wcto.mod == MODwildconst);
+                if ( swto) assert( swto.mod == (MODshared | MODwild));
+                if (swcto) assert(swcto.mod == (MODshared | MODwildconst));
                 break;
 
             case MODshared | MODconst:
-                if (cto)
-                    assert(cto.mod == MODconst);
-                if (ito)
-                    assert(ito.mod == MODimmutable);
-                if (sto)
-                    assert(sto.mod == MODshared);
-                if (scto)
-                    assert(scto.mod == 0);
-                if (wto)
-                    assert(wto.mod == MODwild);
-                if (wcto)
-                    assert(wcto.mod == MODwildconst);
-                if (swto)
-                    assert(swto.mod == (MODshared | MODwild));
-                if (swcto)
-                    assert(swcto.mod == (MODshared | MODwildconst));
+                if (  cto) assert(  cto.mod == MODconst);
+                if (  ito) assert(  ito.mod == MODimmutable);
+                if (  sto) assert(  sto.mod == MODshared);
+                if ( scto) assert( scto.mod == 0);
+                if (  wto) assert(  wto.mod == MODwild);
+                if ( wcto) assert( wcto.mod == MODwildconst);
+                if ( swto) assert( swto.mod == (MODshared | MODwild));
+                if (swcto) assert(swcto.mod == (MODshared | MODwildconst));
                 break;
 
             case MODshared | MODwild:
-                if (cto)
-                    assert(cto.mod == MODconst);
-                if (ito)
-                    assert(ito.mod == MODimmutable);
-                if (sto)
-                    assert(sto.mod == MODshared);
-                if (scto)
-                    assert(scto.mod == (MODshared | MODconst));
-                if (wto)
-                    assert(wto.mod == MODwild);
-                if (wcto)
-                    assert(wcto.mod == MODwildconst);
-                if (swto)
-                    assert(swto.mod == 0);
-                if (swcto)
-                    assert(swcto.mod == (MODshared | MODwildconst));
+                if (  cto) assert(  cto.mod == MODconst);
+                if (  ito) assert(  ito.mod == MODimmutable);
+                if (  sto) assert(  sto.mod == MODshared);
+                if ( scto) assert( scto.mod == (MODshared | MODconst));
+                if (  wto) assert(  wto.mod == MODwild);
+                if ( wcto) assert( wcto.mod == MODwildconst);
+                if ( swto) assert( swto.mod == 0);
+                if (swcto) assert(swcto.mod == (MODshared | MODwildconst));
                 break;
 
             case MODshared | MODwildconst:
-                assert(!cto || cto.mod == MODconst);
-                assert(!ito || ito.mod == MODimmutable);
-                assert(!sto || sto.mod == MODshared);
-                assert(!scto || scto.mod == (MODshared | MODconst));
-                assert(!wto || wto.mod == MODwild);
-                assert(!wcto || wcto.mod == MODwildconst);
-                assert(!swto || swto.mod == (MODshared | MODwild));
+                assert(!  cto ||   cto.mod == MODconst);
+                assert(!  ito ||   ito.mod == MODimmutable);
+                assert(!  sto ||   sto.mod == MODshared);
+                assert(! scto ||  scto.mod == (MODshared | MODconst));
+                assert(!  wto ||   wto.mod == MODwild);
+                assert(! wcto ||  wcto.mod == MODwildconst);
+                assert(! swto ||  swto.mod == (MODshared | MODwild));
                 assert(!swcto || swcto.mod == 0);
                 break;
 
             case MODimmutable:
-                if (cto)
-                    assert(cto.mod == MODconst);
-                if (ito)
-                    assert(ito.mod == 0);
-                if (sto)
-                    assert(sto.mod == MODshared);
-                if (scto)
-                    assert(scto.mod == (MODshared | MODconst));
-                if (wto)
-                    assert(wto.mod == MODwild);
-                if (wcto)
-                    assert(wcto.mod == MODwildconst);
-                if (swto)
-                    assert(swto.mod == (MODshared | MODwild));
-                if (swcto)
-                    assert(swcto.mod == (MODshared | MODwildconst));
+                if (  cto) assert(  cto.mod == MODconst);
+                if (  ito) assert(  ito.mod == 0);
+                if (  sto) assert(  sto.mod == MODshared);
+                if ( scto) assert( scto.mod == (MODshared | MODconst));
+                if (  wto) assert(  wto.mod == MODwild);
+                if ( wcto) assert( wcto.mod == MODwildconst);
+                if ( swto) assert( swto.mod == (MODshared | MODwild));
+                if (swcto) assert(swcto.mod == (MODshared | MODwildconst));
                 break;
 
             default:
@@ -3010,11 +2918,13 @@ public:
             }
             if (t.iscomplex())
             {
-                fprintf(global.stdmsg, "%s: use of complex type '%s' is scheduled for deprecation, use 'std.complex.Complex!(%s)' instead\n", p ? p : "", toChars(), rt.toChars());
+                fprintf(global.stdmsg, "%s: use of complex type '%s' is scheduled for deprecation, use 'std.complex.Complex!(%s)' instead\n",
+                    p ? p : "", toChars(), rt.toChars());
             }
             else
             {
-                fprintf(global.stdmsg, "%s: use of imaginary type '%s' is scheduled for deprecation, use '%s' instead\n", p ? p : "", toChars(), rt.toChars());
+                fprintf(global.stdmsg, "%s: use of imaginary type '%s' is scheduled for deprecation, use '%s' instead\n",
+                    p ? p : "", toChars(), rt.toChars());
             }
         }
     }
@@ -3142,7 +3052,8 @@ public:
             return cto;
         }
         TypeNext t = cast(TypeNext)Type.makeConst();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Tfunction && next.ty != Tfunction &&
+            !next.isImmutable())
         {
             if (next.isShared())
             {
@@ -4012,17 +3923,9 @@ public:
         {
             switch (ty)
             {
-                case Tcomplex32:
-                    t = tfloat32;
-                    goto L1;
-
-                case Tcomplex64:
-                    t = tfloat64;
-                    goto L1;
-
-                case Tcomplex80:
-                    t = tfloat80;
-                    goto L1;
+                case Tcomplex32:    t = tfloat32;   goto L1;
+                case Tcomplex64:    t = tfloat64;   goto L1;
+                case Tcomplex80:    t = tfloat80;   goto L1;
                 L1:
                     e = e.castTo(sc, t);
                     break;
@@ -4032,17 +3935,9 @@ public:
                 case Tfloat80:
                     break;
 
-                case Timaginary32:
-                    t = tfloat32;
-                    goto L2;
-
-                case Timaginary64:
-                    t = tfloat64;
-                    goto L2;
-
-                case Timaginary80:
-                    t = tfloat80;
-                    goto L2;
+                case Timaginary32:  t = tfloat32;   goto L2;
+                case Timaginary64:  t = tfloat64;   goto L2;
+                case Timaginary80:  t = tfloat80;   goto L2;
                 L2:
                     e = new RealExp(e.loc, ldouble(0.0), t);
                     break;
@@ -4057,36 +3952,17 @@ public:
             Type t2;
             switch (ty)
             {
-                case Tcomplex32:
-                    t = timaginary32;
-                    t2 = tfloat32;
-                    goto L3;
-
-                case Tcomplex64:
-                    t = timaginary64;
-                    t2 = tfloat64;
-                    goto L3;
-
-                case Tcomplex80:
-                    t = timaginary80;
-                    t2 = tfloat80;
-                    goto L3;
+                case Tcomplex32:    t = timaginary32;   t2 = tfloat32;  goto L3;
+                case Tcomplex64:    t = timaginary64;   t2 = tfloat64;  goto L3;
+                case Tcomplex80:    t = timaginary80;   t2 = tfloat80;  goto L3;
                 L3:
                     e = e.castTo(sc, t);
                     e.type = t2;
                     break;
 
-                case Timaginary32:
-                    t = tfloat32;
-                    goto L4;
-
-                case Timaginary64:
-                    t = tfloat64;
-                    goto L4;
-
-                case Timaginary80:
-                    t = tfloat80;
-                    goto L4;
+                case Timaginary32:  t = tfloat32;   goto L4;
+                case Timaginary64:  t = tfloat64;   goto L4;
+                case Timaginary80:  t = tfloat80;   goto L4;
                 L4:
                     e = e.copy();
                     e.type = t;
@@ -4217,11 +4093,13 @@ public:
                 return MATCHnomatch;
 
             // Disallow implicit conversion of real or imaginary to complex
-            if (flags & (TFLAGSreal | TFLAGSimaginary) && tob.flags & TFLAGScomplex)
+            if (flags & (TFLAGSreal | TFLAGSimaginary) &&
+                tob.flags & TFLAGScomplex)
                 return MATCHnomatch;
 
             // Disallow implicit conversion to-from real and imaginary
-            if ((flags & (TFLAGSreal | TFLAGSimaginary)) != (tob.flags & (TFLAGSreal | TFLAGSimaginary)))
+            if ((flags & (TFLAGSreal | TFLAGSimaginary)) !=
+                (tob.flags & (TFLAGSreal | TFLAGSimaginary)))
                 return MATCHnomatch;
         }
         return MATCHconvert;
@@ -4761,17 +4639,26 @@ public:
             if (d1 != d2)
             {
             Loverflow:
-                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
+                error(loc, "%s size %llu * %llu exceeds 16MiB size limit for static array",
+                    toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
                 goto Lerror;
             }
             Type tbx = tbn.baseElemOf();
-            if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
+            if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members ||
+                tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
                 /* To avoid meaningess error message, skip the total size limit check
                  * when the bottom of element type is opaque.
                  */
             }
-            else if (tbn.isintegral() || tbn.isfloating() || tbn.ty == Tpointer || tbn.ty == Tarray || tbn.ty == Tsarray || tbn.ty == Taarray || (tbn.ty == Tstruct && ((cast(TypeStruct)tbn).sym.sizeok == SIZEOKdone)) || tbn.ty == Tclass)
+            else if (tbn.isintegral() ||
+                     tbn.isfloating() ||
+                     tbn.ty == Tpointer ||
+                     tbn.ty == Tarray ||
+                     tbn.ty == Tsarray ||
+                     tbn.ty == Taarray ||
+                     (tbn.ty == Tstruct && ((cast(TypeStruct)tbn).sym.sizeok == SIZEOKdone)) ||
+                     tbn.ty == Tclass)
             {
                 /* Only do this for types that don't need to have semantic()
                  * run on them for the size, since they may be forward referenced.
@@ -5350,7 +5237,8 @@ public:
 
         // Deal with the case where we thought the index was a type, but
         // in reality it was an expression.
-        if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray || index.ty == Ttypeof || index.ty == Treturn)
+        if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray ||
+            index.ty == Ttypeof || index.ty == Treturn)
         {
             Expression e;
             Type t;
@@ -5416,7 +5304,9 @@ public:
                 sd.semantic(null);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
-            if (sd.xeq && sd.xeq._scope && sd.xeq.semanticRun < PASSsemantic3done)
+            if (sd.xeq &&
+                sd.xeq._scope &&
+                sd.xeq.semanticRun < PASSsemantic3done)
             {
                 uint errors = global.startGagging();
                 sd.xeq.semantic3(sd.xeq._scope);
@@ -5438,11 +5328,13 @@ public:
             {
                 if (search_function(sd, Id.eq))
                 {
-                    error(loc, "%sAA key type %s does not have 'bool opEquals(ref const %s) const'", s, sd.toChars(), sd.toChars());
+                    error(loc, "%sAA key type %s does not have 'bool opEquals(ref const %s) const'",
+                        s, sd.toChars(), sd.toChars());
                 }
                 else
                 {
-                    error(loc, "%sAA key type %s does not support const equality", s, sd.toChars());
+                    error(loc, "%sAA key type %s does not support const equality",
+                        s, sd.toChars());
                 }
                 return Type.terror;
             }
@@ -5450,11 +5342,13 @@ public:
             {
                 if (search_function(sd, Id.eq))
                 {
-                    error(loc, "%sAA key type %s should have 'size_t toHash() const nothrow @safe' if opEquals defined", s, sd.toChars());
+                    error(loc, "%sAA key type %s should have 'size_t toHash() const nothrow @safe' if opEquals defined",
+                        s, sd.toChars());
                 }
                 else
                 {
-                    error(loc, "%sAA key type %s supports const equality but doesn't support const hashing", s, sd.toChars());
+                    error(loc, "%sAA key type %s supports const equality but doesn't support const hashing",
+                        s, sd.toChars());
                 }
                 return Type.terror;
             }
@@ -5485,12 +5379,9 @@ public:
             static __gshared FuncDeclaration feq = null;
             static __gshared FuncDeclaration fcmp = null;
             static __gshared FuncDeclaration fhash = null;
-            if (!feq)
-                feq = search_function(ClassDeclaration.object, Id.eq).isFuncDeclaration();
-            if (!fcmp)
-                fcmp = search_function(ClassDeclaration.object, Id.cmp).isFuncDeclaration();
-            if (!fhash)
-                fhash = search_function(ClassDeclaration.object, Id.tohash).isFuncDeclaration();
+            if (!feq)   feq   = search_function(ClassDeclaration.object, Id.eq).isFuncDeclaration();
+            if (!fcmp)  fcmp  = search_function(ClassDeclaration.object, Id.cmp).isFuncDeclaration();
+            if (!fhash) fhash = search_function(ClassDeclaration.object, Id.tohash).isFuncDeclaration();
             assert(fcmp && feq && fhash);
 
             if (feq.vtblIndex < cd.vtbl.dim && cd.vtbl[feq.vtblIndex] == feq)
@@ -6201,7 +6092,8 @@ public:
                     fparam.storageClass |= STCreturn;
                 }
 
-                if (fparam.storageClass & STCreturn && !(fparam.storageClass & (STCref | STCout)))
+                if (fparam.storageClass & STCreturn &&
+                    !(fparam.storageClass & (STCref | STCout)))
                 {
                     error(loc, "'return' can only be used with 'ref' or 'out'");
                     errors = true;
@@ -6224,7 +6116,8 @@ public:
                             tv = tv.nextOf().toBasetype();
                         if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.noDefaultCtor)
                         {
-                            error(loc, "cannot have out parameter of type %s because the default construction is disabled", fparam.type.toChars());
+                            error(loc, "cannot have out parameter of type %s because the default construction is disabled",
+                                fparam.type.toChars());
                             errors = true;
                         }
                     }
@@ -6538,7 +6431,10 @@ public:
     override Type addStorageClass(StorageClass stc)
     {
         TypeFunction t = cast(TypeFunction)Type.addStorageClass(stc);
-        if ((stc & STCpure && !t.purity) || (stc & STCnothrow && !t.isnothrow) || (stc & STCnogc && !t.isnogc) || (stc & STCsafe && t.trust < TRUSTtrusted))
+        if ((stc & STCpure && !t.purity) ||
+            (stc & STCnothrow && !t.isnothrow) ||
+            (stc & STCnogc && !t.isnogc) ||
+            (stc & STCsafe && t.trust < TRUSTtrusted))
         {
             // Klunky to change these
             auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage, 0);
@@ -7328,7 +7224,8 @@ public:
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
-                if (id.dyncast() == DYNCAST_EXPRESSION || id.dyncast() == DYNCAST_TYPE)
+                if (id.dyncast() == DYNCAST_EXPRESSION ||
+                    id.dyncast() == DYNCAST_TYPE)
                 {
                     Type tx;
                     Expression ex;
@@ -7362,7 +7259,8 @@ public:
                     goto L3;
                 if (VarDeclaration v = s.isVarDeclaration())
                 {
-                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) || v.type.isConst() || v.type.isImmutable())
+                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                        v.type.isConst() || v.type.isImmutable())
                     {
                         // Bugzilla 13087: this.field is not constant always
                         if (!v.isThisDeclaration())
@@ -7379,7 +7277,8 @@ public:
                             if (!t && s.isTupleDeclaration()) // expression tuple?
                                 goto L3;
                         }
-                        else if (s.isTemplateInstance() || s.isImport() || s.isPackage() || s.isModule())
+                        else if (s.isTemplateInstance() ||
+                                 s.isImport() || s.isPackage() || s.isModule())
                         {
                             goto L3;
                         }
@@ -8142,7 +8041,8 @@ public:
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e.loc, ev);
                 auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
+                vd.storage_class |= STCtemp | STCctfe |
+                                    (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }
@@ -8674,7 +8574,9 @@ public:
         Dsymbol s = sym.search(e.loc, ident);
         if (!s)
         {
-            if (ident == Id.max || ident == Id.min || ident == Id._init)
+            if (ident == Id.max ||
+                ident == Id.min ||
+                ident == Id._init)
             {
                 return getProperty(e.loc, ident, flag);
             }
@@ -8951,7 +8853,8 @@ public:
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e.loc, ev);
                 auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
+                vd.storage_class |= STCtemp | STCctfe |
+                                    (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }
@@ -9348,13 +9251,15 @@ public:
     {
         if (equals(to))
             return MATCHexact;
-        if (ty == to.ty && sym == (cast(TypeClass)to).sym && MODimplicitConv(mod, to.mod))
+        if (ty == to.ty && sym == (cast(TypeClass)to).sym &&
+            MODimplicitConv(mod, to.mod))
             return MATCHconst;
 
         /* Conversion derived to const(base)
          */
         int offset = 0;
-        if (to.isBaseOf(this, &offset) && offset == 0 && MODimplicitConv(mod, to.mod))
+        if (to.isBaseOf(this, &offset) && offset == 0 &&
+            MODimplicitConv(mod, to.mod))
         {
             // Disallow:
             //  derived to base
@@ -9782,8 +9687,15 @@ public:
         //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
         {
             Type tb = to.toBasetype();
-            if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)
+            if (tb.ty == Tnull ||
+                tb.ty == Tpointer ||
+                tb.ty == Tarray ||
+                tb.ty == Taarray ||
+                tb.ty == Tclass ||
+                tb.ty == Tdelegate)
+            {
                 return MATCHconst;
+            }
         }
 
         return MATCHnomatch;
@@ -9835,7 +9747,10 @@ public:
 
     Parameter syntaxCopy()
     {
-        return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null);
+        return new Parameter(storageClass,
+            type ? type.syntaxCopy() : null,
+            ident,
+            defaultArg ? defaultArg.syntaxCopy() : null);
     }
 
     /****************************************************

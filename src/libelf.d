@@ -157,7 +157,8 @@ public:
                     goto Lcorrupt;
                 }
 
-                if (header.object_name[0] == '/' && header.object_name[1] == ' ')
+                if (header.object_name[0] == '/' &&
+                    header.object_name[1] == ' ')
                 {
                     /* Instead of rescanning the object modules we pull from a
                      * library, just use the already created symbol table.
@@ -175,7 +176,8 @@ public:
                         goto Lcorrupt;
                     }
                 }
-                else if (header.object_name[0] == '/' && header.object_name[1] == '/')
+                else if (header.object_name[0] == '/' &&
+                         header.object_name[1] == '/')
                 {
                     /* This is the file name table, save it for later.
                      */
@@ -630,16 +632,16 @@ extern (C++) Library LibElf_factory()
 
 struct ElfObjModule
 {
-    ubyte* base; // where are we holding it in memory
-    uint length; // in bytes
-    uint offset; // offset from start of library
-    char* name; // module name (file name)
-    int name_offset; // if not -1, offset into string table of name
-    time_t file_time; // file time
+    ubyte* base;                // where are we holding it in memory
+    uint length;                // in bytes
+    uint offset;                // offset from start of library
+    char* name;                 // module name (file name)
+    int name_offset;            // if not -1, offset into string table of name
+    time_t file_time;           // file time
     uint user_id;
     uint group_id;
     uint file_mode;
-    int scan; // 1 means scan for symbols
+    int scan;                   // 1 means scan for symbols
 }
 
 enum ELF_OBJECT_NAME_SIZE = 16;
@@ -650,7 +652,7 @@ struct ElfLibHeader
     char[12] file_time;
     char[6] user_id;
     char[6] group_id;
-    char[8] file_mode; // in octal
+    char[8] file_mode;          // in octal
     char[10] file_size;
     char[2] trailer;
 }
@@ -670,7 +672,10 @@ extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         // "name/           1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //        name       file_time   u_id gr_id  fmode    fsize   trailer
-        len = snprintf(buffer, ElfLibHeader.sizeof, "%-16s%-12llu%-6u%-6u%-8o%-10u`", om.name, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
+        len = snprintf(buffer, ElfLibHeader.sizeof, "%-16s%-12llu%-6u%-6u%-8o%-10u`",
+                om.name,
+                cast(long)om.file_time, om.user_id, om.group_id,
+                om.file_mode, om.length);
 
         // adding '/' after the name field
         const(size_t) name_length = strlen(om.name);
@@ -682,7 +687,10 @@ extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         // "/162007         1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //     name_offset   file_time   u_id gr_id  fmode    fsize   trailer
-        len = snprintf(buffer, ElfLibHeader.sizeof, "/%-15d%-12llu%-6u%-6u%-8o%-10u`", om.name_offset, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
+        len = snprintf(buffer, ElfLibHeader.sizeof, "/%-15d%-12llu%-6u%-6u%-8o%-10u`",
+                om.name_offset,
+                cast(long)om.file_time, om.user_id, om.group_id,
+                om.file_mode, om.length);
     }
     assert(ElfLibHeader.sizeof > 0 && len == ElfLibHeader.sizeof - 1);
     // replace trailing \0 with \n

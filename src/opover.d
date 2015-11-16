@@ -80,195 +80,44 @@ extern (C++) static Identifier opId(Expression e)
     public:
         Identifier id;
 
-        override void visit(Expression e)
-        {
-            assert(0);
-        }
-
-        override void visit(UAddExp e)
-        {
-            id = Id.uadd;
-        }
-
-        override void visit(NegExp e)
-        {
-            id = Id.neg;
-        }
-
-        override void visit(ComExp e)
-        {
-            id = Id.com;
-        }
-
-        override void visit(CastExp e)
-        {
-            id = Id._cast;
-        }
-
-        override void visit(InExp e)
-        {
-            id = Id.opIn;
-        }
-
-        override void visit(PostExp e)
-        {
-            id = (e.op == TOKplusplus) ? Id.postinc : Id.postdec;
-        }
-
-        override void visit(AddExp e)
-        {
-            id = Id.add;
-        }
-
-        override void visit(MinExp e)
-        {
-            id = Id.sub;
-        }
-
-        override void visit(MulExp e)
-        {
-            id = Id.mul;
-        }
-
-        override void visit(DivExp e)
-        {
-            id = Id.div;
-        }
-
-        override void visit(ModExp e)
-        {
-            id = Id.mod;
-        }
-
-        override void visit(PowExp e)
-        {
-            id = Id.pow;
-        }
-
-        override void visit(ShlExp e)
-        {
-            id = Id.shl;
-        }
-
-        override void visit(ShrExp e)
-        {
-            id = Id.shr;
-        }
-
-        override void visit(UshrExp e)
-        {
-            id = Id.ushr;
-        }
-
-        override void visit(AndExp e)
-        {
-            id = Id.iand;
-        }
-
-        override void visit(OrExp e)
-        {
-            id = Id.ior;
-        }
-
-        override void visit(XorExp e)
-        {
-            id = Id.ixor;
-        }
-
-        override void visit(CatExp e)
-        {
-            id = Id.cat;
-        }
-
-        override void visit(AssignExp e)
-        {
-            id = Id.assign;
-        }
-
-        override void visit(AddAssignExp e)
-        {
-            id = Id.addass;
-        }
-
-        override void visit(MinAssignExp e)
-        {
-            id = Id.subass;
-        }
-
-        override void visit(MulAssignExp e)
-        {
-            id = Id.mulass;
-        }
-
-        override void visit(DivAssignExp e)
-        {
-            id = Id.divass;
-        }
-
-        override void visit(ModAssignExp e)
-        {
-            id = Id.modass;
-        }
-
-        override void visit(AndAssignExp e)
-        {
-            id = Id.andass;
-        }
-
-        override void visit(OrAssignExp e)
-        {
-            id = Id.orass;
-        }
-
-        override void visit(XorAssignExp e)
-        {
-            id = Id.xorass;
-        }
-
-        override void visit(ShlAssignExp e)
-        {
-            id = Id.shlass;
-        }
-
-        override void visit(ShrAssignExp e)
-        {
-            id = Id.shrass;
-        }
-
-        override void visit(UshrAssignExp e)
-        {
-            id = Id.ushrass;
-        }
-
-        override void visit(CatAssignExp e)
-        {
-            id = Id.catass;
-        }
-
-        override void visit(PowAssignExp e)
-        {
-            id = Id.powass;
-        }
-
-        override void visit(EqualExp e)
-        {
-            id = Id.eq;
-        }
-
-        override void visit(CmpExp e)
-        {
-            id = Id.cmp;
-        }
-
-        override void visit(ArrayExp e)
-        {
-            id = Id.index;
-        }
-
-        override void visit(PtrExp e)
-        {
-            id = Id.opStar;
-        }
+        override void visit(Expression e)       { assert(0); }
+        override void visit(UAddExp e)          { id = Id.uadd; }
+        override void visit(NegExp e)           { id = Id.neg; }
+        override void visit(ComExp e)           { id = Id.com; }
+        override void visit(CastExp e)          { id = Id._cast; }
+        override void visit(InExp e)            { id = Id.opIn; }
+        override void visit(PostExp e)          { id = (e.op == TOKplusplus) ? Id.postinc : Id.postdec; }
+        override void visit(AddExp e)           { id = Id.add; }
+        override void visit(MinExp e)           { id = Id.sub; }
+        override void visit(MulExp e)           { id = Id.mul; }
+        override void visit(DivExp e)           { id = Id.div; }
+        override void visit(ModExp e)           { id = Id.mod; }
+        override void visit(PowExp e)           { id = Id.pow; }
+        override void visit(ShlExp e)           { id = Id.shl; }
+        override void visit(ShrExp e)           { id = Id.shr; }
+        override void visit(UshrExp e)          { id = Id.ushr; }
+        override void visit(AndExp e)           { id = Id.iand; }
+        override void visit(OrExp e)            { id = Id.ior; }
+        override void visit(XorExp e)           { id = Id.ixor; }
+        override void visit(CatExp e)           { id = Id.cat; }
+        override void visit(AssignExp e)        { id = Id.assign; }
+        override void visit(AddAssignExp e)     { id = Id.addass; }
+        override void visit(MinAssignExp e)     { id = Id.subass; }
+        override void visit(MulAssignExp e)     { id = Id.mulass; }
+        override void visit(DivAssignExp e)     { id = Id.divass; }
+        override void visit(ModAssignExp e)     { id = Id.modass; }
+        override void visit(AndAssignExp e)     { id = Id.andass; }
+        override void visit(OrAssignExp e)      { id = Id.orass; }
+        override void visit(XorAssignExp e)     { id = Id.xorass; }
+        override void visit(ShlAssignExp e)     { id = Id.shlass; }
+        override void visit(ShrAssignExp e)     { id = Id.shrass; }
+        override void visit(UshrAssignExp e)    { id = Id.ushrass; }
+        override void visit(CatAssignExp e)     { id = Id.catass; }
+        override void visit(PowAssignExp e)     { id = Id.powass; }
+        override void visit(EqualExp e)         { id = Id.eq; }
+        override void visit(CmpExp e)           { id = Id.cmp; }
+        override void visit(ArrayExp e)         { id = Id.index; }
+        override void visit(PtrExp e)           { id = Id.opStar; }
     }
 
     scope OpIdVisitor v = new OpIdVisitor();
@@ -288,80 +137,21 @@ extern (C++) static Identifier opId_r(Expression e)
     public:
         Identifier id;
 
-        override void visit(Expression e)
-        {
-            id = null;
-        }
-
-        override void visit(InExp e)
-        {
-            id = Id.opIn_r;
-        }
-
-        override void visit(AddExp e)
-        {
-            id = Id.add_r;
-        }
-
-        override void visit(MinExp e)
-        {
-            id = Id.sub_r;
-        }
-
-        override void visit(MulExp e)
-        {
-            id = Id.mul_r;
-        }
-
-        override void visit(DivExp e)
-        {
-            id = Id.div_r;
-        }
-
-        override void visit(ModExp e)
-        {
-            id = Id.mod_r;
-        }
-
-        override void visit(PowExp e)
-        {
-            id = Id.pow_r;
-        }
-
-        override void visit(ShlExp e)
-        {
-            id = Id.shl_r;
-        }
-
-        override void visit(ShrExp e)
-        {
-            id = Id.shr_r;
-        }
-
-        override void visit(UshrExp e)
-        {
-            id = Id.ushr_r;
-        }
-
-        override void visit(AndExp e)
-        {
-            id = Id.iand_r;
-        }
-
-        override void visit(OrExp e)
-        {
-            id = Id.ior_r;
-        }
-
-        override void visit(XorExp e)
-        {
-            id = Id.ixor_r;
-        }
-
-        override void visit(CatExp e)
-        {
-            id = Id.cat_r;
-        }
+        override void visit(Expression e)   { id = null; }
+        override void visit(InExp e)        { id = Id.opIn_r; }
+        override void visit(AddExp e)       { id = Id.add_r; }
+        override void visit(MinExp e)       { id = Id.sub_r; }
+        override void visit(MulExp e)       { id = Id.mul_r; }
+        override void visit(DivExp e)       { id = Id.div_r; }
+        override void visit(ModExp e)       { id = Id.mod_r; }
+        override void visit(PowExp e)       { id = Id.pow_r; }
+        override void visit(ShlExp e)       { id = Id.shl_r; }
+        override void visit(ShrExp e)       { id = Id.shr_r; }
+        override void visit(UshrExp e)      { id = Id.ushr_r; }
+        override void visit(AndExp e)       { id = Id.iand_r; }
+        override void visit(OrExp e)        { id = Id.ior_r; }
+        override void visit(XorExp e)       { id = Id.ixor_r; }
+        override void visit(CatExp e)       { id = Id.cat_r; }
     }
 
     scope OpIdRVisitor v = new OpIdRVisitor();
@@ -396,58 +186,19 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
      */
     switch (op)
     {
-        case TOKaddass:
-            op = TOKadd;
-            break;
-
-        case TOKminass:
-            op = TOKmin;
-            break;
-
-        case TOKmulass:
-            op = TOKmul;
-            break;
-
-        case TOKdivass:
-            op = TOKdiv;
-            break;
-
-        case TOKmodass:
-            op = TOKmod;
-            break;
-
-        case TOKandass:
-            op = TOKand;
-            break;
-
-        case TOKorass:
-            op = TOKor;
-            break;
-
-        case TOKxorass:
-            op = TOKxor;
-            break;
-
-        case TOKshlass:
-            op = TOKshl;
-            break;
-
-        case TOKshrass:
-            op = TOKshr;
-            break;
-
-        case TOKushrass:
-            op = TOKushr;
-            break;
-
-        case TOKcatass:
-            op = TOKcat;
-            break;
-
-        case TOKpowass:
-            op = TOKpow;
-            break;
-
+        case TOKaddass:     op = TOKadd;    break;
+        case TOKminass:     op = TOKmin;    break;
+        case TOKmulass:     op = TOKmul;    break;
+        case TOKdivass:     op = TOKdiv;    break;
+        case TOKmodass:     op = TOKmod;    break;
+        case TOKandass:     op = TOKand;    break;
+        case TOKorass:      op = TOKor;     break;
+        case TOKxorass:     op = TOKxor;    break;
+        case TOKshlass:     op = TOKshl;    break;
+        case TOKshrass:     op = TOKshr;    break;
+        case TOKushrass:    op = TOKushr;   break;
+        case TOKcatass:     op = TOKcat;    break;
+        case TOKpowass:     op = TOKpow;    break;
         default:
             break;
     }
@@ -493,7 +244,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 ae.e1 = ae.e1.semantic(sc);
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
-                const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+                const(bool) maybeSlice =
+                    (ae.arguments.dim == 0 ||
+                     ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
                 IntervalExp ie = null;
                 if (maybeSlice && ae.arguments.dim)
                 {
@@ -651,7 +404,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             ae.e1 = resolveProperties(sc, ae.e1);
             Expression ae1old = ae.e1;
 
-            const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+            const(bool) maybeSlice =
+                (ae.arguments.dim == 0 ||
+                 ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
             IntervalExp ie = null;
             if (maybeSlice && ae.arguments.dim)
             {
@@ -676,7 +431,12 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 {
                     // If the non-aggregate expression ae->e1 is indexable or sliceable,
                     // convert it to the corresponding concrete expression.
-                    if (t1b.ty == Tpointer || t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Taarray || t1b.ty == Ttuple || ae.e1.op == TOKtype)
+                    if (t1b.ty == Tpointer ||
+                        t1b.ty == Tsarray ||
+                        t1b.ty == Tarray ||
+                        t1b.ty == Taarray ||
+                        t1b.ty == Ttuple ||
+                        ae.e1.op == TOKtype)
                     {
                         // Convert to SliceExp
                         if (maybeSlice)
@@ -872,7 +632,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (ad1 && search_function(ad1, Id.opUnary))
                     return;
             }
-            if (!s && !s_r && e.op != TOKequal && e.op != TOKnotequal && e.op != TOKassign && e.op != TOKplusplus && e.op != TOKminusminus)
+            if (!s && !s_r &&
+                e.op != TOKequal && e.op != TOKnotequal &&
+                e.op != TOKassign &&
+                e.op != TOKplusplus && e.op != TOKminusminus)
             {
                 /* Try the new D2 scheme, opBinary and opBinaryRight
                  */
@@ -952,7 +715,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (m.count > 1)
                 {
                     // Error, ambiguous
-                    e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                    e.error("overloads %s and %s both match argument list for %s",
+                        m.lastf.type.toChars(),
+                        m.nextf.type.toChars(),
+                        m.lastf.toChars());
                 }
                 else if (m.last <= MATCHnomatch)
                 {
@@ -1047,7 +813,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         if (m.count > 1)
                         {
                             // Error, ambiguous
-                            e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                            e.error("overloads %s and %s both match argument list for %s",
+                                m.lastf.type.toChars(),
+                                m.nextf.type.toChars(),
+                                m.lastf.toChars());
                         }
                         else if (m.last <= MATCHnomatch)
                         {
@@ -1069,38 +838,16 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         // need to reverse the sense of the op
                         switch (e.op)
                         {
-                            case TOKlt:
-                                e.op = TOKgt;
-                                break;
-
-                            case TOKgt:
-                                e.op = TOKlt;
-                                break;
-
-                            case TOKle:
-                                e.op = TOKge;
-                                break;
-
-                            case TOKge:
-                                e.op = TOKle;
-                                break;
+                            case TOKlt:     e.op = TOKgt;   break;
+                            case TOKgt:     e.op = TOKlt;   break;
+                            case TOKle:     e.op = TOKge;   break;
+                            case TOKge:     e.op = TOKle;   break;
 
                             // Floating point compares
-                            case TOKule:
-                                e.op = TOKuge;
-                                break;
-
-                            case TOKul:
-                                e.op = TOKug;
-                                break;
-
-                            case TOKuge:
-                                e.op = TOKule;
-                                break;
-
-                            case TOKug:
-                                e.op = TOKul;
-                                break;
+                            case TOKule:    e.op = TOKuge;  break;
+                            case TOKul:     e.op = TOKug;   break;
+                            case TOKuge:    e.op = TOKule;  break;
+                            case TOKug:     e.op = TOKul;   break;
 
                             // These are symmetric
                             case TOKunord:
@@ -1118,7 +865,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             }
 
             // Try alias this on first operand
-            if (ad1 && ad1.aliasthis && !(e.op == TOKassign && ad2 && ad1 == ad2)) // See Bugzilla 2943
+            if (ad1 && ad1.aliasthis &&
+                !(e.op == TOKassign && ad2 && ad1 == ad2)) // See Bugzilla 2943
             {
                 /* Rewrite (e1 op e2) as:
                  *      (e1.aliasthis op e2)
@@ -1139,7 +887,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             /* Bugzilla 2943: make sure that when we're copying the struct, we don't
              * just copy the alias this member
              */
-            if (ad2 && ad2.aliasthis && !(e.op == TOKassign && ad1 && ad1 == ad2))
+            if (ad2 && ad2.aliasthis &&
+                !(e.op == TOKassign && ad1 && ad1 == ad2))
             {
                 /* Rewrite (e1 op e2) as:
                  *      (e1 op e2.aliasthis)
@@ -1195,7 +944,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 }
             }
             // Comparing a class with typeof(null) should not call opEquals
-            if (t1.ty == Tclass && t2.ty == Tnull || t1.ty == Tnull && t2.ty == Tclass)
+            if (t1.ty == Tclass && t2.ty == Tnull ||
+                t1.ty == Tnull && t2.ty == Tclass)
             {
             }
             else
@@ -1224,7 +974,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 ae.e1 = resolveProperties(sc, ae.e1);
                 Expression ae1old = ae.e1;
 
-                const(bool) maybeSlice = (ae.arguments.dim == 0 || ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
+                const(bool) maybeSlice =
+                    (ae.arguments.dim == 0 ||
+                     ae.arguments.dim == 1 && (*ae.arguments)[0].op == TOKinterval);
                 IntervalExp ie = null;
                 if (maybeSlice && ae.arguments.dim)
                 {
@@ -1404,7 +1156,10 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (m.count > 1)
                 {
                     // Error, ambiguous
-                    e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                    e.error("overloads %s and %s both match argument list for %s",
+                        m.lastf.type.toChars(),
+                        m.nextf.type.toChars(),
+                        m.lastf.toChars());
                 }
                 else if (m.last <= MATCHnomatch)
                 {
@@ -1551,7 +1306,10 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             if (!(m.lastf == lastf && m.count == 2 && count == 1))
             {
                 // Error, ambiguous
-                e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                e.error("overloads %s and %s both match argument list for %s",
+                    m.lastf.type.toChars(),
+                    m.nextf.type.toChars(),
+                    m.lastf.toChars());
             }
         }
         else if (m.last <= MATCHnomatch)
@@ -1574,38 +1332,16 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             // need to reverse the sense of the op
             switch (e.op)
             {
-                case TOKlt:
-                    e.op = TOKgt;
-                    break;
-
-                case TOKgt:
-                    e.op = TOKlt;
-                    break;
-
-                case TOKle:
-                    e.op = TOKge;
-                    break;
-
-                case TOKge:
-                    e.op = TOKle;
-                    break;
+                case TOKlt:     e.op = TOKgt;   break;
+                case TOKgt:     e.op = TOKlt;   break;
+                case TOKle:     e.op = TOKge;   break;
+                case TOKge:     e.op = TOKle;   break;
 
                 // Floating point compares
-                case TOKule:
-                    e.op = TOKuge;
-                    break;
-
-                case TOKul:
-                    e.op = TOKug;
-                    break;
-
-                case TOKuge:
-                    e.op = TOKule;
-                    break;
-
-                case TOKug:
-                    e.op = TOKul;
-                    break;
+                case TOKule:    e.op = TOKuge;  break;
+                case TOKul:     e.op = TOKug;   break;
+                case TOKuge:    e.op = TOKule;  break;
+                case TOKug:     e.op = TOKul;   break;
 
                 // The rest are symmetric
                 default:
@@ -1658,7 +1394,8 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 /***********************************
  * Utility to build a function call out of this reference and argument.
  */
-extern (C++) Expression build_overload(Loc loc, Scope* sc, Expression ethis, Expression earg, Dsymbol d)
+extern (C++) Expression build_overload(Loc loc, Scope* sc,
+    Expression ethis, Expression earg, Dsymbol d)
 {
     assert(d);
     Expression e;

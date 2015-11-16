@@ -282,7 +282,8 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     return;
                 }
 
-                if (global.params.useDIP25 && (v.storage_class & (STCref | STCout)) && !(v.storage_class & (STCreturn | STCforeach)))
+                if (global.params.useDIP25 &&
+                    (v.storage_class & (STCref | STCout)) && !(v.storage_class & (STCreturn | STCforeach)))
                 {
                     if (sc.func.flags & FUNCFLAGreturnInprocess)
                     {
@@ -307,7 +308,9 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     return;
                 }
 
-                if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
+                if (v.storage_class & STCref &&
+                    v.storage_class & (STCforeach | STCtemp) &&
+                    v._init)
                 {
                     // (ref v = ex; ex)
                     if (ExpInitializer ez = v._init.isExpInitializer())

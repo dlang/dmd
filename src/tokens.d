@@ -807,25 +807,25 @@ extern (C++) struct Token
                     utf_decodeChar(cast(char*)ustring, len, &i, &c);
                     switch (c)
                     {
-                        case 0:
-                            break;
+                    case 0:
+                        break;
 
-                        case '"':
-                        case '\\':
-                            buf.writeByte('\\');
-                        default:
-                            if (c <= 0x7F)
-                            {
-                                if (isprint(c))
-                                    buf.writeByte(c);
-                                else
-                                    buf.printf("\\x%02x", c);
-                            }
-                            else if (c <= 0xFFFF)
-                                buf.printf("\\u%04x", c);
+                    case '"':
+                    case '\\':
+                        buf.writeByte('\\');
+                    default:
+                        if (c <= 0x7F)
+                        {
+                            if (isprint(c))
+                                buf.writeByte(c);
                             else
-                                buf.printf("\\U%08x", c);
-                            continue;
+                                buf.printf("\\x%02x", c);
+                        }
+                        else if (c <= 0xFFFF)
+                            buf.printf("\\u%04x", c);
+                        else
+                            buf.printf("\\U%08x", c);
+                        continue;
                     }
                     break;
                 }
@@ -862,25 +862,14 @@ extern (C++) struct Token
             case TOKdchar:
             case TOKbool:
             case TOKchar:
-            case TOKint8:
-            case TOKuns8:
-            case TOKint16:
-            case TOKuns16:
-            case TOKint32:
-            case TOKuns32:
-            case TOKint64:
-            case TOKuns64:
-            case TOKint128:
-            case TOKuns128:
-            case TOKfloat32:
-            case TOKfloat64:
-            case TOKfloat80:
-            case TOKimaginary32:
-            case TOKimaginary64:
-            case TOKimaginary80:
-            case TOKcomplex32:
-            case TOKcomplex64:
-            case TOKcomplex80:
+            case TOKint8:           case TOKuns8:
+            case TOKint16:          case TOKuns16:
+            case TOKint32:          case TOKuns32:
+            case TOKint64:          case TOKuns64:
+            case TOKint128:         case TOKuns128:
+            case TOKfloat32:        case TOKfloat64:        case TOKfloat80:
+            case TOKimaginary32:    case TOKimaginary64:    case TOKimaginary80:
+            case TOKcomplex32:      case TOKcomplex64:      case TOKcomplex80:
             case TOKvoid:
                 p = ident.toChars();
                 break;

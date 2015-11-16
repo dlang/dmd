@@ -80,7 +80,12 @@ public:
             ptypes[i] = tp;
         }
 
-        t.ctype = type_function(totym(t), ptypes, nparams, t.varargs == 1, Type_toCtype(t.next));
+        t.ctype = type_function(
+            totym(t),
+            ptypes,
+            nparams,
+            t.varargs == 1,
+            Type_toCtype(t.next));
 
         if (nparams > 10)
             free(ptypes);
@@ -131,7 +136,15 @@ public:
                 t.ctype.Tcount++;
                 return;
             }
-            t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0);
+            t.ctype = type_struct_class(
+                sym.toPrettyChars(true),
+                sym.alignsize,
+                sym.structsize,
+                sym.arg1type ? Type_toCtype(sym.arg1type) : null,
+                sym.arg2type ? Type_toCtype(sym.arg2type) : null,
+                sym.isUnionDeclaration() !is null,
+                false,
+                sym.isPOD() != 0);
 
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
@@ -141,7 +154,11 @@ public:
                 for (size_t i = 0; i < sym.fields.dim; i++)
                 {
                     VarDeclaration v = sym.fields[i];
-                    symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                    symbol_struct_addField(
+                        cast(Symbol*)t.ctype.Ttag,
+                        v.ident.toChars(),
+                        Type_toCtype(v.type),
+                        v.offset);
                 }
             }
             return;
@@ -171,7 +188,9 @@ public:
             }
             else if (t.sym.memtype.toBasetype().ty == Tint32)
             {
-                t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
+                t.ctype = type_enum(
+                    t.sym.toPrettyChars(true),
+                    Type_toCtype(t.sym.memtype));
             }
             else
             {
@@ -201,7 +220,15 @@ public:
     override void visit(TypeClass t)
     {
         //printf("TypeClass::toCtype() %s\n", toChars());
-        type* tc = type_struct_class(t.sym.toPrettyChars(true), t.sym.alignsize, t.sym.structsize, null, null, false, true, true);
+        type* tc = type_struct_class(
+            t.sym.toPrettyChars(true),
+            t.sym.alignsize,
+            t.sym.structsize,
+            null,
+            null,
+            false,
+            true,
+            true);
 
         t.ctype = type_pointer(tc);
 
@@ -213,7 +240,11 @@ public:
             for (size_t i = 0; i < t.sym.fields.dim; i++)
             {
                 VarDeclaration v = t.sym.fields[i];
-                symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                symbol_struct_addField(
+                    cast(Symbol*)tc.Ttag,
+                    v.ident.toChars(),
+                    Type_toCtype(v.type),
+                    v.offset);
             }
         }
     }

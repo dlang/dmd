@@ -559,7 +559,9 @@ public:
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
         assert(!s);
-        AliasDeclaration sa = type ? new AliasDeclaration(loc, ident, type.syntaxCopy()) : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
+        AliasDeclaration sa =
+            type ? new AliasDeclaration(loc, ident, type.syntaxCopy())
+                 : new AliasDeclaration(loc, ident, aliassym.syntaxCopy(null));
         sa.storage_class = storage_class;
         return sa;
     }
@@ -959,7 +961,8 @@ public:
         OverDeclaration od1 = this;
         if (OverDeclaration od2 = s.isOverDeclaration())
         {
-            return od1.aliassym.equals(od2.aliassym) && od1.hasOverloads == od2.hasOverloads;
+            return od1.aliassym.equals(od2.aliassym) &&
+                   od1.hasOverloads == od2.hasOverloads;
         }
         if (aliassym == s)
         {
@@ -1096,7 +1099,10 @@ public:
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null);
+        auto v = new VarDeclaration(loc,
+            type ? type.syntaxCopy() : null,
+            ident,
+            _init ? _init.syntaxCopy() : null);
         v.storage_class = storage_class;
         return v;
     }
@@ -1113,7 +1119,7 @@ public:
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
         //if (sem > SemanticStart)
-        //    return;
+        //  return;
         //sem = SemanticIn;
 
         if (sem >= SemanticDone)
@@ -1229,7 +1235,8 @@ public:
         {
             if (inferred)
             {
-                error("type %s is inferred from initializer %s, and variables cannot be of type void", type.toChars(), _init.toChars());
+                error("type %s is inferred from initializer %s, and variables cannot be of type void",
+                    type.toChars(), _init.toChars());
             }
             else
                 error("variables cannot be of type void");
@@ -1355,7 +1362,8 @@ public:
                 size_t tedim = te.exps.dim;
                 if (tedim != nelems)
                 {
-                    .error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", cast(int)tedim, cast(int)nelems);
+                    .error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements",
+                        cast(int)tedim, cast(int)nelems);
                     for (size_t u = tedim; u < nelems; u++) // fill dummy expression
                         te.exps.push(new ErrorExp());
                 }
@@ -1506,7 +1514,8 @@ public:
 
         if (type.hasWild())
         {
-            if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) || isDataseg())
+            if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) ||
+                isDataseg())
             {
                 error("only parameters or stack based variables can be inout");
             }
@@ -1531,7 +1540,8 @@ public:
             }
         }
 
-        if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+        if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct &&
+            (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
             if (!_init)
             {
@@ -1645,7 +1655,9 @@ public:
             {
                 // If local variable, use AssignExp to handle all the various
                 // possibilities.
-                if (fd && !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) && !_init.isVoidInitializer())
+                if (fd &&
+                    !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) &&
+                    !_init.isVoidInitializer())
                 {
                     //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
                     if (!ei)
@@ -1772,11 +1784,15 @@ public:
                              */
                             // there is a copy constructor
                             // and exp is the same struct
-                            if (sd.postblit && tb2.toDsymbol(null) == sd)
+                            if (sd.postblit &&
+                                tb2.toDsymbol(null) == sd)
                             {
                                 // The only allowable initializer is a (non-copy) constructor
                                 if (exp.isLvalue())
-                                    error("of type struct %s uses this(this), which is not allowed in static initialization", tb2.toChars());
+                                {
+                                    error("of type struct %s uses this(this), which is not allowed in static initialization",
+                                        tb2.toChars());
+                                }
                             }
                         }
                         ei.exp = exp;
@@ -1910,7 +1926,10 @@ public:
 
         uint memsize = cast(uint)t.size(loc); // size of member
         uint memalignsize = Target.fieldalign(t); // size of member for alignment purposes
-        offset = AggregateDeclaration.placeField(poffset, memsize, memalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
+        offset = AggregateDeclaration.placeField(
+            poffset,
+            memsize, memalignsize, alignment,
+            &ad.structsize, &ad.alignsize, isunion);
 
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
         //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
@@ -2025,7 +2044,9 @@ public:
     override final AggregateDeclaration isThis()
     {
         AggregateDeclaration ad = null;
-        if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe)))
+        if (!(storage_class & (STCstatic | STCextern | STCmanifest |
+                               STCtemplateparameter |
+                               STCtls | STCgshared | STCctfe)))
         {
             for (Dsymbol s = this; s; s = s.parent)
             {
@@ -2052,8 +2073,11 @@ public:
 
     override final bool isImportedSymbol()
     {
-        if (protection.kind == PROTexport && !_init && (storage_class & STCstatic || parent.isModule()))
+        if (protection.kind == PROTexport && !_init &&
+            (storage_class & STCstatic || parent.isModule()))
+        {
             return true;
+        }
         return false;
     }
 
@@ -2078,7 +2102,8 @@ public:
             type = Type.terror;
             return false;
         }
-        return (storage_class & (STCstatic | STCextern | STCtls | STCgshared) || parent.isModule() || parent.isTemplateInstance());
+        return (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
+                parent.isModule() || parent.isTemplateInstance());
     }
 
     /************************************
@@ -2090,7 +2115,8 @@ public:
         /* Data defaults to being thread-local. It is not thread-local
          * if it is immutable, const or shared.
          */
-        bool i = isDataseg() && !(storage_class & (STCimmutable | STCconst | STCshared | STCgshared));
+        bool i = isDataseg() &&
+            !(storage_class & (STCimmutable | STCconst | STCshared | STCgshared));
         //printf("\treturn %d\n", i);
         return i;
     }

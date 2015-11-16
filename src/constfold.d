@@ -183,42 +183,15 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
 
         switch (x)
         {
-            case 0 + 0:
-                v = complex_t(r1 + r2, 0);
-                break;
-
-            case 0 + 1:
-                v = complex_t(r1, i2);
-                break;
-
-            case 0 + 2:
-                v = complex_t(r1 + creall(c2), cimagl(c2));
-                break;
-
-            case 3 + 0:
-                v = complex_t(r2, i1);
-                break;
-
-            case 3 + 1:
-                v = complex_t(0, i1 + i2);
-                break;
-
-            case 3 + 2:
-                v = complex_t(creall(c2), i1 + cimagl(c2));
-                break;
-
-            case 6 + 0:
-                v = complex_t(creall(c1) + r2, cimagl(c2));
-                break;
-
-            case 6 + 1:
-                v = complex_t(creall(c1), cimagl(c1) + i2);
-                break;
-
-            case 6 + 2:
-                v = c1 + c2;
-                break;
-
+            case 0 + 0: v = complex_t(r1 + r2, 0);                      break;
+            case 0 + 1: v = complex_t(r1, i2);                          break;
+            case 0 + 2: v = complex_t(r1 + creall(c2), cimagl(c2));     break;
+            case 3 + 0: v = complex_t(r2, i1);                          break;
+            case 3 + 1: v = complex_t(0, i1 + i2);                      break;
+            case 3 + 2: v = complex_t(creall(c2), i1 + cimagl(c2));     break;
+            case 6 + 0: v = complex_t(creall(c1) + r2, cimagl(c2));     break;
+            case 6 + 1: v = complex_t(creall(c1), cimagl(c1) + i2);     break;
+            case 6 + 2: v = c1 + c2;                                    break;
             default:
                 assert(0);
         }
@@ -300,41 +273,15 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
 
         switch (x)
         {
-            case 0 + 0:
-                v = complex_t(r1 - r2, 0);
-                break;
-
-            case 0 + 1:
-                v = complex_t(r1, -i2);
-                break;
-
-            case 0 + 2:
-                v = complex_t(r1 - creall(c2), -cimagl(c2));
-                break;
-
-            case 3 + 0:
-                v = complex_t(-r2, i1);
-                break;
-
-            case 3 + 1:
-                v = complex_t(0, i1 - i2);
-                break;
-
-            case 3 + 2:
-                v = complex_t(-creall(c2), i1 - cimagl(c2));
-                break;
-
-            case 6 + 0:
-                v = complex_t(creall(c1) - r2, cimagl(c1));
-                break;
-
-            case 6 + 1:
-                v = complex_t(creall(c1), cimagl(c1) - i2);
-                break;
-
-            case 6 + 2:
-                v = c1 - c2;
-                break;
+            case 0 + 0: v = complex_t(r1 - r2, 0);                      break;
+            case 0 + 1: v = complex_t(r1, -i2);                         break;
+            case 0 + 2: v = complex_t(r1 - creall(c2), -cimagl(c2));    break;
+            case 3 + 0: v = complex_t(-r2, i1);                         break;
+            case 3 + 1: v = complex_t(0, i1 - i2);                      break;
+            case 3 + 2: v = complex_t(-creall(c2), i1 - cimagl(c2));    break;
+            case 6 + 0: v = complex_t(creall(c1) - r2, cimagl(c1));     break;
+            case 6 + 1: v = complex_t(creall(c1), cimagl(c1) - i2);     break;
+            case 6 + 2: v = c1 - c2;                                    break;
             default:
                 assert(0);
         }
@@ -1012,7 +959,8 @@ extern (C++) UnionExp Identity(TOK op, Loc loc, Type type, Expression e1, Expres
         {
             complex_t v1 = e1.toComplex();
             complex_t v2 = e2.toComplex();
-            cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
+            cmp = RealEquals(creall(v1), creall(v2)) &&
+                  RealEquals(cimagl(v1), cimagl(v1));
         }
         else
         {
@@ -1160,41 +1108,17 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             real_t r = e1.toReal();
             switch (typeb.ty)
             {
-                case Tint8:
-                    result = cast(d_int8)r;
-                    break;
-
+                case Tint8:     result = cast(d_int8)r;     break;
                 case Tchar:
-                case Tuns8:
-                    result = cast(d_uns8)r;
-                    break;
-
-                case Tint16:
-                    result = cast(d_int16)r;
-                    break;
-
+                case Tuns8:     result = cast(d_uns8)r;     break;
+                case Tint16:    result = cast(d_int16)r;    break;
                 case Twchar:
-                case Tuns16:
-                    result = cast(d_uns16)r;
-                    break;
-
-                case Tint32:
-                    result = cast(d_int32)r;
-                    break;
-
+                case Tuns16:    result = cast(d_uns16)r;    break;
+                case Tint32:    result = cast(d_int32)r;    break;
                 case Tdchar:
-                case Tuns32:
-                    result = cast(d_uns32)r;
-                    break;
-
-                case Tint64:
-                    result = cast(d_int64)r;
-                    break;
-
-                case Tuns64:
-                    result = cast(d_uns64)r;
-                    break;
-
+                case Tuns32:    result = cast(d_uns32)r;    break;
+                case Tint64:    result = cast(d_int64)r;    break;
+                case Tuns64:    result = cast(d_uns64)r;    break;
                 default:
                     assert(0);
             }
@@ -1438,7 +1362,9 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
             es.type = type;
         }
     }
-    else if (e1.op == TOKarrayliteral && lwr.op == TOKint64 && upr.op == TOKint64 && !hasSideEffect(e1))
+    else if (e1.op == TOKarrayliteral &&
+             lwr.op == TOKint64 && upr.op == TOKint64 &&
+             !hasSideEffect(e1))
     {
         ArrayLiteralExp es1 = cast(ArrayLiteralExp)e1;
         uinteger_t ilwr = lwr.toInteger();
@@ -1452,7 +1378,9 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         {
             auto elements = new Expressions();
             elements.setDim(cast(size_t)(iupr - ilwr));
-            memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
+            memcpy(elements.tdata(),
+                es1.elements.tdata() + ilwr,
+                cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
             emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elements);
             ue.exp().type = type;
         }
@@ -1477,22 +1405,14 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
         dinteger_t val;
         switch (sz)
         {
-            case 1:
-                val = (cast(char*)s)[j];
-                break;
-
-            case 2:
-                val = (cast(utf16_t*)s)[j];
-                break;
-
-            case 4:
-                val = (cast(utf32_t*)s)[j];
-                break;
-
+            case 1: val = (cast(   char*)s)[j];     break;
+            case 2: val = (cast(utf16_t*)s)[j];     break;
+            case 4: val = (cast(utf32_t*)s)[j];     break;
             default:
                 assert(0);
         }
-        (*existingAE.elements)[j + firstIndex] = new IntegerExp(newval.loc, val, elemType);
+        (*existingAE.elements)[j + firstIndex] =
+            new IntegerExp(newval.loc, val, elemType);
     }
 }
 
@@ -1507,18 +1427,9 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
         uint val = cast(uint)newae.getElement(j).toInteger();
         switch (existingSE.sz)
         {
-            case 1:
-                (cast(char*)s)[j + firstIndex] = cast(char)val;
-                break;
-
-            case 2:
-                (cast(utf16_t*)s)[j + firstIndex] = cast(utf16_t)val;
-                break;
-
-            case 4:
-                (cast(utf32_t*)s)[j + firstIndex] = cast(utf32_t)val;
-                break;
-
+            case 1: (cast(   char*)s)[j + firstIndex] = cast(   char)val;   break;
+            case 2: (cast(utf16_t*)s)[j + firstIndex] = cast(utf16_t)val;   break;
+            case 4: (cast(utf32_t*)s)[j + firstIndex] = cast(utf32_t)val;   break;
             default:
                 assert(0);
         }
@@ -1561,18 +1472,9 @@ extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, siz
         uint val1;
         switch (sz)
         {
-            case 1:
-                val1 = (cast(char*)s)[j + lo1];
-                break;
-
-            case 2:
-                val1 = (cast(utf16_t*)s)[j + lo1];
-                break;
-
-            case 4:
-                val1 = (cast(utf32_t*)s)[j + lo1];
-                break;
-
+            case 1: val1 = (cast(   char*)s)[j + lo1];  break;
+            case 2: val1 = (cast(utf16_t*)s)[j + lo1];  break;
+            case 4: val1 = (cast(utf32_t*)s)[j + lo1];  break;
             default:
                 assert(0);
         }
@@ -1707,7 +1609,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e2.op == TOKstring && e1.op == TOKarrayliteral && t1.nextOf().isintegral())
+    else if (e2.op == TOKstring && e1.op == TOKarrayliteral &&
+        t1.nextOf().isintegral())
     {
         // [chars] ~ string --> [chars]
         StringExp es = cast(StringExp)e2;
@@ -1726,7 +1629,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == TOKstring && e2.op == TOKarrayliteral && t2.nextOf().isintegral())
+    else if (e1.op == TOKstring && e2.op == TOKarrayliteral &&
+        t2.nextOf().isintegral())
     {
         // string ~ [chars] --> [chars]
         StringExp es = cast(StringExp)e1;
@@ -1800,7 +1704,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == TOKarrayliteral && e2.op == TOKarrayliteral && t1.nextOf().equals(t2.nextOf()))
+    else if (e1.op == TOKarrayliteral && e2.op == TOKarrayliteral &&
+        t1.nextOf().equals(t2.nextOf()))
     {
         // Concatenate the arrays
         auto elems = ArrayLiteralExp.copyElements(e1, e2);
@@ -1817,12 +1722,14 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == TOKarrayliteral && e2.op == TOKnull && t1.nextOf().equals(t2.nextOf()))
+    else if (e1.op == TOKarrayliteral && e2.op == TOKnull &&
+        t1.nextOf().equals(t2.nextOf()))
     {
         e = e1;
         goto L3;
     }
-    else if (e1.op == TOKnull && e2.op == TOKarrayliteral && t1.nextOf().equals(t2.nextOf()))
+    else if (e1.op == TOKnull && e2.op == TOKarrayliteral &&
+        t1.nextOf().equals(t2.nextOf()))
     {
         e = e2;
     L3:
@@ -1841,7 +1748,9 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if ((e1.op == TOKarrayliteral || e1.op == TOKnull) && e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
+    else if ((e1.op == TOKarrayliteral || e1.op == TOKnull) &&
+        e1.type.toBasetype().nextOf() &&
+        e1.type.toBasetype().nextOf().equals(e2.type))
     {
         auto elems = (e1.op == TOKarrayliteral)
                 ? ArrayLiteralExp.copyElements(e1) : new Expressions();
@@ -1859,7 +1768,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e2.op == TOKarrayliteral && e2.type.toBasetype().nextOf().equals(e1.type))
+    else if (e2.op == TOKarrayliteral &&
+        e2.type.toBasetype().nextOf().equals(e1.type))
     {
         auto elems = ArrayLiteralExp.copyElements(e1, e2);
 

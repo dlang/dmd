@@ -222,30 +222,12 @@ public:
         ubyte mc;
         switch (t.linkage)
         {
-            case LINKd:
-                mc = 'F';
-                break;
-
-            case LINKc:
-                mc = 'U';
-                break;
-
-            case LINKwindows:
-                mc = 'W';
-                break;
-
-            case LINKpascal:
-                mc = 'V';
-                break;
-
-            case LINKcpp:
-                mc = 'R';
-                break;
-
-            case LINKobjc:
-                mc = 'Y';
-                break;
-
+            case LINKd:         mc = 'F';   break;
+            case LINKc:         mc = 'U';   break;
+            case LINKwindows:   mc = 'W';   break;
+            case LINKpascal:    mc = 'V';   break;
+            case LINKcpp:       mc = 'R';   break;
+            case LINKobjc:      mc = 'Y';   break;
             default:
                 assert(0);
         }
@@ -460,7 +442,11 @@ public:
             assert(len > 0);
             for (size_t i = 0; i < len; i++)
             {
-                assert(buf.data[i] == '_' || buf.data[i] == '@' || buf.data[i] == '?' || buf.data[i] == '$' || isalnum(buf.data[i]) || buf.data[i] & 0x80);
+                assert(buf.data[i] == '_' ||
+                       buf.data[i] == '@' ||
+                       buf.data[i] == '?' ||
+                       buf.data[i] == '$' ||
+                       isalnum(buf.data[i]) || buf.data[i] & 0x80);
             }
         }
     }
@@ -586,7 +572,15 @@ public:
             /* These are reserved to the compiler, so keep simple
              * names for them.
              */
-            if (cd.ident == Id.Exception && cd.parent.ident == Id.object || cd.ident == Id.TypeInfo || cd.ident == Id.TypeInfo_Struct || cd.ident == Id.TypeInfo_Class || cd.ident == Id.TypeInfo_Tuple || cd == ClassDeclaration.object || cd == Type.typeinfoclass || cd == Module.moduleinfo || strncmp(cd.ident.toChars(), "TypeInfo_", 9) == 0)
+            if (cd.ident == Id.Exception && cd.parent.ident == Id.object ||
+                cd.ident == Id.TypeInfo ||
+                cd.ident == Id.TypeInfo_Struct ||
+                cd.ident == Id.TypeInfo_Class ||
+                cd.ident == Id.TypeInfo_Tuple ||
+                cd == ClassDeclaration.object ||
+                cd == Type.typeinfoclass ||
+                cd == Module.moduleinfo ||
+                strncmp(cd.ident.toChars(), "TypeInfo_", 9) == 0)
             {
                 // Don't mangle parent
                 ad.parent = null;

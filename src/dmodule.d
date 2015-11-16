@@ -384,12 +384,18 @@ public:
 
         srcfilename = FileName.defaultExt(filename, global.mars_ext);
 
-        if (global.run_noext && global.params.run && !FileName.ext(filename) && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
+        if (global.run_noext &&
+            global.params.run &&
+            !FileName.ext(filename) &&
+            FileName.exists(srcfilename) == 0 &&
+            FileName.exists(filename) == 1)
         {
             FileName.free(srcfilename);
             srcfilename = FileName.removeExt(filename); // just does a mem.strdup(filename)
         }
-        else if (!FileName.equalsExt(srcfilename, global.mars_ext) && !FileName.equalsExt(srcfilename, global.hdr_ext) && !FileName.equalsExt(srcfilename, "dd"))
+        else if (!FileName.equalsExt(srcfilename, global.mars_ext) &&
+                 !FileName.equalsExt(srcfilename, global.hdr_ext) &&
+                 !FileName.equalsExt(srcfilename, "dd"))
         {
             error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
             fatal();
@@ -545,11 +551,14 @@ public:
             else
             {
                 // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
-                bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name.name(), "package.d") == 0);
+                bool isPackageMod = (strcmp(toChars(), "package") != 0) &&
+                                    (strcmp(srcfile.name.name(), "package.d") == 0);
                 if (isPackageMod)
-                    .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
+                    .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'",
+                        toChars(), srcfile.toChars());
                 else
-                    error(loc, "is in file '%s' which cannot be read", srcfile.toChars());
+                    error(loc, "is in file '%s' which cannot be read",
+                        srcfile.toChars());
             }
 
             if (!global.gag)
@@ -807,7 +816,8 @@ public:
             Module m = ppack ? ppack.isModule() : null;
             if (m && strcmp(m.srcfile.name.name(), "package.d") != 0)
             {
-                .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
+                .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s",
+                    ppack.toPrettyChars(), m.srcfile.toChars());
             }
         }
         else
@@ -825,11 +835,16 @@ public:
         // Add internal used functions in 'object' module members.
         if (!parent && ident == Id.object)
         {
-            static __gshared const(char)* code_ArrayEq = "bool _ArrayEq(T1, T2)(T1[] a, T2[] b) {\n if (a.length != b.length) return false;\n foreach (size_t i; 0 .. a.length) { if (a[i] != b[i]) return false; }\n return true; }\n";
-            static __gshared const(char)* code_ArrayPostblit = "void _ArrayPostblit(T)(T[] a) { foreach (ref T e; a) e.__xpostblit(); }\n";
-            static __gshared const(char)* code_ArrayDtor = "void _ArrayDtor(T)(T[] a) { foreach_reverse (ref T e; a) e.__xdtor(); }\n";
-            static __gshared const(char)* code_xopEquals = "bool _xopEquals(in void*, in void*) { throw new Error(\"TypeInfo.equals is not implemented\"); }\n";
-            static __gshared const(char)* code_xopCmp = "bool _xopCmp(in void*, in void*) { throw new Error(\"TypeInfo.compare is not implemented\"); }\n";
+            static __gshared const(char)* code_ArrayEq =
+                "bool _ArrayEq(T1, T2)(T1[] a, T2[] b) {\n if (a.length != b.length) return false;\n foreach (size_t i; 0 .. a.length) { if (a[i] != b[i]) return false; }\n return true; }\n";
+            static __gshared const(char)* code_ArrayPostblit =
+                "void _ArrayPostblit(T)(T[] a) { foreach (ref T e; a) e.__xpostblit(); }\n";
+            static __gshared const(char)* code_ArrayDtor =
+                "void _ArrayDtor(T)(T[] a) { foreach_reverse (ref T e; a) e.__xdtor(); }\n";
+            static __gshared const(char)* code_xopEquals =
+                "bool _xopEquals(in void*, in void*) { throw new Error(\"TypeInfo.equals is not implemented\"); }\n";
+            static __gshared const(char)* code_xopCmp =
+                "bool _xopCmp(in void*, in void*) { throw new Error(\"TypeInfo.compare is not implemented\"); }\n";
 
             Identifier arreq = Id._ArrayEq;
             Identifier xopeq = Identifier.idPool("_xopEquals");
@@ -914,11 +929,14 @@ public:
             if (Module mprev = prev.isModule())
             {
                 if (FileName.compare(srcname, mprev.srcfile.toChars()) != 0)
-                    error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
+                    error(loc, "from file %s conflicts with another module %s from file %s",
+                        srcname, mprev.toChars(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
-                    error(loc, "from file %s is specified twice on the command line", srcname);
+                    error(loc, "from file %s is specified twice on the command line",
+                        srcname);
                 else
-                    error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
+                    error(loc, "from file %s must be imported with 'import %s;'",
+                        srcname, toPrettyChars());
 
                 // Bugzilla 14446: Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
@@ -934,7 +952,8 @@ public:
                     pkg.mod = this;
                 }
                 else
-                    error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());
+                    error(md ? md.loc : loc, "from file %s conflicts with package name %s",
+                        srcname, pkg.toChars());
             }
             else
                 assert(global.errors);

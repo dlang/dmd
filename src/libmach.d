@@ -586,15 +586,15 @@ extern (C++) Library LibMach_factory()
 
 struct MachObjModule
 {
-    ubyte* base; // where are we holding it in memory
-    uint length; // in bytes
-    uint offset; // offset from start of library
-    char* name; // module name (file name)
-    c_long file_time; // file time
+    ubyte* base;                // where are we holding it in memory
+    uint length;                // in bytes
+    uint offset;                // offset from start of library
+    char* name;                 // module name (file name)
+    c_long file_time;           // file time
     uint user_id;
     uint group_id;
     uint file_mode;
-    int scan; // 1 means scan for symbols
+    int scan;                   // 1 means scan for symbols
 }
 
 enum MACH_OBJECT_NAME_SIZE = 16;
@@ -605,7 +605,7 @@ struct MachLibHeader
     char[12] file_time;
     char[6] user_id;
     char[6] group_id;
-    char[8] file_mode; // in octal
+    char[8] file_mode;          // in octal
     char[10] file_size;
     char[2] trailer;
 }

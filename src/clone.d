@@ -281,7 +281,9 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         {
             VarDeclaration v = sd.fields[i];
             // this.v = s.v;
-            auto ec = new AssignExp(loc, new DotVarExp(loc, new ThisExp(loc), v, 0), new DotVarExp(loc, new IdentifierExp(loc, Id.p), v, 0));
+            auto ec = new AssignExp(loc,
+                new DotVarExp(loc, new ThisExp(loc), v, 0),
+                new DotVarExp(loc, new IdentifierExp(loc, Id.p), v, 0));
             e = Expression.combine(e, ec);
         }
     }
@@ -396,18 +398,12 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
         for (size_t i = 0;; i++)
         {
             Type tthis = null; // dead-store to prevent spurious warning
-            if (i == 0)
-                tthis = ad.type;
-            if (i == 1)
-                tthis = ad.type.constOf();
-            if (i == 2)
-                tthis = ad.type.immutableOf();
-            if (i == 3)
-                tthis = ad.type.sharedOf();
-            if (i == 4)
-                tthis = ad.type.sharedConstOf();
-            if (i == 5)
-                break;
+            if (i == 0) tthis = ad.type;
+            if (i == 1) tthis = ad.type.constOf();
+            if (i == 2) tthis = ad.type.immutableOf();
+            if (i == 3) tthis = ad.type.sharedOf();
+            if (i == 4) tthis = ad.type.sharedConstOf();
+            if (i == 5) break;
             FuncDeclaration f = null;
 
             uint errors = global.startGagging(); // Do not report errors, even if the
@@ -507,8 +503,8 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
         sd.xerreq = s.isFuncDeclaration();
     }
 
-    Loc declLoc = Loc(); // loc is unnecessary so __xopEquals is never called directly
-    Loc loc = Loc(); // loc is unnecessary so errors are gagged
+    Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
+    Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     auto parameters = new Parameters();
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
@@ -590,18 +586,9 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 Dsymbol s = null;
                 switch (e.op)
                 {
-                    case TOKoverloadset:
-                        s = (cast(OverExp)e).vars;
-                        break;
-
-                    case TOKimport:
-                        s = (cast(ScopeExp)e).sds;
-                        break;
-
-                    case TOKvar:
-                        s = (cast(VarExp)e).var;
-                        break;
-
+                    case TOKoverloadset:    s = (cast(OverExp)e).vars;  break;
+                    case TOKimport:         s = (cast(ScopeExp)e).sds;  break;
+                    case TOKvar:            s = (cast(VarExp)e).var;    break;
                     default:
                         break;
                 }
@@ -764,7 +751,12 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
-    const(char)* code = "size_t h = 0;foreach (i, T; typeof(p.tupleof))    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);return h;";
+    const(char)* code = q"EOC
+        size_t h = 0;
+        foreach (i, T; typeof(p.tupleof))
+            h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);
+        return h;
+EOC";
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
 
     Scope* sc2 = sc.push();
@@ -850,7 +842,8 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
             uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
@@ -892,7 +885,8 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
             uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
@@ -1023,7 +1017,8 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
             uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
@@ -1124,7 +1119,8 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                 {
                     // What should do?
                 }
-                StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) | (ad.invs[i].type.mod & MODshared ? STCshared : 0);
+                StorageClass stcy = (ad.invs[i].storage_class & STCsynchronized) |
+                                    (ad.invs[i].type.mod & MODshared ? STCshared : 0);
                 if (i == 0)
                     stcx = stcy;
                 else if (stcx ^ stcy)

@@ -120,10 +120,10 @@ public:
         struct LibHeader
         {
         align(1):
-            ubyte recTyp; // 0xF0
-            ushort pagesize;
-            uint lSymSeek;
-            ushort ndicpages;
+            ubyte   recTyp;     // 0xF0
+            ushort  pagesize;
+            uint    lSymSeek;
+            ushort  ndicpages;
         }
 
         /* Determine if it is an OMF library, an OMF object module,
@@ -586,12 +586,12 @@ private:
         struct Libheader
         {
         align(1):
-            ubyte recTyp;
-            ushort recLen;
-            uint trailerPosn;
-            ushort ndicpages;
-            ubyte flags;
-            char* filler;
+            ubyte   recTyp;
+            ushort  recLen;
+            uint    trailerPosn;
+            ushort  ndicpages;
+            ubyte   flags;
+            char*   filler;
         }
 
         Libheader libHeader;
@@ -635,10 +635,10 @@ extern (C++) Library LibOMF_factory()
 
 struct OmfObjModule
 {
-    ubyte* base; // where are we holding it in memory
-    uint length; // in bytes
-    ushort page; // page module starts in output file
-    char* name; // module name
+    ubyte* base;                // where are we holding it in memory
+    uint length;                // in bytes
+    ushort page;                // page module starts in output file
+    char* name;                 // module name
 }
 
 /*****************************************************************************/
@@ -679,25 +679,25 @@ extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* ent
     zP = aP + entrylen; // point at last char in identifier
 
     uStartPage = 0;
-    uPageStep = 0;
+    uPageStep   = 0;
     uStartIndex = 0;
-    uStep = 0;
+    uStep       = 0;
 
     u = entrylen;
     while (u--)
     {
-        uStartPage = cast(ushort)_rotl(uStartPage, 2) ^ (*aP | 0x20);
-        uStep = cast(ushort)_rotr(uStep, 2) ^ (*aP++ | 0x20);
-        uStartIndex = cast(ushort)_rotr(uStartIndex, 2) ^ (*zP | 0x20);
-        uPageStep = cast(ushort)_rotl(uPageStep, 2) ^ (*zP-- | 0x20);
+        uStartPage  = cast(ushort)_rotl(uStartPage,  2) ^ (*aP   | 0x20);
+        uStep       = cast(ushort)_rotr(uStep,       2) ^ (*aP++ | 0x20);
+        uStartIndex = cast(ushort)_rotr(uStartIndex, 2) ^ (*zP   | 0x20);
+        uPageStep   = cast(ushort)_rotl(uPageStep,   2) ^ (*zP-- | 0x20);
     }
 
     uStartPage %= ndicpages;
-    uPageStep %= ndicpages;
+    uPageStep  %= ndicpages;
     if (uPageStep == 0)
         uPageStep++;
     uStartIndex %= HASHMOD;
-    uStep %= HASHMOD;
+    uStep       %= HASHMOD;
     if (uStep == 0)
         uStep++;
 

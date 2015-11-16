@@ -170,9 +170,14 @@ public:
     {
         indentLevel--;
         removeComma();
-        if (buf.offset >= 2 && buf.data[buf.offset - 2] == '[' && buf.data[buf.offset - 1] == '\n')
+        if (buf.offset >= 2 &&
+            buf.data[buf.offset - 2] == '[' &&
+            buf.data[buf.offset - 1] == '\n')
+        {
             buf.offset -= 1;
-        else if (!(buf.offset >= 1 && buf.data[buf.offset - 1] == '['))
+        }
+        else if (!(buf.offset >= 1 &&
+                   buf.data[buf.offset - 1] == '['))
         {
             buf.writestring("\n");
             indent();
@@ -193,8 +198,12 @@ public:
     {
         indentLevel--;
         removeComma();
-        if (buf.offset >= 2 && buf.data[buf.offset - 2] == '{' && buf.data[buf.offset - 1] == '\n')
+        if (buf.offset >= 2 &&
+            buf.data[buf.offset - 2] == '{' &&
+            buf.data[buf.offset - 1] == '\n')
+        {
             buf.offset -= 1;
+        }
         else
         {
             buf.writestring("\n");

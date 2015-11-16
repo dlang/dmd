@@ -8,8 +8,11 @@
 
 module ddmd.scanmscoff;
 
-import core.stdc.string, core.stdc.stdlib, core.sys.windows.windows;
-import ddmd.globals, ddmd.errors;
+import core.stdc.string;
+import core.stdc.stdlib;
+import core.sys.windows.windows;
+import ddmd.globals;
+import ddmd.errors;
 
 enum LOG = false;
 
@@ -71,9 +74,11 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
 
         default:
             if (buf[0] == 0x80)
-                error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
+                error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff",
+                    module_name);
             else
-                error(loc, "MS-Coff object module %s has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
+                error(loc, "MS-Coff object module %s has magic = %x, should be %x",
+                    module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
             return;
     }
 

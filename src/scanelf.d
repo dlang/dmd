@@ -99,7 +99,9 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                 for (uint offset = 0; offset < section.sh_size; offset += Elf32_Sym.sizeof)
                 {
                     Elf32_Sym* sym = cast(Elf32_Sym*)(buf + section.sh_offset + offset);
-                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
+                    if (((sym.st_info >> 4) == STB_GLOBAL ||
+                         (sym.st_info >> 4) == STB_WEAK) &&
+                        sym.st_shndx != SHN_UNDEF) // not extern
                     {
                         char* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
@@ -146,7 +148,9 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                 for (uint offset = 0; offset < section.sh_size; offset += Elf64_Sym.sizeof)
                 {
                     Elf64_Sym* sym = cast(Elf64_Sym*)(buf + section.sh_offset + offset);
-                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
+                    if (((sym.st_info >> 4) == STB_GLOBAL ||
+                         (sym.st_info >> 4) == STB_WEAK) &&
+                        sym.st_shndx != SHN_UNDEF) // not extern
                     {
                         char* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);

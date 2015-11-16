@@ -101,7 +101,9 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
 
 extern (C++) static void logo()
 {
-    printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
+    printf("DMD%llu D Compiler %s\n%s %s\n",
+        cast(ulong)size_t.sizeof * 8,
+        global._version, global.copyright, global.written);
 }
 
 extern (C++) static void usage()
@@ -1073,7 +1075,8 @@ Language changes listed by -transition=id:
     }
 
     if (global.params.is64bit != is64bit)
-        error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
+        error(Loc(), "the architecture must not be changed in the %s section of %s",
+            envsection.ptr, global.inifilename);
 
     if (global.params.enforcePropertySyntax)
     {
@@ -1392,7 +1395,9 @@ Language changes listed by -transition=id:
             /* Examine extension to see if it is a valid
              * D source file extension
              */
-            if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
+            if (FileName.equals(ext, global.mars_ext) ||
+                FileName.equals(ext, global.hdr_ext) ||
+                FileName.equals(ext, "dd"))
             {
                 ext--; // skip onto '.'
                 assert(*ext == '.');
@@ -1401,7 +1406,9 @@ Language changes listed by -transition=id:
                 newname[ext - p] = 0; // strip extension
                 name = newname;
 
-                if (name[0] == 0 || strcmp(name, "..") == 0 || strcmp(name, ".") == 0)
+                if (name[0] == 0 ||
+                    strcmp(name, "..") == 0 ||
+                    strcmp(name, ".") == 0)
                 {
                 Linvalid:
                     error(Loc(), "invalid file name '%s'", files[i]);
@@ -1528,7 +1535,8 @@ Language changes listed by -transition=id:
         AsyncRead.dispose(aw);
     }
 
-    if (anydocfiles && modules.dim && (global.params.oneobj || global.params.objname))
+    if (anydocfiles && modules.dim &&
+        (global.params.oneobj || global.params.objname))
     {
         error(Loc(), "conflicting Ddoc and obj generation options");
         fatal();

@@ -673,7 +673,8 @@ extern (C++) static bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc)
 
     // Use "this" not "__ctor"
     TemplateDeclaration td;
-    if (s.isCtorDeclaration() || ((td = s.isTemplateDeclaration()) !is null && td.onemember && td.onemember.isCtorDeclaration()))
+    if (s.isCtorDeclaration() || ((td = s.isTemplateDeclaration()) !is null &&
+        td.onemember && td.onemember.isCtorDeclaration()))
     {
         buf.writestring("this");
     }
@@ -734,7 +735,8 @@ extern (C++) static void expandTemplateMixinComments(TemplateMixin tm, OutBuffer
 {
     if (!tm.semanticRun)
         tm.semantic(sc);
-    TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
+    TemplateDeclaration td = (tm && tm.tempdecl) ?
+        tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {
         for (size_t i = 0; i < td.members.dim; i++)
@@ -822,37 +824,14 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             this.sc = sc;
         }
 
-        override void visit(Dsymbol)
-        {
-        }
-
-        override void visit(InvariantDeclaration)
-        {
-        }
-
-        override void visit(UnitTestDeclaration)
-        {
-        }
-
-        override void visit(PostBlitDeclaration)
-        {
-        }
-
-        override void visit(DtorDeclaration)
-        {
-        }
-
-        override void visit(StaticCtorDeclaration)
-        {
-        }
-
-        override void visit(StaticDtorDeclaration)
-        {
-        }
-
-        override void visit(TypeInfoDeclaration)
-        {
-        }
+        override void visit(Dsymbol) {}
+        override void visit(InvariantDeclaration) {}
+        override void visit(UnitTestDeclaration) {}
+        override void visit(PostBlitDeclaration) {}
+        override void visit(DtorDeclaration) {}
+        override void visit(StaticCtorDeclaration) {}
+        override void visit(StaticDtorDeclaration) {}
+        override void visit(TypeInfoDeclaration) {}
 
         void emit(Scope* sc, Dsymbol s, const(char)* com)
         {
@@ -1976,8 +1955,13 @@ extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
         char c = p[j];
         if (isalnum(c))
             continue;
-        if (c == '-' || c == '_' || c == '?' || c == '=' || c == '%' || c == '&' || c == '/' || c == '+' || c == '#' || c == '~')
+        if (c == '-' || c == '_' || c == '?' ||
+            c == '=' || c == '%' || c == '&' ||
+            c == '/' || c == '+' || c == '#' ||
+            c == '~')
+        {
             continue;
+        }
         if (c == '.')
         {
             sawdot = 1;
@@ -2176,7 +2160,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // text is already OK.
                 }
 
-                if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
+                if (!sc._module.isDocFile &&
+                    !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
                 {
                     static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
 
@@ -2450,7 +2435,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     size_t len = j - i;
 
                     // leading '_' means no highlight unless it's a reserved symbol name
-                    if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.size - 1 || !isReservedName(start, len)))
+                    if (c == '_' &&
+                        (i == 0 || !isdigit(*(start - 1))) &&
+                        (i == buf.size - 1 || !isReservedName(start, len)))
                     {
                         buf.remove(i, 1);
                         i = j - 1;

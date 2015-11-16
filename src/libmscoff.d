@@ -322,8 +322,8 @@ public:
                         om.name = oname;
                     }
                     om.file_time = strtoul(cast(char*)header.file_time, &endptr, 10);
-                    om.user_id = strtoul(cast(char*)header.user_id, &endptr, 10);
-                    om.group_id = strtoul(cast(char*)header.group_id, &endptr, 10);
+                    om.user_id   = strtoul(cast(char*)header.user_id,   &endptr, 10);
+                    om.group_id  = strtoul(cast(char*)header.group_id,  &endptr, 10);
                     om.file_mode = strtoul(cast(char*)header.file_mode, &endptr, 8);
                     om.scan = 0; // don't scan object module for symbols
                     objmodules.push(om);
@@ -401,8 +401,8 @@ public:
                 goto Lcorrupt;
             }
             om.file_time = statbuf.st_ctime;
-            om.user_id = statbuf.st_uid;
-            om.group_id = statbuf.st_gid;
+            om.user_id   = statbuf.st_uid;
+            om.group_id  = statbuf.st_gid;
             om.file_mode = statbuf.st_mode;
         }
         else
@@ -769,17 +769,17 @@ extern (C++) Library LibMSCoff_factory()
 
 struct MSCoffObjModule
 {
-    ubyte* base; // where are we holding it in memory
-    uint length; // in bytes
-    uint offset; // offset from start of library
-    ushort index; // index in Second Linker Member
-    const(char)* name; // module name (file name)
-    int name_offset; // if not -1, offset into string table of name
-    long file_time; // file time
+    ubyte* base;                // where are we holding it in memory
+    uint length;                // in bytes
+    uint offset;                // offset from start of library
+    ushort index;               // index in Second Linker Member
+    const(char)* name;          // module name (file name)
+    int name_offset;            // if not -1, offset into string table of name
+    long file_time;             // file time
     uint user_id;
     uint group_id;
     uint file_mode;
-    int scan; // 1 means scan for symbols
+    int scan;                   // 1 means scan for symbols
 }
 
 /*********
@@ -800,7 +800,7 @@ struct MSCoffLibHeader
     char[12] file_time;
     char[6] user_id;
     char[6] group_id;
-    char[8] file_mode; // in octal
+    char[8] file_mode;          // in octal
     char[10] file_size;
     char[2] trailer;
 }

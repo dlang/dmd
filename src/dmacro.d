@@ -43,7 +43,8 @@ private:
         //printf("Macro::search(%.*s)\n", namelen, name);
         for (table = &this; table; table = table.next)
         {
-            if (table.namelen == namelen && memcmp(table.name, name, namelen) == 0)
+            if (table.namelen == namelen &&
+                memcmp(table.name, name, namelen) == 0)
             {
                 //printf("\tfound %d\n", table->textlen);
                 break;
@@ -61,7 +62,8 @@ public:
         //assert(ptable);
         for (table = *ptable; table; table = table.next)
         {
-            if (table.namelen == namelen && memcmp(table.name, name, namelen) == 0)
+            if (table.namelen == namelen &&
+                memcmp(table.name, name, namelen) == 0)
             {
                 table.text = text;
                 table.textlen = textlen;
@@ -258,7 +260,14 @@ public:
                             buf.remove(u, v + 1 - u);
                             end -= v + 1 - u;
                         }
-                        else if (m.inuse && ((arglen == marglen && memcmp(arg, marg, arglen) == 0) || (arglen + 4 == marglen && marg[0] == 0xFF && marg[1] == '{' && memcmp(arg, marg + 2, arglen) == 0 && marg[marglen - 2] == 0xFF && marg[marglen - 1] == '}')))
+                        else if (m.inuse &&
+                                 ((arglen == marglen && memcmp(arg, marg, arglen) == 0) ||
+                                  (arglen + 4 == marglen &&
+                                   marg[0] == 0xFF &&
+                                   marg[1] == '{' &&
+                                   memcmp(arg, marg + 2, arglen) == 0 &&
+                                   marg[marglen - 2] == 0xFF &&
+                                   marg[marglen - 1] == '}')))
                         {
                             /* Recursive expansion:
                              *   marg is same as arg (with blue paint added)
@@ -398,7 +407,10 @@ Largstart:
             case '<':
                 if (!inexp && !instring && !incomment)
                 {
-                    if (v + 6 < end && p[v + 1] == '!' && p[v + 2] == '-' && p[v + 3] == '-')
+                    if (v + 6 < end &&
+                        p[v + 1] == '!' &&
+                        p[v + 2] == '-' &&
+                        p[v + 3] == '-')
                     {
                         incomment = 1;
                         v += 3;
@@ -414,7 +426,12 @@ Largstart:
                 continue;
 
             case '-':
-                if (!inexp && !instring && incomment && v + 2 < end && p[v + 1] == '-' && p[v + 2] == '>')
+                if (!inexp &&
+                    !instring &&
+                    incomment &&
+                    v + 2 < end &&
+                    p[v + 1] == '-' &&
+                    p[v + 2] == '>')
                 {
                     incomment = 0;
                     v += 2;

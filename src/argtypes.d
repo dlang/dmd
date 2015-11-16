@@ -202,7 +202,8 @@ extern (C++) TypeTuple toArgTypes(Type t)
             uint sz1 = cast(uint)t1.size(Loc());
             uint sz2 = cast(uint)t2.size(Loc());
 
-            if (t1.ty != t2.ty && (t1.ty == Tfloat80 || t2.ty == Tfloat80))
+            if (t1.ty != t2.ty &&
+                (t1.ty == Tfloat80 || t2.ty == Tfloat80))
                 return null;
 
             // [float,float] => [cfloat]

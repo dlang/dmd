@@ -43,7 +43,10 @@ struct Target
             classinfosize = 0x98; // 152
         }
 
-        if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+        if (global.params.isLinux ||
+            global.params.isFreeBSD ||
+            global.params.isOpenBSD ||
+            global.params.isSolaris)
         {
             realsize = 12;
             realpad = 2;
@@ -70,7 +73,9 @@ struct Target
 
         if (global.params.is64bit)
         {
-            if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
+            if (global.params.isLinux ||
+                global.params.isFreeBSD ||
+                global.params.isSolaris)
             {
                 realsize = 16;
                 realpad = 6;
@@ -102,8 +107,14 @@ struct Target
                 return Target.realalignsize;
 
             case Tcomplex32:
-                if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+                if (global.params.isLinux ||
+                    global.params.isOSX ||
+                    global.params.isFreeBSD ||
+                    global.params.isOpenBSD ||
+                    global.params.isSolaris)
+                {
                     return 4;
+                }
                 break;
 
             case Tint64:
@@ -111,8 +122,14 @@ struct Target
             case Tfloat64:
             case Timaginary64:
             case Tcomplex64:
-                if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+                if (global.params.isLinux ||
+                    global.params.isOSX ||
+                    global.params.isFreeBSD ||
+                    global.params.isOpenBSD ||
+                    global.params.isSolaris)
+                {
                     return global.params.is64bit ? 8 : 4;
+                }
                 break;
 
             default:
@@ -184,7 +201,11 @@ struct Target
         {
             return Type.tchar.pointerTo();
         }
-        else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris || global.params.isOSX)
+        else if (global.params.isLinux ||
+                 global.params.isFreeBSD ||
+                 global.params.isOpenBSD ||
+                 global.params.isSolaris ||
+                 global.params.isOSX)
         {
             if (global.params.is64bit)
             {

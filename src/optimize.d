@@ -44,7 +44,9 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
             return e;
         }
         Type tb = v.type.toBasetype();
-        if (v.storage_class & STCmanifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
+        if (v.storage_class & STCmanifest ||
+            v.type.toBasetype().isscalar() ||
+            ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
             if (v._init)
             {
@@ -98,7 +100,9 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     else
                         goto L1;
                 }
-                else if (!(v.storage_class & STCmanifest) && ei.isConst() != 1 && ei.op != TOKstring && ei.op != TOKaddress)
+                else if (!(v.storage_class & STCmanifest) &&
+                         ei.isConst() != 1 && ei.op != TOKstring &&
+                         ei.op != TOKaddress)
                 {
                     goto L1;
                 }
@@ -377,7 +381,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)e.e1;
-                if (!ve.var.isOut() && !ve.var.isRef() && !ve.var.isImportedSymbol())
+                if (!ve.var.isOut() && !ve.var.isRef() &&
+                    !ve.var.isImportedSymbol())
                 {
                     ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
                     ret.type = e.type;
@@ -393,7 +398,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 {
                     sinteger_t index = ae.e2.toInteger();
                     VarExp ve = cast(VarExp)ae.e1;
-                    if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
+                    if (ve.type.ty == Tsarray &&
+                        !ve.var.isImportedSymbol())
                     {
                         TypeSArray ts = cast(TypeSArray)ve.type;
                         sinteger_t dim = ts.dim.toInteger();
@@ -556,14 +562,19 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             e.e1 = fromConstInitializer(result, e.e1);
 
-            if (e.e1 == e1old && e.e1.op == TOKarrayliteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
+            if (e.e1 == e1old &&
+                e.e1.op == TOKarrayliteral &&
+                e.type.toBasetype().ty == Tpointer &&
+                e.e1.type.toBasetype().ty != Tsarray)
             {
                 // Casting this will result in the same expression, and
                 // infinite loop because of Expression::implicitCastTo()
                 return; // no change
             }
 
-            if ((e.e1.op == TOKstring || e.e1.op == TOKarrayliteral) && (e.type.ty == Tpointer || e.type.ty == Tarray) && e.e1.type.toBasetype().nextOf().size() == e.type.nextOf().size())
+            if ((e.e1.op == TOKstring || e.e1.op == TOKarrayliteral) &&
+                (e.type.ty == Tpointer || e.type.ty == Tarray) &&
+                e.e1.type.toBasetype().nextOf().size() == e.type.nextOf().size())
             {
                 // Bugzilla 12937: If target type is void array, trying to paint
                 // e->e1 with that type will cause infinite recursive optimization.
@@ -575,7 +586,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             }
 
-            if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCHconst)
+            if (e.e1.op == TOKstructliteral &&
+                e.e1.type.implicitConvTo(e.type) >= MATCHconst)
             {
                 //printf(" returning2 %s\n", e->e1->toChars());
             L1:
@@ -592,7 +604,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = e.e1.castTo(null, e.to);
                 return;
             }
-            if (e.e1.op == TOKnull && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
+            if (e.e1.op == TOKnull &&
+                (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
             {
                 //printf(" returning3 %s\n", e->e1->toChars());
                 goto L1;
@@ -622,7 +635,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             {
                 if (e.e1.op == TOKsymoff)
                 {
-                    if (e.type.size() == e.e1.type.size() && e.type.toBasetype().ty != Tsarray)
+                    if (e.type.size() == e.e1.type.size() &&
+                        e.type.toBasetype().ty != Tsarray)
                     {
                         goto L1;
                     }
@@ -799,14 +813,16 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
 
             // Replace 1 ^^ x or 1.0^^x by (x, 1)
-            if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) || (e.e1.op == TOKfloat64 && e.e1.toReal() == 1.0))
+            if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) ||
+                (e.e1.op == TOKfloat64 && e.e1.toReal() == 1.0))
             {
                 ret = new CommaExp(e.loc, e.e2, e.e1);
                 return;
             }
 
             // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
-            if (e.e2.type.isintegral() && e.e1.op == TOKint64 && cast(sinteger_t)e.e1.toInteger() == -1)
+            if (e.e2.type.isintegral() && e.e1.op == TOKint64 &&
+                cast(sinteger_t)e.e1.toInteger() == -1)
             {
                 Type resultType = e.type;
                 ret = new AndExp(e.loc, e.e2, new IntegerExp(e.loc, 1, e.e2.type));
@@ -815,7 +831,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
 
             // Replace x ^^ 0 or x^^0.0 by (x, 1)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 0) || (e.e2.op == TOKfloat64 && e.e2.toReal() == 0.0))
+            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 0) ||
+                (e.e2.op == TOKfloat64 && e.e2.toReal() == 0.0))
             {
                 if (e.e1.type.isintegral())
                     ret = new IntegerExp(e.loc, 1, e.e1.type);
@@ -827,7 +844,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
 
             // Replace x ^^ 1 or x^^1.0 by (x)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 1) || (e.e2.op == TOKfloat64 && e.e2.toReal() == 1.0))
+            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 1) ||
+                (e.e2.op == TOKfloat64 && e.e2.toReal() == 1.0))
             {
                 ret = e.e1;
                 return;
@@ -841,9 +859,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
 
             // All other negative integral powers are illegal
-            if (e.e1.type.isintegral() && (e.e2.op == TOKint64) && cast(sinteger_t)e.e2.toInteger() < 0)
+            if (e.e1.type.isintegral() && (e.e2.op == TOKint64) &&
+                cast(sinteger_t)e.e2.toInteger() < 0)
             {
-                e.error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
+                e.error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?",
+                    e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
                 ret = new ErrorExp();
                 return;
             }
@@ -880,7 +900,9 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
 
             // (2 ^^ n) ^^ p -> 1 << n * p
-            if (e.e1.op == TOKint64 && e.e1.toInteger() > 0 && !((e.e1.toInteger() - 1) & e.e1.toInteger()) && e.e2.type.isintegral() && e.e2.type.isunsigned())
+            if (e.e1.op == TOKint64 && e.e1.toInteger() > 0 &&
+                !((e.e1.toInteger() - 1) & e.e1.toInteger()) &&
+                e.e2.type.isintegral() && e.e2.type.isunsigned())
             {
                 dinteger_t i = e.e1.toInteger();
                 dinteger_t mul = 1;
@@ -937,7 +959,10 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
             }
 
-            if (e.e1.op == TOKstring || e.e1.op == TOKarrayliteral || e.e1.op == TOKassocarrayliteral || e.e1.type.toBasetype().ty == Tsarray)
+            if (e.e1.op == TOKstring ||
+                e.e1.op == TOKarrayliteral ||
+                e.e1.op == TOKassocarrayliteral ||
+                e.e1.type.toBasetype().ty == Tsarray)
             {
                 ret = ArrayLength(e.type, e.e1).copy();
             }
@@ -974,7 +999,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (binOptimize(e, WANTvalue))
                 return;
 
-            if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOKnull && e.e2.op == TOKnull))
+            if ((e.e1.isConst()     && e.e2.isConst()) ||
+                (e.e1.op == TOKnull && e.e2.op == TOKnull))
             {
                 ret = Identity(e.op, e.loc, e.type, e.e1, e.e2).copy();
                 if (CTFEExp.isCantExp(ret))

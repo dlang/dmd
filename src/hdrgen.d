@@ -647,7 +647,14 @@ public:
         while (t)
         {
             buf.writestring(t.toChars());
-            if (t.next && t.value != TOKmin && t.value != TOKcomma && t.next.value != TOKcomma && t.value != TOKlbracket && t.next.value != TOKlbracket && t.next.value != TOKrbracket && t.value != TOKlparen && t.next.value != TOKlparen && t.next.value != TOKrparen && t.value != TOKdot && t.next.value != TOKdot)
+            if (t.next &&
+                t.value != TOKmin      &&
+                t.value != TOKcomma    && t.next.value != TOKcomma    &&
+                t.value != TOKlbracket && t.next.value != TOKlbracket &&
+                                          t.next.value != TOKrbracket &&
+                t.value != TOKlparen   && t.next.value != TOKlparen   &&
+                                          t.next.value != TOKrparen   &&
+                t.value != TOKdot      && t.next.value != TOKdot)
             {
                 buf.writeByte(' ');
             }
@@ -1231,30 +1238,12 @@ public:
 
         switch (d.linkage)
         {
-            case LINKd:
-                p = "D";
-                break;
-
-            case LINKc:
-                p = "C";
-                break;
-
-            case LINKcpp:
-                p = "C++";
-                break;
-
-            case LINKwindows:
-                p = "Windows";
-                break;
-
-            case LINKpascal:
-                p = "Pascal";
-                break;
-
-            case LINKobjc:
-                p = "Objective-C";
-                break;
-
+            case LINKd:         p = "D";            break;
+            case LINKc:         p = "C";            break;
+            case LINKcpp:       p = "C++";          break;
+            case LINKwindows:   p = "Windows";      break;
+            case LINKpascal:    p = "Pascal";       break;
+            case LINKobjc:      p = "Objective-C";  break;
             default:
                 assert(0);
         }
@@ -1542,7 +1531,11 @@ public:
             RootObject oarg = (*ti.tiargs)[0];
             if (Type t = isType(oarg))
             {
-                if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
+                if (t.equals(Type.tstring) ||
+                    t.equals(Type.twstring) ||
+                    t.equals(Type.tdstring) ||
+                    t.mod == 0 && (t.isTypeBasic() ||
+                    t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
                 {
                     buf.writestring(t.toChars());
                     return;
@@ -1550,7 +1543,11 @@ public:
             }
             else if (Expression e = isExpression(oarg))
             {
-                if (e.op == TOKint64 || e.op == TOKfloat64 || e.op == TOKnull || e.op == TOKstring || e.op == TOKthis)
+                if (e.op == TOKint64 ||
+                    e.op == TOKfloat64 ||
+                    e.op == TOKnull ||
+                    e.op == TOKstring ||
+                    e.op == TOKthis)
                 {
                     buf.writestring(e.toChars());
                     return;
@@ -2384,7 +2381,8 @@ public:
                     else if (c <= 0xFFFF)
                         buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
                     else
-                        buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x", c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
+                        buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x",
+                            c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
                     break;
             }
         }
@@ -2986,7 +2984,9 @@ public:
             if (p.ident)
                 buf.writestring(p.ident.toChars());
         }
-        else if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident.len > 3 && strncmp((cast(TypeIdentifier)p.type).ident.string, "__T", 3) == 0)
+        else if (p.type.ty == Tident &&
+                 (cast(TypeIdentifier)p.type).ident.len > 3 &&
+                 strncmp((cast(TypeIdentifier)p.type).ident.string, "__T", 3) == 0)
         {
             // print parameter name, instead of undetermined type parameter
             buf.writestring(p.ident.toChars());
@@ -3187,18 +3187,10 @@ extern (C++) const(char)* trustToChars(TRUST trust)
 {
     switch (trust)
     {
-        case TRUSTdefault:
-            return null;
-
-        case TRUSTsystem:
-            return "@system";
-
-        case TRUSTtrusted:
-            return "@trusted";
-
-        case TRUSTsafe:
-            return "@safe";
-
+        case TRUSTdefault:  return null;
+        case TRUSTsystem:   return "@system";
+        case TRUSTtrusted:  return "@trusted";
+        case TRUSTsafe:     return "@safe";
         default:
             assert(0);
     }
@@ -3219,27 +3211,13 @@ extern (C++) const(char)* linkageToChars(LINK linkage)
 {
     switch (linkage)
     {
-        case LINKdefault:
-            return null;
-
-        case LINKd:
-            return "D";
-
-        case LINKc:
-            return "C";
-
-        case LINKcpp:
-            return "C++";
-
-        case LINKwindows:
-            return "Windows";
-
-        case LINKpascal:
-            return "Pascal";
-
-        case LINKobjc:
-            return "Objective-C";
-
+        case LINKdefault:   return null;
+        case LINKd:         return "D";
+        case LINKc:         return "C";
+        case LINKcpp:       return "C++";
+        case LINKwindows:   return "Windows";
+        case LINKpascal:    return "Pascal";
+        case LINKobjc:      return "Objective-C";
         default:
             assert(0);
     }
@@ -3263,34 +3241,21 @@ extern (C++) const(char)* protectionToChars(PROTKIND kind)
 {
     switch (kind)
     {
-        case PROTundefined:
-            return null;
-
-        case PROTnone:
-            return "none";
-
-        case PROTprivate:
-            return "private";
-
-        case PROTpackage:
-            return "package";
-
-        case PROTprotected:
-            return "protected";
-
-        case PROTpublic:
-            return "public";
-
-        case PROTexport:
-            return "export";
-
+        case PROTundefined: return null;
+        case PROTnone:      return "none";
+        case PROTprivate:   return "private";
+        case PROTpackage:   return "package";
+        case PROTprotected: return "protected";
+        case PROTpublic:    return "public";
+        case PROTexport:    return "export";
         default:
             assert(0);
     }
 }
 
 // Print the full function signature with correct ident, attributes and template args
-extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
+extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf,
+    Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);

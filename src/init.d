@@ -254,7 +254,8 @@ public:
             StructDeclaration sd = (cast(TypeStruct)t).sym;
             if (sd.ctor)
             {
-                error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead", sd.kind(), sd.toChars(), sd.toChars());
+                error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
+                    sd.kind(), sd.toChars(), sd.toChars());
                 return new ErrorInitializer();
             }
             sd.size(loc);
@@ -281,9 +282,11 @@ public:
                     {
                         s = sd.search_correct(id);
                         if (s)
-                            error(loc, "'%s' is not a member of '%s', did you mean %s '%s'?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(loc, "'%s' is not a member of '%s', did you mean %s '%s'?",
+                                id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
-                            error(loc, "'%s' is not a member of '%s'", id.toChars(), sd.toChars());
+                            error(loc, "'%s' is not a member of '%s'",
+                                id.toChars(), sd.toChars());
                         return new ErrorInitializer();
                     }
                     s = s.toAlias();
@@ -293,7 +296,8 @@ public:
                     {
                         if (fieldi >= nfields)
                         {
-                            error(loc, "%s.%s is not a per-instance initializable field", sd.toChars(), s.toChars());
+                            error(loc, "%s.%s is not a per-instance initializable field",
+                                sd.toChars(), s.toChars());
                             return new ErrorInitializer();
                         }
                         if (s == sd.fields[fieldi])
@@ -627,7 +631,8 @@ public:
 
         if (cast(uinteger_t)dim * t.nextOf().size() >= amax)
         {
-            error(loc, "array dimension %u exceeds max of %u", cast(uint)dim, cast(uint)(amax / t.nextOf().size()));
+            error(loc, "array dimension %u exceeds max of %u",
+                cast(uint)dim, cast(uint)(amax / t.nextOf().size()));
             goto Lerr;
         }
         return this;
@@ -939,7 +944,9 @@ public:
         }
 
         // Look for implicit constructor call
-        if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !exp.implicitConvTo(t))
+        if (tb.ty == Tstruct &&
+            !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) &&
+            !exp.implicitConvTo(t))
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.ctor)
@@ -959,7 +966,9 @@ public:
 
         // Look for the case of statically initializing an array
         // with a single member.
-        if (tb.ty == Tsarray && !tb.nextOf().equals(ti.toBasetype().nextOf()) && exp.implicitConvTo(tb.nextOf()))
+        if (tb.ty == Tsarray &&
+            !tb.nextOf().equals(ti.toBasetype().nextOf()) &&
+            exp.implicitConvTo(tb.nextOf()))
         {
             /* If the variable is not actually used in compile time, array creation is
              * redundant. So delay it until invocation of toExpression() or toDt().
@@ -975,7 +984,8 @@ public:
         {
             // Look for mismatch of compile-time known length to emit
             // better diagnostic message, as same as AssignExp::semantic.
-            if (tb.ty == Tsarray && exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCHnomatch)
+            if (tb.ty == Tsarray &&
+                exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCHnomatch)
             {
                 uinteger_t dim1 = (cast(TypeSArray)tb).dim.toInteger();
                 uinteger_t dim2 = dim1;

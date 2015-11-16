@@ -229,21 +229,11 @@ public:
     {
         switch (op)
         {
-            case TOKcantexp:
-                return cast(char*)"<cant>";
-
-            case TOKvoidexp:
-                return cast(char*)"<void>";
-
-            case TOKbreak:
-                return cast(char*)"<break>";
-
-            case TOKcontinue:
-                return cast(char*)"<continue>";
-
-            case TOKgoto:
-                return cast(char*)"<goto>";
-
+            case TOKcantexp:    return cast(char*)"<cant>";
+            case TOKvoidexp:    return cast(char*)"<void>";
+            case TOKbreak:      return cast(char*)"<break>";
+            case TOKcontinue:   return cast(char*)"<continue>";
+            case TOKgoto:       return cast(char*)"<goto>";
             default:
                 assert(0);
         }
@@ -301,7 +291,8 @@ extern (C++) bool needToCopyLiteral(Expression expr)
                 expr = (cast(UnaExp)expr).e1;
                 continue;
             case TOKcat:
-                return needToCopyLiteral((cast(BinExp)expr).e1) || needToCopyLiteral((cast(BinExp)expr).e2);
+                return needToCopyLiteral((cast(BinExp)expr).e1) ||
+                       needToCopyLiteral((cast(BinExp)expr).e2);
             case TOKcatass:
                 expr = (cast(BinExp)expr).e2;
                 continue;
@@ -516,12 +507,16 @@ extern (C++) UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
     }
     else if (lit.op == TOKarrayliteral)
     {
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc(), 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc,lit,
+            new IntegerExp(Loc(), 0, Type.tsize_t),
+            ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (lit.op == TOKstring)
     {
         // For strings, we need to introduce another level of indirection
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc(), 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc, lit,
+            new IntegerExp(Loc(), 0, Type.tsize_t),
+            ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (lit.op == TOKassocarrayliteral)
     {
@@ -594,7 +589,8 @@ extern (C++) uinteger_t resolveArrayLength(Expression e)
  * Helper for NewExp
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
  */
-extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type type, Expression elem, size_t dim)
+extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type type,
+    Expression elem, size_t dim)
 {
     auto elements = new Expressions();
     elements.setDim(dim);
@@ -626,18 +622,9 @@ extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, ui
     {
         switch (sz)
         {
-            case 1:
-                s[elemi] = cast(char)value;
-                break;
-
-            case 2:
-                (cast(ushort*)s)[elemi] = cast(ushort)value;
-                break;
-
-            case 4:
-                (cast(uint*)s)[elemi] = value;
-                break;
-
+            case 1:               s [elemi] = cast(char)value;      break;
+            case 2: (cast(ushort*)s)[elemi] = cast(ushort)value;    break;
+            case 4: (cast(  uint*)s)[elemi] = value;                break;
             default:
                 assert(0);
         }
@@ -673,7 +660,9 @@ extern (C++) TypeAArray toBuiltinAAType(Type t)
 // Return true if type is TypeInfo_Class
 extern (C++) bool isTypeInfo_Class(Type type)
 {
-    return type.ty == Tclass && (Type.dtypeinfo == (cast(TypeClass)type).sym || Type.dtypeinfo.isBaseOf((cast(TypeClass)type).sym, null));
+    return type.ty == Tclass &&
+           (Type.dtypeinfo == (cast(TypeClass)type).sym ||
+            Type.dtypeinfo.isBaseOf((cast(TypeClass)type).sym, null));
 }
 
 /************** Pointer operations ************************************/
@@ -688,7 +677,8 @@ extern (C++) bool isPointer(Type t)
 // For CTFE only. Returns true if 'e' is true or a non-null pointer.
 extern (C++) bool isTrueBool(Expression e)
 {
-    return e.isBool(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != TOKnull);
+    return e.isBool(true) ||
+           ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != TOKnull);
 }
 
 /* Is it safe to convert from srcPointee* to destPointee* ?
@@ -730,7 +720,9 @@ extern (C++) bool isSafePointerCast(Type srcPointee, Type destPointee)
         srcPointee = srcPointee.baseElemOf();
         destPointee = destPointee.baseElemOf();
     }
-    return srcPointee.isintegral() && destPointee.isintegral() && srcPointee.size() == destPointee.size();
+    return srcPointee.isintegral() &&
+           destPointee.isintegral() &&
+           srcPointee.size() == destPointee.size();
 }
 
 extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
@@ -758,7 +750,11 @@ extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     {
         IndexExp ie = cast(IndexExp)e;
         // Note that each AA element is part of its own memory block
-        if ((ie.e1.type.ty == Tarray || ie.e1.type.ty == Tsarray || ie.e1.op == TOKstring || ie.e1.op == TOKarrayliteral) && ie.e2.op == TOKint64)
+        if ((ie.e1.type.ty == Tarray ||
+             ie.e1.type.ty == Tsarray ||
+             ie.e1.op == TOKstring ||
+             ie.e1.op == TOKarrayliteral) &&
+            ie.e2.op == TOKint64)
         {
             *ofs = ie.e2.toInteger();
             return ie.e1;
@@ -767,7 +763,11 @@ extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     if (e.op == TOKslice && e.type.toBasetype().ty == Tsarray)
     {
         SliceExp se = cast(SliceExp)e;
-        if ((se.e1.type.ty == Tarray || se.e1.type.ty == Tsarray || se.e1.op == TOKstring || se.e1.op == TOKarrayliteral) && se.lwr.op == TOKint64)
+        if ((se.e1.type.ty == Tarray ||
+             se.e1.type.ty == Tsarray ||
+             se.e1.op == TOKstring ||
+             se.e1.op == TOKarrayliteral) &&
+            se.lwr.op == TOKint64)
         {
             *ofs = se.lwr.toInteger();
             return se.e1;
@@ -792,11 +792,13 @@ extern (C++) bool pointToSameMemoryBlock(Expression agg1, Expression agg2)
 
     // Note that type painting can occur with VarExp, so we
     // must compare the variables being pointed to.
-    if (agg1.op == TOKvar && agg2.op == TOKvar && (cast(VarExp)agg1).var == (cast(VarExp)agg2).var)
+    if (agg1.op == TOKvar && agg2.op == TOKvar &&
+        (cast(VarExp)agg1).var == (cast(VarExp)agg2).var)
     {
         return true;
     }
-    if (agg1.op == TOKsymoff && agg2.op == TOKsymoff && (cast(SymOffExp)agg1).var == (cast(SymOffExp)agg2).var)
+    if (agg1.op == TOKsymoff && agg2.op == TOKsymoff &&
+        (cast(SymOffExp)agg1).var == (cast(SymOffExp)agg2).var)
     {
         return true;
     }
@@ -826,7 +828,8 @@ extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expre
             emplaceExp!(IntegerExp)(&ue, loc, (ofs1 - ofs2) * sz, type);
         }
     }
-    else if (agg1.op == TOKsymoff && agg2.op == TOKsymoff && (cast(SymOffExp)agg1).var == (cast(SymOffExp)agg2).var)
+    else if (agg1.op == TOKsymoff && agg2.op == TOKsymoff &&
+             (cast(SymOffExp)agg1).var == (cast(SymOffExp)agg2).var)
     {
         emplaceExp!(IntegerExp)(&ue, loc, ofs1 - ofs2, type);
     }
@@ -840,7 +843,8 @@ extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expre
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin
-extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression eptr, Expression e2)
+extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type,
+    Expression eptr, Expression e2)
 {
     UnionExp ue;
 
@@ -923,7 +927,9 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
         dinteger_t dim = (cast(TypeSArray)eptr.type.toBasetype()).dim.toInteger();
 
         // Create a CTFE pointer &agg1[indx .. indx+dim]
-        auto se = new SliceExp(loc, agg1, new IntegerExp(loc, indx, Type.tsize_t), new IntegerExp(loc, indx + dim, Type.tsize_t));
+        auto se = new SliceExp(loc, agg1,
+            new IntegerExp(loc, indx,       Type.tsize_t),
+            new IntegerExp(loc, indx + dim, Type.tsize_t));
         se.type = type.toBasetype().nextOf();
         emplaceExp!(AddrExp)(&ue, loc, se);
         ue.exp().type = type;
@@ -941,39 +947,22 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
 
 // Return 1 if true, 0 if false
 // -1 if comparison is illegal because they point to non-comparable memory blocks
-extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, dinteger_t ofs1, Expression agg2, dinteger_t ofs2)
+extern (C++) int comparePointers(Loc loc, TOK op, Type type,
+    Expression agg1, dinteger_t ofs1, Expression agg2, dinteger_t ofs2)
 {
     if (pointToSameMemoryBlock(agg1, agg2))
     {
         int n;
         switch (op)
         {
-            case TOKlt:
-                n = (ofs1 < ofs2);
-                break;
-
-            case TOKle:
-                n = (ofs1 <= ofs2);
-                break;
-
-            case TOKgt:
-                n = (ofs1 > ofs2);
-                break;
-
-            case TOKge:
-                n = (ofs1 >= ofs2);
-                break;
-
+            case TOKlt:         n = (ofs1 < ofs2);      break;
+            case TOKle:         n = (ofs1 <= ofs2);     break;
+            case TOKgt:         n = (ofs1 > ofs2);      break;
+            case TOKge:         n = (ofs1 >= ofs2);     break;
             case TOKidentity:
-            case TOKequal:
-                n = (ofs1 == ofs2);
-                break;
-
+            case TOKequal:      n = (ofs1 == ofs2);     break;
             case TOKnotidentity:
-            case TOKnotequal:
-                n = (ofs1 != ofs2);
-                break;
-
+            case TOKnotequal:   n = (ofs1 != ofs2);     break;
             default:
                 assert(0);
         }
@@ -987,29 +976,16 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
     {
         switch (op)
         {
-            case TOKlt:
-                cmp = null1 && !null2;
-                break;
-
-            case TOKgt:
-                cmp = !null1 && null2;
-                break;
-
-            case TOKle:
-                cmp = null1;
-                break;
-
-            case TOKge:
-                cmp = null2;
-                break;
-
+            case TOKlt:     cmp = null1 && !null2;  break;
+            case TOKgt:     cmp = !null1 && null2;  break;
+            case TOKle:     cmp = null1;            break;
+            case TOKge:     cmp = null2;            break;
             case TOKidentity:
             case TOKequal:
             case TOKnotidentity: // 'cmp' gets inverted below
             case TOKnotequal:
                 cmp = (null1 == null2);
                 break;
-
             default:
                 assert(0);
         }
@@ -1037,7 +1013,9 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
 // floating point -> integer or integer -> floating point
 extern (C++) bool isFloatIntPaint(Type to, Type from)
 {
-    return from.size() == to.size() && (from.isintegral() && to.isfloating() || from.isfloating() && to.isintegral());
+    return from.size() == to.size() &&
+           (from.isintegral() && to.isfloating() ||
+            from.isfloating() && to.isintegral());
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
@@ -1062,7 +1040,14 @@ extern (C++) bool isCtfeComparable(Expression e)
 
     if (e.isConst() != 1)
     {
-        if (e.op == TOKnull || e.op == TOKstring || e.op == TOKfunction || e.op == TOKdelegate || e.op == TOKarrayliteral || e.op == TOKstructliteral || e.op == TOKassocarrayliteral || e.op == TOKclassreference)
+        if (e.op == TOKnull ||
+            e.op == TOKstring ||
+            e.op == TOKfunction ||
+            e.op == TOKdelegate ||
+            e.op == TOKarrayliteral ||
+            e.op == TOKstructliteral ||
+            e.op == TOKassocarrayliteral ||
+            e.op == TOKclassreference)
         {
             return true;
         }
@@ -1080,41 +1065,19 @@ private bool numCmp(N)(TOK op, N n1, N n2)
 {
     switch (op)
     {
-        case TOKlt:
-            return n1 < n2;
+        case TOKlt:     return n1 <  n2;
+        case TOKle:     return n1 <= n2;
+        case TOKgt:     return n1 >  n2;
+        case TOKge:     return n1 >= n2;
+        case TOKleg:    return true;
+        case TOKlg:     return n1 != n2;
 
-        case TOKle:
-            return n1 <= n2;
-
-        case TOKgt:
-            return n1 > n2;
-
-        case TOKge:
-            return n1 >= n2;
-
-        case TOKleg:
-            return true;
-
-        case TOKlg:
-            return n1 != n2;
-
-        case TOKunord:
-            return false;
-
-        case TOKue:
-            return n1 == n2;
-
-        case TOKug:
-            return n1 > n2;
-
-        case TOKuge:
-            return n1 >= n2;
-
-        case TOKul:
-            return n1 < n2;
-
-        case TOKule:
-            return n1 <= n2;
+        case TOKunord:  return false;
+        case TOKue:     return n1 == n2;
+        case TOKug:     return n1 >  n2;
+        case TOKuge:    return n1 >= n2;
+        case TOKul:     return n1 <  n2;
+        case TOKule:    return n1 <= n2;
 
         default:
             assert(0);
@@ -1252,7 +1215,8 @@ extern (C++) FuncDeclaration funcptrOf(Expression e)
 
 extern (C++) bool isArray(Expression e)
 {
-    return e.op == TOKarrayliteral || e.op == TOKstring || e.op == TOKslice || e.op == TOKnull;
+    return e.op == TOKarrayliteral || e.op == TOKstring ||
+           e.op == TOKslice || e.op == TOKnull;
 }
 
 /* For strings, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
@@ -1262,8 +1226,11 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
 {
     if (e1.op == TOKclassreference || e2.op == TOKclassreference)
     {
-        if (e1.op == TOKclassreference && e2.op == TOKclassreference && (cast(ClassReferenceExp)e1).value == (cast(ClassReferenceExp)e2).value)
+        if (e1.op == TOKclassreference && e2.op == TOKclassreference &&
+            (cast(ClassReferenceExp)e1).value == (cast(ClassReferenceExp)e2).value)
+        {
             return 0;
+        }
         return 1;
     }
     if (e1.op == TOKtypeid && e2.op == TOKtypeid)
@@ -1315,7 +1282,9 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
         Expression agg1 = getAggregateFromPointer(ptr1, &ofs1);
         Expression agg2 = getAggregateFromPointer(ptr2, &ofs2);
         // If they are TOKvar, it means they are FuncDeclarations
-        if ((agg1 == agg2 && ofs1 == ofs2) || (agg1.op == TOKvar && agg2.op == TOKvar && (cast(VarExp)agg1).var == (cast(VarExp)agg2).var))
+        if ((agg1 == agg2 && ofs1 == ofs2) ||
+            (agg1.op == TOKvar && agg2.op == TOKvar &&
+             (cast(VarExp)agg1).var == (cast(VarExp)agg2).var))
         {
             return 0;
         }
@@ -1478,7 +1447,8 @@ extern (C++) int ctfeIdentity(Loc loc, TOK op, Expression e1, Expression e2)
     {
         complex_t v1 = e1.toComplex();
         complex_t v2 = e2.toComplex();
-        cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
+        cmp = RealEquals(creall(v1), creall(v2)) &&
+                         RealEquals(cimagl(v1), cimagl(v1));
     }
     else
         cmp = !ctfeRawCmp(loc, e1, e2);
@@ -1510,7 +1480,8 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
     UnionExp ue;
-    if (e2.op == TOKstring && e1.op == TOKarrayliteral && t1.nextOf().isintegral())
+    if (e2.op == TOKstring && e1.op == TOKarrayliteral &&
+        t1.nextOf().isintegral())
     {
         // [chars] ~ string => string (only valid for CTFE)
         StringExp es1 = cast(StringExp)e2;
@@ -1542,7 +1513,8 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         es.type = type;
         return ue;
     }
-    if (e1.op == TOKstring && e2.op == TOKarrayliteral && t2.nextOf().isintegral())
+    if (e1.op == TOKstring && e2.op == TOKarrayliteral &&
+        t2.nextOf().isintegral())
     {
         // string ~ [chars] => string (only valid for CTFE)
         // Concatenate the strings
@@ -1575,7 +1547,8 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
         es.type = type;
         return ue;
     }
-    if (e1.op == TOKarrayliteral && e2.op == TOKarrayliteral && t1.nextOf().equals(t2.nextOf()))
+    if (e1.op == TOKarrayliteral && e2.op == TOKarrayliteral &&
+        t1.nextOf().equals(t2.nextOf()))
     {
         //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
         ArrayLiteralExp es1 = cast(ArrayLiteralExp)e1;
@@ -1635,7 +1608,8 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
         StringExp es1 = cast(StringExp)e1;
         if (indx >= es1.len)
         {
-            error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, cast(ulong)es1.len);
+            error(loc, "string index %llu is out of bounds [0 .. %llu]",
+                indx, cast(ulong)es1.len);
             return CTFEExp.cantexp;
         }
         return new IntegerExp(loc, es1.charAt(indx), type);
@@ -1645,7 +1619,8 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
         ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
         if (indx >= ale.elements.dim)
         {
-            error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1.toChars(), cast(ulong)ale.elements.dim);
+            error(loc, "array index %llu is out of bounds %s[0 .. %llu]",
+                indx, e1.toChars(), cast(ulong)ale.elements.dim);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];
@@ -1682,7 +1657,8 @@ extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
         // necessary not to change e's address for pointer comparisons
         r = e;
     }
-    else if (to.toBasetype().ty == Tarray && type.toBasetype().ty == Tarray && to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
+    else if (to.toBasetype().ty == Tarray &&    type.toBasetype().ty == Tarray &&
+             to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
     {
         // Bugzilla 12495: Array reinterpret casts: eg. string to immutable(ubyte)[]
         return paintTypeOntoLiteral(to, e);
@@ -1710,7 +1686,9 @@ extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
  */
 extern (C++) void assignInPlace(Expression dest, Expression src)
 {
-    assert(dest.op == TOKstructliteral || dest.op == TOKarrayliteral || dest.op == TOKstring);
+    assert(dest.op == TOKstructliteral ||
+           dest.op == TOKarrayliteral ||
+           dest.op == TOKstring);
     Expressions* oldelems;
     Expressions* newelems;
     if (dest.op == TOKstructliteral)
@@ -1767,7 +1745,8 @@ extern (C++) void assignInPlace(Expression dest, Expression src)
 }
 
 // Duplicate the elements array, then set field 'indexToChange' = newelem.
-extern (C++) Expressions* changeOneElement(Expressions* oldelems, size_t indexToChange, Expression newelem)
+extern (C++) Expressions* changeOneElement(Expressions* oldelems,
+    size_t indexToChange, Expression newelem)
 {
     auto expsx = new Expressions();
     ++CtfeStatus.numArrayAllocs;
@@ -1783,7 +1762,8 @@ extern (C++) Expressions* changeOneElement(Expressions* oldelems, size_t indexTo
 }
 
 // Create a new struct literal, which is the same as se except that se.field[offset] = elem
-extern (C++) Expression modifyStructField(Type type, StructLiteralExp se, size_t offset, Expression newval)
+extern (C++) Expression modifyStructField(Type type, StructLiteralExp se,
+    size_t offset, Expression newval)
 {
     int fieldi = se.getFieldIndex(newval.type, cast(uint)offset);
     if (fieldi == -1)
@@ -1799,7 +1779,8 @@ extern (C++) Expression modifyStructField(Type type, StructLiteralExp se, size_t
 }
 
 // Given an AA literal aae,  set aae[index] = newval and return newval.
-extern (C++) Expression assignAssocArrayElement(Loc loc, AssocArrayLiteralExp aae, Expression index, Expression newval)
+extern (C++) Expression assignAssocArrayElement(Loc loc, AssocArrayLiteralExp aae,
+    Expression index, Expression newval)
 {
     /* Create new associative array literal reflecting updated key/value
      */
@@ -1829,7 +1810,8 @@ extern (C++) Expression assignAssocArrayElement(Loc loc, AssocArrayLiteralExp aa
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Expression oldval, size_t oldlen, size_t newlen)
+extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType,
+    Expression oldval, size_t oldlen, size_t newlen)
 {
     UnionExp ue;
     Type elemType = arrayType.next;
@@ -1856,18 +1838,9 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
         {
             switch (oldse.sz)
             {
-                case 1:
-                    (cast(char*)s)[cast(size_t)(indxlo + elemi)] = cast(char)defaultValue;
-                    break;
-
-                case 2:
-                    (cast(utf16_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf16_t)defaultValue;
-                    break;
-
-                case 4:
-                    (cast(utf32_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf32_t)defaultValue;
-                    break;
-
+                case 1: (cast(   char*)s)[cast(size_t)(indxlo + elemi)] = cast(   char)defaultValue;    break;
+                case 2: (cast(utf16_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf16_t)defaultValue;    break;
+                case 4: (cast(utf32_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf32_t)defaultValue;    break;
                 default:
                     assert(0);
             }
@@ -1914,13 +1887,20 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
 extern (C++) bool isCtfeValueValid(Expression newval)
 {
     Type tb = newval.type.toBasetype();
-    if (newval.op == TOKint64 || newval.op == TOKfloat64 || newval.op == TOKchar || newval.op == TOKcomplex80)
+    if (newval.op == TOKint64 ||
+        newval.op == TOKfloat64 ||
+        newval.op == TOKchar ||
+        newval.op == TOKcomplex80)
     {
         return tb.isscalar();
     }
     if (newval.op == TOKnull)
     {
-        return tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass;
+        return tb.ty == Tnull ||
+               tb.ty == Tpointer ||
+               tb.ty == Tarray ||
+               tb.ty == Taarray ||
+               tb.ty == Tclass;
     }
 
     if (newval.op == TOKstring)
@@ -1944,7 +1924,9 @@ extern (C++) bool isCtfeValueValid(Expression newval)
         // &struct.func or &clasinst.func
         // &nestedfunc
         Expression ethis = (cast(DelegateExp)newval).e1;
-        return (ethis.op == TOKstructliteral || ethis.op == TOKclassreference || ethis.op == TOKvar && (cast(VarExp)ethis).var == (cast(DelegateExp)newval).func);
+        return (ethis.op == TOKstructliteral ||
+                ethis.op == TOKclassreference ||
+                ethis.op == TOKvar && (cast(VarExp)ethis).var == (cast(DelegateExp)newval).func);
     }
     if (newval.op == TOKsymoff)
     {
@@ -1961,7 +1943,12 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     {
         // e1 should be a CTFE reference
         Expression e1 = (cast(AddrExp)newval).e1;
-        return tb.ty == Tpointer && (e1.op == TOKstructliteral && isCtfeValueValid(e1) || e1.op == TOKvar || e1.op == TOKdotvar && isCtfeReferenceValid(e1) || e1.op == TOKindex && isCtfeReferenceValid(e1) || e1.op == TOKslice && e1.type.toBasetype().ty == Tsarray);
+        return tb.ty == Tpointer &&
+               (e1.op == TOKstructliteral && isCtfeValueValid(e1) ||
+                e1.op == TOKvar ||
+                e1.op == TOKdotvar && isCtfeReferenceValid(e1) ||
+                e1.op == TOKindex && isCtfeReferenceValid(e1) ||
+                e1.op == TOKslice && e1.type.toBasetype().ty == Tsarray);
     }
     if (newval.op == TOKslice)
     {
@@ -1969,7 +1956,9 @@ extern (C++) bool isCtfeValueValid(Expression newval)
         SliceExp se = cast(SliceExp)newval;
         assert(se.lwr && se.lwr.op == TOKint64);
         assert(se.upr && se.upr.op == TOKint64);
-        return (tb.ty == Tarray || tb.ty == Tsarray) && (se.e1.op == TOKstring || se.e1.op == TOKarrayliteral);
+        return (tb.ty == Tarray ||
+                tb.ty == Tsarray) && (se.e1.op == TOKstring ||
+                se.e1.op == TOKarrayliteral);
     }
 
     if (newval.op == TOKvoid)
