@@ -318,12 +318,14 @@ public:
         {
             propertyStart(name);
             arrayStart();
+
             while (stc)
             {
                 const(char)* p = stcToChars(stc);
                 assert(p);
                 item(p);
             }
+
             arrayEnd();
         }
     }
@@ -341,6 +343,7 @@ public:
                     property("file", filename);
                 }
             }
+
             if (loc.linnum)
             {
                 property(linename, loc.linnum);
@@ -373,23 +376,31 @@ public:
     {
         if (parameters is null || parameters.dim == 0)
             return;
+
         propertyStart(name);
         arrayStart();
+
         if (parameters)
         {
             for (size_t i = 0; i < parameters.dim; i++)
             {
                 Parameter p = (*parameters)[i];
                 objectStart();
+
                 if (p.ident)
                     property("name", p.ident.toChars());
+
                 property("type", "deco", p.type);
+
                 propertyStorageClass("storageClass", p.storageClass);
+
                 if (p.defaultArg)
                     property("default", p.defaultArg.toChars());
+
                 objectEnd();
             }
         }
+
         arrayEnd();
     }
 
@@ -398,27 +409,35 @@ public:
     {
         if (s.isModule())
             return;
+
         if (!s.isTemplateDeclaration()) // TemplateDeclaration::kind() acts weird sometimes
         {
             property("name", s.toChars());
             property("kind", s.kind());
         }
+
         if (s.prot().kind != PROTpublic) // TODO: How about package(names)?
             property("protection", protectionToChars(s.prot().kind));
+
         if (EnumMember em = s.isEnumMember())
         {
             if (em.origValue)
                 property("value", em.origValue.toChars());
         }
+
         property("comment", cast(const(char)*)s.comment);
+
         property("line", "char", &s.loc);
     }
 
     void jsonProperties(Declaration d)
     {
         jsonProperties(cast(Dsymbol)d);
+
         propertyStorageClass("storageClass", d.storage_class);
+
         property("type", "deco", d.type);
+
         // Emit originalType if it differs from type
         if (d.type != d.originalType && d.originalType)
         {
@@ -440,6 +459,7 @@ public:
     void jsonProperties(TemplateDeclaration td)
     {
         jsonProperties(cast(Dsymbol)td);
+
         if (td.onemember && td.onemember.isCtorDeclaration())
             property("name", "this"); // __ctor -> this
         else
@@ -447,6 +467,7 @@ public:
     }
 
     /* ========================================================================== */
+
     override void visit(Dsymbol s)
     {
     }
@@ -454,12 +475,17 @@ public:
     override void visit(Module s)
     {
         objectStart();
+
         if (s.md)
             property("name", s.md.toChars());
+
         property("kind", s.kind());
+
         filename = s.srcfile.toChars();
         property("file", filename);
+
         property("comment", cast(const(char)*)s.comment);
+
         propertyStart("members");
         arrayStart();
         for (size_t i = 0; i < s.members.dim; i++)
@@ -467,6 +493,7 @@ public:
             (*s.members)[i].accept(this);
         }
         arrayEnd();
+
         objectEnd();
     }
 
@@ -474,7 +501,9 @@ public:
     {
         if (s.id == Id.object)
             return;
+
         objectStart();
+
         propertyStart("name");
         stringStart();
         if (s.packages && s.packages.dim)
@@ -489,6 +518,7 @@ public:
         stringPart(s.id.toChars());
         stringEnd();
         comma();
+
         property("kind", s.kind());
         property("comment", cast(const(char)*)s.comment);
         property("line", "char", &s.loc);
@@ -496,6 +526,7 @@ public:
             property("protection", protectionToChars(s.prot().kind));
         if (s.aliasId)
             property("alias", s.aliasId.toChars());
+
         bool hasRenamed = false;
         bool hasSelective = false;
         for (size_t i = 0; i < s.aliases.dim; i++)
@@ -508,6 +539,7 @@ public:
             else
                 hasSelective = true;
         }
+
         if (hasRenamed)
         {
             // import foo : alias1 = target1;
@@ -522,6 +554,7 @@ public:
             }
             objectEnd();
         }
+
         if (hasSelective)
         {
             // import foo : target1;
@@ -535,6 +568,7 @@ public:
             }
             arrayEnd();
         }
+
         objectEnd();
     }
 
@@ -570,15 +604,20 @@ public:
     override void visit(Declaration d)
     {
         objectStart();
+
         //property("unknown", "declaration");
+
         jsonProperties(d);
+
         objectEnd();
     }
 
     override void visit(AggregateDeclaration d)
     {
         objectStart();
+
         jsonProperties(d);
+
         ClassDeclaration cd = d.isClassDeclaration();
         if (cd)
         {
@@ -598,6 +637,7 @@ public:
                 arrayEnd();
             }
         }
+
         if (d.members)
         {
             propertyStart("members");
@@ -609,17 +649,22 @@ public:
             }
             arrayEnd();
         }
+
         objectEnd();
     }
 
     override void visit(FuncDeclaration d)
     {
         objectStart();
+
         jsonProperties(d);
+
         TypeFunction tf = cast(TypeFunction)d.type;
         if (tf && tf.ty == Tfunction)
             property("parameters", tf.parameters);
+
         property("endline", "endchar", &d.endloc);
+
         if (d.foverrides.dim)
         {
             propertyStart("overrides");
@@ -631,32 +676,40 @@ public:
             }
             arrayEnd();
         }
+
         if (d.fdrequire)
         {
             propertyStart("in");
             d.fdrequire.accept(this);
         }
+
         if (d.fdensure)
         {
             propertyStart("out");
             d.fdensure.accept(this);
         }
+
         objectEnd();
     }
 
     override void visit(TemplateDeclaration d)
     {
         objectStart();
+
         // TemplateDeclaration::kind returns the kind of its Aggregate onemember, if it is one
         property("kind", "template");
+
         jsonProperties(d);
+
         propertyStart("parameters");
         arrayStart();
         for (size_t i = 0; i < d.parameters.dim; i++)
         {
             TemplateParameter s = (*d.parameters)[i];
             objectStart();
+
             property("name", s.ident.toChars());
+
             TemplateTypeParameter type = s.isTemplateTypeParameter();
             if (type)
             {
@@ -665,41 +718,54 @@ public:
                 else
                     property("kind", "type");
                 property("type", "deco", type.specType);
+
                 property("default", "defaultDeco", type.defaultType);
             }
+
             TemplateValueParameter value = s.isTemplateValueParameter();
             if (value)
             {
                 property("kind", "value");
+
                 property("type", "deco", value.valType);
+
                 if (value.specValue)
                     property("specValue", value.specValue.toChars());
+
                 if (value.defaultValue)
                     property("defaultValue", value.defaultValue.toChars());
             }
+
             TemplateAliasParameter _alias = s.isTemplateAliasParameter();
             if (_alias)
             {
                 property("kind", "alias");
+
                 property("type", "deco", _alias.specType);
+
                 if (_alias.specAlias)
                     property("specAlias", _alias.specAlias.toChars());
+
                 if (_alias.defaultAlias)
                     property("defaultAlias", _alias.defaultAlias.toChars());
             }
+
             TemplateTupleParameter tuple = s.isTemplateTupleParameter();
             if (tuple)
             {
                 property("kind", "tuple");
             }
+
             objectEnd();
         }
         arrayEnd();
+
         Expression expression = d.constraint;
         if (expression)
         {
             property("constraint", expression.toChars());
         }
+
         propertyStart("members");
         arrayStart();
         for (size_t i = 0; i < d.members.dim; i++)
@@ -708,6 +774,7 @@ public:
             s.accept(this);
         }
         arrayEnd();
+
         objectEnd();
     }
 
@@ -725,9 +792,13 @@ public:
             }
             return;
         }
+
         objectStart();
+
         jsonProperties(d);
+
         property("base", "baseDeco", d.memtype);
+
         if (d.members)
         {
             propertyStart("members");
@@ -739,34 +810,45 @@ public:
             }
             arrayEnd();
         }
+
         objectEnd();
     }
 
     override void visit(EnumMember s)
     {
         objectStart();
+
         jsonProperties(cast(Dsymbol)s);
+
         property("type", "deco", s.origType);
+
         objectEnd();
     }
 
     override void visit(VarDeclaration d)
     {
         objectStart();
+
         jsonProperties(d);
+
         if (d._init)
             property("init", d._init.toChars());
+
         if (d.isField())
             property("offset", d.offset);
+
         if (d.alignment && d.alignment != STRUCTALIGN_DEFAULT)
             property("align", d.alignment);
+
         objectEnd();
     }
 
     override void visit(TemplateMixin d)
     {
         objectStart();
+
         jsonProperties(d);
+
         objectEnd();
     }
 }
@@ -774,6 +856,7 @@ public:
 extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
 {
     scope ToJsonVisitor json = new ToJsonVisitor(buf);
+
     json.arrayStart();
     for (size_t i = 0; i < modules.dim; i++)
     {

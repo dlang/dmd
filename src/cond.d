@@ -254,11 +254,13 @@ public:
             "none",
             null
         ];
+
         for (uint i = 0; reserved[i]; i++)
         {
             if (strcmp(ident, reserved[i]) == 0)
                 return true;
         }
+
         if (ident[0] == 'D' && ident[1] == '_')
             return true;
         return false;
@@ -362,27 +364,33 @@ public:
                 error(loc, (nest > 1000) ? "unresolvable circular static if expression" : "error evaluating static if expression");
                 goto Lerror;
             }
+
             if (!sc)
             {
                 error(loc, "static if conditional cannot be at global scope");
                 inc = 2;
                 return 0;
             }
+
             ++nest;
             sc = sc.push(sc.scopesym);
             sc.sds = sds; // sds gets any addMember()
             //sc->speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
             sc.flags |= SCOPEcondition;
+
             sc = sc.startCTFE();
             Expression e = exp.semantic(sc);
             e = resolveProperties(sc, e);
             sc = sc.endCTFE();
+
             sc.pop();
             --nest;
+
             // Prevent repeated condition evaluation.
             // See: fail_compilation/fail7815.d
             if (inc != 0)
                 return (inc == 1);
+
             if (!e.type.isBoolean())
             {
                 if (e.type.toBasetype() != Type.terror)
@@ -405,6 +413,7 @@ public:
             }
         }
         return (inc == 1);
+
     Lerror:
         if (!global.gag)
             inc = 2; // so we don't see the error message again

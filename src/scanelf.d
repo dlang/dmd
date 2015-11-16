@@ -40,8 +40,10 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
     {
         printf("scanElfObjModule(%s)\n", module_name);
     }
+
     ubyte* buf = cast(ubyte*)base;
     int reason = 0;
+
     if (buflen < Elf32_Ehdr.sizeof)
     {
         reason = __LINE__;
@@ -49,6 +51,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
         error(loc, "corrupt ELF object module %s %d", module_name, reason);
         return;
     }
+
     if (memcmp(buf, elf, 4))
     {
         reason = __LINE__;
@@ -74,6 +77,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
         }
         if (eh.e_version != EV_CURRENT)
             goto Lcorrupt;
+
         /* For each Section
          */
         for (uint u = 0; u < eh.e_shnum; u++)
@@ -91,6 +95,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                     goto Lcorrupt;
                 }
                 char* string_tab = cast(char*)(buf + string_section.sh_offset);
+
                 for (uint offset = 0; offset < section.sh_size; offset += Elf32_Sym.sizeof)
                 {
                     Elf32_Sym* sym = cast(Elf32_Sym*)(buf + section.sh_offset + offset);
@@ -119,6 +124,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
             reason = __LINE__;
             goto Lcorrupt;
         }
+
         /* For each Section
          */
         for (uint u = 0; u < eh.e_shnum; u++)
@@ -136,6 +142,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                     goto Lcorrupt;
                 }
                 char* string_tab = cast(char*)(buf + string_section.sh_offset);
+
                 for (uint offset = 0; offset < section.sh_size; offset += Elf64_Sym.sizeof)
                 {
                     Elf64_Sym* sym = cast(Elf64_Sym*)(buf + section.sh_offset + offset);
@@ -154,6 +161,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
         error(loc, "ELF object module %s is unrecognized class %d", module_name, buf[EI_CLASS]);
         return;
     }
+
     version (none)
     {
         /* String table section

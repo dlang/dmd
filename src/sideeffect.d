@@ -43,6 +43,7 @@ extern (C++) bool isTrivialExp(Expression e)
                 stop = true;
                 return;
             }
+
             // stop walking if we determine this expression has side effects
             stop = lambdaHasSideEffect(e);
         }
@@ -89,6 +90,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
      */
     if (f.isCtorDeclaration())
         return 0;
+
     assert(f.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.isnothrow)
@@ -105,6 +107,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
 extern (C++) int callSideEffectLevel(Type t)
 {
     t = t.toBasetype();
+
     TypeFunction tf;
     if (t.ty == Tdelegate)
         tf = cast(TypeFunction)(cast(TypeDelegate)t).next;
@@ -113,6 +116,7 @@ extern (C++) int callSideEffectLevel(Type t)
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)t;
     }
+
     tf.purityLevel();
     PURE purity = tf.purity;
     if (t.ty == Tdelegate && purity > PUREweak)
@@ -122,6 +126,7 @@ extern (C++) int callSideEffectLevel(Type t)
         else if (!tf.isImmutable())
             purity = PUREconst;
     }
+
     if (tf.isnothrow)
     {
         if (purity == PUREstrong)
@@ -164,6 +169,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
     case TOKnew:
     case TOKnewanonclass:
         return true;
+
     case TOKcall:
         {
             CallExp ce = cast(CallExp)e;
@@ -223,6 +229,7 @@ extern (C++) void discardValue(Expression e)
         }
     case TOKerror:
         return;
+
     case TOKvar:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
@@ -265,14 +272,17 @@ extern (C++) void discardValue(Expression e)
                     }
                     else
                         s = ce.e1.toChars();
+
                     e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
                 }
             }
         }
         return;
+
     case TOKimport:
         e.error("%s has no effect", e.toChars());
         return;
+
     case TOKandand:
         {
             AndAndExp aae = cast(AndAndExp)e;
@@ -288,6 +298,7 @@ extern (C++) void discardValue(Expression e)
     case TOKquestion:
         {
             CondExp ce = cast(CondExp)e;
+
             /* Bugzilla 6178 & 14089: Either CondExp::e1 or e2 may have
              * redundant expression to make those types common. For example:
              *
@@ -341,6 +352,7 @@ extern (C++) void discardValue(Expression e)
         if (!hasSideEffect(e))
             break;
         return;
+
     default:
         break;
     }

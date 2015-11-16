@@ -29,8 +29,10 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
     {
         printf("scanMSCoffObjModule(%s)\n", module_name);
     }
+
     ubyte* buf = cast(ubyte*)base;
     int reason;
+
     /* First do sanity checks on object file
      */
     if (buflen < BIGOBJ_HEADER.sizeof)
@@ -40,6 +42,7 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         error(loc, "MS-Coff object module %s is corrupt, %d", module_name, reason);
         return;
     }
+
     BIGOBJ_HEADER* header = cast(BIGOBJ_HEADER*)buf;
     char is_old_coff = false;
     if (header.Sig2 != 0xFFFF && header.Version != 2)
@@ -48,6 +51,7 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         IMAGE_FILE_HEADER* header_old;
         header_old = cast(IMAGE_FILE_HEADER*)malloc(IMAGE_FILE_HEADER.sizeof);
         memcpy(header_old, buf, IMAGE_FILE_HEADER.sizeof);
+
         header = cast(BIGOBJ_HEADER*)malloc(BIGOBJ_HEADER.sizeof);
         *header = BIGOBJ_HEADER.init;
         header.Machine = header_old.Machine;
@@ -57,12 +61,14 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         header.NumberOfSymbols = header_old.NumberOfSymbols;
         free(header_old);
     }
+
     switch (header.Machine)
     {
     case IMAGE_FILE_MACHINE_UNKNOWN:
     case IMAGE_FILE_MACHINE_I386:
     case IMAGE_FILE_MACHINE_AMD64:
         break;
+
     default:
         if (buf[0] == 0x80)
             error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
@@ -70,6 +76,7 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
             error(loc, "MS-Coff object module %s has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
         return;
     }
+
     // Get string table:  string_table[0..string_len]
     size_t off = header.PointerToSymbolTable;
     if (off == 0)
@@ -91,22 +98,28 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         goto Lcorrupt;
     }
     string_len -= 4;
+
     for (int i = 0; i < header.NumberOfSymbols; i++)
     {
         SymbolTable32* n;
+
         char[8 + 1] s;
         char* p;
+
         static if (LOG)
         {
             printf("Symbol %d:\n", i);
         }
         off = header.PointerToSymbolTable + i * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
+
         if (off > buflen)
         {
             reason = __LINE__;
             goto Lcorrupt;
         }
+
         n = cast(SymbolTable32*)(buf + off);
+
         if (is_old_coff)
         {
             SymbolTable* n2;
@@ -152,6 +165,7 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
             if (n.Value)
                 break;
             continue;
+
         default:
             break;
         }
@@ -167,6 +181,7 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         case IMAGE_SYM_CLASS_FILE:
         case IMAGE_SYM_CLASS_LABEL:
             continue;
+
         default:
             continue;
         }

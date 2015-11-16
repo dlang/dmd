@@ -202,9 +202,11 @@ struct IRState
         case BOUNDSCHECKoff:
             result = false;
             break;
+
         case BOUNDSCHECKon:
             result = true;
             break;
+
         case BOUNDSCHECKsafeonly:
             {
                 result = false;
@@ -217,6 +219,7 @@ struct IRState
                 }
                 break;
             }
+
         default:
             assert(0);
         }

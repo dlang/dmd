@@ -50,12 +50,15 @@ extern (C++) const(char)* lookForSourceFile(const(char)* filename)
 {
     /* Search along global.path for .di file, then .d file.
      */
+
     const(char)* sdi = FileName.forceExt(filename, global.hdr_ext);
     if (FileName.exists(sdi) == 1)
         return sdi;
+
     const(char)* sd = FileName.forceExt(filename, global.mars_ext);
     if (FileName.exists(sd) == 1)
         return sd;
+
     if (FileName.exists(filename) == 2)
     {
         /* The filename exists and it's a directory.
@@ -67,21 +70,27 @@ extern (C++) const(char)* lookForSourceFile(const(char)* filename)
             return n;
         FileName.free(n);
     }
+
     if (FileName.absolute(filename))
         return null;
+
     if (!global.path)
         return null;
+
     for (size_t i = 0; i < global.path.dim; i++)
     {
         const(char)* p = (*global.path)[i];
+
         const(char)* n = FileName.combine(p, sdi);
         if (FileName.exists(n) == 1)
             return n;
         FileName.free(n);
+
         n = FileName.combine(p, sd);
         if (FileName.exists(n) == 1)
             return n;
         FileName.free(n);
+
         const(char)* b = FileName.removeExt(filename);
         n = FileName.combine(p, b);
         FileName.free(b);
@@ -140,9 +149,11 @@ public:
     {
         DsymbolTable dst = Module.modules;
         Dsymbol parent = null;
+
         //printf("Package::resolve()\n");
         if (ppkg)
             *ppkg = null;
+
         if (packages)
         {
             for (size_t i = 0; i < packages.dim; i++)
@@ -165,6 +176,7 @@ public:
                     // to be checked at a higher level, where a nice error message
                     // can be generated.
                     // dot net needs modules and packages with same name
+
                     // But we still need a symbol table for it
                     if (!pkg.symtab)
                         pkg.symtab = new DsymbolTable();
@@ -259,6 +271,7 @@ public:
     extern (C++) static __gshared Module rootModule;
     extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
     extern (C++) static __gshared Modules amodules;     // array of all modules
+
     extern (C++) static __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
     extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
@@ -294,7 +307,9 @@ public:
         {
             for (size_t i = 0; i < amodules.dim; i++)
                 amodules[i].insearch = 0;
+
             selfimports = imports(this) + 1;
+
             for (size_t i = 0; i < amodules.dim; i++)
                 amodules[i].insearch = 0;
         }
@@ -313,6 +328,7 @@ public:
         {
             for (size_t i = 0; i < amodules.dim; i++)
                 amodules[i].insearch = 0;
+
             rootimports = 1;
             for (size_t i = 0; i < amodules.dim; ++i)
             {
@@ -323,6 +339,7 @@ public:
                     break;
                 }
             }
+
             for (size_t i = 0; i < amodules.dim; i++)
                 amodules[i].insearch = 0;
         }
@@ -361,9 +378,12 @@ public:
     {
         super(ident);
         const(char)* srcfilename;
+
         //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
         this.arg = filename;
+
         srcfilename = FileName.defaultExt(filename, global.mars_ext);
+
         if (global.run_noext && global.params.run && !FileName.ext(filename) && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
         {
             FileName.free(srcfilename);
@@ -375,11 +395,15 @@ public:
             fatal();
         }
         srcfile = new File(srcfilename);
+
         objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
+
         if (doDocComment)
             setDocfile();
+
         if (doHdrGen)
             hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
+
         //objfile = new File(objfilename);
     }
 
@@ -391,6 +415,7 @@ public:
     static Module load(Loc loc, Identifiers* packages, Identifier ident)
     {
         //printf("Module::load(ident = '%s')\n", ident->toChars());
+
         // Build module filename by turning:
         //  foo.bar.baz
         // into:
@@ -399,6 +424,7 @@ public:
         if (packages && packages.dim)
         {
             OutBuffer buf;
+
             for (size_t i = 0; i < packages.dim; i++)
             {
                 Identifier pid = (*packages)[i];
@@ -416,15 +442,19 @@ public:
             buf.writeByte(0);
             filename = cast(char*)buf.extractData();
         }
+
         auto m = new Module(filename, ident, 0, 0);
         m.loc = loc;
+
         /* Look for the source file
          */
         const(char)* result = lookForSourceFile(filename);
         if (result)
             m.srcfile = new File(result);
+
         if (!m.read(loc))
             return null;
+
         if (global.params.verbose)
         {
             fprintf(global.stdmsg, "import    ");
@@ -438,8 +468,11 @@ public:
             }
             fprintf(global.stdmsg, "%s\t(%s)\n", ident.toChars(), m.srcfile.toChars());
         }
+
         m = m.parse();
+
         Target.loadModule(m);
+
         return m;
     }
 
@@ -461,6 +494,7 @@ public:
     File* setOutfile(const(char)* name, const(char)* dir, const(char)* arg, const(char)* ext)
     {
         const(char)* docfilename;
+
         if (name)
         {
             docfilename = name;
@@ -472,6 +506,7 @@ public:
                 argdoc = arg;
             else
                 argdoc = FileName.name(arg);
+
             // If argdoc doesn't have an absolute path, make it relative to dir
             if (!FileName.absolute(argdoc))
             {
@@ -480,11 +515,13 @@ public:
             }
             docfilename = FileName.forceExt(argdoc, ext);
         }
+
         if (FileName.equals(docfilename, srcfile.name.str))
         {
             error("source file and output file have same name '%s'", srcfile.name.str);
             fatal();
         }
+
         return new File(docfilename);
     }
 
@@ -514,6 +551,7 @@ public:
                 else
                     error(loc, "is in file '%s' which cannot be read", srcfile.toChars());
             }
+
             if (!global.gag)
             {
                 /* Print path
@@ -539,11 +577,15 @@ public:
     Module parse()
     {
         //printf("Module::parse(srcfile='%s') this=%p\n", srcfile->name->toChars(), this);
+
         char* srcname = srcfile.name.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
+
         isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0);
+
         char* buf = cast(char*)srcfile.buffer;
         size_t buflen = srcfile.len;
+
         if (buflen >= 2)
         {
             /* Convert all non-UTF-8 formats to UTF-8.
@@ -554,6 +596,7 @@ public:
              * FF FE        UTF-16LE, little-endian
              * EF BB BF     UTF-8
              */
+
             uint le;
             uint bom = 1; // assume there's a BOM
             if (buf[0] == 0xFF && buf[1] == 0xFE)
@@ -562,15 +605,18 @@ public:
                 {
                     // UTF-32LE
                     le = 1;
+
                 Lutf32:
                     OutBuffer dbuf;
                     uint* pu = cast(uint*)buf;
                     uint* pumax = &pu[buflen / 4];
+
                     if (buflen & 3)
                     {
                         error("odd length of UTF-32 char source %u", buflen);
                         fatal();
                     }
+
                     dbuf.reserve(buflen / 4);
                     for (pu += bom; pu < pumax; pu++)
                     {
@@ -597,10 +643,12 @@ public:
                     // UTF-16LE (X86)
                     // Convert it to UTF-8
                     le = 1;
+
                 Lutf16:
                     OutBuffer dbuf;
                     ushort* pu = cast(ushort*)buf;
                     ushort* pumax = &pu[buflen / 2];
+
                     if (buflen & 1)
                     {
                         error("odd length of UTF-16 char source %u", buflen);
@@ -705,6 +753,7 @@ public:
                         goto Lutf16;
                     }
                 }
+
                 // It's UTF-8
                 if (buf[0] >= 0x80)
                 {
@@ -713,6 +762,7 @@ public:
                 }
             }
         }
+
         /* If it starts with the string "Ddoc", then it's a documentation
          * source file.
          */
@@ -733,13 +783,16 @@ public:
             if (p.errors)
                 ++global.errors;
         }
+
         if (srcfile._ref == 0)
             .free(srcfile.buffer);
         srcfile.buffer = null;
         srcfile.len = 0;
+
         /* The symbol table into which the module is to be inserted.
          */
         DsymbolTable dst;
+
         if (md)
         {
             /* A ModuleDeclaration, md, was provided.
@@ -750,6 +803,7 @@ public:
             Package ppack = null;
             dst = Package.resolve(md.packages, &this.parent, &ppack);
             assert(dst);
+
             Module m = ppack ? ppack.isModule() : null;
             if (m && strcmp(m.srcfile.name.name(), "package.d") != 0)
             {
@@ -762,6 +816,7 @@ public:
              * There are no packages.
              */
             dst = modules; // and so this module goes into global module symbol table
+
             /* Check to see if module name is a valid identifier
              */
             if (!Identifier.isValidIdentifier(this.ident.toChars()))
@@ -775,6 +830,7 @@ public:
             static __gshared const(char)* code_ArrayDtor = "void _ArrayDtor(T)(T[] a) { foreach_reverse (ref T e; a) e.__xdtor(); }\n";
             static __gshared const(char)* code_xopEquals = "bool _xopEquals(in void*, in void*) { throw new Error(\"TypeInfo.equals is not implemented\"); }\n";
             static __gshared const(char)* code_xopCmp = "bool _xopCmp(in void*, in void*) { throw new Error(\"TypeInfo.compare is not implemented\"); }\n";
+
             Identifier arreq = Id._ArrayEq;
             Identifier xopeq = Identifier.idPool("_xopEquals");
             Identifier xopcmp = Identifier.idPool("_xopCmp");
@@ -819,6 +875,7 @@ public:
                 members.append(p.parseDeclDefs(0));
             }
         }
+
         // Insert module into the symbol table
         Dsymbol s = this;
         if (isPackageFile)
@@ -862,6 +919,7 @@ public:
                     error(loc, "from file %s is specified twice on the command line", srcname);
                 else
                     error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
+
                 // Bugzilla 14446: Return previously parsed module to avoid AST duplication ICE.
                 return mprev;
             }
@@ -892,13 +950,16 @@ public:
     override void importAll(Scope* prevsc)
     {
         //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
+
         if (_scope)
             return; // already done
+
         if (isDocFile)
         {
             error("is a Ddoc file, cannot import it");
             return;
         }
+
         if (md && md.msg)
         {
             if (StringExp se = md.msg.toStringExp())
@@ -906,12 +967,14 @@ public:
             else
                 md.msg.error("string expected, not '%s'", md.msg.toChars());
         }
+
         /* Note that modules get their own scope, from scratch.
          * This is so regardless of where in the syntax a module
          * gets imported, it is unaffected by context.
          * Ignore prevsc.
          */
         Scope* sc = Scope.createGlobal(this); // create root scope
+
         // Add import of "object", even for the "object" module.
         // If it isn't there, some compiler rewrites, like
         //    classinst == classinst -> .object.opEquals(classinst, classinst)
@@ -921,6 +984,7 @@ public:
             auto im = new Import(Loc(), null, Id.object, null, 0);
             members.shift(im);
         }
+
         if (!symtab)
         {
             // Add all symbols into module's symbol table
@@ -932,6 +996,7 @@ public:
             }
         }
         // anything else should be run after addMember, so version/debug symbols are defined
+
         /* Set scope for the symbols so that if we forward reference
          * a symbol, it can possibly be resolved on the spot.
          * If this works out well, it can be extended to all modules
@@ -943,11 +1008,13 @@ public:
             Dsymbol s = (*members)[i];
             s.setScope(sc);
         }
+
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.importAll(sc);
         }
+
         sc = sc.pop();
         sc.pop(); // 2 pops because Scope::createGlobal() created 2
     }
@@ -957,8 +1024,10 @@ public:
     {
         if (semanticRun != PASSinit)
             return;
+
         //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         semanticRun = PASSsemantic;
+
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
@@ -967,7 +1036,9 @@ public:
         {
             Scope.createGlobal(this); // create root scope
         }
+
         //printf("Module = %p, linkage = %d\n", sc->scopesym, sc->linkage);
+
         // Pass 1 semantic routines: do public side of the definition
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -976,10 +1047,12 @@ public:
             s.semantic(sc);
             runDeferredSemantic();
         }
+
         if (userAttribDecl)
         {
             userAttribDecl.semantic(sc);
         }
+
         if (!_scope)
         {
             sc = sc.pop();
@@ -996,21 +1069,25 @@ public:
         if (semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
             return;
         semanticRun = PASSsemantic2;
+
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
         Scope* sc = Scope.createGlobal(this); // create root scope
         //printf("Module = %p\n", sc.scopesym);
+
         // Pass 2 semantic routines: do initializers and function bodies
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
             s.semantic2(sc);
         }
+
         if (userAttribDecl)
         {
             userAttribDecl.semantic2(sc);
         }
+
         sc = sc.pop();
         sc.pop();
         semanticRun = PASSsemantic2done;
@@ -1024,11 +1101,13 @@ public:
         if (semanticRun != PASSsemantic2done)
             return;
         semanticRun = PASSsemantic3;
+
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
         Scope* sc = Scope.createGlobal(this); // create root scope
         //printf("Module = %p\n", sc.scopesym);
+
         // Pass 3 semantic routines: do initializers and function bodies
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -1036,10 +1115,12 @@ public:
             //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
             s.semantic3(sc);
         }
+
         if (userAttribDecl)
         {
             userAttribDecl.semantic3(sc);
         }
+
         sc = sc.pop();
         sc.pop();
         semanticRun = PASSsemantic3done;
@@ -1061,6 +1142,7 @@ public:
          * need to stop infinite recursive searches.
          * This is done with the cache.
          */
+
         //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
         if (insearch)
             return null;
@@ -1070,10 +1152,13 @@ public:
             //        toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
             return searchCacheSymbol;
         }
+
         uint errors = global.errors;
+
         insearch = 1;
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
         insearch = 0;
+
         if (errors == global.errors)
         {
             // Bugzilla 10752: We can cache the result only when it does not cause
@@ -1111,6 +1196,7 @@ public:
             if (sd == s)
                 return;
         }
+
         //printf("Module::addDeferredSemantic('%s')\n", s->toChars());
         deferred.push(s);
     }
@@ -1122,11 +1208,13 @@ public:
     {
         if (dprogress == 0)
             return;
+
         static __gshared int nested;
         if (nested)
             return;
         //if (deferred.dim) printf("+Module::runDeferredSemantic(), len = %d\n", deferred.dim);
         nested++;
+
         size_t len;
         do
         {
@@ -1134,6 +1222,7 @@ public:
             len = deferred.dim;
             if (!len)
                 break;
+
             Dsymbol* todo;
             Dsymbol* todoalloc = null;
             Dsymbol tmp;
@@ -1149,6 +1238,7 @@ public:
             }
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
             deferred.setDim(0);
+
             for (size_t i = 0; i < len; i++)
             {
                 Dsymbol s = todo[i];
@@ -1183,7 +1273,9 @@ public:
         {
             Dsymbol s = (*a)[i];
             //printf("[%d] %s semantic3a\n", i, s->toPrettyChars());
+
             s.semantic3(null);
+
             if (global.errors)
                 break;
         }

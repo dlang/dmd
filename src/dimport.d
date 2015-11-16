@@ -72,6 +72,7 @@ public:
         this.aliasId = aliasId;
         this.isstatic = isstatic;
         this.protection = PROTprivate; // default to private
+
         // Set symbol name (bracketed)
         if (aliasId)
         {
@@ -94,8 +95,10 @@ public:
     {
         if (isstatic)
             error("cannot have an import bind list");
+
         if (!aliasId)
             this.ident = null; // make it an anonymous import
+
         names.push(name);
         aliases.push(_alias);
     }
@@ -125,6 +128,7 @@ public:
     void load(Scope* sc)
     {
         //printf("Import::load('%s') %p\n", toPrettyChars(), this);
+
         // See if existing module
         DsymbolTable dst = Package.resolve(packages, null, &pkg);
         version (none)
@@ -179,6 +183,7 @@ public:
                 }
             }
         }
+
         if (!mod)
         {
             // Load module
@@ -193,6 +198,7 @@ public:
             mod.importedFrom = sc ? sc._module.importedFrom : Module.rootModule;
         if (!pkg)
             pkg = mod;
+
         //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
     }
 
@@ -211,7 +217,9 @@ public:
                     else
                         mod.deprecation(loc, "is deprecated");
                 }
+
                 mod.importAll(null);
+
                 if (!isstatic && !aliasId && !names.dim)
                 {
                     if (sc.explicitProtection)
@@ -225,11 +233,13 @@ public:
     override void semantic(Scope* sc)
     {
         //printf("Import::semantic('%s')\n", toPrettyChars());
+
         if (_scope)
         {
             sc = _scope;
             _scope = null;
         }
+
         // Load if not already done so
         if (!mod)
         {
@@ -237,11 +247,13 @@ public:
             if (mod)
                 mod.importAll(null);
         }
+
         if (mod)
         {
             // Modules need a list of each imported module
             //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
             sc._module.aimports.push(mod);
+
             if (!isstatic && !aliasId && !names.dim)
             {
                 if (sc.explicitProtection)
@@ -255,12 +267,15 @@ public:
                     }
                 }
             }
+
             mod.semantic();
+
             if (mod.needmoduleinfo)
             {
                 //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
                 sc._module.needmoduleinfo = 1;
             }
+
             sc = sc.push(mod);
             /* BUG: Protection checks can't be enabled yet. The issue is
              * that Dsymbol::search errors before overload resolution.
@@ -293,6 +308,7 @@ public:
             }
             sc = sc.pop();
         }
+
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
         if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) && sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string, "__main") != 0)
@@ -317,6 +333,7 @@ public:
             ob.writestring(" (");
             escapePath(ob, imod.srcfile.toChars());
             ob.writestring(") : ");
+
             // use protection instead of sc->protection because it couldn't be
             // resolved yet, see the comment above
             protectionToBuffer(ob, Prot(protection));
@@ -327,6 +344,7 @@ public:
                 ob.writeByte(' ');
             }
             ob.writestring(": ");
+
             if (packages)
             {
                 for (size_t i = 0; i < packages.dim; i++)
@@ -335,6 +353,7 @@ public:
                     ob.printf("%s.", pid.toChars());
                 }
             }
+
             ob.writestring(id.toChars());
             ob.writestring(" (");
             if (mod)
@@ -342,14 +361,17 @@ public:
             else
                 ob.writestring("???");
             ob.writeByte(')');
+
             for (size_t i = 0; i < names.dim; i++)
             {
                 if (i == 0)
                     ob.writeByte(':');
                 else
                     ob.writeByte(',');
+
                 Identifier name = names[i];
                 Identifier _alias = aliases[i];
+
                 if (!_alias)
                 {
                     ob.printf("%s", name.toChars());
@@ -358,8 +380,10 @@ public:
                 else
                     ob.printf("%s=%s", _alias.toChars(), name.toChars());
             }
+
             if (aliasId)
                 ob.printf(" -> %s", aliasId.toChars());
+
             ob.writenl();
         }
         //printf("-Import::semantic('%s'), pkg = %p\n", toChars(), pkg);
@@ -393,8 +417,10 @@ public:
     {
         if (names.dim == 0)
             return Dsymbol.addMember(sc, sd);
+
         if (aliasId)
             Dsymbol.addMember(sc, sd);
+
         /* Instead of adding the import to sd's symbol table,
          * add each of the alias=name pairs
          */
@@ -402,12 +428,15 @@ public:
         {
             Identifier name = names[i];
             Identifier _alias = aliases[i];
+
             if (!_alias)
                 _alias = name;
+
             auto tname = new TypeIdentifier(loc, name);
             auto ad = new AliasDeclaration(loc, _alias, tname);
             ad._import = this;
             ad.addMember(sc, sd);
+
             aliasdecls.push(ad);
         }
     }
@@ -421,6 +450,7 @@ public:
             mod.importAll(null);
             mod.semantic();
         }
+
         // Forward it to the package/module
         return pkg.search(loc, ident, flags);
     }

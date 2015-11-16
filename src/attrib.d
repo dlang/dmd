@@ -110,12 +110,14 @@ public:
         if (d)
         {
             Scope* sc2 = newScope(sc);
+
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
                 s.addMember(sc2, sds);
             }
+
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -128,11 +130,13 @@ public:
         if (d)
         {
             Scope* sc2 = newScope(sc);
+
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 s.setScope(sc2);
             }
+
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -145,11 +149,13 @@ public:
         if (d)
         {
             Scope* sc2 = newScope(sc);
+
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 s.importAll(sc2);
             }
+
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -162,11 +168,13 @@ public:
         if (d)
         {
             Scope* sc2 = newScope(sc);
+
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 s.semantic(sc2);
             }
+
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -178,11 +186,13 @@ public:
         if (d)
         {
             Scope* sc2 = newScope(sc);
+
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 s.semantic2(sc2);
             }
+
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -194,11 +204,13 @@ public:
         if (d)
         {
             Scope* sc2 = newScope(sc);
+
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 s.semantic3(sc2);
             }
+
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -337,6 +349,7 @@ public:
     override final Scope* newScope(Scope* sc)
     {
         StorageClass scstc = sc.stc;
+
         /* These sets of storage classes are mutually exclusive,
          * so choose the innermost or most recent one.
          */
@@ -352,6 +365,7 @@ public:
             scstc &= ~(STCsafe | STCtrusted | STCsystem);
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
+
         return createNewScope(sc, scstc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
     }
 
@@ -368,6 +382,7 @@ public:
              * before the semantic analysis of 'to', so that template overloading based on the
              * 'this' pointer can be successful.
              */
+
             FuncDeclaration fd = (*ps).isFuncDeclaration();
             if (fd)
             {
@@ -416,6 +431,7 @@ public:
             depmsg = se.toStringz();
         else
             msg.error("string expected, not '%s'", msg.toChars());
+
         Scope* scx = sc.push();
         scx.depmsg = depmsg;
         StorageClassDeclaration.setScope(scx);
@@ -526,6 +542,7 @@ public:
             protection.pkg = tmp ? tmp.isPackage() : null;
             pkg_identifiers = null;
         }
+
         if (protection.kind == PROTpackage && protection.pkg && sc._module)
         {
             Module m = sc._module;
@@ -533,6 +550,7 @@ public:
             if (!pkg || !protection.pkg.isAncestorPackageOf(pkg))
                 error("does not bind to one of ancestor packages of module '%s'", m.toPrettyChars(true));
         }
+
         return AttribDeclaration.addMember(sc, sds);
     }
 
@@ -544,6 +562,7 @@ public:
     override const(char)* toPrettyChars(bool)
     {
         assert(protection.kind > PROTundefined);
+
         OutBuffer buf;
         buf.writeByte('\'');
         protectionToBuffer(&buf, protection);
@@ -615,6 +634,7 @@ public:
     override void semantic(Scope* sc)
     {
         //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
+
         assert(sc.parent);
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
@@ -623,6 +643,7 @@ public:
             .error(loc, "%s can only be a part of an aggregate, not %s %s", kind(), p.kind(), p.toChars());
             return;
         }
+
         alignment = sc.structalign;
         if (decl)
         {
@@ -630,6 +651,7 @@ public:
             sc.stc &= ~(STCauto | STCscope | STCstatic | STCtls | STCgshared);
             sc.inunion = isunion;
             sc.flags = 0;
+
             for (size_t i = 0; i < decl.dim; i++)
             {
                 Dsymbol s = (*decl)[i];
@@ -648,7 +670,9 @@ public:
              * so in order to place that member we need to compute the member's
              * size and alignment.
              */
+
             size_t fieldstart = ad.fields.dim;
+
             /* Hackishly hijack ad's structsize and alignsize fields
              * for use in our fake anon aggregate member.
              */
@@ -656,6 +680,7 @@ public:
             uint savealignsize = ad.alignsize;
             ad.structsize = 0;
             ad.alignsize = 0;
+
             uint offset = 0;
             for (size_t i = 0; i < decl.dim; i++)
             {
@@ -664,10 +689,12 @@ public:
                 if (this.isunion)
                     offset = 0;
             }
+
             anonstructsize = ad.structsize;
             anonalignsize = ad.alignsize;
             ad.structsize = savestructsize;
             ad.alignsize = savealignsize;
+
             if (fieldstart == ad.fields.dim)
             {
                 /* Bugzilla 13613: If the fields in this->members had been already
@@ -677,6 +704,7 @@ public:
                 *poffset = ad.structsize;
                 return;
             }
+
             // 0 sized structs are set to 1 byte
             // TODO: is this corect hebavior?
             if (anonstructsize == 0)
@@ -684,10 +712,12 @@ public:
                 anonstructsize = 1;
                 anonalignsize = 1;
             }
+
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
              */
             anonoffset = AggregateDeclaration.placeField(poffset, anonstructsize, anonalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
+
             // Add to the anon fields the base offset of this anonymous aggregate
             //printf("anon fields, anonoffset = %d\n", anonoffset);
             for (size_t i = fieldstart; i < ad.fields.dim; i++)
@@ -748,10 +778,12 @@ public:
                 for (size_t i = 0; i < args.dim; i++)
                 {
                     Expression e = (*args)[i];
+
                     sc = sc.startCTFE();
                     e = e.semantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
+
                     // pragma(msg) is allowed to contain types as well as expressions
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
@@ -779,10 +811,12 @@ public:
             else
             {
                 Expression e = (*args)[0];
+
                 sc = sc.startCTFE();
                 e = e.semantic(sc);
                 e = resolveProperties(sc, e);
                 sc = sc.endCTFE();
+
                 e = e.ctfeInterpret();
                 (*args)[0] = e;
                 if (e.op == TOKerror)
@@ -824,9 +858,11 @@ public:
                  * resolveProperties and ctfeInterpret call are not necessary.
                  */
                 Expression e = (*args)[0];
+
                 sc = sc.startCTFE();
                 e = e.semantic(sc);
                 sc = sc.endCTFE();
+
                 (*args)[0] = e;
                 Dsymbol sa = getDsymbol(e);
                 if (!sa || !sa.isFuncDeclaration())
@@ -849,12 +885,14 @@ public:
                 (*args)[0] = new ErrorExp(); // error recovery
                 goto Ldecl;
             }
+
             Expression e = (*args)[0];
             e = e.semantic(sc);
             e = e.ctfeInterpret();
             (*args)[0] = e;
             if (e.op == TOKerror)
                 goto Ldecl;
+
             StringExp se = e.toStringExp();
             if (!se)
             {
@@ -871,6 +909,7 @@ public:
                 error("mangled name characters can only be of type char");
                 goto Ldecl;
             }
+
             version (all)
             {
                 /* Note: D language specification should not have any assumption about backend
@@ -895,11 +934,13 @@ public:
                             break;
                         }
                     }
+
                     if (const(char)* msg = utf_decodeChar(cast(char*)se.string, se.len, &i, &c))
                     {
                         error("%s", msg);
                         break;
                     }
+
                     if (!isUniAlpha(c))
                     {
                         error("char 0x%04x not allowed in mangled name", c);
@@ -920,10 +961,12 @@ public:
                     for (size_t i = 0; i < args.dim; i++)
                     {
                         Expression e = (*args)[i];
+
                         sc = sc.startCTFE();
                         e = e.semantic(sc);
                         e = resolveProperties(sc, e);
                         sc = sc.endCTFE();
+
                         e = e.ctfeInterpret();
                         if (i == 0)
                             fprintf(global.stdmsg, " (");
@@ -940,14 +983,18 @@ public:
         }
         else
             error("unrecognized pragma(%s)", ident.toChars());
+
     Ldecl:
         if (decl)
         {
             Scope* sc2 = newScope(sc);
+
             for (size_t i = 0; i < decl.dim; i++)
             {
                 Dsymbol s = (*decl)[i];
+
                 s.semantic(sc2);
+
                 if (ident == Id.mangle)
                 {
                     assert(args && args.dim == 1);
@@ -956,16 +1003,19 @@ public:
                         char* name = cast(char*)mem.xmalloc(se.len + 1);
                         memcpy(name, se.string, se.len);
                         name[se.len] = 0;
+
                         uint cnt = setMangleOverride(s, name);
                         if (cnt > 1)
                             error("can only apply to a single declaration");
                     }
                 }
             }
+
             if (sc2 != sc)
                 sc2.pop();
         }
         return;
+
     Lnodecl:
         if (decl)
         {
@@ -1143,7 +1193,9 @@ public:
         {
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
+
             Dsymbols* d = ConditionalDeclaration.include(_scope, scopesym);
+
             if (d && !addisdone)
             {
                 // Add members lazily.
@@ -1152,12 +1204,14 @@ public:
                     Dsymbol s = (*d)[i];
                     s.addMember(_scope, scopesym);
                 }
+
                 // Set the member scopes lazily.
                 for (size_t i = 0; i < d.dim; i++)
                 {
                     Dsymbol s = (*d)[i];
                     s.setScope(_scope);
                 }
+
                 addisdone = 1;
             }
             return d;
@@ -1256,6 +1310,7 @@ public:
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
         sc = sc.endCTFE();
+
         if (exp.op != TOKerror)
         {
             Expression e = exp.ctfeInterpret();
@@ -1269,6 +1324,7 @@ public:
                 auto cstr = se.toStringz();
                 scope Parser p = new Parser(loc, sc._module, cstr, se.len, 0);
                 p.nextToken();
+
                 decl = p.parseDeclDefs(0);
                 if (p.token.value != TOKeof)
                     exp.error("incomplete mixin declaration (%s)", se.toChars());
@@ -1289,6 +1345,7 @@ public:
             compileIt(sc);
             AttribDeclaration.addMember(sc, scopesym);
             compiled = 1;
+
             if (_scope && decl)
             {
                 for (size_t i = 0; i < decl.dim; i++)
@@ -1352,6 +1409,7 @@ public:
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
         if (decl && !_scope)
             Dsymbol.setScope(sc); // for function local symbols
+
         return AttribDeclaration.semantic(sc);
     }
 
@@ -1373,6 +1431,7 @@ public:
         //printf("UserAttributeDeclaration::setScope() %p\n", this);
         if (decl)
             Dsymbol.setScope(sc); // for forward reference of UDAs
+
         return AttribDeclaration.setScope(sc);
     }
 
@@ -1403,11 +1462,13 @@ public:
             _scope = null;
             arrayExpressionSemantic(atts, sc);
         }
+
         auto exps = new Expressions();
         if (userAttribDecl)
             exps.push(new TupleExp(Loc(), userAttribDecl.getAttributes()));
         if (atts && atts.dim)
             exps.push(new TupleExp(Loc(), atts));
+
         return exps;
     }
 
@@ -1429,9 +1490,11 @@ extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
     {
         Dsymbols* decls = ad.include(null, null);
         uint nestedCount = 0;
+
         if (decls && decls.dim)
             for (size_t i = 0; i < decls.dim; ++i)
                 nestedCount += setMangleOverride((*decls)[i], sym);
+
         return nestedCount;
     }
     else if (s.isFuncDeclaration() || s.isVarDeclaration())

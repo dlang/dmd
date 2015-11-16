@@ -167,7 +167,9 @@ public:
             cost = COST_MAX;
             return;
         }
+
         expressionInlineCost(s.condition);
+
         /* Specifically allow:
          *  if (condition)
          *      return exp1;
@@ -175,6 +177,7 @@ public:
          *      return exp2;
          * Otherwise, we can't handle return statements nested in if's.
          */
+
         if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
         {
             s.ifbody.accept(this);
@@ -231,6 +234,7 @@ public:
     }
 
     /* -------------------------- */
+
     void expressionInlineCost(Expression e)
     {
         //printf("expressionInlineCost()\n");
@@ -363,6 +367,7 @@ public:
                 cost = COST_MAX;
                 return;
             }
+
             if (vd.edtor)
             {
                 // if destructor required
@@ -381,12 +386,14 @@ public:
             }
             cost += 1;
         }
+
         // These can contain functions, which when copied, get output twice.
         if (e.declaration.isStructDeclaration() || e.declaration.isClassDeclaration() || e.declaration.isFuncDeclaration() || e.declaration.isAttribDeclaration() || e.declaration.isTemplateMixin())
         {
             cost = COST_MAX;
             return;
         }
+
         //printf("DeclarationExp.inlineCost3('%s')\n", toChars());
     }
 
@@ -512,6 +519,7 @@ Statement inlineAsStatement(Statement s, InlineDoState ids)
             ids.foundReturn = false;
             Statement elsebody = s.elsebody ? inlineAsStatement(s.elsebody, ids) : null;
             ids.foundReturn = ids.foundReturn && bodyReturn;
+
             result = new IfStatement(s.loc, s.prm, condition, ifbody, elsebody);
         }
 
@@ -733,8 +741,10 @@ Expression doInline(Expression e, InlineDoState ids)
         {
             if (!a)
                 return null;
+
             auto newa = new Expressions();
             newa.setDim(a.dim);
+
             foreach (i;  0 .. a.dim)
             {
                 Expression e = (*a)[i];
@@ -786,6 +796,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 result.type = e.type;
                 return;
             }
+
             /* Inlining context pointer access for nested referenced variables.
              * For example:
              *      auto fun() {
@@ -842,6 +853,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 //printf("\t==> result = %s, type = %s\n", result.toChars(), result.type.toChars());
                 return;
             }
+
             result = e;
         }
 
@@ -911,8 +923,10 @@ Expression doInline(Expression e, InlineDoState ids)
                     vto.parent = ids.parent;
                     vto.csym = null;
                     vto.isym = null;
+
                     ids.from.push(vd);
                     ids.to.push(vto);
+
                     if (vd._init)
                     {
                         if (vd._init.isVoidInitializer())
@@ -967,6 +981,7 @@ Expression doInline(Expression e, InlineDoState ids)
         override void visit(DeleteExp e)
         {
             visit(cast(UnaExp)e);
+
             Type tb = e.e1.type.toBasetype();
             if (tb.ty == Tarray)
             {
@@ -1047,7 +1062,9 @@ Expression doInline(Expression e, InlineDoState ids)
         override void visit(IndexExp e)
         {
             IndexExp are = cast(IndexExp)e.copy();
+
             are.e1 = doInline(e.e1, ids);
+
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
@@ -1057,8 +1074,10 @@ Expression doInline(Expression e, InlineDoState ids)
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
+
                 ids.from.push(vd);
                 ids.to.push(vto);
+
                 if (vd._init && !vd._init.isVoidInitializer())
                 {
                     ExpInitializer ie = vd._init.isExpInitializer();
@@ -1084,14 +1103,17 @@ Expression doInline(Expression e, InlineDoState ids)
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
+
                 ids.from.push(vd);
                 ids.to.push(vto);
+
                 if (vd._init && !vd._init.isVoidInitializer())
                 {
                     ExpInitializer ie = vd._init.isExpInitializer();
                     assert(ie);
                     vto._init = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
                 }
+
                 are.lengthVar = vto;
             }
             if (e.lwr)
@@ -1202,6 +1224,7 @@ public:
         if (s.exp)
         {
             inlineScan(s.exp);                 // inline as an expression
+
             /* If there's a TOKcall at the top, then it failed to inline
              * as an Expression. Try to inline as a Statement instead.
              * Note that inline scanning of s.exp.e1 and s.exp.arguments was already done.
@@ -1369,6 +1392,7 @@ public:
     }
 
     /* -------------------------- */
+
     void arrayInlineScan(Expressions* arguments)
     {
         if (arguments)
@@ -1464,6 +1488,7 @@ public:
                 }
                 inlineScan(ce.e1);
                 arrayInlineScan(ce.arguments);
+
                 visitCallExp(ce, e.e1, false);
                 if (eresult)
                 {
@@ -1704,6 +1729,7 @@ public:
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
             fd.flags & FUNCFLAGinlineScanned)
             return;
+
         if (fd.fbody && !fd.naked)
         {
             auto againsave = again;
@@ -1810,14 +1836,17 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
             printf("\t1: yes %s\n", fd.toChars());
         }
         return true;
+
     case ILSno:
         static if (CANINLINE_LOG)
         {
             printf("\t1: no %s\n", fd.toChars());
         }
         return false;
+
     case ILSuninitialized:
         break;
+
     default:
         assert(0);
     }
@@ -1826,10 +1855,13 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     {
     case PINLINEdefault:
         break;
+
     case PINLINEalways:
         break;
+
     case PINLINEnever:
         return false;
+
     default:
         assert(0);
     }
@@ -2254,6 +2286,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     /* See Bugzilla 2935 for explanation of why just a copy() is broken
      */
     //return e.copy();
+
     if (e.op == TOKdelegate)
     {
         DelegateExp de = cast(DelegateExp)e;
@@ -2265,6 +2298,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
             return de.copy();
         }
     }
+
     scope InlineCostVisitor icv = new InlineCostVisitor();
     icv.hdrscan = 1;
     icv.allowAlloca = true;

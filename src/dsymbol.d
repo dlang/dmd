@@ -128,6 +128,7 @@ struct Prot
     {
         if (this.kind != parent.kind)
             return false;
+
         if (this.kind == PROTpackage)
         {
             if (!this.pkg)
@@ -137,6 +138,7 @@ struct Prot
             if (parent.pkg.isAncestorPackageOf(this.pkg))
                 return true;
         }
+
         return true;
     }
 }
@@ -301,6 +303,7 @@ public:
                 if (sp.isDeprecated())
                     goto L1;
             }
+
             for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
             {
                 if (sc2.scopesym && sc2.scopesym.isDeprecated())
@@ -309,6 +312,7 @@ public:
                 if (sc2.stc & STCdeprecated)
                     goto L1;
             }
+
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
             {
@@ -316,11 +320,13 @@ public:
                 if (message)
                     break;
             }
+
             if (message)
                 deprecation(loc, "is deprecated - %s", message);
             else
                 deprecation(loc, "is deprecated");
         }
+
     L1:
         Declaration d = isDeclaration();
         if (d && d.storage_class & STCdisable)
@@ -343,6 +349,7 @@ public:
         //printf("Dsymbol::getModule()\n");
         if (TemplateInstance ti = isInstantiated())
             return ti.tempdecl.getModule();
+
         Dsymbol s = this;
         while (s)
         {
@@ -363,6 +370,7 @@ public:
         //printf("Dsymbol::getAccessModule()\n");
         if (TemplateInstance ti = isInstantiated())
             return ti.tempdecl.getAccessModule();
+
         Dsymbol s = this;
         while (s)
         {
@@ -481,12 +489,15 @@ public:
         char* s;
         char* q;
         size_t len;
+
         //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
         if (!parent)
             return toChars();
+
         len = 0;
         for (p = this; p; p = p.parent)
             len += strlen(QualifyTypes ? p.toPrettyCharsHelper() : p.toChars()) + 1;
+
         s = cast(char*)mem.xmalloc(len);
         q = s + len - 1;
         *q = 0;
@@ -572,6 +583,7 @@ public:
         _scope = sc;
         if (sc.depmsg)
             depmsg = sc.depmsg;
+
         if (!userAttribDecl)
             userAttribDecl = sc.userAttribDecl;
     }
@@ -633,6 +645,7 @@ public:
             Identifier id = Identifier.lookup(seed, len);
             if (!id)
                 return null;
+
             cost = 0;
             Dsymbol s = this;
             Module.clearCache();
@@ -655,6 +668,7 @@ public:
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
         Dsymbol s = toAlias();
         Dsymbol sm;
+
         if (Declaration d = s.isDeclaration())
         {
             if (d.inuse)
@@ -663,11 +677,13 @@ public:
                 return null;
             }
         }
+
         switch (id.dyncast())
         {
         case DYNCAST_IDENTIFIER:
             sm = s.search(loc, cast(Identifier)id);
             break;
+
         case DYNCAST_DSYMBOL:
             {
                 // It's a template instance
@@ -697,6 +713,7 @@ public:
                 sm = ti.toAlias();
                 break;
             }
+
         case DYNCAST_TYPE:
         case DYNCAST_EXPRESSION:
         default:
@@ -943,6 +960,7 @@ public:
     {
         //if (comment)
         //    printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+
         if (!this.comment)
             this.comment = comment;
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
@@ -1230,6 +1248,7 @@ public:
     {
         //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
         //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
+
         // Look in symbols declared in this module
         Dsymbol s1 = symtab ? symtab.lookup(ident) : null;
         //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
@@ -1238,18 +1257,22 @@ public:
             //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
             return s1;
         }
+
         if (imports)
         {
             Dsymbol s = null;
             OverloadSet a = null;
             int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
+
             // Look in imported modules
             for (size_t i = 0; i < imports.dim; i++)
             {
                 // If private import, don't search it
                 if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
                     continue;
+
                 Dsymbol ss = (*imports)[i];
+
                 //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
                 /* Don't find private members if ss is a module
                  */
@@ -1288,6 +1311,7 @@ public:
                              */
                             s = s.toAlias();
                             s2 = s2.toAlias();
+
                             /* If both s2 and s are overloadable (though we only
                              * need to check s once)
                              */
@@ -1296,8 +1320,10 @@ public:
                                 a = mergeOverloadSet(ident, a, s2);
                                 continue;
                             }
+
                             if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
                                 return null;
+
                             if (!(flags & IgnoreErrors))
                                 ScopeDsymbol.multiplyDefined(loc, s, s2);
                             break;
@@ -1305,6 +1331,7 @@ public:
                     }
                 }
             }
+
             if (s)
             {
                 /* Build special symbol if we had multiple finds
@@ -1352,6 +1379,7 @@ public:
         else
         {
             assert(s.isOverloadable());
+
             /* Don't add to os[] if s is alias of previous sym
              */
             for (size_t j = 0; j < os.a.dim; j++)
@@ -1367,6 +1395,7 @@ public:
                 }
             }
             os.push(s);
+
         Lcontinue:
         }
         return os;
@@ -1436,10 +1465,12 @@ public:
     {
         Dsymbol s = search_function(this, Id.getmembers);
         FuncDeclaration fdx = s ? s.isFuncDeclaration() : null;
+
         version (none)
         {
             // Finish
             static __gshared TypeFunction tfgetmembers;
+
             if (!tfgetmembers)
             {
                 Scope sc;
@@ -1538,6 +1569,7 @@ public:
         assert(dg);
         if (!members)
             return 0;
+
         size_t n = pn ? *pn : 0; // take over index
         int result = 0;
         foreach (size_t i; 0 .. members.dim)
@@ -1555,6 +1587,7 @@ public:
             }
             else
                 result = dg(n++, s);
+
             if (result)
                 break;
         }
@@ -1666,6 +1699,7 @@ public:
         {
             VarDeclaration* pvar;
             Expression ce;
+
         L1:
             if (td)
             {
@@ -1678,6 +1712,7 @@ public:
                 v.semantic(sc);
                 return v;
             }
+
             if (type)
             {
                 /* $ gives the number of type entries in the type tuple
@@ -1689,6 +1724,7 @@ public:
                 v.semantic(sc);
                 return v;
             }
+
             if (exp.op == TOKindex)
             {
                 /* array[index] where index is some function of $
@@ -1720,8 +1756,10 @@ public:
                  */
                 return null;
             }
+
             while (ce.op == TOKcomma)
                 ce = (cast(CommaExp)ce).e2;
+
             /* If we are indexing into an array that is really a type
              * tuple, rewrite this as an index into a type tuple and
              * try again.
@@ -1735,6 +1773,7 @@ public:
                     goto L1;
                 }
             }
+
             /* *pvar is lazily initialized, so if we refer to $
              * multiple times, it gets set only once.
              */
@@ -1759,10 +1798,12 @@ public:
                     assert(exp.op == TOKarray || exp.op == TOKslice);
                     AggregateDeclaration ad = isAggregate(t);
                     assert(ad);
+
                     Dsymbol s = ad.search(loc, Id.opDollar);
                     if (!s) // no dollar exists -- search in higher scope
                         return null;
                     s = s.toAlias();
+
                     Expression e = null;
                     // Check for multi-dimensional opDollar(dim) template.
                     if (TemplateDeclaration td = s.isTemplateDeclaration())
@@ -1780,6 +1821,7 @@ public:
                         {
                             assert(0);
                         }
+
                         auto tiargs = new Objects();
                         Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
                         edim = edim.semantic(sc);

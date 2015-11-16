@@ -58,6 +58,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
         {
             if (global.errors && !ce.e1.type)
                 return; // error recovery
+
             /* If calling a function or delegate that is typed as nothrow,
              * then this expression cannot throw.
              * Note that pure functions can throw.
@@ -113,6 +114,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             // blit-init cannot throw
             if (ae.op == TOKblit)
                 return;
+
             /* Element-wise assignment could invoke postblits.
              */
             Type t;
@@ -126,12 +128,14 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 t = (cast(SliceExp)ae.e1).e1.type;
             else
                 return;
+
             Type tv = t.baseElemOf();
             if (tv.ty != Tstruct)
                 return;
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
             if (!sd.postblit || sd.postblit.type.ty != Tfunction)
                 return;
+
             if ((cast(TypeFunction)sd.postblit.type).isnothrow)
             {
             }
@@ -163,6 +167,7 @@ extern (C++) bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNot
     VarDeclaration vd;
     TemplateMixin tm;
     TupleDeclaration td;
+
     //printf("Dsymbol_toElem() %s\n", s->toChars());
     ad = s.isAttribDeclaration();
     if (ad)

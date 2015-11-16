@@ -31,6 +31,7 @@ private:
     {
         this.name = name;
         this.namelen = namelen;
+
         this.text = text;
         this.textlen = textlen;
     }
@@ -38,6 +39,7 @@ private:
     extern (C++) Macro* search(const(char)* name, size_t namelen)
     {
         Macro* table;
+
         //printf("Macro::search(%.*s)\n", namelen, name);
         for (table = &this; table; table = table.next)
         {
@@ -55,6 +57,7 @@ public:
     {
         //printf("Macro::define('%.*s' = '%.*s')\n", namelen, name, textlen, text);
         Macro* table;
+
         //assert(ptable);
         for (table = *ptable; table; table = table.next)
         {
@@ -82,6 +85,7 @@ public:
             printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, arglen, arg);
             printf("Buf is: '%.*s'\n", *pend - start, buf.data + start);
         }
+
         // limit recursive expansion
         static __gshared int nest;
         static __gshared const(int) nestLimit = 1000;
@@ -91,15 +95,18 @@ public:
             return;
         }
         nest++;
+
         size_t end = *pend;
         assert(start <= end);
         assert(end <= buf.offset);
+
         /* First pass - replace $0
          */
         arg = memdup(arg, arglen);
         for (size_t u = start; u + 1 < end;)
         {
             char* p = cast(char*)buf.data; // buf->data is not loop invariant
+
             /* Look for $0, but not $$0, and replace it with arg.
              */
             if (p[u] == '$' && (isdigit(p[u + 1]) || p[u + 1] == '+'))
@@ -112,8 +119,10 @@ public:
                     u += 1; // now u is one past the closing '1'
                     continue;
                 }
+
                 char c = p[u + 1];
                 int n = (c == '+') ? -1 : c - '0';
+
                 const(char)* marg;
                 size_t marglen;
                 if (n == 0)
@@ -137,6 +146,7 @@ public:
                     buf.remove(u, 2);
                     buf.insert(u, marg, marglen);
                     end += marglen - 2;
+
                     // Scan replaced text for further expansion
                     size_t mend = u + marglen;
                     expand(buf, u, &mend, null, 0);
@@ -152,6 +162,7 @@ public:
                     buf.insert(u + 2, marg, marglen);
                     buf.insert(u + 2 + marglen, cast(const(char)*)"\xFF}", 2);
                     end += -2 + 2 + marglen + 2;
+
                     // Scan replaced text for further expansion
                     size_t mend = u + 2 + marglen;
                     expand(buf, u + 2, &mend, null, 0);
@@ -164,11 +175,13 @@ public:
             }
             u++;
         }
+
         /* Second pass - replace other macros
          */
         for (size_t u = start; u + 4 < end;)
         {
             char* p = cast(char*)buf.data; // buf->data is not loop invariant
+
             /* A valid start of macro expansion is $(c, where c is
              * an id start character, and not $$(c.
              */
@@ -177,8 +190,10 @@ public:
                 //printf("\tfound macro start '%c'\n", p[u + 2]);
                 char* name = p + u + 2;
                 size_t namelen = 0;
+
                 const(char)* marg;
                 size_t marglen;
+
                 size_t v;
                 /* Scan forward to find end of macro name and
                  * beginning of macro argument (marg).
@@ -192,8 +207,10 @@ public:
                         break;
                     }
                 }
+
                 v += extractArgN(p + v, end - v, &marg, &marglen, 0);
                 assert(v <= end);
+
                 if (v < end)
                 {
                     // v is on the closing ')'
@@ -205,6 +222,7 @@ public:
                         u = v; // now u is one past the closing ')'
                         continue;
                     }
+
                     Macro* m = search(name, namelen);
                     if (!m)
                     {
@@ -258,13 +276,16 @@ public:
                             memcpy(buf.data + v + 3, m.text, m.textlen);
                             buf.data[v + 3 + m.textlen] = 0xFF;
                             buf.data[v + 3 + m.textlen + 1] = '}';
+
                             end += 2 + m.textlen + 2;
+
                             // Scan replaced text for further expansion
                             m.inuse++;
                             size_t mend = v + 1 + 2 + m.textlen + 2;
                             expand(buf, v + 1, &mend, marg, marglen);
                             end += mend - (v + 1 + 2 + m.textlen + 2);
                             m.inuse--;
+
                             buf.remove(u, v + 1 - u);
                             end -= v + 1 - u;
                             u += mend - (v + 1);
@@ -318,12 +339,15 @@ extern (C++) size_t extractArgN(const(char)* p, size_t end, const(char)** pmarg,
     uint intag = 0;
     uint inexp = 0;
     uint argn = 0;
+
     size_t v = 0;
+
 Largstart:
     // Skip first space, if any, to find the start of the macro argument
     if (n != 1 && v < end && isspace(p[v]))
         v++;
     *pmarg = p + v;
+
     for (; v < end; v++)
     {
         char c = p[v];
@@ -347,16 +371,19 @@ Largstart:
                 }
             }
             continue;
+
         case '(':
             if (!inexp && !instring && !incomment)
                 parens++;
             continue;
+
         case ')':
             if (!inexp && !instring && !incomment && --parens == 0)
             {
                 break;
             }
             continue;
+
         case '"':
         case '\'':
             if (!inexp && !incomment && intag)
@@ -367,6 +394,7 @@ Largstart:
                     instring = c;
             }
             continue;
+
         case '<':
             if (!inexp && !instring && !incomment)
             {
@@ -379,10 +407,12 @@ Largstart:
                     intag = 1;
             }
             continue;
+
         case '>':
             if (!inexp)
                 intag = 0;
             continue;
+
         case '-':
             if (!inexp && !instring && incomment && v + 2 < end && p[v + 1] == '-' && p[v + 2] == '>')
             {
@@ -390,6 +420,7 @@ Largstart:
                 v += 2;
             }
             continue;
+
         case 0xFF:
             if (v + 1 < end)
             {
@@ -399,6 +430,7 @@ Largstart:
                     inexp--;
             }
             continue;
+
         default:
             continue;
         }

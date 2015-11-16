@@ -65,14 +65,19 @@ extern (C++) void genhdrfile(Module m)
 {
     OutBuffer buf;
     buf.doindent = 1;
+
     buf.printf("// D import file generated from '%s'", m.srcfile.toChars());
     buf.writenl();
+
     HdrGenState hgs;
     hgs.hdrgen = true;
+
     toCBuffer(m, &buf, &hgs);
+
     // Transfer image to file
     m.hdrfile.setbuffer(buf.data, buf.offset);
     buf.extractData();
+
     ensurePathToNameExists(Loc(), m.hdrfile.toChars());
     writeFile(m.loc, m.hdrfile);
 }
@@ -171,12 +176,14 @@ public:
         buf.writestring("unrolled {");
         buf.writenl();
         buf.level++;
+
         for (size_t i = 0; i < s.statements.dim; i++)
         {
             Statement sx = (*s.statements)[i];
             if (sx)
                 sx.accept(this);
         }
+
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -187,8 +194,10 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
+
         if (s.statement)
             s.statement.accept(this);
+
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -200,6 +209,7 @@ public:
         s.condition.accept(this);
         buf.writeByte(')');
         buf.writenl();
+
         if (s._body)
             s._body.accept(this);
     }
@@ -208,8 +218,10 @@ public:
     {
         buf.writestring("do");
         buf.writenl();
+
         if (s._body)
             s._body.accept(this);
+
         buf.writestring("while (");
         s.condition.accept(this);
         buf.writestring(");");
@@ -240,6 +252,7 @@ public:
         }
         buf.writeByte(')');
         buf.writenl();
+
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -269,6 +282,7 @@ public:
         s.aggr.accept(this);
         buf.writeByte(')');
         buf.writenl();
+
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -287,12 +301,14 @@ public:
             typeToBuffer(s.prm.type, s.prm.ident);
         else
             buf.writestring(s.prm.ident.toChars());
+
         buf.writestring("; ");
         s.lwr.accept(this);
         buf.writestring(" .. ");
         s.upr.accept(this);
         buf.writeByte(')');
         buf.writenl();
+
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -322,11 +338,13 @@ public:
         s.condition.accept(this);
         buf.writeByte(')');
         buf.writenl();
+
         if (!s.ifbody.isScopeStatement())
             buf.level++;
         s.ifbody.accept(this);
         if (!s.ifbody.isScopeStatement())
             buf.level--;
+
         if (s.elsebody)
         {
             buf.writestring("else");
@@ -343,6 +361,7 @@ public:
     {
         s.condition.accept(this);
         buf.writenl();
+
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -351,6 +370,7 @@ public:
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
+
         if (s.elsebody)
         {
             buf.writestring("else");
@@ -375,6 +395,7 @@ public:
             argsToBuffer(s.args);
         }
         buf.writeByte(')');
+
         if (s._body)
         {
             buf.writenl();
@@ -404,6 +425,7 @@ public:
         s.condition.accept(this);
         buf.writeByte(')');
         buf.writenl();
+
         if (s._body)
         {
             if (!s._body.isScopeStatement())
@@ -429,6 +451,7 @@ public:
         s.exp.accept(this);
         buf.writeByte(':');
         buf.writenl();
+
         s.statement.accept(this);
     }
 
@@ -440,6 +463,7 @@ public:
         s.last.accept(this);
         buf.writeByte(':');
         buf.writenl();
+
         s.statement.accept(this);
     }
 
@@ -516,6 +540,7 @@ public:
             s.exp.accept(this);
             buf.writeByte(')');
         }
+
         if (s._body)
         {
             buf.writeByte(' ');
@@ -529,6 +554,7 @@ public:
         s.exp.accept(this);
         buf.writestring(")");
         buf.writenl();
+
         if (s._body)
             s._body.accept(this);
     }
@@ -537,8 +563,10 @@ public:
     {
         buf.writestring("try");
         buf.writenl();
+
         if (s._body)
             s._body.accept(this);
+
         for (size_t i = 0; i < s.catches.dim; i++)
         {
             Catch c = (*s.catches)[i];
@@ -550,6 +578,7 @@ public:
     {
         buf.writestring("try");
         buf.writenl();
+
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -557,8 +586,10 @@ public:
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
+
         buf.writestring("finally");
         buf.writenl();
+
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -646,6 +677,7 @@ public:
             buf.writeByte(')');
         }
         buf.writenl();
+
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -657,6 +689,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     /**************************************************
      * An entry point to pretty-print type.
      */
@@ -667,7 +700,9 @@ public:
             visitFuncIdentWithPrefix(cast(TypeFunction)t, ident, null, true);
             return;
         }
+
         visitWithMask(t, 0);
+
         if (ident)
         {
             buf.writeByte(' ');
@@ -700,7 +735,9 @@ public:
                 MODtoBuffer(buf, m & (MODconst | MODimmutable));
                 buf.writeByte('(');
             }
+
             t.accept(this);
+
             if (m & (MODconst | MODimmutable))
                 buf.writeByte(')');
             if (m & MODwild)
@@ -804,9 +841,11 @@ public:
         extern (C++) static int fp(void* param, const(char)* str)
         {
             PrePostAppendStrings* p = cast(PrePostAppendStrings*)param;
+
             // don't write 'ref' for ctors
             if (p.isCtor && strcmp(str, "ref") == 0)
                 return 0;
+
             if (p.isPostfixStyle)
                 p.buf.writeByte(' ');
             p.buf.writestring(str);
@@ -824,15 +863,18 @@ public:
             return;
         }
         t.inuse++;
+
         PrePostAppendStrings pas;
         pas.buf = buf;
         pas.isCtor = false;
         pas.isPostfixStyle = true;
+
         if (t.linkage > LINKd && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
             buf.writeByte(' ');
         }
+
         if (t.next)
         {
             typeToBuffer(t.next, null);
@@ -841,9 +883,12 @@ public:
         }
         else if (hgs.ddoc)
             buf.writestring("auto ");
+
         if (ident)
             buf.writestring(ident);
+
         parametersToBuffer(t.parameters, t.varargs);
+
         /* Use postfix style for attributes
          */
         if (t.mod)
@@ -852,6 +897,7 @@ public:
             MODtoBuffer(buf, t.mod);
         }
         t.attributesApply(&pas, &PrePostAppendStrings.fp);
+
         t.inuse--;
     }
 
@@ -863,10 +909,12 @@ public:
             return;
         }
         t.inuse++;
+
         PrePostAppendStrings pas;
         pas.buf = buf;
         pas.isCtor = (ident == Id.ctor);
         pas.isPostfixStyle = false;
+
         /* Use 'storage class' (prefix) style for attributes
          */
         if (t.mod)
@@ -875,11 +923,13 @@ public:
             buf.writeByte(' ');
         }
         t.attributesApply(&pas, &PrePostAppendStrings.fp);
+
         if (t.linkage > LINKd && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
             buf.writeByte(' ');
         }
+
         if (ident && ident.toHChars2() != ident.toChars())
         {
             // Don't print return type for ctor, dtor, unittest, etc
@@ -892,8 +942,10 @@ public:
         }
         else if (hgs.ddoc)
             buf.writestring("auto ");
+
         if (ident)
             buf.writestring(ident.toHChars2());
+
         if (td)
         {
             buf.writeByte('(');
@@ -906,6 +958,7 @@ public:
             buf.writeByte(')');
         }
         parametersToBuffer(t.parameters, t.varargs);
+
         t.inuse--;
     }
 
@@ -1006,6 +1059,7 @@ public:
     override void visit(TypeSlice t)
     {
         visitWithMask(t.next, t.mod);
+
         buf.writeByte('[');
         sizeToBuffer(t.lwr);
         buf.writestring(" .. ");
@@ -1019,6 +1073,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     override void visit(Dsymbol s)
     {
         buf.writestring(s.toChars());
@@ -1077,6 +1132,7 @@ public:
     {
         if (hgs.hdrgen && imp.id == Id.object)
             return; // object is imported by default
+
         if (imp.isstatic)
             buf.writestring("static ");
         buf.writestring("import ");
@@ -1127,6 +1183,7 @@ public:
             buf.writenl();
             return;
         }
+
         if (d.decl.dim == 0)
             buf.writestring("{}");
         else if (hgs.hdrgen && d.decl.dim == 1 && (*d.decl)[0].isUnitTestDeclaration())
@@ -1171,26 +1228,33 @@ public:
     override void visit(LinkDeclaration d)
     {
         const(char)* p;
+
         switch (d.linkage)
         {
         case LINKd:
             p = "D";
             break;
+
         case LINKc:
             p = "C";
             break;
+
         case LINKcpp:
             p = "C++";
             break;
+
         case LINKwindows:
             p = "Windows";
             break;
+
         case LINKpascal:
             p = "Pascal";
             break;
+
         case LINKobjc:
             p = "Objective-C";
             break;
+
         default:
             assert(0);
         }
@@ -1306,6 +1370,7 @@ public:
         }
         if (hgs.hdrgen && visitEponymousMember(d))
             return;
+
         if (hgs.ddoc)
             buf.writestring(d.kind());
         else
@@ -1336,9 +1401,11 @@ public:
     {
         if (!d.members || d.members.dim != 1)
             return false;
+
         Dsymbol onemember = (*d.members)[0];
         if (onemember.ident != d.ident)
             return false;
+
         if (FuncDeclaration fd = onemember.isFuncDeclaration())
         {
             assert(fd.type);
@@ -1346,6 +1413,7 @@ public:
                 buf.writeByte(' ');
             functionToBufferFull(cast(TypeFunction)fd.type, buf, d.ident, hgs, d);
             visitTemplateConstraint(d.constraint);
+
             hgs.tpltMember++;
             bodyToBuffer(fd);
             hgs.tpltMember--;
@@ -1361,6 +1429,7 @@ public:
             buf.writeByte(')');
             visitTemplateConstraint(d.constraint);
             visitBaseClasses(ad.isClassDeclaration());
+
             hgs.tpltMember++;
             if (ad.members)
             {
@@ -1383,15 +1452,18 @@ public:
         {
             if (d.constraint)
                 return false;
+
             if (stcToBuffer(buf, vd.storage_class))
                 buf.writeByte(' ');
             if (vd.type)
                 typeToBuffer(vd.type, vd.ident);
             else
                 buf.writestring(vd.ident.toChars());
+
             buf.writeByte('(');
             visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
             buf.writeByte(')');
+
             if (vd._init)
             {
                 buf.writestring(" = ");
@@ -1438,8 +1510,10 @@ public:
     override void visit(TemplateMixin tm)
     {
         buf.writestring("mixin ");
+
         typeToBuffer(tm.tqual, null);
         tiargsToBuffer(tm);
+
         if (tm.ident && memcmp(tm.ident.string, cast(char*)"__mixin", 7) != 0)
         {
             buf.writeByte(' ');
@@ -1462,6 +1536,7 @@ public:
             buf.writestring("()");
             return;
         }
+
         if (ti.tiargs.dim == 1)
         {
             RootObject oarg = (*ti.tiargs)[0];
@@ -1650,6 +1725,7 @@ public:
     {
         if (!d || !d.baseclasses.dim)
             return;
+
         buf.writestring(" : ");
         for (size_t i = 0; i < d.baseclasses.dim; i++)
         {
@@ -1807,16 +1883,19 @@ public:
             buf.writestring("__error");
             return;
         }
+
         if (f.tok != TOKreserved)
         {
             buf.writestring(f.kind());
             buf.writeByte(' ');
         }
+
         TypeFunction tf = cast(TypeFunction)f.type;
         // Don't print tf->mod, tf->trust, and tf->linkage
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
         parametersToBuffer(tf.parameters, tf.varargs);
+
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASSsemantic3done && cs)
@@ -1918,6 +1997,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     override void visit(ErrorInitializer iz)
     {
         buf.writestring("__error__");
@@ -1971,6 +2051,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     /**************************************************
      * Write out argument list to buf.
      */
@@ -1978,6 +2059,7 @@ public:
     {
         if (!expressions || !expressions.dim)
             return;
+
         version (all)
         {
             foreach (i, el; *expressions)
@@ -2019,6 +2101,7 @@ public:
         {
             Expression ex = (e.op == TOKcast ? (cast(CastExp)e).e1 : e);
             ex = ex.optimize(WANTvalue);
+
             dinteger_t uval = ex.op == TOKint64 ? ex.toInteger() : cast(dinteger_t)-1;
             if (cast(sinteger_t)uval >= 0)
             {
@@ -2052,6 +2135,7 @@ public:
         }
         assert(precedence[e.op] != PREC_zero);
         assert(pr != PREC_zero);
+
         //if (precedence[e->op] == 0) e->print();
         /* Despite precedence, we don't allow a<b<c expressions.
          * They must be parenthesized.
@@ -2074,6 +2158,7 @@ public:
     override void visit(IntegerExp e)
     {
         dinteger_t v = e.toInteger();
+
         if (e.type)
         {
             Type t = e.type;
@@ -2087,6 +2172,7 @@ public:
                     t = te.sym.memtype;
                     goto L1;
                 }
+
             case Twchar:
                 // BUG: need to cast(wchar)
             case Tdchar:
@@ -2109,36 +2195,46 @@ public:
                         escapeDdocString(buf, o);
                     break;
                 }
+
             case Tint8:
                 buf.writestring("cast(byte)");
                 goto L2;
+
             case Tint16:
                 buf.writestring("cast(short)");
                 goto L2;
+
             case Tint32:
             L2:
                 buf.printf("%d", cast(int)v);
                 break;
+
             case Tuns8:
                 buf.writestring("cast(ubyte)");
                 goto L3;
+
             case Tuns16:
                 buf.writestring("cast(ushort)");
                 goto L3;
+
             case Tuns32:
             L3:
                 buf.printf("%uu", cast(uint)v);
                 break;
+
             case Tint64:
                 buf.printf("%lldL", v);
                 break;
+
             case Tuns64:
             L4:
                 buf.printf("%lluLU", v);
                 break;
+
             case Tbool:
                 buf.writestring(v ? "true" : "false");
                 break;
+
             case Tpointer:
                 buf.writestring("cast(");
                 buf.writestring(t.toChars());
@@ -2149,6 +2245,7 @@ public:
                     goto L4;
                 else
                     assert(0);
+
             default:
                 /* This can happen if errors, such as
                  * the type is painted on like in fromConstInitializer().
@@ -2185,6 +2282,7 @@ public:
         char[BUFFER_LEN] buffer;
         Port.ld_sprint(buffer.ptr, 'g', value);
         assert(strlen(buffer.ptr) < BUFFER_LEN);
+
         if (hgs.hdrgen)
         {
             real_t r = Port.strtold(buffer.ptr, null);
@@ -2192,6 +2290,7 @@ public:
                 Port.ld_sprint(buffer.ptr, 'a', value);
         }
         buf.writestring(buffer.ptr);
+
         if (type)
         {
             Type t = type.toBasetype();
@@ -2202,11 +2301,13 @@ public:
             case Tcomplex32:
                 buf.writeByte('F');
                 break;
+
             case Tfloat80:
             case Timaginary80:
             case Tcomplex80:
                 buf.writeByte('L');
                 break;
+
             default:
                 break;
             }
@@ -2321,6 +2422,7 @@ public:
     {
         buf.writestring(e.sd.toChars());
         buf.writeByte('(');
+
         // CTFE can generate struct literals that contain an AddrExp pointing
         // to themselves, need to avoid infinite recursion:
         // struct S { this(int){ this.s = &this; } S* s; }
@@ -2334,6 +2436,7 @@ public:
             argsToBuffer(e.elements);
             e.stageflags = old;
         }
+
         buf.writeByte(')');
     }
 
@@ -2763,6 +2866,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     override void visit(TemplateTypeParameter tp)
     {
         buf.writestring(tp.ident.toChars());
@@ -2825,6 +2929,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     override void visit(DebugCondition c)
     {
         if (c.ident)
@@ -2849,12 +2954,15 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
     override void visit(Parameter p)
     {
         if (p.storageClass & STCauto)
             buf.writestring("auto ");
+
         if (p.storageClass & STCreturn)
             buf.writestring("return ");
+
         if (p.storageClass & STCout)
             buf.writestring("out ");
         else if (p.storageClass & STCref)
@@ -2865,11 +2973,14 @@ public:
             buf.writestring("lazy ");
         else if (p.storageClass & STCalias)
             buf.writestring("alias ");
+
         StorageClass stc = p.storageClass;
         if (p.type && p.type.mod & MODshared)
             stc &= ~STCshared;
+
         if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope)))
             buf.writeByte(' ');
+
         if (p.storageClass & STCalias)
         {
             if (p.ident)
@@ -2934,6 +3045,7 @@ public:
                 else
                     buf.writestring("deprecated ");
             }
+
             buf.writestring("module ");
             buf.writestring(m.md.toChars());
             buf.writeByte(';');
@@ -3077,12 +3189,16 @@ extern (C++) const(char)* trustToChars(TRUST trust)
     {
     case TRUSTdefault:
         return null;
+
     case TRUSTsystem:
         return "@system";
+
     case TRUSTtrusted:
         return "@trusted";
+
     case TRUSTsafe:
         return "@safe";
+
     default:
         assert(0);
     }
@@ -3105,18 +3221,25 @@ extern (C++) const(char)* linkageToChars(LINK linkage)
     {
     case LINKdefault:
         return null;
+
     case LINKd:
         return "D";
+
     case LINKc:
         return "C";
+
     case LINKcpp:
         return "C++";
+
     case LINKwindows:
         return "Windows";
+
     case LINKpascal:
         return "Pascal";
+
     case LINKobjc:
         return "Objective-C";
+
     default:
         assert(0);
     }
@@ -3127,6 +3250,7 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
     const(char)* p = protectionToChars(prot.kind);
     if (p)
         buf.writestring(p);
+
     if (prot.kind == PROTpackage && prot.pkg)
     {
         buf.writeByte('(');
@@ -3141,18 +3265,25 @@ extern (C++) const(char)* protectionToChars(PROTKIND kind)
     {
     case PROTundefined:
         return null;
+
     case PROTnone:
         return "none";
+
     case PROTprivate:
         return "private";
+
     case PROTpackage:
         return "package";
+
     case PROTprotected:
         return "protected";
+
     case PROTpublic:
         return "public";
+
     case PROTexport:
         return "export";
+
     default:
         assert(0);
     }
@@ -3187,6 +3318,7 @@ extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
 {
     if (!arguments || !arguments.dim)
         return;
+
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
     for (size_t i = 0; i < arguments.dim; i++)
@@ -3207,6 +3339,7 @@ extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
 {
     if (!objects || !objects.dim)
         return;
+
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
     for (size_t i = 0; i < objects.dim; i++)
