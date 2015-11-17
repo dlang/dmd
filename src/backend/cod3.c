@@ -717,6 +717,34 @@ void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
     }
 }
 
+/*******************************************
+ * Call finally block.
+ * Params:
+ *      bf = block to call
+ *      retregs = registers to preserve across call
+ * Returns:
+ *      code generated
+ */
+static code *callFinallyBlock(block *bf, regm_t retregs)
+{
+    code *cs;
+    code *cr;
+    int nalign = 0;
+
+    unsigned npush = gensaverestore(retregs,&cs,&cr);
+    if (STACKALIGN == 16)
+    {   npush += REGSIZE;
+        if (npush & (STACKALIGN - 1))
+        {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
+            cs = cod3_stackadj(cs, nalign);
+        }
+    }
+    cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)bf);
+    regcon.immed.mval = 0;
+    if (nalign)
+        cs = cod3_stackadj(cs, -nalign);
+    return cat(cs, cr);
+}
 
 /*******************************
  * Generate block exit code
@@ -843,23 +871,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             continue;
 
                         // call __finally
-                        code *cs;
-                        code *cr;
-                        int nalign = 0;
-
-                        unsigned npush = gensaverestore(retregs,&cs,&cr);
-                        if (STACKALIGN == 16)
-                        {   npush += REGSIZE;
-                            if (npush & (STACKALIGN - 1))
-                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = cod3_stackadj(cs, nalign);
-                            }
-                        }
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
-                        regcon.immed.mval = 0;
-                        if (nalign)
-                            cs = cod3_stackadj(cs, -nalign);
-                        c = cat3(c,cs,cr);
+                        c = cat(c, callFinallyBlock(bf->nthSucc(0), retregs));
                     }
                 }
 #endif
@@ -909,33 +921,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             }
             assert(!e);
             assert(!bl->Bcode);
-#if 1
-            {   // Generate CALL to finalizer code
-                int nalign = 0;
-                if (STACKALIGN == 16)
-                {   nalign = STACKALIGN - REGSIZE;
-                    c = cod3_stackadj(c, nalign);
-                }
-                // CALL bl->Bsucc
-                c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)bl->nthSucc(0));
-                regcon.immed.mval = 0;
-                if (nalign)
-                    c = cod3_stackadj(c, -nalign);
-                // JMP bl->nthSucc(1)
-                nextb = bl->nthSucc(1);
-                goto L2;
-            }
-#else       // Not so good because altering return addr always causes branch misprediction
-            {
-                // Generate a PUSH of the address of the successor to the
-                // corresponding BC_ret
-                //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
-                // PUSH &succ
-                c = genc(c,0x68,0,0,0,FLblock,(targ_size_t)list_block(list_next(bl->Bsucc)));
-                nextb = list_block(bl->Bsucc);
-                goto L2;
-            }
-#endif
+            // Generate CALL to finalizer code
+            c = cat(c, callFinallyBlock(bl->nthSucc(0), 0));
+
+            // JMP bl->nthSucc(1)
+            nextb = bl->nthSucc(1);
+            goto L2;
 
         case BC_ret:
             retregs = 0;
@@ -1017,13 +1008,11 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     mfuncreg = mfuncregsave;
             }
             else if (MARS || usednteh & NTEH_try)
-            {   block *bt;
-
-                bt = bl;
+            {
+                block *bt = bl;
                 while ((bt = bt->Btry) != NULL)
-                {   block *bf;
-
-                    bf = list_block(list_next(bt->Bsucc));
+                {
+                    block *bf = bt->nthSucc(1);
 #if MARS
                     // Only look at try-finally blocks
                     if (bf->BC == BCjcatch)
@@ -1041,7 +1030,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
                             c = cat(c,nteh_gensindex(-1));
                             gensaverestore(retregs,&cs,&cr);
-                            cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                            cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)bf->nthSucc(0));
                             regcon.immed.mval = 0;
                             bl->Bcode = cat3(c,cs,cr);
                         }
@@ -1052,24 +1041,8 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     else
                     {
                         // call __finally
-                        code *cs;
-                        code *cr;
-                        int nalign = 0;
-
-                        unsigned npush = gensaverestore(retregs,&cs,&cr);
-                        if (STACKALIGN == 16)
-                        {   npush += REGSIZE;
-                            if (npush & (STACKALIGN - 1))
-                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = cod3_stackadj(cs, nalign);
-                            }
-                        }
-                        // CALL bf->Bsucc
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
-                        regcon.immed.mval = 0;
-                        if (nalign)
-                            cs = cod3_stackadj(cs, -nalign);
-                        bl->Bcode = c = cat3(c,cs,cr);
+                        c = cat(c, callFinallyBlock(bf->nthSucc(0), retregs));
+                        bl->Bcode = c;
                     }
                 }
             }
