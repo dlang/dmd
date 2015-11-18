@@ -282,7 +282,7 @@ struct CArgs
 
 __gshared CArgs _cArgs;
 
-extern (C) CArgs rt_cArgs()
+extern (C) CArgs rt_cArgs() @nogc
 {
     return _cArgs;
 }
