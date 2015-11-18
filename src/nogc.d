@@ -69,6 +69,7 @@ public:
     {
         if (e.type.ty != Tarray || !e.elements || !e.elements.dim)
             return;
+
         if (f.setGC())
         {
             e.error("array literal in @nogc function %s may cause GC allocation", f.toChars());
@@ -82,6 +83,7 @@ public:
     {
         if (!e.keys.dim)
             return;
+
         if (f.setGC())
         {
             e.error("associative array literal in @nogc function %s may cause GC allocation", f.toChars());
@@ -102,6 +104,7 @@ public:
             return;
         if (e.allocator)
             return;
+
         if (f.setGC())
         {
             e.error("cannot use 'new' in @nogc function %s", f.toChars());
@@ -119,6 +122,7 @@ public:
             if (v && v.onstack)
                 return; // delete for scope allocated class object
         }
+
         if (f.setGC())
         {
             e.error("cannot use 'delete' in @nogc function %s", f.toChars());
@@ -183,7 +187,11 @@ public:
 extern (C++) Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
-    if (e && e.op != TOKerror && f && sc.intypeof != 1 && !(sc.flags & SCOPEctfe) && (f.type.ty == Tfunction && (cast(TypeFunction)f.type).isnogc || (f.flags & FUNCFLAGnogcInprocess) || global.params.vgc))
+    if (e && e.op != TOKerror &&
+        f && sc.intypeof != 1 && !(sc.flags & SCOPEctfe) &&
+        (f.type.ty == Tfunction && (cast(TypeFunction)f.type).isnogc ||
+         (f.flags & FUNCFLAGnogcInprocess) ||
+         global.params.vgc))
     {
         scope NOGCVisitor gcv = new NOGCVisitor(f);
         walkPostorder(e, gcv);

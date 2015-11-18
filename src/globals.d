@@ -255,6 +255,7 @@ struct Global
         ddoc_ext = "ddoc";
         json_ext = "json";
         map_ext = "map";
+
         static if (TARGET_WINDOS)
         {
             obj_ext = "obj";
@@ -267,6 +268,7 @@ struct Global
         {
             static assert(0, "fix this");
         }
+
         static if (TARGET_WINDOS)
         {
             lib_ext = "lib";
@@ -279,6 +281,7 @@ struct Global
         {
             static assert(0, "fix this");
         }
+
         static if (TARGET_WINDOS)
         {
             dll_ext = "dll";
@@ -295,6 +298,7 @@ struct Global
         {
             static assert(0, "fix this");
         }
+
         static if (TARGET_WINDOS)
         {
             run_noext = false;
@@ -308,11 +312,14 @@ struct Global
         {
             static assert(0, "fix this");
         }
+
         copyright = "Copyright (c) 1999-2015 by Digital Mars";
         written = "written by Walter Bright";
         _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
+
         compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
+
         main_d = "__main.d";
         errorLimit = 20;
     }
@@ -360,10 +367,12 @@ struct Loc
     extern (C++) char* toChars()
     {
         OutBuffer buf;
+
         if (filename)
         {
             buf.printf("%s", filename);
         }
+
         if (linnum)
         {
             buf.printf("(%d", linnum);
@@ -376,7 +385,8 @@ struct Loc
 
     extern (C++) bool equals(ref const(Loc) loc)
     {
-        return (!global.params.showColumns || charnum == loc.charnum) && linnum == loc.linnum && FileName.equals(filename, loc.filename);
+        return (!global.params.showColumns || charnum == loc.charnum) &&
+               linnum == loc.linnum && FileName.equals(filename, loc.filename);
     }
 }
 

@@ -22,6 +22,7 @@ struct ObjcSelector
     extern (C++) static __gshared StringTable stringtable;
     extern (C++) static __gshared StringTable vTableDispatchSelectors;
     extern (C++) static __gshared int incnum;
+
     const(char)* stringvalue;
     size_t stringlen;
     size_t paramCount;
@@ -69,6 +70,7 @@ struct Objc_ClassDeclaration
 struct Objc_FuncDeclaration
 {
     FuncDeclaration fdecl;
+
     // Objective-C method selector (member function only)
     ObjcSelector* selector;
 

@@ -44,62 +44,74 @@ extern (C++) TypeTuple toArgTypes(Type t)
             Type t2 = null;
             switch (t.ty)
             {
-            case Tvoid:
-                return;
-            case Tbool:
-            case Tint8:
-            case Tuns8:
-            case Tint16:
-            case Tuns16:
-            case Tint32:
-            case Tuns32:
-            case Tfloat32:
-            case Tint64:
-            case Tuns64:
-            case Tint128:
-            case Tuns128:
-            case Tfloat64:
-            case Tfloat80:
-                t1 = t;
-                break;
-            case Timaginary32:
-                t1 = Type.tfloat32;
-                break;
-            case Timaginary64:
-                t1 = Type.tfloat64;
-                break;
-            case Timaginary80:
-                t1 = Type.tfloat80;
-                break;
-            case Tcomplex32:
-                if (global.params.is64bit)
+                case Tvoid:
+                    return;
+
+                case Tbool:
+                case Tint8:
+                case Tuns8:
+                case Tint16:
+                case Tuns16:
+                case Tint32:
+                case Tuns32:
+                case Tfloat32:
+                case Tint64:
+                case Tuns64:
+                case Tint128:
+                case Tuns128:
+                case Tfloat64:
+                case Tfloat80:
+                    t1 = t;
+                    break;
+
+                case Timaginary32:
+                    t1 = Type.tfloat32;
+                    break;
+
+                case Timaginary64:
                     t1 = Type.tfloat64;
-                else
-                {
+                    break;
+
+                case Timaginary80:
+                    t1 = Type.tfloat80;
+                    break;
+
+                case Tcomplex32:
+                    if (global.params.is64bit)
+                        t1 = Type.tfloat64;
+                    else
+                    {
+                        t1 = Type.tfloat64;
+                        t2 = Type.tfloat64;
+                    }
+                    break;
+
+                case Tcomplex64:
                     t1 = Type.tfloat64;
                     t2 = Type.tfloat64;
-                }
-                break;
-            case Tcomplex64:
-                t1 = Type.tfloat64;
-                t2 = Type.tfloat64;
-                break;
-            case Tcomplex80:
-                t1 = Type.tfloat80;
-                t2 = Type.tfloat80;
-                break;
-            case Tchar:
-                t1 = Type.tuns8;
-                break;
-            case Twchar:
-                t1 = Type.tuns16;
-                break;
-            case Tdchar:
-                t1 = Type.tuns32;
-                break;
-            default:
-                assert(0);
+                    break;
+
+                case Tcomplex80:
+                    t1 = Type.tfloat80;
+                    t2 = Type.tfloat80;
+                    break;
+
+                case Tchar:
+                    t1 = Type.tuns8;
+                    break;
+
+                case Twchar:
+                    t1 = Type.tuns16;
+                    break;
+
+                case Tdchar:
+                    t1 = Type.tuns32;
+                    break;
+
+                default:
+                    assert(0);
             }
+
             if (t1)
             {
                 if (t2)
@@ -152,21 +164,23 @@ extern (C++) TypeTuple toArgTypes(Type t)
         {
             switch (t.ty)
             {
-            case Tfloat32:
-            case Timaginary32:
-                t = Type.tint32;
-                break;
-            case Tfloat64:
-            case Timaginary64:
-            case Tcomplex32:
-                t = Type.tint64;
-                break;
-            default:
-                debug
-                {
-                    printf("mergeFloatToInt() %s\n", t.toChars());
-                }
-                assert(0);
+                case Tfloat32:
+                case Timaginary32:
+                    t = Type.tint32;
+                    break;
+
+                case Tfloat64:
+                case Timaginary64:
+                case Tcomplex32:
+                    t = Type.tint64;
+                    break;
+
+                default:
+                    debug
+                    {
+                        printf("mergeFloatToInt() %s\n", t.toChars());
+                    }
+                    assert(0);
             }
             return t;
         }
@@ -184,13 +198,18 @@ extern (C++) TypeTuple toArgTypes(Type t)
             }
             if (!t2)
                 return t1;
+
             uint sz1 = cast(uint)t1.size(Loc());
             uint sz2 = cast(uint)t2.size(Loc());
-            if (t1.ty != t2.ty && (t1.ty == Tfloat80 || t2.ty == Tfloat80))
+
+            if (t1.ty != t2.ty &&
+                (t1.ty == Tfloat80 || t2.ty == Tfloat80))
                 return null;
+
             // [float,float] => [cfloat]
             if (t1.ty == Tfloat32 && t2.ty == Tfloat32 && offset2 == 4)
                 return Type.tfloat64;
+
             // Merging floating and non-floating types produces the non-floating type
             if (t1.isfloating())
             {
@@ -199,32 +218,38 @@ extern (C++) TypeTuple toArgTypes(Type t)
             }
             else if (t2.isfloating())
                 t2 = mergeFloatToInt(t2);
+
             Type t;
+
             // Pick type with larger size
             if (sz1 < sz2)
                 t = t2;
             else
                 t = t1;
+
             // If t2 does not lie within t1, need to increase the size of t to enclose both
             if (offset2 && sz1 < offset2 + sz2)
             {
                 switch (offset2 + sz2)
                 {
-                case 2:
-                    t = Type.tint16;
-                    break;
-                case 3:
-                case 4:
-                    t = Type.tint32;
-                    break;
-                case 5:
-                case 6:
-                case 7:
-                case 8:
-                    t = Type.tint64;
-                    break;
-                default:
-                    assert(0);
+                    case 2:
+                        t = Type.tint16;
+                        break;
+
+                    case 3:
+                    case 4:
+                        t = Type.tint32;
+                        break;
+
+                    case 5:
+                    case 6:
+                    case 7:
+                    case 8:
+                        t = Type.tint64;
+                        break;
+
+                    default:
+                        assert(0);
                 }
             }
             return t;
@@ -284,42 +309,50 @@ extern (C++) TypeTuple toArgTypes(Type t)
             assert(sz < 0xFFFFFFFF);
             switch (cast(uint)sz)
             {
-            case 1:
-                t1 = Type.tint8;
-                break;
-            case 2:
-                t1 = Type.tint16;
-                break;
-            case 3:
-                if (!global.params.is64bit)
+                case 1:
+                    t1 = Type.tint8;
+                    break;
+
+                case 2:
+                    t1 = Type.tint16;
+                    break;
+
+                case 3:
+                    if (!global.params.is64bit)
+                        goto Lmemory;
+
+                case 4:
+                    t1 = Type.tint32;
+                    break;
+
+                case 5:
+                case 6:
+                case 7:
+                    if (!global.params.is64bit)
+                        goto Lmemory;
+
+                case 8:
+                    t1 = Type.tint64;
+                    break;
+
+                case 16:
+                    t1 = null; // could be a TypeVector
+                    break;
+
+                case 9:
+                case 10:
+                case 11:
+                case 12:
+                case 13:
+                case 14:
+                case 15:
+                    if (!global.params.is64bit)
+                        goto Lmemory;
+                    t1 = null;
+                    break;
+
+                default:
                     goto Lmemory;
-            case 4:
-                t1 = Type.tint32;
-                break;
-            case 5:
-            case 6:
-            case 7:
-                if (!global.params.is64bit)
-                    goto Lmemory;
-            case 8:
-                t1 = Type.tint64;
-                break;
-            case 16:
-                t1 = null; // could be a TypeVector
-                break;
-            case 9:
-            case 10:
-            case 11:
-            case 12:
-            case 13:
-            case 14:
-            case 15:
-                if (!global.params.is64bit)
-                    goto Lmemory;
-                t1 = null;
-                break;
-            default:
-                goto Lmemory;
             }
             if (global.params.is64bit && t.sym.fields.dim)
             {
@@ -330,6 +363,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     {
                         VarDeclaration f = t.sym.fields[i];
                         //printf("f->type = %s\n", f->type->toChars());
+
                         TypeTuple tup = toArgTypes(f.type);
                         if (!tup)
                             goto Lmemory;
@@ -338,19 +372,22 @@ extern (C++) TypeTuple toArgTypes(Type t)
                         Type ft2 = null;
                         switch (dim)
                         {
-                        case 2:
-                            ft1 = (*tup.arguments)[0].type;
-                            ft2 = (*tup.arguments)[1].type;
-                            break;
-                        case 1:
-                            if (f.offset < 8)
+                            case 2:
                                 ft1 = (*tup.arguments)[0].type;
-                            else
-                                ft2 = (*tup.arguments)[0].type;
-                            break;
-                        default:
-                            goto Lmemory;
+                                ft2 = (*tup.arguments)[1].type;
+                                break;
+
+                            case 1:
+                                if (f.offset < 8)
+                                    ft1 = (*tup.arguments)[0].type;
+                                else
+                                    ft2 = (*tup.arguments)[0].type;
+                                break;
+
+                            default:
+                                goto Lmemory;
                         }
+
                         if (f.offset & 7)
                         {
                             // Misaligned fields goto Lmemory
@@ -362,14 +399,17 @@ extern (C++) TypeTuple toArgTypes(Type t)
                             if (f.offset < 8 && (f.offset + fieldsz) > 8)
                                 goto Lmemory;
                         }
+
                         // First field in 8byte must be at start of 8byte
                         assert(t1 || f.offset == 0);
+
                         if (ft1)
                         {
                             t1 = argtypemerge(t1, ft1, f.offset);
                             if (!t1)
                                 goto Lmemory;
                         }
+
                         if (ft2)
                         {
                             uint off2 = f.offset;
@@ -419,6 +459,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
                 }
             }
             //printf("\ttoArgTypes() %s => [%s,%s]\n", t->toChars(), t1 ? t1->toChars() : "", t2 ? t2->toChars() : "");
+
             if (t1)
             {
                 //if (t1) printf("test1: %s => %s\n", toChars(), t1->toChars());

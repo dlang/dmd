@@ -8,8 +8,11 @@
 
 module ddmd.root.outbuffer;
 
-import core.stdc.stdarg, core.stdc.stdio, core.stdc.string;
-import ddmd.root.rmem, ddmd.root.rootobject;
+import core.stdc.stdarg;
+import core.stdc.stdio;
+import core.stdc.string;
+import ddmd.root.rmem;
+import ddmd.root.rootobject;
 
 struct OutBuffer
 {

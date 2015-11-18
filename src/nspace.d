@@ -60,6 +60,7 @@ public:
         {
             if (!symtab)
                 symtab = new DsymbolTable();
+
             // The namespace becomes 'imported' into the enclosing scope
             for (Scope* sce = sc; 1; sce = sce.enclosing)
             {
@@ -70,23 +71,28 @@ public:
                     break;
                 }
             }
+
             assert(sc);
             sc = sc.push(this);
             sc.linkage = LINKcpp; // note that namespaces imply C++ linkage
             sc.parent = this;
+
             foreach (s; *members)
             {
                 //printf("add %s to scope %s\n", s->toChars(), toChars());
                 s.addMember(sc, this);
             }
+
             foreach (s; *members)
             {
                 s.setScope(sc);
             }
+
             foreach (s; *members)
             {
                 s.importAll(sc);
             }
+
             foreach (s; *members)
             {
                 static if (LOG)
@@ -95,6 +101,7 @@ public:
                 }
                 s.semantic(sc);
             }
+
             sc.pop();
         }
         static if (LOG)
@@ -117,6 +124,7 @@ public:
             assert(sc);
             sc = sc.push(this);
             sc.linkage = LINKcpp;
+
             foreach (s; *members)
             {
                 static if (LOG)
@@ -125,6 +133,7 @@ public:
                 }
                 s.semantic2(sc);
             }
+
             sc.pop();
         }
         static if (LOG)
@@ -146,10 +155,12 @@ public:
         {
             sc = sc.push(this);
             sc.linkage = LINKcpp;
+
             foreach (s; *members)
             {
                 s.semantic3(sc);
             }
+
             sc.pop();
         }
     }

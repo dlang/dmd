@@ -281,7 +281,9 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     error(loc, "escaping reference to local variable %s", v);
                     return;
                 }
-                if (global.params.useDIP25 && (v.storage_class & (STCref | STCout)) && !(v.storage_class & (STCreturn | STCforeach)))
+
+                if (global.params.useDIP25 &&
+                    (v.storage_class & (STCref | STCout)) && !(v.storage_class & (STCreturn | STCforeach)))
                 {
                     if (sc.func.flags & FUNCFLAGreturnInprocess)
                     {
@@ -305,7 +307,10 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     }
                     return;
                 }
-                if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
+
+                if (v.storage_class & STCref &&
+                    v.storage_class & (STCforeach | STCtemp) &&
+                    v._init)
                 {
                     // (ref v = ex; ex)
                     if (ExpInitializer ez = v._init.isExpInitializer())
@@ -357,6 +362,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     }
                 }
             }
+
             Type tb = e.e1.type.toBasetype();
             if (tb.ty == Tsarray)
             {
@@ -415,6 +421,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                      * skip it because it is not passed by ref
                      */
                     int j = (tf.linkage == LINKd && tf.varargs == 1);
+
                     for (size_t i = j; i < e.arguments.dim; ++i)
                     {
                         Expression arg = (*e.arguments)[i];
@@ -427,6 +434,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                         }
                     }
                 }
+
                 // If 'this' is returned by ref, check it too
                 if (tf.isreturn && e.e1.op == TOKdotvar && t1.ty == Tfunction)
                 {

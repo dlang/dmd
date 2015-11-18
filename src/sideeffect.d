@@ -43,6 +43,7 @@ extern (C++) bool isTrivialExp(Expression e)
                 stop = true;
                 return;
             }
+
             // stop walking if we determine this expression has side effects
             stop = lambdaHasSideEffect(e);
         }
@@ -89,6 +90,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
      */
     if (f.isCtorDeclaration())
         return 0;
+
     assert(f.type.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.isnothrow)
@@ -105,6 +107,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
 extern (C++) int callSideEffectLevel(Type t)
 {
     t = t.toBasetype();
+
     TypeFunction tf;
     if (t.ty == Tdelegate)
         tf = cast(TypeFunction)(cast(TypeDelegate)t).next;
@@ -113,6 +116,7 @@ extern (C++) int callSideEffectLevel(Type t)
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)t;
     }
+
     tf.purityLevel();
     PURE purity = tf.purity;
     if (t.ty == Tdelegate && purity > PUREweak)
@@ -122,6 +126,7 @@ extern (C++) int callSideEffectLevel(Type t)
         else if (!tf.isImmutable())
             purity = PUREconst;
     }
+
     if (tf.isnothrow)
     {
         if (purity == PUREstrong)
@@ -137,34 +142,35 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
     switch (e.op)
     {
         // Sort the cases by most frequently used first
-    case TOKassign:
-    case TOKplusplus:
-    case TOKminusminus:
-    case TOKdeclaration:
-    case TOKconstruct:
-    case TOKblit:
-    case TOKaddass:
-    case TOKminass:
-    case TOKcatass:
-    case TOKmulass:
-    case TOKdivass:
-    case TOKmodass:
-    case TOKshlass:
-    case TOKshrass:
-    case TOKushrass:
-    case TOKandass:
-    case TOKorass:
-    case TOKxorass:
-    case TOKpowass:
-    case TOKin:
-    case TOKremove:
-    case TOKassert:
-    case TOKhalt:
-    case TOKdelete:
-    case TOKnew:
-    case TOKnewanonclass:
-        return true;
-    case TOKcall:
+        case TOKassign:
+        case TOKplusplus:
+        case TOKminusminus:
+        case TOKdeclaration:
+        case TOKconstruct:
+        case TOKblit:
+        case TOKaddass:
+        case TOKminass:
+        case TOKcatass:
+        case TOKmulass:
+        case TOKdivass:
+        case TOKmodass:
+        case TOKshlass:
+        case TOKshrass:
+        case TOKushrass:
+        case TOKandass:
+        case TOKorass:
+        case TOKxorass:
+        case TOKpowass:
+        case TOKin:
+        case TOKremove:
+        case TOKassert:
+        case TOKhalt:
+        case TOKdelete:
+        case TOKnew:
+        case TOKnewanonclass:
+            return true;
+
+        case TOKcall:
         {
             CallExp ce = cast(CallExp)e;
             /* Calling a function or delegate that is pure nothrow
@@ -175,7 +181,9 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
                 Type t = ce.e1.type.toBasetype();
                 if (t.ty == Tdelegate)
                     t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                if (t.ty == Tfunction &&
+                    (ce.f ? callSideEffectLevel(ce.f)
+                          : callSideEffectLevel(ce.e1.type)) > 0)
                 {
                 }
                 else
@@ -183,7 +191,7 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
             }
             break;
         }
-    case TOKcast:
+        case TOKcast:
         {
             CastExp ce = cast(CastExp)e;
             /* if:
@@ -193,8 +201,8 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
                 return true;
             break;
         }
-    default:
-        break;
+        default:
+            break;
     }
     return false;
 }
@@ -209,7 +217,7 @@ extern (C++) void discardValue(Expression e)
         return;
     switch (e.op)
     {
-    case TOKcast:
+        case TOKcast:
         {
             CastExp ce = cast(CastExp)e;
             if (ce.to.equals(Type.tvoid))
@@ -219,12 +227,12 @@ extern (C++) void discardValue(Expression e)
                  */
                 return;
             }
-            break;
-            // complain
+            break; // complain
         }
-    case TOKerror:
-        return;
-    case TOKvar:
+        case TOKerror:
+            return;
+
+        case TOKvar:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
             if (v && (v.storage_class & STCtemp))
@@ -234,61 +242,68 @@ extern (C++) void discardValue(Expression e)
             }
             break;
         }
-    case TOKcall:
-        /* Issue 3882: */
-        if (global.params.warnings && !global.gag)
-        {
-            CallExp ce = cast(CallExp)e;
-            if (e.type.ty == Tvoid)
+        case TOKcall:
+            /* Issue 3882: */
+            if (global.params.warnings && !global.gag)
             {
-                /* Don't complain about calling void-returning functions with no side-effect,
-                 * because purity and nothrow are inferred, and because some of the
-                 * runtime library depends on it. Needs more investigation.
-                 *
-                 * One possible solution is to restrict this message to only be called in hierarchies that
-                 * never call assert (and or not called from inside unittest blocks)
-                 */
-            }
-            else if (ce.e1.type)
-            {
-                Type t = ce.e1.type.toBasetype();
-                if (t.ty == Tdelegate)
-                    t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                CallExp ce = cast(CallExp)e;
+                if (e.type.ty == Tvoid)
                 {
-                    const(char)* s;
-                    if (ce.f)
-                        s = ce.f.toPrettyChars();
-                    else if (ce.e1.op == TOKstar)
+                    /* Don't complain about calling void-returning functions with no side-effect,
+                     * because purity and nothrow are inferred, and because some of the
+                     * runtime library depends on it. Needs more investigation.
+                     *
+                     * One possible solution is to restrict this message to only be called in hierarchies that
+                     * never call assert (and or not called from inside unittest blocks)
+                     */
+                }
+                else if (ce.e1.type)
+                {
+                    Type t = ce.e1.type.toBasetype();
+                    if (t.ty == Tdelegate)
+                        t = (cast(TypeDelegate)t).next;
+                    if (t.ty == Tfunction &&
+                        (ce.f ? callSideEffectLevel(ce.f)
+                              : callSideEffectLevel(ce.e1.type)) > 0)
                     {
-                        // print 'fp' if ce->e1 is (*fp)
-                        s = (cast(PtrExp)ce.e1).e1.toChars();
+                        const(char)* s;
+                        if (ce.f)
+                            s = ce.f.toPrettyChars();
+                        else if (ce.e1.op == TOKstar)
+                        {
+                            // print 'fp' if ce->e1 is (*fp)
+                            s = (cast(PtrExp)ce.e1).e1.toChars();
+                        }
+                        else
+                            s = ce.e1.toChars();
+
+                        e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional",
+                            s, e.type.toChars());
                     }
-                    else
-                        s = ce.e1.toChars();
-                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
                 }
             }
-        }
-        return;
-    case TOKimport:
-        e.error("%s has no effect", e.toChars());
-        return;
-    case TOKandand:
+            return;
+
+        case TOKimport:
+            e.error("%s has no effect", e.toChars());
+            return;
+
+        case TOKandand:
         {
             AndAndExp aae = cast(AndAndExp)e;
             discardValue(aae.e2);
             return;
         }
-    case TOKoror:
+        case TOKoror:
         {
             OrOrExp ooe = cast(OrOrExp)e;
             discardValue(ooe.e2);
             return;
         }
-    case TOKquestion:
+        case TOKquestion:
         {
             CondExp ce = cast(CondExp)e;
+
             /* Bugzilla 6178 & 14089: Either CondExp::e1 or e2 may have
              * redundant expression to make those types common. For example:
              *
@@ -307,14 +322,15 @@ extern (C++) void discardValue(Expression e)
              * To avoid false error, discardValue() should be called only when
              * the both tops of e1 and e2 have actually no side effects.
              */
-            if (!lambdaHasSideEffect(ce.e1) && !lambdaHasSideEffect(ce.e2))
+            if (!lambdaHasSideEffect(ce.e1) &&
+                !lambdaHasSideEffect(ce.e2))
             {
                 discardValue(ce.e1);
                 discardValue(ce.e2);
             }
             return;
         }
-    case TOKcomma:
+        case TOKcomma:
         {
             CommaExp ce = cast(CommaExp)e;
             /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
@@ -325,7 +341,9 @@ extern (C++) void discardValue(Expression e)
             CommaExp firstComma = ce;
             while (firstComma.e1.op == TOKcomma)
                 firstComma = cast(CommaExp)firstComma.e1;
-            if (firstComma.e1.op == TOKdeclaration && ce.e2.op == TOKvar && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
+            if (firstComma.e1.op == TOKdeclaration &&
+                ce.e2.op == TOKvar &&
+                (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
             {
                 return;
             }
@@ -334,16 +352,17 @@ extern (C++) void discardValue(Expression e)
             discardValue(ce.e2);
             return;
         }
-    case TOKtuple:
-        /* Pass without complaint if any of the tuple elements have side effects.
-         * Ideally any tuple elements with no side effects should raise an error,
-         * this needs more investigation as to what is the right thing to do.
-         */
-        if (!hasSideEffect(e))
+        case TOKtuple:
+            /* Pass without complaint if any of the tuple elements have side effects.
+             * Ideally any tuple elements with no side effects should raise an error,
+             * this needs more investigation as to what is the right thing to do.
+             */
+            if (!hasSideEffect(e))
+                break;
+            return;
+
+        default:
             break;
-        return;
-    default:
-        break;
     }
     e.error("%s has no effect in expression (%s)", Token.toChars(e.op), e.toChars());
 }

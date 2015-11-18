@@ -26,6 +26,7 @@ enum COLOR : int
     COLOR_RED       = 1,
     COLOR_GREEN     = 2,
     COLOR_BLUE      = 4,
+
     COLOR_YELLOW    = COLOR_RED | COLOR_GREEN,
     COLOR_MAGENTA   = COLOR_RED | COLOR_BLUE,
     COLOR_CYAN      = COLOR_GREEN | COLOR_BLUE,
@@ -99,7 +100,11 @@ extern (C++) void setConsoleColor(COLOR color, bool bright)
     {
         HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
         WORD attr = consoleAttributes(h);
-        attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) | ((color & COLOR_RED) ? FOREGROUND_RED : 0) | ((color & COLOR_GREEN) ? FOREGROUND_GREEN : 0) | ((color & COLOR_BLUE) ? FOREGROUND_BLUE : 0) | (bright ? FOREGROUND_INTENSITY : 0);
+        attr = (attr & ~(FOREGROUND_WHITE | FOREGROUND_INTENSITY)) |
+               ((color & COLOR_RED) ? FOREGROUND_RED : 0) |
+               ((color & COLOR_GREEN) ? FOREGROUND_GREEN : 0) |
+               ((color & COLOR_BLUE) ? FOREGROUND_BLUE : 0) |
+               (bright ? FOREGROUND_INTENSITY : 0);
         SetConsoleTextAttribute(h, attr);
     }
     else
@@ -185,14 +190,23 @@ extern (C++) void deprecationSupplemental(Loc loc, const(char)* format, ...)
 }
 
 // Just print, doesn't care about gagging
-extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+extern (C++) void verrorPrint(
+    Loc loc,
+    COLOR headerColor,
+    const(char)* header,
+    const(char)* format,
+    va_list ap,
+    const(char)* p1 = null,
+    const(char)* p2 = null)
 {
     char* p = loc.toChars();
+
     if (global.params.color)
         setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
     mem.xfree(p);
+
     if (global.params.color)
         setConsoleColor(headerColor, true);
     fputs(header, stderr);
@@ -209,7 +223,13 @@ extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header, c
 }
 
 // header is "Error: " by default (see errors.h)
-extern (C++) void verror(Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
+extern (C++) void verror(
+    Loc loc,
+    const(char)* format,
+    va_list ap,
+    const(char)* p1 = null,
+    const(char)* p2 = null,
+    const(char)* header = "Error: ")
 {
     global.errors++;
     if (!global.gag)
@@ -227,13 +247,19 @@ extern (C++) void verror(Loc loc, const(char)* format, va_list ap, const(char)* 
 }
 
 // Doesn't increase error count, doesn't print "Error:".
-extern (C++) void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
+extern (C++) void verrorSupplemental(
+    Loc loc,
+    const(char)* format,
+    va_list ap)
 {
     if (!global.gag)
         verrorPrint(loc, COLOR_RED, "       ", format, ap);
 }
 
-extern (C++) void vwarning(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vwarning(
+    Loc loc,
+    const(char)* format,
+    va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
@@ -244,13 +270,21 @@ extern (C++) void vwarning(Loc loc, const(char)* format, va_list ap)
     }
 }
 
-extern (C++) void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vwarningSupplemental(
+    Loc loc,
+    const(char)* format,
+    va_list ap)
 {
     if (global.params.warnings && !global.gag)
         verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
 }
 
-extern (C++) void vdeprecation(Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+extern (C++) void vdeprecation(
+    Loc loc,
+    const(char)* format,
+    va_list ap,
+    const(char)* p1 = null,
+    const(char)* p2 = null)
 {
     static __gshared const(char)* header = "Deprecation: ";
     if (global.params.useDeprecated == 0)
@@ -259,7 +293,10 @@ extern (C++) void vdeprecation(Loc loc, const(char)* format, va_list ap, const(c
         verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
 }
 
-extern (C++) void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vdeprecationSupplemental(
+    Loc loc,
+    const(char)* format,
+    va_list ap)
 {
     if (global.params.useDeprecated == 0)
         verrorSupplemental(loc, format, ap);

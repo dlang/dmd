@@ -60,17 +60,21 @@ public:
         sc.tinst = null;
         sc.minst = null;
         sc.flags |= SCOPEcondition;
+
         sc = sc.startCTFE();
         Expression e = exp.semantic(sc);
         e = resolveProperties(sc, e);
         sc = sc.endCTFE();
         sc = sc.pop();
+
         // Simplify expression, to make error messages nicer if CTFE fails
         e = e.optimize(WANTvalue);
+
         if (!e.type.isBoolean())
         {
             if (e.type.toBasetype() != Type.terror)
-                exp.error("expression %s of type %s does not have a boolean value", exp.toChars(), e.type.toChars());
+                exp.error("expression %s of type %s does not have a boolean value",
+                    exp.toChars(), e.type.toChars());
             return;
         }
         uint olderrs = global.errors;

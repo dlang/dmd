@@ -55,6 +55,7 @@ extern (C++) const(char)* toWinPath(const(char)* src)
 {
     if (src is null)
         return null;
+
     char* result = strdup(src);
     char* p = result;
     while (*p != '\0')
@@ -100,7 +101,9 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
 
 extern (C++) static void logo()
 {
-    printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
+    printf("DMD%llu D Compiler %s\n%s %s\n",
+        cast(ulong)size_t.sizeof * 8,
+        global._version, global.copyright, global.written);
 }
 
 extern (C++) static void usage()
@@ -213,6 +216,7 @@ extern (C++) void genCmain(Scope* sc)
 {
     if (entrypoint)
         return;
+
     /* The D code to be generated is provided as D source code in the form of a string.
      * Note that Solaris, for unknown reasons, requires both a main() and an _main()
      */
@@ -229,14 +233,17 @@ extern (C++) void genCmain(Scope* sc)
             version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }
         }
     };
+
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
+
     scope Parser p = new Parser(m, cmaincode, strlen(cast(const(char)*)cmaincode), 0);
     p.scanloc = Loc();
     p.nextToken();
     m.members = p.parseModule();
     assert(p.token.value == TOKeof);
     assert(!p.errors); // shouldn't have failed to parse it
+
     bool v = global.params.verbose;
     global.params.verbose = false;
     m.importedFrom = m;
@@ -245,6 +252,7 @@ extern (C++) void genCmain(Scope* sc)
     m.semantic2();
     m.semantic3();
     global.params.verbose = v;
+
     entrypoint = m;
     rootHasMain = sc._module;
 }
@@ -260,11 +268,13 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
         bool setdefaultlib = false;
     }
     global._init();
+
     debug
     {
         printf("DMD %s DEBUG\n", global._version);
         fflush(stdout); // avoid interleaving with stderr output when redirecting
     }
+
     // Check for malformed input
     if (argc < 1 || !argv)
     {
@@ -272,6 +282,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
         error(Loc(), "missing or null command line arguments");
         fatal();
     }
+
     // Convert argc/argv into arguments[] for easier handling
     Strings arguments;
     arguments.setDim(argc);
@@ -281,10 +292,14 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
             goto Largs;
         arguments[i] = argv[i];
     }
+
     if (response_expand(&arguments)) // expand response files
         error(Loc(), "can't open response file");
+
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
+
     files.reserve(arguments.dim - 1);
+
     // Set default values
     global.params.argv0 = arguments[0];
     global.params.color = isConsoleColorSupported();
@@ -298,13 +313,16 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
+
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
     global.params.dllfiles = new Strings();
     global.params.objfiles = new Strings();
     global.params.ddocfiles = new Strings();
+
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (size_t.sizeof == 8);
+
     static if (TARGET_WINDOS)
     {
         global.params.mscoff = false;
@@ -323,8 +341,10 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     {
         static assert(0, "fix this");
     }
+
     // Predefine version identifiers
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
+
     static if (TARGET_WINDOS)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
@@ -342,6 +362,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
         global.params.isOSX = true;
+
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
     }
@@ -370,9 +391,11 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     {
         static assert(0, "fix this");
     }
+
     VersionCondition.addPredefinedGlobalIdent("LittleEndian");
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
+
     global.inifilename = parse_conf_arg(&arguments);
     if (global.inifilename)
     {
@@ -395,34 +418,45 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
             static assert(0, "fix this");
         }
     }
+
     // Read the configurarion file
     auto inifile = File(global.inifilename);
     inifile.read();
+
     /* Need path of configuration file, for use in expanding @P macro
      */
     const(char)* inifilepath = FileName.path(global.inifilename);
+
     Strings sections;
+
     StringTable environment;
     environment._init(7);
+
     /* Read the [Environment] section, so we can later
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
     parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+
     Strings dflags;
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
     environment.reset(7); // erase cached environment updates
+
     const(char)* arch = global.params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
     arch = parse_arch_arg(&dflags, arch);
     bool is64bit = arch[0] == '6';
+
     char[80] envsection;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
     parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+
     getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
+
     updateRealEnvironment(&environment);
     environment.reset(1); // don't need environment cache any more
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -430,6 +464,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
             printf("arguments[%d] = '%s'\n", i, arguments[i]);
         }
     }
+
     for (size_t i = 1; i < arguments.dim; i++)
     {
         const(char)* p = arguments[i];
@@ -619,14 +654,14 @@ Language changes listed by -transition=id:
                         // Bugzilla issue number
                         switch (num)
                         {
-                        case 3449:
-                            global.params.vfield = true;
-                            break;
-                        case 14488:
-                            global.params.vcomplex = true;
-                            break;
-                        default:
-                            goto Lerror;
+                            case 3449:
+                                global.params.vfield = true;
+                                break;
+                            case 14488:
+                                global.params.vcomplex = true;
+                                break;
+                            default:
+                                goto Lerror;
                         }
                     }
                     else if (Identifier.isValidIdentifier(p + 12))
@@ -634,36 +669,36 @@ Language changes listed by -transition=id:
                         const(char)* ident = p + 12;
                         switch (strlen(ident))
                         {
-                        case 3:
-                            if (strcmp(ident, "all") == 0)
-                            {
-                                global.params.vtls = true;
-                                global.params.vfield = true;
-                                global.params.vcomplex = true;
-                                break;
-                            }
-                            if (strcmp(ident, "tls") == 0)
-                            {
-                                global.params.vtls = true;
-                                break;
-                            }
-                            goto Lerror;
-                        case 5:
-                            if (strcmp(ident, "field") == 0)
-                            {
-                                global.params.vfield = true;
-                                break;
-                            }
-                            goto Lerror;
-                        case 7:
-                            if (strcmp(ident, "complex") == 0)
-                            {
-                                global.params.vcomplex = true;
-                                break;
-                            }
-                            goto Lerror;
-                        default:
-                            goto Lerror;
+                            case 3:
+                                if (strcmp(ident, "all") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    global.params.vfield = true;
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                if (strcmp(ident, "tls") == 0)
+                                {
+                                    global.params.vtls = true;
+                                    break;
+                                }
+                                goto Lerror;
+                            case 5:
+                                if (strcmp(ident, "field") == 0)
+                                {
+                                    global.params.vfield = true;
+                                    break;
+                                }
+                                goto Lerror;
+                            case 7:
+                                if (strcmp(ident, "complex") == 0)
+                                {
+                                    global.params.vcomplex = true;
+                                    break;
+                                }
+                                goto Lerror;
+                            default:
+                                goto Lerror;
                         }
                     }
                     else
@@ -683,39 +718,43 @@ Language changes listed by -transition=id:
                 const(char)* path;
                 switch (p[2])
                 {
-                case '-':
-                    global.params.obj = false;
-                    break;
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3;
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    global.params.objdir = path;
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    path = p + 3;
-                    version (Windows)
-                    {
-                        path = toWinPath(path);
-                    }
-                    global.params.objname = path;
-                    break;
-                case 'p':
-                    if (p[3])
+                    case '-':
+                        global.params.obj = false;
+                        break;
+
+                    case 'd':
+                        if (!p[3])
+                            goto Lnoarg;
+                        path = p + 3;
+                        version (Windows)
+                        {
+                            path = toWinPath(path);
+                        }
+                        global.params.objdir = path;
+                        break;
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        path = p + 3;
+                        version (Windows)
+                        {
+                            path = toWinPath(path);
+                        }
+                        global.params.objname = path;
+                        break;
+
+                    case 'p':
+                        if (p[3])
+                            goto Lerror;
+                        global.params.preservePaths = true;
+                        break;
+
+                    case 0:
+                        error(Loc(), "-o no longer supported, use -of or -od");
+                        break;
+
+                    default:
                         goto Lerror;
-                    global.params.preservePaths = true;
-                    break;
-                case 0:
-                    error(Loc(), "-o no longer supported, use -of or -od");
-                    break;
-                default:
-                    goto Lerror;
                 }
             }
             else if (p[1] == 'D')
@@ -723,20 +762,23 @@ Language changes listed by -transition=id:
                 global.params.doDocComments = true;
                 switch (p[2])
                 {
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.docdir = p + 3;
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.docname = p + 3;
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
+                    case 'd':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.docdir = p + 3;
+                        break;
+
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.docname = p + 3;
+                        break;
+
+                    case 0:
+                        break;
+
+                    default:
+                        goto Lerror;
                 }
             }
             else if (p[1] == 'H')
@@ -744,20 +786,23 @@ Language changes listed by -transition=id:
                 global.params.doHdrGeneration = true;
                 switch (p[2])
                 {
-                case 'd':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.hdrdir = p + 3;
-                    break;
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.hdrname = p + 3;
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
+                    case 'd':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.hdrdir = p + 3;
+                        break;
+
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.hdrname = p + 3;
+                        break;
+
+                    case 0:
+                        break;
+
+                    default:
+                        goto Lerror;
                 }
             }
             else if (p[1] == 'X')
@@ -765,15 +810,17 @@ Language changes listed by -transition=id:
                 global.params.doJsonGeneration = true;
                 switch (p[2])
                 {
-                case 'f':
-                    if (!p[3])
-                        goto Lnoarg;
-                    global.params.jsonfilename = p + 3;
-                    break;
-                case 0:
-                    break;
-                default:
-                    goto Lerror;
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.jsonfilename = p + 3;
+                        break;
+
+                    case 0:
+                        break;
+
+                    default:
+                        goto Lerror;
                 }
             }
             else if (strcmp(p + 1, "ignore") == 0)
@@ -1026,8 +1073,11 @@ Language changes listed by -transition=id:
             files.push(p);
         }
     }
+
     if (global.params.is64bit != is64bit)
-        error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
+        error(Loc(), "the architecture must not be changed in the %s section of %s",
+            envsection.ptr, global.inifilename);
+
     if (global.params.enforcePropertySyntax)
     {
         /*NOTE: -property used to disallow calling non-properties
@@ -1044,8 +1094,10 @@ Language changes listed by -transition=id:
          Step 3: Possibly reintroduce -property with different semantics.
          Any new semantics need to be decided on first. */
     }
+
     // Target uses 64bit pointers.
     global.params.isLP64 = global.params.is64bit;
+
     if (global.errors)
     {
         fatal();
@@ -1055,22 +1107,27 @@ Language changes listed by -transition=id:
         usage();
         return EXIT_FAILURE;
     }
+
     if (!setdebuglib)
         global.params.debuglibname = global.params.defaultlibname;
+
     static if (TARGET_OSX)
     {
         global.params.pic = 1;
     }
+
     static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
     {
         if (global.params.lib && global.params.dll)
             error(Loc(), "cannot mix -lib and -shared");
     }
+
     if (global.params.useArrayBounds == BOUNDSCHECKdefault)
     {
         // Set the real default value
         global.params.useArrayBounds = global.params.release ? BOUNDSCHECKsafeonly : BOUNDSCHECKon;
     }
+
     if (global.params.release)
     {
         global.params.useInvariants = false;
@@ -1079,10 +1136,13 @@ Language changes listed by -transition=id:
         global.params.useAssert = false;
         global.params.useSwitchError = false;
     }
+
     if (global.params.useUnitTests)
         global.params.useAssert = true;
+
     if (!global.params.obj || global.params.lib)
         global.params.link = false;
+
     if (global.params.link)
     {
         global.params.exefile = global.params.objname;
@@ -1093,6 +1153,7 @@ Language changes listed by -transition=id:
              * name as the exe file.
              */
             global.params.objname = cast(char*)FileName.forceExt(global.params.objname, global.obj_ext);
+
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
@@ -1112,6 +1173,7 @@ Language changes listed by -transition=id:
     {
         global.params.libname = global.params.objname;
         global.params.objname = null;
+
         // Haven't investigated handling these options with multiobj
         if (!global.params.cov && !global.params.trace)
             global.params.multiobj = true;
@@ -1186,7 +1248,9 @@ Language changes listed by -transition=id:
         VersionCondition.addPredefinedGlobalIdent("assert");
     if (global.params.useArrayBounds == BOUNDSCHECKoff)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
+
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+
     objc_tryMain_dObjc();
 
     // Initialization
@@ -1204,7 +1268,9 @@ Language changes listed by -transition=id:
         fprintf(global.stdmsg, "version   %s\n", global._version);
         fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
     }
+
     //printf("%d source files\n",files.dim);
+
     // Build import search path
     if (global.params.imppath)
     {
@@ -1220,6 +1286,7 @@ Language changes listed by -transition=id:
             }
         }
     }
+
     // Build string import search path
     if (global.params.fileImppath)
     {
@@ -1235,10 +1302,12 @@ Language changes listed by -transition=id:
             }
         }
     }
+
     if (global.params.addMain)
     {
         files.push(cast(char*)global.main_d); // a dummy name, we never actually look up this file
     }
+
     // Create Modules
     Modules modules;
     modules.reserve(files.dim);
@@ -1246,10 +1315,12 @@ Language changes listed by -transition=id:
     for (size_t i = 0; i < files.dim; i++)
     {
         const(char)* name;
+
         version (Windows)
         {
             files[i] = toWinPath(files[i]);
         }
+
         const(char)* p = files[i];
         p = FileName.name(p); // strip path
         const(char)* ext = FileName.ext(p);
@@ -1264,12 +1335,14 @@ Language changes listed by -transition=id:
                 libmodules.push(files[i]);
                 continue;
             }
+
             if (FileName.equals(ext, global.lib_ext))
             {
                 global.params.libfiles.push(files[i]);
                 libmodules.push(files[i]);
                 continue;
             }
+
             static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
             {
                 if (FileName.equals(ext, global.dll_ext))
@@ -1279,22 +1352,26 @@ Language changes listed by -transition=id:
                     continue;
                 }
             }
+
             if (strcmp(ext, global.ddoc_ext) == 0)
             {
                 global.params.ddocfiles.push(files[i]);
                 continue;
             }
+
             if (FileName.equals(ext, global.json_ext))
             {
                 global.params.doJsonGeneration = true;
                 global.params.jsonfilename = files[i];
                 continue;
             }
+
             if (FileName.equals(ext, global.map_ext))
             {
                 global.params.mapfile = files[i];
                 continue;
             }
+
             static if (TARGET_WINDOS)
             {
                 if (FileName.equals(ext, "res"))
@@ -1302,20 +1379,25 @@ Language changes listed by -transition=id:
                     global.params.resfile = files[i];
                     continue;
                 }
+
                 if (FileName.equals(ext, "def"))
                 {
                     global.params.deffile = files[i];
                     continue;
                 }
+
                 if (FileName.equals(ext, "exe"))
                 {
                     assert(0); // should have already been handled
                 }
             }
+
             /* Examine extension to see if it is a valid
              * D source file extension
              */
-            if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
+            if (FileName.equals(ext, global.mars_ext) ||
+                FileName.equals(ext, global.hdr_ext) ||
+                FileName.equals(ext, "dd"))
             {
                 ext--; // skip onto '.'
                 assert(*ext == '.');
@@ -1323,7 +1405,10 @@ Language changes listed by -transition=id:
                 memcpy(newname, p, ext - p);
                 newname[ext - p] = 0; // strip extension
                 name = newname;
-                if (name[0] == 0 || strcmp(name, "..") == 0 || strcmp(name, ".") == 0)
+
+                if (name[0] == 0 ||
+                    strcmp(name, "..") == 0 ||
+                    strcmp(name, ".") == 0)
                 {
                 Linvalid:
                     error(Loc(), "invalid file name '%s'", files[i]);
@@ -1342,19 +1427,24 @@ Language changes listed by -transition=id:
             if (!*name)
                 goto Linvalid;
         }
+
         /* At this point, name is the D source file name stripped of
          * its path and extension.
          */
+
         Identifier id = Identifier.idPool(name);
         auto m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
+
         if (firstmodule)
         {
             global.params.objfiles.push(m.objfile.name.str);
             firstmodule = false;
         }
     }
+
     // Read files
+
     /* Start by "reading" the dummy main.d file
      */
     if (global.params.addMain)
@@ -1372,6 +1462,7 @@ Language changes listed by -transition=id:
             }
         }
     }
+
     enum ASYNCREAD = false;
     static if (ASYNCREAD)
     {
@@ -1393,6 +1484,7 @@ Language changes listed by -transition=id:
             m.read(Loc());
         }
     }
+
     // Parse files
     bool anydocfiles = false;
     size_t filecount = modules.dim;
@@ -1419,9 +1511,11 @@ Language changes listed by -transition=id:
         {
             anydocfiles = true;
             gendocfile(m);
+
             // Remove m from list of modules
             modules.remove(modi);
             modi--;
+
             // Remove m's object file from list of object files
             for (size_t j = 0; j < global.params.objfiles.dim; j++)
             {
@@ -1431,6 +1525,7 @@ Language changes listed by -transition=id:
                     break;
                 }
             }
+
             if (global.params.objfiles.dim == 0)
                 global.params.link = false;
         }
@@ -1439,7 +1534,9 @@ Language changes listed by -transition=id:
     {
         AsyncRead.dispose(aw);
     }
-    if (anydocfiles && modules.dim && (global.params.oneobj || global.params.objname))
+
+    if (anydocfiles && modules.dim &&
+        (global.params.oneobj || global.params.objname))
     {
         error(Loc(), "conflicting Ddoc and obj generation options");
         fatal();
@@ -1463,6 +1560,7 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+
     // load all unconditional imports for better symbol resolving
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1473,7 +1571,9 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+
     backend_init();
+
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1484,6 +1584,7 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+
     Module.dprogress = 1;
     Module.runDeferredSemantic();
     if (Module.deferred.dim)
@@ -1495,6 +1596,7 @@ Language changes listed by -transition=id:
         }
         fatal();
     }
+
     // Do pass 2 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1505,6 +1607,7 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+
     // Do pass 3 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1516,6 +1619,7 @@ Language changes listed by -transition=id:
     Module.runDeferredSemantic3();
     if (global.errors)
         fatal();
+
     // Scan for functions to inline
     if (global.params.useInline)
     {
@@ -1527,9 +1631,11 @@ Language changes listed by -transition=id:
             inlineScanModule(m);
         }
     }
+
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         fatal();
+
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlinig stage.
     if (global.params.moduleDeps)
@@ -1544,12 +1650,15 @@ Language changes listed by -transition=id:
         else
             printf("%.*s", cast(int)ob.offset, ob.data);
     }
+
     printCtfePerformanceStats();
+
     Library library = null;
     if (global.params.lib)
     {
         library = Library.factory();
         library.setFilename(global.params.objdir, global.params.libname);
+
         // Add input object and input library files to output library
         for (size_t i = 0; i < libmodules.dim; i++)
         {
@@ -1557,13 +1666,17 @@ Language changes listed by -transition=id:
             library.addObject(p, null, 0);
         }
     }
+
     // Generate output files
+
     if (global.params.doJsonGeneration)
     {
         OutBuffer buf;
         json_generate(&buf, &modules);
+
         // Write buf to file
         const(char)* name = global.params.jsonfilename;
+
         if (name && name[0] == '-' && name[1] == 0)
         {
             // Write to stdout; assume it succeeds
@@ -1584,17 +1697,23 @@ Language changes listed by -transition=id:
                 // Generate json file name from first obj name
                 const(char)* n = (*global.params.objfiles)[0];
                 n = FileName.name(n);
+
                 //if (!FileName::absolute(name))
-                //name = FileName::combine(dir, name);
+                //    name = FileName::combine(dir, name);
+
                 jsonfilename = FileName.forceExt(n, global.json_ext);
             }
+
             ensurePathToNameExists(Loc(), jsonfilename);
+
             auto jsonfile = new File(jsonfilename);
+
             jsonfile.setbuffer(buf.data, buf.offset);
             jsonfile._ref = 1;
             writeFile(Loc(), jsonfile);
         }
     }
+
     if (!global.errors && global.params.doDocComments)
     {
         for (size_t i = 0; i < modules.dim; i++)
@@ -1603,6 +1722,7 @@ Language changes listed by -transition=id:
             gendocfile(m);
         }
     }
+
     if (!global.params.obj)
     {
     }
@@ -1631,21 +1751,26 @@ Language changes listed by -transition=id:
             Module m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m.toChars());
+
             obj_start(m.srcfile.toChars());
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, global.params.multiobj);
             obj_end(library, m.objfile);
             obj_write_deferred(library);
+
             if (global.errors && !global.params.lib)
                 m.deleteObjFile();
         }
     }
+
     if (global.params.lib && !global.errors)
         library.write();
+
     backend_term();
     if (global.errors)
         fatal();
+
     int status = EXIT_SUCCESS;
     if (!global.params.objfiles.dim)
     {
@@ -1656,11 +1781,13 @@ Language changes listed by -transition=id:
     {
         if (global.params.link)
             status = runLINK();
+
         if (global.params.run)
         {
             if (!status)
             {
                 status = runProgram();
+
                 /* Delete .obj files and .exe file
                  */
                 for (size_t i = 0; i < modules.dim; i++)
@@ -1673,6 +1800,7 @@ Language changes listed by -transition=id:
             }
         }
     }
+
     return status;
 }
 
@@ -1701,68 +1829,79 @@ extern (C++) void getenv_setargv(const(char)* envvalue, Strings* args)
 {
     if (!envvalue)
         return;
+
     char* p;
+
     int instring;
     int slash;
     char c;
+
     char* env = mem.xstrdup(envvalue); // create our own writable copy
     //printf("env = '%s'\n", env);
+
     while (1)
     {
         switch (*env)
         {
-        case ' ':
-        case '\t':
-            env++;
-            break;
-        case 0:
-            return;
-        default:
-            args.push(env); // append
-            p = env;
-            slash = 0;
-            instring = 0;
-            c = 0;
-            while (1)
-            {
-                c = *env++;
-                switch (c)
-                {
-                case '"':
-                    p -= (slash >> 1);
-                    if (slash & 1)
-                    {
-                        p--;
-                        goto Laddc;
-                    }
-                    instring ^= 1;
-                    slash = 0;
-                    continue;
-                case ' ':
-                case '\t':
-                    if (instring)
-                        goto Laddc;
-                    *p = 0;
-                    //if (wildcard)
-                    //wildcardexpand();     // not implemented
-                    break;
-                case '\\':
-                    slash++;
-                    *p++ = c;
-                    continue;
-                case 0:
-                    *p = 0;
-                    //if (wildcard)
-                    //wildcardexpand();     // not implemented
-                    return;
-                default:
-                Laddc:
-                    slash = 0;
-                    *p++ = c;
-                    continue;
-                }
+            case ' ':
+            case '\t':
+                env++;
                 break;
-            }
+
+            case 0:
+                return;
+
+            default:
+                args.push(env); // append
+                p = env;
+                slash = 0;
+                instring = 0;
+                c = 0;
+
+                while (1)
+                {
+                    c = *env++;
+                    switch (c)
+                    {
+                        case '"':
+                            p -= (slash >> 1);
+                            if (slash & 1)
+                            {
+                                p--;
+                                goto Laddc;
+                            }
+                            instring ^= 1;
+                            slash = 0;
+                            continue;
+
+                        case ' ':
+                        case '\t':
+                            if (instring)
+                                goto Laddc;
+                            *p = 0;
+                            //if (wildcard)
+                            //    wildcardexpand();     // not implemented
+                            break;
+
+                        case '\\':
+                            slash++;
+                            *p++ = c;
+                            continue;
+
+                        case 0:
+                            *p = 0;
+                            //if (wildcard)
+                            //    wildcardexpand();     // not implemented
+                            return;
+
+                        default:
+                        Laddc:
+                            slash = 0;
+                            *p++ = c;
+                            continue;
+                    }
+                    break;
+                }
         }
     }
 }
@@ -1773,15 +1912,15 @@ extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
     {
         switch (*fname)
         {
-        case 0:
-            return;
-        case '(':
-        case ')':
-        case '\\':
-            buf.writeByte('\\');
-        default:
-            buf.writeByte(*fname);
-            break;
+            case 0:
+                return;
+            case '(':
+            case ')':
+            case '\\':
+                buf.writeByte('\\');
+            default:
+                buf.writeByte(*fname);
+                break;
         }
         fname++;
     }

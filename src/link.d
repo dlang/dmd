@@ -52,6 +52,7 @@ extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename, size_t le
         char c = filename[i];
         if (isalnum(cast(char)c) || c == '_')
             continue;
+
         /* Need to quote
          */
         buf.writeByte('"');
@@ -59,6 +60,7 @@ extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename, size_t le
         buf.writeByte('"');
         return;
     }
+
     /* No quoting necessary
      */
     buf.write(filename, len);
@@ -90,12 +92,15 @@ static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
         {
             static __gshared const(char)* nmeErrorMessage = "undefined reference to `_Dmain'";
         }
+
         FILE* stream = fdopen(fd, "r");
         if (stream is null)
             return -1;
+
         const(size_t) len = 64 * 1024 - 1;
         char[len + 1] buffer; // + '\0'
         size_t beg = 0, end = len;
+
         bool nmeFound = false;
         for (;;)
         {
@@ -104,18 +109,24 @@ static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
             if (beg + n < len && ferror(stream))
                 return -1;
             buffer[(end = beg + n)] = '\0';
+
             // search error message, stop at last complete line
             const(char)* lastSep = strrchr(buffer.ptr, '\n');
             if (lastSep)
                 buffer[(end = lastSep - &buffer[0])] = '\0';
+
             if (strstr(&buffer[0], nmeErrorMessage))
                 nmeFound = true;
+
             if (lastSep)
                 buffer[end++] = '\n';
+
             if (fwrite(&buffer[0], 1, end, stderr) < end)
                 return -1;
+
             if (beg + n < len && feof(stream))
                 break;
+
             // copy over truncated last line
             memcpy(&buffer[0], &buffer[end], (beg = len - end));
         }
@@ -133,7 +144,9 @@ extern (C++) int runLINK()
         if (global.params.mscoff)
         {
             OutBuffer cmdbuf;
+
             cmdbuf.writestring("/NOLOGO ");
+
             for (size_t i = 0; i < global.params.objfiles.dim; i++)
             {
                 if (i)
@@ -150,11 +163,13 @@ extern (C++) int runLINK()
                     writeFilename(&cmdbuf, p);
                 FileName.free(basename);
             }
+
             if (global.params.resfile)
             {
                 cmdbuf.writeByte(' ');
                 writeFilename(&cmdbuf, global.params.resfile);
             }
+
             cmdbuf.writeByte(' ');
             if (global.params.exefile)
             {
@@ -170,8 +185,10 @@ extern (C++) int runLINK()
                 n = FileName.name(n);
                 global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
             }
+
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc(), global.params.exefile);
+
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -181,27 +198,32 @@ extern (C++) int runLINK()
             else if (global.params.map)
             {
                 const(char)* fn = FileName.forceExt(global.params.exefile, "map");
+
                 const(char)* path = FileName.path(global.params.exefile);
                 const(char)* p;
                 if (path[0] == '\0')
                     p = FileName.combine(global.params.objdir, fn);
                 else
                     p = fn;
+
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, p);
             }
+
             for (size_t i = 0; i < global.params.libfiles.dim; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEFAULTLIB:");
                 writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
             }
+
             if (global.params.deffile)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEF:");
                 writeFilename(&cmdbuf, global.params.deffile);
             }
+
             if (global.params.symdebug)
             {
                 cmdbuf.writeByte(' ');
@@ -210,16 +232,19 @@ extern (C++) int runLINK()
                 if (global.params.release)
                     cmdbuf.writestring(" /OPT:REF");
             }
+
             if (global.params.dll)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DLL");
             }
+
             for (size_t i = 0; i < global.params.linkswitches.dim; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring((*global.params.linkswitches)[i]);
             }
+
             /* Append the path to the VC lib files, and then the SDK lib files
              */
             const(char)* vcinstalldir = getenv("VCINSTALLDIR");
@@ -232,6 +257,7 @@ extern (C++) int runLINK()
                 else
                     cmdbuf.writestring("\\lib\"");
             }
+
             const(char)* windowssdkdir = getenv("WindowsSdkDir");
             if (windowssdkdir)
             {
@@ -242,16 +268,20 @@ extern (C++) int runLINK()
                 else
                     cmdbuf.writestring("\\lib\"");
             }
+
             cmdbuf.writeByte(' ');
+
             const(char)* lflags;
             if (detectVS14(cmdbuf.peekString()))
             {
                 lflags = getenv("LFLAGS_VS14");
                 if (!lflags)
                     lflags = "legacy_stdio_definitions.lib";
+
                 // environment variables UniversalCRTSdkDir and UCRTVersion set
                 // when running vcvarsall.bat x64
                 if (const(char)* UniversalCRTSdkDir = getenv("UniversalCRTSdkDir"))
+                {
                     if (const(char)* UCRTVersion = getenv("UCRTVersion"))
                     {
                         cmdbuf.writestring(" /LIBPATH:\"");
@@ -263,6 +293,7 @@ extern (C++) int runLINK()
                         else
                             cmdbuf.writestring("\\ucrt\\x86\"");
                     }
+                }
             }
             else
             {
@@ -273,7 +304,9 @@ extern (C++) int runLINK()
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
             }
+
             char* p = cmdbuf.peekString();
+
             const(char)* lnkfilename = null;
             size_t plen = strlen(p);
             if (plen > 7000)
@@ -287,6 +320,7 @@ extern (C++) int runLINK()
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
+
             const(char)* linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
             if (!linkcmd)
                 linkcmd = getenv("LINKCMD"); // backward compatible
@@ -316,8 +350,10 @@ extern (C++) int runLINK()
         else
         {
             OutBuffer cmdbuf;
+
             global.params.libfiles.push("user32");
             global.params.libfiles.push("kernel32");
+
             for (size_t i = 0; i < global.params.objfiles.dim; i++)
             {
                 if (i)
@@ -346,36 +382,43 @@ extern (C++) int runLINK()
                 n = FileName.name(n);
                 global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
             }
+
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc(), global.params.exefile);
+
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
             else if (global.params.map)
             {
                 const(char)* fn = FileName.forceExt(global.params.exefile, "map");
+
                 const(char)* path = FileName.path(global.params.exefile);
                 const(char)* p;
                 if (path[0] == '\0')
                     p = FileName.combine(global.params.objdir, fn);
                 else
                     p = fn;
+
                 writeFilename(&cmdbuf, p);
             }
             else
                 cmdbuf.writestring("nul");
             cmdbuf.writeByte(',');
+
             for (size_t i = 0; i < global.params.libfiles.dim; i++)
             {
                 if (i)
                     cmdbuf.writeByte('+');
                 writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
             }
+
             if (global.params.deffile)
             {
                 cmdbuf.writeByte(',');
                 writeFilename(&cmdbuf, global.params.deffile);
             }
+
             /* Eliminate unnecessary trailing commas    */
             while (1)
             {
@@ -384,13 +427,16 @@ extern (C++) int runLINK()
                     break;
                 cmdbuf.offset--;
             }
+
             if (global.params.resfile)
             {
                 cmdbuf.writestring("/RC:");
                 writeFilename(&cmdbuf, global.params.resfile);
             }
+
             if (global.params.map || global.params.mapfile)
                 cmdbuf.writestring("/m");
+
             version (none)
             {
                 if (debuginfo)
@@ -407,13 +453,16 @@ extern (C++) int runLINK()
                 if (global.params.symdebug)
                     cmdbuf.writestring("/co");
             }
+
             cmdbuf.writestring("/noi");
             for (size_t i = 0; i < global.params.linkswitches.dim; i++)
             {
                 cmdbuf.writestring((*global.params.linkswitches)[i]);
             }
             cmdbuf.writeByte(';');
+
             char* p = cmdbuf.peekString();
+
             const(char)* lnkfilename = null;
             size_t plen = strlen(p);
             if (plen > 7000)
@@ -427,6 +476,7 @@ extern (C++) int runLINK()
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
+
             const(char)* linkcmd = getenv("LINKCMD");
             if (!linkcmd)
                 linkcmd = "link";
@@ -443,13 +493,16 @@ extern (C++) int runLINK()
     {
         pid_t childpid;
         int status;
+
         // Build argv[]
         Strings argv;
+
         const(char)* cc = getenv("CC");
         if (!cc)
             cc = "gcc";
         argv.push(cc);
         argv.insert(1, global.params.objfiles);
+
         version (OSX)
         {
             // If we are on Mac OS X and linking a dynamic library,
@@ -462,6 +515,7 @@ extern (C++) int runLINK()
             if (global.params.dll)
                 argv.push("-shared");
         }
+
         // None of that a.out stuff. Use explicit exe file name, or
         // generate one from name of first source file.
         argv.push("-o");
@@ -508,6 +562,7 @@ extern (C++) int runLINK()
             // Generate exe file name from first obj name
             const(char)* n = (*global.params.objfiles)[0];
             char* ex;
+
             n = FileName.name(n);
             const(char)* e = FileName.ext(n);
             if (e)
@@ -525,14 +580,18 @@ extern (C++) int runLINK()
             argv.push(ex);
             global.params.exefile = ex;
         }
+
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc(), global.params.exefile);
+
         if (global.params.symdebug)
             argv.push("-g");
+
         if (global.params.is64bit)
             argv.push("-m64");
         else
             argv.push("-m32");
+
         if (global.params.map || global.params.mapfile)
         {
             argv.push("-Xlinker");
@@ -547,17 +606,20 @@ extern (C++) int runLINK()
             if (!global.params.mapfile)
             {
                 const(char)* fn = FileName.forceExt(global.params.exefile, "map");
+
                 const(char)* path = FileName.path(global.params.exefile);
                 const(char)* p;
                 if (path[0] == '\0')
                     p = FileName.combine(global.params.objdir, fn);
                 else
                     p = fn;
+
                 global.params.mapfile = cast(char*)p;
             }
             argv.push("-Xlinker");
             argv.push(global.params.mapfile);
         }
+
         if (0 && global.params.exefile)
         {
             /* This switch enables what is known as 'smart linking'
@@ -573,6 +635,7 @@ extern (C++) int runLINK()
             argv.push("-Xlinker");
             argv.push("--gc-sections");
         }
+
         for (size_t i = 0; i < global.params.linkswitches.dim; i++)
         {
             const(char)* p = (*global.params.linkswitches)[i];
@@ -585,6 +648,7 @@ extern (C++) int runLINK()
             }
             argv.push(p);
         }
+
         /* Add each library, prefixing it with "-l".
          * The order of libraries passed is:
          *  1. any libraries passed with -L command line switch
@@ -608,15 +672,19 @@ extern (C++) int runLINK()
                 argv.push(s);
             }
         }
+
         for (size_t i = 0; i < global.params.dllfiles.dim; i++)
         {
             const(char)* p = (*global.params.dllfiles)[i];
             argv.push(p);
         }
+
         /* Standard libraries must go after user specified libraries
          * passed with -l.
          */
-        const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
+        const(char)* libname = global.params.symdebug
+                               ? global.params.debuglibname
+                               : global.params.defaultlibname;
         size_t slen = strlen(libname);
         if (slen)
         {
@@ -651,7 +719,8 @@ extern (C++) int runLINK()
                 argv.push(buf);
             }
         }
-        //    argv.push("-ldruntime");
+
+        //argv.push("-ldruntime");
         argv.push("-lpthread");
         argv.push("-lm");
         version (linux)
@@ -661,6 +730,7 @@ extern (C++) int runLINK()
             // Link against libdl for phobos usage of dlopen
             argv.push("-ldl");
         }
+
         if (global.params.verbose)
         {
             // Print it
@@ -668,14 +738,18 @@ extern (C++) int runLINK()
                 fprintf(global.stdmsg, "%s ", argv[i]);
             fprintf(global.stdmsg, "\n");
         }
+
         argv.push(null);
+
         // set up pipes
         int[2] fds;
+
         if (pipe(fds.ptr) == -1)
         {
             perror("unable to create pipe to linker");
             return -1;
         }
+
         childpid = fork();
         if (childpid == 0)
         {
@@ -694,6 +768,7 @@ extern (C++) int runLINK()
         close(fds[1]);
         const(int) nme = findNoMainError(fds[0]);
         waitpid(childpid, &status, 0);
+
         if (WIFEXITED(status))
         {
             status = WEXITSTATUS(status);
@@ -749,8 +824,10 @@ version (Windows)
     {
         int status;
         size_t len;
+
         if (global.params.verbose)
             fprintf(global.stdmsg, "%s %s\n", cmd, args);
+
         if (!global.params.mscoff)
         {
             if ((len = strlen(args)) > 255)
@@ -768,8 +845,10 @@ version (Windows)
                 }
             }
         }
+
         // Normalize executable path separators, see Bugzilla 9330
         cmd = toWinPath(cmd);
+
         version (CRuntime_Microsoft)
         {
             if (strchr(cmd, ' '))
@@ -782,14 +861,16 @@ version (Windows)
                     cmd = shortName;
             }
         }
+
         status = executearg0(cmd, args);
         if (status == -1)
         {
             // spawnlp returns intptr_t in some systems, not int
             status = spawnlp(0, cmd, cmd, args, null);
         }
-        //    if (global.params.verbose)
-        //      fprintf(global.stdmsg, "\n");
+
+        //if (global.params.verbose)
+        //    fprintf(global.stdmsg, "\n");
         if (status)
         {
             if (status == -1)
@@ -814,11 +895,15 @@ version (Windows)
     {
         const(char)* file;
         const(char)* argv0 = global.params.argv0;
+
         //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
+
         // If cmd is fully qualified, we don't do this
         if (FileName.absolute(cmd))
             return -1;
+
         file = FileName.replaceName(argv0, cmd);
+
         //printf("spawning '%s'\n",file);
         // spawnlp returns intptr_t in some systems, not int
         return spawnl(0, file, file, args, null);
@@ -839,8 +924,10 @@ extern (C++) int runProgram()
             fprintf(global.stdmsg, " %s", global.params.runargs[i]);
         fprintf(global.stdmsg, "\n");
     }
+
     // Build argv[]
     Strings argv;
+
     argv.push(global.params.exefile);
     for (size_t i = 0; i < global.params.runargs.dim; ++i)
     {
@@ -858,6 +945,7 @@ extern (C++) int runProgram()
         argv.push(a);
     }
     argv.push(null);
+
     version (Windows)
     {
         const(char)* ex = FileName.name(global.params.exefile);
@@ -872,6 +960,7 @@ extern (C++) int runProgram()
     {
         pid_t childpid;
         int status;
+
         childpid = fork();
         if (childpid == 0)
         {
@@ -885,7 +974,9 @@ extern (C++) int runProgram()
             perror(fn); // failed to execute
             return -1;
         }
+
         waitpid(childpid, &status, 0);
+
         if (WIFEXITED(status))
         {
             status = WEXITSTATUS(status);

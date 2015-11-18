@@ -30,6 +30,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
         torig.error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
+
     Type t = torig.merge2(); // do this since not all Type's are merge'd
     if (!t.vtinfo)
     {
@@ -44,6 +45,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
         else
             t.vtinfo = getTypeInfoDeclaration(t);
         assert(t.vtinfo);
+
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.
          */
@@ -79,33 +81,24 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     //printf("Type::getTypeInfoDeclaration() %s\n", t->toChars());
     switch (t.ty)
     {
-    case Tpointer:
-        return TypeInfoPointerDeclaration.create(t);
-    case Tarray:
-        return TypeInfoArrayDeclaration.create(t);
-    case Tsarray:
-        return TypeInfoStaticArrayDeclaration.create(t);
-    case Taarray:
-        return TypeInfoAssociativeArrayDeclaration.create(t);
-    case Tstruct:
-        return TypeInfoStructDeclaration.create(t);
-    case Tvector:
-        return TypeInfoVectorDeclaration.create(t);
-    case Tenum:
-        return TypeInfoEnumDeclaration.create(t);
-    case Tfunction:
-        return TypeInfoFunctionDeclaration.create(t);
-    case Tdelegate:
-        return TypeInfoDelegateDeclaration.create(t);
-    case Ttuple:
-        return TypeInfoTupleDeclaration.create(t);
-    case Tclass:
-        if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
-            return TypeInfoInterfaceDeclaration.create(t);
-        else
-            return TypeInfoClassDeclaration.create(t);
-    default:
-        return TypeInfoDeclaration.create(t, 0);
+        case Tpointer:  return TypeInfoPointerDeclaration.create(t);
+        case Tarray:    return TypeInfoArrayDeclaration.create(t);
+        case Tsarray:   return TypeInfoStaticArrayDeclaration.create(t);
+        case Taarray:   return TypeInfoAssociativeArrayDeclaration.create(t);
+        case Tstruct:   return TypeInfoStructDeclaration.create(t);
+        case Tvector:   return TypeInfoVectorDeclaration.create(t);
+        case Tenum:     return TypeInfoEnumDeclaration.create(t);
+        case Tfunction: return TypeInfoFunctionDeclaration.create(t);
+        case Tdelegate: return TypeInfoDelegateDeclaration.create(t);
+        case Ttuple:    return TypeInfoTupleDeclaration.create(t);
+        case Tclass:
+            if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
+                return TypeInfoInterfaceDeclaration.create(t);
+            else
+                return TypeInfoClassDeclaration.create(t);
+
+        default:
+            return TypeInfoDeclaration.create(t, 0);
     }
 }
 
@@ -211,6 +204,7 @@ extern (C++) bool isSpeculativeType(Type t)
 }
 
 /* ========================================================================= */
+
 /* These decide if there's an instance for them already in std.typeinfo,
  * because then the compiler doesn't need to build one.
  */
@@ -222,7 +216,10 @@ extern (C++) static bool builtinTypeInfo(Type t)
     {
         Type next = t.nextOf();
         // strings are so common, make them builtin
-        return !t.mod && (next.isTypeBasic() !is null && !next.mod || next.ty == Tchar && next.mod == MODimmutable || next.ty == Tchar && next.mod == MODconst);
+        return !t.mod &&
+               (next.isTypeBasic() !is null && !next.mod ||
+                next.ty == Tchar && next.mod == MODimmutable ||
+                next.ty == Tchar && next.mod == MODconst);
     }
     return false;
 }

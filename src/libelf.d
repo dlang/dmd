@@ -73,7 +73,9 @@ public:
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
         const(char)* libfilename = FileName.defaultExt(arg, global.lib_ext);
+
         libfile = File.create(libfilename);
+
         loc.filename = libfile.name.toChars();
         loc.linnum = 0;
         loc.charnum = 0;
@@ -105,6 +107,7 @@ public:
             fromfile = 1;
         }
         int reason = 0;
+
         if (buflen < 16)
         {
             static if (LOG)
@@ -115,6 +118,7 @@ public:
             error("corrupt object module %s %d", module_name, reason);
             return;
         }
+
         if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
         {
             /* Library file.
@@ -152,7 +156,9 @@ public:
                     reason = __LINE__;
                     goto Lcorrupt;
                 }
-                if (header.object_name[0] == '/' && header.object_name[1] == ' ')
+
+                if (header.object_name[0] == '/' &&
+                    header.object_name[1] == ' ')
                 {
                     /* Instead of rescanning the object modules we pull from a
                      * library, just use the already created symbol table.
@@ -170,7 +176,8 @@ public:
                         goto Lcorrupt;
                     }
                 }
-                else if (header.object_name[0] == '/' && header.object_name[1] == '/')
+                else if (header.object_name[0] == '/' &&
+                         header.object_name[1] == '/')
                 {
                     /* This is the file name table, save it for later.
                      */
@@ -247,6 +254,7 @@ public:
                 reason = __LINE__;
                 goto Lcorrupt;
             }
+
             /* Scan the library's symbol table, and insert it into our own.
              * We use this instead of rescanning the object module, because
              * the library's creator may have a different idea of what symbols
@@ -276,22 +284,23 @@ public:
                     if (m == objmodules.dim)
                     {
                         reason = __LINE__;
-                        goto Lcorrupt;
-                        // didn't find it
+                        goto Lcorrupt; // didn't find it
                     }
                     ElfObjModule* om = objmodules[m];
                     //printf("\t%x\n", (char *)om->base - (char *)buf);
                     if (moff + ElfLibHeader.sizeof == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);
-                        //                  if (mstart == m)
-                        //                      mstart++;
+                        //if (mstart == m)
+                        //    mstart++;
                         break;
                     }
                 }
             }
+
             return;
         }
+
         /* It's an object module
          */
         auto om = new ElfObjModule();
@@ -338,6 +347,7 @@ public:
     }
 
     /*****************************************************************************/
+
     override void addLibrary(void* buf, size_t buflen)
     {
         addObject(null, buf, buflen);
@@ -347,12 +357,16 @@ public:
     {
         if (global.params.verbose)
             fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());
+
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
+
         // Transfer image to file
         libfile.setbuffer(libbuf.data, libbuf.offset);
         libbuf.extractData();
+
         ensurePathToNameExists(Loc(), libfile.name.toChars());
+
         writeFile(Loc(), libfile);
     }
 
@@ -380,6 +394,7 @@ public:
             os.name = strdup(name);
             os.om = om;
             s.ptrvalue = cast(void*)os;
+
             objsymbols.push(os);
         }
     }
@@ -395,6 +410,7 @@ private:
         {
             printf("LibElf::scanObjModule(%s)\n", om.name);
         }
+
         struct Context
         {
             LibElf lib;
@@ -418,6 +434,7 @@ private:
 
     /*****************************************************************************/
     /*****************************************************************************/
+
     /**********************************************
      * Create and write library to libbuf.
      * The library consists of:
@@ -432,7 +449,9 @@ private:
         {
             printf("LibElf::WriteLibToBuffer()\n");
         }
+
         /************* Scan Object Modules for Symbols ******************/
+
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             ElfObjModule* om = objmodules[i];
@@ -441,7 +460,9 @@ private:
                 scanObjModule(om);
             }
         }
+
         /************* Determine string section ******************/
+
         /* The string section is where we store long file names.
          */
         uint noffset = 0;
@@ -457,25 +478,32 @@ private:
             else
                 om.name_offset = -1;
         }
+
         static if (LOG)
         {
             printf("\tnoffset = x%x\n", noffset);
         }
+
         /************* Determine module offsets ******************/
+
         uint moffset = 8 + ElfLibHeader.sizeof + 4;
+
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             ElfObjSymbol* os = objsymbols[i];
             moffset += 4 + strlen(os.name) + 1;
         }
         uint hoffset = moffset;
+
         static if (LOG)
         {
             printf("\tmoffset = x%x\n", moffset);
         }
+
         moffset += moffset & 1;
         if (noffset)
             moffset += ElfLibHeader.sizeof + noffset;
+
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             ElfObjModule* om = objmodules[i];
@@ -483,9 +511,12 @@ private:
             om.offset = moffset;
             moffset += ElfLibHeader.sizeof + om.length;
         }
+
         libbuf.reserve(moffset);
+
         /************* Write the library ******************/
         libbuf.write("!<arch>\n".ptr, 8);
+
         ElfObjModule om;
         om.name_offset = -1;
         om.base = null;
@@ -496,34 +527,43 @@ private:
         om.user_id = 0;
         om.group_id = 0;
         om.file_mode = 0;
+
         ElfLibHeader h;
         ElfOmToHeader(&h, &om);
         libbuf.write(&h, h.sizeof);
+
         char[4] buf;
+
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf.ptr, 4);
+
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             ElfObjSymbol* os = objsymbols[i];
+
             Port.writelongBE(os.om.offset, buf.ptr);
             libbuf.write(buf.ptr, 4);
         }
+
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             ElfObjSymbol* os = objsymbols[i];
             libbuf.writestring(os.name);
             libbuf.writeByte(0);
         }
+
         static if (LOG)
         {
             printf("\tlibbuf->moffset = x%x\n", libbuf.offset);
         }
+
         /* Write out the string section
          */
         if (noffset)
         {
             if (libbuf.offset & 1)
                 libbuf.writeByte('\n');
+
             // header
             memset(&h, ' ', ElfLibHeader.sizeof);
             h.object_name[0] = '/';
@@ -534,6 +574,7 @@ private:
             h.trailer[0] = '`';
             h.trailer[1] = '\n';
             libbuf.write(&h, h.sizeof);
+
             for (size_t i = 0; i < objmodules.dim; i++)
             {
                 ElfObjModule* om2 = objmodules[i];
@@ -545,18 +586,24 @@ private:
                 }
             }
         }
+
         /* Write out each of the object modules
          */
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             ElfObjModule* om2 = objmodules[i];
+
             if (libbuf.offset & 1)
                 libbuf.writeByte('\n'); // module alignment
+
             assert(libbuf.offset == om2.offset);
+
             ElfOmToHeader(&h, om2);
             libbuf.write(&h, h.sizeof); // module header
+
             libbuf.write(om2.base, om2.length); // module contents
         }
+
         static if (LOG)
         {
             printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf.offset);
@@ -582,18 +629,19 @@ extern (C++) Library LibElf_factory()
 
 /*****************************************************************************/
 /*****************************************************************************/
+
 struct ElfObjModule
 {
-    ubyte* base; // where are we holding it in memory
-    uint length; // in bytes
-    uint offset; // offset from start of library
-    char* name; // module name (file name)
-    int name_offset; // if not -1, offset into string table of name
-    time_t file_time; // file time
+    ubyte* base;                // where are we holding it in memory
+    uint length;                // in bytes
+    uint offset;                // offset from start of library
+    char* name;                 // module name (file name)
+    int name_offset;            // if not -1, offset into string table of name
+    time_t file_time;           // file time
     uint user_id;
     uint group_id;
     uint file_mode;
-    int scan; // 1 means scan for symbols
+    int scan;                   // 1 means scan for symbols
 }
 
 enum ELF_OBJECT_NAME_SIZE = 16;
@@ -604,7 +652,7 @@ struct ElfLibHeader
     char[12] file_time;
     char[6] user_id;
     char[6] group_id;
-    char[8] file_mode; // in octal
+    char[8] file_mode;          // in octal
     char[10] file_size;
     char[2] trailer;
 }
@@ -624,7 +672,11 @@ extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         // "name/           1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //        name       file_time   u_id gr_id  fmode    fsize   trailer
-        len = snprintf(buffer, ElfLibHeader.sizeof, "%-16s%-12llu%-6u%-6u%-8o%-10u`", om.name, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
+        len = snprintf(buffer, ElfLibHeader.sizeof, "%-16s%-12llu%-6u%-6u%-8o%-10u`",
+                om.name,
+                cast(long)om.file_time, om.user_id, om.group_id,
+                om.file_mode, om.length);
+
         // adding '/' after the name field
         const(size_t) name_length = strlen(om.name);
         assert(name_length < ELF_OBJECT_NAME_SIZE);
@@ -635,7 +687,10 @@ extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         // "/162007         1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //     name_offset   file_time   u_id gr_id  fmode    fsize   trailer
-        len = snprintf(buffer, ElfLibHeader.sizeof, "/%-15d%-12llu%-6u%-6u%-8o%-10u`", om.name_offset, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
+        len = snprintf(buffer, ElfLibHeader.sizeof, "/%-15d%-12llu%-6u%-6u%-8o%-10u`",
+                om.name_offset,
+                cast(long)om.file_time, om.user_id, om.group_id,
+                om.file_mode, om.length);
     }
     assert(ElfLibHeader.sizeof > 0 && len == ElfLibHeader.sizeof - 1);
     // replace trailing \0 with \n

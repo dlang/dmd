@@ -67,8 +67,10 @@ __gshared PREC[TOKMAX] precedence =
 [
     TOKtype : PREC_expr,
     TOKerror : PREC_expr,
+
     TOKtypeof : PREC_primary,
     TOKmixin : PREC_primary,
+
     TOKdotvar : PREC_primary,
     TOKimport : PREC_primary,
     TOKidentifier : PREC_primary,
@@ -106,6 +108,7 @@ __gshared PREC[TOKMAX] precedence =
     TOKdefault : PREC_primary,
     TOKoverloadset : PREC_primary,
     TOKvoid : PREC_primary,
+
     // post
     TOKdotti : PREC_primary,
     TOKdot : PREC_primary,
@@ -120,6 +123,7 @@ __gshared PREC[TOKMAX] precedence =
     TOKslice : PREC_primary,
     TOKarray : PREC_primary,
     TOKindex : PREC_primary,
+
     TOKdelegate : PREC_unary,
     TOKaddress : PREC_unary,
     TOKstar : PREC_unary,
@@ -132,17 +136,22 @@ __gshared PREC[TOKMAX] precedence =
     TOKnew : PREC_unary,
     TOKnewanonclass : PREC_unary,
     TOKcast : PREC_unary,
+
     TOKvector : PREC_unary,
     TOKpow : PREC_pow,
+
     TOKmul : PREC_mul,
     TOKdiv : PREC_mul,
     TOKmod : PREC_mul,
+
     TOKadd : PREC_add,
     TOKmin : PREC_add,
     TOKcat : PREC_add,
+
     TOKshl : PREC_shift,
     TOKshr : PREC_shift,
     TOKushr : PREC_shift,
+
     TOKlt : PREC_rel,
     TOKle : PREC_rel,
     TOKgt : PREC_rel,
@@ -168,9 +177,12 @@ __gshared PREC[TOKMAX] precedence =
     TOKand : PREC_and,
     TOKxor : PREC_xor,
     TOKor : PREC_or,
+
     TOKandand : PREC_andand,
     TOKoror : PREC_oror,
+
     TOKquestion : PREC_cond,
+
     TOKassign : PREC_assign,
     TOKconstruct : PREC_assign,
     TOKblit : PREC_assign,
@@ -187,8 +199,10 @@ __gshared PREC[TOKMAX] precedence =
     TOKandass : PREC_assign,
     TOKorass : PREC_assign,
     TOKxorass : PREC_assign,
+
     TOKcomma : PREC_expr,
     TOKdeclaration : PREC_expr,
+
     TOKinterval : PREC_assign,
 ];
 
@@ -238,8 +252,10 @@ public:
     extern (D) this(Loc loc, Module _module, const(char)* base, size_t length, bool doDocComment)
     {
         super(_module ? _module.srcfile.toChars() : null, base, 0, length, doDocComment, false);
+
         //printf("Parser::Parser()\n");
         scanloc = loc;
+
         if (loc.filename)
         {
             /* Create a pseudo-filename for the mixin string, as it may not even exist
@@ -249,6 +265,7 @@ public:
             sprintf(filename, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
             scanloc.filename = filename;
         }
+
         mod = _module;
         linkage = LINKd;
         //nextToken();              // start up the scanner
@@ -257,6 +274,7 @@ public:
     extern (D) this(Module _module, const(char)* base, size_t length, bool doDocComment)
     {
         super(_module ? _module.srcfile.toChars() : null, base, 0, length, doDocComment, false);
+
         //printf("Parser::Parser()\n");
         mod = _module;
         linkage = LINKd;
@@ -270,6 +288,7 @@ public:
         Expression msg = null;
         Expressions* udas = null;
         Dsymbols* decldefs;
+
         Token* tk;
         if (skipAttributes(&token, &tk) && tk.value == TOKmodule)
         {
@@ -277,7 +296,7 @@ public:
             {
                 switch (token.value)
                 {
-                case TOKdeprecated:
+                    case TOKdeprecated:
                     {
                         // deprecated (...) module ...
                         if (isdeprecated)
@@ -297,11 +316,12 @@ public:
                         }
                         break;
                     }
-                case TOKat:
+                    case TOKat:
                     {
                         Expressions* exps = null;
                         StorageClass stc = parseAttribute(&exps);
-                        if (stc == STCproperty || stc == STCnogc || stc == STCdisable || stc == STCsafe || stc == STCtrusted || stc == STCsystem)
+                        if (stc == STCproperty || stc == STCnogc || stc == STCdisable ||
+                            stc == STCsafe || stc == STCtrusted || stc == STCsystem)
                         {
                             error("@%s attribute for module declaration is not supported", token.toChars());
                         }
@@ -313,7 +333,7 @@ public:
                             nextToken();
                         break;
                     }
-                default:
+                    default:
                     {
                         error("'module' expected instead of %s", token.toChars());
                         nextToken();
@@ -322,16 +342,19 @@ public:
                 }
             }
         }
+
         if (udas)
         {
             auto a = new Dsymbols();
             auto udad = new UserAttributeDeclaration(udas, a);
             mod.userAttribDecl = udad;
         }
+
         // ModuleDeclation leads off
         if (token.value == TOKmodule)
         {
             Loc loc = token.loc;
+
             nextToken();
             if (token.value != TOKidentifier)
             {
@@ -342,6 +365,7 @@ public:
             {
                 Identifiers* a = null;
                 Identifier id;
+
                 id = token.ident;
                 while (nextToken() == TOKdot)
                 {
@@ -356,15 +380,18 @@ public:
                     }
                     id = token.ident;
                 }
+
                 md = new ModuleDeclaration(loc, a, id);
                 md.isdeprecated = isdeprecated;
                 md.msg = msg;
+
                 if (token.value != TOKsemicolon)
                     error("';' expected following module declaration instead of %s", token.toChars());
                 nextToken();
                 addComment(mod, comment);
             }
         }
+
         decldefs = parseDeclDefs(0);
         if (token.value != TOKeof)
         {
@@ -372,6 +399,7 @@ public:
             goto Lerr;
         }
         return decldefs;
+
     Lerr:
         while (token.value != TOKsemicolon && token.value != TOKeof)
             nextToken();
@@ -384,7 +412,9 @@ public:
         Dsymbol lastDecl = null; // used to link unittest to its previous declaration
         if (!pLastDecl)
             pLastDecl = &lastDecl;
+
         LINK linksave = linkage; // save global state
+
         //printf("Parser::parseDeclDefs()\n");
         auto decldefs = new Dsymbols();
         do
@@ -392,6 +422,7 @@ public:
             // parse result
             Dsymbol s = null;
             Dsymbols* a = null;
+
             PrefixAttributes attrs;
             if (!once || !pAttrs)
             {
@@ -401,10 +432,12 @@ public:
             PROTKIND prot;
             StorageClass stc;
             Condition condition;
+
             linkage = linksave;
+
             switch (token.value)
             {
-            case TOKenum:
+                case TOKenum:
                 {
                     /* Determine if this is a manifest constant declaration,
                      * or a conventional enum.
@@ -417,26 +450,29 @@ public:
                     else
                     {
                         t = peek(t);
-                        if (t.value == TOKlcurly || t.value == TOKcolon || t.value == TOKsemicolon)
+                        if (t.value == TOKlcurly || t.value == TOKcolon ||
+                            t.value == TOKsemicolon)
                             s = parseEnum();
                         else
                             goto Ldeclaration;
                     }
                     break;
                 }
-            case TOKimport:
-                a = parseImport();
-                // keep pLastDecl
-                break;
-            case TOKtemplate:
-                s = cast(Dsymbol)parseTemplateDeclaration();
-                break;
-            case TOKmixin:
+                case TOKimport:
+                    a = parseImport();
+                    // keep pLastDecl
+                    break;
+
+                case TOKtemplate:
+                    s = cast(Dsymbol)parseTemplateDeclaration();
+                    break;
+
+                case TOKmixin:
                 {
                     Loc loc = token.loc;
                     switch (peekNext())
                     {
-                    case TOKlparen:
+                        case TOKlparen:
                         {
                             // mixin(string)
                             nextToken();
@@ -447,70 +483,64 @@ public:
                             s = new CompileDeclaration(loc, e);
                             break;
                         }
-                    case TOKtemplate:
-                        // mixin template
-                        nextToken();
-                        s = cast(Dsymbol)parseTemplateDeclaration(true);
-                        break;
-                    default:
-                        s = parseMixin();
-                        break;
+                        case TOKtemplate:
+                            // mixin template
+                            nextToken();
+                            s = cast(Dsymbol)parseTemplateDeclaration(true);
+                            break;
+
+                        default:
+                            s = parseMixin();
+                            break;
                     }
                     break;
                 }
-            case TOKwchar:
-            case TOKdchar:
-            case TOKbool:
-            case TOKchar:
-            case TOKint8:
-            case TOKuns8:
-            case TOKint16:
-            case TOKuns16:
-            case TOKint32:
-            case TOKuns32:
-            case TOKint64:
-            case TOKuns64:
-            case TOKint128:
-            case TOKuns128:
-            case TOKfloat32:
-            case TOKfloat64:
-            case TOKfloat80:
-            case TOKimaginary32:
-            case TOKimaginary64:
-            case TOKimaginary80:
-            case TOKcomplex32:
-            case TOKcomplex64:
-            case TOKcomplex80:
-            case TOKvoid:
-            case TOKalias:
-            case TOKtypedef:
-            case TOKidentifier:
-            case TOKsuper:
-            case TOKtypeof:
-            case TOKdot:
-            case TOKvector:
-            case TOKstruct:
-            case TOKunion:
-            case TOKclass:
-            case TOKinterface:
-            Ldeclaration:
-                a = parseDeclarations(false, pAttrs, pAttrs.comment);
-                if (a && a.dim)
-                    *pLastDecl = (*a)[a.dim - 1];
-                break;
-            case TOKthis:
-                if (peekNext() == TOKdot)
-                    goto Ldeclaration;
-                else
-                    s = parseCtor(pAttrs);
-                break;
-            case TOKtilde:
-                s = parseDtor(pAttrs);
-                break;
-            case TOKinvariant:
+                case TOKwchar:
+                case TOKdchar:
+                case TOKbool:
+                case TOKchar:
+                case TOKint8:           case TOKuns8:
+                case TOKint16:          case TOKuns16:
+                case TOKint32:          case TOKuns32:
+                case TOKint64:          case TOKuns64:
+                case TOKint128:         case TOKuns128:
+                case TOKfloat32:        case TOKfloat64:        case TOKfloat80:
+                case TOKimaginary32:    case TOKimaginary64:    case TOKimaginary80:
+                case TOKcomplex32:      case TOKcomplex64:      case TOKcomplex80:
+                case TOKvoid:
+                case TOKalias:
+                case TOKtypedef:
+                case TOKidentifier:
+                case TOKsuper:
+                case TOKtypeof:
+                case TOKdot:
+                case TOKvector:
+                case TOKstruct:
+                case TOKunion:
+                case TOKclass:
+                case TOKinterface:
+                Ldeclaration:
+                    a = parseDeclarations(false, pAttrs, pAttrs.comment);
+                    if (a && a.dim)
+                        *pLastDecl = (*a)[a.dim - 1];
+                    break;
+
+                case TOKthis:
+                    if (peekNext() == TOKdot)
+                        goto Ldeclaration;
+                    else
+                        s = parseCtor(pAttrs);
+                    break;
+
+                case TOKtilde:
+                    s = parseDtor(pAttrs);
+                    break;
+
+                case TOKinvariant:
                 {
                     Token* t = peek(&token);
-                    if (t.value == TOKlparen && peek(t).value == TOKrparen || t.value == TOKlcurly)
+                    if (t.value == TOKlparen && peek(t).value == TOKrparen ||
+                        t.value == TOKlcurly)
                     {
                         // invariant {}
                         // invariant() {}
@@ -523,61 +553,71 @@ public:
                     }
                     break;
                 }
-            case TOKunittest:
-                if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
-                {
-                    s = parseUnitTest(pAttrs);
-                    if (*pLastDecl)
-                        (*pLastDecl).ddocUnittest = cast(UnitTestDeclaration)s;
-                }
-                else
-                {
-                    // Skip over unittest block by counting { }
-                    Loc loc = token.loc;
-                    int braces = 0;
-                    while (1)
+                case TOKunittest:
+                    if (global.params.useUnitTests ||
+                        global.params.doDocComments ||
+                        global.params.doHdrGeneration)
                     {
-                        nextToken();
-                        switch (token.value)
-                        {
-                        case TOKlcurly:
-                            ++braces;
-                            continue;
-                        case TOKrcurly:
-                            if (--braces)
-                                continue;
-                            nextToken();
-                            break;
-                        case TOKeof:
-                            /* { */
-                            error(loc, "closing } of unittest not found before end of file");
-                            goto Lerror;
-                        default:
-                            continue;
-                        }
-                        break;
+                        s = parseUnitTest(pAttrs);
+                        if (*pLastDecl)
+                            (*pLastDecl).ddocUnittest = cast(UnitTestDeclaration)s;
                     }
-                    // Workaround 14894. Add an empty unittest declaration to keep
-                    // the number of symbols in this scope independent of -unittest.
-                    s = new UnitTestDeclaration(loc, token.loc, STCundefined, null);
-                }
-                break;
-            case TOKnew:
-                s = parseNew(pAttrs);
-                break;
-            case TOKdelete:
-                s = parseDelete(pAttrs);
-                break;
-            case TOKcolon:
-            case TOKlcurly:
-                error("declaration expected, not '%s'", token.toChars());
-                goto Lerror;
-            case TOKrcurly:
-            case TOKeof:
-                if (once)
+                    else
+                    {
+                        // Skip over unittest block by counting { }
+                        Loc loc = token.loc;
+                        int braces = 0;
+                        while (1)
+                        {
+                            nextToken();
+                            switch (token.value)
+                            {
+                                case TOKlcurly:
+                                    ++braces;
+                                    continue;
+
+                                case TOKrcurly:
+                                    if (--braces)
+                                        continue;
+                                    nextToken();
+                                    break;
+
+                                case TOKeof:
+                                    /* { */
+                                    error(loc, "closing } of unittest not found before end of file");
+                                    goto Lerror;
+
+                                default:
+                                    continue;
+                            }
+                            break;
+                        }
+                        // Workaround 14894. Add an empty unittest declaration to keep
+                        // the number of symbols in this scope independent of -unittest.
+                        s = new UnitTestDeclaration(loc, token.loc, STCundefined, null);
+                    }
+                    break;
+
+                case TOKnew:
+                    s = parseNew(pAttrs);
+                    break;
+
+                case TOKdelete:
+                    s = parseDelete(pAttrs);
+                    break;
+
+                case TOKcolon:
+                case TOKlcurly:
                     error("declaration expected, not '%s'", token.toChars());
-                return decldefs;
-            case TOKstatic:
+                    goto Lerror;
+
+                case TOKrcurly:
+                case TOKeof:
+                    if (once)
+                        error("declaration expected, not '%s'", token.toChars());
+                    return decldefs;
+
+                case TOKstatic:
                 {
                     TOK next = peekNext();
                     if (next == TOKthis)
@@ -621,17 +661,19 @@ public:
                     }
                     break;
                 }
-            case TOKconst:
-                if (peekNext() == TOKlparen)
-                    goto Ldeclaration;
-                stc = STCconst;
-                goto Lstc;
-            case TOKimmutable:
-                if (peekNext() == TOKlparen)
-                    goto Ldeclaration;
-                stc = STCimmutable;
-                goto Lstc;
-            case TOKshared:
+                case TOKconst:
+                    if (peekNext() == TOKlparen)
+                        goto Ldeclaration;
+                    stc = STCconst;
+                    goto Lstc;
+
+                case TOKimmutable:
+                    if (peekNext() == TOKlparen)
+                        goto Ldeclaration;
+                    stc = STCimmutable;
+                    goto Lstc;
+
+                case TOKshared:
                 {
                     TOK next = peekNext();
                     if (next == TOKlparen)
@@ -653,104 +695,98 @@ public:
                     stc = STCshared;
                     goto Lstc;
                 }
-            case TOKwild:
-                if (peekNext() == TOKlparen)
-                    goto Ldeclaration;
-                stc = STCwild;
-                goto Lstc;
-            case TOKfinal:
-                stc = STCfinal;
-                goto Lstc;
-            case TOKauto:
-                stc = STCauto;
-                goto Lstc;
-            case TOKscope:
-                stc = STCscope;
-                goto Lstc;
-            case TOKoverride:
-                stc = STCoverride;
-                goto Lstc;
-            case TOKabstract:
-                stc = STCabstract;
-                goto Lstc;
-            case TOKsynchronized:
-                stc = STCsynchronized;
-                goto Lstc;
-            case TOKnothrow:
-                stc = STCnothrow;
-                goto Lstc;
-            case TOKpure:
-                stc = STCpure;
-                goto Lstc;
-            case TOKref:
-                stc = STCref;
-                goto Lstc;
-            case TOKgshared:
-                stc = STCgshared;
-                goto Lstc;
-                //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
-            case TOKat:
+                case TOKwild:
+                    if (peekNext() == TOKlparen)
+                        goto Ldeclaration;
+                    stc = STCwild;
+                    goto Lstc;
+
+                case TOKfinal:          stc = STCfinal;         goto Lstc;
+                case TOKauto:           stc = STCauto;          goto Lstc;
+                case TOKscope:          stc = STCscope;         goto Lstc;
+                case TOKoverride:       stc = STCoverride;      goto Lstc;
+                case TOKabstract:       stc = STCabstract;      goto Lstc;
+                case TOKsynchronized:   stc = STCsynchronized;  goto Lstc;
+                case TOKnothrow:        stc = STCnothrow;       goto Lstc;
+                case TOKpure:           stc = STCpure;          goto Lstc;
+                case TOKref:            stc = STCref;           goto Lstc;
+                case TOKgshared:        stc = STCgshared;       goto Lstc;
+                //case TOKmanifest:     stc = STCmanifest;      goto Lstc;
+                case TOKat:
                 {
                     Expressions* exps = null;
                     stc = parseAttribute(&exps);
                     if (stc)
-                        goto Lstc;
-                    // it's a predefined attribute
+                        goto Lstc; // it's a predefined attribute
                     // no redundant/conflicting check for UDAs
                     pAttrs.udas = UserAttributeDeclaration.concat(pAttrs.udas, exps);
                     goto Lautodecl;
                 }
-            Lstc:
-                pAttrs.storageClass = appendStorageClass(pAttrs.storageClass, stc);
-                nextToken();
-            Lautodecl:
-                Token* tk;
-                /* Look for auto initializers:
-                 *      storage_class identifier = initializer;
-                 *      storage_class identifier(...) = initializer;
-                 */
-                if (token.value == TOKidentifier && skipParensIf(peek(&token), &tk) && tk.value == TOKassign)
-                {
-                    a = parseAutoDeclarations(pAttrs.storageClass, pAttrs.comment);
-                    pAttrs.storageClass = STCundefined;
-                    if (a && a.dim)
-                        *pLastDecl = (*a)[a.dim - 1];
+                Lstc:
+                    pAttrs.storageClass = appendStorageClass(pAttrs.storageClass, stc);
+                    nextToken();
+
+                Lautodecl:
+                    Token* tk;
+
+                    /* Look for auto initializers:
+                     *      storage_class identifier = initializer;
+                     *      storage_class identifier(...) = initializer;
+                     */
+                    if (token.value == TOKidentifier &&
+                        skipParensIf(peek(&token), &tk) &&
+                        tk.value == TOKassign)
+                    {
+                        a = parseAutoDeclarations(pAttrs.storageClass, pAttrs.comment);
+                        pAttrs.storageClass = STCundefined;
+                        if (a && a.dim)
+                            *pLastDecl = (*a)[a.dim - 1];
+                        if (pAttrs.udas)
+                        {
+                            s = new UserAttributeDeclaration(pAttrs.udas, a);
+                            pAttrs.udas = null;
+                        }
+                        break;
+                    }
+
+                    /* Look for return type inference for template functions.
+                     */
+                    if (token.value == TOKidentifier &&
+                        skipParens(peek(&token), &tk) &&
+                        skipAttributes(tk, &tk) &&
+                        (tk.value == TOKlparen ||
+                         tk.value == TOKlcurly ||
+                         tk.value == TOKin ||
+                         tk.value == TOKout ||
+                         tk.value == TOKbody))
+                    {
+                        a = parseDeclarations(true, pAttrs, pAttrs.comment);
+                        if (a && a.dim)
+                            *pLastDecl = (*a)[a.dim - 1];
+                        if (pAttrs.udas)
+                        {
+                            s = new UserAttributeDeclaration(pAttrs.udas, a);
+                            pAttrs.udas = null;
+                        }
+                        break;
+                    }
+
+                    a = parseBlock(pLastDecl, pAttrs);
+                    if (pAttrs.storageClass != STCundefined)
+                    {
+                        s = new StorageClassDeclaration(pAttrs.storageClass, a);
+                        pAttrs.storageClass = STCundefined;
+                    }
                     if (pAttrs.udas)
                     {
+                        if (s)
+                            a = new Dsymbols(), a.push(s);
                         s = new UserAttributeDeclaration(pAttrs.udas, a);
                         pAttrs.udas = null;
                     }
                     break;
-                }
-                /* Look for return type inference for template functions.
-                 */
-                if (token.value == TOKidentifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) && (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin || tk.value == TOKout || tk.value == TOKbody))
-                {
-                    a = parseDeclarations(true, pAttrs, pAttrs.comment);
-                    if (a && a.dim)
-                        *pLastDecl = (*a)[a.dim - 1];
-                    if (pAttrs.udas)
-                    {
-                        s = new UserAttributeDeclaration(pAttrs.udas, a);
-                        pAttrs.udas = null;
-                    }
-                    break;
-                }
-                a = parseBlock(pLastDecl, pAttrs);
-                if (pAttrs.storageClass != STCundefined)
-                {
-                    s = new StorageClassDeclaration(pAttrs.storageClass, a);
-                    pAttrs.storageClass = STCundefined;
-                }
-                if (pAttrs.udas)
-                {
-                    if (s)
-                        a = new Dsymbols(), a.push(s);
-                    s = new UserAttributeDeclaration(pAttrs.udas, a);
-                    pAttrs.udas = null;
-                }
-                break;
-            case TOKdeprecated:
+
+                case TOKdeprecated:
                 {
                     if (peek(&token).value != TOKlparen)
                     {
@@ -763,7 +799,8 @@ public:
                     check(TOKrparen);
                     if (pAttrs.depmsg)
                     {
-                        error("conflicting storage class 'deprecated(%s)' and 'deprecated(%s)'", pAttrs.depmsg.toChars(), e.toChars());
+                        error("conflicting storage class 'deprecated(%s)' and 'deprecated(%s)'",
+                            pAttrs.depmsg.toChars(), e.toChars());
                     }
                     pAttrs.depmsg = e;
                     a = parseBlock(pLastDecl, pAttrs);
@@ -774,13 +811,14 @@ public:
                     }
                     break;
                 }
-            case TOKlbracket:
+                case TOKlbracket:
                 {
                     if (peekNext() == TOKrbracket)
                         error("empty attribute list is not allowed");
                     error("use @(attributes) instead of [attributes]");
                     Expressions* exps = parseArguments();
                     // no redundant/conflicting check for UDAs
+
                     pAttrs.udas = UserAttributeDeclaration.concat(pAttrs.udas, exps);
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs.udas)
@@ -790,13 +828,14 @@ public:
                     }
                     break;
                 }
-            case TOKextern:
+                case TOKextern:
                 {
                     if (peek(&token).value != TOKlparen)
                     {
                         stc = STCextern;
                         goto Lstc;
                     }
+
                     Loc linkLoc = token.loc;
                     Identifiers* idents = null;
                     LINK link = parseLinkage(&idents);
@@ -804,7 +843,8 @@ public:
                     {
                         if (pAttrs.link != link)
                         {
-                            error("conflicting linkage extern (%s) and extern (%s)", linkageToChars(pAttrs.link), linkageToChars(link));
+                            error("conflicting linkage extern (%s) and extern (%s)",
+                                linkageToChars(pAttrs.link), linkageToChars(link));
                         }
                         else if (idents)
                         {
@@ -839,32 +879,26 @@ public:
                     }
                     break;
                 }
-            case TOKprivate:
-                prot = PROTprivate;
-                goto Lprot;
-            case TOKpackage:
-                prot = PROTpackage;
-                goto Lprot;
-            case TOKprotected:
-                prot = PROTprotected;
-                goto Lprot;
-            case TOKpublic:
-                prot = PROTpublic;
-                goto Lprot;
-            case TOKexport:
-                prot = PROTexport;
-                goto Lprot;
-            Lprot:
+
+                case TOKprivate:    prot = PROTprivate;     goto Lprot;
+                case TOKpackage:    prot = PROTpackage;     goto Lprot;
+                case TOKprotected:  prot = PROTprotected;   goto Lprot;
+                case TOKpublic:     prot = PROTpublic;      goto Lprot;
+                case TOKexport:     prot = PROTexport;      goto Lprot;
+                Lprot:
                 {
                     if (pAttrs.protection.kind != PROTundefined)
                     {
                         if (pAttrs.protection.kind != prot)
-                            error("conflicting protection attribute '%s' and '%s'", protectionToChars(pAttrs.protection.kind), protectionToChars(prot));
+                            error("conflicting protection attribute '%s' and '%s'",
+                                protectionToChars(pAttrs.protection.kind), protectionToChars(prot));
                         else
                             error("redundant protection attribute '%s'", protectionToChars(prot));
                     }
                     pAttrs.protection.kind = prot;
+
                     nextToken();
+
                     // optional qualified package identifier to bind
                     // protection to
                     Identifiers* pkg_prot_idents = null;
@@ -881,6 +915,7 @@ public:
                             break;
                         }
                     }
+
                     Loc attrloc = token.loc;
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs.protection.kind != PROTundefined)
@@ -889,13 +924,15 @@ public:
                             s = new ProtDeclaration(attrloc, pkg_prot_idents, a);
                         else
                             s = new ProtDeclaration(attrloc, pAttrs.protection, a);
+
                         pAttrs.protection = Prot(PROTundefined);
                     }
                     break;
                 }
-            case TOKalign:
+                case TOKalign:
                 {
                     nextToken();
+
                     uint n;
                     if (token.value == TOKlparen)
                     {
@@ -916,6 +953,7 @@ public:
                     }
                     else
                         n = STRUCTALIGN_DEFAULT; // default
+
                     if (pAttrs.alignment != 0)
                     {
                         const(char)* s1 = "";
@@ -939,6 +977,7 @@ public:
                         else
                             error("redundant alignment attribute align%s", s1);
                     }
+
                     pAttrs.alignment = n;
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs.alignment != 0)
@@ -948,10 +987,11 @@ public:
                     }
                     break;
                 }
-            case TOKpragma:
+                case TOKpragma:
                 {
                     Expressions* args = null;
                     Loc loc = token.loc;
+
                     nextToken();
                     check(TOKlparen);
                     if (token.value != TOKidentifier)
@@ -962,9 +1002,10 @@ public:
                     Identifier ident = token.ident;
                     nextToken();
                     if (token.value == TOKcomma && peekNext() != TOKrparen)
-                        args = parseArguments(); // pragma(identifier, args...)
+                        args = parseArguments();    // pragma(identifier, args...)
                     else
-                        check(TOKrparen); // pragma(identifier)
+                        check(TOKrparen);           // pragma(identifier)
+
                     Dsymbols* a2 = null;
                     if (token.value == TOKsemicolon)
                     {
@@ -982,51 +1023,54 @@ public:
                     s = new PragmaDeclaration(loc, ident, args, a2);
                     break;
                 }
-            case TOKdebug:
-                nextToken();
-                if (token.value == TOKassign)
-                {
+                case TOKdebug:
                     nextToken();
-                    if (token.value == TOKidentifier)
-                        s = new DebugSymbol(token.loc, token.ident);
-                    else if (token.value == TOKint32v || token.value == TOKint64v)
-                        s = new DebugSymbol(token.loc, cast(uint)token.uns64value);
-                    else
+                    if (token.value == TOKassign)
                     {
-                        error("identifier or integer expected, not %s", token.toChars());
-                        s = null;
+                        nextToken();
+                        if (token.value == TOKidentifier)
+                            s = new DebugSymbol(token.loc, token.ident);
+                        else if (token.value == TOKint32v || token.value == TOKint64v)
+                            s = new DebugSymbol(token.loc, cast(uint)token.uns64value);
+                        else
+                        {
+                            error("identifier or integer expected, not %s", token.toChars());
+                            s = null;
+                        }
+                        nextToken();
+                        if (token.value != TOKsemicolon)
+                            error("semicolon expected");
+                        nextToken();
+                        break;
                     }
+
+                    condition = parseDebugCondition();
+                    goto Lcondition;
+
+                case TOKversion:
                     nextToken();
-                    if (token.value != TOKsemicolon)
-                        error("semicolon expected");
-                    nextToken();
-                    break;
-                }
-                condition = parseDebugCondition();
-                goto Lcondition;
-            case TOKversion:
-                nextToken();
-                if (token.value == TOKassign)
-                {
-                    nextToken();
-                    if (token.value == TOKidentifier)
-                        s = new VersionSymbol(token.loc, token.ident);
-                    else if (token.value == TOKint32v || token.value == TOKint64v)
-                        s = new VersionSymbol(token.loc, cast(uint)token.uns64value);
-                    else
+                    if (token.value == TOKassign)
                     {
-                        error("identifier or integer expected, not %s", token.toChars());
-                        s = null;
+                        nextToken();
+                        if (token.value == TOKidentifier)
+                            s = new VersionSymbol(token.loc, token.ident);
+                        else if (token.value == TOKint32v || token.value == TOKint64v)
+                            s = new VersionSymbol(token.loc, cast(uint)token.uns64value);
+                        else
+                        {
+                            error("identifier or integer expected, not %s", token.toChars());
+                            s = null;
+                        }
+                        nextToken();
+                        if (token.value != TOKsemicolon)
+                            error("semicolon expected");
+                        nextToken();
+                        break;
                     }
-                    nextToken();
-                    if (token.value != TOKsemicolon)
-                        error("semicolon expected");
-                    nextToken();
-                    break;
-                }
-                condition = parseVersionCondition();
-                goto Lcondition;
-            Lcondition:
+                    condition = parseVersionCondition();
+                    goto Lcondition;
+
+                Lcondition:
                 {
                     Dsymbols* athen;
                     if (token.value == TOKcolon)
@@ -1049,20 +1093,22 @@ public:
                     s = new ConditionalDeclaration(condition, athen, aelse);
                     break;
                 }
-            case TOKsemicolon:
-                // empty declaration
-                //error("empty declaration");
-                nextToken();
-                continue;
-            default:
-                error("declaration expected, not '%s'", token.toChars());
-            Lerror:
-                while (token.value != TOKsemicolon && token.value != TOKeof)
+                case TOKsemicolon:
+                    // empty declaration
+                    //error("empty declaration");
                     nextToken();
-                nextToken();
-                s = null;
-                continue;
+                    continue;
+
+                default:
+                    error("declaration expected, not '%s'", token.toChars());
+                Lerror:
+                    while (token.value != TOKsemicolon && token.value != TOKeof)
+                        nextToken();
+                    nextToken();
+                    s = null;
+                    continue;
             }
+
             if (s)
             {
                 if (!s.isAttribDeclaration())
@@ -1076,7 +1122,9 @@ public:
             }
         }
         while (!once);
+
         linkage = linksave;
+
         return decldefs;
     }
 
@@ -1092,18 +1140,22 @@ public:
         //printf("parseAutoDeclarations\n");
         Token* tk;
         auto a = new Dsymbols();
+
         while (1)
         {
             Loc loc = token.loc;
             Identifier ident = token.ident;
             nextToken(); // skip over ident
+
             TemplateParameters* tpl = null;
             if (token.value == TOKlparen)
                 tpl = parseTemplateParameterList();
+
             check(TOKassign);   // skip over '='
             Initializer _init = parseInitializer();
             auto v = new VarDeclaration(loc, null, ident, _init);
             v.storage_class = storageClass;
+
             Dsymbol s = v;
             if (tpl)
             {
@@ -1115,22 +1167,26 @@ public:
             a.push(s);
             switch (token.value)
             {
-            case TOKsemicolon:
-                nextToken();
-                addComment(s, comment);
-                break;
-            case TOKcomma:
-                nextToken();
-                if (!(token.value == TOKidentifier && skipParensIf(peek(&token), &tk) && tk.value == TOKassign))
-                {
-                    error("identifier expected following comma");
+                case TOKsemicolon:
+                    nextToken();
+                    addComment(s, comment);
                     break;
-                }
-                addComment(s, comment);
-                continue;
-            default:
-                error("semicolon expected following auto declaration, not '%s'", token.toChars());
-                break;
+
+                case TOKcomma:
+                    nextToken();
+                    if (!(token.value == TOKidentifier &&
+                          skipParensIf(peek(&token), &tk) &&
+                          tk.value == TOKassign))
+                    {
+                        error("identifier expected following comma");
+                        break;
+                    }
+                    addComment(s, comment);
+                    continue;
+
+                default:
+                    error("semicolon expected following auto declaration, not '%s'", token.toChars());
+                    break;
             }
             break;
         }
@@ -1143,20 +1199,24 @@ public:
     Dsymbols* parseBlock(Dsymbol* pLastDecl, PrefixAttributes* pAttrs = null)
     {
         Dsymbols* a = null;
+
         //printf("parseBlock()\n");
         switch (token.value)
         {
-        case TOKsemicolon:
-            error("declaration expected following attribute, not ';'");
-            nextToken();
-            break;
-        case TOKeof:
-            error("declaration expected following attribute, not EOF");
-            break;
-        case TOKlcurly:
+            case TOKsemicolon:
+                error("declaration expected following attribute, not ';'");
+                nextToken();
+                break;
+
+            case TOKeof:
+                error("declaration expected following attribute, not EOF");
+                break;
+
+            case TOKlcurly:
             {
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
+
                 nextToken();
                 a = parseDeclDefs(0, pLastDecl);
                 if (token.value != TOKrcurly)
@@ -1169,13 +1229,14 @@ public:
                 lookingForElse = lookingForElseSave;
                 break;
             }
-        case TOKcolon:
-            nextToken();
-            a = parseDeclDefs(0, pLastDecl); // grab declarations up to closing curly bracket
-            break;
-        default:
-            a = parseDeclDefs(1, pLastDecl, pAttrs);
-            break;
+            case TOKcolon:
+                nextToken();
+                a = parseDeclDefs(0, pLastDecl); // grab declarations up to closing curly bracket
+                break;
+
+            default:
+                a = parseDeclDefs(1, pLastDecl, pAttrs);
+                break;
         }
         return a;
     }
@@ -1187,7 +1248,9 @@ public:
      */
     StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc, bool deprec = false)
     {
-        if ((storageClass & stc) || (storageClass & STCin && stc & (STCconst | STCscope)) || (stc & STCin && storageClass & (STCconst | STCscope)))
+        if ((storageClass & stc) ||
+            (storageClass & STCin && stc & (STCconst | STCscope)) ||
+            (stc & STCin && storageClass & (STCconst | STCscope)))
         {
             OutBuffer buf;
             stcToBuffer(&buf, stc);
@@ -1197,7 +1260,9 @@ public:
                 error("redundant attribute '%s'", buf.peekString());
             return storageClass | stc;
         }
+
         storageClass |= stc;
+
         if (stc & (STCconst | STCimmutable | STCmanifest))
         {
             StorageClass u = storageClass & (STCconst | STCimmutable | STCmanifest);
@@ -1216,6 +1281,7 @@ public:
             if (u & (u - 1))
                 error("conflicting attribute '@%s'", token.toChars());
         }
+
         return storageClass;
     }
 
@@ -1257,6 +1323,7 @@ public:
                     Loc loc = token.loc;
                     exp = new CallExp(loc, exp, parseArguments());
                 }
+
                 udas = new Expressions();
                 udas.push(exp);
             }
@@ -1273,6 +1340,7 @@ public:
         {
             error("@identifier or @(ArgumentList) expected, not @%s", token.toChars());
         }
+
         if (stc)
         {
         }
@@ -1295,28 +1363,14 @@ public:
             StorageClass stc;
             switch (token.value)
             {
-            case TOKconst:
-                stc = STCconst;
-                break;
-            case TOKimmutable:
-                stc = STCimmutable;
-                break;
-            case TOKshared:
-                stc = STCshared;
-                break;
-            case TOKwild:
-                stc = STCwild;
-                break;
-            case TOKnothrow:
-                stc = STCnothrow;
-                break;
-            case TOKpure:
-                stc = STCpure;
-                break;
-            case TOKreturn:
-                stc = STCreturn;
-                break;
-            case TOKat:
+                case TOKconst:      stc = STCconst;         break;
+                case TOKimmutable:  stc = STCimmutable;     break;
+                case TOKshared:     stc = STCshared;        break;
+                case TOKwild:       stc = STCwild;          break;
+                case TOKnothrow:    stc = STCnothrow;       break;
+                case TOKpure:       stc = STCpure;          break;
+                case TOKreturn:     stc = STCreturn;        break;
+                case TOKat:
                 {
                     Expressions* udas = null;
                     stc = parseAttribute(&udas);
@@ -1335,8 +1389,8 @@ public:
                     }
                     break;
                 }
-            default:
-                return storageClass;
+                default:
+                    return storageClass;
             }
             storageClass = appendStorageClass(storageClass, stc, true);
             nextToken();
@@ -1346,27 +1400,22 @@ public:
     StorageClass parseTypeCtor()
     {
         StorageClass storageClass = STCundefined;
+
         while (1)
         {
             if (peek(&token).value == TOKlparen)
                 return storageClass;
+
             StorageClass stc;
             switch (token.value)
             {
-            case TOKconst:
-                stc = STCconst;
-                break;
-            case TOKimmutable:
-                stc = STCimmutable;
-                break;
-            case TOKshared:
-                stc = STCshared;
-                break;
-            case TOKwild:
-                stc = STCwild;
-                break;
-            default:
-                return storageClass;
+                case TOKconst:      stc = STCconst;         break;
+                case TOKimmutable:  stc = STCimmutable;     break;
+                case TOKshared:     stc = STCshared;        break;
+                case TOKwild:       stc = STCwild;          break;
+
+                default:
+                    return storageClass;
             }
             storageClass = appendStorageClass(storageClass, stc);
             nextToken();
@@ -1402,6 +1451,7 @@ public:
         Dsymbols* decldefs;
         Expression constraint = null;
         Loc loc = token.loc;
+
         nextToken();
         if (token.value != TOKidentifier)
         {
@@ -1413,7 +1463,9 @@ public:
         tpl = parseTemplateParameterList();
         if (!tpl)
             goto Lerr;
+
         constraint = parseConstraint();
+
         if (token.value != TOKlcurly)
         {
             error("members of template declaration expected");
@@ -1430,8 +1482,10 @@ public:
             }
             nextToken();
         }
+
         tempdecl = new TemplateDeclaration(loc, id, tpl, constraint, decldefs, ismixin);
         return tempdecl;
+
     Lerr:
         return null;
     }
@@ -1445,12 +1499,14 @@ public:
     TemplateParameters* parseTemplateParameterList(int flag = 0)
     {
         auto tpl = new TemplateParameters();
+
         if (!flag && token.value != TOKlparen)
         {
             error("parenthesized TemplateParameterList expected following TemplateIdentifier");
             goto Lerr;
         }
         nextToken();
+
         // Get array of TemplateParameters
         if (flag || token.value != TOKrparen)
         {
@@ -1466,7 +1522,9 @@ public:
                 Expression tp_specvalue = null;
                 Expression tp_defaultvalue = null;
                 Token* t;
+
                 // Get TemplateParameter
+
                 // First, look ahead to see if it is a TypeParameter or a ValueParameter
                 t = peek(&token);
                 if (token.value == TOKalias)
@@ -1509,7 +1567,8 @@ public:
                     }
                     tp = new TemplateAliasParameter(loc, tp_ident, spectype, spec, def);
                 }
-                else if (t.value == TOKcolon || t.value == TOKassign || t.value == TOKcomma || t.value == TOKrparen)
+                else if (t.value == TOKcolon || t.value == TOKassign ||
+                         t.value == TOKcomma || t.value == TOKrparen)
                 {
                     // TypeParameter
                     if (token.value != TOKidentifier)
@@ -1597,6 +1656,7 @@ public:
             }
         }
         check(TOKrparen);
+
     Lerr:
         return tpl;
     }
@@ -1614,9 +1674,11 @@ public:
         TemplateMixin tm;
         Identifier id;
         Objects* tiargs;
+
         //printf("parseMixin()\n");
         Loc locMixin = token.loc;
         nextToken(); // skip 'mixin'
+
         Loc loc = token.loc;
         TypeQualified tqual = null;
         if (token.value == TOKdot)
@@ -1639,6 +1701,7 @@ public:
                 id = token.ident;
             nextToken();
         }
+
         while (1)
         {
             tiargs = null;
@@ -1646,6 +1709,7 @@ public:
             {
                 tiargs = parseTemplateArguments();
             }
+
             if (tiargs && token.value == TOKdot)
             {
                 auto tempinst = new TemplateInstance(loc, id);
@@ -1663,8 +1727,10 @@ public:
                 else
                     tqual.addIdent(id);
             }
+
             if (token.value != TOKdot)
                 break;
+
             nextToken();
             if (token.value != TOKidentifier)
             {
@@ -1675,6 +1741,7 @@ public:
             id = token.ident;
             nextToken();
         }
+
         if (token.value == TOKidentifier)
         {
             id = token.ident;
@@ -1682,10 +1749,12 @@ public:
         }
         else
             id = null;
+
         tm = new TemplateMixin(locMixin, id, tqual, tiargs);
         if (token.value != TOKsemicolon)
             error("';' expected after mixin");
         nextToken();
+
         return tm;
     }
 
@@ -1699,6 +1768,7 @@ public:
     Objects* parseTemplateArguments()
     {
         Objects* tiargs;
+
         nextToken();
         if (token.value == TOKlparen)
         {
@@ -1744,6 +1814,7 @@ public:
         TOK endtok = TOKrparen;
         assert(token.value == TOKlparen || token.value == TOKcomma);
         nextToken();
+
         // Get TemplateArgumentList
         while (token.value != endtok)
         {
@@ -1781,123 +1852,78 @@ public:
         Type ta;
         switch (token.value)
         {
-        case TOKidentifier:
-            ta = new TypeIdentifier(token.loc, token.ident);
-            goto LabelX;
-        case TOKvector:
-            ta = parseVector();
-            goto LabelX;
-        case TOKvoid:
-            ta = Type.tvoid;
-            goto LabelX;
-        case TOKint8:
-            ta = Type.tint8;
-            goto LabelX;
-        case TOKuns8:
-            ta = Type.tuns8;
-            goto LabelX;
-        case TOKint16:
-            ta = Type.tint16;
-            goto LabelX;
-        case TOKuns16:
-            ta = Type.tuns16;
-            goto LabelX;
-        case TOKint32:
-            ta = Type.tint32;
-            goto LabelX;
-        case TOKuns32:
-            ta = Type.tuns32;
-            goto LabelX;
-        case TOKint64:
-            ta = Type.tint64;
-            goto LabelX;
-        case TOKuns64:
-            ta = Type.tuns64;
-            goto LabelX;
-        case TOKint128:
-            ta = Type.tint128;
-            goto LabelX;
-        case TOKuns128:
-            ta = Type.tuns128;
-            goto LabelX;
-        case TOKfloat32:
-            ta = Type.tfloat32;
-            goto LabelX;
-        case TOKfloat64:
-            ta = Type.tfloat64;
-            goto LabelX;
-        case TOKfloat80:
-            ta = Type.tfloat80;
-            goto LabelX;
-        case TOKimaginary32:
-            ta = Type.timaginary32;
-            goto LabelX;
-        case TOKimaginary64:
-            ta = Type.timaginary64;
-            goto LabelX;
-        case TOKimaginary80:
-            ta = Type.timaginary80;
-            goto LabelX;
-        case TOKcomplex32:
-            ta = Type.tcomplex32;
-            goto LabelX;
-        case TOKcomplex64:
-            ta = Type.tcomplex64;
-            goto LabelX;
-        case TOKcomplex80:
-            ta = Type.tcomplex80;
-            goto LabelX;
-        case TOKbool:
-            ta = Type.tbool;
-            goto LabelX;
-        case TOKchar:
-            ta = Type.tchar;
-            goto LabelX;
-        case TOKwchar:
-            ta = Type.twchar;
-            goto LabelX;
-        case TOKdchar:
-            ta = Type.tdchar;
-            goto LabelX;
-        LabelX:
-            tiargs.push(ta);
-            nextToken();
-            break;
-        case TOKint32v:
-        case TOKuns32v:
-        case TOKint64v:
-        case TOKuns64v:
-        case TOKint128v:
-        case TOKuns128v:
-        case TOKfloat32v:
-        case TOKfloat64v:
-        case TOKfloat80v:
-        case TOKimaginary32v:
-        case TOKimaginary64v:
-        case TOKimaginary80v:
-        case TOKnull:
-        case TOKtrue:
-        case TOKfalse:
-        case TOKcharv:
-        case TOKwcharv:
-        case TOKdcharv:
-        case TOKstring:
-        case TOKxstring:
-        case TOKfile:
-        case TOKline:
-        case TOKmodulestring:
-        case TOKfuncstring:
-        case TOKprettyfunc:
-        case TOKthis:
+            case TOKidentifier:
+                ta = new TypeIdentifier(token.loc, token.ident);
+                goto LabelX;
+
+            case TOKvector:
+                ta = parseVector();
+                goto LabelX;
+
+            case TOKvoid:           ta = Type.tvoid;        goto LabelX;
+            case TOKint8:           ta = Type.tint8;        goto LabelX;
+            case TOKuns8:           ta = Type.tuns8;        goto LabelX;
+            case TOKint16:          ta = Type.tint16;       goto LabelX;
+            case TOKuns16:          ta = Type.tuns16;       goto LabelX;
+            case TOKint32:          ta = Type.tint32;       goto LabelX;
+            case TOKuns32:          ta = Type.tuns32;       goto LabelX;
+            case TOKint64:          ta = Type.tint64;       goto LabelX;
+            case TOKuns64:          ta = Type.tuns64;       goto LabelX;
+            case TOKint128:         ta = Type.tint128;      goto LabelX;
+            case TOKuns128:         ta = Type.tuns128;      goto LabelX;
+            case TOKfloat32:        ta = Type.tfloat32;     goto LabelX;
+            case TOKfloat64:        ta = Type.tfloat64;     goto LabelX;
+            case TOKfloat80:        ta = Type.tfloat80;     goto LabelX;
+            case TOKimaginary32:    ta = Type.timaginary32; goto LabelX;
+            case TOKimaginary64:    ta = Type.timaginary64; goto LabelX;
+            case TOKimaginary80:    ta = Type.timaginary80; goto LabelX;
+            case TOKcomplex32:      ta = Type.tcomplex32;   goto LabelX;
+            case TOKcomplex64:      ta = Type.tcomplex64;   goto LabelX;
+            case TOKcomplex80:      ta = Type.tcomplex80;   goto LabelX;
+            case TOKbool:           ta = Type.tbool;        goto LabelX;
+            case TOKchar:           ta = Type.tchar;        goto LabelX;
+            case TOKwchar:          ta = Type.twchar;       goto LabelX;
+            case TOKdchar:          ta = Type.tdchar;       goto LabelX;
+            LabelX:
+                tiargs.push(ta);
+                nextToken();
+                break;
+
+            case TOKint32v:
+            case TOKuns32v:
+            case TOKint64v:
+            case TOKuns64v:
+            case TOKint128v:
+            case TOKuns128v:
+            case TOKfloat32v:
+            case TOKfloat64v:
+            case TOKfloat80v:
+            case TOKimaginary32v:
+            case TOKimaginary64v:
+            case TOKimaginary80v:
+            case TOKnull:
+            case TOKtrue:
+            case TOKfalse:
+            case TOKcharv:
+            case TOKwcharv:
+            case TOKdcharv:
+            case TOKstring:
+            case TOKxstring:
+            case TOKfile:
+            case TOKline:
+            case TOKmodulestring:
+            case TOKfuncstring:
+            case TOKprettyfunc:
+            case TOKthis:
             {
                 // Template argument is an expression
                 Expression ea = parsePrimaryExp();
                 tiargs.push(ea);
                 break;
             }
-        default:
-            error("template argument expected following !");
-            break;
+            default:
+                error("template argument expected following !");
+                break;
         }
         return tiargs;
     }
@@ -1911,6 +1937,7 @@ public:
         Loc loc = token.loc;
         Expression exp;
         Expression msg = null;
+
         //printf("parseStaticAssert()\n");
         nextToken();
         nextToken();
@@ -1934,6 +1961,7 @@ public:
     {
         TypeQualified t;
         Loc loc = token.loc;
+
         nextToken();
         check(TOKlparen);
         if (token.value == TOKreturn) // typeof(return)
@@ -2067,21 +2095,26 @@ public:
     Identifiers* parseQualifiedIdentifier(const(char)* entity)
     {
         Identifiers* qualified = null;
+
         do
         {
             nextToken();
             if (token.value != TOKidentifier)
             {
-                error("%s expected as dot-separated identifiers, got '%s'", entity, token.toChars());
+                error("%s expected as dot-separated identifiers, got '%s'",
+                    entity, token.toChars());
                 return null;
             }
+
             Identifier id = token.ident;
             if (!qualified)
                 qualified = new Identifiers();
             qualified.push(id);
+
             nextToken();
         }
         while (token.value == TOKdot);
+
         return qualified;
     }
 
@@ -2091,11 +2124,13 @@ public:
     Condition parseDebugCondition()
     {
         Condition c;
+
         if (token.value == TOKlparen)
         {
             nextToken();
             uint level = 1;
             Identifier id = null;
+
             if (token.value == TOKidentifier)
                 id = token.ident;
             else if (token.value == TOKint32v || token.value == TOKint64v)
@@ -2119,6 +2154,7 @@ public:
         Condition c;
         uint level = 1;
         Identifier id = null;
+
         if (token.value == TOKlparen)
         {
             nextToken();
@@ -2158,6 +2194,7 @@ public:
         Expression exp;
         Condition condition;
         Loc loc = token.loc;
+
         nextToken();
         nextToken();
         if (token.value == TOKlparen)
@@ -2189,6 +2226,7 @@ public:
         Expressions* udas = null;
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
         if (token.value == TOKlparen && peekNext() == TOKthis && peekNext2() == TOKrparen)
         {
@@ -2196,9 +2234,11 @@ public:
             nextToken();
             nextToken();
             check(TOKrparen);
+
             stc = parsePostfix(stc, &udas);
             if (stc & STCstatic)
                 error(loc, "postblit cannot be static");
+
             auto f = new PostBlitDeclaration(loc, Loc(), stc, Id.postblit);
             if (pAttrs)
                 pAttrs.storageClass = STCundefined;
@@ -2211,6 +2251,7 @@ public:
             }
             return s;
         }
+
         /* Look ahead to see if:
          *   this(...)(...)
          * which is a constructor template
@@ -2220,6 +2261,7 @@ public:
         {
             tpl = parseTemplateParameterList();
         }
+
         /* Just a regular constructor
          */
         int varargs;
@@ -2237,9 +2279,12 @@ public:
             else if (ss == (STCshared | STCstatic))
                 error(loc, "use 'shared static this()' to declare a shared static constructor");
         }
+
         Expression constraint = tpl ? parseConstraint() : null;
+
         Type tf = new TypeFunction(parameters, null, varargs, linkage, stc); // RetrunType -> auto
         tf = tf.addSTC(stc);
+
         auto f = new CtorDeclaration(loc, Loc(), stc, tf);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2250,6 +2295,7 @@ public:
             a.push(f);
             s = new UserAttributeDeclaration(udas, a);
         }
+
         if (tpl)
         {
             // Wrap a template around it
@@ -2257,6 +2303,7 @@ public:
             decldefs.push(s);
             s = new TemplateDeclaration(loc, f.ident, tpl, constraint, decldefs);
         }
+
         return s;
     }
 
@@ -2270,10 +2317,12 @@ public:
         Expressions* udas = null;
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
         check(TOKthis);
         check(TOKlparen);
         check(TOKrparen);
+
         stc = parsePostfix(stc, &udas);
         if (StorageClass ss = stc & (STCshared | STCstatic))
         {
@@ -2282,6 +2331,7 @@ public:
             else if (ss == (STCshared | STCstatic))
                 error(loc, "use 'shared static ~this()' to declare a shared static destructor");
         }
+
         auto f = new DtorDeclaration(loc, Loc(), stc, Id.dtor);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2305,10 +2355,12 @@ public:
         //Expressions *udas = NULL;
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
         nextToken();
         check(TOKlparen);
         check(TOKrparen);
+
         stc = parsePostfix(stc & ~STC_TYPECTOR, null) | stc;
         if (stc & STCshared)
             error(loc, "use 'shared static this()' to declare a shared static constructor");
@@ -2321,6 +2373,7 @@ public:
             error(loc, "static constructor cannot be %s", buf.peekString());
         }
         stc &= ~(STCstatic | STC_TYPECTOR);
+
         auto f = new StaticCtorDeclaration(loc, Loc(), stc);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2338,11 +2391,13 @@ public:
         Expressions* udas = null;
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
         nextToken();
         check(TOKthis);
         check(TOKlparen);
         check(TOKrparen);
+
         stc = parsePostfix(stc & ~STC_TYPECTOR, &udas) | stc;
         if (stc & STCshared)
             error(loc, "use 'shared static ~this()' to declare a shared static destructor");
@@ -2355,6 +2410,7 @@ public:
             error(loc, "static destructor cannot be %s", buf.peekString());
         }
         stc &= ~(STCstatic | STC_TYPECTOR);
+
         auto f = new StaticDtorDeclaration(loc, Loc(), stc);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2378,11 +2434,13 @@ public:
         //Expressions *udas = NULL;
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
         nextToken();
         nextToken();
         check(TOKlparen);
         check(TOKrparen);
+
         stc = parsePostfix(stc & ~STC_TYPECTOR, null) | stc;
         if (StorageClass ss = stc & (STCshared | STCstatic))
             appendStorageClass(stc, ss); // complaint for the redundancy
@@ -2393,6 +2451,7 @@ public:
             error(loc, "shared static constructor cannot be %s", buf.peekString());
         }
         stc &= ~(STCstatic | STC_TYPECTOR);
+
         auto f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2410,12 +2469,14 @@ public:
         Expressions* udas = null;
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
         nextToken();
         nextToken();
         check(TOKthis);
         check(TOKlparen);
         check(TOKrparen);
+
         stc = parsePostfix(stc & ~STC_TYPECTOR, &udas) | stc;
         if (StorageClass ss = stc & (STCshared | STCstatic))
             appendStorageClass(stc, ss); // complaint for the redundancy
@@ -2426,6 +2487,7 @@ public:
             error(loc, "shared static destructor cannot be %s", buf.peekString());
         }
         stc &= ~(STCstatic | STC_TYPECTOR);
+
         auto f = new SharedStaticDtorDeclaration(loc, Loc(), stc);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2448,12 +2510,14 @@ public:
     {
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
         if (token.value == TOKlparen) // optional ()
         {
             nextToken();
             check(TOKrparen);
         }
+
         auto f = new InvariantDeclaration(loc, Loc(), stc);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2470,20 +2534,26 @@ public:
     {
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
+
         const(char)* begPtr = token.ptr + 1; // skip '{'
         const(char)* endPtr = null;
         Statement sbody = parseStatement(PScurly, &endPtr);
+
         /** Extract unittest body as a string. Must be done eagerly since memory
          will be released by the lexer before doc gen. */
         char* docline = null;
         if (global.params.doDocComments && endPtr > begPtr)
         {
             /* Remove trailing whitespaces */
-            for (const(char)* p = endPtr - 1; begPtr <= p && (*p == ' ' || *p == '\r' || *p == '\n' || *p == '\t'); --p)
+            for (const(char)* p = endPtr - 1;
+                 begPtr <= p && (*p == ' ' || *p == '\r' || *p == '\n' || *p == '\t');
+                 --p)
             {
                 endPtr = p;
             }
+
             size_t len = endPtr - begPtr;
             if (len > 0)
             {
@@ -2493,6 +2563,7 @@ public:
                 docline[len + 1] = '\0';
             }
         }
+
         auto f = new UnitTestDeclaration(loc, token.loc, stc, docline);
         if (pAttrs)
             pAttrs.storageClass = STCundefined;
@@ -2509,7 +2580,9 @@ public:
     {
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
+
         int varargs;
         Parameters* parameters = parseParameters(&varargs);
         auto f = new NewDeclaration(loc, Loc(), stc, parameters, varargs);
@@ -2528,7 +2601,9 @@ public:
     {
         Loc loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+
         nextToken();
+
         int varargs;
         Parameters* parameters = parseParameters(&varargs);
         if (varargs)
@@ -2548,6 +2623,7 @@ public:
         auto parameters = new Parameters();
         int varargs = 0;
         int hasdefault = 0;
+
         check(TOKlparen);
         while (1)
         {
@@ -2556,74 +2632,60 @@ public:
             StorageClass storageClass = 0;
             StorageClass stc;
             Expression ae;
+
             for (; 1; nextToken())
             {
                 switch (token.value)
                 {
-                case TOKrparen:
-                    break;
-                case TOKdotdotdot:
-                    varargs = 1;
-                    nextToken();
-                    break;
-                case TOKconst:
-                    if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
-                    stc = STCconst;
-                    goto L2;
-                case TOKimmutable:
-                    if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
-                    stc = STCimmutable;
-                    goto L2;
-                case TOKshared:
-                    if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
-                    stc = STCshared;
-                    goto L2;
-                case TOKwild:
-                    if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
-                    stc = STCwild;
-                    goto L2;
-                case TOKin:
-                    stc = STCin;
-                    goto L2;
-                case TOKout:
-                    stc = STCout;
-                    goto L2;
-                case TOKref:
-                    stc = STCref;
-                    goto L2;
-                case TOKlazy:
-                    stc = STClazy;
-                    goto L2;
-                case TOKscope:
-                    stc = STCscope;
-                    goto L2;
-                case TOKfinal:
-                    stc = STCfinal;
-                    goto L2;
-                case TOKauto:
-                    stc = STCauto;
-                    goto L2;
-                case TOKreturn:
-                    stc = STCreturn;
-                    goto L2;
-                L2:
-                    storageClass = appendStorageClass(storageClass, stc);
-                    continue;
+                    case TOKrparen:
+                        break;
+
+                    case TOKdotdotdot:
+                        varargs = 1;
+                        nextToken();
+                        break;
+
+                    case TOKconst:
+                        if (peek(&token).value == TOKlparen)
+                            goto Ldefault;
+                        stc = STCconst;
+                        goto L2;
+
+                    case TOKimmutable:
+                        if (peek(&token).value == TOKlparen)
+                            goto Ldefault;
+                        stc = STCimmutable;
+                        goto L2;
+
+                    case TOKshared:
+                        if (peek(&token).value == TOKlparen)
+                            goto Ldefault;
+                        stc = STCshared;
+                        goto L2;
+
+                    case TOKwild:
+                        if (peek(&token).value == TOKlparen)
+                            goto Ldefault;
+                        stc = STCwild;
+                        goto L2;
+
+                    case TOKin:     stc = STCin;        goto L2;
+                    case TOKout:    stc = STCout;       goto L2;
+                    case TOKref:    stc = STCref;       goto L2;
+                    case TOKlazy:   stc = STClazy;      goto L2;
+                    case TOKscope:  stc = STCscope;     goto L2;
+                    case TOKfinal:  stc = STCfinal;     goto L2;
+                    case TOKauto:   stc = STCauto;      goto L2;
+                    case TOKreturn: stc = STCreturn;    goto L2;
+                    L2:
+                        storageClass = appendStorageClass(storageClass, stc);
+                        continue;
+
                     version (none)
                     {
-                    case TOKstatic:
-                        stc = STCstatic;
-                        goto L2;
-                    case TOKauto:
-                        storageClass = STCauto;
-                        goto L4;
-                    case TOKalias:
-                        storageClass = STCalias;
-                        goto L4;
+                    case TOKstatic:          stc = STCstatic;   goto L2;
+                    case TOKauto:   storageClass = STCauto;     goto L4;
+                    case TOKalias:  storageClass = STCalias;    goto L4;
                     L4:
                         nextToken();
                         if (token.value == TOKidentifier)
@@ -2648,8 +2710,8 @@ public:
                         }
                         goto L3;
                     }
-                default:
-                Ldefault:
+                    default:
+                    Ldefault:
                     {
                         stc = storageClass & (STCin | STCout | STCref | STClazy);
                         // if stc is not a power of 2
@@ -2657,8 +2719,12 @@ public:
                             error("incompatible parameter storage classes");
                         if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
                             error("scope cannot be ref or out");
+
                         Token* t;
-                        if (tpl && token.value == TOKidentifier && (t = peek(&token), (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot)))
+                        if (tpl && token.value == TOKidentifier &&
+                            (t = peek(&token), (t.value == TOKcomma ||
+                                                t.value == TOKrparen ||
+                                                t.value == TOKdotdotdot)))
                         {
                             Identifier id = Identifier.generateId("__T");
                             Loc loc = token.loc;
@@ -2667,6 +2733,7 @@ public:
                                 *tpl = new TemplateParameters();
                             TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null);
                             (*tpl).push(tp);
+
                             ai = token.ident;
                             nextToken();
                         }
@@ -2708,6 +2775,7 @@ public:
                 break;
             }
             break;
+
         L1:
         }
         check(TOKrparen);
@@ -2723,6 +2791,7 @@ public:
         Identifier id;
         Type memtype;
         Loc loc = token.loc;
+
         //printf("Parser::parseEnum()\n");
         nextToken();
         if (token.value == TOKidentifier)
@@ -2732,6 +2801,7 @@ public:
         }
         else
             id = null;
+
         if (token.value == TOKcolon)
         {
             nextToken();
@@ -2743,6 +2813,7 @@ public:
         }
         else
             memtype = null;
+
         e = new EnumDeclaration(loc, id, memtype);
         if (token.value == TOKsemicolon && id)
             nextToken();
@@ -2760,10 +2831,14 @@ public:
                  *  3. type ident = value
                  */
                 loc = token.loc;
+
                 Type type = null;
                 Identifier ident = null;
                 Token* tp = peek(&token);
-                if (token.value == TOKidentifier && (tp.value == TOKassign || tp.value == TOKcomma || tp.value == TOKrcurly))
+                if (token.value == TOKidentifier &&
+                    (tp.value == TOKassign ||
+                     tp.value == TOKcomma ||
+                     tp.value == TOKrcurly))
                 {
                     ident = token.ident;
                     type = null;
@@ -2777,6 +2852,7 @@ public:
                     if (id || memtype)
                         error("type only allowed if anonymous enum and no enum type");
                 }
+
                 Expression value;
                 if (token.value == TOKassign)
                 {
@@ -2789,8 +2865,10 @@ public:
                     if (type)
                         error("if type, there must be an initializer");
                 }
+
                 auto em = new EnumMember(loc, ident, value, type);
                 e.members.push(em);
+
                 if (token.value == TOKrcurly)
                 {
                 }
@@ -2802,6 +2880,7 @@ public:
                 }
                 addComment(em, comment);
                 comment = token.blockComment;
+
                 if (token.value == TOKeof)
                 {
                     error("premature end of file");
@@ -2812,6 +2891,7 @@ public:
         }
         else
             error("enum declaration is invalid");
+
         //printf("-parseEnum() %s\n", e->toChars());
         return e;
     }
@@ -2828,6 +2908,7 @@ public:
         Expression constraint = null;
         Loc loc = token.loc;
         TOK tok = token.value;
+
         //printf("Parser::parseAggregate()\n");
         nextToken();
         if (token.value != TOKidentifier)
@@ -2838,6 +2919,7 @@ public:
         {
             id = token.ident;
             nextToken();
+
             if (token.value == TOKlparen)
             {
                 // Class template declaration.
@@ -2846,13 +2928,15 @@ public:
                 constraint = parseConstraint();
             }
         }
+
         switch (tok)
         {
-        case TOKclass:
-        case TOKinterface:
+            case TOKclass:
+            case TOKinterface:
             {
                 if (!id)
                     error("anonymous classes not allowed");
+
                 // Collect base class(es)
                 BaseClasses* baseclasses = null;
                 if (token.value == TOKcolon)
@@ -2873,6 +2957,7 @@ public:
                     if (token.value != TOKlcurly)
                         error("members expected");
                 }
+
                 if (tok == TOKclass)
                 {
                     bool inObject = md && !md.packages && md.id == Id.object;
@@ -2882,20 +2967,22 @@ public:
                     a = new InterfaceDeclaration(loc, id, baseclasses);
                 break;
             }
-        case TOKstruct:
-            if (id)
-                a = new StructDeclaration(loc, id);
-            else
-                anon = 1;
-            break;
-        case TOKunion:
-            if (id)
-                a = new UnionDeclaration(loc, id);
-            else
-                anon = 2;
-            break;
-        default:
-            assert(0);
+            case TOKstruct:
+                if (id)
+                    a = new StructDeclaration(loc, id);
+                else
+                    anon = 1;
+                break;
+
+            case TOKunion:
+                if (id)
+                    a = new UnionDeclaration(loc, id);
+                else
+                    anon = 2;
+                break;
+
+            default:
+                assert(0);
         }
         if (a && token.value == TOKsemicolon)
         {
@@ -2907,7 +2994,8 @@ public:
             nextToken();
             Dsymbols* decl = parseDeclDefs(0);
             if (token.value != TOKrcurly)
-                error("} expected following members in %s declaration at %s", Token.toChars(tok), loc.toChars());
+                error("} expected following members in %s declaration at %s",
+                    Token.toChars(tok), loc.toChars());
             nextToken();
             if (anon)
             {
@@ -2923,6 +3011,7 @@ public:
             error("{ } expected following %s declaration", Token.toChars(tok));
             a = new StructDeclaration(loc, null);
         }
+
         if (tpl)
         {
             // Wrap a template around the aggregate declaration
@@ -2939,37 +3028,43 @@ public:
     BaseClasses* parseBaseClasses()
     {
         auto baseclasses = new BaseClasses();
+
         for (; 1; nextToken())
         {
             bool prot = false;
             Prot protection = Prot(PROTpublic);
             switch (token.value)
             {
-            case TOKprivate:
-                prot = true;
-                protection = Prot(PROTprivate);
-                nextToken();
-                break;
-            case TOKpackage:
-                prot = true;
-                protection = Prot(PROTpackage);
-                nextToken();
-                break;
-            case TOKprotected:
-                prot = true;
-                protection = Prot(PROTprotected);
-                nextToken();
-                break;
-            case TOKpublic:
-                prot = true;
-                protection = Prot(PROTpublic);
-                nextToken();
-                break;
-            default:
-                break;
+                case TOKprivate:
+                    prot = true;
+                    protection = Prot(PROTprivate);
+                    nextToken();
+                    break;
+
+                case TOKpackage:
+                    prot = true;
+                    protection = Prot(PROTpackage);
+                    nextToken();
+                    break;
+
+                case TOKprotected:
+                    prot = true;
+                    protection = Prot(PROTprotected);
+                    nextToken();
+                    break;
+
+                case TOKpublic:
+                    prot = true;
+                    protection = Prot(PROTpublic);
+                    nextToken();
+                    break;
+
+                default:
+                    break;
             }
             if (prot)
                 error("use of base class protection is no longer supported");
+
             auto b = new BaseClass(parseBasicType(), protection);
             baseclasses.push(b);
             if (token.value != TOKcomma)
@@ -2982,9 +3077,11 @@ public:
     {
         auto decldefs = new Dsymbols();
         Identifier aliasid = null;
+
         int isstatic = token.value == TOKstatic;
         if (isstatic)
             nextToken();
+
         //printf("Parser::parseImport()\n");
         do
         {
@@ -2995,6 +3092,7 @@ public:
                 error("identifier expected following import");
                 break;
             }
+
             Loc loc = token.loc;
             Identifier id = token.ident;
             Identifiers* a = null;
@@ -3018,8 +3116,10 @@ public:
                 id = token.ident;
                 nextToken();
             }
+
             auto s = new Import(loc, a, id, aliasid, isstatic);
             decldefs.push(s);
+
             /* Look for
              *      : alias=name, alias=name;
              * syntax.
@@ -3056,12 +3156,12 @@ public:
                     s.addAlias(name, _alias);
                 }
                 while (token.value == TOKcomma);
-                break;
-                // no comma-separated imports of this form
+                break; // no comma-separated imports of this form
             }
             aliasid = null;
         }
         while (token.value == TOKcomma);
+
         if (token.value == TOKsemicolon)
             nextToken();
         else
@@ -3069,6 +3169,7 @@ public:
             error("';' expected");
             nextToken();
         }
+
         return decldefs;
     }
 
@@ -3090,42 +3191,49 @@ public:
         {
             switch (token.value)
             {
-            case TOKconst:
-                if (peekNext() == TOKlparen)
+                case TOKconst:
+                    if (peekNext() == TOKlparen)
+                        break;       // const as type constructor
+                    stc |= STCconst; // const as storage class
+                    nextToken();
+                    continue;
+
+                case TOKimmutable:
+                    if (peekNext() == TOKlparen)
+                        break;
+                    stc |= STCimmutable;
+                    nextToken();
+                    continue;
+
+                case TOKshared:
+                    if (peekNext() == TOKlparen)
+                        break;
+                    stc |= STCshared;
+                    nextToken();
+                    continue;
+
+                case TOKwild:
+                    if (peekNext() == TOKlparen)
+                        break;
+                    stc |= STCwild;
+                    nextToken();
+                    continue;
+
+                default:
                     break;
-                // const as type constructor
-                stc |= STCconst; // const as storage class
-                nextToken();
-                continue;
-            case TOKimmutable:
-                if (peekNext() == TOKlparen)
-                    break;
-                stc |= STCimmutable;
-                nextToken();
-                continue;
-            case TOKshared:
-                if (peekNext() == TOKlparen)
-                    break;
-                stc |= STCshared;
-                nextToken();
-                continue;
-            case TOKwild:
-                if (peekNext() == TOKlparen)
-                    break;
-                stc |= STCwild;
-                nextToken();
-                continue;
-            default:
-                break;
             }
             break;
         }
+
         Loc typeLoc = token.loc;
+
         Type t;
         t = parseBasicType();
+
         int alt = 0;
         t = parseDeclarator(t, &alt, pident, ptpl);
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
+
         t = t.addSTC(stc);
         return t;
     }
@@ -3138,142 +3246,103 @@ public:
         //printf("parseBasicType()\n");
         switch (token.value)
         {
-        case TOKvoid:
-            t = Type.tvoid;
-            goto LabelX;
-        case TOKint8:
-            t = Type.tint8;
-            goto LabelX;
-        case TOKuns8:
-            t = Type.tuns8;
-            goto LabelX;
-        case TOKint16:
-            t = Type.tint16;
-            goto LabelX;
-        case TOKuns16:
-            t = Type.tuns16;
-            goto LabelX;
-        case TOKint32:
-            t = Type.tint32;
-            goto LabelX;
-        case TOKuns32:
-            t = Type.tuns32;
-            goto LabelX;
-        case TOKint64:
-            t = Type.tint64;
-            goto LabelX;
-        case TOKuns64:
-            t = Type.tuns64;
-            goto LabelX;
-        case TOKint128:
-            t = Type.tint128;
-            goto LabelX;
-        case TOKuns128:
-            t = Type.tuns128;
-            goto LabelX;
-        case TOKfloat32:
-            t = Type.tfloat32;
-            goto LabelX;
-        case TOKfloat64:
-            t = Type.tfloat64;
-            goto LabelX;
-        case TOKfloat80:
-            t = Type.tfloat80;
-            goto LabelX;
-        case TOKimaginary32:
-            t = Type.timaginary32;
-            goto LabelX;
-        case TOKimaginary64:
-            t = Type.timaginary64;
-            goto LabelX;
-        case TOKimaginary80:
-            t = Type.timaginary80;
-            goto LabelX;
-        case TOKcomplex32:
-            t = Type.tcomplex32;
-            goto LabelX;
-        case TOKcomplex64:
-            t = Type.tcomplex64;
-            goto LabelX;
-        case TOKcomplex80:
-            t = Type.tcomplex80;
-            goto LabelX;
-        case TOKbool:
-            t = Type.tbool;
-            goto LabelX;
-        case TOKchar:
-            t = Type.tchar;
-            goto LabelX;
-        case TOKwchar:
-            t = Type.twchar;
-            goto LabelX;
-        case TOKdchar:
-            t = Type.tdchar;
-            goto LabelX;
-        LabelX:
-            nextToken();
-            break;
-        case TOKthis:
-        case TOKsuper:
-        case TOKidentifier:
-            loc = token.loc;
-            id = token.ident;
-            nextToken();
-            if (token.value == TOKnot)
-            {
-                // ident!(template_arguments)
-                auto tempinst = new TemplateInstance(loc, id);
-                tempinst.tiargs = parseTemplateArguments();
-                t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst), dontLookDotIdents);
-            }
-            else
-            {
-                t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id), dontLookDotIdents);
-            }
-            break;
-        case TOKdot:
-            // Leading . as in .foo
-            t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id.empty), dontLookDotIdents);
-            break;
-        case TOKtypeof:
-            // typeof(expression)
-            t = parseBasicTypeStartingAt(parseTypeof(), dontLookDotIdents);
-            break;
-        case TOKvector:
-            t = parseVector();
-            break;
-        case TOKconst:
-            // const(type)
-            nextToken();
-            check(TOKlparen);
-            t = parseType().addSTC(STCconst);
-            check(TOKrparen);
-            break;
-        case TOKimmutable:
-            // immutable(type)
-            nextToken();
-            check(TOKlparen);
-            t = parseType().addSTC(STCimmutable);
-            check(TOKrparen);
-            break;
-        case TOKshared:
-            // shared(type)
-            nextToken();
-            check(TOKlparen);
-            t = parseType().addSTC(STCshared);
-            check(TOKrparen);
-            break;
-        case TOKwild:
-            // wild(type)
-            nextToken();
-            check(TOKlparen);
-            t = parseType().addSTC(STCwild);
-            check(TOKrparen);
-            break;
-        default:
-            error("basic type expected, not %s", token.toChars());
-            t = Type.tint32;
-            break;
+            case TOKvoid:           t = Type.tvoid;         goto LabelX;
+            case TOKint8:           t = Type.tint8;         goto LabelX;
+            case TOKuns8:           t = Type.tuns8;         goto LabelX;
+            case TOKint16:          t = Type.tint16;        goto LabelX;
+            case TOKuns16:          t = Type.tuns16;        goto LabelX;
+            case TOKint32:          t = Type.tint32;        goto LabelX;
+            case TOKuns32:          t = Type.tuns32;        goto LabelX;
+            case TOKint64:          t = Type.tint64;        goto LabelX;
+            case TOKuns64:          t = Type.tuns64;        goto LabelX;
+            case TOKint128:         t = Type.tint128;       goto LabelX;
+            case TOKuns128:         t = Type.tuns128;       goto LabelX;
+            case TOKfloat32:        t = Type.tfloat32;      goto LabelX;
+            case TOKfloat64:        t = Type.tfloat64;      goto LabelX;
+            case TOKfloat80:        t = Type.tfloat80;      goto LabelX;
+            case TOKimaginary32:    t = Type.timaginary32;  goto LabelX;
+            case TOKimaginary64:    t = Type.timaginary64;  goto LabelX;
+            case TOKimaginary80:    t = Type.timaginary80;  goto LabelX;
+            case TOKcomplex32:      t = Type.tcomplex32;    goto LabelX;
+            case TOKcomplex64:      t = Type.tcomplex64;    goto LabelX;
+            case TOKcomplex80:      t = Type.tcomplex80;    goto LabelX;
+            case TOKbool:           t = Type.tbool;         goto LabelX;
+            case TOKchar:           t = Type.tchar;         goto LabelX;
+            case TOKwchar:          t = Type.twchar;        goto LabelX;
+            case TOKdchar:          t = Type.tdchar;        goto LabelX;
+            LabelX:
+                nextToken();
+                break;
+
+            case TOKthis:
+            case TOKsuper:
+            case TOKidentifier:
+                loc = token.loc;
+                id = token.ident;
+                nextToken();
+                if (token.value == TOKnot)
+                {
+                    // ident!(template_arguments)
+                    auto tempinst = new TemplateInstance(loc, id);
+                    tempinst.tiargs = parseTemplateArguments();
+                    t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst), dontLookDotIdents);
+                }
+                else
+                {
+                    t = parseBasicTypeStartingAt(new TypeIdentifier(loc, id), dontLookDotIdents);
+                }
+                break;
+
+            case TOKdot:
+                // Leading . as in .foo
+                t = parseBasicTypeStartingAt(new TypeIdentifier(token.loc, Id.empty), dontLookDotIdents);
+                break;
+
+            case TOKtypeof:
+                // typeof(expression)
+                t = parseBasicTypeStartingAt(parseTypeof(), dontLookDotIdents);
+                break;
+
+            case TOKvector:
+                t = parseVector();
+                break;
+
+            case TOKconst:
+                // const(type)
+                nextToken();
+                check(TOKlparen);
+                t = parseType().addSTC(STCconst);
+                check(TOKrparen);
+                break;
+
+            case TOKimmutable:
+                // immutable(type)
+                nextToken();
+                check(TOKlparen);
+                t = parseType().addSTC(STCimmutable);
+                check(TOKrparen);
+                break;
+
+            case TOKshared:
+                // shared(type)
+                nextToken();
+                check(TOKlparen);
+                t = parseType().addSTC(STCshared);
+                check(TOKrparen);
+                break;
+
+            case TOKwild:
+                // wild(type)
+                nextToken();
+                check(TOKlparen);
+                t = parseType().addSTC(STCwild);
+                check(TOKrparen);
+                break;
+
+            default:
+                error("basic type expected, not %s", token.toChars());
+                t = Type.tint32;
+                break;
         }
         return t;
     }
@@ -3292,7 +3361,7 @@ public:
         {
             switch (token.value)
             {
-            case TOKdot:
+                case TOKdot:
                 {
                     nextToken();
                     if (token.value != TOKidentifier)
@@ -3350,10 +3419,11 @@ public:
                         tid.addIdent(id);
                     continue;
                 }
-            case TOKlbracket:
+                case TOKlbracket:
                 {
                     if (dontLookDotIdents) // workaround for Bugzilla 14911
                         goto Lend;
+
                     nextToken();
                     Type t = maybeArray ? maybeArray : cast(Type)tid;
                     if (token.value == TOKrbracket)
@@ -3404,8 +3474,8 @@ public:
                     }
                     break;
                 }
-            default:
-                goto Lend;
+                default:
+                    goto Lend;
             }
         }
     Lend:
@@ -3429,57 +3499,61 @@ public:
         {
             switch (token.value)
             {
-            case TOKmul:
-                t = new TypePointer(t);
-                nextToken();
-                continue;
-            case TOKlbracket:
-                // Handle []. Make sure things like
-                //     int[3][1] a;
-                // is (array[1] of array[3] of int)
-                nextToken();
-                if (token.value == TOKrbracket)
-                {
-                    t = new TypeDArray(t); // []
+                case TOKmul:
+                    t = new TypePointer(t);
                     nextToken();
-                }
-                else if (isDeclaration(&token, NeedDeclaratorId.no, TOKrbracket, null))
-                {
-                    // It's an associative array declaration
-                    //printf("it's an associative array\n");
-                    Type index = parseType(); // [ type ]
-                    t = new TypeAArray(t, index);
-                    check(TOKrbracket);
-                }
-                else
-                {
-                    //printf("it's type[expression]\n");
-                    inBrackets++;
-                    Expression e = parseAssignExp(); // [ expression ]
-                    if (token.value == TOKslice)
+                    continue;
+
+                case TOKlbracket:
+                    // Handle []. Make sure things like
+                    //     int[3][1] a;
+                    // is (array[1] of array[3] of int)
+                    nextToken();
+                    if (token.value == TOKrbracket)
                     {
+                        t = new TypeDArray(t); // []
                         nextToken();
-                        Expression e2 = parseAssignExp(); // [ exp .. exp ]
-                        t = new TypeSlice(t, e, e2);
+                    }
+                    else if (isDeclaration(&token, NeedDeclaratorId.no, TOKrbracket, null))
+                    {
+                        // It's an associative array declaration
+                        //printf("it's an associative array\n");
+                        Type index = parseType(); // [ type ]
+                        t = new TypeAArray(t, index);
+                        check(TOKrbracket);
                     }
                     else
                     {
-                        t = new TypeSArray(t, e);
+                        //printf("it's type[expression]\n");
+                        inBrackets++;
+                        Expression e = parseAssignExp(); // [ expression ]
+                        if (token.value == TOKslice)
+                        {
+                            nextToken();
+                            Expression e2 = parseAssignExp(); // [ exp .. exp ]
+                            t = new TypeSlice(t, e, e2);
+                        }
+                        else
+                        {
+                            t = new TypeSArray(t, e);
+                        }
+                        inBrackets--;
+                        check(TOKrbracket);
                     }
-                    inBrackets--;
-                    check(TOKrbracket);
-                }
-                continue;
-            case TOKdelegate:
-            case TOKfunction:
+                    continue;
+
+                case TOKdelegate:
+                case TOKfunction:
                 {
                     // Handle delegate declaration:
                     //      t delegate(parameter list) nothrow pure
                     //      t function(parameter list) nothrow pure
                     TOK save = token.value;
                     nextToken();
+
                     int varargs;
                     Parameters* parameters = parseParameters(&varargs);
+
                     StorageClass stc = parsePostfix(STCundefined, null);
                     auto tf = new TypeFunction(parameters, t, varargs, linkage, stc);
                     if (stc & (STCconst | STCimmutable | STCshared | STCwild | STCreturn))
@@ -3489,40 +3563,45 @@ public:
                         else
                             tf = cast(TypeFunction)tf.addSTC(stc);
                     }
+
                     if (save == TOKdelegate)
                         t = new TypeDelegate(tf);
                     else
                         t = new TypePointer(tf); // pointer to function
                     continue;
                 }
-            default:
-                return t;
+                default:
+                    return t;
             }
             assert(0);
         }
         assert(0);
     }
 
-    Type parseDeclarator(Type t, int* palt, Identifier* pident, TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, Expressions** pudas = null)
+    Type parseDeclarator(Type t, int* palt, Identifier* pident,
+        TemplateParameters** tpl = null, StorageClass storageClass = 0,
+        int* pdisable = null, Expressions** pudas = null)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
         t = parseBasicType2(t);
         Type ts;
         switch (token.value)
         {
-        case TOKidentifier:
-            if (pident)
-                *pident = token.ident;
-            else
-                error("unexpected identifer '%s' in declarator", token.ident.toChars());
-            ts = t;
-            nextToken();
-            break;
-        case TOKlparen:
+            case TOKidentifier:
+                if (pident)
+                    *pident = token.ident;
+                else
+                    error("unexpected identifer '%s' in declarator", token.ident.toChars());
+                ts = t;
+                nextToken();
+                break;
+
+            case TOKlparen:
             {
                 // like: T (*fp)();
                 // like: T ((*fp))();
-                if (peekNext() == TOKmul || peekNext() == TOKlparen)
+                if (peekNext() == TOKmul ||
+                    peekNext() == TOKlparen)
                 {
                     /* Parse things with parentheses around the identifier, like:
                      *  int (*ident[3])[]
@@ -3536,6 +3615,7 @@ public:
                     break;
                 }
                 ts = t;
+
                 Token* peekt = &token;
                 /* Completely disallow C-style things like:
                  *   T (a);
@@ -3550,65 +3630,67 @@ public:
                     error("unexpected ( in declarator");
                 break;
             }
-        default:
-            ts = t;
-            break;
+            default:
+                ts = t;
+                break;
         }
+
         // parse DeclaratorSuffixes
         while (1)
         {
             switch (token.value)
             {
-                static if (CARRAYDECL)
-                {
-                    /* Support C style array syntax:
-                     *   int ident[]
-                     * as opposed to D-style:
-                     *   int[] ident
-                     */
+              static if (CARRAYDECL)
+              {
+                /* Support C style array syntax:
+                 *   int ident[]
+                 * as opposed to D-style:
+                 *   int[] ident
+                 */
                 case TOKlbracket:
+                {
+                    // This is the old C-style post [] syntax.
+                    TypeNext ta;
+                    nextToken();
+                    if (token.value == TOKrbracket)
                     {
-                        // This is the old C-style post [] syntax.
-                        TypeNext ta;
+                        // It's a dynamic array
+                        ta = new TypeDArray(t); // []
                         nextToken();
-                        if (token.value == TOKrbracket)
-                        {
-                            // It's a dynamic array
-                            ta = new TypeDArray(t); // []
-                            nextToken();
-                            *palt |= 2;
-                        }
-                        else if (isDeclaration(&token, NeedDeclaratorId.no, TOKrbracket, null))
-                        {
-                            // It's an associative array
-                            //printf("it's an associative array\n");
-                            Type index = parseType(); // [ type ]
-                            check(TOKrbracket);
-                            ta = new TypeAArray(t, index);
-                            *palt |= 2;
-                        }
-                        else
-                        {
-                            //printf("It's a static array\n");
-                            Expression e = parseAssignExp(); // [ expression ]
-                            ta = new TypeSArray(t, e);
-                            check(TOKrbracket);
-                            *palt |= 2;
-                        }
-                        /* Insert ta into
-                         *   ts -> ... -> t
-                         * so that
-                         *   ts -> ... -> ta -> t
-                         */
-                        Type* pt;
-                        for (pt = &ts; *pt != t; pt = &(cast(TypeNext)*pt).next)
-                        {
-                        }
-                        *pt = ta;
-                        continue;
+                        *palt |= 2;
                     }
+                    else if (isDeclaration(&token, NeedDeclaratorId.no, TOKrbracket, null))
+                    {
+                        // It's an associative array
+                        //printf("it's an associative array\n");
+                        Type index = parseType(); // [ type ]
+                        check(TOKrbracket);
+                        ta = new TypeAArray(t, index);
+                        *palt |= 2;
+                    }
+                    else
+                    {
+                        //printf("It's a static array\n");
+                        Expression e = parseAssignExp(); // [ expression ]
+                        ta = new TypeSArray(t, e);
+                        check(TOKrbracket);
+                        *palt |= 2;
+                    }
+
+                    /* Insert ta into
+                     *   ts -> ... -> t
+                     * so that
+                     *   ts -> ... -> ta -> t
+                     */
+                    Type* pt;
+                    for (pt = &ts; *pt != t; pt = &(cast(TypeNext)*pt).next)
+                    {
+                    }
+                    *pt = ta;
+                    continue;
                 }
-            case TOKlparen:
+              }
+                case TOKlparen:
                 {
                     if (tpl)
                     {
@@ -3619,6 +3701,7 @@ public:
                              * i.e. a function template declaration
                              */
                             //printf("function template declaration\n");
+
                             // Gather template parameter list
                             *tpl = parseTemplateParameterList();
                         }
@@ -3632,16 +3715,20 @@ public:
                             break;
                         }
                     }
+
                     int varargs;
                     Parameters* parameters = parseParameters(&varargs);
+
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
                      */
-                    StorageClass stc = parsePostfix(storageClass, pudas);
                     // merge prefix storage classes
+                    StorageClass stc = parsePostfix(storageClass, pudas);
+
                     Type tf = new TypeFunction(parameters, t, varargs, linkage, stc);
                     tf = tf.addSTC(stc);
                     if (pdisable)
                         *pdisable = stc & STCdisable ? 1 : 0;
+
                     /* Insert tf into
                      *   ts -> ... -> t
                      * so that
@@ -3654,100 +3741,81 @@ public:
                     *pt = tf;
                     break;
                 }
-            default:
-                break;
+                default:
+                    break;
             }
             break;
         }
         return ts;
     }
 
-    void parseStorageClasses(ref StorageClass storage_class, ref LINK link, ref uint structalign, ref Expressions* udas)
+    void parseStorageClasses(ref StorageClass storage_class,
+        ref LINK link, ref uint structalign, ref Expressions* udas)
     {
         StorageClass stc;
         bool sawLinkage = false; // seen a linkage declaration
+
         while (1)
         {
             switch (token.value)
             {
-            case TOKconst:
-                if (peek(&token).value == TOKlparen)
-                    break;
-                // const as type constructor
-                stc = STCconst; // const as storage class
-                goto L1;
-            case TOKimmutable:
-                if (peek(&token).value == TOKlparen)
-                    break;
-                stc = STCimmutable;
-                goto L1;
-            case TOKshared:
-                if (peek(&token).value == TOKlparen)
-                    break;
-                stc = STCshared;
-                goto L1;
-            case TOKwild:
-                if (peek(&token).value == TOKlparen)
-                    break;
-                stc = STCwild;
-                goto L1;
-            case TOKstatic:
-                stc = STCstatic;
-                goto L1;
-            case TOKfinal:
-                stc = STCfinal;
-                goto L1;
-            case TOKauto:
-                stc = STCauto;
-                goto L1;
-            case TOKscope:
-                stc = STCscope;
-                goto L1;
-            case TOKoverride:
-                stc = STCoverride;
-                goto L1;
-            case TOKabstract:
-                stc = STCabstract;
-                goto L1;
-            case TOKsynchronized:
-                stc = STCsynchronized;
-                goto L1;
-            case TOKdeprecated:
-                stc = STCdeprecated;
-                goto L1;
-            case TOKnothrow:
-                stc = STCnothrow;
-                goto L1;
-            case TOKpure:
-                stc = STCpure;
-                goto L1;
-            case TOKref:
-                stc = STCref;
-                goto L1;
-            case TOKgshared:
-                stc = STCgshared;
-                goto L1;
-            case TOKenum:
-                stc = STCmanifest;
-                goto L1;
-            case TOKat:
+                case TOKconst:
+                    if (peek(&token).value == TOKlparen)
+                        break;      // const as type constructor
+                    stc = STCconst; // const as storage class
+                    goto L1;
+
+                case TOKimmutable:
+                    if (peek(&token).value == TOKlparen)
+                        break;
+                    stc = STCimmutable;
+                    goto L1;
+
+                case TOKshared:
+                    if (peek(&token).value == TOKlparen)
+                        break;
+                    stc = STCshared;
+                    goto L1;
+
+                case TOKwild:
+                    if (peek(&token).value == TOKlparen)
+                        break;
+                    stc = STCwild;
+                    goto L1;
+
+                case TOKstatic:         stc = STCstatic;        goto L1;
+                case TOKfinal:          stc = STCfinal;         goto L1;
+                case TOKauto:           stc = STCauto;          goto L1;
+                case TOKscope:          stc = STCscope;         goto L1;
+                case TOKoverride:       stc = STCoverride;      goto L1;
+                case TOKabstract:       stc = STCabstract;      goto L1;
+                case TOKsynchronized:   stc = STCsynchronized;  goto L1;
+                case TOKdeprecated:     stc = STCdeprecated;    goto L1;
+                case TOKnothrow:        stc = STCnothrow;       goto L1;
+                case TOKpure:           stc = STCpure;          goto L1;
+                case TOKref:            stc = STCref;           goto L1;
+                case TOKgshared:        stc = STCgshared;       goto L1;
+                case TOKenum:           stc = STCmanifest;      goto L1;
+                case TOKat:
                 {
                     stc = parseAttribute(&udas);
                     if (stc)
                         goto L1;
                     continue;
                 }
-            L1:
-                storage_class = appendStorageClass(storage_class, stc);
-                nextToken();
-                continue;
-            case TOKextern:
+                L1:
+                    storage_class = appendStorageClass(storage_class, stc);
+                    nextToken();
+                    continue;
+
+                case TOKextern:
                 {
                     if (peek(&token).value != TOKlparen)
                     {
                         stc = STCextern;
                         goto L1;
                     }
+
                     if (sawLinkage)
                         error("redundant linkage declaration");
                     sawLinkage = true;
@@ -3759,7 +3827,7 @@ public:
                     }
                     continue;
                 }
-            case TOKalign:
+                case TOKalign:
                 {
                     nextToken();
                     if (token.value == TOKlparen)
@@ -3779,8 +3847,8 @@ public:
                         structalign = STRUCTALIGN_DEFAULT; // default
                     continue;
                 }
-            default:
-                break;
+                default:
+                    break;
             }
             break;
         }
@@ -3806,22 +3874,27 @@ public:
         Loc loc = token.loc;
         Expressions* udas = null;
         Token* tk;
+
         //printf("parseDeclarations() %s\n", token.toChars());
         if (!comment)
             comment = token.blockComment;
+
         if (autodecl)
         {
             ts = null; // infer type
             goto L2;
         }
+
         if (token.value == TOKalias)
         {
             tok = token.value;
             nextToken();
+
             /* Look for:
              *   alias identifier this;
              */
-            if (token.value == TOKidentifier && peekNext() == TOKthis)
+            if (token.value == TOKidentifier &&
+                peekNext() == TOKthis)
             {
                 auto s = new AliasThis(loc, token.ident);
                 nextToken();
@@ -3837,7 +3910,9 @@ public:
                 /* Look for:
                  *  alias this = identifier;
                  */
-                if (token.value == TOKthis && peekNext() == TOKassign && peekNext2() == TOKidentifier)
+                if (token.value == TOKthis &&
+                    peekNext() == TOKassign &&
+                    peekNext2() == TOKidentifier)
                 {
                     check(TOKthis);
                     check(TOKassign);
@@ -3854,7 +3929,9 @@ public:
              *  alias identifier = type;
              *  alias identifier(...) = type;
              */
-            if (token.value == TOKidentifier && skipParensIf(peek(&token), &tk) && tk.value == TOKassign)
+            if (token.value == TOKidentifier &&
+                skipParensIf(peek(&token), &tk) &&
+                tk.value == TOKassign)
             {
                 auto a = new Dsymbols();
                 while (1)
@@ -3922,28 +3999,30 @@ public:
 
                     switch (token.value)
                     {
-                    case TOKsemicolon:
-                        nextToken();
-                        addComment(s, comment);
-                        break;
-                    case TOKcomma:
-                        nextToken();
-                        addComment(s, comment);
-                        if (token.value != TOKidentifier)
-                        {
-                            error("identifier expected following comma, not %s", token.toChars());
-                            break;
-                        }
-                        if (peekNext() != TOKassign && peekNext() != TOKlparen)
-                        {
-                            error("= expected following identifier");
+                        case TOKsemicolon:
                             nextToken();
+                            addComment(s, comment);
                             break;
-                        }
-                        continue;
-                    default:
-                        error("semicolon expected to close %s declaration", Token.toChars(tok));
-                        break;
+
+                        case TOKcomma:
+                            nextToken();
+                            addComment(s, comment);
+                            if (token.value != TOKidentifier)
+                            {
+                                error("identifier expected following comma, not %s", token.toChars());
+                                break;
+                            }
+                            if (peekNext() != TOKassign && peekNext() != TOKlparen)
+                            {
+                                error("= expected following identifier");
+                                nextToken();
+                                break;
+                            }
+                            continue;
+
+                        default:
+                            error("semicolon expected to close %s declaration", Token.toChars(tok));
+                            break;
                     }
                     break;
                 }
@@ -3958,12 +4037,18 @@ public:
             tok = token.value;
             nextToken();
         }
+
         parseStorageClasses(storage_class, link, structalign, udas);
-        if (token.value == TOKstruct || token.value == TOKunion || token.value == TOKclass || token.value == TOKinterface)
+
+        if (token.value == TOKstruct ||
+            token.value == TOKunion ||
+            token.value == TOKclass ||
+            token.value == TOKinterface)
         {
             Dsymbol s = parseAggregate();
             auto a = new Dsymbols();
             a.push(s);
+
             if (storage_class)
             {
                 s = new StorageClassDeclaration(storage_class, a);
@@ -3988,14 +4073,19 @@ public:
                 a = new Dsymbols();
                 a.push(s);
             }
+
             addComment(s, comment);
             return a;
         }
+
         /* Look for auto initializers:
          *  storage_class identifier = initializer;
          *  storage_class identifier(...) = initializer;
          */
-        if ((storage_class || udas) && token.value == TOKidentifier && skipParensIf(peek(&token), &tk) && tk.value == TOKassign)
+        if ((storage_class || udas) &&
+            token.value == TOKidentifier &&
+            skipParensIf(peek(&token), &tk) &&
+            tk.value == TOKassign)
         {
             Dsymbols* a = parseAutoDeclarations(storage_class, comment);
             if (udas)
@@ -4006,9 +4096,18 @@ public:
             }
             return a;
         }
+
         /* Look for return type inference for template functions.
          */
-        if ((storage_class || udas) && token.value == TOKidentifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) && (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin || tk.value == TOKout || tk.value == TOKbody))
+        if ((storage_class || udas) &&
+            token.value == TOKidentifier &&
+            skipParens(peek(&token), &tk) &&
+            skipAttributes(tk, &tk) &&
+            (tk.value == TOKlparen ||
+             tk.value == TOKlcurly ||
+             tk.value == TOKin ||
+             tk.value == TOKout ||
+             tk.value == TOKbody))
         {
             ts = null;
         }
@@ -4017,19 +4116,23 @@ public:
             ts = parseBasicType();
             ts = parseBasicType2(ts);
         }
+
     L2:
         tfirst = null;
         auto a = new Dsymbols();
+
         if (pAttrs)
         {
             storage_class |= pAttrs.storageClass;
             //pAttrs->storageClass = STCundefined;
         }
+
         while (1)
         {
             TemplateParameters* tpl = null;
             int disable;
             int alt = 0;
+
             loc = token.loc;
             ident = null;
             t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas);
@@ -4038,23 +4141,28 @@ public:
                 tfirst = t;
             else if (t != tfirst)
                 error("multiple declarations must have the same type, not %s and %s", tfirst.toChars(), t.toChars());
+
             bool isThis = (t.ty == Tident && (cast(TypeIdentifier)t).ident == Id.This && token.value == TOKassign);
             if (ident)
                 checkCstyleTypeSyntax(loc, t, alt, ident);
             else if (!isThis)
                 error("no identifier for declarator %s", t.toChars());
+
             if (tok == TOKtypedef || tok == TOKalias)
             {
                 Declaration v;
                 Initializer _init = null;
+
                 /* Aliases can no longer have multiple declarators, storage classes,
                  * linkages, or auto declarations.
                  * These never made any sense, anyway.
                  * The code below needs to be fixed to reject them.
                  * The grammar has already been fixed to preclude them.
                  */
+
                 if (udas)
                     error("user defined attributes not allowed for %s declarations", Token.toChars(tok));
+
                 if (token.value == TOKassign)
                 {
                     nextToken();
@@ -4069,7 +4177,8 @@ public:
                     if (_init)
                     {
                         if (isThis)
-                            error("cannot use syntax 'alias this = %s', use 'alias %s this' instead", _init.toChars(), _init.toChars());
+                            error("cannot use syntax 'alias this = %s', use 'alias %s this' instead",
+                                _init.toChars(), _init.toChars());
                         else
                             error("alias cannot have initializer");
                     }
@@ -4087,6 +4196,7 @@ public:
                     pAttrs.storageClass &= (STCsafe | STCsystem | STCtrusted);
                 }
                 Dsymbol s = v;
+
                 if (link != linkage)
                 {
                     auto ax = new Dsymbols();
@@ -4096,17 +4206,19 @@ public:
                 a.push(s);
                 switch (token.value)
                 {
-                case TOKsemicolon:
-                    nextToken();
-                    addComment(s, comment);
-                    break;
-                case TOKcomma:
-                    nextToken();
-                    addComment(s, comment);
-                    continue;
-                default:
-                    error("semicolon expected to close %s declaration", Token.toChars(tok));
-                    break;
+                    case TOKsemicolon:
+                        nextToken();
+                        addComment(s, comment);
+                        break;
+
+                    case TOKcomma:
+                        nextToken();
+                        addComment(s, comment);
+                        continue;
+
+                    default:
+                        error("semicolon expected to close %s declaration", Token.toChars(tok));
+                        break;
                 }
             }
             else if (t.ty == Tfunction)
@@ -4121,6 +4233,7 @@ public:
                             tpl = new TemplateParameters();
                     }
                 }
+
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
                 auto f = new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
                 if (pAttrs)
@@ -4128,6 +4241,7 @@ public:
                 if (tpl)
                     constraint = parseConstraint();
                 Dsymbol s = parseContracts(f);
+
                 /* A template parameter list means it's a function template
                  */
                 if (tpl)
@@ -4137,6 +4251,7 @@ public:
                     decldefs.push(s);
                     auto tempdecl = new TemplateDeclaration(loc, s.ident, tpl, constraint, decldefs);
                     s = tempdecl;
+
                     if (storage_class & STCstatic)
                     {
                         assert(f.storage_class & STCstatic);
@@ -4169,11 +4284,14 @@ public:
                     nextToken();
                     _init = parseInitializer();
                 }
+
                 auto v = new VarDeclaration(loc, t, ident, _init);
                 v.storage_class = storage_class;
                 if (pAttrs)
                     pAttrs.storageClass = STCundefined;
+
                 Dsymbol s = v;
+
                 if (tpl && _init)
                 {
                     auto a2 = new Dsymbols();
@@ -4196,17 +4314,19 @@ public:
                 a.push(s);
                 switch (token.value)
                 {
-                case TOKsemicolon:
-                    nextToken();
-                    addComment(s, comment);
-                    break;
-                case TOKcomma:
-                    nextToken();
-                    addComment(s, comment);
-                    continue;
-                default:
-                    error("semicolon expected, not '%s'", token.toChars());
-                    break;
+                    case TOKsemicolon:
+                        nextToken();
+                        addComment(s, comment);
+                        break;
+
+                    case TOKcomma:
+                        nextToken();
+                        addComment(s, comment);
+                        continue;
+
+                    default:
+                        error("semicolon expected, not '%s'", token.toChars());
+                        break;
                 }
             }
             break;
@@ -4217,38 +4337,42 @@ public:
     Dsymbol parseFunctionLiteral()
     {
         Loc loc = token.loc;
+
         TemplateParameters* tpl = null;
         Parameters* parameters = null;
         int varargs = 0;
         Type tret = null;
         StorageClass stc = 0;
         TOK save = TOKreserved;
+
         switch (token.value)
         {
-        case TOKfunction:
-        case TOKdelegate:
-            save = token.value;
-            nextToken();
-            if (token.value != TOKlparen && token.value != TOKlcurly)
-            {
-                // function type (parameters) { statements... }
-                // delegate type (parameters) { statements... }
-                tret = parseBasicType();
-                tret = parseBasicType2(tret); // function return type
-            }
-            if (token.value == TOKlparen)
-            {
-                // function (parameters) { statements... }
-                // delegate (parameters) { statements... }
-            }
-            else
-            {
-                // function { statements... }
-                // delegate { statements... }
-                break;
-            }
-            /* fall through to TOKlparen */
-        case TOKlparen:
+            case TOKfunction:
+            case TOKdelegate:
+                save = token.value;
+                nextToken();
+                if (token.value != TOKlparen && token.value != TOKlcurly)
+                {
+                    // function type (parameters) { statements... }
+                    // delegate type (parameters) { statements... }
+                    tret = parseBasicType();
+                    tret = parseBasicType2(tret); // function return type
+                }
+
+                if (token.value == TOKlparen)
+                {
+                    // function (parameters) { statements... }
+                    // delegate (parameters) { statements... }
+                }
+                else
+                {
+                    // function { statements... }
+                    // delegate { statements... }
+                    break;
+                }
+                /* fall through to TOKlparen */
+
+            case TOKlparen:
             {
                 // (parameters) => expression
                 // (parameters) { statements... }
@@ -4267,30 +4391,35 @@ public:
                 }
                 break;
             }
-        case TOKlcurly:
-            // { statements... }
-            break;
-        case TOKidentifier:
+            case TOKlcurly:
+                // { statements... }
+                break;
+
+            case TOKidentifier:
             {
                 // identifier => expression
                 parameters = new Parameters();
                 Identifier id = Identifier.generateId("__T");
                 Type t = new TypeIdentifier(loc, id);
                 parameters.push(new Parameter(0, t, token.ident, null));
+
                 tpl = new TemplateParameters();
                 TemplateParameter tp = new TemplateTypeParameter(loc, id, null, null);
                 tpl.push(tp);
+
                 nextToken();
                 break;
             }
-        default:
-            assert(0);
+            default:
+                assert(0);
         }
+
         if (!parameters)
             parameters = new Parameters();
         auto tf = new TypeFunction(parameters, tret, varargs, linkage, stc);
         tf = cast(TypeFunction)tf.addSTC(stc);
         auto fd = new FuncLiteralDeclaration(loc, Loc(), tf, save, null);
+
         if (token.value == TOKgoesto)
         {
             check(TOKgoesto);
@@ -4303,6 +4432,7 @@ public:
         {
             parseContracts(fd);
         }
+
         if (tpl)
         {
             // Wrap a template around function fd
@@ -4320,35 +4450,40 @@ public:
     FuncDeclaration parseContracts(FuncDeclaration f)
     {
         LINK linksave = linkage;
+
         bool literal = f.isFuncLiteralDeclaration() !is null;
+
         // The following is irrelevant, as it is overridden by sc->linkage in
         // TypeFunction::semantic
         linkage = LINKd; // nested functions have D linkage
     L1:
         switch (token.value)
         {
-        case TOKlcurly:
-            if (f.frequire || f.fensure)
-                error("missing body { ... } after in or out");
-            f.fbody = parseStatement(PSsemi);
-            f.endloc = endloc;
-            break;
-        case TOKbody:
-            nextToken();
-            f.fbody = parseStatement(PScurly);
-            f.endloc = endloc;
-            break;
-            version (none)
-            {
-                // Do we want this for function declarations, so we can do:
-                // int x, y, foo(), z;
+            case TOKlcurly:
+                if (f.frequire || f.fensure)
+                    error("missing body { ... } after in or out");
+                f.fbody = parseStatement(PSsemi);
+                f.endloc = endloc;
+                break;
+
+            case TOKbody:
+                nextToken();
+                f.fbody = parseStatement(PScurly);
+                f.endloc = endloc;
+                break;
+
+          version (none)
+          {
+            // Do we want this for function declarations, so we can do:
+            // int x, y, foo(), z;
             case TOKcomma:
                 nextToken();
                 continue;
-            }
-            version (none)
-            {
-                // Dumped feature
+          }
+
+          version (none)
+          {
+            // Dumped feature
             case TOKthrow:
                 if (!f.fthrows)
                     f.fthrows = new Types();
@@ -4367,56 +4502,62 @@ public:
                 }
                 check(TOKrparen);
                 goto L1;
-            }
-        case TOKin:
-            nextToken();
-            if (f.frequire)
-                error("redundant 'in' statement");
-            f.frequire = parseStatement(PScurly | PSscope);
-            goto L1;
-        case TOKout:
-            // parse: out (identifier) { statement }
-            nextToken();
-            if (token.value != TOKlcurly)
-            {
-                check(TOKlparen);
-                if (token.value != TOKidentifier)
-                    error("(identifier) following 'out' expected, not %s", token.toChars());
-                f.outId = token.ident;
+          }
+
+            case TOKin:
                 nextToken();
-                check(TOKrparen);
-            }
-            if (f.fensure)
-                error("redundant 'out' statement");
-            f.fensure = parseStatement(PScurly | PSscope);
-            goto L1;
-        case TOKsemicolon:
-            if (!literal)
-            {
-                if (f.frequire || f.fensure)
-                    error("missing body { ... } after in or out");
+                if (f.frequire)
+                    error("redundant 'in' statement");
+                f.frequire = parseStatement(PScurly | PSscope);
+                goto L1;
+
+            case TOKout:
+                // parse: out (identifier) { statement }
                 nextToken();
+                if (token.value != TOKlcurly)
+                {
+                    check(TOKlparen);
+                    if (token.value != TOKidentifier)
+                        error("(identifier) following 'out' expected, not %s", token.toChars());
+                    f.outId = token.ident;
+                    nextToken();
+                    check(TOKrparen);
+                }
+                if (f.fensure)
+                    error("redundant 'out' statement");
+                f.fensure = parseStatement(PScurly | PSscope);
+                goto L1;
+
+            case TOKsemicolon:
+                if (!literal)
+                {
+                    if (f.frequire || f.fensure)
+                        error("missing body { ... } after in or out");
+                    nextToken();
+                    break;
+                }
+                /* fall through */
+
+            default:
+                if (literal)
+                {
+                    const(char)* sbody = (f.frequire || f.fensure) ? "body " : "";
+                    error("missing %s{ ... } for function literal", sbody);
+                }
+                else if (!f.frequire && !f.fensure) // allow these even with no body
+                {
+                    error("semicolon expected following function declaration");
+                }
                 break;
-            }
-            /* fall through */
-        default:
-            if (literal)
-            {
-                const(char)* sbody = (f.frequire || f.fensure) ? "body " : "";
-                error("missing %s{ ... } for function literal", sbody);
-            }
-            else if (!f.frequire && !f.fensure) // allow these even with no body
-            {
-                error("semicolon expected following function declaration");
-            }
-            break;
         }
         if (literal && !f.fbody)
         {
             // Set empty function body for error recovery
             f.fbody = new CompoundStatement(Loc(), cast(Statement)null);
         }
+
         linkage = linksave;
+
         return f;
     }
 
@@ -4424,9 +4565,13 @@ public:
      */
     void checkDanglingElse(Loc elseloc)
     {
-        if (token.value != TOKelse && token.value != TOKcatch && token.value != TOKfinally && lookingForElse.linnum != 0)
+        if (token.value != TOKelse &&
+            token.value != TOKcatch &&
+            token.value != TOKfinally &&
+            lookingForElse.linnum != 0)
         {
-            warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
+            warning(elseloc, "else is dangling, add { } after condition at %s",
+                lookingForElse.toChars());
         }
     }
 
@@ -4434,8 +4579,9 @@ public:
     {
         if (!alt)
             return;
+
         const(char)* sp = !ident ? "" : " ";
-        const(char)* s = !ident ? "" : ident.toChars();
+        const(char)* s  = !ident ? "" : ident.toChars();
         if (alt & 1) // contains C-style function pointer syntax
             error(loc, "instead of C-style syntax, use D-style '%s%s%s'", t.toChars(), sp, s);
         else
@@ -4456,12 +4602,14 @@ public:
         Statement elsebody;
         bool isfinal;
         Loc loc = token.loc;
+
         //printf("parseStatement()\n");
         if (flags & PScurly && token.value != TOKlcurly)
             error("statement expected to be { }, not %s", token.toChars());
+
         switch (token.value)
         {
-        case TOKidentifier:
+            case TOKidentifier:
             {
                 /* A leading identifier can be a declaration, label, or expression.
                  * The easiest case to check first is label:
@@ -4494,69 +4642,70 @@ public:
                 }
                 // fallthrough to TOKdot
             }
-        case TOKdot:
-        case TOKtypeof:
-        case TOKvector:
-            /* Bugzilla 15163: If tokens can be handled as
-             * old C-style declaration or D expression, prefer the latter.
-             */
-            if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOKreserved, null))
-                goto Ldeclaration;
-            else
-                goto Lexp;
-        case TOKassert:
-        case TOKthis:
-        case TOKsuper:
-        case TOKint32v:
-        case TOKuns32v:
-        case TOKint64v:
-        case TOKuns64v:
-        case TOKint128v:
-        case TOKuns128v:
-        case TOKfloat32v:
-        case TOKfloat64v:
-        case TOKfloat80v:
-        case TOKimaginary32v:
-        case TOKimaginary64v:
-        case TOKimaginary80v:
-        case TOKcharv:
-        case TOKwcharv:
-        case TOKdcharv:
-        case TOKnull:
-        case TOKtrue:
-        case TOKfalse:
-        case TOKstring:
-        case TOKxstring:
-        case TOKlparen:
-        case TOKcast:
-        case TOKmul:
-        case TOKmin:
-        case TOKadd:
-        case TOKtilde:
-        case TOKnot:
-        case TOKplusplus:
-        case TOKminusminus:
-        case TOKnew:
-        case TOKdelete:
-        case TOKdelegate:
-        case TOKfunction:
-        case TOKtypeid:
-        case TOKis:
-        case TOKlbracket:
-        case TOKtraits:
-        case TOKfile:
-        case TOKline:
-        case TOKmodulestring:
-        case TOKfuncstring:
-        case TOKprettyfunc:
-        Lexp:
+            case TOKdot:
+            case TOKtypeof:
+            case TOKvector:
+                /* Bugzilla 15163: If tokens can be handled as
+                 * old C-style declaration or D expression, prefer the latter.
+                 */
+                if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOKreserved, null))
+                    goto Ldeclaration;
+                else
+                    goto Lexp;
+
+            case TOKassert:
+            case TOKthis:
+            case TOKsuper:
+            case TOKint32v:
+            case TOKuns32v:
+            case TOKint64v:
+            case TOKuns64v:
+            case TOKint128v:
+            case TOKuns128v:
+            case TOKfloat32v:
+            case TOKfloat64v:
+            case TOKfloat80v:
+            case TOKimaginary32v:
+            case TOKimaginary64v:
+            case TOKimaginary80v:
+            case TOKcharv:
+            case TOKwcharv:
+            case TOKdcharv:
+            case TOKnull:
+            case TOKtrue:
+            case TOKfalse:
+            case TOKstring:
+            case TOKxstring:
+            case TOKlparen:
+            case TOKcast:
+            case TOKmul:
+            case TOKmin:
+            case TOKadd:
+            case TOKtilde:
+            case TOKnot:
+            case TOKplusplus:
+            case TOKminusminus:
+            case TOKnew:
+            case TOKdelete:
+            case TOKdelegate:
+            case TOKfunction:
+            case TOKtypeid:
+            case TOKis:
+            case TOKlbracket:
+            case TOKtraits:
+            case TOKfile:
+            case TOKline:
+            case TOKmodulestring:
+            case TOKfuncstring:
+            case TOKprettyfunc:
+            Lexp:
             {
                 Expression exp = parseExpression();
                 check(TOKsemicolon, "statement");
                 s = new ExpStatement(loc, exp);
                 break;
             }
-        case TOKstatic:
+            case TOKstatic:
             {
                 // Look ahead to see if it's static assert() or static if()
                 Token* t = peek(&token);
@@ -4580,64 +4729,66 @@ public:
                 }
                 goto Ldeclaration;
             }
-        case TOKfinal:
-            if (peekNext() == TOKswitch)
-            {
-                nextToken();
-                isfinal = true;
-                goto Lswitch;
-            }
-            goto Ldeclaration;
-        case TOKwchar:
-        case TOKdchar:
-        case TOKbool:
-        case TOKchar:
-        case TOKint8:
-        case TOKuns8:
-        case TOKint16:
-        case TOKuns16:
-        case TOKint32:
-        case TOKuns32:
-        case TOKint64:
-        case TOKuns64:
-        case TOKint128:
-        case TOKuns128:
-        case TOKfloat32:
-        case TOKfloat64:
-        case TOKfloat80:
-        case TOKimaginary32:
-        case TOKimaginary64:
-        case TOKimaginary80:
-        case TOKcomplex32:
-        case TOKcomplex64:
-        case TOKcomplex80:
-        case TOKvoid:
-            // bug 7773: int.max is always a part of expression
-            if (peekNext() == TOKdot)
-                goto Lexp;
-            if (peekNext() == TOKlparen)
-                goto Lexp;
-        case TOKtypedef:
-        case TOKalias:
-        case TOKconst:
-        case TOKauto:
-        case TOKabstract:
-        case TOKextern:
-        case TOKalign:
-        case TOKimmutable:
-        case TOKshared:
-        case TOKwild:
-        case TOKdeprecated:
-        case TOKnothrow:
-        case TOKpure:
-        case TOKref:
-        case TOKgshared:
-        case TOKat:
-        case TOKstruct:
-        case TOKunion:
-        case TOKclass:
-        case TOKinterface:
-        Ldeclaration:
+            case TOKfinal:
+                if (peekNext() == TOKswitch)
+                {
+                    nextToken();
+                    isfinal = true;
+                    goto Lswitch;
+                }
+                goto Ldeclaration;
+
+            case TOKwchar:
+            case TOKdchar:
+            case TOKbool:
+            case TOKchar:
+            case TOKint8:
+            case TOKuns8:
+            case TOKint16:
+            case TOKuns16:
+            case TOKint32:
+            case TOKuns32:
+            case TOKint64:
+            case TOKuns64:
+            case TOKint128:
+            case TOKuns128:
+            case TOKfloat32:
+            case TOKfloat64:
+            case TOKfloat80:
+            case TOKimaginary32:
+            case TOKimaginary64:
+            case TOKimaginary80:
+            case TOKcomplex32:
+            case TOKcomplex64:
+            case TOKcomplex80:
+            case TOKvoid:
+                // bug 7773: int.max is always a part of expression
+                if (peekNext() == TOKdot)
+                    goto Lexp;
+                if (peekNext() == TOKlparen)
+                    goto Lexp;
+
+            case TOKtypedef:
+            case TOKalias:
+            case TOKconst:
+            case TOKauto:
+            case TOKabstract:
+            case TOKextern:
+            case TOKalign:
+            case TOKimmutable:
+            case TOKshared:
+            case TOKwild:
+            case TOKdeprecated:
+            case TOKnothrow:
+            case TOKpure:
+            case TOKref:
+            case TOKgshared:
+            case TOKat:
+            case TOKstruct:
+            case TOKunion:
+            case TOKclass:
+            case TOKinterface:
+            Ldeclaration:
             {
                 Dsymbols* a = parseDeclarations(false, null, null);
                 if (a.dim > 1)
@@ -4663,7 +4814,7 @@ public:
                     s = new ScopeStatement(loc, s);
                 break;
             }
-        case TOKenum:
+            case TOKenum:
             {
                 /* Determine if this is a manifest constant declaration,
                  * or a conventional enum.
@@ -4687,7 +4838,7 @@ public:
                     s = new ScopeStatement(loc, s);
                 break;
             }
-        case TOKmixin:
+            case TOKmixin:
             {
                 Token* t = peek(&token);
                 if (t.value == TOKlparen)
@@ -4712,13 +4863,14 @@ public:
                     s = new ScopeStatement(loc, s);
                 break;
             }
-        case TOKlcurly:
+            case TOKlcurly:
             {
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
+
                 nextToken();
                 //if (token.value == TOKsemicolon)
-                //error("use '{ }' for an empty statement, not a ';'");
+                //    error("use '{ }' for an empty statement, not a ';'");
                 auto statements = new Statements();
                 while (token.value != TOKrcurly && token.value != TOKeof)
                 {
@@ -4736,7 +4888,7 @@ public:
                 lookingForElse = lookingForElseSave;
                 break;
             }
-        case TOKwhile:
+            case TOKwhile:
             {
                 nextToken();
                 check(TOKlparen);
@@ -4747,21 +4899,23 @@ public:
                 s = new WhileStatement(loc, condition, _body, endloc);
                 break;
             }
-        case TOKsemicolon:
-            if (!(flags & PSsemi_ok))
-            {
-                if (flags & PSsemi)
-                    warning(loc, "use '{ }' for an empty statement, not a ';'");
-                else
-                    error("use '{ }' for an empty statement, not a ';'");
-            }
-            nextToken();
-            s = new ExpStatement(loc, cast(Expression)null);
-            break;
-        case TOKdo:
+            case TOKsemicolon:
+                if (!(flags & PSsemi_ok))
+                {
+                    if (flags & PSsemi)
+                        warning(loc, "use '{ }' for an empty statement, not a ';'");
+                    else
+                        error("use '{ }' for an empty statement, not a ';'");
+                }
+                nextToken();
+                s = new ExpStatement(loc, cast(Expression)null);
+                break;
+
+            case TOKdo:
             {
                 Statement _body;
                 Expression condition;
+
                 nextToken();
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
@@ -4778,11 +4932,12 @@ public:
                 s = new DoStatement(loc, _body, condition);
                 break;
             }
-        case TOKfor:
+            case TOKfor:
             {
                 Statement _init;
                 Expression condition;
                 Expression increment;
+
                 nextToken();
                 check(TOKlparen);
                 if (token.value == TOKsemicolon)
@@ -4822,17 +4977,20 @@ public:
                 s = new ForStatement(loc, _init, condition, increment, _body, endloc);
                 break;
             }
-        case TOKforeach:
-        case TOKforeach_reverse:
+            case TOKforeach:
+            case TOKforeach_reverse:
             {
                 TOK op = token.value;
+
                 nextToken();
                 check(TOKlparen);
+
                 auto parameters = new Parameters();
                 while (1)
                 {
                     Identifier ai = null;
                     Type at;
+
                     StorageClass storageClass = 0;
                     StorageClass stc = 0;
                 Lagain:
@@ -4843,39 +5001,44 @@ public:
                     }
                     switch (token.value)
                     {
-                    case TOKref:
-                        stc = STCref;
-                        goto Lagain;
-                    case TOKconst:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = STCconst;
+                        case TOKref:
+                            stc = STCref;
                             goto Lagain;
-                        }
-                        break;
-                    case TOKimmutable:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = STCimmutable;
-                            goto Lagain;
-                        }
-                        break;
-                    case TOKshared:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = STCshared;
-                            goto Lagain;
-                        }
-                        break;
-                    case TOKwild:
-                        if (peekNext() != TOKlparen)
-                        {
-                            stc = STCwild;
-                            goto Lagain;
-                        }
-                        break;
-                    default:
-                        break;
+
+                        case TOKconst:
+                            if (peekNext() != TOKlparen)
+                            {
+                                stc = STCconst;
+                                goto Lagain;
+                            }
+                            break;
+
+                        case TOKimmutable:
+                            if (peekNext() != TOKlparen)
+                            {
+                                stc = STCimmutable;
+                                goto Lagain;
+                            }
+                            break;
+
+                        case TOKshared:
+                            if (peekNext() != TOKlparen)
+                            {
+                                stc = STCshared;
+                                goto Lagain;
+                            }
+                            break;
+
+                        case TOKwild:
+                            if (peekNext() != TOKlparen)
+                            {
+                                stc = STCwild;
+                                goto Lagain;
+                            }
+                            break;
+
+                        default:
+                            break;
                     }
                     if (token.value == TOKidentifier)
                     {
@@ -4902,6 +5065,7 @@ public:
                     break;
                 }
                 check(TOKsemicolon);
+
                 Expression aggr = parseExpression();
                 if (token.value == TOKslice && parameters.dim == 1)
                 {
@@ -4922,12 +5086,14 @@ public:
                 }
                 break;
             }
-        case TOKif:
+            case TOKif:
             {
                 Parameter param = null;
                 Expression condition;
+
                 nextToken();
                 check(TOKlparen);
+
                 StorageClass storageClass = 0;
                 StorageClass stc = 0;
             LagainStc:
@@ -4938,44 +5104,52 @@ public:
                 }
                 switch (token.value)
                 {
-                case TOKref:
-                    stc = STCref;
-                    goto LagainStc;
-                case TOKauto:
-                    stc = STCauto;
-                    goto LagainStc;
-                case TOKconst:
-                    if (peekNext() != TOKlparen)
-                    {
-                        stc = STCconst;
+                    case TOKref:
+                        stc = STCref;
                         goto LagainStc;
-                    }
-                    break;
-                case TOKimmutable:
-                    if (peekNext() != TOKlparen)
-                    {
-                        stc = STCimmutable;
+
+                    case TOKauto:
+                        stc = STCauto;
                         goto LagainStc;
-                    }
-                    break;
-                case TOKshared:
-                    if (peekNext() != TOKlparen)
-                    {
-                        stc = STCshared;
-                        goto LagainStc;
-                    }
-                    break;
-                case TOKwild:
-                    if (peekNext() != TOKlparen)
-                    {
-                        stc = STCwild;
-                        goto LagainStc;
-                    }
-                    break;
-                default:
-                    break;
+
+                    case TOKconst:
+                        if (peekNext() != TOKlparen)
+                        {
+                            stc = STCconst;
+                            goto LagainStc;
+                        }
+                        break;
+
+                    case TOKimmutable:
+                        if (peekNext() != TOKlparen)
+                        {
+                            stc = STCimmutable;
+                            goto LagainStc;
+                        }
+                        break;
+
+                    case TOKshared:
+                        if (peekNext() != TOKlparen)
+                        {
+                            stc = STCshared;
+                            goto LagainStc;
+                        }
+                        break;
+
+                    case TOKwild:
+                        if (peekNext() != TOKlparen)
+                        {
+                            stc = STCwild;
+                            goto LagainStc;
+                        }
+                        break;
+
+                    default:
+                        break;
                 }
-                if (storageClass != 0 && token.value == TOKidentifier && peek(&token).value == TOKassign)
+                if (storageClass != 0 &&
+                    token.value == TOKidentifier &&
+                    peek(&token).value == TOKassign)
                 {
                     Identifier ai = token.ident;
                     Type at = null; // infer parameter type
@@ -4990,6 +5164,7 @@ public:
                     check(TOKassign);
                     param = new Parameter(storageClass, at, ai, null);
                 }
+
                 condition = parseExpression();
                 if (condition.op == TOKassign)
                     error("assignment cannot be used as a condition, perhaps == was meant?");
@@ -5015,81 +5190,85 @@ public:
                     s = null; // don't propagate parsing errors
                 break;
             }
-        case TOKscope:
-            if (peek(&token).value != TOKlparen)
-                goto Ldeclaration;
-            // scope used as storage class
-            nextToken();
-            check(TOKlparen);
-            if (token.value != TOKidentifier)
-            {
-                error("scope identifier expected");
-                goto Lerror;
-            }
-            else
-            {
-                TOK t = TOKon_scope_exit;
-                Identifier id = token.ident;
-                if (id == Id.exit)
-                    t = TOKon_scope_exit;
-                else if (id == Id.failure)
-                    t = TOKon_scope_failure;
-                else if (id == Id.success)
-                    t = TOKon_scope_success;
+            case TOKscope:
+                if (peek(&token).value != TOKlparen)
+                    goto Ldeclaration; // scope used as storage class
+                nextToken();
+                check(TOKlparen);
+                if (token.value != TOKidentifier)
+                {
+                    error("scope identifier expected");
+                    goto Lerror;
+                }
                 else
-                    error("valid scope identifiers are exit, failure, or success, not %s", id.toChars());
+                {
+                    TOK t = TOKon_scope_exit;
+                    Identifier id = token.ident;
+                    if (id == Id.exit)
+                        t = TOKon_scope_exit;
+                    else if (id == Id.failure)
+                        t = TOKon_scope_failure;
+                    else if (id == Id.success)
+                        t = TOKon_scope_success;
+                    else
+                        error("valid scope identifiers are exit, failure, or success, not %s", id.toChars());
+                    nextToken();
+                    check(TOKrparen);
+                    Statement st = parseStatement(PScurlyscope);
+                    s = new OnScopeStatement(loc, t, st);
+                    break;
+                }
+
+            case TOKdebug:
                 nextToken();
-                check(TOKrparen);
-                Statement st = parseStatement(PScurlyscope);
-                s = new OnScopeStatement(loc, t, st);
-                break;
-            }
-        case TOKdebug:
-            nextToken();
-            if (token.value == TOKassign)
-            {
-                error("debug conditions can only be declared at module scope");
+                if (token.value == TOKassign)
+                {
+                    error("debug conditions can only be declared at module scope");
+                    nextToken();
+                    nextToken();
+                    goto Lerror;
+                }
+                cond = parseDebugCondition();
+                goto Lcondition;
+
+            case TOKversion:
                 nextToken();
-                nextToken();
-                goto Lerror;
-            }
-            cond = parseDebugCondition();
-            goto Lcondition;
-        case TOKversion:
-            nextToken();
-            if (token.value == TOKassign)
-            {
-                error("version conditions can only be declared at module scope");
-                nextToken();
-                nextToken();
-                goto Lerror;
-            }
-            cond = parseVersionCondition();
-            goto Lcondition;
-        Lcondition:
+                if (token.value == TOKassign)
+                {
+                    error("version conditions can only be declared at module scope");
+                    nextToken();
+                    nextToken();
+                    goto Lerror;
+                }
+                cond = parseVersionCondition();
+                goto Lcondition;
+
+            Lcondition:
             {
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = loc;
                 ifbody = parseStatement(0);
                 lookingForElse = lookingForElseSave;
             }
-            elsebody = null;
-            if (token.value == TOKelse)
-            {
-                Loc elseloc = token.loc;
-                nextToken();
-                elsebody = parseStatement(0);
-                checkDanglingElse(elseloc);
-            }
-            s = new ConditionalStatement(loc, cond, ifbody, elsebody);
-            if (flags & PSscope)
-                s = new ScopeStatement(loc, s);
-            break;
-        case TOKpragma:
+                elsebody = null;
+                if (token.value == TOKelse)
+                {
+                    Loc elseloc = token.loc;
+                    nextToken();
+                    elsebody = parseStatement(0);
+                    checkDanglingElse(elseloc);
+                }
+                s = new ConditionalStatement(loc, cond, ifbody, elsebody);
+                if (flags & PSscope)
+                    s = new ScopeStatement(loc, s);
+                break;
+
+            case TOKpragma:
             {
                 Identifier ident;
                 Expressions* args = null;
                 Statement _body;
+
                 nextToken();
                 check(TOKlparen);
                 if (token.value != TOKidentifier)
@@ -5113,10 +5292,11 @@ public:
                 s = new PragmaStatement(loc, ident, args, _body);
                 break;
             }
-        case TOKswitch:
-            isfinal = false;
-            goto Lswitch;
-        Lswitch:
+            case TOKswitch:
+                isfinal = false;
+                goto Lswitch;
+
+            Lswitch:
             {
                 nextToken();
                 check(TOKlparen);
@@ -5126,11 +5306,12 @@ public:
                 s = new SwitchStatement(loc, condition, _body, isfinal);
                 break;
             }
-        case TOKcase:
+            case TOKcase:
             {
                 Expression exp;
                 Expressions cases; // array of Expression's
                 Expression last = null;
+
                 while (1)
                 {
                     nextToken();
@@ -5140,6 +5321,7 @@ public:
                         break;
                 }
                 check(TOKcolon);
+
                 /* case exp: .. case last:
                  */
                 if (token.value == TOKslice)
@@ -5151,10 +5333,14 @@ public:
                     last = parseAssignExp();
                     check(TOKcolon);
                 }
+
                 if (flags & PScurlyscope)
                 {
                     auto statements = new Statements();
-                    while (token.value != TOKcase && token.value != TOKdefault && token.value != TOKeof && token.value != TOKrcurly)
+                    while (token.value != TOKcase &&
+                           token.value != TOKdefault &&
+                           token.value != TOKeof &&
+                           token.value != TOKrcurly)
                     {
                         statements.push(parseStatement(PSsemi | PScurlyscope));
                     }
@@ -5163,6 +5349,7 @@ public:
                 else
                     s = parseStatement(PSsemi | PScurlyscope);
                 s = new ScopeStatement(loc, s);
+
                 if (last)
                 {
                     s = new CaseRangeStatement(loc, exp, last, s);
@@ -5178,14 +5365,18 @@ public:
                 }
                 break;
             }
-        case TOKdefault:
+            case TOKdefault:
             {
                 nextToken();
                 check(TOKcolon);
+
                 if (flags & PScurlyscope)
                 {
                     auto statements = new Statements();
-                    while (token.value != TOKcase && token.value != TOKdefault && token.value != TOKeof && token.value != TOKrcurly)
+                    while (token.value != TOKcase &&
+                           token.value != TOKdefault &&
+                           token.value != TOKeof &&
+                           token.value != TOKrcurly)
                     {
                         statements.push(parseStatement(PSsemi | PScurlyscope));
                     }
@@ -5197,7 +5388,7 @@ public:
                 s = new DefaultStatement(loc, s);
                 break;
             }
-        case TOKreturn:
+            case TOKreturn:
             {
                 Expression exp;
                 nextToken();
@@ -5209,7 +5400,7 @@ public:
                 s = new ReturnStatement(loc, exp);
                 break;
             }
-        case TOKbreak:
+            case TOKbreak:
             {
                 Identifier ident;
                 nextToken();
@@ -5224,7 +5415,7 @@ public:
                 s = new BreakStatement(loc, ident);
                 break;
             }
-        case TOKcontinue:
+            case TOKcontinue:
             {
                 Identifier ident;
                 nextToken();
@@ -5239,7 +5430,7 @@ public:
                 s = new ContinueStatement(loc, ident);
                 break;
             }
-        case TOKgoto:
+            case TOKgoto:
             {
                 Identifier ident;
                 nextToken();
@@ -5273,13 +5464,15 @@ public:
                 check(TOKsemicolon, "goto statement");
                 break;
             }
-        case TOKsynchronized:
+            case TOKsynchronized:
             {
                 Expression exp;
                 Statement _body;
+
                 Token* t = peek(&token);
                 if (skipAttributes(t, &t) && t.value == TOKclass)
                     goto Ldeclaration;
+
                 nextToken();
                 if (token.value == TOKlparen)
                 {
@@ -5293,10 +5486,11 @@ public:
                 s = new SynchronizedStatement(loc, exp, _body);
                 break;
             }
-        case TOKwith:
+            case TOKwith:
             {
                 Expression exp;
                 Statement _body;
+
                 nextToken();
                 check(TOKlparen);
                 exp = parseExpression();
@@ -5305,11 +5499,12 @@ public:
                 s = new WithStatement(loc, exp, _body);
                 break;
             }
-        case TOKtry:
+            case TOKtry:
             {
                 Statement _body;
                 Catches* catches = null;
                 Statement finalbody = null;
+
                 nextToken();
                 Loc lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
@@ -5322,6 +5517,7 @@ public:
                     Type t;
                     Identifier id;
                     Loc catchloc = token.loc;
+
                     nextToken();
                     if (token.value == TOKlcurly || token.value != TOKlparen)
                     {
@@ -5341,11 +5537,13 @@ public:
                         catches = new Catches();
                     catches.push(c);
                 }
+
                 if (token.value == TOKfinally)
                 {
                     nextToken();
                     finalbody = parseStatement(0);
                 }
+
                 s = _body;
                 if (!catches && !finalbody)
                     error("catch or finally expected following try");
@@ -5358,7 +5556,7 @@ public:
                 }
                 break;
             }
-        case TOKthrow:
+            case TOKthrow:
             {
                 Expression exp;
                 nextToken();
@@ -5367,23 +5565,27 @@ public:
                 s = new ThrowStatement(loc, exp);
                 break;
             }
-        case TOKvolatile:
-            nextToken();
-            s = parseStatement(PSsemi | PScurlyscope);
-            error("volatile statements no longer allowed; use synchronized statements instead");
-            s = new SynchronizedStatement(loc, cast(Expression)null, s);
-            break;
-        case TOKasm:
+            case TOKvolatile:
+                nextToken();
+                s = parseStatement(PSsemi | PScurlyscope);
+                error("volatile statements no longer allowed; use synchronized statements instead");
+                s = new SynchronizedStatement(loc, cast(Expression)null, s);
+                break;
+
+            case TOKasm:
             {
                 // Parse the asm block into a sequence of AsmStatements,
                 // each AsmStatement is one instruction.
                 // Separate out labels.
                 // Defer parsing of AsmStatements until semantic processing.
+
                 Loc labelloc;
+
                 nextToken();
                 StorageClass stc = parsePostfix(STCundefined, null);
                 if (stc & (STCconst | STCimmutable | STCshared | STCwild))
                     error("const/immutable/shared/inout attributes are not allowed on asm blocks");
+
                 check(TOKlcurly);
                 Token* toklist = null;
                 Token** ptoklist = &toklist;
@@ -5394,75 +5596,81 @@ public:
                 {
                     switch (token.value)
                     {
-                    case TOKidentifier:
-                        if (!toklist)
-                        {
-                            // Look ahead to see if it is a label
-                            Token* t = peek(&token);
-                            if (t.value == TOKcolon)
+                        case TOKidentifier:
+                            if (!toklist)
                             {
-                                // It's a label
-                                label = token.ident;
-                                labelloc = token.loc;
-                                nextToken();
-                                nextToken();
-                                continue;
+                                // Look ahead to see if it is a label
+                                Token* t = peek(&token);
+                                if (t.value == TOKcolon)
+                                {
+                                    // It's a label
+                                    label = token.ident;
+                                    labelloc = token.loc;
+                                    nextToken();
+                                    nextToken();
+                                    continue;
+                                }
                             }
-                        }
-                        goto Ldefault;
-                    case TOKlcurly:
-                        ++nestlevel;
-                        goto Ldefault;
-                    case TOKrcurly:
-                        if (nestlevel > 0)
-                        {
-                            --nestlevel;
                             goto Ldefault;
-                        }
-                        if (toklist || label)
-                        {
-                            error("asm statements must end in ';'");
+
+                        case TOKlcurly:
+                            ++nestlevel;
+                            goto Ldefault;
+
+                        case TOKrcurly:
+                            if (nestlevel > 0)
+                            {
+                                --nestlevel;
+                                goto Ldefault;
+                            }
+                            if (toklist || label)
+                            {
+                                error("asm statements must end in ';'");
+                            }
+                            break;
+
+                        case TOKsemicolon:
+                            if (nestlevel != 0)
+                                error("mismatched number of curly brackets");
+
+                            s = null;
+                            if (toklist || label)
+                            {
+                                // Create AsmStatement from list of tokens we've saved
+                                s = new AsmStatement(token.loc, toklist);
+                                toklist = null;
+                                ptoklist = &toklist;
+                                if (label)
+                                {
+                                    s = new LabelStatement(labelloc, label, s);
+                                    label = null;
+                                }
+                                statements.push(s);
+                            }
+                            nextToken();
+                            continue;
+
+                        case TOKeof:
+                            /* { */
+                            error("matching '}' expected, not end of file");
+                            goto Lerror;
+
+                        default:
+                        Ldefault:
+                            *ptoklist = Token.alloc();
+                            memcpy(*ptoklist, &token, Token.sizeof);
+                            ptoklist = &(*ptoklist).next;
+                            *ptoklist = null;
+                            nextToken();
+                            continue;
                         }
                         break;
-                    case TOKsemicolon:
-                        if (nestlevel != 0)
-                            error("mismatched number of curly brackets");
-                        s = null;
-                        if (toklist || label)
-                        {
-                            // Create AsmStatement from list of tokens we've saved
-                            s = new AsmStatement(token.loc, toklist);
-                            toklist = null;
-                            ptoklist = &toklist;
-                            if (label)
-                            {
-                                s = new LabelStatement(labelloc, label, s);
-                                label = null;
-                            }
-                            statements.push(s);
-                        }
-                        nextToken();
-                        continue;
-                    case TOKeof:
-                        /* { */
-                        error("matching '}' expected, not end of file");
-                        goto Lerror;
-                    default:
-                    Ldefault:
-                        *ptoklist = Token.alloc();
-                        memcpy(*ptoklist, &token, Token.sizeof);
-                        ptoklist = &(*ptoklist).next;
-                        *ptoklist = null;
-                        nextToken();
-                        continue;
-                    }
-                    break;
                 }
                 s = new CompoundAsmStatement(loc, statements, stc);
                 nextToken();
                 break;
             }
-        case TOKimport:
+            case TOKimport:
             {
                 Dsymbols* imports = parseImport();
                 s = new ImportStatement(loc, imports);
@@ -5470,22 +5678,25 @@ public:
                     s = new ScopeStatement(loc, s);
                 break;
             }
-        case TOKtemplate:
+            case TOKtemplate:
             {
                 Dsymbol d = parseTemplateDeclaration();
                 s = new ExpStatement(loc, d);
                 break;
             }
-        default:
-            error("found '%s' instead of statement", token.toChars());
-            goto Lerror;
-        Lerror:
-            while (token.value != TOKrcurly && token.value != TOKsemicolon && token.value != TOKeof)
-                nextToken();
-            if (token.value == TOKsemicolon)
-                nextToken();
-            s = null;
-            break;
+            default:
+                error("found '%s' instead of statement", token.toChars());
+                goto Lerror;
+
+            Lerror:
+                while (token.value != TOKrcurly &&
+                       token.value != TOKsemicolon &&
+                       token.value != TOKeof)
+                    nextToken();
+                if (token.value == TOKsemicolon)
+                    nextToken();
+                s = null;
+                break;
         }
         return s;
     }
@@ -5506,192 +5717,216 @@ public:
         Token* t;
         int braces;
         int brackets;
+
         switch (token.value)
         {
-        case TOKlcurly:
-            /* Scan ahead to see if it is a struct initializer or
-             * a function literal.
-             * If it contains a ';', it is a function literal.
-             * Treat { } as a struct initializer.
-             */
-            braces = 1;
-            for (t = peek(&token); 1; t = peek(t))
-            {
-                switch (t.value)
+            case TOKlcurly:
+                /* Scan ahead to see if it is a struct initializer or
+                 * a function literal.
+                 * If it contains a ';', it is a function literal.
+                 * Treat { } as a struct initializer.
+                 */
+                braces = 1;
+                for (t = peek(&token); 1; t = peek(t))
                 {
-                case TOKsemicolon:
-                case TOKreturn:
-                    goto Lexpression;
-                case TOKlcurly:
-                    braces++;
-                    continue;
-                case TOKrcurly:
-                    if (--braces == 0)
-                        break;
-                    continue;
-                case TOKeof:
-                    break;
-                default:
-                    continue;
-                }
-                break;
-            }
-            _is = new StructInitializer(loc);
-            nextToken();
-            comma = 2;
-            while (1)
-            {
-                switch (token.value)
-                {
-                case TOKidentifier:
-                    if (comma == 1)
-                        error("comma expected separating field initializers");
-                    t = peek(&token);
-                    if (t.value == TOKcolon)
+                    switch (t.value)
                     {
-                        id = token.ident;
-                        nextToken();
-                        nextToken(); // skip over ':'
-                    }
-                    else
-                    {
-                        id = null;
-                    }
-                    value = parseInitializer();
-                    _is.addInit(id, value);
-                    comma = 1;
-                    continue;
-                case TOKcomma:
-                    if (comma == 2)
-                        error("expression expected, not ','");
-                    nextToken();
-                    comma = 2;
-                    continue;
-                case TOKrcurly:
-                    // allow trailing comma's
-                    nextToken();
-                    break;
-                case TOKeof:
-                    error("found EOF instead of initializer");
-                    break;
-                default:
-                    if (comma == 1)
-                        error("comma expected separating field initializers");
-                    value = parseInitializer();
-                    _is.addInit(null, value);
-                    comma = 1;
-                    continue;
-                    //error("found '%s' instead of field initializer", token.toChars());
-                    //break;
-                }
-                break;
-            }
-            return _is;
-        case TOKlbracket:
-            /* Scan ahead to see if it is an array initializer or
-             * an expression.
-             * If it ends with a ';' ',' or '}', it is an array initializer.
-             */
-            brackets = 1;
-            for (t = peek(&token); 1; t = peek(t))
-            {
-                switch (t.value)
-                {
-                case TOKlbracket:
-                    brackets++;
-                    continue;
-                case TOKrbracket:
-                    if (--brackets == 0)
-                    {
-                        t = peek(t);
-                        if (t.value != TOKsemicolon && t.value != TOKcomma && t.value != TOKrbracket && t.value != TOKrcurly)
+                        case TOKsemicolon:
+                        case TOKreturn:
                             goto Lexpression;
-                        break;
+
+                        case TOKlcurly:
+                            braces++;
+                            continue;
+
+                        case TOKrcurly:
+                            if (--braces == 0)
+                                break;
+                            continue;
+
+                        case TOKeof:
+                            break;
+
+                        default:
+                            continue;
                     }
-                    continue;
-                case TOKeof:
-                    break;
-                default:
-                    continue;
-                }
-                break;
-            }
-            ia = new ArrayInitializer(loc);
-            nextToken();
-            comma = 2;
-            while (1)
-            {
-                switch (token.value)
-                {
-                default:
-                    if (comma == 1)
-                    {
-                        error("comma expected separating array initializers, not %s", token.toChars());
-                        nextToken();
-                        break;
-                    }
-                    e = parseAssignExp();
-                    if (!e)
-                        break;
-                    if (token.value == TOKcolon)
-                    {
-                        nextToken();
-                        value = parseInitializer();
-                    }
-                    else
-                    {
-                        value = new ExpInitializer(e.loc, e);
-                        e = null;
-                    }
-                    ia.addInit(e, value);
-                    comma = 1;
-                    continue;
-                case TOKlcurly:
-                case TOKlbracket:
-                    if (comma == 1)
-                        error("comma expected separating array initializers, not %s", token.toChars());
-                    value = parseInitializer();
-                    if (token.value == TOKcolon)
-                    {
-                        nextToken();
-                        e = value.toExpression();
-                        value = parseInitializer();
-                    }
-                    else
-                        e = null;
-                    ia.addInit(e, value);
-                    comma = 1;
-                    continue;
-                case TOKcomma:
-                    if (comma == 2)
-                        error("expression expected, not ','");
-                    nextToken();
-                    comma = 2;
-                    continue;
-                case TOKrbracket:
-                    // allow trailing comma's
-                    nextToken();
-                    break;
-                case TOKeof:
-                    error("found '%s' instead of array initializer", token.toChars());
                     break;
                 }
-                break;
-            }
-            return ia;
-        case TOKvoid:
-            t = peek(&token);
-            if (t.value == TOKsemicolon || t.value == TOKcomma)
-            {
+
+                _is = new StructInitializer(loc);
                 nextToken();
-                return new VoidInitializer(loc);
-            }
-            goto Lexpression;
-        default:
-        Lexpression:
-            e = parseAssignExp();
-            ie = new ExpInitializer(loc, e);
-            return ie;
+                comma = 2;
+                while (1)
+                {
+                    switch (token.value)
+                    {
+                        case TOKidentifier:
+                            if (comma == 1)
+                                error("comma expected separating field initializers");
+                            t = peek(&token);
+                            if (t.value == TOKcolon)
+                            {
+                                id = token.ident;
+                                nextToken();
+                                nextToken(); // skip over ':'
+                            }
+                            else
+                            {
+                                id = null;
+                            }
+                            value = parseInitializer();
+                            _is.addInit(id, value);
+                            comma = 1;
+                            continue;
+
+                        case TOKcomma:
+                            if (comma == 2)
+                                error("expression expected, not ','");
+                            nextToken();
+                            comma = 2;
+                            continue;
+
+                        case TOKrcurly: // allow trailing comma's
+                            nextToken();
+                            break;
+
+                        case TOKeof:
+                            error("found EOF instead of initializer");
+                            break;
+
+                        default:
+                            if (comma == 1)
+                                error("comma expected separating field initializers");
+                            value = parseInitializer();
+                            _is.addInit(null, value);
+                            comma = 1;
+                            continue;
+                            //error("found '%s' instead of field initializer", token.toChars());
+                            //break;
+                    }
+                    break;
+                }
+                return _is;
+
+            case TOKlbracket:
+                /* Scan ahead to see if it is an array initializer or
+                 * an expression.
+                 * If it ends with a ';' ',' or '}', it is an array initializer.
+                 */
+                brackets = 1;
+                for (t = peek(&token); 1; t = peek(t))
+                {
+                    switch (t.value)
+                    {
+                        case TOKlbracket:
+                            brackets++;
+                            continue;
+
+                        case TOKrbracket:
+                            if (--brackets == 0)
+                            {
+                                t = peek(t);
+                                if (t.value != TOKsemicolon &&
+                                    t.value != TOKcomma &&
+                                    t.value != TOKrbracket &&
+                                    t.value != TOKrcurly)
+                                {
+                                    goto Lexpression;
+                                }
+                                break;
+                            }
+                            continue;
+
+                        case TOKeof:
+                            break;
+
+                        default:
+                            continue;
+                    }
+                    break;
+                }
+
+                ia = new ArrayInitializer(loc);
+                nextToken();
+                comma = 2;
+                while (1)
+                {
+                    switch (token.value)
+                    {
+                        default:
+                            if (comma == 1)
+                            {
+                                error("comma expected separating array initializers, not %s", token.toChars());
+                                nextToken();
+                                break;
+                            }
+                            e = parseAssignExp();
+                            if (!e)
+                                break;
+                            if (token.value == TOKcolon)
+                            {
+                                nextToken();
+                                value = parseInitializer();
+                            }
+                            else
+                            {
+                                value = new ExpInitializer(e.loc, e);
+                                e = null;
+                            }
+                            ia.addInit(e, value);
+                            comma = 1;
+                            continue;
+
+                        case TOKlcurly:
+                        case TOKlbracket:
+                            if (comma == 1)
+                                error("comma expected separating array initializers, not %s", token.toChars());
+                            value = parseInitializer();
+                            if (token.value == TOKcolon)
+                            {
+                                nextToken();
+                                e = value.toExpression();
+                                value = parseInitializer();
+                            }
+                            else
+                                e = null;
+                            ia.addInit(e, value);
+                            comma = 1;
+                            continue;
+
+                        case TOKcomma:
+                            if (comma == 2)
+                                error("expression expected, not ','");
+                            nextToken();
+                            comma = 2;
+                            continue;
+
+                        case TOKrbracket: // allow trailing comma's
+                            nextToken();
+                            break;
+
+                        case TOKeof:
+                            error("found '%s' instead of array initializer", token.toChars());
+                            break;
+                    }
+                    break;
+                }
+                return ia;
+
+            case TOKvoid:
+                t = peek(&token);
+                if (t.value == TOKsemicolon || t.value == TOKcomma)
+                {
+                    nextToken();
+                    return new VoidInitializer(loc);
+                }
+                goto Lexpression;
+
+            default:
+            Lexpression:
+                e = parseAssignExp();
+                ie = new ExpInitializer(loc, e);
+                return ie;
         }
     }
 
@@ -5701,7 +5936,11 @@ public:
      */
     Expression parseDefaultInitExp()
     {
-        if (token.value == TOKfile || token.value == TOKline || token.value == TOKmodulestring || token.value == TOKfuncstring || token.value == TOKprettyfunc)
+        if (token.value == TOKfile ||
+            token.value == TOKline ||
+            token.value == TOKmodulestring ||
+            token.value == TOKfuncstring ||
+            token.value == TOKprettyfunc)
         {
             Token* t = peek(&token);
             if (t.value == TOKcomma || t.value == TOKrparen)
@@ -5730,7 +5969,10 @@ public:
     void check(Loc loc, TOK value)
     {
         if (token.value != value)
-            error(loc, "found '%s' when expecting '%s'", token.toChars(), Token.toChars(value));
+        {
+            error(loc, "found '%s' when expecting '%s'",
+                token.toChars(), Token.toChars(value));
+        }
         nextToken();
     }
 
@@ -5742,14 +5984,20 @@ public:
     void check(TOK value, const(char)* string)
     {
         if (token.value != value)
-            error("found '%s' when expecting '%s' following %s", token.toChars(), Token.toChars(value), string);
+        {
+            error("found '%s' when expecting '%s' following %s",
+                token.toChars(), Token.toChars(value), string);
+        }
         nextToken();
     }
 
     void checkParens(TOK value, Expression e)
     {
         if (precedence[e.op] == PREC_rel && !e.parens)
-            error(e.loc, "%s must be parenthesized when next to operator %s", e.toChars(), Token.toChars(value));
+        {
+            error(e.loc, "%s must be parenthesized when next to operator %s",
+                e.toChars(), Token.toChars(value));
+        }
     }
 
     enum NeedDeclaratorId
@@ -5772,9 +6020,14 @@ public:
         //printf("isDeclaration(needId = %d)\n", needId);
         int haveId = 0;
         int haveTpl = 0;
+
         while (1)
         {
-            if ((t.value == TOKconst || t.value == TOKimmutable || t.value == TOKwild || t.value == TOKshared) && peek(t).value != TOKlparen)
+            if ((t.value == TOKconst ||
+                 t.value == TOKimmutable ||
+                 t.value == TOKwild ||
+                 t.value == TOKshared) &&
+                peek(t).value != TOKlparen)
             {
                 /* const type
                  * immutable type
@@ -5786,6 +6039,7 @@ public:
             }
             break;
         }
+
         if (!isBasicType(&t))
         {
             goto Lisnot;
@@ -5803,9 +6057,11 @@ public:
         }
         else
             goto Lisnot;
+
     Lis:
         //printf("\tis declaration, t = %s\n", t->toChars());
         return true;
+
     Lisnot:
         //printf("\tis not declaration\n");
         return false;
@@ -5817,275 +6073,272 @@ public:
         Token* t = *pt;
         switch (t.value)
         {
-        case TOKwchar:
-        case TOKdchar:
-        case TOKbool:
-        case TOKchar:
-        case TOKint8:
-        case TOKuns8:
-        case TOKint16:
-        case TOKuns16:
-        case TOKint32:
-        case TOKuns32:
-        case TOKint64:
-        case TOKuns64:
-        case TOKint128:
-        case TOKuns128:
-        case TOKfloat32:
-        case TOKfloat64:
-        case TOKfloat80:
-        case TOKimaginary32:
-        case TOKimaginary64:
-        case TOKimaginary80:
-        case TOKcomplex32:
-        case TOKcomplex64:
-        case TOKcomplex80:
-        case TOKvoid:
-            t = peek(t);
-            break;
-        case TOKidentifier:
-        L5:
-            t = peek(t);
-            if (t.value == TOKnot)
-            {
-                goto L4;
-            }
-            goto L3;
-            while (1)
-            {
-            L2:
+            case TOKwchar:
+            case TOKdchar:
+            case TOKbool:
+            case TOKchar:
+            case TOKint8:           case TOKuns8:
+            case TOKint16:          case TOKuns16:
+            case TOKint32:          case TOKuns32:
+            case TOKint64:          case TOKuns64:
+            case TOKint128:         case TOKuns128:
+            case TOKfloat32:        case TOKfloat64:        case TOKfloat80:
+            case TOKimaginary32:    case TOKimaginary64:    case TOKimaginary80:
+            case TOKcomplex32:      case TOKcomplex64:      case TOKcomplex80:
+            case TOKvoid:
                 t = peek(t);
-            L3:
-                if (t.value == TOKdot)
+                break;
+
+            case TOKidentifier:
+            L5:
+                t = peek(t);
+                if (t.value == TOKnot)
                 {
-                Ldot:
-                    t = peek(t);
-                    if (t.value != TOKidentifier)
-                        goto Lfalse;
-                    t = peek(t);
-                    if (t.value != TOKnot)
-                        goto L3;
-                L4:
-                    /* Seen a !
-                     * Look for:
-                     * !( args ), !identifier, etc.
-                     */
-                    t = peek(t);
-                    switch (t.value)
-                    {
-                    case TOKidentifier:
-                        goto L5;
-                    case TOKlparen:
-                        if (!skipParens(t, &t))
-                            goto Lfalse;
-                        goto L3;
-                    case TOKwchar:
-                    case TOKdchar:
-                    case TOKbool:
-                    case TOKchar:
-                    case TOKint8:
-                    case TOKuns8:
-                    case TOKint16:
-                    case TOKuns16:
-                    case TOKint32:
-                    case TOKuns32:
-                    case TOKint64:
-                    case TOKuns64:
-                    case TOKint128:
-                    case TOKuns128:
-                    case TOKfloat32:
-                    case TOKfloat64:
-                    case TOKfloat80:
-                    case TOKimaginary32:
-                    case TOKimaginary64:
-                    case TOKimaginary80:
-                    case TOKcomplex32:
-                    case TOKcomplex64:
-                    case TOKcomplex80:
-                    case TOKvoid:
-                    case TOKint32v:
-                    case TOKuns32v:
-                    case TOKint64v:
-                    case TOKuns64v:
-                    case TOKint128v:
-                    case TOKuns128v:
-                    case TOKfloat32v:
-                    case TOKfloat64v:
-                    case TOKfloat80v:
-                    case TOKimaginary32v:
-                    case TOKimaginary64v:
-                    case TOKimaginary80v:
-                    case TOKnull:
-                    case TOKtrue:
-                    case TOKfalse:
-                    case TOKcharv:
-                    case TOKwcharv:
-                    case TOKdcharv:
-                    case TOKstring:
-                    case TOKxstring:
-                    case TOKfile:
-                    case TOKline:
-                    case TOKmodulestring:
-                    case TOKfuncstring:
-                    case TOKprettyfunc:
-                        goto L2;
-                    default:
-                        goto Lfalse;
-                    }
+                    goto L4;
                 }
-                else
-                    break;
-            }
-            break;
-        case TOKdot:
-            goto Ldot;
-        case TOKtypeof:
-        case TOKvector:
-            /* typeof(exp).identifier...
-             */
-            t = peek(t);
-            if (!skipParens(t, &t))
+                goto L3;
+                while (1)
+                {
+                L2:
+                    t = peek(t);
+                L3:
+                    if (t.value == TOKdot)
+                    {
+                    Ldot:
+                        t = peek(t);
+                        if (t.value != TOKidentifier)
+                            goto Lfalse;
+                        t = peek(t);
+                        if (t.value != TOKnot)
+                            goto L3;
+                    L4:
+                        /* Seen a !
+                         * Look for:
+                         * !( args ), !identifier, etc.
+                         */
+                        t = peek(t);
+                        switch (t.value)
+                        {
+                            case TOKidentifier:
+                                goto L5;
+
+                            case TOKlparen:
+                                if (!skipParens(t, &t))
+                                    goto Lfalse;
+                                goto L3;
+
+                            case TOKwchar:
+                            case TOKdchar:
+                            case TOKbool:
+                            case TOKchar:
+                            case TOKint8:           case TOKuns8:
+                            case TOKint16:          case TOKuns16:
+                            case TOKint32:          case TOKuns32:
+                            case TOKint64:          case TOKuns64:
+                            case TOKint128:         case TOKuns128:
+                            case TOKfloat32:        case TOKfloat64:        case TOKfloat80:
+                            case TOKimaginary32:    case TOKimaginary64:    case TOKimaginary80:
+                            case TOKcomplex32:      case TOKcomplex64:      case TOKcomplex80:
+                            case TOKvoid:
+                            case TOKint32v:
+                            case TOKuns32v:
+                            case TOKint64v:
+                            case TOKuns64v:
+                            case TOKint128v:
+                            case TOKuns128v:
+                            case TOKfloat32v:
+                            case TOKfloat64v:
+                            case TOKfloat80v:
+                            case TOKimaginary32v:
+                            case TOKimaginary64v:
+                            case TOKimaginary80v:
+                            case TOKnull:
+                            case TOKtrue:
+                            case TOKfalse:
+                            case TOKcharv:
+                            case TOKwcharv:
+                            case TOKdcharv:
+                            case TOKstring:
+                            case TOKxstring:
+                            case TOKfile:
+                            case TOKline:
+                            case TOKmodulestring:
+                            case TOKfuncstring:
+                            case TOKprettyfunc:
+                                goto L2;
+
+                            default:
+                                goto Lfalse;
+                        }
+                    }
+                    else
+                        break;
+                }
+                break;
+
+            case TOKdot:
+                goto Ldot;
+
+            case TOKtypeof:
+            case TOKvector:
+                /* typeof(exp).identifier...
+                 */
+                t = peek(t);
+                if (!skipParens(t, &t))
+                    goto Lfalse;
+                goto L3;
+
+            case TOKconst:
+            case TOKimmutable:
+            case TOKshared:
+            case TOKwild:
+                // const(type)  or  immutable(type)  or  shared(type)  or  wild(type)
+                t = peek(t);
+                if (t.value != TOKlparen)
+                    goto Lfalse;
+                t = peek(t);
+                if (!isDeclaration(t, NeedDeclaratorId.no, TOKrparen, &t))
+                {
+                    goto Lfalse;
+                }
+                t = peek(t);
+                break;
+
+            default:
                 goto Lfalse;
-            goto L3;
-        case TOKconst:
-        case TOKimmutable:
-        case TOKshared:
-        case TOKwild:
-            // const(type)  or  immutable(type)  or  shared(type)  or  wild(type)
-            t = peek(t);
-            if (t.value != TOKlparen)
-                goto Lfalse;
-            t = peek(t);
-            if (!isDeclaration(t, NeedDeclaratorId.no, TOKrparen, &t))
-            {
-                goto Lfalse;
-            }
-            t = peek(t);
-            break;
-        default:
-            goto Lfalse;
         }
         *pt = t;
         //printf("is\n");
         return true;
+
     Lfalse:
         //printf("is not\n");
         return false;
     }
 
-    bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok, bool allowAltSyntax = true)
+    bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok,
+        bool allowAltSyntax = true)
     {
         // This code parallels parseDeclarator()
         Token* t = *pt;
         int parens;
+
         //printf("Parser::isDeclarator() %s\n", t->toChars());
         if (t.value == TOKassign)
             return false;
+
         while (1)
         {
             parens = false;
             switch (t.value)
             {
-            case TOKmul:
+                case TOKmul:
                 //case TOKand:
-                t = peek(t);
-                continue;
-            case TOKlbracket:
-                t = peek(t);
-                if (t.value == TOKrbracket)
-                {
                     t = peek(t);
-                }
-                else if (isDeclaration(t, NeedDeclaratorId.no, TOKrbracket, &t))
-                {
-                    // It's an associative array declaration
+                    continue;
+
+                case TOKlbracket:
                     t = peek(t);
-                    // ...[type].ident
-                    if (t.value == TOKdot && peek(t).value == TOKidentifier)
+                    if (t.value == TOKrbracket)
                     {
-                        t = peek(t);
                         t = peek(t);
                     }
-                }
-                else
-                {
-                    // [ expression ]
-                    // [ expression .. expression ]
-                    if (!isExpression(&t))
-                        return false;
-                    if (t.value == TOKslice)
+                    else if (isDeclaration(t, NeedDeclaratorId.no, TOKrbracket, &t))
                     {
+                        // It's an associative array declaration
                         t = peek(t);
-                        if (!isExpression(&t))
-                            return false;
-                        if (t.value != TOKrbracket)
-                            return false;
-                        t = peek(t);
-                    }
-                    else
-                    {
-                        if (t.value != TOKrbracket)
-                            return false;
-                        t = peek(t);
-                        // ...[index].ident
+
+                        // ...[type].ident
                         if (t.value == TOKdot && peek(t).value == TOKidentifier)
                         {
                             t = peek(t);
                             t = peek(t);
                         }
                     }
-                }
-                continue;
-            case TOKidentifier:
-                if (*haveId)
-                    return false;
-                *haveId = true;
-                t = peek(t);
-                break;
+                    else
+                    {
+                        // [ expression ]
+                        // [ expression .. expression ]
+                        if (!isExpression(&t))
+                            return false;
+                        if (t.value == TOKslice)
+                        {
+                            t = peek(t);
+                            if (!isExpression(&t))
+                                return false;
+                            if (t.value != TOKrbracket)
+                                return false;
+                            t = peek(t);
+                        }
+                        else
+                        {
+                            if (t.value != TOKrbracket)
+                                return false;
+                            t = peek(t);
+                            // ...[index].ident
+                            if (t.value == TOKdot && peek(t).value == TOKidentifier)
+                            {
+                                t = peek(t);
+                                t = peek(t);
+                            }
+                        }
+                    }
+                    continue;
 
-            case TOKlparen:
-                if (!allowAltSyntax)
-                    return false;   // Do not recognize C-style declarations.
-
-                t = peek(t);
-                if (t.value == TOKrparen)
-                    return false; // () is not a declarator
-
-                /* Regard ( identifier ) as not a declarator
-                 * BUG: what about ( *identifier ) in
-                 *      f(*p)(x);
-                 * where f is a class instance with overloaded () ?
-                 * Should we just disallow C-style function pointer declarations?
-                 */
-                if (t.value == TOKidentifier)
-                {
-                    Token* t2 = peek(t);
-                    if (t2.value == TOKrparen)
+                case TOKidentifier:
+                    if (*haveId)
                         return false;
-                }
-                if (!isDeclarator(&t, haveId, null, TOKrparen))
-                    return false;
-                t = peek(t);
-                parens = true;
-                break;
-            case TOKdelegate:
-            case TOKfunction:
-                t = peek(t);
-                if (!isParameters(&t))
-                    return false;
-                skipAttributes(t, &t);
-                continue;
-            default:
-                break;
+                    *haveId = true;
+                    t = peek(t);
+                    break;
+
+                case TOKlparen:
+                    if (!allowAltSyntax)
+                        return false;   // Do not recognize C-style declarations.
+
+                    t = peek(t);
+                    if (t.value == TOKrparen)
+                        return false; // () is not a declarator
+
+                    /* Regard ( identifier ) as not a declarator
+                     * BUG: what about ( *identifier ) in
+                     *      f(*p)(x);
+                     * where f is a class instance with overloaded () ?
+                     * Should we just disallow C-style function pointer declarations?
+                     */
+                    if (t.value == TOKidentifier)
+                    {
+                        Token* t2 = peek(t);
+                        if (t2.value == TOKrparen)
+                            return false;
+                    }
+
+                    if (!isDeclarator(&t, haveId, null, TOKrparen))
+                        return false;
+                    t = peek(t);
+                    parens = true;
+                    break;
+
+                case TOKdelegate:
+                case TOKfunction:
+                    t = peek(t);
+                    if (!isParameters(&t))
+                        return false;
+                    skipAttributes(t, &t);
+                    continue;
+
+                default:
+                    break;
             }
             break;
         }
+
         while (1)
         {
             switch (t.value)
             {
-                static if (CARRAYDECL)
-                {
+              static if (CARRAYDECL)
+              {
                 case TOKlbracket:
                     parens = false;
                     t = peek(t);
@@ -6108,74 +6361,80 @@ public:
                         t = peek(t);
                     }
                     continue;
-                }
-            case TOKlparen:
-                parens = false;
-                if (Token* tk = peekPastParen(t))
-                {
-                    if (tk.value == TOKlparen)
+              }
+
+                case TOKlparen:
+                    parens = false;
+                    if (Token* tk = peekPastParen(t))
                     {
-                        if (!haveTpl)
-                            return false;
-                        *haveTpl = 1;
-                        t = tk;
+                        if (tk.value == TOKlparen)
+                        {
+                            if (!haveTpl)
+                                return false;
+                            *haveTpl = 1;
+                            t = tk;
+                        }
+                        else if (tk.value == TOKassign)
+                        {
+                            if (!haveTpl)
+                                return false;
+                            *haveTpl = 1;
+                            *pt = tk;
+                            return true;
+                        }
                     }
-                    else if (tk.value == TOKassign)
+                    if (!isParameters(&t))
+                        return false;
+                    while (1)
                     {
-                        if (!haveTpl)
-                            return false;
-                        *haveTpl = 1;
-                        *pt = tk;
-                        return true;
-                    }
-                }
-                if (!isParameters(&t))
-                    return false;
-                while (1)
-                {
-                    switch (t.value)
-                    {
-                    case TOKconst:
-                    case TOKimmutable:
-                    case TOKshared:
-                    case TOKwild:
-                    case TOKpure:
-                    case TOKnothrow:
-                    case TOKreturn:
-                        t = peek(t);
-                        continue;
-                    case TOKat:
-                        t = peek(t); // skip '@'
-                        t = peek(t); // skip identifier
-                        continue;
-                    default:
+                        switch (t.value)
+                        {
+                            case TOKconst:
+                            case TOKimmutable:
+                            case TOKshared:
+                            case TOKwild:
+                            case TOKpure:
+                            case TOKnothrow:
+                            case TOKreturn:
+                                t = peek(t);
+                                continue;
+
+                            case TOKat:
+                                t = peek(t); // skip '@'
+                                t = peek(t); // skip identifier
+                                continue;
+
+                            default:
+                                break;
+                        }
                         break;
                     }
-                    break;
-                }
-                continue;
+                    continue;
+
                 // Valid tokens that follow a declaration
-            case TOKrparen:
-            case TOKrbracket:
-            case TOKassign:
-            case TOKcomma:
-            case TOKdotdotdot:
-            case TOKsemicolon:
-            case TOKlcurly:
-            case TOKin:
-            case TOKout:
-            case TOKbody:
-                // The !parens is to disallow unnecessary parentheses
-                if (!parens && (endtok == TOKreserved || endtok == t.value))
-                {
-                    *pt = t;
-                    return true;
-                }
-                return false;
-            case TOKif:
-                return haveTpl ? true : false;
-            default:
-                return false;
+                case TOKrparen:
+                case TOKrbracket:
+                case TOKassign:
+                case TOKcomma:
+                case TOKdotdotdot:
+                case TOKsemicolon:
+                case TOKlcurly:
+                case TOKin:
+                case TOKout:
+                case TOKbody:
+                    // The !parens is to disallow unnecessary parentheses
+                    if (!parens && (endtok == TOKreserved || endtok == t.value))
+                    {
+                        *pt = t;
+                        return true;
+                    }
+                    return false;
+
+                case TOKif:
+                    return haveTpl ? true : false;
+
+                default:
+                    return false;
             }
         }
     }
@@ -6184,60 +6443,67 @@ public:
     {
         // This code parallels parseParameters()
         Token* t = *pt;
+
         //printf("isParameters()\n");
         if (t.value != TOKlparen)
             return false;
+
         t = peek(t);
         for (; 1; t = peek(t))
         {
         L1:
             switch (t.value)
             {
-            case TOKrparen:
-                break;
-            case TOKdotdotdot:
-                t = peek(t);
-                break;
-            case TOKin:
-            case TOKout:
-            case TOKref:
-            case TOKlazy:
-            case TOKscope:
-            case TOKfinal:
-            case TOKauto:
-                continue;
-            case TOKconst:
-            case TOKimmutable:
-            case TOKshared:
-            case TOKwild:
-                t = peek(t);
-                if (t.value == TOKlparen)
-                {
+                case TOKrparen:
+                    break;
+
+                case TOKdotdotdot:
                     t = peek(t);
-                    if (!isDeclaration(t, NeedDeclaratorId.no, TOKrparen, &t))
-                        return false;
-                    t = peek(t); // skip past closing ')'
-                    goto L2;
-                }
-                goto L1;
-                version (none)
-                {
-                case TOKstatic:
-                    continue;
+                    break;
+
+                case TOKin:
+                case TOKout:
+                case TOKref:
+                case TOKlazy:
+                case TOKscope:
+                case TOKfinal:
                 case TOKauto:
-                case TOKalias:
+                    continue;
+
+                case TOKconst:
+                case TOKimmutable:
+                case TOKshared:
+                case TOKwild:
                     t = peek(t);
-                    if (t.value == TOKidentifier)
-                        t = peek(t);
-                    if (t.value == TOKassign)
+                    if (t.value == TOKlparen)
                     {
                         t = peek(t);
-                        if (!isExpression(&t))
+                        if (!isDeclaration(t, NeedDeclaratorId.no, TOKrparen, &t))
                             return false;
+                        t = peek(t); // skip past closing ')'
+                        goto L2;
                     }
-                    goto L3;
-                }
-            default:
+                    goto L1;
+
+                    version (none)
+                    {
+                    case TOKstatic:
+                        continue;
+                    case TOKauto:
+                    case TOKalias:
+                        t = peek(t);
+                        if (t.value == TOKidentifier)
+                            t = peek(t);
+                        if (t.value == TOKassign)
+                        {
+                            t = peek(t);
+                            if (!isExpression(&t))
+                                return false;
+                        }
+                        goto L3;
+                    }
+
+                default:
                 {
                     if (!isBasicType(&t))
                         return false;
@@ -6277,54 +6543,67 @@ public:
         // This is supposed to determine if something is an expression.
         // What it actually does is scan until a closing right bracket
         // is found.
+
         Token* t = *pt;
         int brnest = 0;
         int panest = 0;
         int curlynest = 0;
+
         for (;; t = peek(t))
         {
             switch (t.value)
             {
-            case TOKlbracket:
-                brnest++;
-                continue;
-            case TOKrbracket:
-                if (--brnest >= 0)
+                case TOKlbracket:
+                    brnest++;
                     continue;
-                break;
-            case TOKlparen:
-                panest++;
-                continue;
-            case TOKcomma:
-                if (brnest || panest)
+
+                case TOKrbracket:
+                    if (--brnest >= 0)
+                        continue;
+                    break;
+
+                case TOKlparen:
+                    panest++;
                     continue;
-                break;
-            case TOKrparen:
-                if (--panest >= 0)
+
+                case TOKcomma:
+                    if (brnest || panest)
+                        continue;
+                    break;
+
+                case TOKrparen:
+                    if (--panest >= 0)
+                        continue;
+                    break;
+
+                case TOKlcurly:
+                    curlynest++;
                     continue;
-                break;
-            case TOKlcurly:
-                curlynest++;
-                continue;
-            case TOKrcurly:
-                if (--curlynest >= 0)
+
+                case TOKrcurly:
+                    if (--curlynest >= 0)
+                        continue;
+                    return false;
+
+                case TOKslice:
+                    if (brnest)
+                        continue;
+                    break;
+
+                case TOKsemicolon:
+                    if (curlynest)
+                        continue;
+                    return false;
+
+                case TOKeof:
+                    return false;
+
+                default:
                     continue;
-                return false;
-            case TOKslice:
-                if (brnest)
-                    continue;
-                break;
-            case TOKsemicolon:
-                if (curlynest)
-                    continue;
-                return false;
-            case TOKeof:
-                return false;
-            default:
-                continue;
             }
             break;
         }
+
         *pt = t;
         return true;
     }
@@ -6343,25 +6622,30 @@ public:
     {
         if (t.value != TOKlparen)
             return false;
+
         int parens = 0;
+
         while (1)
         {
             switch (t.value)
             {
-            case TOKlparen:
-                parens++;
-                break;
-            case TOKrparen:
-                parens--;
-                if (parens < 0)
+                case TOKlparen:
+                    parens++;
+                    break;
+
+                case TOKrparen:
+                    parens--;
+                    if (parens < 0)
+                        goto Lfalse;
+                    if (parens == 0)
+                        goto Ldone;
+                    break;
+
+                case TOKeof:
                     goto Lfalse;
-                if (parens == 0)
-                    goto Ldone;
-                break;
-            case TOKeof:
-                goto Lfalse;
-            default:
-                break;
+
+                default:
+                    break;
             }
             t = peek(t);
         }
@@ -6369,6 +6653,7 @@ public:
         if (pt)
             *pt = peek(t); // skip found rparen
         return true;
+
     Lfalse:
         return false;
     }
@@ -6400,92 +6685,101 @@ public:
         {
             switch (t.value)
             {
-            case TOKconst:
-            case TOKimmutable:
-            case TOKshared:
-            case TOKwild:
-            case TOKfinal:
-            case TOKauto:
-            case TOKscope:
-            case TOKoverride:
-            case TOKabstract:
-            case TOKsynchronized:
-                break;
-            case TOKdeprecated:
-                if (peek(t).value == TOKlparen)
-                {
-                    t = peek(t);
-                    if (!skipParens(t, &t))
-                        goto Lerror;
-                    // t is on the next of closing parenthesis
-                    continue;
-                }
-                break;
-            case TOKnothrow:
-            case TOKpure:
-            case TOKref:
-            case TOKgshared:
-            case TOKreturn:
-                //case TOKmanifest:
-                break;
-            case TOKat:
-                t = peek(t);
-                if (t.value == TOKidentifier)
-                {
-                    /* @identifier
-                     * @identifier!arg
-                     * @identifier!(arglist)
-                     * any of the above followed by (arglist)
-                     * @predefined_attribute
-                     */
-                    if (t.ident == Id.property || t.ident == Id.nogc || t.ident == Id.safe || t.ident == Id.trusted || t.ident == Id.system || t.ident == Id.disable)
-                        break;
-                    t = peek(t);
-                    if (t.value == TOKnot)
+                case TOKconst:
+                case TOKimmutable:
+                case TOKshared:
+                case TOKwild:
+                case TOKfinal:
+                case TOKauto:
+                case TOKscope:
+                case TOKoverride:
+                case TOKabstract:
+                case TOKsynchronized:
+                    break;
+
+                case TOKdeprecated:
+                    if (peek(t).value == TOKlparen)
                     {
                         t = peek(t);
-                        if (t.value == TOKlparen)
-                        {
-                            // @identifier!(arglist)
-                            if (!skipParens(t, &t))
-                                goto Lerror;
-                            // t is on the next of closing parenthesis
-                        }
-                        else
-                        {
-                            // @identifier!arg
-                            // Do low rent skipTemplateArgument
-                            if (t.value == TOKvector)
-                            {
-                                // identifier!__vector(type)
-                                t = peek(t);
-                                if (!skipParens(t, &t))
-                                    goto Lerror;
-                            }
-                            else
-                                t = peek(t);
-                        }
-                    }
-                    if (t.value == TOKlparen)
-                    {
                         if (!skipParens(t, &t))
                             goto Lerror;
                         // t is on the next of closing parenthesis
                         continue;
                     }
-                    continue;
-                }
-                if (t.value == TOKlparen)
-                {
-                    // @( ArgumentList )
-                    if (!skipParens(t, &t))
-                        goto Lerror;
-                    // t is on the next of closing parenthesis
-                    continue;
-                }
-                goto Lerror;
-            default:
-                goto Ldone;
+                    break;
+
+                case TOKnothrow:
+                case TOKpure:
+                case TOKref:
+                case TOKgshared:
+                case TOKreturn:
+                //case TOKmanifest:
+                    break;
+
+                case TOKat:
+                    t = peek(t);
+                    if (t.value == TOKidentifier)
+                    {
+                        /* @identifier
+                         * @identifier!arg
+                         * @identifier!(arglist)
+                         * any of the above followed by (arglist)
+                         * @predefined_attribute
+                         */
+                        if (t.ident == Id.property ||
+                            t.ident == Id.nogc ||
+                            t.ident == Id.safe ||
+                            t.ident == Id.trusted ||
+                            t.ident == Id.system ||
+                            t.ident == Id.disable)
+                            break;
+                        t = peek(t);
+                        if (t.value == TOKnot)
+                        {
+                            t = peek(t);
+                            if (t.value == TOKlparen)
+                            {
+                                // @identifier!(arglist)
+                                if (!skipParens(t, &t))
+                                    goto Lerror;
+                                // t is on the next of closing parenthesis
+                            }
+                            else
+                            {
+                                // @identifier!arg
+                                // Do low rent skipTemplateArgument
+                                if (t.value == TOKvector)
+                                {
+                                    // identifier!__vector(type)
+                                    t = peek(t);
+                                    if (!skipParens(t, &t))
+                                        goto Lerror;
+                                }
+                                else
+                                    t = peek(t);
+                            }
+                        }
+                        if (t.value == TOKlparen)
+                        {
+                            if (!skipParens(t, &t))
+                                goto Lerror;
+                            // t is on the next of closing parenthesis
+                            continue;
+                        }
+                        continue;
+                    }
+                    if (t.value == TOKlparen)
+                    {
+                        // @( ArgumentList )
+                        if (!skipParens(t, &t))
+                            goto Lerror;
+                        // t is on the next of closing parenthesis
+                        continue;
+                    }
+                    goto Lerror;
+
+                default:
+                    goto Ldone;
             }
             t = peek(t);
         }
@@ -6493,6 +6787,7 @@ public:
         if (pt)
             *pt = t;
         return true;
+
     Lerror:
         return false;
     }
@@ -6502,6 +6797,7 @@ public:
         Expression e;
         Expression e2;
         Loc loc = token.loc;
+
         //printf("Parser::parseExpression() loc = %d\n", loc.linnum);
         e = parseAssignExp();
         while (token.value == TOKcomma)
@@ -6515,16 +6811,18 @@ public:
     }
 
     /********************************* Expression Parser ***************************/
+
     Expression parsePrimaryExp()
     {
         Expression e;
         Type t;
         Identifier id;
         Loc loc = token.loc;
+
         //printf("parsePrimaryExp(): loc = %d\n", loc.linnum);
         switch (token.value)
         {
-        case TOKidentifier:
+            case TOKidentifier:
             {
                 Token* t1 = peek(&token);
                 Token* t2 = peek(t1);
@@ -6540,6 +6838,7 @@ public:
 
                 if (peekNext() == TOKgoesto)
                     goto case_delegate;
+
                 id = token.ident;
                 nextToken();
                 TOK save;
@@ -6555,116 +6854,139 @@ public:
                     e = new IdentifierExp(loc, id);
                 break;
             }
-        case TOKdollar:
-            if (!inBrackets)
-                error("'$' is valid only inside [] of index or slice");
-            e = new DollarExp(loc);
-            nextToken();
-            break;
-        case TOKdot:
-            // Signal global scope '.' operator with "" identifier
-            e = new IdentifierExp(loc, Id.empty);
-            break;
-        case TOKthis:
-            e = new ThisExp(loc);
-            nextToken();
-            break;
-        case TOKsuper:
-            e = new SuperExp(loc);
-            nextToken();
-            break;
-        case TOKint32v:
-            e = new IntegerExp(loc, cast(d_int32)token.int64value, Type.tint32);
-            nextToken();
-            break;
-        case TOKuns32v:
-            e = new IntegerExp(loc, cast(d_uns32)token.uns64value, Type.tuns32);
-            nextToken();
-            break;
-        case TOKint64v:
-            e = new IntegerExp(loc, token.int64value, Type.tint64);
-            nextToken();
-            break;
-        case TOKuns64v:
-            e = new IntegerExp(loc, token.uns64value, Type.tuns64);
-            nextToken();
-            break;
-        case TOKfloat32v:
-            e = new RealExp(loc, token.float80value, Type.tfloat32);
-            nextToken();
-            break;
-        case TOKfloat64v:
-            e = new RealExp(loc, token.float80value, Type.tfloat64);
-            nextToken();
-            break;
-        case TOKfloat80v:
-            e = new RealExp(loc, token.float80value, Type.tfloat80);
-            nextToken();
-            break;
-        case TOKimaginary32v:
-            e = new RealExp(loc, token.float80value, Type.timaginary32);
-            nextToken();
-            break;
-        case TOKimaginary64v:
-            e = new RealExp(loc, token.float80value, Type.timaginary64);
-            nextToken();
-            break;
-        case TOKimaginary80v:
-            e = new RealExp(loc, token.float80value, Type.timaginary80);
-            nextToken();
-            break;
-        case TOKnull:
-            e = new NullExp(loc);
-            nextToken();
-            break;
-        case TOKfile:
+            case TOKdollar:
+                if (!inBrackets)
+                    error("'$' is valid only inside [] of index or slice");
+                e = new DollarExp(loc);
+                nextToken();
+                break;
+
+            case TOKdot:
+                // Signal global scope '.' operator with "" identifier
+                e = new IdentifierExp(loc, Id.empty);
+                break;
+
+            case TOKthis:
+                e = new ThisExp(loc);
+                nextToken();
+                break;
+
+            case TOKsuper:
+                e = new SuperExp(loc);
+                nextToken();
+                break;
+
+            case TOKint32v:
+                e = new IntegerExp(loc, cast(d_int32)token.int64value, Type.tint32);
+                nextToken();
+                break;
+
+            case TOKuns32v:
+                e = new IntegerExp(loc, cast(d_uns32)token.uns64value, Type.tuns32);
+                nextToken();
+                break;
+
+            case TOKint64v:
+                e = new IntegerExp(loc, token.int64value, Type.tint64);
+                nextToken();
+                break;
+
+            case TOKuns64v:
+                e = new IntegerExp(loc, token.uns64value, Type.tuns64);
+                nextToken();
+                break;
+
+            case TOKfloat32v:
+                e = new RealExp(loc, token.float80value, Type.tfloat32);
+                nextToken();
+                break;
+
+            case TOKfloat64v:
+                e = new RealExp(loc, token.float80value, Type.tfloat64);
+                nextToken();
+                break;
+
+            case TOKfloat80v:
+                e = new RealExp(loc, token.float80value, Type.tfloat80);
+                nextToken();
+                break;
+
+            case TOKimaginary32v:
+                e = new RealExp(loc, token.float80value, Type.timaginary32);
+                nextToken();
+                break;
+
+            case TOKimaginary64v:
+                e = new RealExp(loc, token.float80value, Type.timaginary64);
+                nextToken();
+                break;
+
+            case TOKimaginary80v:
+                e = new RealExp(loc, token.float80value, Type.timaginary80);
+                nextToken();
+                break;
+
+            case TOKnull:
+                e = new NullExp(loc);
+                nextToken();
+                break;
+
+            case TOKfile:
             {
                 const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
                 e = new StringExp(loc, cast(char*)s, strlen(s), 0);
                 nextToken();
                 break;
             }
-        case TOKline:
-            e = new IntegerExp(loc, loc.linnum, Type.tint32);
-            nextToken();
-            break;
-        case TOKmodulestring:
+            case TOKline:
+                e = new IntegerExp(loc, loc.linnum, Type.tint32);
+                nextToken();
+                break;
+
+            case TOKmodulestring:
             {
                 const(char)* s = md ? md.toChars() : mod.toChars();
                 e = new StringExp(loc, cast(char*)s, strlen(s), 0);
                 nextToken();
                 break;
             }
-        case TOKfuncstring:
-            e = new FuncInitExp(loc);
-            nextToken();
-            break;
-        case TOKprettyfunc:
-            e = new PrettyFuncInitExp(loc);
-            nextToken();
-            break;
-        case TOKtrue:
-            e = new IntegerExp(loc, 1, Type.tbool);
-            nextToken();
-            break;
-        case TOKfalse:
-            e = new IntegerExp(loc, 0, Type.tbool);
-            nextToken();
-            break;
-        case TOKcharv:
-            e = new IntegerExp(loc, cast(d_uns8)token.uns64value, Type.tchar);
-            nextToken();
-            break;
-        case TOKwcharv:
-            e = new IntegerExp(loc, cast(d_uns16)token.uns64value, Type.twchar);
-            nextToken();
-            break;
-        case TOKdcharv:
-            e = new IntegerExp(loc, cast(d_uns32)token.uns64value, Type.tdchar);
-            nextToken();
-            break;
-        case TOKstring:
-        case TOKxstring:
+            case TOKfuncstring:
+                e = new FuncInitExp(loc);
+                nextToken();
+                break;
+
+            case TOKprettyfunc:
+                e = new PrettyFuncInitExp(loc);
+                nextToken();
+                break;
+
+            case TOKtrue:
+                e = new IntegerExp(loc, 1, Type.tbool);
+                nextToken();
+                break;
+
+            case TOKfalse:
+                e = new IntegerExp(loc, 0, Type.tbool);
+                nextToken();
+                break;
+
+            case TOKcharv:
+                e = new IntegerExp(loc, cast(d_uns8)token.uns64value, Type.tchar);
+                nextToken();
+                break;
+
+            case TOKwcharv:
+                e = new IntegerExp(loc, cast(d_uns16)token.uns64value, Type.twchar);
+                nextToken();
+                break;
+
+            case TOKdcharv:
+                e = new IntegerExp(loc, cast(d_uns32)token.uns64value, Type.tdchar);
+                nextToken();
+                break;
+
+            case TOKstring:
+            case TOKxstring:
             {
                 // cat adjacent strings
                 char* s = token.ustring;
@@ -6681,6 +7003,7 @@ public:
                                 error("mismatched string literal postfixes '%c' and '%c'", postfix, token.postfix);
                             postfix = token.postfix;
                         }
+
                         size_t len1 = len;
                         size_t len2 = token.len;
                         len = len1 + len2;
@@ -6695,108 +7018,61 @@ public:
                 e = new StringExp(loc, s, len, postfix);
                 break;
             }
-        case TOKvoid:
-            t = Type.tvoid;
-            goto LabelX;
-        case TOKint8:
-            t = Type.tint8;
-            goto LabelX;
-        case TOKuns8:
-            t = Type.tuns8;
-            goto LabelX;
-        case TOKint16:
-            t = Type.tint16;
-            goto LabelX;
-        case TOKuns16:
-            t = Type.tuns16;
-            goto LabelX;
-        case TOKint32:
-            t = Type.tint32;
-            goto LabelX;
-        case TOKuns32:
-            t = Type.tuns32;
-            goto LabelX;
-        case TOKint64:
-            t = Type.tint64;
-            goto LabelX;
-        case TOKuns64:
-            t = Type.tuns64;
-            goto LabelX;
-        case TOKint128:
-            t = Type.tint128;
-            goto LabelX;
-        case TOKuns128:
-            t = Type.tuns128;
-            goto LabelX;
-        case TOKfloat32:
-            t = Type.tfloat32;
-            goto LabelX;
-        case TOKfloat64:
-            t = Type.tfloat64;
-            goto LabelX;
-        case TOKfloat80:
-            t = Type.tfloat80;
-            goto LabelX;
-        case TOKimaginary32:
-            t = Type.timaginary32;
-            goto LabelX;
-        case TOKimaginary64:
-            t = Type.timaginary64;
-            goto LabelX;
-        case TOKimaginary80:
-            t = Type.timaginary80;
-            goto LabelX;
-        case TOKcomplex32:
-            t = Type.tcomplex32;
-            goto LabelX;
-        case TOKcomplex64:
-            t = Type.tcomplex64;
-            goto LabelX;
-        case TOKcomplex80:
-            t = Type.tcomplex80;
-            goto LabelX;
-        case TOKbool:
-            t = Type.tbool;
-            goto LabelX;
-        case TOKchar:
-            t = Type.tchar;
-            goto LabelX;
-        case TOKwchar:
-            t = Type.twchar;
-            goto LabelX;
-        case TOKdchar:
-            t = Type.tdchar;
-            goto LabelX;
-        LabelX:
-            nextToken();
-            if (token.value == TOKlparen)
-            {
-                e = new TypeExp(loc, t);
-                e = new CallExp(loc, e, parseArguments());
+            case TOKvoid:           t = Type.tvoid;         goto LabelX;
+            case TOKint8:           t = Type.tint8;         goto LabelX;
+            case TOKuns8:           t = Type.tuns8;         goto LabelX;
+            case TOKint16:          t = Type.tint16;        goto LabelX;
+            case TOKuns16:          t = Type.tuns16;        goto LabelX;
+            case TOKint32:          t = Type.tint32;        goto LabelX;
+            case TOKuns32:          t = Type.tuns32;        goto LabelX;
+            case TOKint64:          t = Type.tint64;        goto LabelX;
+            case TOKuns64:          t = Type.tuns64;        goto LabelX;
+            case TOKint128:         t = Type.tint128;       goto LabelX;
+            case TOKuns128:         t = Type.tuns128;       goto LabelX;
+            case TOKfloat32:        t = Type.tfloat32;      goto LabelX;
+            case TOKfloat64:        t = Type.tfloat64;      goto LabelX;
+            case TOKfloat80:        t = Type.tfloat80;      goto LabelX;
+            case TOKimaginary32:    t = Type.timaginary32;  goto LabelX;
+            case TOKimaginary64:    t = Type.timaginary64;  goto LabelX;
+            case TOKimaginary80:    t = Type.timaginary80;  goto LabelX;
+            case TOKcomplex32:      t = Type.tcomplex32;    goto LabelX;
+            case TOKcomplex64:      t = Type.tcomplex64;    goto LabelX;
+            case TOKcomplex80:      t = Type.tcomplex80;    goto LabelX;
+            case TOKbool:           t = Type.tbool;         goto LabelX;
+            case TOKchar:           t = Type.tchar;         goto LabelX;
+            case TOKwchar:          t = Type.twchar;        goto LabelX;
+            case TOKdchar:          t = Type.tdchar;        goto LabelX;
+            LabelX:
+                nextToken();
+                if (token.value == TOKlparen)
+                {
+                    e = new TypeExp(loc, t);
+                    e = new CallExp(loc, e, parseArguments());
+                    break;
+                }
+                check(TOKdot, t.toChars());
+                if (token.value != TOKidentifier)
+                {
+                    error("found '%s' when expecting identifier following '%s.'", token.toChars(), t.toChars());
+                    goto Lerr;
+                }
+                e = typeDotIdExp(loc, t, token.ident);
+                nextToken();
                 break;
-            }
-            check(TOKdot, t.toChars());
-            if (token.value != TOKidentifier)
-            {
-                error("found '%s' when expecting identifier following '%s.'", token.toChars(), t.toChars());
-                goto Lerr;
-            }
-            e = typeDotIdExp(loc, t, token.ident);
-            nextToken();
-            break;
-        case TOKtypeof:
+
+            case TOKtypeof:
             {
                 t = parseTypeof();
                 e = new TypeExp(loc, t);
                 break;
             }
-        case TOKvector:
+            case TOKvector:
             {
                 t = parseVector();
                 e = new TypeExp(loc, t);
                 break;
             }
-        case TOKtypeid:
+            case TOKtypeid:
             {
                 nextToken();
                 check(TOKlparen, "typeid");
@@ -6815,12 +7091,13 @@ public:
                 e = new TypeidExp(loc, o);
                 break;
             }
-        case TOKtraits:
+            case TOKtraits:
             {
                 /* __traits(identifier, args...)
                  */
                 Identifier ident;
                 Objects* args = null;
+
                 nextToken();
                 check(TOKlparen);
                 if (token.value != TOKidentifier)
@@ -6834,10 +7111,11 @@ public:
                     args = parseTemplateArgumentList(); // __traits(identifier, args...)
                 else
                     check(TOKrparen); // __traits(identifier)
+
                 e = new TraitsExp(loc, ident, args);
                 break;
             }
-        case TOKis:
+            case TOKis:
             {
                 Type targ;
                 Identifier ident = null;
@@ -6845,6 +7123,7 @@ public:
                 TOK tok = TOKreserved;
                 TOK tok2 = TOKreserved;
                 TemplateParameters* tpl = null;
+
                 nextToken();
                 if (token.value == TOKlparen)
                 {
@@ -6854,7 +7133,23 @@ public:
                     {
                         tok = token.value;
                         nextToken();
-                        if (tok == TOKequal && (token.value == TOKtypedef || token.value == TOKstruct || token.value == TOKunion || token.value == TOKclass || token.value == TOKsuper || token.value == TOKenum || token.value == TOKinterface || token.value == TOKargTypes || token.value == TOKparameters || token.value == TOKconst && peek(&token).value == TOKrparen || token.value == TOKimmutable && peek(&token).value == TOKrparen || token.value == TOKshared && peek(&token).value == TOKrparen || token.value == TOKwild && peek(&token).value == TOKrparen || token.value == TOKfunction || token.value == TOKdelegate || token.value == TOKreturn))
+                        if (tok == TOKequal &&
+                            (token.value == TOKtypedef ||
+                             token.value == TOKstruct ||
+                             token.value == TOKunion ||
+                             token.value == TOKclass ||
+                             token.value == TOKsuper ||
+                             token.value == TOKenum ||
+                             token.value == TOKinterface ||
+                             token.value == TOKargTypes ||
+                             token.value == TOKparameters ||
+                             token.value == TOKconst     && peek(&token).value == TOKrparen ||
+                             token.value == TOKimmutable && peek(&token).value == TOKrparen ||
+                             token.value == TOKshared    && peek(&token).value == TOKrparen ||
+                             token.value == TOKwild      && peek(&token).value == TOKrparen ||
+                             token.value == TOKfunction ||
+                             token.value == TOKdelegate ||
+                             token.value == TOKreturn))
                         {
                             tok2 = token.value;
                             nextToken();
@@ -6887,9 +7182,10 @@ public:
                 e = new IsExp(loc, targ, ident, tok, tspec, tok2, tpl);
                 break;
             }
-        case TOKassert:
+            case TOKassert:
             {
                 Expression msg = null;
+
                 nextToken();
                 check(TOKlparen, "assert");
                 e = parseAssignExp();
@@ -6902,7 +7198,7 @@ public:
                 e = new AssertExp(loc, e, msg);
                 break;
             }
-        case TOKmixin:
+            case TOKmixin:
             {
                 nextToken();
                 check(TOKlparen, "mixin");
@@ -6911,7 +7207,7 @@ public:
                 e = new CompileExp(loc, e);
                 break;
             }
-        case TOKimport:
+            case TOKimport:
             {
                 nextToken();
                 check(TOKlparen, "import");
@@ -6920,18 +7216,21 @@ public:
                 e = new FileExp(loc, e);
                 break;
             }
-        case TOKnew:
-            e = parseNewExp(null);
-            break;
-        case TOKlparen:
+            case TOKnew:
+                e = parseNewExp(null);
+                break;
+
+            case TOKlparen:
             {
                 Token* tk = peekPastParen(&token);
-                if (skipAttributes(tk, &tk) && (tk.value == TOKgoesto || tk.value == TOKlcurly))
+                if (skipAttributes(tk, &tk) &&
+                    (tk.value == TOKgoesto || tk.value == TOKlcurly))
                 {
                     // (arguments) => expression
                     // (arguments) { statements... }
                     goto case_delegate;
                 }
+
                 // ( expression )
                 nextToken();
                 e = parseExpression();
@@ -6939,7 +7238,7 @@ public:
                 check(loc, TOKrparen);
                 break;
             }
-        case TOKlbracket:
+            case TOKlbracket:
             {
                 /* Parse array literals and associative array literals:
                  *  [ value, value, value ... ]
@@ -6947,6 +7246,7 @@ public:
                  */
                 auto values = new Expressions();
                 Expressions* keys = null;
+
                 nextToken();
                 while (token.value != TOKrbracket && token.value != TOKeof)
                 {
@@ -6970,28 +7270,29 @@ public:
                     check(TOKcomma);
                 }
                 check(loc, TOKrbracket);
+
                 if (keys)
                     e = new AssocArrayLiteralExp(loc, keys, values);
                 else
                     e = new ArrayLiteralExp(loc, values);
                 break;
             }
-        case TOKlcurly:
-        case TOKfunction:
-        case TOKdelegate:
-        case_delegate:
+            case TOKlcurly:
+            case TOKfunction:
+            case TOKdelegate:
+            case_delegate:
             {
                 Dsymbol s = parseFunctionLiteral();
                 e = new FuncExp(loc, s);
                 break;
             }
-        default:
-            error("expression expected, not '%s'", token.toChars());
-        Lerr:
-            // Anything for e, as long as it's not NULL
-            e = new IntegerExp(loc, 0, Type.tint32);
-            nextToken();
-            break;
+            default:
+                error("expression expected, not '%s'", token.toChars());
+            Lerr:
+                // Anything for e, as long as it's not NULL
+                e = new IntegerExp(loc, 0, Type.tint32);
+                nextToken();
+                break;
         }
         return e;
     }
@@ -7000,57 +7301,66 @@ public:
     {
         Expression e;
         Loc loc = token.loc;
+
         switch (token.value)
         {
-        case TOKand:
-            nextToken();
-            e = parseUnaryExp();
-            e = new AddrExp(loc, e);
-            break;
-        case TOKplusplus:
-            nextToken();
-            e = parseUnaryExp();
-            //e = new AddAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
-            e = new PreExp(TOKpreplusplus, loc, e);
-            break;
-        case TOKminusminus:
-            nextToken();
-            e = parseUnaryExp();
-            //e = new MinAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
-            e = new PreExp(TOKpreminusminus, loc, e);
-            break;
-        case TOKmul:
-            nextToken();
-            e = parseUnaryExp();
-            e = new PtrExp(loc, e);
-            break;
-        case TOKmin:
-            nextToken();
-            e = parseUnaryExp();
-            e = new NegExp(loc, e);
-            break;
-        case TOKadd:
-            nextToken();
-            e = parseUnaryExp();
-            e = new UAddExp(loc, e);
-            break;
-        case TOKnot:
-            nextToken();
-            e = parseUnaryExp();
-            e = new NotExp(loc, e);
-            break;
-        case TOKtilde:
-            nextToken();
-            e = parseUnaryExp();
-            e = new ComExp(loc, e);
-            break;
-        case TOKdelete:
-            nextToken();
-            e = parseUnaryExp();
-            e = new DeleteExp(loc, e);
-            break;
-        case TOKcast:
-            // cast(type) expression
+            case TOKand:
+                nextToken();
+                e = parseUnaryExp();
+                e = new AddrExp(loc, e);
+                break;
+
+            case TOKplusplus:
+                nextToken();
+                e = parseUnaryExp();
+                //e = new AddAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
+                e = new PreExp(TOKpreplusplus, loc, e);
+                break;
+
+            case TOKminusminus:
+                nextToken();
+                e = parseUnaryExp();
+                //e = new MinAssignExp(loc, e, new IntegerExp(loc, 1, Type::tint32));
+                e = new PreExp(TOKpreminusminus, loc, e);
+                break;
+
+            case TOKmul:
+                nextToken();
+                e = parseUnaryExp();
+                e = new PtrExp(loc, e);
+                break;
+
+            case TOKmin:
+                nextToken();
+                e = parseUnaryExp();
+                e = new NegExp(loc, e);
+                break;
+
+            case TOKadd:
+                nextToken();
+                e = parseUnaryExp();
+                e = new UAddExp(loc, e);
+                break;
+
+            case TOKnot:
+                nextToken();
+                e = parseUnaryExp();
+                e = new NotExp(loc, e);
+                break;
+
+            case TOKtilde:
+                nextToken();
+                e = parseUnaryExp();
+                e = new ComExp(loc, e);
+                break;
+
+            case TOKdelete:
+                nextToken();
+                e = parseUnaryExp();
+                e = new DeleteExp(loc, e);
+                break;
+
+            case TOKcast: // cast(type) expression
             {
                 nextToken();
                 check(TOKlparen);
@@ -7062,33 +7372,36 @@ public:
                 {
                     switch (token.value)
                     {
-                    case TOKconst:
-                        if (peekNext() == TOKlparen)
+                        case TOKconst:
+                            if (peekNext() == TOKlparen)
+                                break;     // const as type constructor
+                            m |= MODconst; // const as storage class
+                            nextToken();
+                            continue;
+
+                        case TOKimmutable:
+                            if (peekNext() == TOKlparen)
+                                break;
+                            m |= MODimmutable;
+                            nextToken();
+                            continue;
+
+                        case TOKshared:
+                            if (peekNext() == TOKlparen)
+                                break;
+                            m |= MODshared;
+                            nextToken();
+                            continue;
+
+                        case TOKwild:
+                            if (peekNext() == TOKlparen)
+                                break;
+                            m |= MODwild;
+                            nextToken();
+                            continue;
+
+                        default:
                             break;
-                        // const as type constructor
-                        m |= MODconst; // const as storage class
-                        nextToken();
-                        continue;
-                    case TOKimmutable:
-                        if (peekNext() == TOKlparen)
-                            break;
-                        m |= MODimmutable;
-                        nextToken();
-                        continue;
-                    case TOKshared:
-                        if (peekNext() == TOKlparen)
-                            break;
-                        m |= MODshared;
-                        nextToken();
-                        continue;
-                    case TOKwild:
-                        if (peekNext() == TOKlparen)
-                            break;
-                        m |= MODwild;
-                        nextToken();
-                        continue;
-                    default:
-                        break;
                     }
                     break;
                 }
@@ -7101,22 +7414,23 @@ public:
                 else
                 {
                     Type t = parseType(); // cast( type )
-                    t = t.addMod(m); // cast( const type )
+                    t = t.addMod(m);      // cast( const type )
                     check(TOKrparen);
                     e = parseUnaryExp();
                     e = new CastExp(loc, e, t);
                 }
                 break;
             }
-        case TOKwild:
-        case TOKshared:
-        case TOKconst:
-        case TOKimmutable:
-            // immutable(type)(arguments) / immutable(type).init
+            case TOKwild:
+            case TOKshared:
+            case TOKconst:
+            case TOKimmutable: // immutable(type)(arguments) / immutable(type).init
             {
                 StorageClass stc = parseTypeCtor();
+
                 Type t = parseBasicType();
                 t = t.addSTC(stc);
+
                 e = new TypeExp(loc, t);
                 if (stc == 0 && token.value == TOKdot)
                 {
@@ -7139,7 +7453,7 @@ public:
                 e = new CallExp(loc, e, parseArguments());
                 break;
             }
-        case TOKlparen:
+            case TOKlparen:
             {
                 Token* tk;
                 tk = peek(&token);
@@ -7151,85 +7465,77 @@ public:
                         tk = peek(tk); // skip over right parenthesis
                         switch (tk.value)
                         {
-                        case TOKnot:
-                            tk = peek(tk);
-                            if (tk.value == TOKis || tk.value == TOKin) // !is or !in
-                                break;
-                        case TOKdot:
-                        case TOKplusplus:
-                        case TOKminusminus:
-                        case TOKdelete:
-                        case TOKnew:
-                        case TOKlparen:
-                        case TOKidentifier:
-                        case TOKthis:
-                        case TOKsuper:
-                        case TOKint32v:
-                        case TOKuns32v:
-                        case TOKint64v:
-                        case TOKuns64v:
-                        case TOKint128v:
-                        case TOKuns128v:
-                        case TOKfloat32v:
-                        case TOKfloat64v:
-                        case TOKfloat80v:
-                        case TOKimaginary32v:
-                        case TOKimaginary64v:
-                        case TOKimaginary80v:
-                        case TOKnull:
-                        case TOKtrue:
-                        case TOKfalse:
-                        case TOKcharv:
-                        case TOKwcharv:
-                        case TOKdcharv:
-                        case TOKstring:
-                            version (none)
-                            {
+                            case TOKnot:
+                                tk = peek(tk);
+                                if (tk.value == TOKis || tk.value == TOKin) // !is or !in
+                                    break;
+
+                            case TOKdot:
+                            case TOKplusplus:
+                            case TOKminusminus:
+                            case TOKdelete:
+                            case TOKnew:
+                            case TOKlparen:
+                            case TOKidentifier:
+                            case TOKthis:
+                            case TOKsuper:
+                            case TOKint32v:
+                            case TOKuns32v:
+                            case TOKint64v:
+                            case TOKuns64v:
+                            case TOKint128v:
+                            case TOKuns128v:
+                            case TOKfloat32v:
+                            case TOKfloat64v:
+                            case TOKfloat80v:
+                            case TOKimaginary32v:
+                            case TOKimaginary64v:
+                            case TOKimaginary80v:
+                            case TOKnull:
+                            case TOKtrue:
+                            case TOKfalse:
+                            case TOKcharv:
+                            case TOKwcharv:
+                            case TOKdcharv:
+                            case TOKstring:
+                          version (none)
+                          {
                             case TOKtilde:
                             case TOKand:
                             case TOKmul:
                             case TOKmin:
                             case TOKadd:
-                            }
-                        case TOKfunction:
-                        case TOKdelegate:
-                        case TOKtypeof:
-                        case TOKvector:
-                        case TOKfile:
-                        case TOKline:
-                        case TOKmodulestring:
-                        case TOKfuncstring:
-                        case TOKprettyfunc:
-                        case TOKwchar:
-                        case TOKdchar:
-                        case TOKbool:
-                        case TOKchar:
-                        case TOKint8:
-                        case TOKuns8:
-                        case TOKint16:
-                        case TOKuns16:
-                        case TOKint32:
-                        case TOKuns32:
-                        case TOKint64:
-                        case TOKuns64:
-                        case TOKint128:
-                        case TOKuns128:
-                        case TOKfloat32:
-                        case TOKfloat64:
-                        case TOKfloat80:
-                        case TOKimaginary32:
-                        case TOKimaginary64:
-                        case TOKimaginary80:
-                        case TOKcomplex32:
-                        case TOKcomplex64:
-                        case TOKcomplex80:
-                        case TOKvoid:
+                          }
+                            case TOKfunction:
+                            case TOKdelegate:
+                            case TOKtypeof:
+                            case TOKvector:
+                            case TOKfile:
+                            case TOKline:
+                            case TOKmodulestring:
+                            case TOKfuncstring:
+                            case TOKprettyfunc:
+                            case TOKwchar:
+                            case TOKdchar:
+                            case TOKbool:
+                            case TOKchar:
+                            case TOKint8:           case TOKuns8:
+                            case TOKint16:          case TOKuns16:
+                            case TOKint32:          case TOKuns32:
+                            case TOKint64:          case TOKuns64:
+                            case TOKint128:         case TOKuns128:
+                            case TOKfloat32:        case TOKfloat64:        case TOKfloat80:
+                            case TOKimaginary32:    case TOKimaginary64:    case TOKimaginary80:
+                            case TOKcomplex32:      case TOKcomplex64:      case TOKcomplex80:
+                            case TOKvoid:
                             {
                                 // (type) una_exp
                                 Type t;
+
                                 nextToken();
                                 t = parseType();
                                 check(TOKrparen);
+
                                 // if .identifier
                                 // or .identifier!( ... )
                                 if (token.value == TOKdot)
@@ -7250,8 +7556,8 @@ public:
                                 }
                                 return e;
                             }
-                        default:
-                            break;
+                            default:
+                                break;
                         }
                     }
                 }
@@ -7259,12 +7565,13 @@ public:
                 e = parsePostExp(e);
                 break;
             }
-        default:
-            e = parsePrimaryExp();
-            e = parsePostExp(e);
-            break;
+            default:
+                e = parsePrimaryExp();
+                e = parsePostExp(e);
+                break;
         }
         assert(e);
+
         // ^^ is right associative and has higher precedence than the unary operators
         while (token.value == TOKpow)
         {
@@ -7272,50 +7579,57 @@ public:
             Expression e2 = parseUnaryExp();
             e = new PowExp(loc, e, e2);
         }
+
         return e;
     }
 
     Expression parsePostExp(Expression e)
     {
         Loc loc;
+
         while (1)
         {
             loc = token.loc;
             switch (token.value)
             {
-            case TOKdot:
-                nextToken();
-                if (token.value == TOKidentifier)
-                {
-                    Identifier id = token.ident;
+                case TOKdot:
                     nextToken();
-                    if (token.value == TOKnot && peekNext() != TOKis && peekNext() != TOKin)
+                    if (token.value == TOKidentifier)
                     {
-                        Objects* tiargs = parseTemplateArguments();
-                        e = new DotTemplateInstanceExp(loc, e, id, tiargs);
+                        Identifier id = token.ident;
+
+                        nextToken();
+                        if (token.value == TOKnot && peekNext() != TOKis && peekNext() != TOKin)
+                        {
+                            Objects* tiargs = parseTemplateArguments();
+                            e = new DotTemplateInstanceExp(loc, e, id, tiargs);
+                        }
+                        else
+                            e = new DotIdExp(loc, e, id);
+                        continue;
+                    }
+                    else if (token.value == TOKnew)
+                    {
+                        e = parseNewExp(e);
+                        continue;
                     }
                     else
-                        e = new DotIdExp(loc, e, id);
+                        error("identifier expected following '.', not '%s'", token.toChars());
+                    break;
+
+                case TOKplusplus:
+                    e = new PostExp(TOKplusplus, loc, e);
+                    break;
+
+                case TOKminusminus:
+                    e = new PostExp(TOKminusminus, loc, e);
+                    break;
+
+                case TOKlparen:
+                    e = new CallExp(loc, e, parseArguments());
                     continue;
-                }
-                else if (token.value == TOKnew)
-                {
-                    e = parseNewExp(e);
-                    continue;
-                }
-                else
-                    error("identifier expected following '.', not '%s'", token.toChars());
-                break;
-            case TOKplusplus:
-                e = new PostExp(TOKplusplus, loc, e);
-                break;
-            case TOKminusminus:
-                e = new PostExp(TOKminusminus, loc, e);
-                break;
-            case TOKlparen:
-                e = new CallExp(loc, e, parseArguments());
-                continue;
-            case TOKlbracket:
+
+                case TOKlbracket:
                 {
                     // array dereferences:
                     //      array[index]
@@ -7324,6 +7638,7 @@ public:
                     Expression index;
                     Expression upr;
                     auto arguments = new Expressions();
+
                     inBrackets++;
                     nextToken();
                     while (token.value != TOKrbracket && token.value != TOKeof)
@@ -7347,8 +7662,8 @@ public:
                     e = new ArrayExp(loc, e, arguments);
                     continue;
                 }
-            default:
-                return e;
+                default:
+                    return e;
             }
             nextToken();
         }
@@ -7359,28 +7674,32 @@ public:
         Expression e;
         Expression e2;
         Loc loc = token.loc;
+
         e = parseUnaryExp();
         while (1)
         {
             switch (token.value)
             {
-            case TOKmul:
-                nextToken();
-                e2 = parseUnaryExp();
-                e = new MulExp(loc, e, e2);
-                continue;
-            case TOKdiv:
-                nextToken();
-                e2 = parseUnaryExp();
-                e = new DivExp(loc, e, e2);
-                continue;
-            case TOKmod:
-                nextToken();
-                e2 = parseUnaryExp();
-                e = new ModExp(loc, e, e2);
-                continue;
-            default:
-                break;
+                case TOKmul:
+                    nextToken();
+                    e2 = parseUnaryExp();
+                    e = new MulExp(loc, e, e2);
+                    continue;
+
+                case TOKdiv:
+                    nextToken();
+                    e2 = parseUnaryExp();
+                    e = new DivExp(loc, e, e2);
+                    continue;
+
+                case TOKmod:
+                    nextToken();
+                    e2 = parseUnaryExp();
+                    e = new ModExp(loc, e, e2);
+                    continue;
+
+                default:
+                    break;
             }
             break;
         }
@@ -7392,28 +7711,32 @@ public:
         Expression e;
         Expression e2;
         Loc loc = token.loc;
+
         e = parseMulExp();
         while (1)
         {
             switch (token.value)
             {
-            case TOKadd:
-                nextToken();
-                e2 = parseMulExp();
-                e = new AddExp(loc, e, e2);
-                continue;
-            case TOKmin:
-                nextToken();
-                e2 = parseMulExp();
-                e = new MinExp(loc, e, e2);
-                continue;
-            case TOKtilde:
-                nextToken();
-                e2 = parseMulExp();
-                e = new CatExp(loc, e, e2);
-                continue;
-            default:
-                break;
+                case TOKadd:
+                    nextToken();
+                    e2 = parseMulExp();
+                    e = new AddExp(loc, e, e2);
+                    continue;
+
+                case TOKmin:
+                    nextToken();
+                    e2 = parseMulExp();
+                    e = new MinExp(loc, e, e2);
+                    continue;
+
+                case TOKtilde:
+                    nextToken();
+                    e2 = parseMulExp();
+                    e = new CatExp(loc, e, e2);
+                    continue;
+
+                default:
+                    break;
             }
             break;
         }
@@ -7425,28 +7748,32 @@ public:
         Expression e;
         Expression e2;
         Loc loc = token.loc;
+
         e = parseAddExp();
         while (1)
         {
             switch (token.value)
             {
-            case TOKshl:
-                nextToken();
-                e2 = parseAddExp();
-                e = new ShlExp(loc, e, e2);
-                continue;
-            case TOKshr:
-                nextToken();
-                e2 = parseAddExp();
-                e = new ShrExp(loc, e, e2);
-                continue;
-            case TOKushr:
-                nextToken();
-                e2 = parseAddExp();
-                e = new UshrExp(loc, e, e2);
-                continue;
-            default:
-                break;
+                case TOKshl:
+                    nextToken();
+                    e2 = parseAddExp();
+                    e = new ShlExp(loc, e, e2);
+                    continue;
+
+                case TOKshr:
+                    nextToken();
+                    e2 = parseAddExp();
+                    e = new ShrExp(loc, e, e2);
+                    continue;
+
+                case TOKushr:
+                    nextToken();
+                    e2 = parseAddExp();
+                    e = new UshrExp(loc, e, e2);
+                    continue;
+
+                default:
+                    break;
             }
             break;
         }
@@ -7459,64 +7786,72 @@ public:
         Expression e2;
         Token* t;
         Loc loc = token.loc;
+
         e = parseShiftExp();
         TOK op = token.value;
+
         switch (op)
         {
-        case TOKequal:
-        case TOKnotequal:
-            nextToken();
-            e2 = parseShiftExp();
-            e = new EqualExp(op, loc, e, e2);
-            break;
-        case TOKis:
-            op = TOKidentity;
-            goto L1;
-        case TOKnot:
-            // Attempt to identify '!is'
-            t = peek(&token);
-            if (t.value == TOKin)
-            {
+            case TOKequal:
+            case TOKnotequal:
                 nextToken();
+                e2 = parseShiftExp();
+                e = new EqualExp(op, loc, e, e2);
+                break;
+
+            case TOKis:
+                op = TOKidentity;
+                goto L1;
+
+            case TOKnot:
+                // Attempt to identify '!is'
+                t = peek(&token);
+                if (t.value == TOKin)
+                {
+                    nextToken();
+                    nextToken();
+                    e2 = parseShiftExp();
+                    e = new InExp(loc, e, e2);
+                    e = new NotExp(loc, e);
+                    break;
+                }
+                if (t.value != TOKis)
+                    break;
+                nextToken();
+                op = TOKnotidentity;
+                goto L1;
+
+            L1:
+                nextToken();
+                e2 = parseShiftExp();
+                e = new IdentityExp(op, loc, e, e2);
+                break;
+
+            case TOKlt:
+            case TOKle:
+            case TOKgt:
+            case TOKge:
+            case TOKunord:
+            case TOKlg:
+            case TOKleg:
+            case TOKule:
+            case TOKul:
+            case TOKuge:
+            case TOKug:
+            case TOKue:
+                nextToken();
+                e2 = parseShiftExp();
+                e = new CmpExp(op, loc, e, e2);
+                break;
+
+            case TOKin:
                 nextToken();
                 e2 = parseShiftExp();
                 e = new InExp(loc, e, e2);
-                e = new NotExp(loc, e);
                 break;
-            }
-            if (t.value != TOKis)
+
+            default:
                 break;
-            nextToken();
-            op = TOKnotidentity;
-            goto L1;
-        L1:
-            nextToken();
-            e2 = parseShiftExp();
-            e = new IdentityExp(op, loc, e, e2);
-            break;
-        case TOKlt:
-        case TOKle:
-        case TOKgt:
-        case TOKge:
-        case TOKunord:
-        case TOKlg:
-        case TOKleg:
-        case TOKule:
-        case TOKul:
-        case TOKuge:
-        case TOKug:
-        case TOKue:
-            nextToken();
-            e2 = parseShiftExp();
-            e = new CmpExp(op, loc, e, e2);
-            break;
-        case TOKin:
-            nextToken();
-            e2 = parseShiftExp();
-            e = new InExp(loc, e, e2);
-            break;
-        default:
-            break;
         }
         return e;
     }
@@ -7540,6 +7875,7 @@ public:
     Expression parseXorExp()
     {
         Loc loc = token.loc;
+
         Expression e = parseAndExp();
         while (token.value == TOKxor)
         {
@@ -7555,6 +7891,7 @@ public:
     Expression parseOrExp()
     {
         Loc loc = token.loc;
+
         Expression e = parseXorExp();
         while (token.value == TOKor)
         {
@@ -7572,6 +7909,7 @@ public:
         Expression e;
         Expression e2;
         Loc loc = token.loc;
+
         e = parseOrExp();
         while (token.value == TOKandand)
         {
@@ -7587,6 +7925,7 @@ public:
         Expression e;
         Expression e2;
         Loc loc = token.loc;
+
         e = parseAndAndExp();
         while (token.value == TOKoror)
         {
@@ -7603,6 +7942,7 @@ public:
         Expression e1;
         Expression e2;
         Loc loc = token.loc;
+
         e = parseOrOrExp();
         if (token.value == TOKquestion)
         {
@@ -7620,84 +7960,99 @@ public:
         Expression e;
         Expression e2;
         Loc loc;
+
         e = parseCondExp();
         while (1)
         {
             loc = token.loc;
             switch (token.value)
             {
-            case TOKassign:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new AssignExp(loc, e, e2);
-                continue;
-            case TOKaddass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new AddAssignExp(loc, e, e2);
-                continue;
-            case TOKminass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new MinAssignExp(loc, e, e2);
-                continue;
-            case TOKmulass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new MulAssignExp(loc, e, e2);
-                continue;
-            case TOKdivass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new DivAssignExp(loc, e, e2);
-                continue;
-            case TOKmodass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new ModAssignExp(loc, e, e2);
-                continue;
-            case TOKpowass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new PowAssignExp(loc, e, e2);
-                continue;
-            case TOKandass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new AndAssignExp(loc, e, e2);
-                continue;
-            case TOKorass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new OrAssignExp(loc, e, e2);
-                continue;
-            case TOKxorass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new XorAssignExp(loc, e, e2);
-                continue;
-            case TOKshlass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new ShlAssignExp(loc, e, e2);
-                continue;
-            case TOKshrass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new ShrAssignExp(loc, e, e2);
-                continue;
-            case TOKushrass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new UshrAssignExp(loc, e, e2);
-                continue;
-            case TOKcatass:
-                nextToken();
-                e2 = parseAssignExp();
-                e = new CatAssignExp(loc, e, e2);
-                continue;
-            default:
-                break;
+                case TOKassign:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new AssignExp(loc, e, e2);
+                    continue;
+
+                case TOKaddass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new AddAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKminass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new MinAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKmulass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new MulAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKdivass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new DivAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKmodass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new ModAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKpowass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new PowAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKandass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new AndAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKorass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new OrAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKxorass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new XorAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKshlass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new ShlAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKshrass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new ShrAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKushrass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new UshrAssignExp(loc, e, e2);
+                    continue;
+
+                case TOKcatass:
+                    nextToken();
+                    e2 = parseAssignExp();
+                    e = new CatAssignExp(loc, e, e2);
+                    continue;
+
+                default:
+                    break;
             }
             break;
         }
@@ -7714,11 +8069,13 @@ public:
         Expressions* arguments;
         Expression arg;
         TOK endtok;
+
         arguments = new Expressions();
         if (token.value == TOKlbracket)
             endtok = TOKrbracket;
         else
             endtok = TOKrparen;
+
         {
             nextToken();
             while (token.value != endtok && token.value != TOKeof)
@@ -7742,23 +8099,28 @@ public:
         Expressions* newargs;
         Expressions* arguments = null;
         Loc loc = token.loc;
+
         nextToken();
         newargs = null;
         if (token.value == TOKlparen)
         {
             newargs = parseArguments();
         }
+
         // An anonymous nested class starts with "class"
         if (token.value == TOKclass)
         {
             nextToken();
             if (token.value == TOKlparen)
                 arguments = parseArguments();
+
             BaseClasses* baseclasses = null;
             if (token.value != TOKlcurly)
                 baseclasses = parseBaseClasses();
+
             Identifier id = null;
             auto cd = new ClassDeclaration(loc, id, baseclasses);
+
             if (token.value != TOKlcurly)
             {
                 error("{ members } expected for anonymous class");
@@ -7773,9 +8135,11 @@ public:
                 nextToken();
                 cd.members = decl;
             }
+
             Expression e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
             return e;
         }
+
         StorageClass stc = parseTypeCtor();
         t = parseBasicType(true);
         t = parseBasicType2(t);
@@ -7784,6 +8148,7 @@ public:
         {
             TypeAArray taa = cast(TypeAArray)t;
             Type index = taa.index;
+
             Expression e = index.toExpression();
             if (e)
             {
@@ -7801,6 +8166,7 @@ public:
         {
             TypeSArray tsa = cast(TypeSArray)t;
             Expression e = tsa.dim;
+
             arguments = new Expressions();
             arguments.push(e);
             t = new TypeDArray(tsa.next);
@@ -7809,6 +8175,7 @@ public:
         {
             arguments = parseArguments();
         }
+
         Expression e = new NewExp(loc, thisexp, newargs, t, arguments);
         return e;
     }

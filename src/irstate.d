@@ -199,13 +199,15 @@ struct IRState
         bool result;
         switch (global.params.useArrayBounds)
         {
-        case BOUNDSCHECKoff:
-            result = false;
-            break;
-        case BOUNDSCHECKon:
-            result = true;
-            break;
-        case BOUNDSCHECKsafeonly:
+            case BOUNDSCHECKoff:
+                result = false;
+                break;
+
+            case BOUNDSCHECKon:
+                result = true;
+                break;
+
+            case BOUNDSCHECKsafeonly:
             {
                 result = false;
                 FuncDeclaration fd = getFunc();
@@ -217,8 +219,9 @@ struct IRState
                 }
                 break;
             }
-        default:
-            assert(0);
+
+            default:
+                assert(0);
         }
         return result;
     }

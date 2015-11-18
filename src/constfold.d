@@ -41,34 +41,39 @@ extern (C++) Expression expType(Type type, Expression e)
 }
 
 /* ================================== isConst() ============================== */
+
 extern (C++) int isConst(Expression e)
 {
     //printf("Expression::isConst(): %s\n", e->toChars());
     switch (e.op)
     {
-    case TOKint64:
-    case TOKfloat64:
-    case TOKcomplex80:
-        return 1;
-    case TOKnull:
-        return 0;
-    case TOKsymoff:
-        return 2;
-    default:
-        return 0;
+        case TOKint64:
+        case TOKfloat64:
+        case TOKcomplex80:
+            return 1;
+        case TOKnull:
+            return 0;
+        case TOKsymoff:
+            return 2;
+        default:
+            return 0;
     }
     assert(0);
 }
 
 /* =============================== constFold() ============================== */
+
 /* The constFold() functions were redundant with the optimize() ones,
  * and so have been folded in with them.
  */
+
 /* ========================================================================== */
+
 extern (C++) UnionExp Neg(Type type, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
+
     if (e1.type.isreal())
     {
         emplaceExp!(RealExp)(&ue, loc, -e1.toReal(), type);
@@ -92,6 +97,7 @@ extern (C++) UnionExp Com(Type type, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
+
     emplaceExp!(IntegerExp)(&ue, loc, ~e1.toInteger(), type);
     return ue;
 }
@@ -100,6 +106,7 @@ extern (C++) UnionExp Not(Type type, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
+
     emplaceExp!(IntegerExp)(&ue, loc, e1.isBool(false) ? 1 : 0, type);
     return ue;
 }
@@ -108,6 +115,7 @@ extern (C++) UnionExp Bool(Type type, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
+
     emplaceExp!(IntegerExp)(&ue, loc, e1.isBool(true) ? 1 : 0, type);
     return ue;
 }
@@ -115,6 +123,7 @@ extern (C++) UnionExp Bool(Type type, Expression e1)
 extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     static if (LOG)
     {
         printf("Add(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
@@ -134,9 +143,11 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
         complex_t c1;
         real_t r1 = ldouble(0.0);
         real_t i1 = ldouble(0.0);
+
         complex_t c2;
         real_t r2 = ldouble(0.0);
         real_t i2 = ldouble(0.0);
+
         complex_t v;
         int x;
         if (e1.type.isreal())
@@ -154,6 +165,7 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
             c1 = e1.toComplex();
             x = 6;
         }
+
         if (e2.type.isreal())
         {
             r2 = e2.toReal();
@@ -168,37 +180,20 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
             c2 = e2.toComplex();
             x += 2;
         }
+
         switch (x)
         {
-        case 0 + 0:
-            v = complex_t(r1 + r2, 0);
-            break;
-        case 0 + 1:
-            v = complex_t(r1, i2);
-            break;
-        case 0 + 2:
-            v = complex_t(r1 + creall(c2), cimagl(c2));
-            break;
-        case 3 + 0:
-            v = complex_t(r2, i1);
-            break;
-        case 3 + 1:
-            v = complex_t(0, i1 + i2);
-            break;
-        case 3 + 2:
-            v = complex_t(creall(c2), i1 + cimagl(c2));
-            break;
-        case 6 + 0:
-            v = complex_t(creall(c1) + r2, cimagl(c2));
-            break;
-        case 6 + 1:
-            v = complex_t(creall(c1), cimagl(c1) + i2);
-            break;
-        case 6 + 2:
-            v = c1 + c2;
-            break;
-        default:
-            assert(0);
+            case 0 + 0: v = complex_t(r1 + r2, 0);                      break;
+            case 0 + 1: v = complex_t(r1, i2);                          break;
+            case 0 + 2: v = complex_t(r1 + creall(c2), cimagl(c2));     break;
+            case 3 + 0: v = complex_t(r2, i1);                          break;
+            case 3 + 1: v = complex_t(0, i1 + i2);                      break;
+            case 3 + 2: v = complex_t(creall(c2), i1 + cimagl(c2));     break;
+            case 6 + 0: v = complex_t(creall(c1) + r2, cimagl(c2));     break;
+            case 6 + 1: v = complex_t(creall(c1), cimagl(c1) + i2);     break;
+            case 6 + 2: v = c1 + c2;                                    break;
+            default:
+                assert(0);
         }
         emplaceExp!(ComplexExp)(&ue, loc, v, type);
     }
@@ -222,6 +217,7 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     if (type.isreal())
     {
         emplaceExp!(RealExp)(&ue, loc, e1.toReal() - e2.toReal(), type);
@@ -237,9 +233,11 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
         complex_t c1;
         real_t r1 = ldouble(0.0);
         real_t i1 = ldouble(0.0);
+
         complex_t c2;
         real_t r2 = ldouble(0.0);
         real_t i2 = ldouble(0.0);
+
         complex_t v;
         int x;
         if (e1.type.isreal())
@@ -257,6 +255,7 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
             c1 = e1.toComplex();
             x = 6;
         }
+
         if (e2.type.isreal())
         {
             r2 = e2.toReal();
@@ -271,37 +270,20 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
             c2 = e2.toComplex();
             x += 2;
         }
+
         switch (x)
         {
-        case 0 + 0:
-            v = complex_t(r1 - r2, 0);
-            break;
-        case 0 + 1:
-            v = complex_t(r1, -i2);
-            break;
-        case 0 + 2:
-            v = complex_t(r1 - creall(c2), -cimagl(c2));
-            break;
-        case 3 + 0:
-            v = complex_t(-r2, i1);
-            break;
-        case 3 + 1:
-            v = complex_t(0, i1 - i2);
-            break;
-        case 3 + 2:
-            v = complex_t(-creall(c2), i1 - cimagl(c2));
-            break;
-        case 6 + 0:
-            v = complex_t(creall(c1) - r2, cimagl(c1));
-            break;
-        case 6 + 1:
-            v = complex_t(creall(c1), cimagl(c1) - i2);
-            break;
-        case 6 + 2:
-            v = c1 - c2;
-            break;
-        default:
-            assert(0);
+            case 0 + 0: v = complex_t(r1 - r2, 0);                      break;
+            case 0 + 1: v = complex_t(r1, -i2);                         break;
+            case 0 + 2: v = complex_t(r1 - creall(c2), -cimagl(c2));    break;
+            case 3 + 0: v = complex_t(-r2, i1);                         break;
+            case 3 + 1: v = complex_t(0, i1 - i2);                      break;
+            case 3 + 2: v = complex_t(-creall(c2), i1 - cimagl(c2));    break;
+            case 6 + 0: v = complex_t(creall(c1) - r2, cimagl(c1));     break;
+            case 6 + 1: v = complex_t(creall(c1), cimagl(c1) - i2);     break;
+            case 6 + 2: v = c1 - c2;                                    break;
+            default:
+                assert(0);
         }
         emplaceExp!(ComplexExp)(&ue, loc, v, type);
     }
@@ -321,10 +303,12 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     if (type.isfloating())
     {
         complex_t c;
         d_float80 r;
+
         if (e1.type.isreal())
         {
             r = e1.toReal();
@@ -351,6 +335,7 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
         }
         else
             c = e1.toComplex() * e2.toComplex();
+
         if (type.isreal())
             emplaceExp!(RealExp)(&ue, loc, creall(c), type);
         else if (type.isimaginary())
@@ -370,10 +355,12 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     if (type.isfloating())
     {
         complex_t c;
         d_float80 r;
+
         //e1->type->print();
         //e2->type->print();
         if (e2.type.isreal())
@@ -411,6 +398,7 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
         {
             c = e1.toComplex() / e2.toComplex();
         }
+
         if (type.isreal())
             emplaceExp!(RealExp)(&ue, loc, creall(c), type);
         else if (type.isimaginary())
@@ -425,6 +413,7 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
         sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
+
         n1 = e1.toInteger();
         n2 = e2.toInteger();
         if (n2 == 0)
@@ -444,9 +433,11 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     if (type.isfloating())
     {
         complex_t c;
+
         if (e2.type.isreal())
         {
             real_t r2 = e2.toReal();
@@ -459,6 +450,7 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         }
         else
             assert(0);
+
         if (type.isreal())
             emplaceExp!(RealExp)(&ue, loc, creall(c), type);
         else if (type.isimaginary())
@@ -473,6 +465,7 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         sinteger_t n1;
         sinteger_t n2;
         sinteger_t n;
+
         n1 = e1.toInteger();
         n2 = e2.toInteger();
         if (n2 == 0)
@@ -506,6 +499,7 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     // Handle integer power operations.
     if (e2.type.isintegral())
     {
@@ -518,12 +512,14 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
                 emplaceExp!(CTFEExp)(&ue, TOKcantexp);
                 return ue;
             }
+
             // Don't worry about overflow, from now on n is unsigned.
             neg = true;
             n = -n;
         }
         else
             neg = false;
+
         UnionExp ur, uv;
         if (e1.type.iscomplex())
         {
@@ -540,6 +536,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
             emplaceExp!(IntegerExp)(&ur, loc, e1.toInteger(), e1.type);
             emplaceExp!(IntegerExp)(&uv, loc, 1, e1.type);
         }
+
         Expression r = ur.exp();
         Expression v = uv.exp();
         while (n != 0)
@@ -553,6 +550,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
             // r = r * r
             ur = Mul(loc, r.type, r, r);
         }
+
         if (neg)
         {
             // ue = 1.0 / v
@@ -560,6 +558,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
             emplaceExp!(RealExp)(&one, loc, ldouble(1.0), v.type);
             uv = Div(loc, v.type, one.exp(), v);
         }
+
         if (type.iscomplex())
             emplaceExp!(ComplexExp)(&ue, loc, v.toComplex(), type);
         else if (type.isintegral())
@@ -585,6 +584,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Shl(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
     return ue;
 }
@@ -592,44 +592,54 @@ extern (C++) UnionExp Shl(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     dinteger_t value = e1.toInteger();
     dinteger_t dcount = e2.toInteger();
     assert(dcount <= 0xFFFFFFFF);
     uint count = cast(uint)dcount;
     switch (e1.type.toBasetype().ty)
     {
-    case Tint8:
-        value = cast(d_int8)value >> count;
-        break;
-    case Tuns8:
-    case Tchar:
-        value = cast(d_uns8)value >> count;
-        break;
-    case Tint16:
-        value = cast(d_int16)value >> count;
-        break;
-    case Tuns16:
-    case Twchar:
-        value = cast(d_uns16)value >> count;
-        break;
-    case Tint32:
-        value = cast(d_int32)value >> count;
-        break;
-    case Tuns32:
-    case Tdchar:
-        value = cast(d_uns32)value >> count;
-        break;
-    case Tint64:
-        value = cast(d_int64)value >> count;
-        break;
-    case Tuns64:
-        value = cast(d_uns64)value >> count;
-        break;
-    case Terror:
-        emplaceExp!(ErrorExp)(&ue);
-        return ue;
-    default:
-        assert(0);
+        case Tint8:
+            value = cast(d_int8)value >> count;
+            break;
+
+        case Tuns8:
+        case Tchar:
+            value = cast(d_uns8)value >> count;
+            break;
+
+        case Tint16:
+            value = cast(d_int16)value >> count;
+            break;
+
+        case Tuns16:
+        case Twchar:
+            value = cast(d_uns16)value >> count;
+            break;
+
+        case Tint32:
+            value = cast(d_int32)value >> count;
+            break;
+
+        case Tuns32:
+        case Tdchar:
+            value = cast(d_uns32)value >> count;
+            break;
+
+        case Tint64:
+            value = cast(d_int64)value >> count;
+            break;
+
+        case Tuns64:
+            value = cast(d_uns64)value >> count;
+            break;
+
+        case Terror:
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
+
+        default:
+            assert(0);
     }
     emplaceExp!(IntegerExp)(&ue, loc, value, type);
     return ue;
@@ -638,38 +648,44 @@ extern (C++) UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     dinteger_t value = e1.toInteger();
     dinteger_t dcount = e2.toInteger();
     assert(dcount <= 0xFFFFFFFF);
     uint count = cast(uint)dcount;
     switch (e1.type.toBasetype().ty)
     {
-    case Tint8:
-    case Tuns8:
-    case Tchar:
-        // Possible only with >>>=. >>> always gets promoted to int.
-        value = (value & 0xFF) >> count;
-        break;
-    case Tint16:
-    case Tuns16:
-    case Twchar:
-        // Possible only with >>>=. >>> always gets promoted to int.
-        value = (value & 0xFFFF) >> count;
-        break;
-    case Tint32:
-    case Tuns32:
-    case Tdchar:
-        value = (value & 0xFFFFFFFF) >> count;
-        break;
-    case Tint64:
-    case Tuns64:
-        value = cast(d_uns64)value >> count;
-        break;
-    case Terror:
-        emplaceExp!(ErrorExp)(&ue);
-        return ue;
-    default:
-        assert(0);
+        case Tint8:
+        case Tuns8:
+        case Tchar:
+            // Possible only with >>>=. >>> always gets promoted to int.
+            value = (value & 0xFF) >> count;
+            break;
+
+        case Tint16:
+        case Tuns16:
+        case Twchar:
+            // Possible only with >>>=. >>> always gets promoted to int.
+            value = (value & 0xFFFF) >> count;
+            break;
+
+        case Tint32:
+        case Tuns32:
+        case Tdchar:
+            value = (value & 0xFFFFFFFF) >> count;
+            break;
+
+        case Tint64:
+        case Tuns64:
+            value = cast(d_uns64)value >> count;
+            break;
+
+        case Terror:
+            emplaceExp!(ErrorExp)(&ue);
+            return ue;
+
+        default:
+            assert(0);
     }
     emplaceExp!(IntegerExp)(&ue, loc, value, type);
     return ue;
@@ -678,6 +694,7 @@ extern (C++) UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp And(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
     return ue;
 }
@@ -685,6 +702,7 @@ extern (C++) UnionExp And(Loc loc, Type type, Expression e1, Expression e2)
 extern (C++) UnionExp Or(Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
+
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
     return ue;
 }
@@ -693,6 +711,7 @@ extern (C++) UnionExp Xor(Loc loc, Type type, Expression e1, Expression e2)
 {
     //printf("Xor(linnum = %d, e1 = %s, e2 = %s)\n", loc.linnum, e1.toChars(), e2.toChars());
     UnionExp ue;
+
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() ^ e2.toInteger(), type);
     return ue;
 }
@@ -705,8 +724,10 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
     int cmp = 0;
     real_t r1;
     real_t r2;
+
     //printf("Equal(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     assert(op == TOKequal || op == TOKnotequal);
+
     if (e1.op == TOKnull)
     {
         if (e2.op == TOKnull)
@@ -898,6 +919,7 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
         emplaceExp!(CTFEExp)(&ue, TOKcantexp);
         return ue;
     }
+
     if (op == TOKnotequal)
         cmp ^= 1;
     emplaceExp!(IntegerExp)(&ue, loc, cmp, type);
@@ -908,6 +930,7 @@ extern (C++) UnionExp Identity(TOK op, Loc loc, Type type, Expression e1, Expres
 {
     UnionExp ue;
     int cmp;
+
     if (e1.op == TOKnull)
     {
         cmp = (e2.op == TOKnull);
@@ -936,7 +959,8 @@ extern (C++) UnionExp Identity(TOK op, Loc loc, Type type, Expression e1, Expres
         {
             complex_t v1 = e1.toComplex();
             complex_t v2 = e2.toComplex();
-            cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
+            cmp = RealEquals(creall(v1), creall(v2)) &&
+                  RealEquals(cimagl(v1), cimagl(v1));
         }
         else
         {
@@ -956,6 +980,7 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
     dinteger_t n;
     real_t r1;
     real_t r2;
+
     //printf("Cmp(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     if (e1.op == TOKstring && e2.op == TOKstring)
     {
@@ -963,9 +988,11 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
         StringExp es2 = cast(StringExp)e2;
         size_t sz = es1.sz;
         assert(sz == es2.sz);
+
         size_t len = es1.len;
         if (es2.len < len)
             len = es2.len;
+
         int rawCmp = memcmp(es1.string, es2.string, sz * len);
         if (rawCmp == 0)
             rawCmp = cast(int)(es1.len - es2.len);
@@ -1015,8 +1042,10 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
 extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
 {
     UnionExp ue;
+
     Type tb = to.toBasetype();
     Type typeb = type.toBasetype();
+
     //printf("Cast(type = %s, to = %s, e1 = %s)\n", type->toChars(), to->toChars(), e1->toChars());
     //printf("\te1->type = %s\n", e1->type->toChars());
     if (e1.type.equals(type) && type.equals(to))
@@ -1024,16 +1053,19 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         emplaceExp!(UnionExp)(&ue, e1);
         return ue;
     }
+
     if (e1.op == TOKvector && (cast(TypeVector)e1.type).basetype.equals(type) && type.equals(to))
     {
         Expression ex = (cast(VectorExp)e1).e1;
         emplaceExp!(UnionExp)(&ue, ex);
         return ue;
     }
+
     if (e1.type.implicitConvTo(to) >= MATCHconst || to.implicitConvTo(e1.type) >= MATCHconst)
     {
         goto L1;
     }
+
     // Allow covariant converions of delegates
     // (Perhaps implicit conversion from pure to impure should be a MATCHconst,
     // then we wouldn't need this extra check.)
@@ -1041,6 +1073,7 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     {
         goto L1;
     }
+
     /* Allow casting from one string type to another
      */
     if (e1.op == TOKstring)
@@ -1050,6 +1083,7 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             goto L1;
         }
     }
+
     if (e1.op == TOKarrayliteral && typeb == tb)
     {
     L1:
@@ -1057,6 +1091,7 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         emplaceExp!(UnionExp)(&ue, ex);
         return ue;
     }
+
     if (e1.isConst() != 1)
     {
         emplaceExp!(CTFEExp)(&ue, TOKcantexp);
@@ -1073,35 +1108,19 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             real_t r = e1.toReal();
             switch (typeb.ty)
             {
-            case Tint8:
-                result = cast(d_int8)r;
-                break;
-            case Tchar:
-            case Tuns8:
-                result = cast(d_uns8)r;
-                break;
-            case Tint16:
-                result = cast(d_int16)r;
-                break;
-            case Twchar:
-            case Tuns16:
-                result = cast(d_uns16)r;
-                break;
-            case Tint32:
-                result = cast(d_int32)r;
-                break;
-            case Tdchar:
-            case Tuns32:
-                result = cast(d_uns32)r;
-                break;
-            case Tint64:
-                result = cast(d_int64)r;
-                break;
-            case Tuns64:
-                result = cast(d_uns64)r;
-                break;
-            default:
-                assert(0);
+                case Tint8:     result = cast(d_int8)r;     break;
+                case Tchar:
+                case Tuns8:     result = cast(d_uns8)r;     break;
+                case Tint16:    result = cast(d_int16)r;    break;
+                case Twchar:
+                case Tuns16:    result = cast(d_uns16)r;    break;
+                case Tint32:    result = cast(d_int32)r;    break;
+                case Tdchar:
+                case Tuns32:    result = cast(d_uns32)r;    break;
+                case Tint64:    result = cast(d_int64)r;    break;
+                case Tuns64:    result = cast(d_uns64)r;    break;
+                default:
+                    assert(0);
             }
             emplaceExp!(IntegerExp)(&ue, loc, result, type);
         }
@@ -1169,6 +1188,7 @@ extern (C++) UnionExp ArrayLength(Type type, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
+
     if (e1.op == TOKstring)
     {
         StringExp es1 = cast(StringExp)e1;
@@ -1202,6 +1222,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     Loc loc = e1.loc;
+
     //printf("Index(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     assert(e1.type);
     if (e1.op == TOKstring && e2.op == TOKint64)
@@ -1304,6 +1325,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
 {
     UnionExp ue;
     Loc loc = e1.loc;
+
     static if (LOG)
     {
         printf("Slice()\n");
@@ -1328,9 +1350,11 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         {
             size_t len = cast(size_t)(iupr - ilwr);
             ubyte sz = es1.sz;
+
             void* s = mem.xmalloc((len + 1) * sz);
             memcpy(cast(char*)s, cast(char*)es1.string + ilwr * sz, len * sz);
             memset(cast(char*)s + len * sz, 0, sz);
+
             emplaceExp!(StringExp)(&ue, loc, s, len, es1.postfix);
             StringExp es = cast(StringExp)ue.exp();
             es.sz = sz;
@@ -1338,7 +1362,9 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
             es.type = type;
         }
     }
-    else if (e1.op == TOKarrayliteral && lwr.op == TOKint64 && upr.op == TOKint64 && !hasSideEffect(e1))
+    else if (e1.op == TOKarrayliteral &&
+             lwr.op == TOKint64 && upr.op == TOKint64 &&
+             !hasSideEffect(e1))
     {
         ArrayLiteralExp es1 = cast(ArrayLiteralExp)e1;
         uinteger_t ilwr = lwr.toInteger();
@@ -1352,7 +1378,9 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         {
             auto elements = new Expressions();
             elements.setDim(cast(size_t)(iupr - ilwr));
-            memcpy(elements.tdata(), es1.elements.tdata() + ilwr, cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
+            memcpy(elements.tdata(),
+                es1.elements.tdata() + ilwr,
+                cast(size_t)(iupr - ilwr) * ((*es1.elements)[0]).sizeof);
             emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elements);
             ue.exp().type = type;
         }
@@ -1377,19 +1405,14 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
         dinteger_t val;
         switch (sz)
         {
-        case 1:
-            val = (cast(char*)s)[j];
-            break;
-        case 2:
-            val = (cast(utf16_t*)s)[j];
-            break;
-        case 4:
-            val = (cast(utf32_t*)s)[j];
-            break;
-        default:
-            assert(0);
+            case 1: val = (cast(   char*)s)[j];     break;
+            case 2: val = (cast(utf16_t*)s)[j];     break;
+            case 4: val = (cast(utf32_t*)s)[j];     break;
+            default:
+                assert(0);
         }
-        (*existingAE.elements)[j + firstIndex] = new IntegerExp(newval.loc, val, elemType);
+        (*existingAE.elements)[j + firstIndex] =
+            new IntegerExp(newval.loc, val, elemType);
     }
 }
 
@@ -1404,17 +1427,11 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
         uint val = cast(uint)newae.getElement(j).toInteger();
         switch (existingSE.sz)
         {
-        case 1:
-            (cast(char*)s)[j + firstIndex] = cast(char)val;
-            break;
-        case 2:
-            (cast(utf16_t*)s)[j + firstIndex] = cast(utf16_t)val;
-            break;
-        case 4:
-            (cast(utf32_t*)s)[j + firstIndex] = cast(utf32_t)val;
-            break;
-        default:
-            assert(0);
+            case 1: (cast(   char*)s)[j + firstIndex] = cast(   char)val;   break;
+            case 2: (cast(utf16_t*)s)[j + firstIndex] = cast(utf16_t)val;   break;
+            case 4: (cast(utf32_t*)s)[j + firstIndex] = cast(utf32_t)val;   break;
+            default:
+                assert(0);
         }
     }
 }
@@ -1455,17 +1472,11 @@ extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, siz
         uint val1;
         switch (sz)
         {
-        case 1:
-            val1 = (cast(char*)s)[j + lo1];
-            break;
-        case 2:
-            val1 = (cast(utf16_t*)s)[j + lo1];
-            break;
-        case 4:
-            val1 = (cast(utf32_t*)s)[j + lo1];
-            break;
-        default:
-            assert(0);
+            case 1: val1 = (cast(   char*)s)[j + lo1];  break;
+            case 2: val1 = (cast(utf16_t*)s)[j + lo1];  break;
+            case 4: val1 = (cast(utf32_t*)s)[j + lo1];  break;
+            default:
+                assert(0);
         }
         int c = val1 - val2;
         if (c)
@@ -1481,11 +1492,14 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
     UnionExp ue;
     Expression e = CTFEExp.cantexp;
     Loc loc = e1.loc;
+
     Type t;
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
+
     //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     //printf("\tt1 = %s, t2 = %s, type = %s\n", t1->toChars(), t2->toChars(), type->toChars());
+
     if (e1.op == TOKnull && (e2.op == TOKint64 || e2.op == TOKstructliteral))
     {
         e = e2;
@@ -1504,15 +1518,19 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             if (t.nextOf())
                 t = t.nextOf().toBasetype();
             ubyte sz = cast(ubyte)t.size();
+
             dinteger_t v = e.toInteger();
+
             size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar_t)v);
             void* s = mem.xmalloc((len + 1) * sz);
             if (t.ty == tn.ty)
                 memcpy(s, &v, sz);
             else
                 utf_encode(sz, s, cast(dchar_t)v);
+
             // Add terminating 0
             memset(cast(char*)s + len * sz, 0, sz);
+
             emplaceExp!(StringExp)(&ue, loc, s, len);
             StringExp es = cast(StringExp)ue.exp();
             es.sz = sz;
@@ -1565,6 +1583,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         StringExp es2 = cast(StringExp)e2;
         size_t len = es1.len + es2.len;
         ubyte sz = es1.sz;
+
         if (sz != es2.sz)
         {
             /* Can happen with:
@@ -1578,8 +1597,10 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         void* s = mem.xmalloc((len + 1) * sz);
         memcpy(cast(char*)s, es1.string, es1.len * sz);
         memcpy(cast(char*)s + es1.len * sz, es2.string, es2.len * sz);
+
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
+
         emplaceExp!(StringExp)(&ue, loc, s, len);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
@@ -1588,7 +1609,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e2.op == TOKstring && e1.op == TOKarrayliteral && t1.nextOf().isintegral())
+    else if (e2.op == TOKstring && e1.op == TOKarrayliteral &&
+        t1.nextOf().isintegral())
     {
         // [chars] ~ string --> [chars]
         StringExp es = cast(StringExp)e2;
@@ -1607,7 +1629,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == TOKstring && e2.op == TOKarrayliteral && t2.nextOf().isintegral())
+    else if (e1.op == TOKstring && e2.op == TOKarrayliteral &&
+        t2.nextOf().isintegral())
     {
         // string ~ [chars] --> [chars]
         StringExp es = cast(StringExp)e1;
@@ -1633,19 +1656,23 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         StringExp es;
         ubyte sz = es1.sz;
         dinteger_t v = e2.toInteger();
+
         // Is it a concatentation of homogenous types?
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
         size_t len = es1.len;
         len += homoConcat ? 1 : utf_codeLength(sz, cast(dchar_t)v);
+
         void* s = mem.xmalloc((len + 1) * sz);
         memcpy(s, es1.string, es1.len * sz);
         if (homoConcat)
             memcpy(cast(char*)s + (sz * es1.len), &v, sz);
         else
             utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar_t)v);
+
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
+
         emplaceExp!(StringExp)(&ue, loc, s, len);
         es = cast(StringExp)ue.exp();
         es.sz = sz;
@@ -1661,11 +1688,14 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         size_t len = 1 + es2.len;
         ubyte sz = es2.sz;
         dinteger_t v = e1.toInteger();
+
         void* s = mem.xmalloc((len + 1) * sz);
         memcpy(cast(char*)s, &v, sz);
         memcpy(cast(char*)s + sz, es2.string, es2.len * sz);
+
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
+
         emplaceExp!(StringExp)(&ue, loc, s, len);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
@@ -1674,7 +1704,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == TOKarrayliteral && e2.op == TOKarrayliteral && t1.nextOf().equals(t2.nextOf()))
+    else if (e1.op == TOKarrayliteral && e2.op == TOKarrayliteral &&
+        t1.nextOf().equals(t2.nextOf()))
     {
         // Concatenate the arrays
         auto elems = ArrayLiteralExp.copyElements(e1, e2);
@@ -1691,12 +1722,14 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e1.op == TOKarrayliteral && e2.op == TOKnull && t1.nextOf().equals(t2.nextOf()))
+    else if (e1.op == TOKarrayliteral && e2.op == TOKnull &&
+        t1.nextOf().equals(t2.nextOf()))
     {
         e = e1;
         goto L3;
     }
-    else if (e1.op == TOKnull && e2.op == TOKarrayliteral && t1.nextOf().equals(t2.nextOf()))
+    else if (e1.op == TOKnull && e2.op == TOKarrayliteral &&
+        t1.nextOf().equals(t2.nextOf()))
     {
         e = e2;
     L3:
@@ -1715,7 +1748,9 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if ((e1.op == TOKarrayliteral || e1.op == TOKnull) && e1.type.toBasetype().nextOf() && e1.type.toBasetype().nextOf().equals(e2.type))
+    else if ((e1.op == TOKarrayliteral || e1.op == TOKnull) &&
+        e1.type.toBasetype().nextOf() &&
+        e1.type.toBasetype().nextOf().equals(e2.type))
     {
         auto elems = (e1.op == TOKarrayliteral)
                 ? ArrayLiteralExp.copyElements(e1) : new Expressions();
@@ -1733,7 +1768,8 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         assert(ue.exp().type);
         return ue;
     }
-    else if (e2.op == TOKarrayliteral && e2.type.toBasetype().nextOf().equals(e1.type))
+    else if (e2.op == TOKarrayliteral &&
+        e2.type.toBasetype().nextOf().equals(e1.type))
     {
         auto elems = ArrayLiteralExp.copyElements(e1, e2);
 
@@ -1792,6 +1828,7 @@ extern (C++) UnionExp Ptr(Type type, Expression e1)
 {
     //printf("Ptr(e1 = %s)\n", e1->toChars());
     UnionExp ue;
+
     if (e1.op == TOKadd)
     {
         AddExp ae = cast(AddExp)e1;

@@ -36,20 +36,29 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
 {
     auto fparams = new Parameters();
     Expression loopbody = buildArrayLoop(exp, fparams);
+
     /* Construct the function body:
      *  foreach (i; 0 .. p.length)    for (size_t i = 0; i < p.length; i++)
      *      loopbody;
      *  return p;
      */
+
     Parameter p = (*fparams)[0];
     // foreach (i; 0 .. p.length)
-    Statement s1 = new ForeachRangeStatement(Loc(), TOKforeach, new Parameter(0, null, Id.p, null), new IntegerExp(Loc(), 0, Type.tsize_t), new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)), new ExpStatement(Loc(), loopbody), Loc());
+    Statement s1 = new ForeachRangeStatement(Loc(), TOKforeach,
+        new Parameter(0, null, Id.p, null),
+        new IntegerExp(Loc(), 0, Type.tsize_t),
+        new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)),
+        new ExpStatement(Loc(), loopbody),
+        Loc());
     //printf("%s\n", s1->toChars());
     Statement s2 = new ReturnStatement(Loc(), new IdentifierExp(Loc(), p.ident));
     //printf("s2: %s\n", s2->toChars());
     Statement fbody = new CompoundStatement(Loc(), s1, s2);
+
     // Built-in array ops should be @trusted, pure, nothrow and nogc
     StorageClass stc = STCtrusted | STCpure | STCnothrow | STCnogc;
+
     /* Construct the function
      */
     auto ftype = new TypeFunction(fparams, exp.type, 0, LINKc, stc);
@@ -59,7 +68,9 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
     fd.protection = Prot(PROTpublic);
     fd.linkage = LINKc;
     fd.isArrayOp = 1;
+
     sc._module.importedFrom.members.push(fd);
+
     sc = sc.push();
     sc.parent = sc._module.importedFrom;
     sc.stc = 0;
@@ -75,6 +86,7 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
         fd.fbody = null;
     }
     sc.pop();
+
     return fd;
 }
 
@@ -125,6 +137,7 @@ extern (C++) bool isNonAssignmentArrayOp(Expression e)
 {
     if (e.op == TOKslice)
         return isNonAssignmentArrayOp((cast(SliceExp)e).e1);
+
     Type tb = e.type.toBasetype();
     if (tb.ty == Tarray || tb.ty == Tsarray)
     {
@@ -165,7 +178,9 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
         e.error("invalid array operation %s (possible missing [])", e.toChars());
         return new ErrorExp();
     }
+
     auto arguments = new Expressions();
+
     /* The expression to generate an array operation for is mangled
      * into a name to use as the array operation function name.
      * Mangle in the operands and operators in RPN order, and type.
@@ -174,15 +189,19 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
     buf.writestring("_array");
     buildArrayIdent(e, &buf, arguments);
     buf.writeByte('_');
+
     /* Append deco of array element type
      */
     buf.writestring(e.type.toBasetype().nextOf().toBasetype().mutableOf().deco);
+
     char* name = buf.peekString();
     Identifier ident = Identifier.idPool(name);
+
     FuncDeclaration* pFd = cast(FuncDeclaration*)dmd_aaGet(&arrayfuncs, cast(void*)ident);
     FuncDeclaration fd = *pFd;
     if (!fd)
         fd = buildArrayOp(ident, e, sc, e.loc);
+
     if (fd && fd.errors)
     {
         const(char)* fmt;
@@ -195,7 +214,9 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
         e.error(fmt, e.toChars(), tbn.toChars());
         return new ErrorExp();
     }
+
     *pFd = fd;
+
     Expression ev = new VarExp(e.loc, fd);
     Expression ec = new CallExp(e.loc, ev, arguments);
     return ec.semantic(sc);
@@ -204,9 +225,11 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
 extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
 {
     //printf("BinAssignExp::arrayOp() %s\n", toChars());
+
     /* Check that the elements of e1 can be assigned to
      */
     Type tn = e.e1.type.toBasetype().nextOf();
+
     if (tn && (!tn.isMutable() || !tn.isAssignable()))
     {
         e.error("slice %s is not mutable", e.e1.toChars());
@@ -216,6 +239,7 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
     {
         return e.e1.modifiableLvalue(sc, e.e1);
     }
+
     return arrayOp(cast(BinExp)e, sc);
 }
 
@@ -285,35 +309,17 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             const(char)* s;
             switch (e.op)
             {
-            case TOKaddass:
-                s = "Addass";
-                break;
-            case TOKminass:
-                s = "Subass";
-                break;
-            case TOKmulass:
-                s = "Mulass";
-                break;
-            case TOKdivass:
-                s = "Divass";
-                break;
-            case TOKmodass:
-                s = "Modass";
-                break;
-            case TOKxorass:
-                s = "Xorass";
-                break;
-            case TOKandass:
-                s = "Andass";
-                break;
-            case TOKorass:
-                s = "Orass";
-                break;
-            case TOKpowass:
-                s = "Powass";
-                break;
-            default:
-                assert(0);
+                case TOKaddass: s = "Addass";   break;
+                case TOKminass: s = "Subass";   break;
+                case TOKmulass: s = "Mulass";   break;
+                case TOKdivass: s = "Divass";   break;
+                case TOKmodass: s = "Modass";   break;
+                case TOKxorass: s = "Xorass";   break;
+                case TOKandass: s = "Andass";   break;
+                case TOKorass:  s =  "Orass";   break;
+                case TOKpowass: s = "Powass";   break;
+                default:
+                    assert(0);
             }
             buf.writestring(s);
         }
@@ -337,35 +343,17 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             const(char)* s = null;
             switch (e.op)
             {
-            case TOKadd:
-                s = "Add";
-                break;
-            case TOKmin:
-                s = "Sub";
-                break;
-            case TOKmul:
-                s = "Mul";
-                break;
-            case TOKdiv:
-                s = "Div";
-                break;
-            case TOKmod:
-                s = "Mod";
-                break;
-            case TOKxor:
-                s = "Xor";
-                break;
-            case TOKand:
-                s = "And";
-                break;
-            case TOKor:
-                s = "Or";
-                break;
-            case TOKpow:
-                s = "Pow";
-                break;
-            default:
-                break;
+                case TOKadd:    s = "Add";  break;
+                case TOKmin:    s = "Sub";  break;
+                case TOKmul:    s = "Mul";  break;
+                case TOKdiv:    s = "Div";  break;
+                case TOKmod:    s = "Mod";  break;
+                case TOKxor:    s = "Xor";  break;
+                case TOKand:    s = "And";  break;
+                case TOKor:     s = "Or";   break;
+                case TOKpow:    s = "Pow";  break;
+                default:
+                    break;
             }
             if (s)
             {
@@ -373,7 +361,9 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                 Type t1 = e.e1.type.toBasetype();
                 Type t2 = e.e2.type.toBasetype();
                 e.e1.accept(this);
-                if (t1.ty == Tarray && (t2.ty == Tarray && !t1.equivalent(tb) || t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
+                if (t1.ty == Tarray &&
+                    (t2.ty == Tarray && !t1.equivalent(tb) ||
+                     t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
                 {
                     // Bugzilla 12780: if A is narrower than B
                     //  A[] op B[]
@@ -382,7 +372,9 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     buf.writestring(t1.nextOf().mutableOf().deco);
                 }
                 e.e2.accept(this);
-                if (t2.ty == Tarray && (t1.ty == Tarray && !t2.equivalent(tb) || t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
+                if (t2.ty == Tarray &&
+                    (t1.ty == Tarray && !t2.equivalent(tb) ||
+                     t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
                 {
                     // Bugzilla 12780: if B is narrower than A:
                     //  A[] op B[]
@@ -485,35 +477,17 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             param.storageClass = 0;
             switch (e.op)
             {
-            case TOKaddass:
-                result = new AddAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKminass:
-                result = new MinAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKmulass:
-                result = new MulAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKdivass:
-                result = new DivAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKmodass:
-                result = new ModAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKxorass:
-                result = new XorAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKandass:
-                result = new AndAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKorass:
-                result = new OrAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKpowass:
-                result = new PowAssignExp(e.loc, ex1, ex2);
-                return;
-            default:
-                assert(0);
+                case TOKaddass: result = new AddAssignExp(e.loc, ex1, ex2); return;
+                case TOKminass: result = new MinAssignExp(e.loc, ex1, ex2); return;
+                case TOKmulass: result = new MulAssignExp(e.loc, ex1, ex2); return;
+                case TOKdivass: result = new DivAssignExp(e.loc, ex1, ex2); return;
+                case TOKmodass: result = new ModAssignExp(e.loc, ex1, ex2); return;
+                case TOKxorass: result = new XorAssignExp(e.loc, ex1, ex2); return;
+                case TOKandass: result = new AndAssignExp(e.loc, ex1, ex2); return;
+                case TOKorass:  result = new  OrAssignExp(e.loc, ex1, ex2); return;
+                case TOKpowass: result = new PowAssignExp(e.loc, ex1, ex2); return;
+                default:
+                    assert(0);
             }
         }
 
@@ -567,11 +541,11 @@ extern (C++) bool isUnaArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKneg:
-    case TOKtilde:
-        return true;
-    default:
-        break;
+        case TOKneg:
+        case TOKtilde:
+            return true;
+        default:
+            break;
     }
     return false;
 }
@@ -583,18 +557,18 @@ extern (C++) bool isBinArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKadd:
-    case TOKmin:
-    case TOKmul:
-    case TOKdiv:
-    case TOKmod:
-    case TOKxor:
-    case TOKand:
-    case TOKor:
-    case TOKpow:
-        return true;
-    default:
-        break;
+        case TOKadd:
+        case TOKmin:
+        case TOKmul:
+        case TOKdiv:
+        case TOKmod:
+        case TOKxor:
+        case TOKand:
+        case TOKor:
+        case TOKpow:
+            return true;
+        default:
+            break;
     }
     return false;
 }
@@ -606,18 +580,18 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKaddass:
-    case TOKminass:
-    case TOKmulass:
-    case TOKdivass:
-    case TOKmodass:
-    case TOKxorass:
-    case TOKandass:
-    case TOKorass:
-    case TOKpowass:
-        return true;
-    default:
-        break;
+        case TOKaddass:
+        case TOKminass:
+        case TOKmulass:
+        case TOKdivass:
+        case TOKmodass:
+        case TOKxorass:
+        case TOKandass:
+        case TOKorass:
+        case TOKpowass:
+            return true;
+        default:
+            break;
     }
     return false;
 }
@@ -640,7 +614,10 @@ extern (C++) bool isArrayOpOperand(Expression e)
     Type tb = e.type.toBasetype();
     if (tb.ty == Tarray)
     {
-        return (isUnaArrayOp(e.op) || isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOKassign);
+        return (isUnaArrayOp(e.op) ||
+                isBinArrayOp(e.op) ||
+                isBinAssignArrayOp(e.op) ||
+                e.op == TOKassign);
     }
     return false;
 }

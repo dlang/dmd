@@ -524,22 +524,22 @@ public:
         //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
         switch (alignment)
         {
-        case cast(structalign_t)1:
-            // No alignment
-            break;
+            case cast(structalign_t)1:
+                // No alignment
+                break;
 
-        case cast(structalign_t)STRUCTALIGN_DEFAULT:
-            // Alignment in Target::fieldalignsize must match what the
-            // corresponding C compiler's default alignment behavior is.
-            assert(size > 0 && !(size & (size - 1)));
-            *poffset = (*poffset + size - 1) & ~(size - 1);
-            break;
+            case cast(structalign_t)STRUCTALIGN_DEFAULT:
+                // Alignment in Target::fieldalignsize must match what the
+                // corresponding C compiler's default alignment behavior is.
+                assert(size > 0 && !(size & (size - 1)));
+                *poffset = (*poffset + size - 1) & ~(size - 1);
+                break;
 
-        default:
-            // Align on alignment boundary, which must be a positive power of 2
-            assert(alignment > 0 && !(alignment & (alignment - 1)));
-            *poffset = (*poffset + alignment - 1) & ~(alignment - 1);
-            break;
+            default:
+                // Align on alignment boundary, which must be a positive power of 2
+                assert(alignment > 0 && !(alignment & (alignment - 1)));
+                *poffset = (*poffset + alignment - 1) & ~(alignment - 1);
+                break;
         }
     }
 
