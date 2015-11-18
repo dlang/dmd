@@ -2072,27 +2072,6 @@ extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression 
     return e;
 }
 
-extern (C++) bool needDirectEq(Scope* sc, Type t1, Type t2)
-{
-    assert(t1.ty == Tarray || t1.ty == Tsarray);
-    assert(t2.ty == Tarray || t2.ty == Tsarray);
-    Type t1n = t1.nextOf().toBasetype();
-    Type t2n = t2.nextOf().toBasetype();
-    if (((t1n.ty == Tchar || t1n.ty == Twchar || t1n.ty == Tdchar) && (t2n.ty == Tchar || t2n.ty == Twchar || t2n.ty == Tdchar)) || (t1n.ty == Tvoid || t2n.ty == Tvoid))
-    {
-        return false;
-    }
-    if (t1n.constOf() != t2n.constOf())
-        return true;
-    Type t = t1n;
-    while (t.toBasetype().nextOf())
-        t = t.nextOf().toBasetype();
-    if (t.ty != Tstruct)
-        return false;
-    semanticTypeInfo(sc, t);
-    return (cast(TypeStruct)t).sym.hasIdentityEquals;
-}
-
 /****************************************************************/
 extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
@@ -14200,10 +14179,12 @@ public:
         //printf("EqualExp::semantic('%s')\n", toChars());
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
-            return ex;
+
+        if (auto e = binSemanticProp(sc))
+            return e;
         if (e1.op == TOKtype || e2.op == TOKtype)
             return incompatibleTypes();
+
         /* Before checking for operator overloading, check to see if we're
          * comparing the addresses of two statics. If so, we can just see
          * if they are the same symbol.
@@ -14223,112 +14204,15 @@ public:
                 }
             }
         }
-        Type t1 = e1.type.toBasetype();
-        Type t2 = e2.type.toBasetype();
-        if (t1.ty == Tclass && e2.op == TOKnull || t2.ty == Tclass && e1.op == TOKnull)
-        {
-            error("use '%s' instead of '%s' when comparing with null", Token.toChars(op == TOKequal ? TOKidentity : TOKnotidentity), Token.toChars(op));
-            return new ErrorExp();
-        }
-        if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
-        {
-            if (needDirectEq(sc, t1, t2))
-            {
-                /* Rewrite as:
-                 * _ArrayEq(e1, e2)
-                 */
-                Expression eq = new IdentifierExp(loc, Id._ArrayEq);
-                Expression e = new CallExp(loc, eq, e1, e2);
-                if (op == TOKnotequal)
-                    e = new NotExp(loc, e);
-                e = e.trySemantic(sc); // for better error message
-                if (!e)
-                {
-                    error("cannot compare %s and %s", t1.toChars(), t2.toChars());
-                    return new ErrorExp();
-                }
-                return e;
-            }
-        }
-        Expression e = op_overload(sc);
-        if (e)
-        {
-            if (e.op == TOKcall && op == TOKnotequal)
-            {
-                e = new NotExp(e.loc, e);
-                e = e.semantic(sc);
-            }
+
+        if (auto e = op_overload(sc))
             return e;
-        }
-        if (t1.ty == Tpointer || t2.ty == Tpointer)
-        {
-            /* Rewrite:
-             *      ptr1 == ptr2
-             * as:
-             *      ptr1 is ptr2
-             */
-            e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
-            e = e.semantic(sc);
+
+        if (auto e = typeCombine(this, sc))
             return e;
-        }
-        if (t1.ty == Tstruct && t2.ty == Tstruct)
-        {
-            StructDeclaration sd = (cast(TypeStruct)t1).sym;
-            if (sd == (cast(TypeStruct)t2).sym)
-            {
-                if (needOpEquals(sd))
-                {
-                    this.e1 = new DotIdExp(loc, e1, Id._tupleof);
-                    this.e2 = new DotIdExp(loc, e2, Id._tupleof);
-                    e = this;
-                }
-                else
-                {
-                    e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
-                }
-                e = e.semantic(sc);
-                return e;
-            }
-        }
-        // check tuple equality before typeCombine
-        if (e1.op == TOKtuple && e2.op == TOKtuple)
-        {
-            TupleExp tup1 = cast(TupleExp)e1;
-            TupleExp tup2 = cast(TupleExp)e2;
-            size_t dim = tup1.exps.dim;
-            e = null;
-            if (dim != tup2.exps.dim)
-            {
-                error("mismatched tuple lengths, %d and %d", cast(int)dim, cast(int)tup2.exps.dim);
-                return new ErrorExp();
-            }
-            if (dim == 0)
-            {
-                // zero-length tuple comparison should always return true or false.
-                e = new IntegerExp(loc, (op == TOKequal), Type.tbool);
-            }
-            else
-            {
-                for (size_t i = 0; i < dim; i++)
-                {
-                    Expression ex1 = (*tup1.exps)[i];
-                    Expression ex2 = (*tup2.exps)[i];
-                    Expression eeq = new EqualExp(op, loc, ex1, ex2);
-                    if (!e)
-                        e = eeq;
-                    else if (op == TOKequal)
-                        e = new AndAndExp(loc, e, eeq);
-                    else
-                        e = new OrOrExp(loc, e, eeq);
-                }
-            }
-            assert(e);
-            e = combine(combine(tup1.e0, tup2.e0), e);
-            return e.semantic(sc);
-        }
-        if (Expression ex = typeCombine(this, sc))
-            return ex;
+
         type = Type.tbool;
+
         // Special handling for array comparisons
         if (!arrayTypeCompatible(loc, e1.type, e2.type))
         {
@@ -14341,8 +14225,10 @@ public:
         }
         if (e1.type.toBasetype().ty == Taarray)
             semanticTypeInfo(sc, e1.type.toBasetype());
+
         if (e1.type.toBasetype().ty == Tvector)
             return incompatibleTypes();
+
         return this;
     }
 
