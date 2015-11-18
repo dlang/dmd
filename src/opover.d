@@ -1243,10 +1243,26 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                  * as:
                  *      e1.tupleof == e2.tupleof
                  */
+                if (e.att1 && t1 == e.att1) return;
+                if (e.att2 && t2 == e.att2) return;
+
                 e = cast(EqualExp)e.copy();
+                if (!e.att1) e.att1 = t1;
+                if (!e.att2) e.att2 = t2;
                 e.e1 = new DotIdExp(e.loc, e.e1, Id._tupleof);
                 e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
                 result = e.semantic(sc);
+
+                /* Bugzilla 15292, if the rewrite result is same with the original,
+                 * the equality is unresolvable because it has recursive definition.
+                 */
+                if (result.op == e.op &&
+                    (cast(EqualExp)result).e1.type.toBasetype() == t1)
+                {
+                    e.error("cannot compare %s because its auto generated member-wise equality has recursive definition",
+                        t1.toChars());
+                    result = new ErrorExp();
+                }
                 return;
             }
 
@@ -1277,6 +1293,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         auto ex1 = (*tup1.exps)[i];
                         auto ex2 = (*tup2.exps)[i];
                         auto eeq = new EqualExp(e.op, e.loc, ex1, ex2);
+                        eeq.att1 = e.att1;
+                        eeq.att2 = e.att2;
 
                         if (!result)
                             result = eeq;
