@@ -208,70 +208,103 @@ extern (C++) Expression getValue(Expression e)
  */
 extern (C++) bool match(RootObject o1, RootObject o2)
 {
-    Type t1 = isType(o1);
-    Type t2 = isType(o2);
-    Dsymbol s1 = isDsymbol(o1);
-    Dsymbol s2 = isDsymbol(o2);
-    Expression e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
-    Expression e2 = s2 ? getValue(s2) : getValue(isExpression(o2));
-    Tuple u1 = isTuple(o1);
-    Tuple u2 = isTuple(o2);
-    //printf("\t match t1 %p t2 %p, e1 %p e2 %p, s1 %p s2 %p, u1 %p u2 %p\n", t1,t2,e1,e2,s1,s2,u1,u2);
+    static Expression getExpression(RootObject o)
+    {
+        auto s = isDsymbol(o);
+        return s ? .getValue(s) : .getValue(isExpression(o));
+    }
+
+    enum debugPrint = 0;
+
+    static if (debugPrint)
+    {
+        printf("match() o1 = %p %s (%d), o2 = %p %s (%d)\n",
+            o1, o1.toChars(), o1.dyncast(), o2, o2.toChars(), o2.dyncast());
+    }
+
     /* A proper implementation of the various equals() overrides
-     * should make it possible to just do o1->equals(o2), but
+     * should make it possible to just do o1.equals(o2), but
      * we'll do that another day.
      */
     /* Manifest constants should be compared by their values,
      * at least in template arguments.
      */
-    if (t1)
+
+    if (auto t1 = isType(o1))
     {
-        //printf("t1 = %s\n", t1->toChars());
-        //printf("t2 = %s\n", t2->toChars());
+        auto t2 = isType(o2);
         if (!t2)
             goto Lnomatch;
+
+        static if (debugPrint)
+        {
+            printf("\tt1 = %s\n", t1.toChars());
+            printf("\tt2 = %s\n", t2.toChars());
+        }
         if (!t1.equals(t2))
             goto Lnomatch;
+
+        goto Lmatch;
     }
-    else if (e1)
+    if (auto e1 = getExpression(o1))
     {
+        auto e2 = getExpression(o2);
         if (!e2)
             goto Lnomatch;
-        version (none)
+
+        static if (debugPrint)
         {
-            printf("match %d\n", e1.equals(e2));
-            printf("\te1 = %p %s %s %s\n", e1, e1.type.toChars(), Token.toChars(e1.op), e1.toChars());
-            printf("\te2 = %p %s %s %s\n", e2, e2.type.toChars(), Token.toChars(e2.op), e2.toChars());
+            printf("\te1 = %s '%s' %s\n", e1.type.toChars(), Token.toChars(e1.op), e1.toChars());
+            printf("\te2 = %s '%s' %s\n", e2.type.toChars(), Token.toChars(e2.op), e2.toChars());
         }
         if (!e1.equals(e2))
             goto Lnomatch;
+
+        goto Lmatch;
     }
-    else if (s1)
+    if (auto s1 = isDsymbol(o1))
     {
-        if (s2)
-        {
-            if (!s1.equals(s2))
-                goto Lnomatch;
-            if (s1.parent != s2.parent && !s1.isFuncDeclaration() && !s2.isFuncDeclaration())
-            {
-                goto Lnomatch;
-            }
-        }
-        else
+        auto s2 = isDsymbol(o2);
+        if (!s2)
             goto Lnomatch;
+
+        static if (debugPrint)
+        {
+            printf("\ts1 = %s \n", s1.kind(), s1.toChars());
+            printf("\ts2 = %s \n", s2.kind(), s2.toChars());
+        }
+        if (!s1.equals(s2))
+            goto Lnomatch;
+        if (s1.parent != s2.parent && !s1.isFuncDeclaration() && !s2.isFuncDeclaration())
+            goto Lnomatch;
+
+        goto Lmatch;
     }
-    else if (u1)
+    if (auto u1 = isTuple(o1))
     {
+        auto u2 = isTuple(o2);
         if (!u2)
             goto Lnomatch;
+
+        static if (debugPrint)
+        {
+            printf("\tu1 = %s\n", u1.toChars());
+            printf("\tu2 = %s\n", u2.toChars());
+        }
         if (!arrayObjectMatch(&u1.objects, &u2.objects))
             goto Lnomatch;
+
+        goto Lmatch;
     }
-    //printf("match\n");
-    return true; // match
+Lmatch:
+    static if (debugPrint)
+        printf("\t-> match\n");
+    return true;
+
 Lnomatch:
-    //printf("nomatch\n");
-    return false; // nomatch;
+    static if (debugPrint)
+        printf("\t-> nomatch\n");
+    return false;
 }
 
 /************************************
