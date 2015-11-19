@@ -632,40 +632,39 @@ version( CRuntime_Glibc )
 }
 else version( OSX )
 {
+    // _DARWIN_FEATURE_64_BIT_INODE stat is default for Mac OSX >10.5 and is
+    // only meaningful type for other OS X/Darwin variants (e.g. iOS).
+    // man stat(2) gives details.
     struct stat_t
     {
-      version ( DARWIN_USE_64_BIT_INODE )
-      {
         dev_t       st_dev;
         mode_t      st_mode;
         nlink_t     st_nlink;
         ino_t       st_ino;
-      }
-      else
-      {
-        dev_t       st_dev;
-        ino_t       st_ino;
-        mode_t      st_mode;
-        nlink_t     st_nlink;
-      }
         uid_t       st_uid;
         gid_t       st_gid;
         dev_t       st_rdev;
-      static if( false /*!_POSIX_C_SOURCE || _DARWIN_C_SOURCE*/ )
-      {
-          timespec  st_atimespec;
-          timespec  st_mtimespec;
-          timespec  st_ctimespec;
-      }
-      else
-      {
-        time_t      st_atime;
-        c_long      st_atimensec;
-        time_t      st_mtime;
-        c_long      st_mtimensec;
-        time_t      st_ctime;
-        c_long      st_ctimensec;
-      }
+        union
+        {
+            struct
+            {
+                timespec  st_atimespec;
+                timespec  st_mtimespec;
+                timespec  st_ctimespec;
+                timespec  st_birthtimespec;
+            }
+            struct
+            {
+                time_t      st_atime;
+                c_long      st_atimensec;
+                time_t      st_mtime;
+                c_long      st_mtimensec;
+                time_t      st_ctime;
+                c_long      st_ctimensec;
+                time_t      st_birthtime;
+                c_long      st_birthtimensec;
+            }
+        }
         off_t       st_size;
         blkcnt_t    st_blocks;
         blksize_t   st_blksize;
@@ -1095,9 +1094,11 @@ else version (Solaris)
 }
 else version( OSX )
 {
-    int   fstat(int, stat_t*);
-    int   lstat(in char*, stat_t*);
-    int   stat(in char*, stat_t*);
+    // OS X maintains backwards compatibility with older binaries using 32-bit
+    // inode functions by appending $INODE64 to newer 64-bit inode functions.
+    pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
+    pragma(mangle, "lstat$INODE64") int lstat(in char*, stat_t*);
+    pragma(mangle, "stat$INODE64")  int stat(in char*, stat_t*);
 }
 else version( FreeBSD )
 {
