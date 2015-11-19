@@ -4778,7 +4778,8 @@ public:
 
     extern (C++) static __gshared AA* edummies = null;
 
-    extern (D) this(Loc loc, Identifier ident, Type valType, Expression specValue, Expression defaultValue)
+    extern (D) this(Loc loc, Identifier ident, Type valType,
+        Expression specValue, Expression defaultValue)
     {
         super(loc, ident);
         this.ident = ident;
@@ -4794,7 +4795,10 @@ public:
 
     override TemplateParameter syntaxCopy()
     {
-        return new TemplateValueParameter(loc, ident, valType.syntaxCopy(), specValue ? specValue.syntaxCopy() : null, defaultValue ? defaultValue.syntaxCopy() : null);
+        return new TemplateValueParameter(loc, ident,
+            valType.syntaxCopy(),
+            specValue ? specValue.syntaxCopy() : null,
+            defaultValue ? defaultValue.syntaxCopy() : null);
     }
 
     override bool declareParameter(Scope* sc)
@@ -4818,10 +4822,11 @@ public:
                 sc = sc.endCTFE();
                 e = e.implicitCastTo(sc, valType);
                 e = e.ctfeInterpret();
-                if (e.op == TOKint64 || e.op == TOKfloat64 || e.op == TOKcomplex80 || e.op == TOKnull || e.op == TOKstring)
+                if (e.op == TOKint64 || e.op == TOKfloat64 ||
+                    e.op == TOKcomplex80 || e.op == TOKnull || e.op == TOKstring)
                     specValue = e;
-                //e->toInteger();
             }
+
             if (defaultValue)
             {
                 Expression e = defaultValue;
@@ -4832,7 +4837,6 @@ public:
                 e = e.ctfeInterpret();
                 if (e.op == TOKint64)
                     defaultValue = e;
-                //e->toInteger();
             }
         }
         return !isError(valType);
@@ -4871,20 +4875,27 @@ public:
         return defaultValue !is null;
     }
 
-    override MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
+    override MATCH matchArg(Scope* sc, RootObject oarg,
+        size_t i, TemplateParameters* parameters, Objects* dedtypes,
+        Declaration* psparam)
     {
-        //printf("TemplateValueParameter::matchArg('%s')\n", ident->toChars());
+        //printf("TemplateValueParameter::matchArg('%s')\n", ident.toChars());
+
         MATCH m = MATCHexact;
+
         Expression ei = isExpression(oarg);
         Type vt;
+
         if (!ei && oarg)
         {
             Dsymbol si = isDsymbol(oarg);
             FuncDeclaration f = si ? si.isFuncDeclaration() : null;
             if (!f || !f.fbody || f.needThis())
                 goto Lnomatch;
+
             ei = new VarExp(loc, f);
             ei = ei.semantic(sc);
+
             /* If a function is really property-like, and then
              * it's CTFEable, ei will be a literal expression.
              */
@@ -4893,6 +4904,7 @@ public:
             ei = ei.ctfeInterpret();
             if (global.endGagging(olderrors) || ei.op == TOKerror)
                 goto Lnomatch;
+
             /* Bugzilla 14520: A property-like function can match to both
              * TemplateAlias and ValueParameter. But for template overloads,
              * it should always prefer alias parameter to be consistent
@@ -4910,15 +4922,18 @@ public:
              */
             m = MATCHconvert;
         }
+
         if (ei && ei.op == TOKvar)
         {
             // Resolve const variables that we had skipped earlier
             ei = ei.ctfeInterpret();
         }
+
         //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
         vt = valType.semantic(loc, sc);
         //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
         //printf("vt = %s\n", vt->toChars());
+
         if (ei.type)
         {
             MATCH m2 = ei.implicitConvTo(vt);
@@ -4930,17 +4945,21 @@ public:
             ei = ei.implicitCastTo(sc, vt);
             ei = ei.ctfeInterpret();
         }
+
         if (specValue)
         {
             if (!ei || cast(Expression)dmd_aaGetRvalue(edummies, cast(void*)ei.type) == ei)
                 goto Lnomatch;
+
             Expression e = specValue;
+
             sc = sc.startCTFE();
             e = e.semantic(sc);
             e = resolveProperties(sc, e);
             sc = sc.endCTFE();
             e = e.implicitCastTo(sc, vt);
             e = e.ctfeInterpret();
+
             ei = ei.syntaxCopy();
             sc = sc.startCTFE();
             ei = ei.semantic(sc);
@@ -4963,6 +4982,7 @@ public:
             }
         }
         (*dedtypes)[i] = ei;
+
         if (psparam)
         {
             Initializer _init = new ExpInitializer(loc, ei);
@@ -4971,6 +4991,7 @@ public:
             *psparam = sparam;
         }
         return dependent ? MATCHexact : m;
+
     Lnomatch:
         //printf("\tno match\n");
         if (psparam)

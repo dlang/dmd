@@ -6996,7 +6996,8 @@ public:
             for (size_t i = 0; i < idents.dim; i++)
             {
                 RootObject id = idents[i];
-                if (id.dyncast() == DYNCAST_EXPRESSION || id.dyncast() == DYNCAST_TYPE)
+                if (id.dyncast() == DYNCAST_EXPRESSION ||
+                    id.dyncast() == DYNCAST_TYPE)
                 {
                     Type tx;
                     Expression ex;
@@ -7016,6 +7017,7 @@ public:
                     resolveExp(ex, pt, pe, ps);
                     return;
                 }
+
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
@@ -7029,7 +7031,8 @@ public:
                     goto L3;
                 if (VarDeclaration v = s.isVarDeclaration())
                 {
-                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) || v.type.isConst() || v.type.isImmutable())
+                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                        v.type.isConst() || v.type.isImmutable())
                     {
                         // Bugzilla 13087: this.field is not constant always
                         if (!v.isThisDeclaration())
@@ -7046,7 +7049,8 @@ public:
                             if (!t && s.isTupleDeclaration()) // expression tuple?
                                 goto L3;
                         }
-                        else if (s.isTemplateInstance() || s.isImport() || s.isPackage() || s.isModule())
+                        else if (s.isTemplateInstance() ||
+                                 s.isImport() || s.isPackage() || s.isModule())
                         {
                             goto L3;
                         }
@@ -7134,6 +7138,13 @@ public:
                     *pe = new VarExp(loc, v);
                 return;
             }
+            if (auto fld = s.isFuncLiteralDeclaration())
+            {
+                //printf("'%s' is a function literal\n", fld.toChars());
+                *pe = new FuncExp(loc, fld);
+                *pe = (*pe).semantic(sc);
+                return;
+            }
             version (none)
             {
                 if (FuncDeclaration fd = s.isFuncDeclaration())
@@ -7142,6 +7153,7 @@ public:
                     return;
                 }
             }
+
         L1:
             Type t = s.getType();
             if (!t)

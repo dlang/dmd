@@ -4728,6 +4728,36 @@ void test15152()
 }
 
 /******************************************/
+// 15352
+
+struct S15352(T, T delegate(uint idx) supplier)
+{
+}
+
+auto make15352a(T, T delegate(uint idx) supplier)()
+{
+    enum local = supplier;      // OK
+    S15352!(T, local) ret;
+    return ret;
+}
+
+auto make15352b(T, T delegate(uint idx) supplier)()
+{
+    S15352!(T, supplier) ret;   // OK <- Error
+    return ret;
+}
+
+void test15352()
+{
+    enum dg = delegate(uint idx) => idx;
+    auto s1 = S15352!(uint, dg)();
+    auto s2 = make15352a!(uint, dg)();
+    auto s3 = make15352b!(uint, dg)();
+    assert(is(typeof(s1) == typeof(s2)));
+    assert(is(typeof(s1) == typeof(s3)));
+}
+
+/******************************************/
 
 int main()
 {
