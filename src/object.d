@@ -762,7 +762,30 @@ class TypeInfo_Delegate : TypeInfo
         return c && this.deco == c.deco;
     }
 
-    // BUG: need to add the rest of the functions
+    override size_t getHash(in void* p) @trusted const
+    {
+        return hashOf(*cast(void delegate()*)p);
+    }
+
+    override bool equals(in void* p1, in void* p2) const
+    {
+        auto dg1 = *cast(void delegate()*)p1;
+        auto dg2 = *cast(void delegate()*)p2;
+        return dg1 == dg2;
+    }
+
+    override int compare(in void* p1, in void* p2) const
+    {
+        auto dg1 = *cast(void delegate()*)p1;
+        auto dg2 = *cast(void delegate()*)p2;
+
+        if (dg1 < dg2)
+            return -1;
+        else if (dg1 > dg2)
+            return 1;
+        else
+            return 0;
+    }
 
     override @property size_t tsize() nothrow pure const
     {
@@ -792,6 +815,34 @@ class TypeInfo_Delegate : TypeInfo
         arg2 = typeid(void*);
         return 0;
     }
+}
+
+unittest
+{
+    // Bugzilla 15367
+    void f1() {}
+    void f2() {}
+
+    // TypeInfo_Delegate.getHash
+    int[void delegate()] aa;
+    assert(aa.length == 0);
+    aa[&f1] = 1;
+    assert(aa.length == 1);
+    aa[&f1] = 1;
+    assert(aa.length == 1);
+
+    auto a1 = [&f2, &f1];
+    auto a2 = [&f2, &f1];
+
+    // TypeInfo_Delegate.equals
+    for (auto i = 0; i < 2; i++)
+        assert(a1[i] == a2[i]);
+    assert(a1 == a2);
+
+    // TypeInfo_Delegate.compare
+    for (auto i = 0; i < 2; i++)
+        assert(a1[i] <= a2[i]);
+    assert(a1 <= a2);
 }
 
 /**
