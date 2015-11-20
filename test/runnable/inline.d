@@ -916,6 +916,36 @@ struct ProtoPackage15253
 }
 
 /**********************************/
+// 15296
+
+static int x15296;
+
+struct S15296
+{
+    // Can be expanded only as statements.
+    void bar(size_t , size_t )
+    {
+        for (size_t w = 0; w < 2; w++) { ++x15296; }
+    }
+
+    pragma(inline, true)
+    void foo(size_t a, size_t b)
+    {
+        bar(a, b);
+    }
+}
+
+void test15296()
+{
+    S15296 s;
+
+    // CallExp at the top of ExpStatement
+    x15296 = 0;
+    s.foo(0, 0);
+    assert(x15296 == 2);
+}
+
+/**********************************/
 
 int main()
 {
@@ -947,6 +977,7 @@ int main()
     test9785();
     test9785_2();
     test15207();
+    test15296();
 
     printf("Success\n");
     return 0;
