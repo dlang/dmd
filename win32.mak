@@ -1138,7 +1138,10 @@ IMPLIBS= \
 	lib\win32\wininet.lib \
 	lib\win32\winspool.lib
 
-implibs : $(IMPLIBS)
+implibsdir :
+	if not exist lib\win32 mkdir lib\win32
+
+implibs : implibsdir $(IMPLIBS)
 
 lib\win32\glu32.lib : def\glu32.def
 	implib $@ $**
