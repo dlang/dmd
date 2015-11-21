@@ -13936,11 +13936,15 @@ public:
 
     override Expression semantic(Scope* sc)
     {
+        if (type)
+            return this;
+
         // same as for AndAnd
         e1 = e1.semantic(sc);
         e1 = resolveProperties(sc, e1);
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
+
         if (sc.flags & SCOPEcondition)
         {
             /* If in static if, don't evaluate e2 if we don't have to.
@@ -13951,9 +13955,11 @@ public:
                 return new IntegerExp(loc, 1, Type.tbool);
             }
         }
+
         e2 = e2.semantic(sc);
         sc.mergeCallSuper(loc, cs1);
         e2 = resolveProperties(sc, e2);
+
         if (e2.type.ty == Tvoid)
             type = Type.tvoid;
         else
@@ -13970,6 +13976,7 @@ public:
             return e1;
         if (e2.op == TOKerror)
             return e2;
+
         return this;
     }
 
@@ -13997,11 +14004,15 @@ public:
 
     override Expression semantic(Scope* sc)
     {
+        if (type)
+            return this;
+
         // same as for OrOr
         e1 = e1.semantic(sc);
         e1 = resolveProperties(sc, e1);
         e1 = e1.toBoolean(sc);
         uint cs1 = sc.callSuper;
+
         if (sc.flags & SCOPEcondition)
         {
             /* If in static if, don't evaluate e2 if we don't have to.
@@ -14012,9 +14023,11 @@ public:
                 return new IntegerExp(loc, 0, Type.tbool);
             }
         }
+
         e2 = e2.semantic(sc);
         sc.mergeCallSuper(loc, cs1);
         e2 = resolveProperties(sc, e2);
+
         if (e2.type.ty == Tvoid)
             type = Type.tvoid;
         else
@@ -14031,6 +14044,7 @@ public:
             return e1;
         if (e2.op == TOKerror)
             return e2;
+
         return this;
     }
 
