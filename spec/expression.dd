@@ -724,7 +724,7 @@ $(GNAME ArgumentList):
     $(P If there is a $(D new $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN)),
         then
         those arguments are passed to the class or struct specific
-        $(DDSUBLINK class, allocators, allocator function) after the size argument.
+        $(DDSUBLINK spec/class, allocators, allocator function) after the size argument.
     )
 
     $(P If a $(I NewExpression) is used as an initializer for
@@ -1553,7 +1553,7 @@ $(GNAME FunctionLiteralBody):
         -------------
     )
 
-    $(P When comparing with $(DDSUBLINK function, nested, nested functions),
+    $(P When comparing with $(DDSUBLINK spec/function, nested, nested functions),
         the $(D function) form is analogous to static
         or non-nested functions, and the $(D delegate) form is
         analogous to non-static nested functions. In other words,
@@ -1667,7 +1667,7 @@ $(GNAME AssertExpression):
     )
 
     $(P The result type of an assert expression is $(D void).  Asserts are
-        a fundamental part of the $(DDLINK contracts, Contract Programming,
+        a fundamental part of the $(DDLINK spec/contracts, Contract Programming,
         Contract Programming) support in D.
     )
 

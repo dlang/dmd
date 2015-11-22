@@ -4,7 +4,7 @@ $(SPEC_S Interfacing to C++,
 
 	$(P
 	While D is fully capable of
-	$(DDLINK interfaceToC, Interfacing to C, interfacing to C),
+	$(DDLINK spec/interfaceToC, Interfacing to C, interfacing to C),
 	its ability to interface to C++ is much more limited.
 	There are three ways to do it:
 	)
@@ -13,7 +13,7 @@ $(SPEC_S Interfacing to C++,
 
 	$(LI Use C++'s ability to create a C interface, and then
 	use D's ability to
-	$(DDLINK interfaceToC, Interfacing to C, interface with C)
+	$(DDLINK spec/interfaceToC, Interfacing to C, interface with C)
 	to access that interface.
 	)
 

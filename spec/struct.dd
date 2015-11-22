@@ -77,7 +77,7 @@ $(SPEC_S Structs and Unions,
         $(TROW const/immutable/shared, $(CHECK), $(CHECK), $(UNCHECK),
         $(UNCHECK), $(UNCHECK))
         $(TROW inner nesting, $(RELATIVE_LINK2 nested, $(CHECK)),
-        $(DDSUBLINK class, nested, $(CHECK)), $(UNCHECK), $(UNCHECK), $(UNCHECK))
+        $(DDSUBLINK spec/class, nested, $(CHECK)), $(UNCHECK), $(UNCHECK), $(UNCHECK))
         )
 
 $(GRAMMAR
@@ -268,7 +268,7 @@ $(H3 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         $(P Struct literals are syntactically like function calls.
         If a struct has a member function named $(CODE opCall), then
         struct literals for that struct are not possible. See also
-        $(DDSUBLINK operatoroverloading, FunctionCall, opCall operator overloading)
+        $(DDSUBLINK spec/operatoroverloading, FunctionCall, opCall operator overloading)
         for the issue workaround.
         It is an error if there are more arguments than fields of
         the struct.

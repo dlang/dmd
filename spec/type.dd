@@ -45,7 +45,7 @@ $(SECTION3 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data 
     $(LI delegate)
     )
 
-    $(P $(DDSUBLINK arrays, strings, $(I Strings)) are a special case of arrays.)
+    $(P $(DDSUBLINK spec/arrays, strings, $(I Strings)) are a special case of arrays.)
 )
 
 $(SECTION3 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User Defined Types),

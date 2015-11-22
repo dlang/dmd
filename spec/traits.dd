@@ -184,9 +184,9 @@ $(H2 $(GNAME isNested))
     $(P Takes one argument.
     It returns $(D true) if the argument is a nested type which internally
     stores a context pointer, otherwise it returns $(D false).
-    Nested types can be  $(DDSUBLINK class, nested, classes),
-    $(DDSUBLINK struct, nested, structs), and
-    $(DDSUBLINK function, variadicnested, functions).)
+    Nested types can be  $(DDSUBLINK spec/class, nested, classes),
+    $(DDSUBLINK spec/struct, nested, structs), and
+    $(DDSUBLINK spec/function, variadicnested, functions).)
 
 $(H2 $(GNAME isVirtualFunction))
 
@@ -415,7 +415,7 @@ $(SECTION2 $(GNAME getAttributes),
     )
 
     $(P
-        For more information, see: $(DDSUBLINK attribute, uda, User Defined Attributes)
+        For more information, see: $(DDSUBLINK spec/attribute, uda, User Defined Attributes)
     )
 
 ---
@@ -698,7 +698,7 @@ $(H2 $(GNAME getUnitTests))
 		The result is a tuple of all the unit test functions of that aggregate.
 		The functions returned are like normal nested static functions,
 		$(DDSUBLINK glossary, ctfe, CTEF) will work and
-		$(DDSUBLINK attribute, uda, UDA's) will be accessible.
+		$(DDSUBLINK spec/attribute, uda, UDA's) will be accessible.
 	)
 
 	$(H4 Note:)

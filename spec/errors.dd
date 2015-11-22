@@ -95,7 +95,7 @@ with a human readable description of the error.)
 $(P If code detects an error like "out of memory," then an Error is thrown
 with a message saying "Out of memory". The function call stack is unwound,
 looking for a handler for the Error.
-$(DDSUBLINK statement, TryStatement, Finally blocks)
+$(DDSUBLINK spec/statement, TryStatement, Finally blocks)
 are executed as the
 stack is unwound. If an error handler is found, execution resumes there. If
 not, the default Error handler is run, which displays the message and

@@ -10,7 +10,7 @@ $(SPEC_S Memory Safety,
 	rationale.
 	)
 
-	$(P Memory-safe code $(DDSUBLINK function, function-safety, cannot 
+	$(P Memory-safe code $(DDSUBLINK spec/function, function-safety, cannot
 	use certain language features), such as:
 		$(UL
 			$(LI Casts that break the type system.)
@@ -21,11 +21,11 @@ $(SPEC_S Memory Safety,
 
 $(H3 Usage)
 
-	$(P Memory safety can be enabled on a per-function basis using 
-	the $(DDSUBLINK function, safe-functions, $(D @safe) attribute). 
-	This can be inferred when the compiler has the function body 
-	available. The $(DDSUBLINK function, trusted-functions, `@trusted` attribute) can be used when a function has a safe
-	interface, but uses unsafe code internally. These functions can 
+	$(P Memory safety can be enabled on a per-function basis using
+	the $(DDSUBLINK spec/function, safe-functions, $(D @safe) attribute).
+	This can be inferred when the compiler has the function body
+	available. The $(DDSUBLINK spec/function, trusted-functions, `@trusted` attribute) can be used when a function has a safe
+	interface, but uses unsafe code internally. These functions can
 	be called from $(D @safe) code.
 	)
 	

@@ -118,11 +118,11 @@ v.ptr[3] = 2;            // set 3rd element of the 4 int vector
 $(H3 Conditional Compilation)
 
 	$(P If vector extensions are implemented, the
-	$(DDSUBLINK version, PredefinedVersions, version identifier)
+	$(DDSUBLINK spec/version, PredefinedVersions, version identifier)
 	$(D D_SIMD) is set.)
 
 	$(P Whether a type exists or not can be tested at compile time with
-	an $(DDSUBLINK expression, IsExpression, $(I IsExpression)):
+	an $(DDSUBLINK spec/expression, IsExpression, $(I IsExpression)):
 	)
 
 ---

@@ -133,7 +133,7 @@ extern (Windows):
 	$(LINK2 http://en.wikipedia.org/wiki/X86_calling_conventions, stdcall) convention.)
 
         $(P Note that a lone $(D extern) declaration is used as a
-        $(DDSUBLINK declaration, extern, storage class).)
+        $(DDSUBLINK spec/declaration, extern, storage class).)
 
 $(H4 C++ $(LNAME2 namespace, Namespaces))
 
@@ -508,11 +508,11 @@ $(H3 $(LNAME2 disable, $(D @disable) Attribute))
         }
         ---
 
-        $(P $(DDSUBLINK struct, Struct-Constructor, Disabling struct no-arg constructor)
+        $(P $(DDSUBLINK spec/struct, Struct-Constructor, Disabling struct no-arg constructor)
         disallows default construction of the struct.
         )
 
-        $(P $(DDSUBLINK struct, StructPostblit, Disabling struct postblit)
+        $(P $(DDSUBLINK spec/struct, StructPostblit, Disabling struct postblit)
         makes the struct not copyable.
         )
 
@@ -558,19 +558,19 @@ $(H3 $(LNAME2 nogc, $(D @nogc) Attribute))
 
 $(H3 $(LNAME2 property, $(D @property) Attribute))
 
-    $(P See $(DDSUBLINK function, property-functions, Property Functions).)
+    $(P See $(DDSUBLINK spec/function, property-functions, Property Functions).)
 
 $(H3 $(LNAME2 nothrow, $(D nothrow) Attribute))
 
-    $(P See $(DDSUBLINK function, nothrow-functions, Nothrow Functions).)
+    $(P See $(DDSUBLINK spec/function, nothrow-functions, Nothrow Functions).)
 
 $(H3 $(LNAME2 pure, $(D pure) Attribute))
 
-    $(P See $(DDSUBLINK function, pure-functions, Pure Functions).)
+    $(P See $(DDSUBLINK spec/function, pure-functions, Pure Functions).)
 
 $(H3 $(LNAME2 ref, $(D ref) Attribute))
 
-    $(P See $(DDSUBLINK function, ref-functions, Ref Functions).)
+    $(P See $(DDSUBLINK spec/function, ref-functions, Ref Functions).)
 
 $(H3 $(LNAME2 override, $(D override) Attribute))
 

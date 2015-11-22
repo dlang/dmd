@@ -1251,7 +1251,7 @@ $(COMMENT
         does a return, goto or throw that exits the finally clause.)
 
         $(P If there is an out postcondition
-        (see $(DDLINK contracts, Contract Programming, Contract Programming)),
+        (see $(DDLINK spec/contracts, Contract Programming, Contract Programming)),
         that postcondition is executed
         after the $(EXPRESSION) is evaluated and before the function
         actually returns.)
@@ -1696,7 +1696,7 @@ $(GNAME AsmInstructionList):
 
         $(P The format of the instructions is, of course, highly dependent
         on the native instruction set of the target CPU, and so is
-        $(DDLINK iasm, Inline Assembler, implementation defined).
+        $(DDLINK spec/iasm, Inline Assembler, implementation defined).
         But, the format will follow the following
         conventions:)
 

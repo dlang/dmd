@@ -182,7 +182,8 @@ $(P $(B Note): Using $(D .stringof) for code generation is not recommended,
     as the internal representation of a type or expression can change between
     different compiler versions.)
 
-$(P Instead you should prefer to use the $(DDSUBLINK traits, identifier, identifier) trait,
+$(P Instead you should prefer to use the
+    $(DDSUBLINK spec/traits, identifier, identifier) trait,
     or one of the Phobos helper functions such as $(PHOBOS traits, fullyQualifiedName, fullyQualifiedName).)
 )
 

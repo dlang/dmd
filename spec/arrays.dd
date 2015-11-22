@@ -9,7 +9,7 @@ $(SPEC_S Arrays,
         $(TROW $(ARGS $(I type)*), $(ARGS $(RELATIVE_LINK2 pointers, Pointers to data)))
         $(TROW $(ARGS $(I type)[$(I integer)]), $(ARGS $(RELATIVE_LINK2 static-arrays, Static arrays)))
         $(TROW $(ARGS $(I type)[]),  $(ARGS $(RELATIVE_LINK2 dynamic-arrays, Dynamic arrays)))
-        $(TROW $(ARGS $(I type)[$(I type)]), $(ARGS $(DDLINK hash-map, Associative Arrays, Associative arrays)))
+        $(TROW $(ARGS $(I type)[$(I type)]), $(ARGS $(DDLINK spec/hash-map, Associative Arrays, Associative arrays)))
     )
 
 $(H4 $(LNAME2 pointers, Pointers))

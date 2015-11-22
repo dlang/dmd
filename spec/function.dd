@@ -1953,7 +1953,7 @@ void main()
     $(D TypeOfX) could have been used instead.)
     
     $(P For more information, see
-    $(DDSUBLINK template, function-templates, function templates).)
+    $(DDSUBLINK spec/template, function-templates, function templates).)
 
 $(H3 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
@@ -2209,7 +2209,7 @@ $(H4 $(LNAME2 system-functions, System Functions))
 $(H3 $(LNAME2 function-attribute-inference, Function Attribute Inference))
 
         $(P $(GLINK2 expression, FunctionLiteral)s and
-        $(DDSUBLINK template, function-templates, function template)s, since their function bodies
+        $(DDSUBLINK spec/template, function-templates, function template)s, since their function bodies
         are always present, infer the
         $(RELATIVE_LINK2 pure-functions, $(D pure)),
         $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)), and

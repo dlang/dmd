@@ -566,7 +566,7 @@ $(GNAME Typeof):
         typeof(this) r;   // error, no enclosing struct or class
         --------------------
 
-        $(P If the expression is a $(DDSUBLINK function, property-functions,
+        $(P If the expression is a $(DDSUBLINK spec/function, property-functions,
         Property Function), $(D typeof) gives its return type.
         )
 

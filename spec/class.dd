@@ -57,7 +57,7 @@ $(UL
         $(LI $(RELATIVE_LINK2 member-functions, member functions)
         $(UL
             $(LI static member functions)
-            $(LI $(DDSUBLINK function, virtual-functions, Virtual Functions))
+            $(LI $(DDSUBLINK spec/function, virtual-functions, Virtual Functions))
             $(LI $(RELATIVE_LINK2 constructors, Constructors))
             $(LI $(RELATIVE_LINK2 destructors, Destructors))
             $(LI $(RELATIVE_LINK2 static-constructor, Static Constructors))
@@ -65,7 +65,7 @@ $(UL
             $(LI $(GLINK SharedStaticConstructor)s)
             $(LI $(GLINK SharedStaticDestructor)s)
             $(LI $(RELATIVE_LINK2 invariants, Class Invariants))
-            $(LI $(DDSUBLINK unittest, unittest, Unit Tests))
+            $(LI $(DDSUBLINK spec/unittest, unittest, Unit Tests))
             $(LI $(RELATIVE_LINK2 allocators, Class Allocators))
             $(LI $(RELATIVE_LINK2 deallocators, Class Deallocators))
             $(LI $(RELATIVE_LINK2 alias-this, Alias This))
@@ -914,7 +914,7 @@ new(1,2) Foo(a);        // calls new(Foo.sizeof,1,2)
         )
 
         $(P See also
-        $(DDLINK1 memory, newdelete, Explicit Class Instance Allocation).
+        $(DDSUBLINK memory, newdelete, Explicit Class Instance Allocation).
         )
 
 $(H3 $(LNAME2 deallocators, Class Deallocators))

@@ -198,7 +198,7 @@ code sample generated, even if it is empty or only includes comments
 
 $(H3 Versioning)
 
-	$(P The $(DDSUBLINK version, PredefinedVersions, version identifier)
+	$(P The $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
 	$(D unittest) is predefined if the compilation
 	is done with unit tests enabled.
 	)
