@@ -1,0 +1,984 @@
+Ddoc
+
+$(SPEC_S Traits,
+
+	$(P Traits are extensions to the language to enable
+	programs, at compile time, to get at information
+	internal to the compiler. This is also known as
+	compile time reflection.
+	It is done as a special, easily extended syntax (similar
+	to Pragmas) so that new capabilities can be added
+	as required.
+	)
+
+$(GRAMMAR
+$(GNAME TraitsExpression):
+    $(D __traits) $(D $(LPAREN)) $(GLINK TraitsKeyword) $(D ,) $(GLINK TraitsArguments) $(D $(RPAREN))
+
+$(GNAME TraitsKeyword):
+    $(GBLINK isAbstractClass)
+    $(GBLINK isArithmetic)
+    $(GBLINK isAssociativeArray)
+    $(GBLINK isFinalClass)
+    $(GBLINK isPOD)
+    $(GBLINK isNested)
+    $(GBLINK isFloating)
+    $(GBLINK isIntegral)
+    $(GBLINK isScalar)
+    $(GBLINK isStaticArray)
+    $(GBLINK isUnsigned)
+    $(GBLINK isVirtualFunction)
+    $(GBLINK isVirtualMethod)
+    $(GBLINK isAbstractFunction)
+    $(GBLINK isFinalFunction)
+    $(GBLINK isStaticFunction)
+    $(GBLINK isOverrideFunction)
+    $(GBLINK isTemplate)
+    $(GBLINK isRef)
+    $(GBLINK isOut)
+    $(GBLINK isLazy)
+    $(GBLINK hasMember)
+    $(GBLINK identifier)
+    $(GBLINK getAliasThis)
+    $(GBLINK getAttributes)
+    $(GBLINK getFunctionAttributes)
+    $(GBLINK getMember)
+    $(GBLINK getOverloads)
+    $(GBLINK getPointerBitmap)
+    $(GBLINK getProtection)
+    $(GBLINK getVirtualFunctions)
+    $(GBLINK getVirtualMethods)
+    $(GBLINK getUnitTests)
+    $(GBLINK parent)
+    $(GBLINK classInstanceSize)
+    $(GBLINK getVirtualIndex)
+    $(GBLINK allMembers)
+    $(GBLINK derivedMembers)
+    $(GBLINK isSame)
+    $(GBLINK compiles)
+
+$(GNAME TraitsArguments):
+    $(GLINK TraitsArgument)
+    $(GLINK TraitsArgument) $(D ,) $(I TraitsArguments)
+
+$(GNAME TraitsArgument):
+    $(GLINK2 expression, AssignExpression)
+    $(GLINK2 declaration, Type)
+)
+
+$(P Additionally special keywords are provided for debugging purposes:)
+
+$(GRAMMAR
+$(GNAME SpecialKeyword):
+    $(D $(RELATIVE_LINK2 specialkeywords, __FILE__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __MODULE__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __LINE__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __FUNCTION__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __PRETTY_FUNCTION__))
+)
+
+$(H2 $(GNAME isArithmetic))
+
+	$(P If the arguments are all either types that are arithmetic types,
+	or expressions that are typed as arithmetic types, then $(D true)
+	is returned.
+	Otherwise, $(D false) is returned.
+	If there are no arguments, $(D false) is returned.)
+
+---
+import std.stdio;
+
+void main()
+{
+    int i;
+    writeln(__traits(isArithmetic, int));
+    writeln(__traits(isArithmetic, i, i+1, int));
+    writeln(__traits(isArithmetic));
+    writeln(__traits(isArithmetic, int*));
+}
+---
+
+	$(P Prints:)
+
+$(CONSOLE
+true
+true
+false
+false
+)
+
+$(H2 $(GNAME isFloating))
+
+	$(P Works like $(D isArithmetic), except it's for floating
+	point types (including imaginary and complex types).)
+
+$(H2 $(GNAME isIntegral))
+
+	$(P Works like $(D isArithmetic), except it's for integral
+	types (including character types).)
+
+$(H2 $(GNAME isScalar))
+
+	$(P Works like $(D isArithmetic), except it's for scalar
+	types.)
+
+$(H2 $(GNAME isUnsigned))
+
+	$(P Works like $(D isArithmetic), except it's for unsigned
+	types.)
+
+$(H2 $(GNAME isStaticArray))
+
+	$(P Works like $(D isArithmetic), except it's for static array
+	types.)
+
+$(H2 $(GNAME isAssociativeArray))
+
+	$(P Works like $(D isArithmetic), except it's for associative array
+	types.)
+
+$(H2 $(GNAME isAbstractClass))
+
+	$(P If the arguments are all either types that are abstract classes,
+	or expressions that are typed as abstract classes, then $(D true)
+	is returned.
+	Otherwise, $(D false) is returned.
+	If there are no arguments, $(D false) is returned.)
+
+---
+import std.stdio;
+
+abstract class C { int foo(); }
+
+void main()
+{
+    C c;
+    writeln(__traits(isAbstractClass, C));
+    writeln(__traits(isAbstractClass, c, C));
+    writeln(__traits(isAbstractClass));
+    writeln(__traits(isAbstractClass, int*));
+}
+---
+
+	$(P Prints:)
+
+$(CONSOLE
+true
+true
+false
+false
+)
+
+$(H2 $(GNAME isFinalClass))
+
+	$(P Works like $(D isAbstractClass), except it's for final
+	classes.)
+
+$(H2 $(GNAME isPOD))
+
+	$(P Takes one argument, which must be a type. It returns
+	$(D true) if the type is a $(DDSUBLINK glossary, pod, POD) type, otherwise $(D false).)
+
+$(H2 $(GNAME isNested))
+
+    $(P Takes one argument.
+    It returns $(D true) if the argument is a nested type which internally
+    stores a context pointer, otherwise it returns $(D false).
+    Nested types can be  $(DDSUBLINK class, nested, classes),
+    $(DDSUBLINK struct, nested, structs), and
+    $(DDSUBLINK function, variadicnested, functions).)
+
+$(H2 $(GNAME isVirtualFunction))
+
+	$(P The same as $(GLINK isVirtualMethod), except
+	that final functions that don't override anything return true.
+	)
+
+$(H2 $(GNAME isVirtualMethod))
+
+	$(P Takes one argument. If that argument is a virtual function,
+	$(D true) is returned, otherwise $(D false).
+	Final functions that don't override anything return false.
+	)
+
+---
+import std.stdio;
+
+struct S
+{
+    void bar() { }
+}
+
+class C
+{
+    void bar() { }
+}
+
+void main()
+{
+    writeln(__traits(isVirtualMethod, C.bar));  // true
+    writeln(__traits(isVirtualMethod, S.bar));  // false
+}
+---
+
+$(H2 $(GNAME isAbstractFunction))
+
+	$(P Takes one argument. If that argument is an abstract function,
+	$(D true) is returned, otherwise $(D false).
+	)
+
+---
+import std.stdio;
+
+struct S
+{
+    void bar() { }
+}
+
+class C
+{
+    void bar() { }
+}
+
+class AC
+{
+    abstract void foo();
+}
+
+void main()
+{
+    writeln(__traits(isAbstractFunction, C.bar));   // false
+    writeln(__traits(isAbstractFunction, S.bar));   // false
+    writeln(__traits(isAbstractFunction, AC.foo));  // true
+}
+---
+
+$(H2 $(GNAME isFinalFunction))
+
+	$(P Takes one argument. If that argument is a final function,
+	$(D true) is returned, otherwise $(D false).
+	)
+
+---
+import std.stdio;
+
+struct S
+{
+    void bar() { }
+}
+
+class C
+{
+    void bar() { }
+    final void foo();
+}
+
+final class FC
+{
+    void foo();
+}
+
+void main()
+{
+    writeln(__traits(isFinalFunction, C.bar));  // false
+    writeln(__traits(isFinalFunction, S.bar));  // false
+    writeln(__traits(isFinalFunction, C.foo));  // true
+    writeln(__traits(isFinalFunction, FC.foo)); // true
+}
+---
+
+$(H2 $(GNAME isOverrideFunction))
+
+	$(P Takes one argument. If that argument is a function marked with
+	$(D_KEYWORD override), $(D true) is returned, otherwise $(D false).
+	)
+
+---
+import std.stdio;
+
+class Base
+{
+    void foo() { }
+}
+
+class Foo : Base
+{
+    override void foo() { }
+    void bar() { }
+}
+
+void main()
+{
+    writeln(__traits(isOverrideFunction, Base.foo)); // false
+    writeln(__traits(isOverrideFunction, Foo.foo));  // true
+    writeln(__traits(isOverrideFunction, Foo.bar));  // false
+}
+---
+
+$(H2 $(GNAME isStaticFunction))
+
+	$(P Takes one argument. If that argument is a static function,
+	meaning it has no context pointer,
+	$(D true) is returned, otherwise $(D false).
+	)
+
+
+$(H2 $(GNAME isRef), $(GNAME isOut), $(GNAME isLazy))
+
+	$(P Takes one argument. If that argument is a declaration,
+	$(D true) is returned if it is $(D_KEYWORD ref), $(D_KEYWORD out),
+	or $(D_KEYWORD lazy), otherwise $(D false).
+	)
+
+---
+void fooref(ref int x)
+{
+    static assert(__traits(isRef, x));
+    static assert(!__traits(isOut, x));
+    static assert(!__traits(isLazy, x));
+}
+
+void fooout(out int x)
+{
+    static assert(!__traits(isRef, x));
+    static assert(__traits(isOut, x));
+    static assert(!__traits(isLazy, x));
+}
+
+void foolazy(lazy int x)
+{
+    static assert(!__traits(isRef, x));
+    static assert(!__traits(isOut, x));
+    static assert(__traits(isLazy, x));
+}
+---
+
+$(H2 $(GNAME isTemplate))
+
+	$(P Takes one argument. If that argument is a template then $(D true) is returned,
+	otherwise $(D false).
+	)
+
+---
+void foo(T)(){}
+static assert(__traits(isTemplate,foo));
+static assert(!__traits(isTemplate,foo!int()));
+static assert(!__traits(isTemplate,"string"));
+---
+
+$(H2 $(GNAME hasMember))
+
+	$(P The first argument is a type that has members, or
+	is an expression of a type that has members.
+	The second argument is a string.
+	If the string is a valid property of the type,
+	$(D true) is returned, otherwise $(D false).
+	)
+
+---
+import std.stdio;
+
+struct S
+{
+    int m;
+}
+
+void main()
+{
+    S s;
+
+    writeln(__traits(hasMember, S, "m")); // true
+    writeln(__traits(hasMember, s, "m")); // true
+    writeln(__traits(hasMember, S, "y")); // false
+    writeln(__traits(hasMember, int, "sizeof")); // true
+}
+---
+
+$(H2 $(GNAME identifier))
+
+	$(P Takes one argument, a symbol. Returns the identifier
+	for that symbol as a string literal.
+	)
+
+$(H2 $(GNAME getAliasThis))
+
+    $(P Takes one argument, a symbol of aggregate type.
+        If the given aggregate type has $(D alias this), returns a list of
+        $(D alias this) names, by a tuple of $(D string)s.
+        Otherwise returns an empty tuple.
+    )
+
+$(SECTION2 $(GNAME getAttributes),
+    $(P
+        Takes one argument, a symbol. Returns a tuple of all attached user defined attributes.
+        If no UDA's exist it will return an empty tuple.
+    )
+
+    $(P
+        For more information, see: $(DDSUBLINK attribute, uda, User Defined Attributes)
+    )
+
+---
+@(3) int a;
+@("string", 7) int b;
+
+enum Foo;
+@Foo int c;
+
+pragma(msg, __traits(getAttributes, a));
+pragma(msg, __traits(getAttributes, b));
+pragma(msg, __traits(getAttributes, c));
+---
+
+    $(P
+        Prints:
+    )
+
+$(CONSOLE
+tuple(3)
+tuple("string", 7)
+tuple((Foo))
+)
+)
+
+$(SECTION2 $(GNAME getFunctionAttributes),
+    $(P
+        Takes one argument which must either be a function symbol, function literal,
+        or a function pointer. It returns a string tuple of all the attributes of
+        that function $(B excluding) any user defined attributes (UDAs can be
+        retrieved with the $(RELATIVE_LINK2 get-attributes, getAttributes) trait).
+        If no attributes exist it will return an empty tuple.
+    )
+
+
+    $(P
+        $(B Note:) The order of the attributes in the returned tuple is
+        implementation-defined and should not be relied upon.
+    )
+
+        $(P
+            A list of currently supported attributes are:
+            $(UL $(LI $(D pure), $(D nothrow), $(D @nogc), $(D @property), $(D @system), $(D @trusted), $(D @safe), and $(D ref)))
+            $(B Note:) $(D ref) is a function attribute even though it applies to the return type.
+        )
+
+        $(P
+            Additionally the following attributes are only valid for non-static member functions:
+            $(UL $(LI $(D const), $(D immutable), $(D inout), $(D shared)))
+        )
+
+    $(P For example:)
+
+---
+int sum(int x, int y) pure nothrow { return x + y; }
+
+// prints ("pure", "nothrow", "@system")
+pragma(msg, __traits(getFunctionAttributes, sum));
+
+struct S
+{
+    void test() const @system { }
+}
+
+// prints ("const", "@system")
+pragma(msg, __traits(getFunctionAttributes, S.test));
+---
+
+    $(P Note that some attributes can be inferred. For example:)
+
+---
+// prints ("pure", "nothrow", "@nogc", "@trusted")
+pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
+---
+)
+
+$(H2 $(GNAME getMember))
+
+	$(P Takes two arguments, the second must be a string.
+	The result is an expression formed from the first
+	argument, followed by a $(SINGLEQUOTE .), followed by the second
+	argument as an identifier.
+	)
+
+---
+import std.stdio;
+
+struct S
+{
+    int mx;
+    static int my;
+}
+
+void main()
+{
+    S s;
+
+    __traits(getMember, s, "mx") = 1;  // same as s.mx=1;
+    writeln(__traits(getMember, s, "m" ~ "x")); // 1
+
+    __traits(getMember, S, "mx") = 1;  // error, no this for S.mx
+    __traits(getMember, S, "my") = 2;  // ok
+}
+---
+
+$(H2 $(GNAME getOverloads))
+
+	$(P The first argument is an aggregate (e.g. struct/class/module).
+	The second argument is a string that matches the name of
+	one of the functions in that aggregate.
+	The result is a tuple of all the overloads of that function.
+	)
+
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 2; }
+}
+
+void main()
+{
+    D d = new D();
+
+    foreach (t; __traits(getOverloads, D, "foo"))
+        writeln(typeid(typeof(t)));
+
+    alias b = typeof(__traits(getOverloads, D, "foo"));
+    foreach (t; b)
+        writeln(typeid(t));
+
+    auto i = __traits(getOverloads, d, "foo")[1](1);
+    writeln(i);
+}
+---
+
+	$(P Prints:)
+
+$(CONSOLE
+void()
+int()
+void()
+int()
+2
+)
+
+$(H2 $(GNAME getPointerBitmap))
+
+    $(P The argument is a type.
+    The result is an array of $(D size_t) describing the memory used by an instance of the given type.
+    )
+    $(P The first element of the array is the size of the type (for classes it is
+    the $(GBLINK classInstanceSize)).)
+    $(P The following elements describe the locations of GC managed pointers within the
+    memory occupied by an instance of the type.
+    For type T, there are $(D T.sizeof / size_t.sizeof) possible pointers represented
+    by the bits of the array values.)
+    $(P This array can be used by a precise GC to avoid false pointers.)
+---
+class C
+{
+    // implicit virtual function table pointer not marked
+    // implicit monitor field not marked, usually managed manually
+    C next;
+    size_t sz;
+    void* p;
+    void function () fn; // not a GC managed pointer
+}
+
+struct S
+{
+    size_t val1;
+    void* p;
+    C c;
+    byte[] arr;          // { length, ptr }
+    void delegate () dg; // { context, func }
+}
+
+static assert (__traits(getPointerBitmap, C) == [6*size_t.sizeof, 0b010100]);
+static assert (__traits(getPointerBitmap, S) == [7*size_t.sizeof, 0b0110110]);
+---
+
+
+$(H2 $(GNAME getProtection))
+
+	$(P The argument is a symbol.
+	The result is a string giving its protection level: "public", "private", "protected", "export", or "package".
+	)
+
+---
+import std.stdio;
+
+class D
+{
+    export void foo() { }
+    public int bar;
+}
+
+void main()
+{
+    D d = new D();
+
+    auto i = __traits(getProtection, d.foo);
+    writeln(i);
+
+    auto j = __traits(getProtection, d.bar);
+    writeln(j);
+}
+---
+
+	$(P Prints:)
+
+$(CONSOLE
+export
+public
+)
+
+
+$(H2 $(GNAME getVirtualFunctions))
+
+	$(P The same as $(GLINK getVirtualMethods), except that
+	final functions that do not override anything are included.
+	)
+
+$(H2 $(GNAME getVirtualMethods))
+
+	$(P The first argument is a class type or an expression of
+	class type.
+	The second argument is a string that matches the name of
+	one of the functions of that class.
+	The result is a tuple of the virtual overloads of that function.
+	It does not include final functions that do not override anything.
+	)
+
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 2; }
+}
+
+void main()
+{
+    D d = new D();
+
+    foreach (t; __traits(getVirtualMethods, D, "foo"))
+        writeln(typeid(typeof(t)));
+
+    alias b = typeof(__traits(getVirtualMethods, D, "foo"));
+    foreach (t; b)
+        writeln(typeid(t));
+
+    auto i = __traits(getVirtualMethods, d, "foo")[1](1);
+    writeln(i);
+}
+---
+
+	$(P Prints:)
+
+$(CONSOLE
+void()
+int()
+void()
+int()
+2
+)
+
+$(H2 $(GNAME getUnitTests))
+
+	$(P
+		Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
+		The result is a tuple of all the unit test functions of that aggregate.
+		The functions returned are like normal nested static functions,
+		$(DDSUBLINK glossary, ctfe, CTEF) will work and
+		$(DDSUBLINK attribute, uda, UDA's) will be accessible.
+	)
+
+	$(H4 Note:)
+
+	$(P
+		The -unittest flag needs to be passed to the compiler. If the flag
+		is not passed $(CODE __traits(getUnitTests)) will always return an
+		empty tuple.
+	)
+
+---
+module foo;
+
+import core.runtime;
+import std.stdio;
+
+struct name { string name; }
+
+class Foo
+{
+    unittest
+    {
+        writeln("foo.Foo.unittest");
+    }
+}
+
+@name("foo") unittest
+{
+    writeln("foo.unittest");
+}
+
+template Tuple (T...)
+{
+    alias Tuple = T;
+}
+
+shared static this()
+{
+  // Override the default unit test runner to do nothing. After that, "main" will
+  // be called.
+  Runtime.moduleUnitTester = { return true; };
+}
+
+void main()
+{
+    writeln("start main");
+
+    alias tests = Tuple!(__traits(getUnitTests, foo));
+    static assert(tests.length == 1);
+
+    alias attributes = Tuple!(__traits(getAttributes, tests[0]));
+    static assert(attributes.length == 1);
+
+    foreach (test; tests)
+        test();
+
+    foreach (test; __traits(getUnitTests, Foo))
+        test();
+}
+---
+
+	$(P By default, the above will print:)
+
+$(CONSOLE
+start main
+foo.unittest
+foo.Foo.unittest
+)
+
+$(H2 $(GNAME parent))
+
+	$(P Takes a single argument which must evaluate to a symbol.
+	The result is the symbol that is the parent of it.
+	)
+
+$(H2 $(GNAME classInstanceSize))
+
+	$(P Takes a single argument, which must evaluate to either
+	a class type or an expression of class type.
+	The result
+	is of type $(CODE size_t), and the value is the number of
+	bytes in the runtime instance of the class type.
+	It is based on the static type of a class, not the
+	polymorphic type.
+	)
+
+$(H2 $(GNAME getVirtualIndex))
+
+  $(P Takes a single argument which must evaluate to a function.
+  The result is a $(CODE ptrdiff_t) containing the index
+  of that function within the vtable of the parent type.
+  If the function passed in is final and does not override
+  a virtual function, $(D -1) is returned instead.
+  )
+
+$(H2 $(GNAME allMembers))
+
+	$(P Takes a single argument, which must evaluate to either
+	a type or an expression of type.
+	A tuple of string literals is returned, each of which
+	is the name of a member of that type combined with all
+	of the members of the base classes (if the type is a class).
+	No name is repeated.
+	Builtin properties are not included.
+	)
+
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 0; }
+}
+
+void main()
+{
+    auto b = [ __traits(allMembers, D) ];
+    writeln(b);
+    // ["__ctor", "__dtor", "foo", "toString", "toHash", "opCmp", "opEquals", "Monitor", "factory"]
+}
+---
+
+	$(P The order in which the strings appear in the result
+	is not defined.)
+
+$(H2 $(GNAME derivedMembers))
+
+	$(P Takes a single argument, which must evaluate to either
+	a type or an expression of type.
+	A tuple of string literals is returned, each of which
+	is the name of a member of that type.
+	No name is repeated.
+	Base class member names are not included.
+	Builtin properties are not included.
+	)
+
+---
+import std.stdio;
+
+class D
+{
+    this() { }
+    ~this() { }
+    void foo() { }
+    int foo(int) { return 0; }
+}
+
+void main()
+{
+    auto a = [__traits(derivedMembers, D)];
+    writeln(a);    // ["__ctor", "__dtor", "foo"]
+}
+---
+
+	$(P The order in which the strings appear in the result
+	is not defined.)
+
+$(H2 $(GNAME isSame))
+
+	$(P Takes two arguments and returns bool $(D true) if they
+	are the same symbol, $(D false) if not.)
+
+---
+import std.stdio;
+
+struct S { }
+
+int foo();
+int bar();
+
+void main()
+{
+    writeln(__traits(isSame, foo, foo)); // true
+    writeln(__traits(isSame, foo, bar)); // false
+    writeln(__traits(isSame, foo, S));   // false
+    writeln(__traits(isSame, S, S));     // true
+    writeln(__traits(isSame, std, S));   // false
+    writeln(__traits(isSame, std, std)); // true
+}
+---
+
+	$(P If the two arguments are expressions made up of literals
+	or enums that evaluate to the same value, true is returned.)
+
+$(H2 $(GNAME compiles))
+
+	$(P Returns a bool $(D true) if all of the arguments
+	compile (are semantically correct).
+	The arguments can be symbols, types, or expressions that
+	are syntactically correct.
+	The arguments cannot be statements or declarations.
+	)
+
+	$(P If there are no arguments, the result is $(D false).)
+
+---
+import std.stdio;
+
+struct S
+{
+    static int s1;
+    int s2;
+}
+
+int foo();
+int bar();
+
+void main()
+{
+    writeln(__traits(compiles));                      // false
+    writeln(__traits(compiles, foo));                 // true
+    writeln(__traits(compiles, foo + 1));             // true
+    writeln(__traits(compiles, &foo + 1));            // false
+    writeln(__traits(compiles, typeof(1)));           // true
+    writeln(__traits(compiles, S.s1));                // true
+    writeln(__traits(compiles, S.s3));                // false
+    writeln(__traits(compiles, 1,2,3,int,long,std));  // true
+    writeln(__traits(compiles, 3[1]));                // false
+    writeln(__traits(compiles, 1,2,3,int,long,3[1])); // false
+}
+---
+
+	$(P This is useful for:)
+
+	$(UL
+	$(LI Giving better error messages inside generic code than
+	the sometimes hard to follow compiler ones.)
+	$(LI Doing a finer grained specialization than template
+	partial specialization allows for.)
+	)
+
+
+$(H2 $(LNAME2 specialkeywords, Special Keywords))
+
+    $(P $(CODE __FILE__) and $(CODE __LINE__) expand to the source
+    file name and line number at the point of instantiation.)
+
+    $(P $(CODE __MODULE__) expands to the module name at the point of
+    instantiation.)
+
+    $(P $(CODE __FUNCTION__) expands to the fully qualified name of the
+    function at the point of instantiation.)
+
+    $(P $(CODE __PRETTY_FUNCTION__) is similar to $(CODE __FUNCTION__),
+    but also expands the function return type, its parameter types,
+    and its attributes.)
+
+    $(P Example usage:)
+
+-----
+module test;
+import std.stdio;
+
+void test(string file = __FILE__, size_t line = __LINE__, string mod = __MODULE__,
+          string func = __FUNCTION__, string pretty = __PRETTY_FUNCTION__)
+{
+    writefln("file: '%s', line: '%s', module: '%s',\nfunction: '%s', pretty function: '%s'",
+             file, line, mod, func, pretty);
+}
+
+int main(string[] args)
+{
+    test();
+    return 0;
+}
+-----
+
+	$(P This will output:)
+
+$(CONSOLE
+file: 'test.d', line: '13', module: 'test',
+function: 'test.main', pretty function: 'int test.main(string[] args)'
+)
+
+)
+
+Macros:
+	TITLE=Traits
+	WIKI=Traits
+	GBLINK=$(RELATIVE_LINK2 $0, $(D $0))

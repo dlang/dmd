@@ -1,0 +1,396 @@
+Ddoc
+
+$(SPEC_S Associative Arrays,
+
+        $(P Associative arrays have an index that is not necessarily an integer,
+        and can be sparsely populated. The index for an associative array
+        is called the $(I key), and its type is called the $(I KeyType).)
+
+        $(P Associative arrays are declared by placing the $(I KeyType)
+        within the $(D [ ]) of an array declaration:
+        )
+
+        ---------
+        int[string] aa;   // Associative array of ints that are
+                          // indexed by string keys.
+                          // The KeyType is string.
+        aa["hello"] = 3;  // set value associated with key "hello" to 3
+        int value = aa["hello"];  // lookup value from a key
+        assert(value == 3);
+        ---------
+
+        $(P $(BLUE $(B Note:)) The built-in associative arrays do not preserve the order
+        of the keys inserted into the array. In particular, in a $(D foreach) loop the
+        order in which the elements are iterated is unspecified.)
+        
+$(H3 Removing Keys)
+
+        $(P Particular keys in an associative array can be removed with the
+        $(D remove) function:
+        )
+
+        ---------
+        aa.$(CODE_HIGHLIGHT remove)("hello");
+        ---------
+
+        $(P $(D remove(key)) does nothing if the given $(I key) does not exist and
+        returns $(D false).  If the given $(I key) does exist, it removes it
+        from the AA and returns $(D true).
+        )
+
+$(H3 Testing Membership)
+
+        $(P The $(GLINK2 expression, InExpression) yields a pointer to the value
+        if the key is in the associative array, or $(D null) if not:
+        )
+
+        ---------
+        int* p;
+        
+        p = ("hello" $(CODE_HIGHLIGHT in) aa);
+        if (p !is null)
+        {
+            *p = 4;  // update value associated with key
+            assert(aa["hello"] == 4);
+        }
+        ---------
+
+        $(P Neither the $(I KeyType)s nor the element types of an associative
+        array can be function types or $(D void).
+        )
+
+$(H3 Using Classes as the KeyType)
+
+        $(P Classes can be used as the $(I KeyType). For this to work,
+        the class definition must override the following member functions
+        of class $(D Object):)
+
+        $(UL
+        $(LI $(D size_t toHash() @trusted nothrow))
+        $(LI $(D bool opEquals(Object)))
+        )
+
+        $(P Note that the parameter to $(D opEquals) is of type
+        $(D Object), not the type of the class in which it is defined.)
+
+        $(P For example:)
+
+        ---
+        class Foo
+        {
+            int a, b;
+
+            override size_t $(CODE_HIGHLIGHT toHash)() { return a + b; }
+
+            override bool $(CODE_HIGHLIGHT opEquals)(Object o)
+            {
+                Foo foo = cast(Foo) o;
+                return foo && a == foo.a && b == foo.b;
+            }
+        }
+        ---
+
+        $(P Care should be taken that $(D toHash) should consistently be the
+        same value when $(D opEquals) returns true. In other words, two objects
+        that are considered equal should always have the same hash value. If
+        this is not the case, the associative array will not function properly.
+        Also note that $(D opCmp) is not used to check for equality by the
+        associative array. However, since the actual $(D opEquals) or $(D
+        opCmp) called is not decided until runtime, the compiler cannot always
+        detect mismatched functions. Because of legacy issues, the compiler may
+        reject an associative array key type that overrides $(D opCmp) but not
+        $(D opEquals). This restriction may be removed in future versions of
+        D.)
+
+$(H3 Using Structs or Unions as the KeyType)
+
+        $(P If the $(I KeyType) is a struct or union type,
+        a default mechanism is used
+        to compute the hash and comparisons of it based on the binary
+        data within the struct value. A custom mechanism can be used
+        by providing the following functions as struct members:
+        )
+
+        ---------
+        size_t $(CODE_HIGHLIGHT toHash)() const @safe pure nothrow;
+        bool $(CODE_HIGHLIGHT opEquals)(ref const typeof(this) s) @safe pure nothrow;
+        ---------
+
+        $(P For example:)
+
+        ---------
+        import std.string;
+
+        struct MyString
+        {
+            string str;
+
+            size_t $(CODE_HIGHLIGHT toHash)() const @safe pure nothrow
+            {
+                size_t hash;
+                foreach (char c; str)
+                    hash = (hash * 9) + c;
+                return hash;
+            }
+
+            bool $(CODE_HIGHLIGHT opEquals)(ref const MyString s) const @safe pure nothrow
+            {
+                return std.string.cmp(this.str, s.str) == 0;
+            }
+        }
+        ---------
+
+        $(P Care should be taken that $(D toHash) should consistently be the
+        same value when $(D opEquals) returns true. In other words, two structs
+        that are considered equal should always have the same hash value. If
+        this is not the case, the associative array will not function properly.)
+        $(P If necessary the functions can use $(D @trusted) instead of $(D @safe).)
+        $(P Also note that $(D opCmp) is not used to check for equality by the
+        associative array.  For this reason, and for legacy reasons, an
+        associative array key is not allowed to define a specialized $(D
+        opCmp), but omit a specialized $(D opEquals). This restriction may be
+        removed in future versions of D.)
+
+$(H3 Construction or Assignment on Setting AA Entries)
+
+    $(P When an AA indexing access appears on the left side of an assignment operator,
+        it is specially handled for setting an AA entry associated with the key.
+
+        ---------
+        string[int] aa;
+        string s;
+        s = aa[1];          // throws RangeError in runtime
+        aa[1] = "hello";    // handled for setting AA entry
+        s = aa[1];          // succeeds to lookup
+        assert(s == "hello");
+        ---------
+    )
+
+    $(P If the assigned value type is equivalent with the AA element type:
+
+      $(OL
+        $(LI If the indexing key does not yet exist in AA, a new AA entry will be
+        allocated, and it will be initialized with the assigned value.)
+        $(LI If the indexing key already exists in the AA, the setting runs normal
+        assignment.)
+      )
+
+        ---------
+        struct S
+        {
+            int val;
+            void opAssign(S rhs) { this.val = rhs.val * 2; }
+        }
+        S[int] aa;
+        aa[1] = S(10);  // first setting initializes the entry aa[1]
+        assert(aa[1].val == 10);
+        aa[1] = S(10);  // second setting invokes normal assignment, and
+                        // operator-overloading rewrites it to member opAssign function.
+        assert(aa[1].val == 20);
+        ---------
+    )
+
+    $(P If the assigned value type is $(B not) equivalent with the AA element type,
+        the expression could invoke operator overloading with normal indexing access:
+
+        ---------
+        struct S
+        {
+            int val;
+            void opAssign(int v) { this.val = v * 2; }
+        }
+        S[int] aa;
+        aa[1] = 10;     // is rewritten to: aa[1].opAssign(10), and
+                        // throws RangeError before opAssign is called
+        ---------
+
+        However, if the AA element type is a struct which supports an implicit constructor
+        call from the assigned value, implicit construction is used for setting the
+        AA entry:
+
+        ---------
+        struct S
+        {
+            int val;
+            this(int v) { this.val = v; }
+            void opAssign(int v) { this.val = v * 2; }
+        }
+        S s = 1;    // OK, rewritten to: S s = S(1);
+          s = 1;    // OK, rewritten to: s.opAssign(1);
+
+        S[int] aa;
+        aa[1] = 10; // first setting is rewritten to: aa[1] = S(10);
+        assert(aa[1].val == 10);
+        aa[1] = 10; // second setting is rewritten to: aa[1].opAssign(10);
+        assert(aa[1].val == 20);
+        ---------
+
+        This is designed for efficient memory reuse with some value-semantics
+        structs, eg. $(FULL_XREF bigint,BigInt).
+
+        ---------
+        import std.bigint;
+        BigInt[string] aa;
+        aa["a"] = 10;   // construct BigInt(10) and move it in AA
+        aa["a"] = 20;   // call aa["a"].opAssign(20)
+        ---------
+    )
+
+$(H3 Runtime Initialization of Immutable AAs)
+
+    $(P Immutable associative arrays are often desirable, but sometimes
+        initialization must be done at runtime. This can be achieved with
+        a constructor (static constructor depending on scope),
+        a buffer associative array and $(D assumeUnique):)
+
+        ---------
+        immutable long[string] aa;
+
+        static this()
+        {
+            import std.exception : assumeUnique;
+            import std.conv : to;
+
+            long[string] temp; // mutable buffer
+            foreach(i; 0 .. 10)
+            {
+                temp[to!string(i)] = i;
+            }
+            temp.rehash; // for faster lookups
+
+            aa = assumeUnique(temp);
+        }
+
+        unittest
+        {
+            assert(aa["1"] == 1);
+            assert(aa["5"] == 5);
+            assert(aa["9"] == 9);
+        }
+        ---------
+
+
+$(H3 Properties)
+
+Properties for associative arrays are:
+
+    $(TABLE_2COLS Associative Array Properties,
+        $(THEAD Property, Description)
+        $(TROW $(D .sizeof), Returns the size of the reference to the associative
+        array; it is 4 in 32-bit builds and 8 on 64-bit builds.)
+        $(TROW $(D .length), $(ARGS Returns number of values in the
+        associative array. Unlike for dynamic arrays, it is read-only.))
+        $(TROW $(D .dup), Create a new associative array of the same size
+        and copy the contents of the associative array into it.)
+        $(TROW $(D .keys), $(ARGS Returns dynamic array, the elements of which are the keys in
+        the associative array.))
+        $(TROW $(D .values), $(ARGS Returns dynamic array, the elements of which are the values in
+        the associative array.))
+        $(TROW $(D .rehash), $(ARGS Reorganizes the associative array in place so that lookups
+        are more efficient. $(D rehash) is effective when, for example,
+        the program is done loading up a symbol table and now needs
+        fast lookups in it. Returns a reference to the reorganized array.))
+        $(TROW $(D .byKey()), $(ARGS Returns a forward range suitable for use
+        as a $(I ForeachAggregate) to a $(GLINK2 statement, ForeachStatement)
+        which will iterate over the keys of the associative array.))
+        $(TROW $(D .byValue()), $(ARGS Returns a forward range suitable for use
+        as a $(I ForeachAggregate) to a $(GLINK2 statement, ForeachStatement)
+        which will iterate over the values of the associative array.))
+        $(TROW $(D .byKeyValue()), $(ARGS Returns a forward range suitable for
+        use as a $(I ForeachAggregate) to a $(GLINK2 statement,
+        ForeachStatement) which will iterate over key-value pairs of the
+        associative array. The returned pairs are represented by an opaque type
+        with $(D .key) and $(D .value) properties for accessing the key and
+	value of the pair, respectively.))
+        $(TROW $(D .get(Key key, lazy Value defVal)),
+        $(ARGS Looks up $(D key); if it exists returns corresponding value
+        else evaluates and returns $(D defVal).))
+    )
+
+$(HR)
+$(H3 Associative Array Example: word count)
+
+        $(P Let's consider the file is ASCII encoded with LF EOL.
+        In general case we should use $(I dchar c) for iteration
+        over code points and functions from $(LINK2 $(ROOT_DIR)phobos/std_uni.html,std.uni).
+        )
+
+        ---------
+        import std.file;         // D file I/O
+        import std.stdio;
+        import std.ascii;
+
+        void main (string[] args)
+        {
+            ulong totalWords, totalLines, totalChars;
+            ulong[string] dictionary;
+
+            writeln("   lines   words   bytes file");
+            foreach (arg; args[1 .. $]) // for each argument except the first one
+            {
+                ulong wordCount, lineCount, charCount;
+
+                foreach(line; File(arg).byLine())
+                {
+                    bool inWord;
+                    size_t wordStart;
+
+                    void tryFinishWord(size_t wordEnd)
+                    {
+                        if (inWord)
+                        {
+                            auto word = line[wordStart .. wordEnd];
+                            ++dictionary[word.idup];   // increment count for word
+                            inWord = false;
+                        }
+                    }
+
+                    foreach (i, char c; line)
+                    {
+                        if (std.ascii.isDigit(c))
+                        {
+                            // c is a digit (0..9)
+                        }
+                        else if (std.ascii.isAlpha(c))
+                        {
+                            // c is an ASCII letter (A..Z, a..z)
+                            if (!inWord)
+                            {
+                                wordStart = i;
+                                inWord = true;
+                                ++wordCount;
+                            }
+                        }
+                        else
+                            tryFinishWord(i);
+                        ++charCount;
+                    }
+                    tryFinishWord(line.length);
+                    ++lineCount;
+                }
+
+                writefln("%8s%8s%8s %s", lineCount, wordCount, charCount, arg);
+                totalWords += wordCount;
+                totalLines += lineCount;
+                totalChars += charCount;
+            }
+
+            if (args.length > 2)
+            {
+                writefln("-------------------------------------\n%8s%8s%8s total",
+                         totalLines, totalWords, totalChars);
+            }
+
+            writeln("-------------------------------------");
+            foreach (word; dictionary.keys.sort)
+            {
+                writefln("%3s %s", dictionary[word], word);
+            }
+        }
+        ---------
+
+)
+
+Macros:
+        TITLE=Associative Arrays
+        WIKI=AssociativeArrays

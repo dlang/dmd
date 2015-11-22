@@ -1,0 +1,76 @@
+Ddoc
+
+$(SPEC_S Introduction,
+
+	$(P The D programming language is a general purpose systems programming language.
+	To that end, a D program is a collection of modules that can be compiled separately
+	to native code that is combined with libraries and compiled C code by a linker to create a
+	native executable.
+	)
+
+$(H3 Phases of Compilation)
+
+	The process of compiling is divided into multiple phases. Each phase
+	has no dependence on subsequent phases. For example, the scanner is
+	not perturbed by the semantic analyzer. This separation of the passes
+	makes language tools like syntax
+	directed editors relatively easy to produce.
+	It also is possible to compress D source by storing it in
+	$(SINGLEQUOTE tokenized) form.
+
+$(OL
+	$(LI $(B source character set)$(BR)
+
+	The source file is checked to see what character set it is,
+	and the appropriate scanner is loaded. ASCII and UTF
+	formats are accepted.
+	)
+
+	$(LI $(B script line) $(BR)
+
+	If the first line starts with "$(HASH)!", then that line
+	is ignored.
+	)
+
+	$(LI $(B lexical analysis)$(BR)
+
+	The source file is divided up into a sequence of tokens.
+	$(DDSUBLINK lex, specialtokens, Special tokens)
+	are replaced with other tokens.
+	$(GLINK2 lex, SpecialTokenSequence)s
+	are processed and removed.
+	)
+
+	$(LI $(B syntax analysis)$(BR)
+
+	The sequence of tokens is parsed to form syntax trees.
+	)
+
+	$(LI $(B semantic analysis)$(BR)
+
+	The syntax trees are traversed to declare variables, load symbol tables, assign
+	types, and in general determine the meaning of the program.
+	)
+
+	$(LI $(B optimization)$(BR)
+
+	Optimization is an optional pass that tries to rewrite the program
+	in a semantically equivalent, but faster executing, version.
+	)
+
+	$(LI $(B code generation)$(BR)
+
+	Instructions are selected from the target architecture to implement
+	the semantics of the program. The typical result will be
+	an object file, suitable for input to a linker.
+	)
+)
+
+
+
+)
+
+Macros:
+	TITLE=Introduction
+	WIKI=SpecIntro
+

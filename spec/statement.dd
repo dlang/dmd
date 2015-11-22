@@ -1,0 +1,1817 @@
+Ddoc
+
+$(SPEC_S Statements,
+
+C and C++ programmers will find the D statements very familiar, with a few
+interesting additions.
+
+$(GRAMMAR
+$(GNAME Statement):
+    $(D ;)
+    $(GLINK NonEmptyStatement)
+    $(GLINK ScopeBlockStatement)
+
+$(GNAME NoScopeNonEmptyStatement):
+    $(GLINK NonEmptyStatement)
+    $(GLINK BlockStatement)
+
+$(GNAME NoScopeStatement):
+    $(D ;)
+    $(GLINK NonEmptyStatement)
+    $(GLINK BlockStatement)
+
+$(GNAME NonEmptyOrScopeBlockStatement):
+    $(GLINK NonEmptyStatement)
+    $(GLINK ScopeBlockStatement)
+
+$(GNAME NonEmptyStatement):
+    $(GLINK NonEmptyStatementNoCaseNoDefault)
+    $(GLINK CaseStatement)
+    $(GLINK CaseRangeStatement)
+    $(GLINK DefaultStatement)
+
+$(GNAME NonEmptyStatementNoCaseNoDefault):
+    $(GLINK LabeledStatement)
+    $(GLINK ExpressionStatement)
+    $(GLINK DeclarationStatement)
+    $(GLINK IfStatement)
+    $(GLINK WhileStatement)
+    $(GLINK DoStatement)
+    $(GLINK ForStatement)
+    $(GLINK ForeachStatement)
+    $(GLINK SwitchStatement)
+    $(GLINK FinalSwitchStatement)
+    $(GLINK ContinueStatement)
+    $(GLINK BreakStatement)
+    $(GLINK ReturnStatement)
+    $(GLINK GotoStatement)
+    $(GLINK WithStatement)
+    $(GLINK SynchronizedStatement)
+    $(GLINK TryStatement)
+    $(GLINK ScopeGuardStatement)
+    $(GLINK ThrowStatement)
+    $(GLINK AsmStatement)
+    $(GLINK PragmaStatement)
+    $(GLINK MixinStatement)
+    $(GLINK ForeachRangeStatement)
+    $(GLINK2 version, ConditionalStatement)
+    $(GLINK2 version, StaticAssert)
+    $(GLINK2 template-mixin, TemplateMixin)
+    $(GLINK2 module, ImportDeclaration)
+)
+
+
+        $(P Any ambiguities in the grammar between $(I Statement)s and
+        $(GLINK2 declaration, Declaration)s are
+        resolved by the declarations taking precedence.
+        If a $(I Statement) is desired instead, wrapping it in parentheses will
+        disambiguate it in favor of being a $(I Statement).
+        )
+
+$(H3 $(LEGACY_LNAME2 ScopeStatement, scope-statement, Scope Statements))
+
+$(GRAMMAR
+$(GNAME ScopeStatement):
+    $(GLINK NonEmptyStatement)
+    $(GLINK BlockStatement)
+)
+
+        $(P A new scope for local symbols
+        is introduced for the $(I NonEmptyStatement)
+        or $(GLINK BlockStatement).
+        )
+
+        $(P Even though a new scope is introduced,
+        local symbol declarations cannot shadow (hide) other
+        local symbol declarations in the same function.
+        )
+
+--------------
+void func1(int x)
+{
+    int x;    // illegal, x shadows parameter x
+
+    int y;
+
+    { int y; } // illegal, y shadows enclosing scope's y
+
+    void delegate() dg;
+    dg = { int y; }; // ok, this y is not in the same function
+
+    struct S
+    {
+        int y;    // ok, this y is a member, not a local
+    }
+
+    { int z; }
+    { int z; }  // ok, this z is not shadowing the other z
+
+    { int t; }
+    { t++;   }  // illegal, t is undefined
+}
+--------------
+
+$(P
+        The idea is to avoid bugs in complex functions caused by
+        scoped declarations inadvertently hiding previous ones.
+        Local names should all be unique within a function.
+)
+
+
+$(H3 $(LEGACY_LNAME2 ScopeBlockStatement, scope-block-statement, Scope Block Statements))
+
+$(GRAMMAR
+$(GNAME ScopeBlockStatement):
+    $(GLINK BlockStatement)
+)
+
+        $(P A scope block statement introduces a new scope for the
+        $(GLINK BlockStatement).
+        )
+
+$(H3 $(LEGACY_LNAME2 LabeledStatement, labeled-statement, Labeled Statements))
+
+$(P     Statements can be labeled. A label is an identifier that
+        precedes a statement.
+)
+
+$(GRAMMAR
+$(GNAME LabeledStatement):
+    $(I Identifier) $(D :)
+    $(I Identifier) $(D :) $(PSSEMI)
+    $(I Identifier) $(D :) $(PSSEMI_PSCURLYSCOPE)
+)
+
+$(P
+        Any statement can be labeled, including empty statements,
+        and so can serve as the target
+        of a goto statement. Labeled statements can also serve as the
+        target of a break or continue statement.
+)
+$(P
+        A label can appear without a following statement at the end of
+        a block.
+)
+$(P
+        Labels are in a name space independent of declarations, variables,
+        types, etc.
+        Even so, labels cannot have the same name as local declarations.
+        The label name space is the body of the function
+        they appear in. Label name spaces do not nest, i.e. a label
+        inside a block statement is accessible from outside that block.
+)
+
+$(H3 $(LEGACY_LNAME2 BlockStatement, block-statement, Block Statement))
+
+$(GRAMMAR
+$(GNAME BlockStatement):
+    $(D { })
+    $(D {) $(GLINK StatementList) $(D })
+
+$(GNAME StatementList):
+    $(PSSEMI_PSCURLYSCOPE)
+    $(PSSEMI_PSCURLYSCOPE) $(I StatementList)
+)
+
+$(P
+        A block statement is a sequence of statements enclosed
+        by { }. The statements are executed in lexical order.
+)
+$(H3 $(LEGACY_LNAME2 ExpressionStatement, expression-statement, Expression Statement))
+
+$(GRAMMAR
+$(GNAME ExpressionStatement):
+    $(EXPRESSION) $(D ;)
+)
+
+        $(P The expression is evaluated.)
+
+        $(P Expressions that have no effect, like $(D (x + x)),
+        are illegal
+        in expression statements.
+        If such an expression is needed, casting it to $(D_KEYWORD void) will
+        make it legal.)
+
+        ----
+        int x;
+        x++;               // ok
+        x;                 // illegal
+        1+1;               // illegal
+        cast(void)(x + x); // ok
+        ----
+
+$(H3 $(LEGACY_LNAME2 DeclarationStatement, declaration-statement, Declaration Statement))
+
+        Declaration statements declare variables and types.
+
+$(GRAMMAR
+$(GNAME DeclarationStatement):
+    $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 declaration, Declaration)
+)
+
+        $(P Some declaration statements:)
+
+----
+int a;        // declare a as type int and initialize it to 0
+struct S { }  // declare struct s
+alias myint = int;
+----
+
+$(H3 $(LEGACY_LNAME2 IfStatement, if-statement, If Statement))
+
+        If statements provide simple conditional execution of statements.
+
+$(GRAMMAR
+$(GNAME IfStatement):
+    $(D if $(LPAREN)) $(GLINK IfCondition) $(D $(RPAREN)) $(GLINK ThenStatement)
+    $(D if $(LPAREN)) $(GLINK IfCondition) $(D $(RPAREN)) $(GLINK ThenStatement) $(D else) $(GLINK ElseStatement)
+
+$(GNAME IfCondition):
+    $(EXPRESSION)
+    $(D auto) $(I Identifier) $(D =) $(EXPRESSION)
+    $(GLINK2 declaration, TypeCtors) $(I Identifier) $(D =) $(EXPRESSION)
+    $(GLINK2 declaration, TypeCtors)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
+
+$(GNAME ThenStatement):
+    $(PSSCOPE)
+
+$(GNAME ElseStatement):
+    $(PSSCOPE)
+)
+
+        $(P $(EXPRESSION) is evaluated and must have a type that
+        can be converted to a boolean. If it's true the
+        $(I ThenStatement) is transferred to, else the $(I ElseStatement)
+        is transferred to.)
+
+        $(P The 'dangling else' parsing problem is solved by associating the
+        else with the nearest if statement.)
+
+        $(P If an $(D auto) $(I Identifier) is provided, it is declared and
+        initialized
+        to the value
+        and type of the $(EXPRESSION). Its scope extends from when it is
+        initialized to the end of the $(I ThenStatement).)
+
+        $(P If a $(I Declarator) is provided, it is declared and
+        initialized
+        to the value
+        of the $(EXPRESSION). Its scope extends from when it is
+        initialized to the end of the $(I ThenStatement).)
+
+---
+import std.regexp;
+...
+if (auto m = std.regexp.search("abcdef", "b(c)d"))
+{
+    writefln("[%s]", m.pre);      // prints [a]
+    writefln("[%s]", m.post);     // prints [ef]
+    writefln("[%s]", m.match(0)); // prints [bcd]
+    writefln("[%s]", m.match(1)); // prints [c]
+    writefln("[%s]", m.match(2)); // prints []
+}
+else
+{
+    writeln(m.post);    // error, m undefined
+}
+writeln(m.pre);         // error, m undefined
+---
+
+$(H3 $(LEGACY_LNAME2 WhileStatement, while-statement, While Statement))
+
+$(GRAMMAR
+$(GNAME WhileStatement):
+    $(D while $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
+)
+
+        While statements implement simple loops.
+
+        $(EXPRESSION) is evaluated and must have a type that
+        can be converted to a boolean. If it's true the
+        $(PSSCOPE) is executed. After the $(PSSCOPE) is executed,
+        the $(EXPRESSION) is evaluated again, and if true the
+        $(PSSCOPE) is executed again. This continues until the
+        $(EXPRESSION) evaluates to false.
+
+---
+int i = 0;
+while (i < 10)
+{
+    foo(i);
+    i++;
+}
+---
+
+        A $(GLINK BreakStatement) will exit the loop.
+        A $(GLINK ContinueStatement)
+        will transfer directly to evaluating $(EXPRESSION) again.
+
+$(H3 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
+
+
+$(GRAMMAR
+$(GNAME DoStatement):
+    $(D do) $(PSSCOPE) $(D  while $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(D ;)
+)
+
+
+        Do while statements implement simple loops.
+
+        $(PSSCOPE) is executed. Then
+        $(EXPRESSION) is evaluated and must have a type that
+        can be converted to a boolean. If it's true the
+        loop is iterated again.
+        This continues until the
+        $(EXPRESSION) evaluates to false.
+
+---
+int i = 0;
+do
+{
+    foo(i);
+} while (++i < 10);
+---
+
+        A $(GLINK BreakStatement) will exit the loop.
+        A $(GLINK ContinueStatement)
+        will transfer directly to evaluating $(EXPRESSION) again.
+
+$(H3 $(LEGACY_LNAME2 ForStatement, for-statement, For Statement))
+
+        For statements implement loops with initialization,
+        test, and increment clauses.
+
+$(GRAMMAR
+$(GNAME ForStatement):
+    $(D for $(LPAREN)) $(GLINK Initialize) $(I Test)$(OPT) $(D ;) $(GLINK Increment)$(OPT) $(D $(RPAREN)) $(PSSCOPE)
+
+$(GNAME Initialize):
+    $(D ;)
+    $(PS0)
+
+$(GNAME Test):
+    $(EXPRESSION)
+
+$(GNAME Increment):
+    $(EXPRESSION)
+)
+
+        $(P $(I Initialize) is executed.
+        $(I Test) is evaluated and must have a type that
+        can be converted to a boolean. If it's true the
+        statement is executed. After the statement is executed,
+        the $(I Increment) is executed.
+        Then $(I Test) is evaluated again, and if true the
+        statement is executed again. This continues until the
+        $(I Test) evaluates to false.
+        )
+
+        $(P A $(GLINK BreakStatement) will exit the loop.
+        A $(GLINK ContinueStatement)
+        will transfer directly to the $(I Increment).
+        )
+
+        $(P A $(I ForStatement) creates a new scope.
+        If $(I Initialize) declares a variable, that variable's scope
+        extends through the end of the for statement. For example:
+        )
+
+--------------
+for (int i = 0; i < 10; i++)
+    foo(i);
+--------------
+
+        is equivalent to:
+
+--------------
+{
+    int i;
+    for (i = 0; i < 10; i++)
+        foo(i);
+}
+--------------
+
+        Function bodies cannot be empty:
+
+--------------
+for (int i = 0; i < 10; i++)
+    ;       // illegal
+--------------
+
+        Use instead:
+
+--------------
+for (int i = 0; i < 10; i++)
+{
+}
+--------------
+
+        The $(I Initialize) may be omitted. $(I Test) may also be
+        omitted, and if so, it is treated as if it evaluated to true.
+
+$(H3 $(LEGACY_LNAME2 ForeachStatement, foreach-statement, Foreach Statement))
+
+        A foreach statement loops over the contents of an aggregate.
+
+$(GRAMMAR
+$(GNAME ForeachStatement):
+    $(I Foreach) $(D $(LPAREN)) $(GLINK ForeachTypeList) $(D ;) $(GLINK ForeachAggregate) $(D $(RPAREN)) $(PS0)
+
+$(GNAME Foreach):
+    $(D foreach)
+    $(D foreach_reverse)
+
+$(GNAME ForeachTypeList):
+    $(GLINK ForeachType)
+    $(GLINK ForeachType) , $(I ForeachTypeList)
+
+$(GNAME ForeachType):
+    $(GLINK ForeachTypeAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
+    $(GLINK ForeachTypeAttributes)$(OPT) $(I Identifier)
+
+$(GNAME ForeachTypeAttributes)
+    $(GLINK ForeachTypeAttribute)
+    $(GLINK ForeachTypeAttribute) $(GLINK ForeachTypeAttributes)$(OPT)
+
+$(GNAME ForeachTypeAttribute):
+    $(D ref)
+    $(GLINK2 declaration, TypeCtor)
+
+$(GNAME ForeachAggregate):
+    $(EXPRESSION)
+)
+
+$(P
+        $(I ForeachAggregate) is evaluated. It must evaluate to an expression
+        of type static array, dynamic array, associative array,
+        struct, class, delegate, or tuple.
+        The $(PS0) is executed, once for each element of the
+        aggregate.
+        At the start of each iteration, the variables declared by
+        the $(I ForeachTypeList)
+        are set to be a copy of the elements of the aggregate.
+        If the variable is $(D ref), it is a reference to the
+        contents of that aggregate.
+)
+$(P
+        The aggregate must be loop invariant, meaning that
+        elements to the aggregate cannot be added or removed from it
+        in the $(PS0).
+)
+
+$(H4 Foreach over Arrays)
+
+$(P
+        If the aggregate is a static or dynamic array, there
+        can be one or two variables declared. If one, then the variable
+        is said to be the $(I value) set to the elements of the array,
+        one by one. The type of the
+        variable must match the type of the array contents, except for the
+        special cases outlined below.
+        If there are
+        two variables declared, the first is said to be the $(I index)
+        and the second is said to be the $(I value). The $(I index)
+        must be of $(D int), $(D uint) or $(D size_t) type,
+        it cannot be $(I ref),
+        and it is set to be the index of the array element.
+)
+--------------
+char[] a;
+...
+foreach (int i, char c; a)
+{
+    writefln("a[%d] = '%c'", i, c);
+}
+--------------
+
+        $(P For $(D foreach), the
+        elements for the array are iterated over starting at index 0
+        and continuing to the maximum of the array.
+        For $(D foreach_reverse), the array elements are visited in the reverse
+        order.
+        )
+
+$(H4 Foreach over Arrays of Characters)
+
+        $(P If the aggregate expression is a static or dynamic array of
+        $(D char)s, $(D wchar)s, or $(D dchar)s, then the $(I Type) of
+        the $(I value)
+        can be any of $(D char), $(D wchar), or $(D dchar).
+        In this manner any UTF array
+        can be decoded into any UTF type:
+        )
+
+--------------
+char[] a = "\xE2\x89\xA0".dup;  // \u2260 encoded as 3 UTF-8 bytes
+
+foreach (dchar c; a)
+{
+    writefln("a[] = %x", c); // prints 'a[] = 2260'
+}
+
+dchar[] b = "\u2260"d.dup;
+
+foreach (char c; b)
+{
+    writef("%x, ", c);  // prints 'e2, 89, a0, '
+}
+--------------
+
+
+        $(P Aggregates can be string literals, which can be accessed
+        as char, wchar, or dchar arrays:
+        )
+
+--------------
+void test()
+{
+    foreach (char c; "ab")
+    {
+        writefln("'%s'", c);
+    }
+    foreach (wchar w; "xy")
+    {
+        writefln("'%s'", w);
+    }
+}
+--------------
+
+        $(P which would print:
+        )
+
+$(CONSOLE
+'a'
+'b'
+'x'
+'y'
+)
+
+$(H4 Foreach over Associative Arrays)
+
+        $(P If the aggregate expression is an associative array, there
+        can be one or two variables declared. If one, then the variable
+        is said to be the $(I value) set to the elements of the array,
+        one by one. The type of the
+        variable must match the type of the array contents. If there are
+        two variables declared, the first is said to be the $(I index)
+        and the second is said to be the $(I value). The $(I index)
+        must be of the same type as the indexing type of the associative
+        array. It cannot be $(I ref),
+        and it is set to be the index of the array element.
+        The order in which the elements of the array are iterated over is unspecified
+        for $(D foreach). $(D foreach_reverse) for associative arrays
+        is illegal.
+        )
+
+--------------
+double[string] a; // index type is string, value type is double
+...
+foreach (string s, double d; a)
+{
+    writefln("a['%s'] = %g", s, d);
+}
+--------------
+
+$(H4 Foreach over Structs and Classes with opApply)
+
+    $(P If the aggregate expression is a struct or class object,
+        the $(D foreach) is defined by the
+        special $(LEGACY_LNAME2 opApply, op-apply, $(D opApply)) member function, and the $(D
+        foreach_reverse) behavior is defined by the special
+        $(LEGACY_LNAME2 opApplyReverse, op-apply-reverse, $(D opApplyReverse)) member function.
+        These functions have the type:
+    )
+
+        --------------
+        int opApply(int delegate(ref Type [, ...]) dg);
+
+        int opApplyReverse(int delegate(ref Type [, ...]) dg);
+        --------------
+
+    $(P where $(I Type) matches the $(I Type) used in the $(I ForeachType)
+        declaration of $(I Identifier). Multiple $(I ForeachType)s
+        correspond with multiple $(I Type)'s in the delegate type
+        passed to $(D opApply) or $(D opApplyReverse).
+        There can be multiple $(D opApply) and $(D opApplyReverse) functions,
+        one is selected
+        by matching the type of $(I dg) to the $(I ForeachType)s
+        of the $(I ForeachStatement).
+        The body of the apply
+        function iterates over the elements it aggregates, passing them
+        each to the $(I dg) function. If the $(I dg) returns 0, then
+        apply goes on to the next element.
+        If the $(I dg) returns a nonzero value, apply must cease
+        iterating and return that value. Otherwise, after done iterating
+        across all the elements, apply will return 0.
+    )
+
+    $(P For example, consider a class that is a container for two elements:)
+
+        --------------
+        class Foo
+        {
+            uint[2] array;
+
+            int opApply(int delegate(ref uint) dg)
+            {
+                int result = 0;
+
+                for (int i = 0; i < array.length; i++)
+                {
+                    result = dg(array[i]);
+                    if (result)
+                        break;
+                }
+                return result;
+            }
+        }
+        --------------
+
+    $(P An example using this might be:)
+
+        --------------
+        void test()
+        {
+            Foo a = new Foo();
+
+            a.array[0] = 73;
+            a.array[1] = 82;
+
+            foreach (uint u; a)
+            {
+                writefln("%d", u);
+            }
+        }
+        --------------
+
+    $(P which would print:)
+
+$(CONSOLE
+73
+82
+)
+
+    $(P $(LEGACY_LNAME2 opApply, op-apply, $(I opApply)) can also be a templated function,
+        which will infer the types of parameters based on the $(I ForeachStatement).
+    )
+
+    $(P For example:)
+
+        --------------
+        struct S
+        {
+            import std.traits : ParameterTypeTuple;  // introspection template
+
+            int opApply(Dg)(scope Dg dg)
+                if (ParameterTypeTuple!Dg.length == 2)  // foreach function takes 2 parameters
+            {
+                return 0;
+            }
+
+            int opApply(Dg)(scope Dg dg)
+                if (ParameterTypeTuple!Dg.length == 3)  // foreach function takes 3 parameters
+            {
+                return 0;
+            }
+        }
+
+        void main()
+        {
+            foreach (int a, int b; S()) { }  // calls first opApply function
+            foreach (int a, int b, float c; S()) { }  // calls second opApply function
+        }
+        --------------
+
+$(H4 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Structs and Classes with Ranges))
+
+    $(P If the aggregate expression is a struct or class object, but the
+        $(D opApply) for $(D foreach), or $(D opApplyReverse) $(D foreach_reverse) do not exist,
+        then iteration over struct and class objects can be done with range primitives.
+        For $(D foreach), this means the following properties and methods must
+        be defined:
+    )
+
+        $(TABLE2 Foreach Range Properties,
+        $(THEAD Property, Purpose)
+        $(TROW $(ARGS $(D .empty)), $(ARGS returns true if no more elements))
+        $(TROW $(ARGS $(D .front)), $(ARGS return the leftmost element of the range))
+        )
+
+        $(TABLE2 Foreach Range Methods,
+        $(THEAD Method, Purpose)
+        $(TROW $(ARGS $(D .popFront())), $(ARGS move the left edge of the range
+        right by one))
+        )
+
+    $(P Meaning:)
+
+        ---
+        foreach (e; range) { ... }
+        ---
+
+    $(P translates to:)
+
+        ---
+        for (auto __r = range; !__r.empty; __r.popFront())
+        {
+            auto e = __r.front;
+            ...
+        }
+        ---
+
+    $(P Similarly, for $(D foreach_reverse), the following properties and
+        methods must be defined:
+    )
+
+        $(TABLE2 Foreach$(UNDERSCORE)reverse Range Properties,
+        $(THEAD Property, Purpose)
+        $(TROW $(ARGS $(D .empty)), $(ARGS returns true if no more elements))
+        $(TROW $(ARGS $(D .back)), $(ARGS return the rightmost element of the range))
+        )
+
+        $(TABLE2 Foreach$(UNDERSCORE)reverse Range Methods,
+        $(THEAD Method, Purpose)
+        $(TROW $(ARGS $(D .popBack())), $(ARGS move the right edge of the range
+        left by one))
+        )
+
+    $(P Meaning:)
+
+        ---
+        foreach_reverse (e; range) { ... }
+        ---
+
+    $(P translates to:)
+
+        ---
+        for (auto __r = range; !__r.empty; __r.popBack())
+        {
+            auto e = __r.back;
+            ...
+        }
+        ---
+
+$(H4 Foreach over Delegates)
+
+        $(P If $(I ForeachAggregate) is a delegate, the type signature of
+        the delegate is of the same as for $(D opApply). This enables
+        many different named looping strategies to coexist in the same
+        class or struct.)
+
+	$(P For example:)
+
+--------------
+void main()
+{
+    // Custom loop implementation, that iterates over powers of 2 with
+    // alternating sign. The loop body is passed in dg.
+    int myLoop(int delegate(ref int) dg)
+    {
+        for (int z = 1; z < 128; z *= -2)
+        {
+            auto ret = dg(z);
+
+            // If the loop body contains a break, ret will be non-zero.
+            if (ret != 0)
+                return ret;
+        }
+        return 0;
+    }
+
+    // This example loop simply collects the loop index values into an array.
+    int[] result;
+    foreach (ref x; &myLoop)
+    {
+        result ~= x;
+    }
+    assert(result == [1, -2, 4, -8, 16, -32, 64, -128]);
+}
+--------------
+
+	$(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
+	does not try to implement reverse traversal of the results returned by
+	the delegate when $(D foreach_reverse) is used. This may result in code
+	that is confusing to read. Therefore, using $(D foreach_reverse) with a
+	delegate is now deprecated, and will be rejected in the future.)
+
+$(H4 Foreach over Tuples)
+
+$(P
+        If the aggregate expression is a tuple, there
+        can be one or two variables declared. If one, then the variable
+        is said to be the $(I value) set to the elements of the tuple,
+        one by one. If the type of the
+        variable is given, it must match the type of the tuple contents.
+        If it is not given, the type of the variable is set to the type
+        of the tuple element, which may change from iteration to iteration.
+        If there are
+        two variables declared, the first is said to be the $(I index)
+        and the second is said to be the $(I value). The $(I index)
+        must be of $(D int) or $(D uint) type, it cannot be $(I ref),
+        and it is set to be the index of the tuple element.
+)
+
+$(P
+        If the tuple is a list of types, then the foreach statement
+        is executed once for each type, and the value is aliased to that
+        type.
+)
+
+-----
+import std.stdio;
+import std.typetuple; // for TypeTuple
+
+void main()
+{
+    alias TL = TypeTuple!(int, long, double);
+
+    foreach (T; TL)
+    {
+        writeln(typeid(T));
+    }
+}
+-----
+
+        $(P Prints:)
+
+$(CONSOLE
+int
+long
+double
+)
+
+$(H4 Foreach Ref Parameters)
+
+        $(P $(D ref) can be used to update the original elements:
+        )
+
+--------------
+void test()
+{
+    static uint[2] a = [7, 8];
+
+    foreach (ref uint u; a)
+    {
+        u++;
+    }
+    foreach (uint u; a)
+    {
+        writefln("%d", u);
+    }
+}
+--------------
+
+        which would print:
+
+$(CONSOLE
+8
+9
+)
+        $(P $(D ref) can not be applied to the index values.)
+
+        $(P If not specified, the $(I Type)s in the $(I ForeachType) can be
+        inferred from
+        the type of the $(I ForeachAggregate).
+        )
+
+$(H4 Foreach Restrictions)
+
+        $(P The aggregate itself must not be resized, reallocated, free'd,
+        reassigned or destructed
+        while the foreach is iterating over the elements.
+        )
+
+--------------
+int[] a;
+int[] b;
+foreach (int i; a)
+{
+    a = null;       // error
+    a.length += 10; // error
+    a = b;          // error
+}
+a = null;         // ok
+--------------
+
+$(H3 $(LEGACY_LNAME2 ForeachRangeStatement, foreach-range-statement, Foreach Range Statement))
+
+        A foreach range statement loops over the specified range.
+
+$(GRAMMAR
+$(GNAME ForeachRangeStatement):
+    $(GLINK Foreach) $(D $(LPAREN)) $(GLINK ForeachType) $(D ;) $(GLINK LwrExpression) $(D ..) $(GLINK UprExpression) $(D $(RPAREN)) $(PSSCOPE)
+
+$(GNAME LwrExpression):
+    $(EXPRESSION)
+
+$(GNAME UprExpression):
+    $(EXPRESSION)
+)
+
+        $(P
+        $(I ForeachType) declares a variable with either an explicit type,
+        or a type inferred from $(I LwrExpression) and $(I UprExpression).
+        The $(I ScopeStatement) is then executed $(I n) times, where $(I n)
+        is the result of $(I UprExpression) - $(I LwrExpression).
+        If $(I UprExpression) is less than or equal to $(I LwrExpression),
+        the $(I ScopeStatement) is executed zero times.
+        If $(I Foreach) is $(D foreach), then the variable is set to
+        $(I LwrExpression), then incremented at the end of each iteration.
+        If $(I Foreach) is $(D foreach_reverse), then the variable is set to
+        $(I UprExpression), then decremented before each iteration.
+        $(I LwrExpression) and $(I UprExpression) are each evaluated
+        exactly once, regardless of how many times the $(I ScopeStatement)
+        is executed.
+        )
+
+---
+import std.stdio;
+
+int foo()
+{
+    write("foo");
+    return 10;
+}
+
+void main()
+{
+    foreach (i; 0 .. foo())
+    {
+        write(i);
+    }
+}
+---
+
+        $(P Prints:)
+
+$(CONSOLE
+foo0123456789
+)
+
+
+$(H4 Break and Continue out of Foreach)
+
+
+        $(P A $(GLINK BreakStatement) in the body of the foreach will exit the
+        foreach, a $(GLINK ContinueStatement) will immediately start the
+        next iteration.
+        )
+
+$(H3 $(LEGACY_LNAME2 SwitchStatement, switch-statement, Switch Statement))
+
+        A switch statement goes to one of a collection of case
+        statements depending on the value of the switch
+        expression.
+
+$(GRAMMAR
+$(GNAME SwitchStatement):
+    $(D switch $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
+
+$(GNAME CaseStatement):
+    $(D case) $(GLINK2 expression, ArgumentList) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)
+
+$(GNAME CaseRangeStatement):
+    $(D case) $(GLINK FirstExp) $(D : .. case) $(GLINK LastExp) $(D :) $(PSSEMI_PSCURLYSCOPE_LIST)
+
+$(GNAME FirstExp):
+    $(ASSIGNEXPRESSION)
+
+$(GNAME LastExp):
+    $(ASSIGNEXPRESSION)
+
+$(GNAME DefaultStatement):
+    $(D default :) $(PSSEMI_PSCURLYSCOPE_LIST)
+
+$(GNAME ScopeStatementList):
+    $(GLINK StatementListNoCaseNoDefault)
+
+$(GNAME StatementListNoCaseNoDefault):
+    $(GLINK StatementNoCaseNoDefault)
+    $(GLINK StatementNoCaseNoDefault) $(I StatementListNoCaseNoDefault)
+
+$(GNAME StatementNoCaseNoDefault):
+    $(D ;)
+    $(GLINK NonEmptyStatementNoCaseNoDefault)
+    $(GLINK ScopeBlockStatement)
+)
+
+        $(P $(EXPRESSION) is evaluated. The result type T must be
+        of integral type or $(CODE char[]), $(CODE wchar[]) or $(CODE dchar[]).
+        The result is
+        compared against each of the case expressions. If there is
+        a match, the corresponding case statement is transferred to.
+        )
+
+        $(P The case expressions, $(GLINK2 expression, ArgumentList),
+        are a comma separated list of expressions.
+        )
+
+        $(P A $(I CaseRangeStatement) is a shorthand for listing a series
+        of case statements from $(I FirstExp) to $(I LastExp).
+        )
+
+
+        $(P If none of the case expressions match, and there is a default
+        statement, the default statement is transferred to.
+        )
+
+
+        $(P A switch statement must have a default statement.)
+
+
+        $(P
+
+        The case expressions must all evaluate to a constant value
+        or array, or a runtime initialized const or immutable variable of
+        integral type.
+
+        They must be implicitly convertible to the type of the
+        switch $(EXPRESSION).
+        )
+
+        $(P Case expressions must all evaluate to distinct values.
+        Const or immutable variables must all have different names.
+        If they share a value, the first case statement with that value
+        gets control.
+        There must be exactly one default statement.
+
+
+        )
+
+        $(P The $(GLINK ScopeStatementList) introduces a new scope.
+        )
+
+        $(P Case statements and default statements associated with the switch
+        can be nested within block statements; they do not have to be in
+        the outermost block. For example, this is allowed:
+        )
+
+--------------
+switch (i)
+{
+    case 1:
+    {
+        case 2:
+    }
+    break;
+}
+--------------
+
+
+
+        $(P A $(GLINK ScopeStatementList) must either be empty, or be ended with
+        a $(GLINK ContinueStatement), $(GLINK BreakStatement),
+        $(GLINK ReturnStatement), $(GLINK GotoStatement), $(GLINK ThrowStatement)
+        or assert(0) expression unless this is the last case. This is to
+        set apart with C's error-prone implicit fall-through behavior.
+        $(D goto case;) could be used for explicit fall-through:
+        )
+
+--------------
+int number;
+string message;
+switch (number)
+{
+    default:    // valid: ends with 'throw'
+        throw new Exception("unknown number");
+
+    case 3:     // valid: ends with 'break' (break out of the 'switch' only)
+        message ~= "three ";
+        break;
+
+    case 4:     // valid: ends with 'continue' (continue the enclosing loop)
+        message ~= "four ";
+        continue;
+
+    case 5:     // valid: ends with 'goto' (explicit fall-through to next case.)
+        message ~= "five ";
+        goto case;
+
+    case 6:     // ERROR: implicit fall-through
+        message ~= "six ";
+
+    case 1:     // valid: the body is empty
+    case 2:     // valid: this is the last case in the switch statement.
+        message = "one or two";
+}
+--------------
+
+        $(P A break statement will exit the switch $(I BlockStatement).)
+
+
+        $(P $(LNAME2 string-switch, Strings can be used in switch expressions).
+        For example:
+        )
+
+--------------
+char[] name;
+...
+switch (name)
+{
+    case "fred":
+    case "sally":
+        ...
+}
+--------------
+
+        $(P For applications like command line switch processing, this
+        can lead to much more straightforward code, being clearer and
+        less error prone. char, wchar and dchar strings are allowed.
+        )
+
+        $(P $(D Implementation Note:) The compiler's code generator may
+        assume that the case
+        statements are sorted by frequency of use, with the most frequent
+        appearing first and the least frequent last. Although this is
+        irrelevant as far as program correctness is concerned, it is of
+        performance interest.
+        )
+
+$(H3 $(LEGACY_LNAME2 FinalSwitchStatement, final-switch-statement, Final Switch Statement))
+
+$(GRAMMAR
+$(GNAME FinalSwitchStatement):
+    $(D final switch $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
+)
+
+        $(P A final switch statement is just like a switch statement,
+        except that:)
+
+        $(UL
+        $(LI No $(GLINK DefaultStatement) is allowed.)
+        $(LI No $(GLINK CaseRangeStatement)s are allowed.)
+        $(LI If the switch $(EXPRESSION) is of enum type, all
+        the enum members must appear in the $(GLINK CaseStatement)s.)
+        $(LI The case expressions cannot evaluate to a run time
+        initialized value.)
+        )
+
+
+
+$(H3 $(LEGACY_LNAME2 ContinueStatement, continue-statement, Continue Statement))
+
+$(GRAMMAR
+$(GNAME ContinueStatement):
+    $(D continue) $(I Identifier)$(OPT) $(D ;)
+)
+
+        A continue aborts the current iteration of its enclosing loop
+        statement, and starts the next iteration.
+
+        $(P continue executes the next iteration of its innermost enclosing
+        while, for, foreach, or do loop. The increment clause is executed.)
+
+        $(P If continue is followed by $(I Identifier), the $(I Identifier)
+        must be the label of an enclosing while, for, or do
+        loop, and the next iteration of that loop is executed.
+        It is an error if
+        there is no such statement.)
+
+        $(P Any intervening finally clauses are executed, and any intervening
+        synchronization objects are released.)
+
+        $(P $(D Note:) If a finally clause executes a throw out of the finally
+        clause, the continue target is never reached.)
+
+---
+for (i = 0; i < 10; i++)
+{
+    if (foo(i))
+        continue;
+    bar();
+}
+---
+
+$(H3 $(LEGACY_LNAME2 BreakStatement, break-statement, Break Statement))
+
+$(GRAMMAR
+$(GNAME BreakStatement):
+    $(D break) $(I Identifier)$(OPT) $(D ;)
+)
+
+        A break exits the enclosing statement.
+
+        break exits the innermost enclosing while, for, foreach, do, or switch
+        statement, resuming execution at the statement following it.
+
+        $(P If break is followed by $(I Identifier), the $(I Identifier)
+        must be the label of an enclosing while, for, do or switch
+        statement, and that statement is exited. It is an error if
+        there is no such statement.)
+
+        $(P Any intervening finally clauses are executed, and any intervening
+        synchronization objects are released.)
+
+        $(P $(D Note:) If a finally clause executes a throw out of the finally
+        clause, the break target is never reached.)
+
+---
+for (i = 0; i < 10; i++)
+{
+    if (foo(i))
+        break;
+}
+---
+
+$(H3 $(LEGACY_LNAME2 ReturnStatement, return-statement, Return Statement))
+
+$(GRAMMAR
+$(GNAME ReturnStatement):
+    $(D return) $(EXPRESSION)$(OPT) $(D ;)
+)
+
+        A return exits the current function and supplies its return
+        value.
+
+        $(EXPRESSION) is required if the function specifies
+        a return type that is not void.
+        The $(EXPRESSION) is implicitly converted to the
+        function return type.
+
+        $(P At least one return statement, throw statement, or assert(0) expression
+        is required if the function specifies a return type that is not void,
+        unless the function contains inline assembler code.)
+
+$(COMMENT
+        $(EXPRESSION) is allowed even if the function specifies
+        a $(D_KEYWORD void) return type. The $(EXPRESSION) will be evaluated,
+        but nothing will be returned.
+        If the $(EXPRESSION) has no side effects, and the return
+        type is $(D_KEYWORD void), then it is illegal.
+)
+        $(P Before the function actually returns,
+        any objects with scope storage duration are destroyed,
+        any enclosing finally clauses are executed,
+        any scope(exit) statements are executed,
+        any scope(success) statements are executed,
+        and any enclosing synchronization
+        objects are released.)
+
+        $(P The function will not return if any enclosing finally clause
+        does a return, goto or throw that exits the finally clause.)
+
+        $(P If there is an out postcondition
+        (see $(DDLINK contracts, Contract Programming, Contract Programming)),
+        that postcondition is executed
+        after the $(EXPRESSION) is evaluated and before the function
+        actually returns.)
+
+---
+int foo(int x)
+{
+    return x + 3;
+}
+---
+
+$(H3 $(LEGACY_LNAME2 GotoStatement, goto-statement, Goto Statement))
+
+$(GRAMMAR
+$(GNAME GotoStatement):
+    $(D goto) $(I Identifier) $(D ;)
+    $(D goto) $(D default) $(D ;)
+    $(D goto) $(D case) $(D ;)
+    $(D goto) $(D case) $(EXPRESSION) $(D ;)
+)
+
+        A goto transfers to the statement labeled with
+        $(I Identifier).
+
+---
+    if (foo)
+        goto L1;
+    x = 3;
+L1:
+    x++;
+---
+
+        The second form, $(CODE goto default;), transfers to the
+        innermost $(GLINK DefaultStatement) of an enclosing
+        $(GLINK SwitchStatement).
+
+        $(P The third form, $(CODE goto case;), transfers to the
+        next $(GLINK CaseStatement) of the innermost enclosing
+        $(GLINK SwitchStatement).)
+
+        $(P The fourth form, $(CODE goto case) $(EXPRESSION)$(D ;), transfers to the
+        $(GLINK CaseStatement) of the innermost enclosing
+        $(GLINK SwitchStatement)
+        with a matching $(EXPRESSION).)
+
+---
+switch (x)
+{
+    case 3:
+        goto case;
+    case 4:
+        goto default;
+    case 5:
+        goto case 4;
+    default:
+        x = 4;
+        break;
+}
+---
+        Any intervening finally clauses are executed, along with
+        releasing any intervening synchronization mutexes.
+
+        $(P It is illegal for a $(I GotoStatement) to be used to skip
+        initializations.)
+
+$(H3 $(LEGACY_LNAME2 WithStatement, with-statement, With Statement))
+
+        The with statement is a way to simplify repeated references
+        to the same object.
+
+$(GRAMMAR
+$(GNAME WithStatement):
+    $(D with) $(D $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
+    $(D with) $(D $(LPAREN)) $(GLINK2 template, Symbol) $(D $(RPAREN)) $(PSSCOPE)
+    $(D with) $(D $(LPAREN)) $(GLINK2 template, TemplateInstance) $(D $(RPAREN)) $(PSSCOPE)
+)
+
+        where $(EXPRESSION) evaluates to a class reference or struct
+        instance.
+        Within the with body the referenced object is searched first for
+        identifier symbols. The $(I WithStatement)
+
+--------------
+with (expression)
+{
+    ...
+    ident;
+}
+--------------
+
+        is semantically equivalent to:
+
+--------------
+{
+    Object tmp;
+    tmp = expression;
+    ...
+    tmp.ident;
+}
+--------------
+
+        $(P Note that $(EXPRESSION) only gets evaluated once.
+        The with statement does not change what $(D this) or
+        $(D super) refer to.
+        )
+
+        $(P For $(I Symbol) which is a scope or $(I TemplateInstance),
+        the corresponding scope is searched when looking up symbols.
+        For example:
+        )
+
+--------------
+struct Foo
+{
+    alias Y = int;
+}
+...
+Y y;        // error, Y undefined
+with (Foo)
+{
+    Y y;    // same as Foo.Y y;
+}
+--------------
+
+        $(P Use of with object symbols that shadow local symbols with
+        the same identifier are not allowed.
+        This is to reduce the risk of inadvertant breakage of with
+        statements when new members are added to the object declaration.
+        )
+---
+struct S
+{
+    float x;
+}
+
+void main()
+{
+    int x;
+    S s;
+    with (s)
+    {
+        x++;  // error, shadows the int x declaration
+    }
+}
+---
+
+
+$(H3 $(LEGACY_LNAME2 SynchronizedStatement, synchronized-statement, Synchronized Statement))
+
+        $(P The synchronized statement wraps a statement with
+        a mutex to synchronize access among multiple threads.
+        )
+
+$(GRAMMAR
+$(GNAME SynchronizedStatement):
+    $(D synchronized) $(PSSCOPE)
+    $(D synchronized $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
+)
+
+        $(P Synchronized allows only one thread at a time to execute
+        $(I ScopeStatement) by using a mutex.
+        )
+
+        $(P What mutex is used is determined by the $(EXPRESSION).
+        If there is no $(EXPRESSION), then a global mutex is created,
+        one per such synchronized statement.
+        Different synchronized statements will have different global mutexes.
+        )
+
+        $(P If there is an $(EXPRESSION), it must evaluate to either an
+        Object or an instance of an $(I Interface), in which case it
+        is cast to the Object instance that implemented that $(I Interface).
+        The mutex used is specific to that Object instance, and
+        is shared by all synchronized statements referring to that instance.
+        )
+
+        $(P The synchronization gets released even if $(I ScopeStatement)
+        terminates with an exception, goto, or return.
+        )
+
+        $(P Example:
+        )
+
+--------------
+synchronized { ... }
+--------------
+
+        $(P This implements a standard critical section.
+        )
+
+        $(P Synchronized statements support recursive locking; that is, a
+        function wrapped in synchronized is allowed to recursively call
+        itself and the behavior will be as expected: The mutex will be
+        locked and unlocked as many times as there is recursion.
+        )
+
+$(H3 $(LEGACY_LNAME2 TryStatement, try-statement, Try Statement))
+
+        Exception handling is done with the try-catch-finally statement.
+
+$(GRAMMAR
+$(GNAME TryStatement):
+    $(D try) $(PSSCOPE) $(GLINK Catches)
+    $(D try) $(PSSCOPE) $(GLINK Catches) $(GLINK FinallyStatement)
+    $(D try) $(PSSCOPE) $(GLINK FinallyStatement)
+
+$(GNAME Catches):
+    $(GLINK LastCatch)
+    $(GLINK Catch)
+    $(GLINK Catch) $(I Catches)
+
+$(GNAME LastCatch):
+    $(D catch) $(PS0)
+
+$(GNAME Catch):
+    $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
+
+$(GNAME CatchParameter):
+    $(GLINK2 declaration, BasicType) $(I Identifier)
+
+$(GNAME FinallyStatement):
+    $(D finally) $(PS0)
+)
+
+        $(P $(I CatchParameter) declares a variable v of type T, where T is
+
+        Throwable or derived from Throwable.
+        v is initialized by the throw expression if T is of the same type or a
+        base class of the throw expression. The catch clause will be executed
+        if the exception object is of type T or derived from T.
+        )
+
+        $(P If just type T is given and no variable v, then the catch clause
+        is still executed.
+        )
+
+        $(P It is an error if any $(I CatchParameter) type T1 hides
+        a subsequent $(I Catch) with type T2, i.e. it is an error if
+        T1 is the same type as or a base class of T2.
+        )
+
+        $(P $(I LastCatch) catches all exceptions.
+        )
+
+        $(P The $(I FinallyStatement) is always executed, whether
+        the $(D try) $(I ScopeStatement) exits with a goto, break,
+        continue, return, exception, or fall-through.
+        )
+
+        $(P If an exception is raised in the $(I FinallyStatement) and is not
+        caught before the original exception is caught, it is chained to the
+        previous exception via the $(I next) member of $(I Throwable).
+        Note that, in contrast to most other programming languages, the new
+        exception does not replace the original exception. Instead, later
+        exceptions are regarded as 'collateral damage' caused by the first
+        exception. The original exception must be caught, and this results in
+        the capture of the entire chain.
+        )
+
+        $(P Thrown objects derived from $(I Error) are treated differently. They
+        bypass the normal chaining mechanism, such that the chain can only be
+        caught by catching the first $(I Error). In addition to the list of
+        subsequent exceptions, $(I Error) also contains a pointer that points
+        to the original exception (the head of the chain) if a bypass occurred,
+        so that the entire exception history is retained.
+    )
+
+--------------
+import std.stdio;
+
+int main()
+{
+    try
+    {
+        try
+        {
+            throw new Exception("first");
+        }
+        finally
+        {
+            writeln("finally");
+            throw new Exception("second");
+        }
+    }
+    catch (Exception e)
+    {
+        writeln("catch %s", e.msg);
+    }
+    writeln("done");
+    return 0;
+}
+--------------
+
+    prints:
+
+$(CONSOLE
+finally
+catch first
+done
+)
+
+
+        $(P A $(I FinallyStatement) may not exit with a goto, break,
+        continue, or return; nor may it be entered with a goto.
+        )
+
+        $(P A $(I FinallyStatement) may not contain any $(I Catches).
+        This restriction may be relaxed in future versions.
+        )
+
+$(H3 $(LEGACY_LNAME2 ThrowStatement, throw-statement, Throw Statement))
+
+        Throw an exception.
+
+$(GRAMMAR
+$(GNAME ThrowStatement):
+    $(D throw) $(EXPRESSION) $(D ;)
+)
+
+        $(EXPRESSION) is evaluated and must be  a Throwable reference.
+        The  Throwable reference is thrown as an exception.
+
+---
+throw new Exception("message");
+---
+
+$(H3 $(LEGACY_LNAME2 ScopeGuardStatement, scope-guard-statement, Scope Guard Statement))
+
+$(GRAMMAR
+$(GNAME ScopeGuardStatement):
+    $(D scope(exit)) $(PSCURLYSCOPE)
+    $(D scope(success)) $(PSCURLYSCOPE)
+    $(D scope(failure)) $(PSCURLYSCOPE)
+)
+
+        The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close
+        of the current scope, rather than at the point where the
+        $(I ScopeGuardStatement) appears.
+        $(D scope(exit)) executes $(PSCURLYSCOPE) when the scope
+        exits normally or when it exits due to exception unwinding.
+        $(D scope(failure)) executes $(PSCURLYSCOPE) when the scope
+        exits due to exception unwinding.
+        $(D scope(success)) executes $(PSCURLYSCOPE) when the scope
+        exits normally.
+
+        $(P If there are multiple $(I ScopeGuardStatement)s in a scope, they
+        will be executed in the reverse lexical order in which they appear.
+        If any scope instances are to be destroyed upon the close of the
+        scope, their destructions will be interleaved with the $(I ScopeGuardStatement)s
+        in the reverse lexical order in which they appear.)
+
+
+----
+write("1");
+{
+    write("2");
+    scope(exit) write("3");
+    scope(exit) write("4");
+    write("5");
+}
+writeln();
+----
+
+        writes:
+
+$(CONSOLE
+12543
+)
+
+
+----
+{
+    scope(exit) write("1");
+    scope(success) write("2");
+    scope(exit) write("3");
+    scope(success) write("4");
+}
+writeln();
+----
+
+        writes:
+
+$(CONSOLE
+4321
+)
+
+
+----
+struct Foo
+{
+    this(string s) { write(s); }
+    ~this() { write("1"); }
+}
+
+try
+{
+    scope(exit) write("2");
+    scope(success) write("3");
+    Foo f = Foo("0");
+    scope(failure) write("4");
+    throw new Exception("msg");
+    scope(exit) write("5");
+    scope(success) write("6");
+    scope(failure) write("7");
+}
+catch (Exception e)
+{
+}
+writeln();
+----
+
+        writes:
+
+$(CONSOLE
+0412
+)
+
+        A $(D scope(exit)) or $(D scope(success)) statement
+        may not exit with a throw, goto, break, continue, or
+        return; nor may it be entered with a goto.
+
+
+
+$(H3 $(LNAME2 asm, Asm Statement))
+
+        Inline assembler is supported with the asm statement:
+
+$(GRAMMAR
+$(GNAME AsmStatement):
+    $(D asm) $(GLINK2 function, FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
+
+$(GNAME AsmInstructionList):
+    $(GLINK2 iasm, AsmInstruction) $(D ;)
+    $(GLINK2 iasm, AsmInstruction) $(D ;) $(I AsmInstructionList)
+)
+
+        An asm statement enables the direct use of assembly language
+        instructions. This makes it easy to obtain direct access to special
+        CPU features without resorting to an external assembler. The
+        D compiler will take care of the function calling conventions,
+        stack setup, etc.
+
+        $(P The format of the instructions is, of course, highly dependent
+        on the native instruction set of the target CPU, and so is
+        $(DDLINK iasm, Inline Assembler, implementation defined).
+        But, the format will follow the following
+        conventions:)
+
+        $(UL
+        $(LI It must use the same tokens as the D language uses.)
+        $(LI The comment form must match the D language comments.)
+        $(LI Asm instructions are terminated by a ;, not by an
+        end of line.)
+        )
+
+        These rules exist to ensure that D source code can be tokenized
+        independently of syntactic or semantic analysis.
+
+        $(P For example, for the Intel Pentium:)
+
+--------------
+int x = 3;
+asm
+{
+    mov EAX,x; // load x and put it in register EAX
+}
+--------------
+
+        Inline assembler can be used to access hardware directly:
+
+--------------
+int gethardware()
+{
+    asm
+    {
+        mov EAX, dword ptr 0x1234;
+    }
+}
+--------------
+
+        For some D implementations, such as a translator from D to C, an
+        inline assembler makes no sense, and need not be implemented.
+        The version statement can be used to account for this:
+
+--------------
+version (D_InlineAsm_X86)
+{
+    asm
+    {
+        ...
+    }
+}
+else
+{
+    /* ... some workaround ... */
+}
+--------------
+
+        $(P Semantically consecutive $(I AsmStatement)s shall not have
+        any other instructions (such as register save or restores) inserted
+        between them by the compiler.
+        )
+
+$(H3 $(LEGACY_LNAME2 PragmaStatement, pragma-statement, Pragma Statement))
+
+$(GRAMMAR
+$(GNAME PragmaStatement):
+    $(GLINK2 pragma, Pragma) $(PSSEMI)
+)
+
+$(H3 $(LEGACY_LNAME2 MixinStatement, mixin-statement, Mixin Statement))
+
+$(GRAMMAR
+$(GNAME MixinStatement):
+    $(D mixin) $(D $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN)) $(D ;)
+)
+
+        $(P The $(ASSIGNEXPRESSION) must evaluate at compile time
+        to a constant string.
+        The text contents of the string must be compilable as a valid
+        $(GLINK StatementList), and is compiled as such.
+        )
+
+---
+import std.stdio;
+
+void main()
+{
+    int j;
+    mixin("
+        int x = 3;
+        for (int i = 0; i < 3; i++)
+            writeln(x + i, ++j);
+        ");    // ok
+
+    const char[] s = "int y;";
+    mixin(s);  // ok
+    y = 4;     // ok, mixin declared y
+
+    char[] t = "y = 3;";
+    mixin(t);  // error, t is not evaluatable at compile time
+
+    mixin("y =") 4; // error, string must be complete statement
+
+    mixin("y =" ~ "4;");  // ok
+}
+---
+
+)
+
+Macros:
+        TITLE=Statements
+        WIKI=Statement
+        EXPRESSION=$(GLINK2 expression, Expression)
+        PSSEMI_PSCURLYSCOPE=$(GLINK Statement)
+        PSSEMI_PSCURLYSCOPE_LIST=$(GLINK ScopeStatementList)
+        PS0=$(GLINK NoScopeNonEmptyStatement)
+        PSSCOPE=$(GLINK ScopeStatement)
+        PSCURLY=$(GLINK BlockStatement)
+        PSSEMI=$(GLINK NoScopeStatement)
+        PSCURLY_PSSCOPE=$(GLINK ScopeBlockStatement)
+        PSCURLYSCOPE=$(GLINK NonEmptyOrScopeBlockStatement)
+        _=

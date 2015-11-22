@@ -1,0 +1,250 @@
+Ddoc
+
+$(SPEC_S Properties,
+
+	$(P Every type and expression has properties that can be queried:)
+
+$(TABLE2 Property Examples,
+$(THEAD Expression,	Value)
+$(TROW $(D int.sizeof),	yields 4)
+$(TROW $(D float.nan),	yields the floating point nan (Not A Number) value)
+$(TROW $(D (float).nan),	yields the floating point nan value)
+$(TROW $(D (3).sizeof),	yields 4 (because 3 is an int))
+
+$(TROW $(D int.init),	default initializer for int's)
+$(TROW $(D int.mangleof),	yields the string "i")
+$(TROW $(D int.stringof),	yields the string "int")
+$(TROW $(D (1+2).stringof),	yields the string "1 + 2")
+)
+
+$(BR)
+
+$(TABLE2 Properties for All Types,
+$(THEAD  Property, Description)
+$(TROW $(RELATIVE_LINK2 init, $(D .init)),	initializer)
+$(TROW $(RELATIVE_LINK2 sizeof, $(D .sizeof)), size in bytes (equivalent to C's sizeof(type)))
+$(TROW $(RELATIVE_LINK2 alignof, $(D .alignof)), alignment size)
+$(TROW $(D .mangleof), string representing the $(SINGLEQUOTE mangled) representation of the type)
+$(TROW $(RELATIVE_LINK2 stringof, $(D .stringof)), string representing the source representation of the type)
+)
+
+$(BR)
+
+$(TABLE2 Properties for Integral Types,
+$(THEAD Property, Description)
+$(TROW $(D .init),	initializer (0))
+$(TROW $(D .max), maximum value)
+$(TROW $(D .min), minimum value)
+)
+
+$(BR)
+
+$(TABLE_2COLS Properties for Floating Point Types,
+$(THEAD Property, Description)
+$(TROW $(D .init), initializer (NaN))
+$(TROW $(D .infinity), infinity value)
+$(TROW $(D .nan), NaN value)
+$(TROW $(D .dig), number of decimal digits of precision)
+$(TROW $(D .epsilon), smallest increment to the value 1)
+$(TROW $(D .mant_dig), number of bits in mantissa)
+$(TROW $(D .max_10_exp), maximum int value such that 10$(SUPERSCRIPT $(D max_10_exp)) is representable)
+$(TROW $(D .max_exp), maximum int value such that 2$(SUPERSCRIPT $(D max_exp-1)) is representable)
+$(TROW $(D .min_10_exp), minimum int value such that 10$(SUPERSCRIPT $(D min_10_exp)) is representable as a normalized value)
+$(TROW $(D .min_exp), minimum int value such that 2$(SUPERSCRIPT $(D min_exp-1)) is representable as a normalized value)
+$(TROW $(D .max), largest representable value that's not infinity)
+
+$(TROW $(D .min_normal), smallest representable normalized value that's not 0)
+$(TROW $(D .re), real part)
+$(TROW $(D .im), imaginary part)
+)
+
+$(BR)
+
+$(TABLE2 Properties for Class Types,
+$(THEAD Property, Description)
+$(TROW $(RELATIVE_LINK2 classinfo, $(D .classinfo)), Information about the dynamic type of the class)
+)
+
+$(SECTION3 $(LNAME2 init, .init) Property,
+
+	$(P $(D .init) produces a constant expression that is the default
+	initializer. If applied to a type, it is the default initializer
+	for that type. If applied to a variable or field, it is the
+	default initializer for that variable or field's type.
+	For example:
+	)
+
+----------------
+int a;
+int b = 1;
+typedef int t = 2;
+t c;
+t d = cast(t)3;
+
+int.init // is 0
+a.init   // is 0
+b.init   // is 0
+t.init   // is 2
+c.init   // is 2
+d.init   // is 2
+
+struct Foo
+{
+    int a;
+    int b = 7;
+}
+
+Foo.init.a  // is 0
+Foo.init.b  // is 7
+----------------
+
+	$(P $(B Note:) $(D .init) produces a default initialized object, not
+	default constructed. That means using $(D .init) is sometimes incorrect.)
+
+    $(OL
+	$(LI If $(D T) is a nested struct, the context pointer in $(D T.init)
+	is $(D null).)
+
+----------------
+void main()
+{
+    int a;
+    struct S
+    {
+        void foo() { a = 1; }  // access a variable in enclosing scope
+    }
+    S s1;           // OK. S() correctly initialize its frame pointer.
+    S s2 = S();     // OK. same as s1
+    S s3 = S.init;  // Bad. the frame pointer in s3 is null
+    s3.foo();       // Access violation
+}
+----------------
+
+	$(LI If $(D T) is a struct which has $(CODE @disable this();), $(D T.init)
+	might return a logically incorrect object.)
+
+----------------
+struct S
+{
+    int a;
+    @disable this();
+    this(int n) { a = n; }
+    invariant { assert(a > 0); }
+    void check() {}
+}
+void main()
+{
+  //S s1;           // Error: variable s1 initializer required for type S
+  //S s2 = S();     // Error: constructor S.this is not callable
+                    // because it is annotated with @disable
+    S s3 = S.init;  // Bad. s3.a == 0, and it violates the invariant of S.
+    s3.check();     // Assertion failure.
+}
+----------------
+    )
+)
+
+$(SECTION3 $(LNAME2 stringof, .stringof) Property,
+
+	$(P $(D .stringof) produces a constant string that is the
+	source representation of its prefix.
+	If applied to a type, it is the string for that type.
+	If applied to an expression, it is the source representation
+	of that expression. Semantic analysis is not done
+	for that expression.
+	For example:
+	)
+
+----------------
+module test;
+import std.stdio;
+
+struct Foo { }
+
+enum Enum { RED }
+
+typedef int myint;
+
+void main()
+{
+    writeln((1+2).stringof);       // "1 + 2"
+    writeln(Foo.stringof);         // "Foo"
+    writeln(test.Foo.stringof);    // "Foo"
+    writeln(int.stringof);         // "int"
+    writeln((int*[5][]).stringof); // "int*[5u][]"
+    writeln(Enum.RED.stringof);    // "cast(enum)0"
+    writeln(test.myint.stringof);  // "myint"
+    writeln((5).stringof);         // "5"
+}
+----------------
+
+$(P $(B Note): Using $(D .stringof) for code generation is not recommended,
+    as the internal representation of a type or expression can change between
+    different compiler versions.)
+
+$(P Instead you should prefer to use the $(DDSUBLINK traits, identifier, identifier) trait,
+    or one of the Phobos helper functions such as $(PHOBOS traits, fullyQualifiedName, fullyQualifiedName).)
+)
+
+$(SECTION3 $(LNAME2 sizeof, .sizeof Property),
+
+	$(P $(CODE e.sizeof) gives the size in bytes of the expression
+	$(D e).
+	)
+
+	$(P When getting the size of a member, it is not necessary for
+	there to be a $(I this) object:
+	)
+
+---
+struct S
+{
+    int a;
+    static int foo()
+    {
+        return a.sizeof; // returns 4
+    }
+}
+
+void test()
+{
+    int x = S.a.sizeof; // sets x to 4
+}
+---
+
+	$(P $(CODE .sizeof) applied to a class object returns the size of
+	the class reference, not the class instantiation.)
+
+)
+
+$(SECTION3 $(LNAME2 alignof, .alignof Property),
+
+	$(P $(CODE .alignof) gives the aligned size of an expression or type.
+	For example, an aligned size of 1 means that it is aligned on
+	a byte boundary, 4 means it is aligned on a 32 bit boundary.
+	)
+)
+
+$(SECTION3 $(LNAME2 classinfo, .classinfo) Property,
+
+	$(P $(CODE .classinfo) provides information about the dynamic type
+	of a class object.
+
+	It returns a reference to type $(DDLINK	phobos/object, TypeInfo_Class, $(D object.TypeInfo_Class)).
+	)
+
+	$(P $(CODE .classinfo) applied to an interface gives the information for
+	the interface, not the class it might be an instance of.
+	)
+)
+
+$(SECTION3 $(LNAME2 classproperties, User Defined Properties),
+
+	$(P User defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
+)
+
+)
+
+Macros:
+	TITLE=Properties
+	 WIKI=Property

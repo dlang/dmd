@@ -1,0 +1,346 @@
+Ddoc
+
+$(SPEC_S Types,
+
+$(SECTION3 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types),
+
+    $(TABLE_3COLS Basic Data Types,
+    $(THEAD Keyword, Default Initializer ($(D .init)), Description)
+    $(TROW $(D void), $(D -), no type)
+    $(TROW $(D bool), $(D false), boolean value)
+    $(TROW $(D byte), $(D 0), signed 8 bits)
+    $(TROW $(D ubyte), $(D 0), unsigned 8 bits)
+    $(TROW $(D short), $(D 0), signed 16 bits)
+    $(TROW $(D ushort), $(D 0), unsigned 16 bits)
+    $(TROW $(D int), $(D 0), signed 32 bits)
+    $(TROW $(D uint), $(D 0), unsigned 32 bits)
+    $(TROW $(D long), $(D 0L), signed 64 bits)
+    $(TROW $(D ulong), $(D 0L), unsigned 64 bits)
+    $(TROW $(D cent), $(D 0), signed 128 bits (reserved for future use))
+    $(TROW $(D ucent), $(D 0), unsigned 128 bits (reserved for future use))
+    $(TROW $(D float), $(D float.nan), 32 bit floating point)
+    $(TROW $(D double), $(D double.nan), 64 bit floating point)
+    $(TROW $(D real), $(D real.nan), largest FP size implemented in
+    hardware$(FOOTNOTE Implementation Note: 80 bits for x86 CPUs or $(D double) size$(COMMA) whichever is larger))
+    $(TROW $(D ifloat), $(D float.nan*1.0i), imaginary float)
+    $(TROW $(D idouble), $(D double.nan*1.0i), imaginary double)
+    $(TROW $(D ireal), $(D real.nan*1.0i), imaginary real)
+    $(TROW $(D cfloat), $(D float.nan+float.nan*1.0i), a complex number of two float values)
+    $(TROW $(D cdouble), $(D double.nan+double.nan*1.0i), complex double)
+    $(TROW $(D creal), $(D real.nan+real.nan*1.0i), complex real)
+    $(TROW $(D char), $(D 0xFF), unsigned 8 bit (UTF-8 code unit))
+    $(TROW $(D wchar), $(D 0xFFFF), unsigned 16 bit (UTF-16 code unit))
+    $(TROW $(D dchar), $(D 0x0000FFFF), unsigned 32 bit (UTF-32 code unit))
+    )
+)
+
+
+$(SECTION3 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types),
+
+    $(UL
+    $(LI pointer)
+    $(LI array)
+    $(LI associative array)
+    $(LI function)
+    $(LI delegate)
+    )
+
+    $(P $(DDSUBLINK arrays, strings, $(I Strings)) are a special case of arrays.)
+)
+
+$(SECTION3 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User Defined Types),
+
+    $(UL
+    $(LI alias)
+    $(LI enum)
+    $(LI struct)
+    $(LI union)
+    $(LI class)
+
+    )
+)
+
+
+$(SECTION3 $(LEGACY_LNAME2 Base Types, base-types, Base Types),
+
+    $(P The $(I base type) of an enum is the type it is based on:)
+
+---
+enum E : T { ... }  // T is the base type of E
+---
+
+
+)
+
+
+$(SECTION3 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions),
+
+    $(P Casting pointers to non-pointers and vice versa is allowed in D,
+    however, do not do this for any pointers that point to data
+    allocated by the garbage collector.
+    )
+)
+
+$(SECTION3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conversions),
+
+    $(P Implicit conversions are used to automatically convert
+    types as required.
+    )
+
+    $(P A  enum can be implicitly converted to its base
+    type, but going the other way requires an explicit
+    conversion.
+
+    For example:
+    )
+
+-------------------
+int i;
+
+enum Foo { E }
+Foo f;
+i = f;           // OK
+f = i;           // error
+f = cast(Foo)i;  // OK
+f = 0;           // error
+f = Foo.E;       // OK
+-------------------
+)
+
+
+$(SECTION3 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions),
+
+    $(P Integer Promotions are conversions of the following types:
+    )
+
+    $(TABLE2 Integer Promotions,
+    $(THEAD from, to)
+    $(TROW
+    $(ARGS $(D bool)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D byte)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D ubyte)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D short)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D ushort)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D char)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D wchar)),
+    $(ARGS $(D int))
+    )
+    $(TROW
+    $(ARGS $(D dchar)),
+    $(ARGS $(D uint))
+    )
+    )
+
+    $(P If a  enum has as a base type one of the types
+    in the left column, it is converted to the type in the right
+    column.
+    )
+)
+
+
+$(SECTION3 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions, Usual Arithmetic Conversions),
+
+    $(P The usual arithmetic conversions convert operands of binary
+    operators to a common type. The operands must already be
+    of arithmetic types.
+    The following rules are applied
+    in order, looking at the base type:
+    )
+
+    $(OL
+    $(LI If either operand is real, the other operand is
+    converted to real.)
+
+    $(LI Else if either operand is double, the other operand is
+    converted to double.)
+
+    $(LI Else if either operand is float, the other operand is
+    converted to float.)
+
+    $(LI Else the integer promotions are done on each operand,
+    followed by:
+
+    $(OL
+        $(LI If both are the same type, no more conversions are done.)
+
+        $(LI If both are signed or both are unsigned, the
+        smaller type is converted to the larger.)
+
+        $(LI If the signed type is larger than the unsigned
+        type, the unsigned type is converted to the signed type.)
+
+        $(LI The signed type is converted to the unsigned type.)
+    )
+    )
+    )
+
+    $(P If one or both of the operand types is an enum  after
+    undergoing the above conversions, the result type is:)
+
+    $(OL
+    $(LI If the operands are the same type, the result will be the
+    that type.)
+    $(LI If one operand is an enum  and the other is the base type
+    of that  enum, the result is the base type.)
+    $(LI If the two operands are different  enums,
+    the result is the closest base type common to both. A base type being closer
+    means there is a shorter sequence of conversions to base type to get there from the
+    original type.)
+    )
+
+    $(P Integer values cannot be implicitly converted to another
+    type that cannot represent the integer bit pattern after integral
+    promotion. For example:)
+
+---
+ubyte  u1 = cast(byte)-1;  // error, -1 cannot be represented in a ubyte
+ushort u2 = cast(short)-1; // error, -1 cannot be represented in a ushort
+uint   u3 = cast(int)-1;   // ok, -1 can be represented in a uint
+ulong  u4 = cast(long)-1; // ok, -1 can be represented in a ulong
+---
+
+    $(P Floating point types cannot be implicitly converted to
+    integral types.
+    )
+
+    $(P Complex floating point types cannot be implicitly converted
+    to non-complex floating point types.
+    )
+
+    $(P Imaginary floating point types cannot be implicitly converted to
+    float, double, or real types. Float, double, or real types
+    cannot be implicitly converted to imaginary floating
+    point types.
+    )
+)
+
+
+$(SECTION3 $(LNAME2 bool, $(D bool)),
+
+    $(P The bool type is a 1 byte size type that can only hold the
+    value $(D_KEYWORD true) or $(D_KEYWORD false).
+    The only operators that can accept operands of type bool are:
+    $(CODE_AMP) $(CODE_PIPE) $(D ^) $(CODE_AMP)$(D =) $(CODE_PIPE)$(D =)
+    $(D ^=) ! $(CODE_AMP)$(CODE_AMP) $(CODE_PIPE)$(CODE_PIPE) $(D ?:).
+    A $(D bool) value can be implicitly converted to any integral type,
+    with $(D_KEYWORD false) becoming 0 and $(D_KEYWORD true) becoming 1.
+    The numeric literals 0 and 1 can be implicitly
+    converted to the bool values $(D_KEYWORD false) and $(D_KEYWORD true),
+    respectively.
+    Casting an expression to bool means testing for 0 or !=0 for
+    arithmetic types, and $(D_KEYWORD null) or !=$(D_KEYWORD null)
+    for pointers or references.
+    )
+)
+
+
+$(SECTION3 $(LNAME2 delegates, Delegates),
+
+    $(P There are no pointers-to-members in D, but a more useful
+    concept called $(I delegates) are supported.
+    Delegates are an aggregate of two pieces of data: an
+    object reference and a pointer to a non-static member function,
+    or a pointer to a closure and a pointer to a nested function.
+    The object reference
+    forms the $(I this) pointer when the function is called.
+    )
+
+    $(P Delegates are declared similarly to function pointers,
+    except that the keyword $(D delegate) takes the place
+    of (*), and the identifier occurs afterwards:
+    )
+
+-------------------
+int function(int) fp; // fp is pointer to a function
+int delegate(int) dg; // dg is a delegate to a function
+-------------------
+
+    $(P The C style syntax for declaring pointers to functions is
+
+deprecated:
+    )
+
+-------------------
+int (*fp)(int);  // fp is pointer to a function
+-------------------
+
+    $(P A delegate is initialized analogously to function pointers:
+    )
+
+-------------------
+int func(int);
+fp = &func;   // fp points to func
+
+class OB
+{
+    int member(int);
+}
+OB o;
+dg = &o.member; // dg is a delegate to object o and
+                // member function member
+-------------------
+
+    $(P Delegates cannot be initialized with static member functions
+    or non-member functions.
+    )
+
+    $(P Delegates are called analogously to function pointers:
+    )
+
+-------------------
+fp(3);   // call func(3)
+dg(3);   // call o.member(3)
+-------------------
+
+    $(P The equivalent of member function pointers can be constructed
+    using anonymous lambda functions:)
+
+---
+class C
+{
+    int a;
+    int foo(int i) { return i + a; }
+}
+
+// mfp is the member function pointer
+auto mfp = function(C self, int i) { return self.foo(i); };
+auto c = new C();  // create an instance of C
+mfp(c, 1);  // and call c.foo(1)
+---
+)
+
+$(SECTION3 $(LNAME2 size_t, $(D size_t)),
+
+    $(P $(D size_t) is an alias to one of the unsigned integral basic types,
+    and represents a type that is large enough to represent an offset into
+    all addressible memory.)
+)
+
+$(SECTION3 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)),
+    $(P $(D ptrdiff_t) is an alias to the signed basic type the same size as $(D size_t).)
+)
+
+)
+
+Macros:
+    TITLE=Types
+    WIKI=Type
+

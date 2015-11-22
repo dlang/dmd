@@ -1,0 +1,1316 @@
+Ddoc
+
+$(SPEC_S Classes,
+
+        $(P The object-oriented features of D all come from classes. The class
+        hierarchy
+        has as its root the class Object. Object defines a minimum level of functionality
+        that each derived class has, and a default implementation for that functionality.
+        )
+
+        $(P Classes are programmer defined types. Support for classes are what
+        make D an object oriented language, giving it encapsulation, inheritance,
+        and polymorphism. D classes support the single inheritance paradigm, extended
+        by adding support for interfaces. Class objects are instantiated by reference
+        only.
+        )
+
+        $(P A class can be exported, which means its name and all its
+        non-private
+        members are exposed externally to the DLL or EXE.
+        )
+
+        $(P A class declaration is defined:
+        )
+
+$(GRAMMAR
+$(GNAME ClassDeclaration):
+    $(D class) $(I Identifier) $(D ;)
+    $(D class) $(I Identifier) $(GLINK BaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(GLINK2 template, ClassTemplateDeclaration)
+
+$(GNAME BaseClassList):
+    $(D :) $(GLINK SuperClass)
+    $(D :) $(GLINK SuperClass) $(D ,) $(GLINK Interfaces)
+    $(D :) $(GLINK Interfaces)
+
+$(GNAME SuperClass):
+    $(GLINK2 declaration, BasicType)
+
+$(GNAME Interfaces):
+    $(GLINK Interface)
+    $(GLINK Interface) $(D ,) $(I Interfaces)
+
+$(GNAME Interface):
+    $(GLINK2 declaration, BasicType)
+)
+
+Classes consist of:
+
+$(UL
+        $(LI a super class)
+        $(LI interfaces)
+        $(LI dynamic fields)
+        $(LI static fields)
+        $(LI types)
+        $(LI $(RELATIVE_LINK2 synchronized-classes, an optional synchronized attribute))
+        $(LI $(RELATIVE_LINK2 member-functions, member functions)
+        $(UL
+            $(LI static member functions)
+            $(LI $(DDSUBLINK function, virtual-functions, Virtual Functions))
+            $(LI $(RELATIVE_LINK2 constructors, Constructors))
+            $(LI $(RELATIVE_LINK2 destructors, Destructors))
+            $(LI $(RELATIVE_LINK2 static-constructor, Static Constructors))
+            $(LI $(RELATIVE_LINK2 static-destructor, Static Destructors))
+            $(LI $(GLINK SharedStaticConstructor)s)
+            $(LI $(GLINK SharedStaticDestructor)s)
+            $(LI $(RELATIVE_LINK2 invariants, Class Invariants))
+            $(LI $(DDSUBLINK unittest, unittest, Unit Tests))
+            $(LI $(RELATIVE_LINK2 allocators, Class Allocators))
+            $(LI $(RELATIVE_LINK2 deallocators, Class Deallocators))
+            $(LI $(RELATIVE_LINK2 alias-this, Alias This))
+        )
+        )
+)
+
+        A class is defined:
+
+------
+class Foo
+{
+    ... members ...
+}
+------
+
+        $(P Note that there is no trailing $(D ;) after the closing $(D }) of the class
+        definition.
+        It is also not possible to declare a variable var like:)
+
+------
+class Foo { } var;
+------
+
+        Instead:
+
+------
+class Foo { }
+Foo var;
+------
+
+$(H3 Access Control)
+
+	$(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
+	The default protection attribute is $(D public).
+	Access control does not affect visibility.
+	)
+
+$(H3 Fields)
+
+        $(P Class members are always accessed with the . operator.
+        )
+
+	$(P Members of a base class can be accessed by prepending the name of
+	the base class followed by a dot:)
+
+---
+class A { int a; int a2;}
+class B : A { int a; }
+
+void foo(B b)
+{
+    b.a = 3;   // accesses field B.a
+    b.a2 = 4;  // accesses field A.a2
+    b.A.a = 5; // accesses field A.a
+}
+---
+
+        $(P The D compiler is free to rearrange the order of fields in a class to
+        optimally pack them in an implementation-defined manner.
+        Consider the fields much like the local
+        variables in a function -
+        the compiler assigns some to registers and shuffles others around all to
+        get the optimal
+        stack frame layout. This frees the code designer to organize the fields
+        in a manner that
+        makes the code more readable rather than being forced to organize it
+        according to
+        machine optimization rules. Explicit control of field layout is provided
+        by struct/union
+        types, not classes.
+        )
+
+$(H3 Field Properties)
+
+        $(P The $(D .offsetof) property gives the offset in bytes of the field
+        from the beginning of the class instantiation.
+        $(D .offsetof) can only be applied to
+        expressions which produce the type of
+        the field itself, not the class type:
+        )
+
+------
+class Foo
+{
+    int x;
+}
+...
+void test(Foo foo)
+{
+    size_t o;
+
+    o = Foo.x.offsetof; // error, Foo.x needs a 'this' reference
+    o = foo.x.offsetof; // ok
+}
+------
+
+$(H3 Class Properties)
+
+        $(P The $(D .tupleof) property returns an $(I ExpressionTuple)
+        of all the fields
+        in the class, excluding the hidden fields and the fields in the
+        base class.
+        )
+---
+class Foo { int x; long y; }
+void test(Foo foo)
+{
+    foo.tupleof[0] = 1; // set foo.x to 1
+    foo.tupleof[1] = 2; // set foo.y to 2
+    foreach (x; foo.tupleof)
+        write(x);       // prints 12
+}
+---
+
+        $(P The properties $(D .__vptr) and $(D .__monitor) give access
+        to the class object's vtbl[] and monitor, respectively, but
+        should not be used in user code.
+        )
+
+$(H3 Super Class)
+
+        All classes inherit from a super class. If one is not specified,
+        it inherits from Object. Object forms the root of the D class
+        inheritance hierarchy.
+
+$(H3 $(LNAME2 member-functions, Member Functions))
+
+        $(P Non-static member functions have an extra hidden parameter
+        called $(I this) through which the class object's other members
+        can be accessed.
+        )
+
+	$(P Non-static member functions can have, in addition to the usual
+	$(GLINK2 function, FunctionAttribute)s, the attributes
+	$(D const), $(D immutable), $(D shared), or $(D inout).
+	These attributes apply to the hidden $(I this) parameter.
+	)
+---
+class C
+{
+    int a;
+    const void foo()
+    {
+        a = 3; // error, 'this' is const
+    }
+    void foo() immutable
+    {
+        a = 3; // error, 'this' is immutable
+    }
+}
+---
+
+
+$(H3 $(LNAME2 synchronized-classes, Synchronized Classes))
+
+        $(P All member functions of synchronized classes are synchronized.
+        A static member function is synchronized on the $(I classinfo)
+        object for the class, which means that one monitor is used
+        for all static member functions for that synchronized class.
+        For non-static functions of a synchronized class, the monitor
+        used is part of the class object. For example:
+        )
+
+        ---
+        synchronized class Foo
+        {
+            void bar() { ...statements... }
+        }
+        ---
+
+        $(P is equivalent to (as far as the monitors go):
+        )
+
+        ---
+        synchronized class Foo
+        {
+            void bar()
+            {
+                synchronized (this) { ...statements... }
+            }
+        }
+        ---
+
+        $(P Member functions of non-synchronized classes cannot be individually marked as synchronized.
+        The synchronized attribute must be applied to the class declaration itself:
+        )
+
+        ---
+        class Foo
+        {
+            synchronized void foo() { }  // disallowed!
+        }
+
+        synchronized class Bar
+        {
+            void bar() { }  // bar is synchronized
+        }
+        ---
+
+        $(P Member fields of a synchronized class cannot be public:
+        )
+
+        ---
+        synchronized class Foo
+        {
+            int foo;  // disallowed: public field
+        }
+
+        synchronized class Bar
+        {
+            private int bar;  // ok
+        }
+        ---
+
+        $(P The $(D synchronized) attribute can only be applied to classes,
+        structs cannot be marked to be synchronized.)
+
+$(H3 $(LNAME2 constructors, Constructors))
+
+$(GRAMMAR
+$(GNAME Constructor):
+    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+    $(GLINK2 template, ConstructorTemplate)
+)
+
+        $(P Members are always initialized to the
+        $(LNAME2 class-default-initializer, default initializer)
+        for their type, which is usually 0 for integer types and
+        NAN for floating point types.
+        This eliminates an entire
+        class of obscure problems that come from
+        neglecting to initialize a member in one of the constructors.
+        In the class definition,
+        there can be a static initializer to be
+        used instead of the default:
+        )
+        ------
+        class Abc
+        {
+            int a;      // default initializer for a is 0
+            long b = 7; // default initializer for b is 7
+            float f;    // default initializer for f is NAN
+        }
+        ------
+
+        This static initialization is done before any constructors are
+        called.
+
+        $(P Constructors are defined with a function name of $(D this)
+        and having no return value:)
+
+        ------
+        class Foo
+        {
+            $(CODE_HIGHLIGHT this)(int x)  // declare constructor for Foo
+            {   ...
+            }
+            $(CODE_HIGHLIGHT this)()
+            {   ...
+            }
+        }
+        ------
+
+        Base class construction is done by calling the base class
+        constructor by the name $(D super):
+
+        ------
+        class A { this(int y) { } }
+
+        class B : A
+        {
+            int j;
+            this()
+            {
+                ...
+                $(CODE_HIGHLIGHT super)(3);  // call base constructor A.this(3)
+                ...
+            }
+        }
+        ------
+
+        $(P Constructors can also call other constructors for the same class
+        in order to share common initializations
+        $(LNAME2 delegating-constructors, (this is called delegating constructors)):
+        )
+
+        ------
+        class C
+        {
+            int j;
+            this()
+            {
+                ...
+            }
+            this(int i)
+            {
+                $(CODE_HIGHLIGHT this)();
+                j = i;
+            }
+        }
+        ------
+
+        If no call to constructors via $(D this) or $(D super) appear
+        in a constructor, and the base class has a constructor, a call
+        to $(D super)() is inserted at the beginning of the constructor.
+
+        $(P If there is no constructor for a class, but there is a constructor
+        for the base class, a default constructor of the form:)
+
+        ------
+        this() { }
+        ------
+
+        $(P is implicitly generated.)
+
+        $(P Class object construction is very flexible, but some restrictions
+        apply:)
+
+    $(OL
+        $(LI It is illegal for constructors to mutually call each other,
+        although the compiler is not required to detect it. It will result
+        in undefined behavior.
+
+        ------
+        this() { this(1); }
+        this(int i) { this(); } // illegal, cyclic constructor calls
+        ------
+        )
+
+        $(LI If any constructor call appears inside a constructor, any
+        path through the constructor must make exactly one constructor
+        call:
+
+        ------
+        this() { a || super(); }       // illegal
+
+        this() { (a) ? this(1) : super(); }     // ok
+
+        this()
+        {
+            for (...)
+            {
+                super();  // illegal, inside loop
+            }
+        }
+        ------
+        )
+
+        $(LI It is illegal to refer to $(D this) implicitly or explicitly
+        prior to making a constructor call.)
+
+        $(LI Constructor calls cannot appear after labels (in order to make
+        it easy to check for the previous conditions in the presence of goto's).)
+    )
+
+        $(P Instances of class objects are created with $(I NewExpression)s:)
+
+        ------
+        A a = new A(3);
+        ------
+
+        $(P The following steps happen:)
+
+    $(OL
+        $(LI Storage is allocated for the object.
+        If this fails, rather than return $(D null), an
+        $(D OutOfMemoryError) is thrown.
+        Thus, tedious checks for null references are unnecessary.
+        )
+
+        $(LI The raw data is statically initialized using the values provided
+        in the class definition.
+        The pointer to the vtbl[] (the array of pointers to virtual functions)
+        is assigned.
+        This ensures that constructors are
+        passed fully formed objects for which virtual functions can be called.
+        This operation is equivalent to doing a memory copy of a static
+        version of the object onto the newly allocated one,
+        although more advanced compilers
+        may be able to optimize much of this away.
+        )
+
+        $(LI If there is a constructor defined for the class,
+        the constructor matching the
+        argument list is called.
+        )
+
+        $(LI If class invariant checking is turned on, the class invariant
+        is called at the end of the constructor.
+        )
+    )
+
+        $(P Constructors can have one of these member function attributes:
+        $(D const), $(D immutable), and $(D shared). Construction of qualified
+        objects will then be restricted to the implemented qualified constructors.
+        )
+        ------
+        class C
+        {
+            this();   // non-shared mutable constructor
+        }
+
+        // create mutable object
+        C m = new C();
+
+        // create const object using by mutable constructor
+        const C c2 = new const C();
+
+        // a mutable constructor cannot create an immutable object
+        // immutable C i = new immutable C();
+
+        // a mutable constructor cannot create a shared object
+        // shared C s = new shared C();
+        ------
+
+        $(P Constructors can be overloaded with different attributes.
+        )
+        ------
+        class C
+        {
+            this();               // non-shared mutable constructor
+            this() shared;        // shared mutable constructor
+            this() immutable;     // immutable constructor
+        }
+
+        C m = new C();
+        shared s = new shared C();
+        immutable i = new immutable C();
+        ------
+
+        $(P If the constructor can create unique object (e.g. if it is pure),
+        the object can be implicitly convertible to any qualifiers.
+        )
+        ------
+        class C
+        {
+            this() pure;
+            // Based on the definition, this creates a mutable object. But the
+            // created object cannot contain any mutable global data.
+            // Then compiler can guarantee that the created object is unique.
+
+            this(int[] arr) immutable pure;
+            // Based on the definition, this creates an immutable object. But
+            // the argument int[] never appears in the created object so it
+            // isn't implicitly convertible to immutable. Also, it cannot store
+            // any immutable global data.
+            // Therefore the compiler can guarantee that the created object is
+            // unique.
+        }
+
+        immutable i = new immutable C();           // this() pure is called
+        shared s = new shared C();                 // this() pure is called
+        C m = new C([1,2,3]);       // this(int[]) immutable pure is called
+        ------
+
+$(H3 $(LNAME2 field-init, Field initialization inside constructor))
+
+    $(P Inside constructor, the first instance field assignment is specially
+        handled for its initialization.
+    )
+
+        ------
+        class C
+        {
+            int num;
+            this()
+            {
+                num = 1;  // initialize
+                num = 2;  // assignment
+            }
+        }
+        ------
+
+    $(P If the field type has opAssign method, it won't be used for initialization.)
+
+        ------
+        struct A
+        {
+            this(int n) {}
+            void opAssign(A rhs) {}
+        }
+        class C
+        {
+            A val;
+            this()
+            {
+                val = A(1);  // A(1) is moved in this.val for initializing
+                val = A(2);  // rewritten to val.opAssign(A(2))
+            }
+        }
+        ------
+
+    $(P If the field type is not modifiable, multiple initialization will be rejected.)
+
+        ------
+        class C
+        {
+            immutable int num;
+            this()
+            {
+                num = 1;  // OK
+                num = 2;  // Error: multiple field initialization
+            }
+        }
+        ------
+
+    $(P If the assignment expression for the field initialization may be invoked
+        multiple times, it would als be rejected.
+    )
+
+        ------
+        class C
+        {
+            immutable int num;
+            immutable string str;
+            this()
+            {
+                foreach (i; 0..2)
+                {
+                    num = 1;    // Error: field initialization not allowed in loops
+                }
+                size_t i = 0;
+            Label:
+                str = "hello";  // Error: field initialization not allowed after labels
+                if (i++ < 2)
+                    goto Label;
+            }
+        }
+        ------
+
+$(H3 $(LNAME2 destructors, Destructors))
+
+$(GRAMMAR
+$(GNAME Destructor):
+    $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+)
+
+        The garbage collector calls the destructor function when the object
+        is deleted. The syntax
+        is:
+
+        ------
+        class Foo
+        {
+            ~this() // destructor for Foo
+            {
+            }
+        }
+        ------
+
+        $(P There can be only one destructor per class, the destructor
+        does not have any parameters,
+        and has no attributes. It is always virtual.
+        )
+
+        $(P The destructor is expected to release any resources held by the
+        object.
+        )
+
+        $(P The  program can explicitly inform the garbage collector that an
+        object is no longer referred to (with the delete expression), and
+        then the garbage collector calls the destructor
+        immediately, and adds the object's memory to the free storage.
+        The destructor is guaranteed to never be called twice.
+        )
+
+        $(P The destructor for the super class automatically gets called when
+        the destructor ends. There is no way to call the super destructor
+        explicitly.
+        )
+
+        $(P The garbage collector is not guaranteed to run the destructor
+        for all unreferenced objects. Furthermore, the order in which the
+        garbage collector calls destructors for unreference objects
+        is not specified.
+        This means that
+        when the garbage collector calls a destructor for an object of a class
+        that has
+        members that are references to garbage collected objects, those
+        references may no longer be valid. This means that destructors
+        cannot reference sub objects.
+        This rule does not apply to auto objects or objects deleted
+        with the $(I DeleteExpression), as the destructor is not being run
+        by the garbage collector, meaning all references are valid.
+        )
+
+        $(P Objects referenced from the data segment never get collected
+        by the gc.
+        )
+
+$(H3 $(LNAME2 static-constructor, Static Constructors))
+
+$(GRAMMAR
+$(GNAME StaticConstructor):
+    $(D static this ( )) $(D ;)
+    $(D static this ( )) $(GLINK2 function, FunctionBody)
+)
+
+	$(P
+
+
+        A static constructor is a function that performs
+        initializations of thread local data before the $(D main()) function gets control for
+	the main thread, and upon thread startup.
+
+	Static constructors are used to initialize
+        static class members
+        with values that cannot be computed at compile time.
+        )
+
+        $(P Static constructors in other languages are built implicitly by using
+        member
+        initializers that can't be computed at compile time. The trouble with
+        this stems from not
+        having good control over exactly when the code is executed, for example:
+	)
+
+------
+class Foo
+{
+    static int a = b + 1;
+    static int b = a * 2;
+}
+------
+
+        What values do a and b end up with, what order are the initializations
+        executed in, what
+        are the values of a and b before the initializations are run, is this a
+        compile error, or is this
+        a runtime error? Additional confusion comes from it not being obvious if
+        an initializer is
+        static or dynamic.
+
+        $(P D makes this simple. All member initializations must be determinable by
+        the compiler at
+        compile time, hence there is no order-of-evaluation dependency for
+        member
+        initializations, and it is not possible to read a value that has not
+        been initialized. Dynamic
+        initialization is performed by a static constructor, defined with
+        a special syntax $(D static this()).)
+
+------
+class Foo
+{
+    static int a;         // default initialized to 0
+    static int b = 1;
+    static int c = b + a; // error, not a constant initializer
+
+    $(CODE_HIGHLIGHT static this)()    // static constructor
+    {
+        a = b + 1;          // a is set to 2
+        b = a * 2;          // b is set to 4
+    }
+}
+------
+
+	$(P
+
+		If $(D main()) or the thread returns normally,
+        (does not throw an exception), the static destructor is added
+        to the list of functions to be
+        called on thread termination.
+
+        Static constructors have empty parameter lists.
+        )
+
+	$(P
+        Static constructors within a module are executed in the lexical
+        order in which they appear.
+        All the static constructors for modules that are directly or
+        indirectly imported
+        are executed before the static constructors for the importer.
+        )
+
+	$(P
+        The $(D static) in the static constructor declaration is not
+        an attribute, it must appear immediately before the $(D this):
+	)
+
+------
+class Foo
+{
+    static this() { ... } // a static constructor
+    static private this() { ... } // not a static constructor
+    static
+    {
+        this() { ... }      // not a static constructor
+    }
+    static:
+        this() { ... }      // not a static constructor
+}
+------
+
+$(H3 $(LNAME2 static-destructor, Static Destructors))
+
+$(GRAMMAR
+$(GNAME StaticDestructor):
+    $(D static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+)
+
+        A static destructor is defined as a special static function with the
+        syntax $(D static ~this()).
+
+------
+class Foo
+{
+    static ~this() // static destructor
+    {
+    }
+}
+------
+
+	$(P
+        A static destructor gets called on thread termination,
+	but only if the static constructor
+        completed successfully.
+        Static destructors have empty parameter lists.
+        Static destructors get called in the reverse order that the static
+        constructors were called in.
+        )
+
+	$(P
+        The $(D static) in the static destructor declaration is not
+        an attribute, it must appear immediately before the $(D ~this):
+	)
+
+------
+class Foo
+{
+    static ~this() { ... }  // a static destructor
+    static private ~this() { ... } // not a static destructor
+    static
+    {
+        ~this() { ... }  // not a static destructor
+    }
+    static:
+        ~this() { ... }  // not a static destructor
+}
+------
+
+$(H3 Shared Static Constructors)
+
+$(GRAMMAR
+$(GNAME SharedStaticConstructor):
+    $(D shared static this ( )) $(D ;)
+    $(D shared static this ( )) $(GLINK2 function, FunctionBody)
+)
+
+        $(P Shared static constructors are executed before any $(GLINK StaticConstructor)s,
+        and are intended for initializing any shared global data.
+        )
+
+$(H3 Shared Static Destructors)
+
+$(GRAMMAR
+$(GNAME SharedStaticDestructor):
+    $(D shared static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D shared static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+)
+
+        $(P Shared static destructors are executed at program termination
+        in the reverse order that
+        $(GLINK SharedStaticConstructor)s were executed.
+        )
+
+
+$(H3 $(LNAME2 invariants, Class Invariants))
+
+$(GRAMMAR
+$(GNAME Invariant):
+    $(D invariant ( )) $(GLINK2 statement, BlockStatement)
+    $(D invariant) $(GLINK2 statement, BlockStatement)
+)
+
+    Class invariants are used to specify characteristics of a class that always
+    must be true (except while executing a member function).
+    They are described in $(GLINK2 contracts, Invariants).
+
+$(H3 $(LNAME2 allocators, Class Allocators))
+$(B Note): Class allocators are deprecated in D2.
+$(GRAMMAR
+$(GNAME Allocator):
+    $(D new) $(GLINK2 function, Parameters) $(D ;)
+    $(D new) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
+)
+
+        A class member function of the form:
+
+------
+new(uint size)
+{
+    ...
+}
+------
+
+        is called a class allocator.
+        The class allocator can have any number of parameters, provided
+        the first one is of type uint.
+        Any number can be defined for a class, the correct one is
+        determined by the usual function overloading rules.
+        When a new expression:
+
+------
+new Foo;
+------
+
+        is executed, and Foo is a class that has
+        an allocator, the allocator is called with the first argument
+        set to the size in bytes of the memory to be allocated for the
+        instance.
+        The allocator must allocate the memory and return it as a
+        $(D void*).
+        If the allocator fails, it must not return a $(D null), but
+        must throw an exception.
+        If there is more than one parameter to the allocator, the
+        additional arguments are specified within parentheses after
+        the $(D new) in the $(I NewExpression):
+
+------
+class Foo
+{
+    this(char[] a) { ... }
+
+    new(uint size, int x, int y)
+    {
+        ...
+    }
+}
+
+...
+
+new(1,2) Foo(a);        // calls new(Foo.sizeof,1,2)
+------
+
+        $(P Derived classes inherit any allocator from their base class,
+        if one is not specified.
+        )
+
+        $(P The class allocator is not called if the instance is created
+        on the stack.
+        )
+
+        $(P See also
+        $(DDLINK1 memory, newdelete, Explicit Class Instance Allocation).
+        )
+
+$(H3 $(LNAME2 deallocators, Class Deallocators))
+$(B Note): Class deallocators and the delete operator are deprecated in D2.
+Use the $(D destroy) function to finalize an object by calling its destructor.
+The memory of the object is $(B not) immediately deallocated, instead the GC
+will collect the memory of the object at an undetermined point after finalization:
+
+------
+class Foo { int x; this() { x = 1; } }
+Foo foo = new Foo;
+destroy(foo);
+assert(foo.x == int.init);  // object is still accessible
+------
+
+$(GRAMMAR
+$(GNAME Deallocator):
+    $(D delete) $(GLINK2 function, Parameters) $(D ;)
+    $(D delete) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionBody)
+)
+
+        A class member function of the form:
+
+------
+delete(void *p)
+{
+    ...
+}
+------
+
+        is called a class deallocator.
+        The deallocator must have exactly one parameter of type $(D void*).
+        Only one can be specified for a class.
+        When a delete expression:
+
+------
+delete f;
+------
+
+        $(P is executed, and f is a reference to a class instance that has
+        a deallocator, the deallocator is called with a pointer to the
+        class instance after the destructor (if any) for the class is
+        called. It is the responsibility of the deallocator to free
+        the memory.
+        )
+
+        $(P Derived classes inherit any deallocator from their base class,
+        if one is not specified.
+        )
+
+        $(P The class allocator is not called if the instance is created
+        on the stack.
+        )
+
+        $(P See also
+        $(DDSUBLINK memory, newdelete, Explicit Class Instance Allocation).
+        )
+
+$(H3 $(LEGACY_LNAME2 AliasThis, alias-this, Alias This))
+
+$(GRAMMAR
+$(GNAME AliasThis):
+    $(D alias) $(I Identifier) $(D this ;)
+)
+
+        $(P An $(I AliasThis) declaration names a member to subtype.
+        The $(I Identifier) names that member.
+        )
+
+        $(P A class or struct can be implicitly converted to the $(I AliasThis)
+        member.
+        )
+
+---
+struct S
+{
+    int x;
+    alias x this;
+}
+
+int foo(int i) { return i * 2; }
+
+void test()
+{
+    S s;
+    s.x = 7;
+    int i = -s;  // i == -7
+    i = s + 8;   // i == 15
+    i = s + s;   // i == 14
+    i = 9 + s;   // i == 16
+    i = foo(s);  // implicit conversion to int
+}
+---
+
+        $(P If the member is a class or struct, undefined lookups will
+        be forwarded to the $(I AliasThis) member.
+        )
+
+---
+struct Foo
+{
+    int baz = 4;
+    int get() { return 7; }
+}
+
+class Bar
+{
+    Foo foo;
+    alias foo this;
+}
+
+void test()
+{
+    auto bar = new Bar;
+    int i = bar.baz; // i == 4
+    i = bar.get(); // i == 7
+}
+---
+
+        $(P If the $(I Identifier) refers to a property member
+        function with no parameters, conversions and undefined
+        lookups are forwarded to the return value of the function.
+        )
+
+---
+struct S
+{
+    int x;
+    @property int get()
+    {
+        return x * 2;
+    }
+    alias get this;
+}
+
+void test()
+{
+    S s;
+    s.x = 2;
+    int i = s; // i == 4
+}
+---
+
+        $(P Multiple $(I AliasThis) are allowed. For implicit conversions
+        and forwarded lookups, all $(I AliasThis) declarations are attempted;
+        if more than one $(I AliasThis) is eligible, the ambiguity is
+        disallowed by raising an error.
+        Note: Multiple $(I AliasThis) is currently unimplemented.
+        )
+
+
+$(H3 $(LNAME2 auto, Scope Classes))
+$(B Note): Scope classes have been $(DDSUBLINK deprecate, scope for allocating classes on the stack, recommended for deprecation).
+
+        $(P A scope class is a class with the $(D scope) attribute, as in:)
+
+------
+scope class Foo { ... }
+------
+
+        The scope characteristic is inherited, so any classes derived
+        from a scope class are also scope.
+
+        $(P A scope class reference can only appear as a function local variable.
+        It must be declared as being $(D scope):)
+
+------
+scope class Foo { ... }
+
+void func()
+{
+    Foo f;    // error, reference to scope class must be scope
+    scope Foo g = new Foo(); // correct
+}
+------
+
+        When a scope class reference goes out of scope, the destructor
+        (if any) for it is automatically called. This holds true even if
+        the scope was exited via a thrown exception.
+
+$(H3 $(LNAME2 final, Final Classes))
+
+        $(P Final classes cannot be subclassed:)
+
+---
+final class A { }
+class B : A { }  // error, class A is final
+---
+
+$(H2 $(LNAME2 nested, Nested Classes))
+
+        A $(I nested class) is a class that is declared inside the scope
+        of a function or another class.
+        A nested class has access to the variables and other symbols
+        of the classes and functions it is nested inside:
+
+------
+class Outer
+{
+    int m;
+
+    class Inner
+    {
+        int foo()
+        {
+            return m;   // Ok to access member of Outer
+        }
+    }
+}
+
+void func()
+{
+    int m;
+
+    class Inner
+    {
+        int foo()
+        {
+            return m; // Ok to access local variable m of func()
+        }
+    }
+}
+------
+
+        If a nested class has the $(D static) attribute, then it can
+        not access variables of the enclosing scope that are local to the
+        stack or need a $(D this):
+
+------
+class Outer
+{
+    int m;
+    static int n;
+
+    static class Inner
+    {
+        int foo()
+        {
+            return m;   // Error, Inner is static and m needs a this
+            return n;   // Ok, n is static
+        }
+    }
+}
+
+void func()
+{
+    int m;
+    static int n;
+
+    static class Inner
+    {
+        int foo()
+        {
+            return m;   // Error, Inner is static and m is local to the stack
+            return n;   // Ok, n is static
+        }
+    }
+}
+------
+
+        Non-static nested classes work by containing an extra hidden member
+        (called the context pointer)
+        that is the frame pointer of the enclosing function if it is nested
+        inside a function, or the $(D this) of the enclosing class's instance
+        if it is nested inside a class.
+
+        $(P When a non-static nested class is instantiated, the context pointer
+        is assigned before the class's constructor is called, therefore
+        the constructor has full access to the enclosing variables.
+        A non-static nested class can only be instantiated when the necessary
+        context pointer information is available:)
+
+------
+class Outer
+{
+    class Inner { }
+
+    static class SInner { }
+}
+
+void func()
+{
+    class Nested { }
+
+    Outer o = new Outer;        // Ok
+    Outer.Inner oi = new Outer.Inner;   // Error, no 'this' for Outer
+    Outer.SInner os = new Outer.SInner; // Ok
+
+    Nested n = new Nested;      // Ok
+}
+------
+
+
+
+        $(P A $(I this) can be supplied to the creation of an
+        inner class instance by prefixing it to the $(I NewExpression):
+        )
+
+---------
+class Outer
+{
+    int a;
+
+    class Inner
+    {
+        int foo()
+        {
+            return a;
+        }
+    }
+}
+
+int bar()
+{
+    Outer o = new Outer;
+    o.a = 3;
+    Outer.Inner oi = $(CODE_HIGHLIGHT o).new Inner;
+    return oi.foo();    // returns 3
+}
+---------
+
+        $(P Here $(D o) supplies the $(I this) to the outer class
+        instance of $(D Outer).
+        )
+
+        $(P The property $(D .outer) used in a nested class gives the
+        $(D this) pointer to its enclosing class. If the enclosing
+        context is not a class, the $(D .outer) will give the pointer
+        to it as a $(D void*) type.
+        )
+
+----
+class Outer
+{
+    class Inner
+    {
+        Outer foo()
+        {
+            return this.$(CODE_HIGHLIGHT outer);
+        }
+    }
+
+    void bar()
+    {
+        Inner i = new Inner;
+        assert(this == i.foo());
+    }
+}
+
+void test()
+{
+    Outer o = new Outer;
+    o.bar();
+}
+----
+
+$(H3 $(LNAME2 anonymous, Anonymous Nested Classes))
+
+        $(P An anonymous nested class is both defined and instantiated with
+        a $(I NewAnonClassExpression):
+        )
+
+$(GRAMMAR
+$(GNAME NewAnonClassExpression):
+    $(D new) $(GLINK2 expression, AllocatorArguments)$(OPT) $(D class) $(I ClassArguments)$(OPT) $(GLINK SuperClass)$(OPT) $(GLINK Interfaces)$(OPT) $(GLINK2 struct, AggregateBody)
+
+$(GNAME ClassArguments):
+    $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+)
+
+        $(P which is equivalent to:
+        )
+
+----
+$(D class) $(I Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
+
+$(D new) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN)) $(I Identifier) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN));
+----
+
+        $(P where $(I Identifier) is the name generated for the anonymous
+        nested class.
+        )
+
+$(SECTION3 $(LEGACY_LNAME2 ConstClass, const-class, Const, Immutable and Shared Classes),
+
+    $(P If a $(I ClassDeclaration) has a $(D const), $(D immutable)
+        or $(D shared) storage class, then it is as if each member of the class
+        was declared with that storage class.
+        If a base class is const, immutable or shared, then all classes derived
+        from it are also const, immutable or shared.
+    )
+)
+)
+
+Macros:
+        TITLE=Classes
+        WIKI=Class
+        _=
+

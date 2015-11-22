@@ -1,0 +1,2135 @@
+Ddoc
+
+$(SPEC_S Expressions,
+
+    $(P C and C++ programmers will find the D expressions very familiar,
+        with a few interesting additions.
+    )
+
+    $(P Expressions are used to compute values with a resulting type.
+        These values can then be assigned,
+        tested, or ignored. Expressions can also have side effects.
+    )
+
+$(H3 $(LNAME2 order-of-evaluation, Order Of Evaluation))
+
+    $(P Binary expressions and function arguments are evaluated in strictly
+        left-to-right order. This is similar to Java but different to C and C++,
+        where the evaluation order is unspecified.
+        Thus, the following code is valid and well defined.
+
+        -------------
+        import std.conv;
+        int i = 0;
+        (i = 2) = ++i * i++ + i;
+        assert(i == 13); // left to right evaluation of side effects
+        assert(text(++i, ++i) == "1415"); // left to right evaluation of arguments
+        -------------
+    )
+
+    $(P But even though the order of evaluation is well defined, writing code that
+        depends on it is rarely recommended.
+        $(B Note that dmd currently does not comply with left to right evaluation of
+        function arguments and AssignExpression.)
+    )
+
+$(H3 $(LEGACY_LNAME2 Expression, expression, Expressions))
+
+$(GRAMMAR
+$(GNAME Expression):
+    $(I CommaExpression)
+
+$(GNAME CommaExpression):
+    $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,) $(I CommaExpression)
+)
+
+    $(P The left operand of the $(D ,) is evaluated, then the right operand
+        is evaluated. The type of the expression is the type of the right
+        operand, and the result is the result of the right operand.
+    )
+
+$(H3 Assign Expressions)
+
+$(GRAMMAR
+$(GNAME AssignExpression):
+    $(GLINK ConditionalExpression)
+    $(GLINK ConditionalExpression) $(D =) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D +=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D -=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D *=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D /=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D %=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D &=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D |=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D ^=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D ~=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D <)$(D <)$(D =) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D >>=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D >>>=) $(I AssignExpression)
+    $(GLINK ConditionalExpression) $(D ^^=) $(I AssignExpression)
+)
+
+    $(P The right operand is implicitly converted to the type of the
+        left operand, and assigned to it. The result type is the type
+        of the left operand, and the result value is the value of the left
+        operand after the assignment.
+    )
+
+    $(P The left operand must be an lvalue.)
+
+$(H4 Assignment Operator Expressions)
+
+    $(P Assignment operator expressions, such as:
+
+        --------------
+        a op= b
+        --------------
+
+        are semantically equivalent to:
+
+        --------------
+        a = cast(typeof(a))(a op b)
+        --------------
+    )
+
+    $(P except that:)
+
+    $(UL
+        $(LI operand $(D a) is only evaluated once)
+        $(LI overloading $(I op) uses a different function than overloading $(I op)= does)
+        $(LI the left operand of $(D >>>=) does not undergo integral promotions before shifting)
+    )
+
+$(H3 Conditional Expressions)
+
+$(GRAMMAR
+$(GNAME ConditionalExpression):
+    $(GLINK OrOrExpression)
+    $(GLINK OrOrExpression) $(D ?) $(GLINK Expression) $(D :) $(I ConditionalExpression)
+)
+
+    $(P The first expression is converted to $(D bool), and is evaluated.
+    )
+
+    $(P If it is $(D true), then the second expression is evaluated, and
+        its result is the result of the conditional expression.
+    )
+
+    $(P If it is $(D false), then the third expression is evaluated, and
+        its result is the result of the conditional expression.
+    )
+
+    $(P If either the second or third expressions are of type $(D void),
+        then the resulting type is $(D void). Otherwise, the second and third
+        expressions are implicitly converted to a common type which becomes
+        the result type of the conditional expression.
+    )
+
+$(H3 OrOr Expressions)
+
+$(GRAMMAR
+$(GNAME OrOrExpression):
+    $(GLINK AndAndExpression)
+    $(I OrOrExpression) $(D ||) $(GLINK AndAndExpression)
+)
+
+    $(P The result type of an $(I OrOrExpression) is $(D bool), unless the right operand
+        has type $(D void), when the result is type $(D void).
+    )
+
+    $(P The $(I OrOrExpression) evaluates its left operand.
+    )
+
+    $(P If the left operand, converted to type $(D bool), evaluates to
+        $(D true), then the right operand is not evaluated. If the result type of
+        the $(I OrOrExpression) is $(D bool) then the result of the
+        expression is $(D true).
+    )
+
+    $(P If the left operand is $(D false), then the right
+        operand is evaluated.
+        If the result type of
+        the $(I OrOrExpression) is $(D bool) then the result of the
+        expression is the right operand converted to type $(D bool).
+    )
+
+$(H3 AndAnd Expressions)
+
+$(GRAMMAR
+$(GNAME AndAndExpression):
+    $(GLINK OrExpression)
+    $(I AndAndExpression) $(CODE_AMP)$(CODE_AMP) $(GLINK OrExpression)
+)
+
+    $(P The result type of an $(I AndAndExpression) is $(D bool), unless the right operand
+        has type $(D void), when the result is type $(D void).
+    )
+
+    $(P The $(I AndAndExpression) evaluates its left operand.
+    )
+
+    $(P If the left operand, converted to type $(D bool), evaluates to
+        $(D false), then the right operand is not evaluated. If the result type of
+        the $(I AndAndExpression) is $(D bool) then the result of the
+        expression is $(D false).
+    )
+
+    $(P If the left operand is $(D true), then the right
+        operand is evaluated.
+        If the result type of
+        the $(I AndAndExpression) is $(D bool) then the result of the
+        expression is the right operand converted to type $(D bool).
+    )
+
+$(H3 Bitwise Expressions)
+
+    $(P Bit wise expressions perform a bitwise operation on their operands.
+        Their operands must be integral types.
+        First, the default integral promotions are done. Then, the bitwise
+        operation is done.
+    )
+
+$(H4 Or Expressions)
+
+$(GRAMMAR
+$(GNAME OrExpression):
+    $(GLINK XorExpression)
+    $(I OrExpression) $(D |) $(GLINK XorExpression)
+)
+
+    $(P The operands are OR'd together.)
+
+$(H4 Xor Expressions)
+
+$(GRAMMAR
+$(GNAME XorExpression):
+    $(GLINK AndExpression)
+    $(I XorExpression) $(D ^) $(GLINK AndExpression)
+)
+
+    $(P The operands are XOR'd together.)
+
+$(H4 And Expressions)
+
+$(GRAMMAR
+$(GNAME AndExpression):
+    $(GLINK CmpExpression)
+    $(I AndExpression) $(D &) $(GLINK CmpExpression)
+)
+
+    $(P The operands are AND'd together.)
+
+$(H3 Compare Expressions)
+
+$(GRAMMAR
+$(GNAME CmpExpression):
+    $(GLINK ShiftExpression)
+    $(GLINK EqualExpression)
+    $(GLINK IdentityExpression)
+    $(GLINK RelExpression)
+    $(GLINK InExpression)
+)
+
+$(H3 Equality Expressions)
+
+$(GRAMMAR
+$(GNAME EqualExpression):
+    $(GLINK ShiftExpression) $(D ==) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !=) $(GLINK ShiftExpression)
+)
+
+    $(P Equality expressions compare the two operands for equality ($(D ==))
+        or inequality ($(D !=)).
+        The type of the result is $(D bool). The operands
+        go through the usual conversions to bring them to a common type before
+        comparison.
+    )
+
+    $(P If they are integral values or pointers, equality
+        is defined as the bit pattern of the type matches exactly.
+    )
+
+    $(P Equality for floating point types is more complicated. $(D -0) and
+        $(D +0) compare as equal. If either or both operands are NAN, then
+        both the $(D ==) returns false and $(D !=) returns $(D true). Otherwise, the bit
+        patterns are compared for equality.
+    )
+
+    $(P For complex numbers, equality is defined as equivalent to:
+
+        ---
+        x.re == y.re && x.im == y.im
+        ---
+
+        and inequality is defined as equivalent to:
+
+        ---
+        x.re != y.re || x.im != y.im
+        ---
+    )
+
+    $(P Equality for struct objects means the logical product of all equality
+        results of the corresponding object fields.
+        If all struct fields use bitwise equality, the whole struct equality
+        could be optimized to one memory comparison operation (the existence of
+        alignment holes in the objects is accounted for, usually by setting them
+        all to 0 upon initialization).
+    )
+
+    $(P For class and struct objects, the expression $(D (a == b))
+        is rewritten as
+        $(D a.opEquals(b)), and $(D (a != b)) is rewritten as
+        $(D !a.opEquals(b)).
+    )
+
+    $(P For class objects, the $(D ==) and $(D !=)
+        operators compare the
+        contents of the objects. Therefore, comparing against
+        $(D null) is invalid, as $(D null) has no contents.
+        Use the $(D is) and $(D !is) operators instead.
+
+        ---
+        class C;
+        C c;
+        if (c == null)  // error
+            ...
+        if (c is null)  // ok
+            ...
+        ---
+    )
+
+    $(P For static and dynamic arrays, equality is defined as the
+        lengths of the arrays
+        matching, and all the elements are equal.
+    )
+
+$(H4 Identity Expressions)
+
+$(GRAMMAR
+$(GNAME IdentityExpression):
+    $(GLINK ShiftExpression) $(D is) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !is) $(GLINK ShiftExpression)
+)
+
+    $(P The $(D is) compares for identity.
+        To compare for not identity, use $(D e1 !is e2).
+        The type of the result is $(D bool). The operands
+        go through the usual conversions to bring them to a common type before
+        comparison.
+    )
+
+    $(P For class objects, identity is defined as the object references
+        are for the same object. Null class objects can be compared with
+        $(D is).
+    )
+
+    $(P For struct objects, identity is defined as the bits in the
+        struct being identical.
+    )
+
+    $(P For static and dynamic arrays, identity is defined as referring
+        to the same array elements and the same number of elements.
+    )
+
+    $(P For other operand types, identity is defined as being the same
+        as equality.
+    )
+
+    $(P The identity operator $(D is) cannot be overloaded.
+    )
+
+$(H3 Relational Expressions)
+
+$(GRAMMAR
+$(GNAME RelExpression):
+    $(GLINK ShiftExpression) $(D <) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D <)$(D =) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D >) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !<>=) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !<>) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D <>) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D <>=) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !>) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !>=) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !<) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !<=) $(GLINK ShiftExpression)
+)
+
+    $(P First, the integral promotions are done on the operands.
+        The result type of a relational expression is $(D bool).
+    )
+
+    $(P For class objects, the result of Object.opCmp() forms the left
+        operand, and 0 forms the right operand. The result of the
+        relational expression (o1 op o2) is:
+
+        ---
+        (o1.opCmp(o2) op 0)
+        ---
+    )
+
+    $(P It is an error to compare objects if one is $(D null).)
+
+    $(P For static and dynamic arrays, the result of the relational
+        op is the result of the operator applied to the first non-equal
+        element of the array. If two arrays compare equal, but are of
+        different lengths, the shorter array compares as "less" than the
+        longer array.
+    )
+
+$(H4 Integer comparisons)
+
+    $(P Integer comparisons happen when both operands are integral
+        types.
+    )
+
+    $(TABLE2 Integer comparison operators,
+        $(THEAD Operator, Relation)
+        $(TROW $(D <), less)
+        $(TROW $(D >), greater)
+        $(TROW $(D <)$(D =), less or equal)
+        $(TROW $(D >=), greater or equal)
+        $(TROW $(D ==), equal)
+        $(TROW $(D !=), not equal)
+    )
+
+    $(P It is an error to have one operand be signed and the other
+        unsigned for a $(D <), $(D <)$(D =), $(D >) or
+        $(D >)$(D =) expression.
+        Use casts to make both operands signed or both operands unsigned.
+    )
+
+$(H4 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Floating point comparisons))
+
+    $(P If one or both operands are floating point, then a floating
+        point comparison is performed.
+    )
+
+    $(P Useful floating point operations must take into account NAN values.
+        In particular, a relational operator can have NAN operands.
+        The result of a relational operation on float
+        values is less, greater, equal, or unordered (unordered means
+        either or both of the
+        operands is a NAN). That means there are 14 possible comparison
+        conditions to test for:
+
+        $(TABLE2 Floating point comparison operators,
+        $(THEAD Operator, Greater, Less, Equal, Unordered, Exception, Relation)
+        $(TROW $(D ==),$(D F),$(D F),$(D T),$(D F),$(D no),equal)
+        $(TROW $(D !=),$(D T),$(D T),$(D F),$(D T),$(D no),$(ARGS unordered, less, or greater))
+        $(TROW $(D >),$(D T),$(D F),$(D F),$(D F),$(D yes),$(ARGS greater))
+        $(TROW $(D >=),$(D T),$(D F),$(D T),$(D F),$(D yes),$(ARGS greater or equal))
+        $(TROW $(D <),$(D F),$(D T),$(D F),$(D F),$(D yes),$(ARGS less))
+        $(TROW $(D <)$(D =),$(D F),$(D T),$(D T),$(D F),$(D yes),$(ARGS less or equal))
+        $(TROW $(D !)$(D <)$(D >)$(D =), $(D F),$(D F),$(D F),$(D T),$(D no),$(ARGS unordered))
+        $(TROW $(D <)$(D >),$(D T),$(D T),$(D F),$(D F),$(D yes),$(ARGS less or greater))
+        $(TROW $(D <)$(D >)$(D =),$(D T),$(D T),$(D T),$(D F),$(D yes),$(ARGS less, equal, or greater))
+        $(TROW $(D !<=),$(D T),$(D F),$(D F),$(D T),$(D no),$(ARGS unordered or greater))
+        $(TROW $(D !<),$(D T),$(D F),$(D T),$(D T),$(D no),$(ARGS unordered, greater, or equal))
+        $(TROW $(D !>=),$(D F),$(D T),$(D F),$(D T),$(D no),$(ARGS unordered or less))
+        $(TROW $(D !>),$(D F),$(D T),$(D T),$(D T),$(D no),$(ARGS unordered, less, or equal))
+        $(TROW $(D !<>),$(D F),$(D F),$(D T),$(D T),$(D no),$(ARGS unordered or equal))
+        )
+    )
+
+    $(H5 Notes:)
+
+    $(OL
+        $(LI For floating point comparison operators,
+         $(CODE (a !op b))
+         is not the same as $(CODE !(a op b)).)
+        $(LI "Unordered" means one or both of the operands is a NAN.)
+        $(LI "Exception" means the $(I Invalid Exception) is raised if one
+                of the operands is a NAN. It does not mean an exception
+                is thrown. The $(I Invalid Exception) can be checked
+                using the functions in $(D core.stdc.fenv).
+        )
+    )
+
+$(H4 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
+
+    $(P For class objects, the relational
+        operators compare the
+        contents of the objects. Therefore, comparing against
+        $(CODE null) is invalid, as $(CODE null) has no contents.
+
+        ---
+        class C;
+        C c;
+        if (c < null)  // error
+            ...
+        ---
+    )
+
+$(H3 In Expressions)
+
+$(GRAMMAR
+$(GNAME InExpression):
+    $(GLINK ShiftExpression) $(D in) $(GLINK ShiftExpression)
+    $(GLINK ShiftExpression) $(D !in) $(GLINK ShiftExpression)
+)
+
+    $(P An associative array can be tested to see if an element is in the array:
+
+        -------------
+        int foo[char[]];
+        ...
+        if ("hello" in foo)
+            ...
+        -------------
+    )
+
+    $(P The $(D in) expression has the same precedence as the
+        relational expressions $(D <), $(D <)$(D =),
+        etc.
+        The return value of the $(I InExpression) is $(D null)
+        if the element is not in the array;
+        if it is in the array it is a pointer to the element.
+    )
+
+    $(P The $(D !in) expression is the logical negation of the $(D in)
+        operation.
+    )
+
+$(H3 Shift Expressions)
+
+$(GRAMMAR
+$(GNAME ShiftExpression):
+    $(GLINK AddExpression)
+    $(I ShiftExpression) $(D <)$(D <) $(GLINK AddExpression)
+    $(I ShiftExpression) $(D >)$(D >) $(GLINK AddExpression)
+    $(I ShiftExpression) $(D >)$(D >)$(D >) $(GLINK AddExpression)
+)
+
+    $(P The operands must be integral types, and undergo the usual integral
+        promotions. The result type is the type of the left operand after
+        the promotions. The result value is the result of shifting the bits
+        by the right operand's value.
+    )
+
+    $(P $(D <)$(D <) is a left shift.
+        $(D >)$(D >) is a signed right shift.
+        $(D >)$(D >)$(D >) is an unsigned right shift.
+    )
+
+    $(P It's illegal to shift by the same or more bits than the size of the
+        quantity being shifted:
+
+        -------------
+        int c;
+        auto x = c << 33;        // error
+        -------------
+    )
+
+$(H3 Add Expressions)
+
+$(GRAMMAR
+$(GNAME AddExpression):
+    $(GLINK MulExpression)
+    $(I AddExpression) $(D +) $(GLINK MulExpression)
+    $(I AddExpression) $(D -) $(GLINK MulExpression)
+    $(GLINK CatExpression)
+)
+
+    $(P If the operands are of integral types, they undergo integral
+        promotions, and then are brought to a common type using the
+        usual arithmetic conversions.
+    )
+
+    $(P If either operand is a floating point type, the other is implicitly
+        converted to floating point and they are brought to a common type
+        via the usual arithmetic conversions.
+    )
+
+    $(P If the operator is $(D +) or $(D -), and
+        the first operand is a pointer, and the second is an integral type,
+        the resulting type is the type of the first operand, and the resulting
+        value is the pointer plus (or minus) the second operand multiplied by
+        the size of the type pointed to by the first operand.
+    )
+
+    $(P If the second operand is a pointer, and the first is an integral type,
+        and the operator is $(D +),
+        the operands are reversed and the pointer arithmetic just described
+        is applied.
+    )
+
+    $(P If both operands are pointers, and the operator is $(D +),
+        then it is illegal. For $(D -), the pointers are subtracted and the
+        result is divided by the size of the type pointed to by the
+        operands. It is an error if the pointers point to different types.
+    )
+
+    $(P If both operands are of integral types and an overflow or underflow
+        occurs in the computation, wrapping will happen. That is,
+        $(D uint.max + 1 == uint.min) and $(D uint.min - 1 == uint.max).
+    )
+
+    $(P Add expressions for floating point operands are not associative.
+    )
+
+$(H3 Cat Expressions)
+
+$(GRAMMAR
+$(GNAME CatExpression):
+    $(GLINK AddExpression) $(D ~) $(GLINK MulExpression)
+)
+
+    $(P A $(I CatExpression) concatenates arrays, producing
+        a dynmaic array with the result. The arrays must be
+        arrays of the same element type. If one operand is an array
+        and the other is of that array's element type, that element
+        is converted to an array of length 1 of that element,
+        and then the concatenation is performed.
+    )
+
+$(H3 Mul Expressions)
+
+$(GRAMMAR
+$(GNAME MulExpression):
+    $(GLINK UnaryExpression)
+    $(I MulExpression) $(D *) $(GLINK UnaryExpression)
+    $(I MulExpression) $(D /) $(GLINK UnaryExpression)
+    $(I MulExpression) $(D %) $(GLINK UnaryExpression)
+)
+
+    $(P The operands must be arithmetic types. They undergo integral
+        promotions, and then are brought to a common type using the
+        usual arithmetic conversions.
+    )
+
+    $(P For integral operands, the $(D *), $(D /), and $(D %)
+        correspond to multiply, divide, and modulus operations.
+        For multiply, overflows are ignored and simply chopped to fit
+        into the integral type.
+    )
+
+    $(P For integral operands of the $(D /) and $(D %) operators,
+        the quotient rounds towards zero and the remainder has the
+        same sign as the dividend.
+        If the divisor is zero, an Exception is thrown.
+    )
+
+    $(P For floating point operands, the * and / operations correspond
+        to the IEEE 754 floating point equivalents. % is not the same as
+        the IEEE 754 remainder. For example, 15.0 % 10.0 == 5.0, whereas
+        for IEEE 754, remainder(15.0,10.0) == -5.0.
+    )
+
+    $(P Mul expressions for floating point operands are not associative.
+    )
+
+$(H3 $(LEGACY_LNAME2 UnaryExpression, unary-expression, Unary Expressions))
+
+$(GRAMMAR
+$(GNAME UnaryExpression):
+    $(CODE_AMP) $(I UnaryExpression)
+    $(D ++) $(I UnaryExpression)
+    $(D --) $(I UnaryExpression)
+    $(D *) $(I UnaryExpression)
+    $(D -) $(I UnaryExpression)
+    $(D +) $(I UnaryExpression)
+    $(D !) $(I UnaryExpression)
+    $(GLINK ComplementExpression)
+    $(D $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN) .) $(IDENTIFIER)
+    $(D $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
+    $(GLINK DeleteExpression)
+    $(GLINK CastExpression)
+    $(GLINK PowExpression)
+)
+
+$(H4 Complement Expressions)
+
+$(GRAMMAR
+$(GNAME ComplementExpression):
+    $(D ~) $(GLINK UnaryExpression)
+)
+
+    $(P $(I ComplementExpression)s work on integral types (except $(D bool)).
+        All the bits in the value are complemented.
+    )
+
+    $(P $(B Note:) unlike in C and C++, the usual integral promotions are not performed
+        prior to the complement operation.
+    )
+
+$(H4 New Expressions)
+
+$(GRAMMAR
+$(GNAME NewExpression):
+    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 declaration, Type)
+    $(GLINK NewExpressionWithArgs)
+
+$(GNAME NewExpressionWithArgs):
+    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 declaration, Type) $(D [) $(GLINK AssignExpression) $(D ])
+    $(D new) $(I AllocatorArguments)$(OPT) $(GLINK2 declaration, Type) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 class, NewAnonClassExpression)
+
+$(GNAME AllocatorArguments):
+    $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+
+$(GNAME ArgumentList):
+    $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,)
+    $(GLINK AssignExpression) $(D ,) $(I ArgumentList)
+)
+
+    $(P $(I NewExpression)s are used to allocate memory on the garbage
+        collected heap (default) or using a class or struct specific allocator.
+    )
+
+    $(P To allocate multidimensional arrays, the declaration reads
+        in the same order as the prefix array declaration order.
+
+        -------------
+        char[][] foo;   // dynamic array of strings
+        ...
+        foo = new char[][30]; // allocate array of 30 strings
+        -------------
+    )
+
+    $(P The above allocation can also be written as:
+
+        -------------
+        foo = new char[][](30); // allocate array of 30 strings
+        -------------
+    )
+
+    $(P To allocate the nested arrays, multiple arguments can be used:
+
+        ---------------
+        int[][][] bar;
+        ...
+        bar = new int[][][](5, 20, 30);
+        ---------------
+    )
+
+    $(P Which is equivalent to:
+
+        ----------
+        bar = new int[][][5];
+        foreach (ref a; bar)
+        {
+            a = new int[][20];
+            foreach (ref b; a)
+            {
+                b = new int[30];
+            }
+        }
+        -----------
+    )
+
+    $(P If there is a $(D new $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN)),
+        then
+        those arguments are passed to the class or struct specific
+        $(DDSUBLINK class, allocators, allocator function) after the size argument.
+    )
+
+    $(P If a $(I NewExpression) is used as an initializer for
+        a function local variable with $(D scope) storage class,
+        and the $(GLINK ArgumentList) to $(D new) is empty, then
+        the instance is allocated on the stack rather than the heap
+        or using the class specific allocator.
+    )
+
+$(H4 Delete Expressions)
+
+$(GRAMMAR
+$(GNAME DeleteExpression):
+    $(D delete) $(GLINK UnaryExpression)
+)
+    $(P If the $(I UnaryExpression) is a class object reference, and
+        there is a destructor for that class, the destructor
+        is called for that object instance.
+    )
+
+    $(P Next, if the $(I UnaryExpression) is a class object reference, or
+        a pointer to a struct instance, and the class or struct
+        has overloaded operator delete, then that operator delete is called
+        for that class object instance or struct instance.
+    )
+
+    $(P Otherwise, the garbage collector is called to immediately free the
+        memory allocated for the class instance or struct instance.
+        If the garbage collector was not used to allocate the memory for
+        the instance, undefined behavior will result.
+    )
+
+    $(P If the $(I UnaryExpression) is a pointer or a dynamic array,
+        the garbage collector is called to immediately release the
+        memory.
+        If the garbage collector was not used to allocate the memory for
+        the instance, undefined behavior will result.
+    )
+
+    $(P The pointer, dynamic array, or reference is set to $(D null)
+        after the delete is performed.
+        Any attempt to reference the data after the deletion via another
+        reference to it will result in undefined behavior.
+    )
+
+    $(P If $(I UnaryExpression) is a variable allocated
+        on the stack, the class destructor (if any) is called for that
+        instance. Neither the garbage collector nor any class deallocator
+        is called.
+    )
+
+$(H4 Cast Expressions)
+
+$(GRAMMAR
+$(GNAME CastExpression):
+    $(D cast $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN)) $(GLINK UnaryExpression)
+    $(D cast $(LPAREN)) $(GLINK2 declaration, TypeCtors)$(OPT) $(D $(RPAREN)) $(GLINK UnaryExpression)
+)
+
+    $(P A $(I CastExpression) converts the $(I UnaryExpression)
+        to $(GLINK2 declaration, Type).
+
+        -------------
+        cast(foo) -p; // cast (-p) to type foo
+        (foo) - p;      // subtract p from foo
+        -------------
+    )
+
+    $(P Any casting of a class reference to a
+        derived class reference is done with a runtime check to make sure it
+        really is a downcast. $(D null) is the result if it isn't.
+    )
+
+    $(P $(B Note:) This is equivalent to the behavior of the
+        $(D dynamic_cast) operator in C++.
+
+        -------------
+        class A { ... }
+        class B : A { ... }
+
+        void test(A a, B b)
+        {
+            B bx = a;         // error, need cast
+            B bx = cast(B) a; // bx is null if a is not a B
+            A ax = b;         // no cast needed
+            A ax = cast(A) b; // no runtime check needed for upcast
+        }
+        -------------
+    )
+
+    $(P In order to determine if an object $(D o) is an instance of
+        a class $(D B) use a cast:
+
+        -------------
+        if (cast(B) o)
+        {
+            // o is an instance of B
+        }
+        else
+        {
+            // o is not an instance of B
+        }
+        -------------
+    )
+
+    $(P Casting a pointer type to and from a class type is done as a type paint
+        (i.e. a reinterpret cast).
+    )
+
+    $(P Casting a dynamic array to another dynamic array is done only if the
+        array lengths multiplied by the element sizes match. The cast is done
+        as a type paint, with the array length adjusted to match any change in
+        element size. If there's not a match, a runtime error is generated.
+
+        ---
+        import std.stdio;
+
+        int main()
+        {
+            byte[] a = [1,2,3];
+            auto b = cast(int[])a; // runtime array cast misalignment
+
+            int[] c = [1, 2, 3];
+            auto d = cast(byte[])c; // ok
+            // prints:
+            // [1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0]
+            writeln(d);
+            return 0;
+        }
+        ---
+    )
+
+    $(P Casting a floating point literal from one type to another
+        changes its type, but internally it is retained at full
+        precision for the purposes of constant folding.
+
+        ---
+        void test()
+        {
+            real a = 3.40483L;
+            real b;
+            b = 3.40483;     // literal is not truncated to double precision
+            assert(a == b);
+            assert(a == 3.40483);
+            assert(a == 3.40483L);
+            assert(a == 3.40483F);
+            double d = 3.40483; // truncate literal when assigned to variable
+            assert(d != a);     // so it is no longer the same
+            const double x = 3.40483; // assignment to const is not
+            assert(x == a);     // truncated if the initializer is visible
+        }
+        ---
+    )
+
+    $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
+        of the same type, is equivalent to:
+
+        ---
+        S(v)
+        ---
+    )
+
+    $(P Casting to a $(GLINK CastQual) replaces the qualifiers to the type of
+        the $(GLINK UnaryExpression).
+
+        ---
+        shared int x;
+        assert(is(typeof(cast(const)x) == const int));
+        ---
+    )
+
+    $(P Casting with no $(GLINK Type) or $(GLINK CastQual) removes
+        any top level $(D const), $(D immutable), $(D shared) or $(D inout)
+        type modifiers from the type
+        of the $(GLINK UnaryExpression).
+
+        ---
+        shared int x;
+        assert(is(typeof(cast()x) == int));
+        ---
+    )
+
+    $(P Casting an expression to $(D void) type is allowed to mark that
+        the result is unused. On $(GLINK2 statement, ExpressionStatement),
+        it could be used properly to avoid "has no effect" error.
+
+        ----
+        void foo(lazy void exp) {}
+        void main()
+        {
+            foo(10);            // NG - has no effect in expression '10'
+            foo(cast(void)10);  // OK
+        }
+        ----
+    )
+
+$(H3 Pow Expressions)
+
+$(GRAMMAR
+$(GNAME PowExpression):
+    $(GLINK PostfixExpression)
+    $(GLINK PostfixExpression) $(D ^^) $(GLINK UnaryExpression)
+)
+
+    $(P $(I PowExpression) raises its left operand to the power of its
+        right operand.
+    )
+
+$(H3 Postfix Expressions)
+
+$(GRAMMAR
+$(GNAME PostfixExpression):
+    $(GLINK PrimaryExpression)
+    $(I PostfixExpression) $(D .) $(IDENTIFIER)
+    $(I PostfixExpression) $(D .) $(GLINK2 template, TemplateInstance)
+    $(I PostfixExpression) $(D .) $(GLINK NewExpression)
+    $(I PostfixExpression) $(D ++)
+    $(I PostfixExpression) $(D --)
+    $(I PostfixExpression) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 declaration, TypeCtors)$(OPT) $(GLINK2 declaration, BasicType) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK IndexExpression)
+    $(GLINK SliceExpression)
+)
+
+$(H3 Index Expressions)
+
+$(GRAMMAR
+$(GNAME IndexExpression):
+    $(GLINK PostfixExpression) $(D [) $(GLINK ArgumentList) $(D ])
+)
+
+    $(P $(I PostfixExpression) is evaluated.
+
+        If $(I PostfixExpression) is an expression of type
+        static array or dynamic array, the symbol $(DOLLAR) is
+        set to be the the number of elements in the array.
+
+        If $(I PostfixExpression) is an $(I ExpressionTuple),
+        the symbol $(DOLLAR) is
+        set to be the the number of elements in the tuple.
+
+        A new declaration scope is created for the evaluation of the
+        $(GLINK ArgumentList) and $(DOLLAR) appears in that scope only.
+    )
+
+    $(P If $(I PostfixExpression) is an $(I ExpressionTuple),
+        then the $(GLINK ArgumentList) must consist of only one argument,
+        and that must be statically evaluatable to an integral constant.
+        That integral constant $(I n) then selects the $(I n)th
+        expression in the $(I ExpressionTuple), which is the result
+        of the $(I IndexExpression).
+        It is an error if $(I n) is out of bounds of the $(I ExpressionTuple).
+    )
+
+$(H3 Slice Expressions)
+
+$(GRAMMAR
+$(GNAME SliceExpression):
+    $(GLINK PostfixExpression) $(D [ ])
+    $(GLINK PostfixExpression) $(D [) $(I Slice) $(D ,)$(OPT) $(D ])
+$(GNAME Slice):
+    $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,) $(I Slice)
+    $(GLINK AssignExpression) $(D ..) $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ..) $(GLINK AssignExpression) $(D ,) $(I Slice)
+)
+
+    $(P $(I PostfixExpression) is evaluated.
+        if $(I PostfixExpression) is an expression of type
+        static array or dynamic array, the special variable $(DOLLAR)
+        is declared and set to be the length of the array.
+        A new declaration scope is created for the evaluation of the
+        $(GLINK AssignExpression)..$(GLINK AssignExpression)
+        and $(DOLLAR) appears in that scope only.
+    )
+
+    $(P The first $(I AssignExpression) is taken to be the inclusive
+        lower bound
+        of the slice, and the second $(I AssignExpression) is the
+        exclusive upper bound.
+        The result of the expression is a slice of the $(I PostfixExpression)
+        array.
+    )
+
+    $(P If the $(D [ ]) form is used, the slice is of the entire
+        array.
+    )
+
+    $(P The type of the slice is a dynamic array of the element
+        type of the $(I PostfixExpression).
+    )
+
+    $(P A $(I SliceExpression) is not a modifiable lvalue.)
+
+    $(P If the slice bounds can be known at compile time, the slice expression
+        is implicitly convertible to an lvalue of static array. For example:
+
+        -------------
+        arr[a .. b]     // typed T[]
+        -------------
+
+        If both $(CODE a) and $(CODE b) are integers (may be constant-folded),
+        the slice expression can be convered to a static array type
+        $(D T[b - a]).
+
+        -------------
+        void foo(int[2] a)
+        {
+            assert(a == [2, 3]);
+        }
+        void bar(ref int[2] a)
+        {
+            assert(a == [2, 3]);
+            a[0] = 4;
+            a[1] = 5;
+            assert(a == [4, 5]);
+        }
+        void baz(int[3] a) {}
+
+        void main()
+        {
+            int[] arr = [1, 2, 3];
+
+            foo(arr[1 .. 3]);
+            assert(arr == [1, 2, 3]);
+
+            bar(arr[1 .. 3]);
+            assert(arr == [1, 4, 5]);
+
+          //baz(arr[1 .. 3]); // cannot match length
+        }
+        -------------
+
+        Following forms of slice expression can be convertible to a static array type:
+
+        $(DL
+        $(DT $(I e))$(DD An expression that contains no side effects.)
+        $(DT $(D a), $(D b))$(DD Integers (that may be constant-folded).)
+        )
+
+        $(TABLE
+        $(THEAD Form, The length calculated at compile time)
+        $(TROW $(D arr[]), The compile time length of $(D arr) if it's known.)
+        $(TROW $(D arr[a .. b]),               $(D b - a))
+        $(TROW $(D arr[$(I e)-a .. $(I e)]),   $(D a))
+        $(TROW $(D arr[$(I e) .. $(I e)+b]),   $(D b))
+        $(TROW $(D arr[$(I e)-a .. $(I e)+b]), $(D a + b))
+        $(TROW $(D arr[$(I e)+a .. $(I e)+b]), $(D b - a) $(I if) $(D a <= b))
+        $(TROW $(D arr[$(I e)-a .. $(I e)-b]), $(D a - b) $(I if) $(D a >= b))
+        )
+    )
+
+    $(P If $(I PostfixExpression) is an $(I ExpressionTuple), then
+        the result of the slice is a new $(I ExpressionTuple) formed
+        from the upper and lower bounds, which must statically evaluate
+        to integral constants.
+        It is an error if those
+        bounds are out of range.
+    )
+
+$(H3 Primary Expressions)
+
+$(GRAMMAR
+$(GNAME PrimaryExpression):
+    $(IDENTIFIER)
+    $(D .) $(IDENTIFIER)
+    $(GLINK2 template, TemplateInstance)
+    $(D .) $(GLINK2 template, TemplateInstance)
+    $(RELATIVE_LINK2 this, $(D this))
+    $(RELATIVE_LINK2 super, $(D super))
+    $(RELATIVE_LINK2 null, $(D null))
+    $(D true)
+    $(D false)
+    $(D $)
+    $(GLINK2 lex, IntegerLiteral)
+    $(GLINK2 lex, FloatLiteral)
+    $(GLINK CharacterLiteral)
+    $(GLINK StringLiterals)
+    $(GLINK ArrayLiteral)
+    $(GLINK AssocArrayLiteral)
+    $(GLINK FunctionLiteral)
+    $(GLINK AssertExpression)
+    $(GLINK MixinExpression)
+    $(GLINK ImportExpression)
+    $(GLINK NewExpressionWithArgs)
+    $(GLINK2 declaration, BasicTypeX) $(D .) $(IDENTIFIER)
+    $(GLINK2 declaration, BasicTypeX) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 declaration, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
+    $(GLINK2 declaration, TypeCtor) $(D $(LPAREN)) $(GLINK Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK ArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 declaration, Typeof)
+    $(GLINK TypeidExpression)
+    $(GLINK IsExpression)
+    $(D $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
+    $(GLINK2 traits, TraitsExpression)
+    $(GLINK2 traits, SpecialKeyword)
+)
+
+$(H4 .Identifier)
+
+    $(P $(IDENTIFIER) is looked up at module scope, rather than the current
+        lexically nested scope.
+    )
+
+$(H4 $(LNAME2 this, this))
+
+    $(P Within a non-static member function, $(D this) resolves to
+        a reference to the object for which the function was called.
+        If the object is an instance of a struct, $(D this) will
+        be a pointer to that instance.
+        If a member function is called with an explicit reference
+        to $(D typeof(this)), a non-virtual call is made:
+
+        -------------
+        class A
+        {
+            char get() { return 'A'; }
+
+            char foo() { return typeof(this).get(); }
+            char bar() { return this.get(); }
+        }
+
+        class B : A
+        {
+            override char get() { return 'B'; }
+        }
+
+        void main()
+        {
+            B b = new B();
+
+            assert(b.foo() == 'A');
+            assert(b.bar() == 'B');
+        }
+        -------------
+    )
+
+    $(P Assignment to $(D this) is not allowed.)
+
+$(H4 $(LNAME2 super, super))
+
+    $(P $(D super) is identical to $(D this), except that it is
+        cast to $(D this)'s base class.
+        It is an error if there is no base class.
+        It is an error to use $(D super) within a struct member function.
+        (Only class $(D Object) has no base class.)
+        If a member function is called with an explicit reference
+        to $(D super), a non-virtual call is made.
+    )
+
+    $(P Assignment to $(D super) is not allowed.)
+
+$(H4 $(LNAME2 null, null))
+
+    $(P $(D null) represents the null value for
+        pointers, pointers to functions, delegates,
+        dynamic arrays, associative arrays,
+        and class objects.
+        If it has not already been cast to a type,
+        it is given the singular type $(D typeof(null)) and it is an exact conversion
+        to convert it to the null value for pointers, pointers to
+        functions, delegates, etc.
+        After it is cast to a type, such conversions are implicit,
+        but no longer exact.
+    )
+
+$(H4 true, false)
+
+    $(P These are of type $(D bool) and when cast to another integral
+        type become the values 1 and 0,
+        respectively.
+    )
+
+$(H4 $(LEGACY_LNAME2 CharacterLiteral, character-literal, Character Literals))
+
+    $(P Character literals are single characters and resolve to one
+        of type $(D char), $(D wchar), or $(D dchar).
+        If the literal is a $(D \u) escape sequence, it resolves to type $(D wchar).
+        If the literal is a $(D \U) escape sequence, it resolves to type $(D dchar).
+        Otherwise, it resolves to the type with the smallest size it
+        will fit into.
+    )
+
+$(H4 String Literals)
+
+$(GRAMMAR
+$(GNAME StringLiterals):
+    $(GLINK2 lex, StringLiteral)
+    $(I StringLiterals) $(GLINK2 lex, StringLiteral)
+)
+
+    $(P String literals can implicitly convert to any
+        of the following types, they have equal weight:
+    )
+
+    $(TABLE
+        $(TROW $(D immutable(char)*))
+        $(TROW $(D immutable(wchar)*))
+        $(TROW $(D immutable(dchar)*))
+        $(TROW $(D immutable(char)[]))
+        $(TROW $(D immutable(wchar)[]))
+        $(TROW $(D immutable(dchar)[]))
+    )
+
+    $(P By default, a string literal is typed as a dynamic array, but the element
+        count is known at compile time. So all string literals can be
+        implicitly convered to static array types.
+
+        -------------
+        void foo(char[2] a)
+        {
+            assert(a == "bc");
+        }
+        void bar(ref const char[2] a)
+        {
+            assert(a == "bc");
+        }
+        void baz(const char[3] a) {}
+
+        void main()
+        {
+            string str = "abc";
+            foo(str[1 .. 3]);
+            bar(str[1 .. 3]);
+          //baz(str[1 .. 3]); // cannot match length
+        }
+        -------------
+    )
+
+    $(P String literals have a 0 appended to them, which makes
+        them easy to pass to C or C++ functions expecting a $(CODE const char*)
+        string.
+        The 0 is not included in the $(CODE .length) property of the
+        string literal.
+    )
+
+$(H4 Array Literals)
+
+$(GRAMMAR
+$(GNAME ArrayLiteral):
+    $(D [) $(GLINK ArgumentList)$(OPT) $(D ])
+)
+
+    $(P Array literals are a comma-separated list of $(GLINK AssignExpression)s
+        between square brackets $(D [) and $(D ]).
+        The $(I AssignExpression)s form the elements of a dynamic array,
+        the length of the array is the number of elements.
+        The common type of the all elements is taken to be the type of
+        the array element, and all elements are implicitly converted
+        to that type.
+
+        ---
+        auto a1 = [1,2,3];  // type is int[], with elements 1, 2 and 3
+        auto a2 = [1u,2,3]; // type is uint[], with elements 1u, 2u, and 3u
+        ---
+    )
+
+    $(P By default, an array literal is typed as a dynamic array, but the element
+        count is known at compile time. So all array literals can be
+        implicitly convered to static array types.
+
+        -------------
+        void foo(long[2] a)
+        {
+            assert(a == [2, 3]);
+        }
+        void bar(ref long[2] a)
+        {
+            assert(a == [2, 3]);
+            a[0] = 4;
+            a[1] = 5;
+            assert(a == [4, 5]);
+        }
+        void baz(const char[3] a) {}
+
+        void main()
+        {
+            long[] arr = [1, 2, 3];
+
+            foo(arr[1 .. 3]);
+            assert(arr == [1, 2, 3]);
+
+            bar(arr[1 .. 3]);
+            assert(arr == [1, 4, 5]);
+
+          //baz(arr[1 .. 3]); // cannot match length
+        }
+        -------------
+    )
+
+    $(P If any of the arguments in the $(GLINK ArgumentList) are
+        an $(I ExpressionTuple), then the elements of the $(I ExpressionTuple)
+        are inserted as arguments in place of the tuple.
+    )
+
+    $(P Array literals are allocated on the memory managed heap.
+        Thus, they can be returned safely from functions:
+
+        ---
+        int[] foo()
+        {
+            return [1, 2, 3];
+        }
+        ---
+    )
+
+    $(P When array literals are cast to another array type, each
+        element of the array is cast to the new element type.
+        When arrays that are not literals are cast, the array is
+        reinterpreted as the new type, and the length is recomputed:
+
+        ---
+        import std.stdio;
+
+        void main()
+        {
+            // cast array literal
+            const short[] ct = cast(short[]) [cast(byte)1, 1];
+            // this is equivalent with:
+            // const short[] ct = [cast(short)1, cast(short)1];
+            writeln(ct);  // writes [1, 1]
+
+            // cast other array expression
+            // --> normal behavior of CastExpression
+            byte[] arr = [cast(byte)1, cast(byte)1];
+            short[] rt = cast(short[]) arr;
+            writeln(rt);  // writes [257]
+        }
+        ---
+
+        In other words, casting literal expression will change the literal type.
+    )
+
+$(H4 Associative Array Literals)
+
+$(GRAMMAR
+$(GNAME AssocArrayLiteral):
+    $(D [) $(GLINK KeyValuePairs) $(D ])
+
+$(GNAME KeyValuePairs):
+    $(GLINK KeyValuePair)
+    $(GLINK KeyValuePair) $(D ,) $(I KeyValuePairs)
+
+$(GNAME KeyValuePair):
+    $(GLINK KeyExpression) $(D :) $(GLINK ValueExpression)
+
+$(GNAME KeyExpression):
+    $(GLINK AssignExpression)
+
+$(GNAME ValueExpression):
+    $(GLINK AssignExpression)
+)
+
+    $(P Associative array literals are a comma-separated list of
+        $(I key)$(D :)$(I value) pairs
+        between square brackets $(D [) and $(D ]).
+        The list cannot be empty.
+        The common type of the all keys is taken to be the key type of
+        the associative array, and all keys are implicitly converted
+        to that type.
+        The common type of the all values is taken to be the value type of
+        the associative array, and all values are implicitly converted
+        to that type.
+        An $(I AssocArrayLiteral) cannot be used to statically initialize
+        anything.
+
+        ---
+        [21u:"he", 38:"ho", 2:"hi"];  // type is string[uint],
+                                      // with keys 21u, 38u and 2u
+                                      // and values "he", "ho", and "hi"
+        ---
+    )
+
+    $(P If any of the keys or values in the $(I KeyValuePairs) are
+        an $(I ExpressionTuple), then the elements of the $(I ExpressionTuple)
+        are inserted as arguments in place of the tuple.
+    )
+
+$(H4 Function Literals)
+
+$(GRAMMAR
+$(GNAME FunctionLiteral):
+    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(GLINK ParameterMemberAttributes) $(GLINK FunctionLiteralBody)
+    $(GLINK FunctionLiteralBody)
+    $(GLINK Lambda)
+
+$(GNAME ParameterAttributes):
+    $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
+
+$(GNAME ParameterMemberAttributes):
+    $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
+
+$(GNAME FunctionLiteralBody):
+    $(GLINK2 statement, BlockStatement)
+    $(GLINK2 function, FunctionContracts)$(OPT) $(GLINK2 function, BodyStatement)
+)
+
+    $(P $(I FunctionLiteral)s enable embedding anonymous functions
+        and anonymous delegates directly into expressions.
+        $(I Type) is the return type of the function or delegate,
+        if omitted it is inferred from any $(I ReturnStatement)s
+        in the $(I FunctionLiteralBody).
+        $(D $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN))
+        forms the arguments to the function.
+        If omitted it defaults to the empty argument list $(D ( )).
+        The type of a function literal is pointer to function or
+        pointer to delegate.
+        If the keywords $(D function) or $(D delegate) are omitted,
+        it is inferred from whether $(I FunctionLiteralBody) is actually
+        accessing to the outer context.
+    )
+
+    $(P For example:
+
+        -------------
+        int function(char c) fp; // declare pointer to a function
+
+        void test()
+        {
+            static int foo(char c) { return 6; }
+
+            fp = &foo;
+        }
+        -------------
+
+        is exactly equivalent to:
+
+        -------------
+        int function(char c) fp;
+
+        void test()
+        {
+            fp = function int(char c) { return 6;} ;
+        }
+        -------------
+    )
+
+    $(P And:
+
+        -------------
+        int abc(int delegate(int i));
+
+        void test()
+        {
+            int b = 3;
+            int foo(int c) { return 6 + b; }
+
+            abc(&foo);
+        }
+        -------------
+
+        is exactly equivalent to:
+
+        -------------
+        int abc(int delegate(int i));
+
+        void test()
+        {
+            int b = 3;
+
+            abc( delegate int(int c) { return 6 + b; } );
+        }
+        -------------
+    )
+
+    $(P and the following where the return type $(D int) and
+        $(D function)/$(D delegate) are inferred:
+
+        -------------
+        int abc(int delegate(int i));
+        int def(int function(int s));
+
+        void test()
+        {
+            int b = 3;
+
+            abc( (int c) { return 6 + b; } );  // inferred to delegate
+            def( (int c) { return c * 2; } );  // inferred to function
+          //def( (int c) { return c * b; } );  // error!
+            // Because the FunctionLiteralBody accesses b, then the function literal type
+            // is inferred to delegate. But def cannot receive delegate.
+        }
+        -------------
+    )
+
+    $(P If the type of a function literal can be uniquely determined from its context,
+        the parameter type inference is possible.
+
+        -------------
+        void foo(int function(int) fp);
+
+        void test()
+        {
+            int function(int) fp = (n) { return n * 2; };
+            // The type of parameter n is inferred to int.
+
+            foo((n) { return n * 2; });
+            // The type of parameter n is inferred to int.
+        }
+        -------------
+    )
+
+    $(P Anonymous delegates can behave like arbitrary statement literals.
+        For example, here an arbitrary statement is executed by a loop:
+
+        -------------
+        double test()
+        {
+            double d = 7.6;
+            float f = 2.3;
+
+            void loop(int k, int j, void delegate() statement)
+            {
+                for (int i = k; i < j; i++)
+                {
+                    statement();
+                }
+            }
+
+            loop(5, 100, { d += 1; });
+            loop(3, 10,  { f += 3; });
+
+            return d + f;
+        }
+        -------------
+    )
+
+    $(P When comparing with $(DDSUBLINK function, nested, nested functions),
+        the $(D function) form is analogous to static
+        or non-nested functions, and the $(D delegate) form is
+        analogous to non-static nested functions. In other words,
+        a delegate literal can access stack variables in its enclosing
+        function, a function literal cannot.
+    )
+
+$(H4 Lambdas)
+
+$(GRAMMAR
+$(GNAME Lambda):
+    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
+)
+
+    $(P $(I Lambda)s are a shorthand syntax for $(GLINK FunctionLiteral)s.)
+
+    $(OL
+        $(LI $(P Just one $(IDENTIFIER) is rewritten to
+             $(GLINK2 function, Parameters):)
+
+             $(D $(LPAREN)) $(IDENTIFIER) $(D $(RPAREN))
+        )
+        $(LI $(P The following part $(D =>) $(I AssignExpression) is rewritten to
+             $(GLINK FunctionLiteralBody):)
+
+             $(D { return) $(I AssignExpression) $(D ; })
+        )
+    )
+
+    $(P Example usage:
+
+        ---
+        import std.stdio;
+
+        void main()
+        {
+            auto i = 3;
+            auto twice  = function (int x) => x * 2;
+            auto square = delegate (int x) => x * x;
+
+            auto n = 5;
+            auto mul_n = (int x) => x * n;
+
+            writeln(twice(i));   // prints 6
+            writeln(square(i));  // prints 9
+            writeln(mul_n(i));   // prints 15
+        }
+        ---
+    )
+
+$(H4 Uniform construction syntax for built-in scalar types)
+
+    $(P The implicit conversions of built-in scalar types can be explicitly
+        represented by using function call syntax. For example:
+
+        ---
+        auto a = short(1);  // implicitly convert an integer literal '1' to short
+        auto b = double(a); // implicitly convert a short variable 'a' to double
+        auto c = byte(128); // error, 128 cannot be represented in a byte
+        ---
+    )
+
+    $(P If the argument is omitted, it means default construction of the
+        scalar type:
+
+        ---
+        auto a = ushort();  // same as: ushort.init
+        auto b = wchar();   // same as: wchar.init
+        auto c = creal();   // same as: creal.init
+        ---
+    )
+
+
+$(H4 Assert Expressions)
+
+$(GRAMMAR
+$(GNAME AssertExpression):
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D $(RPAREN))
+)
+
+    $(P The assert expression is used to declare conditions that the
+        programmer asserts must hold at that point in the program if the
+        program logic has been correctly implemented. It can be used both as a
+        debugging tool and as a way of communicating to the compiler facts
+        about the code that it may employ to produce more efficient code.
+    )
+
+    $(P Programs for which $(I AssignExpression) is false are invalid.
+        Subsequent to such a false result, the program is in an invalid,
+        non-recoverable state.
+    )
+
+    $(P As a debugging tool, the compiler may insert checks to verify that
+        the condition indeed holds by evaluating $(I AssignExpression) at
+        runtime.  If it evaluates to a non-null class reference, the class
+        invariant is run.  Otherwise, if it evaluates to a non-null pointer to
+        a struct, the struct invariant is run.  Otherwise, if the result is
+        false, an $(D AssertError) is thrown.  If the result is true, then no
+        exception is thrown. In this way, if a bug in the code causes the
+        assertion to fail, execution is aborted, prompting the programmer to
+        fix the problem.
+    )
+
+    $(P It is implementation defined whether the $(I AssignExpression) is
+        evaluated at run time or not. Programs that rely on side effects of $(I
+        AssignExpression) are invalid.
+    )
+
+    $(P The result type of an assert expression is $(D void).  Asserts are
+        a fundamental part of the $(DDLINK contracts, Contract Programming,
+        Contract Programming) support in D.
+    )
+
+    $(P The expression $(D assert(0)) is a special case; it
+        signifies that it is unreachable code.
+        Either $(D AssertError) is thrown at runtime if it is reachable,
+        or the execution is halted
+        (on the x86 processor, a $(D HLT) instruction can be used to halt
+        execution).
+        The optimization and code generation phases of compilation may
+        assume that it is unreachable code.
+    )
+
+    $(P The second $(I AssignExpression), if present, must be implicitly
+        convertible to type $(D const(char)[]).
+        It is evaluated if the
+        result is false, and the string result is appended to the
+        $(D AssertError)'s message.
+
+        ----
+        void main()
+        {
+            assert(0, "an" ~ " error message");
+        }
+        ----
+    )
+
+    $(P When compiled and run, it will produce the message:
+
+$(CONSOLE
+Error: AssertError Failure test.d(3) an error message
+)
+    )
+
+$(H4 Mixin Expressions)
+
+$(GRAMMAR
+$(GNAME MixinExpression):
+    $(D mixin $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
+)
+
+    $(P The $(I AssignExpression) must evaluate at compile time
+        to a constant string.
+        The text contents of the string must be compilable as a valid
+        $(I Expression), and is compiled as such.
+
+        ---
+        int foo(int x)
+        {
+            return mixin("x + 1") * 7;  // same as ((x + 1) * 7)
+        }
+        ---
+    )
+
+$(H4 Import Expressions)
+
+$(GRAMMAR
+$(GNAME ImportExpression):
+    $(D import $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
+)
+
+    $(P The $(I AssignExpression) must evaluate at compile time
+        to a constant string.
+        The text contents of the string are interpreted as a file
+        name. The file is read, and the exact contents of the file
+        become a string literal.
+    )
+
+    $(P Implementations may restrict the file name in order to avoid
+        directory traversal security vulnerabilities.
+        A possible restriction might be to disallow any path components
+        in the file name.
+    )
+
+    $(P Note that by default an import expression will not compile unless
+        you pass one or more paths via the $(B -J) switch. This tells the compiler
+        where it should look for the files to import. This is a security feature.
+
+        ---
+        void foo()
+        {
+            // Prints contents of file foo.txt
+            writeln(import("foo.txt"));
+        }
+        ---
+    )
+
+$(H4 Typeid Expressions)
+
+$(GRAMMAR
+$(GNAME TypeidExpression):
+    $(D typeid $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN))
+    $(D typeid $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
+)
+
+    $(P If $(I Type), returns an instance of class
+        $(DPLLINK $(ROOT_DIR)phobos/object.html, $(D TypeInfo))
+        corresponding
+        to $(I Type).
+    )
+
+    $(P If $(I Expression), returns an instance of class
+        $(DPLLINK $(ROOT_DIR)phobos/object.html, $(D TypeInfo))
+        corresponding
+        to the type of the $(I Expression).
+        If the type is a class, it returns the $(D TypeInfo)
+        of the dynamic type (i.e. the most derived type).
+        The $(I Expression) is always executed.
+
+        ---
+        class A { }
+        class B : A { }
+
+        void main()
+        {
+            writeln(typeid(int));        // int
+            uint i;
+            writeln(typeid(i++));        // uint
+            writeln(i);                  // 1
+            A a = new B();
+            writeln(typeid(a));          // B
+            writeln(typeid(typeof(a)));  // A
+        }
+        ---
+    )
+
+$(H4 IsExpression)
+
+$(GRAMMAR
+$(GNAME IsExpression):
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D :) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D ==) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D :) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(D ==) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D :) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D ==) $(GLINK TypeSpecialization) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D :) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+    $(D is $(LPAREN)) $(GLINK2 declaration, Type) $(IDENTIFIER) $(D ==) $(GLINK TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+
+
+$(GNAME TypeSpecialization):
+    $(GLINK2 declaration, Type)
+    $(D struct)
+    $(D union)
+    $(D class)
+    $(D interface)
+    $(D enum)
+    $(D function)
+    $(D delegate)
+    $(D super)
+    $(D const)
+    $(D immutable)
+    $(D inout)
+    $(D shared)
+    $(D return)
+    $(D __parameters)
+)
+
+    $(P $(I IsExpression)s are evaluated at compile time and are
+        used for checking for valid types, comparing types for equivalence,
+        determining if one type can be implicitly converted to another,
+        and deducing the subtypes of a type.
+        The result of an $(I IsExpression) is an int of type 0
+        if the condition is not satisified, 1 if it is.
+    )
+
+    $(P $(I Type) is the type being tested. It must be syntactically
+        correct, but it need not be semantically correct.
+        If it is not semantically correct, the condition is not satisfied.
+    )
+
+    $(P $(IDENTIFIER) is declared to be an alias of the resulting
+        type if the condition is satisfied. The $(IDENTIFIER) forms
+        can only be used if the $(I IsExpression) appears in a
+        $(GLINK2 version, StaticIfCondition).
+    )
+
+    $(P $(I TypeSpecialization) is the type that $(I Type) is being
+        compared against.
+    )
+
+    $(P The forms of the $(I IsExpression) are:
+    )
+
+    $(OL
+
+        $(LI $(D is $(LPAREN)) $(I Type) $(D $(RPAREN))$(BR)
+        The condition is satisfied if $(D Type) is semantically
+        correct (it must be syntactically correct regardless).
+
+-------------
+alias int func(int);    // func is a alias to a function type
+void foo()
+{
+    if (is(func[]))     // not satisfied because arrays of
+                        // functions are not allowed
+        writeln("satisfied");
+    else
+        writeln("not satisfied");
+
+    if (is([][]))       // error, [][] is not a syntactically valid type
+        ...
+}
+-------------
+        )
+
+        $(LI $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+        The condition is satisfied if $(I Type) is semantically
+        correct and it is the same as
+        or can be implicitly converted to $(I TypeSpecialization).
+        $(I TypeSpecialization) is only allowed to be a $(I Type).
+
+-------------
+alias bar = short;
+void foo(bar x)
+{
+    if (is(bar : int))   // satisfied because short can be
+                         // implicitly converted to int
+        writeln("satisfied");
+    else
+        writeln("not satisfied");
+}
+-------------
+        )
+
+        $(LI $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+
+        $(P The condition is satisfied if $(I Type) is semantically
+        correct and is the same type as $(I TypeSpecialization).)
+
+        If $(I TypeSpecialization) is one of
+
+                $(D struct)
+                $(D union)
+                $(D class)
+                $(D interface)
+                $(D enum)
+                $(D function)
+                $(D delegate)
+           $(D const)
+                $(D immutable)
+                $(D shared)
+
+        then the condition is satisfied if $(I Type) is one of those.
+
+-------------
+alias bar = short;
+
+void test(bar x)
+{
+    if (is(bar == int))   // not satisfied because short is not
+                          // the same type as int
+        writeln("satisfied");
+    else
+        writeln("not satisfied");
+}
+-------------
+        )
+
+        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D $(RPAREN))$(BR)
+        The condition is satisfied if $(I Type) is semantically
+        correct. If so, $(I Identifier)
+        is declared to be an alias of $(I Type).
+
+-------------
+alias bar = short;
+void foo(bar x)
+{
+    static if (is(bar T))
+        alias S = T;
+    else
+        alias S = long;
+
+    writeln(typeid(S)); // prints "short"
+    if (is(bar T))      // error, Identifier T form can
+                        // only be in StaticIfConditions
+        ...
+}
+-------------
+        )
+
+        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+
+        $(P
+        The condition is satisfied if $(I Type) is the same as
+        $(I TypeSpecialization), or if $(I Type) is a class and
+        $(I TypeSpecialization) is a base class or base interface
+        of it.
+        The $(I Identifier) is declared to be either an alias of the
+        $(I TypeSpecialization) or, if $(I TypeSpecialization) is
+        dependent on $(I Identifier), the deduced type.
+        )
+
+-------------
+alias bar = int;
+alias abc = long*;
+void foo(bar x, abc a)
+{
+    static if (is(bar T : int))
+        alias S = T;
+    else
+        alias S = long;
+
+    writeln(typeid(S));  // prints "int"
+
+    static if (is(abc U : U*))
+    {
+        U u;
+        writeln(typeid(typeof(u)));  // prints "long"
+    }
+}
+-------------
+
+        $(P The way the type of $(I Identifier) is determined is analogous
+        to the way template parameter types are determined by
+        $(GLINK2 template, TemplateTypeParameterSpecialization).
+        )
+        )
+
+        $(LI $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D $(RPAREN))$(BR)
+
+
+        $(P The condition is satisfied if $(I Type) is semantically
+        correct and is the same as $(I TypeSpecialization).
+        The $(I Identifier) is declared to be either an alias of the
+        $(I TypeSpecialization) or, if $(I TypeSpecialization) is
+        dependent on $(I Identifier), the deduced type.
+        )
+
+        $(P If $(I TypeSpecialization) is one of
+               $(D struct)
+                $(D union)
+                $(D class)
+                $(D interface)
+                $(D enum)
+                $(D function)
+                $(D delegate)
+           $(D const)
+                $(D immutable)
+                $(D shared)
+
+        then the condition is satisfied if $(I Type) is one of those.
+        Furthermore, $(I Identifier) is set to be an alias of the type:
+        )
+
+        $(TABLE_2COLS ,
+        $(THEAD keyword, alias type for $(I Identifier))
+
+        $(TROW $(CODE struct), $(I Type))
+        $(TROW $(D union), $(I Type))
+        $(TROW $(D class), $(I Type))
+        $(TROW $(D interface), $(I Type))
+        $(TROW $(D super), $(I TypeTuple) of base classes and interfaces)
+        $(TROW $(D enum), the base type of the enum)
+        $(TROW $(D function), $(ARGS $(I TypeTuple) of the function parameter types.
+             For C- and D-style variadic functions,
+             only the non-variadic parameters are included.
+             For typesafe variadic functions, the $(D ...) is ignored.))
+        $(TROW $(CODE delegate), the function type of the delegate)
+        $(TROW $(CODE return), $(ARGS the return type of the function, delegate, or function pointer))
+        $(TROW $(CODE __parameters), $(ARGS the parameter tuple of a function, delegate, or function pointer.
+         This includes the parameter types, names, and default values.))
+        $(TROW $(D const), $(I Type))
+        $(TROW
+        $(D immutable),
+        $(I Type)
+        )
+        $(TROW
+        $(CODE shared),
+        $(I Type)
+        )
+
+        )
+
+-------------
+alias bar = short;
+enum E : byte { Emember }
+void foo(bar x)
+{
+    static if (is(bar T == int))   // not satisfied, short is not int
+        alias S = T;
+    alias U = T;                   // error, T is not defined
+
+    static if (is(E V == enum))    // satisified, E is an enum
+        V v;                       // v is declared to be a byte
+}
+-------------
+
+        )
+
+        $(LI $(D is $(LPAREN)) $(I Type) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
+             $(D is $(LPAREN)) $(I Type) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
+             $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D :) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))$(BR)
+             $(D is $(LPAREN)) $(I Type) $(I Identifier) $(D ==) $(I TypeSpecialization) $(D ,) $(GLINK2 template, TemplateParameterList) $(D $(RPAREN))
+
+        $(P More complex types can be pattern matched; the
+        $(GLINK2 template, TemplateParameterList) declares symbols based on the
+        parts of the pattern that are matched, analogously to the
+        way implied template parameters are matched.
+        )
+
+---
+import std.stdio, std.typecons;
+
+void main()
+{
+    alias Tup = Tuple!(int, string);
+    alias AA = long[char[]];
+
+    static if (is(Tup : TX!TL, alias TX, TL...))
+    {
+        writeln(is(TX!(int, long) == Tuple!(int, long)));  // true
+        writeln(typeid(TL[0]));  // int
+        writeln(typeid(TL[1]));  // immutable(char)[]
+    }
+
+    static if (is(AA T : T[U], U : const char[]))
+    {
+        writeln(typeid(T));  // long
+        writeln(typeid(U));  // const char[]
+    }
+
+    static if (is(AA A : A[B], B : int))
+    {
+        assert(0);  // should not match, as B is not an int
+    }
+
+    static if (is(int[10] W : W[V], int V))
+    {
+        writeln(typeid(W));  // int
+        writeln(V);          // 10
+    }
+
+    static if (is(int[10] X : X[Y], int Y : 5))
+    {
+        assert(0);  // should not match, Y should be 10
+    }
+}
+---
+
+        )
+
+    )
+
+$(H3 $(LNAME2 associativity, Associativity and Commutativity))
+
+    $(P An implementation may rearrange the evaluation of expressions
+        according to arithmetic associativity and commutativity rules
+        as long as, within that thread of execution, no observable
+        difference is possible.
+    )
+
+    $(P This rule precludes any associative or commutative reordering of
+        floating point expressions.
+    )
+)
+
+Macros:
+        TITLE=Expressions
+        WIKI=Expression
+        IDENTIFIER=$(GLINK2 lex, Identifier)
+        _=
+

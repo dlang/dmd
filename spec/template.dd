@@ -1,0 +1,1438 @@
+Ddoc
+
+$(SPEC_S Templates,
+
+$(BLOCKQUOTE_BY Richard Deyman,
+I think that I can safely say that nobody understands C++ template mechanics.)
+
+    $(P Templates are D's approach to generic programming.
+        Templates are defined with a $(I TemplateDeclaration):
+    )
+
+$(GRAMMAR
+$(GNAME TemplateDeclaration):
+    $(D template) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+
+$(GNAME TemplateParameters):
+    $(D $(LPAREN)) $(GLINK TemplateParameterList)$(OPT) $(D $(RPAREN))
+
+$(GNAME TemplateParameterList):
+    $(GLINK TemplateParameter)
+    $(GLINK TemplateParameter) ,
+    $(GLINK TemplateParameter) , $(I TemplateParameterList)
+
+$(GNAME TemplateParameter):
+    $(GLINK TemplateTypeParameter)
+    $(GLINK TemplateValueParameter)
+    $(GLINK TemplateAliasParameter)
+    $(GLINK TemplateTupleParameter)
+    $(GLINK TemplateThisParameter)
+)
+
+    $(P The body of the $(I TemplateDeclaration) must be syntactically correct
+        even if never instantiated. Semantic analysis is not done until
+        instantiated. A template forms its own scope, and the template
+        body can contain classes, structs, types, enums, variables,
+        functions, and other templates.
+    )
+
+    $(P Template parameters can be types, values, symbols, or tuples.
+        Types can be any type.
+        Value parameters must be of an integral type, floating point
+        type, or string type and
+        specializations for them must resolve to an integral constant,
+        floating point constant, null, or a string literal.
+        Symbols can be any non-local symbol.
+        Tuples are a sequence of 0 or more types, values or symbols.
+    )
+
+    $(P Template parameter specializations
+        constrain the values or types the $(I TemplateParameter) can
+        accept.
+    )
+    $(P Template parameter defaults are the value or type to use for the
+        $(I TemplateParameter) in case one is not supplied.
+    )
+
+$(H2 Explicit Template Instantiation)
+
+    $(P Templates are explicitly instantiated with:
+    )
+
+$(GRAMMAR
+$(GNAME TemplateInstance):
+    $(I Identifier) $(GLINK TemplateArguments)
+
+$(GNAME TemplateArguments):
+    $(D ! $(LPAREN)) $(GLINK TemplateArgumentList)$(OPT) $(D $(RPAREN))
+    $(D !) $(GLINK TemplateSingleArgument)
+
+$(GNAME TemplateArgumentList):
+    $(GLINK TemplateArgument)
+    $(GLINK TemplateArgument) ,
+    $(GLINK TemplateArgument) , $(I TemplateArgumentList)
+
+$(GNAME TemplateArgument):
+    $(GLINK2 declaration, Type)
+    $(ASSIGNEXPRESSION)
+    $(GLINK Symbol)
+
+$(GNAME Symbol):
+    $(GLINK SymbolTail)
+    $(D .) $(GLINK SymbolTail)
+
+$(GNAME SymbolTail):
+    $(I Identifier)
+    $(I Identifier) $(D .) $(I SymbolTail)
+    $(GLINK TemplateInstance)
+    $(GLINK TemplateInstance) $(D .) $(I SymbolTail)
+
+$(GNAME TemplateSingleArgument):
+    $(I Identifier)
+    $(GLINK2 declaration, BasicTypeX)
+    $(GLINK2 lex, CharacterLiteral)
+    $(GLINK2 lex, StringLiteral)
+    $(GLINK2 lex, IntegerLiteral)
+    $(GLINK2 lex, FloatLiteral)
+    $(D true)
+    $(D false)
+    $(D null)
+    $(D this)
+    $(GLINK2 traits, SpecialKeyword)
+)
+
+    $(P Once instantiated, the declarations inside the template, called
+        the template members, are in the scope
+        of the $(I TemplateInstance):
+
+        ------
+        template TFoo(T) { alias t = T*; }
+        ...
+        TFoo!(int).t x; // declare x to be of type int*
+        ------
+    )
+
+    $(P If the $(GLINK TemplateArgument) is one token long, the parentheses can be omitted:
+
+        ---
+        TFoo!int.t x;   // same as TFoo!(int).t x;
+        ---
+        )
+
+    $(P A template instantiation can be aliased:
+
+        ------
+        template TFoo(T) { alias t = T*; }
+        alias abc = TFoo!(int);
+        abc.t x;        // declare x to be of type int*
+        ------
+    )
+
+    $(P Multiple instantiations of a $(I TemplateDeclaration) with the same
+        $(I TemplateArgumentList) all will refer to the same instantiation.
+        For example:
+
+        ------
+        template TFoo(T) { T f; }
+        alias a = TFoo!(int);
+        alias b = TFoo!(int);
+        ...
+        a.f = 3;
+        assert(b.f == 3);  // a and b refer to the same instance of TFoo
+        ------
+    )
+
+    $(P This is true even if the $(I TemplateInstance)s are done in
+        different modules.
+    )
+
+    $(P Even if template arguments are implicitly converted to the same
+        template parameter type, they still refer to same instance:
+
+        -----
+        struct TFoo(int x) { }
+
+        // 3 and 2+1 are both 3 of type int
+        static assert(is(TFoo!(3) == TFoo!(2 + 1)));
+
+        // 3u is implicitly converted to 3 to match int parameter,
+        // and refers exactly same instance with TFoo!(3).
+        static assert(is(TFoo!(3) == TFoo!(3u)));
+        -----
+    )
+
+    $(P If multiple templates with the same $(I Identifier) are
+        declared, they are distinct if they have a different number of
+        arguments or are differently specialized.
+    )
+
+    $(P For example, a simple generic copy template would be:
+
+        ------
+        template TCopy(T)
+        {
+            void copy(out T to, T from)
+            {
+                to = from;
+            }
+        }
+        ------
+    )
+
+    $(P To use the template, it must first be instantiated with a specific
+        type:
+
+        ------
+        int i;
+        TCopy!(int).copy(i, 3);
+        ------
+    )
+
+$(H2 Instantiation Scope)
+
+    $(P $(I TemplateInstantance)s are always performed in the scope of where
+        the $(I TemplateDeclaration) is declared, with the addition of the
+        template parameters being declared as aliases for their deduced types.
+    )
+    $(P For example:
+
+        $(BR)$(BR)
+        $(U module a)
+        ------
+        template TFoo(T) { void bar() { func(); } }
+        ------
+
+        $(U module b)
+        ------
+        import a;
+
+        void func() { }
+        alias f = TFoo!(int); // error: func not defined in module a
+        ------
+    )
+
+    $(P and:
+
+        $(BR)$(BR)
+        $(U module a)
+        ------
+        template TFoo(T) { void bar() { func(1); } }
+        void func(double d) { }
+        ------
+
+        $(U module b)
+        ------
+        import a;
+
+        void func(int i) { }
+        alias f = TFoo!(int);
+        ...
+        f.bar();  // will call a.func(double)
+        ------
+    )
+
+    $(P $(I TemplateParameter) specializations and default
+        values are evaluated in the scope of the $(I TemplateDeclaration).
+    )
+
+$(H2 Argument Deduction)
+
+    $(P The types of template parameters are deduced for a particular
+        template instantiation by comparing the template argument with
+        the corresponding template parameter.
+    )
+
+    $(P For each template parameter, the following rules are applied in
+        order until a type is deduced for each parameter:
+    )
+
+    $(OL
+        $(LI If there is no type specialization for the parameter,
+        the type of the parameter is set to the template argument.)
+
+        $(LI If the type specialization is dependent on a type parameter,
+        the type of that parameter is set to be the corresponding part
+        of the type argument.)
+
+        $(LI If after all the type arguments are examined there are any
+        type parameters left with no type assigned, they are assigned
+        types corresponding to the template argument in the same position
+        in the $(I TemplateArgumentList).)
+
+        $(LI If applying the above rules does not result in exactly one
+        type for each template parameter, then it is an error.)
+    )
+
+    $(P For example:
+
+        ------
+        template TFoo(T) { }
+        alias Foo1 = TFoo!(int);     // (1) T is deduced to be int
+        alias Foo2 = TFoo!(char*);   // (1) T is deduced to be char*
+
+        template TBar(T : T*) { }
+        alias Foo3 = TBar!(char*);   // (2) T is deduced to be char
+
+        template TAbc(D, U : D[]) { }
+        alias Bar1 = TAbc!(int, int[]);  // (2) D is deduced to be int, U is int[]
+        alias Bar2 = TAbc!(char, int[]); // (4) error, D is both char and int
+
+        template TDef(D : E*, E) { }
+        alias Bar3 = TDef!(int*, int); // (1) E is int
+                                       // (3) D is int*
+        ------
+    )
+
+    $(P Deduction from a specialization can provide values
+        for more than one parameter:
+
+        ---
+        template Foo(T: T[U], U)
+        {
+            ...
+        }
+
+        Foo!(int[long])  // instantiates Foo with T set to int, U set to long
+        ---
+    )
+
+    $(P When considering matches, a class is
+        considered to be a match for any super classes or interfaces:
+
+        ------
+        class A { }
+        class B : A { }
+
+        template TFoo(T : A) { }
+        alias Foo4 = TFoo!(B);     // (3) T is B
+
+        template TBar(T : U*, U : A) { }
+        alias Foo5 = TBar!(B*, B); // (2) T is B*
+                                   // (3) U is B
+        ------
+    )
+
+$(H2 Template Type Parameters)
+
+$(GRAMMAR
+$(GNAME TemplateTypeParameter):
+    $(I Identifier)
+    $(I Identifier) $(GLINK TemplateTypeParameterSpecialization)
+    $(I Identifier) $(GLINK TemplateTypeParameterDefault)
+    $(I Identifier) $(GLINK TemplateTypeParameterSpecialization) $(GLINK TemplateTypeParameterDefault)
+
+$(GNAME TemplateTypeParameterSpecialization):
+    $(D :) $(GLINK2 declaration, Type)
+
+$(GNAME TemplateTypeParameterDefault):
+    $(D =) $(GLINK2 declaration, Type)
+)
+
+$(H3 Specialization)
+
+    $(P Templates may be specialized for particular types of arguments
+        by following the template parameter identifier with a : and the
+        specialized type.
+        For example:
+
+        ------
+        template TFoo(T)        { ... } // #1
+        template TFoo(T : T[])  { ... } // #2
+        template TFoo(T : char) { ... } // #3
+        template TFoo(T, U, V)  { ... } // #4
+
+        alias foo1 = TFoo!(int);            // instantiates #1
+        alias foo2 = TFoo!(double[]);       // instantiates #2 with T being double
+        alias foo3 = TFoo!(char);           // instantiates #3
+        alias fooe = TFoo!(char, int);      // error, number of arguments mismatch
+        alias foo4 = TFoo!(char, int, int); // instantiates #4
+        ------
+    )
+
+    $(P The template picked to instantiate is the one that is most specialized
+        that fits the types of the $(I TemplateArgumentList).
+        Determine which is more specialized is done the same way as the
+        C++ partial ordering rules.
+        If the result is ambiguous, it is an error.
+    )
+
+
+$(H2 Template This Parameters)
+
+$(GRAMMAR
+$(GNAME TemplateThisParameter):
+    $(D this) $(I TemplateTypeParameter)
+)
+
+    $(P $(I TemplateThisParameter)s are used in member function templates
+        to pick up the type of the $(I this) reference.
+
+        ---
+        import std.stdio;
+
+        struct S
+        {
+            const void foo(this T)(int i)
+            {
+                writeln(typeid(T));
+            }
+        }
+
+        void main()
+        {
+            const(S) s;
+            (&s).foo(1);
+            S s2;
+            s2.foo(2);
+            immutable(S) s3;
+            s3.foo(3);
+        }
+        ---
+    )
+
+    $(P Prints:
+
+$(CONSOLE
+const(S)
+S
+immutable(S)
+)
+    )
+
+    $(P This is especially useful when used with inheritance. For example,
+        you might want to implement a final base method which returns a derived
+        class type. Typically you would return a base type, but this won't allow
+        you to call or access derived properties of the type:
+
+        ---
+        interface Addable(T)
+        {
+            final auto add(T t)
+            {
+                return this;
+            }
+        }
+
+        class List(T) : Addable!T
+        {
+            List remove(T t)
+            {
+                return this;
+            }
+        }
+
+        void main()
+        {
+            auto list = new List!int;
+            list.add(1).remove(1);  // error: no 'remove' method for Addable!int
+        }
+        ---
+    )
+
+    $(P Here the method $(D add) returns the base type, which doesn't implement the
+        $(D remove) method. The $(D template this) parameter can be used for this purpose:
+
+        ---
+        interface Addable(T)
+        {
+            final R add(this R)(T t)
+            {
+                return cast(R)this;  // cast is necessary, but safe
+            }
+        }
+
+        class List(T) : Addable!T
+        {
+            List remove(T t)
+            {
+                return this;
+            }
+        }
+
+        void main()
+        {
+            auto list = new List!int;
+            list.add(1).remove(1);  // ok
+        }
+        ---
+    )
+
+$(H2 Template Value Parameters)
+
+$(GRAMMAR
+$(GNAME TemplateValueParameter):
+    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
+    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterSpecialization)
+    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterDefault)
+    $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateValueParameterSpecialization) $(GLINK TemplateValueParameterDefault)
+
+$(GNAME TemplateValueParameterSpecialization):
+    $(D :) $(GLINK2 expression, ConditionalExpression)
+
+$(GNAME TemplateValueParameterDefault):
+    $(D =) $(ASSIGNEXPRESSION)
+    $(D =) $(GLINK2 traits, SpecialKeyword)
+)
+
+    $(P Template value parameter types can be any type which can
+        be statically initialized at compile time.
+        Template value arguments can be integer values, floating point values,
+        nulls, string values, array literals of template value arguments,
+        associative array literals of template value arguments,
+        or struct literals of template value arguments.
+
+        -----
+        template foo(string s)
+        {
+            string bar() { return s ~ " betty"; }
+        }
+
+        void main()
+        {
+            writefln("%s", foo!("hello").bar()); // prints: hello betty
+        }
+        -----
+    )
+
+    $(P This example of template foo has a value parameter that
+        is specialized for 10:
+
+        ------
+        template foo(U : int, int T : 10)
+        {
+            U x = T;
+        }
+
+        void main()
+        {
+            assert(foo!(int, 10).x == 10);
+        }
+        ------
+    )
+
+
+$(H2 $(LNAME2 aliasparameters, Template Alias Parameters))
+
+$(GRAMMAR
+$(GNAME TemplateAliasParameter):
+    $(D alias) $(I Identifier) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
+    $(D alias) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
+
+$(GNAME TemplateAliasParameterSpecialization):
+    $(D :) $(GLINK2 declaration, Type)
+    $(D :) $(GLINK2 expression, ConditionalExpression)
+
+$(GNAME TemplateAliasParameterDefault):
+    $(D =) $(GLINK2 declaration, Type)
+    $(D =) $(GLINK2 expression, ConditionalExpression)
+)
+
+    $(P Alias parameters enable templates to be parameterized with
+        any type of D symbol, including global names, local names,
+        module names, template names, and template instance names.
+        Literals can also be used as arguments to alias parameters.
+    )
+
+    $(UL
+        $(LI Global names
+
+        ------
+        int x;
+
+        template Foo(alias X)
+        {
+            static int* p = &X;
+        }
+
+        void test()
+        {
+            alias bar = Foo!(x);
+            *bar.p = 3;       // set x to 3
+            static int y;
+            alias abc = Foo!(y);
+            *abc.p = 3;       // set y to 3
+        }
+        ------
+        )
+
+        $(LI Type names
+
+        ------
+        class Foo
+        {
+            static int p;
+        }
+
+        template Bar(alias T)
+        {
+            alias q = T.p;
+        }
+
+        void test()
+        {
+            alias bar = Bar!(Foo);
+            bar.q = 3;  // sets Foo.p to 3
+        }
+        ------
+        )
+
+        $(LI Module names
+
+        ------
+        import std.string;
+
+        template Foo(alias X)
+        {
+            alias y = X.toString;
+        }
+
+        void test()
+        {
+            alias bar = Foo!(std.string);
+            bar.y(3);   // calls std.string.toString(3)
+        }
+        ------
+        )
+
+        $(LI Template names
+
+        ------
+        int x;
+
+        template Foo(alias X)
+        {
+            static int* p = &X;
+        }
+
+        template Bar(alias T)
+        {
+            alias abc = T!(x);
+        }
+
+        void test()
+        {
+            alias bar = Bar!(Foo);
+            *bar.abc.p = 3;  // sets x to 3
+        }
+        ------
+        )
+
+        $(LI Template alias names
+
+        ------
+        int x;
+
+        template Foo(alias X)
+        {
+            static int* p = &X;
+        }
+
+        template Bar(alias T)
+        {
+            alias q = T.p;
+        }
+
+        void test()
+        {
+            alias foo = Foo!(x);
+            alias bar = Bar!(foo);
+            *bar.q = 3;  // sets x to 3
+        }
+        ------
+        )
+
+        $(LI Literals
+
+        ------
+        template Foo(alias X, alias Y)
+        {
+            static int i = X;
+            static string s = Y;
+        }
+
+        void test()
+        {
+            alias foo = Foo!(3, "bar");
+            writeln(foo.i, foo.s);  // prints 3bar
+        }
+        ------
+        )
+    )
+
+$(H3 Typed alias parameters)
+
+    $(P Alias parameters can also be typed.
+        These parameters will accept symbols of that type:
+
+        ------
+        template Foo(alias int x) { }
+        int x;
+        float f;
+
+        Foo!x;  // ok
+        Foo!f;  // fails to instantiate
+        ------
+    )
+
+$(H3 Specialization)
+
+    $(P Alias parameters can accept both literals and user-defined type symbols,
+        but they are less specialized than the matches to type parameters and
+        value parameters:
+
+        ------
+        template Foo(T)         { ... }  // #1
+        template Foo(int n)     { ... }  // #2
+        template Foo(alias sym) { ... }  // #3
+
+        struct S {}
+        int var;
+
+        alias foo1  = Foo!(S);      // instantiates #1
+        alias foo2  = Foo!(1);      // instantiates #2
+        alias foo3a = Foo!([1,2]);  // instantiates #3
+        alias foo3b = Foo!(var);    // instantiates #3
+        ------
+
+        ------
+        template Bar(alias A) { ... }                 // #4
+        template Bar(T : U!V, alias U, V...) { ... }  // #5
+
+        class C(T) {}
+        alias bar = Bar!(C!int);    // instantiates #5
+        ------
+    )
+
+$(H2 $(LNAME2 variadic-templates, Template Tuple Parameters))
+
+$(GRAMMAR
+$(GNAME TemplateTupleParameter):
+    $(I Identifier) $(D ...)
+)
+
+    $(P If the last template parameter in the $(I TemplateParameterList)
+        is declared as a $(I TemplateTupleParameter),
+        it is a match with any trailing template arguments.
+        The sequence of arguments form a $(I Tuple).
+        A $(I Tuple) is not a type, an expression, or a symbol.
+        It is a sequence of any mix of types, expressions or symbols.
+    )
+
+    $(P A $(I Tuple) whose elements consist entirely of types is
+        called a $(I TypeTuple).
+        A $(I Tuple) whose elements consist entirely of expressions is
+        called an $(I ExpressionTuple).
+    )
+
+    $(P A $(I Tuple) can be used as an argument list to instantiate
+        another template, or as the list of parameters for a function.
+
+        ---
+        template Print(args...)
+        {
+            void print()
+            {
+                writeln("args are ", args); // args is an ExpressionTuple
+            }
+        }
+
+        template Write(Args...)
+        {
+            void write(Args args) // Args is a TypeTuple
+                                  // args is an ExpressionTuple
+            {
+                writeln("args are ", args);
+            }
+        }
+
+        void main()
+        {
+            Print!(1,'a',6.8).print();                    // prints: args are 1a6.8
+            Write!(int, char, double).write(1, 'a', 6.8); // prints: args are 1a6.8
+        }
+        ---
+    )
+
+    $(P The number of elements in a $(I Tuple) can be retrieved with
+        the $(D .length) property. The $(I n)th element can be retrieved
+        by indexing the $(I Tuple) with [$(I n)],
+        and sub tuples can be created
+        with the slicing syntax.
+    )
+
+    $(P $(I Tuple)s are static compile time entities, there is no way
+        to dynamically change, add, or remove elements.
+    )
+
+    $(P Template tuples can be deduced from the types of
+        the trailing parameters
+        of an implicitly instantiated function template:
+
+        ---
+        template print(T, Args...)
+        {
+            void print(T first, Args args)
+            {
+                writeln(first);
+                static if (args.length) // if more arguments
+                    print(args);        // recurse for remaining arguments
+            }
+        }
+
+        void main()
+        {
+            print(1, 'a', 6.8);
+        }
+        ---
+    )
+
+    $(P prints:
+
+$(CONSOLE
+1
+a
+6.8
+)
+    )
+
+    $(P Template tuples can also be deduced from the type of a delegate
+        or function parameter list passed as a function argument:
+
+        ----
+        import std.stdio;
+
+        /* Partially applies a delegate by tying its first argument to a particular value.
+         * R = return type
+         * T = first argument type
+         * Args = TypeTuple of remaining argument types
+         */
+        R delegate(Args) partial(R, T, Args...)(R delegate(T, Args) dg, T first)
+        {
+            // return a closure
+            return (Args args) => dg(first, args);
+        }
+
+        void main()
+        {
+            int plus(int x, int y, int z)
+            {
+                return x + y + z;
+            }
+
+            auto plus_two = partial(&plus, 2);
+            writefln("%d", plus_two(6, 8)); // prints 16
+        }
+        ----
+        See also: $(FULL_XREF functional, partial)
+    )
+
+$(H3 Specialization)
+
+    $(P If both a template with a tuple parameter and a template
+        without a tuple parameter exactly match a template instantiation,
+        the template without a $(I TemplateTupleParameter) is selected.
+
+        ----
+        template Foo(T)         { pragma(msg, "1"); }   // #1
+        template Foo(int n)     { pragma(msg, "2"); }   // #2
+        template Foo(alias sym) { pragma(msg, "3"); }   // #3
+        template Foo(Args...)   { pragma(msg, "4"); }   // #4
+
+        import std.stdio;
+
+        // Any sole template argument will never match to #4
+        alias foo1 = Foo!(int);          // instantiates #1
+        alias foo2 = Foo!(3);            // instantiates #2
+        alias foo3 = Foo!(std);          // instantiates #3
+
+        alias foo4 = Foo!(int, 3, std);  // instantiates #4
+        ----
+    )
+
+$(H2 Template Parameter Default Values)
+
+    $(P Trailing template parameters can be given default values:
+
+        ------
+        template Foo(T, U = int) { ... }
+        Foo!(uint,long); // instantiate Foo with T as uint, and U as long
+        Foo!(uint);      // instantiate Foo with T as uint, and U as int
+
+        template Foo(T, U = T*) { ... }
+        Foo!(uint);      // instantiate Foo with T as uint, and U as uint*
+        ------
+    )
+
+$(H2 Implicit Template Properties)
+
+    $(P If a template has exactly one member in it, and the name of that
+        member is the same as the template name, that member is assumed
+        to be referred to in a template instantiation:
+
+        ------
+        template $(CODE_HIGHLIGHT Foo)(T)
+        {
+            T Foo; // declare variable Foo of type T
+        }
+
+        void test()
+        {
+            Foo!(int) = 6; // instead of Foo!(int).Foo
+        }
+        ------
+    )
+
+$(H2 Template Constructors)
+
+$(GRAMMAR
+$(GNAME ConstructorTemplate):
+    $(D this) $(GLINK2 template, TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(D :)
+    $(D this) $(GLINK2 template, TemplateParameters) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 function, FunctionBody)
+)
+
+    $(P Templates can be used to form constructors for classes  and structs.
+    )
+
+$(H2 Aggregate Templates)
+
+$(GRAMMAR
+$(GNAME ClassTemplateDeclaration):
+    $(D class) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D class) $(I Identifier) $(GLINK TemplateParameters) $(GLINK2 class, BaseClassList)$(OPT) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
+
+$(GNAME InterfaceTemplateDeclaration):
+    $(D interface) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 interface, BaseInterfaceList)$(OPT) $(GLINK2 struct, AggregateBody)
+    $(D interface) $(I Identifier) $(GLINK TemplateParameters) $(GLINK2 interface, BaseInterfaceList) $(GLINK Constraint) $(GLINK2 struct, AggregateBody)
+
+$(GNAME StructTemplateDeclaration):
+    $(D struct) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
+
+$(GNAME UnionTemplateDeclaration):
+    $(D union) $(I Identifier) $(GLINK TemplateParameters) $(GLINK Constraint)$(OPT) $(GLINK2 struct, AggregateBody)
+)
+
+    $(P If a template declares exactly one member, and that member is a class
+        with the same name as the template:
+
+        ------
+        template $(CODE_HIGHLIGHT Bar)(T)
+        {
+            class $(CODE_HIGHLIGHT Bar)
+            {
+                T member;
+            }
+        }
+        ------
+
+        then the semantic equivalent, called a $(I ClassTemplateDeclaration)
+        can be written as:
+
+        ------
+        class Bar(T)
+        {
+            T member;
+        }
+        ------
+    )
+
+    $(P Analogously to class templates, struct, union and interfaces
+        can be transformed into templates by supplying a template parameter list.
+    )
+
+$(H2 $(LNAME2 function-templates, Function Templates))
+
+    $(P If a template declares exactly one member, and that member is a function
+        with the same name as the template, it is a function template declaration.
+        Alternatively, a function template declaration is a function declaration
+        with a $(GLINK TemplateParameterList) immediately preceding the
+        $(GLINK2 function, Parameters).
+    )
+
+    $(P A function template to compute the square of type $(I T) is:
+
+        ------
+        T $(CODE_HIGHLIGHT Square)(T)(T t)
+        {
+            return t * t;
+        }
+        ------
+    )
+
+    $(P Function templates can be explicitly instantiated with a
+        !($(I TemplateArgumentList)):
+
+        ----
+        writefln("The square of %s is %s", 3, Square!(int)(3));
+        ----
+    )
+
+    $(P or implicitly, where the $(I TemplateArgumentList) is deduced
+        from the types of the function arguments:
+
+        ----
+        writefln("The square of %s is %s", 3, Square(3));  // T is deduced to be int
+        ----
+    )
+
+    $(P If there are fewer arguments supplied in the $(I TemplateArgumentList)
+        than parameters in the $(I TemplateParameterList), the arguments fulfill
+        parameters from left to right, and the rest of the parameters are then deduced
+        from the function arguments.
+    )
+
+    $(P Function template type parameters that are to be implicitly
+        deduced may not have specializations:
+
+        ------
+        void $(CODE_HIGHLIGHT Foo)(T : T*)(T t) { ... }
+
+        int x,y;
+        Foo!(int*)(x);   // ok, T is not deduced from function argument
+        Foo(&y);         // error, T has specialization
+        ------
+    )
+
+    $(P Template arguments not implicitly deduced can have default values:
+
+        ------
+        void $(CODE_HIGHLIGHT Foo)(T, U=T*)(T t) { U p; ... }
+
+        int x;
+        Foo(x);    // T is int, U is int*
+        ------
+    )
+
+    $(P The deduced type parameter for dynamic array and pointer arguments
+        has an unqualified head:
+
+        ------
+        void foo(T)(T arg) { pragma(msg, T); }
+
+        int[] marr;
+        const(int[]) carr;
+        immutable(int[]) iarr;
+        foo(marr);  // T == int[]
+        foo(carr);  // T == const(int)[]
+        foo(iarr);  // T == immutable(int)[]
+
+        int* mptr;
+        const(int*) cptr;
+        immutable(int*) iptr;
+        foo(mptr);  // T == int*
+        foo(cptr);  // T == const(int)*
+        foo(iptr);  // T == immutable(int)*
+        ------
+    )
+
+    $(P Function templates can have their return types deduced based on the
+        first $(GLINK2 statement, ReturnStatement) in the function:
+
+        ---
+        auto $(CODE_HIGHLIGHT Square)(T)(T t)
+        {
+            return t * t;
+        }
+        ---
+    )
+
+    $(P If there is more than one return statement, then the
+        types of the return statement expressions must match.
+        If there are no return statements, then the return type of the
+        function template is $(CODE void).
+    )
+
+$(H2 $(LNAME2 variable-template, Variable Templates))
+
+    $(P Same as aggregates and functions, variable declarations with
+        $(GLINK2 declaration, Initializer) can have optional template parameters:
+
+        ------
+        enum string constant(TL...) = TL.stringof;
+        ubyte[T.sizeof] storage(T) = 0;
+        auto array(alias a) = a;
+        ------
+    )
+
+    $(P These declarations are transformed into templates:
+
+        ------
+        template constant(TL...)
+        {
+            enum string constant = TL.stringof;
+        }
+        template storage(T)
+        {
+            ubyte[T.sizeof] storage = 0;
+        }
+        template array(alias a)
+        {
+            auto array = a;
+        }
+        ------
+    )
+
+$(H2 $(LNAME2 alias-template, Alias Templates))
+
+    $(P $(GLINK2 declaration, AliasDeclaration) can also have optional template
+        parameters:
+
+        ------
+        alias Sequence(TL...) = TL;
+        ------
+    )
+
+    $(P It is lowered to:
+
+        ------
+        template Sequence(TL...)
+        {
+            alias Sequence = TL;
+        }
+        ------
+    )
+
+$(H3 $(LNAME2 auto-ref-parameters, Function Templates with Auto Ref Parameters))
+
+    $(P An auto ref function template parameter becomes a ref parameter
+        if its corresponding argument is an lvalue, otherwise it becomes
+        a value parameter:
+
+        ---
+        int foo(Args...)(auto ref Args args)
+        {
+            int result;
+
+            foreach (i, v; args)
+            {
+                if (v == 10)
+                    assert(__traits(isRef, args[i]));
+                else
+                    assert(!__traits(isRef, args[i]));
+                result += v;
+            }
+            return result;
+        }
+
+        void main()
+        {
+            int y = 10;
+            int r;
+            r = foo(8);       // returns 8
+            r = foo(y);       // returns 10
+            r = foo(3, 4, y); // returns 17
+            r = foo(4, 5, y); // returns 19
+            r = foo(y, 6, y); // returns 26
+        }
+        ---
+    )
+
+    $(P Auto ref parameters can be combined with auto ref return
+        attributes:
+
+        ---
+        auto ref min(T, U)(auto ref T lhs, auto ref U rhs)
+        {
+            return lhs > rhs ? rhs : lhs;
+        }
+
+        void main()
+        {
+            int x = 7, y = 8;
+            int i;
+
+            i = min(4, 3);     // returns 3
+            i = min(x, y);     // returns 7
+            min(x, y) = 10;    // sets x to 10
+            static assert(!__traits(compiles, min(3, y) = 10));
+            static assert(!__traits(compiles, min(y, 3) = 10));
+        }
+        ---
+    )
+
+$(H2 $(LNAME2 nested-templates, Nested Templates))
+
+    $(P If a template is declared in aggregate or function local scope, the
+        instantiated functions will implicitly capture the context of the
+        enclosing scope.
+
+        ----
+        class C
+        {
+            int num;
+
+            this(int n) { num = n; }
+
+            template Foo()
+            {
+                // 'foo' can access 'this' reference of class C object.
+                void foo(int n) { this.num = n; }
+            }
+        }
+
+        void main()
+        {
+            auto c = new C(1);
+            assert(c.num == 1);
+
+            c.Foo!().foo(5);
+            assert(c.num == 5);
+
+            template Bar()
+            {
+                // 'bar' can access local variable of 'main' function.
+                void bar(int n) { c.num = n; }
+            }
+            Bar!().bar(10);
+            assert(c.num == 10);
+        }
+        ----
+    )
+
+    $(P Above, $(D Foo!().foo) will work just the same as a member function
+        of class $(D C), and $(D Bar!().bar) will work just the same as a nested
+        function within function $(D main$(LPAREN)$(RPAREN)).)
+
+    $(P If a template has a $(RELATIVE_LINK2 aliasparameters, template alias parameter),
+        and is instantiated with a local symbol, the instantiated function will
+        implicitly become nested in order to access runtime data of the given
+        local symbol.
+
+        ----
+        template Foo(alias sym)
+        {
+            void foo() { sym = 10; }
+        }
+
+        class C
+        {
+            int num;
+
+            this(int n) { num = n; }
+
+            void main()
+            {
+                assert(this.num == 1);
+
+                alias fooX = Foo!(C.num).foo;
+
+                // fooX will become member function implicitly, so &fooX returns delegate object.
+                static assert(is(typeof(&fooX) == delegate));
+
+                fooX(); // called by using valid 'this' reference.
+                assert(this.num == 10);  // OK
+            }
+        }
+
+        void main()
+        {
+            new C(1).main();
+
+            int num;
+            alias fooX = Foo!num.foo;
+
+            // fooX will become nested function implicitly, so &fooX returns delegate object.
+            static assert(is(typeof(&fooX) == delegate));
+
+            fooX();
+            assert(num == 10);  // OK
+        }
+        ----
+    )
+
+    $(P Not only functions, but also instantiated class and struct types can
+        become nested via implicitly captured context.
+
+        ----
+        class C
+        {
+            int num;
+            this(int n) { num = n; }
+
+            class N(T)
+            {
+                // instantiated class N!T can become nested in C
+                T foo() { return num * 2; }
+            }
+        }
+
+        void main()
+        {
+            auto c = new C(10);
+            auto n = c.new N!int();
+            assert(n.foo() == 20);
+        }
+        ----
+
+        ----
+        void main()
+        {
+            int num = 10;
+            struct S(T)
+            {
+                // instantiated struct S!T can become nested in main()
+                T foo() { return num * 2; }
+            }
+            S!int s;
+            assert(s.foo() == 20);
+        }
+        ----
+    )
+
+    $(P A templated $(D struct) can become a nested $(D struct) if it
+        is instantiated with a local symbol passed as an aliased argument:
+
+        ---
+        struct A(alias F)
+        {
+            int fun(int i) { return F(i); }
+        }
+
+        A!F makeA(alias F)() { return A!F(); }
+
+        void main()
+        {
+            int x = 40;
+            int fun(int i) { return x + i; }
+            A!fun a = makeA!fun();
+            assert(a.fun(2) == 42);
+        }
+        ---
+    )
+
+    $(H3 Limitation:)
+
+    $(P Currently nested templates can capture at most one context. As a typical
+        example, non-static template member functions cannot take local symbol
+        by using template alias parameter.
+
+        ----
+        class C
+        {
+            int num;
+            void foo(alias sym)() { num = sym * 2; }
+        }
+
+        void main()
+        {
+            auto c = new C();
+            int var = 10;
+            c.foo!var();    // NG, foo!var requires two contexts, 'this' and 'main()'
+        }
+        ----
+    )
+
+    $(P But, if one context is indirectly accessible from other context, it is allowed.
+
+        ----
+        int sum(alias x, alias y)() { return x + y; }
+
+        void main()
+        {
+            int a = 10;
+            void nested()
+            {
+                int b = 20;
+                assert(sum!(a, b)() == 30);
+            }
+            nested();
+        }
+        ----
+
+        Two local variables $(D a) and $(D b) are in different contexts, but
+        outer context is indirectly accessible from innter context, so nested
+        template instance $(D sum!$(LPAREN)a, b$(RPAREN)) will capture only
+        inner context.
+    )
+
+$(H2 Recursive Templates)
+
+    $(P Template features can be combined to produce some interesting
+        effects, such as compile time evaluation of non-trivial functions.
+        For example, a factorial template can be written:
+
+        ------
+        template factorial(int n : 1)
+        {
+            enum { factorial = 1 }
+        }
+
+        template factorial(int n)
+        {
+            enum { factorial = n* factorial!(n-1) }
+        }
+
+        void test()
+        {
+            writefln("%s", factorial!(4)); // prints 24
+        }
+        ------
+    )
+
+$(H2 Template Constraints)
+
+$(GRAMMAR
+$(GNAME Constraint):
+    $(D if) $(D $(LPAREN)) $(GLINK2 expression, Expression) $(D $(RPAREN))
+)
+
+    $(P $(I Constraint)s are used to impose additional constraints
+        on matching arguments to a template beyond what is possible
+        in the $(GLINK TemplateParameterList).
+        The $(I Expression) is computed at compile time
+        and returns a result that is converted to a boolean value.
+        If that value is true, then the template is matched,
+        otherwise the template is not matched.
+    )
+
+    $(P For example, the following function template only
+        matches with odd values of $(CODE N):
+
+        ---
+        void foo(int N)()
+            if (N & 1)
+        {
+            ...
+        }
+        ...
+        foo!(3)();  // ok, matches
+        foo!(4)();  // error, no match
+        ---
+    )
+
+
+$(H2 Limitations)
+
+    $(P Templates cannot be used to add non-static members or
+        virtual functions to classes.
+        For example:
+
+        ------
+        class Foo
+        {
+            template TBar(T)
+            {
+                T xx;               // becomes a static member of Foo
+                int func(T) { ... } // non-virtual
+
+                static T yy;                        // Ok
+                static int func(T t, int y) { ... } // Ok
+            }
+        }
+        ------
+    )
+
+    $(P Templates cannot be declared inside functions.
+    )
+
+    $(P Templates cannot add functions to interfaces:
+
+        ---
+        interface TestInterface { void tpl(T)(); }   // error
+        ---
+    )
+)
+
+Macros:
+        TITLE=Templates
+        WIKI=Template
+        _=

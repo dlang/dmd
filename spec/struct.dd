@@ -1,0 +1,619 @@
+Ddoc
+
+$(SPEC_S Structs and Unions,
+
+         $(P Whereas classes are reference types, structs are value types.
+             Any C struct can be exactly represented as a D struct, except non-static
+             $(RELATIVE_LINK2 nested, function-nested D structs) which access the context of
+             their enclosing scope.
+             Structs and unions are meant as simple aggregations of data, or as a way
+             to paint a data structure over hardware or an external type. External
+             types can be defined by the operating system API, or by a file format.
+             Object oriented features are provided with the class data type.
+             )
+
+         $(P A struct is defined to not have an identity; that is,
+             the implementation is free to make bit copies of the struct
+             as convenient.)
+
+        $(TABLE2 Struct$(COMMA) Class Comparison Table,
+        $(THEAD Feature, $(D struct), $(D class), C $(D struct), C++
+        $(D struct), C++ $(D class))
+
+        $(TROW value type, $(CHECK), $(UNCHECK), $(CHECK), $(CHECK), $(CHECK))
+        $(TROW reference type, $(UNCHECK), $(CHECK), $(UNCHECK),
+        $(UNCHECK), $(UNCHECK))
+        $(TROW data members, $(CHECK), $(CHECK), $(CHECK), $(CHECK), $(CHECK))
+        $(TROW hidden members, $(CHECK),
+        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW static members, $(CHECK), $(CHECK), $(UNCHECK),
+        $(CHECK), $(CHECK))
+        $(TROW default member initializers, $(CHECK), $(CHECK),
+        $(UNCHECK), $(UNCHECK), $(UNCHECK))
+        $(TROW bit fields, $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK),
+        $(CHECK))
+        $(TROW non-virtual member functions, $(CHECK), $(CHECK),
+        $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW virtual member functions, $(UNCHECK), $(CHECK),
+        $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW $(RELATIVE_LINK2 struct-constructor, constructors), $(CHECK),
+        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW $(RELATIVE_LINK2 struct-postblit, postblit)/copy constructors,
+        $(CHECK), $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW $(RELATIVE_LINK2 struct-destructor, destructors), $(CHECK),
+        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW $(GLINK2 class, SharedStaticConstructor)s, $(CHECK),
+        $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
+        $(TROW $(GLINK2 class, SharedStaticDestructor)s,  $(CHECK),
+        $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
+        $(TROW RAII, $(CHECK), $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW $(RELATIVE_LINK2 assign-overload, identity assign overload), $(CHECK),
+        $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK))
+        $(TROW $(RELATIVE_LINK2 struct-literal, literals), $(CHECK), $(UNCHECK),
+        $(UNCHECK), $(UNCHECK), $(UNCHECK))
+        $(TROW operator overloading, $(CHECK), $(CHECK), $(UNCHECK),
+        $(CHECK), $(CHECK))
+        $(TROW inheritance, $(UNCHECK), $(CHECK), $(UNCHECK),
+        $(CHECK), $(CHECK))
+        $(TROW invariants, $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
+        $(UNCHECK))
+        $(TROW unit tests, $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
+        $(UNCHECK))
+        $(TROW synchronizable, $(UNCHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
+        $(UNCHECK))
+        $(TROW parameterizable, $(CHECK), $(CHECK), $(UNCHECK),
+        $(CHECK), $(CHECK))
+        $(TROW alignment control, $(CHECK), $(CHECK), $(UNCHECK),
+        $(UNCHECK), $(UNCHECK))
+        $(TROW member protection, $(CHECK), $(CHECK), $(UNCHECK),$(CHECK),$(CHECK))
+        $(TROW default public, $(CHECK), $(CHECK), $(CHECK),$(CHECK), $(UNCHECK))
+        $(TROW tag name space, $(UNCHECK), $(UNCHECK), $(CHECK),
+        $(CHECK), $(CHECK))
+        $(TROW anonymous, $(CHECK), $(UNCHECK), $(CHECK), $(CHECK), $(CHECK))
+        $(TROW static constructor, $(CHECK), $(CHECK), $(UNCHECK),
+        $(UNCHECK), $(UNCHECK))
+        $(TROW static destructor, $(CHECK), $(CHECK), $(UNCHECK),
+        $(UNCHECK), $(UNCHECK))
+        $(TROW const/immutable/shared, $(CHECK), $(CHECK), $(UNCHECK),
+        $(UNCHECK), $(UNCHECK))
+        $(TROW inner nesting, $(RELATIVE_LINK2 nested, $(CHECK)),
+        $(DDSUBLINK class, nested, $(CHECK)), $(UNCHECK), $(UNCHECK), $(UNCHECK))
+        )
+
+$(GRAMMAR
+$(GNAME AggregateDeclaration):
+    $(GLINK2 class, ClassDeclaration)
+    $(GLINK2 interface, InterfaceDeclaration)
+    $(GLINK StructDeclaration)
+    $(GLINK UnionDeclaration)
+
+$(GNAME StructDeclaration):
+    $(D struct) $(I Identifier) $(D ;)
+    $(D struct) $(I Identifier) $(GLINK AggregateBody)
+    $(GLINK2 template, StructTemplateDeclaration)
+    $(GLINK AnonStructDeclaration)
+
+$(GNAME AnonStructDeclaration):
+    $(D struct) $(GLINK AggregateBody)
+
+$(GNAME UnionDeclaration):
+    $(D union) $(I Identifier) $(D ;)
+    $(D union) $(I Identifier) $(GLINK AggregateBody)
+    $(GLINK2 template, UnionTemplateDeclaration)
+    $(GLINK AnonUnionDeclaration)
+
+$(GNAME AnonUnionDeclaration):
+    $(D union) $(GLINK AggregateBody)
+
+$(GNAME AggregateBody):
+    $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+)
+
+$(P They work like they do in C, with the following exceptions:)
+
+$(UL
+        $(LI no bit fields)
+        $(LI alignment can be explicitly specified)
+        $(LI no separate tag name space - tag names go into the current scope)
+        $(LI declarations like:
+
+------
+struct ABC x;
+------
+        are not allowed, replace with:
+
+------
+ABC x;
+------
+        )
+        $(LI anonymous structs/unions are allowed as members of other structs/unions)
+        $(LI Default initializers for members can be supplied.)
+        $(LI Member functions and static members are allowed.)
+)
+
+
+$(H3 Opaque Structs and Unions)
+
+    $(P Opaque struct and union declarations do not have a $(GLINK AggregateBody):)
+
+---
+struct S;
+union U;
+---
+
+	$(P The members are completely hidden to the user, and so the only operations
+	on those types are ones that do not require any knowledge of the contents
+	of those types. For example:)
+
+---
+struct S;
+S.sizeof; // error, size is not known
+S s;      // error, cannot initialize unknown contents
+S* p;     // ok, knowledge of members is not necessary
+---
+
+	$(P They can be used to implement the
+	$(LINK2 http://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
+
+
+$(H3 Static Initialization of Structs)
+
+        Static struct members are by default initialized to whatever the
+        default initializer for the member is, and if none supplied, to
+        the default initializer for the member's type.
+        If a static initializer is supplied, the
+        members are initialized by the member name,
+        colon, expression syntax. The members may be initialized in any order.
+        Initializers for statics must be evaluatable at compile time.
+        Members not specified in the initializer list are default initialized.
+
+------
+struct S { int a; int b; int c; int d = 7;}
+static S x = { a:1, b:2};            // c is set to 0, d to 7
+static S z = { c:4, b:5, a:2 , d:5}; // z.a = 2, z.b = 5, z.c = 4, z.d = 5
+------
+
+        C-style initialization, based on the order of the members in the
+        struct declaration, is also supported:
+
+------
+static S q = { 1, 2 }; // q.a = 1, q.b = 2, q.c = 0, q.d = 7
+------
+
+        $(P Struct literals can also be used to initialize statics, but
+        they must be evaluable at compile time.)
+
+-----
+static S q = S( 1, 2+3 ); // q.a = 1, q.b = 5, q.c = 0, q.d = 7
+-----
+
+        $(P The static initializer syntax can also be used to initialize
+        non-static variables, provided that the member names are not given.
+        The initializer need not be evaluatable at compile time.)
+
+----
+void test(int i)
+{
+    S q = { 1, i }; // q.a = 1, q.b = i, q.c = 0, q.d = 7
+}
+----
+
+
+$(H3 Static Initialization of Unions)
+
+        Unions are initialized explicitly.
+
+------
+union U { int a; double b; }
+static U u = { b : 5.0 }; // u.b = 5.0
+------
+
+        Other members of the union that overlay the initializer,
+        but occupy more storage, have
+        the extra storage initialized to zero.
+
+$(H3 Dynamic Initialization of Structs)
+
+        $(P Structs can be dynamically initialized from another
+        value of the same type:)
+
+----
+struct S { int a; }
+S t;      // default initialized
+t.a = 3;
+S s = t;  // s.a is set to 3
+----
+
+        $(P If $(D opCall) is overridden for the struct, and the struct
+        is initialized with a value that is of a different type,
+        then the $(D opCall) operator is called:)
+
+----
+struct S
+{
+    int a;
+
+    static S $(CODE_HIGHLIGHT opCall)(int v)
+    {
+        S s;
+        s.a = v;
+        return s;
+    }
+
+    static S $(CODE_HIGHLIGHT opCall)(S v)
+    {
+        S s;
+        s.a = v.a + 1;
+        return s;
+    }
+}
+
+S s = 3; // sets s.a to 3
+S t = s; // sets t.a to 3, S.opCall(s) is not called
+----
+
+$(H3 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
+
+        $(P Struct literals consist of the name of the struct followed
+        by a parenthesized argument list:)
+
+        ---
+        struct S { int x; float y; }
+
+        int foo(S s) { return s.x; }
+
+        foo( S(1, 2) ); // set field x to 1, field y to 2
+        ---
+
+        $(P Struct literals are syntactically like function calls.
+        If a struct has a member function named $(CODE opCall), then
+        struct literals for that struct are not possible. See also
+        $(DDSUBLINK operatoroverloading, FunctionCall, opCall operator overloading)
+        for the issue workaround.
+        It is an error if there are more arguments than fields of
+        the struct.
+        If there are fewer arguments than fields, the remaining
+        fields are initialized with their respective default
+        initializers.
+        If there are anonymous unions in the struct, only the first
+        member of the anonymous union can be initialized with a
+        struct literal, and all subsequent non-overlapping fields are default
+        initialized.
+        )
+
+$(H3 Struct Properties)
+
+$(TABLE2 Struct Properties,
+$(THEAD Name, Description)
+$(TROW $(D .sizeof), Size in bytes of struct)
+$(TROW $(D .alignof), Size boundary struct needs to be aligned on)
+$(TROW $(D .tupleof), Gets type tuple of fields))
+
+$(H3 Struct Field Properties)
+
+$(TABLE2 Struct Field Properties,
+$(THEAD Name, Description)
+$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct))
+
+$(SECTION3 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs),
+
+        $(P A struct declaration can have a storage class of
+        $(CODE const), $(CODE immutable) or $(CODE shared). It has an equivalent
+        effect as declaring each member of the struct as
+        $(CODE const), $(CODE immutable) or $(CODE shared).
+        )
+
+        ----
+        const struct S { int a; int b = 2; }
+
+        void main()
+        {
+            S s = S(3); // initializes s.a to 3
+            S t;        // initializes t.a to 0
+            t = s;      // error, t.a and t.b are const, so cannot modify them.
+            t.a = 4;    // error, t.a is const
+        }
+        ----
+)
+
+$(SECTION3 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors),
+
+        $(P Struct constructors are used to initialize an instance
+        of a struct.
+        The $(I ParameterList) may not be empty.
+        Struct instances that are not instantiated with a constructor
+        are default initialized to their $(CODE .init) value.
+        )
+
+        ------
+        struct S
+        {
+            int x, y;
+
+            this()  // error, cannot implement default ctor for structs
+            {
+            }
+
+            this(int a, int b)
+            {
+                x = a;
+                y = b;
+            }
+        }
+
+        void main()
+        {
+            S a = S(4, 5);
+            auto b = S();  // same as auto b = S.init;
+        }
+        ------
+
+        $(P A constructor qualifier allows the object to be constructed with
+        that specific qualifier.
+        )
+
+        ------
+        struct S1
+        {
+            int[] a;
+            this(int n) { a = new int[](n); }
+        }
+        struct S2
+        {
+            int[] a;
+            this(int n) immutable { a = new int[](n); }
+        }
+        void main()
+        {
+            // Mutable constructor creates mutable object.
+            S1 m1 = S1(1);
+
+            // Constructed mutable object is implicitly convertible to const.
+            const S1 c1 = S1(1);
+
+            // Constructed mutable object is not implicitly convertible to immutable.
+            // immutable i1 = S1(1);
+
+            // Mutable constructor cannot construct immutable object.
+            // auto x1 = immutable S1(1);
+
+            // Immutable constructor cannot construct mutable object.
+            // auto x2 = S2(1);
+
+            // Constructed immutable object is not implicitly convertible to mutable.
+            // S2 m2 = immutable S2(1);
+
+            // Constructed immutable object is implicitly convertible to const.
+            const S2 c2 = immutable S2(1);
+
+            // Immutable constructor creates immutable object.
+            immutable i2 = immutable S2(1);
+        }
+        ------
+
+        $(P If struct constructor is annotated with $(D @disable) and has
+        empty parameter, the struct is disabled construction without calling
+        other constructor.
+        )
+        ------
+        struct S
+        {
+            int x;
+
+            // Disables default construction, function body can be empty.
+            @disable this();
+
+            this(int v) { x = v; }
+        }
+        void main()
+        {
+            //S s;        // default construction is disabled
+            //S s = S();  // also disabled
+            S s = S(1);   // construction with calling constructor
+        }
+        ------
+)
+
+$(SECTION3 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits),
+
+$(GRAMMAR
+$(GNAME Postblit):
+    $(D this $(LPAREN) this $(RPAREN)) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D this $(LPAREN) this $(RPAREN)) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+)
+
+        $(P $(I Copy construction) is defined as initializing
+         a struct instance from another struct of the same type.
+         Copy construction is divided into two parts:)
+
+        $(OL
+        $(LI blitting the fields, i.e. copying the bits)
+        $(LI running $(I postblit) on the result)
+        )
+
+        $(P The first part is done automatically by the language,
+        the second part is done if a postblit function is defined
+        for the struct.
+        The postblit has access only to the destination struct object,
+        not the source.
+        Its job is to $(SINGLEQUOTE fix up) the destination as necessary, such as
+        making copies of referenced data, incrementing reference counts,
+        etc. For example:
+        )
+
+        ---
+        struct S
+        {
+            int[] a;    // array is privately owned by this instance
+            this(this)
+            {
+                a = a.dup;
+            }
+        }
+        ---
+
+        $(P Disabling struct postblit makes the object not copyable.
+        )
+
+        ---
+        struct T
+        {
+            @disable this(this);  // disabling makes T not copyable
+        }
+        struct S
+        {
+            T t;   // uncopyable member makes S also not copyable
+        }
+
+        void main()
+        {
+            S s;
+            S t = s; // error, S is not copyable
+        }
+        ---
+
+        $(P Unions may not have fields that have postblits.)
+)
+
+$(SECTION3 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors),
+
+        $(P Destructors are called when an object goes out of scope.
+        Their purpose is to free up resources owned by the struct
+        object.
+        )
+
+        $(P Unions may not have fields that have destructors.)
+)
+
+$(SECTION3 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overload),
+
+        $(P While copy construction takes care of initializing
+        an object from another object of the same type,
+        or elaborate destruction is needed for the type,
+        assignment is defined as copying the contents of one
+        object over another, already initialized, type:
+        )
+
+        ---
+        struct S { ... }  // S has postblit or destructor
+        S s;      // default construction of s
+        S t = s;  // t is copy-constructed from s
+        t = s;    // t is assigned from s
+        ---
+
+        $(P Struct assignment $(CODE t=s) is defined to be semantically
+        equivalent to:
+        )
+
+        ---
+        t.opAssign(s);
+        ---
+
+        $(P where $(CODE opAssign) is a member function of S:)
+
+        ---
+        ref S opAssign(S s)
+        {
+            S tmp = this;   // bitcopy this into tmp
+            this = s;       // bitcopy s into this
+            tmp.__dtor();   // call destructor on tmp
+            return this;
+        }
+        ---
+
+        $(P While the compiler will generate a default $(CODE opAssign)
+        as needed, a user-defined one can be supplied. The user-defined
+        one must still implement the equivalent semantics, but can
+        be more efficient.
+        )
+
+        $(P One reason a custom $(CODE opAssign) might be more efficient
+        is if the struct has a reference to a local buffer:
+        )
+
+        ---
+        struct S
+        {
+            int[] buf;
+            int a;
+
+            ref S opAssign(ref const S s)
+            {
+                a = s.a;
+                return this;
+            }
+
+            this(this)
+            {
+                buf = buf.dup;
+            }
+        }
+        ---
+
+        $(P Here, $(CODE S) has a temporary workspace $(CODE buf[]).
+        The normal postblit
+        will pointlessly free and reallocate it. The custom $(CODE opAssign)
+        will reuse the existing storage.
+        )
+
+)
+
+
+$(H2 $(LNAME2 nested, Nested Structs))
+
+    $(P A $(I nested struct) is a struct that is declared inside the scope
+        of a function or a templated struct that has aliases to local
+        functions as a template argument.
+        Nested structs have member functions.
+        It has access to the context of its enclosing scope
+        (via an added hidden field).
+
+        ---
+        void foo()
+        {
+            int i = 7;
+            struct SS
+            {
+                int x,y;
+                int bar() { return x + i + 1; }
+            }
+            SS s;
+            s.x = 3;
+            s.bar(); // returns 11
+        }
+        ---
+    )
+
+    $(P A struct can be prevented from being nested by
+        using the static attribute, but then of course it
+        will not be able to access variables from its enclosing
+        scope.
+
+        ---
+        void foo()
+        {
+            int i = 7;
+            static struct SS
+            {
+                int x, y;
+                int bar()
+                {
+                    return i; // error, SS is not a nested struct
+                }
+            }
+        }
+        ---
+    )
+
+$(H2 Unions and Special Member Functions)
+
+    $(P Unions may not have postblits, destructors, or invariants.)
+
+)
+
+Macros:
+        TITLE=Structs, Unions
+        WIKI=Struct
+        UNCHECK=
+        CHECK=$(CHECKMARK)
+        _=

@@ -1,0 +1,819 @@
+Ddoc
+
+$(SPEC_S Attributes,
+
+$(GRAMMAR
+$(GNAME AttributeSpecifier):
+    $(GLINK Attribute) $(D :)
+    $(GLINK Attribute) $(GLINK DeclarationBlock)
+
+$(GNAME Attribute):
+    $(RELATIVE_LINK2 linkage, $(I LinkageAttribute))
+    $(RELATIVE_LINK2 align, $(I AlignAttribute))
+    $(RELATIVE_LINK2 deprecated, $(I DeprecatedAttribute))
+    $(GLINK ProtectionAttribute)
+    $(GLINK2 pragma, Pragma)
+    $(RELATIVE_LINK2 static, $(D static))
+    $(RELATIVE_LINK2 linkage, $(D extern))
+    $(RELATIVE_LINK2 abstract, $(D abstract))
+    $(D final)
+    $(RELATIVE_LINK2 override, $(D override))
+    $(D synchronized)
+    $(RELATIVE_LINK2 auto, $(D auto))
+    $(RELATIVE_LINK2 scope, $(D scope))
+    $(RELATIVE_LINK2 const, $(D const))
+    $(RELATIVE_LINK2 immutable, $(D immutable))
+    $(RELATIVE_LINK2 inout, $(D inout))
+    $(RELATIVE_LINK2 shared, $(D shared))
+    $(RELATIVE_LINK2 gshared, $(D __gshared))
+    $(GLINK Property)
+    $(RELATIVE_LINK2 nothrow, $(D nothrow))
+    $(RELATIVE_LINK2 pure, $(D pure))
+    $(RELATIVE_LINK2 ref, $(D ref))
+
+$(GNAME Property):
+    $(D @) $(GLINK PropertyIdentifier)
+    $(GLINK UserDefinedAttribute)
+
+$(GNAME PropertyIdentifier):
+    $(RELATIVE_LINK2 property, $(D property))
+    $(D safe)
+    $(D trusted)
+    $(D system)
+    $(RELATIVE_LINK2 disable, $(D disable))
+    $(RELATIVE_LINK2 nogc, $(D nogc))
+
+$(GNAME DeclarationBlock):
+    $(GLINK2 module, DeclDef)
+    $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+)
+
+        $(P Attributes are a way to modify one or more declarations.
+        The general forms are:
+        )
+
+---
+attribute declaration; // affects the declaration
+
+attribute:     // affects all declarations until the end of
+               // the current scope
+  declaration;
+  declaration;
+  ...
+
+attribute {    // affects all declarations in the block
+  declaration;
+  declaration;
+  ...
+}
+---
+
+$(H3 $(LNAME2 linkage, Linkage Attribute))
+
+$(GRAMMAR
+$(GNAME LinkageAttribute):
+    $(D extern) $(D $(LPAREN)) $(GLINK LinkageType) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C++), $(GLINK2 declaration, IdentifierList) $(D $(RPAREN))
+
+$(GNAME LinkageType):
+    $(D C)
+    $(D C++)
+    $(D D)
+    $(D Windows)
+    $(D Pascal)
+    $(D System)
+    $(D Objective-C)
+)
+
+        $(P D provides an easy way to call C functions and operating
+        system API functions, as compatibility with both is essential.
+        The $(I LinkageType) is case sensitive, and is meant to be
+        extensible by the implementation ($(D they are not keywords)).
+        $(D C) and $(D D) must be supplied, the others are what
+        makes sense for the implementation.
+        $(D C++) offers limited compatibility with C++.
+        $(D Objective-C) offers limited compatibility with Objective-C,
+        see the $(LINK2 objc_interface.html, Interfacing to Objective-C)
+        documentation for more information.
+        $(D System) is the same as $(D Windows) on Windows platforms,
+        and $(D C) on other platforms.
+        $(D Implementation Note:)
+        for Win32 platforms, $(D Windows) and $(D Pascal) should exist.
+        )
+
+        $(P C function calling conventions are
+        specified by:
+        )
+
+---------------
+extern (C):
+    int foo(); // call foo() with C conventions
+---------------
+
+        $(P D conventions are:)
+
+---------------
+extern (D):
+---------------
+
+        $(P Windows API conventions are:)
+
+---------------
+extern (Windows):
+    void *VirtualAlloc(
+        void *lpAddress,
+        uint dwSize,
+        uint flAllocationType,
+        uint flProtect
+    );
+---------------
+
+	$(P The Windows convention is distinct from the C convention only on Win32 platforms,
+	where it is equivalent to the
+	$(LINK2 http://en.wikipedia.org/wiki/X86_calling_conventions, stdcall) convention.)
+
+        $(P Note that a lone $(D extern) declaration is used as a
+        $(DDSUBLINK declaration, extern, storage class).)
+
+$(H4 C++ $(LNAME2 namespace, Namespaces))
+
+        $(P The linkage form $(D extern $(LPAREN)C++, )$(I IdentifierList)$(D $(RPAREN))
+        creates C++ declarations that reside in C++ namespaces. The $(I IdentifierList)
+        specifies the namespaces.
+        )
+
+        ---
+        extern (C++, N) { void foo(); }
+        ---
+
+        $(P refers to the C++ declaration:)
+
+        $(CPPCODE namespace N { void foo(); })
+
+        $(P and can be referred to with or without qualification:)
+
+        ---
+        foo();
+        N.foo();
+        ---
+
+        $(P Namespaces create a new named scope that is imported into its enclosing scope.)
+
+        ---
+        extern (C++, N) { void foo(); void bar(); }
+        extern (C++, M) { void foo(); }
+
+        bar();   // ok
+        foo();   // error - N.foo() or M.foo() ?
+        M.foo(); // ok
+        ---
+
+        $(P Multiple identifiers in the $(I IdentifierList) create nested namespaces:)
+
+        ---
+        extern (C++, N.M) { extern (C++) { extern (C++, R) { void foo(); } } }
+        N.M.R.foo();
+        ---
+
+        $(P refers to the C++ declaration:)
+
+        $(CPPCODE namespace N { namespace M { namespace R { void foo(); } } })
+
+
+$(H3 $(LNAME2 align, $(D align) Attribute))
+
+$(GRAMMAR
+$(GNAME AlignAttribute):
+    $(D align)
+    $(D align) $(D $(LPAREN)) $(GLINK2 lex, IntegerLiteral) $(D $(RPAREN))
+)
+
+
+        $(P Specifies the alignment of:)
+
+        $(OL
+        $(LI variables)
+        $(LI struct fields)
+        $(LI union fields)
+        $(LI class fields)
+        $(LI struct, union, and class types)
+        )
+
+        $(P $(D align) by itself
+        sets it to the default, which matches the default member alignment
+        of the companion C compiler.)
+
+--------
+struct S
+{
+  align:
+    byte a;   // placed at offset 0
+    int b;    // placed at offset 4
+    long c;   // placed at offset 8
+}
+
+auto sz = S.sizeof;  // 16
+--------
+
+        $(P $(I IntegerLiteral) specifies the alignment
+        which matches the behavior of the companion C compiler when non-default
+        alignments are used. It must be a positive power of 2.
+        )
+
+        $(P A value of 1 means that no alignment is done;
+        fields are packed together.
+        )
+
+--------
+struct S
+{
+  align (1):
+    byte a;   // placed at offset 0
+    int b;    // placed at offset 1
+    long c;   // placed at offset 5
+}
+
+auto sz = S.sizeof;  // 16
+--------
+
+        $(P The alignment for the fields of an aggregate does not affect the alignment
+        of the aggregate itself - that is affected by the alignment setting outside
+        of the aggregate.)
+
+--------
+align (2) struct S
+{
+  align (1):
+    byte a;   // placed at offset 0
+    int b;    // placed at offset 1
+    long c;   // placed at offset 5
+}
+
+auto sz = S.sizeof;  // 14
+--------
+
+        $(P Setting the alignment of a field aligns it to that power of 2, regardless
+        of the size of the field.)
+
+--------
+struct S
+{
+  align (4):
+    byte a;   // placed at offset 0
+    byte b;   // placed at offset 4
+    short c;  // placed at offset 8
+}
+
+auto sz = S.sizeof;  // 12
+--------
+
+
+        $(P Do not align references or pointers that were allocated
+        using $(GLINK2 expression, NewExpression) on boundaries that are not
+        a multiple of $(D size_t). The garbage collector assumes that pointers
+        and references to gc allocated objects will be on $(D size_t)
+        byte boundaries. If they are not, undefined behavior will
+        result.
+        )
+
+        $(P The $(I AlignAttribute) is reset to the default when
+        entering a function scope or a non-anonymous struct, union, class, and restored
+        when exiting that scope.
+        It is not inherited from a base class.
+        )
+
+
+
+$(H3 $(LNAME2 deprecated, $(D deprecated) Attribute))
+
+$(GRAMMAR
+$(GNAME DeprecatedAttribute):
+    $(D deprecated)
+    $(D deprecated $(LPAREN)) $(GLINK2 lex, StringLiteral) $(D $(RPAREN))
+)
+
+        $(P It is often necessary to deprecate a feature in a library,
+        yet retain it for backwards compatibility. Such
+        declarations can be marked as $(D deprecated), which means
+        that the compiler can be instructed to produce an error
+        if any code refers to deprecated declarations:
+        )
+
+        ---------------
+        deprecated
+        {
+            void oldFoo();
+        }
+
+        oldFoo();   // Deprecated: function test.oldFoo is deprecated
+        ---------------
+
+        $(P Optional $(GLINK2 lex, StringLiteral) can show additional
+        information in the deprecation message.
+        )
+
+        ---------------
+        deprecated("Don't use bar") void oldBar();
+        oldBar();   // Deprecated: function test.oldBar is deprecated - Don't use bar
+        ---------------
+
+        $(P $(D Implementation Note:) The compiler should have a switch
+        specifying if $(D deprecated) should be ignored, cause a warning, or cause an error during compilation.
+        )
+
+
+$(H3 Protection Attribute)
+
+$(GRAMMAR
+$(GNAME ProtectionAttribute):
+    $(D private)
+    $(D package)
+    $(D package) $(D $(LPAREN)) $(GLINK IdentifierList) $(D $(RPAREN))
+    $(D protected)
+    $(D public)
+    $(D export)
+)
+
+        $(P Protection is an attribute that is one of
+        $(D private), $(D package), $(D protected),
+        $(D public) or $(D export).
+        )
+
+        $(P Private means that only members of the enclosing class can access
+        the member, or members and functions in the same module as the
+        enclosing class.
+        Private members cannot be overridden.
+        Private module members are equivalent to $(D static) declarations
+        in C programs.
+        )
+
+        $(P Package extends private so that package members can be accessed
+        from code in other modules that are in the same package.
+        This applies to the innermost package only, if a module is in
+        nested packages.
+        )
+
+        $(P Package may have an optional parameter - dot-separated identifier
+        list which is resolved as the qualified package name. If this optional
+        parameter is present, the symbol is considered to be owned by that
+        package instead of the default innermost one. This only applies to
+        access checks and does not affect the module/package this symbol
+        belongs to.
+        )
+
+        $(P Protected means that only members of the enclosing class or any
+        classes derived from that class,
+        or members and functions in the same module
+        as the enclosing class, can access the member.
+        If accessing a protected instance member through a derived class member
+        function,
+        that member can only be accessed for the object instance
+        which can be implicitly cast to the same type as $(SINGLEQUOTE this).
+        Protected module members are illegal.
+        )
+
+        $(P Public means that any code within the executable can access the member.
+        )
+
+        $(P Export means that any code outside the executable can access the
+        member. Export
+        is analogous to exporting definitions from a DLL.
+        )
+
+        $(P Protection does not participate in name lookup.
+        In particular, if two symbols with the same name are in scope,
+        and that name is used unqualified then the lookup will be ambiguous,
+        even if one of the symbols is inaccessible due to protection.
+        For example:
+        )
+
+---------------
+module A;
+private class Foo {}
+---------------
+
+---------------
+module B;
+public class Foo {}
+---------------
+
+---------------
+import A;
+import B;
+
+Foo f1; // error, could be either A.Foo or B.Foo
+B.Foo f2; // ok
+---------------
+
+$(H3 $(LNAME2 const, $(D const) Attribute))
+
+        $(P The $(D const) attribute changes the type of the declared symbol from $(D T) to $(D const(T)),
+        where $(D T) is the type specified (or inferred) for the introduced symbol in the absence of $(D const).
+        )
+
+        ---------------
+        const int foo = 7;
+        static assert(is(typeof(foo) == const(int)));
+
+        const
+        {
+            double bar = foo + 6;
+        }
+        static assert(is(typeof(bar) == const(double)));
+
+        class C
+        {
+            const void foo();
+            const
+            {
+                void bar();
+            }
+            void baz() const;
+        }
+        pragma(msg, typeof(C.foo)); // const void()
+        pragma(msg, typeof(C.bar)); // const void()
+        pragma(msg, typeof(C.baz)); // const void()
+        static assert(is(typeof(C.foo) == typeof(C.bar)) &&
+                      is(typeof(C.bar) == typeof(C.baz)));
+        ---------------
+
+$(H3 $(LNAME2 immutable, $(D immutable) Attribute))
+
+        $(P The $(D immutable) attribute modifies the type from $(D T) to $(D immutable(T)),
+        the same way as $(D const) does.
+        )
+
+$(H3 $(LNAME2 inout, $(D inout) Attribute))
+
+        $(P The $(D inout) attribute modifies the type from $(D T) to $(D inout(T)),
+        the same way as $(D const) does.
+        )
+
+$(H3 $(LNAME2 shared, $(D shared) Attribute))
+
+        $(P The $(D shared) attribute modifies the type from $(D T) to $(D shared(T)),
+        the same way as $(D const) does.
+        )
+
+$(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
+
+        $(P By default, non-immutable global declarations reside in thread local
+        storage. When a global variable is marked with the $(D __gshared)
+        attribute, its value is shared across all threads.)
+
+        ---
+        int foo;            // Each thread has its own exclusive copy of foo.
+        __gshared int bar;  // bar is shared by all threads.
+        ---
+
+        $(P $(D __gshared) may also be applied to member variables and local
+        variables. In these cases, $(D __gshared) is equivalent to $(D static),
+        except that the variable is shared by all threads rather than being
+        thread local.)
+
+        ---
+        class Foo
+        {
+            __gshared int bar;
+        }
+
+        int foo()
+        {
+            __gshared int bar = 0;
+            return bar++; // Not thread safe.
+        }
+        ---
+
+        $(P Unlike the $(D shared) attribute, $(D __gshared) provides no
+        safe-guards against data races or other multi-threaded synchronization
+        issues. It is the responsibility of the programmer to ensure that
+        access to variables marked $(D __gshared) is synchronized correctly.)
+
+        $(P $(D __gshared) is disallowed in safe mode.)
+
+$(H3 $(LNAME2 disable, $(D @disable) Attribute))
+
+        $(P A reference to a declaration marked with the $(CODE @disable) attribute causes
+        a compile time error.
+        This can be used to explicitly disallow certain operations or overloads
+        at compile time rather than relying on generating a runtime error.
+        )
+
+        ---
+        @disable void foo() { }
+
+        void main()
+        {
+            foo();   // error, foo is disabled
+        }
+        ---
+
+        $(P $(DDSUBLINK struct, Struct-Constructor, Disabling struct no-arg constructor)
+        disallows default construction of the struct.
+        )
+
+        $(P $(DDSUBLINK struct, StructPostblit, Disabling struct postblit)
+        makes the struct not copyable.
+        )
+
+$(H3 $(LNAME2 nogc, $(D @nogc) Attribute))
+
+        $(P $(D @nogc) applies to functions, and means that that function does not
+        allocate memory on the GC heap, either directly such as with
+        $(GLINK2 expression, NewExpression) or
+        indirectly through functions it may call, or through language features
+        such as array concatenation and dynamic closures.
+        )
+
+        ---
+        @nogc void foo(char[] a)
+        {
+            auto p = new int;  // error, operator new allocates
+            a ~= 'c';          // error, appending to arrays allocates
+            bar();             // error, bar() may allocate
+        }
+
+        void bar() { }
+        ---
+
+        $(P $(D @nogc) affects the type of the function. An $(D @nogc) function is covariant
+        with a non-$(D @nogc) function.
+        )
+
+        ---
+        void function() fp;
+        void function() @nogc gp;  // pointer to @nogc function
+
+        void foo();
+        @nogc void bar();
+
+        void test()
+        {
+            fp = &foo; // ok
+            fp = &bar; // ok, it's covariant
+            gp = &foo; // error, not contravariant
+            gp = &bar; // ok
+        }
+        ---
+
+$(H3 $(LNAME2 property, $(D @property) Attribute))
+
+    $(P See $(DDSUBLINK function, property-functions, Property Functions).)
+
+$(H3 $(LNAME2 nothrow, $(D nothrow) Attribute))
+
+    $(P See $(DDSUBLINK function, nothrow-functions, Nothrow Functions).)
+
+$(H3 $(LNAME2 pure, $(D pure) Attribute))
+
+    $(P See $(DDSUBLINK function, pure-functions, Pure Functions).)
+
+$(H3 $(LNAME2 ref, $(D ref) Attribute))
+
+    $(P See $(DDSUBLINK function, ref-functions, Ref Functions).)
+
+$(H3 $(LNAME2 override, $(D override) Attribute))
+
+        $(P The $(D override) attribute applies to virtual functions.
+        It means that the function must override a function with the
+        same name and parameters in a base class. The override attribute
+        is useful for catching errors when a base class's member function
+        gets its parameters changed, and all derived classes need to have
+        their overriding functions updated.
+        )
+
+---------------
+class Foo
+{
+    int bar();
+    int abc(int x);
+}
+
+class Foo2 : Foo
+{
+    override
+    {
+        int bar(char c); // error, no bar(char) in Foo
+        int abc(int x);  // ok
+    }
+}
+---------------
+
+$(H3 $(LNAME2 static, $(D static) Attribute))
+
+        $(P The $(D static) attribute applies to functions and data.
+        It means that the declaration does not apply to a particular
+        instance of an object, but to the type of the object. In
+        other words, it means there is no $(D this) reference.
+        $(D static) is ignored when applied to other declarations.
+        )
+
+---------------
+class Foo
+{
+    static int bar() { return 6; }
+    int foobar() { return 7; }
+}
+
+...
+
+Foo f = new Foo;
+Foo.bar();      // produces 6
+Foo.foobar();   // error, no instance of Foo
+f.bar();        // produces 6;
+f.foobar();     // produces 7;
+---------------
+
+$(P
+        Static functions are never virtual.
+)
+$(P
+        Static data has one instance per thread, not one per object.
+)
+$(P
+        Static does not have the additional C meaning of being local
+        to a file. Use the $(D private) attribute in D to achieve that.
+        For example:
+)
+
+---------------
+module foo;
+int x = 3;         // x is global
+private int y = 4; // y is local to module foo
+---------------
+
+
+$(H3 $(LNAME2 auto, $(D auto) Attribute))
+
+        $(P The $(D auto) attribute is used when there are no other attributes
+        and type inference is desired.
+        )
+
+---
+auto i = 6.8;   // declare i as a double
+---
+
+$(H3 $(LNAME2 scope, $(D scope) Attribute))
+
+$(P
+        The $(D scope) attribute is used for local variables and for class
+        declarations. For class declarations, the $(D scope) attribute creates
+        a $(I scope) class.
+        For local declarations, $(D scope) implements the RAII (Resource
+        Acquisition Is Initialization) protocol. This means that the
+        destructor for an object is automatically called when the
+        reference to it goes out of scope. The destructor is called even
+        if the scope is exited via a thrown exception, thus $(D scope)
+        is used to guarantee cleanup.
+)
+$(P
+        If there is more than one $(D scope) variable going out of scope
+        at the same point, then the destructors are called in the reverse
+        order that the variables were constructed.
+)
+$(P
+        $(D scope) cannot be applied to globals, statics, data members, ref
+        or out parameters. Arrays of $(D scope)s are not allowed, and $(D scope)
+        function return values are not allowed. Assignment to a $(D scope),
+        other than initialization, is not allowed.
+        $(D Rationale:) These restrictions may get relaxed in the future
+        if a compelling reason to appears.
+)
+
+$(H3 $(LNAME2 abstract, $(D abstract) Attribute))
+
+$(P
+        If a class is abstract, it cannot be instantiated
+        directly. It can only be instantiated as a base class of
+        another, non-abstract, class.
+)
+$(P
+        Classes become abstract if they are defined within an
+        abstract attribute, or if any of the virtual member functions
+        within it are declared as abstract.
+)
+$(P
+        Non-virtual functions cannot be declared as abstract.
+)
+$(P
+        Functions declared as abstract can still have function
+        bodies. This is so that even though they must be overridden,
+        they can still provide $(SINGLEQUOTE base class functionality.)
+)
+
+$(SECTION3 $(LNAME2 uda, User Defined Attributes),
+
+        $(P
+            User Defined Attributes (UDA) are compile time expressions that can be attached
+            to a declaration. These attributes can then be queried, extracted, and manipulated
+            at compile time. There is no runtime component to them.
+        )
+
+        $(P
+            Grammatically, a UDA is a StorageClass:
+        )
+
+$(GRAMMAR
+$(GNAME UserDefinedAttribute):
+    $(D @ $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
+    $(D @) $(I Identifier)
+    $(D @) $(I Identifier) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+    $(D @) $(GLINK2 template, TemplateInstance)
+    $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
+)
+        $(P
+            And looks like:
+        )
+
+---
+@(3) int a;
+@("string", 7) int b;
+
+enum Foo;
+@Foo int c;
+
+struct Bar
+{
+    int x;
+}
+
+@Bar(3) int d;
+---
+
+        $(P
+            If there are multiple UDAs in scope for a declaration, they are concatenated:
+        )
+
+---
+@(1)
+{
+    @(2) int a;         // has UDA's (1, 2)
+    @("string") int b;  // has UDA's (1, "string")
+}
+---
+
+        $(P
+            UDA's can be extracted into an expression tuple using $(D __traits):
+        )
+
+---
+@('c') string s;
+pragma(msg, __traits(getAttributes, s)); // prints tuple('c')
+---
+)
+
+        $(P
+            If there are no user defined attributes for the symbol, an empty tuple is returned.
+            The expression tuple can be turned into a manipulatable tuple:
+        )
+
+---
+template Tuple (T...)
+{
+    alias Tuple = T;
+}
+
+enum EEE = 7;
+@("hello") struct SSS { }
+@(3) { @(4) @EEE @SSS int foo; }
+
+alias TP = Tuple!(__traits(getAttributes, foo));
+
+pragma(msg, TP); // prints tuple(3, 4, 7, (SSS))
+pragma(msg, TP[2]); // prints 7
+---
+
+        $(P
+            Of course the tuple types can be used to declare things:
+        )
+
+---
+TP[3] a; // a is declared as an SSS
+---
+
+        $(P
+            The attribute of the type name is not the same as the attribute of the variable:
+        )
+
+---
+pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
+---
+
+        $(P
+            Of course, the real value of UDA's is to be able to create user defined types with
+            specific values. Having attribute values of basic types does not scale.
+            The attribute tuples can be manipulated like any other tuple, and can be passed as
+            the argument list to a template.
+        )
+
+        $(P
+            Whether the attributes are values or types is up to the user, and whether later
+            attributes accumulate or override earlier ones is also up to how the user
+            interprets them.
+        )
+)
+
+Macros:
+        TITLE=Attributes
+        WIKI=Attribute
+

@@ -1,0 +1,999 @@
+Ddoc
+
+$(SPEC_S Arrays,
+
+    $(P There are four kinds of arrays:)
+
+    $(TABLE2 Kinds of Arrays,
+        $(THEAD Syntax, Description)
+        $(TROW $(ARGS $(I type)*), $(ARGS $(RELATIVE_LINK2 pointers, Pointers to data)))
+        $(TROW $(ARGS $(I type)[$(I integer)]), $(ARGS $(RELATIVE_LINK2 static-arrays, Static arrays)))
+        $(TROW $(ARGS $(I type)[]),  $(ARGS $(RELATIVE_LINK2 dynamic-arrays, Dynamic arrays)))
+        $(TROW $(ARGS $(I type)[$(I type)]), $(ARGS $(DDLINK hash-map, Associative Arrays, Associative arrays)))
+    )
+
+$(H4 $(LNAME2 pointers, Pointers))
+
+---------
+int* p;
+---------
+
+        $(P These are simple pointers to data, analogous to C pointers.
+        Pointers are provided for interfacing with C and for
+        specialized systems work.
+        There
+        is no length associated with it, and so there is no way for the
+        compiler or runtime to do bounds checking, etc., on it.
+        Most conventional uses for pointers can be replaced with
+        dynamic arrays, $(D out) and $(D ref) parameters,
+        and reference types.
+        )
+
+$(H4 $(LNAME2 static-arrays, Static Arrays))
+
+---------
+int[3] s;
+---------
+
+        $(P These are analogous to C arrays. Static arrays are distinguished
+        by having a length fixed at compile time.
+        )
+
+        $(P The total size of a static array cannot exceed 16Mb.
+        A dynamic array should be used instead for such large arrays.
+        )
+
+        $(P A static array with a dimension of 0 is allowed, but no
+        space is allocated for it. It's useful as the last member
+        of a variable length struct, or as the degenerate case of
+        a template expansion.
+        )
+
+
+        $(P Static arrays are value types. Unlike in C and D version 1,
+        static arrays are passed to functions by value.
+        Static arrays can also be returned by functions.
+        )
+
+
+$(H4 $(LNAME2 dynamic-arrays, Dynamic Arrays))
+
+---------
+int[] a;
+---------
+
+        $(P Dynamic arrays consist of a length and a pointer to the array data.
+        Multiple dynamic arrays can share all or parts of the array data.
+        )
+
+$(H2 $(LNAME2 declarations, Array Declarations))
+
+        $(P Declarations appear before the identifier being
+        declared and read right to left, so:
+        )
+
+---------
+int[] a;      // dynamic array of ints
+int[4][3] b;  // array of 3 arrays of 4 ints each
+int[][5] c;   // array of 5 dynamic arrays of ints.
+int*[]*[3] d; // array of 3 pointers to dynamic arrays of pointers to ints
+int[]* e;     // pointer to dynamic array of ints
+---------
+
+$(H2 $(LNAME2 usage, Array Usage))
+
+        $(P There are two broad kinds of operations to do on an array -
+        affecting
+        the handle to the array,
+        and affecting the contents of the array.
+        C only has
+        operators to affect the handle. In D, both are accessible.
+        )
+
+        $(P The handle to an array is specified by naming the array, as
+        in p, s or a:
+        )
+
+---------
+int* p;
+int[3] s;
+int[] a;
+
+int* q;
+int[3] t;
+int[] b;
+
+p = q;     // p points to the same thing q does.
+p = s.ptr; // p points to the first element of the array s.
+p = a.ptr; // p points to the first element of the array a.
+
+s = ...;   // error, since s is a compiled in static
+           // reference to an array.
+
+a = p;     // error, since the length of the array pointed
+           // to by p is unknown
+a = s;     // a is initialized to point to the s array
+a = b;     // a points to the same array as b does
+---------
+
+$(H2 $(LNAME2 slicing, Slicing))
+
+        $(P $(I Slicing) an array means to specify a subarray of it.
+        An array slice does not copy the data, it is only another
+        reference to it.
+        For example:
+        )
+
+---------
+int[10] a;   // declare array of 10 ints
+int[] b;
+
+b = a[1..3]; // a[1..3] is a 2 element array consisting of
+             // a[1] and a[2]
+foo(b[1]);   // equivalent to foo(0)
+a[2] = 3;
+foo(b[1]);   // equivalent to foo(3)
+---------
+
+        $(P The [] is shorthand for a slice of the entire array.
+        For example, the assignments to b:
+        )
+
+---------
+int[10] a;
+int[] b;
+
+b = a;
+b = a[];
+b = a[0 .. a.length];
+---------
+
+        $(P are all semantically equivalent.
+        )
+
+        $(P Slicing
+        is not only handy for referring to parts of other arrays,
+        but for converting pointers into bounds-checked arrays:
+        )
+
+---------
+int* p;
+int[] b = p[0..8];
+---------
+
+$(H2 $(LNAME2 array-copying, Array Copying))
+
+        $(P When the slice operator appears as the left-hand side of an
+        assignment expression, it means that the contents of the array are the
+        target of the assignment rather than a reference to the array.
+        Array copying happens when the left-hand side is a slice, and the
+        right-hand side is an array of or pointer to the same type.
+        )
+
+---------
+int[3] s;
+int[3] t;
+
+s[] = t;           // the 3 elements of t[3] are copied into s[3]
+s[] = t[];         // the 3 elements of t[3] are copied into s[3]
+s[1..2] = t[0..1]; // same as s[1] = t[0]
+s[0..2] = t[1..3]; // same as s[0] = t[1], s[1] = t[2]
+s[0..4] = t[0..4]; // error, only 3 elements in s
+s[0..2] = t;       // error, operands have different lengths
+---------
+
+$(H3 $(LNAME2 overlapping-copying, Overlapping Copying))
+
+        $(P Overlapping copies are an error:)
+
+---------
+s[0..2] = s[1..3]; // error, overlapping copy
+s[1..3] = s[0..2]; // error, overlapping copy
+---------
+
+        $(P Disallowing overlapping makes it possible for more aggressive
+        parallel code optimizations than possible with the serial
+        semantics of C.
+        )
+        
+        $(P If overlapping is required, use
+        $(XREF_PACK algorithm,mutation,copy):
+        )
+
+---------
+import std.algorithm;
+int[] s = [1, 2, 3, 4];
+
+copy(s[1..3], s[0..2]);
+assert(s == [2, 3, 3, 4]);
+---------
+
+
+$(H2 $(LNAME2 array-setting, Array Setting))
+
+        $(P If a slice operator appears as the left-hand side of an assignment
+        expression, and the type of the right-hand side is the same as the
+        element type of the left-hand side, then the array contents of the
+        left-hand side are set to the right-hand side.
+        )
+
+---------
+int[3] s;
+int* p;
+
+s[] = 3;     // same as s[0] = 3, s[1] = 3, s[2] = 3
+p[0..2] = 3; // same as p[0] = 3, p[1] = 3
+---------
+
+$(H2 $(LNAME2 array-concatenation, Array Concatenation))
+
+        $(P The binary operator ~ is the $(I cat) operator. It is used
+        to concatenate arrays:
+        )
+
+---------
+int[] a;
+int[] b;
+int[] c;
+
+a = b ~ c; // Create an array from the concatenation
+           // of the b and c arrays
+---------
+
+        $(P Many languages overload the + operator to mean concatenation.
+        This confusingly leads to, does:
+        )
+
+---------
+"10" + 3 + 4
+---------
+
+        $(P produce the number 17, the string "1034" or the string "107" as the
+        result? It isn't obvious, and the language designers wind up carefully
+        writing rules to disambiguate it - rules that get incorrectly
+        implemented, overlooked, forgotten, and ignored. It's much better to
+        have + mean addition, and a separate operator to be array
+        concatenation.
+        )
+
+        $(P Similarly, the ~= operator means append, as in:
+        )
+
+---------
+a ~= b; // a becomes the concatenation of a and b
+---------
+
+        $(P Concatenation always creates a copy of its operands, even
+        if one of the operands is a 0 length array, so:
+        )
+
+---------
+a = b;           // a refers to b
+a = b ~ c[0..0]; // a refers to a copy of b
+---------
+
+        $(P Appending does not always create a copy, see $(RELATIVE_LINK2 resize,
+        setting dynamic array length) for details.
+        )
+
+$(H2 $(LNAME2 array-operations, Array Operations))
+
+        $(P Many array operations, also known as vector operations,
+        can be expressed at a high level rather than as a loop.
+        For example, the loop:
+        )
+
+---
+T[] a, b;
+...
+for (size_t i = 0; i < a.length; i++)
+    a[i] = b[i] + 4;
+---
+
+        $(P assigns to the elements of $(CODE a) the elements of $(CODE b)
+        with $(CODE 4) added to each. This can also be expressed in
+        vector notation as:
+        )
+
+---
+T[] a, b;
+...
+a[] = b[] + 4;
+---
+
+        $(P A vector operation is indicated by the slice operator appearing
+        as the left-hand side of an =, +=, -=, *=, /=, %=, ^=, $(AMP)= or |=
+        operator.
+        The right-hand side can be an expression consisting either of an array
+        slice of the same length and type as the left-hand side or an expression
+        of the element type of the left-hand side, in any combination.
+        The operators supported for vector operations are the binary
+        operators +, -, *, /, %, ^, $(AMP) and |, and the unary operators
+        - and ~.
+        )
+
+        $(P The slice on the left and any slices on the right must not overlap.
+        The vector assignment operators are evaluated right to left,
+        and the other binary operators are evaluated left to right.
+        All operands are evaluated exactly once, even if the array slice
+        has zero elements in it.
+        )
+
+        $(P The order in which the array elements are computed
+        is implementation defined, and may even occur in parallel.
+        An application must not depend on this order.
+        )
+
+        $(P Implementation note: many of the more common vector
+        operations are expected to take advantage of any vector
+        math instructions available on the target computer.
+        )
+
+$(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
+
+---------
+int[3] abc;              // static array of 3 ints
+int[] def = [ 1, 2, 3 ]; // dynamic array of 3 ints
+
+void dibb(int* array)
+{
+    array[2];     // means same thing as *(array + 2)
+    *(array + 2); // get 3rd element
+}
+
+void diss(int[] array)
+{
+    array[2];     // ok
+    *(array + 2); // error, array is not a pointer
+}
+
+void ditt(int[3] array)
+{
+    array[2];     // ok
+    *(array + 2); // error, array is not a pointer
+}
+---------
+
+$(H2 $(LNAME2 rectangular-arrays, Rectangular Arrays))
+
+        $(P Experienced FORTRAN numerics programmers know that multidimensional
+        "rectangular" arrays for things like matrix operations are much faster than trying to
+        access them via pointers to pointers resulting from "array of pointers to array" semantics.
+        For example, the D syntax:
+        )
+
+---------
+double[][] matrix;
+---------
+
+        $(P declares matrix as an array of pointers to arrays. (Dynamic arrays are implemented as
+        pointers to the array data.) Since the arrays can have varying sizes (being dynamically
+        sized), this is sometimes called "jagged" arrays. Even worse for optimizing the code, the
+        array rows can sometimes point to each other! Fortunately, D static arrays, while using
+        the same syntax, are implemented as a fixed rectangular layout:
+        )
+
+---------
+double[3][3] matrix;
+---------
+
+        $(P declares a rectangular matrix with 3 rows and 3 columns, all contiguously in memory. In
+        other languages, this would be called a multidimensional array and be declared as:
+        )
+---------
+double matrix[3,3];
+---------
+
+$(H2 $(LNAME2 array-length, Array Length))
+
+
+        $(P Within the [ ] of a static or a dynamic array,
+        the symbol $(D $)
+        represents the length of the array.
+        )
+
+
+---------
+int[4] foo;
+int[]  bar = foo;
+int*   p = &foo[0];
+
+// These expressions are equivalent:
+bar[]
+bar[0 .. 4]
+bar[0 .. $]
+bar[0 .. bar.length]
+
+
+p[0 .. $]      // '$' is not defined, since p is not an array
+bar[0]+$            // '$' is not defined, out of scope of [ ]
+
+bar[$-1] // retrieves last element of the array
+---------
+
+$(H2 $(LNAME2 array-properties, Array Properties))
+
+        $(P Static array properties are:)
+
+    $(TABLE_2COLS Static Array Properties,
+        $(THEAD Property, Description)
+        $(TROW  $(D .init),
+Returns an array literal with each element of the literal being the $(D .init) property of the array element type.)
+        $(TROW $(D .sizeof), Returns the array length multiplied by
+        the number of bytes per array element.)
+        $(TROW $(D .length), Returns the number of elements in the array.
+        This is a fixed quantity for static arrays. It is of type $(D size_t).)
+        $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
+        $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it.)
+        $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable.)
+        $(TROW $(D .reverse), Reverses in place the order of the elements in the array.
+        Returns the array.)
+        $(TROW $(D .sort), Sorts in place the order of the elements in
+        the array. Returns the array.)
+        )
+
+        $(P Dynamic array properties are:)
+
+    $(TABLE_2COLS Dynamic Array Properties,
+        $(THEAD Property, Description)
+        $(TROW $(D .init), Returns $(D null).)
+        $(TROW $(D .sizeof), $(ARGS Returns the size of the dynamic array reference,
+        which is 8 in 32-bit builds and 16 on 64-bit builds.))
+        $(TROW $(D .length), Get/set number of elements in the
+        array. It is of type $(D size_t).)
+        $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
+        $(TROW $(D .dup), Create a dynamic array of the same size
+        and copy the contents of the array into it.)
+        $(TROW $(D .idup), Create a dynamic array of the same size and
+        copy the contents of the array into it. The copy is typed as
+        being immutable. $(I D 2.0 only))
+        $(TROW $(D .reverse), Reverses in place the order of the
+        elements in the array. Returns the array.)
+        $(TROW $(D .sort), Sorts in place the order of the elements in
+        the array. Returns the array.))
+
+        $(P For the $(D .sort) property to work on arrays of class
+        objects, the class definition must define the function:
+        $(D int opCmp(Object)). This is used to determine the
+        ordering of the class objects. Note that the parameter
+        is of type $(D Object), not the type of the class.)
+
+        $(P For the $(D .sort) property to work on arrays of
+        structs or unions, the struct or union definition must
+        define the function:
+
+        $(D int opCmp(ref const S) const).
+
+        The type $(D S) is the type of the struct or union.
+        This function will determine the sort ordering.
+        )
+
+    $(P Examples:)
+
+---------
+int* p;
+int[3] s;
+int[] a;
+
+p.length; // error, length not known for pointer
+s.length; // compile time constant 3
+a.length; // runtime value
+
+p.dup;    // error, length not known
+s.dup;    // creates an array of 3 elements, copies
+          // elements s into it
+a.dup;    // creates an array of a.length elements, copies
+          // elements of a into it
+---------
+
+$(H3 $(LNAME2 resize, Setting Dynamic Array Length))
+
+        $(P The $(D .length) property of a dynamic array can be set
+        as the left-hand side of an = operator:
+        )
+
+---------
+array.length = 7;
+---------
+
+        $(P This causes the array to be reallocated in place, and the existing
+        contents copied over to the new array. If the new array length is
+        shorter, the array is not reallocated, and no data is copied.  It is
+        equivalent to slicing the array:)
+
+---------
+array = array[0..7];
+---------
+
+        $(P If the new array length is longer, the remainder is filled out with the
+        default initializer.
+        )
+
+        $(P To maximize efficiency, the runtime always tries to resize the
+        array in place to avoid extra copying.
+
+        It will always do a copy if the new size is larger and the array
+        was not allocated via the new operator or resizing in place would
+        overwrite valid data in the array.
+        )
+
+
+
+        For example:
+
+---------
+char[] a = new char[20];
+char[] b = a[0..10];
+char[] c = a[10..20];
+char[] d = a;
+
+b.length = 15; // always reallocates because extending in place would
+               // overwrite other data in a.
+b[11] = 'x';   // a[11] and c[1] are not affected
+
+d.length = 1;
+d.length = 20; // also reallocates, because doing this will overwrite a and
+               // c
+
+c.length = 12; // may reallocate in place if space allows, because nothing
+               // was allocated after c.
+c[5] = 'y';    // may affect contents of a, but not b or d because those
+               // were reallocated.
+
+a.length = 25; // This always reallocates because if c extended in place,
+               // then extending a would overwrite c.  If c didn't
+               // reallocate in place, it means there was not enough space,
+               // which will still be true for a.
+a[15] = 'z';   // does not affect c, because either a or c has reallocated.
+---------
+
+
+        $(P To guarantee copying behavior, use the .dup property to ensure
+        a unique array that can be resized. Also, one may use the
+        $(D .capacity) property to determine how many elements can be appended
+        to the array without reallocating.
+        )
+
+        $(P These issues also apply to appending arrays with the ~= operator.
+        Concatenation using the ~ operator is not affected since it always
+        reallocates.
+        )
+
+        $(P Resizing a dynamic array is a relatively expensive operation.
+        So, while the following method of filling an array:
+        )
+
+---------
+int[] array;
+while (1)
+{
+    c = getinput();
+    if (!c)
+        break;
+    ++array.length;
+    array[array.length - 1] = c;
+}
+---------
+
+        $(P will work, it will be inefficient. A more practical
+        approach would be to minimize the number of resizes:
+        )
+
+---------
+int[] array;
+array.length = 100;        // guess
+for (i = 0; ; i++)
+{
+    c = getinput();
+    if (!c)
+        break;
+    if (i == array.length)
+        array.length *= 2;
+    array[i] = c;
+}
+array.length = i;
+---------
+
+        $(P Picking a good initial guess is an art, but you usually can
+        pick a value covering 99% of the cases.
+        For example, when gathering user
+        input from the console - it's unlikely to be longer than 80.
+        )
+
+        $(P Also, you may wish to utilize the $(D reserve)
+        function to pre-allocate array data to use with the append operator.)
+
+---------
+int[] array;
+size_t cap = array.reserve(10); // request
+array ~= [1, 2, 3, 4, 5];
+assert(cap >= 10); // allocated may be more than request
+assert(cap == array.capacity);
+---------
+
+$(H3 $(LNAME2 func-as-property, Functions as Array Properties))
+
+        $(P If the first parameter to a function is an array, the
+        function can be called as if it were a property of the array:
+        )
+
+---
+int[] array;
+void foo(int[] a, int x);
+
+foo(array, 3);
+array.foo(3);   // means the same thing
+---
+
+$(H2 $(LNAME2 bounds, Array Bounds Checking))
+
+        $(P It is an error to index an array with an index that is less than
+        0 or greater than or equal to the array length. If an index is
+        out of bounds, a RangeError exception is
+        raised if detected at runtime, and an error if detected at compile
+        time.  A program may not rely on array bounds checking happening, for
+        example, the following program is incorrect:
+        )
+
+---------
+try
+{
+    for (i = 0; ; i++)
+    {
+        array[i] = 5;
+    }
+}
+catch (RangeError)
+{
+    // terminate loop
+}
+---------
+
+        The loop is correctly written:
+
+---------
+for (i = 0; i < array.length; i++)
+{
+    array[i] = 5;
+}
+---------
+
+        $(P $(D Implementation Note:) Compilers should attempt to detect
+        array bounds errors at compile time, for example:
+        )
+
+---------
+int[3] foo;
+int x = foo[3]; // error, out of bounds
+---------
+
+        $(P Insertion of array bounds checking code at runtime should be
+        turned on and off
+        with a compile time switch.
+        )
+
+$(H2 $(LNAME2 array-initialization, Array Initialization))
+
+$(H3 $(LNAME2 default-initialization, Default Initialization))
+
+        $(UL
+        $(LI Pointers are initialized to $(D null).)
+        $(LI Static array contents are initialized to the default
+        initializer for the array element type.)
+        $(LI Dynamic arrays are initialized to having 0 elements.)
+        $(LI Associative arrays are initialized to having 0 elements.)
+        )
+
+$(H3 $(LNAME2 void-initialization, Void Initialization))
+
+        $(P Void initialization happens when the $(I Initializer) for
+        an array is $(D void). What it means is that no initialization
+        is done, i.e. the contents of the array will be undefined.
+        This is most useful as an efficiency optimization.
+        Void initializations are an advanced technique and should only be used
+        when profiling indicates that it matters.
+        )
+
+$(H3 $(LNAME2 static-init-static, Static Initialization of Statically Allocated Arrays))
+
+        $(P Static initalizations are supplied by a list of array
+        element values enclosed in [ ]. The values can be optionally
+        preceded by an index and a :.
+        If an index is not supplied, it is set to the previous index
+        plus 1, or 0 if it is the first value.
+        )
+
+---------
+int[3] a = [ 1:2, 3 ]; // a[0] = 0, a[1] = 2, a[2] = 3
+---------
+
+        $(P This is most handy when the array indices are given by enums:)
+
+---------
+enum Color { red, blue, green };
+
+int value[Color.max + 1] =
+  [ Color.blue :6,
+    Color.green:2,
+    Color.red  :5 ];
+---------
+
+        $(P These arrays are statically allocated when they appear in global scope.
+        Otherwise, they need to be marked with $(D const) or $(D static)
+        storage classes to make them statically allocated arrays.)
+
+
+$(H2 $(LNAME2 special-array, Special Array Types))
+
+$(H3 $(LNAME2 strings, Strings))
+
+        $(P A string is
+        an array of characters. String literals are just
+        an easy way to write character arrays.
+        String literals are immutable (read only).
+        )
+
+
+---------
+char[] str1 = "abc";                // error, "abc" is not mutable
+char[] str2 = "abc".dup;            // ok, make mutable copy
+immutable(char)[] str3 = "abc";     // ok
+immutable(char)[] str4 = str1;      // error, str4 is not mutable
+immutable(char)[] str5 = str1.idup; // ok, make immutable copy
+---------
+
+        $(P The name $(CODE string) is aliased to $(CODE immutable(char)[]),
+        so the above declarations could be equivalently written as:
+        )
+---------
+char[] str1 = "abc";     // error, "abc" is not mutable
+char[] str2 = "abc".dup; // ok, make mutable copy
+string str3 = "abc";     // ok
+string str4 = str1;      // error, str4 is not mutable
+string str5 = str1.idup; // ok, make immutable copy
+---------
+
+        $(P $(CODE char[]) strings are in UTF-8 format.
+        $(CODE wchar[]) strings are in UTF-16 format.
+        $(CODE dchar[]) strings are in UTF-32 format.
+        )
+
+        $(P Strings can be copied, compared, concatenated, and appended:)
+
+---------
+str1 = str2;
+if (str1 < str3) { ... }
+func(str3 ~ str4);
+str4 ~= str1;
+---------
+
+        $(P with the obvious semantics. Any generated temporaries get cleaned up
+        by the garbage collector (or by using $(CODE alloca())).
+        Not only that, this works with any
+        array not just a special String array.
+        )
+
+        $(P A pointer to a char can be generated:
+        )
+
+---------
+char* p = &str[3]; // pointer to 4th element
+char* p = str;     // pointer to 1st element
+---------
+
+        $(P Since strings, however, are not 0 terminated in D,
+        when transferring a pointer
+        to a string to C, add a terminating 0:
+        )
+
+---------
+str ~= "\0";
+---------
+
+        $(P or use the function $(D std.string.toStringz).)
+
+        $(P The type of a string is determined by the semantic phase of
+        compilation. The type is
+        one of: char[], wchar[], dchar[], and is determined by
+        implicit conversion rules.
+        If there are two equally applicable implicit conversions,
+        the result is an error. To
+        disambiguate these cases, a cast or a postfix of $(D c),
+        $(D w) or $(D d) can be used:
+        )
+
+---------
+cast(immutable(wchar) [])"abc" // this is an array of wchar characters
+"abc"w                         // so is this
+---------
+
+        $(P String literals that do not have a postfix character and that
+        have not been cast can be implicitly converted between
+	string, wstring, and dstring as necessary.
+        )
+
+---------
+char c;
+wchar w;
+dchar d;
+
+c = 'b';     // c is assigned the character 'b'
+w = 'b';     // w is assigned the wchar character 'b'
+//w = 'bc';  // error - only one wchar character at a time
+w = "b"[0];  // w is assigned the wchar character 'b'
+w = "\r"[0]; // w is assigned the carriage return wchar character
+d = 'd';     // d is assigned the character 'd'
+---------
+
+$(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
+        $(P Note that built-in comparison operators operate on a
+        $(HTTP goo.gl/zRY1K, code unit) basis. 
+        The end result for valid strings is the same as that of 
+        $(HTTP goo.gl/WR424, code point) 
+        for $(HTTP goo.gl/WR424, code point)
+        comparison as long as both strings are in the same
+        $(HTTP goo.gl/3DKfI, normalization form).
+        Since normalization is a costly operation not suitable for language 
+        primitives it's assumed to be enforced by the user.
+        )
+        $(P The standard library lends a hand for comparing strings with mixed encodings
+        (by transparently decoding, see $(PHOBOS algorithm, cmp, std.algorithm.cmp)), 
+        $(PHOBOS uni, icmp, case-insensitive comparison) and $(PHOBOS uni, normalize, normalization).
+        )
+        $(P Last but not least, a desired string sorting order differs 
+        by culture and language and is usually nothing like code point 
+        for code point comparison. The natural order of strings is obtained by applying
+        $(HTTP www.unicode.org/reports/tr10/, the Unicode collation algorithm)
+        that should be implemented in the standard library.
+        )
+
+$(H4 $(LNAME2 printf, C's printf() and Strings))
+
+        $(P $(D printf()) is a C function and is not part of D. $(D printf())
+        will print C strings, which are 0 terminated. There are two ways
+        to use $(D printf()) with D strings. The first is to add a
+        terminating 0, and cast the result to a char*:
+        )
+
+---------
+str ~= "\0";
+printf("the string is '%s'\n", cast(char*)str);
+---------
+
+        $(P or:)
+
+---------
+import std.string;
+printf("the string is '%s'\n", std.string.toStringz(str));
+---------
+
+        $(P String literals already have a 0 appended to them, so
+        can be used directly:)
+
+-----------
+printf("the string is '%s'\n", cast(char*)"string literal");
+-----------
+
+        $(P So, why does the first string literal to printf not need
+        the cast? The first parameter is prototyped as a const(char)*, and
+        a string literal can be implicitly cast to a const(char)*.
+        The rest of the arguments to printf, however, are variadic
+        (specified by ...),
+        and a string literal is passed as a (length,pointer) combination
+        to variadic parameters.)
+
+        $(P The second way is to use the precision specifier.
+        The length comes first, followed by the pointer:)
+
+---------
+printf("the string is '%.*s'\n", str.length, str.ptr);
+---------
+
+        $(P The best way is to use std.stdio.writefln, which can handle
+        D strings:)
+
+---------
+import std.stdio;
+writefln("the string is '%s'", str);
+---------
+
+$(H3 Void Arrays)
+
+    $(P There is a special type of array which acts as a wildcard that can hold
+    arrays of any kind, declared as $(D void[]). Void arrays are used for
+    low-level operations where some kind of array data is being handled, but
+    the exact type of the array elements are unimportant. The $(D .length) of a
+    void array is the length of the data in bytes, rather than the number of
+    elements in its original type. Array indices in indexing and slicing
+    operations are interpreted as byte indices.)
+
+    $(P Arrays of any type can be implicitly converted to a void array; the
+    compiler inserts the appropriate calculations so that the $(D .length) of
+    the resulting array's size is in bytes rather than number of elements. Void
+    arrays cannot be converted back to the original type without using a cast,
+    and it is an error to convert to an array type whose element size does not
+    evenly divide the length of the void array.)
+
+---------
+void main()
+{
+    int[] data1 = [1,2,3];
+    long[] data2;
+
+    void[] arr = data1;            // OK, int[] implicit converts to void[].
+    assert(data1.length == 3);
+    assert(arr.length == 12);      // length is implicitly converted to bytes.
+
+    //data1 = arr;                 // Illegal: void[] does not implicitly
+                                   // convert to int[].
+    int[] data3 = cast(int[]) arr; // OK, can convert with explicit cast.
+    data2 = cast(long[]) arr;      // Runtime error: long.sizeof == 8, which
+                                   // does not divide arr.length, which is 12
+                                   // bytes.
+}
+---------
+
+    $(P Void arrays can also be static if their length is known at
+    compile-time. The length is specified in bytes:)
+
+---------
+void main()
+{
+    byte[2] x;
+    int[2] y;
+
+    void[2] a = x; // OK, lengths match
+    void[2] b = y; // Error: int[2] is 8 bytes long, doesn't fit in 2 bytes.
+}
+---------
+
+    $(P While it may seem that void arrays are just fancy syntax for
+    $(D ubyte[]), there is a subtle distinction. The garbage collector
+    generally will not scan $(D ubyte[]) arrays for pointers, $(D ubyte[])
+    being presumed to contain only pure byte data, not pointers. However, it
+    $(I will) scan $(D void[]) arrays for pointers, since such an array may
+    have been implicitly converted from an array of pointers or an array of
+    elements that contain pointers.  Allocating an array that contains pointers
+    as $(D ubyte[]) may run the risk of the GC collecting live memory if these
+    pointers are the only remaining references to their targets.)
+
+$(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
+
+        $(P A pointer $(D T*) can be implicitly converted to
+        one of the following:)
+
+        $(UL
+        $(LI $(D void*))
+        )
+
+        $(P A static array $(D T[dim]) can be implicitly
+        converted to
+        one of the following:
+        )
+
+        $(UL
+        $(LI $(D T[]))
+
+        $(LI $(D const(U)[]))
+        $(LI $(D const(U[])))
+        $(LI $(D void[]))
+        )
+
+        $(P A dynamic array $(D T[]) can be implicitly converted to
+        one of the following:
+        )
+
+        $(UL
+
+        $(LI $(D const(U)[]))
+        $(LI $(D const(U[])))
+        $(LI $(D void[]))
+        )
+
+        $(P Where $(D U) is a base class of $(D T).)
+)
+
+Macros:
+        TITLE=Arrays
+        WIKI=Arrays
+        _=
