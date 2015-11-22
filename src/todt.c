@@ -388,6 +388,9 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             {
                 case Tarray:
                     pdt = dtsize_t(pdt, n);
+                    pdt = dtabytes(pdt, 0, n * e->sz, p, (unsigned)e->sz);
+                    break;
+
                 case Tpointer:
                     pdt = dtabytes(pdt, 0, n * e->sz, p, (unsigned)e->sz);
                     break;

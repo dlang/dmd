@@ -7714,6 +7714,29 @@ struct S15366
 }
 
 /***************************************************/
+// 15369
+
+struct MsgTable15369
+{
+    const(char)[] ident;
+    const(char)* name;
+};
+
+MsgTable15369[] msgTable15369 =
+[
+    { "empty", "" },
+];
+
+void test15369()
+{
+    auto id = msgTable15369[0].ident;
+    auto p = msgTable15369[0].name;
+
+    // a string literal "" should be zero-terminated
+    assert(*p == '\0');
+}
+
+/***************************************************/
 
 int main()
 {
@@ -8027,6 +8050,7 @@ int main()
     test13985();
     test14211();
     test15141();
+    test15369();
 
     printf("Success\n");
     return 0;
