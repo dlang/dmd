@@ -203,7 +203,7 @@ struct OffsetTypeInfo
 /**
  * Runtime type information about a type.
  * Can be retrieved for any type using a
- * <a href="../expression.html#typeidexpression">TypeidExpression</a>.
+ * $(GLINK2 expression,TypeidExpression, TypeidExpression).
  */
 class TypeInfo
 {
@@ -848,7 +848,7 @@ unittest
 /**
  * Runtime type information about a class.
  * Can be retrieved from an object instance by using the
- * $(LINK2 ../property.html#classinfo, .classinfo) property.
+ * $(LINK2 ../spec/property.html#classinfo, .classinfo) property.
  */
 class TypeInfo_Class : TypeInfo
 {
