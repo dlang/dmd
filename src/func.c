@@ -1097,7 +1097,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (!type->nextOf())
                 {
                     ((TypeFunction *)type)->next = Type::tvoid;
-                    type = type->semantic(loc, sc);
                 }
                 f = (TypeFunction *)type;
             }
@@ -1500,6 +1499,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 
         sc2->callSuper = 0;
         sc2->pop();
+    }
+
+    if (inferRetType)
+    {
+        type = type->semantic(loc, sc);
     }
 
     if (global.gag && global.errors != nerrors)
