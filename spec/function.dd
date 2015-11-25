@@ -2,40 +2,55 @@ Ddoc
 
 $(SPEC_S Functions,
 
-$(P
-$(RELATIVE_LINK2 contracts, Contracts)
-$(RELATIVE_LINK2 function-return-values, Function Return Values)
-$(RELATIVE_LINK2 function-declarations, Functions Without Bodies)
-$(RELATIVE_LINK2 pure-functions, Pure Functions)
-$(RELATIVE_LINK2 nothrow-functions, Nothrow Functions)
-$(RELATIVE_LINK2 ref-functions, Ref Functions)
-$(RELATIVE_LINK2 auto-functions, Auto Functions)
-$(RELATIVE_LINK2 auto-ref-functions, Auto Ref Functions)
-$(RELATIVE_LINK2 inout-functions, Inout Functions)
-$(RELATIVE_LINK2 optional-parenthesis, Optional Parentheses)
-$(RELATIVE_LINK2 property-functions, Property Functions)
-$(RELATIVE_LINK2 virtual-functions, Virtual Functions)
-$(RELATIVE_LINK2 function-inheritance, Function Inheritance and Overriding)
-$(RELATIVE_LINK2 inline-functions, Inline Functions)
-$(RELATIVE_LINK2 function-overloading, Function Overloading)
-$(RELATIVE_LINK2 overload-sets, Overload Sets)
-$(RELATIVE_LINK2 parameters, Function Parameters)
-$(RELATIVE_LINK2 function-default-args, Function Default Arguments)
-$(RELATIVE_LINK2 variadic, Variadic Functions)
-$(RELATIVE_LINK2 variadicnested, Nested Functions)
-$(RELATIVE_LINK2 closures, Delegates, Function Pointers, and  Closures)
-$(RELATIVE_LINK2 anonymous, Anonymous Functions and Anonymous Delegates)
-$(RELATIVE_LINK2 main, $(D main()) Function)
-$(RELATIVE_LINK2 function-templates, Function Templates)
-$(RELATIVE_LINK2 interpretation, Compile Time Function Execution (CTFE))
-$(RELATIVE_LINK2 string-mixins, String Mixins and Compile Time Function Execution)
-$(RELATIVE_LINK2 function-safety, Function Safety)
-$(RELATIVE_LINK2 safe-functions, Safe Functions)
-$(RELATIVE_LINK2 trusted-functions, Trusted Functions)
-$(RELATIVE_LINK2 system-functions, System Functions)
-$(RELATIVE_LINK2 function-attribute-inference, Function Attribute Inference)
-$(RELATIVE_LINK2 pseudo-member, Uniform Function Call Syntax (UFCS))
+$(NOT_EBOOK 
+$(DIVC page-contents quickindex,
+    $(DIVC page-contents-header,
+        $(H3 Contents)
+    )
+    $(OL
+        $(LI $(RELATIVE_LINK2 grammar, Grammar))
+        $(LI $(RELATIVE_LINK2 contracts, Contracts))
+        $(LI $(RELATIVE_LINK2 function-return-values, Function Return Values))
+        $(LI $(RELATIVE_LINK2 function-declarations, Functions Without Bodies))
+        $(LI $(RELATIVE_LINK2 pure-functions, Pure Functions))
+        $(LI $(RELATIVE_LINK2 nothrow-functions, Nothrow Functions))
+        $(LI $(RELATIVE_LINK2 ref-functions, Ref Functions))
+        $(LI $(RELATIVE_LINK2 auto-functions, Auto Functions))
+        $(LI $(RELATIVE_LINK2 auto-ref-functions, Auto Ref Functions))
+        $(LI $(RELATIVE_LINK2 inout-functions, Inout Functions))
+        $(LI $(RELATIVE_LINK2 optional-parenthesis, Optional Parentheses))
+        $(LI $(RELATIVE_LINK2 property-functions, Property Functions))
+        $(LI $(RELATIVE_LINK2 virtual-functions, Virtual Functions))
+        $(LI $(RELATIVE_LINK2 function-inheritance, Function Inheritance and Overriding))
+        $(LI $(RELATIVE_LINK2 inline-functions, Inline Functions))
+        $(LI $(RELATIVE_LINK2 function-overloading, Function Overloading)$(OL
+            $(LI $(RELATIVE_LINK2 overload-sets, Overload Sets))
+        ))
+        $(LI $(RELATIVE_LINK2 parameters, Function Parameters)$(OL
+            $(LI $(RELATIVE_LINK2 function-default-args, Function Default Arguments))
+            $(LI $(RELATIVE_LINK2 variadic, Variadic Functions))
+        ))
+        $(LI $(RELATIVE_LINK2 nested, Nested Functions)$(OL
+            $(LI $(RELATIVE_LINK2 closures, Delegates, Function Pointers, and  Closures))
+            $(LI $(RELATIVE_LINK2 anonymous, Anonymous Functions and Anonymous Delegates))
+        ))
+        $(LI $(RELATIVE_LINK2 main, main() Function))
+        $(LI $(RELATIVE_LINK2 function-templates, Function Templates))
+        $(LI $(RELATIVE_LINK2 interpretation, Compile Time Function Execution (CTFE))$(OL
+            $(LI $(RELATIVE_LINK2 string-mixins, String Mixins and Compile Time Function Execution))
+        ))
+        $(LI $(RELATIVE_LINK2 function-safety, Function Safety)$(OL
+            $(LI $(RELATIVE_LINK2 safe-functions, Safe Functions))
+            $(LI $(RELATIVE_LINK2 trusted-functions, Trusted Functions))
+            $(LI $(RELATIVE_LINK2 system-functions, System Functions))
+        ))
+        $(LI $(RELATIVE_LINK2 function-attribute-inference, Function Attribute Inference))
+        $(LI $(RELATIVE_LINK2 pseudo-member, Uniform Function Call Syntax (UFCS)))
+    )
 )
+)
+
+$(H4 $(LNAME2 grammar, Grammar))
 
 $(GRAMMAR
 $(GNAME FuncDeclaration):
@@ -127,13 +142,13 @@ $(GNAME BodyStatement):
 
 $(H4 $(LNAME2 contracts, Contracts))
 
-	$(P The $(D in) and $(D out) blocks of a function declaration specify
-	the pre- and post-conditions of the function. They are used in
-	$(LINK2 contracts.html, Contract Programming).
-	The code inside these blocks should
-	not have any side-effects, including modifying function parameters
-	and/or return values.
-	)
+    $(P The $(D in) and $(D out) blocks of a function declaration specify
+    the pre- and post-conditions of the function. They are used in
+    $(LINK2 contracts.html, Contract Programming).
+    The code inside these blocks should
+    not have any side-effects, including modifying function parameters
+    and/or return values.
+    )
 
 $(H4 $(LNAME2 function-return-values, Function Return Values))
 
@@ -143,24 +158,24 @@ $(H4 $(LNAME2 function-return-values, Function Return Values))
 
 $(H4 $(LNAME2 function-declarations, Functions Without Bodies))
 
-	$(P Functions without bodies:)
+    $(P Functions without bodies:)
 
 ---
 int foo();
 ---
 
-	$(P that are not declared as $(D abstract) are expected to have their implementations
-	elsewhere, and that implementation will be provided at the link step.
-	This enables an implementation of a function to be completely hidden from the user
-	of it, and the implementation may be in another language such as C, assembler, etc.
-	)
+    $(P that are not declared as $(D abstract) are expected to have their implementations
+    elsewhere, and that implementation will be provided at the link step.
+    This enables an implementation of a function to be completely hidden from the user
+    of it, and the implementation may be in another language such as C, assembler, etc.
+    )
 
 $(H4 $(LNAME2 pure-functions, Pure Functions))
 
         $(P Pure functions are functions which cannot access global or static, mutable
         state save through their arguments.
-	This enables optimizations based on the fact that a pure function may at most mutate state
-	reachable through its parameters.
+    This enables optimizations based on the fact that a pure function may at most mutate state
+    reachable through its parameters.
         To that end, a pure function:
         )
 
@@ -403,21 +418,21 @@ $(H4 $(LNAME2 inout-functions, Inout Functions))
 
 $(H4 $(LNAME2 optional-parenthesis, Optional Parentheses))
 
-	$(P If a function call passes no explicit argument, i.e. it would syntactically use $(D ()), then these parentheses
-	may be omitted, similar to a getter invocation of a
+    $(P If a function call passes no explicit argument, i.e. it would syntactically use $(D ()), then these parentheses
+    may be omitted, similar to a getter invocation of a
         $(RELATIVE_LINK2 property-functions, property function).
         )
 
         ---
         void foo() {}   // no arguments
-	void fun(int x = 10) { }
+    void fun(int x = 10) { }
         void bar(int[] arr) {}  // for UFCS
 
         void main()
         {
             foo();      // OK
             foo;        // also OK
-	    fun;	// OK
+        fun;    // OK
 
             int[] arr;
             arr.bar();  // OK
@@ -425,129 +440,129 @@ $(H4 $(LNAME2 optional-parenthesis, Optional Parentheses))
         }
         ---
 
-	$(P Optional parentheses are not applied to delegates or function pointers.)
+    $(P Optional parentheses are not applied to delegates or function pointers.)
 
-	---
-	void main()
-	{
-	    int function() fp;
+    ---
+    void main()
+    {
+        int function() fp;
 
-	    assert(fp == 6);	// Error, incompatible types int function() and int
-	    assert(*fp == 6);	// Error, incompatible types int() and int
+        assert(fp == 6);    // Error, incompatible types int function() and int
+        assert(*fp == 6);   // Error, incompatible types int() and int
 
-	    int delegate() dg;
-	    assert(dg == 6);	// Error, incompatible types int delegate() and int
-	}
-	---
+        int delegate() dg;
+        assert(dg == 6);    // Error, incompatible types int delegate() and int
+    }
+    ---
 
-	$(P If a function returns a delegate or function pointer, the parantheses are required if the
-	returned value is to be called.
-	)
+    $(P If a function returns a delegate or function pointer, the parantheses are required if the
+    returned value is to be called.
+    )
 
-	---
-	struct S {
-	    int function() callfp() { return &numfp; }
-	    int delegate() calldg() { return &numdg; }
-	    int numdg() { return 6; }
-	}
+    ---
+    struct S {
+        int function() callfp() { return &numfp; }
+        int delegate() calldg() { return &numdg; }
+        int numdg() { return 6; }
+    }
 
-	int numfp() { return 6; }
+    int numfp() { return 6; }
 
-	void main()
-	{
-	    S s;
-	    int function() fp;
+    void main()
+    {
+        S s;
+        int function() fp;
 
-	    fp = s.callfp;
-	    assert(fp() == 6);
+        fp = s.callfp;
+        assert(fp() == 6);
 
-	    fp = s.callfp();
-	    assert(fp() == 6);
+        fp = s.callfp();
+        assert(fp() == 6);
 
-	    int x = s.callfp()();
-	    assert(x == 6);
+        int x = s.callfp()();
+        assert(x == 6);
 
-	    int delegate() dg;
+        int delegate() dg;
 
-	    dg = s.calldg;
-	    assert(dg() == 6);
+        dg = s.calldg;
+        assert(dg() == 6);
 
-	    dg = s.calldg();
-	    assert(dg() == 6);
+        dg = s.calldg();
+        assert(dg() == 6);
 
-	    int y = s.calldg()();
-	    assert(y == 6);
-	}
-	---
+        int y = s.calldg()();
+        assert(y == 6);
+    }
+    ---
 
 $(H4 $(LNAME2 property-functions, Property Functions))
 
-	$(P Properties are functions that can be syntactically treated
-	as if they were fields or variables. Properties can be read from or written to.
-	A property is read by calling a method or function with no arguments;
-	a property is written by calling a method or function with its argument
-	being the value it is set to.
-	)
+    $(P Properties are functions that can be syntactically treated
+    as if they were fields or variables. Properties can be read from or written to.
+    A property is read by calling a method or function with no arguments;
+    a property is written by calling a method or function with its argument
+    being the value it is set to.
+    )
 
-	$(P Simple getter and setter properties can be written using $(LINK2 pseudo-member, UFCS).
-	These can be enhanced with the additon of the $(D @property) attribute to the function, which
-	adds the following behaviors:
-	)
+    $(P Simple getter and setter properties can be written using $(LINK2 pseudo-member, UFCS).
+    These can be enhanced with the additon of the $(D @property) attribute to the function, which
+    adds the following behaviors:
+    )
 
-	$(UL
-	$(LI $(D @property) functions cannot be overloaded with non-$(D @property) functions with the same name.)
-	$(LI $(D @property) functions can only have zero, one or two parameters.)
-	$(LI $(D @property) functions cannot have variadic parameters.)
-	$(LI For the expression $(D typeof(exp)) where $(D exp) is an $(D @property) function,
-	the type is the return type of the function, rather than the type of the function.)
-	$(LI For the expression $(D __traits(compiles, exp)) where $(D exp) is an $(D @property) function,
-	a further check is made to see if the function can be called.)
-	$(LI $(D @property) are mangled differently, meaning that $(D @property) must be consistently
-	used across different compilation units.)
-	$(LI The ObjectiveC interface recognizes $(D @property) setter functions as special and modifies
-	them accordingly.)
-	)
+    $(UL
+    $(LI $(D @property) functions cannot be overloaded with non-$(D @property) functions with the same name.)
+    $(LI $(D @property) functions can only have zero, one or two parameters.)
+    $(LI $(D @property) functions cannot have variadic parameters.)
+    $(LI For the expression $(D typeof(exp)) where $(D exp) is an $(D @property) function,
+    the type is the return type of the function, rather than the type of the function.)
+    $(LI For the expression $(D __traits(compiles, exp)) where $(D exp) is an $(D @property) function,
+    a further check is made to see if the function can be called.)
+    $(LI $(D @property) are mangled differently, meaning that $(D @property) must be consistently
+    used across different compilation units.)
+    $(LI The ObjectiveC interface recognizes $(D @property) setter functions as special and modifies
+    them accordingly.)
+    )
 
-	$(P A simple property would be:)
+    $(P A simple property would be:)
 
 
-	---
-	struct Foo
-	{
-	    @property int data() { return m_data; } // read property
+    ---
+    struct Foo
+    {
+        @property int data() { return m_data; } // read property
 
-	    @property int data(int value) { return m_data = value; } // write property
+        @property int data(int value) { return m_data = value; } // write property
 
-	  private:
-	    int m_data;
-	}
-	---
+      private:
+        int m_data;
+    }
+    ---
 
-		$(P To use it:)
+        $(P To use it:)
 
-	---
-	int test()
-	{
-	    Foo f;
+    ---
+    int test()
+    {
+        Foo f;
 
-	    f.data = 3;        // same as f.data(3);
-	    return f.data + 3; // same as return f.data() + 3;
-	}
-	---
+        f.data = 3;        // same as f.data(3);
+        return f.data + 3; // same as return f.data() + 3;
+    }
+    ---
 
-	$(P The absence of a read method means that the property is write-only.
-	The absence of a write method means that the property is read-only.
-	Multiple write methods can exist; the correct one is selected using
-	the usual function overloading rules.
-	)
+    $(P The absence of a read method means that the property is write-only.
+    The absence of a write method means that the property is read-only.
+    Multiple write methods can exist; the correct one is selected using
+    the usual function overloading rules.
+    )
 
-	$(P In all the other respects, these methods are like any other methods.
-	They can be static, have different linkages,  have their address taken, etc.
-	)
+    $(P In all the other respects, these methods are like any other methods.
+    They can be static, have different linkages,  have their address taken, etc.
+    )
 
-	$(P The built in properties $(D .sizeof), $(D .alignof), and $(D .mangleof)
-	may not be declared as fields or methods in structs, unions, classes or enums.
-	)
+    $(P The built in properties $(D .sizeof), $(D .alignof), and $(D .mangleof)
+    may not be declared as fields or methods in structs, unions, classes or enums.
+    )
 
         $(P If a property function has no parameters, it works as a getter.
         If has exactly one parameter, it works as a setter.
@@ -1028,23 +1043,23 @@ int foo(in int x, out int y, ref int z, int q);
         possibly better code generation.)
         )
 
-	$(TABLE_2COLS Parameter Storage Classes,
-	$(THEAD Storage Class, Description)
-	$(TROW $(I none), parameter becomes a mutable copy of its argument)
+    $(TABLE_2COLS Parameter Storage Classes,
+    $(THEAD Storage Class, Description)
+    $(TROW $(I none), parameter becomes a mutable copy of its argument)
 
-	$(TROW $(D in), equivalent to $(D const scope))
-	$(TROW $(D out), parameter is initialized upon function entry with the default value
-	for its type)
+    $(TROW $(D in), equivalent to $(D const scope))
+    $(TROW $(D out), parameter is initialized upon function entry with the default value
+    for its type)
 
-	$(TROW $(D ref),   parameter is passed by reference)
-	$(TROW $(D scope), references in the parameter
-	cannot be escaped (e.g. assigned to a global variable))
-	$(TROW $(D lazy), argument is evaluated by the called function and not by the caller)
-		$(TROW $(D const), argument is implicitly converted to a const type)
-	$(TROW $(D immutable), argument is implicitly converted to an immutable type)
-	$(TROW $(D shared), argument is implicitly converted to a shared type)
-	$(TROW $(D inout), argument is implicitly converted to an inout type)
-	)
+    $(TROW $(D ref),   parameter is passed by reference)
+    $(TROW $(D scope), references in the parameter
+    cannot be escaped (e.g. assigned to a global variable))
+    $(TROW $(D lazy), argument is evaluated by the called function and not by the caller)
+        $(TROW $(D const), argument is implicitly converted to a const type)
+    $(TROW $(D immutable), argument is implicitly converted to an immutable type)
+    $(TROW $(D shared), argument is implicitly converted to a shared type)
+    $(TROW $(D inout), argument is implicitly converted to an inout type)
+    )
 
 ------
 void foo(out int x)
@@ -1167,11 +1182,11 @@ extern (C) int def(...); // error, must have at least one parameter
         C-style variadic functions match the C calling convention for
         variadic functions, and is most useful for calling C library
         functions like $(D printf).
-	)
+    )
 
-	$(P Access to variadic arguments is done using the standard library
-	module $(D core.stdc.stdarg).
-	)
+    $(P Access to variadic arguments is done using the standard library
+    module $(D core.stdc.stdarg).
+    )
 
 ------
 import core.stdc.stdarg;
@@ -1214,7 +1229,7 @@ int abc(char c, ...);   // one required parameter: c
 int def(...);           // ok
 ------
 
-	To access them, the following import is required:
+    To access them, the following import is required:
 
 ------
 import core.vararg;
@@ -1223,9 +1238,9 @@ import core.vararg;
         These variadic functions have a special local variable declared for
         them,
         $(D _argptr), which is a $(D core.vararg)
-	reference to the first of the variadic
+    reference to the first of the variadic
         arguments. To access the arguments, $(D _argptr) must be used
-	in conjuction with $(D va_arg):
+    in conjuction with $(D va_arg):
 
 ------
 import core.vararg;
@@ -1507,11 +1522,11 @@ void func(int x)
 
 $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Static Variables))
 
-	$(P Local variables in functions can be declared as static
-	or $(D __gshared) in which case they are statically allocated
-	rather than being allocated on the stack.
-	As such, their value persists beyond the exit of the function.
-	)
+    $(P Local variables in functions can be declared as static
+    or $(D __gshared) in which case they are statically allocated
+    rather than being allocated on the stack.
+    As such, their value persists beyond the exit of the function.
+    )
 
 ---
 void foo()
@@ -1522,16 +1537,16 @@ void foo()
 }
 ---
 
-	$(P The initializer for a static variable must be evaluatable at
-	compile time, and they are initialized upon the start of the thread
-	(or the start of the program for $(D __gshared)).
-	There are no static constructors or static destructors
-	for static local variables.
-	)
+    $(P The initializer for a static variable must be evaluatable at
+    compile time, and they are initialized upon the start of the thread
+    (or the start of the program for $(D __gshared)).
+    There are no static constructors or static destructors
+    for static local variables.
+    )
 
-	$(P Although static variable name visibility follows the usual scoping
-	rules, the names of them must be unique within a particular function.
-	)
+    $(P Although static variable name visibility follows the usual scoping
+    rules, the names of them must be unique within a particular function.
+    )
 
 ---
 void main()
@@ -1774,7 +1789,7 @@ void test()
 
     )
 
-	$(P Nested functions cannot be overloaded.)
+    $(P Nested functions cannot be overloaded.)
 
 $(H4 $(LNAME2 closures, Delegates, Function Pointers, and  Closures))
 
@@ -2055,15 +2070,15 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
     )
 
 
-	$(P In order to be executed at compile time, the function
-	must appear in a context where it must be so executed, for
-	example:)
+    $(P In order to be executed at compile time, the function
+    must appear in a context where it must be so executed, for
+    example:)
 
-	$(UL
-	$(LI initialization of a static variable)
-	$(LI dimension of a static array)
-	$(LI argument for a template value parameter)
-	)
+    $(UL
+    $(LI initialization of a static variable)
+    $(LI dimension of a static array)
+    $(LI argument for a template value parameter)
+    )
 
 ---
 template eval( A... )
@@ -2248,11 +2263,11 @@ $(H3 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         // it's automatically rewritten to 'func(obj)'
         ---
 
-	$(P This provides a way to add functions to a class externally as if they were
-	public final member functions, which enables
-	$(WEB www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
-	function chaining and component programming).
-	)
+    $(P This provides a way to add functions to a class externally as if they were
+    public final member functions, which enables
+    $(WEB www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
+    function chaining and component programming).
+    )
 
         ---
         stdin.byLine(KeepTerminator.yes)
