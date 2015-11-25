@@ -178,7 +178,7 @@ struct Param
     unsigned errorLimit;
 
     DArray<const char>  argv0;    // program name
-    Array<const char *> *modFileAliasStrings; // array of char*'s of -I module filename alias strings
+    Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
     Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
     const char *objdir;   // .obj/.lib file output directory

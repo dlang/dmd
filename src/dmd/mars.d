@@ -2251,8 +2251,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             if (p[4] && strchr(p + 5, '='))
             {
-                if (!params.modFileAliasStrings)
-                    params.modFileAliasStrings = new Strings();
                 params.modFileAliasStrings.push(p + 4);
             }
             else

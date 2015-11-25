@@ -138,6 +138,71 @@ void semantic3OnDependencies(Module m)
         semantic3OnDependencies(m.aimports[i]);
 }
 
+/**
+ * Converts a chain of identifiers to the filename of the module
+ *
+ * Params:
+ *  packages = the names of the "parent" packages
+ *  ident = the name of the child package or module
+ *
+ * Returns:
+ *  the filename of the child package or module
+ */
+private const(char)[] getFilename(Identifiers* packages, Identifier ident)
+{
+    const(char)[] filename = ident.toString();
+
+    if (packages == null || packages.dim == 0)
+        return filename;
+
+    OutBuffer buf;
+    OutBuffer dotmods;
+    auto modAliases = &global.params.modFileAliasStrings;
+
+    void checkModFileAlias(const(char)[] p)
+    {
+        /* Check and replace the contents of buf[] with
+        * an alias string from global.params.modFileAliasStrings[]
+        */
+        dotmods.writestring(p);
+        foreach_reverse (const m; *modAliases)
+        {
+            const q = strchr(m, '=');
+            assert(q);
+            if (dotmods.offset == q - m && memcmp(dotmods.peekChars(), m, q - m) == 0)
+            {
+                buf.reset();
+                auto rhs = q[1 .. strlen(q)];
+                if (rhs.length > 0 && (rhs[$ - 1] == '/' || rhs[$ - 1] == '\\'))
+                    rhs = rhs[0 .. $ - 1]; // remove trailing separator
+                buf.writestring(rhs);
+                break; // last matching entry in ms[] wins
+            }
+        }
+        dotmods.writeByte('.');
+    }
+
+    foreach (pid; *packages)
+    {
+        const p = pid.toString();
+        buf.writestring(p);
+        if (modAliases.dim)
+            checkModFileAlias(p);
+        version (Windows)
+            enum FileSeparator = '\\';
+        else
+            enum FileSeparator = '/';
+        buf.writeByte(FileSeparator);
+    }
+    buf.writestring(filename);
+    if (modAliases.dim)
+        checkModFileAlias(filename);
+    buf.writeByte(0);
+    filename = buf.extractSlice()[0 .. $ - 1];
+
+    return filename;
+}
+
 enum PKG : int
 {
     unknown,     // not yet determined whether it's a package.d or not
@@ -280,6 +345,27 @@ extern (C++) class Package : ScopeDsymbol
             return mod;
         }
         return null;
+    }
+
+    /**
+     * Checks for the existence of a package.d to set isPkgMod appropriately
+     * if isPkgMod == PKG.unknown
+     */
+    final void resolvePKGunknown()
+    {
+        if (isModule())
+            return;
+        if (isPkgMod != PKG.unknown)
+            return;
+
+        Identifiers packages;
+        for (Dsymbol s = this.parent; s; s = s.parent)
+            packages.insert(0, s.ident);
+
+        if (lookForSourceFile(getFilename(&packages, ident)))
+            Module.load(Loc(), &packages, this.ident);
+        else
+            isPkgMod = PKG.package_;
     }
 }
 
@@ -462,63 +548,8 @@ extern (C++) final class Module : Package
         //  foo.bar.baz
         // into:
         //  foo\bar\baz
-        const(char)[] filename = ident.toString();
-        if (packages && packages.dim)
-        {
-            OutBuffer buf;
-            OutBuffer dotmods;
-            auto ms = global.params.modFileAliasStrings;
-            const msdim = ms ? ms.dim : 0;
-
-            void checkModFileAlias(const(char)[] p)
-            {
-                /* Check and replace the contents of buf[] with
-                 * an alias string from global.params.modFileAliasStrings[]
-                 */
-                dotmods.writestring(p);
-            Lmain:
-                for (size_t j = msdim; j--;)
-                {
-                    const m = (*ms)[j];
-                    const q = strchr(m, '=');
-                    assert(q);
-                    if (dotmods.offset == q - m && memcmp(dotmods.peekChars(), m, q - m) == 0)
-                    {
-                        buf.reset();
-                        auto qlen = strlen(q + 1);
-                        if (qlen && (q[qlen] == '/' || q[qlen] == '\\'))
-                            --qlen;             // remove trailing separator
-                        buf.writestring(q[1 .. qlen + 1]);
-                        break Lmain;            // last matching entry in ms[] wins
-                    }
-                }
-                dotmods.writeByte('.');
-            }
-
-            foreach (pid; *packages)
-            {
-                const p = pid.toString();
-                buf.writestring(p);
-                if (msdim)
-                    checkModFileAlias(p);
-                version (Windows)
-                {
-                    buf.writeByte('\\');
-                }
-                else
-                {
-                    buf.writeByte('/');
-                }
-            }
-            buf.writestring(filename);
-            if (msdim)
-                checkModFileAlias(filename);
-            buf.writeByte(0);
-            filename = buf.extractData().toDString();
-        }
-
-        /* Look for the source file
-         */
+        const(char)[] filename = getFilename(packages, ident);
+        // Look for the source file
         if (const result = lookForSourceFile(filename))
             filename = result; // leaks
 

@@ -2308,6 +2308,36 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     return (err || olderrors != global.errors);
 }
 
+/**
+ * Determines whether a symbol represents a module or package
+ * (Used as a helper for is(type == module) and is(type == package))
+ *
+ * Params:
+ *  sym = the symbol to be checked
+ *
+ * Returns:
+ *  the symbol which `sym` represents (or `null` if it doesn't represent a `Package`)
+ */
+Package resolveIsPackage(Dsymbol sym)
+{
+    Package pkg;
+    if (Import imp = sym.isImport())
+    {
+        if (imp.pkg is null)
+        {
+            .error(sym.loc, "Internal Compiler Error: unable to process forward-referenced import `%s`",
+                    imp.toChars());
+            assert(0);
+        }
+        pkg = imp.pkg;
+    }
+    else
+        pkg = sym.isPackage();
+    if (pkg)
+        pkg.resolvePKGunknown();
+    return pkg;
+}
+
 private Module loadStdMath()
 {
     __gshared Import impStdMath = null;
@@ -5098,16 +5128,34 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tded = null;
-        Scope* sc2 = sc.copy(); // keep sc.flags
-        sc2.tinst = null;
-        sc2.minst = null;
-        sc2.flags |= SCOPE.fullinst;
-        Type t = e.targ.trySemantic(e.loc, sc2);
-        sc2.pop();
-        if (!t)
-            goto Lno;
-        // errors, so condition is false
-        e.targ = t;
+        if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
+        {
+            Dsymbol sym = e.targ.toDsymbol(sc);
+            if (sym is null)
+                goto Lno;
+            Package p = resolveIsPackage(sym);
+            if (p is null)
+                goto Lno;
+            if (e.tok2 == TOK.package_ && p.isModule()) // Note that isModule() will return null for package modules because they're not actually instances of Module.
+                goto Lno;
+            else if(e.tok2 == TOK.module_ && !(p.isModule() || p.isPackageMod()))
+                goto Lno;
+            tded = e.targ;
+            goto Lyes;
+        }
+
+        {
+            Scope* sc2 = sc.copy(); // keep sc.flags
+            sc2.tinst = null;
+            sc2.minst = null;
+            sc2.flags |= SCOPE.fullinst;
+            Type t = e.targ.trySemantic(e.loc, sc2);
+            sc2.pop();
+            if (!t) // errors, so condition is false
+                goto Lno;
+            e.targ = t;
+        }
+
         if (e.tok2 != TOK.reserved)
         {
             switch (e.tok2)
