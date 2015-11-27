@@ -287,7 +287,14 @@ class TypeInfo
 
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
-    abstract const(void)[] init() nothrow pure const @safe @nogc;
+    abstract const(void)[] initializer() nothrow pure const @safe @nogc;
+
+    /// $(RED Scheduled for deprecation.) Please use `initializer` instead.
+    alias init = initializer; // added in 2.070, to stay in 2.071
+    version(none) deprecated alias init = initializer; // planned for 2.072
+    version(none) @disable static const(void)[] init(); // planned for 2.073
+    /* Planned for 2.074: Remove init, making way for the init type property,
+    fixing issue 12233. */
 
     /// Get flags for type: 1 means GC should scan for pointers,
     /// 2 means arg of this type is passed in XMM register
@@ -339,7 +346,11 @@ class TypeInfo_Typedef : TypeInfo
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
     override @property uint flags() nothrow pure const { return base.flags; }
-    override const(void)[] init() const { return m_init.length ? m_init : base.init(); }
+
+    override const(void)[] initializer() const
+    {
+        return m_init.length ? m_init : base.initializer();
+    }
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
@@ -398,7 +409,7 @@ class TypeInfo_Pointer : TypeInfo
         return (void*).sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. (void*).sizeof];
     }
@@ -472,7 +483,7 @@ class TypeInfo_Array : TypeInfo
         return (void[]).sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. (void[]).sizeof];
     }
@@ -588,7 +599,11 @@ class TypeInfo_StaticArray : TypeInfo
             GC.free(pbuffer);
     }
 
-    override const(void)[] init() nothrow pure const { return value.init(); }
+    override const(void)[] initializer() nothrow pure const
+    {
+        return value.initializer();
+    }
+
     override @property inout(TypeInfo) next() nothrow pure inout { return value; }
     override @property uint flags() nothrow pure const { return value.flags; }
 
@@ -661,7 +676,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return (char[int]).sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. (char[int]).sizeof];
     }
@@ -704,7 +719,11 @@ class TypeInfo_Vector : TypeInfo
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
     override @property uint flags() nothrow pure const { return base.flags; }
-    override const(void)[] init() nothrow pure const { return base.init(); }
+
+    override const(void)[] initializer() nothrow pure const
+    {
+        return base.initializer();
+    }
 
     override @property size_t talign() nothrow pure const { return 16; }
 
@@ -738,7 +757,7 @@ class TypeInfo_Function : TypeInfo
         return 0;       // no size for functions
     }
 
-    override const(void)[] init() const @safe
+    override const(void)[] initializer() const @safe
     {
         return null;
     }
@@ -793,7 +812,7 @@ class TypeInfo_Delegate : TypeInfo
         return dg.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. (int delegate()).sizeof];
     }
@@ -903,7 +922,10 @@ class TypeInfo_Class : TypeInfo
         return Object.sizeof;
     }
 
-    override const(void)[] init() nothrow pure const @safe { return m_init; }
+    override const(void)[] initializer() nothrow pure const @safe
+    {
+        return m_init;
+    }
 
     override @property uint flags() nothrow pure const { return 1; }
 
@@ -993,10 +1015,10 @@ unittest
         int a;
     }
 
-    assert(typeid(X).init is typeid(X).m_init);
-    assert(typeid(X).init.length == typeid(const(X)).init.length);
-    assert(typeid(X).init.length == typeid(shared(X)).init.length);
-    assert(typeid(X).init.length == typeid(immutable(X)).init.length);
+    assert(typeid(X).initializer is typeid(X).m_init);
+    assert(typeid(X).initializer.length == typeid(const(X)).initializer.length);
+    assert(typeid(X).initializer.length == typeid(shared(X)).initializer.length);
+    assert(typeid(X).initializer.length == typeid(immutable(X)).initializer.length);
 }
 
 class TypeInfo_Interface : TypeInfo
@@ -1058,7 +1080,7 @@ class TypeInfo_Interface : TypeInfo
         return Object.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. Object.sizeof];
     }
@@ -1078,7 +1100,7 @@ class TypeInfo_Struct : TypeInfo
             return true;
         auto s = cast(const TypeInfo_Struct)o;
         return s && this.name == s.name &&
-                    this.init().length == s.init().length;
+                    this.initializer().length == s.initializer().length;
     }
 
     override size_t getHash(in void* p) @safe pure nothrow const
@@ -1093,7 +1115,7 @@ class TypeInfo_Struct : TypeInfo
             import core.internal.traits : externDFunc;
             alias hashOf = externDFunc!("rt.util.hash.hashOf",
                                         size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
-            return hashOf(p, init().length, 0);
+            return hashOf(p, initializer().length, 0);
         }
     }
 
@@ -1109,7 +1131,7 @@ class TypeInfo_Struct : TypeInfo
             return true;
         else
             // BUG: relies on the GC not moving objects
-            return memcmp(p1, p2, init().length) == 0;
+            return memcmp(p1, p2, initializer().length) == 0;
     }
 
     override int compare(in void* p1, in void* p2) @trusted pure nothrow const
@@ -1127,7 +1149,7 @@ class TypeInfo_Struct : TypeInfo
                     return (*xopCmp)(p2, p1);
                 else
                     // BUG: relies on the GC not moving objects
-                    return memcmp(p1, p2, init().length);
+                    return memcmp(p1, p2, initializer().length);
             }
             else
                 return -1;
@@ -1137,10 +1159,13 @@ class TypeInfo_Struct : TypeInfo
 
     override @property size_t tsize() nothrow pure const
     {
-        return init().length;
+        return initializer().length;
     }
 
-    override const(void)[] init() nothrow pure const @safe { return m_init; }
+    override const(void)[] initializer() nothrow pure const @safe
+    {
+        return m_init;
+    }
 
     override @property uint flags() nothrow pure const { return m_flags; }
 
@@ -1164,7 +1189,7 @@ class TypeInfo_Struct : TypeInfo
     }
 
     string name;
-    void[] m_init;      // initializer; init.ptr == null if 0 initialize
+    void[] m_init;      // initializer; m_init.ptr == null if 0 initialize
 
   @safe pure nothrow
   {
@@ -1273,7 +1298,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         assert(0);
     }
@@ -1332,7 +1357,11 @@ class TypeInfo_Const : TypeInfo
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
     override @property uint flags() nothrow pure const { return base.flags; }
-    override const(void)[] init() nothrow pure const { return base.init(); }
+
+    override const(void)[] initializer() nothrow pure const
+    {
+        return base.initializer();
+    }
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
@@ -2729,7 +2758,7 @@ void destroy(T)(ref T obj) if (is(T == struct))
     _destructRecurse(obj);
     () @trusted {
         auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
-        auto init = cast(ubyte[])typeid(T).init();
+        auto init = cast(ubyte[])typeid(T).initializer();
         if (init.ptr is null) // null ptr means initialize to 0s
             buf[] = 0;
         else
