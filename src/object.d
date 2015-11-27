@@ -848,7 +848,7 @@ unittest
 /**
  * Runtime type information about a class.
  * Can be retrieved from an object instance by using the
- * $(LINK2 ../spec/property.html#classinfo, .classinfo) property.
+ * $(DDSUBLINK spec/property,classinfo, .classinfo) property.
  */
 class TypeInfo_Class : TypeInfo
 {
