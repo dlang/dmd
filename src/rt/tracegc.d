@@ -102,7 +102,7 @@ extern (C) Object _d_newclassTrace(string file, int line, string funcname, const
             funcname.length, funcname.ptr
             );
     }
-    accumulate(file, line, funcname, ci.name, ci.init.length);
+    accumulate(file, line, funcname, ci.name, ci.initializer.length);
     return _d_newclass(ci);
 }
 

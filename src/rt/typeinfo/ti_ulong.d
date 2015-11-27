@@ -50,7 +50,7 @@ class TypeInfo_m : TypeInfo
         return ulong.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. ulong.sizeof];
     }

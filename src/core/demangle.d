@@ -86,7 +86,7 @@ private struct Demangle
         //throw new ParseException( msg );
         debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
         throw __ctfe ? new ParseException(msg)
-                     : cast(ParseException) cast(void*) typeid(ParseException).init;
+                     : cast(ParseException) cast(void*) typeid(ParseException).initializer;
 
     }
 
@@ -95,7 +95,7 @@ private struct Demangle
     {
         //throw new OverflowException( msg );
         debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
-        throw cast(OverflowException) cast(void*) typeid(OverflowException).init;
+        throw cast(OverflowException) cast(void*) typeid(OverflowException).initializer;
     }
 
 

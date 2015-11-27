@@ -291,7 +291,7 @@ struct GC
     {
         config.initialize();
 
-        mutexStorage[] = typeid(GCMutex).init[];
+        mutexStorage[] = typeid(GCMutex).initializer[];
         gcLock = cast(GCMutex) mutexStorage.ptr;
         gcLock.__ctor();
         gcx = cast(Gcx*)cstdlib.calloc(1, Gcx.sizeof);
