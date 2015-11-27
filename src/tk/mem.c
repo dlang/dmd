@@ -562,9 +562,9 @@ static void mem_checkdl(struct mem_debug *dl)
             goto err2;
     }
 #if SUN || SUN386 /* Bus error if we read a long from an odd address    */
-    error = (memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0);
+    error = memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0;
 #else
-    error = (*(long *) &dl->data[dl->Mnbytes] != AFTERVAL);
+    error = *(long *) &dl->data[dl->Mnbytes] != AFTERVAL;
 #endif
     if (error)
     {
