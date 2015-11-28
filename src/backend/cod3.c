@@ -820,6 +820,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             nextb = list_block(bl->Bsucc);
             if ((MARS ||
                  funcsym_p->Sfunc->Fflags3 & Fnteh) &&
+                config.ehmethod != EH_DWARF &&
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
             {
@@ -919,19 +920,51 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 code *cy = getregs(allregs);
                 assert(!cy);
             }
-            assert(!e);
-            assert(!bl->Bcode);
-            // Generate CALL to finalizer code
-            c = cat(c, callFinallyBlock(bl->nthSucc(0), 0));
+            if (config.ehmethod == EH_DWARF)
+            {
+                retregs = 0;
+                bl->Bcode = gencodelem(NULL,bl->Belem,&retregs,TRUE);
 
-            // JMP bl->nthSucc(1)
-            nextb = bl->nthSucc(1);
+                // JMP bl->nthSucc(1)
+                nextb = bl->nthSucc(1);
+                goto L2;
+            }
+            else
+            {
+                assert(!e);
+                assert(!bl->Bcode);
+                // Generate CALL to finalizer code
+                c = cat(c, callFinallyBlock(bl->nthSucc(0), 0));
+
+                // JMP bl->nthSucc(1)
+                nextb = bl->nthSucc(1);
+                goto L2;
+            }
+
+        case BC_lpad:
+        {
+            assert(config.ehmethod == EH_DWARF);
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in finally blocks.
+            code *cy = getregs(allregs);
+            assert(!cy);
+
+            retregs = 0;
+            bl->Bcode = gencodelem(c,bl->Belem,&retregs,TRUE);
+
+            // JMP bl->nthSucc(0)
+            nextb = bl->nthSucc(0);
             goto L2;
+        }
 
         case BC_ret:
             retregs = 0;
             c = gencodelem(c,e,&retregs,TRUE);
-            bl->Bcode = gen1(c,0xC3);   // RET
+            if (config.ehmethod == EH_DWARF)
+            {
+            }
+            else
+                bl->Bcode = gen1(c,0xC3);   // RET
             break;
 
 #if NTEXCEPTIONS
