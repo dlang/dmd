@@ -4181,6 +4181,12 @@ public:
                     auto tempdecl = new TemplateDeclaration(loc, ident, tpl, null, a2, 0);
                     s = tempdecl;
                 }
+                if (structalign != 0)
+                {
+                    auto ax = new Dsymbols();
+                    ax.push(s);
+                    s = new AlignDeclaration(structalign, ax);
+                }
                 if (link != linkage)
                 {
                     auto ax = new Dsymbols();
