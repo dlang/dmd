@@ -3754,17 +3754,18 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        if (FuncLiteralDeclaration fld = s.isFuncLiteralDeclaration())
+        if (auto fld = s.isFuncLiteralDeclaration())
         {
             //printf("'%s' is a function literal\n", fld->toChars());
             e = new FuncExp(loc, fld);
             return e.semantic(sc);
         }
-        if (FuncDeclaration f = s.isFuncDeclaration())
+        if (auto f = s.isFuncDeclaration())
         {
             f = f.toAliasFunc();
             if (!f.functionSemantic())
                 return new ErrorExp();
+
             if (!f.type.deco)
             {
                 const(char)* trailMsg = f.inferRetType ? "inferred return type of function call " : "";
@@ -6163,6 +6164,20 @@ public:
         }
         tok = fd.tok; // save original kind of function/delegate/(infer)
         assert(fd.fbody);
+    }
+
+    override bool equals(RootObject o)
+    {
+        if (this == o)
+            return true;
+        if (o.dyncast() != DYNCAST_EXPRESSION)
+            return false;
+        if ((cast(Expression)o).op == TOKfunction)
+        {
+            FuncExp fe = cast(FuncExp)o;
+            return fd == fe.fd;
+        }
+        return false;
     }
 
     void genIdent(Scope* sc)
