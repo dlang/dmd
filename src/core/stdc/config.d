@@ -86,27 +86,27 @@ else version( Posix )
   }
 }
 
-version( DigitalMars )
+version( CRuntime_Microsoft )
 {
-    version( CRuntime_Microsoft )
+    /* long double is 64 bits, not 80 bits, but is mangled differently
+     * than double. To distinguish double from long double, create a wrapper to represent
+     * long double, then recognize that wrapper specially in the compiler
+     * to generate the correct name mangling and correct function call/return
+     * ABI conformance.
+     */
+    struct __c_long_double
     {
-        /* long double is 64 bits, not 80 bits, but is mangled differently
-         * than double. To distinguish double from long double, create a wrapper to represent
-         * long double, then recognize that wrapper specially in the compiler
-         * to generate the correct name mangling and correct function call/return
-         * ABI conformance.
-         */
-        struct __c_long_double
-        {
-          pure nothrow @nogc @safe:
-            this(double d) { ld = d; }
-            double ld;
-            alias ld this;
-        }
-
-        alias __c_long_double c_long_double;
+      pure nothrow @nogc @safe:
+        this(double d) { ld = d; }
+        double ld;
+        alias ld this;
     }
-    else version( X86 )
+
+    alias __c_long_double c_long_double;
+}
+else version( DigitalMars )
+{
+    version( X86 )
     {
         alias real c_long_double;
     }
