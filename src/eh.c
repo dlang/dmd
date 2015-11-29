@@ -1,12 +1,12 @@
 /*
  * Copyright (c) 1994-1998 by Symantec
- * Copyright (c) 2000-2013 by Digital Mars
+ * Copyright (c) 2000-2015 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -33,11 +33,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
  * (Otherwise use NT Structured Exception Handling)
  */
 #if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-#define OUREH 1
 #define WIN64EH 0
 #elif TARGET_WINDOS
-#define OUREH I64
-#define WIN64EH OUREH
+#define WIN64EH I64
 #else
 #error fix
 #endif
@@ -51,7 +49,7 @@ extern void error(const char *filename, unsigned linnum, unsigned charnum, const
 symbol *except_gentables()
 {
     //printf("except_gentables()\n");
-    if (OUREH)
+    if (config.ehmethod == EH_DM)
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
@@ -83,7 +81,7 @@ symbol *except_gentables()
  *
  * struct Guard
  * {
- *    if (OUREH)
+ *    if (EH_DM)
  *    {
  *        unsigned offset;        // offset of start of guarded section (Linux)
  *        unsigned endoffset;     // ending offset of guarded section (Linux)
@@ -117,10 +115,12 @@ void except_fillInEHTable(symbol *s)
      * in the compiler.
      */
     unsigned GUARD_SIZE;
-    if (OUREH)
+    if (config.ehmethod == EH_DM)
         GUARD_SIZE = (I64 ? 3*8 : 5*4);
-    else
+    else if (config.ehmethod == EH_WIN32)
         GUARD_SIZE = 3*4;
+    else
+        assert(0);
 
     int sz = 0;
 
@@ -164,8 +164,9 @@ void except_fillInEHTable(symbol *s)
     }
     //printf("guarddim = %d, ndctors = %d\n", guarddim, ndctors);
 
-    if (OUREH)
-    {   pdt = dtsize_t(pdt,guarddim + ndctors);
+    if (config.ehmethod == EH_DM)
+    {
+        pdt = dtsize_t(pdt,guarddim + ndctors);
         sz += NPTRSIZE;
     }
 
@@ -188,7 +189,7 @@ void except_fillInEHTable(symbol *s)
 
             int nsucc = b->numSucc();
 
-            if (OUREH)
+            if (config.ehmethod == EH_DM)
             {
                 //printf("DHandlerInfo: offset = %x", (int)(b->Boffset - startblock->Boffset));
                 pdt = dtdword(pdt,b->Boffset - startblock->Boffset);        // offset to start of block
@@ -200,7 +201,7 @@ void except_fillInEHTable(symbol *s)
                     //printf("\tbn = %p, bn->Btry = %p, bn->offset = %x\n", bn, bn->Btry, bn->Boffset);
                     assert(bn);
                     if (bn->Btry == b->Btry)
-                    {   endoffset = bn->Boffset - startblock->Boffset;
+                    {    endoffset = bn->Boffset - startblock->Boffset;
                          break;
                     }
                 }
@@ -227,7 +228,7 @@ void except_fillInEHTable(symbol *s)
                 // To successor of BC_finally block
                 bhandler = bhandler->nthSucc(0);
                 // finally handler address
-                if (OUREH)
+                if (config.ehmethod == EH_DM)
                 {
                     assert(bhandler->Boffset > startblock->Boffset);
                     if (WIN64EH)
@@ -269,7 +270,7 @@ void except_fillInEHTable(symbol *s)
                 code *c2 = code_next(c);
                 if (config.flags2 & CFG2seh)
                     nteh_patchindex(c2, scopeindex);
-                if (OUREH)
+                if (config.ehmethod == EH_DM)
                     pdt = dtdword(pdt,boffset - startblock->Boffset); // guard offset
                 // Find corresponding ddtor instruction
                 int n = 0;
@@ -277,7 +278,10 @@ void except_fillInEHTable(symbol *s)
                 unsigned foffset;
                 for (; 1; c2 = code_next(c2))
                 {
-                    assert(c2);
+                    // Bugzilla 13720: optimizer might elide the corresponding ddtor
+                    if (!c2)
+                        goto Lnodtor;
+
                     if (c2->Iop == (ESCAPE | ESCddtor))
                     {
                         if (n)
@@ -301,7 +305,7 @@ void except_fillInEHTable(symbol *s)
                             // issue 9438
                             //cf = code_next(cf);
                             //foffset += calccodsize(cf);
-                            if (OUREH)
+                            if (config.ehmethod == EH_DM)
                                 pdt = dtdword(pdt,eoffset - startblock->Boffset); // guard offset
                             break;
                         }
@@ -316,7 +320,7 @@ void except_fillInEHTable(symbol *s)
                 //printf("boffset = %x, eoffset = %x, foffset = %x\n", boffset, eoffset, foffset);
                 pdt = dtdword(pdt,stack[stacki - 1]);   // parent index
                 pdt = dtdword(pdt,0);           // no catch offset
-                if (OUREH)
+                if (config.ehmethod == EH_DM)
                 {
                     assert(foffset > startblock->Boffset);
                     if (WIN64EH)
@@ -345,6 +349,7 @@ void except_fillInEHTable(symbol *s)
                 stacki--;
                 assert(stacki != 0);
             }
+        Lnodtor:
             boffset += calccodsize(c);
         }
     }
@@ -370,7 +375,7 @@ void except_fillInEHTable(symbol *s)
                 pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 
                 // catch handler address
-                if (OUREH)
+                if (config.ehmethod == EH_DM)
                 {
                     assert(bcatch->Boffset > startblock->Boffset);
                     if (WIN64EH)
