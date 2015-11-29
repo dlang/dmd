@@ -4969,12 +4969,16 @@ elem *toElem(Expression *e, IRState *irs)
                      */
                     if (vd->edtor && !vd->noscope)
                     {
-                        e = el_dctor(e, vd);
+                        elem *ed = NULL;
+                        e = el_ctor_dtor(e, toElem(vd->edtor, irs), &ed);
 
-                        // Put vd on list of things needing destruction
+                        // ed needs to be inserted into the code later
                         if (!irs->varsInScope)
+                            /* Don't have an Expressions_create(), so press VarDeclarations_create()
+                             * into service. Fix when this file is converted to D.
+                             */
                             irs->varsInScope = VarDeclarations_create();
-                        irs->varsInScope->push(vd);
+                        irs->varsInScope->push((VarDeclaration *)ed);
                     }
                 }
             }
@@ -5513,13 +5517,11 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
     elem *edtors = NULL;
     for (size_t i = starti; i != endi; ++i)
     {
-        VarDeclaration *vd = (*irs->varsInScope)[i];
-        if (vd)
+        elem *ed = (elem *)(*irs->varsInScope)[i];
+        if (ed)
         {
             //printf("appending dtor\n");
             (*irs->varsInScope)[i] = NULL;
-            elem *ed = toElem(vd->edtor, irs);
-            ed = el_ddtor(ed, vd);
             edtors = el_combine(ed, edtors);    // execute in reverse order
         }
     }

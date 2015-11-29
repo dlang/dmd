@@ -508,6 +508,7 @@ const char* debug_info = "__debug_info";
 const char* debug_pubnames = "__debug_pubnames";
 const char* debug_aranges = "__debug_aranges";
 const char* eh_frame_name = "__eh_frame";
+const char* except_table_name = "__gcc_except_table";
 #elif ELFOBJ
 const char* debug_frame_name = ".debug_frame";
 const char* debug_str = ".debug_str";
@@ -519,6 +520,7 @@ const char* debug_info = ".debug_info";
 const char* debug_pubnames = ".debug_pubnames";
 const char* debug_aranges = ".debug_aranges";
 const char* eh_frame_name = ".eh_frame";
+const char* except_table_name = ".gcc_except_table";
 #endif
 
 /*****************************************

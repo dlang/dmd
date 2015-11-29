@@ -443,6 +443,12 @@ typedef struct block
         } BI_TRY;                       // BC_try
 #endif
 
+        struct
+        {
+            Symbol *flag;               // EH_DWARF: set to 'flag' symbol that encloses finally
+            block *b_ret;               // EH_DWARF: associated BC_ret block
+        } BI_FINALLY;
+
     } BS;
     Srcpos      Bsrcpos;        // line number (0 if not known)
     unsigned char BC;           // exit condition (enum BC)
@@ -560,6 +566,7 @@ typedef struct block
     void prependSucc(block *b) { list_prepend(&this->Bsucc, b); }
     int numSucc() { return list_nitems(this->Bsucc); }
     block *nthSucc(int n) { return (block *)list_ptr(list_nth(Bsucc, n)); }
+    void setNthSucc(int n, block *b) { list_ptr(list_nth(Bsucc, n)) = b; }
 } block;
 
 #define list_block(l)   ((block *) list_ptr(l))
@@ -599,6 +606,7 @@ enum BC {
     BC_ret      = 16,   // last block of SEH termination-handler or D _finally block
     BC_except   = 17,   // first block of SEH exception-handler
     BCjcatch    = 18,   // D catch block
+    BC_lpad     = 19,   // EH_DWARF: landing pad for BC_except
     BCMAX
 };
 

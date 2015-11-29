@@ -971,13 +971,11 @@ union eve
             elem *Eright;       // right child for binary nodes
             Symbol *Edtor;      // OPctor: destructor
         } eop;
-#if MARS
         struct
         {
             elem *Eleft;        // left child for OPddtor
             void *Edecl;        // VarDeclaration being constructed
         } ed;                   // OPdctor,OPddtor
-#endif
 };                              // variants for each type of elem
 
 // Symbols

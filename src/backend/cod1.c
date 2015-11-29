@@ -1390,7 +1390,23 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
     case FLpseudo:
 #if MARS
-        assert(0);
+    {
+        c = getregs(mask[s->Sreglsw]);
+        pcs->Irm = modregrm(3,0,s->Sreglsw & 7);
+        if (s->Sreglsw & 8)
+            pcs->Irex |= REX_B;
+        if (e->EV.sp.Voffset == 1 && sz == 1)
+        {   assert(s->Sregm & BYTEREGS);
+            assert(s->Sreglsw < 4);
+            pcs->Irm |= 4;                  // use 2nd byte of register
+        }
+        else
+        {   assert(!e->EV.sp.Voffset);
+            if (I64 && sz == 1 && s->Sreglsw >= 4)
+                pcs->Irex |= REX;
+        }
+        break;
+    }
 #else
     {
         unsigned u = s->Sreglsw;

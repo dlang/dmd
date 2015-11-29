@@ -45,6 +45,7 @@ RET retStyle(TypeFunction *tf);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
+void insertFinallyBlockCalls(block *startblock);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
 void buildClosure(FuncDeclaration *fd, IRState *irs);
@@ -1240,6 +1241,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
                 }
             }
         }
+        insertFinallyBlockCalls(f->Fstartblock);
     }
 
     // If static constructor

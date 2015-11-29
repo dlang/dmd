@@ -1751,7 +1751,13 @@ int isregvar(elem *e,regm_t *pregm,unsigned *preg)
 
             case FLpseudo:
 #if MARS
-                assert(0);
+                u = s->Sreglsw;
+                m = mask[u];
+                if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
+                {   reg = u & 7;
+                    regm = m;
+                    goto Lreg;
+                }
 #else
                 u = s->Sreglsw;
                 m = pseudomask[u];

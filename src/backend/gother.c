@@ -136,6 +136,7 @@ STATIC void rd_compute()
                 case BCjcatch:
 #endif
                 case BC_finally:
+                case BC_lpad:
                 case BCasm:
                 case BCcatch:
                     block_visit(b);
