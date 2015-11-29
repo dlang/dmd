@@ -6,7 +6,7 @@
 * License: Distributed under the
 *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
 *    (See accompanying file LICENSE)
-* Source:    $(DRUNTIMESRC rt/_stdio_msvc.d)
+* Source:    $(DRUNTIMESRC rt/_msvc.c)
 * Authors:   Rainer Schuetze
 */
 
@@ -156,3 +156,33 @@ int  _msvc_fileno(FILE* stream)
 {
     return stream->_file;
 }
+
+
+
+/**
+ * 32-bit x86 MS VC runtimes lack most single-precision math functions.
+ * Declare alternate implementations to be pulled in from msvc_math.c.
+ */
+#if defined _M_IX86
+
+DECLARE_ALTERNATE_NAME (acosf,  _msvc_acosf);
+DECLARE_ALTERNATE_NAME (asinf,  _msvc_asinf);
+DECLARE_ALTERNATE_NAME (atanf,  _msvc_atanf);
+DECLARE_ALTERNATE_NAME (atan2f, _msvc_atan2f);
+DECLARE_ALTERNATE_NAME (cosf,   _msvc_cosf);
+DECLARE_ALTERNATE_NAME (sinf,   _msvc_sinf);
+DECLARE_ALTERNATE_NAME (tanf,   _msvc_tanf);
+DECLARE_ALTERNATE_NAME (coshf,  _msvc_coshf);
+DECLARE_ALTERNATE_NAME (sinhf,  _msvc_sinhf);
+DECLARE_ALTERNATE_NAME (tanhf,  _msvc_tanhf);
+DECLARE_ALTERNATE_NAME (expf,   _msvc_expf);
+DECLARE_ALTERNATE_NAME (logf,   _msvc_logf);
+DECLARE_ALTERNATE_NAME (log10f, _msvc_log10f);
+DECLARE_ALTERNATE_NAME (powf,   _msvc_powf);
+DECLARE_ALTERNATE_NAME (sqrtf,  _msvc_sqrtf);
+DECLARE_ALTERNATE_NAME (ceilf,  _msvc_ceilf);
+DECLARE_ALTERNATE_NAME (floorf, _msvc_floorf);
+DECLARE_ALTERNATE_NAME (fmodf,  _msvc_fmodf);
+DECLARE_ALTERNATE_NAME (modff,  _msvc_modff);
+
+#endif // _M_IX86
