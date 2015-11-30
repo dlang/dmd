@@ -698,9 +698,13 @@ extern (C++) void ctfeCompile(FuncDeclaration fd)
 }
 
 /*************************************
- *
  * Entry point for CTFE.
- * A compile-time result is required. Give an error if not possible
+ * A compile-time result is required. Give an error if not possible.
+ *
+ * `e` must be semantically valid expression. In other words, it should not
+ * contain any `ErrorExp`s in it. But, CTFE interpretation will cross over
+ * functions and may invoke a function that contains `ErrorStatement` in its body.
+ * If that, the "CTFE failed because of previous errors" error is raised.
  */
 extern (C++) Expression ctfeInterpret(Expression e)
 {
@@ -710,21 +714,21 @@ extern (C++) Expression ctfeInterpret(Expression e)
     //assert(e->type->ty != Terror);    // FIXME
     if (e.type.ty == Terror)
         return new ErrorExp();
-    uint olderrors = global.errors;
+
     // This code is outside a function, but still needs to be compiled
     // (there are compiler-generated temporary variables such as __dollar).
     // However, this will only be run once and can then be discarded.
     auto ctfeCodeGlobal = CompiledCtfeFunction(null);
     ctfeCodeGlobal.callingloc = e.loc;
     ctfeCodeGlobal.onExpression(e);
+
     Expression result = interpret(e, null);
+
     if (!CTFEExp.isCantExp(result))
         result = scrubReturnValue(e.loc, result);
     if (CTFEExp.isCantExp(result))
-    {
-        assert(global.errors != olderrors);
         result = new ErrorExp();
-    }
+
     return result;
 }
 
@@ -799,9 +803,11 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         return CTFEExp.cantexp;
     if (fd.semanticRun < PASSsemantic3done)
         return CTFEExp.cantexp;
+
     // CTFE-compile the function
     if (!fd.ctfeCode)
         ctfeCompile(fd);
+
     Type tb = fd.type.toBasetype();
     assert(tb.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)tb;
@@ -810,12 +816,14 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         fd.error("C-style variadic functions are not yet implemented in CTFE");
         return CTFEExp.cantexp;
     }
+
     // Nested functions always inherit the 'this' pointer from the parent,
     // except for delegates. (Note that the 'this' pointer may be null).
     // Func literals report isNested() even if they are in global scope,
     // so we need to check that the parent is a function.
     if (fd.isNested() && fd.toParent2().isFuncDeclaration() && !thisarg && istate)
         thisarg = ctfeStack.getThis();
+
     if (fd.needThis() && !thisarg)
     {
         // error, no this. Prevent segfault.
@@ -823,11 +831,13 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         fd.error("need 'this' to access member %s", fd.toChars());
         return CTFEExp.cantexp;
     }
+
     // Place to hold all the arguments to the function while
     // we are evaluating them.
     Expressions eargs;
     size_t dim = arguments ? arguments.dim : 0;
     assert((fd.parameters ? fd.parameters.dim : 0) == dim);
+
     /* Evaluate all the arguments to the function,
      * store the results in eargs[]
      */
@@ -882,6 +892,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         }
         eargs[i] = earg;
     }
+
     // Now that we've evaluated all the arguments, we can start the frame
     // (this is the moment when the 'call' actually takes place).
     InterState istatex;
@@ -893,6 +904,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         ctfeStack.push(fd.vthis);
         setValue(fd.vthis, thisarg);
     }
+
     for (size_t i = 0; i < dim; i++)
     {
         Expression earg = eargs[i];
@@ -903,6 +915,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
             printf("arg[%d] = %s\n", i, earg.toChars());
         }
         ctfeStack.push(v);
+
         if ((fparam.storageClass & (STCout | STCref)) && earg.op == TOKvar && (cast(VarExp)earg).var.toParent2() == fd)
         {
             VarDeclaration vx = (cast(VarExp)earg).var.isVarDeclaration();
@@ -911,6 +924,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
                 fd.error("cannot interpret %s as a ref parameter", earg.toChars());
                 return CTFEExp.cantexp;
             }
+
             /* vx is a variable that is declared in fd.
              * It means that fd is recursively called. e.g.
              *
@@ -924,6 +938,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
              * should be saved at the start of fd(2, vx) call.
              */
             int oldadr = vx.ctfeAdrOnStack;
+
             ctfeStack.push(vx);
             assert(!hasValue(vx)); // vx is made uninitialized
             // Bugzilla 14299: v->ctfeAdrOnStack should be saved already
@@ -942,12 +957,15 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
             showCtfeExpr(earg);
         }
     }
+
     if (fd.vresult)
         ctfeStack.push(fd.vresult);
+
     // Enter the function
     ++CtfeStatus.callDepth;
     if (CtfeStatus.callDepth > CtfeStatus.maxCallDepth)
         CtfeStatus.maxCallDepth = CtfeStatus.callDepth;
+
     Expression e = null;
     while (1)
     {
@@ -967,11 +985,13 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
                 printf("function body failed to interpret\n");
             }
         }
+
         if (istatex.start)
         {
             fd.error("CTFE internal error: failed to resume at statement %s", istatex.start.toChars());
             return CTFEExp.cantexp;
         }
+
         /* This is how we deal with a recursive statement AST
          * that has arbitrary goto statements in it.
          * Bubble up a 'result' which is the target of the goto
@@ -995,15 +1015,19 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     if (tf.isref && e.op == TOKvar && (cast(VarExp)e).var == fd.vthis)
         e = thisarg;
     assert(e !is null);
+
     // Leave the function
     --CtfeStatus.callDepth;
+
     ctfeStack.endFrame();
+
     // If it generated an uncaught exception, report error.
     if (!istate && e.op == TOKthrownexception)
     {
         (cast(ThrownExceptionExp)e).generateUncaughtError();
         e = CTFEExp.cantexp;
     }
+
     return e;
 }
 

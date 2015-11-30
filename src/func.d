@@ -2200,10 +2200,16 @@ public:
         //fflush(stdout);
     }
 
+    /****************************************************
+     * Resolve forward reference of function signature -
+     * parameter types, return type, and attributes.
+     * Returns false if any errors exist in the signature.
+     */
     final bool functionSemantic()
     {
         if (!_scope)
-            return true;
+            return !errors;
+
         if (!originalType) // semantic not yet run
         {
             TemplateInstance spec = isSpeculative();
@@ -2218,11 +2224,17 @@ public:
             if (olderrs != global.errors) // if errors compiling this function
                 return false;
         }
+
         // if inferring return type, sematic3 needs to be run
+        // - When the function body contains any errors, we cannot assume
+        //   the inferred return type is valid.
+        //   So, the body errors should become the function signature error.
         if (inferRetType && type && !type.nextOf())
             return functionSemantic3();
+
         TemplateInstance ti;
-        if (isInstantiated() && !isVirtualMethod() && !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident))
+        if (isInstantiated() && !isVirtualMethod() &&
+            !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident))
         {
             AggregateDeclaration ad = isMember2();
             if (ad && ad.sizeok != SIZEOKdone)
@@ -2234,15 +2246,19 @@ public:
                 //ad->sizeok = SIZEOKfwd;
             }
             else
-                return functionSemantic3();
+                return functionSemantic3() || !errors;
         }
 
         if (storage_class & STCinference)
-            return functionSemantic3();
+            return functionSemantic3() || !errors;
 
-        return true;
+        return !errors;
     }
 
+    /****************************************************
+     * Resolve forward reference of function body.
+     * Returns false if any errors exist in the body.
+     */
     final bool functionSemantic3()
     {
         if (semanticRun < PASSsemantic3 && _scope)
@@ -2258,6 +2274,7 @@ public:
                 global.gag = 0;
             semantic3(_scope);
             global.gag = oldgag;
+
             // If it is a speculatively-instantiated template, and errors occur,
             // we need to mark the template as having errors.
             if (spec && global.errors != olderrs)
@@ -2265,7 +2282,8 @@ public:
             if (olderrs != global.errors) // if errors compiling this function
                 return false;
         }
-        return true;
+
+        return !errors && !semantic3Errors;
     }
 
     // called from semantic3
