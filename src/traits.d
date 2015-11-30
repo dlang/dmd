@@ -667,6 +667,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         Identifier id = Identifier.idPool(cast(char*)se.string);
 
+        // disable access check
+        auto saved = sc.flags;
+        scope(exit) sc.flags = saved;
+        sc.flags = SCOPEnoaccesscheck;
+
         /* Prefer dsymbol, because it might need some runtime contexts.
          */
         Dsymbol sym = getDsymbol(o);
