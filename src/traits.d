@@ -670,7 +670,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         // disable access check
         auto saved = sc.flags;
         scope(exit) sc.flags = saved;
-        sc.flags = SCOPEnoaccesscheck;
+        sc.flags |= SCOPEnoaccesscheck;
 
         /* Prefer dsymbol, because it might need some runtime contexts.
          */
