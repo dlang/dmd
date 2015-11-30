@@ -356,6 +356,9 @@ void block_free(block *b)
             type_free(b->Bcatchtype);
             break;
 #endif
+        case BCjcatch:
+            free(b->BS.BIJCATCH.actionTable);
+            break;
         case BCasm:
             code_free(b->Bcode);
             break;

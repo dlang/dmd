@@ -427,6 +427,8 @@ typedef struct block
         struct
         {   Symbol *catchtype;          // one type for each catch block
             #define Bcatchtype BS.BIJCATCH.catchtype
+
+            unsigned *actionTable;      // EH_DWARF: indices into typeTable, first is # of entries
         } BIJCATCH;                     // BCjcatch
 #endif
 #if NTEXCEPTIONS || MARS
@@ -722,6 +724,11 @@ typedef struct FUNC_S
     Funcsym *Fsurrogatesym;     // Fsurrogate: surrogate cast function
 
     char *Fredirect;            // redirect function name to this name in object
+
+    // Array of catch types for EH_DWARF Types Table generation
+    Symbol **typesTable;
+    size_t typesTableDim;       // number used in typesTable[]
+    size_t typesTableCapacity;  // allocated capacity of typesTable[]
 } func_t;
 
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))

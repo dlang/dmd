@@ -1077,6 +1077,7 @@ public:
 
             size_t numcases = s->catches->dim;
             bswitch->BS.Bswitch = (targ_llong *) ::malloc(sizeof(targ_llong) * (numcases + 1));
+            assert(bswitch->BS.Bswitch);
             bswitch->BS.Bswitch[0] = numcases;
             bswitch->appendSucc(defaultblock);
             block_next(blx, BCswitch, NULL);
@@ -1088,6 +1089,36 @@ public:
                 Catch *cs = (*s->catches)[i];
                 if (cs->var)
                     cs->var->csym = tryblock->jcatchvar;
+
+                assert(cs->type);
+
+                Symbol *catchtype = toSymbol(cs->type->toBasetype());
+
+                /* Look for catchtype in typesTable[] using linear search,
+                 * insert if not already there,
+                 * log index in Action Table (i.e. switch case table)
+                 */
+                func_t *f = blx->funcsym->Sfunc;
+                for (size_t j = 0; 1; ++j)
+                {
+                    if (j < f->typesTableDim)
+                    {
+                        if (catchtype != f->typesTable[j])
+                            continue;
+                    }
+                    else
+                    {
+                        if (j == f->typesTableCapacity)
+                        {   // enlarge typesTable[]
+                            f->typesTableCapacity = f->typesTableCapacity * 2 + 4;
+                            f->typesTable = (Symbol **)::realloc(f->typesTable, f->typesTableCapacity * sizeof(Symbol *));
+                            assert(f->typesTable);
+                        }
+                        f->typesTable[j] = catchtype;
+                    }
+                    bswitch->BS.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                    break;
+                }
 
                 block *bcase = blx->curblock;
                 bswitch->appendSucc(bcase);
@@ -1122,6 +1153,14 @@ public:
                 else
                     block_next(blx, BCgoto, NULL);
             }
+
+            /* Make a copy of the switch case table, which will later become the Action Table.
+             * Need a copy since the bswitch may get rewritten by the optimizer.
+             */
+            bcatch->BS.BIJCATCH.actionTable = (unsigned *)::malloc(sizeof(unsigned) * (numcases + 1));
+            assert(bcatch->BS.BIJCATCH.actionTable);
+            for (size_t i = 0; i < numcases + 1; ++i)
+                bcatch->BS.BIJCATCH.actionTable[i] = (unsigned)bswitch->BS.Bswitch[i];
 
         }
         else
