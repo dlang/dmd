@@ -953,6 +953,7 @@ static int x15296;
 struct S15296
 {
     // Can be expanded only as statements.
+    pragma(inline, true)
     void bar(size_t , size_t )
     {
         for (size_t w = 0; w < 2; w++) { ++x15296; }
@@ -965,14 +966,102 @@ struct S15296
     }
 }
 
+pragma(inline, true)
+static void voidCall15296()
+{
+    for (size_t w = 0; w < 3; w++) { ++x15296; }
+}
+
 void test15296()
 {
+    bool cond = true;
+
     S15296 s;
 
     // CallExp at the top of ExpStatement
     x15296 = 0;
     s.foo(0, 0);
     assert(x15296 == 2);
+
+    // CondExp at the top of ExpStatement
+    x15296 = 0;
+    (cond ? s.foo(0, 0) : voidCall15296());
+    assert(x15296 == 2);
+    (cond ? voidCall15296() : s.foo(0, 0));
+    assert(x15296 == 2 + 3);
+
+    // CommaExp at the top of ExpStatement
+    x15296 = 0;
+    (s.foo(0, 0), voidCall15296());
+    assert(x15296 == 3 + 2);
+}
+
+// ----
+
+struct File15296
+{
+    struct Impl {}
+    Impl* _p;
+
+    pragma(inline, true)
+    ~this() { _p = null; }
+
+    struct LockingTextWriter
+    {
+        pragma(inline, true)
+        this(ref File15296 f)
+        {
+            assert(f._p, "Attempting to write to closed File");
+        }
+    }
+
+    pragma(inline, true)
+    auto lockingTextWriter() { return LockingTextWriter(this); }
+
+    pragma(inline, true)
+    void write() { auto w = lockingTextWriter(); }
+
+    //pragma(inline, true)
+    static uint formattedWrite(Writer)(Writer w) { return 0; }
+
+    pragma(inline, true)
+    void writef() { formattedWrite(lockingTextWriter()); }
+}
+
+__gshared File15296 stdout15296 = {new File15296.Impl()};
+
+pragma(inline, true)
+@property File15296 trustedStdout15296() { return stdout15296; }
+
+// ----
+// reduced case from runnable/test34.d test34()
+
+void test15296b()
+{
+    // trustedStdout() returns a temporary File object. Its dtor call
+    // should be deferred till the end of expanded writef body statements.
+    trustedStdout15296().writef();
+}
+
+// ----
+// reduced case from runnable/xtest46.d test136()
+
+struct Perm15296c
+{
+    this(byte[] input)
+    {
+        foreach (elem; input)
+        {
+            // if vthis.isDataseg() is true in expandInline,
+            // its edtor should not be called.
+            stdout15296.write();
+        }
+    }
+}
+
+void test15296c()
+{
+    auto perm2 = Perm15296c([0, 1, 2]);
 }
 
 /**********************************/
@@ -1009,6 +1098,8 @@ int main()
     test9785_3();
     test15207();
     test15296();
+    test15296b();
+    test15296c();
 
     printf("Success\n");
     return 0;

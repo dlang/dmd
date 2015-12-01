@@ -47,11 +47,11 @@ enum EXPANDINLINE_LOG = false;
  */
 enum COST_MAX = 250;
 enum STATEMENT_COST = 0x1000;
-enum STATEMENT_COST_MAX = 250 * 0x1000;
+enum STATEMENT_COST_MAX = 250 * STATEMENT_COST;
 
 // STATEMENT_COST be power of 2 and greater than COST_MAX
-//static assert((STATEMENT_COST & (STATEMENT_COST - 1)) == 0);
-//static assert(STATEMENT_COST > COST_MAX);
+static assert((STATEMENT_COST & (STATEMENT_COST - 1)) == 0);
+static assert(STATEMENT_COST > COST_MAX);
 
 bool tooCostly(int cost)
 {
@@ -1201,36 +1201,59 @@ public:
         {
             printf("ExpStatement.inlineScan(%s)\n", s.toChars());
         }
-        if (s.exp)
+        if (!s.exp)
+            return;
+
+        Statement inlineScanExpAsStatement(ref Expression exp)
         {
-            /* TODO: It's a problematic inlineScan call. If s.exp is a TOKcall,
-             * CallExp.inlineScan would try to expand the call as expression.
-             * If it's impossible, a false "cannot inline function" error
-             * would be reported.
-             */
-            inlineScan(s.exp); // inline as an expression
-
-            /* If there's a TOKcall at the top, then it failed to inline
+            /* If there's a TOKcall at the top, then it may fail to inline
              * as an Expression. Try to inline as a Statement instead.
-             * Note that inline scanning of s.exp.e1 and s.exp.arguments was already done.
              */
-            if (s.exp && s.exp.op == TOKcall)
+            if (exp.op == TOKcall)
             {
-                CallExp ce = cast(CallExp)s.exp;
-
-                /* Workaround for Bugzilla 15296.
-                 *
-                 * Before the PR#5121, here was inlined a function call only
-                 * when ce.e1.op == TOKvar.
-                 * After the PR, visitCallExp has started to handle TOKdotvar
-                 * and TOKstar. However it was not good for the issue case.
-                 *
-                 * Revive a restriction which was in previous code to avoid regression.
-                 */
-                if (ce.e1.op == TOKvar)
-                    visitCallExp(ce, null, true);
+                visitCallExp(cast(CallExp)exp, null, true);
+                if (eresult)
+                    exp = eresult;
+                auto s = sresult;
+                sresult = null;
+                eresult = null;
+                return s;
             }
+
+            /* If there's a CondExp or CommaExp at the top, then its
+             * sub-expressions may be inlined as statements.
+             */
+            if (exp.op == TOKquestion)
+            {
+                auto e = cast(CondExp)exp;
+                inlineScan(e.econd);
+                auto s1 = inlineScanExpAsStatement(e.e1);
+                auto s2 = inlineScanExpAsStatement(e.e2);
+                if (!s1 && !s2)
+                    return null;
+                auto ifbody   = !s1 ? new ExpStatement(e.e1.loc, e.e1) : s1;
+                auto elsebody = !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2;
+                return new IfStatement(exp.loc, null, e.econd, ifbody, elsebody);
+            }
+            if (exp.op == TOKcomma)
+            {
+                auto e = cast(CommaExp)exp;
+                auto s1 = inlineScanExpAsStatement(e.e1);
+                auto s2 = inlineScanExpAsStatement(e.e2);
+                if (!s1 && !s2)
+                    return null;
+                auto a = new Statements();
+                a.push(!s1 ? new ExpStatement(e.e1.loc, e.e1) : s1);
+                a.push(!s2 ? new ExpStatement(e.e2.loc, e.e2) : s2);
+                return new CompoundStatement(exp.loc, a);
+            }
+
+            // inline as an expression
+            inlineScan(exp);
+            return null;
         }
+
+        sresult = inlineScanExpAsStatement(s.exp);
     }
 
     override void visit(CompoundStatement s)
@@ -1484,8 +1507,7 @@ public:
                      */
                     inlineScan(e.e1);
                 }
-                inlineScan(ce.e1);
-                arrayInlineScan(ce.arguments);
+
                 visitCallExp(ce, e.e1, false);
                 if (eresult)
                 {
@@ -1501,8 +1523,6 @@ public:
     override void visit(CallExp e)
     {
         //printf("CallExp.inlineScan() %s\n", e.toChars());
-        inlineScan(e.e1);
-        arrayInlineScan(e.arguments);
         visitCallExp(e, null, false);
     }
 
@@ -1513,11 +1533,16 @@ public:
      *  e = the function call
      *  eret = if !null, then this is the lvalue of the nrvo function result
      *  asStatements = if inline as statements rather than as an Expression
+     * Returns:
+     *  this.eresult if asStatements == false
+     *  this.sresult if asStatements == true
      */
     void visitCallExp(CallExp e, Expression eret, bool asStatements)
     {
-        //printf("visitCallExp() %s\n", e.toChars());
+        inlineScan(e.e1);
+        arrayInlineScan(e.arguments);
 
+        //printf("visitCallExp() %s\n", e.toChars());
         FuncDeclaration fd;
 
         void inlineFd()
@@ -2200,6 +2225,8 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     {
         /* Construct:
          *  { eret; ethis; eparams; fd.fbody; }
+         * or:
+         *  { eret; ethis; try { eparams; fd.fbody; } finally { vthis.edtor; } }
          */
 
         auto as = new Statements();
@@ -2207,13 +2234,32 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             as.push(new ExpStatement(callLoc, eret));
         if (ethis)
             as.push(new ExpStatement(callLoc, ethis));
+
+        auto as2 = as;
+        if (vthis && !vthis.isDataseg())
+        {
+            if (vthis.needsScopeDtor())
+            {
+                // same with ExpStatement.scopeCode()
+                as2 = new Statements();
+                vthis.noscope = 1;
+            }
+        }
+
         if (eparams)
-            as.push(new ExpStatement(callLoc, eparams));
+            as2.push(new ExpStatement(callLoc, eparams));
 
         fd.inlineNest++;
         Statement s = inlineAsStatement(fd.fbody, ids);
         fd.inlineNest--;
-        as.push(s);
+        as2.push(s);
+
+        if (as2 != as)
+        {
+            as.push(new TryFinallyStatement(callLoc,
+                        new CompoundStatement(callLoc, as2),
+                        new DtorExpStatement(callLoc, vthis.edtor, vthis)));
+        }
 
         sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as));
 
