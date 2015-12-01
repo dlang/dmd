@@ -1913,6 +1913,36 @@ void test14948()
 }
 
 /***************************************************/
+// 15292
+
+struct NullableRef15292(T)
+{
+    inout(T) get() inout
+    {
+        assert(false);
+    }
+
+    alias get this;
+}
+
+struct S15292
+{
+    NullableRef15292!S15292 n;  // -> no segfault
+
+    /* The field 'n' contains alias this, so to use it for the equality,
+     * following helper function is automatically generated in buildXopEquals().
+     *
+     *  static bool __xopEquals(ref const S15292 p, ref const S15292 q)
+     *  {
+     *      return p == q;
+     *  }
+     *
+     * In its definition, const(S15292) equality is analyzed. It fails, then
+     * the error is gagged.
+     */
+}
+
+/***************************************************/
 
 int main()
 {

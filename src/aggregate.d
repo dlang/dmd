@@ -156,7 +156,7 @@ public:
 
     override final void semantic3(Scope* sc)
     {
-        //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
+        //printf("AggregateDeclaration::semantic3(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
         if (!members)
             return;
 

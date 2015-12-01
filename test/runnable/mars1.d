@@ -1358,6 +1358,17 @@ void test2()
 
 ////////////////////////////////////////////////////////////////////////
 
+void test3()
+{
+    int[6] a;
+    int[] b;
+    b = a;
+    b = (b.ptr + b.length - 5)[0 .. b.ptr + b.length - 1 - a.ptr];
+    assert(b.ptr == a.ptr + 1);
+    assert(b.length == 5);
+}
+
+////////////////////////////////////////////////////////////////////////
 // 14782
 
 
@@ -1393,6 +1404,22 @@ void test14987()
     assert(result[1].b == 7);
     assert(result[2].b == 7);
     assert(result[3].b == 7);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void[] calloc15272(size_t bc) nothrow pure
+{
+    assert(bc == 1);
+    return new void[1];
+}
+
+void test15272()
+{
+    void[] scache = cast(void[])"abc";
+    size_t count = 1;
+    void[]* buckets = &scache;
+    *buckets = calloc15272(count)[0 .. count];
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1441,8 +1468,11 @@ int main()
     test14220();
     test14829();
     test2();
+    test3();
     test14782();
     test14987();
+    test15272();
+
     printf("Success\n");
     return 0;
 }

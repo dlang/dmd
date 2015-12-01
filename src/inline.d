@@ -1201,13 +1201,33 @@ public:
         }
         if (s.exp)
         {
-            inlineScan(s.exp);                 // inline as an expression
+            /* TODO: It's a problematic inlineScan call. If s.exp is a TOKcall,
+             * CallExp.inlineScan would try to expand the call as expression.
+             * If it's impossible, a false "cannot inline function" error
+             * would be reported.
+             */
+            inlineScan(s.exp); // inline as an expression
+
             /* If there's a TOKcall at the top, then it failed to inline
              * as an Expression. Try to inline as a Statement instead.
              * Note that inline scanning of s.exp.e1 and s.exp.arguments was already done.
              */
             if (s.exp && s.exp.op == TOKcall)
-                visitCallExp(cast(CallExp)s.exp, null, true);
+            {
+                CallExp ce = cast(CallExp)s.exp;
+
+                /* Workaround for Bugzilla 15296.
+                 *
+                 * Before the PR#5121, here was inlined a function call only
+                 * when ce.e1.op == TOKvar.
+                 * After the PR, visitCallExp has started to handle TOKdotvar
+                 * and TOKstar. However it was not good for the issue case.
+                 *
+                 * Revive a restriction which was in previous code to avoid regression.
+                 */
+                if (ce.e1.op == TOKvar)
+                    visitCallExp(ce, null, true);
+            }
         }
     }
 
@@ -1478,6 +1498,7 @@ public:
 
     override void visit(CallExp e)
     {
+        //printf("CallExp.inlineScan() %s\n", e.toChars());
         inlineScan(e.e1);
         arrayInlineScan(e.arguments);
         visitCallExp(e, null, false);
@@ -1493,7 +1514,8 @@ public:
      */
     void visitCallExp(CallExp e, Expression eret, bool asStatements)
     {
-        //printf("CallExp.inlineScan() %s\n", e.toChars());
+        //printf("visitCallExp() %s\n", e.toChars());
+
         FuncDeclaration fd;
 
         void inlineFd()
@@ -1772,10 +1794,10 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
 {
     int cost;
 
-    enum CANINLINE_LOG = 0;
     static if (CANINLINE_LOG)
     {
-        printf("FuncDeclaration.canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, fd.toPrettyChars());
+        printf("FuncDeclaration.canInline(hasthis = %d, statementsToo = %d, '%s')\n",
+            hasthis, statementsToo, fd.toPrettyChars());
     }
 
     if (fd.needThis() && !hasthis)
@@ -1891,7 +1913,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     }
     static if (CANINLINE_LOG)
     {
-        printf("cost = %d for %s\n", cost, fd.toChars());
+        printf("\tcost = %d for %s\n", cost, fd.toChars());
     }
 
     if (tooCostly(cost))
