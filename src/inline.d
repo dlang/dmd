@@ -35,8 +35,10 @@ import ddmd.tokens;
 import ddmd.visitor;
 
 private:
+
 enum LOG = false;
 enum CANINLINE_LOG = false;
+enum EXPANDINLINE_LOG = false;
 
 /* ========== Compute cost of inlining =============== */
 
@@ -1522,7 +1524,7 @@ public:
         {
             if (fd && fd != parent && canInline(fd, false, false, asStatements))
             {
-                expandInline(fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+                expandInline(e.loc, fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
             }
         }
 
@@ -1585,7 +1587,7 @@ public:
                 }
                 else
                 {
-                    expandInline(fd, parent, eret, dve.e1, e.arguments, asStatements, eresult, sresult, again);
+                    expandInline(e.loc, fd, parent, eret, dve.e1, e.arguments, asStatements, eresult, sresult, again);
                 }
             }
         }
@@ -2016,6 +2018,7 @@ public void inlineScanModule(Module m)
  *      ethis.fd(arguments)
  *
  * Params:
+ *      callLoc = location of CallExp
  *      fd = function to expand
  *      parent = function that the call to fd is being expanded into
  *      eret = expression describing the lvalue of where the return value goes
@@ -2026,19 +2029,20 @@ public void inlineScanModule(Module m)
  *      sresult = if expanding to a statement, this is where the statement is written to
  *      again = if true, then fd can be inline scanned again because there may be
  *           more opportunities for inlining
- * Returns:
- *      Expression it expanded to (null if ps is not null)
  */
-void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
+void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         Expression ethis, Expressions* arguments, bool asStatements,
         out Expression eresult, out Statement sresult, out bool again)
 {
     Expression e = null;
     Statements* as = null;
     TypeFunction tf = cast(TypeFunction)fd.type;
-    static if (LOG || CANINLINE_LOG)
-    {
+    static if (LOG || CANINLINE_LOG || EXPANDINLINE_LOG)
         printf("FuncDeclaration.expandInline('%s')\n", fd.toChars());
+    static if (EXPANDINLINE_LOG)
+    {
+        if (eret) printf("\teret = %s\n", eret.toChars());
+        if (ethis) printf("\tethis = %s\n", ethis.toChars());
     }
     scope ids = new InlineDoState(parent, fd);
 
@@ -2082,9 +2086,9 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             ethis = new PtrExp(ethis.loc, ethis);
             ethis.type = t;
         }
-        auto ei = new ExpInitializer(ethis.loc, ethis);
 
-        auto vthis = new VarDeclaration(ethis.loc, ethis.type, Id.This, ei);
+        auto ei = new ExpInitializer(fd.loc, ethis);
+        auto vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
         if (ethis.type.ty != Tclass)
             vthis.storage_class = STCref;
         else
@@ -2092,16 +2096,12 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         vthis.linkage = LINKd;
         vthis.parent = parent;
 
-        ei.exp = new ConstructExp(vthis.loc, vthis, ethis);
+        ei.exp = new ConstructExp(fd.loc, vthis, ethis);
         ei.exp.type = vthis.type;
 
         ids.vthis = vthis;
-    }
 
-    // Set up parameters
-    if (ethis)
-    {
-        Expression de = new DeclarationExp(Loc(), ids.vthis);
+        auto de = new DeclarationExp(fd.loc, vthis);
         de.type = Type.tvoid;
         e = Expression.combine(e, de);
     }
@@ -2115,7 +2115,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         }
         else
         {
-            Identifier tmp = Identifier.generateId("__nrvoretval");
+            auto tmp = Identifier.generateId("__nrvoretval");
             auto vd = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, null);
             assert(!tf.isref);
             vd.storage_class = STCtemp | STCrvalue;
@@ -2125,21 +2125,22 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             ids.from.push(fd.nrvo_var);
             ids.to.push(vd);
 
-            Expression de = new DeclarationExp(Loc(), vd);
+            auto de = new DeclarationExp(fd.loc, vd);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
         }
     }
+
+    // Set up parameters
     if (arguments && arguments.dim)
     {
         assert(fd.parameters.dim == arguments.dim);
         foreach (i; 0 .. arguments.dim)
         {
             auto vfrom = (*fd.parameters)[i];
-
             auto arg = (*arguments)[i];
-            auto ei = new ExpInitializer(arg.loc, arg);
 
+            auto ei = new ExpInitializer(vfrom.loc, arg);
             auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
             vto.storage_class |= vfrom.storage_class & (STCtemp | STCin | STCout | STClazy | STCref);
             vto.linkage = vfrom.linkage;
@@ -2156,7 +2157,7 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
             ids.from.push(vfrom);
             ids.to.push(vto);
 
-            auto de = new DeclarationExp(Loc(), vto);
+            auto de = new DeclarationExp(vto.loc, vto);
             de.type = Type.tvoid;
             e = Expression.combine(e, de);
 
@@ -2189,14 +2190,18 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
     {
         if (e)
         {
-            as.push(new ExpStatement(Loc(), e));
+            as.push(new ExpStatement(callLoc, e));
             e = null;
         }
         fd.inlineNest++;
         Statement s = inlineAsStatement(fd.fbody, ids);
         as.push(s);
-        sresult = new ScopeStatement(Loc(), new CompoundStatement(Loc(), as));
+        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as));
         fd.inlineNest--;
+
+        static if (EXPANDINLINE_LOG)
+            printf("\n[%s] %s expandInline sresult =\n%s\n",
+                callLoc.toChars(), fd.toPrettyChars(), sresult.toChars());
     }
     else
     {
@@ -2231,23 +2236,22 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
              * inlined body of the function:
              *   tret __inlineretval = e;
              */
-            auto ei = new ExpInitializer(fd.loc, e);
-
-            Identifier tmp = Identifier.generateId("__inlineretval");
-            auto vd = new VarDeclaration(fd.loc, tf.next, tmp, ei);
+            auto ei = new ExpInitializer(callLoc, e);
+            auto tmp = Identifier.generateId("__inlineretval");
+            auto vd = new VarDeclaration(callLoc, tf.next, tmp, ei);
             vd.storage_class = (tf.isref ? STCref : 0) | STCtemp | STCrvalue;
             vd.linkage = tf.linkage;
             vd.parent = parent;
 
-            ei.exp = new ConstructExp(fd.loc, vd, e);
+            ei.exp = new ConstructExp(callLoc, vd, e);
             ei.exp.type = vd.type;
 
-            auto de = new DeclarationExp(Loc(), vd);
+            auto de = new DeclarationExp(callLoc, vd);
             de.type = Type.tvoid;
 
             // Chain the two together:
             //   ( typeof(return) __inlineretval = ( inlined body )) , __inlineretval
-            e = Expression.combine(de, new VarExp(fd.loc, vd));
+            e = Expression.combine(de, new VarExp(callLoc, vd));
 
             //fprintf(stderr, "CallExp.inlineScan: e = "); e.print();
         }
@@ -2255,13 +2259,16 @@ void expandInline(FuncDeclaration fd, FuncDeclaration parent, Expression eret,
         // Bugzilla 15210
         if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid)
         {
-            e = new CastExp(e.loc, e, Type.tvoid);
+            e = new CastExp(callLoc, e, Type.tvoid);
             e.type = Type.tvoid;
         }
 
         eresult = e;
+
+        static if (EXPANDINLINE_LOG)
+            printf("\n[%s] %s expandInline eresult = %s\n",
+                callLoc.toChars(), fd.toPrettyChars(), eresult.toChars());
     }
-    //printf("[%s] %s expandInline = { %s }\n", fd.loc.toChars(), fd.toPrettyChars(), e.toChars());
 
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
