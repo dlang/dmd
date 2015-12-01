@@ -96,7 +96,7 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
                      */
                     if (tb.ty == Tarray || tb.ty == Tsarray || tb.ty == Tclass || tb.ty == Tdelegate)
                     {
-                        if ((!v.noscope || tb.ty == Tclass))
+                        if (v.needsScopeDtor() || tb.ty == Tclass)
                         {
                             error(e.loc, "escaping reference to scope local %s", v);
                             return;

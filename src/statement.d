@@ -1171,14 +1171,14 @@ public:
         {
             auto de = cast(DeclarationExp)exp;
             auto v = de.declaration.isVarDeclaration();
-            if (v && !v.noscope && !v.isDataseg())
+            if (v && !v.isDataseg())
             {
-                if (v.edtor)
+                if (v.needsScopeDtor())
                 {
                     //printf("dtor is: "); v.edtor.print();
                     *sfinally = new DtorExpStatement(loc, v.edtor, v);
+                    v.noscope = true; // don't add in dtor again
                 }
-                v.noscope = 1; // don't add in dtor again
             }
         }
         return this;
@@ -3375,7 +3375,7 @@ public:
                 Statement sdtor = new ExpStatement(loc, match.edtor);
                 sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
                 ifbody = new CompoundStatement(loc, sdtor, ifbody);
-                match.noscope = 1;
+                match.noscope = true;
             }
         }
         else

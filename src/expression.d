@@ -1203,7 +1203,7 @@ extern (C++) Expression valueNoDtor(Expression e)
                         VarDeclaration ctmp = ve.var.isVarDeclaration();
                         if (ctmp)
                         {
-                            ctmp.noscope = 1;
+                            ctmp.noscope = true;
                             assert(!ce.isLvalue());
                         }
                     }
@@ -1213,10 +1213,10 @@ extern (C++) Expression valueNoDtor(Expression e)
     }
     else if (e.op == TOKvar)
     {
-        VarDeclaration vtmp = (cast(VarExp)e).var.isVarDeclaration();
-        if (vtmp && vtmp.storage_class & STCrvalue)
+        auto vtmp = (cast(VarExp)e).var.isVarDeclaration();
+        if (vtmp && (vtmp.storage_class & STCrvalue))
         {
-            vtmp.noscope = 1;
+            vtmp.noscope = true;
         }
     }
     return e;
@@ -1264,10 +1264,10 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
              * This is not the most efficent, ideally tmp would be constructed
              * directly onto the stack.
              */
-            Identifier idtmp = Identifier.generateId("__copytmp");
+            auto idtmp = Identifier.generateId("__copytmp");
             auto tmp = new VarDeclaration(e.loc, e.type, idtmp, new ExpInitializer(e.loc, e));
             tmp.storage_class |= STCtemp | STCctfe;
-            tmp.noscope = 1;
+            tmp.noscope = true;
             tmp.semantic(sc);
             Expression de = new DeclarationExp(e.loc, tmp);
             Expression ve = new VarExp(e.loc, tmp);
@@ -14975,27 +14975,32 @@ public:
 
             override void visit(DeclarationExp e)
             {
-                VarDeclaration v = e.declaration.isVarDeclaration();
-                if (v && !v.noscope && !v.isDataseg())
+                auto v = e.declaration.isVarDeclaration();
+                if (v && !v.isDataseg())
                 {
                     if (v._init)
                     {
-                        ExpInitializer ei = v._init.isExpInitializer();
-                        if (ei)
+                        if (auto ei = v._init.isExpInitializer())
                             ei.exp.accept(this);
                     }
-                    if (v.edtor)
+
+                    if (v.needsScopeDtor())
                     {
                         if (!vcond)
                         {
-                            vcond = new VarDeclaration(ce.econd.loc, ce.econd.type, Identifier.generateId("__cond"), new ExpInitializer(ce.econd.loc, ce.econd));
+                            auto ei = new ExpInitializer(ce.econd.loc, ce.econd);
+                            auto id = Identifier.generateId("__cond");
+                            vcond = new VarDeclaration(ce.econd.loc, ce.econd.type, id, ei);
                             vcond.storage_class |= STCtemp | STCctfe | STCvolatile;
                             vcond.semantic(sc);
+
                             Expression de = new DeclarationExp(ce.econd.loc, vcond);
                             de = de.semantic(sc);
+
                             Expression ve = new VarExp(ce.econd.loc, vcond);
                             ce.econd = Expression.combine(de, ve);
                         }
+
                         //printf("\t++v = %s, v->edtor = %s\n", v->toChars(), v->edtor->toChars());
                         Expression ve = new VarExp(vcond.loc, vcond);
                         if (isThen)

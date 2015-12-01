@@ -272,7 +272,7 @@ extern (C++) bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNot
                 if (ie && canThrow(ie.exp, func, mustNotThrow))
                     return true;
             }
-            if (vd.edtor && !vd.noscope)
+            if (vd.needsScopeDtor())
                 return canThrow(vd.edtor, func, mustNotThrow);
         }
     }

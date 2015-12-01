@@ -2105,13 +2105,11 @@ public:
                         VarDeclaration v = (*parameters)[i];
                         if (v.storage_class & (STCref | STCout | STClazy))
                             continue;
-                        if (v.noscope)
-                            continue;
-                        Expression e = v.edtor;
-                        if (e)
+                        if (v.needsScopeDtor())
                         {
-                            Statement s = new ExpStatement(Loc(), e);
+                            Statement s = new ExpStatement(Loc(), v.edtor);
                             s = s.semantic(sc2);
+
                             uint nothrowErrors = global.errors;
                             bool isnothrow = f.isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                             int blockexit = s.blockExit(this, isnothrow);
@@ -2119,6 +2117,7 @@ public:
                                 .error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                             if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                                 f.isnothrow = false;
+
                             if (sbody.blockExit(this, f.isnothrow) == BEfallthru)
                                 sbody = new CompoundStatement(Loc(), sbody, s);
                             else
