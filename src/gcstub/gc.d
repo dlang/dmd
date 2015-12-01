@@ -67,6 +67,8 @@ private
         extern (C) void function(void*) gc_removeRoot;
         extern (C) void function(void*) gc_removeRange;
         extern (C) void function(in void[]) gc_runFinalizers;
+
+        extern (C) bool function() gc_inFinalizer;
     }
 
     __gshared Proxy  pthis;
@@ -102,6 +104,8 @@ private
         pthis.gc_removeRoot = &gc_removeRoot;
         pthis.gc_removeRange = &gc_removeRange;
         pthis.gc_runFinalizers = &gc_runFinalizers;
+
+        pthis.gc_inFinalizer = &gc_inFinalizer;
     }
 
     __gshared void** roots  = null;
@@ -347,6 +351,13 @@ extern (C) void gc_runFinalizers( in void[] segment )
 {
     if( proxy !is null )
         proxy.gc_runFinalizers( segment );
+}
+
+extern (C) bool gc_inFinalizer()
+{
+    if( proxy !is null )
+        return proxy.gc_inFinalizer();
+    return false;
 }
 
 extern (C) Proxy* gc_getProxy()

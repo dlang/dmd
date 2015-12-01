@@ -494,6 +494,11 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
     else version( Solaris )
         import core.sys.solaris.execinfo;
 
+    // avoid recursive GC calls in finalizer, trace handlers should be made @nogc instead
+    import core.memory : gc_inFinalizer;
+    if (gc_inFinalizer)
+        return null;
+
     //printf("runtime.defaultTraceHandler()\n");
     static if( __traits( compiles, backtrace ) )
     {

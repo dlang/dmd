@@ -145,6 +145,8 @@ private
     extern (C) void gc_removeRoot( in void* p ) nothrow;
     extern (C) void gc_removeRange( in void* p ) nothrow @nogc;
     extern (C) void gc_runFinalizers( in void[] segment );
+
+    package extern (C) bool gc_inFinalizer();
 }
 
 

@@ -60,6 +60,8 @@ private
             void function(void*) gc_removeRoot;
             void function(void*) gc_removeRange;
             void function(in void[]) gc_runFinalizers;
+
+            bool function() gc_inFinalizer;
         }
     }
 
@@ -96,6 +98,8 @@ private
         pthis.gc_removeRoot = &gc_removeRoot;
         pthis.gc_removeRange = &gc_removeRange;
         pthis.gc_runFinalizers = &gc_runFinalizers;
+
+        pthis.gc_inFinalizer = &gc_inFinalizer;
     }
 }
 
@@ -305,6 +309,13 @@ extern (C)
         if( proxy is null )
             return _gc.runFinalizers( segment );
         return proxy.gc_runFinalizers( segment );
+    }
+
+    bool gc_inFinalizer() nothrow
+    {
+        if( proxy is null )
+            return _gc.inFinalizer;
+        return proxy.gc_inFinalizer();
     }
 
     Proxy* gc_getProxy() nothrow
