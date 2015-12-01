@@ -3372,7 +3372,7 @@ public:
 
             if (match.edtor)
             {
-                Statement sdtor = new ExpStatement(loc, match.edtor);
+                Statement sdtor = new DtorExpStatement(loc, match.edtor, match);
                 sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
                 ifbody = new CompoundStatement(loc, sdtor, ifbody);
                 match.noscope = true;
