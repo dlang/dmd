@@ -2101,32 +2101,44 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     }
 
     // Set up vthis
+    VarDeclaration vthis;
     if (ethis)
     {
-        if (ethis.type.ty == Tpointer)
+        Expression e0;
+        ethis = Expression.extractLast(ethis, &e0);
+        if (ethis.op == TOKvar)
         {
-            Type t = ethis.type.nextOf();
-            ethis = new PtrExp(ethis.loc, ethis);
-            ethis.type = t;
+            vthis = (cast(VarExp)ethis).var.isVarDeclaration();
         }
-
-        auto ei = new ExpInitializer(fd.loc, ethis);
-        auto vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
-        if (ethis.type.ty != Tclass)
-            vthis.storage_class = STCref;
         else
-            vthis.storage_class = STCin;
-        vthis.linkage = LINKd;
-        vthis.parent = parent;
+        {
+            //assert(ethis.type.ty != Tpointer);
+            if (ethis.type.ty == Tpointer)
+            {
+                Type t = ethis.type.nextOf();
+                ethis = new PtrExp(ethis.loc, ethis);
+                ethis.type = t;
+            }
 
-        ei.exp = new ConstructExp(fd.loc, vthis, ethis);
-        ei.exp.type = vthis.type;
+            auto ei = new ExpInitializer(fd.loc, ethis);
+            vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
+            if (ethis.type.ty != Tclass)
+                vthis.storage_class = STCref;
+            else
+                vthis.storage_class = STCin;
+            vthis.linkage = LINKd;
+            vthis.parent = parent;
+
+            ei.exp = new ConstructExp(fd.loc, vthis, ethis);
+            ei.exp.type = vthis.type;
+
+            auto de = new DeclarationExp(fd.loc, vthis);
+            de.type = Type.tvoid;
+            e0 = Expression.combine(e0, de);
+        }
+        ethis = e0;
 
         ids.vthis = vthis;
-
-        auto de = new DeclarationExp(fd.loc, vthis);
-        de.type = Type.tvoid;
-        e = Expression.combine(e, de);
     }
 
     // Set up parameters
@@ -2189,6 +2201,8 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         auto as = new Statements();
         if (eret)
             as.push(new ExpStatement(callLoc, eret));
+        if (ethis)
+            as.push(new ExpStatement(callLoc, ethis));
         if (e)
             as.push(new ExpStatement(callLoc, e));
 
@@ -2264,6 +2278,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         }
 
         eresult = Expression.combine(eresult, eret);
+        eresult = Expression.combine(eresult, ethis);
         eresult = Expression.combine(eresult, e);
 
         static if (EXPANDINLINE_LOG)
