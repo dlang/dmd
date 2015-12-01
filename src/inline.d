@@ -2034,7 +2034,6 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         Expression ethis, Expressions* arguments, bool asStatements,
         out Expression eresult, out Statement sresult, out bool again)
 {
-    Expression e = null;
     TypeFunction tf = cast(TypeFunction)fd.type;
     static if (LOG || CANINLINE_LOG || EXPANDINLINE_LOG)
         printf("FuncDeclaration.expandInline('%s')\n", fd.toChars());
@@ -2142,6 +2141,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     }
 
     // Set up parameters
+    Expression eparams;
     if (arguments && arguments.dim)
     {
         assert(fd.parameters.dim == arguments.dim);
@@ -2169,7 +2169,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
 
             auto de = new DeclarationExp(vto.loc, vto);
             de.type = Type.tvoid;
-            e = Expression.combine(e, de);
+            eparams = Expression.combine(eparams, de);
 
             /* If function pointer or delegate parameters are present,
              * inline scan again because if they are initialized to a symbol,
@@ -2198,13 +2198,17 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
 
     if (asStatements)
     {
+        /* Construct:
+         *  { eret; ethis; eparams; fd.fbody; }
+         */
+
         auto as = new Statements();
         if (eret)
             as.push(new ExpStatement(callLoc, eret));
         if (ethis)
             as.push(new ExpStatement(callLoc, ethis));
-        if (e)
-            as.push(new ExpStatement(callLoc, e));
+        if (eparams)
+            as.push(new ExpStatement(callLoc, eparams));
 
         fd.inlineNest++;
         Statement s = inlineAsStatement(fd.fbody, ids);
@@ -2219,13 +2223,16 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     }
     else
     {
+        /* Construct:
+         *  (eret, ethis, eparams, fd.fbody)
+         */
+
         fd.inlineNest++;
-        Expression eb = doInline(fd.fbody, ids);
-        e = Expression.combine(e, eb);
+        auto e = doInline(fd.fbody, ids);
         fd.inlineNest--;
-        //eb.type.print();
-        //eb.print();
-        //eb.print();
+        //e.type.print();
+        //e.print();
+        //e.print();
 
         // Bugzilla 11322:
         if (tf.isref)
@@ -2279,6 +2286,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
 
         eresult = Expression.combine(eresult, eret);
         eresult = Expression.combine(eresult, ethis);
+        eresult = Expression.combine(eresult, eparams);
         eresult = Expression.combine(eresult, e);
 
         static if (EXPANDINLINE_LOG)
