@@ -135,7 +135,7 @@ private
 
         // Declared as an extern instead of importing core.exception
         // to avoid inlining - see issue 13725.
-        void onInvalidMemoryOperationError() nothrow;
+        void onInvalidMemoryOperationError() @nogc nothrow;
         void onOutOfMemoryErrorNoGC() @nogc nothrow;
     }
 
@@ -267,6 +267,15 @@ struct GC
 
     import core.internal.spinlock;
     static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.lengthy);
+    static bool inFinalizer;
+
+    // lock GC, throw InvalidMemoryOperationError on recursive locking during finalization
+    static void lockNR() @nogc nothrow
+    {
+        if (inFinalizer)
+            onInvalidMemoryOperationError();
+        gcLock.lock();
+    }
 
     __gshared Config config;
 
@@ -308,10 +317,12 @@ struct GC
      */
     void enable()
     {
-        gcLock.lock();
-        scope(exit) gcLock.unlock();
-        assert(gcx.disabled > 0);
-        gcx.disabled--;
+        static void go(Gcx* gcx) nothrow
+        {
+            assert(gcx.disabled > 0);
+            gcx.disabled--;
+        }
+        runLocked!(go, otherTime, numOthers)(gcx);
     }
 
 
@@ -320,15 +331,38 @@ struct GC
      */
     void disable()
     {
-        gcLock.lock();
-        scope(exit) gcLock.unlock();
-        gcx.disabled++;
+        static void go(Gcx* gcx) nothrow
+        {
+            gcx.disabled++;
+        }
+        runLocked!(go, otherTime, numOthers)(gcx);
+    }
+
+    auto runLocked(alias func, Args...)(auto ref Args args)
+    {
+        debug(PROFILE_API) immutable tm = (GC.config.profile > 1 ? currTime.ticks : 0);
+        lockNR();
+        scope (failure) gcLock.unlock();
+        debug(PROFILE_API) immutable tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
+
+        static if (is(typeof(func(args)) == void))
+            func(args);
+        else
+            auto res = func(args);
+
+        debug(PROFILE_API) if (GC.config.profile > 1)
+            lockTime += tm2 - tm;
+        gcLock.unlock();
+
+        static if (!is(typeof(func(args)) == void))
+            return res;
     }
 
     auto runLocked(alias func, alias time, alias count, Args...)(auto ref Args args)
     {
         debug(PROFILE_API) immutable tm = (GC.config.profile > 1 ? currTime.ticks : 0);
-        gcLock.lock();
+        lockNR();
+        scope (failure) gcLock.unlock();
         debug(PROFILE_API) immutable tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
 
         static if (is(typeof(func(args)) == void))
@@ -474,9 +508,6 @@ struct GC
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
 
-        if (gcx.running)
-            onInvalidMemoryOperationError();
-
         auto p = gcx.alloc(size + SENTINEL_EXTRA, alloc_size, bits);
         if (!p)
             onOutOfMemoryErrorNoGC();
@@ -544,9 +575,6 @@ struct GC
     //
     private void *reallocNoSync(void *p, size_t size, ref uint bits, ref size_t alloc_size, const TypeInfo ti = null) nothrow
     {
-        if (gcx.running)
-            onInvalidMemoryOperationError();
-
         if (!size)
         {   if (p)
             {   freeNoSync(p);
@@ -708,9 +736,6 @@ struct GC
     }
     body
     {
-        if (gcx.running)
-            onInvalidMemoryOperationError();
-
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
         debug (SENTINEL)
         {
@@ -767,10 +792,7 @@ struct GC
             return 0;
         }
 
-        gcLock.lock();
-        auto rc = reserveNoSync(size);
-        gcLock.unlock();
-        return rc;
+        return runLocked!(reserveNoSync, otherTime, numOthers)(size);
     }
 
 
@@ -781,9 +803,6 @@ struct GC
     {
         assert(size != 0);
         assert(gcx);
-
-        if (gcx.running)
-            onInvalidMemoryOperationError();
 
         return gcx.reserve(size);
     }
@@ -810,9 +829,6 @@ struct GC
     {
         debug(PRINTF) printf("Freeing %p\n", cast(size_t) p);
         assert (p);
-
-        if (gcx.running)
-            onInvalidMemoryOperationError();
 
         Pool*  pool;
         size_t pagenum;
@@ -1083,10 +1099,11 @@ struct GC
 
     private auto rootIterImpl(scope int delegate(ref Root) nothrow dg) nothrow
     {
-        gcLock.lock();
-        auto res = gcx.roots.opApply(dg);
-        gcLock.unlock();
-        return res;
+        static int go(ref Treap!(Root) roots, scope int delegate(ref Root) nothrow dg) nothrow
+        {
+            return roots.opApply(dg);
+        }
+        return runLocked!(go, otherTime, numOthers)(gcx.roots, dg);
     }
 
     /**
@@ -1147,10 +1164,11 @@ struct GC
 
     private auto rangeIterImpl(scope int delegate(ref Range) nothrow dg) nothrow
     {
-        gcLock.lock();
-        auto res = gcx.ranges.opApply(dg);
-        gcLock.unlock();
-        return res;
+        static int go(ref Treap!(Range) ranges, scope int delegate(ref Range) nothrow dg) nothrow
+        {
+            return ranges.opApply(dg);
+        }
+        return runLocked!(go, otherTime, numOthers)(gcx.ranges, dg);
     }
 
     /**
@@ -1169,15 +1187,14 @@ struct GC
     size_t fullCollect() nothrow
     {
         debug(PRINTF) printf("GC.fullCollect()\n");
-        size_t result;
 
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.
+        static size_t go(Gcx* gcx) nothrow
         {
-            gcLock.lock();
-            result = gcx.fullcollect();
-            gcLock.unlock();
+            return gcx.fullcollect();
         }
+        immutable result = runLocked!go(gcx);
 
         version (none)
         {
@@ -1200,11 +1217,11 @@ struct GC
     {
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.
+        static size_t go(Gcx* gcx) nothrow
         {
-            gcLock.lock();
-            gcx.fullcollect(true);
-            gcLock.unlock();
+            return gcx.fullcollect(true);
         }
+        runLocked!go(gcx);
     }
 
 
@@ -1213,9 +1230,11 @@ struct GC
      */
     void minimize() nothrow
     {
-        gcLock.lock();
-        gcx.minimize();
-        gcLock.unlock();
+        static void go(Gcx* gcx) nothrow
+        {
+            gcx.minimize();
+        }
+        runLocked!(go, otherTime, numOthers)(gcx);
     }
 
 
@@ -1225,9 +1244,7 @@ struct GC
      */
     void getStats(out GCStats stats) nothrow
     {
-        gcLock.lock();
-        getStatsNoSync(stats);
-        gcLock.unlock();
+        return runLocked!(getStatsNoSync, otherTime, numOthers)(stats);
     }
 
 
@@ -1352,7 +1369,6 @@ struct Gcx
 
     bool log; // turn on logging
     debug(INVARIANT) bool initialized;
-    bool running;
     uint disabled; // turn off collections if >0
 
     import gc.pooltable;
@@ -1523,6 +1539,9 @@ struct Gcx
      */
     void runFinalizers(in void[] segment) nothrow
     {
+        GC.inFinalizer = true;
+        scope (failure) GC.inFinalizer = false;
+
         foreach (pool; pooltable[0 .. npools])
         {
             if (!pool.finals.nbits) continue;
@@ -1538,6 +1557,7 @@ struct Gcx
                 spool.runFinalizers(segment);
             }
         }
+        GC.inFinalizer = false;
     }
 
     Pool* findPool(void* p) pure nothrow
@@ -2397,10 +2417,6 @@ struct Gcx
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
-        if (running)
-            onInvalidMemoryOperationError();
-        running = true;
-
         thread_suspendAll();
 
         prepare();
@@ -2427,7 +2443,13 @@ struct Gcx
             start = stop;
         }
 
-        immutable freedLargePages = sweep();
+        GC.inFinalizer = true;
+        size_t freedLargePages=void;
+        {
+            scope (failure) GC.inFinalizer = false;
+            freedLargePages = sweep();
+            GC.inFinalizer = false;
+        }
 
         if (GC.config.profile)
         {
@@ -2444,8 +2466,6 @@ struct Gcx
             recoverTime += (stop - start);
             ++numCollections;
         }
-
-        running = false; // only clear on success
 
         updateCollectThresholds();
 
