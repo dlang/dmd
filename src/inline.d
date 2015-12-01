@@ -2035,7 +2035,6 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         out Expression eresult, out Statement sresult, out bool again)
 {
     Expression e = null;
-    Statements* as = null;
     TypeFunction tf = cast(TypeFunction)fd.type;
     static if (LOG || CANINLINE_LOG || EXPANDINLINE_LOG)
         printf("FuncDeclaration.expandInline('%s')\n", fd.toChars());
@@ -2046,34 +2045,58 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     }
     scope ids = new InlineDoState(parent, fd);
 
-    if (asStatements)
-        as = new Statements();
-
-    VarDeclaration vret = null;
+    VarDeclaration vret;    // will be set the function call result
     if (eret)
     {
         if (eret.op == TOKvar)
         {
             vret = (cast(VarExp)eret).var.isVarDeclaration();
             assert(!(vret.storage_class & (STCout | STCref)));
+            eret = null;
         }
         else
         {
             /* Inlining:
              *   this.field = foo();   // inside constructor
              */
-            vret = new VarDeclaration(fd.loc, eret.type, Identifier.generateId("_satmp"), null);
+            auto ei = new ExpInitializer(callLoc, null);
+            auto tmp = Identifier.generateId("__retvar");
+            vret = new VarDeclaration(fd.loc, eret.type, tmp, ei);
             vret.storage_class |= STCtemp | STCforeach | STCref;
             vret.linkage = LINKd;
             vret.parent = parent;
 
-            Expression de = new DeclarationExp(fd.loc, vret);
-            de.type = Type.tvoid;
-            e = Expression.combine(e, de);
+            ei.exp = new ConstructExp(fd.loc, vret, eret);
+            ei.exp.type = vret.type;
 
-            Expression ex = new ConstructExp(fd.loc, vret, eret);
-            ex.type = vret.type;
-            e = Expression.combine(e, ex);
+            auto de = new DeclarationExp(fd.loc, vret);
+            de.type = Type.tvoid;
+            eret = de;
+        }
+
+        if (!asStatements && fd.nrvo_var)
+        {
+            ids.from.push(fd.nrvo_var);
+            ids.to.push(vret);
+        }
+    }
+    else
+    {
+        if (!asStatements && fd.nrvo_var)
+        {
+            auto tmp = Identifier.generateId("__retvar");
+            vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, null);
+            assert(!tf.isref);
+            vret.storage_class = STCtemp | STCrvalue;
+            vret.linkage = tf.linkage;
+            vret.parent = parent;
+
+            auto de = new DeclarationExp(fd.loc, vret);
+            de.type = Type.tvoid;
+            eret = de;
+
+            ids.from.push(fd.nrvo_var);
+            ids.to.push(vret);
         }
     }
 
@@ -2104,31 +2127,6 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         auto de = new DeclarationExp(fd.loc, vthis);
         de.type = Type.tvoid;
         e = Expression.combine(e, de);
-    }
-
-    if (!asStatements && fd.nrvo_var)
-    {
-        if (vret)
-        {
-            ids.from.push(fd.nrvo_var);
-            ids.to.push(vret);
-        }
-        else
-        {
-            auto tmp = Identifier.generateId("__nrvoretval");
-            auto vd = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, null);
-            assert(!tf.isref);
-            vd.storage_class = STCtemp | STCrvalue;
-            vd.linkage = tf.linkage;
-            vd.parent = parent;
-
-            ids.from.push(fd.nrvo_var);
-            ids.to.push(vd);
-
-            auto de = new DeclarationExp(fd.loc, vd);
-            de.type = Type.tvoid;
-            e = Expression.combine(e, de);
-        }
     }
 
     // Set up parameters
@@ -2188,16 +2186,18 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
 
     if (asStatements)
     {
+        auto as = new Statements();
+        if (eret)
+            as.push(new ExpStatement(callLoc, eret));
         if (e)
-        {
             as.push(new ExpStatement(callLoc, e));
-            e = null;
-        }
+
         fd.inlineNest++;
         Statement s = inlineAsStatement(fd.fbody, ids);
-        as.push(s);
-        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as));
         fd.inlineNest--;
+        as.push(s);
+
+        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as));
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline sresult =\n%s\n",
@@ -2263,7 +2263,8 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             e.type = Type.tvoid;
         }
 
-        eresult = e;
+        eresult = Expression.combine(eresult, eret);
+        eresult = Expression.combine(eresult, e);
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline eresult = %s\n",
