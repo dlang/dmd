@@ -681,32 +681,18 @@ public:
         else
             result = null;  // cannot be inlined as an Expression
     }
-}
 
-/// ditto
-Result doInlineAs(Result)(Statement s, InlineDoState ids)
-{
-    scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
-    s.accept(v);
-    return v.result;
-}
+    // Expression -> Expression
 
-/***********************************************************
- */
-Expression doInline(Expression e, InlineDoState ids)
-{
-    extern (C++) final class InlineExpression : Visitor
+    static if (asStatements)
     {
-        alias visit = super.visit;
-    public:
-        InlineDoState ids;
-        Expression result;
-
-        extern (D) this(InlineDoState ids)
+        override void visit(Expression e)
         {
-            this.ids = ids;
+            assert(0);
         }
-
+    }
+    else
+    {
         /******************************
          * Perform doInline() on an array of Expressions.
          */
@@ -714,8 +700,10 @@ Expression doInline(Expression e, InlineDoState ids)
         {
             if (!a)
                 return null;
+
             auto newa = new Expressions();
             newa.setDim(a.dim);
+
             foreach (i; 0 .. a.dim)
             {
                 Expression e = (*a)[i];
@@ -728,13 +716,13 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(Expression e)
         {
-            //printf("Expression.doInline(%s): %s\n", Token.toChars(e.op), e.toChars());
+            //printf("Expression.doInlineAs!%s(%s): %s\n", Result.stringof.ptr, Token.toChars(e.op), e.toChars());
             result = e.copy();
         }
 
         override void visit(SymOffExp e)
         {
-            //printf("SymOffExp.doInline(%s)\n", e.toChars());
+            //printf("SymOffExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
             foreach (i; 0 .. ids.from.dim)
             {
                 if (e.var == ids.from[i])
@@ -750,7 +738,7 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(VarExp e)
         {
-            //printf("VarExp.doInline(%s)\n", e.toChars());
+            //printf("VarExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
             foreach (i; 0 .. ids.from.dim)
             {
                 if (e.var == ids.from[i])
@@ -767,6 +755,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 result.type = e.type;
                 return;
             }
+
             /* Inlining context pointer access for nested referenced variables.
              * For example:
              *      auto fun() {
@@ -823,6 +812,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 //printf("\t==> result = %s, type = %s\n", result.toChars(), result.type.toChars());
                 return;
             }
+
             result = e;
         }
 
@@ -848,7 +838,7 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(DeclarationExp e)
         {
-            //printf("DeclarationExp.doInline(%s)\n", e.toChars());
+            //printf("DeclarationExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
             if (VarDeclaration vd = e.declaration.isVarDeclaration())
             {
                 version (none)
@@ -892,8 +882,10 @@ Expression doInline(Expression e, InlineDoState ids)
                     vto.parent = ids.parent;
                     vto.csym = null;
                     vto.isym = null;
+
                     ids.from.push(vd);
                     ids.to.push(vto);
+
                     if (vd._init)
                     {
                         if (vd._init.isVoidInitializer())
@@ -913,6 +905,7 @@ Expression doInline(Expression e, InlineDoState ids)
                     return;
                 }
             }
+
             /* This needs work, like DeclarationExp.toElem(), if we are
              * to handle TemplateMixin's. For now, we just don't inline them.
              */
@@ -921,7 +914,7 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(TypeidExp e)
         {
-            //printf("TypeidExp.doInline(): %s\n", e.toChars());
+            //printf("TypeidExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             TypeidExp te = cast(TypeidExp)e.copy();
             if (Expression ex = isExpression(te.obj))
             {
@@ -934,7 +927,7 @@ Expression doInline(Expression e, InlineDoState ids)
 
         override void visit(NewExp e)
         {
-            //printf("NewExp.doInline(): %s\n", e.toChars());
+            //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             NewExp ne = cast(NewExp)e.copy();
             if (e.thisexp)
                 ne.thisexp = doInline(e.thisexp, ids);
@@ -948,6 +941,7 @@ Expression doInline(Expression e, InlineDoState ids)
         override void visit(DeleteExp e)
         {
             visit(cast(UnaExp)e);
+
             Type tb = e.e1.type.toBasetype();
             if (tb.ty == Tarray)
             {
@@ -1038,8 +1032,10 @@ Expression doInline(Expression e, InlineDoState ids)
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
+
                 ids.from.push(vd);
                 ids.to.push(vto);
+
                 if (vd._init && !vd._init.isVoidInitializer())
                 {
                     ExpInitializer ie = vd._init.isExpInitializer();
@@ -1065,14 +1061,17 @@ Expression doInline(Expression e, InlineDoState ids)
                 vto.parent = ids.parent;
                 vto.csym = null;
                 vto.isym = null;
+
                 ids.from.push(vd);
                 ids.to.push(vto);
+
                 if (vd._init && !vd._init.isVoidInitializer())
                 {
                     ExpInitializer ie = vd._init.isExpInitializer();
                     assert(ie);
                     vto._init = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
                 }
+
                 are.lengthVar = vto;
             }
             if (e.lwr)
@@ -1143,8 +1142,21 @@ Expression doInline(Expression e, InlineDoState ids)
             result = ce;
         }
     }
+}
 
-    scope InlineExpression v = new InlineExpression(ids);
+/// ditto
+Result doInlineAs(Result)(Statement s, InlineDoState ids)
+{
+    scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
+    s.accept(v);
+    return v.result;
+}
+
+/***********************************************************
+ */
+Expression doInline(Expression e, InlineDoState ids)
+{
+    scope DoInlineAs!Expression v = new DoInlineAs!Expression(ids);
     e.accept(v);
     return v.result;
 }
