@@ -357,7 +357,7 @@ public:
             TupleDeclaration td = vd.toAlias().isTupleDeclaration();
             if (td)
             {
-                cost = COST_MAX; // finish DeclarationExp.doInline
+                cost = COST_MAX; // finish DeclarationExp.doInlineAs
                 return;
             }
             if (!hdrscan && vd.isDataseg())
@@ -465,9 +465,9 @@ public:
         }
 
         static if (asStatements)
-            result = new ExpStatement(s.loc, s.exp ? doInline(s.exp, ids) : null);
+            result = new ExpStatement(s.loc, s.exp ? doInlineAs!Expression(s.exp, ids) : null);
         else
-            result = s.exp ? doInline(s.exp, ids) : null;
+            result = s.exp ? doInlineAs!Expression(s.exp, ids) : null;
     }
 
     override void visit(CompoundStatement s)
@@ -515,7 +515,7 @@ public:
                     {
                         /* Rewrite as ?:
                          */
-                        Expression econd = doInline(ifs.condition, ids);
+                        Expression econd = doInlineAs!Expression(ifs.condition, ids);
                         assert(econd);
                         Expression e1 = doInlineAs!Expression(ifs.ifbody, ids);
                         assert(ids.foundReturn);
@@ -592,7 +592,7 @@ public:
         static if (asStatements)
         {
             assert(!s.prm);
-            Expression condition = s.condition ? doInline(s.condition, ids) : null;
+            Expression condition = s.condition ? doInlineAs!Expression(s.condition, ids) : null;
             Statement ifbody = s.ifbody ? doInlineAs!Statement(s.ifbody, ids) : null;
             bool bodyReturn = ids.foundReturn;
             ids.foundReturn = false;
@@ -603,7 +603,7 @@ public:
         else
         {
             assert(!s.prm);
-            Expression econd = doInline(s.condition, ids);
+            Expression econd = doInlineAs!Expression(s.condition, ids);
             assert(econd);
             Expression e1 = s.ifbody ? doInlineAs!Expression(s.ifbody, ids) : null;
             bool bodyReturn = ids.foundReturn;
@@ -645,12 +645,12 @@ public:
         {
             ids.foundReturn = true;
             if (s.exp) // Bugzilla 14560: 'return' must not leave in the expand result
-                result = new ReturnStatement(s.loc, doInline(s.exp, ids));
+                result = new ReturnStatement(s.loc, doInlineAs!Expression(s.exp, ids));
         }
         else
         {
             ids.foundReturn = true;
-            result = s.exp ? doInline(s.exp, ids) : null;
+            result = s.exp ? doInlineAs!Expression(s.exp, ids) : null;
         }
     }
 
@@ -664,8 +664,8 @@ public:
         static if (asStatements)
         {
             Statement _init = s._init ? doInlineAs!Statement(s._init, ids) : null;
-            Expression condition = s.condition ? doInline(s.condition, ids) : null;
-            Expression increment = s.increment ? doInline(s.increment, ids) : null;
+            Expression condition = s.condition ? doInlineAs!Expression(s.condition, ids) : null;
+            Expression increment = s.increment ? doInlineAs!Expression(s.increment, ids) : null;
             Statement _body = s._body ? doInlineAs!Statement(s._body, ids) : null;
             result = new ForStatement(s.loc, _init, condition, increment, _body, s.endloc);
         }
@@ -677,7 +677,7 @@ public:
     {
         //printf("ThrowStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp.toChars());
         static if (asStatements)
-            result = new ThrowStatement(s.loc, doInline(s.exp, ids));
+            result = new ThrowStatement(s.loc, doInlineAs!Expression(s.exp, ids));
         else
             result = null;  // cannot be inlined as an Expression
     }
@@ -694,9 +694,9 @@ public:
     else
     {
         /******************************
-         * Perform doInline() on an array of Expressions.
+         * Perform doInlineAs() on an array of Expressions.
          */
-        Expressions* arrayExpressiondoInline(Expressions* a)
+        Expressions* arrayExpressionDoInline(Expressions* a)
         {
             if (!a)
                 return null;
@@ -708,7 +708,7 @@ public:
             {
                 Expression e = (*a)[i];
                 if (e)
-                    e = doInline(e, ids);
+                    e = doInlineAs!Expression(e, ids);
                 (*newa)[i] = e;
             }
             return newa;
@@ -869,7 +869,7 @@ public:
                                 {
                                     result = vd._init.toExpression();
                                     assert(result);
-                                    result = doInline(result, ids);
+                                    result = doInlineAs!Expression(result, ids);
                                 }
                                 else
                                     result = new IntegerExp(vd._init.loc, 0, Type.tint32);
@@ -896,7 +896,7 @@ public:
                         {
                             Expression ei = vd._init.toExpression();
                             assert(ei);
-                            vto._init = new ExpInitializer(ei.loc, doInline(ei, ids));
+                            vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
                         }
                     }
                     DeclarationExp de = cast(DeclarationExp)e.copy();
@@ -918,7 +918,7 @@ public:
             TypeidExp te = cast(TypeidExp)e.copy();
             if (Expression ex = isExpression(te.obj))
             {
-                te.obj = doInline(ex, ids);
+                te.obj = doInlineAs!Expression(ex, ids);
             }
             else
                 assert(isType(te.obj));
@@ -930,9 +930,9 @@ public:
             //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             NewExp ne = cast(NewExp)e.copy();
             if (e.thisexp)
-                ne.thisexp = doInline(e.thisexp, ids);
-            ne.newargs = arrayExpressiondoInline(e.newargs);
-            ne.arguments = arrayExpressiondoInline(e.arguments);
+                ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
+            ne.newargs = arrayExpressionDoInline(e.newargs);
+            ne.arguments = arrayExpressionDoInline(e.arguments);
             result = ne;
 
             semanticTypeInfo(null, e.type);
@@ -959,32 +959,32 @@ public:
         override void visit(UnaExp e)
         {
             UnaExp ue = cast(UnaExp)e.copy();
-            ue.e1 = doInline(e.e1, ids);
+            ue.e1 = doInlineAs!Expression(e.e1, ids);
             result = ue;
         }
 
         override void visit(AssertExp e)
         {
             AssertExp ae = cast(AssertExp)e.copy();
-            ae.e1 = doInline(e.e1, ids);
+            ae.e1 = doInlineAs!Expression(e.e1, ids);
             if (e.msg)
-                ae.msg = doInline(e.msg, ids);
+                ae.msg = doInlineAs!Expression(e.msg, ids);
             result = ae;
         }
 
         override void visit(BinExp e)
         {
             BinExp be = cast(BinExp)e.copy();
-            be.e1 = doInline(e.e1, ids);
-            be.e2 = doInline(e.e2, ids);
+            be.e1 = doInlineAs!Expression(e.e1, ids);
+            be.e2 = doInlineAs!Expression(e.e2, ids);
             result = be;
         }
 
         override void visit(CallExp e)
         {
             CallExp ce = cast(CallExp)e.copy();
-            ce.e1 = doInline(e.e1, ids);
-            ce.arguments = arrayExpressiondoInline(e.arguments);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.arguments = arrayExpressionDoInline(e.arguments);
             result = ce;
         }
 
@@ -1022,7 +1022,7 @@ public:
         override void visit(IndexExp e)
         {
             IndexExp are = cast(IndexExp)e.copy();
-            are.e1 = doInline(e.e1, ids);
+            are.e1 = doInlineAs!Expression(e.e1, ids);
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
@@ -1040,18 +1040,18 @@ public:
                 {
                     ExpInitializer ie = vd._init.isExpInitializer();
                     assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
+                    vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
                 }
                 are.lengthVar = vto;
             }
-            are.e2 = doInline(e.e2, ids);
+            are.e2 = doInlineAs!Expression(e.e2, ids);
             result = are;
         }
 
         override void visit(SliceExp e)
         {
             SliceExp are = cast(SliceExp)e.copy();
-            are.e1 = doInline(e.e1, ids);
+            are.e1 = doInlineAs!Expression(e.e1, ids);
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
@@ -1069,15 +1069,15 @@ public:
                 {
                     ExpInitializer ie = vd._init.isExpInitializer();
                     assert(ie);
-                    vto._init = new ExpInitializer(ie.loc, doInline(ie.exp, ids));
+                    vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
                 }
 
                 are.lengthVar = vto;
             }
             if (e.lwr)
-                are.lwr = doInline(e.lwr, ids);
+                are.lwr = doInlineAs!Expression(e.lwr, ids);
             if (e.upr)
-                are.upr = doInline(e.upr, ids);
+                are.upr = doInlineAs!Expression(e.upr, ids);
             result = are;
         }
 
@@ -1085,8 +1085,8 @@ public:
         {
             TupleExp ce = cast(TupleExp)e.copy();
             if (e.e0)
-                ce.e0 = doInline(e.e0, ids);
-            ce.exps = arrayExpressiondoInline(e.exps);
+                ce.e0 = doInlineAs!Expression(e.e0, ids);
+            ce.exps = arrayExpressionDoInline(e.exps);
             result = ce;
         }
 
@@ -1094,8 +1094,8 @@ public:
         {
             ArrayLiteralExp ce = cast(ArrayLiteralExp)e.copy();
             if (e.basis)
-                ce.basis = doInline(e.basis, ids);
-            ce.elements = arrayExpressiondoInline(e.elements);
+                ce.basis = doInlineAs!Expression(e.basis, ids);
+            ce.elements = arrayExpressionDoInline(e.elements);
             result = ce;
 
             semanticTypeInfo(null, e.type);
@@ -1104,8 +1104,8 @@ public:
         override void visit(AssocArrayLiteralExp e)
         {
             AssocArrayLiteralExp ce = cast(AssocArrayLiteralExp)e.copy();
-            ce.keys = arrayExpressiondoInline(e.keys);
-            ce.values = arrayExpressiondoInline(e.values);
+            ce.keys = arrayExpressionDoInline(e.keys);
+            ce.values = arrayExpressionDoInline(e.values);
             result = ce;
 
             semanticTypeInfo(null, e.type);
@@ -1120,7 +1120,7 @@ public:
             }
             StructLiteralExp ce = cast(StructLiteralExp)e.copy();
             e.inlinecopy = ce;
-            ce.elements = arrayExpressiondoInline(e.elements);
+            ce.elements = arrayExpressionDoInline(e.elements);
             e.inlinecopy = null;
             result = ce;
         }
@@ -1128,17 +1128,17 @@ public:
         override void visit(ArrayExp e)
         {
             ArrayExp ce = cast(ArrayExp)e.copy();
-            ce.e1 = doInline(e.e1, ids);
-            ce.arguments = arrayExpressiondoInline(e.arguments);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.arguments = arrayExpressionDoInline(e.arguments);
             result = ce;
         }
 
         override void visit(CondExp e)
         {
             CondExp ce = cast(CondExp)e.copy();
-            ce.econd = doInline(e.econd, ids);
-            ce.e1 = doInline(e.e1, ids);
-            ce.e2 = doInline(e.e2, ids);
+            ce.econd = doInlineAs!Expression(e.econd, ids);
+            ce.e1 = doInlineAs!Expression(e.e1, ids);
+            ce.e2 = doInlineAs!Expression(e.e2, ids);
             result = ce;
         }
     }
@@ -1152,11 +1152,10 @@ Result doInlineAs(Result)(Statement s, InlineDoState ids)
     return v.result;
 }
 
-/***********************************************************
- */
-Expression doInline(Expression e, InlineDoState ids)
+/// ditto
+Result doInlineAs(Result : Expression)(Expression e, InlineDoState ids)
 {
-    scope DoInlineAs!Expression v = new DoInlineAs!Expression(ids);
+    scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
     e.accept(v);
     return v.result;
 }
@@ -2373,7 +2372,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
         return new ErrorExp();
     }
     scope ids = new InlineDoState(sc.parent, null);
-    return doInline(e, ids);
+    return doInlineAs!Expression(e, ids);
 }
 
 /*************************************
