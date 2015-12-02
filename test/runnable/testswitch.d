@@ -677,7 +677,29 @@ void foo14587(Card card) {
 void test14587() {
     auto card = Card(11, 1);
     foo14587(card);
-} 
+}
+
+/*****************************************/
+// Issue 15396 - static immutable not recognized as constant within switch statement
+
+void test15396()
+{
+    static immutable Foo = "Foobar";
+    static const Bar = "BarFoo";
+
+    foreach (var; [ "Foobar", "BarFoo" ])
+    {
+        switch (var)
+        {
+        case Foo:
+            break;
+        case Bar:
+            break;
+        default:
+            assert(0, "test15396 failed");
+        }
+    }
+}
 
 /*****************************************/
 
@@ -709,8 +731,8 @@ int main()
     test23();
     test14352();
     test14587();
+    test15396();
 
     printf("Success\n");
     return 0;
 }
-
