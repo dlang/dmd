@@ -447,6 +447,8 @@ public:
         this.ids = ids;
     }
 
+    // Statement -> (Statement | Expression)
+
     override void visit(Statement s)
     {
         printf("Statement.doInlineAs!%s()\n%s\n", Result.stringof.ptr, s.toChars());
@@ -515,9 +517,9 @@ public:
                          */
                         Expression econd = doInline(ifs.condition, ids);
                         assert(econd);
-                        Expression e1 = doInline(ifs.ifbody, ids);
+                        Expression e1 = doInlineAs!Expression(ifs.ifbody, ids);
                         assert(ids.foundReturn);
-                        Expression e2 = doInline(s3, ids);
+                        Expression e2 = doInlineAs!Expression(s3, ids);
 
                         Expression e = new CondExp(econd.loc, econd, e1, e2);
                         e.type = e1.type;
@@ -531,7 +533,7 @@ public:
                     }
                     else
                     {
-                        Expression e = doInline(sx, ids);
+                        Expression e = doInlineAs!Expression(sx, ids);
                         result = Expression.combine(result, e);
                     }
                     if (ids.foundReturn)
@@ -567,7 +569,7 @@ public:
             {
                 if (sx)
                 {
-                    Expression e = doInline(sx, ids);
+                    Expression e = doInlineAs!Expression(sx, ids);
                     result = Expression.combine(result, e);
                     if (ids.foundReturn)
                         break;
@@ -582,7 +584,7 @@ public:
         static if (asStatements)
             result = s.statement ? new ScopeStatement(s.loc, doInlineAs!Statement(s.statement, ids)) : s;
         else
-            result = s.statement ? doInline(s.statement, ids) : null;
+            result = s.statement ? doInlineAs!Expression(s.statement, ids) : null;
     }
 
     override void visit(IfStatement s)
@@ -603,10 +605,10 @@ public:
             assert(!s.prm);
             Expression econd = doInline(s.condition, ids);
             assert(econd);
-            Expression e1 = s.ifbody ? doInline(s.ifbody, ids) : null;
+            Expression e1 = s.ifbody ? doInlineAs!Expression(s.ifbody, ids) : null;
             bool bodyReturn = ids.foundReturn;
             ids.foundReturn = false;
-            Expression e2 = s.elsebody ? doInline(s.elsebody, ids) : null;
+            Expression e2 = s.elsebody ? doInlineAs!Expression(s.elsebody, ids) : null;
             if (e1 && e2)
             {
                 result = new CondExp(econd.loc, econd, e1, e2);
@@ -682,18 +684,9 @@ public:
 }
 
 /// ditto
-Statement doInlineAs(Result : Statement)(Statement s, InlineDoState ids)
+Result doInlineAs(Result)(Statement s, InlineDoState ids)
 {
-    scope DoInlineAs!Statement v = new DoInlineAs!Statement(ids);
-    s.accept(v);
-    return v.result;
-}
-
-/***********************************************************
- */
-Expression doInline(Statement s, InlineDoState ids)
-{
-    scope DoInlineAs!Expression v = new DoInlineAs!Expression(ids);
+    scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
     s.accept(v);
     return v.result;
 }
@@ -2267,7 +2260,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
          */
 
         fd.inlineNest++;
-        auto e = doInline(fd.fbody, ids);
+        auto e = doInlineAs!Expression(fd.fbody, ids);
         fd.inlineNest--;
         //e.type.print();
         //e.print();
