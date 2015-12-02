@@ -465,9 +465,9 @@ public:
         }
 
         static if (asStatements)
-            result = new ExpStatement(s.loc, s.exp ? doInlineAs!Expression(s.exp, ids) : null);
+            result = new ExpStatement(s.loc, doInlineAs!Expression(s.exp, ids));
         else
-            result = s.exp ? doInlineAs!Expression(s.exp, ids) : null;
+            result = doInlineAs!Expression(s.exp, ids);
     }
 
     override void visit(CompoundStatement s)
@@ -479,14 +479,9 @@ public:
             as.reserve(s.statements.dim);
             foreach (sx; *s.statements)
             {
-                if (sx)
-                {
-                    as.push(doInlineAs!Statement(sx, ids));
-                    if (ids.foundReturn)
-                        break;
-                }
-                else
-                    as.push(null);
+                as.push(doInlineAs!Statement(sx, ids));
+                if (ids.foundReturn)
+                    break;
             }
             result = new CompoundStatement(s.loc, as);
         }
@@ -552,14 +547,9 @@ public:
             as.reserve(s.statements.dim);
             foreach (sx; *s.statements)
             {
-                if (sx)
-                {
-                    as.push(doInlineAs!Statement(sx, ids));
-                    if (ids.foundReturn)
-                        break;
-                }
-                else
-                    as.push(null);
+                as.push(doInlineAs!Statement(sx, ids));
+                if (ids.foundReturn)
+                    break;
             }
             result = new UnrolledLoopStatement(s.loc, as);
         }
@@ -567,13 +557,10 @@ public:
         {
             foreach (sx; *s.statements)
             {
-                if (sx)
-                {
-                    Expression e = doInlineAs!Expression(sx, ids);
-                    result = Expression.combine(result, e);
-                    if (ids.foundReturn)
-                        break;
-                }
+                Expression e = doInlineAs!Expression(sx, ids);
+                result = Expression.combine(result, e);
+                if (ids.foundReturn)
+                    break;
             }
         }
     }
@@ -582,9 +569,9 @@ public:
     {
         //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.dim);
         static if (asStatements)
-            result = s.statement ? new ScopeStatement(s.loc, doInlineAs!Statement(s.statement, ids)) : s;
+            result = new ScopeStatement(s.loc, doInlineAs!Statement(s.statement, ids));
         else
-            result = s.statement ? doInlineAs!Expression(s.statement, ids) : null;
+            result = doInlineAs!Expression(s.statement, ids);
     }
 
     override void visit(IfStatement s)
@@ -592,11 +579,11 @@ public:
         static if (asStatements)
         {
             assert(!s.prm);
-            Expression condition = s.condition ? doInlineAs!Expression(s.condition, ids) : null;
-            Statement ifbody = s.ifbody ? doInlineAs!Statement(s.ifbody, ids) : null;
+            Expression condition = doInlineAs!Expression(s.condition, ids);
+            Statement ifbody = doInlineAs!Statement(s.ifbody, ids);
             bool bodyReturn = ids.foundReturn;
             ids.foundReturn = false;
-            Statement elsebody = s.elsebody ? doInlineAs!Statement(s.elsebody, ids) : null;
+            Statement elsebody = doInlineAs!Statement(s.elsebody, ids);
             ids.foundReturn = ids.foundReturn && bodyReturn;
             result = new IfStatement(s.loc, s.prm, condition, ifbody, elsebody);
         }
@@ -605,10 +592,10 @@ public:
             assert(!s.prm);
             Expression econd = doInlineAs!Expression(s.condition, ids);
             assert(econd);
-            Expression e1 = s.ifbody ? doInlineAs!Expression(s.ifbody, ids) : null;
+            Expression e1 = doInlineAs!Expression(s.ifbody, ids);
             bool bodyReturn = ids.foundReturn;
             ids.foundReturn = false;
-            Expression e2 = s.elsebody ? doInlineAs!Expression(s.elsebody, ids) : null;
+            Expression e2 = doInlineAs!Expression(s.elsebody, ids);
             if (e1 && e2)
             {
                 result = new CondExp(econd.loc, econd, e1, e2);
@@ -650,7 +637,7 @@ public:
         else
         {
             ids.foundReturn = true;
-            result = s.exp ? doInlineAs!Expression(s.exp, ids) : null;
+            result = doInlineAs!Expression(s.exp, ids);
         }
     }
 
@@ -663,10 +650,10 @@ public:
         //printf("ForStatement.doInlineAs!%s()\n", Result.stringof.ptr);
         static if (asStatements)
         {
-            Statement _init = s._init ? doInlineAs!Statement(s._init, ids) : null;
-            Expression condition = s.condition ? doInlineAs!Expression(s.condition, ids) : null;
-            Expression increment = s.increment ? doInlineAs!Expression(s.increment, ids) : null;
-            Statement _body = s._body ? doInlineAs!Statement(s._body, ids) : null;
+            Statement _init = doInlineAs!Statement(s._init, ids);
+            Expression condition = doInlineAs!Expression(s.condition, ids);
+            Expression increment = doInlineAs!Expression(s.increment, ids);
+            Statement _body = doInlineAs!Statement(s._body, ids);
             result = new ForStatement(s.loc, _init, condition, increment, _body, s.endloc);
         }
         else
@@ -706,10 +693,7 @@ public:
 
             foreach (i; 0 .. a.dim)
             {
-                Expression e = (*a)[i];
-                if (e)
-                    e = doInlineAs!Expression(e, ids);
-                (*newa)[i] = e;
+                (*newa)[i] = doInlineAs!Expression((*a)[i], ids);
             }
             return newa;
         }
@@ -929,8 +913,7 @@ public:
         {
             //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             NewExp ne = cast(NewExp)e.copy();
-            if (e.thisexp)
-                ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
+            ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.newargs = arrayExpressionDoInline(e.newargs);
             ne.arguments = arrayExpressionDoInline(e.arguments);
             result = ne;
@@ -967,8 +950,7 @@ public:
         {
             AssertExp ae = cast(AssertExp)e.copy();
             ae.e1 = doInlineAs!Expression(e.e1, ids);
-            if (e.msg)
-                ae.msg = doInlineAs!Expression(e.msg, ids);
+            ae.msg = doInlineAs!Expression(e.msg, ids);
             result = ae;
         }
 
@@ -1074,18 +1056,15 @@ public:
 
                 are.lengthVar = vto;
             }
-            if (e.lwr)
-                are.lwr = doInlineAs!Expression(e.lwr, ids);
-            if (e.upr)
-                are.upr = doInlineAs!Expression(e.upr, ids);
+            are.lwr = doInlineAs!Expression(e.lwr, ids);
+            are.upr = doInlineAs!Expression(e.upr, ids);
             result = are;
         }
 
         override void visit(TupleExp e)
         {
             TupleExp ce = cast(TupleExp)e.copy();
-            if (e.e0)
-                ce.e0 = doInlineAs!Expression(e.e0, ids);
+            ce.e0 = doInlineAs!Expression(e.e0, ids);
             ce.exps = arrayExpressionDoInline(e.exps);
             result = ce;
         }
@@ -1093,8 +1072,7 @@ public:
         override void visit(ArrayLiteralExp e)
         {
             ArrayLiteralExp ce = cast(ArrayLiteralExp)e.copy();
-            if (e.basis)
-                ce.basis = doInlineAs!Expression(e.basis, ids);
+            ce.basis = doInlineAs!Expression(e.basis, ids);
             ce.elements = arrayExpressionDoInline(e.elements);
             result = ce;
 
@@ -1147,6 +1125,9 @@ public:
 /// ditto
 Result doInlineAs(Result)(Statement s, InlineDoState ids)
 {
+    if (!s)
+        return null;
+
     scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
     s.accept(v);
     return v.result;
@@ -1155,6 +1136,9 @@ Result doInlineAs(Result)(Statement s, InlineDoState ids)
 /// ditto
 Result doInlineAs(Result)(Expression e, InlineDoState ids)
 {
+    if (!e)
+        return null;
+
     scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
     e.accept(v);
     return v.result;
