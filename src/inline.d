@@ -468,7 +468,7 @@ public:
         {
             if (sx)
             {
-                as.push(inlineAsStatement(sx, ids));
+                as.push(doInlineAs!Statement(sx, ids));
                 if (ids.foundReturn)
                     break;
             }
@@ -487,7 +487,7 @@ public:
         {
             if (sx)
             {
-                as.push(inlineAsStatement(sx, ids));
+                as.push(doInlineAs!Statement(sx, ids));
                 if (ids.foundReturn)
                     break;
             }
@@ -500,17 +500,17 @@ public:
     override void visit(ScopeStatement s)
     {
         //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.dim);
-        result = s.statement ? new ScopeStatement(s.loc, inlineAsStatement(s.statement, ids)) : s;
+        result = s.statement ? new ScopeStatement(s.loc, doInlineAs!Statement(s.statement, ids)) : s;
     }
 
     override void visit(IfStatement s)
     {
         assert(!s.prm);
         Expression condition = s.condition ? doInline(s.condition, ids) : null;
-        Statement ifbody = s.ifbody ? inlineAsStatement(s.ifbody, ids) : null;
+        Statement ifbody = s.ifbody ? doInlineAs!Statement(s.ifbody, ids) : null;
         bool bodyReturn = ids.foundReturn;
         ids.foundReturn = false;
-        Statement elsebody = s.elsebody ? inlineAsStatement(s.elsebody, ids) : null;
+        Statement elsebody = s.elsebody ? doInlineAs!Statement(s.elsebody, ids) : null;
         ids.foundReturn = ids.foundReturn && bodyReturn;
         result = new IfStatement(s.loc, s.prm, condition, ifbody, elsebody);
     }
@@ -531,10 +531,10 @@ public:
     override void visit(ForStatement s)
     {
         //printf("ForStatement.doInlineAs!%s()\n", Result.stringof.ptr);
-        Statement _init = s._init ? inlineAsStatement(s._init, ids) : null;
+        Statement _init = s._init ? doInlineAs!Statement(s._init, ids) : null;
         Expression condition = s.condition ? doInline(s.condition, ids) : null;
         Expression increment = s.increment ? doInline(s.increment, ids) : null;
-        Statement _body = s._body ? inlineAsStatement(s._body, ids) : null;
+        Statement _body = s._body ? doInlineAs!Statement(s._body, ids) : null;
         result = new ForStatement(s.loc, _init, condition, increment, _body, s.endloc);
     }
 
@@ -545,7 +545,8 @@ public:
     }
 }
 
-Statement inlineAsStatement(Statement s, InlineDoState ids)
+/// ditto
+Statement doInlineAs(Result : Statement)(Statement s, InlineDoState ids)
 {
     scope DoInlineAs!Statement v = new DoInlineAs!Statement(ids);
     s.accept(v);
@@ -1905,7 +1906,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
 
         /* Bugzilla 14560: If fd returns void, all explicit `return;`s
          * must not appear in the expanded result.
-         * See also ReturnStatement.inlineAsStatement().
+         * See also ReturnStatement.doInlineAs!Statement().
          */
     }
 
@@ -2257,7 +2258,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             as2.push(new ExpStatement(callLoc, eparams));
 
         fd.inlineNest++;
-        Statement s = inlineAsStatement(fd.fbody, ids);
+        Statement s = doInlineAs!Statement(fd.fbody, ids);
         fd.inlineNest--;
         as2.push(s);
 
