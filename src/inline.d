@@ -682,13 +682,13 @@ public:
             result = null;  // cannot be inlined as an Expression
     }
 
-    // Expression -> Expression
+    // Expression -> (Statement | Expression)
 
     static if (asStatements)
     {
         override void visit(Expression e)
         {
-            assert(0);
+            result = new ExpStatement(e.loc, doInlineAs!Expression(e, ids));
         }
     }
     else
@@ -1153,7 +1153,7 @@ Result doInlineAs(Result)(Statement s, InlineDoState ids)
 }
 
 /// ditto
-Result doInlineAs(Result : Expression)(Expression e, InlineDoState ids)
+Result doInlineAs(Result)(Expression e, InlineDoState ids)
 {
     scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
     e.accept(v);
