@@ -433,11 +433,14 @@ final class InlineDoState
 }
 
 extern (C++) final class DoInlineAs(Result) : Visitor
+if (is(Result == Statement) || is(Result == Expression))
 {
     alias visit = super.visit;
 public:
     InlineDoState ids;
     Result result;
+
+    enum asStatements = is(Result == Statement);
 
     extern (D) this(InlineDoState ids)
     {
@@ -446,6 +449,8 @@ public:
 
     override void visit(Statement s)
     {
+        printf("Statement.doInlineAs!%s()\n%s\n", Result.stringof.ptr, s.toChars());
+        fflush(stdout);
         assert(0); // default is we can't inline it
     }
 
@@ -456,139 +461,35 @@ public:
             if (s.exp)
                 printf("ExpStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp.toChars());
         }
-        result = new ExpStatement(s.loc, s.exp ? doInline(s.exp, ids) : null);
+
+        static if (asStatements)
+            result = new ExpStatement(s.loc, s.exp ? doInline(s.exp, ids) : null);
+        else
+            result = s.exp ? doInline(s.exp, ids) : null;
     }
 
     override void visit(CompoundStatement s)
     {
         //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.dim);
-        auto as = new Statements();
-        as.reserve(s.statements.dim);
-        foreach (sx; *s.statements)
+        static if (asStatements)
         {
-            if (sx)
+            auto as = new Statements();
+            as.reserve(s.statements.dim);
+            foreach (sx; *s.statements)
             {
-                as.push(doInlineAs!Statement(sx, ids));
-                if (ids.foundReturn)
-                    break;
+                if (sx)
+                {
+                    as.push(doInlineAs!Statement(sx, ids));
+                    if (ids.foundReturn)
+                        break;
+                }
+                else
+                    as.push(null);
             }
-            else
-                as.push(null);
+            result = new CompoundStatement(s.loc, as);
         }
-        result = new CompoundStatement(s.loc, as);
-    }
-
-    override void visit(UnrolledLoopStatement s)
-    {
-        //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.dim);
-        auto as = new Statements();
-        as.reserve(s.statements.dim);
-        foreach (sx; *s.statements)
+        else
         {
-            if (sx)
-            {
-                as.push(doInlineAs!Statement(sx, ids));
-                if (ids.foundReturn)
-                    break;
-            }
-            else
-                as.push(null);
-        }
-        result = new UnrolledLoopStatement(s.loc, as);
-    }
-
-    override void visit(ScopeStatement s)
-    {
-        //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.dim);
-        result = s.statement ? new ScopeStatement(s.loc, doInlineAs!Statement(s.statement, ids)) : s;
-    }
-
-    override void visit(IfStatement s)
-    {
-        assert(!s.prm);
-        Expression condition = s.condition ? doInline(s.condition, ids) : null;
-        Statement ifbody = s.ifbody ? doInlineAs!Statement(s.ifbody, ids) : null;
-        bool bodyReturn = ids.foundReturn;
-        ids.foundReturn = false;
-        Statement elsebody = s.elsebody ? doInlineAs!Statement(s.elsebody, ids) : null;
-        ids.foundReturn = ids.foundReturn && bodyReturn;
-        result = new IfStatement(s.loc, s.prm, condition, ifbody, elsebody);
-    }
-
-    override void visit(ReturnStatement s)
-    {
-        //printf("ReturnStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp ? s.exp.toChars() : "");
-        ids.foundReturn = true;
-        if (s.exp) // Bugzilla 14560: 'return' must not leave in the expand result
-            result = new ReturnStatement(s.loc, doInline(s.exp, ids));
-    }
-
-    override void visit(ImportStatement s)
-    {
-        result = null;
-    }
-
-    override void visit(ForStatement s)
-    {
-        //printf("ForStatement.doInlineAs!%s()\n", Result.stringof.ptr);
-        Statement _init = s._init ? doInlineAs!Statement(s._init, ids) : null;
-        Expression condition = s.condition ? doInline(s.condition, ids) : null;
-        Expression increment = s.increment ? doInline(s.increment, ids) : null;
-        Statement _body = s._body ? doInlineAs!Statement(s._body, ids) : null;
-        result = new ForStatement(s.loc, _init, condition, increment, _body, s.endloc);
-    }
-
-    override void visit(ThrowStatement s)
-    {
-        //printf("ThrowStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp.toChars());
-        result = new ThrowStatement(s.loc, doInline(s.exp, ids));
-    }
-}
-
-/// ditto
-Statement doInlineAs(Result : Statement)(Statement s, InlineDoState ids)
-{
-    scope DoInlineAs!Statement v = new DoInlineAs!Statement(ids);
-    s.accept(v);
-    return v.result;
-}
-
-/***********************************************************
- */
-Expression doInline(Statement s, InlineDoState ids)
-{
-    extern (C++) final class InlineStatement : Visitor
-    {
-        alias visit = super.visit;
-    public:
-        InlineDoState ids;
-        Expression result;
-
-        extern (D) this(InlineDoState ids)
-        {
-            this.ids = ids;
-        }
-
-        override void visit(Statement s)
-        {
-            printf("Statement.doInline()\n%s\n", s.toChars());
-            fflush(stdout);
-            assert(0); // default is we can't inline it
-        }
-
-        override void visit(ExpStatement s)
-        {
-            static if (LOG)
-            {
-                if (s.exp)
-                    printf("ExpStatement.doInline() '%s'\n", s.exp.toChars());
-            }
-            result = s.exp ? doInline(s.exp, ids) : null;
-        }
-
-        override void visit(CompoundStatement s)
-        {
-            //printf("CompoundStatement.doInline() %d\n", s.statements.dim);
             foreach (i; 0 .. s.statements.dim)
             {
                 Statement sx = (*s.statements)[i];
@@ -596,7 +497,7 @@ Expression doInline(Statement s, InlineDoState ids)
                 {
                     /* Specifically allow:
                      *  if (condition)
-                     *  return exp1;
+                     *      return exp1;
                      *  return exp2;
                      */
                     IfStatement ifs;
@@ -638,10 +539,30 @@ Expression doInline(Statement s, InlineDoState ids)
                 }
             }
         }
+    }
 
-        override void visit(UnrolledLoopStatement s)
+    override void visit(UnrolledLoopStatement s)
+    {
+        //printf("UnrolledLoopStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.dim);
+        static if (asStatements)
         {
-            //printf("UnrolledLoopStatement.doInline() %d\n", s.statements.dim);
+            auto as = new Statements();
+            as.reserve(s.statements.dim);
+            foreach (sx; *s.statements)
+            {
+                if (sx)
+                {
+                    as.push(doInlineAs!Statement(sx, ids));
+                    if (ids.foundReturn)
+                        break;
+                }
+                else
+                    as.push(null);
+            }
+            result = new UnrolledLoopStatement(s.loc, as);
+        }
+        else
+        {
             foreach (sx; *s.statements)
             {
                 if (sx)
@@ -653,13 +574,31 @@ Expression doInline(Statement s, InlineDoState ids)
                 }
             }
         }
+    }
 
-        override void visit(ScopeStatement s)
-        {
+    override void visit(ScopeStatement s)
+    {
+        //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.dim);
+        static if (asStatements)
+            result = s.statement ? new ScopeStatement(s.loc, doInlineAs!Statement(s.statement, ids)) : s;
+        else
             result = s.statement ? doInline(s.statement, ids) : null;
-        }
+    }
 
-        override void visit(IfStatement s)
+    override void visit(IfStatement s)
+    {
+        static if (asStatements)
+        {
+            assert(!s.prm);
+            Expression condition = s.condition ? doInline(s.condition, ids) : null;
+            Statement ifbody = s.ifbody ? doInlineAs!Statement(s.ifbody, ids) : null;
+            bool bodyReturn = ids.foundReturn;
+            ids.foundReturn = false;
+            Statement elsebody = s.elsebody ? doInlineAs!Statement(s.elsebody, ids) : null;
+            ids.foundReturn = ids.foundReturn && bodyReturn;
+            result = new IfStatement(s.loc, s.prm, condition, ifbody, elsebody);
+        }
+        else
         {
             assert(!s.prm);
             Expression econd = doInline(s.condition, ids);
@@ -695,20 +634,66 @@ Expression doInline(Statement s, InlineDoState ids)
             }
             ids.foundReturn = ids.foundReturn && bodyReturn;
         }
+    }
 
-        override void visit(ReturnStatement s)
+    override void visit(ReturnStatement s)
+    {
+        //printf("ReturnStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp ? s.exp.toChars() : "");
+        static if (asStatements)
         {
-            //printf("ReturnStatement.doInline() '%s'\n", s.exp ? s.exp.toChars() : "");
+            ids.foundReturn = true;
+            if (s.exp) // Bugzilla 14560: 'return' must not leave in the expand result
+                result = new ReturnStatement(s.loc, doInline(s.exp, ids));
+        }
+        else
+        {
             ids.foundReturn = true;
             result = s.exp ? doInline(s.exp, ids) : null;
         }
-
-        override void visit(ImportStatement s)
-        {
-        }
     }
 
-    scope InlineStatement v = new InlineStatement(ids);
+    override void visit(ImportStatement s)
+    {
+    }
+
+    override void visit(ForStatement s)
+    {
+        //printf("ForStatement.doInlineAs!%s()\n", Result.stringof.ptr);
+        static if (asStatements)
+        {
+            Statement _init = s._init ? doInlineAs!Statement(s._init, ids) : null;
+            Expression condition = s.condition ? doInline(s.condition, ids) : null;
+            Expression increment = s.increment ? doInline(s.increment, ids) : null;
+            Statement _body = s._body ? doInlineAs!Statement(s._body, ids) : null;
+            result = new ForStatement(s.loc, _init, condition, increment, _body, s.endloc);
+        }
+        else
+            result = null;  // cannot be inlined as an Expression
+    }
+
+    override void visit(ThrowStatement s)
+    {
+        //printf("ThrowStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp.toChars());
+        static if (asStatements)
+            result = new ThrowStatement(s.loc, doInline(s.exp, ids));
+        else
+            result = null;  // cannot be inlined as an Expression
+    }
+}
+
+/// ditto
+Statement doInlineAs(Result : Statement)(Statement s, InlineDoState ids)
+{
+    scope DoInlineAs!Statement v = new DoInlineAs!Statement(ids);
+    s.accept(v);
+    return v.result;
+}
+
+/***********************************************************
+ */
+Expression doInline(Statement s, InlineDoState ids)
+{
+    scope DoInlineAs!Expression v = new DoInlineAs!Expression(ids);
     s.accept(v);
     return v.result;
 }
