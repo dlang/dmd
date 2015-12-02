@@ -464,10 +464,11 @@ public:
                 printf("ExpStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp.toChars());
         }
 
+        auto exp = doInlineAs!Expression(s.exp, ids);
         static if (asStatements)
-            result = new ExpStatement(s.loc, doInlineAs!Expression(s.exp, ids));
+            result = new ExpStatement(s.loc, exp);
         else
-            result = doInlineAs!Expression(s.exp, ids);
+            result = exp;
     }
 
     override void visit(CompoundStatement s)
@@ -477,65 +478,65 @@ public:
         {
             auto as = new Statements();
             as.reserve(s.statements.dim);
-            foreach (sx; *s.statements)
+        }
+
+        foreach (i, sx; *s.statements)
+        {
+            if (!sx)
+                continue;
+            static if (asStatements)
             {
                 as.push(doInlineAs!Statement(sx, ids));
-                if (ids.foundReturn)
-                    break;
             }
-            result = new CompoundStatement(s.loc, as);
-        }
-        else
-        {
-            foreach (i; 0 .. s.statements.dim)
+            else
             {
-                Statement sx = (*s.statements)[i];
-                if (sx)
+                /* Specifically allow:
+                 *  if (condition)
+                 *      return exp1;
+                 *  return exp2;
+                 */
+                IfStatement ifs;
+                Statement s3;
+                if ((ifs = sx.isIfStatement()) !is null &&
+                    ifs.ifbody &&
+                    ifs.ifbody.isReturnStatement() &&
+                    !ifs.elsebody &&
+                    i + 1 < s.statements.dim &&
+                    (s3 = (*s.statements)[i + 1]) !is null &&
+                    s3.isReturnStatement()
+                   )
                 {
-                    /* Specifically allow:
-                     *  if (condition)
-                     *      return exp1;
-                     *  return exp2;
+                    /* Rewrite as ?:
                      */
-                    IfStatement ifs;
-                    Statement s3;
-                    if ((ifs = sx.isIfStatement()) !is null &&
-                        ifs.ifbody &&
-                        ifs.ifbody.isReturnStatement() &&
-                        !ifs.elsebody &&
-                        i + 1 < s.statements.dim &&
-                        (s3 = (*s.statements)[i + 1]) !is null &&
-                        s3.isReturnStatement()
-                       )
-                    {
-                        /* Rewrite as ?:
-                         */
-                        Expression econd = doInlineAs!Expression(ifs.condition, ids);
-                        assert(econd);
-                        Expression e1 = doInlineAs!Expression(ifs.ifbody, ids);
-                        assert(ids.foundReturn);
-                        Expression e2 = doInlineAs!Expression(s3, ids);
+                    auto econd = doInlineAs!Expression(ifs.condition, ids);
+                    assert(econd);
+                    auto e1 = doInlineAs!Expression(ifs.ifbody, ids);
+                    assert(ids.foundReturn);
+                    auto e2 = doInlineAs!Expression(s3, ids);
 
-                        Expression e = new CondExp(econd.loc, econd, e1, e2);
-                        e.type = e1.type;
-                        if (e.type.ty == Ttuple)
-                        {
-                            e1.type = Type.tvoid;
-                            e2.type = Type.tvoid;
-                            e.type = Type.tvoid;
-                        }
-                        result = Expression.combine(result, e);
-                    }
-                    else
+                    Expression e = new CondExp(econd.loc, econd, e1, e2);
+                    e.type = e1.type;
+                    if (e.type.ty == Ttuple)
                     {
-                        Expression e = doInlineAs!Expression(sx, ids);
-                        result = Expression.combine(result, e);
+                        e1.type = Type.tvoid;
+                        e2.type = Type.tvoid;
+                        e.type = Type.tvoid;
                     }
-                    if (ids.foundReturn)
-                        break;
+                    result = Expression.combine(result, e);
+                }
+                else
+                {
+                    auto e = doInlineAs!Expression(sx, ids);
+                    result = Expression.combine(result, e);
                 }
             }
+
+            if (ids.foundReturn)
+                break;
         }
+
+        static if (asStatements)
+            result = new CompoundStatement(s.loc, as);
     }
 
     override void visit(UnrolledLoopStatement s)
@@ -545,57 +546,56 @@ public:
         {
             auto as = new Statements();
             as.reserve(s.statements.dim);
-            foreach (sx; *s.statements)
-            {
-                as.push(doInlineAs!Statement(sx, ids));
-                if (ids.foundReturn)
-                    break;
-            }
-            result = new UnrolledLoopStatement(s.loc, as);
         }
-        else
+
+        foreach (sx; *s.statements)
         {
-            foreach (sx; *s.statements)
-            {
-                Expression e = doInlineAs!Expression(sx, ids);
-                result = Expression.combine(result, e);
-                if (ids.foundReturn)
-                    break;
-            }
+            if (!sx)
+                continue;
+            auto r = doInlineAs!Result(sx, ids);
+            static if (asStatements)
+                as.push(r);
+            else
+                result = Expression.combine(result, r);
+
+            if (ids.foundReturn)
+                break;
         }
+
+        static if (asStatements)
+            result = new UnrolledLoopStatement(s.loc, as);
     }
 
     override void visit(ScopeStatement s)
     {
         //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.dim);
+        auto r = doInlineAs!Result(s.statement, ids);
         static if (asStatements)
-            result = new ScopeStatement(s.loc, doInlineAs!Statement(s.statement, ids));
+            result = new ScopeStatement(s.loc, r);
         else
-            result = doInlineAs!Expression(s.statement, ids);
+            result = r;
     }
 
     override void visit(IfStatement s)
     {
+        assert(!s.prm);
+        auto econd = doInlineAs!Expression(s.condition, ids);
+        assert(econd);
+
+        auto ifbody = doInlineAs!Result(s.ifbody, ids);
+        bool bodyReturn = ids.foundReturn;
+
+        ids.foundReturn = false;
+        auto elsebody = doInlineAs!Result(s.elsebody, ids);
+
         static if (asStatements)
         {
-            assert(!s.prm);
-            Expression condition = doInlineAs!Expression(s.condition, ids);
-            Statement ifbody = doInlineAs!Statement(s.ifbody, ids);
-            bool bodyReturn = ids.foundReturn;
-            ids.foundReturn = false;
-            Statement elsebody = doInlineAs!Statement(s.elsebody, ids);
-            ids.foundReturn = ids.foundReturn && bodyReturn;
-            result = new IfStatement(s.loc, s.prm, condition, ifbody, elsebody);
+            result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody);
         }
         else
         {
-            assert(!s.prm);
-            Expression econd = doInlineAs!Expression(s.condition, ids);
-            assert(econd);
-            Expression e1 = doInlineAs!Expression(s.ifbody, ids);
-            bool bodyReturn = ids.foundReturn;
-            ids.foundReturn = false;
-            Expression e2 = doInlineAs!Expression(s.elsebody, ids);
+            alias e1 = ifbody;
+            alias e2 = elsebody;
             if (e1 && e2)
             {
                 result = new CondExp(econd.loc, econd, e1, e2);
@@ -621,24 +621,22 @@ public:
             {
                 result = econd;
             }
-            ids.foundReturn = ids.foundReturn && bodyReturn;
         }
+        ids.foundReturn = ids.foundReturn && bodyReturn;
     }
 
     override void visit(ReturnStatement s)
     {
         //printf("ReturnStatement.doInlineAs!%s() '%s'\n", Result.stringof.ptr, s.exp ? s.exp.toChars() : "");
+        ids.foundReturn = true;
+
+        auto exp = doInlineAs!Expression(s.exp, ids);
+        if (!exp) // Bugzilla 14560: 'return' must not leave in the expand result
+            return;
         static if (asStatements)
-        {
-            ids.foundReturn = true;
-            if (s.exp) // Bugzilla 14560: 'return' must not leave in the expand result
-                result = new ReturnStatement(s.loc, doInlineAs!Expression(s.exp, ids));
-        }
+            result = new ReturnStatement(s.loc, exp);
         else
-        {
-            ids.foundReturn = true;
-            result = doInlineAs!Expression(s.exp, ids);
-        }
+            result = exp;
     }
 
     override void visit(ImportStatement s)
@@ -650,11 +648,11 @@ public:
         //printf("ForStatement.doInlineAs!%s()\n", Result.stringof.ptr);
         static if (asStatements)
         {
-            Statement _init = doInlineAs!Statement(s._init, ids);
-            Expression condition = doInlineAs!Expression(s.condition, ids);
-            Expression increment = doInlineAs!Expression(s.increment, ids);
-            Statement _body = doInlineAs!Statement(s._body, ids);
-            result = new ForStatement(s.loc, _init, condition, increment, _body, s.endloc);
+            auto sinit = doInlineAs!Statement(s._init, ids);
+            auto scond = doInlineAs!Expression(s.condition, ids);
+            auto sincr = doInlineAs!Expression(s.increment, ids);
+            auto sbody = doInlineAs!Statement(s._body, ids);
+            result = new ForStatement(s.loc, sinit, scond, sincr, sbody, s.endloc);
         }
         else
             result = null;  // cannot be inlined as an Expression
@@ -709,13 +707,12 @@ public:
             //printf("SymOffExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
             foreach (i; 0 .. ids.from.dim)
             {
-                if (e.var == ids.from[i])
-                {
-                    SymOffExp se = cast(SymOffExp)e.copy();
-                    se.var = cast(Declaration)ids.to[i];
-                    result = se;
-                    return;
-                }
+                if (e.var != ids.from[i])
+                    continue;
+                auto se = cast(SymOffExp)e.copy();
+                se.var = cast(Declaration)ids.to[i];
+                result = se;
+                return;
             }
             result = e;
         }
@@ -725,13 +722,12 @@ public:
             //printf("VarExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
             foreach (i; 0 .. ids.from.dim)
             {
-                if (e.var == ids.from[i])
-                {
-                    VarExp ve = cast(VarExp)e.copy();
-                    ve.var = cast(Declaration)ids.to[i];
-                    result = ve;
-                    return;
-                }
+                if (e.var != ids.from[i])
+                    continue;
+                auto ve = cast(VarExp)e.copy();
+                ve.var = cast(Declaration)ids.to[i];
+                result = ve;
+                return;
             }
             if (ids.fd && e.var == ids.fd.vthis)
             {
@@ -759,18 +755,18 @@ public:
              * should be inlined to:
              *      auto x = *(t.vthis.vthis + i.voffset) + *(t.vthis + g.voffset)
              */
-            VarDeclaration v = e.var.isVarDeclaration();
+            auto v = e.var.isVarDeclaration();
             if (v && v.nestedrefs.dim && ids.vthis)
             {
                 Dsymbol s = ids.fd;
-                FuncDeclaration fdv = v.toParent().isFuncDeclaration();
+                auto fdv = v.toParent().isFuncDeclaration();
                 assert(fdv);
                 result = new VarExp(e.loc, ids.vthis);
                 result.type = ids.vthis.type;
                 while (s != fdv)
                 {
-                    FuncDeclaration f = s.isFuncDeclaration();
-                    if (AggregateDeclaration ad = s.isThis())
+                    auto f = s.isFuncDeclaration();
+                    if (auto ad = s.isThis())
                     {
                         assert(ad.vthis);
                         result = new DotVarExp(e.loc, result, ad.vthis);
@@ -823,17 +819,16 @@ public:
         override void visit(DeclarationExp e)
         {
             //printf("DeclarationExp.doInlineAs!%s(%s)\n", Result.stringof.ptr, e.toChars());
-            if (VarDeclaration vd = e.declaration.isVarDeclaration())
+            if (auto vd = e.declaration.isVarDeclaration())
             {
                 version (none)
                 {
                     // Need to figure this out before inlining can work for tuples
-                    TupleDeclaration td = vd.toAlias().isTupleDeclaration();
-                    if (td)
+                    if (auto tup = vd.toAlias().isTupleDeclaration())
                     {
-                        foreach (i; 0 .. td.objects.dim)
+                        foreach (i; 0 .. tup.objects.dim)
                         {
-                            DsymbolExp se = (*td.objects)[i];
+                            DsymbolExp se = (*tup.objects)[i];
                             assert(se.op == TOKdsymbol);
                             se.s;
                         }
@@ -841,53 +836,53 @@ public:
                         return;
                     }
                 }
-                if (!vd.isStatic())
+                if (vd.isStatic())
+                    return;
+
+                if (ids.fd && vd == ids.fd.nrvo_var)
                 {
-                    if (ids.fd && vd == ids.fd.nrvo_var)
+                    foreach (i; 0 .. ids.from.dim)
                     {
-                        foreach (i; 0 .. ids.from.dim)
+                        if (vd != ids.from[i])
+                            continue;
+                        if (vd._init && !vd._init.isVoidInitializer())
                         {
-                            if (vd == ids.from[i])
-                            {
-                                if (vd._init && !vd._init.isVoidInitializer())
-                                {
-                                    result = vd._init.toExpression();
-                                    assert(result);
-                                    result = doInlineAs!Expression(result, ids);
-                                }
-                                else
-                                    result = new IntegerExp(vd._init.loc, 0, Type.tint32);
-                                return;
-                            }
-                        }
-                    }
-                    auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
-                    memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
-                    vto.parent = ids.parent;
-                    vto.csym = null;
-                    vto.isym = null;
-
-                    ids.from.push(vd);
-                    ids.to.push(vto);
-
-                    if (vd._init)
-                    {
-                        if (vd._init.isVoidInitializer())
-                        {
-                            vto._init = new VoidInitializer(vd._init.loc);
+                            result = vd._init.toExpression();
+                            assert(result);
+                            result = doInlineAs!Expression(result, ids);
                         }
                         else
-                        {
-                            Expression ei = vd._init.toExpression();
-                            assert(ei);
-                            vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
-                        }
+                            result = new IntegerExp(vd._init.loc, 0, Type.tint32);
+                        return;
                     }
-                    DeclarationExp de = cast(DeclarationExp)e.copy();
-                    de.declaration = vto;
-                    result = de;
-                    return;
                 }
+
+                auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
+                memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
+                vto.parent = ids.parent;
+                vto.csym = null;
+                vto.isym = null;
+
+                ids.from.push(vd);
+                ids.to.push(vto);
+
+                if (vd._init)
+                {
+                    if (vd._init.isVoidInitializer())
+                    {
+                        vto._init = new VoidInitializer(vd._init.loc);
+                    }
+                    else
+                    {
+                        auto ei = vd._init.toExpression();
+                        assert(ei);
+                        vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
+                    }
+                }
+                auto de = cast(DeclarationExp)e.copy();
+                de.declaration = vto;
+                result = de;
+                return;
             }
 
             /* This needs work, like DeclarationExp.toElem(), if we are
@@ -899,8 +894,8 @@ public:
         override void visit(TypeidExp e)
         {
             //printf("TypeidExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
-            TypeidExp te = cast(TypeidExp)e.copy();
-            if (Expression ex = isExpression(te.obj))
+            auto te = cast(TypeidExp)e.copy();
+            if (auto ex = isExpression(te.obj))
             {
                 te.obj = doInlineAs!Expression(ex, ids);
             }
@@ -912,7 +907,7 @@ public:
         override void visit(NewExp e)
         {
             //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
-            NewExp ne = cast(NewExp)e.copy();
+            auto ne = cast(NewExp)e.copy();
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
             ne.newargs = arrayExpressionDoInline(e.newargs);
             ne.arguments = arrayExpressionDoInline(e.arguments);
@@ -931,8 +926,8 @@ public:
                 Type tv = tb.nextOf().baseElemOf();
                 if (tv.ty == Tstruct)
                 {
-                    TypeStruct ts = cast(TypeStruct)tv;
-                    StructDeclaration sd = ts.sym;
+                    auto ts = cast(TypeStruct)tv;
+                    auto sd = ts.sym;
                     if (sd.dtor)
                         semanticTypeInfo(null, ts);
                 }
@@ -941,14 +936,14 @@ public:
 
         override void visit(UnaExp e)
         {
-            UnaExp ue = cast(UnaExp)e.copy();
+            auto ue = cast(UnaExp)e.copy();
             ue.e1 = doInlineAs!Expression(e.e1, ids);
             result = ue;
         }
 
         override void visit(AssertExp e)
         {
-            AssertExp ae = cast(AssertExp)e.copy();
+            auto ae = cast(AssertExp)e.copy();
             ae.e1 = doInlineAs!Expression(e.e1, ids);
             ae.msg = doInlineAs!Expression(e.msg, ids);
             result = ae;
@@ -956,7 +951,7 @@ public:
 
         override void visit(BinExp e)
         {
-            BinExp be = cast(BinExp)e.copy();
+            auto be = cast(BinExp)e.copy();
             be.e1 = doInlineAs!Expression(e.e1, ids);
             be.e2 = doInlineAs!Expression(e.e2, ids);
             result = be;
@@ -964,7 +959,7 @@ public:
 
         override void visit(CallExp e)
         {
-            CallExp ce = cast(CallExp)e.copy();
+            auto ce = cast(CallExp)e.copy();
             ce.e1 = doInlineAs!Expression(e.e1, ids);
             ce.arguments = arrayExpressionDoInline(e.arguments);
             result = ce;
@@ -976,7 +971,7 @@ public:
 
             if (e.e1.op == TOKarraylength)
             {
-                ArrayLengthExp ale = cast(ArrayLengthExp)e.e1;
+                auto ale = cast(ArrayLengthExp)e.e1;
                 Type tn = ale.e1.type.toBasetype().nextOf();
                 semanticTypeInfo(null, tn);
             }
@@ -1003,12 +998,12 @@ public:
 
         override void visit(IndexExp e)
         {
-            IndexExp are = cast(IndexExp)e.copy();
+            auto are = cast(IndexExp)e.copy();
             are.e1 = doInlineAs!Expression(e.e1, ids);
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                VarDeclaration vd = e.lengthVar;
+                auto vd = e.lengthVar;
                 auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
@@ -1020,7 +1015,7 @@ public:
 
                 if (vd._init && !vd._init.isVoidInitializer())
                 {
-                    ExpInitializer ie = vd._init.isExpInitializer();
+                    auto ie = vd._init.isExpInitializer();
                     assert(ie);
                     vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
                 }
@@ -1032,12 +1027,12 @@ public:
 
         override void visit(SliceExp e)
         {
-            SliceExp are = cast(SliceExp)e.copy();
+            auto are = cast(SliceExp)e.copy();
             are.e1 = doInlineAs!Expression(e.e1, ids);
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                VarDeclaration vd = e.lengthVar;
+                auto vd = e.lengthVar;
                 auto vto = new VarDeclaration(vd.loc, vd.type, vd.ident, vd._init);
                 memcpy(cast(void*)vto, cast(void*)vd, __traits(classInstanceSize, VarDeclaration));
                 vto.parent = ids.parent;
@@ -1049,7 +1044,7 @@ public:
 
                 if (vd._init && !vd._init.isVoidInitializer())
                 {
-                    ExpInitializer ie = vd._init.isExpInitializer();
+                    auto ie = vd._init.isExpInitializer();
                     assert(ie);
                     vto._init = new ExpInitializer(ie.loc, doInlineAs!Expression(ie.exp, ids));
                 }
@@ -1063,7 +1058,7 @@ public:
 
         override void visit(TupleExp e)
         {
-            TupleExp ce = cast(TupleExp)e.copy();
+            auto ce = cast(TupleExp)e.copy();
             ce.e0 = doInlineAs!Expression(e.e0, ids);
             ce.exps = arrayExpressionDoInline(e.exps);
             result = ce;
@@ -1071,7 +1066,7 @@ public:
 
         override void visit(ArrayLiteralExp e)
         {
-            ArrayLiteralExp ce = cast(ArrayLiteralExp)e.copy();
+            auto ce = cast(ArrayLiteralExp)e.copy();
             ce.basis = doInlineAs!Expression(e.basis, ids);
             ce.elements = arrayExpressionDoInline(e.elements);
             result = ce;
@@ -1081,7 +1076,7 @@ public:
 
         override void visit(AssocArrayLiteralExp e)
         {
-            AssocArrayLiteralExp ce = cast(AssocArrayLiteralExp)e.copy();
+            auto ce = cast(AssocArrayLiteralExp)e.copy();
             ce.keys = arrayExpressionDoInline(e.keys);
             ce.values = arrayExpressionDoInline(e.values);
             result = ce;
@@ -1096,7 +1091,7 @@ public:
                 result = e.inlinecopy;
                 return;
             }
-            StructLiteralExp ce = cast(StructLiteralExp)e.copy();
+            auto ce = cast(StructLiteralExp)e.copy();
             e.inlinecopy = ce;
             ce.elements = arrayExpressionDoInline(e.elements);
             e.inlinecopy = null;
@@ -1105,7 +1100,7 @@ public:
 
         override void visit(ArrayExp e)
         {
-            ArrayExp ce = cast(ArrayExp)e.copy();
+            auto ce = cast(ArrayExp)e.copy();
             ce.e1 = doInlineAs!Expression(e.e1, ids);
             ce.arguments = arrayExpressionDoInline(e.arguments);
             result = ce;
@@ -1113,7 +1108,7 @@ public:
 
         override void visit(CondExp e)
         {
-            CondExp ce = cast(CondExp)e.copy();
+            auto ce = cast(CondExp)e.copy();
             ce.econd = doInlineAs!Expression(e.econd, ids);
             ce.e1 = doInlineAs!Expression(e.e1, ids);
             ce.e2 = doInlineAs!Expression(e.e2, ids);
