@@ -9578,6 +9578,8 @@ public:
             OverExp eo = cast(OverExp)e1;
             FuncDeclaration f = null;
             Dsymbol s = null;
+            bool err = false;
+            size_t lastmatch = eo.vars.a.dim;
             for (size_t i = 0; i < eo.vars.a.dim; i++)
             {
                 s = eo.vars.a[i];
@@ -9593,10 +9595,16 @@ public:
                         /* Error if match in more than one overload set,
                          * even if one is a 'better' match than the other.
                          */
+                        if (eo.vars.bug12359)
+                            continue;
+                        err = true;
                         ScopeDsymbol.multiplyDefined(loc, f, f2);
                     }
                     else
+                    {
                         f = f2;
+                        lastmatch = i;
+                    }
                 }
             }
             if (!f)
@@ -9605,6 +9613,10 @@ public:
                  */
                 error("no overload matches for %s", s.toChars());
                 return new ErrorExp();
+            }
+            if (eo.vars.bug12359 && !err && lastmatch != eo.vars.a.dim - 1)
+            {
+                deprecation("implicit overload merging with selective/renamed import is now removed.");
             }
             if (ethis)
                 e1 = new DotVarExp(loc, ethis, f);

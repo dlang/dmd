@@ -1268,6 +1268,59 @@ public:
                 //printf("[%s] %s.ScopeDsymbol::search(s1 = %s '%s', flags=x%x)\n", loc.toChars(), toChars(), s1.kind(), s1.toChars(), flags);
                 return null;
             }
+
+          version(all)
+          {
+            if (!s1 || !importedScopes)
+                return s1;
+
+            auto s = s1;
+            if (!s.isFuncDeclaration())
+                return s1;
+
+            OverloadSet a = null;
+            for (size_t n = 0; n < importedScopes.dim; n++)
+            {
+                auto ss = (*importedScopes)[n].isImport();
+                if (!ss || ss.names.dim == 0)
+                    continue;
+
+                auto s2 = ss.search(loc, ident, flags & IgnorePrivateImports);
+                if (!s2)
+                    continue;
+                if (!s2.isFuncDeclaration())
+                    continue;
+
+                if (!a)
+                {
+                    a = new OverloadSet(s.ident);
+                    a.parent = this;
+                    a.bug12359 = true;
+                }
+
+                /* Don't add to a[] if s2 is alias of previous sym
+                 */
+                for (size_t j = 0; j < a.a.dim; j++)
+                {
+                    auto s3 = a.a[j];
+                    if (s2 == s3)
+                    {
+                        if (s3.isDeprecated() ||
+                            s2.prot().kind > s3.prot().kind && s2.prot().kind != PROTnone)
+                            a.a[j] = s2;
+                        goto LcontinueX;
+                    }
+                }
+                a.push(s2);
+            LcontinueX:
+                continue;
+            }
+            if (a)
+            {
+                a.push(s);
+                s1 = a;
+            }
+          }
             return s1;
         }
 
@@ -1902,6 +1955,7 @@ extern (C++) final class OverloadSet : Dsymbol
 {
 public:
     Dsymbols a;     // array of Dsymbols
+    bool bug12359;
 
     extern (D) this(Identifier ident, OverloadSet os = null)
     {
@@ -1911,6 +1965,7 @@ public:
             for (size_t i = 0; i < os.a.dim; i++)
                 a.push(os.a[i]);
         }
+        bug12359 = false;
     }
 
     void push(Dsymbol s)

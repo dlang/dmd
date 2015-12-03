@@ -5962,33 +5962,13 @@ public:
             imp.load(sc);
             if (!imp.mod)
                 break;
-            foreach (j, name; imp.names)
-            {
-                auto aliasName = imp.aliases[j];
-                if (!aliasName)
-                    aliasName = name;
-                auto tname = new TypeIdentifier(imp.loc, name);
-                auto ad = new AliasDeclaration(imp.loc, aliasName, tname);
-                ad._import = imp;
 
-                imp.aliasdecls.push(ad);
-            }
-
-            // FIXME: In statement scope, selective imports incorrectly insert
-            // the fully qualified names - it's not consistent with the behavior
-            // in DeclDefs scope.
-            // if (imp.ident)
-            {
-                imp.addPackage(sc, null);
-            }
+            // Bugzilla 12359: Module FQN is always visible
+            // even if this is an unrenamed selective import.
+            imp.addPackage(sc, null);
 
             imp.semantic(sc);
             //s.semantic2(sc);     // Bugzilla 14666
-
-            foreach (aliasdecl; imp.aliasdecls)
-            {
-                sc.insert(aliasdecl);
-            }
         }
         return this;
     }
