@@ -57,3 +57,14 @@ class C12413
         static assert(!__traits(compiles, imports.x));
     }
 }
+
+/***************************************************/
+// 12735
+
+void test12735()
+{
+    import imports.imp12735;
+
+    static assert(!__traits(compiles, bar()));   // should not be accessible
+    check12735();
+}
