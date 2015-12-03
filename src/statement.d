@@ -3801,7 +3801,7 @@ public:
         if (sw)
         {
             exp = exp.implicitCastTo(sc, sw.condition.type);
-            exp = exp.optimize(WANTvalue);
+            exp = exp.optimize(WANTvalue | WANTexpand);
             /* This is where variables are allowed as case expressions.
              */
             if (exp.op == TOKvar)
