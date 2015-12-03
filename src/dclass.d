@@ -1137,7 +1137,10 @@ public:
                         error("base %s is forward referenced", b.sym.ident.toChars());
                     else
                     {
-                        s = b.sym.search(loc, ident, flags);
+                        int flags2 = flags | IgnoreImportedFQN;
+                        if (this.getAccessModule() != b.sym.getAccessModule())
+                            flags2 |= IgnorePrivateImports;
+                        s = b.sym.search(loc, ident, flags2);
                         if (s == this) // happens if s is nested in this and derives from this
                             s = null;
                         else if (s)

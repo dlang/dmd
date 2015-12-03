@@ -802,8 +802,33 @@ public:
             mod.semantic();
         }
 
-        // Forward it to the module
-        return mod.search(loc, ident, flags);       // FIXME
+        Dsymbol s = null;
+
+        if (names.dim)
+        {
+            for (size_t i = 0; i < names.dim; i++)
+            {
+                auto name = names[i];
+                auto aliasName = aliases[i];
+                if ((aliasName ? aliasName : name) is ident)
+                {
+                    // Forward it to the module
+                    s = mod.search(loc, name, flags | IgnoreImportedFQN | IgnorePrivateSymbols);
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // Forward it to the module
+            s = mod.search(loc, ident, flags | IgnoreImportedFQN | IgnorePrivateSymbols);
+        }
+        if (!s && overnext && !(flags & IgnoreOverloadImports))
+        {
+            s = overnext.search(loc, ident, flags);
+        }
+
+        return s;
     }
 
     override bool overloadInsert(Dsymbol s)
