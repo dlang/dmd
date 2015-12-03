@@ -274,6 +274,7 @@ enum TOK : int
     TOKargTypes,
     TOKref,
     TOKmacro,
+
     TOKparameters,
     TOKtraits,
     TOKoverloadset,
@@ -292,9 +293,11 @@ enum TOK : int
     TOKgoesto,
     TOKvector,
     TOKpound,
+
     TOKinterval,
     TOKvoidexp,
     TOKcantexp,
+
     TOKMAX,
 }
 

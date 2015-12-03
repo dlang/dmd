@@ -69,6 +69,7 @@ __gshared PREC[TOKMAX] precedence =
     TOKerror : PREC_expr,
     TOKtypeof : PREC_primary,
     TOKmixin : PREC_primary,
+    TOKimport : PREC_primary,
     TOKdotvar : PREC_primary,
     TOKscope : PREC_primary,
     TOKidentifier : PREC_primary,

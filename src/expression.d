@@ -7658,7 +7658,7 @@ extern (C++) final class FileExp : UnaExp
 public:
     extern (D) this(Loc loc, Expression e)
     {
-        super(loc, TOKmixin, __traits(classInstanceSize, FileExp), e);
+        super(loc, TOKimport, __traits(classInstanceSize, FileExp), e);
     }
 
     override Expression semantic(Scope* sc)
