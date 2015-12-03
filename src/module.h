@@ -42,7 +42,7 @@ public:
     Package(Identifier *ident);
     const char *kind();
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
+    static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **ppkg, Package **pparent);
 
     Package *isPackage() { return this; }
 

@@ -128,7 +128,7 @@ public:
     {
         //printf("Import::load('%s') %p\n", toPrettyChars(), this);
         // See if existing module
-        DsymbolTable dst = Package.resolve(packages, null, &pkg);
+        auto dst = Package.resolve(null, packages, &pkg, null);
         version (none)
         {
             if (pkg && pkg.isModule())
