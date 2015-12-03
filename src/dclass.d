@@ -27,6 +27,7 @@ import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
+import ddmd.dimport;
 import ddmd.mtype;
 import ddmd.objc;
 import ddmd.root.outbuffer;
@@ -215,6 +216,9 @@ public:
     bool isabstract;    // true if abstract class
     int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
+
+    // array of public/protected import declarations
+    Dsymbols* publicImports;
 
     Objc_ClassDeclaration objc;
 
@@ -822,6 +826,27 @@ public:
             }
             else
                 makeNested();
+
+            // Pull public and protected imports from base classes
+            foreach (bc; *baseclasses)
+            {
+                auto cd = bc.sym;
+                if (!cd || !cd.publicImports)
+                    continue;
+
+                foreach (s; *cd.publicImports)
+                {
+                    auto imp = s.isImport();
+                    if (!imp)
+                        continue;
+
+                    //printf("\t[%s] imp = %s at %s\n", loc.toChars(), imp.toChars(), imp.loc.toChars());
+                    imp = imp.copy();
+                    imp.loc = loc;
+                    imp.overnext = null;
+                    imp.addPackage(sc, this);
+                }
+            }
         }
 
         // it might be determined already, by AggregateDeclaration.size().

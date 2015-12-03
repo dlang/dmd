@@ -51,6 +51,7 @@ public:
     void addAlias(Identifier *name, Identifier *alias);
     const char *kind();
     Prot prot();
+    Import *copy();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     void load(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);

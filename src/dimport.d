@@ -27,6 +27,7 @@ import ddmd.identifier;
 import ddmd.mars;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
+import ddmd.root.rmem;
 import ddmd.visitor;
 
 extern (C++) Package findPackage(DsymbolTable dst, Identifiers* packages, size_t dim)
@@ -133,6 +134,13 @@ public:
     override Prot prot()
     {
         return Prot(protection);
+    }
+
+    final Import copy()
+    {
+        auto imp = cast(Import)mem.xmalloc(__traits(classInstanceSize, Import));
+        memcpy(cast(void*)imp, cast(void*)this, __traits(classInstanceSize, Import));
+        return imp;
     }
 
     // copy only syntax trees
@@ -573,6 +581,45 @@ public:
         {
             sds.importScope(this, Prot(protection));
         }
+
+        /* Excepting unnamed selective imports, the full package name of public imports
+         * would be pulled to other *derived* scopes.
+         */
+        if (!names.dim || aliasId)
+        {
+            Dsymbols* publicImports = null;
+            if (auto m = sds.isModule())
+            {
+                if (protection == PROTpublic)
+                {
+                    if (!m.publicImports)
+                        m.publicImports = new Dsymbols();
+                    publicImports = m.publicImports;
+                }
+            }
+            else if (auto cd = sds.isClassDeclaration())
+            {
+                if (protection == PROTpublic || protection == PROTprotected)
+                {
+                    if (!cd.publicImports)
+                        cd.publicImports = new Dsymbols();
+                    publicImports = cd.publicImports;
+                }
+            }
+            if (publicImports)
+            {
+                for (size_t i = 0; ; i++)
+                {
+                    if (i == publicImports.dim)
+                    {
+                        publicImports.push(this);
+                        break;
+                    }
+                    if ((*publicImports)[i] == this)
+                        break;
+                }
+            }
+        }
     }
 
     override void semantic(Scope* sc)
@@ -600,6 +647,25 @@ public:
                 //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
                 sc._module.needmoduleinfo = 1;
             }
+
+            // Pull public imports from mod into the importing scope.
+            if (!names.dim && mod.publicImports)
+            {
+                foreach (s; *mod.publicImports)
+                {
+                    auto imp = s.isImport();
+                    if (!imp)
+                        continue;
+
+                    //printf("\t[%s] imp = %s at %s\n", loc.toChars(), imp.toChars(), imp.loc.toChars());
+                    imp = imp.copy();
+                    imp.loc = loc;
+                    imp.protection = protection;
+                    imp.overnext = null;
+                    imp.addPackage(sc, null);
+                }
+            }
+
             sc = sc.push(mod);
             /* BUG: Protection checks can't be enabled yet. The issue is
              * that Dsymbol::search errors before overload resolution.

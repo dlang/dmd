@@ -101,6 +101,7 @@ public:
     // i.e. a module that will be taken all the
     // way to an object file
     Module *importedFrom;
+    Dsymbols *publicImports;    // array of public import declarations
 
     Dsymbols *decldefs;         // top level declarations for this Module
 
