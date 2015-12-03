@@ -5956,22 +5956,36 @@ public:
     {
         foreach (i; 0 .. imports.dim)
         {
-            Import s = (*imports)[i].isImport();
-            assert(!s.aliasdecls.dim);
-            foreach (j, name; s.names)
+            auto imp = (*imports)[i].isImport();
+            assert(!imp.mod);
+
+            imp.load(sc);
+            if (!imp.mod)
+                break;
+            foreach (j, name; imp.names)
             {
-                Identifier _alias = s.aliases[j];
-                if (!_alias)
-                    _alias = name;
-                auto tname = new TypeIdentifier(s.loc, name);
-                auto ad = new AliasDeclaration(s.loc, _alias, tname);
-                ad._import = s;
-                s.aliasdecls.push(ad);
+                auto aliasName = imp.aliases[j];
+                if (!aliasName)
+                    aliasName = name;
+                auto tname = new TypeIdentifier(imp.loc, name);
+                auto ad = new AliasDeclaration(imp.loc, aliasName, tname);
+                ad._import = imp;
+
+                imp.aliasdecls.push(ad);
             }
-            s.semantic(sc);
-            //s->semantic2(sc);     // Bugzilla 14666
-            sc.insert(s);
-            foreach (aliasdecl; s.aliasdecls)
+
+            // FIXME: In statement scope, selective imports incorrectly insert
+            // the fully qualified names - it's not consistent with the behavior
+            // in DeclDefs scope.
+            // if (imp.ident)
+            {
+                imp.addPackage(sc, null);
+            }
+
+            imp.semantic(sc);
+            //s.semantic2(sc);     // Bugzilla 14666
+
+            foreach (aliasdecl; imp.aliasdecls)
             {
                 sc.insert(aliasdecl);
             }

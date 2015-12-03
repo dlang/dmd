@@ -44,6 +44,7 @@ public:
 
     Package(Identifier *ident);
     const char *kind();
+    Prot prot() { return Prot(PROTprivate); }   // local package tree is always private in each scope
 
     static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **ppkg, Package **pparent);
 
@@ -56,6 +57,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
+    Package *enclosingPkg();
 };
 
 class Module : public Package

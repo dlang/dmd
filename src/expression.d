@@ -3844,14 +3844,14 @@ public:
             //printf("'%s' is an overload set\n", o->toChars());
             return new OverExp(loc, o);
         }
-        if (Import imp = s.isImport())
+        if (auto imp = s.isImport())
         {
-            if (!imp.pkg)
+            if (!imp.mod)
             {
                 .error(loc, "forward reference of import %s", imp.toChars());
                 return new ErrorExp();
             }
-            auto ie = new ScopeExp(loc, imp.pkg);
+            auto ie = new ScopeExp(loc, imp.mod);
             return ie.semantic(sc);
         }
         if (Package pkg = s.isPackage())
@@ -8310,10 +8310,14 @@ public:
                         e = new DotExp(loc, eleft, e);
                     return e;
                 }
-                Import imp = s.isImport();
-                if (imp)
+                if (auto imp = s.isImport())
                 {
-                    ie = new ScopeExp(loc, imp.pkg);
+                    if (!imp.mod)
+                    {
+                        error("forward reference of import %s", imp.toChars());
+                        return new ErrorExp();
+                    }
+                    ie = new ScopeExp(loc, imp.mod);
                     return ie.semantic(sc);
                 }
                 // BUG: handle other cases like in IdentifierExp::semantic()

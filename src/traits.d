@@ -607,7 +607,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             if (auto fd = s.isFuncDeclaration()) // Bugzilla 8943
                 s = fd.toAliasFunc();
-            if (!s.isImport()) // Bugzilla 8922
+            if (s.isImport() || s.isPackage())
+            {
+                s = s.toParent();
+                if (s && !(s.isPackage() && !s.isModule()))
+                    s = null;
+            }
+            else
                 s = s.toParent();
         }
         if (!s || s.isImport())
