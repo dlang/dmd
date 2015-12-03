@@ -233,7 +233,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	cgcod.o cod5.o outbuf.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	divcoeff.o dwarf.o \
+	divcoeff.o dwarf.o dwarfeh.o \
 	ph2.o util2.o eh.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
@@ -282,7 +282,7 @@ BACK_SRC = \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
 	$C/md5.c $C/md5.h \
-	$C/ph2.c $C/util2.c \
+	$C/ph2.c $C/util2.c $C/dwarfeh.c \
 	$(TARGET_CH)
 
 TK_SRC = \
