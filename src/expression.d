@@ -346,7 +346,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         tthis = dte.e1.type;
         goto Lfd;
     }
-    else if (e1.op == TOKimport)
+    else if (e1.op == TOKscope)
     {
         s = (cast(ScopeExp)e1).sds;
         if (s.isTemplateDeclaration())
@@ -590,7 +590,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         td = (cast(DotTemplateExp)e1).td;
         goto Ltd;
     }
-    else if (e1.op == TOKimport)
+    else if (e1.op == TOKscope)
     {
         Dsymbol s = (cast(ScopeExp)e1).sds;
         td = s.isTemplateDeclaration();
@@ -5236,7 +5236,7 @@ public:
 
     extern (D) this(Loc loc, ScopeDsymbol sds)
     {
-        super(loc, TOKimport, __traits(classInstanceSize, ScopeExp));
+        super(loc, TOKscope, __traits(classInstanceSize, ScopeExp));
         //printf("ScopeExp::ScopeExp(sds = '%s')\n", sds.toChars());
         //static int count; if (++count == 38) *(char*)0=0;
         this.sds = sds;
@@ -7871,7 +7871,7 @@ public:
             Dsymbol ds;
             switch (e1.op)
             {
-            case TOKimport:
+            case TOKscope:
                 ds = (cast(ScopeExp)e1).sds;
                 goto L1;
             case TOKvar:
@@ -8003,7 +8003,7 @@ public:
             eright = e1;
         }
         Type t1b = e1.type.toBasetype();
-        if (eright.op == TOKimport) // also used for template alias's
+        if (eright.op == TOKscope) // also used for template alias's
         {
             ScopeExp ie = cast(ScopeExp)eright;
             /* Disable access to another module's private imports.
@@ -8458,7 +8458,7 @@ public:
         case TOKdottd:
             s = (cast(DotTemplateExp)e).td;
             break;
-        case TOKimport:
+        case TOKscope:
             s = (cast(ScopeExp)e).sds;
             break;
         case TOKdotvar:
@@ -8611,7 +8611,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        else if (e.op == TOKimport)
+        else if (e.op == TOKscope)
         {
             ScopeExp se = cast(ScopeExp)e;
             TemplateDeclaration td = se.sds.isTemplateDeclaration();
@@ -8655,7 +8655,7 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
-            if (de.e2.op == TOKimport)
+            if (de.e2.op == TOKscope)
             {
                 // This should *really* be moved to ScopeExp::semantic()
                 ScopeExp se = cast(ScopeExp)de.e2;
@@ -8895,7 +8895,7 @@ public:
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */
-        if (e1.op == TOKimport)
+        if (e1.op == TOKscope)
         {
             ScopeExp se = cast(ScopeExp)e1;
             TemplateInstance ti = se.sds.isTemplateInstance();
@@ -9032,7 +9032,7 @@ public:
                 if (v && ve.checkPurity(sc, v))
                     return new ErrorExp();
             }
-            if (e1.op == TOKimport)
+            if (e1.op == TOKscope)
             {
                 // Perhaps this should be moved to ScopeExp::semantic()
                 ScopeExp se = cast(ScopeExp)e1;
@@ -9053,7 +9053,7 @@ public:
                     tthis = de.e1.type;
                     e1 = de.e2;
                 }
-                if (de.e2.op == TOKimport)
+                if (de.e2.op == TOKscope)
                 {
                     // This should *really* be moved to ScopeExp::semantic()
                     ScopeExp se = cast(ScopeExp)de.e2;
@@ -9735,7 +9735,7 @@ public:
                 }
             }
         }
-        else if (e1.op == TOKimport)
+        else if (e1.op == TOKscope)
         {
             TemplateInstance ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
             if (ti)
@@ -10963,7 +10963,7 @@ public:
         }
         e1 = e1.semantic(sc);
         e2 = e2.semantic(sc);
-        if (e2.op == TOKimport)
+        if (e2.op == TOKscope)
         {
             ScopeExp se = cast(ScopeExp)e2;
             TemplateDeclaration td = se.sds.isTemplateDeclaration();
@@ -13961,7 +13961,7 @@ public:
             e2 = e2.toBoolean(sc);
             type = Type.tbool;
         }
-        if (e2.op == TOKtype || e2.op == TOKimport)
+        if (e2.op == TOKtype || e2.op == TOKscope)
         {
             error("%s is not an expression", e2.toChars());
             return new ErrorExp();
@@ -14029,7 +14029,7 @@ public:
             e2 = e2.toBoolean(sc);
             type = Type.tbool;
         }
-        if (e2.op == TOKtype || e2.op == TOKimport)
+        if (e2.op == TOKtype || e2.op == TOKscope)
         {
             error("%s is not an expression", e2.toChars());
             return new ErrorExp();

@@ -774,7 +774,7 @@ public:
         //printf("ExpInitializer::inferType() %s\n", toChars());
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
-        if (exp.op == TOKimport)
+        if (exp.op == TOKscope)
         {
             ScopeExp se = cast(ScopeExp)exp;
             TemplateInstance ti = se.sds.isTemplateInstance();

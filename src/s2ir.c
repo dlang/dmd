@@ -935,7 +935,7 @@ public:
         Blockx *blx = irs->blx;
 
         //printf("WithStatement::toIR()\n");
-        if (s->exp->op == TOKimport || s->exp->op == TOKtype)
+        if (s->exp->op == TOKscope || s->exp->op == TOKtype)
         {
         }
         else

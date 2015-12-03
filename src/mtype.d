@@ -2724,7 +2724,7 @@ public:
                 s = (cast(TemplateExp)e).td;
                 break;
 
-            case TOKimport:
+            case TOKscope:
                 s = (cast(ScopeExp)e).sds;
                 // TemplateDeclaration, TemplateInstance, Import, Package, Module
                 break;
@@ -7531,7 +7531,7 @@ public:
             error(loc, "argument %s to typeof is not an expression", exp.toChars());
             goto Lerr;
         }
-        if (exp.op == TOKimport)
+        if (exp.op == TOKscope)
         {
             ScopeDsymbol sds = (cast(ScopeExp)exp).sds;
             if (sds.isPackage())
@@ -7833,7 +7833,7 @@ public:
         if (e.op == TOKdotexp)
         {
             DotExp de = cast(DotExp)e;
-            if (de.e1.op == TOKimport)
+            if (de.e1.op == TOKscope)
             {
                 assert(0); // cannot find a case where this happens; leave
                 // assert in until we do
@@ -8543,7 +8543,7 @@ public:
         if (e.op == TOKdotexp)
         {
             DotExp de = cast(DotExp)e;
-            if (de.e1.op == TOKimport)
+            if (de.e1.op == TOKscope)
             {
                 ScopeExp se = cast(ScopeExp)de.e1;
                 s = se.sds.search(e.loc, ident);
