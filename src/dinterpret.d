@@ -564,7 +564,7 @@ public:
             printf("%s WithStatement::ctfeCompile\n", s.loc.toChars());
         }
         // If it is with(Enum) {...}, just execute the body.
-        if (s.exp.op == TOKimport || s.exp.op == TOKtype)
+        if (s.exp.op == TOKscope || s.exp.op == TOKtype)
         {
         }
         else
@@ -1861,7 +1861,7 @@ public:
             return;
         }
         // If it is with(Enum) {...}, just execute the body.
-        if (s.exp.op == TOKimport || s.exp.op == TOKtype)
+        if (s.exp.op == TOKscope || s.exp.op == TOKtype)
         {
             result = interpret(s._body, istate);
             return;

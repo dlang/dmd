@@ -548,7 +548,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 case TOKoverloadset:
                     s = (cast(OverExp)e).vars;
                     break;
-                case TOKimport:
+                case TOKscope:
                     s = (cast(ScopeExp)e).sds;
                     break;
                 case TOKvar:

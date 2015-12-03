@@ -271,7 +271,7 @@ extern (C++) void discardValue(Expression e)
             }
         }
         return;
-    case TOKimport:
+    case TOKscope:
         e.error("%s has no effect", e.toChars());
         return;
     case TOKandand:

@@ -1594,7 +1594,7 @@ public:
         Expression eold = null;
         for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
         {
-            if (e.op == TOKimport)
+            if (e.op == TOKscope)
             {
                 s = (cast(ScopeExp)e).sds;
             }

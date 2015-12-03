@@ -2193,7 +2193,7 @@ public:
                         ds = (cast(VarExp)e).var;
                     else if (e.op == TOKtemplate)
                         ds = (cast(TemplateExp)e).td;
-                    else if (e.op == TOKimport)
+                    else if (e.op == TOKscope)
                         ds = (cast(ScopeExp)e).sds;
                     else if (e.op == TOKfunction)
                     {
@@ -4840,7 +4840,7 @@ public:
         exp = checkGC(sc, exp);
         if (exp.op == TOKerror)
             return new ErrorStatement();
-        if (exp.op == TOKimport)
+        if (exp.op == TOKscope)
         {
             sym = new WithScopeSymbol(this);
             sym.parent = sc.scopesym;

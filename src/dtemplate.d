@@ -1890,7 +1890,7 @@ public:
         VarDeclaration v = null;
         if (ea && ea.op == TOKtype)
             ta = ea.type;
-        else if (ea && ea.op == TOKimport)
+        else if (ea && ea.op == TOKscope)
             sa = (cast(ScopeExp)ea).sds;
         else if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
             sa = (cast(ThisExp)ea).var;
@@ -5175,7 +5175,7 @@ public:
         Expression ea = isExpression(oarg);
         if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
             sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOKimport)
+        else if (ea && ea.op == TOKscope)
             sa = (cast(ScopeExp)ea).sds;
         if (sa)
         {
@@ -6823,7 +6823,7 @@ public:
                     ta = ea.type;
                     goto Ltype;
                 }
-                if (ea.op == TOKimport)
+                if (ea.op == TOKscope)
                 {
                     sa = (cast(ScopeExp)ea).sds;
                     goto Ldsym;
@@ -7716,7 +7716,7 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
 extern (C++) bool definitelyValueParameter(Expression e)
 {
     // None of these can be value parameters
-    if (e.op == TOKtuple || e.op == TOKimport ||
+    if (e.op == TOKtuple || e.op == TOKscope ||
         e.op == TOKtype || e.op == TOKdottype ||
         e.op == TOKtemplate || e.op == TOKdottd ||
         e.op == TOKfunction || e.op == TOKerror ||
