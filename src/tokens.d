@@ -51,8 +51,8 @@ enum TOK : int
     TOKsymoff,
     TOKvar,
     TOKdotvar,
+    TOKdotid,
     TOKdotti,
-    TOKdotexp,
     TOKdottype,
     TOKslice,
     TOKarraylength,
@@ -329,8 +329,8 @@ alias TOKstar = TOK.TOKstar;
 alias TOKsymoff = TOK.TOKsymoff;
 alias TOKvar = TOK.TOKvar;
 alias TOKdotvar = TOK.TOKdotvar;
+alias TOKdotid = TOK.TOKdotid;
 alias TOKdotti = TOK.TOKdotti;
-alias TOKdotexp = TOK.TOKdotexp;
 alias TOKdottype = TOK.TOKdottype;
 alias TOKslice = TOK.TOKslice;
 alias TOKarraylength = TOK.TOKarraylength;
@@ -677,9 +677,11 @@ extern (C++) struct Token
         Token.tochars[TOKpowass] = "^^=";
         Token.tochars[TOKgoesto] = "=>";
         Token.tochars[TOKpound] = "#";
+
         // For debugging
         Token.tochars[TOKerror] = "error";
-        Token.tochars[TOKdotexp] = "dotexp";
+        Token.tochars[TOKdotid] = "dotid";
+        Token.tochars[TOKdottd] = "dottd";
         Token.tochars[TOKdotti] = "dotti";
         Token.tochars[TOKdotvar] = "dotvar";
         Token.tochars[TOKdottype] = "dottype";
@@ -692,7 +694,6 @@ extern (C++) struct Token
         Token.tochars[TOKdsymbol] = "symbol";
         Token.tochars[TOKtuple] = "tuple";
         Token.tochars[TOKdeclaration] = "declaration";
-        Token.tochars[TOKdottd] = "dottd";
         Token.tochars[TOKon_scope_exit] = "scope(exit)";
         Token.tochars[TOKon_scope_success] = "scope(success)";
         Token.tochars[TOKon_scope_failure] = "scope(failure)";
