@@ -2540,7 +2540,7 @@ public:
         buf.writeByte(')');
     }
 
-    override void visit(FileExp e)
+    override void visit(ImportExp e)
     {
         buf.writestring("import(");
         expToBuffer(e.e1, PREC_assign);
