@@ -708,7 +708,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
     Loc loc = ce.loc;
     Expression eleft;
     Expression e;
-    if (ce.e1.op == TOKdot)
+    if (ce.e1.op == TOKdotid)
     {
         DotIdExp die = cast(DotIdExp)ce.e1;
         Identifier ident = die.ident;
@@ -804,7 +804,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
     Loc loc = e1.loc;
     Expression eleft;
     Expression e;
-    if (e1.op == TOKdot)
+    if (e1.op == TOKdotid)
     {
         DotIdExp die = cast(DotIdExp)e1;
         eleft = die.e1;
@@ -7821,7 +7821,7 @@ public:
 
     extern (D) this(Loc loc, Expression e, Identifier ident)
     {
-        super(loc, TOKdot, __traits(classInstanceSize, DotIdExp), e);
+        super(loc, TOKdotid, __traits(classInstanceSize, DotIdExp), e);
         this.ident = ident;
     }
 
@@ -8986,7 +8986,7 @@ public:
         }
         else
         {
-            if (e1.op == TOKdot)
+            if (e1.op == TOKdotid)
             {
                 DotIdExp die = cast(DotIdExp)e1;
                 e1 = die.semantic(sc);
@@ -11737,7 +11737,7 @@ public:
                     return resolveUFCSProperties(sc, e1x, e2);
                 e1x = e;
             }
-            else if (e1x.op == TOKdot)
+            else if (e1x.op == TOKdotid)
             {
                 DotIdExp die = cast(DotIdExp)e1x;
                 Expression e = die.semanticY(sc, 1);

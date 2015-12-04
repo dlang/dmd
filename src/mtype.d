@@ -2744,7 +2744,7 @@ public:
             //case TOKdottd:
             //case TOKdotti:
             //case TOKdottype:
-            //case TOKdot:
+            //case TOKdotid:
 
             default:
                 *pe = e;
