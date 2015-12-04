@@ -253,7 +253,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     Dsymbol s;
     Objects* tiargs;
     Type tthis;
-    if (e1.op == TOKdotexp)
+    if (e1.op == TOKdot)
     {
         DotExp de = cast(DotExp)e1;
         if (de.e2.op == TOKoverloadset)
@@ -474,7 +474,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 }
             }
         }
-        else if (e1.op == TOKdotexp)
+        else if (e1.op == TOKdot)
         {
             e1.error("expression has no value");
             return new ErrorExp();
@@ -546,7 +546,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     OverloadSet os;
     FuncDeclaration fd;
     TemplateDeclaration td;
-    if (e1.op == TOKdotexp)
+    if (e1.op == TOKdot)
     {
         DotExp de = cast(DotExp)e1;
         if (de.e2.op == TOKoverloadset)
@@ -7913,7 +7913,7 @@ public:
             // bypass checkPurity
             return e1.type.dotExp(sc, e1, ident, 0);
         }
-        if (e1.op == TOKdotexp)
+        if (e1.op == TOKdot)
         {
         }
         else
@@ -7991,7 +7991,7 @@ public:
             return e;
         Expression eleft;
         Expression eright;
-        if (e1.op == TOKdotexp)
+        if (e1.op == TOKdot)
         {
             DotExp de = cast(DotExp)e1;
             eleft = de.e1;
@@ -8447,7 +8447,7 @@ public:
             return true;
         Expression e = new DotIdExp(loc, e1, ti.name);
         e = e.semantic(sc);
-        if (e.op == TOKdotexp)
+        if (e.op == TOKdot)
             e = (cast(DotExp)e).e2;
         Dsymbol s = null;
         switch (e.op)
@@ -8625,7 +8625,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        else if (e.op == TOKdotexp)
+        else if (e.op == TOKdot)
         {
             DotExp de = cast(DotExp)e;
             e1 = de.e1; // pull semantic() result
@@ -9044,7 +9044,7 @@ public:
                 e1 = new VarExp(se.loc, se.var, 1);
                 e1 = e1.semantic(sc);
             }
-            else if (e1.op == TOKdotexp)
+            else if (e1.op == TOKdot)
             {
                 DotExp de = cast(DotExp)e1;
                 if (de.e2.op == TOKoverloadset)
@@ -10950,7 +10950,7 @@ extern (C++) final class DotExp : BinExp
 public:
     extern (D) this(Loc loc, Expression e1, Expression e2)
     {
-        super(loc, TOKdotexp, __traits(classInstanceSize, DotExp), e1, e2);
+        super(loc, TOKdot, __traits(classInstanceSize, DotExp), e1, e2);
     }
 
     override Expression semantic(Scope* sc)

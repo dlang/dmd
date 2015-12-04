@@ -7830,7 +7830,7 @@ public:
             sc2.pop();
             return e;
         }
-        if (e.op == TOKdotexp)
+        if (e.op == TOKdot)
         {
             DotExp de = cast(DotExp)e;
             if (de.e1.op == TOKscope)
@@ -8540,7 +8540,7 @@ public:
         {
             printf("TypeClass::dotExp(e='%s', ident='%s')\n", e.toChars(), ident.toChars());
         }
-        if (e.op == TOKdotexp)
+        if (e.op == TOKdot)
         {
             DotExp de = cast(DotExp)e;
             if (de.e1.op == TOKscope)

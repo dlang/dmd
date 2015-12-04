@@ -111,7 +111,7 @@ __gshared PREC[TOKMAX] precedence =
     TOKdotti : PREC_primary,
     TOKdotid : PREC_primary,
     TOKdottd : PREC_primary,
-    TOKdotexp : PREC_primary,
+    TOKdot : PREC_primary,
     TOKdottype : PREC_primary,
     TOKplusplus : PREC_primary,
     TOKminusminus : PREC_primary,
