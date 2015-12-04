@@ -51,6 +51,7 @@ enum TOK : int
     TOKsymoff,
     TOKvar,
     TOKdotvar,
+    TOKdotid,
     TOKdotti,
     TOKdotexp,
     TOKdottype,
@@ -78,7 +79,7 @@ enum TOK : int
     TOKdelegateptr,
     TOKdelegatefuncptr,
 
-    // 54
+    // 55
     // Operators
     TOKlt,
     TOKgt,
@@ -92,7 +93,7 @@ enum TOK : int
     TOKis,
     TOKtobool,
 
-    // 65
+    // 66
     // NCEG floating point compares
     // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
     TOKunord,
@@ -104,7 +105,7 @@ enum TOK : int
     TOKug,
     TOKue,
 
-    // 73
+    // 74
     TOKshl,
     TOKshr,
     TOKshlass,
@@ -145,7 +146,7 @@ enum TOK : int
     TOKpreplusplus,
     TOKpreminusminus,
 
-    // 112
+    // 113
     // Numeric literals
     TOKint32v,
     TOKuns32v,
@@ -201,7 +202,7 @@ enum TOK : int
     TOKdchar,
     TOKbool,
 
-    // 159
+    // 160
     // Aggregates
     TOKstruct,
     TOKclass,
@@ -329,6 +330,7 @@ alias TOKstar = TOK.TOKstar;
 alias TOKsymoff = TOK.TOKsymoff;
 alias TOKvar = TOK.TOKvar;
 alias TOKdotvar = TOK.TOKdotvar;
+alias TOKdotid = TOK.TOKdotid;
 alias TOKdotti = TOK.TOKdotti;
 alias TOKdotexp = TOK.TOKdotexp;
 alias TOKdottype = TOK.TOKdottype;
@@ -677,11 +679,14 @@ extern (C++) struct Token
         Token.tochars[TOKpowass] = "^^=";
         Token.tochars[TOKgoesto] = "=>";
         Token.tochars[TOKpound] = "#";
+
         // For debugging
         Token.tochars[TOKerror] = "error";
-        Token.tochars[TOKdotexp] = "dotexp";
+        Token.tochars[TOKdotid] = "dotid";
+        Token.tochars[TOKdottd] = "dottd";
         Token.tochars[TOKdotti] = "dotti";
         Token.tochars[TOKdotvar] = "dotvar";
+        Token.tochars[TOKdotexp] = "dotexp";
         Token.tochars[TOKdottype] = "dottype";
         Token.tochars[TOKsymoff] = "symoff";
         Token.tochars[TOKarraylength] = "arraylength";
@@ -692,7 +697,6 @@ extern (C++) struct Token
         Token.tochars[TOKdsymbol] = "symbol";
         Token.tochars[TOKtuple] = "tuple";
         Token.tochars[TOKdeclaration] = "declaration";
-        Token.tochars[TOKdottd] = "dottd";
         Token.tochars[TOKon_scope_exit] = "scope(exit)";
         Token.tochars[TOKon_scope_success] = "scope(success)";
         Token.tochars[TOKon_scope_failure] = "scope(failure)";
