@@ -7653,19 +7653,19 @@ public:
 
 /***********************************************************
  */
-extern (C++) final class FileExp : UnaExp
+extern (C++) final class ImportExp : UnaExp
 {
 public:
     extern (D) this(Loc loc, Expression e)
     {
-        super(loc, TOKimport, __traits(classInstanceSize, FileExp), e);
+        super(loc, TOKimport, __traits(classInstanceSize, ImportExp), e);
     }
 
     override Expression semantic(Scope* sc)
     {
         static if (LOGSEMANTIC)
         {
-            printf("FileExp::semantic('%s')\n", toChars());
+            printf("ImportExp::semantic('%s')\n", toChars());
         }
         const(char)* name;
         char* namez;

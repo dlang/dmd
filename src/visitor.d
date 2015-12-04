@@ -933,7 +933,7 @@ public:
         visit(cast(UnaExp)e);
     }
 
-    void visit(FileExp e)
+    void visit(ImportExp e)
     {
         visit(cast(UnaExp)e);
     }
