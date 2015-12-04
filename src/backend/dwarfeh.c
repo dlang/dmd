@@ -36,8 +36,10 @@ int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset);
 
 unsigned long uLEB128(unsigned char **p);
 long sLEB128(unsigned char **p);
-unsigned uLEB128size(int value);
+unsigned uLEB128size(unsigned value);
 unsigned sLEB128size(int value);
+
+void unittest_dwarfeh();
 
 struct DwEhTableEntry
 {
@@ -88,6 +90,9 @@ static DwEhTable dwehtable;
 
 symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
 {
+#ifdef DEBUG
+    unittest_dwarfeh();
+#endif
     assert(config.ehmethod == EH_DWARF);
 
     /* LPstart = encoding of LPbase
@@ -302,14 +307,15 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
  * Params:
  *      atbuf = Action Table
  *      ttindex = Types Table index (1..)
- *      offset = offset of next action, 0 for none
+ *      offset = offset of next action, -1 for none
  * Returns:
  *      offset of inserted action
  */
 int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
 {
+    //printf("actionTableInsert(%d, %d)\n", ttindex, nextoffset);
     unsigned char *p;
-    for (p = atbuf->buf; p  < atbuf->p; )
+    for (p = atbuf->buf; p < atbuf->p; )
     {
         int offset = p - atbuf->buf;
         long TypeFilter = sLEB128(&p);
@@ -323,10 +329,39 @@ int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
     assert(p == atbuf->p);
     int offset = atbuf->size();
     atbuf->writesLEB128(ttindex);
-    int nrpoffset = atbuf->size();
-    atbuf->writesLEB128(nextoffset - nrpoffset);
+    if (nextoffset == -1)
+        nextoffset = 0;
+    else
+        nextoffset -= atbuf->size();
+    atbuf->writesLEB128(nextoffset);
     return offset;
 }
+
+#ifdef DEBUG
+void unittest_actionTableInsert()
+{
+    Outbuffer atbuf;
+    static int tt1[] = { 1,2,3 };
+    static int tt2[] = { 2 };
+
+    int offset = -1;
+    for (size_t i = sizeof(tt1)/sizeof(tt1[0]); i--; )
+    {
+        offset = actionTableInsert(&atbuf, tt1[i], offset);
+    }
+    offset = -1;
+    for (size_t i = sizeof(tt2)/sizeof(tt2[0]); i--; )
+    {
+        offset = actionTableInsert(&atbuf, tt2[i], offset);
+    }
+
+    static unsigned char result[] = { 3,0,2,0x7D,1,0x7D,2,0 };
+    //for (int i = 0; i < atbuf.size(); ++i) printf(" %02x\n", atbuf.buf[i]);
+    assert(sizeof(result) == atbuf.size());
+    int r = memcmp(result, atbuf.buf, atbuf.size());
+    assert(r == 0);
+}
+#endif
 
 /******************************
  * Decode Unsigned LEB128.
@@ -430,3 +465,51 @@ unsigned uLEB128size(unsigned value)
     return size;
 }
 
+#ifdef DEBUG
+void unittest_LEB128()
+{
+    Outbuffer buf;
+
+    static int values[] =
+    {
+        0,1,2,3,300,4000,50000,600000,
+        -0,-1,-2,-3,-300,-4000,-50000,-600000,
+    };
+
+    for (size_t i = 0; i < sizeof(values)/sizeof(values[0]); ++i)
+    {
+        const int value = values[i];
+
+        buf.reset();
+        buf.writeuLEB128(value);
+        assert(buf.size() == uLEB128size(value));
+        unsigned char *p = buf.buf;
+        int result = uLEB128(&p);
+        assert(p == buf.p);
+        assert(result == value);
+
+        buf.reset();
+        buf.writesLEB128(value);
+        assert(buf.size() == sLEB128size(value));
+        p = buf.buf;
+        result = sLEB128(&p);
+        assert(p == buf.p);
+        assert(result == value);
+    }
+}
+#endif
+
+#ifdef DEBUG
+
+void unittest_dwarfeh()
+{
+    static bool run = false;
+    if (run)
+        return;
+    run = true;
+
+    unittest_LEB128();
+    unittest_actionTableInsert();
+}
+
+#endif
