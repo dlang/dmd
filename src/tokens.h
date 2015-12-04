@@ -56,7 +56,7 @@ enum TOK
         TOKnew,         TOKdelete,
         TOKstar,        TOKsymoff,
         TOKvar,         TOKdotvar,
-        TOKdotid,       TOKdotti,       TOKdotexp,
+        TOKdotid,       TOKdotti,
         TOKdottype,     TOKslice,
         TOKarraylength, TOKversion,
         TOKmodule,      TOKdollar,
@@ -73,7 +73,7 @@ enum TOK
         TOKdelegateptr,
         TOKdelegatefuncptr,
 
-// 55
+// 54
         // Operators
         TOKlt,          TOKgt,
         TOKle,          TOKge,
@@ -82,12 +82,12 @@ enum TOK
         TOKindex,       TOKis,
         TOKtobool,
 
-// 66
+// 65
         // NCEG floating point compares
         // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
         TOKunord,TOKlg,TOKleg,TOKule,TOKul,TOKuge,TOKug,TOKue,
 
-// 74
+// 73
         TOKshl,         TOKshr,
         TOKshlass,      TOKshrass,
         TOKushr,        TOKushrass,
@@ -103,7 +103,7 @@ enum TOK
         TOKquestion,    TOKandand,      TOKoror,
         TOKpreplusplus, TOKpreminusminus,
 
-// 113
+// 112
         // Numeric literals
         TOKint32v, TOKuns32v,
         TOKint64v, TOKuns64v,
@@ -132,7 +132,7 @@ enum TOK
         TOKcomplex32, TOKcomplex64, TOKcomplex80,
         TOKchar, TOKwchar, TOKdchar, TOKbool,
 
-// 160
+// 159
         // Aggregates
         TOKstruct, TOKclass, TOKinterface, TOKunion, TOKenum, TOKimport,
         TOKtypedef, TOKalias, TOKoverride, TOKdelegate, TOKfunction,

@@ -53,7 +53,6 @@ enum TOK : int
     TOKdotvar,
     TOKdotid,
     TOKdotti,
-    TOKdotexp,
     TOKdottype,
     TOKslice,
     TOKarraylength,
@@ -79,7 +78,7 @@ enum TOK : int
     TOKdelegateptr,
     TOKdelegatefuncptr,
 
-    // 55
+    // 54
     // Operators
     TOKlt,
     TOKgt,
@@ -93,7 +92,7 @@ enum TOK : int
     TOKis,
     TOKtobool,
 
-    // 66
+    // 65
     // NCEG floating point compares
     // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
     TOKunord,
@@ -105,7 +104,7 @@ enum TOK : int
     TOKug,
     TOKue,
 
-    // 74
+    // 73
     TOKshl,
     TOKshr,
     TOKshlass,
@@ -146,7 +145,7 @@ enum TOK : int
     TOKpreplusplus,
     TOKpreminusminus,
 
-    // 113
+    // 112
     // Numeric literals
     TOKint32v,
     TOKuns32v,
@@ -202,7 +201,7 @@ enum TOK : int
     TOKdchar,
     TOKbool,
 
-    // 160
+    // 159
     // Aggregates
     TOKstruct,
     TOKclass,
@@ -332,7 +331,6 @@ alias TOKvar = TOK.TOKvar;
 alias TOKdotvar = TOK.TOKdotvar;
 alias TOKdotid = TOK.TOKdotid;
 alias TOKdotti = TOK.TOKdotti;
-alias TOKdotexp = TOK.TOKdotexp;
 alias TOKdottype = TOK.TOKdottype;
 alias TOKslice = TOK.TOKslice;
 alias TOKarraylength = TOK.TOKarraylength;
@@ -686,7 +684,6 @@ extern (C++) struct Token
         Token.tochars[TOKdottd] = "dottd";
         Token.tochars[TOKdotti] = "dotti";
         Token.tochars[TOKdotvar] = "dotvar";
-        Token.tochars[TOKdotexp] = "dotexp";
         Token.tochars[TOKdottype] = "dottype";
         Token.tochars[TOKsymoff] = "symoff";
         Token.tochars[TOKarraylength] = "arraylength";
