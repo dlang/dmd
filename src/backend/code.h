@@ -164,8 +164,8 @@ extern unsigned usednteh;
 #define NTEHcleanup     8       // destructors need to be called
 #define NTEHtry         0x10    // had C++ try statement
 #define NTEHcpp         (NTEHexcspec | NTEHcleanup | NTEHtry)
-#define EHcleanup       0x20
-#define EHtry           0x40
+#define EHcleanup       0x20    // has destructors in the 'code' instructions
+#define EHtry           0x40    // has BCtry or BC_try blocks
 #define NTEHjmonitor    0x80    // uses Mars monitor
 #define NTEHpassthru    0x100
 

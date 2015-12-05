@@ -30,8 +30,6 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0);
-
 int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset);
 
 unsigned long uLEB128(unsigned char **p);
@@ -72,7 +70,7 @@ struct DwEhTable
             ptr = (DwEhTableEntry *)::realloc(ptr, capacity * sizeof(DwEhTableEntry));
             assert(ptr);
         }
-        memset(index(dim), 0, sizeof(DwEhTable));
+        memset(ptr + dim, 0, sizeof(DwEhTable));
         return dim++;
     }
 };
@@ -86,14 +84,15 @@ static DwEhTable dwehtable;
  *      seg = .gcc_except_table segment
  *      et = buffer to insert table into
  *      scancode = true if there are destructors in the code (i.e. usednteh & EHcleanup)
+ *      startoffset = size of function prolog
+ *      retoffset = offset from start of function to epilog
  */
 
-symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
+void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned startoffset, unsigned retoffset)
 {
 #ifdef DEBUG
     unittest_dwarfeh();
 #endif
-    assert(config.ehmethod == EH_DWARF);
 
     /* LPstart = encoding of LPbase
      * LPbase = landing pad base (normally omitted)
@@ -112,8 +111,10 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
      * Type Table
      */
 
+    et->reserve(100);
     block *startblock = sfunc->Sfunc->Fstartblock;
-    //printf("genDwarfEh: func = %s, offset = x%x, startblock->Boffset = x%x\n", sfunc->Sident, sfunc->Soffset, startblock->Boffset);
+    //printf("genDwarfEh: func = %s, offset = x%x, startblock->Boffset = x%x, scancode = %d\n",
+    //  sfunc->Sident, (int)sfunc->Soffset, (int)startblock->Boffset, scancode);
 
     unsigned startsize = et->size();
     assert((startsize & 3) == 0);       // should be aligned
@@ -126,9 +127,18 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
      */
     int index = -1;
     block *bprev = NULL;
+    // The first entry encompasses the entire function
+    {
+        unsigned i = deh->push();
+        DwEhTableEntry *d = deh->index(i);
+        d->start = startoffset;
+        d->end = retoffset;
+        d->lpad = 0;                    // no cleanup, no catches
+        index = i;
+    }
     for (block *b = startblock; b; b = b->Bnext)
     {
-        if (index >= 0 && b->Btry == bprev)
+        if (index > 0 && b->Btry == bprev)
         {
             DwEhTableEntry *d = deh->index(index);
             d->end = b->Boffset;
@@ -150,7 +160,7 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
                 unsigned *pat = bf->BS.BIJCATCH.actionTable;
                 unsigned length = pat[0];
                 assert(length);
-                unsigned offset = 0;
+                unsigned offset = -1;
                 for (unsigned u = length; u; --u)
                 {
                     /* Buy doing depth-first insertion into the Action Table,
@@ -158,7 +168,7 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
                      */
                     offset = actionTableInsert(&atbuf, pat[u], offset);
                 }
-                d->lpad = offset + 1;
+                d->action = offset + 1;
             }
             d->prev = index;
             index = i;
@@ -194,6 +204,7 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
             assert(n == 0);
         }
     }
+    //printf("deh->dim = %d\n", (int)deh->dim);
 
     /* Build Call Site Table
      * Be sure to not generate empty entries,
@@ -202,18 +213,21 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
      * presumption that there may not
      * be overlapping entries in the Call Site Table.
      */
-    unsigned end = 0;
+    assert(deh->dim);
+    unsigned end = deh->index(0)->start;
     for (unsigned i = 0; i < deh->dim; ++i)
     {
         unsigned j = i;
         do
         {
             DwEhTableEntry *d = deh->index(j);
+            //printf(" [%d] start=%x end=%x lpad=%x action=%x bcatch=%p prev=%d\n",
+            //  j, d->start, d->end, d->lpad, d->action, d->bcatch, d->prev);
             if (d->start <= end && end < d->end)
             {
                 unsigned start = end;
                 unsigned dend = d->end;
-                if (j + 1 < deh->dim)
+                if (i + 1 < deh->dim)
                 {
                     DwEhTableEntry *dnext = deh->index(i + 1);
                     if (dnext->start < dend)
@@ -229,6 +243,7 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
                     cstbuf.writeuLEB128(LandingPad);
                     unsigned ActionTable = d->action;
                     cstbuf.writeuLEB128(ActionTable);
+                    //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
                 }
 
                 end = dend;
@@ -295,7 +310,8 @@ symbol *genDwarfEh(Symbol *sfunc, int seg, Outbuffer *et, bool scancode)
     for (int i = sfunc->Sfunc->typesTableDim; i--; )
     {
         Symbol *s = typesTable[i];
-        dwarf_addrel(seg, et->size(), s->Sseg, s->Soffset);
+        ElfObj::reftoident(seg, et->size(), s, 0, CFoff); //dwarf_addrel(seg, et->size(), s->Sseg, s->Soffset);
+        //et->write32(s->Soffset);
     }
     assert(TToffset == et->size() - startsize);
 }

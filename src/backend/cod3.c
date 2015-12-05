@@ -2997,7 +2997,8 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
                                     // by nteh_prolog()
         }
 #endif
-        if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+        if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+            config.ehmethod == EH_DWARF)
         {   int off = 2 * REGSIZE;
             dwarf_CFA_set_loc(1);           // address after PUSH EBP
             dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
@@ -3169,7 +3170,8 @@ code* prolog_saveregs(code *c, regm_t topush)
                 }
                 if (I64)
                     code_orrex(c, REX_W);
-                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+                    config.ehmethod == EH_DWARF)
                 {   // Emit debug_frame data giving location of saved register
                     pinholeopt(c, NULL);
                     dwarf_CFA_set_loc(calcblksize(c));  // address after save
@@ -3199,7 +3201,8 @@ code* prolog_saveregs(code *c, regm_t topush)
                 c = genpush(c, reg);
                 EBPtoESP += REGSIZE;
                 spoff += REGSIZE;
-                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+                    config.ehmethod == EH_DWARF)
                 {   // Emit debug_frame data giving location of saved register
                     // relative to 0[EBP]
                     pinholeopt(c, NULL);

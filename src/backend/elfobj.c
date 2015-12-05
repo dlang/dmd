@@ -853,8 +853,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     elf_getsegment2(SHN_COM, STI_COM, 0);
     assert(SegData[COMD]->SDseg == COMD);
 
-    if (config.fulltypes)
-        dwarf_initfile(filename);
+    dwarf_initfile(filename);
     return obj;
 }
 
@@ -2124,8 +2123,7 @@ void Obj::func_start(Symbol *sfunc)
     Obj::pubdef(cseg, sfunc, Coffset);
     sfunc->Soffset = Coffset;
 
-    if (config.fulltypes)
-        dwarf_func_start(sfunc);
+    dwarf_func_start(sfunc);
 }
 
 /*******************************
@@ -2142,8 +2140,7 @@ void Obj::func_term(Symbol *sfunc)
         SymbolTable64[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
     else
         SymbolTable[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
-    if (config.fulltypes)
-        dwarf_func_term(sfunc);
+    dwarf_func_term(sfunc);
 }
 
 /********************************
@@ -2947,6 +2944,8 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     else if (segtyp == DATA)
                     {                   // relocation from within DATA seg
                         relinfo = I64 ? R_X86_64_32 : R_386_32;
+                        if (I64 && flags & CFpc32)
+                            relinfo = R_X86_64_PC32;
                     }
                     else
                     {                   // relocation from within CODE seg
