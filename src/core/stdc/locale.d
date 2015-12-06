@@ -14,6 +14,15 @@
 
 module core.stdc.locale;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 extern (C):
 @trusted: // Only setlocale operates on C strings.
 nothrow:
@@ -92,7 +101,7 @@ else version(Windows)
     ///
     enum LC_TIME           = 5;
 }
-else version(OSX)
+else version(Darwin)
 {
     ///
     enum LC_ALL            = 0;

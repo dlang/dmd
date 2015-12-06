@@ -17,6 +17,15 @@ module core.sys.posix.termios;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for pid_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 
@@ -241,7 +250,7 @@ version( CRuntime_Glibc )
     int     tcsendbreak(int, int);
     int     tcsetattr(int, int, in termios*);
 }
-else version( OSX )
+else version( Darwin )
 {
     alias ubyte cc_t;
     alias c_ulong  speed_t;
@@ -532,7 +541,7 @@ version( CRuntime_Glibc )
     pid_t   tcgetsid(int);
 }
 
-else version (OSX)
+else version (Darwin)
 {
     enum IXANY      = 0x00000800;
 

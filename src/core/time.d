@@ -94,12 +94,21 @@ import core.sys.posix.time;
 import core.sys.posix.sys.time;
 }
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 //This probably should be moved somewhere else in druntime which
-//is OSX-specific.
-version(OSX)
+//is Darwin-specific.
+version(Darwin)
 {
 
-public import core.sys.osx.mach.kern_return;
+public import core.sys.darwin.mach.kern_return;
 
 extern(C) nothrow @nogc
 {
@@ -277,7 +286,7 @@ else version(Windows) enum ClockType
     precise = 3,
     second = 6,
 }
-else version(OSX) enum ClockType
+else version(Darwin) enum ClockType
 {
     normal = 0,
     coarse = 2,
@@ -2198,7 +2207,7 @@ struct MonoTimeImpl(ClockType clockType)
                              " is not supported by MonoTimeImpl on this system.");
         }
     }
-    else version(OSX)
+    else version(Darwin)
     {
         static if(clockType != ClockType.coarse &&
                   clockType != ClockType.normal &&
@@ -2262,7 +2271,7 @@ struct MonoTimeImpl(ClockType clockType)
             }
             return MonoTimeImpl(ticks);
         }
-        else version(OSX)
+        else version(Darwin)
             return MonoTimeImpl(mach_absolute_time());
         else version(Posix)
         {
@@ -2631,7 +2640,7 @@ extern(C) void _d_initMonoTime()
             }
         }
     }
-    else version(OSX)
+    else version(Darwin)
     {
         immutable long ticksPerSecond = machTicksPerSecond();
         foreach(i, typeStr; __traits(allMembers, ClockType))
@@ -2938,7 +2947,7 @@ struct TickDuration
             if(QueryPerformanceFrequency(cast(long*)&ticksPerSec) == 0)
                 ticksPerSec = 0;
         }
-        else version(OSX)
+        else version(Darwin)
         {
             ticksPerSec = machTicksPerSecond();
         }
@@ -3493,7 +3502,7 @@ struct TickDuration
 
             return TickDuration(ticks);
         }
-        else version(OSX)
+        else version(Darwin)
         {
             static if(is(typeof(mach_absolute_time)))
                 return TickDuration(cast(long)mach_absolute_time());
@@ -4669,7 +4678,7 @@ unittest
     static assert(!__traits(compiles, nextLargerTimeUnits!"years"));
 }
 
-version(OSX)
+version(Darwin)
 long machTicksPerSecond()
 {
     // Be optimistic that ticksPerSecond (1e9*denom/numer) is integral. So far

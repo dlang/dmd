@@ -21,6 +21,15 @@ public import core.sys.posix.time;
 
 import core.stdc.stdint;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C)
 nothrow:
@@ -132,7 +141,7 @@ version( CRuntime_Glibc )
         PTHREAD_PROCESS_SHARED
     }
 }
-else version( OSX )
+else version( Darwin )
 {
     enum
     {
@@ -300,7 +309,7 @@ version( CRuntime_Glibc )
         }
     }
 }
-else version( OSX )
+else version( Darwin )
 {
     alias void function(void*) _pthread_cleanup_routine;
 
@@ -507,7 +516,7 @@ else version( FreeBSD )
     int pthread_barrierattr_init(pthread_barrierattr_t*);
     int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
 }
-else version (OSX)
+else version (Darwin)
 {
 }
 else version (Solaris)
@@ -565,7 +574,7 @@ else version( FreeBSD )
     int pthread_spin_trylock(pthread_spinlock_t*);
     int pthread_spin_unlock(pthread_spinlock_t*);
 }
-else version (OSX)
+else version (Darwin)
 {
 }
 else version (Solaris)
@@ -615,7 +624,7 @@ version( CRuntime_Glibc )
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
     int pthread_setconcurrency(int);
 }
-else version( OSX )
+else version( Darwin )
 {
     enum PTHREAD_MUTEX_NORMAL       = 0;
     enum PTHREAD_MUTEX_ERRORCHECK   = 1;
@@ -698,7 +707,7 @@ else version( FreeBSD )
 {
     int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
-else version (OSX)
+else version (Darwin)
 {
 }
 else version (Solaris)
@@ -728,7 +737,7 @@ version( CRuntime_Glibc )
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
     int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
-else version( OSX )
+else version( Darwin )
 {
     int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
     int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
@@ -771,7 +780,7 @@ int pthread_mutexattr_getprotocol(in pthread_mutexattr_t*, int*); (TPI|TPP)
 int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int); (TPP)
 int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int); (TPI|TPP)
 */
-version( OSX )
+version( Darwin )
 {
     enum
     {
@@ -840,7 +849,7 @@ version( CRuntime_Glibc )
     int pthread_setschedparam(pthread_t, int, in sched_param*);
     int pthread_setschedprio(pthread_t, int);
 }
-else version( OSX )
+else version( Darwin )
 {
     enum
     {
@@ -935,7 +944,7 @@ version( CRuntime_Glibc )
     int pthread_attr_setstackaddr(pthread_attr_t*, void*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
-else version( OSX )
+else version( Darwin )
 {
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
@@ -1006,7 +1015,7 @@ else version( FreeBSD )
     int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
     int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
-else version( OSX )
+else version( Darwin )
 {
     int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
     int pthread_condattr_setpshared(pthread_condattr_t*, int);

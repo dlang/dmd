@@ -10,13 +10,22 @@
 
 module rt.sections;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (CRuntime_Glibc)
     public import rt.sections_elf_shared;
 else version (FreeBSD)
     public import rt.sections_elf_shared;
 else version (Solaris)
     public import rt.sections_solaris;
-else version (OSX)
+else version (Darwin)
     public import rt.sections_osx;
 else version (CRuntime_DigitalMars)
     public import rt.sections_win32;

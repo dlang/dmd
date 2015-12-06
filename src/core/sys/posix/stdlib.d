@@ -18,6 +18,15 @@ private import core.sys.posix.config;
 public import core.stdc.stdlib;
 public import core.sys.posix.sys.wait;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 nothrow:
@@ -111,7 +120,7 @@ version( CRuntime_Glibc )
 
     void* valloc(size_t); // LEGACY non-standard
 }
-else version( OSX )
+else version( Darwin )
 {
     int setenv(in char*, in char*, int);
     int unsetenv(in char*);
@@ -151,7 +160,7 @@ version( CRuntime_Glibc )
 {
     int rand_r(uint*);
 }
-else version( OSX )
+else version( Darwin )
 {
     int rand_r(uint*);
 }
@@ -260,7 +269,7 @@ version( CRuntime_Glibc )
     int    mkstemp(char*);
   }
 }
-else version( OSX )
+else version( Darwin )
 {
     //WNOHANG     (defined in core.sys.posix.sys.wait)
     //WUNTRACED   (defined in core.sys.posix.sys.wait)

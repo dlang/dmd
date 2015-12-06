@@ -12,6 +12,14 @@
 
 module core.demangle;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
 
 debug(trace) import core.stdc.stdio : printf;
 debug(info) import core.stdc.stdio : printf;
@@ -1891,7 +1899,7 @@ unittest
  */
 version(Win32)
     enum string cPrefix = "_";
-else version(OSX)
+else version(Darwin)
     enum string cPrefix = "_";
 else
     enum string cPrefix = "";

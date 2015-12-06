@@ -23,6 +23,15 @@ public import core.sys.posix.signal;    // for sigset_t
 //debug=select;  // uncomment to turn on debugging printf's
 version(unittest) import core.stdc.stdio: printf;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C) nothrow @nogc:
 
@@ -131,7 +140,7 @@ version( CRuntime_Glibc )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
-else version( OSX )
+else version( Darwin )
 {
     private
     {

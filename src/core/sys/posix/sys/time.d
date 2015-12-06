@@ -18,6 +18,15 @@ private import core.sys.posix.config;
 public import core.sys.posix.sys.types;  // for time_t, suseconds_t
 public import core.sys.posix.sys.select; // for fd_set, FD_CLR() FD_ISSET() FD_SET() FD_ZERO() FD_SETSIZE, select()
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C) nothrow @nogc:
 
@@ -71,7 +80,7 @@ version( CRuntime_Glibc )
     int setitimer(int, in itimerval*, itimerval*);
     int utimes(in char*, ref const(timeval)[2]); // LEGACY
 }
-else version( OSX )
+else version( Darwin )
 {
     struct timeval
     {

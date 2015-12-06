@@ -1,5 +1,14 @@
 module core.sys.posix.sys.utsname;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern(C):
 
@@ -21,7 +30,7 @@ version(CRuntime_Glibc)
 
     int uname(utsname* __name);
 }
-else version(OSX)
+else version(Darwin)
 {
     private enum utsNameLength = 256;
 

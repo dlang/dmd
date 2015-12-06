@@ -19,6 +19,15 @@ public import core.sys.posix.sys.types; // for id_t, pid_t
 public import core.sys.posix.signal;    // for siginfo_t (XSI)
 //public import core.sys.posix.resource; // for rusage (XSI)
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C) nothrow @nogc:
 
@@ -69,7 +78,7 @@ version( CRuntime_Glibc )
     extern (D) int  WSTOPSIG( int status )     { return WEXITSTATUS( status );      }
     extern (D) int  WTERMSIG( int status )     { return status & 0x7F;              }
 }
-else version( OSX )
+else version( Darwin )
 {
     enum WNOHANG        = 1;
     enum WUNTRACED      = 2;
@@ -181,7 +190,7 @@ version( CRuntime_Glibc )
 
     int waitid(idtype_t, id_t, siginfo_t*, int);
 }
-else version( OSX )
+else version( Darwin )
 {
     enum WEXITED    = 0x00000004;
     enum WSTOPPED   = 0x00000008;
