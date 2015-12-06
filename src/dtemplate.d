@@ -903,30 +903,20 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
             }
 
-            Declaration sparam;
-            MATCH m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes,
-                flag != 1 ? &sparam : null);
+            MATCH m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes);
             //printf("\tm2 = %d\n", m2);
             if (m2 == MATCHnomatch)
             {
-                version (none)
-                {
-                    printf("\tmatchArg() for parameter %i failed\n", i);
-                }
+                //printf("\tmatchArg() for parameter %i failed\n", i);
                 goto Lnomatch;
             }
 
             if (m2 < m)
                 m = m2;
 
-            if (sparam)
+            if (flag != 1)
             {
-                sparam.semantic(paramscope);
-
-                // TODO: This check can make more early
-                // in TemplateDeclaration.semantic, and
-                // then we don't need to make sparam if flags == 0
-                if (!paramscope.insert(sparam))
+                if (!tp.declareParameter(paramscope, (*dedtypes)[i]))
                     goto Lnomatch;
             }
         }
@@ -1218,16 +1208,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < n; i++)
             {
                 assert(i < parameters.dim);
-                Declaration sparam = null;
-                MATCH m = (*parameters)[i].matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, &sparam);
+                auto tp = (*parameters)[i];
+                MATCH m = tp.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes);
                 //printf("\tdeduceType m = %d\n", m);
                 if (m <= MATCHnomatch)
                     goto Lnomatch;
                 if (m < matchTiargs)
                     matchTiargs = m;
 
-                sparam.semantic(paramscope);
-                if (!paramscope.insert(sparam))
+                if (!tp.declareParameter(paramscope, (*dedtypes)[i]))
                     goto Lnomatch;
             }
             if (n < parameters.dim && !declaredTuple)
@@ -1545,7 +1534,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                          * the oded == oarg
                                          */
                                         (*dedargs)[i] = oded;
-                                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
+                                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes);
                                         //printf("m2 = %d\n", m2);
                                         if (m2 <= MATCHnomatch)
                                             goto Lnomatch;
@@ -1895,7 +1884,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                          * the oded == oarg
                          */
                         (*dedargs)[i] = oded;
-                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
+                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes);
                         //printf("m2 = %d\n", m2);
                         if (m2 <= MATCHnomatch)
                             goto Lnomatch;
@@ -1941,7 +1930,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     if (tparam.specialization())
                     {
                         (*dedargs)[i] = oded;
-                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
+                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes);
                         //printf("m2 = %d\n", m2);
                         if (m2 <= MATCHnomatch)
                             goto Lnomatch;
@@ -3410,7 +3399,8 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         edim = s ? getValue(s) : getValue(e);
                     }
                 }
-                if (tp && tp.matchArg(sc, t.dim, i, parameters, dedtypes, null) || edim && edim.toInteger() == t.dim.toInteger())
+                if (tp && tp.matchArg(sc, t.dim, i, parameters, dedtypes) ||
+                    edim && edim.toInteger() == t.dim.toInteger())
                 {
                     result = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
                     return;
@@ -3655,7 +3645,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         goto Lnomatch;
                     }
                     TemplateParameter tpx = (*parameters)[i];
-                    if (!tpx.matchArg(sc, tempdecl, i, parameters, dedtypes, null))
+                    if (!tpx.matchArg(sc, tempdecl, i, parameters, dedtypes))
                         goto Lnomatch;
                 }
                 else if (tempdecl != tp.tempinst.tempdecl)
@@ -3810,7 +3800,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                                 goto Le;
                             goto Lnomatch;
                         }
-                        if (!(*parameters)[j].matchArg(sc, e1, j, parameters, dedtypes, null))
+                        if (!(*parameters)[j].matchArg(sc, e1, j, parameters, dedtypes))
                             goto Lnomatch;
                     }
                     else if (s1 && s2)
@@ -3829,7 +3819,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                                 goto Ls;
                             goto Lnomatch;
                         }
-                        if (!(*parameters)[j].matchArg(sc, s1, j, parameters, dedtypes, null))
+                        if (!(*parameters)[j].matchArg(sc, s1, j, parameters, dedtypes))
                             goto Lnomatch;
                     }
                     else
@@ -5004,11 +4994,9 @@ extern (C++) class TemplateParameter
      *      i               i'th argument
      *      parameters[]    template parameters
      *      dedtypes[]      deduced arguments to template instance
-     *      *psparam        set to symbol declared and initialized to dedtypes[i]
      */
     MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs,
-        size_t i, TemplateParameters* parameters, Objects* dedtypes,
-        Declaration* psparam)
+        size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
         RootObject oarg;
 
@@ -5027,17 +5015,14 @@ extern (C++) class TemplateParameter
                     goto Lnomatch;
             }
         }
-        return matchArg(sc, oarg, i, parameters, dedtypes, psparam);
+        return matchArg(sc, oarg, i, parameters, dedtypes);
 
     Lnomatch:
-        if (psparam)
-            *psparam = null;
         return MATCHnomatch;
     }
 
     abstract MATCH matchArg(Scope* sc, RootObject oarg,
-        size_t i, TemplateParameters* parameters, Objects* dedtypes,
-        Declaration* psparam);
+        size_t i, TemplateParameters* parameters, Objects* dedtypes);
 
     /* Create dummy argument based on parameter.
      */
@@ -5137,8 +5122,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     }
 
     override final MATCH matchArg(Scope* sc, RootObject oarg,
-        size_t i, TemplateParameters* parameters, Objects* dedtypes,
-        Declaration* psparam)
+        size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
         //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -5201,14 +5185,10 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         }
         (*dedtypes)[i] = ta;
 
-        if (psparam)
-            *psparam = declareParameter(ta);
         //printf("\tm = %d\n", m);
         return dependent ? MATCHexact : m;
 
     Lnomatch:
-        if (psparam)
-            *psparam = null;
         //printf("\tm = %d\n", MATCHnomatch);
         return MATCHnomatch;
     }
@@ -5364,8 +5344,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     }
 
     override MATCH matchArg(Scope* sc, RootObject oarg,
-        size_t i, TemplateParameters* parameters, Objects* dedtypes,
-        Declaration* psparam)
+        size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
         //printf("TemplateValueParameter::matchArg('%s')\n", ident.toChars());
 
@@ -5471,14 +5450,10 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         }
         (*dedtypes)[i] = ei;
 
-        if (psparam)
-            *psparam = declareParameter(ei);
         return dependent ? MATCHexact : m;
 
     Lnomatch:
         //printf("\tno match\n");
-        if (psparam)
-            *psparam = null;
         return MATCHnomatch;
     }
 
@@ -5615,8 +5590,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     }
 
     override MATCH matchArg(Scope* sc, RootObject oarg,
-        size_t i, TemplateParameters* parameters, Objects* dedtypes,
-        Declaration* psparam)
+        size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
         //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
         MATCH m = MATCHexact;
@@ -5712,13 +5686,9 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         }
         (*dedtypes)[i] = sa;
 
-        if (psparam)
-            *psparam = declareParameter(sa);
         return dependent ? MATCHexact : m;
 
     Lnomatch:
-        if (psparam)
-            *psparam = null;
         //printf("\tm = %d\n", MATCHnomatch);
         return MATCHnomatch;
     }
@@ -5812,8 +5782,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
     }
 
     override MATCH matchArg(Loc instLoc, Scope* sc, Objects* tiargs,
-        size_t i, TemplateParameters* parameters, Objects* dedtypes,
-        Declaration* psparam)
+        size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
         /* The rest of the actual arguments (tiargs[]) form the match
          * for the variadic parameter.
@@ -5840,12 +5809,11 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
                     ovar.objects[j] = (*tiargs)[i + j];
             }
         }
-        return matchArg(sc, ovar, i, parameters, dedtypes, psparam);
+        return matchArg(sc, ovar, i, parameters, dedtypes);
     }
 
     override MATCH matchArg(Scope* sc, RootObject oarg,
-        size_t i, TemplateParameters* parameters, Objects* dedtypes,
-        Declaration* psparam)
+        size_t i, TemplateParameters* parameters, Objects* dedtypes)
     {
         //printf("TemplateTupleParameter::matchArg('%s')\n", ident->toChars());
         Tuple ovar = isTuple(oarg);
@@ -5861,8 +5829,6 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         }
         (*dedtypes)[i] = ovar;
 
-        if (psparam)
-            *psparam = declareParameter(ovar);
         return dependent ? MATCHexact : MATCHconvert;
     }
 
