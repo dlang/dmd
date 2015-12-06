@@ -1,2 +1,3 @@
 ROOT_DIR = ../
 ROOT = ..
+SEARCHDEFAULT_SPEC = selected
