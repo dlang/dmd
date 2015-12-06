@@ -334,7 +334,7 @@ public:
         return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override final Scope* newScope(Scope* sc)
+    override Scope* newScope(Scope* sc)
     {
         StorageClass scstc = sc.stc;
         /* These sets of storage classes are mutually exclusive,
@@ -394,6 +394,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 {
 public:
     Expression msg;
+    const(char)* msgstr;
 
     extern (D) this(Expression msg, Dsymbols* decl)
     {
@@ -407,19 +408,49 @@ public:
         return new DeprecatedDeclaration(msg.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override void setScope(Scope* sc)
+    /**
+     * Provides a new scope with `STCdeprecated` and `Scope.depdecl` set
+     *
+     * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
+     * in any function overriding `newScope`), then set the `Scope`'s depdecl.
+     *
+     * Returns:
+     *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
+     */
+    override Scope* newScope(Scope* sc)
+    {
+        auto scx = super.newScope(sc);
+        // The enclosing scope is deprecated as well
+        if (scx == sc)
+            scx = sc.push();
+        scx.depdecl = this;
+        return scx;
+    }
+
+    /**
+     * Run the DeprecatedDeclaration's semantic2 phase then its members.
+     *
+     * The message set via a `DeprecatedDeclaration` can be either of:
+     * - a string literal
+     * - an enum
+     * - a static immutable
+     * So we need to call ctfe to resolve it.
+     * Afterward forwards to the members' semantic2.
+     */
+    override void semantic2(Scope* sc)
     {
         assert(msg);
-        char* depmsg = null;
+        sc = sc.startCTFE();
+        msg = msg.semantic(sc);
+        msg = resolveProperties(sc, msg);
+        sc = sc.endCTFE();
+        msg = msg.ctfeInterpret();
         StringExp se = msg.toStringExp();
         if (se)
-            depmsg = se.toStringz();
+            msgstr = se.toStringz();
         else
-            msg.error("string expected, not '%s'", msg.toChars());
-        Scope* scx = sc.push();
-        scx.depmsg = depmsg;
-        StorageClassDeclaration.setScope(scx);
-        scx.pop();
+            msg.error("compile time constant expected, not '%s'", msg.toChars());
+        super.semantic2(sc);
     }
 
     override void accept(Visitor v)

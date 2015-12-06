@@ -8,6 +8,7 @@ $(BUGSTITLE Compiler Changes,
 )
 
 $(BUGSTITLE Language Changes,
+    $(LI $(RELATIVE_LINK2 extended-deprecated, Manifest constant can now be used for deprecation message.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -15,7 +16,18 @@ $(BUGSTITLE Compiler Changes,
 )
 
 $(BUGSTITLE Language Changes,
+    $(LI $(LNAME2 extended-deprecated, Manifest constant can now be used for deprecation message.)
 
+    Manifest constants (enum, static immutable) can now be used for deprecation message, as well as concatenated strings.
+    $(P Example:)
+    ---
+    string generateMessage() { return "Some deprecation message"; }
+    enum DepMsg = generateMessage();
+
+    deprecated(DepMsg) class Foo {}
+    deprecated("Some long deprecation " ~ "message") class Bar {}
+    ---
+    )
 )
 
 Macros:
