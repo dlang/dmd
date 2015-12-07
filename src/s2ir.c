@@ -1114,6 +1114,7 @@ public:
                             f->typesTable = (Symbol **)::realloc(f->typesTable, f->typesTableCapacity * sizeof(Symbol *));
                             assert(f->typesTable);
                         }
+                        f->typesTableDim = j + 1;
                         f->typesTable[j] = catchtype;
                     }
                     bswitch->BS.Bswitch[1 + i] = 1 + j;  // index starts at 1

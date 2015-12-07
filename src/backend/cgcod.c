@@ -28,6 +28,7 @@
 #include        "type.h"
 #include        "exh.h"
 #include        "xmm.h"
+#include        "dwarf.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -527,9 +528,16 @@ tryagain:
         // Do this before code is emitted because we patch some instructions
         nteh_gentables();
     }
-    if (usednteh & EHtry)
+    if (usednteh & EHtry &&             // saw BCtry or BC_try (test EHcleanup too?)
+        config.ehmethod == EH_DM)
     {
         except_gentables();
+    }
+    if (config.ehmethod == EH_DWARF)
+    {
+        funcsym_p->Sfunc->Fstartblock = startblock;
+        dwarf_except_gentables(funcsym_p, startoffset, retoffset);
+        funcsym_p->Sfunc->Fstartblock = NULL;
     }
 #endif
 
