@@ -121,7 +121,7 @@ DMD_OBJS = \
 ifeq (OSX,$(TARGET))
     DMD_OBJS += libmach.o scanmach.o machobj.o
 else
-    DMD_OBJS += libelf.o scanelf.o elfobj.o
+    DMD_OBJS += libelf.o scanelf.o elfobj1.o
 endif
 
 SRC = win32.mak posix.mak \
@@ -158,7 +158,7 @@ SRC = win32.mak posix.mak \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
 	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
-	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
+	$C/elfobj1.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
@@ -404,7 +404,7 @@ eh.o: eh.c $C/cc.h $C/code.h $C/type.h $C/dt.h
 el.o: $C/el.c $C/rtlsym.h $C/el.h
 	$(CC) -c $(MFLAGS) $<
 
-elfobj.o: $C/elfobj.c
+elfobj1.o: $C/elfobj1.c
 	$(CC) -c $(MFLAGS) $<
 
 entity.o: entity.c
