@@ -835,6 +835,7 @@ void symbol_free(symbol *s)
                 list_free(&f->Fthunks,(list_free_fp)symbol_free);
               }
                 list_free(&f->Fsymtree,(list_free_fp)symbol_free);
+                free(f->typesTable);
                 func_free(f);
             }
             switch (s->Sclass)

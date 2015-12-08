@@ -2238,11 +2238,13 @@ elem * el_const(tym_t ty,union eve *pconst)
 
 /**************************
  * Insert constructor information into tree.
- *      e       code to construct the object
- *      decl    VarDeclaration of variable being constructed
+ * A corresponding el_ddtor() must be called later.
+ * Params:
+ *      e =     code to construct the object
+ *      decl =  VarDeclaration of variable being constructed
  */
 
-#if MARS
+#if 0
 elem *el_dctor(elem *e,void *decl)
 {
     elem *ector = el_calloc();
@@ -2267,7 +2269,7 @@ elem *el_dctor(elem *e,void *decl)
  *              (must match decl for corresponding OPctor)
  */
 
-#if MARS
+#if 0
 elem *el_ddtor(elem *e,void *decl)
 {
     /* A destructor always executes code, or we wouldn't need
@@ -2282,6 +2284,102 @@ elem *el_ddtor(elem *e,void *decl)
     return edtor;
 }
 #endif
+
+/*********************************************
+ * Create constructor/destructor pair of elems.
+ * Params:
+ *      ec = code to construct (may be NULL)
+ *      ed = code to destruct
+ *      pedtor = set to destructor node
+ * Returns:
+ *      constructor node
+ */
+
+elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
+{
+    elem *er;
+    if (config.ehmethod == EH_DWARF)
+    {
+        /* Construct (note that OPinfo is evaluated RTOL):
+         *  er = (OPdctor OPinfo (__flag = 0, ec))
+         *  edtor = __flag = 1, (OPddtor ((__exception_object = _EAX), ed, (!__flag && _Unsafe_Resume(__exception_object))))
+         */
+
+        /* Declare __flag, __EAX, __exception_object variables.
+         * Use volatile to prevent optimizer from messing them up, since optimizer doesn't know about
+         * landing pads (the landing pad will be on the OPddtor's EV.ed.Eleft)
+         */
+        symbol *sflag = symbol_name("__flag", SCauto, type_fake(mTYvolatile | TYbool));
+        symbol *sreg = symbol_name("__EAX", SCpseudo, type_fake(mTYvolatile | TYnptr));
+        sreg->Sreglsw = 0;          // EAX, RAX, whatevs
+        symbol *seo = symbol_name("__exception_object", SCauto, tspvoid);
+
+        symbol_add(sflag);
+        symbol_add(sreg);
+        symbol_add(seo);
+
+        elem *ector = el_calloc();
+        ector->Eoper = OPdctor;
+        ector->Ety = TYvoid;
+//      ector->EV.ed.Edecl = decl;
+
+        union eve c;
+        memset(&c, 0, sizeof(c));
+        elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c));  // __flag = 0
+        er = el_bin(OPinfo, ec ? ec->Ety : TYvoid, ector, el_combine(e_flag_0, ec));
+
+        /* A destructor always executes code, or we wouldn't need
+         * eh for it.
+         * An OPddtor must match 1:1 with an OPdctor
+         */
+        elem *edtor = el_calloc();
+        edtor->Eoper = OPddtor;
+        edtor->Ety = TYvoid;
+//      edtor->EV.ed.Edecl = decl;
+//      edtor->EV.ed.Eleft = e;
+
+        c.Vint = 1;
+        elem *e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c)); // __flag = 1
+        elem *e_eax = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));              // __exception_object = __EAX
+        elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_UNWIND_RESUME)), el_var(seo));
+        eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
+
+        edtor->EV.ed.Eleft = el_combine(el_combine(e_eax, ed), eu);
+
+        *pedtor = el_combine(e_flag_1, edtor);
+    }
+    else
+    {
+        /* Construct (note that OPinfo is evaluated RTOL):
+         *  er = (OPdctor OPinfo ec)
+         *  edtor = (OPddtor ed)
+         */
+        elem *ector = el_calloc();
+        ector->Eoper = OPdctor;
+        ector->Ety = TYvoid;
+//      ector->EV.ed.Edecl = decl;
+        if (ec)
+            er = el_bin(OPinfo,ec->Ety,ector,ec);
+        else
+            /* Remember that a "constructor" may execute no code, hence
+             * the need for OPinfo if there is code to execute.
+             */
+            er = ector;
+
+        /* A destructor always executes code, or we wouldn't need
+         * eh for it.
+         * An OPddtor must match 1:1 with an OPdctor
+         */
+        elem *edtor = el_calloc();
+        edtor->Eoper = OPddtor;
+        edtor->Ety = TYvoid;
+//      edtor->EV.ed.Edecl = decl;
+        edtor->EV.ed.Eleft = ed;
+        *pedtor = edtor;
+    }
+
+    return er;
+}
 
 /**************************
  * Insert constructor information into tree.

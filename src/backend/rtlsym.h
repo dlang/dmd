@@ -42,6 +42,7 @@
 \
 SYMBOL_MARS(THROW,           FLfunc,(mES | mBP),"_d_throw@4", SFLexit, tw) /* D1 only */ \
 SYMBOL_MARS(THROWC,          FLfunc,(mES | mBP),"_d_throwc", SFLexit, t) \
+SYMBOL_MARS(THROWDWARF,      FLfunc,(mES | mBP),"_d_throwdwarf", SFLexit, t) \
 SYMBOL_MARS(MONITOR_HANDLER, FLfunc,FREGSAVED,"_d_monitor_handler", 0, tsclib) \
 SYMBOL_MARS(MONITOR_PROLOG,  FLfunc,FREGSAVED,"_d_monitor_prolog",0,t) \
 SYMBOL_MARS(MONITOR_EPILOG,  FLfunc,FREGSAVED,"_d_monitor_epilog",0,t) \
@@ -141,6 +142,8 @@ SYMBOL_SCPP(CPP_HANDLER,  FLfunc,FREGSAVED,"_cpp_framehandler", 0, tsclib) \
 SYMBOL_MARS(D_HANDLER,  FLfunc,FREGSAVED,"_d_framehandler", 0, tsclib) \
 SYMBOL_MARS(D_LOCAL_UNWIND2, FLfunc,FREGSAVED,"_d_local_unwind2", 0, tsclib) \
 SYMBOL_SCPP(LOCAL_UNWIND2, FLfunc,FREGSAVED,"_local_unwind2", 0, tsclib) \
+SYMBOL_Z(UNWIND_RESUME, FLfunc,FREGSAVED,"_Unwind_Resume", SFLexit, tsclib) \
+SYMBOL_Z(PERSONALITY, FLfunc,FREGSAVED,"__dmd_personality_v0", 0, tsclib) \
 \
 SYMBOL_Z(TLS_INDEX, FLextern,0,"_tls_index",0,tsint) \
 SYMBOL_Z(TLS_ARRAY, FLextern,0,"_tls_array",0,tspvoid) \

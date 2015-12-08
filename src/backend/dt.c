@@ -175,25 +175,25 @@ dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
  * Construct a DTabytes record, and return it.
  */
 
-dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nbytes)
+dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
 {
-    return dtabytes(pdtend, TYnptr, offset, size, ptr, nbytes);
+    return dtabytes(pdtend, TYnptr, offset, size, ptr, nzeros);
 }
 
-dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nbytes)
+dt_t **dtabytes(dt_t **pdtend, tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
 {   dt_t *dt;
 
     while (*pdtend)
         pdtend = &((*pdtend)->DTnext);
 
     dt = dt_calloc(DT_abytes);
-    dt->DTnbytes = size + nbytes;
-    dt->DTpbytes = (char *) MEM_PH_MALLOC(size + nbytes);
+    dt->DTnbytes = size + nzeros;
+    dt->DTpbytes = (char *) MEM_PH_MALLOC(size + nzeros);
     dt->Dty = ty;
     dt->DTabytes = offset;
     memcpy(dt->DTpbytes,ptr,size);
-    if (size)
-        memset(dt->DTpbytes + size, 0, nbytes);
+    if (nzeros)
+        memset(dt->DTpbytes + size, 0, nzeros);
 
     *pdtend = dt;
     pdtend = &dt->DTnext;

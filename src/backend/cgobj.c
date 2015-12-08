@@ -1209,7 +1209,7 @@ STATIC void obj_defaultlib()
         case EX_OS1:
             library[1] = 'O';
             break;
-        case EX_NT:
+        case EX_WIN32:
 #if MARS
             library[1] = 'M';
 #else
@@ -1383,7 +1383,7 @@ STATIC void objheader(char *csegname)
   comment[2] = config.target_cpu + '0';
   comment[3] = model[config.memmodel];
   if (I32)
-  {     if (config.exe == EX_NT)
+  {     if (config.exe == EX_WIN32)
             comment[3] = 'n';
         else if (config.exe == EX_OS2)
             comment[3] = 'f';
@@ -2301,7 +2301,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
 #endif
         case mTYman_std:
             if (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_NT && tyfunc(s->ty()) &&
+                config.exe == EX_WIN32 && tyfunc(s->ty()) &&
                 !variadic(s->Stype))
             {
                 dest[1] = '_';

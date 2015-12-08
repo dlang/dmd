@@ -367,7 +367,7 @@ code *nteh_prolog()
     }
     c = gen(NULL,&cs);                          // PUSH &__except_handler3
 
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
     {
         makeitextern(getRtlsym(RTLSYM_EXCEPT_LIST));
     #if 0

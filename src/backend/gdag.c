@@ -131,6 +131,7 @@ void builddags()
                       list_next(b->Bpred) != NULL))
                     || b->BC == BCasm
                     || b->BC == BC_finally
+                    || b->BC == BC_lpad
 #if SCPP
                     || b->BC == BCcatch
 #endif
@@ -616,6 +617,7 @@ void boolopt()
                       list_next(b->Bpred) != NULL))
                     || b->BC == BCasm
                     || b->BC == BC_finally
+                    || b->BC == BC_lpad
 #if SCPP
                     || b->BC == BCcatch
 #endif

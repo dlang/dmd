@@ -115,7 +115,7 @@ DMD_OBJS = \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
 	html.o unialpha.o target.o \
-	pdata.o cv8.o backconfig.o divcoeff.o \
+	pdata.o cv8.o backconfig.o divcoeff.o dwarfeh.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(TARGET))
@@ -161,7 +161,7 @@ SRC = win32.mak posix.mak \
 	$C/elfobj1.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
-	$C/machobj.c $C/mscoffobj.c \
+	$C/machobj.c $C/mscoffobj.c $C/dwarfeh.c \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
     $C/html.h $C/html.c $C/unialpha.c \
 	$C/ph2.c $C/util2.c \
@@ -390,6 +390,9 @@ dump.o: dump.c
 	$(CC) -c $(CFLAGS) $<
 
 dwarf.o: $C/dwarf.c $C/dwarf.h
+	$(CC) -c $(MFLAGS) -I. $<
+
+dwarfeh.o: $C/dwarfeh.c $C/dwarf.h
 	$(CC) -c $(MFLAGS) -I. $<
 
 e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h

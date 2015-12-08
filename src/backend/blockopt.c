@@ -356,6 +356,11 @@ void block_free(block *b)
             type_free(b->Bcatchtype);
             break;
 #endif
+        case BCjcatch:
+#if MARS
+            free(b->BS.BIJCATCH.actionTable);
+#endif
+            break;
         case BCasm:
             code_free(b->Bcode);
             break;
@@ -401,6 +406,10 @@ void blocklist_hydrate(block **pb)
 
             case BC_finally:
                 //(void) ph_hydrate(&b->B_ret);
+                break;
+
+            case BC_lpad:
+                symbol_hydrate(&b->BS.BI_FINALLY.flag);
                 break;
 
             case BCasm:
@@ -453,6 +462,10 @@ void blocklist_dehydrate(block **pb)
 
             case BC_finally:
                 //ph_dehydrate(&b->B_ret);
+                break;
+
+            case BC_lpad:
+                symbol_dehydrate(&b->BS.BI_FINALLY.flag);
                 break;
 
             case BCasm:
@@ -1365,6 +1378,7 @@ STATIC void blident()
 #endif
                     case BC_try:
                     case BC_finally:
+                    case BC_lpad:
                     case BCasm:
                     Lcontinue:
                         continue;
@@ -1639,6 +1653,7 @@ STATIC void bltailmerge()
 #endif
                         case BC_try:
                         case BC_finally:
+                        case BC_lpad:
                         case BCasm:
                             continue;
                     }

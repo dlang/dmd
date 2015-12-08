@@ -717,6 +717,34 @@ void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
     }
 }
 
+/*******************************************
+ * Call finally block.
+ * Params:
+ *      bf = block to call
+ *      retregs = registers to preserve across call
+ * Returns:
+ *      code generated
+ */
+static code *callFinallyBlock(block *bf, regm_t retregs)
+{
+    code *cs;
+    code *cr;
+    int nalign = 0;
+
+    unsigned npush = gensaverestore(retregs,&cs,&cr);
+    if (STACKALIGN == 16)
+    {   npush += REGSIZE;
+        if (npush & (STACKALIGN - 1))
+        {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
+            cs = cod3_stackadj(cs, nalign);
+        }
+    }
+    cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)bf);
+    regcon.immed.mval = 0;
+    if (nalign)
+        cs = cod3_stackadj(cs, -nalign);
+    return cat(cs, cr);
+}
 
 /*******************************
  * Generate block exit code
@@ -790,25 +818,25 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 #endif
         case BCgoto:
             nextb = list_block(bl->Bsucc);
-            if (((MARS /*&& config.flags2 & CFG2seh*/) ||
+            if ((MARS ||
                  funcsym_p->Sfunc->Fflags3 & Fnteh) &&
+                config.ehmethod != EH_DWARF &&
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
-            {   int toindex;
-                int fromindex;
-
+            {
                 bl->Bcode = NULL;
+                retregs = 0;
                 c = gencodelem(c,e,&retregs,TRUE);
-                toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
+                int toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
                 assert(bl->Btry);
-                fromindex = bl->Btry->Bscope_index;
+                int fromindex = bl->Btry->Bscope_index;
 #if MARS
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl->Btry &&
                         list_block(list_next(bl->Btry->Bsucc))->BC == BCjcatch)
                     {
-                        goto L2;
+                        goto L2;        // it's a try-catch, not a try-finally
                     }
                 }
 #endif
@@ -844,29 +872,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             continue;
 
                         // call __finally
-                        code *cs;
-                        code *cr;
-                        int nalign = 0;
-
-                        unsigned npush = gensaverestore(retregs,&cs,&cr);
-                        if (STACKALIGN == 16)
-                        {   npush += REGSIZE;
-                            if (npush & (STACKALIGN - 1))
-                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = cod3_stackadj(cs, nalign);
-                            }
-                        }
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
-                        regcon.immed.mval = 0;
-                        if (nalign)
-                            cs = cod3_stackadj(cs, -nalign);
-                        c = cat3(c,cs,cr);
+                        c = cat(c, callFinallyBlock(bf->nthSucc(0), retregs));
                     }
                 }
 #endif
                 goto L2;
             }
         case_goto:
+            retregs = 0;
             c = gencodelem(c,e,&retregs,TRUE);
             if (anyspill)
             {   // Add in the epilog code
@@ -907,39 +920,51 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 code *cy = getregs(allregs);
                 assert(!cy);
             }
-            assert(!e);
-            assert(!bl->Bcode);
-#if 1
-            {   // Generate CALL to finalizer code
-                int nalign = 0;
-                if (STACKALIGN == 16)
-                {   nalign = STACKALIGN - REGSIZE;
-                    c = cod3_stackadj(c, nalign);
-                }
-                // CALL bl->Bsucc
-                c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bl->Bsucc));
-                regcon.immed.mval = 0;
-                if (nalign)
-                    c = cod3_stackadj(c, -nalign);
-                // JMP list_next(bl->Bsucc)
-                nextb = list_block(list_next(bl->Bsucc));
-                goto L2;
-            }
-#else       // Not so good because altering return addr always causes branch misprediction
+            if (config.ehmethod == EH_DWARF)
             {
-                // Generate a PUSH of the address of the successor to the
-                // corresponding BC_ret
-                //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
-                // PUSH &succ
-                c = genc(c,0x68,0,0,0,FLblock,(targ_size_t)list_block(list_next(bl->Bsucc)));
-                nextb = list_block(bl->Bsucc);
+                retregs = 0;
+                bl->Bcode = gencodelem(NULL,bl->Belem,&retregs,TRUE);
+
+                // JMP bl->nthSucc(1)
+                nextb = bl->nthSucc(1);
                 goto L2;
             }
-#endif
+            else
+            {
+                assert(!e);
+                assert(!bl->Bcode);
+                // Generate CALL to finalizer code
+                c = cat(c, callFinallyBlock(bl->nthSucc(0), 0));
+
+                // JMP bl->nthSucc(1)
+                nextb = bl->nthSucc(1);
+                goto L2;
+            }
+
+        case BC_lpad:
+        {
+            assert(config.ehmethod == EH_DWARF);
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in finally blocks.
+            code *cy = getregs(allregs);
+            assert(!cy);
+
+            retregs = 0;
+            bl->Bcode = gencodelem(c,bl->Belem,&retregs,TRUE);
+
+            // JMP bl->nthSucc(0)
+            nextb = bl->nthSucc(0);
+            goto L2;
+        }
 
         case BC_ret:
+            retregs = 0;
             c = gencodelem(c,e,&retregs,TRUE);
-            bl->Bcode = gen1(c,0xC3);   // RET
+            if (config.ehmethod == EH_DWARF)
+            {
+            }
+            else
+                bl->Bcode = gen1(c,0xC3);   // RET
             break;
 
 #if NTEXCEPTIONS
@@ -991,10 +1016,15 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             }
             else
             {
-        case BCret:
-        case BCexit:
                 c = gencodelem(c,e,&retregs,TRUE);
             }
+            goto L4;
+
+        case BCret:
+        case BCexit:
+            retregs = 0;
+            c = gencodelem(c,e,&retregs,TRUE);
+        L4:
             bl->Bcode = c;
             if (retregs == mST0)
             {   assert(stackused == 1);
@@ -1005,16 +1035,17 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 pop87();
                 pop87();                // account for return value
             }
-            if (bl->BC == BCexit && config.flags4 & CFG4optimized)
-                mfuncreg = mfuncregsave;
-            if (MARS || usednteh & NTEH_try)
-            {   block *bt;
-
-                bt = bl;
+            if (bl->BC == BCexit)
+            {
+                if (config.flags4 & CFG4optimized)
+                    mfuncreg = mfuncregsave;
+            }
+            else if (MARS || usednteh & NTEH_try)
+            {
+                block *bt = bl;
                 while ((bt = bt->Btry) != NULL)
-                {   block *bf;
-
-                    bf = list_block(list_next(bt->Bsucc));
+                {
+                    block *bf = bt->nthSucc(1);
 #if MARS
                     // Only look at try-finally blocks
                     if (bf->BC == BCjcatch)
@@ -1032,7 +1063,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
                             c = cat(c,nteh_gensindex(-1));
                             gensaverestore(retregs,&cs,&cr);
-                            cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                            cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)bf->nthSucc(0));
                             regcon.immed.mval = 0;
                             bl->Bcode = cat3(c,cs,cr);
                         }
@@ -1043,24 +1074,8 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     else
                     {
                         // call __finally
-                        code *cs;
-                        code *cr;
-                        int nalign = 0;
-
-                        unsigned npush = gensaverestore(retregs,&cs,&cr);
-                        if (STACKALIGN == 16)
-                        {   npush += REGSIZE;
-                            if (npush & (STACKALIGN - 1))
-                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = cod3_stackadj(cs, nalign);
-                            }
-                        }
-                        // CALL bf->Bsucc
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
-                        regcon.immed.mval = 0;
-                        if (nalign)
-                            cs = cod3_stackadj(cs, -nalign);
-                        bl->Bcode = c = cat3(c,cs,cr);
+                        c = cat(c, callFinallyBlock(bf->nthSucc(0), retregs));
+                        bl->Bcode = c;
                     }
                 }
             }
@@ -2982,7 +2997,8 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
                                     // by nteh_prolog()
         }
 #endif
-        if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+        if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+            config.ehmethod == EH_DWARF)
         {   int off = 2 * REGSIZE;
             dwarf_CFA_set_loc(1);           // address after PUSH EBP
             dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
@@ -3154,7 +3170,8 @@ code* prolog_saveregs(code *c, regm_t topush)
                 }
                 if (I64)
                     code_orrex(c, REX_W);
-                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+                    config.ehmethod == EH_DWARF)
                 {   // Emit debug_frame data giving location of saved register
                     pinholeopt(c, NULL);
                     dwarf_CFA_set_loc(calcblksize(c));  // address after save
@@ -3184,7 +3201,8 @@ code* prolog_saveregs(code *c, regm_t topush)
                 c = genpush(c, reg);
                 EBPtoESP += REGSIZE;
                 spoff += REGSIZE;
-                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D)
+                if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
+                    config.ehmethod == EH_DWARF)
                 {   // Emit debug_frame data giving location of saved register
                     // relative to 0[EBP]
                     pinholeopt(c, NULL);
@@ -3812,7 +3830,7 @@ void epilog(block *b)
         useregs((ALLREGS | mBP | mES) & ~s->Sregsaved);
     }
 
-    if (usednteh & ~NTEHjmonitor && (config.exe == EX_NT || MARS))
+    if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32 || MARS))
         c = cat(c,nteh_epilog());
 
     cpopds = CNIL;
@@ -6029,7 +6047,7 @@ unsigned codout(code *c)
                     case ESCctor:
                     case ESCdtor:
                     case ESCoffset:
-                        if (config.exe != EX_NT)
+                        if (config.exe != EX_WIN32)
                             except_pair_setoffset(c,ggen.getOffset() - funcoffset);
                         break;
                     case ESCmark:

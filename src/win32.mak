@@ -235,7 +235,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
 	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c $C\backconfig.c \
-	$C\divcoeff.c \
+	$C\divcoeff.c $C\dwarfeh.c \
 	$C\backend.txt \
 	$C\html.h $C\html.c
 
@@ -462,6 +462,9 @@ dt.obj : $C\dt.h $C\dt.c
 
 dwarf.obj : $C\dwarf.h $C\dwarf.c
 	$(CC) -c $(MFLAGS) $C\dwarf
+
+dwarfeh.obj : $C\dwarf.h $C\dwarfeh.c
+	$(CC) -c $(MFLAGS) $C\dwarfeh
 
 ee.obj : $C\ee.c
 	$(CC) -c $(MFLAGS) $C\ee

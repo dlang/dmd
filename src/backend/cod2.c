@@ -5038,13 +5038,13 @@ code *cdinfo(elem *e,regm_t *pretregs)
             c = cat(c,codelem(e->E1,&retregs,FALSE));
             break;
         case OPmark:
-            if (0 && config.exe == EX_NT)
+            if (0 && config.exe == EX_WIN32)
             {   unsigned idx;
 
                 idx = except_index_get();
                 except_mark();
                 c = codelem(e->E2,pretregs,FALSE);
-                if (config.exe == EX_NT && idx != except_index_get())
+                if (config.exe == EX_WIN32 && idx != except_index_get())
                 {   usednteh |= NTEHcleanup;
                     c = cat(c,nteh_gensindex(idx - 1));
                 }
@@ -5076,19 +5076,18 @@ code *cdinfo(elem *e,regm_t *pretregs)
 
 code *cddctor(elem *e,regm_t *pretregs)
 {
-#if MARS
     /* Generate:
         ESCAPE | ESCdctor
         MOV     sindex[BP],index
      */
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.ehmethod == EH_WIN32)
     {   usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
     }
     assert(*pretregs == 0);
     code cs;
-    cs.Iop = ESCAPE | ESCdctor;
+    cs.Iop = ESCAPE | ESCdctor;         // mark start of EH range
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL1 = FLctor;
@@ -5097,9 +5096,6 @@ code *cddctor(elem *e,regm_t *pretregs)
     c = cat(c, nteh_gensindex(0));      // the actual index will be patched in later
                                         // by except_fillInEHTable()
     return c;
-#else
-    return NULL;
-#endif
 }
 
 /*******************************************
@@ -5108,69 +5104,86 @@ code *cddctor(elem *e,regm_t *pretregs)
 
 code *cdddtor(elem *e,regm_t *pretregs)
 {
-#if MARS
-    /* Generate:
-        ESCAPE | ESCddtor
-        MOV     sindex[BP],index
-        CALL    dtor
-        JMP     L1
-    Ldtor:
-        ... e->E1 ...
-        RET
-    L1: NOP
-    */
-    usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
-    {   usednteh |= NTEHcleanup | NTEH_try;
-        nteh_usevars();
-    }
-
-    code cs;
-    cs.Iop = ESCAPE | ESCddtor;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = FLdtor;
-    cs.IEV1.Vtor = e;
-    code *cd = gen(CNIL,&cs);
-
-    cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
-                                        // by except_fillInEHTable()
-
-    // Mark all registers as destroyed
+    if (config.ehmethod == EH_DWARF)
     {
+        usednteh |= EHcleanup;
+
+        code cs;
+        cs.Iop = ESCAPE | ESCddtor;     // mark end of EH range and where landing pad is
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IFL1 = FLdtor;
+        cs.IEV1.Vtor = e;
+        code *cd = gen(CNIL,&cs);
+
+        // Mark all registers as destroyed
         code *cy = getregs(allregs);
         assert(!cy);
-    }
 
-    assert(*pretregs == 0);
-    code *c = codelem(e->E1,pretregs,FALSE);
-    gen1(c,0xC3);               // RET
-
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    if (config.flags3 & CFG3pic)
-    {
-        int nalign = 0;
-        if (STACKALIGN == 16)
-        {   nalign = STACKALIGN - REGSIZE;
-            cd = cod3_stackadj(cd, nalign);
-        }
-        calledafunc = 1;
-        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
-        if (nalign)
-            cd = cod3_stackadj(cd, -nalign);
+        assert(*pretregs == 0);
+        code *c = codelem(e->E1,pretregs,FALSE);
+        return c;
     }
     else
-#endif
-        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+    {
+        /* Generate:
+            ESCAPE | ESCddtor
+            MOV     sindex[BP],index
+            CALL    dtor
+            JMP     L1
+        Ldtor:
+            ... e->E1 ...
+            RET
+        L1: NOP
+        */
+        usednteh |= EHcleanup;
+        if (config.ehmethod == EH_WIN32)
+        {   usednteh |= NTEHcleanup | NTEH_try;
+            nteh_usevars();
+        }
 
-    code *cnop = gennop(CNIL);
+        code cs;
+        cs.Iop = ESCAPE | ESCddtor;
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IFL1 = FLdtor;
+        cs.IEV1.Vtor = e;
+        code *cd = gen(CNIL,&cs);
 
-    genjmp(cd,JMP,FLcode,(block *)cnop);
+        cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
+                                            // by except_fillInEHTable()
 
-    return cat4(cd, c, cnop, NULL);
-#else
-    return NULL;
-#endif
+        // Mark all registers as destroyed
+        {
+            code *cy = getregs(allregs);
+            assert(!cy);
+        }
+
+        assert(*pretregs == 0);
+        code *c = codelem(e->E1,pretregs,FALSE);
+        gen1(c,0xC3);                      // RET
+
+        if (config.flags3 & CFG3pic)
+        {
+            int nalign = 0;
+            if (STACKALIGN == 16)
+            {   nalign = STACKALIGN - REGSIZE;
+                cd = cod3_stackadj(cd, nalign);
+            }
+            calledafunc = 1;
+            genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+            if (nalign)
+                cd = cod3_stackadj(cd, -nalign);
+        }
+        else
+            genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+
+        code *cnop = gennop(CNIL);
+
+        genjmp(cd,JMP,FLcode,(block *)cnop);
+
+        return cat4(cd, c, cnop, NULL);
+    }
 }
 
 
@@ -5185,7 +5198,7 @@ code *cdctor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCctor;
@@ -5207,7 +5220,7 @@ code *cddtor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCdtor;
