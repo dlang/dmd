@@ -1249,9 +1249,50 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 e = cast(EqualExp)e.copy();
                 if (!e.att1) e.att1 = t1;
                 if (!e.att2) e.att2 = t2;
-                e.e1 = new DotIdExp(e.loc, e.e1, Id._tupleof);
-                e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
-                result = e.semantic(sc);
+                e.e1 = (new DotIdExp(e.loc, e.e1, Id._tupleof)).semantic(sc);
+                e.e2 = (new DotIdExp(e.loc, e.e2, Id._tupleof)).semantic(sc);
+                result = e;
+                if (sd.isNested() && e.e1.op == TOKtuple && e.e2.op == TOKtuple)
+                {
+                    /* Rewrite:
+                     *  tuple(x1, ..., xn) == tuple(y1, ..., yn)
+                     * as:
+                     *  tuple(x1, ..., xn-1) == tuple(y1, ..., yn-1) && (xn is yn)
+                     */
+                    Expression extractLastAsPtr(ref Expression e)
+                    {
+                        auto te = cast(TupleExp)e;
+                        auto ex = (*te.exps)[te.exps.dim - 1];
+                        te.exps.setDim(te.exps.dim - 1);
+
+                        auto tt = cast(TypeTuple)te.type;
+                        auto arguments = new Parameters();
+                        arguments.setDim(tt.arguments.dim - 1);
+                        foreach (i; 0 .. arguments.dim)
+                            (*arguments)[i] = (*tt.arguments)[i];
+                        te.type = new TypeTuple(arguments);
+
+                        // Convert: te.exps[$-1] -> *&te.exps[$-1]
+                        if (sd.vthis.storage_class & STCref)
+                        {
+                            // Do not run semantic to avoid @safe check.
+                            ex = new AddrExp(e.loc, ex);
+                            ex.type = Type.tvoidptr.pointerTo();
+                            ex = new PtrExp(e.loc, ex);
+                            ex.type = Type.tvoidptr;
+                        }
+                        return ex;
+                    }
+                    auto elast1 = extractLastAsPtr(e.e1);
+                    auto elast2 = extractLastAsPtr(e.e2);
+
+                    // Compare the enclosing context identity.
+                    if (e.op == TOKequal)
+                        result = new AndAndExp(e.loc, result, new IdentityExp(TOKidentity, e.loc, elast1, elast2));
+                    else
+                        result = new OrOrExp(e.loc, result, new IdentityExp(TOKnotidentity, e.loc, elast1, elast2));
+                }
+                result = result.semantic(sc);
 
                 /* Bugzilla 15292, if the rewrite result is same with the original,
                  * the equality is unresolvable because it has recursive definition.

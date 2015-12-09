@@ -148,15 +148,15 @@ extern (C++) bool needOpAssign(StructDeclaration sd)
     /* If any of the fields need an opAssign, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (size_t i; 0 .. sd.fields.dim - sd.isNested())
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             if (needOpAssign(ts.sym))
                 goto Lneed;
         }
@@ -191,7 +191,7 @@ Lneed:
  */
 extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
-    if (FuncDeclaration f = hasIdentityOpAssign(sd, sc))
+    if (auto f = hasIdentityOpAssign(sd, sc))
     {
         sd.hasIdentityAssign = true;
         return f;
@@ -217,16 +217,16 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     else
     {
-        for (size_t i = 0; i < sd.fields.dim; i++)
+        foreach (size_t i; 0 .. sd.fields.dim - sd.isNested())
         {
-            VarDeclaration v = sd.fields[i];
+            auto v = sd.fields[i];
             if (v.storage_class & STCref)
                 continue;
             Type tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
                 continue;
 
-            StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+            auto sdv = (cast(TypeStruct)tv).sym;
             stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
         }
     }
@@ -260,8 +260,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
             ec = new BlitExp(loc, new VarExp(loc, tmp), new ThisExp(loc));
             e = Expression.combine(e, ec);
         }
-        ec = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
-        e = Expression.combine(e, ec);
+            ec = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+            e = Expression.combine(e, ec);
         if (sd.dtor)
         {
             /* Instead of running the destructor on s, run it
@@ -275,11 +275,13 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     else
     {
         /* Do memberwise copy
+         * Note: Even if sd.isNested() == true, sd.vthis is typed as Tclass or
+         * void*. So just we can use AssignExp for the sd.fields[$-1] copy here.
          */
         //printf("\tmemberwise copy\n");
-        for (size_t i = 0; i < sd.fields.dim; i++)
+        foreach (size_t i; 0 .. sd.fields.dim)
         {
-            VarDeclaration v = sd.fields[i];
+            auto v = sd.fields[i];
             // this.v = s.v;
             auto ec = new AssignExp(loc,
                 new DotVarExp(loc, new ThisExp(loc), v, 0),
@@ -343,9 +345,9 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (size_t i; 0 .. sd.fields.dim - sd.isNested())
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.toBasetype();
@@ -365,7 +367,7 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
         tv = tv.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             if (needOpEquals(ts.sym))
                 goto Lneed;
             if (ts.sym.aliasthis) // Bugzilla 14806
@@ -676,9 +678,9 @@ extern (C++) bool needToHash(StructDeclaration sd)
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
-    for (size_t i = 0; i < sd.fields.dim; i++)
+    foreach (size_t i; 0 .. sd.fields.dim - sd.isNested())
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.toBasetype();
@@ -697,7 +699,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
         tv = tv.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             if (needToHash(ts.sym))
                 goto Lneed;
             if (ts.sym.aliasthis) // Bugzilla 14948
@@ -719,7 +721,7 @@ Lneed:
  */
 extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
-    if (Dsymbol s = search_function(sd, Id.tohash))
+    if (auto s = search_function(sd, Id.tohash))
     {
         static __gshared TypeFunction tftohash;
         if (!tftohash)
@@ -729,7 +731,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
             tftohash = cast(TypeFunction)tftohash.merge();
         }
 
-        if (FuncDeclaration fd = s.isFuncDeclaration())
+        if (auto fd = s.isFuncDeclaration())
         {
             fd = fd.overloadExactMatch(tftohash);
             if (fd)
@@ -748,13 +750,15 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     parameters.push(new Parameter(STCref | STCconst, sd.type, Id.p, null));
     auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINKd, STCnothrow | STCtrusted);
 
-    Identifier id = Id.xtoHash;
+    auto id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     const(char)* code =
         "size_t h = 0;"~
-        "foreach (i, T; typeof(p.tupleof))"~
+        "enum int isNested = __traits(isNested, typeof(p));"~
+        "foreach (i, T; typeof(p.tupleof[0 .. $ - isNested]))"~
         "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);"~
+        "static if (isNested) h += *cast(size_t*)&p.tupleof[$-1];"~
         "return h;";
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
 
