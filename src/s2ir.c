@@ -1551,7 +1551,7 @@ void insertFinallyBlockCalls(block *startblock)
                 if (!bcretexp)
                 {
                     bcretexp = block_calloc();
-                    bcret->BC = BCretexp;
+                    bcretexp->BC = BCretexp;
                     type *t;
                     if ((ty == TYstruct || ty == TYarray) && e->ET)
                         t = e->ET;
