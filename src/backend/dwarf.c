@@ -83,6 +83,18 @@ int dwarf_getsegment(const char *name, int align)
 #endif
 }
 
+int dwarf_getsegment_alloc(const char *name, int align)
+{
+#if ELFOBJ
+    return ElfObj::getsegment(name, NULL, SHT_PROGBITS, SHF_ALLOC, align * 4);
+#elif MACHOBJ
+    return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
+#else
+    assert(0);
+    return 0;
+#endif
+}
+
 // machobj.c
 #define RELaddr 0       // straight address
 #define RELrel  1       // relative to location to be fixed up
@@ -626,13 +638,14 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
         buf->writeByten(DW_EH_PE_pcrel | DW_EH_PE_sdata4);   // R: encoding of addresses in FDE
     }
 
+    // Set CFA beginning state at function entry point
     if (I64)
     {
-        buf->writeByten(DW_CFA_def_cfa);        // DEF_CFA r7,8
+        buf->writeByten(DW_CFA_def_cfa);        // DEF_CFA r7,8   RSP is at offset 8
         buf->writeByten(7);
         buf->writeByten(8);
 
-        buf->writeByten(DW_CFA_offset + 16);    // OFFSET r16,1
+        buf->writeByten(DW_CFA_offset + 16);    // OFFSET r16,1   RIP is at -8*1[RSP]
         buf->writeByten(1);
     }
     else
@@ -757,17 +770,23 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
     const unsigned pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
     const unsigned length = fdelen + pad - 4;
 
+    buf->reserve(length + 4);
     buf->write32(length);                               // Length (no Extended Length)
     buf->write32((startsize + 4) - CIE_offset);         // CIE Pointer
-    ElfObj::reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
+#if ELFOBJ
+    buf->write32(0);                                    // address of function
+    ElfObj::addrel(dfseg, startsize + 8, R_X86_64_PC32, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
+    //ElfObj::reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
+#else
+    assert(0);                                          // not supported yet
+#endif
     buf->write32(sfunc->Ssize);                         // PC Range
     if (config.ehmethod == EH_DWARF)
     {
         buf->writeByten(4);                             // Augmentation Data Length
-        int etseg = dwarf_getsegment(except_table_name, 1);
-        Outbuffer *etbuf = SegData[etseg]->SDbuf;
+        int etseg = dwarf_getsegment_alloc(except_table_name, 1);
         buf->write32(0);                                // address of LSDA (".gcc_except_table")
-        dwarf_addrel(dfseg, buf->size() - 4, etseg, etbuf->size());      // and the fixup
+        dwarf_addrel(dfseg, buf->size() - 4, etseg, sfunc->Sfunc->LSDAoffset);      // and the fixup
     }
     else
         buf->writeByten(0);                             // Augmentation Data Length
@@ -784,9 +803,9 @@ void dwarf_initfile(const char *filename)
 {
     if (config.ehmethod == EH_DWARF)
     {
-        dwarf_getsegment(except_table_name, 1);
+        dwarf_getsegment_alloc(except_table_name, 1);
 
-        int seg = dwarf_getsegment(eh_frame_name, 1);
+        int seg = dwarf_getsegment_alloc(eh_frame_name, I64 ? 2 : 1);
         Outbuffer *buf = SegData[seg]->SDbuf;
         buf->reserve(1000);
         writeEhFrameHeader(seg, buf, getRtlsym(RTLSYM_PERSONALITY));
@@ -1269,7 +1288,7 @@ void dwarf_func_term(Symbol *sfunc)
 
     if (config.ehmethod == EH_DWARF)
     {
-        IDXSEC dfseg = dwarf_getsegment(eh_frame_name, 1);
+        IDXSEC dfseg = dwarf_getsegment_alloc(eh_frame_name, I64 ? 2 : 1);
         writeEhFrameFDE(dfseg, sfunc);
     }
     if (!config.fulltypes)
@@ -2690,9 +2709,10 @@ unsigned dwarf_abbrev_code(unsigned char *data, size_t nbytes)
  */
 void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retoffset)
 {
-    int seg = dwarf_getsegment(except_table_name, 1);
+    int seg = dwarf_getsegment_alloc(except_table_name, 1);
     Outbuffer *buf = SegData[seg]->SDbuf;
     buf->reserve(100);
+    sfunc->Sfunc->LSDAoffset = buf->size();
     genDwarfEh(sfunc, seg, buf, usednteh & EHcleanup, startoffset, retoffset);
 }
 

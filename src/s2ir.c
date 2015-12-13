@@ -971,7 +971,8 @@ public:
 
         incUsage(irs, s->loc);
         elem *e = toElemDtor(s->exp, irs);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_THROWC)),e);
+        const int rtlthrow = config.ehmethod == EH_DWARF ? RTLSYM_THROWDWARF : RTLSYM_THROWC;
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtlthrow)),e);
         block_appendexp(blx->curblock, e);
     }
 
@@ -1033,7 +1034,8 @@ public:
              * BCjcatch:
              *  __hander = __RDX;
              *  __exception_object = __RAX;
-             *  jcatchvar = *(__exception_object - Target::ptrsize)
+             *  jcatchvar = *(__exception_object - Target::ptrsize); // old way
+             *  jcatchvar = __dmd_catch_begin(__exception_object);   // new way
              *  switch (__handler)
              *      case 1:     // first catch handler
              *          *(sclosure + cs.var.offset) = cs.var;
@@ -1058,12 +1060,18 @@ public:
             elem *e1 = el_bin(OPeq, TYvoid, el_var(shandler), el_var(sedx)); // __handler = __RDX
             elem *e2 = el_bin(OPeq, TYvoid, el_var(seo), el_var(seax)); // __exception_object = __RAX
 
+#if 0
             // jcatchvar = *(__exception_object - Target::ptrsize)
             union eve c;
             memset(&c, 0, sizeof(c));
             c.Vllong = Target::ptrsize;
-            elem *e = el_bin(OPmin, TYptr, el_var(seo), el_const(TYsize_t, &c));
+            elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_const(TYsize_t, &c));
             elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock->jcatchvar), el_una(OPind, TYnptr, e));
+#else
+            //  jcatchvar = __dmd_catch_begin(__exception_object);
+            elem *e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_BEGIN_CATCH)), el_var(seo));
+            elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock->jcatchvar), e);
+#endif
 
             block *bcatch = blx->curblock;
             tryblock->appendSucc(bcatch);
@@ -1572,6 +1580,7 @@ void insertFinallyBlockCalls(block *startblock)
                     eeq->ET = e->ET;
                     eeq->E1->ET = e->ET;
                 }
+                b->Belem = eeq;
 
                 goto case_goto;
             }

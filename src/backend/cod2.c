@@ -5122,7 +5122,7 @@ code *cdddtor(elem *e,regm_t *pretregs)
 
         assert(*pretregs == 0);
         code *c = codelem(e->E1,pretregs,FALSE);
-        return c;
+        return cat(cd, c);
     }
     else
     {

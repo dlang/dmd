@@ -729,6 +729,8 @@ typedef struct FUNC_S
     Symbol **typesTable;
     size_t typesTableDim;       // number used in typesTable[]
     size_t typesTableCapacity;  // allocated capacity of typesTable[]
+
+    unsigned LSDAoffset;        // offset in LSDA segment of the LSDA data for this function
 } func_t;
 
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))

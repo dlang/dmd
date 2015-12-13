@@ -57,6 +57,7 @@ struct DwEhTable
 
     DwEhTableEntry *index(unsigned i)
     {
+        if (i >= dim) printf("i = %d dim = %d\n", i, dim);
         assert(i < dim);
         return ptr + i;
     }
@@ -70,7 +71,7 @@ struct DwEhTable
             ptr = (DwEhTableEntry *)::realloc(ptr, capacity * sizeof(DwEhTableEntry));
             assert(ptr);
         }
-        memset(ptr + dim, 0, sizeof(DwEhTable));
+        memset(ptr + dim, 0, sizeof(DwEhTableEntry));
         return dim++;
     }
 };
@@ -114,12 +115,19 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     et->reserve(100);
     block *startblock = sfunc->Sfunc->Fstartblock;
     //printf("genDwarfEh: func = %s, offset = x%x, startblock->Boffset = x%x, scancode = %d\n",
-    //  sfunc->Sident, (int)sfunc->Soffset, (int)startblock->Boffset, scancode);
+      //sfunc->Sident, (int)sfunc->Soffset, (int)startblock->Boffset, scancode);
+
+#if 0
+    printf("------- before ----------\n");
+    for (block *b = startblock; b; b = b->Bnext) WRblock(b);
+    printf("-------------------------\n");
+#endif
 
     unsigned startsize = et->size();
     assert((startsize & 3) == 0);       // should be aligned
 
     DwEhTable *deh = &dwehtable;
+    deh->dim = 0;
     Outbuffer atbuf;
     Outbuffer cstbuf;
 
@@ -153,9 +161,9 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
             d->start = b->Boffset;
 
             block *bf = b->nthSucc(1);
-            d->lpad = bf->Boffset;
             if (bf->BC == BCjcatch)
             {
+                d->lpad = bf->Boffset;
                 d->bcatch = bf;
                 unsigned *pat = bf->BS.BIJCATCH.actionTable;
                 unsigned length = pat[0];
@@ -170,6 +178,8 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
                 }
                 d->action = offset + 1;
             }
+            else
+                d->lpad = bf->nthSucc(0)->Boffset;
             d->prev = index;
             index = i;
             bprev = b->Btry;
@@ -206,6 +216,30 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     }
     //printf("deh->dim = %d\n", (int)deh->dim);
 
+#if 1
+    /* Build Call Site Table
+     * Be sure to not generate empty entries,
+     * and generate nested ranges reflecting the layout in the code.
+     */
+    assert(deh->dim);
+    unsigned end = deh->index(0)->start;
+    for (unsigned i = 0; i < deh->dim; ++i)
+    {
+        DwEhTableEntry *d = deh->index(i);
+        if (d->start < d->end)
+        {
+            unsigned CallSiteStart = d->start - startblock->Boffset;
+            cstbuf.writeuLEB128(CallSiteStart);
+            unsigned CallSiteRange = d->end - d->start;
+            cstbuf.writeuLEB128(CallSiteRange);
+            unsigned LandingPad = d->lpad - startblock->Boffset;
+            cstbuf.writeuLEB128(LandingPad);
+            unsigned ActionTable = d->action;
+            cstbuf.writeuLEB128(ActionTable);
+            //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
+        }
+    }
+#else
     /* Build Call Site Table
      * Be sure to not generate empty entries,
      * and generate multiple entries for one DwEhTableEntry if the latter
@@ -250,6 +284,7 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
             }
         } while (j--);
     }
+#endif
 
     /* Write LSDT header */
     const unsigned char LPstart = DW_EH_PE_omit;
