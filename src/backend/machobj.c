@@ -59,6 +59,7 @@
 #define X86_64_RELOC_SIGNED_1           6
 #define X86_64_RELOC_SIGNED_2           7
 #define X86_64_RELOC_SIGNED_4           8
+#define X86_64_RELOC_TLV                9 // for thread local variables
 
 static Outbuffer *fobjbuf;
 
@@ -81,6 +82,7 @@ extern int eh_frame_seg;            // segment of __eh_frame
  */
 
 symbol *GOTsym; // global offset table reference
+symbol *tlv_bootstrap_sym;
 
 symbol *Obj::getGOTsym()
 {
@@ -195,8 +197,29 @@ int seg_data::isCode()
 seg_data **SegData;
 int seg_count;
 int seg_max;
+
+/**
+ * Section index for the __thread_vars/__tls_data section.
+ *
+ * This section is used for the variable symbol for TLS variables.
+ */
 int seg_tlsseg = UNKNOWN;
+
+/**
+ * Section index for the __thread_bss section.
+ *
+ * This section is used for the data symbol ($tlv$init) for TLS variables
+ * without an initializer.
+ */
 int seg_tlsseg_bss = UNKNOWN;
+
+/**
+ * Section index for the __thread_data section.
+ *
+ * This section is used for the data symbol ($tlv$init) for TLS variables
+ * with an initializer.
+ */
+int seg_tlsseg_data = UNKNOWN;
 
 /*******************************************************
  * Because the Mach-O relocations cannot be computed until after
@@ -425,14 +448,16 @@ int Obj::data_readonly(char *p, int len)
 Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 {
     //printf("Obj::init()\n");
-    MachObj *obj = new MachObj();
+    MachObj *obj = I64 ? new MachObj64() : new MachObj();
 
     cseg = CODE;
     fobjbuf = objbuf;
 
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
+    seg_tlsseg_data = UNKNOWN;
     GOTsym = NULL;
+    tlv_bootstrap_sym = NULL;
 
     // Initialize buffers
 
@@ -1012,7 +1037,9 @@ void Obj::term(const char *objfilename)
                                 s->Sclass == SCcomdat ||
                                 s->Sclass == SCglobal)
                             {
-                                if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal || s->Sclass == SCcomdat || s->Sclass == SCcomdef) && r->rtype == RELaddr)
+                                if (I64 && (s->ty() & mTYLINK) == mTYthread && r->rtype == RELaddr)
+                                    rel.r_type = X86_64_RELOC_TLV;
+                                else if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal || s->Sclass == SCcomdat || s->Sclass == SCcomdef) && r->rtype == RELaddr)
                                 {
                                     rel.r_type = X86_64_RELOC_GOT_LOAD;
                                     if (seg == eh_frame_seg ||
@@ -1757,7 +1784,10 @@ int Obj::comdat(Symbol *s)
     {
         s->Sfl = FLtlsdata;
         align = 4;
-        s->Sseg = MachObj::getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
+        if (I64)
+            s->Sseg = tlsseg()->SDseg;
+        else
+            s->Sseg = MachObj::getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
         Obj::data_start(s, 1 << align, s->Sseg);
     }
     else
@@ -1924,7 +1954,7 @@ int Obj::codeseg(char *name,int suffix)
 }
 
 /*********************************
- * Define segments for Thread Local Storage.
+ * Define segments for Thread Local Storage for 32bit.
  * Output:
  *      seg_tlsseg      set to segment number for TLS segment.
  * Returns:
@@ -1934,12 +1964,10 @@ int Obj::codeseg(char *name,int suffix)
 seg_data *Obj::tlsseg()
 {
     //printf("Obj::tlsseg(\n");
+    assert(I32);
 
     if (seg_tlsseg == UNKNOWN)
-    {
-        int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        seg_tlsseg = MachObj::getsegment("__tls_data", "__DATA", align, S_REGULAR);
-    }
+        seg_tlsseg = MachObj::getsegment("__tls_data", "__DATA", 2, S_REGULAR);
     return SegData[seg_tlsseg];
 }
 
@@ -1954,12 +1982,33 @@ seg_data *Obj::tlsseg()
 
 seg_data *Obj::tlsseg_bss()
 {
-    /* Because Mach-O does not support tls, it's easier to support
-     * if we have all the tls in one segment.
+    assert(I32);
+
+    /* Because DMD does not support native tls for Mach-O 32bit,
+     * it's easier to support if we have all the tls in one segment.
      */
     return Obj::tlsseg();
 }
 
+/*********************************
+ * Define segments for Thread Local Storage data.
+ * Output:
+ *      seg_tlsseg_data    set to segment number for TLS data segment.
+ * Returns:
+ *      segment for TLS data segment
+ */
+
+seg_data *Obj::tlsseg_data()
+{
+    //printf("Obj::tlsseg_data(\n");
+    assert(I64);
+
+    // The alignment should actually be alignment of the largest variable in
+    // the section, but this seems to work anyway.
+    if (seg_tlsseg_data == UNKNOWN)
+        seg_tlsseg_data = MachObj::getsegment("__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
+    return SegData[seg_tlsseg_data];
+}
 
 /*******************************
  * Output an alias definition record.
@@ -2096,7 +2145,7 @@ int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
 
-    //printf("Obj::data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
+    //printf("Obj::data_start(%s,size %llu,seg %d)\n",sdata->Sident,datasize,seg);
     //symbol_print(sdata);
 
     assert(sdata->Sseg);
@@ -2359,7 +2408,7 @@ unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (buf == NULL)
     {
-        //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
+        //dbg_printf("Obj::bytes(seg=%d, offset=x%llx, nbytes=%d, p=%p)\n", seg, offset, nbytes, p);
         //raise(SIGSEGV);
 if (!buf) halt();
         assert(buf != NULL);
@@ -2800,6 +2849,61 @@ void Obj::gotref(symbol *s)
         default:
             break;
     }
+}
+
+/**
+ * Returns the symbol for the __tlv_bootstrap function.
+ *
+ * This function is used in the implementation of native thread local storage.
+ * It's used as a placeholder in the TLV descriptors. The dynamic linker will
+ * replace the placeholder with a real function at load time.
+ */
+symbol *Obj::tlv_bootstrap()
+{
+    if (!tlv_bootstrap_sym)
+        tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
+    return tlv_bootstrap_sym;
+}
+
+MachObj64::MachObj64()
+{
+    assert(I64);
+}
+
+/*********************************
+ * Define segments for Thread Local Storage variables.
+ * Output:
+ *      seg_tlsseg      set to segment number for TLS variables segment.
+ * Returns:
+ *      segment for TLS variables segment
+ */
+
+seg_data *MachObj64::tlsseg()
+{
+    //printf("MachObj64::tlsseg(\n");
+
+    if (seg_tlsseg == UNKNOWN)
+        seg_tlsseg = MachObj::getsegment("__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
+    return SegData[seg_tlsseg];
+}
+
+/*********************************
+ * Define segments for Thread Local Storage.
+ * Output:
+ *      seg_tlsseg_bss  set to segment number for TLS data segment.
+ * Returns:
+ *      segment for TLS segment
+ */
+
+seg_data *MachObj64::tlsseg_bss()
+{
+    //printf("MachObj64::tlsseg_bss(\n");
+
+    // The alignment should actually be alignment of the largest variable in
+    // the section, but this seems to work anyway.
+    if (seg_tlsseg_bss == UNKNOWN)
+        seg_tlsseg_bss = MachObj::getsegment("__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
+    return SegData[seg_tlsseg_bss];
 }
 
 /******************************************

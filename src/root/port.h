@@ -61,6 +61,7 @@ struct Port
     static void yl2xp1_impl(longdouble* x, longdouble* y, longdouble* res);
 
     static char *strupr(char *);
+    static char *concat(const char *str1, unsigned int str1Len, const char *str2, unsigned int str2Len);
 
     static int memicmp(const char *s1, const char *s2, int n);
     static int stricmp(const char *s1, const char *s2);

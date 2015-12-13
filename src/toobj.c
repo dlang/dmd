@@ -41,6 +41,7 @@
 #include "outbuf.h"
 #include "irstate.h"
 #include "objc.h"
+#include "mach.h"
 
 extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
@@ -960,28 +961,12 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             } while (parent);
             s->Sfl = FLdata;
 
-            if (vd->_init)
+            if (config.objfmt == OBJ_MACH && I64 && (s->ty() & mTYLINK) == mTYthread)
+                tlsToDt(vd, s);
+
+            else if (vd->_init)
             {
-                Initializer_toDt(vd->_init, &s->Sdt);
-
-                // Look for static array that is block initialized
-                ExpInitializer *ie = vd->_init->isExpInitializer();
-
-                Type *tb = vd->type->toBasetype();
-                if (tb->ty == Tsarray && ie &&
-                    !tb->nextOf()->equals(ie->exp->type->toBasetype()->nextOf()) &&
-                    ie->exp->implicitConvTo(tb->nextOf())
-                    )
-                {
-                    size_t dim = ((TypeSArray *)tb)->dim->toInteger();
-
-                    // Duplicate Sdt 'dim-1' times, as we already have the first one
-                    dt_t **pdt = &s->Sdt;
-                    while (--dim > 0)
-                    {
-                        pdt = Expression_toDt(ie->exp, pdt);
-                    }
-                }
+                initializerToDt(vd, &s->Sdt);
             }
             else
             {
@@ -1208,6 +1193,138 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         s->accept(this);
                     }
                 }
+            }
+        }
+
+    private:
+        void initializerToDt(VarDeclaration *vd, dt_t **pdt)
+        {
+            Initializer_toDt(vd->_init, pdt);
+
+            // Look for static array that is block initialized
+            ExpInitializer *ie = vd->_init->isExpInitializer();
+
+            Type *tb = vd->type->toBasetype();
+            if (tb->ty == Tsarray && ie &&
+                !tb->nextOf()->equals(ie->exp->type->toBasetype()->nextOf()) &&
+                ie->exp->implicitConvTo(tb->nextOf())
+                )
+            {
+                size_t dim = ((TypeSArray *)tb)->dim->toInteger();
+
+                // Duplicate Sdt 'dim-1' times, as we already have the first one
+                while (--dim > 0)
+                {
+                    pdt = Expression_toDt(ie->exp, pdt);
+                }
+            }
+        }
+
+        /**
+         * Output a TLS symbol for Mach-O.
+         *
+         * A TLS variable in the Mach-O format consists of two symbols.
+         * One symbol for the data, which contains the initializer, if any.
+         * The name of this symbol is the same as the variable, but with the
+         * "$tlv$init" suffix. If the variable has an initializer it's placed in
+         * the __thread_data section. Otherwise it's placed in the __thread_bss
+         * section.
+         *
+         * The other symbol is for the TLV descriptor. The symbol has the same
+         * name as the variable and is placed in the __thread_vars section.
+         * A TLV descriptor has the following structure, where T is the type of
+         * the variable:
+         *
+         * struct TLVDescriptor(T)
+         * {
+         *     extern(C) T* function(TLVDescriptor*) thunk;
+         *     size_t key;
+         *     size_t offset;
+         * }
+         *
+         * Input:
+         *      vd  the variable declaration for the symbol
+         *      s   the symbol to output
+         */
+        void tlsToDt(VarDeclaration *vd, Symbol *s)
+        {
+            assert(config.objfmt == OBJ_MACH && I64 && (s->ty() & mTYLINK) == mTYthread);
+
+            Symbol *tlvInit = createTLVDataSymbol(vd, s);
+
+            if (vd->_init)
+                initializerToDt(vd, &tlvInit->Sdt);
+            else
+                Type_toDt(vd->type, &tlvInit->Sdt);
+
+            outdata(tlvInit);
+
+            if (I64)
+                tlvInit->Sclass = SCextern;
+
+            Symbol* tlvBootstrap = objmod->tlv_bootstrap();
+            dtxoff(&s->Sdt, tlvBootstrap, 0, TYnptr);
+            dtsize_t(&s->Sdt, 0);
+            dtxoff(&s->Sdt, tlvInit, 0, TYnptr);
+        }
+
+        /**
+         * Creates the data symbol for a TLS variable for Mach-O.
+         *
+         * Input:
+         *      vd  the variable declaration for the symbol
+         *      s   the regular symbol for the variable
+         *
+         * Returns: the newly create symbol
+         */
+        Symbol *createTLVDataSymbol(VarDeclaration *vd, Symbol *s)
+        {
+            assert(config.objfmt == OBJ_MACH && I64 && (s->ty() & mTYLINK) == mTYthread);
+
+            const char *tlvInitName = Port::concat(s->Sident, strlen(s->Sident), "$tlv$init", 9);
+            Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, type_fake(vd->type->ty));
+            tlvInit->Sdt = NULL;
+            tlvInit->Salignment = type_alignsize(s->Stype);
+
+            type_setty(&tlvInit->Stype, tlvInit->Stype->Tty | mTYthreadData);
+            type_setmangle(&tlvInit->Stype, mangle(vd, tlvInit));
+
+            return tlvInit;
+        }
+
+        /**
+         * Returns the mangling for the given variable.
+         *
+         * Input:
+         *      vd          the variable declaration for the symbol
+         *      tlvInit     the data symbol for the variable
+         *
+         * Returns: the mangling that should be used for variable
+         */
+        mangle_t mangle(VarDeclaration *vd, Symbol *tlvInit)
+        {
+            switch (vd->linkage)
+            {
+                case LINKwindows:
+                    return global.params.is64bit ? mTYman_c : mTYman_std;
+
+                case LINKpascal:
+                    return mTYman_pas;
+
+                case LINKobjc:
+                case LINKc:
+                    return mTYman_c;
+
+                case LINKd:
+                    return mTYman_d;
+
+                case LINKcpp:
+                    tlvInit->Sflags |= SFLpublic;
+                    return mTYman_d;
+                default:
+                    printf("linkage = %d\n", vd->linkage);
+                    assert(0);
+                    return 0;
             }
         }
     };
