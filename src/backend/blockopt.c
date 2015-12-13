@@ -357,7 +357,9 @@ void block_free(block *b)
             break;
 #endif
         case BCjcatch:
+#if MARS
             free(b->BS.BIJCATCH.actionTable);
+#endif
             break;
         case BCasm:
             code_free(b->Bcode);
