@@ -2060,6 +2060,12 @@ seg_data *Obj::tlsseg()
     return SegData[obj.tlssegi];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 /********************************
  * Define a far data segment.
@@ -3677,6 +3683,12 @@ void Obj::fltused()
     }
 }
 
+symbol *Obj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 /****************************************
  * Find longest match of pattern[] in dict[].
