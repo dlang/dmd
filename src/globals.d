@@ -114,6 +114,7 @@ struct Param
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
+    bool dwarfeh;           // generate dwarf eh exception handling
 
     BOUNDSCHECK useArrayBounds;
 
