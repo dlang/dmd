@@ -866,6 +866,7 @@ class Foo35
                 //writefln("y = %s", y);
                 assert(x == 42);
                 assert(y == 43);
+                static assert(is(typeof(this.outer) == void*)); // Bugzilla 14442
             }
         };
     }
