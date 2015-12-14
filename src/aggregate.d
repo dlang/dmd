@@ -620,19 +620,20 @@ public:
             return;
 
         // If nested struct, add in hidden 'this' pointer to outer scope
-        Dsymbol s = toParent2();
+        auto s = toParent2();
         if (!s)
             return;
-        AggregateDeclaration ad = s.isAggregateDeclaration();
-        FuncDeclaration fd = s.isFuncDeclaration();
         Type t = null;
-        if (fd)
+        if (auto fd = s.isFuncDeclaration())
         {
             enclosing = fd;
-            AggregateDeclaration agg = fd.isMember2();
-            t = agg ? agg.handleType() : Type.tvoidptr;
+
+            /* Bugzilla 14422: If a nested class parent is a function, its
+             * context pointer (== `outer`) should be void* always.
+             */
+            t = Type.tvoidptr;
         }
-        else if (ad)
+        else if (auto ad = s.isAggregateDeclaration())
         {
             if (isClassDeclaration() && ad.isClassDeclaration())
             {
@@ -640,7 +641,7 @@ public:
             }
             else if (isStructDeclaration())
             {
-                if (TemplateInstance ti = ad.parent.isTemplateInstance())
+                if (auto ti = ad.parent.isTemplateInstance())
                 {
                     enclosing = ti.enclosing;
                 }
