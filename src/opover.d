@@ -1238,10 +1238,15 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return;
                 }
 
-                /* Rewrite:
+                /* Do memberwise equality.
+                 * Rewrite:
                  *      e1 == e2
                  * as:
                  *      e1.tupleof == e2.tupleof
+                 *
+                 * If sd is a nested struct, and if it's nested in a class, it will
+                 * also compare the parent class's equality. Otherwise, compares
+                 * the identity of parent context through void*.
                  */
                 if (e.att1 && t1 == e.att1) return;
                 if (e.att2 && t2 == e.att2) return;

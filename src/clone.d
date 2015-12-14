@@ -224,7 +224,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     else if (sd.dtor || sd.postblit)
     {
-        /* Do swap this and rhs
+        /* Do swap this and rhs.
          *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
@@ -254,7 +254,12 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     else
     {
-        /* Do memberwise copy
+        /* Do memberwise copy.
+         *
+         * If sd is a nested struct, its vthis field assignment is:
+         * 1. If it's nested in a class, it's a rebind of class reference.
+         * 2. If it's nested in a function or struct, it's an update of void*.
+         * In both cases, it will change the parent context.
          */
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < sd.fields.dim; i++)
@@ -412,7 +417,7 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
  * By fixing bugzilla 3789, opEquals is changed to be never implicitly generated.
  * Now, struct objects comparison s1 == s2 is translated to:
  *      s1.tupleof == s2.tupleof
- * to calculate structural equality. See EqualExp::semantic.
+ * to calculate structural equality. See EqualExp.op_overload.
  */
 extern (C++) FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
 {
@@ -626,6 +631,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
         goto Lneed;
     if (sd.isUnionDeclaration())
         goto Ldontneed;
+
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
@@ -697,7 +703,17 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINKd, STCnothrow | STCtrusted);
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
-    const(char)* code = "size_t h = 0;foreach (i, T; typeof(p.tupleof))    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);return h;";
+
+    /* Do memberwise hashing.
+     *
+     * If sd is a nested struct, and if it's nested in a class, the calculated
+     * hash value will also contain the result of parent class's toHash().
+     */
+    const(char)* code =
+        "size_t h = 0;" ~
+        "foreach (i, T; typeof(p.tupleof))" ~
+        "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
+        "return h;";
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
     Scope* sc2 = sc.push();
     sc2.stc = 0;
