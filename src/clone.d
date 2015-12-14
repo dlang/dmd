@@ -244,7 +244,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     else if (sd.dtor || sd.postblit)
     {
-        /* Do swap this and rhs
+        /* Do swap this and rhs.
          *    __swap = this; this = s; __swap.dtor();
          */
         //printf("\tswap copy\n");
@@ -274,7 +274,12 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     else
     {
-        /* Do memberwise copy
+        /* Do memberwise copy.
+         *
+         * If sd is a nested struct, its vthis field assignment is:
+         * 1. If it's nested in a class, it's a rebind of class reference.
+         * 2. If it's nested in a function or struct, it's an update of void*.
+         * In both cases, it will change the parent context.
          */
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < sd.fields.dim; i++)
@@ -441,7 +446,7 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
  * By fixing bugzilla 3789, opEquals is changed to be never implicitly generated.
  * Now, struct objects comparison s1 == s2 is translated to:
  *      s1.tupleof == s2.tupleof
- * to calculate structural equality. See EqualExp::semantic.
+ * to calculate structural equality. See EqualExp.op_overload.
  */
 extern (C++) FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
 {
@@ -673,7 +678,7 @@ extern (C++) bool needToHash(StructDeclaration sd)
     if (sd.isUnionDeclaration())
         goto Ldontneed;
 
-    /* If any of the fields has an opEquals, then we
+    /* If any of the fields has a toHash, then we
      * need it too.
      */
     for (size_t i = 0; i < sd.fields.dim; i++)
@@ -751,6 +756,11 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
+    /* Do memberwise hashing.
+     *
+     * If sd is a nested struct, and if it's nested in a class, the calculated
+     * hash value will also contain the result of parent class's toHash().
+     */
     const(char)* code =
         "size_t h = 0;"~
         "foreach (i, T; typeof(p.tupleof))"~

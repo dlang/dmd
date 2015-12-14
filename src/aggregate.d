@@ -608,6 +608,8 @@ public:
         return enclosing !is null;
     }
 
+    /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
+     */
     final void makeNested()
     {
         if (enclosing) // if already nested
