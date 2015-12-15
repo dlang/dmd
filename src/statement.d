@@ -2023,7 +2023,11 @@ public:
 
     override Statement syntaxCopy()
     {
-        return new ForeachStatement(loc, op, Parameter.arraySyntaxCopy(parameters), aggr.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new ForeachStatement(loc, op,
+            Parameter.arraySyntaxCopy(parameters),
+            aggr.syntaxCopy(),
+            _body ? _body.syntaxCopy() : null,
+            endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -2034,11 +2038,14 @@ public:
         size_t dim = parameters.dim;
         TypeAArray taa = null;
         Dsymbol sapply = null;
+
         Type tn = null;
         Type tnv = null;
+
         func = sc.func;
         if (func.fes)
             func = func.fes.func;
+
         VarDeclaration vinit = null;
         aggr = aggr.semantic(sc);
         aggr = resolveProperties(sc, aggr);
@@ -2046,7 +2053,8 @@ public:
         if (aggr.op == TOKerror)
             return new ErrorStatement();
         Expression oaggr = aggr;
-        if (aggr.type && aggr.type.toBasetype().ty == Tstruct && aggr.op != TOKtype && !aggr.isLvalue())
+        if (aggr.type && aggr.type.toBasetype().ty == Tstruct &&
+            aggr.op != TOKtype && !aggr.isLvalue())
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
             vinit = new VarDeclaration(loc, aggr.type, Identifier.generateId("__aggr"), new ExpInitializer(loc, aggr));
@@ -2054,6 +2062,7 @@ public:
             vinit.semantic(sc);
             aggr = new VarExp(aggr.loc, vinit);
         }
+
         if (!inferAggregate(this, sc, sapply))
         {
             const(char)* msg = "";
@@ -2064,7 +2073,9 @@ public:
             error("invalid foreach aggregate %s%s", oaggr.toChars(), msg);
             return new ErrorStatement();
         }
+
         Dsymbol sapplyOld = sapply; // 'sapply' will be NULL if and after 'inferApplyArgTypes' errors
+
         /* Check for inference errors
          */
         if (!inferApplyArgTypes(this, sc, sapply))
@@ -2081,11 +2092,14 @@ public:
                 {
                     int fvarargs; // ignored (opApply shouldn't take variadics)
                     Parameters* fparameters = fd.getParameters(&fvarargs);
+
                     if (Parameter.dim(fparameters) == 1)
                     {
                         // first param should be the callback function
                         Parameter fparam = Parameter.getNth(fparameters, 0);
-                        if ((fparam.type.ty == Tpointer || fparam.type.ty == Tdelegate) && fparam.type.nextOf().ty == Tfunction)
+                        if ((fparam.type.ty == Tpointer ||
+                             fparam.type.ty == Tdelegate) &&
+                            fparam.type.nextOf().ty == Tfunction)
                         {
                             TypeFunction tf = cast(TypeFunction)fparam.type.nextOf();
                             foreachParamCount = Parameter.dim(tf.parameters);
@@ -2094,17 +2108,22 @@ public:
                     }
                 }
             }
+
             //printf("dim = %d, parameters->dim = %d\n", dim, parameters->dim);
             if (foundMismatch && dim != foreachParamCount)
             {
                 const(char)* plural = foreachParamCount > 1 ? "s" : "";
-                error("cannot infer argument types, expected %d argument%s, not %d", foreachParamCount, plural, dim);
+                error("cannot infer argument types, expected %d argument%s, not %d",
+                    foreachParamCount, plural, dim);
             }
             else
                 error("cannot uniquely infer foreach argument types");
+
             return new ErrorStatement();
         }
+
         Type tab = aggr.type.toBasetype();
+
         if (tab.ty == Ttuple) // don't generate new scope for tuple loops
         {
             if (dim < 1 || dim > 2)
@@ -2112,6 +2131,7 @@ public:
                 error("only one (value) or two (key,value) arguments for tuple foreach");
                 return new ErrorStatement();
             }
+
             Type paramtype = (*parameters)[dim - 1].type;
             if (paramtype)
             {
@@ -2119,6 +2139,7 @@ public:
                 if (paramtype.ty == Terror)
                     return new ErrorStatement();
             }
+
             TypeTuple tuple = cast(TypeTuple)tab;
             auto statements = new Statements();
             //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
@@ -2146,6 +2167,7 @@ public:
                     t = Parameter.getNth(tuple.arguments, k).type;
                 Parameter p = (*parameters)[0];
                 auto st = new Statements();
+
                 if (dim == 2)
                 {
                     // Declare key
@@ -2179,7 +2201,8 @@ public:
                     p = (*parameters)[1]; // value
                 }
                 // Declare value
-                if (p.storageClass & (STCout | STClazy) || p.storageClass & STCref && !te)
+                if (p.storageClass & (STCout | STClazy) ||
+                    p.storageClass & STCref && !te)
                 {
                     error("no storage class for value %s", p.ident.toChars());
                     return new ErrorStatement();
@@ -2197,9 +2220,10 @@ public:
                         ds = (cast(ScopeExp)e).sds;
                     else if (e.op == TOKfunction)
                     {
-                        FuncExp fe = cast(FuncExp)e;
+                        auto fe = cast(FuncExp)e;
                         ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                     }
+
                     if (ds)
                     {
                         var = new AliasDeclaration(loc, p.ident, ds);
@@ -2232,7 +2256,10 @@ public:
                         auto v = new VarDeclaration(loc, p.type, p.ident, ie);
                         if (p.storageClass & STCref)
                             v.storage_class |= STCref | STCforeach;
-                        if (e.isConst() || e.op == TOKstring || e.op == TOKstructliteral || e.op == TOKarrayliteral)
+                        if (e.isConst() ||
+                            e.op == TOKstring ||
+                            e.op == TOKstructliteral ||
+                            e.op == TOKarrayliteral)
                         {
                             if (v.storage_class & STCref)
                             {
@@ -2255,11 +2282,13 @@ public:
                     }
                 }
                 st.push(new ExpStatement(loc, var));
+
                 st.push(_body.syntaxCopy());
                 s = new CompoundStatement(loc, st);
                 s = new ScopeStatement(loc, s);
                 statements.push(s);
             }
+
             s = new UnrolledLoopStatement(loc, statements);
             if (LabelStatement ls = checkLabeledLoop(sc, this))
                 ls.gotoTarget = s;
@@ -2270,10 +2299,13 @@ public:
             s = s.semantic(sc);
             return s;
         }
+
         sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
+
         sc.noctor++;
+
         switch (tab.ty)
         {
         case Tarray:
@@ -2281,11 +2313,13 @@ public:
             {
                 if (checkForArgTypes())
                     return this;
+
                 if (dim < 1 || dim > 2)
                 {
                     error("only one or two arguments for array foreach");
                     goto Lerror2;
                 }
+
                 /* Look for special case of parsing char types out of char type
                  * array.
                  */
@@ -2297,7 +2331,8 @@ public:
                     p.type = p.type.semantic(loc, sc);
                     p.type = p.type.addStorageClass(p.storageClass);
                     tnv = p.type.toBasetype();
-                    if (tnv.ty != tn.ty && (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
+                    if (tnv.ty != tn.ty &&
+                        (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
                     {
                         if (p.storageClass & STCref)
                         {
@@ -2316,6 +2351,7 @@ public:
                         goto Lapply;
                     }
                 }
+
                 foreach (i; 0 .. dim)
                 {
                     // Declare parameterss
@@ -2323,18 +2359,21 @@ public:
                     p.type = p.type.semantic(loc, sc);
                     p.type = p.type.addStorageClass(p.storageClass);
                     VarDeclaration var;
+
                     if (dim == 2 && i == 0)
                     {
                         var = new VarDeclaration(loc, p.type.mutableOf(), Identifier.generateId("__key"), null);
                         var.storage_class |= STCtemp | STCforeach;
                         if (var.storage_class & (STCref | STCout))
                             var.storage_class |= STCnodtor;
+
                         key = var;
                         if (p.storageClass & STCref)
                         {
                             if (var.type.constConv(p.type) <= MATCHnomatch)
                             {
-                                error("key type mismatch, %s to ref %s", var.type.toChars(), p.type.toChars());
+                                error("key type mismatch, %s to ref %s",
+                                    var.type.toChars(), p.type.toChars());
                                 goto Lerror2;
                             }
                         }
@@ -2344,7 +2383,8 @@ public:
                             IntRange dimrange = getIntRange(ta.dim);
                             if (!IntRange.fromType(var.type).contains(dimrange))
                             {
-                                error("index type '%s' cannot cover index range 0..%llu", p.type.toChars(), ta.dim.toInteger());
+                                error("index type '%s' cannot cover index range 0..%llu",
+                                    p.type.toChars(), ta.dim.toInteger());
                                 goto Lerror2;
                             }
                             key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
@@ -2357,20 +2397,24 @@ public:
                         var.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
                         if (var.storage_class & (STCref | STCout))
                             var.storage_class |= STCnodtor;
+
                         value = var;
                         if (var.storage_class & STCref)
                         {
                             if (aggr.checkModifiable(sc, 1) == 2)
                                 var.storage_class |= STCctorinit;
+
                             Type t = tab.nextOf();
                             if (t.constConv(p.type) <= MATCHnomatch)
                             {
-                                error("argument type mismatch, %s to ref %s", t.toChars(), p.type.toChars());
+                                error("argument type mismatch, %s to ref %s",
+                                    t.toChars(), p.type.toChars());
                                 goto Lerror2;
                             }
                         }
                     }
                 }
+
                 /* Convert to a ForStatement
                  *   foreach (key, value; a) body =>
                  *   for (T[] tmp = a[], size_t key; key < tmp.length; ++key)
@@ -2383,18 +2427,22 @@ public:
                 Identifier id = Identifier.generateId("__r");
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, aggr, null, null));
                 VarDeclaration tmp;
-                if (aggr.op == TOKarrayliteral && !((*parameters)[dim - 1].storageClass & STCref))
+                if (aggr.op == TOKarrayliteral &&
+                    !((*parameters)[dim - 1].storageClass & STCref))
                 {
-                    ArrayLiteralExp ale = cast(ArrayLiteralExp)aggr;
+                    auto ale = cast(ArrayLiteralExp)aggr;
                     size_t edim = ale.elements ? ale.elements.dim : 0;
                     aggr.type = tab.nextOf().sarrayOf(edim);
+
                     // for (T[edim] tmp = a, ...)
                     tmp = new VarDeclaration(loc, aggr.type, id, ie);
                 }
                 else
                     tmp = new VarDeclaration(loc, tab.nextOf().arrayOf(), id, ie);
                 tmp.storage_class |= STCtemp;
+
                 Expression tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id.length);
+
                 if (!key)
                 {
                     Identifier idkey = Identifier.generateId("__key");
@@ -2405,12 +2453,14 @@ public:
                     key._init = new ExpInitializer(loc, tmp_length);
                 else
                     key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, key.type));
+
                 auto cs = new Statements();
                 if (vinit)
                     cs.push(new ExpStatement(loc, vinit));
                 cs.push(new ExpStatement(loc, tmp));
                 cs.push(new ExpStatement(loc, key));
                 Statement forinit = new CompoundDeclarationStatement(loc, cs);
+
                 Expression cond;
                 if (op == TOKforeach_reverse)
                 {
@@ -2422,15 +2472,18 @@ public:
                     // key < tmp.length
                     cond = new CmpExp(TOKlt, loc, new VarExp(loc, key), tmp_length);
                 }
+
                 Expression increment = null;
                 if (op == TOKforeach)
                 {
                     // key += 1
                     increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(loc, 1, key.type));
                 }
+
                 // T value = tmp[key];
                 value._init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
                 Statement ds = new ExpStatement(loc, value);
+
                 if (dim == 2)
                 {
                     Parameter p = (*parameters)[0];
@@ -2455,6 +2508,7 @@ public:
                     }
                 }
                 _body = new CompoundStatement(loc, ds, _body);
+
                 s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
                 if (LabelStatement ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
@@ -2466,6 +2520,7 @@ public:
                 warning("cannot use foreach_reverse with an associative array");
             if (checkForArgTypes())
                 return this;
+
             taa = cast(TypeAArray)tab;
             if (dim < 1 || dim > 2)
             {
@@ -2473,6 +2528,7 @@ public:
                 goto Lerror2;
             }
             goto Lapply;
+
         case Tclass:
         case Tstruct:
             /* Prefer using opApply, if it exists
@@ -2489,7 +2545,9 @@ public:
                  *        ...
                  *    }
                  */
-                AggregateDeclaration ad = (tab.ty == Tclass) ? cast(AggregateDeclaration)(cast(TypeClass)tab).sym : cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
+                AggregateDeclaration ad = (tab.ty == Tclass) ?
+                    cast(AggregateDeclaration)(cast(TypeClass)tab).sym :
+                    cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
                 Identifier idfront;
                 Identifier idpopFront;
                 if (op == TOKforeach)
@@ -2505,6 +2563,7 @@ public:
                 Dsymbol sfront = ad.search(Loc(), idfront);
                 if (!sfront)
                     goto Lapply;
+
                 /* Generate a temporary __r and initialize it with the aggregate.
                  */
                 VarDeclaration r;
@@ -2516,20 +2575,23 @@ public:
                 }
                 else
                 {
-                    Identifier rid = Identifier.generateId("__r");
+                    auto rid = Identifier.generateId("__r");
                     r = new VarDeclaration(loc, null, rid, new ExpInitializer(loc, aggr));
                     r.storage_class |= STCtemp;
                     _init = new ExpStatement(loc, r);
                     if (vinit)
                         _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
                 }
+
                 // !__r.empty
                 Expression e = new VarExp(loc, r);
                 e = new DotIdExp(loc, e, Id.Fempty);
                 Expression condition = new NotExp(loc, e);
+
                 // __r.idpopFront()
                 e = new VarExp(loc, r);
                 Expression increment = new CallExp(loc, new DotIdExp(loc, e, idpopFront));
+
                 /* Declaration statement for e:
                  *    auto e = __r.idfront;
                  */
@@ -2542,6 +2604,7 @@ public:
                     auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
                     ve.storage_class |= STCforeach;
                     ve.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+
                     makeargs = new ExpStatement(loc, ve);
                 }
                 else
@@ -2550,9 +2613,11 @@ public:
                     auto ei = new ExpInitializer(loc, einit);
                     auto vd = new VarDeclaration(loc, null, id, ei);
                     vd.storage_class |= STCtemp | STCctfe | STCref | STCforeach;
+
                     makeargs = new ExpStatement(loc, vd);
-                    Declaration d = sfront.isDeclaration();
-                    if (FuncDeclaration f = d.isFuncDeclaration())
+
+                    auto d = sfront.isDeclaration();
+                    if (auto f = d.isFuncDeclaration())
                     {
                         if (!f.functionSemantic())
                             goto Lrangeerr;
@@ -2563,8 +2628,10 @@ public:
                         ve.type = ve.type.toBasetype().nextOf();
                     if (!ve.type || ve.type.ty == Terror)
                         goto Lrangeerr;
+
                     // Resolve inout qualifier of front type
                     ve.type = ve.type.substWildTo(tab.mod);
+
                     auto exps = new Expressions();
                     exps.push(ve);
                     int pos = 0;
@@ -2577,31 +2644,39 @@ public:
                     if (exps.dim != dim)
                     {
                         const(char)* plural = exps.dim > 1 ? "s" : "";
-                        error("cannot infer argument types, expected %d argument%s, not %d", exps.dim, plural, dim);
+                        error("cannot infer argument types, expected %d argument%s, not %d",
+                            exps.dim, plural, dim);
                         goto Lerror2;
                     }
+
                     foreach (i; 0 .. dim)
                     {
                         Parameter p = (*parameters)[i];
                         Expression exp = (*exps)[i];
                         version (none)
                         {
-                            printf("[%d] p = %s %s, exp = %s %s\n", i, p.type ? p.type.toChars() : "?", p.ident.toChars(), exp.type.toChars(), exp.toChars());
+                            printf("[%d] p = %s %s, exp = %s %s\n", i,
+                                p.type ? p.type.toChars() : "?", p.ident.toChars(),
+                                exp.type.toChars(), exp.toChars());
                         }
                         if (!p.type)
                             p.type = exp.type;
                         p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc);
                         if (!exp.implicitConvTo(p.type))
                             goto Lrangeerr;
+
                         auto var = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, exp));
                         var.storage_class |= STCctfe | STCref | STCforeach;
                         makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, var));
                     }
                 }
+
                 forbody = new CompoundStatement(loc, makeargs, this._body);
+
                 s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
                 if (LabelStatement ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
+
                 version (none)
                 {
                     printf("init: %s\n", _init.toChars());
@@ -2611,6 +2686,7 @@ public:
                 }
                 s = s.semantic(sc);
                 break;
+
             Lrangeerr:
                 error("cannot infer argument types");
                 goto Lerror2;
@@ -2625,6 +2701,7 @@ public:
                     _body = _body.semanticNoScope(sc);
                     return this;
                 }
+
                 TypeFunction tfld = null;
                 if (sapply)
                 {
@@ -2652,6 +2729,7 @@ public:
                         }
                     }
                 }
+
                 /* Turn body into the function literal:
                  *  int delegate(ref T param) { body }
                  */
@@ -2661,6 +2739,7 @@ public:
                     Parameter p = (*parameters)[i];
                     StorageClass stc = STCref;
                     Identifier id;
+
                     p.type = p.type.semantic(loc, sc);
                     p.type = p.type.addStorageClass(p.storageClass);
                     if (tfld)
@@ -2691,6 +2770,7 @@ public:
                         // a reference.
                     LcopyArg:
                         id = Identifier.generateId("__applyArg", cast(int)i);
+
                         Initializer ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
                         auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
                         v.storage_class |= STCtemp;
@@ -2709,6 +2789,7 @@ public:
                 Expression flde = new FuncExp(loc, fld);
                 flde = flde.semantic(sc);
                 fld.tookAddressOf = 0;
+
                 // Resolve any forward referenced goto's
                 foreach (i; 0 .. gotos.dim)
                 {
@@ -2721,6 +2802,7 @@ public:
                         (*gotos)[i].statement = s;
                     }
                 }
+
                 Expression e = null;
                 Expression ec;
                 if (vinit)
@@ -2730,6 +2812,7 @@ public:
                     if (e.op == TOKerror)
                         goto Lerror2;
                 }
+
                 if (taa)
                 {
                     // Check types
@@ -2741,7 +2824,8 @@ public:
                         Type ti = (isRef ? taa.index.addMod(MODconst) : taa.index);
                         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
                         {
-                            error("foreach: index must be type %s, not %s", ti.toChars(), ta.toChars());
+                            error("foreach: index must be type %s, not %s",
+                                ti.toChars(), ta.toChars());
                             goto Lerror2;
                         }
                         p = (*parameters)[1];
@@ -2751,9 +2835,11 @@ public:
                     Type taav = taa.nextOf();
                     if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
                     {
-                        error("foreach: value must be type %s, not %s", taav.toChars(), ta.toChars());
+                        error("foreach: value must be type %s, not %s",
+                            taav.toChars(), ta.toChars());
                         goto Lerror2;
                     }
+
                     /* Call:
                      *  extern(C) int _aaApply(void*, in size_t, int delegate(void*))
                      *      _aaApply(aggr, keysize, flde)
@@ -2764,6 +2850,7 @@ public:
                     static __gshared const(char)** name = ["_aaApply", "_aaApply2"];
                     static __gshared FuncDeclaration* fdapply = [null, null];
                     static __gshared TypeDelegate* fldeTy = [null, null];
+
                     ubyte i = (dim == 2 ? 1 : 0);
                     if (!fdapply[i])
                     {
@@ -2778,6 +2865,7 @@ public:
                         params.push(new Parameter(0, fldeTy[i], null, null));
                         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
                     }
+
                     auto exps = new Expressions();
                     exps.push(aggr);
                     size_t keysize = cast(size_t)taa.index.size();
@@ -2799,41 +2887,37 @@ public:
                     /* Call:
                      *      _aApply(aggr, flde)
                      */
-                    static __gshared const(char)** fntab = ["cc", "cw", "cd", "wc", "cc", "wd", "dc", "dw", "dd"];
+                    static __gshared const(char)** fntab =
+                    [
+                        "cc", "cw", "cd",
+                        "wc", "cc", "wd",
+                        "dc", "dw", "dd"
+                    ];
+
                     const(size_t) BUFFER_LEN = 7 + 1 + 2 + dim.sizeof * 3 + 1;
                     char[BUFFER_LEN] fdname;
                     int flag;
+
                     switch (tn.ty)
                     {
-                    case Tchar:
-                        flag = 0;
-                        break;
-                    case Twchar:
-                        flag = 3;
-                        break;
-                    case Tdchar:
-                        flag = 6;
-                        break;
+                        case Tchar:     flag = 0;   break;
+                        case Twchar:    flag = 3;   break;
+                        case Tdchar:    flag = 6;   break;
                     default:
                         assert(0);
                     }
                     switch (tnv.ty)
                     {
-                    case Tchar:
-                        flag += 0;
-                        break;
-                    case Twchar:
-                        flag += 1;
-                        break;
-                    case Tdchar:
-                        flag += 2;
-                        break;
+                        case Tchar:     flag += 0;  break;
+                        case Twchar:    flag += 1;  break;
+                        case Tdchar:    flag += 2;  break;
                     default:
                         assert(0);
                     }
                     const(char)* r = (op == TOKforeach_reverse) ? "R" : "";
                     int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
                     assert(j < BUFFER_LEN);
+
                     FuncDeclaration fdapply;
                     TypeDelegate dgty;
                     params = new Parameters();
@@ -2845,6 +2929,7 @@ public:
                     dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
                     params.push(new Parameter(0, dgty, null, null));
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
+
                     if (tab.ty == Tsarray)
                         aggr = aggr.castTo(sc, tn.arrayOf());
                     // paint delegate argument to the type runtime expects
@@ -2896,6 +2981,7 @@ public:
                     }
                 }
                 e = Expression.combine(e, ec);
+
                 if (!cases.dim)
                 {
                     // Easy case, a clean exit from the loop
@@ -2907,16 +2993,19 @@ public:
                     // Construct a switch statement around the return value
                     // of the apply function.
                     auto a = new Statements();
+
                     // default: break; takes care of cases 0 and 1
                     s = new BreakStatement(Loc(), null);
                     s = new DefaultStatement(Loc(), s);
                     a.push(s);
+
                     // cases 2...
                     foreach (i, c; *cases)
                     {
                         s = new CaseStatement(Loc(), new IntegerExp(i + 2), c);
                         a.push(s);
                     }
+
                     s = new CompoundStatement(loc, a);
                     s = new SwitchStatement(loc, e, s, false);
                 }
@@ -2927,6 +3016,7 @@ public:
         Lerror2:
             s = new ErrorStatement();
             break;
+
         default:
             error("foreach: %s is not an aggregate type", aggr.type.toChars());
             goto Lerror2;
