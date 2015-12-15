@@ -2545,7 +2545,7 @@ public:
                  *        ...
                  *    }
                  */
-                AggregateDeclaration ad = (tab.ty == Tclass) ?
+                auto ad = (tab.ty == Tclass) ?
                     cast(AggregateDeclaration)(cast(TypeClass)tab).sym :
                     cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
                 Identifier idfront;
@@ -2560,7 +2560,7 @@ public:
                     idfront = Id.Fback;
                     idpopFront = Id.FpopBack;
                 }
-                Dsymbol sfront = ad.search(Loc(), idfront);
+                auto sfront = ad.search(Loc(), idfront);
                 if (!sfront)
                     goto Lapply;
 
@@ -2600,7 +2600,7 @@ public:
                 Statement makeargs, forbody;
                 if (dim == 1)
                 {
-                    Parameter p = (*parameters)[0];
+                    auto p = (*parameters)[0];
                     auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
                     ve.storage_class |= STCforeach;
                     ve.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
@@ -2609,28 +2609,44 @@ public:
                 }
                 else
                 {
-                    Identifier id = Identifier.generateId("__front");
+                    auto id = Identifier.generateId("__front");
                     auto ei = new ExpInitializer(loc, einit);
                     auto vd = new VarDeclaration(loc, null, id, ei);
                     vd.storage_class |= STCtemp | STCctfe | STCref | STCforeach;
 
                     makeargs = new ExpStatement(loc, vd);
 
-                    auto d = sfront.isDeclaration();
-                    if (auto f = d.isFuncDeclaration())
+                    Type tfront;
+                    if (auto fd = sfront.isFuncDeclaration())
                     {
-                        if (!f.functionSemantic())
+                        if (!fd.functionSemantic())
                             goto Lrangeerr;
+                        tfront = fd.type;
                     }
-                    Expression ve = new VarExp(loc, vd);
-                    ve.type = d.type;
-                    if (ve.type.toBasetype().ty == Tfunction)
-                        ve.type = ve.type.toBasetype().nextOf();
-                    if (!ve.type || ve.type.ty == Terror)
+                    else if (auto td = sfront.isTemplateDeclaration())
+                    {
+                        Expressions a;
+                        if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, 1))
+                            tfront = f.type;
+                    }
+                    else if (auto d = sfront.isDeclaration())
+                    {
+                        tfront = d.type;
+                    }
+                    if (!tfront || tfront.ty == Terror)
                         goto Lrangeerr;
-
+                    if (tfront.toBasetype().ty == Tfunction)
+                        tfront = tfront.toBasetype().nextOf();
+                    if (tfront.ty == Tvoid)
+                    {
+                        error("%s.front is void and has no value", oaggr.toChars());
+                        goto Lerror2;
+                    }
                     // Resolve inout qualifier of front type
-                    ve.type = ve.type.substWildTo(tab.mod);
+                    tfront = tfront.substWildTo(tab.mod);
+
+                    Expression ve = new VarExp(loc, vd);
+                    ve.type = tfront;
 
                     auto exps = new Expressions();
                     exps.push(ve);
@@ -2651,8 +2667,8 @@ public:
 
                     foreach (i; 0 .. dim)
                     {
-                        Parameter p = (*parameters)[i];
-                        Expression exp = (*exps)[i];
+                        auto p = (*parameters)[i];
+                        auto exp = (*exps)[i];
                         version (none)
                         {
                             printf("[%d] p = %s %s, exp = %s %s\n", i,
@@ -2674,7 +2690,7 @@ public:
                 forbody = new CompoundStatement(loc, makeargs, this._body);
 
                 s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
 
                 version (none)
