@@ -3761,6 +3761,7 @@ elem *toElem(Expression *e, IRState *irs)
                     Type *tv = tb->nextOf()->baseElemOf();
                     if (tv->ty == Tstruct)
                     {
+                        // FIXME: ts can be non-mutable, but _d_delarray_t requests TypeInfo_Struct.
                         TypeStruct *ts = (TypeStruct *)tv;
                         StructDeclaration *sd = ts->sym;
                         if (sd->dtor)

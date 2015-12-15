@@ -5462,6 +5462,118 @@ public:
             (cast(StringExp)result).ownedByCtfe = OWNEDctfe;
     }
 
+    override void visit(DeleteExp e)
+    {
+        static if (LOG)
+        {
+            printf("%s DeleteExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+        result = interpret(e.e1, istate);
+        if (exceptionOrCant(result))
+            return;
+
+        if (result.op == TOKnull)
+        {
+            result = CTFEExp.voidexp;
+            return;
+        }
+
+        auto tb = e.e1.type.toBasetype();
+        switch (tb.ty)
+        {
+        case Tclass:
+            if (result.op != TOKclassreference)
+            {
+                e.error("delete on invalid class reference '%s'", result.toChars());
+                result = CTFEExp.cantexp;
+                return;
+            }
+
+            auto cre = cast(ClassReferenceExp)result;
+            auto cd = cre.originalClass();
+            if (cd.aggDelete)
+            {
+                e.error("member deallocators not supported by CTFE");
+                result = CTFEExp.cantexp;
+                return;
+            }
+
+            if (cd.dtor)
+            {
+                result = interpret(cd.dtor, istate, null, cre);
+                if (exceptionOrCant(result))
+                    return;
+            }
+            break;
+
+        case Tpointer:
+            tb = (cast(TypePointer)tb).next.toBasetype();
+            if (tb.ty == Tstruct)
+            {
+                if (result.op != TOKaddress ||
+                    (cast(AddrExp)result).e1.op != TOKstructliteral)
+                {
+                    e.error("delete on invalid struct pointer '%s'", result.toChars());
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+
+                auto sd = (cast(TypeStruct)tb).sym;
+                auto sle = cast(StructLiteralExp)(cast(AddrExp)result).e1;
+                if (sd.aggDelete)
+                {
+                    e.error("member deallocators not supported by CTFE");
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+
+                if (sd.dtor)
+                {
+                    result = interpret(sd.dtor, istate, null, sle);
+                    if (exceptionOrCant(result))
+                        return;
+                }
+            }
+            break;
+
+        case Tarray:
+            auto tv = tb.nextOf().baseElemOf();
+            if (tv.ty == Tstruct)
+            {
+                if (result.op != TOKarrayliteral)
+                {
+                    e.error("delete on invalid struct array '%s'", result.toChars());
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+
+                auto sd = (cast(TypeStruct)tv).sym;
+                if (sd.aggDelete)
+                {
+                    e.error("member deallocators not supported by CTFE");
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+
+                if (sd.dtor)
+                {
+                    auto ale = cast(ArrayLiteralExp)result;
+                    foreach (el; *ale.elements)
+                    {
+                        result = interpret(sd.dtor, istate, null, el);
+                        if (exceptionOrCant(result))
+                            return;
+                    }
+                }
+            }
+            break;
+
+        default:
+            assert(0);
+        }
+        result = CTFEExp.voidexp;
+    }
+
     override void visit(CastExp e)
     {
         static if (LOG)
