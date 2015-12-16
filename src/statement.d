@@ -1926,7 +1926,7 @@ public:
             s = s.semantic(sc);
             if (!s.isErrorStatement())
             {
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = this;
                 relatedLabeled = s;
             }
@@ -2284,7 +2284,7 @@ public:
             }
 
             Statement s = new UnrolledLoopStatement(loc, statements);
-            if (LabelStatement ls = checkLabeledLoop(sc, this))
+            if (auto ls = checkLabeledLoop(sc, this))
                 ls.gotoTarget = s;
             if (te && te.e0)
                 s = new CompoundStatement(loc, new ExpStatement(te.e0.loc, te.e0), s);
@@ -2296,9 +2296,9 @@ public:
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sc = sc.push(sym);
-        sc.noctor++;
-        scope (exit) { sc.noctor--; sc.pop(); }
+        Scope* sc2 = sc.push(sym);
+        sc2.noctor++;
+        scope (exit) { sc2.noctor--; sc2.pop(); }
 
         // These are used in Lapply branch.
         TypeAArray taa = null;  // if aggr is AA
@@ -2327,7 +2327,7 @@ public:
                 {
                     int i = (dim == 1) ? 0 : 1; // index of value
                     Parameter p = (*parameters)[i];
-                    p.type = p.type.semantic(loc, sc);
+                    p.type = p.type.semantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     tnv = p.type.toBasetype();
                     if (tnv.ty != tn.ty &&
@@ -2355,7 +2355,7 @@ public:
                 {
                     // Declare parameterss
                     Parameter p = (*parameters)[i];
-                    p.type = p.type.semantic(loc, sc);
+                    p.type = p.type.semantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     VarDeclaration var;
 
@@ -2400,7 +2400,7 @@ public:
                         value = var;
                         if (var.storage_class & STCref)
                         {
-                            if (aggr.checkModifiable(sc, 1) == 2)
+                            if (aggr.checkModifiable(sc2, 1) == 2)
                                 var.storage_class |= STCctorinit;
 
                             Type t = tab.nextOf();
@@ -2509,9 +2509,9 @@ public:
                 _body = new CompoundStatement(loc, ds, _body);
 
                 Statement s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))   // Bugzilla 15450: don't use sc2
                     ls.gotoTarget = s;
-                s = s.semantic(sc);
+                s = s.semantic(sc2);
                 return s;
             }
             case Taarray:
@@ -2660,7 +2660,7 @@ public:
                         }
                         if (!p.type)
                             p.type = exp.type;
-                        p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc);
+                        p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc2);
                         if (!exp.implicitConvTo(p.type))
                             goto Lrangeerr;
 
@@ -2673,7 +2673,7 @@ public:
                 Statement forbody = new CompoundStatement(loc, makeargs, this._body);
 
                 Statement s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))   // Bugzilla 15450: don't use sc2
                     ls.gotoTarget = s;
 
                 version (none)
@@ -2683,7 +2683,7 @@ public:
                     printf("increment: %s\n", increment.toChars());
                     printf("body: %s\n", forbody.toChars());
                 }
-                s = s.semantic(sc);
+                s = s.semantic(sc2);
                 return s;
             }
             Lrangeerr:
@@ -2697,7 +2697,7 @@ public:
             {
                 if (checkForArgTypes())
                 {
-                    _body = _body.semanticNoScope(sc);
+                    _body = _body.semanticNoScope(sc2);
                     return this;
                 }
 
@@ -2708,7 +2708,7 @@ public:
                     if (fdapply)
                     {
                         assert(fdapply.type && fdapply.type.ty == Tfunction);
-                        tfld = cast(TypeFunction)fdapply.type.semantic(loc, sc);
+                        tfld = cast(TypeFunction)fdapply.type.semantic(loc, sc2);
                         goto Lget;
                     }
                     else if (tab.ty == Tdelegate)
@@ -2721,7 +2721,7 @@ public:
                             Parameter p = Parameter.getNth(tfld.parameters, 0);
                             if (p.type && p.type.ty == Tdelegate)
                             {
-                                Type t = p.type.semantic(loc, sc);
+                                Type t = p.type.semantic(loc, sc2);
                                 assert(t.ty == Tdelegate);
                                 tfld = cast(TypeFunction)t.nextOf();
                             }
@@ -2739,7 +2739,7 @@ public:
                     StorageClass stc = STCref;
                     Identifier id;
 
-                    p.type = p.type.semantic(loc, sc);
+                    p.type = p.type.semantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     if (tfld)
                     {
@@ -2786,7 +2786,7 @@ public:
                 auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
                 fld.fbody = _body;
                 Expression flde = new FuncExp(loc, fld);
-                flde = flde.semantic(sc);
+                flde = flde.semantic(sc2);
                 fld.tookAddressOf = 0;
 
                 // Resolve any forward referenced goto's
@@ -2807,7 +2807,7 @@ public:
                 if (vinit)
                 {
                     e = new DeclarationExp(loc, vinit);
-                    e = e.semantic(sc);
+                    e = e.semantic(sc2);
                     if (e.op == TOKerror)
                         return new ErrorStatement();
                 }
@@ -2930,7 +2930,7 @@ public:
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
                     if (tab.ty == Tsarray)
-                        aggr = aggr.castTo(sc, tn.arrayOf());
+                        aggr = aggr.castTo(sc2, tn.arrayOf());
                     // paint delegate argument to the type runtime expects
                     if (!dgty.equals(flde.type))
                     {
@@ -2952,7 +2952,7 @@ public:
                         aggr = (cast(DelegateExp)aggr).e1;
                     }
                     ec = new CallExp(loc, aggr, flde);
-                    ec = ec.semantic(sc);
+                    ec = ec.semantic(sc2);
                     if (ec.op == TOKerror)
                         return new ErrorStatement();
                     if (ec.type != Type.tint32)
@@ -2970,7 +2970,7 @@ public:
                      */
                     ec = new DotIdExp(loc, aggr, sapply.ident);
                     ec = new CallExp(loc, ec, flde);
-                    ec = ec.semantic(sc);
+                    ec = ec.semantic(sc2);
                     if (ec.op == TOKerror)
                         return new ErrorStatement();
                     if (ec.type != Type.tint32)
@@ -3009,7 +3009,7 @@ public:
                     s = new CompoundStatement(loc, a);
                     s = new SwitchStatement(loc, e, s, false);
                 }
-                return s.semantic(sc);
+                return s.semantic(sc2);
             }
             case Terror:
                 return new ErrorStatement();
@@ -3266,7 +3266,7 @@ public:
         }
 
         auto s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
-        if (LabelStatement ls = checkLabeledLoop(sc, this))
+        if (auto ls = checkLabeledLoop(sc, this))
             ls.gotoTarget = s;
         return s.semantic(sc);
     }
