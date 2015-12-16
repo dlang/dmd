@@ -451,6 +451,7 @@ DDOC_PSUPER_SYMBOL = $(U $0)
 DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
 DDOC_CONSTRAINT = $(BR)<span class=\"constraint\">if($0)</span>
+DDOC_OVERLOAD_SEPARATOR = $(BR)
 
 ESCAPES = /</&lt;/
           />/&gt;/
@@ -936,7 +937,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         size_t o = buf.offset;
                         toDocBuffer(sx, buf, sc);
                         highlightCode(sc, sx, buf, o);
-                        buf.writestring("$(BR)");
+                        buf.writestring("$(DDOC_OVERLOAD_SEPARATOR)");
                         continue;
                     }
                     buf.writestring("$(DDOC_DITTO ");
@@ -945,7 +946,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         toDocBuffer(sx, buf, sc);
                         highlightCode(sc, sx, buf, o);
                     }
-                    buf.writestring("$(BR)");
+                    buf.writestring("$(DDOC_OVERLOAD_SEPARATOR)");
                     buf.writeByte(')');
                 }
                 buf.writestring(ddoc_decl_e);
