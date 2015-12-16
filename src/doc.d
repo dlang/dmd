@@ -929,11 +929,14 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 for (size_t i = 0; i < dc.a.dim; i++)
                 {
                     Dsymbol sx = dc.a[i];
+                    // the added linebreaks in here make looking at multiple
+                    // signatures more appealing
                     if (i == 0)
                     {
                         size_t o = buf.offset;
                         toDocBuffer(sx, buf, sc);
                         highlightCode(sc, sx, buf, o);
+                        buf.writestring("$(BR)");
                         continue;
                     }
                     buf.writestring("$(DDOC_DITTO ");
@@ -942,6 +945,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         toDocBuffer(sx, buf, sc);
                         highlightCode(sc, sx, buf, o);
                     }
+                    buf.writestring("$(BR)");
                     buf.writeByte(')');
                 }
                 buf.writestring(ddoc_decl_e);
