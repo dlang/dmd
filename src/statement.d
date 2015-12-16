@@ -2033,14 +2033,8 @@ public:
     override Statement semantic(Scope* sc)
     {
         //printf("ForeachStatement::semantic() %p\n", this);
-        ScopeDsymbol sym;
-        Statement s = this;
         size_t dim = parameters.dim;
-        TypeAArray taa = null;
         Dsymbol sapply = null;
-
-        Type tn = null;
-        Type tnv = null;
 
         func = sc.func;
         if (func.fes)
@@ -2229,7 +2223,7 @@ public:
                         var = new AliasDeclaration(loc, p.ident, ds);
                         if (p.storageClass & STCref)
                         {
-                            error("symbol %s cannot be ref", s.toChars());
+                            error("symbol %s cannot be ref", var.toChars());
                             return new ErrorStatement();
                         }
                         if (paramtype)
@@ -2277,19 +2271,19 @@ public:
                     var = new AliasDeclaration(loc, p.ident, t);
                     if (paramtype)
                     {
-                        error("cannot specify element type for symbol %s", s.toChars());
+                        error("cannot specify element type for symbol %s", var.toChars());
                         return new ErrorStatement();
                     }
                 }
                 st.push(new ExpStatement(loc, var));
 
                 st.push(_body.syntaxCopy());
-                s = new CompoundStatement(loc, st);
+                Statement s = new CompoundStatement(loc, st);
                 s = new ScopeStatement(loc, s);
                 statements.push(s);
             }
 
-            s = new UnrolledLoopStatement(loc, statements);
+            Statement s = new UnrolledLoopStatement(loc, statements);
             if (LabelStatement ls = checkLabeledLoop(sc, this))
                 ls.gotoTarget = s;
             if (te && te.e0)
@@ -2300,11 +2294,16 @@ public:
             return s;
         }
 
-        sym = new ScopeDsymbol();
+        auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
-
         sc.noctor++;
+        scope (exit) { sc.noctor--; sc.pop(); }
+
+        // These are used in Lapply branch.
+        TypeAArray taa = null;  // if aggr is AA
+        Type tn = null;         // if aggr is array, element type of the array
+        Type tnv = null;        // if aggr is array, parameter variable type
 
         switch (tab.ty)
         {
@@ -2317,7 +2316,7 @@ public:
                 if (dim < 1 || dim > 2)
                 {
                     error("only one or two arguments for array foreach");
-                    goto Lerror2;
+                    return new ErrorStatement();
                 }
 
                 /* Look for special case of parsing char types out of char type
@@ -2337,7 +2336,7 @@ public:
                         if (p.storageClass & STCref)
                         {
                             error("foreach: value of UTF conversion cannot be ref");
-                            goto Lerror2;
+                            return new ErrorStatement();
                         }
                         if (dim == 2)
                         {
@@ -2345,7 +2344,7 @@ public:
                             if (p.storageClass & STCref)
                             {
                                 error("foreach: key cannot be ref");
-                                goto Lerror2;
+                                return new ErrorStatement();
                             }
                         }
                         goto Lapply;
@@ -2374,7 +2373,7 @@ public:
                             {
                                 error("key type mismatch, %s to ref %s",
                                     var.type.toChars(), p.type.toChars());
-                                goto Lerror2;
+                                return new ErrorStatement();
                             }
                         }
                         if (tab.ty == Tsarray)
@@ -2385,7 +2384,7 @@ public:
                             {
                                 error("index type '%s' cannot cover index range 0..%llu",
                                     p.type.toChars(), ta.dim.toInteger());
-                                goto Lerror2;
+                                return new ErrorStatement();
                             }
                             key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
                         }
@@ -2409,7 +2408,7 @@ public:
                             {
                                 error("argument type mismatch, %s to ref %s",
                                     t.toChars(), p.type.toChars());
-                                goto Lerror2;
+                                return new ErrorStatement();
                             }
                         }
                     }
@@ -2509,11 +2508,11 @@ public:
                 }
                 _body = new CompoundStatement(loc, ds, _body);
 
-                s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
+                Statement s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
                 if (LabelStatement ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
                 s = s.semantic(sc);
-                break;
+                return s;
             }
             case Taarray:
                 if (op == TOKforeach_reverse)
@@ -2525,7 +2524,7 @@ public:
                 if (dim < 1 || dim > 2)
                 {
                     error("only one or two arguments for associative array foreach");
-                    goto Lerror2;
+                    return new ErrorStatement();
                 }
                 goto Lapply;
 
@@ -2597,7 +2596,7 @@ public:
                  */
                 e = new VarExp(loc, r);
                 Expression einit = new DotIdExp(loc, e, idfront);
-                Statement makeargs, forbody;
+                Statement makeargs;
                 if (dim == 1)
                 {
                     Parameter p = (*parameters)[0];
@@ -2646,7 +2645,7 @@ public:
                         const(char)* plural = exps.dim > 1 ? "s" : "";
                         error("cannot infer argument types, expected %d argument%s, not %d",
                             exps.dim, plural, dim);
-                        goto Lerror2;
+                        return new ErrorStatement();
                     }
 
                     foreach (i; 0 .. dim)
@@ -2671,9 +2670,9 @@ public:
                     }
                 }
 
-                forbody = new CompoundStatement(loc, makeargs, this._body);
+                Statement forbody = new CompoundStatement(loc, makeargs, this._body);
 
-                s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
+                Statement s = new ForStatement(loc, _init, condition, increment, forbody, endloc);
                 if (LabelStatement ls = checkLabeledLoop(sc, this))
                     ls.gotoTarget = s;
 
@@ -2685,12 +2684,12 @@ public:
                     printf("body: %s\n", forbody.toChars());
                 }
                 s = s.semantic(sc);
-                break;
-
+                return s;
+            }
             Lrangeerr:
                 error("cannot infer argument types");
-                goto Lerror2;
-            }
+                return new ErrorStatement();
+
             case Tdelegate:
                 if (op == TOKforeach_reverse)
                     deprecation("cannot use foreach_reverse with a delegate");
@@ -2753,7 +2752,7 @@ public:
                             if (!stc)
                             {
                                 error("foreach: cannot make %s ref", p.ident.toChars());
-                                goto Lerror2;
+                                return new ErrorStatement();
                             }
                             goto LcopyArg;
                         }
@@ -2774,7 +2773,7 @@ public:
                         Initializer ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
                         auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
                         v.storage_class |= STCtemp;
-                        s = new ExpStatement(Loc(), v);
+                        Statement s = new ExpStatement(Loc(), v);
                         _body = new CompoundStatement(loc, s, _body);
                     }
                     params.push(new Parameter(stc, p.type, id, null));
@@ -2798,7 +2797,7 @@ public:
                     {
                         // 'Promote' it to this scope, and replace with a return
                         cases.push(gs);
-                        s = new ReturnStatement(Loc(), new IntegerExp(cases.dim + 1));
+                        Statement s = new ReturnStatement(Loc(), new IntegerExp(cases.dim + 1));
                         (*gotos)[i].statement = s;
                     }
                 }
@@ -2810,7 +2809,7 @@ public:
                     e = new DeclarationExp(loc, vinit);
                     e = e.semantic(sc);
                     if (e.op == TOKerror)
-                        goto Lerror2;
+                        return new ErrorStatement();
                 }
 
                 if (taa)
@@ -2826,7 +2825,7 @@ public:
                         {
                             error("foreach: index must be type %s, not %s",
                                 ti.toChars(), ta.toChars());
-                            goto Lerror2;
+                            return new ErrorStatement();
                         }
                         p = (*parameters)[1];
                         isRef = (p.storageClass & STCref) != 0;
@@ -2837,7 +2836,7 @@ public:
                     {
                         error("foreach: value must be type %s, not %s",
                             taav.toChars(), ta.toChars());
-                        goto Lerror2;
+                        return new ErrorStatement();
                     }
 
                     /* Call:
@@ -2955,11 +2954,11 @@ public:
                     ec = new CallExp(loc, aggr, flde);
                     ec = ec.semantic(sc);
                     if (ec.op == TOKerror)
-                        goto Lerror2;
+                        return new ErrorStatement();
                     if (ec.type != Type.tint32)
                     {
                         error("opApply() function for %s must return an int", tab.toChars());
-                        goto Lerror2;
+                        return new ErrorStatement();
                     }
                 }
                 else
@@ -2973,15 +2972,16 @@ public:
                     ec = new CallExp(loc, ec, flde);
                     ec = ec.semantic(sc);
                     if (ec.op == TOKerror)
-                        goto Lerror2;
+                        return new ErrorStatement();
                     if (ec.type != Type.tint32)
                     {
                         error("opApply() function for %s must return an int", tab.toChars());
-                        goto Lerror2;
+                        return new ErrorStatement();
                     }
                 }
                 e = Expression.combine(e, ec);
 
+                Statement s;
                 if (!cases.dim)
                 {
                     // Easy case, a clean exit from the loop
@@ -3009,21 +3009,15 @@ public:
                     s = new CompoundStatement(loc, a);
                     s = new SwitchStatement(loc, e, s, false);
                 }
-                s = s.semantic(sc);
-                break;
+                return s.semantic(sc);
             }
             case Terror:
-            Lerror2:
-                s = new ErrorStatement();
-                break;
+                return new ErrorStatement();
 
             default:
                 error("foreach: %s is not an aggregate type", aggr.type.toChars());
-                goto Lerror2;
+                return new ErrorStatement();
         }
-        sc.noctor--;
-        sc.pop();
-        return s;
     }
 
     bool checkForArgTypes()
