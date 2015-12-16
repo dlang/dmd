@@ -450,6 +450,7 @@ DDOC_PSYMBOL    = $(U $0)
 DDOC_PSUPER_SYMBOL = $(U $0)
 DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
+DDOC_CONSTRAINT = $(BR)<span class=\"constraint\">if($0)</span>
 
 ESCAPES = /</&lt;/
           />/&gt;/
@@ -1230,7 +1231,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             // emit constraints if declaration is a templated declaration
             if (td && td.constraint)
             {
-                buf.writestring(" if (");
+                buf.writestring("$(DDOC_CONSTRAINT ");
                 .toCBuffer(td.constraint, buf, &hgs);
                 buf.writeByte(')');
             }
