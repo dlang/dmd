@@ -1236,9 +1236,18 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             // emit constraints if declaration is a templated declaration
             if (td && td.constraint)
             {
-                buf.writestring("$(DDOC_CONSTRAINT ");
+                bool funcDecl = td.isFuncDeclaration() is null;
+                if (funcDecl)
+                {
+                    buf.writestring("$(DDOC_CONSTRAINT ");
+                }
+
                 .toCBuffer(td.constraint, buf, &hgs);
-                buf.writeByte(')');
+
+                if (funcDecl)
+                {
+                    buf.writeByte(')');
+                }
             }
             if (d.isDeprecated())
                 buf.writestring(")");
