@@ -452,6 +452,7 @@ DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
 DDOC_CONSTRAINT = $(BR)<span class=\"constraint\">if($0)</span>
 DDOC_OVERLOAD_SEPARATOR = $(BR)
+DDOC_TEMPLATE_PARAM = $0
 
 ESCAPES = /</&lt;/
           />/&gt;/
@@ -2461,6 +2462,8 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
 extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     //printf("highlightCode(a = '%s')\n", a->toChars());
+    bool resolvedTemplateParameters = false;
+
     for (size_t i = offset; i < buf.offset; i++)
     {
         char c = buf.data[i];
@@ -2492,6 +2495,47 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     continue;
                 }
                 i = j - 1;
+            }
+        }
+        else if (!resolvedTemplateParameters)
+        {
+            // hunt for template declarations:
+            for (size_t symi = 0; symi < a.dim; symi++)
+            {
+                FuncDeclaration fd = (*a)[symi].isFuncDeclaration();
+
+                if (!fd || !fd.parent.isTemplateDeclaration())
+                {
+                    continue;
+                }
+
+                TemplateDeclaration td = fd.parent.isTemplateDeclaration();
+
+                // build the template parameters
+                OutBuffer parametersBuf;
+                HdrGenState hgs;
+                parametersBuf.writeByte('(');
+                for (size_t parami = 0; parami < td.parameters.dim; parami++)
+                {
+                    TemplateParameter tp = (*td.parameters)[parami];
+                    if (parami)
+                        parametersBuf.writestring(", ");
+                    .toCBuffer(tp, &parametersBuf, &hgs);
+                }
+                parametersBuf.writeByte(')');
+
+                const(char*) templateParams = parametersBuf.extractString();
+                size_t templateParamsLen = strlen(templateParams);
+
+                //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
+
+                if (cmp(templateParams, start, templateParamsLen) == 0)
+                {
+                    i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM ", i + templateParamsLen, ")") - 1;
+                    resolvedTemplateParameters = true;
+
+                    continue;
+                }
             }
         }
     }
