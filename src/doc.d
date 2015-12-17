@@ -450,8 +450,8 @@ DDOC_PSYMBOL    = $(U $0)
 DDOC_PSUPER_SYMBOL = $(U $0)
 DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
-DDOC_CONSTRAINT = $(BR)<span class=\"constraint\">if($0)</span>
-DDOC_OVERLOAD_SEPARATOR = $(BR)
+DDOC_CONSTRAINT      = &nbsp;if($0)
+DDOC_OVERLOAD_SEPARATOR      = $(BR)
 DDOC_TEMPLATE_PARAM = $0
 
 ESCAPES = /</&lt;/
