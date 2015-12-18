@@ -452,7 +452,7 @@ DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
 DDOC_CONSTRAINT      = &nbsp;if($0)
 DDOC_OVERLOAD_SEPARATOR      = $(BR)
-DDOC_TEMPLATE_PARAM = $0
+DDOC_TEMPLATE_PARAM_LIST = $0
 
 ESCAPES = /</&lt;/
           />/&gt;/
@@ -2531,7 +2531,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 if (cmp(templateParams, start, templateParamsLen) == 0)
                 {
-                    i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM ", i + templateParamsLen, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM_LIST ", i + templateParamsLen, ")") - 1;
                     resolvedTemplateParameters = true;
 
                     continue;
