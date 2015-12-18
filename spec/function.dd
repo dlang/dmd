@@ -398,15 +398,15 @@ $(H4 $(LNAME2 inout-functions, Inout Functions))
         {
             // inout matches to mutable, so inout(const(int))[] is
             // rewritten to const(int)[]
-            const(int)[] x = foo(ma);
+            const(int)[] x = bar(ma);
 
             // inout matches to const, so inout(const(int))[] is
             // rewritten to const(int)[]
-            const(int)[] y = foo(ca);
+            const(int)[] y = bar(ca);
 
             // inout matches to immutable, so inout(int)[] is
             // rewritten to immutable(int)[]
-            immutable(int)[] z = foo(ia);
+            immutable(int)[] z = bar(ia);
         }
         ---
     )
