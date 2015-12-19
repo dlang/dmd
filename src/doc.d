@@ -453,6 +453,7 @@ DDOC_PARAM      = $(I $0)
 DDOC_CONSTRAINT      = &nbsp;if($0)
 DDOC_OVERLOAD_SEPARATOR      = $(BR)
 DDOC_TEMPLATE_PARAM_LIST = $0
+DDOC_TEMPLATE_PARAM = $0
 
 ESCAPES = /</&lt;/
           />/&gt;/
@@ -2504,7 +2505,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 FuncDeclaration fd = (*a)[symi].isFuncDeclaration();
 
-                if (!fd || !fd.parent.isTemplateDeclaration())
+                if (!fd || !fd.parent || !fd.parent.isTemplateDeclaration())
                 {
                     continue;
                 }
@@ -2512,15 +2513,23 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 TemplateDeclaration td = fd.parent.isTemplateDeclaration();
 
                 // build the template parameters
+                size_t[] paramLens;
                 OutBuffer parametersBuf;
                 HdrGenState hgs;
                 parametersBuf.writeByte('(');
+
                 for (size_t parami = 0; parami < td.parameters.dim; parami++)
                 {
                     TemplateParameter tp = (*td.parameters)[parami];
+
                     if (parami)
                         parametersBuf.writestring(", ");
+
+                    size_t lastOffset = parametersBuf.offset;
+
                     .toCBuffer(tp, &parametersBuf, &hgs);
+
+                    paramLens ~= [parametersBuf.offset - lastOffset];
                 }
                 parametersBuf.writeByte(')');
 
@@ -2531,8 +2540,26 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 if (cmp(templateParams, start, templateParamsLen) == 0)
                 {
-                    i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM_LIST ", i + templateParamsLen, ")") - 1;
+                    const(char*) templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
+                    size_t paramListEnd = buf.bracket(i, templateParamListMacro, i + templateParamsLen, ")") - 1;
+
+                    // We have the parameter list. While we're here we might
+                    // as well wrap the parameters themselves as well
+
+                    // + 1 here to take into account the opening paren of the
+                    // template param list
+                    i += strlen(templateParamListMacro) + 1;
+
+                    foreach (size_t len; paramLens)
+                    {
+                        i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM ", i + len, ")");
+                        // increment two here for space + comma
+                        i += 2;
+                    }
+
                     resolvedTemplateParameters = true;
+                    // reset i to be positioned out of the DDOC_TEMPLATE_PARAM_LIST
+                    i = paramListEnd;
 
                     continue;
                 }
