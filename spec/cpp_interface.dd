@@ -2,68 +2,68 @@ Ddoc
 
 $(SPEC_S Interfacing to C++,
 
-	$(P
-	While D is fully capable of
-	$(DDLINK spec/interfaceToC, Interfacing to C, interfacing to C),
-	its ability to interface to C++ is much more limited.
-	There are three ways to do it:
-	)
+    $(P
+    While D is fully capable of
+    $(DDLINK spec/interfaceToC, Interfacing to C, interfacing to C),
+    its ability to interface to C++ is much more limited.
+    There are three ways to do it:
+    )
 
-	$(OL
+    $(OL
 
-	$(LI Use C++'s ability to create a C interface, and then
-	use D's ability to
-	$(DDLINK spec/interfaceToC, Interfacing to C, interface with C)
-	to access that interface.
-	)
+    $(LI Use C++'s ability to create a C interface, and then
+    use D's ability to
+    $(DDLINK spec/interfaceToC, Interfacing to C, interface with C)
+    to access that interface.
+    )
 
-	$(LI Use C++'s ability to create a COM interface, and then
-	use D's ability to
-	$(DPLLINK $(ROOT_DIR)COM.html, interface with COM)
-	to access that interface.
-	)
+    $(LI Use C++'s ability to create a COM interface, and then
+    use D's ability to
+    $(DPLLINK $(ROOT_DIR)COM.html, interface with COM)
+    to access that interface.
+    )
 
-	$(LI Use the limited ability described here to connect
-	directly to C++ functions and classes.
-	)
+    $(LI Use the limited ability described here to connect
+    directly to C++ functions and classes.
+    )
 
-	)
+    )
 
 $(H2 The General Idea)
 
-	$(P Being 100% compatible with C++ means more or less adding
-	a fully functional C++ compiler front end to D.
-	Anecdotal evidence suggests that writing such is a minimum
-	of a 10 man-year project, essentially making a D compiler
-	with such capability unimplementable.
-	Other languages looking to hook up to C++ face the same
-	problem, and the solutions have been:
-	)
+    $(P Being 100% compatible with C++ means more or less adding
+    a fully functional C++ compiler front end to D.
+    Anecdotal evidence suggests that writing such is a minimum
+    of a 10 man-year project, essentially making a D compiler
+    with such capability unimplementable.
+    Other languages looking to hook up to C++ face the same
+    problem, and the solutions have been:
+    )
 
-	$(OL
-	$(LI Support the COM interface (but that only works for Windows).)
-	$(LI Laboriously construct a C wrapper around
-	the C++ code.)
-	$(LI Use an automated tool such as SWIG to construct a
-	C wrapper.)
-	$(LI Reimplement the C++ code in the other language.)
-	$(LI Give up.)
-	)
+    $(OL
+    $(LI Support the COM interface (but that only works for Windows).)
+    $(LI Laboriously construct a C wrapper around
+    the C++ code.)
+    $(LI Use an automated tool such as SWIG to construct a
+    C wrapper.)
+    $(LI Reimplement the C++ code in the other language.)
+    $(LI Give up.)
+    )
 
-	$(P D takes a pragmatic approach that assumes a couple
-	modest accommodations can solve a significant chunk of
-	the problem:
-	)
+    $(P D takes a pragmatic approach that assumes a couple
+    modest accommodations can solve a significant chunk of
+    the problem:
+    )
 
-	$(UL
-	$(LI matching C++ name mangling conventions)
-	$(LI matching C++ function calling conventions)
-	$(LI matching C++ virtual function table layout for single inheritance)
-	)
+    $(UL
+    $(LI matching C++ name mangling conventions)
+    $(LI matching C++ function calling conventions)
+    $(LI matching C++ virtual function table layout for single inheritance)
+    )
 
 $(H2 Calling C++ Global Functions From D)
 
-	$(P Given a C++ function in a C++ source file:)
+    $(P Given a C++ function in a C++ source file:)
 
 $(CPPLISTING
 #include $(LT)iostream$(GT)
@@ -80,15 +80,15 @@ int foo(int i, int j, int k)
 }
 )
 
-	$(P In the corresponding D code, $(CODE foo)
-	is declared as having C++ linkage and function calling conventions:
-	)
+    $(P In the corresponding D code, $(CODE foo)
+    is declared as having C++ linkage and function calling conventions:
+    )
 
 ------
 extern (C++) int foo(int i, int j, int k);
 ------
 
-	$(P and then it can be called within the D code:)
+    $(P and then it can be called within the D code:)
 
 ------
 extern (C++) int foo(int i, int j, int k);
@@ -99,9 +99,9 @@ void main()
 }
 ------
 
-	$(P Compiling the two files, the first with a C++ compiler,
-	the second with a D compiler, linking them together,
-	and then running it yields:)
+    $(P Compiling the two files, the first with a C++ compiler,
+    the second with a D compiler, linking them together,
+    and then running it yields:)
 
 $(CONSOLE
 i = 1
@@ -109,25 +109,25 @@ j = 2
 k = 3
 )
 
-	$(P There are several things going on here:)
+    $(P There are several things going on here:)
 
-	$(UL
-	$(LI D understands how C++ function names are "mangled" and the
-	correct C++ function call/return sequence.)
+    $(UL
+    $(LI D understands how C++ function names are "mangled" and the
+    correct C++ function call/return sequence.)
 
-	$(LI Because modules are not part of C++, each function with
-	C++ linkage must be globally unique within the program.)
+    $(LI Because modules are not part of C++, each function with
+    C++ linkage must be globally unique within the program.)
 
-	$(LI There are no $(D __cdecl), $(D __far), $(D __stdcall), $(D __declspec), or other
-	such nonstandard C++ extensions in D.)
+    $(LI There are no $(D __cdecl), $(D __far), $(D __stdcall), $(D __declspec), or other
+    such nonstandard C++ extensions in D.)
 
-	$(LI There are no volatile type modifiers in D.)
+    $(LI There are no volatile type modifiers in D.)
 
-	$(LI Strings are not 0 terminated in D. See "Data Type Compatibility"
-	for more information about this. However, string literals in D are
-	0 terminated.)
+    $(LI Strings are not 0 terminated in D. See "Data Type Compatibility"
+    for more information about this. However, string literals in D are
+    0 terminated.)
 
-	)
+    )
 
 $(H3 C++ Namespaces)
 
@@ -135,7 +135,7 @@ $(H3 C++ Namespaces)
         directly called from D. A $(LINK2 attribute.html#namespace, namespace)
         can be added to the `extern (C++)`
         $(LINK2 attribute.html#linkage, LinkageAttribute):
-	)
+    )
 ------
 extern (C++, N) int foo(int i, int j, int k);
 
@@ -149,8 +149,8 @@ void main()
 
 $(H2 Calling Global D Functions From C++)
 
-	$(P To make a D function accessible from C++, give it
-	C++ linkage:)
+    $(P To make a D function accessible from C++, give it
+    C++ linkage:)
 
 ---
 import std.stdio;
@@ -171,7 +171,7 @@ void main()
 }
 ---
 
-	$(P The C++ end looks like:)
+    $(P The C++ end looks like:)
 
 $(CPPLISTING
 int foo(int i, int j, int k);
@@ -182,7 +182,7 @@ void bar()
 }
 )
 
-	$(P Compiling, linking, and running produces the output:)
+    $(P Compiling, linking, and running produces the output:)
 
 $(CONSOLE
 i = 6
@@ -193,22 +193,22 @@ k = 8
 
 $(H2 Classes)
 
-	$(P D classes are singly rooted by Object, and have an
-	incompatible layout from C++ classes.
-	D interfaces, however, are very similar to C++ single
-	inheritance class heirarchies.
-	So, a D interface with the attribute of $(CODE extern (C++))
-	will have a virtual function pointer table (vtbl[]) that
-	exactly matches C++'s.
-	A regular D interface has a vtbl[] that differs in that
-	the first entry in the vtbl[] is a pointer to D's RTTI info,
-	whereas in C++ the first entry points to the first virtual
-	function.
-	)
+    $(P D classes are singly rooted by Object, and have an
+    incompatible layout from C++ classes.
+    D interfaces, however, are very similar to C++ single
+    inheritance class heirarchies.
+    So, a D interface with the attribute of $(CODE extern (C++))
+    will have a virtual function pointer table (vtbl[]) that
+    exactly matches C++'s.
+    A regular D interface has a vtbl[] that differs in that
+    the first entry in the vtbl[] is a pointer to D's RTTI info,
+    whereas in C++ the first entry points to the first virtual
+    function.
+    )
 
 $(H2 Calling C++ Virtual Functions From D)
 
-	$(P Given C++ source code defining a class like:)
+    $(P Given C++ source code defining a class like:)
 
 $(CPPLISTING
 #include $(LT)iostream$(GT)
@@ -234,7 +234,7 @@ D *getD()
 }
 )
 
-	$(P We can get at it from D code like:)
+    $(P We can get at it from D code like:)
 
 ---
 extern (C++)
@@ -256,7 +256,7 @@ void main()
 
 $(H2 Calling D Virtual Functions From C++)
 
-	$(P Given D code like:)
+    $(P Given D code like:)
 
 ---
 extern (C++) int callE(E);
@@ -284,7 +284,7 @@ void main()
 }
 ---
 
-	$(P The C++ code to access it looks like:)
+    $(P The C++ code to access it looks like:)
 
 $(CPPLISTING
 class E
@@ -300,324 +300,324 @@ int callE(E *e)
 }
 )
 
-	$(P Note:)
+    $(P Note:)
 
-	$(UL
-	$(LI non-virtual functions, and static member functions,
-	cannot be accessed.)
+    $(UL
+    $(LI non-virtual functions, and static member functions,
+    cannot be accessed.)
 
-	$(LI class fields can only be accessed via virtual getter
-	and setter methods.)
-	)
+    $(LI class fields can only be accessed via virtual getter
+    and setter methods.)
+    )
 
 $(H2 Function Overloading)
 
-	$(P C++ and D follow different rules for function overloading.
-	D source code, even when calling $(CODE extern (C++)) functions,
-	will still follow D overloading rules.
-	)
+    $(P C++ and D follow different rules for function overloading.
+    D source code, even when calling $(CODE extern (C++)) functions,
+    will still follow D overloading rules.
+    )
 
 
 $(H2 Storage Allocation)
 
-	$(P C++ code explicitly manages memory with calls to
-	$(CODE ::operator new()) and $(CODE ::operator delete()).
-	D allocates memory using the D garbage collector,
-	so no explicit delete's are necessary.
-	D's new and delete are not compatible with C++'s
-	$(CODE ::operator new) and $(CODE::operator delete).
-	Attempting to allocate memory with C++ $(CODE ::operator new)
-	and deallocate it with D's $(CODE delete), or vice versa, will
-	result in miserable failure.
-	)
+    $(P C++ code explicitly manages memory with calls to
+    $(CODE ::operator new()) and $(CODE ::operator delete()).
+    D allocates memory using the D garbage collector,
+    so no explicit delete's are necessary.
+    D's new and delete are not compatible with C++'s
+    $(CODE ::operator new) and $(CODE::operator delete).
+    Attempting to allocate memory with C++ $(CODE ::operator new)
+    and deallocate it with D's $(CODE delete), or vice versa, will
+    result in miserable failure.
+    )
 
-	$(P D can still explicitly allocate memory using core.stdc.stdlib.malloc()
-	and core.stdc.stdlib.free(), these are useful for connecting to C++
-	functions that expect malloc'd buffers, etc.
-	)
+    $(P D can still explicitly allocate memory using core.stdc.stdlib.malloc()
+    and core.stdc.stdlib.free(), these are useful for connecting to C++
+    functions that expect malloc'd buffers, etc.
+    )
 
-	$(P If pointers to D garbage collector allocated memory are passed to
-	C++ functions, it's critical to ensure that that memory will not
-	be collected by the garbage collector before the C++ function is
-	done with it. This is accomplished by:
-	)
+    $(P If pointers to D garbage collector allocated memory are passed to
+    C++ functions, it's critical to ensure that that memory will not
+    be collected by the garbage collector before the C++ function is
+    done with it. This is accomplished by:
+    )
 
-	$(UL
+    $(UL
 
-	$(LI Making a copy of the data using core.stdc.stdlib.malloc() and passing
-	the copy instead.)
+    $(LI Making a copy of the data using core.stdc.stdlib.malloc() and passing
+    the copy instead.)
 
-	$(LI Leaving a pointer to it on the stack (as a parameter or
-	automatic variable), as the garbage collector will scan the stack.)
+    $(LI Leaving a pointer to it on the stack (as a parameter or
+    automatic variable), as the garbage collector will scan the stack.)
 
-	$(LI Leaving a pointer to it in the static data segment, as the
-	garbage collector will scan the static data segment.)
+    $(LI Leaving a pointer to it in the static data segment, as the
+    garbage collector will scan the static data segment.)
 
-	$(LI Registering the pointer with the garbage collector with the
-	std.gc.addRoot() or std.gc.addRange() calls.)
+    $(LI Registering the pointer with the garbage collector with the
+    std.gc.addRoot() or std.gc.addRange() calls.)
 
-	)
+    )
 
-	$(P An interior pointer to the allocated memory block is sufficient
-	to let the GC
-	know the object is in use; i.e. it is not necessary to maintain
-	a pointer to the beginning of the allocated memory.
-	)
+    $(P An interior pointer to the allocated memory block is sufficient
+    to let the GC
+    know the object is in use; i.e. it is not necessary to maintain
+    a pointer to the beginning of the allocated memory.
+    )
 
-	$(P The garbage collector does not scan the stacks of threads not
-	created by the D Thread interface. Nor does it scan the data
-	segments of other DLL's, etc.
-	)
+    $(P The garbage collector does not scan the stacks of threads not
+    created by the D Thread interface. Nor does it scan the data
+    segments of other DLL's, etc.
+    )
 
 $(H2 Data Type Compatibility)
 
-	$(TABLE2 D And C Type Equivalence,
+    $(TABLE2 D And C Type Equivalence,
 
-	$(THEAD D type, C type)
+    $(THEAD D type, C type)
 
-	$(TROW
-	$(ARGS $(B void)),
-	$(ARGS $(B void))
-	)
+    $(TROW
+    $(ARGS $(B void)),
+    $(ARGS $(B void))
+    )
 
-	$(TROW
-	$(ARGS $(B byte)),
-	$(ARGS $(B signed char))
-	)
+    $(TROW
+    $(ARGS $(B byte)),
+    $(ARGS $(B signed char))
+    )
 
-	$(TROW
-	$(ARGS $(B ubyte)),
-	$(ARGS $(B unsigned char))
-	)
+    $(TROW
+    $(ARGS $(B ubyte)),
+    $(ARGS $(B unsigned char))
+    )
 
-	$(TROW
-	$(ARGS $(B char)),
-	$(ARGS $(B char) (chars are unsigned in D))
-	)
+    $(TROW
+    $(ARGS $(B char)),
+    $(ARGS $(B char) (chars are unsigned in D))
+    )
 
-	$(TROW
-	$(ARGS $(B wchar)),
-	$(ARGS $(D wchar_t) (when $(D sizeof(wchar_t)) is 2))
-	)
+    $(TROW
+    $(ARGS $(B wchar)),
+    $(ARGS $(D wchar_t) (when $(D sizeof(wchar_t)) is 2))
+    )
 
-	$(TROW
-	$(ARGS $(B dchar)),
-	$(ARGS $(D wchar_t) (when $(D sizeof(wchar_t)) is 4))
-	)
+    $(TROW
+    $(ARGS $(B dchar)),
+    $(ARGS $(D wchar_t) (when $(D sizeof(wchar_t)) is 4))
+    )
 
-	$(TROW
-	$(ARGS $(B short)),
-	$(ARGS $(B short))
-	)
+    $(TROW
+    $(ARGS $(B short)),
+    $(ARGS $(B short))
+    )
 
-	$(TROW
-	$(ARGS $(B ushort)),
-	$(ARGS $(B unsigned short))
-	)
+    $(TROW
+    $(ARGS $(B ushort)),
+    $(ARGS $(B unsigned short))
+    )
 
-	$(TROW
-	$(ARGS $(B int)),
-	$(ARGS $(B int))
-	)
+    $(TROW
+    $(ARGS $(B int)),
+    $(ARGS $(B int))
+    )
 
-	$(TROW
-	$(ARGS $(B uint)),
-	$(ARGS $(B unsigned))
-	)
+    $(TROW
+    $(ARGS $(B uint)),
+    $(ARGS $(B unsigned))
+    )
 
-	$(TROW
-	$(ARGS $(B long)),
-	$(ARGS $(B long long))
-	)
+    $(TROW
+    $(ARGS $(B long)),
+    $(ARGS $(B long long))
+    )
 
-	$(TROW
-	$(ARGS $(B ulong)),
-	$(ARGS $(B unsigned long long))
-	)
+    $(TROW
+    $(ARGS $(B ulong)),
+    $(ARGS $(B unsigned long long))
+    )
 
-	$(TROW
-	$(ARGS $(B float)),
-	$(ARGS $(B float))
-	)
+    $(TROW
+    $(ARGS $(B float)),
+    $(ARGS $(B float))
+    )
 
-	$(TROW
-	$(ARGS $(B double)),
-	$(ARGS $(B double))
-	)
+    $(TROW
+    $(ARGS $(B double)),
+    $(ARGS $(B double))
+    )
 
-	$(TROW
-	$(ARGS $(B real)),
-	$(ARGS $(B long double))
-	)
+    $(TROW
+    $(ARGS $(B real)),
+    $(ARGS $(B long double))
+    )
 
-	$(TROW
-	$(ARGS $(B ifloat)),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(B ifloat)),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(B idouble)),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(B idouble)),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(B ireal)),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(B ireal)),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(B cfloat)),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(B cfloat)),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(B cdouble)),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(B cdouble)),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(B creal)),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(B creal)),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(B struct)),
-	$(ARGS $(B struct))
-	)
+    $(TROW
+    $(ARGS $(B struct)),
+    $(ARGS $(B struct))
+    )
 
-	$(TROW
-	$(ARGS $(B union)),
-	$(ARGS $(B union))
-	)
+    $(TROW
+    $(ARGS $(B union)),
+    $(ARGS $(B union))
+    )
 
-	$(TROW
-	$(ARGS $(B enum)),
-	$(ARGS $(B enum))
-	)
+    $(TROW
+    $(ARGS $(B enum)),
+    $(ARGS $(B enum))
+    )
 
-	$(TROW
-	$(ARGS $(B class)),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(B class)),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(I type)$(B *)),
-	$(ARGS $(I type) $(B *))
-	)
+    $(TROW
+    $(ARGS $(I type)$(B *)),
+    $(ARGS $(I type) $(B *))
+    )
 
-	$(TROW
-	$(ARGS no equivalent),
-	$(ARGS $(I type) $(CODE_AMP))
-	)
+    $(TROW
+    $(ARGS no equivalent),
+    $(ARGS $(I type) $(CODE_AMP))
+    )
 
-	$(TROW
-	$(ARGS $(I type)$(B [)$(I dim)$(B ])),
-	$(ARGS $(I type)$(B [)$(I dim)$(B ]))
-	)
+    $(TROW
+    $(ARGS $(I type)$(B [)$(I dim)$(B ])),
+    $(ARGS $(I type)$(B [)$(I dim)$(B ]))
+    )
 
-	$(TROW
-	$(ARGS $(I type)$(B [)$(I dim)$(B ]*)),
-	$(ARGS $(I type)$(B (*)[)$(I dim)$(B ]))
-	)
+    $(TROW
+    $(ARGS $(I type)$(B [)$(I dim)$(B ]*)),
+    $(ARGS $(I type)$(B (*)[)$(I dim)$(B ]))
+    )
 
-	$(TROW
-	$(ARGS $(I type)$(B [])),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(I type)$(B [])),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(I type)$(B [)$(I type)$(B ])),
-	$(ARGS no equivalent)
-	)
+    $(TROW
+    $(ARGS $(I type)$(B [)$(I type)$(B ])),
+    $(ARGS no equivalent)
+    )
 
-	$(TROW
-	$(ARGS $(I type) $(B function)$(B $(LPAREN))$(I parameters)$(B $(RPAREN))),
-	$(ARGS $(I type)$(B (*))$(B $(LPAREN))$(I parameters)$(B $(RPAREN)))
-	)
+    $(TROW
+    $(ARGS $(I type) $(B function)$(B $(LPAREN))$(I parameters)$(B $(RPAREN))),
+    $(ARGS $(I type)$(B (*))$(B $(LPAREN))$(I parameters)$(B $(RPAREN)))
+    )
 
-	$(TROW
-	$(ARGS $(I type) $(B delegate)$(B $(LPAREN))$(I parameters)$(B $(RPAREN))),
-	$(ARGS no equivalent)
-	)
-	)
+    $(TROW
+    $(ARGS $(I type) $(B delegate)$(B $(LPAREN))$(I parameters)$(B $(RPAREN))),
+    $(ARGS no equivalent)
+    )
+    )
 
-	$(P These equivalents hold for most 32 bit C++ compilers.
-	The C++ standard
-	does not pin down the sizes of the types, so some care is needed.
-	)
+    $(P These equivalents hold for most 32 bit C++ compilers.
+    The C++ standard
+    does not pin down the sizes of the types, so some care is needed.
+    )
 
 $(H2 Structs and Unions)
 
-	$(P D structs and unions are analogous to C's.
-	)
+    $(P D structs and unions are analogous to C's.
+    )
 
-	$(P C code often adjusts the alignment and packing of struct members
-	with a command line switch or with various implementation specific
-	$(HASH)pragma's. D supports explicit alignment attributes that correspond
-	to the C compiler's rules. Check what alignment the C code is using,
-	and explicitly set it for the D struct declaration.
-	)
+    $(P C code often adjusts the alignment and packing of struct members
+    with a command line switch or with various implementation specific
+    $(HASH)pragma's. D supports explicit alignment attributes that correspond
+    to the C compiler's rules. Check what alignment the C code is using,
+    and explicitly set it for the D struct declaration.
+    )
 
-	$(P D does not support bit fields. If needed, they can be emulated
-	with shift and mask operations.
-	$(DPLLINK $(ROOT_DIR)htod.html, htod) will convert bit fields to inline functions that
-	do the right shift and masks.
-	)
+    $(P D does not support bit fields. If needed, they can be emulated
+    with shift and mask operations.
+    $(DPLLINK $(ROOT_DIR)htod.html, htod) will convert bit fields to inline functions that
+    do the right shift and masks.
+    )
 
 $(H2 Object Construction and Destruction)
 
-	$(P Similarly to storage allocation and deallocation, objects
-	constructed in D code should be destructed in D,
-	and objects constructed
-	in C++ should be destructed in C++ code.
-	)
+    $(P Similarly to storage allocation and deallocation, objects
+    constructed in D code should be destructed in D,
+    and objects constructed
+    in C++ should be destructed in C++ code.
+    )
 
 $(H2 Special Member Functions)
 
-	$(P D cannot call C++ special member functions, and vice versa.
-	These include constructors, destructors, conversion operators,
-	operator overloading, and allocators.
-	)
+    $(P D cannot call C++ special member functions, and vice versa.
+    These include constructors, destructors, conversion operators,
+    operator overloading, and allocators.
+    )
 
 $(H2 Runtime Type Identification)
 
-	$(P D runtime type identification
-	uses completely different techniques than C++.
-	The two are incompatible.)
+    $(P D runtime type identification
+    uses completely different techniques than C++.
+    The two are incompatible.)
 
 $(H2 C++ Class Objects by Value)
 
-	$(P D can access POD (Plain Old Data) C++ structs, and it can
-	access C++ class virtual functions by reference.
-	It cannot access C++ classes by value.
-	)
+    $(P D can access POD (Plain Old Data) C++ structs, and it can
+    access C++ class virtual functions by reference.
+    It cannot access C++ classes by value.
+    )
 
 $(H2 C++ Templates)
 
-	$(P D templates have little in common with C++ templates,
-	and it is very unlikely that any sort of reasonable method
-	could be found to express C++ templates in a link-compatible
-	way with D.
-	)
+    $(P D templates have little in common with C++ templates,
+    and it is very unlikely that any sort of reasonable method
+    could be found to express C++ templates in a link-compatible
+    way with D.
+    )
 
-	$(P This means that the C++ STL, and C++ Boost, likely will
-	never be accessible from D.
-	)
+    $(P This means that the C++ STL, and C++ Boost, likely will
+    never be accessible from D.
+    )
 
 $(H2 Exception Handling)
 
-	$(P D and C++ exception handling are completely different.
-	Throwing exceptions across the boundaries between D
-	and C++ code will likely not work.
-	)
+    $(P D and C++ exception handling are completely different.
+    Throwing exceptions across the boundaries between D
+    and C++ code will likely not work.
+    )
 
 $(SECTION2 Comparing D Immutable and Const with C++ Const,
 
 $(TABLE_SPECIAL $(ARGS Const, Immutable Comparison),
-	$(THEAD Feature, D, C++98)
-	$(TROW $(D const) keyword, Yes, Yes)
-	$(TROW $(D immutable) keyword, Yes, No)
-	$(TROW const notation,
+    $(THEAD Feature, D, C++98)
+    $(TROW $(D const) keyword, Yes, Yes)
+    $(TROW $(D immutable) keyword, Yes, No)
+    $(TROW const notation,
 ---
 // Functional:
 //ptr to const ptr to const int
@@ -629,9 +629,9 @@ $(CPPLISTING
 //ptr to const ptr to const int
 const int *const *p;
 )
-	)
+    )
 
-	$(TROW transitive const,
+    $(TROW transitive const,
 ---
 // Yes:
 //const ptr to const ptr to const int
@@ -645,9 +645,9 @@ $(CPPLISTING
 int** const p;
 **p = 3;    // ok
 )
-	)
+    )
 
-	$(TROW cast away const,
+    $(TROW cast away const,
 ---
 // Yes:
 // ptr to const int
@@ -661,9 +661,9 @@ $(CPPLISTING
 const int* p;
 int* q = const_cast&lt;int*&gt;p; //ok
 )
-	)
+    )
 
-	$(TROW cast+mutate,
+    $(TROW cast+mutate,
 ---
 // No:
 // ptr to const int
@@ -679,9 +679,9 @@ const int* p;
 int* q = const_cast&lt;int*&gt;p;
 *q = 3;   // ok
 )
-	)
+    )
 
-	$(TROW overloading,
+    $(TROW overloading,
 ---
 // Yes:
 void foo(int x);
@@ -693,9 +693,9 @@ $(CPPLISTING
 void foo(int x);
 void foo(const int x);  //error
 )
-	)
+    )
 
-	$(TROW const/mutable aliasing,
+    $(TROW const/mutable aliasing,
 ---
 // Yes:
 void foo(const int* x, int* y)
@@ -721,9 +721,9 @@ void foo(const int* x, int* y)
 int i = 3;
 foo($(AMP)i, $(AMP)i);
 )
-	)
+    )
 
-	$(TROW immutable/mutable aliasing,
+    $(TROW immutable/mutable aliasing,
 ---
 // No:
 void foo(immutable int* x, int* y)
@@ -737,34 +737,34 @@ int i = 3;
 foo(cast(immutable)&i, &i);
 ---
 ,
-	No immutables
-	)
+    No immutables
+    )
 
-	$(TROW type of string literal,
-	$(D immutable(char)[]),
-	$(D const char*)
-	)
+    $(TROW type of string literal,
+    $(D immutable(char)[]),
+    $(D const char*)
+    )
 
 
-	$(TROW string literal to non-const,
-	not allowed,
-	$(ARGS allowed, but deprecated)
-	)
+    $(TROW string literal to non-const,
+    not allowed,
+    $(ARGS allowed, but deprecated)
+    )
 )
 )
 
 $(H2 Future Developments)
 
-	$(P How the upcoming C++1y standard will affect this is not
-	known.)
+    $(P How the upcoming C++1y standard will affect this is not
+    known.)
 
-	$(P Over time, more aspects of the C++ ABI may be accessible
-	directly from D.)
+    $(P Over time, more aspects of the C++ ABI may be accessible
+    directly from D.)
 
 )
 
 Macros:
-	TITLE=Interfacing to C++
-	WIKI=InterfaceToCPP
+    TITLE=Interfacing to C++
+    WIKI=InterfaceToCPP
 
 
