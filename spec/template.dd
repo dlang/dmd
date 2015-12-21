@@ -528,33 +528,12 @@ $(GNAME TemplateAliasParameterDefault):
 )
 
     $(P Alias parameters enable templates to be parameterized with
-        any type of D symbol, including global names, local names,
+        any type of D symbol, including type names, global names, local names,
         module names, template names, and template instance names.
         Literals can also be used as arguments to alias parameters.
     )
 
     $(UL
-        $(LI Global names
-
-        ------
-        int x;
-
-        template Foo(alias X)
-        {
-            static int* p = &X;
-        }
-
-        void test()
-        {
-            alias bar = Foo!(x);
-            *bar.p = 3;       // set x to 3
-            static int y;
-            alias abc = Foo!(y);
-            *abc.p = 3;       // set y to 3
-        }
-        ------
-        )
-
         $(LI Type names
 
         ------
@@ -572,6 +551,27 @@ $(GNAME TemplateAliasParameterDefault):
         {
             alias bar = Bar!(Foo);
             bar.q = 3;  // sets Foo.p to 3
+        }
+        ------
+        )
+
+        $(LI Global names
+
+        ------
+        int x;
+
+        template Foo(alias X)
+        {
+            static int* p = &X;
+        }
+
+        void test()
+        {
+            alias bar = Foo!(x);
+            *bar.p = 3;       // set x to 3
+            static int y;
+            alias abc = Foo!(y);
+            *abc.p = 3;       // set y to 3
         }
         ------
         )
