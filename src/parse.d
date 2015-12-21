@@ -4129,24 +4129,7 @@ public:
                 if (tpl)
                     constraint = parseConstraint();
                 Dsymbol s = parseContracts(f);
-                /* A template parameter list means it's a function template
-                 */
-                if (tpl)
-                {
-                    // Wrap a template around the function declaration
-                    auto decldefs = new Dsymbols();
-                    decldefs.push(s);
-                    auto tempdecl = new TemplateDeclaration(loc, s.ident, tpl, constraint, decldefs);
-                    s = tempdecl;
-                    if (storage_class & STCstatic)
-                    {
-                        assert(f.storage_class & STCstatic);
-                        f.storage_class &= ~STCstatic;
-                        auto ax = new Dsymbols();
-                        ax.push(s);
-                        s = new StorageClassDeclaration(STCstatic, ax);
-                    }
-                }
+                auto tplIdent = s.ident;
                 if (link != linkage)
                 {
                     auto ax = new Dsymbols();
@@ -4158,6 +4141,24 @@ public:
                     auto ax = new Dsymbols();
                     ax.push(s);
                     s = new UserAttributeDeclaration(udas, ax);
+                }
+                /* A template parameter list means it's a function template
+                 */
+                if (tpl)
+                {
+                    // Wrap a template around the function declaration
+                    auto decldefs = new Dsymbols();
+                    decldefs.push(s);
+                    auto tempdecl = new TemplateDeclaration(loc, tplIdent, tpl, constraint, decldefs);
+                    s = tempdecl;
+                    if (storage_class & STCstatic)
+                    {
+                        assert(f.storage_class & STCstatic);
+                        f.storage_class &= ~STCstatic;
+                        auto ax = new Dsymbols();
+                        ax.push(s);
+                        s = new StorageClassDeclaration(STCstatic, ax);
+                    }
                 }
                 a.push(s);
                 addComment(s, comment);
