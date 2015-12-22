@@ -444,6 +444,7 @@ DDOC_PARAM_ROW = $(TR $0)
 DDOC_PARAM_ID  = $(TD $0)
 DDOC_PARAM_DESC = $(TD $0)
 DDOC_BLANKLINE  = $(BR)$(BR)
+DDOC_PARAGRAPH_SEPARATOR =
 
 DDOC_ANCHOR     = <a name=\"$1\"></a>
 DDOC_PSYMBOL    = $(U $0)
@@ -2133,7 +2134,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
-    int leadingBlank = 1;
+    bool leadingBlank = true;
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
@@ -2168,8 +2169,36 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
                 i = buf.insert(i, blankline, strlen(blankline));
             }
-            leadingBlank = 1;
             iLineStart = i + 1;
+            if (!leadingBlank)
+            {
+                leadingBlank = true;
+            }
+            else
+            {
+                // Group two or more newlines into a paragraph break
+                auto scout = iLineStart;
+                for (; scout < buf.offset; ++scout)
+                {
+                    c = buf.data[scout];
+                    if (c == ' ' || c == '\t')
+                    {
+                        continue;
+                    }
+                    if (c == '\n')
+                    {
+                        iLineStart = scout + 1;
+                        continue;
+                    }
+                    // We got to a non-whitespace, time to insert the paragraph
+                    // break.
+                    i = iLineStart - 1;
+                    static __gshared const(char)* ps =
+                        "$(DDOC_PARAGRAPH_SEPARATOR)";
+                    i = buf.insert(i, ps, strlen(ps));
+                    break;
+                }
+            }
             break;
         case '<':
             {
