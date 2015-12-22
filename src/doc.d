@@ -379,6 +379,7 @@ RPAREN= )
 BACKTICK= `
 DOLLAR= $
 DEPRECATED= $0
+NOTHING =
 
 RED =   <font color=red>$0</font>
 BLUE =  <font color=blue>$0</font>
@@ -450,8 +451,8 @@ DDOC_PSYMBOL    = $(U $0)
 DDOC_PSUPER_SYMBOL = $(U $0)
 DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
-DDOC_CONSTRAINT      = &nbsp;if ($0)
-DDOC_OVERLOAD_SEPARATOR      = $(BR)
+DDOC_CONSTRAINT      = $(NOTHING) $0
+DDOC_OVERLOAD_SEPARATOR      =
 DDOC_TEMPLATE_PARAM_LIST = $0
 DDOC_TEMPLATE_PARAM = $0
 
@@ -1241,14 +1242,14 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                 bool funcDecl = td.isFuncDeclaration() is null;
                 if (funcDecl)
                 {
-                    buf.writestring("$(DDOC_CONSTRAINT ");
+                    buf.writestring("$(DDOC_CONSTRAINT if (");
                 }
 
                 .toCBuffer(td.constraint, buf, &hgs);
 
                 if (funcDecl)
                 {
-                    buf.writeByte(')');
+                    buf.writestring("))");
                 }
             }
             if (d.isDeprecated())
