@@ -2192,8 +2192,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                     // We got to a non-whitespace, time to insert the paragraph
                     // break.
-                    static __gshared immutable ps =
-                        "$(DDOC_PARAGRAPH_SEPARATOR)";
+                    immutable ps = "$(DDOC_PARAGRAPH_SEPARATOR)";
                     i = buf.insert(iLineStart, ps.ptr, ps.length) - 1;
                     break;
                 }
