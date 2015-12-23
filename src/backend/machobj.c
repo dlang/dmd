@@ -2309,9 +2309,6 @@ void MachObj::addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val)
 {
     Relocation rel;
-#ifdef DEBUG
-    memset(&rel, 0, sizeof(rel));
-#endif
     rel.offset = offset;
     rel.targsym = targsym;
     rel.targseg = targseg;
@@ -2702,6 +2699,22 @@ void Obj::gotref(symbol *s)
         default:
             break;
     }
+}
+
+/******************************************
+ * Generate fixup specific to .eh_frame and .gcc_except_table sections.
+ * Params:
+ *      seg = segment of where to write fixup
+ *      offset = offset of where to write fixup
+ *      s = fixup is a reference to this Symbol
+ *      val = displacement from s
+ * Returns:
+ *      number of bytes written at seg:offset
+ */
+int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
+{
+    assert(0);          // not implemented yet
+    return 4;
 }
 
 #endif

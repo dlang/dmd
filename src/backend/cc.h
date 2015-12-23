@@ -1273,6 +1273,8 @@ struct Symbol
     int Sweight;                // usage count, the higher the number,
                                 // the more worthwhile it is to put in
                                 // a register
+    int Sdw_ref_idx;            // !=0 means index of DW.ref.name symbol (Dwarf EH)
+
     union
     {
         unsigned Sxtrnnum_;     // SCcomdef,SCextern,SCcomdat: external symbol # (starting from 1)

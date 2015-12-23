@@ -60,6 +60,12 @@
 
 extern int seg_count;
 
+#if ELFOBJ
+IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
+        unsigned typ, unsigned bind, IDXSEC sec,
+        unsigned char visibility = STV_DEFAULT);
+#endif
+
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
@@ -626,10 +632,16 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
     buf->writeByten(I64 ? 16 : 8);      // return address register
     if (config.ehmethod == EH_DWARF)
     {
+        const unsigned char personality_pointer_encoding = config.flags3 & CFG3pic
+                ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
+                : DW_EH_PE_absptr | DW_EH_PE_udata4;
+        const unsigned char LSDA_pointer_encoding = config.flags3 & CFG3pic
+                ? DW_EH_PE_pcrel | DW_EH_PE_sdata4
+                : DW_EH_PE_absptr | DW_EH_PE_udata4;
         buf->writeByten(7);                                  // Augmentation Length
-        buf->writeByten(DW_EH_PE_absptr | DW_EH_PE_udata4);  // P: personality routing address encoding
-        ElfObj::reftoident(dfseg, buf->size(), personality, 0, CFoff); // PC_begin
-        buf->writeByten(DW_EH_PE_absptr | DW_EH_PE_udata4);  // L: address encoding for LSDA in FDE
+        buf->writeByten(personality_pointer_encoding);       // P: personality routine address encoding
+        dwarf_reftoident(dfseg, buf->size(), personality, 0);
+        buf->writeByten(LSDA_pointer_encoding);              // L: address encoding for LSDA in FDE
         buf->writeByten(DW_EH_PE_pcrel  | DW_EH_PE_sdata4);  // R: encoding of addresses in FDE
     }
     else
@@ -785,8 +797,18 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
     {
         buf->writeByten(4);                             // Augmentation Data Length
         int etseg = dwarf_getsegment_alloc(except_table_name, 1);
+        // if CFG3pic, fixup should be R_X86_64_PC32
         buf->write32(0);                                // address of LSDA (".gcc_except_table")
-        dwarf_addrel(dfseg, buf->size() - 4, etseg, sfunc->Sfunc->LSDAoffset);      // and the fixup
+        if (config.flags3 & CFG3pic)
+        {
+#if ELFOBJ
+            ElfObj::addrel(dfseg, buf->size() - 4, R_X86_64_PC32, MAP_SEG2SYMIDX(etseg), sfunc->Sfunc->LSDAoffset);
+#else
+            assert(0);                                  // not supported yet
+#endif
+        }
+        else
+            dwarf_addrel(dfseg, buf->size() - 4, etseg, sfunc->Sfunc->LSDAoffset);      // and the fixup
     }
     else
         buf->writeByten(0);                             // Augmentation Data Length
