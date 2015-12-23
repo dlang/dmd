@@ -2137,6 +2137,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     bool leadingBlank = true;
     int inCode = 0;
     int inBacktick = 0;
+    int blankLineRun = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
@@ -2168,6 +2169,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
                 i = buf.insert(i, blankline, strlen(blankline));
+                blankLineRun++;
             }
             iLineStart = i + 1;
             if (!leadingBlank)
@@ -2422,6 +2424,18 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             leadingBlank = 0;
             if (sc._module.isDocFile || inCode)
                 break;
+
+
+            if(blankLineRun) {
+                // We got to a non-whitespace in a run of blank lines, time
+                // to insert the paragraph break to group two or more newlines
+                // into a paragraph separator
+                immutable ps = "$(DDOC_PARAGRAPH_SEPARATOR)";
+                i = buf.insert(i, ps.ptr, ps.length) - 1;
+            }
+
+            blankLineRun = 0;
+
             char* start = cast(char*)buf.data + i;
             if (isIdStart(start))
             {
