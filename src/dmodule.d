@@ -724,6 +724,19 @@ public:
                 setDocfile();
             return this;
         }
+        /* If it has the extension ".dd", it is also a documentation
+         * source file. Documentation source files may begin with "Ddoc"
+         * but do not have to if they have the .dd extension.
+         * See: https://issues.dlang.org/show_bug.cgi?id=15465
+         */
+        if (FileName.equalsExt(arg, "dd"))
+        {
+            comment = buf; // the optional Ddoc, if present, is handled above.
+            isDocFile = 1;
+            if (!docfile)
+                setDocfile();
+            return this;
+        }
         {
             scope Parser p = new Parser(this, buf, buflen, docfile !is null);
             p.nextToken();
