@@ -445,6 +445,7 @@ DDOC_PARAM_ID  = $(TD $0)
 DDOC_PARAM_DESC = $(TD $0)
 DDOC_BLANKLINE  = $(BR)$(BR)
 DDOC_PARAGRAPH_SEPARATOR =
+DDOC_PARAGRAPH_CLOSER=
 
 DDOC_ANCHOR     = <a name=\"$1\"></a>
 DDOC_PSYMBOL    = $(U $0)
@@ -2125,14 +2126,30 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
     size_t iLineStart = offset;
+    bool paragraphOpen = false;
+    int parensOpenInParagraph = 0;
 
 
     for (size_t i = offset; i < buf.offset; i++)
     {
 
-        void insertParagraphSeparator() {
+        void insertParagraphSeparator()
+        {
             immutable ps = "$(DDOC_PARAGRAPH_SEPARATOR)";
             i = buf.insert(i, ps.ptr, ps.length);
+            paragraphOpen = true;
+            parensOpenInParagraph = 0;
+        }
+
+        void insertParagraphCloser(size_t where)
+        {
+                if (paragraphOpen)
+                {
+                    immutable ps = "$(DDOC_PARAGRAPH_CLOSER)";
+                    i += buf.insert(where, ps.ptr, ps.length) - where;
+                    paragraphOpen = false;
+                    parensOpenInParagraph = 0;
+                }
         }
 
         char c = buf.data[i];
@@ -2156,17 +2173,25 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            // This if condition previously also included `!sc._module.isDocFile`
-            // as one of the conditions. That caused ddoc to suppress output of
-            // DDOC_BLANKLINE in .dd files. I removed that because I don't see
-            // the logic in it. If someone is reading this later and does see
-            // logic in putting it back, please explain why this time!
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline, strlen(blankline));
+                // I don't know why this is there, but ddoc, for whatever reason
+                // doesn't output DDOC_BLANKLINE in .dd files. And the tests fail
+                // if this changes. If anybody knows *why*, please comment here
+                // and let me know too - Adam D. Ruppe
+                if (!sc._module.isDocFile)
+                {
+                    static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
+                    i = buf.insert(i, blankline, strlen(blankline));
+                }
                 blankLineRun++;
             }
+
+            if (blankLineRun)
+            {
+                insertParagraphCloser(iLineStart);
+            }
+
             leadingBlank = 1;
             iLineStart = i + 1;
             break;
@@ -2399,9 +2424,19 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (i - istart < 3)
                     goto Lcont;
                 // We have the start/end of a code section
+
                 // Remove the entire --- line, including blanks and \n
                 buf.remove(iLineStart, i - iLineStart + eollen);
                 i = iLineStart;
+
+                // A new code section is a block, so it should terminate
+                // any existing paragraph.
+                if (!inCode && paragraphOpen)
+                {
+                    insertParagraphCloser(iLineStart);
+                }
+
+
                 if (inCode && (i <= iCodeStart))
                 {
                     // Empty code section, just remove it completely.
@@ -2455,6 +2490,100 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             break;
+        case '(':
+            // I am tracking how many parenthesis are open to determine if we are inside
+            // a macro while doing a paragraph. See immediately below.
+
+            if (!paragraphOpen)
+                break; // if we aren't in a paragraph, we don't need to track.
+
+            parensOpenInParagraph++;
+            break;
+        case ')':
+            // If we are inside a paragraph and inside a macro that just closed... uh oh,
+            // we'd better close the paragraph before terminating the macro.
+
+            if (!paragraphOpen)
+                break; // if we aren't in a paragraph, we don't need to track.
+
+            // The reason this checks if it is greater than one is parensOpen == 1
+            // happens in the case of an inline thing. For example,
+            // Something with $(B bold) text.
+            // A paragraph is open and so is a macro, but we know where it came from
+            // so there is no need for alarm.
+            //
+            // If parensOpen == 2
+            if (parensOpenInParagraph > 0)
+            {
+                // we see that one was open, so we can see
+                // that it is closed too
+                parensOpenInParagraph--;
+            }
+            else
+            {
+                // uh oh, we are trying to close parens inside a
+                // paragraph and don't know where it opened. That
+                // means it must have opened somewhere BEFORE our
+                // paragraph began. That means our paragraph ends
+                // right here, right now.
+
+                insertParagraphCloser(i);
+                paragraphOpen = false;
+            }
+
+            break;
+        case '$':
+            // If a potential paragraph starts with a macro, and that macro spans
+            // more than one line, we will NOT consider it a paragraph. Consider this:
+            /*
+                This is a paragraph followed by blank lines, which typically triggers
+                the DDOC_PARAGRAPH_SEPARATOR.
+
+                $(OL
+                    $(LI but this is a list, not a paragraph!)
+                    $(LI putting a DDOC_PARAGRAPH_SEPARATOR before it would be invalid)
+                    $(LI but a paragraph could begin with like a $(LINK2) or other inline
+                         element, so the guess we'll take is if it spans multiple lines,
+                         it is probably a block element itself and shouldn't get additional
+                         special treatment as a paragraph.)
+                    $(LI Macros that start later in a line do not get this treatment, the
+                         paragraph is still there for them. Hopefully, the author is sane.)
+                    $(LI fun!)
+                )
+            */
+
+            if (inCode)
+                break; // we're safe, code is special
+
+            int parensCount = 0;
+            for (size_t scout = i; scout < buf.offset; scout++)
+            {
+                if (buf.data[scout] == '(')
+                    parensCount++;
+                if (buf.data[scout] == ')')
+                {
+                    parensCount--;
+                    if (parensCount == 0)
+                        break;
+                }
+                if (parensCount && buf.data[scout] == '\n')
+                {
+                    // Looks like a block element, so consider it to
+                    // stop the \n run now without opening a new paragraph.
+                    blankLineRun = 0;
+                    // but do close any existing paragraph
+                    if (paragraphOpen)
+                    {
+                        insertParagraphCloser(i);
+                        paragraphOpen = false;
+                    }
+                    break;
+                }
+
+            }
+
+            // we want to fall through because macros are usually handled fine
+            // goto case doesn't work with default though, so commented.
         default:
             leadingBlank = 0;
             if (inCode)
@@ -2520,6 +2649,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     }
     if (inCode)
         error(s ? s.loc : Loc(), "unmatched --- in DDoc comment");
+
+    if (paragraphOpen)
+    {
+        // insertParagraphCloser(buf.offset);
+        // insertParagraphCloser needs the nested variable i, so redoing it here.
+        immutable ps = "$(DDOC_PARAGRAPH_CLOSER)";
+        buf.insert(buf.offset, ps.ptr, ps.length);
+        paragraphOpen = false;
+    }
 }
 
 /**************************************************
