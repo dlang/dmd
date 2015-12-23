@@ -4,7 +4,7 @@ $(SPEC_S D x86 Inline Assembler,
 
     $(HTMLTAG3 a,
       href="http://digitalmars.com/gift/index.html" title="Gift Shop" target="_top",
-      $(HTMLTAG3V img, src="images/d5.gif" border="0" align="right" alt="Some Assembly Required" width="284" height="186")
+      $(HTMLTAG3V img, src="../images/d5.gif" border="0" align="right" alt="Some Assembly Required" width="284" height="186")
     )
 
     $(P D, being a systems programming language, provides an inline
