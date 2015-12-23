@@ -444,8 +444,7 @@ DDOC_PARAM_ROW = $(TR $0)
 DDOC_PARAM_ID  = $(TD $0)
 DDOC_PARAM_DESC = $(TD $0)
 DDOC_BLANKLINE  = $(BR)$(BR)
-DDOC_PARAGRAPH_SEPARATOR =
-DDOC_PARAGRAPH_CLOSER=
+DDOC_PARAGRAPH = $0
 
 DDOC_ANCHOR     = <a name=\"$1\"></a>
 DDOC_PSYMBOL    = $(U $0)
@@ -2121,7 +2120,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     bool leadingBlank = true;
     int inCode = 0;
     int inBacktick = 0;
-    int blankLineRun = 0;
+    // The top of the file is considered a blank line because
+    // then our first paragraph will be considered to be opened
+    int blankLineRun = 1;
     //int inComment = 0;                  // in <!-- ... --> comment
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
@@ -2133,23 +2134,29 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     for (size_t i = offset; i < buf.offset; i++)
     {
 
-        void insertParagraphSeparator()
+        void insertParagraphCloser(size_t where)
         {
-            immutable ps = "$(DDOC_PARAGRAPH_SEPARATOR)";
+            if (paragraphOpen)
+            {
+                // Since the paragraph opener is a macro (see below)
+                // the closer is just a right paren.
+                immutable ps = ")";
+                i += buf.insert(where, ps.ptr, ps.length) - where;
+                paragraphOpen = false;
+                parensOpenInParagraph = 0;
+            }
+        }
+
+        void insertParagraphOpener()
+        {
+            // we must close any existing paragraph to ensure balanced parens
+            // for the generated macro
+            if (paragraphOpen)
+                insertParagraphCloser(i);
+            immutable ps = "$(DDOC_PARAGRAPH ";
             i = buf.insert(i, ps.ptr, ps.length);
             paragraphOpen = true;
             parensOpenInParagraph = 0;
-        }
-
-        void insertParagraphCloser(size_t where)
-        {
-                if (paragraphOpen)
-                {
-                    immutable ps = "$(DDOC_PARAGRAPH_CLOSER)";
-                    i += buf.insert(where, ps.ptr, ps.length) - where;
-                    paragraphOpen = false;
-                    parensOpenInParagraph = 0;
-                }
         }
 
         char c = buf.data[i];
@@ -2269,7 +2276,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     //
                     // If we actually get here with blankLineRun != 0, treat it
                     // as just another paragraph.
-                    insertParagraphSeparator();
+                    insertParagraphOpener();
                     blankLineRun = 0;
                 }
 
@@ -2296,7 +2303,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // A paragraph might legitimately being with >, even
                     // with manual html tags, so I'm putting the separator
                     // in.
-                    insertParagraphSeparator();
+                    insertParagraphOpener();
                     blankLineRun = 0;
                 }
 
@@ -2321,7 +2328,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (blankLineRun)
                 {
                     // A paragraph might begin with a character entity...
-                    insertParagraphSeparator();
+                    insertParagraphOpener();
                     blankLineRun = 0;
                 }
 
@@ -2365,7 +2372,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 {
                     // A paragraph might begin with some inline code, so we
                     // need to insert the separator here if we are in such a run.
-                    insertParagraphSeparator();
+                    insertParagraphOpener();
                     blankLineRun = 0;
                 }
 
@@ -2594,7 +2601,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // We got to a non-whitespace in a run of blank lines, time
                 // to insert the paragraph break to group two or more newlines
                 // into a paragraph separator
-                insertParagraphSeparator();
+                insertParagraphOpener();
                 blankLineRun = 0;
             }
 
@@ -2654,7 +2661,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     {
         // insertParagraphCloser(buf.offset);
         // insertParagraphCloser needs the nested variable i, so redoing it here.
-        immutable ps = "$(DDOC_PARAGRAPH_CLOSER)";
+        immutable ps = ")";
         buf.insert(buf.offset, ps.ptr, ps.length);
         paragraphOpen = false;
     }
