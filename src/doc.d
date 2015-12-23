@@ -2125,8 +2125,16 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
     size_t iLineStart = offset;
+
+
     for (size_t i = offset; i < buf.offset; i++)
     {
+
+        void insertParagraphSeparator() {
+            immutable ps = "$(DDOC_PARAGRAPH_SEPARATOR)";
+            i = buf.insert(i, ps.ptr, ps.length);
+        }
+
         char c = buf.data[i];
     Lcont:
         switch (c)
@@ -2148,7 +2156,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
+            // This if condition previously also included `!sc._module.isDocFile`
+            // as one of the conditions. That caused ddoc to suppress output of
+            // DDOC_BLANKLINE in .dd files. I removed that because I don't see
+            // the logic in it. If someone is reading this later and does see
+            // logic in putting it back, please explain why this time!
+            if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
                 static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
                 i = buf.insert(i, blankline, strlen(blankline));
@@ -2167,6 +2180,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (se && strcmp(se, "&lt;") == 0)
                 {
                     // Generating HTML
+
+                    // I am NOT putting the paragraph separator here because
+                    // if it does start with a < in html mode, it is likely
+                    // a manually written HTML tag and we should trust the
+                    // author knows what they are doing in this case.
+                    blankLineRun = 0;
+
                     // Skip over comments
                     if (p[1] == '!' && p[2] == '-' && p[3] == '-')
                     {
@@ -2207,6 +2227,29 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                 }
             L1:
+
+                if(blankLineRun)
+                {
+                    // Above, in the if html block, I set blankLineRun = 0
+                    // because a manually written html tag probably shouldn't
+                    // be wrapped in a paragraph. Well, sometimes it should be,
+                    // but ddoc can't know. Better to not put anything out and
+                    // trust the author to write the correct code; they wouldn't
+                    // by doing their own html tags if they didn't want some kind
+                    // of low-level control.
+                    //
+                    // However, if we are not generating HTML, then < is just
+                    // another character at the beginning of a line, so it might
+                    // warrant the paragraph separator.
+                    //
+                    // If we actually get here with blankLineRun != 0, treat it
+                    // as just another paragraph.
+                    insertParagraphSeparator();
+                    blankLineRun = 0;
+                }
+
+
+
                 // Replace '<' with '&lt;' character entity
                 if (se)
                 {
@@ -2222,6 +2265,17 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 leadingBlank = 0;
                 if (inCode)
                     break;
+
+                if(blankLineRun)
+                {
+                    // A paragraph might legitimately being with >, even
+                    // with manual html tags, so I'm putting the separator
+                    // in.
+                    insertParagraphSeparator();
+                    blankLineRun = 0;
+                }
+
+
                 // Replace '>' with '&gt;' character entity
                 const(char)* se = sc._module.escapetable.escapeChar('>');
                 if (se)
@@ -2238,6 +2292,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 leadingBlank = 0;
                 if (inCode)
                     break;
+
+                if(blankLineRun)
+                {
+                    // A paragraph might begin with a character entity...
+                    insertParagraphSeparator();
+                    blankLineRun = 0;
+                }
+
                 char* p = cast(char*)&buf.data[i];
                 if (p[1] == '#' || isalpha(p[1]))
                     break;
@@ -2273,6 +2335,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 if (inCode)
                     break;
+
+                if(blankLineRun)
+                {
+                    // A paragraph might begin with some inline code, so we
+                    // need to insert the separator here if we are in such a run.
+                    insertParagraphSeparator();
+                    blankLineRun = 0;
+                }
+
                 inCode = 1;
                 inBacktick = 1;
                 codeIndent = 0; // inline code is not indented
@@ -2284,6 +2355,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 break;
             }
         case '-':
+            // The paragraph separator is deliberately left out here,
+            // since a code example does NOT begin a new paragraph.
+            // It does, however, mean we are no longer looking at a
+            // run on blank lines.
+
+            blankLineRun = 0;
+
             /* A line beginning with --- delimits a code section.
              * inCode tells us if it is start or end of a code section.
              */
@@ -2379,19 +2457,22 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             break;
         default:
             leadingBlank = 0;
-            if (sc._module.isDocFile || inCode)
+            if (inCode)
                 break;
 
-
-            if(blankLineRun) {
+            if(blankLineRun)
+            {
                 // We got to a non-whitespace in a run of blank lines, time
                 // to insert the paragraph break to group two or more newlines
                 // into a paragraph separator
-                immutable ps = "$(DDOC_PARAGRAPH_SEPARATOR)";
-                i = buf.insert(i, ps.ptr, ps.length) - 1;
+                insertParagraphSeparator();
+                blankLineRun = 0;
             }
 
-            blankLineRun = 0;
+            // .dd files don't have identifiers, psymbols, params, etc., so
+            // no further processing should be done on them.
+            if (sc._module.isDocFile)
+                break;
 
             char* start = cast(char*)buf.data + i;
             if (isIdStart(start))
