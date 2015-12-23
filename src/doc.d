@@ -444,6 +444,7 @@ DDOC_PARAM_ROW = $(TR $0)
 DDOC_PARAM_ID  = $(TD $0)
 DDOC_PARAM_DESC = $(TD $0)
 DDOC_BLANKLINE  = $(BR)$(BR)
+DDOC_PARAGRAPH = $0
 
 DDOC_ANCHOR     = <a name=\"$1\"></a>
 DDOC_PSYMBOL    = $(U $0)
@@ -2116,15 +2117,48 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
-    int leadingBlank = 1;
+    bool leadingBlank = true;
     int inCode = 0;
     int inBacktick = 0;
+    // The top of the file is considered a blank line because
+    // then our first paragraph will be considered to be opened
+    int blankLineRun = 1;
     //int inComment = 0;                  // in <!-- ... --> comment
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
     size_t iLineStart = offset;
+    bool paragraphOpen = false;
+    int parensOpenInParagraph = 0;
+
+
     for (size_t i = offset; i < buf.offset; i++)
     {
+
+        void insertParagraphCloser(size_t where)
+        {
+            if (paragraphOpen)
+            {
+                // Since the paragraph opener is a macro (see below)
+                // the closer is just a right paren.
+                immutable ps = ")";
+                i += buf.insert(where, ps.ptr, ps.length) - where;
+                paragraphOpen = false;
+                parensOpenInParagraph = 0;
+            }
+        }
+
+        void insertParagraphOpener()
+        {
+            // we must close any existing paragraph to ensure balanced parens
+            // for the generated macro
+            if (paragraphOpen)
+                insertParagraphCloser(i);
+            immutable ps = "$(DDOC_PARAGRAPH ";
+            i = buf.insert(i, ps.ptr, ps.length);
+            paragraphOpen = true;
+            parensOpenInParagraph = 0;
+        }
+
         char c = buf.data[i];
     Lcont:
         switch (c)
@@ -2146,11 +2180,25 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
+            if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline, strlen(blankline));
+                // I don't know why this is there, but ddoc, for whatever reason
+                // doesn't output DDOC_BLANKLINE in .dd files. And the tests fail
+                // if this changes. If anybody knows *why*, please comment here
+                // and let me know too - Adam D. Ruppe
+                if (!sc._module.isDocFile)
+                {
+                    static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
+                    i = buf.insert(i, blankline, strlen(blankline));
+                }
+                blankLineRun++;
             }
+
+            if (blankLineRun)
+            {
+                insertParagraphCloser(iLineStart);
+            }
+
             leadingBlank = 1;
             iLineStart = i + 1;
             break;
@@ -2164,6 +2212,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (se && strcmp(se, "&lt;") == 0)
                 {
                     // Generating HTML
+
+                    // I am NOT putting the paragraph separator here because
+                    // if it does start with a < in html mode, it is likely
+                    // a manually written HTML tag and we should trust the
+                    // author knows what they are doing in this case.
+                    blankLineRun = 0;
+
                     // Skip over comments
                     if (p[1] == '!' && p[2] == '-' && p[3] == '-')
                     {
@@ -2204,6 +2259,29 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                 }
             L1:
+
+                if (blankLineRun)
+                {
+                    // Above, in the if html block, I set blankLineRun = 0
+                    // because a manually written html tag probably shouldn't
+                    // be wrapped in a paragraph. Well, sometimes it should be,
+                    // but ddoc can't know. Better to not put anything out and
+                    // trust the author to write the correct code; they wouldn't
+                    // by doing their own html tags if they didn't want some kind
+                    // of low-level control.
+                    //
+                    // However, if we are not generating HTML, then < is just
+                    // another character at the beginning of a line, so it might
+                    // warrant the paragraph separator.
+                    //
+                    // If we actually get here with blankLineRun != 0, treat it
+                    // as just another paragraph.
+                    insertParagraphOpener();
+                    blankLineRun = 0;
+                }
+
+
+
                 // Replace '<' with '&lt;' character entity
                 if (se)
                 {
@@ -2219,6 +2297,17 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 leadingBlank = 0;
                 if (inCode)
                     break;
+
+                if (blankLineRun)
+                {
+                    // A paragraph might legitimately being with >, even
+                    // with manual html tags, so I'm putting the separator
+                    // in.
+                    insertParagraphOpener();
+                    blankLineRun = 0;
+                }
+
+
                 // Replace '>' with '&gt;' character entity
                 const(char)* se = sc._module.escapetable.escapeChar('>');
                 if (se)
@@ -2235,6 +2324,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 leadingBlank = 0;
                 if (inCode)
                     break;
+
+                if (blankLineRun)
+                {
+                    // A paragraph might begin with a character entity...
+                    insertParagraphOpener();
+                    blankLineRun = 0;
+                }
+
                 char* p = cast(char*)&buf.data[i];
                 if (p[1] == '#' || isalpha(p[1]))
                     break;
@@ -2270,6 +2367,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 if (inCode)
                     break;
+
+                if (blankLineRun)
+                {
+                    // A paragraph might begin with some inline code, so we
+                    // need to insert the separator here if we are in such a run.
+                    insertParagraphOpener();
+                    blankLineRun = 0;
+                }
+
                 inCode = 1;
                 inBacktick = 1;
                 codeIndent = 0; // inline code is not indented
@@ -2281,6 +2387,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 break;
             }
         case '-':
+            // The paragraph separator is deliberately left out here,
+            // since a code example does NOT begin a new paragraph.
+            // It does, however, mean we are no longer looking at a
+            // run on blank lines.
+
+            blankLineRun = 0;
+
             /* A line beginning with --- delimits a code section.
              * inCode tells us if it is start or end of a code section.
              */
@@ -2318,9 +2431,19 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (i - istart < 3)
                     goto Lcont;
                 // We have the start/end of a code section
+
                 // Remove the entire --- line, including blanks and \n
                 buf.remove(iLineStart, i - iLineStart + eollen);
                 i = iLineStart;
+
+                // A new code section is a block, so it should terminate
+                // any existing paragraph.
+                if (!inCode && paragraphOpen)
+                {
+                    insertParagraphCloser(iLineStart);
+                }
+
+
                 if (inCode && (i <= iCodeStart))
                 {
                     // Empty code section, just remove it completely.
@@ -2374,10 +2497,119 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             break;
+        case '(':
+            // I am tracking how many parenthesis are open to determine if we are inside
+            // a macro while doing a paragraph. See immediately below.
+
+            if (!paragraphOpen)
+                break; // if we aren't in a paragraph, we don't need to track.
+
+            parensOpenInParagraph++;
+            break;
+        case ')':
+            // If we are inside a paragraph and inside a macro that just closed... uh oh,
+            // we'd better close the paragraph before terminating the macro.
+
+            if (!paragraphOpen)
+                break; // if we aren't in a paragraph, we don't need to track.
+
+            // The reason this checks if it is greater than one is parensOpen == 1
+            // happens in the case of an inline thing. For example,
+            // Something with $(B bold) text.
+            // A paragraph is open and so is a macro, but we know where it came from
+            // so there is no need for alarm.
+            //
+            // If parensOpen == 2
+            if (parensOpenInParagraph > 0)
+            {
+                // we see that one was open, so we can see
+                // that it is closed too
+                parensOpenInParagraph--;
+            }
+            else
+            {
+                // uh oh, we are trying to close parens inside a
+                // paragraph and don't know where it opened. That
+                // means it must have opened somewhere BEFORE our
+                // paragraph began. That means our paragraph ends
+                // right here, right now.
+
+                insertParagraphCloser(i);
+                paragraphOpen = false;
+            }
+
+            break;
+        case '$':
+            // If a potential paragraph starts with a macro, and that macro spans
+            // more than one line, we will NOT consider it a paragraph. Consider this:
+            /*
+                This is a paragraph followed by blank lines, which typically triggers
+                the DDOC_PARAGRAPH_SEPARATOR.
+
+                $(OL
+                    $(LI but this is a list, not a paragraph!)
+                    $(LI putting a DDOC_PARAGRAPH_SEPARATOR before it would be invalid)
+                    $(LI but a paragraph could begin with like a $(LINK2) or other inline
+                         element, so the guess we'll take is if it spans multiple lines,
+                         it is probably a block element itself and shouldn't get additional
+                         special treatment as a paragraph.)
+                    $(LI Macros that start later in a line do not get this treatment, the
+                         paragraph is still there for them. Hopefully, the author is sane.)
+                    $(LI fun!)
+                )
+            */
+
+            if (inCode)
+                break; // we're safe, code is special
+
+            int parensCount = 0;
+            for (size_t scout = i; scout < buf.offset; scout++)
+            {
+                if (buf.data[scout] == '(')
+                    parensCount++;
+                if (buf.data[scout] == ')')
+                {
+                    parensCount--;
+                    if (parensCount == 0)
+                        break;
+                }
+                if (parensCount && buf.data[scout] == '\n')
+                {
+                    // Looks like a block element, so consider it to
+                    // stop the \n run now without opening a new paragraph.
+                    blankLineRun = 0;
+                    // but do close any existing paragraph
+                    if (paragraphOpen)
+                    {
+                        insertParagraphCloser(i);
+                        paragraphOpen = false;
+                    }
+                    break;
+                }
+
+            }
+
+            // we want to fall through because macros are usually handled fine
+            // goto case doesn't work with default though, so commented.
         default:
             leadingBlank = 0;
-            if (sc._module.isDocFile || inCode)
+            if (inCode)
                 break;
+
+            if (blankLineRun)
+            {
+                // We got to a non-whitespace in a run of blank lines, time
+                // to insert the paragraph break to group two or more newlines
+                // into a paragraph separator
+                insertParagraphOpener();
+                blankLineRun = 0;
+            }
+
+            // .dd files don't have identifiers, psymbols, params, etc., so
+            // no further processing should be done on them.
+            if (sc._module.isDocFile)
+                break;
+
             char* start = cast(char*)buf.data + i;
             if (isIdStart(start))
             {
@@ -2424,6 +2656,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     }
     if (inCode)
         error(s ? s.loc : Loc(), "unmatched --- in DDoc comment");
+
+    if (paragraphOpen)
+    {
+        // insertParagraphCloser(buf.offset);
+        // insertParagraphCloser needs the nested variable i, so redoing it here.
+        immutable ps = ")";
+        buf.insert(buf.offset, ps.ptr, ps.length);
+        paragraphOpen = false;
+    }
 }
 
 /**************************************************
