@@ -2228,7 +2228,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             L1:
 
-                if(blankLineRun)
+                if (blankLineRun)
                 {
                     // Above, in the if html block, I set blankLineRun = 0
                     // because a manually written html tag probably shouldn't
@@ -2266,7 +2266,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (inCode)
                     break;
 
-                if(blankLineRun)
+                if (blankLineRun)
                 {
                     // A paragraph might legitimately being with >, even
                     // with manual html tags, so I'm putting the separator
@@ -2293,7 +2293,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (inCode)
                     break;
 
-                if(blankLineRun)
+                if (blankLineRun)
                 {
                     // A paragraph might begin with a character entity...
                     insertParagraphSeparator();
@@ -2336,7 +2336,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (inCode)
                     break;
 
-                if(blankLineRun)
+                if (blankLineRun)
                 {
                     // A paragraph might begin with some inline code, so we
                     // need to insert the separator here if we are in such a run.
@@ -2460,7 +2460,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            if(blankLineRun)
+            if (blankLineRun)
             {
                 // We got to a non-whitespace in a run of blank lines, time
                 // to insert the paragraph break to group two or more newlines
