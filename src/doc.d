@@ -2326,12 +2326,6 @@ bool highlightParagraphs(Scope* sc, OutBuffer* buf, size_t offset, ref size_t te
             }
         }
 
-        /* // just for debugging 
-        if (inParagraph && !inMacro) {
-            import std.stdio; writef("%s", line);
-        }
-        */
-
         return false;
     }
 
