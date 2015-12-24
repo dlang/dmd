@@ -2162,6 +2162,7 @@ bool highlightParagraphs(Scope* sc, OutBuffer* buf, size_t offset, ref size_t te
         int linesSpanned;
     }
 
+    // Scans the current macro
     MacroInformation macroInformation(in char[] line) {
         assert(line[0] == '$');
 
