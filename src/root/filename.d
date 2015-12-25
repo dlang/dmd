@@ -472,12 +472,12 @@ struct FileName
     {
         version (Windows)
         {
-            /* Disallow % / \ : and .. in name characters
+            /* Disallow % // \\ : and .. in name characters
              */
             for (const(char)* p = name; *p; p++)
             {
                 char c = *p;
-                if (c == '\\' || c == '/' || c == ':' || c == '%' || (c == '.' && p[1] == '.'))
+                if (c == ':' || c == '%' || (c == '.' && p[1] == '.') || (c == '\\' && p[1] == '\\') || (c == '/' && p[1] == '/'))
                 {
                     return null;
                 }
