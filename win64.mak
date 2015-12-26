@@ -1150,8 +1150,8 @@ msvc_$(MODEL).obj : src\rt\msvc.c win64.mak
 msvc_math_$(MODEL).obj : src\rt\msvc_math.c win64.mak
 	$(CC) -c -Fo$@ $(CFLAGS) src\rt\msvc_math.c
 
-
-src\rt\minit.obj : src\rt\minit.asm
+# only rebuild explicitly
+rebuild_minit_obj : src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm
 
 ################### gcstub generation #########################
