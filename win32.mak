@@ -1175,7 +1175,8 @@ lib\win32\winspool.lib : def\winspool.def
 errno_c_$(MODEL).obj : src\core\stdc\errno.c
 	$(CC) -c -o$@ $(CFLAGS) src\core\stdc\errno.c
 
-src\rt\minit.obj : src\rt\minit.asm
+# only rebuild explicitly
+rebuild_minit_obj : src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm
 
 ################### gcstub generation #########################
