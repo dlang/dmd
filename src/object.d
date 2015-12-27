@@ -1548,9 +1548,11 @@ const:
 
     static int opApply(scope int delegate(ModuleInfo*) dg)
     {
-        import rt.minfo;
+        import core.internal.traits : externDFunc;
+        alias moduleinfos_apply = externDFunc!("rt.minfo.moduleinfos_apply",
+                                              int function(scope int delegate(immutable(ModuleInfo*))));
         // Bugzilla 13084 - enforcing immutable ModuleInfo would break client code
-        return rt.minfo.moduleinfos_apply(
+        return moduleinfos_apply(
             (immutable(ModuleInfo*)m) => dg(cast(ModuleInfo*)m));
     }
 }
