@@ -1241,7 +1241,7 @@ elem *el_picvar(symbol *s)
             if (I32)
                 e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
 #if 1
-            if (s->Stype->Tty & mTYthread)
+            if (I32 && s->Stype->Tty & mTYthread)
             {
                 if (!tls_get_addr_sym)
                 {
@@ -1257,8 +1257,8 @@ elem *el_picvar(symbol *s)
                 if (op == OPvar)
                     e = el_una(OPind, TYnptr, e);
             }
-            else
 #endif
+            if (I64 || !(s->Stype->Tty & mTYthread))
             {
                 switch (op * 2 + x)
                 {
@@ -1277,6 +1277,54 @@ elem *el_picvar(symbol *s)
                         break;
                 }
             }
+#if 1
+            /**
+             * A thread local variable is outputted like the following D struct:
+             *
+             * struct TLVDescriptor(T)
+             * {
+             *     extern(C) T* function (TLVDescriptor*) thunk;
+             *     size_t key;
+             *     size_t offset;
+             * }
+             *
+             * To access the value of the variable, the variable is accessed
+             * like a plain global (__gshared) variable of the type
+             * TLVDescriptor. The thunk is called and a pointer to the variable
+             * itself is passed as the argument. The return value of the thunk
+             * is a pointer to the value of the thread local variable.
+             *
+             * module foo;
+             *
+             * int bar;
+             * pragma(mangle, "_D3foo3bari") extern __gshared TLVDescriptor!(int) barTLV;
+             *
+             * int a = *barTLV.thunk(&barTLV);
+             */
+            if (I64 && s->Stype->Tty & mTYthread)
+            {
+                e = el_una(OPaddr, TYnptr, e);
+                e = el_bin(OPadd, TYnptr, e, el_long(TYullong, 0));
+                e = el_una(OPind, TYnptr, e);
+                e = el_una(OPind, TYnfunc, e);
+
+                elem *e2 = el_calloc();
+                e2->Eoper = OPvar;
+                e2->EV.sp.Vsym = s;
+                e2->Ety = s->ty();
+                e2->Eoper = OPrelconst;
+                e2->Ety = TYnptr;
+
+                e2 = el_una(OPind, TYnptr, e2);
+                e2 = el_una(OPind, TYnptr, e2);
+                e2 = el_una(OPaddr, TYnptr, e2);
+                e2 = doptelem(e2, GOALvalue | GOALflags);
+                e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
+                e2 = el_bin(OPcall, TYnptr, e, e2);
+                e2 = el_una(OPind, TYint, e2);
+                e = e2;
+            }
+#endif
             e->Ety = tym;
             break;
         }
