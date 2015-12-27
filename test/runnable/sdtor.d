@@ -4172,6 +4172,35 @@ static assert(test14838());
 
 /**********************************/
 
+struct S63
+{
+    private long p = 87;
+
+    this(int x)
+    {
+	assert(p == 87);
+	p += x;
+    }
+
+    ~this() { }
+
+    this(this) { }
+
+    void funky() { assert(p == 90); }
+
+    static void tester()
+    {
+	S63(3).funky();
+    }
+}
+
+void test63()
+{
+    S63.tester();
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -4290,6 +4319,7 @@ int main()
     test14860();
     test14696();
     test14838();
+    test63();
 
     printf("Success\n");
     return 0;

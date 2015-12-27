@@ -2287,6 +2287,7 @@ elem *el_ddtor(elem *e,void *decl)
 
 /*********************************************
  * Create constructor/destructor pair of elems.
+ * Caution: The pattern generated here must match that detected in e2ir.c's visit(CallExp).
  * Params:
  *      ec = code to construct (may be NULL)
  *      ed = code to destruct

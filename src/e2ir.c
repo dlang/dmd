@@ -3520,13 +3520,15 @@ elem *toElem(Expression *e, IRState *irs)
                 ectype = dve->e1->type->toBasetype();
 
                 /* Recognize:
-                 *   [1]  ((S __ctmp = initializer),__ctmp).ctor(args)
-                 * where the left of the . was turned into:
-                 *   [2]  (dctor info ((__ctmp = initializer),__ctmp), __ctmp)
+                 *   [1] ce:  ((S __ctmp = initializer),__ctmp).ctor(args)
+                 * where the left of the . was turned into [2] or [3] for EH_DWARF:
+                 *   [2] ec:  (dctor info ((__ctmp = initializer),__ctmp)), __ctmp
+                 *   [3] ec:  (dctor info ((_flag=0),((__ctmp = initializer),__ctmp))), __ctmp
                  * The trouble (Bugzilla 13095) is if ctor(args) throws, then __ctmp is destructed even though __ctmp
                  * is not a fully constructed object yet. The solution is to move the ctor(args) itno the dctor tree.
                  * But first, detect [1], then [2], then split up [2] into:
                  *   eeq: (dctor info ((__ctmp = initializer),__ctmp))
+                 *   eeq: (dctor info ((_flag=0),((__ctmp = initializer),__ctmp)))   for EH_DWARF
                  *   ec:  __ctmp
                  */
                 if (fd && fd->isCtorDeclaration())
@@ -3536,20 +3538,22 @@ elem *toElem(Expression *e, IRState *irs)
                     {
                         //printf("test30a\n");
                         if (((CommaExp *)dve->e1)->e1->op == TOKdeclaration && ((CommaExp *)dve->e1)->e2->op == TOKvar)
-                        {
+                        {   // dve->e1: (declaration , var)
+
                             //printf("test30b\n");
                             if (ec->Eoper == OPcomma &&
                                 ec->E1->Eoper == OPinfo &&
                                 ec->E1->E1->Eoper == OPdctor &&
                                 ec->E1->E2->Eoper == OPcomma)
-                            {
+                            {   // ec: ((dctor info (* , *)) , *)
+
                                 //printf("test30c\n");
                                 dctor = true;                   // remember we detected it
 
                                 // Split ec into eeq and ec per comment above
-                                eeq = ec->E1;
+                                eeq = ec->E1;                   // (dctor info (*, *))
                                 ec->E1 = NULL;
-                                ec = el_selecte2(ec);
+                                ec = el_selecte2(ec);           // *
                             }
                         }
                     }
@@ -3654,17 +3658,27 @@ elem *toElem(Expression *e, IRState *irs)
                 /* Continuation of fix outlined above for moving constructor call into dctor tree.
                  * Given:
                  *   eeq:   (dctor info ((__ctmp = initializer),__ctmp))
+                 *   eeq:   (dctor info ((_flag=0),((__ctmp = initializer),__ctmp)))   for EH_DWARF
                  *   ecall: * call(ce, args)
                  * Rewrite ecall as:
                  *    * (dctor info ((__ctmp = initializer),call(ce, args)))
+                 *    * (dctor info ((_flag=0),(__ctmp = initializer),call(ce, args)))
                  */
-                assert(eeq->E2->Eoper == OPcomma);
                 elem *ea = ecall->E1;           // ea: call(ce,args)
+                tym_t ty = ea->Ety;
                 ecall->E1 = eeq;
-                eeq->Ety = ea->Ety;
-                el_free(eeq->E2->E2);
-                eeq->E2->E2 = ea;               // replace ,__ctmp with ,call(ce,args)
-                eeq->E2->Ety = ea->Ety;
+                assert(eeq->Eoper == OPinfo);
+                elem *eeqcomma = eeq->E2;
+                assert(eeqcomma->Eoper == OPcomma);
+                while (eeqcomma->E2->Eoper == OPcomma)
+                {
+                    eeqcomma->Ety = ty;
+                    eeqcomma = eeqcomma->E2;
+                }
+                eeq->Ety = ty;
+                el_free(eeqcomma->E2);
+                eeqcomma->E2 = ea;               // replace ,__ctmp with ,call(ce,args)
+                eeqcomma->Ety = ty;
                 eeq = NULL;
             }
 
