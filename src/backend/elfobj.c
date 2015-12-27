@@ -3496,4 +3496,54 @@ void Obj::gotref(symbol *s)
 }
 
 #endif
+
+/******************************************
+ * Generate fixup specific to .eh_frame and .gcc_except_table sections.
+ * Params:
+ *      seg = segment of where to write fixup
+ *      offset = offset of where to write fixup
+ *      s = fixup is a reference to this Symbol
+ *      val = displacement from s
+ * Returns:
+ *      number of bytes written at seg:offset
+ */
+int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
+{
+    assert(I64);                // I32 not implemented yet
+
+    if (config.flags3 & CFG3pic)
+    {
+        /* fixup: R_X86_64_PC32 sym="DW.ref.name"
+         * symtab: .weak DW.ref.name,@OBJECT,VALUE=.data.DW.ref.name+0x00,SIZE=8
+         * Section 13  .data.DW.ref.name  PROGBITS,ALLOC,WRITE,SIZE=0x0008(8),OFFSET=0x0138,ALIGN=8
+         *  0138:   0  0  0  0  0  0  0  0                           ........
+         * Section 14  .rela.data.DW.ref.name  RELA,ENTRIES=1,OFFSET=0x0E18,ALIGN=8,LINK=22,INFO=13
+         *   0 offset=00000000 addend=0000000000000000 type=R_X86_64_64 sym="name"
+         */
+        if (!s->Sdw_ref_idx)
+        {
+            int dataDWref_seg = ElfObj::getsegment(".data.DW.ref.", s->Sident, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, 8);
+            Outbuffer *buf = SegData[dataDWref_seg]->SDbuf;
+            assert(buf->size() == 0);
+            ElfObj::reftoident(dataDWref_seg, 0, s, 0, CFoffset64);
+
+            // Add "DW.ref." ~ name to the symtab_strings table
+            IDXSTR namidx = symtab_strings->size();
+            symtab_strings->writeString("DW.ref.");
+            symtab_strings->setsize(symtab_strings->size() - 1);  // back up over terminating 0
+            symtab_strings->writeString(s->Sident);
+
+            s->Sdw_ref_idx = elf_addsym(namidx, val, 8, STT_OBJECT, STB_WEAK, MAP_SEG2SECIDX(dataDWref_seg), STV_HIDDEN);
+        }
+        ElfObj::writerel(seg, offset, R_X86_64_PC32, s->Sdw_ref_idx, 0);
+    }
+    else
+    {
+        ElfObj::reftoident(seg, offset, s, val, CFoff);
+        //dwarf_addrel(seg, offset, s->Sseg, s->Soffset);
+        //et->write32(s->Soffset);
+    }
+    return 4;
+}
+
 #endif

@@ -293,7 +293,9 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     if (LPstart != DW_EH_PE_omit)
         et->writeuLEB128(LPbase);
 
-    const unsigned char TType = DW_EH_PE_absptr | DW_EH_PE_udata4;
+    const unsigned char TType = (config.flags3 & CFG3pic)
+                                ? DW_EH_PE_indirect | DW_EH_PE_pcrel | DW_EH_PE_sdata4
+                                : DW_EH_PE_absptr | DW_EH_PE_udata4;
     et->writeByte(TType);
 
     /* Compute TTbase, which is the sum of:
@@ -345,8 +347,7 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     for (int i = sfunc->Sfunc->typesTableDim; i--; )
     {
         Symbol *s = typesTable[i];
-        ElfObj::reftoident(seg, et->size(), s, 0, CFoff); //dwarf_addrel(seg, et->size(), s->Sseg, s->Soffset);
-        //et->write32(s->Soffset);
+        dwarf_reftoident(seg, et->size(), s, 0);
     }
     assert(TToffset == et->size() - startsize);
 }

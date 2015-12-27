@@ -551,6 +551,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
     {
         case TYvoid:
         case TYstruct:
+        case TYarray:
             return 0;
         case TYbool:
         case TYwchar_t:
