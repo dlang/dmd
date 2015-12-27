@@ -40,8 +40,6 @@ $(mak\SRCS)
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
-# NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
-#       minit.asm is not used by dmd for Linux
 
 OBJS= errno_c_$(MODEL).obj msvc_$(MODEL).obj msvc_math_$(MODEL).obj
 OBJS_TO_DELETE= errno_c_$(MODEL).obj msvc_$(MODEL).obj msvc_math_$(MODEL).obj
@@ -1149,10 +1147,6 @@ msvc_$(MODEL).obj : src\rt\msvc.c win64.mak
 
 msvc_math_$(MODEL).obj : src\rt\msvc_math.c win64.mak
 	$(CC) -c -Fo$@ $(CFLAGS) src\rt\msvc_math.c
-
-# only rebuild explicitly
-rebuild_minit_obj : src\rt\minit.asm
-	$(CC) -c $(CFLAGS) src\rt\minit.asm
 
 ################### gcstub generation #########################
 
