@@ -486,10 +486,12 @@ tryagain:
         switch (b->BC)
         {   case BCjmptab:              /* if jump table                */
                 outjmptab(b);           /* write out jump table         */
-                break;
+                goto Ldefault;
+
             case BCswitch:
                 outswitab(b);           /* write out switch table       */
-                break;
+                goto Ldefault;
+
             case BCret:
             case BCretexp:
                 /* Compute offset to return code from start of function */
@@ -504,13 +506,14 @@ tryagain:
 #endif
                 flag = TRUE;
                 break;
-            case BCexit:
-                // Fake it to keep debugger happy
+
+            default:
+            Ldefault:
                 retoffset = b->Boffset + b->Bsize - funcoffset;
                 break;
         }
     }
-    if (flag && configv.addlinenumbers && !(funcsym_p->ty() & mTYnaked))
+    if (configv.addlinenumbers && !(funcsym_p->ty() & mTYnaked))
         /* put line number at end of function on the
            start of the last instruction
          */

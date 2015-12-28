@@ -4025,6 +4025,7 @@ Lopt:
 #endif
     }
 
+    pinholeopt(c, NULL);
     retsize += calcblksize(c);          // compute size of function epilog
     b->Bcode = cat(ce,c);
 }
