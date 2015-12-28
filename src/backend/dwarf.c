@@ -184,9 +184,23 @@ int dwarf_regno(int reg)
         return reg;
     else
     {
+#if 1
+        /* See https://software.intel.com/sites/default/files/article/402129/mpx-linux64-abi.pdf
+         * Figure 3.3.8 pg. 62
+         * R8..15    :  8..15
+         * XMM0..15  : 17..32
+         * ST0..7    : 33..40
+         * MM0..7    : 41..48
+         * XMM16..31 : 67..82
+         */
+        static const int to_amd64_reg_map[8] =
+        // AX CX DX BX SP BP SI DI
+        {   0, 2, 1, 3, 7, 6, 4, 5 };
+#else
         static const int to_amd64_reg_map[8] =
         { 0 /*AX*/, 2 /*CX*/, 3 /*DX*/, 1 /*BX*/,
           7 /*SP*/, 6 /*BP*/, 4 /*SI*/, 5 /*DI*/ };
+#endif
         return reg < 8 ? to_amd64_reg_map[reg] : reg;
     }
 }
