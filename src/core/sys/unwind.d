@@ -21,7 +21,7 @@ alias uintptr_t _Unwind_Internal_Ptr;
 alias ulong _Unwind_Exception_Class;
 
 alias uintptr_t _uleb128_t;
-alias intptr_t sleb128_t;
+alias intptr_t _sleb128_t;
 
 alias int _Unwind_Reason_Code;
 enum
@@ -50,7 +50,7 @@ alias _Unwind_Exception_Cleanup_Fn = void function(
 
 struct _Unwind_Exception
 {
-    _Unwind_Exception_Class exception_class;
+    align(8) _Unwind_Exception_Class exception_class;
     _Unwind_Exception_Cleanup_Fn exception_cleanup;
     _Unwind_Word private_1;
     _Unwind_Word private_2;
@@ -100,9 +100,7 @@ version (X68_64)
 
     _Unwind_Ptr _Unwind_GetTextRelBase(_Unwind_Context* context)
     {
-        import core.stdc.stdlib;
-        abort();
-        return 0;
+        assert(0);
     }
 }
 else

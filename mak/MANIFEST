@@ -386,6 +386,7 @@ MANIFEST=\
 	src\rt\deh_win32.d \
 	src\rt\deh_win64_posix.d \
 	src\rt\dmain2.d \
+	src\rt\dwarfeh.d \
 	src\rt\dylib_fixes.c \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \
