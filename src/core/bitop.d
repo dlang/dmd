@@ -23,6 +23,31 @@ version (X86_64)
 else version (X86)
     version = AnyX86;
 
+// Use to implement 64-bit bitops on 32-bit arch.
+private union Split64
+{
+    ulong u64;
+    struct
+    {
+        version(LittleEndian)
+        {
+            uint lo;
+            uint hi;
+        }
+        else
+        {
+            uint hi;
+            uint lo;
+        }
+    }
+}
+
+unittest
+{
+    const s = Split64(1);
+    assert((s.lo == 1) && (s.hi == 0));
+}
+
 /**
  * Scans the bits in v starting with bit 0, looking
  * for the first set bit.
@@ -32,11 +57,30 @@ else version (X86)
  */
 int bsf(size_t v) pure;
 
+/// ditto
+int bsf(ulong v) pure
+{
+    static if(size_t.sizeof == ulong.sizeof)
+        return bsf(cast(size_t)v);
+    else
+    static if(size_t.sizeof == uint.sizeof)
+    {
+        const sv = Split64(v);
+        return (sv.lo == 0)?
+            bsf(sv.hi) + 32 :
+            bsf(sv.lo);
+    }
+    else
+        static assert(false);
+}
+
 ///
 unittest
 {
     assert(bsf(0x21) == 0);
+    assert(bsf(ulong.max << 39) == 39);
 }
+
 
 /**
  * Scans the bits in v from the most significant bit
@@ -48,10 +92,28 @@ unittest
  */
 int bsr(size_t v) pure;
 
+/// ditto
+int bsr(ulong v) pure
+{
+    static if(size_t.sizeof == ulong.sizeof)
+        return bsr(cast(size_t)v);
+    else
+    static if(size_t.sizeof == uint.sizeof)
+    {
+        const sv = Split64(v);
+        return (sv.hi == 0)?
+            bsr(sv.lo) :
+            bsr(sv.hi) + 32;
+    }
+    else
+        static assert(false);
+}
+
 ///
 unittest
 {
     assert(bsr(0x21) == 5);
+    assert(bsr((ulong.max >> 15) - 1) == 48);
 }
 
 /**
@@ -197,7 +259,7 @@ version (DigitalMars) version (AnyX86) @system // not pure
 version (DigitalMars) version (AnyX86)
 {
     /**
-     * Calculates the number of set bits in a 32-bit integer
+     * Calculates the number of set bits in an integer
      * using the X86 SSE4 POPCNT instruction.
      * POPCNT is not available on all X86 CPUs.
      */
@@ -302,7 +364,7 @@ void volatileStore(ulong * ptr, ulong  value);   /// ditto
 
 
 /**
- *  Calculates the number of set bits in a 32-bit integer.
+ *  Calculates the number of set bits in an integer.
  */
 int popcnt( uint x ) pure
 {
@@ -345,6 +407,23 @@ unittest
     assert( popcnt( 0xFFFF_FFFF ) == 32 );
     assert( popcnt( 0xCCCC_CCCC ) == 16 );
     assert( popcnt( 0x7777_7777 ) == 24 );
+}
+
+/// ditto
+int popcnt(ulong x) pure
+{
+    // TODO: How to detect when _popcnt() is safe to use?
+    const sx = Split64(x);
+    return popcnt(sx.lo) + popcnt(sx.hi);
+}
+
+unittest
+{
+    assert(popcnt(0uL) == 0);
+    assert(popcnt(1uL) == 1);
+    assert(popcnt((1uL << 32) - 1) == 32);
+    assert(popcnt(0x48_65_6C_6C_6F_3F_21_00uL) == 28);
+    assert(popcnt(ulong.max) == 64);
 }
 
 
