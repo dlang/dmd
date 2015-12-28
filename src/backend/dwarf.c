@@ -790,6 +790,20 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
     Outbuffer *buf = SegData[dfseg]->SDbuf;
     const unsigned startsize = buf->size();
 
+    if (sfunc->ty() & mTYnaked)
+    {
+        /* Do not have info on naked functions. Assume they are set up as:
+         *   push RBP
+         *   mov  RSP,RSP
+         */
+        int off = 2 * REGSIZE;
+        dwarf_CFA_set_loc(1);
+        dwarf_CFA_set_reg_offset(SP, off);
+        dwarf_CFA_offset(BP, -off);
+        dwarf_CFA_set_loc(I64 ? 4 : 3);
+        dwarf_CFA_set_reg_offset(BP, off);
+    }
+
     // Length of FDE, not including padding
     const unsigned fdelen = 4 + 4 + 4 + 4 + (config.ehmethod == EH_DWARF ? 5 : 1) + cfa_buf.size();
 

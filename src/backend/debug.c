@@ -217,6 +217,8 @@ void WReqn(elem *e)
             case OPgot:
             case OPframeptr:
             case OPhalt:
+            case OPdctor:
+            case OPddtor:
                 WROP(e->Eoper);
                 break;
             case OPstrthis:
