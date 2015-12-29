@@ -45,7 +45,7 @@ void destroy(T)(ref T t) if (!is(T == struct))
 void initialize(T)(ref T t) if (is(T == struct))
 {
     import core.stdc.string;
-    if(auto p = typeid(T).init().ptr)
+    if(auto p = typeid(T).initializer().ptr)
         memcpy(&t, p, T.sizeof);
     else
         memset(&t, 0, T.sizeof);

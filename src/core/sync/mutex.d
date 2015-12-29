@@ -145,7 +145,7 @@ class Mutex :
             int rc = pthread_mutex_lock( &m_hndl );
             if( rc )
             {
-                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).init;
+                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).initializer;
                 syncErr.msg = "Unable to lock mutex.";
                 throw syncErr;
             }
@@ -176,7 +176,7 @@ class Mutex :
             int rc = pthread_mutex_unlock( &m_hndl );
             if( rc )
             {
-                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).init;
+                SyncError syncErr = cast(SyncError) cast(void*) typeid(SyncError).initializer;
                 syncErr.msg = "Unable to unlock mutex.";
                 throw syncErr;
             }

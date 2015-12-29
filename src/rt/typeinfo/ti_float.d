@@ -54,7 +54,7 @@ class TypeInfo_f : TypeInfo
         *cast(F*)p2 = t;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         static immutable F r;
         return (&r)[0 .. 1];

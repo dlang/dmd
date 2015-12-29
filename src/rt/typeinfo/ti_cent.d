@@ -52,7 +52,7 @@ class TypeInfo_zi : TypeInfo
         return cent.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. cent.sizeof];
     }

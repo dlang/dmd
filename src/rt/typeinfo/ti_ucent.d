@@ -52,7 +52,7 @@ class TypeInfo_zk : TypeInfo
         return ucent.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. ucent.sizeof];
     }

@@ -44,7 +44,7 @@ class TypeInfo_h : TypeInfo
         return ubyte.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. ubyte.sizeof];
     }

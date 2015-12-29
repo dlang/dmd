@@ -50,7 +50,7 @@ class TypeInfo_D : TypeInfo
         *cast(dg *)p2 = t;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         static immutable dg d;
 

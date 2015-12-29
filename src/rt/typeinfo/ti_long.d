@@ -50,7 +50,7 @@ class TypeInfo_l : TypeInfo
         return long.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. long.sizeof];
     }

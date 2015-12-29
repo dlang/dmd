@@ -44,7 +44,7 @@ class TypeInfo_g : TypeInfo
         return byte.sizeof;
     }
 
-    override const(void)[] init() @trusted
+    override const(void)[] initializer() @trusted
     {
         return (cast(void *)null)[0 .. byte.sizeof];
     }
