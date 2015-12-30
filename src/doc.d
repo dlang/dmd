@@ -450,6 +450,10 @@ DDOC_PSYMBOL    = $(U $0)
 DDOC_PSUPER_SYMBOL = $(U $0)
 DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
+DDOC_CONSTRAINT      = $(DDOC_CONSTRAINT) if ($0)
+DDOC_OVERLOAD_SEPARATOR      =
+DDOC_TEMPLATE_PARAM_LIST = $0
+DDOC_TEMPLATE_PARAM = $0
 
 ESCAPES = /</&lt;/
           />/&gt;/
@@ -928,11 +932,14 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 for (size_t i = 0; i < dc.a.dim; i++)
                 {
                     Dsymbol sx = dc.a[i];
+                    // the added linebreaks in here make looking at multiple
+                    // signatures more appealing
                     if (i == 0)
                     {
                         size_t o = buf.offset;
                         toDocBuffer(sx, buf, sc);
                         highlightCode(sc, sx, buf, o);
+                        buf.writestring("$(DDOC_OVERLOAD_SEPARATOR)");
                         continue;
                     }
                     buf.writestring("$(DDOC_DITTO ");
@@ -941,6 +948,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         toDocBuffer(sx, buf, sc);
                         highlightCode(sc, sx, buf, o);
                     }
+                    buf.writestring("$(DDOC_OVERLOAD_SEPARATOR)");
                     buf.writeByte(')');
                 }
                 buf.writestring(ddoc_decl_e);
@@ -1230,9 +1238,18 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             // emit constraints if declaration is a templated declaration
             if (td && td.constraint)
             {
-                buf.writestring(" if (");
+                bool noFuncDecl = td.isFuncDeclaration() is null;
+                if (noFuncDecl)
+                {
+                    buf.writestring("$(DDOC_CONSTRAINT ");
+                }
+
                 .toCBuffer(td.constraint, buf, &hgs);
-                buf.writeByte(')');
+
+                if (noFuncDecl)
+                {
+                    buf.writestring(")");
+                }
             }
             if (d.isDeprecated())
                 buf.writestring(")");
@@ -2446,6 +2463,8 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
 extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     //printf("highlightCode(a = '%s')\n", a->toChars());
+    bool resolvedTemplateParameters = false;
+
     for (size_t i = offset; i < buf.offset; i++)
     {
         char c = buf.data[i];
@@ -2477,6 +2496,82 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     continue;
                 }
                 i = j - 1;
+            }
+        }
+        else if (!resolvedTemplateParameters)
+        {
+            size_t previ = i;
+
+            // hunt for template declarations:
+            foreach (symi; 0 .. a.dim)
+            {
+                FuncDeclaration fd = (*a)[symi].isFuncDeclaration();
+
+                if (!fd || !fd.parent || !fd.parent.isTemplateDeclaration())
+                {
+                    continue;
+                }
+
+                TemplateDeclaration td = fd.parent.isTemplateDeclaration();
+
+                // build the template parameters
+                Array!(size_t) paramLens;
+                paramLens.reserve(td.parameters.dim);
+
+                OutBuffer parametersBuf;
+                HdrGenState hgs;
+
+                parametersBuf.writeByte('(');
+
+                foreach (parami; 0 .. td.parameters.dim) 
+                {
+                    TemplateParameter tp = (*td.parameters)[parami];
+
+                    if (parami)
+                        parametersBuf.writestring(", ");
+
+                    size_t lastOffset = parametersBuf.offset;
+
+                    .toCBuffer(tp, &parametersBuf, &hgs);
+
+                    paramLens[parami] = parametersBuf.offset - lastOffset;
+                }
+                parametersBuf.writeByte(')');
+
+                const(char*) templateParams = parametersBuf.extractString();
+                size_t templateParamsLen = strlen(templateParams);
+
+                //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
+
+                if (cmp(templateParams, start, templateParamsLen) == 0)
+                {
+                    static immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
+                    size_t paramListEnd = buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")") - 1;
+
+
+                    // We have the parameter list. While we're here we might
+                    // as well wrap the parameters themselves as well
+
+                    // + 1 here to take into account the opening paren of the
+                    // template param list
+                    i += templateParamListMacro.length + 1;
+
+                    foreach (size_t len; paramLens)
+                    {
+                        i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM ", i + len, ")");
+                        // increment two here for space + comma
+                        i += 2;
+                    }
+
+                    resolvedTemplateParameters = true;
+                    // reset i to be positioned back before we found the template
+                    // param list this assures that anything within the template
+                    // param list that needs to be escaped or otherwise altered
+                    // has an opportunity for that to happen outside of this context
+                    i = previ;
+
+                    continue;
+                }
             }
         }
     }
