@@ -1,4 +1,3 @@
-#!/home/aalexandre/dmd2/linux/bin/rdmd
 // PERMUTE_ARGS:
 
 import std.algorithm, std.ascii, std.conv, std.exception,
