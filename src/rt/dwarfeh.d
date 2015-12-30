@@ -150,6 +150,21 @@ extern(C) Throwable __dmd_begin_catch(_Unwind_Exception* exceptionObject)
     return o;
 }
 
+/****************************************
+ * Called when fibers switch contexts.
+ * Params:
+ *      newContext = stack to switch to
+ * Returns:
+ *      previous value of stack
+ */
+extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow
+{
+    auto old = ExceptionHeader.stack;
+    ExceptionHeader.stack = cast(ExceptionHeader*)newContext;
+    return old;
+}
+
+
 /*********************
  * Called by D code to throw an exception via
  * ---
