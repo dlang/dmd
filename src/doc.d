@@ -2513,7 +2513,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 TemplateDeclaration td = fd.parent.isTemplateDeclaration();
 
                 // build the template parameters
-                size_t[] paramLens;
+                Array!(size_t) paramLens;
                 paramLens.reserve(td.parameters.dim);
 
                 OutBuffer parametersBuf;
@@ -2531,7 +2531,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                     .toCBuffer(tp, &parametersBuf, &hgs);
 
-                    paramLens ~= parametersBuf.offset - lastOffset;
+                    paramLens[parami] = parametersBuf.offset - lastOffset;
                 }
                 parametersBuf.writeByte(')');
 
