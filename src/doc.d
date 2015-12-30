@@ -2523,7 +2523,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 parametersBuf.writeByte('(');
 
-                foreach (parami; 0 .. td.parameters.dim) 
+                foreach (parami; 0 .. td.parameters.dim)
                 {
                     TemplateParameter tp = (*td.parameters)[parami];
 
