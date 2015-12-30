@@ -2500,6 +2500,8 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
         else if (!resolvedTemplateParameters)
         {
+            size_t previ = i;
+
             // hunt for template declarations:
             foreach (symi; 0 .. a.dim)
             {
@@ -2518,6 +2520,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 OutBuffer parametersBuf;
                 HdrGenState hgs;
+
                 parametersBuf.writeByte('(');
 
                 foreach (parami; 0 .. td.parameters.dim) 
@@ -2545,6 +2548,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     static immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
                     size_t paramListEnd = buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")") - 1;
 
+
                     // We have the parameter list. While we're here we might
                     // as well wrap the parameters themselves as well
 
@@ -2560,8 +2564,11 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
 
                     resolvedTemplateParameters = true;
-                    // reset i to be positioned out of the DDOC_TEMPLATE_PARAM_LIST
-                    i = paramListEnd;
+                    // reset i to be positioned back before we found the template
+                    // param list this assures that anything within the template
+                    // param list that needs to be escaped or otherwise altered
+                    // has an opportunity for that to happen outside of this context
+                    i = previ;
 
                     continue;
                 }
