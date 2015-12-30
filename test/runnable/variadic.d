@@ -1076,6 +1076,55 @@ void test10722()
 
 /***************************************/
 
+void testx15417(ulong c1, ...)
+{
+    check(c1, _argptr, _arguments);
+}
+
+class C15417
+{
+    private void method ()
+    {
+        void test1 (ulong c1, ...)
+        {
+            check(c1, _argptr, _arguments);
+        }
+
+        void test2 (ulong c1, ...)
+        {
+            va_list ap;
+            version (Win64)
+                va_start(ap, c1);
+            else version (X86_64)
+                va_start(ap, __va_argsave);
+            else version (X86)
+                va_start(ap, c1);
+
+            check(c1, ap, _arguments);
+        }
+
+        testx15417(4242UL, char.init);
+        test1(4242UL, char.init);
+        test2(4242UL, char.init);
+    }
+}
+
+void check (ulong c1, va_list arglist, TypeInfo[] ti)
+{
+    assert(ti.length == 1);
+    assert(ti[0].toString() == "char");
+    assert(char.init == va_arg!(char)(arglist));
+}
+
+void test15417()
+{
+    auto c = new C15417;
+    c.method;
+}
+
+
+/***************************************/
+
 int main()
 {
     test1();
@@ -1124,6 +1173,7 @@ int main()
     test9495();
     testCopy();
     test14179();
+    test15417();
 
     return 0;
 }

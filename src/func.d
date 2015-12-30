@@ -1938,7 +1938,7 @@ public:
                             Expression e = new SymOffExp(Loc(), v_argsave, 6 * 8 + 8 * 16);
                             e.type = argptr.type;
                             e = new AssignExp(Loc(), e1, e);
-                            e = e.semantic(sc);
+                            e = e.semantic(sc2);
                             a.push(new ExpStatement(Loc(), e));
                         }
                         else
