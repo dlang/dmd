@@ -379,7 +379,6 @@ RPAREN= )
 BACKTICK= `
 DOLLAR= $
 DEPRECATED= $0
-NOTHING =
 
 RED =   <font color=red>$0</font>
 BLUE =  <font color=blue>$0</font>
@@ -451,7 +450,7 @@ DDOC_PSYMBOL    = $(U $0)
 DDOC_PSUPER_SYMBOL = $(U $0)
 DDOC_KEYWORD    = $(B $0)
 DDOC_PARAM      = $(I $0)
-DDOC_CONSTRAINT      = $(NOTHING) $0
+DDOC_CONSTRAINT      = $(DDOC_CONSTRAINT) if ($0)
 DDOC_OVERLOAD_SEPARATOR      =
 DDOC_TEMPLATE_PARAM_LIST = $0
 DDOC_TEMPLATE_PARAM = $0
@@ -1239,17 +1238,17 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             // emit constraints if declaration is a templated declaration
             if (td && td.constraint)
             {
-                bool funcDecl = td.isFuncDeclaration() is null;
-                if (funcDecl)
+                bool noFuncDecl = td.isFuncDeclaration() is null;
+                if (noFuncDecl)
                 {
-                    buf.writestring("$(DDOC_CONSTRAINT if (");
+                    buf.writestring("$(DDOC_CONSTRAINT ");
                 }
 
                 .toCBuffer(td.constraint, buf, &hgs);
 
-                if (funcDecl)
+                if (noFuncDecl)
                 {
-                    buf.writestring("))");
+                    buf.writestring(")");
                 }
             }
             if (d.isDeprecated())
@@ -2502,7 +2501,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         else if (!resolvedTemplateParameters)
         {
             // hunt for template declarations:
-            for (size_t symi = 0; symi < a.dim; symi++)
+            foreach (symi; 0 .. a.dim)
             {
                 FuncDeclaration fd = (*a)[symi].isFuncDeclaration();
 
@@ -2515,11 +2514,13 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 // build the template parameters
                 size_t[] paramLens;
+                paramLens.reserve(td.parameters.dim);
+
                 OutBuffer parametersBuf;
                 HdrGenState hgs;
                 parametersBuf.writeByte('(');
 
-                for (size_t parami = 0; parami < td.parameters.dim; parami++)
+                foreach (parami; 0 .. td.parameters.dim) 
                 {
                     TemplateParameter tp = (*td.parameters)[parami];
 
@@ -2530,7 +2531,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                     .toCBuffer(tp, &parametersBuf, &hgs);
 
-                    paramLens ~= [parametersBuf.offset - lastOffset];
+                    paramLens ~= parametersBuf.offset - lastOffset;
                 }
                 parametersBuf.writeByte(')');
 
@@ -2541,15 +2542,15 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 if (cmp(templateParams, start, templateParamsLen) == 0)
                 {
-                    const(char*) templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
-                    size_t paramListEnd = buf.bracket(i, templateParamListMacro, i + templateParamsLen, ")") - 1;
+                    static immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
+                    size_t paramListEnd = buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")") - 1;
 
                     // We have the parameter list. While we're here we might
                     // as well wrap the parameters themselves as well
 
                     // + 1 here to take into account the opening paren of the
                     // template param list
-                    i += strlen(templateParamListMacro) + 1;
+                    i += templateParamListMacro.length + 1;
 
                     foreach (size_t len; paramLens)
                     {
