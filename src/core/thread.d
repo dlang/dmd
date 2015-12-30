@@ -118,6 +118,50 @@ private
      *         is switched in for the first time.
      */
     extern(C) void* _d_eh_swapContext(void* newContext) nothrow;
+
+    version (DigitalMars)
+    {
+        version (Windows)
+            alias _d_eh_swapContext swapContext;
+        else
+        {
+            extern(C) void* _d_eh_swapContextDwarf(void* newContext) nothrow;
+
+            void* swapContext(void* newContext) nothrow
+            {
+                /* Detect at runtime which scheme is being used.
+                 * Eventually, determine it statically.
+                 */
+                static int which = 0;
+                final switch (which)
+                {
+                    case 0:
+                    {
+                        assert(newContext == null);
+                        auto p = _d_eh_swapContext(newContext);
+                        auto pdwarf = _d_eh_swapContextDwarf(newContext);
+                        if (p)
+                        {
+                            which = 1;
+                            return p;
+                        }
+                        else if (pdwarf)
+                        {
+                            which = 2;
+                            return pdwarf;
+                        }
+                        return null;
+                    }
+                    case 1:
+                        return _d_eh_swapContext(newContext);
+                    case 2:
+                        return _d_eh_swapContextDwarf(newContext);
+                }
+            }
+        }
+    }
+    else
+        alias _d_eh_swapContext swapContext;
 }
 
 
@@ -1461,7 +1505,7 @@ private:
     }
     body
     {
-        m_curr.ehContext = _d_eh_swapContext(c.ehContext);
+        m_curr.ehContext = swapContext(c.ehContext);
         c.within = m_curr;
         m_curr = c;
     }
@@ -1476,7 +1520,7 @@ private:
     {
         Context* c = m_curr;
         m_curr = c.within;
-        c.ehContext = _d_eh_swapContext(m_curr.ehContext);
+        c.ehContext = swapContext(m_curr.ehContext);
         c.within = null;
     }
 
