@@ -71,7 +71,7 @@ struct ExceptionHeader
         {
             eh = cast(ExceptionHeader*)core.stdc.stdlib.calloc(ExceptionHeader.sizeof, 1);
             if (!eh)
-                assert(0);              // out of memory while throwing - not much else can be done
+                terminate(__LINE__);              // out of memory while throwing - not much else can be done
         }
         eh.object = o;
         eh.exception_object.exception_class = dmdExceptionClass;
@@ -144,7 +144,7 @@ extern(C) Throwable __dmd_begin_catch(_Unwind_Exception* exceptionObject)
 
     // Pop off of chain
     if (eh != ExceptionHeader.pop())
-        assert(0);                      // eh should have been at top of stack
+        terminate(__LINE__);                      // eh should have been at top of stack
 
     _Unwind_DeleteException(&eh.exception_object);      // done with eh
     return o;
@@ -192,7 +192,8 @@ extern(C) void _d_throwdwarf(Throwable o)
             case _URC_FATAL_PHASE1_ERROR:       // unknown error code
             case _URC_FATAL_PHASE2_ERROR:       // probably corruption
             default:                            // uh-oh
-                assert(0);                      // C++ calls terminate() instead
+                terminate(__LINE__);            // C++ calls terminate() instead
+                break;
 
             case _URC_FOREIGN_EXCEPTION_CAUGHT:
             case _URC_NO_REASON:
@@ -220,22 +221,26 @@ extern(C) void _d_throwdwarf(Throwable o)
              * by a top-level try/catch.
              */
             fprintf(stderr, "uncaught exception\n");
-            assert(0);                          // should never happen
+            terminate(__LINE__);                          // should never happen
+            assert(0);
 
         case _URC_FATAL_PHASE1_ERROR:
             /* Unexpected error, likely some sort of corruption.
              * In C++, terminate() would be called.
              */
-            assert(0);                          // should never happen
+            terminate(__LINE__);                          // should never happen
+            assert(0);
 
         case _URC_FATAL_PHASE2_ERROR:
             /* Unexpected error. Program is in an unknown state.
              * In C++, terminate() would be called.
              */
-            assert(0);                          // should never happen
+            terminate(__LINE__);                          // should never happen
+            assert(0);
 
         default:
-            assert(0);                          // should never happen
+            terminate(__LINE__);                          // should never happen
+            assert(0);
     }
 }
 
@@ -308,13 +313,16 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     {
         case LsdaResult.notFound:
             fprintf(stderr, "not found\n");
+            terminate(__LINE__);
             assert(0);
 
         case LsdaResult.foreign:
+            terminate(__LINE__);
             assert(0);
 
         case LsdaResult.corrupt:
             fprintf(stderr, "LSDA is corrupt\n");
+            terminate(__LINE__);
             assert(0);
 
         case LsdaResult.noAction:
@@ -564,7 +572,7 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
                                     else
                                         goto case DW_EH_PE_udata4;
             default:
-                assert(0);
+                terminate(__LINE__);
         }
         return value;
     }
@@ -753,6 +761,7 @@ int actionTableLookup(ClassInfo catchType, uint actionRecordPtr, const(ubyte)* p
 
         ap = apn + NextRecordPtr;
     }
+    terminate(__LINE__);
     assert(0);
 }
 
@@ -764,4 +773,10 @@ enum LsdaResult
     noAction,   // found, but no action needed (i.e. no cleanup nor handler)
     cleanup,    // cleanup found (i.e. finally or destructor)
     handler,    // handler found (i.e. a catch)
+}
+
+void terminate(uint line) @nogc
+{
+    printf("dwarfeh(%u) fatal error\n", line);
+    abort();     // unceremoniously exit
 }
