@@ -6493,6 +6493,21 @@ label:
 static assert(bug8865());
 
 /******************************************************/
+// 15450 labeled foreach + continue/break
+
+static assert({
+  L1:
+    foreach (l; [0])
+        continue L1;
+
+  L2:
+    foreach (l; [0])
+        break L2;
+
+    return true;
+}());
+
+/******************************************************/
 
 struct Test75
 {
