@@ -1623,7 +1623,10 @@ public:
                         Expression exp = (*returns)[i].exp;
                         if (exp.op == TOKvar && (cast(VarExp)exp).var == vresult)
                         {
-                            exp.type = f.next;
+                            if (f.next.ty == Tvoid && isMain())
+                                exp.type = Type.tint32;
+                            else
+                                exp.type = f.next;
                             // Remove `return vresult;` from returns
                             returns.remove(i);
                             continue;

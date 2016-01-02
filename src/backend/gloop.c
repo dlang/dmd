@@ -846,10 +846,14 @@ restart:
                     gref = 1;
                 markinvar(b->Belem, rd);
 #if 0
-                dbg_printf("i = %d\n",i);
-                {   int j;
-                    for (j = 0; j < go.deftop; j++)
-                        elem_print(go.defnod[j].DNelem);
+                dbg_printf("B%d\n", i);
+                {
+                    for (int j = 0; j < go.deftop; j++)
+                    {
+                        printf("  [%2d] ", j);
+                        WReqn(go.defnod[j].DNelem);
+                        printf("\n");
+                    }
                 }
                 dbg_printf("rd    : "); vec_println(rd);
                 dbg_printf("Boutrd: "); vec_println(b->Boutrd);
@@ -983,6 +987,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPvector:
         case OPvoid:
         case OPstrlen:
+        case OPddtor:
 #if TX86
         case OPinp:
 #endif
@@ -1215,7 +1220,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPctor:
         case OPdtor:
         case OPdctor:
-        case OPddtor:
         case OPhalt:
         case OPgot:                     // shouldn't OPgot be makeLI ?
                 break;

@@ -95,11 +95,13 @@ void out_config_init(
 #if TARGET_LINUX
     if (model == 64)
     {   config.exe = EX_LINUX64;
+        config.ehmethod = EH_DWARF;
         config.fpxmmregs = TRUE;
     }
     else
     {
         config.exe = EX_LINUX;
+        config.ehmethod = EH_DM;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -110,7 +112,6 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
-    config.ehmethod = dwarfeh ? EH_DWARF : EH_DM;
 #endif
 #if TARGET_OSX
     config.fpxmmregs = TRUE;
