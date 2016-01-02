@@ -1,18 +1,18 @@
 /**
  * Written in the D programming language.
- * This module provides OSX-specific support for sections.
+ * This module provides OS X x86-64 specific support for sections.
  *
- * Copyright: Copyright Digital Mars 2008 - 2012.
+ * Copyright: Copyright Digital Mars 2016.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
- * Authors:   Walter Bright, Sean Kelly, Martin Nowak
- * Source: $(DRUNTIMESRC src/rt/_sections_osx.d)
+ * Authors: Jacob Carlborg
+ * Source: $(DRUNTIMESRC src/rt/_sections_osx_x86_64.d)
  */
-
-module rt.sections_osx;
+module rt.sections_osx_x86_64;
 
 version(OSX):
+version(X86_64):
 
 // debug = PRINTF;
 import core.stdc.stdio;
@@ -72,7 +72,6 @@ __gshared bool _isRuntimeInitialized;
  */
 void initSections()
 {
-    pthread_key_create(&_tlsKey, null);
     _dyld_register_func_for_add_image(&sections_osx_onAddImage);
     _isRuntimeInitialized = true;
 }
@@ -83,105 +82,34 @@ void initSections()
 void finiSections()
 {
     _sections._gcRanges.reset();
-    pthread_key_delete(_tlsKey);
     _isRuntimeInitialized = false;
 }
 
-void[]* initTLSRanges()
+void[] initTLSRanges()
 {
-    return &getTLSBlock();
+    void* start = null;
+    size_t size = 0;
+    _d_dyld_getTLSRange(&dummyTlsSymbol, &start, &size);
+    assert(start && size, "Could not determine TLS range.");
+    return start[0 .. size];
 }
 
-void finiTLSRanges(void[]* rng)
+void finiTLSRanges(void[] rng)
 {
-    .free(rng.ptr);
-    .free(rng);
+
 }
 
-void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
+void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothrow dg) nothrow
 {
     dg(rng.ptr, rng.ptr + rng.length);
 }
 
-// NOTE: The Mach-O object file format does not allow for thread local
-//       storage declarations. So instead we roll our own by putting tls
-//       into the __tls_data and the __tlscoal_nt sections.
-//
-//       This function is called by the code emitted by the compiler.  It
-//       is expected to translate an address into the TLS static data to
-//       the corresponding address in the TLS dynamic per-thread data.
-
-// NB: the compiler mangles this function as '___tls_get_addr' even though it is extern(D)
-extern(D) void* ___tls_get_addr( void* p )
-{
-    immutable off = tlsOffset(p);
-    auto tls = getTLSBlockAlloc();
-    assert(off < tls.length);
-    return tls.ptr + off;
-}
-
 private:
 
-__gshared pthread_key_t _tlsKey;
-
-size_t tlsOffset(void* p)
-in
-{
-    assert(_sections._tlsImage[0].ptr !is null ||
-           _sections._tlsImage[1].ptr !is null);
-}
-body
-{
-    // NOTE: p is an address in the TLS static data emitted by the
-    //       compiler.  If it isn't, something is disastrously wrong.
-    immutable off0 = cast(size_t)(p - _sections._tlsImage[0].ptr);
-    if (off0 < _sections._tlsImage[0].length)
-    {
-        return off0;
-    }
-    immutable off1 = cast(size_t)(p - _sections._tlsImage[1].ptr);
-    if (off1 < _sections._tlsImage[1].length)
-    {
-        size_t sz = (_sections._tlsImage[0].length + 15) & ~cast(size_t)15;
-        return sz + off1;
-    }
-    assert(0);
-}
-
-ref void[] getTLSBlock()
-{
-    auto pary = cast(void[]*)pthread_getspecific(_tlsKey);
-    if (pary is null)
-    {
-        pary = cast(void[]*).calloc(1, (void[]).sizeof);
-        if (pthread_setspecific(_tlsKey, pary) != 0)
-        {
-            import core.stdc.stdio;
-            perror("pthread_setspecific failed with");
-            assert(0);
-        }
-    }
-    return *pary;
-}
-
-ref void[] getTLSBlockAlloc()
-{
-    auto pary = &getTLSBlock();
-    if (!pary.length)
-    {
-        auto imgs = _sections._tlsImage;
-        immutable sz0 = (imgs[0].length + 15) & ~cast(size_t)15;
-        immutable sz2 = sz0 + imgs[1].length;
-        auto p = .malloc(sz2);
-        memcpy(p, imgs[0].ptr, imgs[0].length);
-        memcpy(p + sz0, imgs[1].ptr, imgs[1].length);
-        *pary = p[0 .. sz2];
-    }
-    return *pary;
-}
-
+extern(C) void _d_dyld_getTLSRange(void*, void**, size_t*);
 
 __gshared SectionGroup _sections;
+ubyte dummyTlsSymbol;
 
 extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
 {
@@ -224,13 +152,6 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
         _sections._ehTables = p[0 .. len];
     }
 
-    auto tlssect = getSection(h, slide, "__DATA", "__tls_data");
-    if (tlssect != null)
-    {
-        debug(PRINTF) printf("  tls_data %p %p\n", tlssect.ptr, tlssect.ptr + tlssect.length);
-        _sections._tlsImage[0] = (cast(immutable(void)*)tlssect.ptr)[0 .. tlssect.length];
-    }
-
     auto tlssect2 = getSection(h, slide, "__DATA", "__tlscoal_nt");
     if (tlssect2 != null)
     {
@@ -254,22 +175,10 @@ static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
 {
-    version (X86)
-    {
-        assert(header.magic == MH_MAGIC);
-        auto sect = getsectbynamefromheader(header,
-                                            segmentName,
-                                            sectionName);
-    }
-    else version (X86_64)
-    {
-        assert(header.magic == MH_MAGIC_64);
-        auto sect = getsectbynamefromheader_64(cast(mach_header_64*)header,
-                                            segmentName,
-                                            sectionName);
-    }
-    else
-        static assert(0, "unimplemented");
+    assert(header.magic == MH_MAGIC_64);
+    auto sect = getsectbynamefromheader_64(cast(mach_header_64*)header,
+                                        segmentName,
+                                        sectionName);
 
     if (sect !is null && sect.size > 0)
         return (cast(ubyte*)sect.addr + slide)[0 .. cast(size_t)sect.size];
