@@ -305,9 +305,9 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
     global.params.ddocfiles = new Strings();
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (size_t.sizeof == 8);
+    global.params.mscoff = false;
     static if (TARGET_WINDOS)
     {
-        global.params.mscoff = false;
         global.params.is64bit = false;
         global.params.defaultlibname = "phobos";
     }
@@ -540,7 +540,10 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
             else if (strcmp(p + 1, "m64") == 0)
             {
                 global.params.is64bit = true;
-                global.params.mscoff = true;
+                static if (TARGET_WINDOS)
+                {
+                    global.params.mscoff = true;
+                }
             }
             else if (strcmp(p + 1, "m32mscoff") == 0)
             {
