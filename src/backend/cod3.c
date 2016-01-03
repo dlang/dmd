@@ -813,7 +813,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
         case BCtry:
             usednteh |= EHtry;
-            if (config.flags2 & CFG2seh)
+            if (config.exe == EX_WIN32)
                 usednteh |= NTEHtry;
             goto case_goto;
 #endif
@@ -841,7 +841,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     }
                 }
 #endif
-                if (config.flags2 & CFG2seh)
+                if (config.exe == EX_WIN32)
                     c = cat(c,nteh_unwind(0,toindex));
 #if MARS
                 else if (
@@ -906,7 +906,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             goto L2;
 
         case BC_try:
-            if (config.flags2 & CFG2seh)
+            if (config.exe == EX_WIN32)
             {   usednteh |= NTEH_try;
                 nteh_usevars();
             }
@@ -1054,7 +1054,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         continue;
                     }
 #endif
-                    if (config.flags2 & CFG2seh)
+                    if (config.exe == EX_WIN32)
                     {
                         if (bt->Bscope_index == 0)
                         {
@@ -2974,7 +2974,7 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
         (*xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
 #if NTEXCEPTIONS == 2
-        (usednteh & ~NTEHjmonitor && (config.flags2 & CFG2seh)) ||
+        (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32)) ||
 #endif
         (config.target_cpu >= TARGET_80386 &&
          config.flags4 & CFG4speed)
@@ -2988,7 +2988,7 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
             // Don't reorder instructions, as dwarf CFA relies on it
             code_orflag(c, CFvolatile);
 #if NTEXCEPTIONS == 2
-        if (usednteh & ~NTEHjmonitor && (config.flags2 & CFG2seh))
+        if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32))
         {
             code *ce = nteh_prolog();
             c = cat(c,ce);

@@ -754,7 +754,6 @@ struct Config
 #define CFG2noobj       0x1000  // we are not generating a .OBJ file
 #define CFG2noerrmax    0x4000  // no error count maximum
 #define CFG2expand      0x8000  // expanded output to list file
-#define CFG2seh         0x10000 // use Win32 SEH to support any exception handling
 #define CFG2stomp       0x20000 // enable stack stomping code
 #define CFG2gms         0x40000 // optimize debug symbols for microsoft debuggers
 #define CFGX2   (CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto | \

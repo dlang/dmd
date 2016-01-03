@@ -184,7 +184,7 @@ tryagain:
 #else
     if (CPP)
     {
-        if (config.flags2 & CFG2seh &&
+        if (config.exe == EX_WIN32 &&
             (funcsym_p->Stype->Tflags & TFemptyexc || funcsym_p->Stype->Texcspec))
             usednteh |= NTEHexcspec;
         except_reset();
@@ -438,7 +438,7 @@ tryagain:
 
 #if SCPP
             if (CPP &&
-                !(config.flags2 & CFG2seh))
+                !(config.exe == EX_WIN32))
             {
                 //printf("b = %p, index = %d\n",b,b->Bindex);
                 //except_index_set(b->Bindex);
@@ -675,7 +675,7 @@ code *prolog()
         /* The exception stack unwinding mechanism relies on the EBP chain being intact,
          * so need frame if function can possibly throw
          */
-        !(config.flags2 & CFG2seh) && !(funcsym_p->Sfunc->Fflags3 & Fnothrow) ||
+        !(config.exe == EX_WIN32) && !(funcsym_p->Sfunc->Fflags3 & Fnothrow) ||
         sv64
        )
         needframe = 1;
@@ -1499,7 +1499,7 @@ STATIC void cgcod_eh()
                     case ESCdtor:
 //printf("ESCdtor\n");
                         except_pop(c,c->IEV1.Vtor,NULL);
-                    L1: if (config.flags2 & CFG2seh)
+                    L1: if (config.exe == EX_WIN32)
                         {
                             c1 = nteh_gensindex(except_index_get() - 1);
                             code_next(c1) = code_next(c);
@@ -1518,7 +1518,7 @@ STATIC void cgcod_eh()
                         list_pop(&stack);
                         if (idx != except_index_get())
                         {
-                            if (config.flags2 & CFG2seh)
+                            if (config.exe == EX_WIN32)
                             {   c1 = nteh_gensindex(idx - 1);
                                 code_next(c1) = code_next(c);
                                 code_next(c) = c1;
@@ -1586,7 +1586,7 @@ STATIC void cgcod_eh()
         }
     }
 
-    if (config.flags2 & CFG2seh)
+    if (config.exe == EX_WIN32)
         for (b = startblock; b; b = b->Bnext)
         {
             if (/*!b->Bcount ||*/ b->BC == BCtry)

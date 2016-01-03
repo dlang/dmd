@@ -59,7 +59,7 @@ int nteh_offset_info()          { return 4; }
 
 unsigned char *nteh_context_string()
 {
-    if (config.flags2 & CFG2seh)
+    if (config.exe == EX_WIN32)
         return (unsigned char *)text_nt;
     else
         return NULL;
@@ -408,7 +408,7 @@ code *nteh_prolog()
 
 code *nteh_epilog()
 {
-    if (!(config.flags2 & CFG2seh))
+    if (config.exe != EX_WIN32)
         return NULL;
 
     /* Generate:
@@ -542,7 +542,7 @@ code *nteh_patchindex(code* c, int sindex)
 code *nteh_gensindex(int sindex)
 {   code *c;
 
-    if (!(config.flags2 & CFG2seh))
+    if (config.exe != EX_WIN32)
         return NULL;
 
     // Generate:
@@ -813,7 +813,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
     Symbol *s;
     regm_t desregs;
 
-    assert(config.flags2 & CFG2seh);    // BUG: figure out how to implement for other EX's
+    assert(config.exe == EX_WIN32);    // BUG: figure out how to implement for other EX's
 
     if (shandle->Sclass == SCfastpar)
     {   assert(shandle->Spreg != DX);
@@ -897,7 +897,7 @@ code *nteh_monitor_epilog(regm_t retregs)
     regm_t desregs;
     Symbol *s;
 
-    assert(config.flags2 & CFG2seh);    // BUG: figure out how to implement for other EX's
+    assert(config.exe == EX_WIN32);    // BUG: figure out how to implement for other EX's
 
     s = getRtlsym(RTLSYM_MONITOR_EPILOG);
     //desregs = ~s->Sregsaved & ALLREGS;

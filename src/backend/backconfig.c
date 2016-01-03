@@ -84,7 +84,6 @@ void out_config_init(
     {
         config.exe = EX_WIN32;
         config.ehmethod = EH_WIN32;
-        config.flags2 |= CFG2seh;       // Win32 eh
         config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
     }
 
