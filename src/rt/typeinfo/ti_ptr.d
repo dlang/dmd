@@ -48,7 +48,7 @@ class TypeInfo_P : TypeInfo
         return (void*).sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. (void*).sizeof];
     }

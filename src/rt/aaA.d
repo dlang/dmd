@@ -249,7 +249,7 @@ TypeInfo_Struct fakeEntryTI(const TypeInfo keyti, const TypeInfo valti)
     void* p = GC.malloc(sizeti + 2 * (void*).sizeof);
     import core.stdc.string : memcpy;
 
-    memcpy(p, typeid(TypeInfo_Struct).init().ptr, sizeti);
+    memcpy(p, typeid(TypeInfo_Struct).initializer().ptr, sizeti);
 
     auto ti = cast(TypeInfo_Struct) p;
     auto extra = cast(TypeInfo*)(p + sizeti);

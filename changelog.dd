@@ -1,48 +1,35 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.069.0.
+$(COMMENT Pending changelog for 2.067.0.
 )
 
 $(BUGSTITLE Library Changes,
-$(LI $(RELATIVE_LINK2 backtraces-with-line-numbers, Backtraces now include file name and line number.))
-$(LI $(RELATIVE_LINK2 link-against-vs2015, support to link against VS2015 libraries))
+
+$(LI $(RELATIVE_LINK2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
+    `TypeInfo.initializer`.))
+)
 )
 
 $(BUGSTITLE Library Changes,
-$(LI $(LNAME2 backtraces-with-line-numbers, Backtraces now include file name and line number.)
 
-    $(P The default tracehandler on linux and FreeBSD now parses DWARF
-        debug info to add file names and line numbers to backtraces.
+$(LI $(LNAME2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
+    `TypeInfo.initializer`.)
+
+    $(P The method `TypeInfo.init` has been renamed to
+        $(A ../phobos-prerelease/object.html#.TypeInfo.initializer,
+        `TypeInfo.initializer`).
+        This is necessary because the method clashes with the
+        $(A ../property.html#init, type property of the same name).
     )
-
-    $(PRE
-    std.conv.ConvException@DPL/dmd/src/../../phobos/std/conv.d(1720): Unexpected 'a' when converting from type string to type ulong
-
-    DPL/dmd/src/../../phobos/std/conv.d:1720 pure @safe ulong std.conv.toImpl!(ulong, immutable(char)[]).toImpl(immutable(char)[]) [0x43b339]
-    DPL/dmd/src/../../phobos/std/conv.d:298 pure @safe ulong std.conv.to!(ulong).to!(immutable(char)[]).to(immutable(char)[]) [0x437717]
-    example.d:5 ulong example.foo(immutable(char)[]) [0x4376c7]
-    example.d:10 _Dmain [0x4376e5]
-    ??:? _D2rt6dmain211_d_run_mainUiPPaPUAAaZiZ6runAllMFZ9__lambda1MFZv [0x444576]
-    ??:? void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [0x4444cc]
-    ??:? void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).runAll() [0x444532]
-    ??:? void rt.dmain2._d_run_main(int, char**, extern (C) int function(char[][])*).tryExec(scope void delegate()) [0x4444cc]
-    ??:? _d_run_main [0x444429]
-    ??:? main [0x44039f]
-    ??:? __libc_start_main [0xc3ae96ff]
+    $(P An alias with the old name has been added, and it's supposed to stay
+        around through version 2.071.0. It's scheduled to be deprecated with the
+        2.072.0 release, and is going to be `@disable`d with the 2.073.0
+        release. Finally, the special casing is going to be removed with the
+        2.074.0 release, so that the type property `init` takes over.
     )
 )
-
-$(LI $(LNAME2 link-against-vs2015, support to link against VS2015 libraries)
-
-    $(P Support for linking against the Microsoft runtime library distributed with VS 2015
-    has been added. This affects both the 64-bit build for Win64 and the 32-bit build
-    targeting the MS runtime (-m32mscoff).)
-
-    $(P The compiler detects the library version to adjust the link command line automatically.
-    If you don't use dmd for linking, make sure to add legacy_stdio_definitions.lib to your
-    command line when linking against the VS2015 runtime.)
 )
-)
+
 
 
 Macros:

@@ -672,7 +672,7 @@ private T staticError(T, Args...)(auto ref Args args)
         static assert(__traits(classInstanceSize, T) <= _store.length,
                       T.stringof ~ " is too large for staticError()");
 
-        _store[0 .. __traits(classInstanceSize, T)] = typeid(T).init[];
+        _store[0 .. __traits(classInstanceSize, T)] = typeid(T).initializer[];
         return cast(T) _store.ptr;
     }
     auto res = (cast(T function() @trusted pure nothrow @nogc) &get)();
@@ -682,7 +682,7 @@ private T staticError(T, Args...)(auto ref Args args)
 
 // Suppress traceinfo generation when the GC cannot be used.  Workaround for
 // Bugzilla 14993. We should make stack traces @nogc instead.
-private class SuppressTraceInfo : Throwable.TraceInfo
+package class SuppressTraceInfo : Throwable.TraceInfo
 {
     override int opApply(scope int delegate(ref const(char[]))) const { return 0; }
     override int opApply(scope int delegate(ref size_t, ref const(char[]))) const { return 0; }

@@ -194,7 +194,7 @@ version (DigitalMars) version (AnyX86) @system // not pure
     uint outpl(uint port_address, uint value);
 }
 
-version (AnyX86)
+version (DigitalMars) version (AnyX86)
 {
     /**
      * Calculates the number of set bits in a 32-bit integer

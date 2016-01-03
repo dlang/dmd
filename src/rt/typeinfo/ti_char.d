@@ -53,7 +53,7 @@ class TypeInfo_a : TypeInfo
         *cast(char *)p2 = t;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         static immutable char c;
 

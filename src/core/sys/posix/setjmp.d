@@ -121,6 +121,15 @@ version( CRuntime_Glibc )
                 double[6] __fpregs;
         }
     }
+    else version (SystemZ)
+    {
+        struct __s390_jmp_buf
+        {
+            c_long[10] __gregs;
+            c_long[8] __fpregs;
+        }
+        alias __jmp_buf = __s390_jmp_buf[1];
+    }
     else
         static assert(0, "unimplemented");
 

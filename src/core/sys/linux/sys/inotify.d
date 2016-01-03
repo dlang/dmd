@@ -88,6 +88,11 @@ else version (AArch64)
     enum IN_CLOEXEC = 0x80000; // octal!2000000
     enum IN_NONBLOCK = 0x800; // octal!4000
 }
+else version (SystemZ)
+{
+    enum IN_CLOEXEC = 0x80000; // octal!2000000
+    enum IN_NONBLOCK = 0x800; // octal!4000
+}
 else
     static assert(0, "unimplemented");
 

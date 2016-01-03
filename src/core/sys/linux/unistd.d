@@ -15,3 +15,6 @@ enum {
     /// Offset is relative to the next hole (or EOF if file is not sparse)
     SEEK_HOLE = 4
 }
+
+/// Prompt for a password without echoing it.
+char* getpass(const(char)* prompt);

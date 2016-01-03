@@ -63,7 +63,7 @@ class TypeInfo_C : TypeInfo
         return Object.sizeof;
     }
 
-    override const(void)[] init() const @trusted
+    override const(void)[] initializer() const @trusted
     {
         return (cast(void *)null)[0 .. Object.sizeof];
     }
