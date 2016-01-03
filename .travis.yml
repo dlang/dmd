@@ -1,3 +1,17 @@
-branches:
-  only:
-    - dmd-1.x
+language: d
+d:
+  - dmd
+  - gdc
+  - ldc
+
+script: ./travis.sh
+
+sudo: false
+addons:
+  apt:
+    packages:
+    - gdb
+
+env:
+  - SELF_COMPILE=0
+  - SELF_COMPILE=2

@@ -49,8 +49,6 @@
 #include        "iasm.h"
 #include        "xmm.h"
 
-#if TX86
-
 //#define EXTRA_DEBUG 1
 
 #undef ADDFWAIT
@@ -2320,9 +2318,9 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
             goto L2;
         }
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
-            !v->type->isfloating() && v->init)
+            !v->type->isfloating() && v->_init)
         {
-            ExpInitializer *ei = v->init->isExpInitializer();
+            ExpInitializer *ei = v->_init->isExpInitializer();
             if (ei)
             {
                 o1->disp = ei->exp->toInteger();
@@ -2337,7 +2335,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
     em = s->isEnumMember();
     if (em)
     {
-        o1->disp = em->value->toInteger();
+        o1->disp = em->value()->toInteger();
         return;
     }
     o1->s = s;  // a C identifier
@@ -3472,6 +3470,7 @@ static code *asm_db_parse(OP *pop)
     {
         size_t len;
         unsigned char *q;
+        unsigned char *qstart = NULL;
 
         if (usBytes+usSize > usMaxbytes)
         {
@@ -3573,6 +3572,11 @@ static code *asm_db_parse(OP *pop)
 
                     usBytes += len * usSize;
                 }
+                if (qstart)
+                {
+                    mem_free(qstart);
+                    qstart = NULL;
+                }
                 break;
 
             case TOKidentifier:
@@ -3608,8 +3612,14 @@ static code *asm_db_parse(OP *pop)
                 else if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;
-                    q = (unsigned char *)se->string;
-                    len = se->len;
+                    len = se->numberOfCodeUnits();
+                    q = (unsigned char *)se->toPtr();
+                    if (!q)
+                    {
+                        qstart = (unsigned char *)mem_malloc(len * se->sz);
+                        se->writeTo(qstart, false);
+                        q = qstart;
+                    }
                     goto L3;
                 }
                 goto Ldefault;
@@ -4686,13 +4696,3 @@ AFTER_EMIT:
     //return asmstate.bReturnax;
     return s;
 }
-
-#else
-
-Statement* asmSemantic(AsmStatement *s, Scope *sc)
-{
-    assert(0);
-    return NULL;
-}
-
-#endif

@@ -296,11 +296,14 @@ void test10734()
 
 }
 
+/***************************************************/
+// 14656
+
 void test14656()
 {
-    void unaryFun()(auto int a) pure nothrow @safe @nogc {}
+    //void unaryFun()(auto int a) pure nothrow @safe @nogc {}   // changed to invalid by fixing issue 14669
     alias Identity(F) = F;
-    unaryFun!()(41);
+    //unaryFun!()(41);
     static void fun(int n) pure nothrow @safe @nogc {}
     alias F = typeof(fun);
     assert(Identity!F.stringof == "pure nothrow @nogc @safe void(int)");

@@ -648,14 +648,14 @@ struct Bug1914a
 {
     const char[10] i = [1,0,0,0,0,0,0,0,0,0];
     char[10] x = i;
-    int y=5;
+    int y = 5;
 }
 
 struct Bug1914b
 {
     const char[10] i = [0,0,0,0,0,0,0,0,0,0];
     char[10] x = i;
-    int y=5;
+    int y = 5;
 }
 
 struct Bug1914c
@@ -668,36 +668,50 @@ struct Bug1914c
     int y = 5;
     char[2][3] z = j;
     char[2][3] w = k;
-    int v=27;
+    int v = 27;
     char[2][3] u = l;
     int t = 718;
 }
 
-struct T3198 {
-   int g = 1;
+struct T3198
+{
+    int g = 1;
 }
 
-class Foo3198 {
-   int[5] x = 6;
-   T3198[5] y = T3198(4);
+class Foo3198
+{
+    int[5] x = 6;
+    T3198[5] y = T3198(4);
 }
 
 void test3198and1914()
 {
     Bug1914a a;
-    assert(a.y==5, "bug 1914, non-zero init");
+    assert(a.y == 5, "bug 1914, non-zero init");
     Bug1914b b;
-    assert(b.y==5, "bug 1914, zero init");
+    assert(b.y == 5, "bug 1914, zero init");
     Bug1914c c;
-    assert(c.y==5, "bug 1914, multilevel init");
-    assert(c.v==27, "bug 1914, multilevel init2");
-    assert(c.x[2][1]=='b');
-    assert(c.t==718, "bug 1914, multi3");
-    assert(c.u[1][0]=='p');
-    assert(c.u[1][1]==char.init);
+    assert(c.y == 5, "bug 1914, multilevel init");
+    assert(c.v == 27, "bug 1914, multilevel init2");
+    assert(c.x[2][1] == 'b');
+    assert(c.t == 718, "bug 1914, multi3");
+    assert(c.u[1][0] == 'p');
+    assert(c.u[1][1] == char.init);
     auto f = new Foo3198();
-    assert(f.x[0]==6);
-    assert(f.y[0].g==4, "bug 3198");
+    assert(f.x[0] == 6);
+    assert(f.y[0].g == 4, "bug 3198");
+}
+
+/********************************************/
+// 14996
+
+enum E14996a : string { confirm = "confirm" }
+enum E14996b : long[] { confirm = [1,2,3,4] }
+
+struct S14996
+{
+    E14996a[1] data1;
+    E14996b[1] data2;
 }
 
 /********************************************/

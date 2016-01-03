@@ -17,6 +17,11 @@
 #include        <string.h>
 #include        <time.h>
 
+#ifdef _MSC_VER
+#include        <stdarg.h>
+#undef va_start // mapped to _crt_va_start
+#endif
+
 #include        "expression.h"
 #include        "mtype.h"
 #include        "dsymbol.h"
@@ -303,7 +308,6 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
  */
 int intrinsic_op(FuncDeclaration *fd)
 {
-#if TX86
     fd = fd->toAliasFunc();
     const char *name = mangleExact(fd);
     //printf("intrinsic_op(%s)\n", name);
@@ -579,7 +583,6 @@ int intrinsic_op(FuncDeclaration *fd)
 
         return -1;
     }
-#endif
 
     return -1;
 }
@@ -768,7 +771,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, offset);
-        e = el_bin(OPcall, TYnptr, el_var(rtlsym[RTLSYM_ALLOCMEMORY]), e);
+        e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
         toTraceGC(irs, e, &fd->loc);
 
         // Assign block of memory to sclosure
@@ -851,7 +854,7 @@ RET retStyle(TypeFunction *tf)
 
     if (global.params.isWindows && global.params.is64bit)
     {
-        // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
         if (tns->ty == Tcomplex32)
             return RETstack;
         if (tns->isscalar())
@@ -863,7 +866,7 @@ RET retStyle(TypeFunction *tf)
             StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (sd->ident == Id::__c_long_double)
                 return RETregs;
-            if (!sd->isPOD() || sz >= 8)
+            if (!sd->isPOD() || sz > 8)
                 return RETstack;
             if (sd->fields.dim == 0)
                 return RETstack;
@@ -871,6 +874,16 @@ RET retStyle(TypeFunction *tf)
         if (sz <= 16 && !(sz & (sz - 1)))
             return RETregs;
         return RETstack;
+    }
+    else if (global.params.isWindows && global.params.mscoff)
+    {
+        Type* tb = tns->baseElemOf();
+        if (tb->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+            if (sd->ident == Id::__c_long_double)
+                return RETregs;
+        }
     }
 
 Lagain:

@@ -167,7 +167,7 @@ Symbol *toSymbol(Dsymbol *s)
 
                 if (vd->isDataseg())
                 {
-                    if (vd->isThreadlocal())
+                    if (vd->isThreadlocal() && !(vd->storage_class & STCtemp))
                     {
                         /* Thread local storage
                          */

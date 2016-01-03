@@ -294,6 +294,7 @@ Lagain:
             case BCcatch:
             case BC_except:
             case BC_finally:
+            case BC_lpad:
             case BC_ret:
                 s->Sflags &= ~GTregcand;
                 goto Lcant;             // can't assign to register

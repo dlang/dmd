@@ -82,13 +82,14 @@ public:
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;          // true if deprecated
 
-    Dsymbol *enclosing;         /* !=NULL if is nested
-                                 * pointing to the dsymbol that directly enclosing it.
-                                 * 1. The function that enclosing it (nested struct and class)
-                                 * 2. The class that enclosing it (nested class only)
-                                 * 3. If enclosing aggregate is template, its enclosing dsymbol.
-                                 * See AggregateDeclaraton::makeNested for the details.
-                                 */
+    /* !=NULL if is nested
+     * pointing to the dsymbol that directly enclosing it.
+     * 1. The function that enclosing it (nested struct and class)
+     * 2. The class that enclosing it (nested class only)
+     * 3. If enclosing aggregate is template, its enclosing dsymbol.
+     * See AggregateDeclaraton::makeNested for the details.
+     */
+    Dsymbol *enclosing;
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
     // Special member functions
     FuncDeclarations invs;              // Array of invariants
@@ -97,9 +98,12 @@ public:
     DeleteDeclaration *aggDelete;       // deallocator
 
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
-    CtorDeclaration *defaultCtor;       // default constructor - should have no arguments, because
-                                        // it would be stored in TypeInfo_Class.defaultConstructor
-    Dsymbol *aliasthis;                 // forward unresolved lookups to aliasthis
+
+    // default constructor - should have no arguments, because
+    // it would be stored in TypeInfo_Class.defaultConstructor
+    CtorDeclaration *defaultCtor;
+
+    Dsymbol *aliasthis;         // forward unresolved lookups to aliasthis
     bool noDefaultCtor;         // no default construction
 
     FuncDeclarations dtors;     // Array of destructors
@@ -113,13 +117,13 @@ public:
     void semantic3(Scope *sc);
     unsigned size(Loc loc);
     virtual void finalizeSize(Scope *sc) = 0;
+    bool checkOverlappedFields();
+    bool fill(Loc loc, Expressions *elements, bool ctorinit);
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
     static unsigned placeField(unsigned *nextoffset,
         unsigned memsize, unsigned memalignsize, structalign_t memalign,
         unsigned *paggsize, unsigned *paggalignsize, bool isunion);
     Type *getType();
-    int firstFieldInUnion(int indx); // first field in union that includes indx
-    int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     bool isDeprecated();         // is aggregate deprecated?
     bool isNested();
     void makeNested();
@@ -128,7 +132,8 @@ public:
 
     Prot prot();
 
-    Type *handleType() { return type; } // 'this' type
+    // 'this' type
+    Type *handleType() { return type; }
 
     // Back end
     Symbol *stag;               // tag symbol for debug data
@@ -169,6 +174,11 @@ public:
     Type *arg1type;
     Type *arg2type;
 
+    // Even if struct is defined as non-root symbol, some built-in operations
+    // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
+    // For those, today TypeInfo_Struct is generated in COMDAT.
+    bool requestTypeInfo;
+
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -177,7 +187,6 @@ public:
     const char *kind();
     void finalizeSize(Scope *sc);
     bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
-    bool fill(Loc loc, Expressions *elements, bool ctorinit);
     bool isPOD();
 
     StructDeclaration *isStructDeclaration() { return this; }
@@ -202,8 +211,9 @@ struct BaseClass
 
     ClassDeclaration *sym;
     unsigned offset;                    // 'this' pointer offset
-    FuncDeclarations vtbl;              // for interfaces: Array of FuncDeclaration's
-                                        // making up the vtbl[]
+    // for interfaces: Array of FuncDeclaration's
+    // making up the vtbl[]
+    FuncDeclarations vtbl;
 
     size_t baseInterfaces_dim;
     // if BaseClass is an interface, these

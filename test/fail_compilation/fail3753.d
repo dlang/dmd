@@ -26,5 +26,14 @@ void main()
     bar();
     auto a = alloca(16);
     printf("test()\n");
-    version (DigitalMars) { version (Win32) static assert(0); } else static assert(0);
+    version (DigitalMars)
+    {
+        version (Win32) static assert(0);
+        version (linux)
+        {
+            version (X86_64) static assert(0);
+        }
+    }
+    else
+        static assert(0);
 }

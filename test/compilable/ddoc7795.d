@@ -11,7 +11,7 @@ struct TimeValue {
 ///
 struct DateTime {
     ///
-    this(TimeValue t = TimeValue(0, 0)) {}
+    this(int x, TimeValue t = TimeValue(0, 0)) {}
 }
 
 void main() { }

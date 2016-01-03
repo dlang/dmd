@@ -41,9 +41,11 @@
 #include "irstate.h"
 
 void clearStringTab();
+RET retStyle(TypeFunction *tf);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
+void insertFinallyBlockCalls(block *startblock);
 elem *toEfilename(Module *m);
 Symbol *toSymbol(Dsymbol *s);
 void buildClosure(FuncDeclaration *fd, IRState *irs);
@@ -248,9 +250,7 @@ void obj_start(char *srcfile)
 #endif
 
     el_reset();
-#if TX86
     cg87_reset();
-#endif
     out_reset();
 }
 
@@ -437,7 +437,7 @@ void genObjFile(Module *m, bool multiobj)
                       ebcov,
                       efilename,
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -534,7 +534,7 @@ static void genhelpers(Module *m)
         if (config.exe == EX_WIN64)
             efilename = addressElem(efilename, Type::tstring, true);
 
-        elem *e = el_var(rtlsym[rt]);
+        elem *e = el_var(getRtlsym(rt));
         e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
         block *b = block_calloc();
@@ -544,7 +544,7 @@ static void genhelpers(Module *m)
         ma->Sfunc->Fstartblock = b;
         ma->Sclass = SCglobal;
         ma->Sfl = 0;
-        ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
+        ma->Sflags |= getRtlsym(rt)->Sflags & SFLexit;
         writefunc(ma);
     }
 }
@@ -737,6 +737,20 @@ bool isDruntimeArrayOp(Identifier *ident)
 
 /* ================================================================== */
 
+UnitTestDeclaration *needsDeferredNested(FuncDeclaration *fd)
+{
+    while (fd && fd->isNested())
+    {
+        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
+        if (!fdp)
+            break;
+        if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
+            return udp->semanticRun < PASSobj ? udp : NULL;
+        fd = fdp;
+    }
+    return NULL;
+}
+
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 {
     ClassDeclaration *cd = fd->parent->isClassDeclaration();
@@ -764,6 +778,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     // If errors occurred compiling it, such as bugzilla 6118
     if (fd->type && fd->type->ty == Tfunction && ((TypeFunction *)fd->type)->next->ty == Terror)
+        return;
+
+    if (fd->semantic3Errors)
         return;
 
     if (global.errors)
@@ -804,23 +821,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             break;
     }
 
-    FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
-    if (fd->isNested())
+    if (UnitTestDeclaration *udp = needsDeferredNested(fd))
     {
-        if (fdp && fdp->semanticRun < PASSobj)
-        {
-            if (fdp->semantic3Errors)
-                return;
-
-            /* Can't do unittest's out of order, they are order dependent in that their
-             * execution is done in lexical order.
-             */
-            if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
-            {
-                udp->deferredNested.push(fd);
-                return;
-            }
-        }
+        /* Can't do unittest's out of order, they are order dependent in that their
+         * execution is done in lexical order.
+         */
+        udp->deferredNested.push(fd);
+        //printf("%s @[%s]\n\t--> pushed to unittest @[%s]\n",
+        //    fd->toPrettyChars(), fd->loc.toChars(), udp->loc.toChars());
+        return;
     }
 
     if (fd->isArrayOp && isDruntimeArrayOp(fd->ident))
@@ -847,7 +856,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         f->Fclass = (Classsym *)t;
     }
 
-#if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same
      * distance away from the function parameters, so that an overriding
      * function can call the nested fdensure or fdrequire of its overridden function
@@ -855,7 +863,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
      */
     if (fd->isVirtual() && (fd->fensure || fd->frequire))
         f->Fflags3 |= Ffakeeh;
-#endif
 
 #if TARGET_OSX
     s->Sclass = SCcomdat;
@@ -885,6 +892,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         /* The enclosing function must have its code generated first,
          * in order to calculate correct frame pointer offset.
          */
+        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
         if (fdp && fdp->semanticRun < PASSobj)
         {
             toObjFile(fdp, multiobj);
@@ -987,6 +995,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     IRState irs(m, fd);
     Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
+    AA *labels = NULL;
+    irs.labels = &labels;
 
     symbol *shidden = NULL;
     Symbol *sthis = NULL;
@@ -1231,6 +1241,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
                 }
             }
         }
+        insertFinallyBlockCalls(f->Fstartblock);
     }
 
     // If static constructor

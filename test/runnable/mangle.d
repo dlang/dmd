@@ -365,7 +365,7 @@ static: // necessary to make overloaded symbols accessible via __traits(getOverl
     void g(string) {}
     alias bar = .f10249;
     alias bar =  g;
-    static assert(Seq10249!(bar)[0].mangleof                                   ==   "6mangle6C102496f10249");      // <- _D6mangle1fFlZv (todo!)
+    static assert(Seq10249!(bar)[0].mangleof                                   ==   "6mangle6C102493bar");         // <- _D6mangle1fFlZv
     static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[0].mangleof == "_D6mangle6f10249FlZv");         // <-
     static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[1].mangleof == "_D6mangle6C102491gFAyaZv");     // <-
 }

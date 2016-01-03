@@ -10,13 +10,30 @@ module ddmd.root.port;
 
 import core.stdc.ctype;
 import core.stdc.string;
+import core.stdc.stdio;
+import core.stdc.errno;
 import core.math;
 
-version (Windows) __gshared extern (C) extern const(char)* __locale_decpoint;
+version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
+version(CRuntime_Microsoft)   extern(C++) struct longdouble { real r; }
+version(CRuntime_Microsoft)   extern(C++) size_t ld_sprint(char* str, int fmt, longdouble x);
 
 extern (C) float strtof(const(char)* p, char** endp);
 extern (C) double strtod(const(char)* p, char** endp);
-extern (C) real strtold(const(char)* p, char** endp);
+
+version(CRuntime_Microsoft)
+    extern (C++) longdouble strtold_dm(const(char)* p, char** endp);
+else
+    extern (C) real strtold(const(char)* p, char** endp);
+
+version(CRuntime_Microsoft)
+{
+    enum _OVERFLOW = 3;   /* overflow range error */
+    enum _UNDERFLOW = 4;   /* underflow range error */
+
+    extern (C) int _atoflt(float* value, const char * str);
+    extern (C) int _atodbl(double* value, const char * str);
+}
 
 extern (C++) struct Port
 {
@@ -25,8 +42,16 @@ extern (C++) struct Port
     enum ldbl_max = real.max;
     enum ldbl_nan = real.nan;
     enum ldbl_infinity = real.infinity;
-    static __gshared bool yl2x_supported = true;
-    static __gshared bool yl2xp1_supported = true;
+    version(DigitalMars)
+    {
+        static __gshared bool yl2x_supported = true;
+        static __gshared bool yl2xp1_supported = true;
+    }
+    else
+    {
+        static __gshared bool yl2x_supported = false;
+        static __gshared bool yl2xp1_supported = false;
+    }
     static __gshared real snan;
     static this()
     {
@@ -106,6 +131,14 @@ extern (C++) struct Port
         return isNan(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
     }
 
+    version(CRuntime_Microsoft)
+    {
+        static int isSignallingNan(longdouble ld)
+        {
+            return isSignallingNan(*cast(real*)&ld);
+        }
+    }
+
     static int isInfinity(double r)
     {
         return r is double.infinity || r is -double.infinity;
@@ -113,48 +146,114 @@ extern (C++) struct Port
 
     static float strtof(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
-        auto r = .strtof(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_Microsoft)
+        {
+            float r;
+            if(endp)
+            {
+                r = .strtod(p, endp); // does not set errno for underflows, but unused
+            }
+            else
+            {
+                int res = _atoflt(&r, p);
+                if (res == _UNDERFLOW || res == _OVERFLOW)
+                    errno = ERANGE;
+            }
+        }
+        else
+        {
+            auto r = .strtof(p, endp);
+        }
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 
     static double strtod(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
-        auto r = .strtod(p, endp);
-        version (Windows) __locale_decpoint = save;
+        version (CRuntime_Microsoft)
+        {
+            double r;
+            if(endp)
+            {
+                r = .strtod(p, endp); // does not set errno for underflows, but unused
+            }
+            else
+            {
+                int res = _atodbl(&r, p);
+                if (res == _UNDERFLOW || res == _OVERFLOW)
+                    errno = ERANGE;
+            }
+        }
+        else
+        {
+            auto r = .strtod(p, endp);
+        }
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
     }
 
     static real strtold(const(char)* p, char** endp)
     {
-        version (Windows)
+        version (CRuntime_DigitalMars)
         {
             auto save = __locale_decpoint;
             __locale_decpoint = ".";
         }
-        auto r = .strtold(p, endp);
-        version (Windows) __locale_decpoint = save;
+
+        version (CRuntime_Microsoft)
+            auto r = .strtold_dm(p, endp).r;
+        else
+            auto r = .strtold(p, endp);
+        version (CRuntime_DigitalMars) __locale_decpoint = save;
         return r;
+    }
+
+    static size_t ld_sprint(char* str, int fmt, real x)
+    {
+        version(CRuntime_Microsoft)
+        {
+            return .ld_sprint(str, fmt, longdouble(x));
+        }
+        else
+        {
+            if ((cast(real)cast(ulong)x) == x)
+            {
+                // ((1.5 -> 1 -> 1.0) == 1.5) is false
+                // ((1.0 -> 1 -> 1.0) == 1.0) is true
+                // see http://en.cppreference.com/w/cpp/io/c/fprintf
+                char[5] sfmt = "%#Lg\0";
+                sfmt[3] = cast(char)fmt;
+                return sprintf(str, sfmt.ptr, x);
+            }
+            else
+            {
+                char[4] sfmt = "%Lg\0";
+                sfmt[2] = cast(char)fmt;
+                return sprintf(str, sfmt.ptr, x);
+            }
+        }
     }
 
     static void yl2x_impl(real* x, real* y, real* res)
     {
-        *res = yl2x(*x, *y);
+        version(DigitalMars)
+            *res = yl2x(*x, *y);
     }
 
     static void yl2xp1_impl(real* x, real* y, real* res)
     {
-        *res = yl2xp1(*x, *y);
+        version(DigitalMars)
+            *res = yl2xp1(*x, *y);
     }
 
     // Little endian

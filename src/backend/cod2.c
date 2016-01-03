@@ -1706,6 +1706,27 @@ code *cdnot(elem *e,regm_t *pretregs)
         op ^= (OPbool ^ OPnot);                 // switch operators
         goto L2;
     }
+    else if (config.target_cpu >= TARGET_80486 &&
+        tysize(e->Ety) == 1)
+    {
+        int jop = jmpopcode(e->E1);
+        retregs = mPSW;
+        c = codelem(e->E1,&retregs,FALSE);
+        retregs = *pretregs & BYTEREGS;
+        if (!retregs)
+            retregs = BYTEREGS;
+        c1 = allocreg(&retregs,&reg,TYint);
+
+        int iop = 0x0F90 | (jop & 0x0F);        // SETcc rm8
+        if (op == OPnot)
+            iop ^= 1;
+        c1 = gen2(c1,iop,grex | modregrmx(3,0,reg));
+        if (reg >= 4)
+            code_orrex(c1, REX);
+        if (op == OPbool)
+            *pretregs &= ~mPSW;
+        goto L4;
+    }
     else if (sz <= REGSIZE &&
         // NEG bytereg is too expensive
         (sz != 1 || config.target_cpu < TARGET_PentiumPro))
@@ -2900,7 +2921,14 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         else if (sz <= REGSIZE)
         {
-                cs.Iop = 0x8B ^ byte;
+                cs.Iop = 0x8B;                                  // MOV
+                if (sz <= 2 && !I16 &&
+                    config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed)
+                {
+                    cs.Iop = tyuns(tym) ? 0x0FB7 : 0x0FBF;      // MOVZX/MOVSX
+                    cs.Iflags &= ~CFopsize;
+                }
+                cs.Iop ^= byte;
         L2:     code_newreg(&cs,reg);
                 ce = gen(CNIL,&cs);     /* MOV reg,[idx]                */
                 if (byte && reg >= 4)
@@ -4465,6 +4493,7 @@ code *cdneg(elem *e,regm_t *pretregs)
         c = gen2(CNIL,0xF7,modregrm(3,3,msreg)); /* NEG msreg           */
         lsreg = findreglsw(retregs);
         gen2(c,0xF7,modregrm(3,3,lsreg));       /* NEG lsreg            */
+        code_orflag(c, CFpsw);                  // need flag result of previous NEG
         genc2(c,0x81,modregrm(3,3,msreg),0);    /* SBB msreg,0          */
   }
   else
@@ -5009,13 +5038,13 @@ code *cdinfo(elem *e,regm_t *pretregs)
             c = cat(c,codelem(e->E1,&retregs,FALSE));
             break;
         case OPmark:
-            if (0 && config.exe == EX_NT)
+            if (0 && config.exe == EX_WIN32)
             {   unsigned idx;
 
                 idx = except_index_get();
                 except_mark();
                 c = codelem(e->E2,pretregs,FALSE);
-                if (config.exe == EX_NT && idx != except_index_get())
+                if (config.exe == EX_WIN32 && idx != except_index_get())
                 {   usednteh |= NTEHcleanup;
                     c = cat(c,nteh_gensindex(idx - 1));
                 }
@@ -5047,19 +5076,18 @@ code *cdinfo(elem *e,regm_t *pretregs)
 
 code *cddctor(elem *e,regm_t *pretregs)
 {
-#if MARS
     /* Generate:
         ESCAPE | ESCdctor
         MOV     sindex[BP],index
      */
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.ehmethod == EH_WIN32)
     {   usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
     }
     assert(*pretregs == 0);
     code cs;
-    cs.Iop = ESCAPE | ESCdctor;
+    cs.Iop = ESCAPE | ESCdctor;         // mark start of EH range
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL1 = FLctor;
@@ -5068,9 +5096,6 @@ code *cddctor(elem *e,regm_t *pretregs)
     c = cat(c, nteh_gensindex(0));      // the actual index will be patched in later
                                         // by except_fillInEHTable()
     return c;
-#else
-    return NULL;
-#endif
 }
 
 /*******************************************
@@ -5079,69 +5104,86 @@ code *cddctor(elem *e,regm_t *pretregs)
 
 code *cdddtor(elem *e,regm_t *pretregs)
 {
-#if MARS
-    /* Generate:
-        ESCAPE | ESCddtor
-        MOV     sindex[BP],index
-        CALL    dtor
-        JMP     L1
-    Ldtor:
-        ... e->E1 ...
-        RET
-    L1: NOP
-    */
-    usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
-    {   usednteh |= NTEHcleanup | NTEH_try;
-        nteh_usevars();
-    }
-
-    code cs;
-    cs.Iop = ESCAPE | ESCddtor;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = FLdtor;
-    cs.IEV1.Vtor = e;
-    code *cd = gen(CNIL,&cs);
-
-    cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
-                                        // by except_fillInEHTable()
-
-    // Mark all registers as destroyed
+    if (config.ehmethod == EH_DWARF)
     {
+        usednteh |= EHcleanup;
+
+        code cs;
+        cs.Iop = ESCAPE | ESCddtor;     // mark end of EH range and where landing pad is
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IFL1 = FLdtor;
+        cs.IEV1.Vtor = e;
+        code *cd = gen(CNIL,&cs);
+
+        // Mark all registers as destroyed
         code *cy = getregs(allregs);
         assert(!cy);
-    }
 
-    assert(*pretregs == 0);
-    code *c = codelem(e->E1,pretregs,FALSE);
-    gen1(c,0xC3);               // RET
-
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    if (config.flags3 & CFG3pic)
-    {
-        int nalign = 0;
-        if (STACKALIGN == 16)
-        {   nalign = STACKALIGN - REGSIZE;
-            cd = cod3_stackadj(cd, nalign);
-        }
-        calledafunc = 1;
-        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
-        if (nalign)
-            cd = cod3_stackadj(cd, -nalign);
+        assert(*pretregs == 0);
+        code *c = codelem(e->E1,pretregs,FALSE);
+        return cat(cd, c);
     }
     else
-#endif
-        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+    {
+        /* Generate:
+            ESCAPE | ESCddtor
+            MOV     sindex[BP],index
+            CALL    dtor
+            JMP     L1
+        Ldtor:
+            ... e->E1 ...
+            RET
+        L1: NOP
+        */
+        usednteh |= EHcleanup;
+        if (config.ehmethod == EH_WIN32)
+        {   usednteh |= NTEHcleanup | NTEH_try;
+            nteh_usevars();
+        }
 
-    code *cnop = gennop(CNIL);
+        code cs;
+        cs.Iop = ESCAPE | ESCddtor;
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IFL1 = FLdtor;
+        cs.IEV1.Vtor = e;
+        code *cd = gen(CNIL,&cs);
 
-    genjmp(cd,JMP,FLcode,(block *)cnop);
+        cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
+                                            // by except_fillInEHTable()
 
-    return cat4(cd, c, cnop, NULL);
-#else
-    return NULL;
-#endif
+        // Mark all registers as destroyed
+        {
+            code *cy = getregs(allregs);
+            assert(!cy);
+        }
+
+        assert(*pretregs == 0);
+        code *c = codelem(e->E1,pretregs,FALSE);
+        gen1(c,0xC3);                      // RET
+
+        if (config.flags3 & CFG3pic)
+        {
+            int nalign = 0;
+            if (STACKALIGN == 16)
+            {   nalign = STACKALIGN - REGSIZE;
+                cd = cod3_stackadj(cd, nalign);
+            }
+            calledafunc = 1;
+            genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+            if (nalign)
+                cd = cod3_stackadj(cd, -nalign);
+        }
+        else
+            genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+
+        code *cnop = gennop(CNIL);
+
+        genjmp(cd,JMP,FLcode,(block *)cnop);
+
+        return cat4(cd, c, cnop, NULL);
+    }
 }
 
 
@@ -5156,7 +5198,7 @@ code *cdctor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCctor;
@@ -5178,7 +5220,7 @@ code *cddtor(elem *e,regm_t *pretregs)
     code *c;
 
     usednteh |= EHcleanup;
-    if (config.exe == EX_NT)
+    if (config.exe == EX_WIN32)
         usednteh |= NTEHcleanup;
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCdtor;
@@ -5222,29 +5264,6 @@ code *cdhalt(elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     return gen1(NULL, 0xF4);            // HLT
-}
-
-/****************************************
- * Check to see if pointer is NULL.
- */
-
-code *cdnullcheck(elem *e,regm_t *pretregs)
-{   regm_t retregs;
-    regm_t scratch;
-    unsigned reg;
-    code *c;
-    code *cs;
-
-    assert(!I16);
-    retregs = *pretregs;
-    if ((retregs & allregs) == 0)
-        retregs |= allregs;
-    c = codelem(e->E1,&retregs,FALSE);
-    scratch = allregs & ~retregs;
-    cs = allocreg(&scratch,&reg,TYint);
-    unsigned rex = I64 ? REX_W : 0;
-    cs = genc1(cs,0x8B,(rex << 16) | buildModregrm(2,reg,findreg(retregs)),FLconst,0); // MOV reg,0[e]
-    return cat3(c,cs,fixresult(e,retregs,pretregs));
 }
 
 #endif // !SPP

@@ -109,8 +109,7 @@ void WRBC(unsigned bc)
          "exit  ","asm   ","switch","ifthen","jmptab",
          "try   ","catch ","jump  ",
          "_try  ","_filte","_final","_ret  ","_excep",
-         "jcatch",
-         "jplace",
+         "jcatch","_lpad ",
         };
 
     assert(sizeof(bcs) / sizeof(bcs[0]) == BCMAX);
@@ -218,6 +217,8 @@ void WReqn(elem *e)
             case OPgot:
             case OPframeptr:
             case OPhalt:
+            case OPdctor:
+            case OPddtor:
                 WROP(e->Eoper);
                 break;
             case OPstrthis:
@@ -245,9 +246,9 @@ void WRblocklist(list_t bl)
 void WRdefnod()
 { register int i;
 
-  for (i = 0; i < deftop; i++)
-  {     dbg_printf("defnod[%d] in B%d = (",defnod[i].DNblock->Bdfoidx,i);
-        WReqn(defnod[i].DNelem);
+  for (i = 0; i < go.deftop; i++)
+  {     dbg_printf("defnod[%d] in B%d = (", go.defnod[i].DNblock->Bdfoidx, i);
+        WReqn(go.defnod[i].DNelem);
         dbg_printf(");\n");
   }
 }
@@ -268,6 +269,7 @@ void WRFL(enum FL fl)
          "bprel ","frameh","blocko","alloca",
          "stack ","dsym  ",
          "got   ","gotoff",
+         "funcar",
     };
 
     if ((unsigned)fl >= (unsigned)FLMAX)
@@ -323,24 +325,30 @@ void WRblock(block *b)
     {
         targ_llong *pu;
         int ncases;
-        list_t bl;
 
         assert(b);
-        dbg_printf("********* Basic Block %p ************\n",b);
-        if (b->Belem) elem_print(b->Belem);
-        dbg_printf("block: ");
-printf("%p %d ", b, b->BC);
+        printf("***** block %p ", b);
         WRBC(b->BC);
-        dbg_printf(" Btry=%p Bindex=%d",b->Btry,b->Bindex);
+        if (b->Btry)
+            printf(" Btry=%p",b->Btry);
+        if (b->Bindex)
+            printf(" Bindex=%d",b->Bindex);
+        if (b->BC == BC_finally)
+            printf(" b_ret=%p", b->BS.BI_FINALLY.b_ret);
 #if MARS
         if (b->Bsrcpos.Sfilename)
             dbg_printf(" %s(%u)", b->Bsrcpos.Sfilename, b->Bsrcpos.Slinnum);
 #endif
         dbg_printf("\n");
-        dbg_printf("\tBpred:\n");
-        for (bl = b->Bpred; bl; bl = list_next(bl))
-            dbg_printf("\t%p\n",list_block(bl));
-        bl = b->Bsucc;
+        if (b->Belem) elem_print(b->Belem);
+        if (b->Bpred)
+        {
+            printf("\tBpred:");
+            for (list_t bl = b->Bpred; bl; bl = list_next(bl))
+                printf(" %p",list_block(bl));
+            printf("\n");
+        }
+        list_t bl = b->Bsucc;
         switch (b->BC)
         {
             case BCswitch:
@@ -365,13 +373,18 @@ printf("%p %d ", b, b->BC);
             case BC_try:
             case BC_filter:
             case BC_finally:
+            case BC_lpad:
             case BC_ret:
             case BC_except:
 
             Lsucc:
-                dbg_printf("\tBsucc:\n");
-                for ( ; bl; bl = list_next(bl))
-                    dbg_printf("\t%p\n",list_block(bl));
+                if (bl)
+                {
+                    dbg_printf("\tBsucc:");
+                    for ( ; bl; bl = list_next(bl))
+                        dbg_printf(" %p",list_block(bl));
+                    printf("\n");
+                }
                 break;
             case BCret:
             case BCretexp:

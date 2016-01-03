@@ -25,9 +25,10 @@
 struct CtfeStatus
 {
     static int callDepth; // current number of recursive calls
-    static int stackTraceCallsToSuppress; /* When printing a stack trace,
-                                           * suppress this number of calls
-                                           */
+    /* When printing a stack trace,
+     * suppress this number of calls
+     */
+    static int stackTraceCallsToSuppress;
     static int maxCallDepth; // highest number of recursive calls
     static int numArrayAllocs; // Number of allocated arrays
     static int numAssignments; // total number of assignments executed
@@ -234,16 +235,6 @@ Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 /// True if type is TypeInfo_Class
 bool isTypeInfo_Class(Type *type);
 
-/***********************************************
-      In-place integer operations
-***********************************************/
-
-/// e = OP e
-void intUnary(TOK op, IntegerExp *e);
-
-/// dest = e1 OP e2;
-void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp *e2);
-
 
 /***********************************************
       COW const-folding operations
@@ -258,6 +249,18 @@ int ctfeEqual(Loc loc, TOK op, Expression *e1, Expression *e2);
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
 int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2);
+
+/// Returns rawCmp OP 0; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int specificCmp(TOK op, int rawCmp);
+
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2);
+
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2);
+
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int realCmp(TOK op, real_t r1, real_t r2);
 
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
 int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2);

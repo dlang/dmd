@@ -1,79 +1,54 @@
-$(VERSION 053, ddd mm, 2011, =================================================,
+Ddoc
 
-    $(WHATSNEW
-        $(LI $(BUGZILLA 2656): Remove octal literals)
-        $(LI Allow impure code inside debug conditionals)
-    )
-    $(DMDBUGSFIXED
-        $(LI $(BUGZILLA 2436): Unexpected OPTLINK termination EIP = 00425303 with /co)
-        $(LI $(BUGZILLA 3372): optlink silently mistreats object files with more than 16384 symbols)
-        $(LI $(BUGZILLA 4275): Unexpected optlink termination when 'export' attribute is missing)
-        $(LI $(BUGZILLA 4808): UNEXPECTED OPTLINK TERMINATION AT EIP=0042787B)
-        $(LI $(BUGZILLA 5670): Optlink 8.00.11 crash)
-
-        $(LI $(BUGZILLA 937): C-style variadic functions broken)
-        $(LI $(BUGZILLA 1330): Array slicing does not work the same way in CTFE as at runtime)
-        $(LI $(BUGZILLA 1336): Inconsistent __traits usage)
-        $(LI $(BUGZILLA 1389): Can't use mixin expressions when start of a statement)
-        $(LI $(BUGZILLA 1880): templates instantiated with non-constants should fail sooner)
-        $(LI $(BUGZILLA 2257): Template value parameters behave like alias parameters)
-        $(LI $(BUGZILLA 2414): enum is dynamically evaluated, yum)
-        $(LI $(BUGZILLA 2526): non-const initializer to constant accepted inside template)
-        $(LI $(BUGZILLA 2706): invalid template instantiation (and declaration?) is not rejected)
-        $(LI $(BUGZILLA 2733): Unclear semantics of template value parameters)
-        $(LI $(BUGZILLA 2841): char[] incorrectly accepted as a template value argument in D2)        
-        $(LI $(BUGZILLA 2850): bad codegen for struct static initializers)
-        $(LI $(BUGZILLA 2990): TypeInfo.init() returns invalid array)
-        $(LI $(BUGZILLA 3086): TypeInfo opEquals returns incorrect results)
-        $(LI $(BUGZILLA 3214): Incorrect DWARF line number debugging information on Linux)
-        $(LI $(BUGZILLA 3271): Struct initializers silently fail)
-        $(LI $(BUGZILLA 3516): Destructor not called on temporaries)
-        $(LI $(BUGZILLA 3792): Regression(1.053) "non-constant expression" for a template inside a struct using a struct initializer)
-        $(LI $(BUGZILLA 3779): ["123"][0][$-1] causes __dollar unresolved in compile-time)
-        $(LI $(BUGZILLA 3801): CTFE: this.arr[i] cannot be evaluated at compile time for structs)
-        $(LI $(BUGZILLA 3835): ref foreach does not work in CTFE)
-        $(LI $(BUGZILLA 4033): Error: base class is forward referenced)
-        $(LI $(BUGZILLA 4050): [CTFE] array struct member slice update)
-        $(LI $(BUGZILLA 4051): [CTFE] array struct member item update
-        $(LI $(BUGZILLA 4097): Error: can only declare type aliases within static if conditionals)
-        $(LI $(BUGZILLA 4140): Error: non-constant expression "hello"[1u..__dollar])
-        $(LI $(BUGZILLA 4298): Constant array translated to unnecessary array literal creation)
-        $(LI $(BUGZILLA 4322): "void initializer has no value" on struct/union members initialized to "void")
-        $(LI $(BUGZILLA 4329): Do not show error messages that refer to __error)
-        $(LI $(BUGZILLA 4360): Allow intrinsics in core.bitop to operate as intrinsics)
-        $(LI $(BUGZILLA 4437): copy construction bug with "return this;")
-        $(LI $(BUGZILLA 4499): calls to @disabled postblit are emitted)
-        $(LI $(BUGZILLA 4543): Regression(1.054, 2.038) typedef causes circular definition and segfault)
-        $(LI $(BUGZILLA 4750): fail_compilation/fail225.d causes dmd to segv)
-        $(LI $(BUGZILLA 4833): dmd -od doesn't make it to optlink's command line for map files)
-        $(LI $(BUGZILLA 4917): Symbol conflict error message refers to aliased symbol instead of the alias)
-        $(LI $(BUGZILLA 5147): [CTFE] Return fixed-size matrix)
-        $(LI $(BUGZILLA 5362): checking $ in bracket is broken)
-        $(LI $(BUGZILLA 5482): Crash with align(0))
-        $(LI $(BUGZILLA 5485): TLS sections handled incorrectly)
-        $(LI $(BUGZILLA 5524): [CTFE] Trouble with typesafe variadic function)
-        $(LI $(BUGZILLA 5647): [64-bit] Valgrind complains about illegal instruction)
-        $(LI $(BUGZILLA 5649): std.conv.parse faulty for floating point with -O -m32)
-        $(LI $(BUGZILLA 5657): Temporary object destruction)
-        $(LI $(BUGZILLA 5694): va_arg doesn't work with idouble and ifloat)
-        $(LI $(BUGZILLA 5671): CTFE string concat problem)
-        $(LI $(BUGZILLA 5672): ICE(cod2.c): incorrect optimization of (long &1) == 1)
-        $(LI $(BUGZILLA 5678): new enum struct re-allocated at compile time)
-        $(LI $(BUGZILLA 5694): va_arg doesn't work with idouble and ifloat)
-        $(LI $(BUGZILLA 5706): Incorrect opcode prefix generated for x86_64 inline assembly)
-        $(LI $(BUGZILLA 5708): Incorrect string constant folding with -inline)
-        $(LI $(BUGZILLA 5717): 1.067 regression: appending Unicode char to string broken)
-        $(LI $(BUGZILLA 5722): Regression(2.052): Appending code-unit from multi-unit code-point at compile-time gives wrong result)
-        $(LI $(BUGZILLA 5735): non-scalar types implicitly converted to boolean)
-        $(LI $(BUGZILLA 5740): Unable to use this pointer in inline assembly)
-        $(LI $(BUGZILLA 5741): Add the SYSCALL and SYSRET opcodes to the inline assembler)
-        $(LI $(BUGZILLA 5812): Added constant fold optimisations for ^^ expressions)
-        $(LI $(BUGZILLA 5852): CTFE: wrong code for string[] ~= const(string))
-        $(LI $(BUGZILLA 5858): Import doesn't accept const string as argument)
-        $(LI Clarify tuple index out of bounds error message)
-        $(LI Add 64 version of xchg and jmp to inline assembler. Fixed 64 bit LEA)
-        $(LI CTFE: Generate error messages for accessing null arrays)
-        $(LI Fix optimizer bug with to!float("123e2"))
-        $(LI Add parent to __traits for QtD support)
-    )
+$(COMMENT Pending changelog for 2.070. This will get copied to dlang.org and
+    cleared when master gets merged into stable prior to 2.069.
 )
+
+$(BUGSTITLE Compiler Changes,
+)
+
+$(BUGSTITLE Language Changes,
+$(LI $(RELATIVE_LINK2 alias-funclit, Add syntactic support to make an alias to a function literal.))
+)
+
+$(BUGSTITLE Compiler Changes,
+
+)
+
+$(BUGSTITLE Language Changes,
+
+$(LI $(LNAME2 alias-funclit, Add syntactic support to make an alias to a function literal.)
+
+    $(P Example:)
+
+        ---
+        alias less1 = (a, b) => a < b;
+        alias less2 = (a, b) => a > b;
+
+        import std.algorithm : sort, equal;
+
+        int[] arr = [4, 1, 3, 2];
+        assert(equal(sort!less1(arr), [1, 2, 3, 4]));
+        assert(equal(sort!less2(arr), [4, 3, 2, 1]));
+        ---
+)
+
+)
+
+Macros:
+    TITLE=Change Log
+
+    BUGSTITLE = <div class="bugsfixed">$(H4 $1) $(OL $2 )</div>
+
+    RELATIVE_LINK2=<a href="#$1">$+</a>
+    LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
+
+    STDMODREF = <a href="phobos/std_$1.html">$2</a>
+    XREF = <a href="phobos/std_$1.html#$2">$2</a>
+    CXREF = <a href="phobos/core_$1.html#$2">$2</a>
+
+    BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
+    PULL_REQUEST = $(LINK2 https://github.com/D-Programming-Language/$1/pull/$2, $1#$2)
+    DMDPR = $(PULL_REQUEST dmd,$1)
+
+    BOOKTABLE = <table><caption>$1</caption>$+</table>

@@ -23,7 +23,10 @@
 
 #if 1
 
-void *allocmemory(size_t m_size);
+extern "C"
+{
+    void *allocmemory(size_t m_size);
+}
 
 void * operator new(size_t m_size)
 {

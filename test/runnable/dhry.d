@@ -1,5 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -release -O -g -inline
+// DISABLED: freebsd
 
 /*
  *************************************************************************

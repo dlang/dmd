@@ -1938,7 +1938,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_NT && tyfunc(s->ty()) &&
+                config.exe == EX_WIN32 && tyfunc(s->ty()) &&
                 !variadic(s->Stype))
 #endif
             {
@@ -2285,8 +2285,7 @@ if (!buf) halt();
     int save = buf->size();
     //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf->setsize(offset);
-    buf->reserve(nbytes);
+    buf->position(offset, nbytes);
     if (p)
     {
         buf->writen(p,nbytes);
@@ -2574,7 +2573,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 
         Outbuffer *buf = SegData[seg]->SDbuf;
         int save = buf->size();
-        buf->setsize(offset);
+        buf->position(offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf->write64(val);
@@ -2700,6 +2699,22 @@ void Obj::gotref(symbol *s)
         default:
             break;
     }
+}
+
+/******************************************
+ * Generate fixup specific to .eh_frame and .gcc_except_table sections.
+ * Params:
+ *      seg = segment of where to write fixup
+ *      offset = offset of where to write fixup
+ *      s = fixup is a reference to this Symbol
+ *      val = displacement from s
+ * Returns:
+ *      number of bytes written at seg:offset
+ */
+int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
+{
+    assert(0);          // not implemented yet
+    return 4;
 }
 
 #endif

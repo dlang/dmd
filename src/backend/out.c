@@ -913,9 +913,7 @@ STATIC void writefunc2(symbol *sfunc)
 
             scvtbl = (enum SC) ((config.flags2 & CFG2comdat) ? SCcomdat : SCglobal);
             n2_genvtbl(stag,scvtbl,1);
-#if VBTABLES
             n2_genvbtbl(stag,scvtbl,1);
-#endif
 #if SYMDEB_CODEVIEW
             if (config.fulltypes == CV4)
                 cv4_struct(stag,2);
@@ -1135,7 +1133,7 @@ STATIC void writefunc2(symbol *sfunc)
 
     block_pred();                       // compute predecessors to blocks
     block_compbcount();                 // eliminate unreachable blocks
-    if (mfoptim)
+    if (go.mfoptim)
     {   OPTIMIZER = 1;
         optfunc();                      /* optimize function            */
         assert(dfo);
@@ -1233,7 +1231,7 @@ STATIC void writefunc2(symbol *sfunc)
             {
                 case 'D': if (strcmp(id,"DllMain"))
                                 break;
-                          if (config.exe == EX_NT)
+                          if (config.exe == EX_WIN32)
                           {     i = 2;
                                 goto L2;
                           }
@@ -1241,7 +1239,7 @@ STATIC void writefunc2(symbol *sfunc)
 
                 case 'm': if (strcmp(id,"main"))
                                 break;
-                          if (config.exe == EX_NT)
+                          if (config.exe == EX_WIN32)
                                 i = 3;
                           else if (config.wflags & WFwindows)
                                 i = 1;
@@ -1251,7 +1249,7 @@ STATIC void writefunc2(symbol *sfunc)
 
                 case 'w': if (strcmp(id,"wmain") == 0)
                           {
-                                if (config.exe == EX_NT)
+                                if (config.exe == EX_WIN32)
                                 {   i = 5;
                                     goto L2;
                                 }
@@ -1264,7 +1262,7 @@ STATIC void writefunc2(symbol *sfunc)
                           }
                           if (stricmp(id,"wWinMain") == 0)
                           {
-                                if (config.exe == EX_NT)
+                                if (config.exe == EX_WIN32)
                                 {   i = 4;
                                     goto L2;
                                 }
@@ -1274,7 +1272,7 @@ STATIC void writefunc2(symbol *sfunc)
                 case 'L':
                 case 'l': if (stricmp(id,"LibMain"))
                                 break;
-                          if (config.exe != EX_NT && config.wflags & WFwindows)
+                          if (config.exe != EX_WIN32 && config.wflags & WFwindows)
                           {     i = 2;
                                 goto L2;
                           }

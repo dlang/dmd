@@ -49,7 +49,7 @@ void cod5_prol_epi()
 
     if (!(config.flags4 & CFG4optimized) ||
         anyiasm ||
-        usedalloca ||
+        Alloca.size ||
         usednteh ||
         tyf & (mTYnaked | mTYloadds) ||
         tym == TYifunc ||

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2015 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -14,7 +14,6 @@
 #include        <time.h>
 
 #include        "mars.h"
-#include        "lexer.h"
 #include        "statement.h"
 #include        "expression.h"
 #include        "mtype.h"
@@ -36,20 +35,21 @@
 #include        "global.h"
 #include        "dt.h"
 
+#include        "aav.h"
 #include        "rmem.h"
 #include        "target.h"
 #include        "visitor.h"
 
-Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+Symbol *toStringSymbol(StringExp *se);
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
-Blocks *Blocks_create();
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
 Symbol *toSymbol(Type *t);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
+RET retStyle(TypeFunction *tf);
 
 #define elem_setLoc(e,loc)      srcpos_setLoc(&(e)->Esrcpos, loc)
 #define block_setLoc(b,loc)     srcpos_setLoc(&(b)->Bsrcpos, loc)
@@ -58,21 +58,16 @@ Symbol *toSymbol(Dsymbol *s);
                                  (s)->Slinnum = (loc).linnum, \
                                  (s)->Scharnum = (loc).charnum)
 
-#define SEH     (TARGET_WINDOS)
 
 /***********************************************
  * Generate code to set index into scope table.
  */
 
-#if SEH
 void setScopeIndex(Blockx *blx, block *b, int scope_index)
 {
-    if (!global.params.is64bit)
+    if (config.ehmethod == EH_WIN32)
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
 }
-#else
-#define setScopeIndex(blx, b, scope_index) ;
-#endif
 
 /****************************************
  * Allocate a new block, and set the tryblock.
@@ -85,31 +80,53 @@ block *block_calloc(Blockx *blx)
     return b;
 }
 
+/****************************************
+ * Our label symbol, with vector to keep track of forward references.
+ */
+
+struct Label
+{
+    block *lblock;      // The block to which the label is defined.
+    block *fwdrefs;     // The first use of the label before it is defined.
+};
+
+/****************************************
+ * Get or create a label declaration.
+ */
+
+static Label *getLabel(IRState *irs, Blockx *blx, Statement *s)
+{
+    Label **slot = (Label **)dmd_aaGet(irs->labels, (void *)s);
+
+    if (*slot == NULL)
+    {
+        Label *label = new Label();
+        label->lblock = blx ? block_calloc(blx) : block_calloc();
+        label->fwdrefs = NULL;
+        *slot = label;
+    }
+    return *slot;
+}
+
 /**************************************
  * Convert label to block.
  */
 
-block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
+block *labelToBlock(IRState *irs, Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
 {
     if (!label->statement)
     {
         error(loc, "undefined label %s", label->toChars());
         return NULL;
     }
-    LabelStatement *s = label->statement;
-    if (!s->lblock)
-    {   s->lblock = block_calloc(blx);
-        s->lblock->Btry = NULL;         // fill this in later
-
-        if (flag)
-        {
-            // Keep track of the forward reference to this block, so we can check it later
-            if (!s->fwdrefs)
-                s->fwdrefs = Blocks_create();
-            s->fwdrefs->push(blx->curblock);
-        }
+    Label *l = getLabel(irs, NULL, label->statement);
+    if (flag)
+    {
+        // Keep track of the forward reference to this block, so we can check it later
+        if (!l->fwdrefs)
+            l->fwdrefs = blx->curblock;
     }
-    return s->lblock;
+    return l->lblock;
 }
 
 /**************************************
@@ -236,8 +253,8 @@ public:
         mystate.contBlock->appendSucc(blx->curblock);
         mystate.contBlock->appendSucc(mystate.breakBlock);
 
-        if (s->body)
-            Statement_toIR(s->body, &mystate);
+        if (s->_body)
+            Statement_toIR(s->_body, &mystate);
         blx->curblock->appendSucc(mystate.contBlock);
 
         block_next(blx, BCgoto, mystate.contBlock);
@@ -259,8 +276,8 @@ public:
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
-        if (s->init)
-            Statement_toIR(s->init, &mystate);
+        if (s->_init)
+            Statement_toIR(s->_init, &mystate);
         block *bpre = blx->curblock;
         block_next(blx,BCgoto,NULL);
         block *bcond = blx->curblock;
@@ -281,8 +298,8 @@ public:
             bcond->appendSucc(blx->curblock);
         }
 
-        if (s->body)
-            Statement_toIR(s->body, &mystate);
+        if (s->_body)
+            Statement_toIR(s->_body, &mystate);
         /* End of the body goes to the continue block
          */
         blx->curblock->appendSucc(mystate.contBlock);
@@ -386,7 +403,7 @@ public:
         assert(s->label->statement);
         assert(s->tf == s->label->statement->tf);
 
-        block *bdest = labelToBlock(s->loc, blx, s->label, 1);
+        block *bdest = labelToBlock(irs, s->loc, blx, s->label, 1);
         if (!bdest)
             return;
         block *b = blx->curblock;
@@ -416,39 +433,31 @@ public:
         IRState mystate(irs,s);
         mystate.ident = s->ident;
 
-        if (s->lblock)
+        Label *label = getLabel(irs, blx, s);
+        // At last, we know which try block this label is inside
+        label->lblock->Btry = blx->tryblock;
+
+        // Go through the forward references and check.
+        if (label->fwdrefs)
         {
-            // At last, we know which try block this label is inside
-            s->lblock->Btry = blx->tryblock;
+            block *b = label->fwdrefs;
 
-            /* Go through the forward references and check.
-             */
-            if (s->fwdrefs)
+            if (b->Btry != label->lblock->Btry)
             {
-                for (size_t i = 0; i < s->fwdrefs->dim; i++)
-                {   block *b = (*s->fwdrefs)[i];
-
-                    if (b->Btry != s->lblock->Btry)
+                // Check that lblock is in an enclosing try block
+                for (block *bt = b->Btry; bt != label->lblock->Btry; bt = bt->Btry)
+                {
+                    if (!bt)
                     {
-                        // Check that lblock is in an enclosing try block
-                        for (block *bt = b->Btry; bt != s->lblock->Btry; bt = bt->Btry)
-                        {
-                            if (!bt)
-                            {
-                                //printf("b->Btry = %p, s->lblock->Btry = %p\n", b->Btry, s->lblock->Btry);
-                                s->error("cannot goto into try block");
-                                break;
-                            }
-                        }
+                        //printf("b->Btry = %p, label->lblock->Btry = %p\n", b->Btry, label->lblock->Btry);
+                        s->error("cannot goto into try block");
+                        break;
                     }
 
                 }
-                s->fwdrefs = NULL;
             }
         }
-        else
-            s->lblock = block_calloc(blx);
-        block_next(blx,BCgoto,s->lblock);
+        block_next(blx, BCgoto, label->lblock);
         bc->appendSucc(blx->curblock);
         if (s->statement)
             Statement_toIR(s->statement, &mystate);
@@ -502,10 +511,9 @@ public:
                 elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
                 block *b = blx->curblock;
                 block_appendexp(b, e);
-                block *bcase = block_calloc(blx);
-                cs->cblock = bcase;
+                Label *clabel = getLabel(irs, blx, cs);
                 block_next(blx, BCiftrue, NULL);
-                b->appendSucc(bcase);
+                b->appendSucc(clabel->lblock);
                 b->appendSucc(blx->curblock);
             }
 
@@ -515,7 +523,7 @@ public:
             block_next(blx, BCgoto, NULL);
             b->appendSucc(mystate.defaultBlock);
 
-            Statement_toIR(s->body, &mystate);
+            Statement_toIR(s->_body, &mystate);
 
             /* Have the end of the switch body fall through to the block
              * following the switch statement.
@@ -551,8 +559,8 @@ public:
                 else
                 {
                     StringExp *se = (StringExp *)(cs->exp);
-                    Symbol *si = toStringSymbol((char *)se->string, se->len, se->sz);
-                    dtsize_t(&dt, se->len);
+                    Symbol *si = toStringSymbol(se);
+                    dtsize_t(&dt, se->numberOfCodeUnits());
                     dtxoff(&dt, si, 0);
                 }
             }
@@ -570,13 +578,13 @@ public:
             switch (s->condition->type->nextOf()->ty)
             {
                 case Tchar:
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_STRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_STRING)), eparam);
                     break;
                 case Twchar:
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_USTRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_USTRING)), eparam);
                     break;
                 case Tdchar:        // BUG: implement
-                    econd = el_bin(OPcall, TYint, el_var(rtlsym[RTLSYM_SWITCH_DSTRING]), eparam);
+                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_DSTRING)), eparam);
                     break;
                 default:
                     assert(0);
@@ -614,7 +622,7 @@ public:
             }
         }
 
-        Statement_toIR(s->body, &mystate);
+        Statement_toIR(s->_body, &mystate);
 
         /* Have the end of the switch body fall through to the block
          * following the switch statement.
@@ -626,13 +634,12 @@ public:
     {
         Blockx *blx = irs->blx;
         block *bcase = blx->curblock;
-        if (!s->cblock)
-            s->cblock = block_calloc(blx);
-        block_next(blx,BCgoto,s->cblock);
+        Label *clabel = getLabel(irs, blx, s);
+        block_next(blx, BCgoto, clabel->lblock);
         block *bsw = irs->getSwitchBlock();
         if (bsw->BC == BCswitch)
-            bsw->appendSucc(s->cblock);        // second entry in pair
-        bcase->appendSucc(s->cblock);
+            bsw->appendSucc(clabel->lblock);   // second entry in pair
+        bcase->appendSucc(clabel->lblock);
         if (blx->tryblock != bsw->Btry)
             s->error("case cannot be in different try block level from switch");
         incUsage(irs, s->loc);
@@ -688,17 +695,10 @@ public:
 
     void visit(GotoCaseStatement *s)
     {
-        block *b;
         Blockx *blx = irs->blx;
-        block *bdest = s->cs->cblock;
-
-        if (!bdest)
-        {
-            bdest = block_calloc(blx);
-            s->cs->cblock = bdest;
-        }
-
-        b = blx->curblock;
+        Label *clabel = getLabel(irs, blx, s->cs);
+        block *bdest = clabel->lblock;
+        block *b = blx->curblock;
 
         // The rest is equivalent to GotoStatement
 
@@ -732,7 +732,7 @@ public:
 
         elem *efilename = el_ptr(toSymbol(blx->module));
         elem *elinnum = el_long(TYint, s->loc.linnum);
-        elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DSWITCHERR]), el_param(elinnum, efilename));
+        elem *e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
         block_appendexp(blx->curblock, e);
     }
 
@@ -819,7 +819,9 @@ public:
         else
             bc = BCret;
 
-        if (block *finallyBlock = irs->getFinallyBlock())
+        block *finallyBlock;
+        if (config.ehmethod != EH_DWARF &&
+            (finallyBlock = irs->getFinallyBlock()) != NULL)
         {
             assert(finallyBlock->BC == BC_finally);
             blx->curblock->appendSucc(finallyBlock);
@@ -933,7 +935,7 @@ public:
         Blockx *blx = irs->blx;
 
         //printf("WithStatement::toIR()\n");
-        if (s->exp->op == TOKimport || s->exp->op == TOKtype)
+        if (s->exp->op == TOKscope || s->exp->op == TOKtype)
         {
         }
         else
@@ -943,7 +945,7 @@ public:
             symbol_add(sp);
 
             // Perform initialization of with handle
-            ie = s->wthis->init->isExpInitializer();
+            ie = s->wthis->_init->isExpInitializer();
             assert(ie);
             ei = toElemDtor(ie->exp, irs);
             e = el_var(sp);
@@ -953,8 +955,8 @@ public:
             block_appendexp(blx->curblock,e);
         }
         // Execute with block
-        if (s->body)
-            Statement_toIR(s->body, irs);
+        if (s->_body)
+            Statement_toIR(s->_body, irs);
     }
 
 
@@ -969,7 +971,8 @@ public:
 
         incUsage(irs, s->loc);
         elem *e = toElemDtor(s->exp, irs);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
+        const int rtlthrow = config.ehmethod == EH_DWARF ? RTLSYM_THROWDWARF : RTLSYM_THROWC;
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtlthrow)),e);
         block_appendexp(blx->curblock, e);
     }
 
@@ -986,10 +989,8 @@ public:
     {
         Blockx *blx = irs->blx;
 
-#if SEH
-        if (!global.params.is64bit)
+        if (config.ehmethod == EH_WIN32)
             nteh_declarvars(blx);
-#endif
 
         IRState mystate(irs, s);
 
@@ -1008,9 +1009,9 @@ public:
         blx->tryblock = tryblock;
         block *breakblock = block_calloc(blx);
         block_goto(blx,BC_try,NULL);
-        if (s->body)
+        if (s->_body)
         {
-            Statement_toIR(s->body, &mystate);
+            Statement_toIR(s->_body, &mystate);
         }
         blx->tryblock = tryblock->Btry;
 
@@ -1021,45 +1022,192 @@ public:
         blx->scope_index = previndex;
 
         // create new break block that follows all the catches
-        breakblock = block_calloc(blx);
+        block *breakblock2 = block_calloc(blx);
 
-        blx->curblock->appendSucc(breakblock);
+        blx->curblock->appendSucc(breakblock2);
         block_next(blx,BCgoto,NULL);
 
         assert(s->catches);
-        for (size_t i = 0 ; i < s->catches->dim; i++)
+        if (config.ehmethod == EH_DWARF)
         {
-            Catch *cs = (*s->catches)[i];
-            if (cs->var)
-                cs->var->csym = tryblock->jcatchvar;
+            /*
+             * BCjcatch:
+             *  __hander = __RDX;
+             *  __exception_object = __RAX;
+             *  jcatchvar = *(__exception_object - Target::ptrsize); // old way
+             *  jcatchvar = __dmd_catch_begin(__exception_object);   // new way
+             *  switch (__handler)
+             *      case 1:     // first catch handler
+             *          *(sclosure + cs.var.offset) = cs.var;
+             *          ...handler body ...
+             *          break;
+             *      ...
+             *      default:
+             *          HALT
+             */
+            // volatile so optimizer won't delete it
+            symbol *seax = symbol_name("__EAX", SCpseudo, type_fake(mTYvolatile | TYnptr));
+            seax->Sreglsw = 0;          // EAX, RAX, whatevs
+            symbol_add(seax);
+            symbol *sedx = symbol_name("__EDX", SCpseudo, type_fake(mTYvolatile | TYint));
+            sedx->Sreglsw = 2;          // EDX, RDX, whatevs
+            symbol_add(sedx);
+            symbol *shandler = symbol_name("__handler", SCauto, tsint);
+            symbol_add(shandler);
+            symbol *seo = symbol_name("__exception_object", SCauto, tspvoid);
+            symbol_add(seo);
+
+            elem *e1 = el_bin(OPeq, TYvoid, el_var(shandler), el_var(sedx)); // __handler = __RDX
+            elem *e2 = el_bin(OPeq, TYvoid, el_var(seo), el_var(seax)); // __exception_object = __RAX
+
+#if 0
+            // jcatchvar = *(__exception_object - Target::ptrsize)
+            union eve c;
+            memset(&c, 0, sizeof(c));
+            c.Vllong = Target::ptrsize;
+            elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_const(TYsize_t, &c));
+            elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock->jcatchvar), el_una(OPind, TYnptr, e));
+#else
+            //  jcatchvar = __dmd_catch_begin(__exception_object);
+            elem *e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_BEGIN_CATCH)), el_var(seo));
+            elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock->jcatchvar), e);
+#endif
+
             block *bcatch = blx->curblock;
-            if (cs->type)
-                bcatch->Bcatchtype = toSymbol(cs->type->toBasetype());
             tryblock->appendSucc(bcatch);
             block_goto(blx, BCjcatch, NULL);
-            if (cs->handler != NULL)
-            {
-                IRState catchState(irs, s);
 
-                /* Append to block:
-                 *   *(sclosure + cs.offset) = cs;
+            block *defaultblock = block_calloc(blx);
+
+            block *bswitch = blx->curblock;
+            bswitch->Belem = el_combine(el_combine(e1, e2),
+                                        el_combine(e3, el_var(shandler)));
+
+            size_t numcases = s->catches->dim;
+            bswitch->BS.Bswitch = (targ_llong *) ::malloc(sizeof(targ_llong) * (numcases + 1));
+            assert(bswitch->BS.Bswitch);
+            bswitch->BS.Bswitch[0] = numcases;
+            bswitch->appendSucc(defaultblock);
+            block_next(blx, BCswitch, NULL);
+
+            for (size_t i = 0; i < numcases; ++i)
+            {
+                bswitch->BS.Bswitch[1 + i] = 1 + i;
+
+                Catch *cs = (*s->catches)[i];
+                if (cs->var)
+                    cs->var->csym = tryblock->jcatchvar;
+
+                assert(cs->type);
+
+                Symbol *catchtype = toSymbol(cs->type->toBasetype());
+
+                /* Look for catchtype in typesTable[] using linear search,
+                 * insert if not already there,
+                 * log index in Action Table (i.e. switch case table)
                  */
-                if (cs->var && cs->var->offset)
+                func_t *f = blx->funcsym->Sfunc;
+                for (size_t j = 0; 1; ++j)
                 {
-                    tym_t tym = totym(cs->var->type);
-                    elem *ex = el_var(irs->sclosure);
-                    ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs->var->offset));
-                    ex = el_una(OPind, tym, ex);
-                    ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs->var)));
-                    block_appendexp(catchState.blx->curblock, ex);
+                    if (j < f->typesTableDim)
+                    {
+                        if (catchtype != f->typesTable[j])
+                            continue;
+                    }
+                    else
+                    {
+                        if (j == f->typesTableCapacity)
+                        {   // enlarge typesTable[]
+                            f->typesTableCapacity = f->typesTableCapacity * 2 + 4;
+                            f->typesTable = (Symbol **)::realloc(f->typesTable, f->typesTableCapacity * sizeof(Symbol *));
+                            assert(f->typesTable);
+                        }
+                        f->typesTableDim = j + 1;
+                        f->typesTable[j] = catchtype;
+                    }
+                    bswitch->BS.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                    break;
                 }
-                Statement_toIR(cs->handler, &catchState);
+
+                block *bcase = blx->curblock;
+                bswitch->appendSucc(bcase);
+
+                if (cs->handler != NULL)
+                {
+                    IRState catchState(irs, s);
+
+                    /* Append to block:
+                     *   *(sclosure + cs.var.offset) = cs.var;
+                     */
+                    if (cs->var && cs->var->offset) // if member of a closure
+                    {
+                        tym_t tym = totym(cs->var->type);
+                        elem *ex = el_var(irs->sclosure);
+                        ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs->var->offset));
+                        ex = el_una(OPind, tym, ex);
+                        ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs->var)));
+                        block_appendexp(catchState.blx->curblock, ex);
+                    }
+                    Statement_toIR(cs->handler, &catchState);
+                }
+                blx->curblock->appendSucc(breakblock2);
+                if (i + 1 == numcases)
+                {
+                    block_next(blx, BCgoto, defaultblock);
+                    defaultblock->Belem = el_calloc();
+                    defaultblock->Belem->Ety = TYvoid;
+                    defaultblock->Belem->Eoper = OPhalt;
+                    block_next(blx, BCexit, NULL);
+                }
+                else
+                    block_next(blx, BCgoto, NULL);
             }
-            blx->curblock->appendSucc(breakblock);
-            block_next(blx, BCgoto, NULL);
+
+            /* Make a copy of the switch case table, which will later become the Action Table.
+             * Need a copy since the bswitch may get rewritten by the optimizer.
+             */
+            bcatch->BS.BIJCATCH.actionTable = (unsigned *)::malloc(sizeof(unsigned) * (numcases + 1));
+            assert(bcatch->BS.BIJCATCH.actionTable);
+            for (size_t i = 0; i < numcases + 1; ++i)
+                bcatch->BS.BIJCATCH.actionTable[i] = (unsigned)bswitch->BS.Bswitch[i];
+
+        }
+        else
+        {
+            for (size_t i = 0 ; i < s->catches->dim; i++)
+            {
+                Catch *cs = (*s->catches)[i];
+                if (cs->var)
+                    cs->var->csym = tryblock->jcatchvar;
+                block *bcatch = blx->curblock;
+                if (cs->type)
+                    bcatch->Bcatchtype = toSymbol(cs->type->toBasetype());
+                tryblock->appendSucc(bcatch);
+                block_goto(blx, BCjcatch, NULL);
+                if (cs->handler != NULL)
+                {
+                    IRState catchState(irs, s);
+
+                    /* Append to block:
+                     *   *(sclosure + cs.var.offset) = cs.var;
+                     */
+                    if (cs->var && cs->var->offset) // if member of a closure
+                    {
+                        tym_t tym = totym(cs->var->type);
+                        elem *ex = el_var(irs->sclosure);
+                        ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs->var->offset));
+                        ex = el_una(OPind, tym, ex);
+                        ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs->var)));
+                        block_appendexp(catchState.blx->curblock, ex);
+                    }
+                    Statement_toIR(cs->handler, &catchState);
+                }
+                blx->curblock->appendSucc(breakblock2);
+                block_next(blx, BCgoto, NULL);
+            }
         }
 
-        block_next(blx,(enum BC)blx->curblock->BC, breakblock);
+        block_next(blx,(enum BC)blx->curblock->BC, breakblock2);
     }
 
     /****************************************
@@ -1078,11 +1226,13 @@ public:
 
         Blockx *blx = irs->blx;
 
-#if SEH
-        if (!global.params.is64bit)
+        if (config.ehmethod == EH_WIN32)
             nteh_declarvars(blx);
-#endif
 
+        /* Successors to BC_try block:
+         *      [0] start of try block code
+         *      [1] BC_finally
+         */
         block *tryblock = block_goto(blx, BCgoto, NULL);
 
         int previndex = blx->scope_index;
@@ -1097,76 +1247,152 @@ public:
         block_goto(blx,BC_try,NULL);
 
         IRState bodyirs(irs, s);
-        block *breakblock = block_calloc(blx);
-        block *contblock = block_calloc(blx);
-        tryblock->appendSucc(contblock);
-        contblock->BC = BC_finally;
-        bodyirs.finallyBlock = contblock;
 
-        if (s->body)
-            Statement_toIR(s->body, &bodyirs);
+        block *finallyblock = block_calloc(blx);
+
+        tryblock->appendSucc(finallyblock);
+        finallyblock->BC = BC_finally;
+        bodyirs.finallyBlock = finallyblock;
+
+        if (s->_body)
+            Statement_toIR(s->_body, &bodyirs);
         blx->tryblock = tryblock->Btry;     // back to previous tryblock
 
         setScopeIndex(blx,blx->curblock,previndex);
         blx->scope_index = previndex;
 
-        block_goto(blx,BCgoto, breakblock);
-        block *finallyblock = block_goto(blx,BCgoto,contblock);
-        assert(finallyblock == contblock);
+        block *breakblock = block_calloc(blx);
+        block *retblock = block_calloc(blx);
 
-        block_goto(blx,BC_finally,NULL);
-
-        IRState finallyState(irs, s);
-        breakblock = block_calloc(blx);
-        contblock = block_calloc(blx);
-
-        setScopeIndex(blx, blx->curblock, previndex);
-        if (s->finalbody)
-            Statement_toIR(s->finalbody, &finallyState);
-        block_goto(blx, BCgoto, contblock);
-        block_goto(blx, BCgoto, breakblock);
-
-        block *retblock = blx->curblock;
-        block_next(blx,BC_ret,NULL);
-
-        finallyblock->appendSucc(blx->curblock);
-        retblock->appendSucc(blx->curblock);
-
-        /* The BCfinally..BC_ret blocks form a function that gets called from stack unwinding.
-         * The successors to BC_ret blocks are both the next outer BCfinally and the destination
-         * after the unwinding is complete.
-         */
-        for (block *b = tryblock; b != finallyblock; b = b->Bnext)
+        if (config.ehmethod == EH_DWARF)
         {
-            block *btry = b->Btry;
+            /* Build this:
+             *  BCgoto     [BC_try]
+             *  BC_try     [body] [BC_finally]
+             *  body
+             *  BCgoto     [breakblock]
+             *  BC_finally [BC_lpad] [finalbody] [breakblock]
+             *  BC_lpad    [finalbody]
+             *  finalbody
+             *  BCgoto     [BC_ret]
+             *  BC_ret
+             *  breakblock
+             */
+            blx->curblock->appendSucc(breakblock);
+            block_next(blx,BCgoto,finallyblock);
 
-            if (b->BC == BCgoto && b->numSucc() == 1)
+            block *landingPad = block_goto(blx,BC_finally,NULL);
+            block_goto(blx,BC_lpad,NULL);               // lpad is [0]
+            finallyblock->appendSucc(blx->curblock);    // start of finalybody is [1]
+            finallyblock->appendSucc(breakblock);       // breakblock is [2]
+
+            /* Declare flag variable
+             */
+            symbol *sflag = symbol_name("__flag", SCauto, tsint);
+            symbol_add(sflag);
+            finallyblock->BS.BI_FINALLY.flag = sflag;
+            finallyblock->BS.BI_FINALLY.b_ret = retblock;
+            assert(!finallyblock->Belem);
+
+            /* Add code to landingPad block:
+             *  exception_object = RAX;
+             *  _flag = 0;
+             */
+            // Make it volatile so optimizer won't delete it
+            symbol *sreg = symbol_name("__EAX", SCpseudo, type_fake(mTYvolatile | TYnptr));
+            sreg->Sreglsw = 0;          // EAX, RAX, whatevs
+            symbol_add(sreg);
+            symbol *seo = symbol_name("__exception_object", SCauto, tspvoid);
+            symbol_add(seo);
+            assert(!landingPad->Belem);
+            elem *e = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));
+            union eve c;
+            memset(&c, 0, sizeof(c));
+            landingPad->Belem = el_combine(e, el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYint, &c)));
+
+            /* Add code to BC_ret block:
+             *  (!_flag && _Unwind_Resume(exception_object));
+             */
+            elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_UNWIND_RESUME)), el_var(seo));
+            eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
+            assert(!retblock->Belem);
+            retblock->Belem = eu;
+
+            IRState finallyState(irs, s);
+
+            setScopeIndex(blx, blx->curblock, previndex);
+            if (s->finalbody)
+                Statement_toIR(s->finalbody, &finallyState);
+            block_goto(blx, BCgoto, retblock);
+
+            block_next(blx,BC_ret,breakblock);
+        }
+        else
+        {
+            block_goto(blx,BCgoto, breakblock);
+            block_goto(blx,BCgoto,finallyblock);
+
+            /* Successors to BC_finally block:
+             *  [0] landing pad, same as start of finally code
+             *  [1] block that comes after BC_ret
+             */
+            block_goto(blx,BC_finally,NULL);
+
+            IRState finallyState(irs, s);
+
+            setScopeIndex(blx, blx->curblock, previndex);
+            if (s->finalbody)
+                Statement_toIR(s->finalbody, &finallyState);
+            block_goto(blx, BCgoto, retblock);
+
+            block_next(blx,BC_ret,NULL);
+
+            /* Append the last successor to finallyblock, which is the first block past the BC_ret block.
+             */
+            finallyblock->appendSucc(blx->curblock);
+
+            retblock->appendSucc(blx->curblock);
+
+            /* The BCfinally..BC_ret blocks form a function that gets called from stack unwinding.
+             * The successors to BC_ret blocks are both the next outer BCfinally and the destination
+             * after the unwinding is complete.
+             */
+            for (block *b = tryblock; b != finallyblock; b = b->Bnext)
             {
-                block *bdest = b->nthSucc(0);
-                if (btry && bdest->Btry != btry)
+                block *btry = b->Btry;
+
+                if (b->BC == BCgoto && b->numSucc() == 1)
                 {
-                    //printf("test1 b %p b->Btry %p bdest %p bdest->Btry %p\n", b, btry, bdest, bdest->Btry);
-                    block *bfinally = btry->nthSucc(1);
-                    if (bfinally == finallyblock)
-                        b->appendSucc(finallyblock);
+                    block *bdest = b->nthSucc(0);
+                    if (btry && bdest->Btry != btry)
+                    {
+                        //printf("test1 b %p b->Btry %p bdest %p bdest->Btry %p\n", b, btry, bdest, bdest->Btry);
+                        block *bfinally = btry->nthSucc(1);
+                        if (bfinally == finallyblock)
+                        {
+                            b->appendSucc(finallyblock);
+                        }
+                    }
                 }
-            }
 
-            // If the goto exits a try block, then the finally block is also a successor
-            if (b->BC == BCgoto && b->numSucc() == 2) // if goto exited a tryblock
-            {
-                block *bdest = b->nthSucc(0);
+                // If the goto exits a try block, then the finally block is also a successor
+                if (b->BC == BCgoto && b->numSucc() == 2) // if goto exited a tryblock
+                {
+                    block *bdest = b->nthSucc(0);
 
-                // If the last finally block executed by the goto
-                if (bdest->Btry == tryblock->Btry)
-                    // The finally block will exit and return to the destination block
-                    retblock->appendSucc(bdest);
-            }
+                    // If the last finally block executed by the goto
+                    if (bdest->Btry == tryblock->Btry)
+                    {
+                        // The finally block will exit and return to the destination block
+                        retblock->appendSucc(bdest);
+                    }
+                }
 
-            if (b->BC == BC_ret && b->Btry == tryblock)
-            {
-                // b is nested inside this TryFinally, and so this finally will be called next
-                b->appendSucc(finallyblock);
+                if (b->BC == BC_ret && b->Btry == tryblock)
+                {
+                    // b is nested inside this TryFinally, and so this finally will be called next
+                    b->appendSucc(finallyblock);
+                }
             }
         }
     }
@@ -1210,7 +1436,7 @@ public:
                 case FLblock:
                     // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
                     label = c->IEVlsym1;
-                    b = labelToBlock(s->loc, blx, label);
+                    b = labelToBlock(irs, s->loc, blx, label);
                     basm->appendSucc(b);
                     c->IEV1.Vblock = b;
                     break;
@@ -1225,14 +1451,13 @@ public:
                     break;
             }
 
-#if TX86
             // Repeat for second operand
             switch (c->IFL2)
             {
                 case FLblockoff:
                 case FLblock:
                     label = c->IEVlsym2;
-                    b = labelToBlock(s->loc, blx, label);
+                    b = labelToBlock(irs, s->loc, blx, label);
                     basm->appendSucc(b);
                     c->IEV2.Vblock = b;
                     break;
@@ -1249,7 +1474,6 @@ public:
                         sym->Sflags |= SFLlivexit;
                     break;
             }
-#endif
             //c->print();
         }
 
@@ -1278,4 +1502,190 @@ void Statement_toIR(Statement *s, IRState *irs)
 {
     S2irVisitor v(irs);
     s->accept(&v);
+}
+
+/***************************************************
+ * Insert finally block calls when doing a goto from
+ * inside a try block to outside.
+ * Done after blocks are generated because then we know all
+ * the edges of the graph, but before the Bpred's are computed.
+ * Params:
+ *      startblock = first block in function
+ */
+
+void insertFinallyBlockCalls(block *startblock)
+{
+    if (config.ehmethod != EH_DWARF)
+        return;
+
+    int flagvalue = 0;          // 0 is forunwind_resume
+    block *bcret = NULL;
+
+    block *bcretexp = NULL;
+    Symbol *stmp;
+
+#if 0
+    printf("------- before ----------\n");
+    for (block *b = startblock; b; b = b->Bnext) WRblock(b);
+    printf("-------------------------\n");
+#endif
+    block **pb;
+    block **pbnext;
+    for (pb = &startblock; *pb; pb = pbnext)
+    {
+        block *b = *pb;
+        pbnext = &b->Bnext;
+        if (!b->Btry)
+            continue;
+
+        switch (b->BC)
+        {
+            case BCret:
+                // Rewrite into a BCgoto => BCret
+                if (!bcret)
+                {
+                    bcret = block_calloc();
+                    bcret->BC = BCret;
+                }
+                b->BC = BCgoto;
+                b->appendSucc(bcret);
+                goto case_goto;
+
+            case BCretexp:
+            {
+                // Rewrite into a BCgoto => BCretexp
+                elem *e = b->Belem;
+                tym_t ty = tybasic(e->Ety);
+                if (!bcretexp)
+                {
+                    bcretexp = block_calloc();
+                    bcretexp->BC = BCretexp;
+                    type *t;
+                    if ((ty == TYstruct || ty == TYarray) && e->ET)
+                        t = e->ET;
+                    else
+                        t = type_fake(ty);
+                    stmp = symbol_genauto(t);
+                    bcretexp->Belem = el_var(stmp);
+                    if ((ty == TYstruct || ty == TYarray) && e->ET)
+                        bcretexp->Belem->ET = t;
+                }
+                b->BC = BCgoto;
+                b->appendSucc(bcretexp);
+
+                elem *eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
+                if (ty == TYstruct || ty == TYarray)
+                {
+                    eeq->Eoper = OPstreq;
+                    eeq->ET = e->ET;
+                    eeq->E1->ET = e->ET;
+                }
+                b->Belem = eeq;
+
+                goto case_goto;
+            }
+
+            case BCgoto:
+            case_goto:
+            {
+                /* From this:
+                 *  BCgoto     [breakblock]
+                 *  BC_try     [body] [BC_finally]
+                 *  body
+                 *  BCgoto     [breakblock]
+                 *  BC_finally [BC_lpad] [finalbody] [breakblock]
+                 *  BC_lpad    [finalbody]
+                 *  finalbody
+                 *  BCgoto     [BC_ret]
+                 *  BC_ret
+                 *  breakblock
+                 *
+                 * Build this:
+                 *  BCgoto     [BC_try]
+                 *  BC_try     [body] [BC_finally]
+                 *  body
+                 *x BCgoto     sflag=n; [finalbody]
+                 *  BC_finally [BC_lpad] [finalbody] [breakblock]
+                 *  BC_lpad    [finalbody]
+                 *  finalbody
+                 *  BCgoto     [BCiftrue]
+                 *x BCiftrue   (sflag==n) [breakblock]
+                 *x BC_ret
+                 *  breakblock
+                 */
+                block *breakblock = b->nthSucc(0);
+                block *lasttry = breakblock->Btry;
+                block *blast = b;
+                ++flagvalue;
+                for (block *bt = b->Btry; bt != lasttry; bt = bt->Btry)
+                {
+                    assert(bt->BC == BC_try);
+                    block *bf = bt->nthSucc(1);
+                    if (bf->BC == BCjcatch)
+                        continue;                       // skip try-catch
+                    assert(bf->BC == BC_finally);
+
+                    block *retblock = bf->BS.BI_FINALLY.b_ret;
+                    assert(retblock->BC == BC_ret);
+                    assert(retblock->numSucc() == 0);
+
+                    // Append (_flag = flagvalue) to b->Belem
+                    symbol *sflag = bf->BS.BI_FINALLY.flag;
+                    union eve c;
+                    memset(&c, 0, sizeof(c));
+                    c.Vint = flagvalue;
+                    elem *e = el_bin(OPeq, TYint, el_var(sflag), el_const(TYint, &c));
+                    b->Belem = el_combine(b->Belem, e);
+
+                    if (blast->BC == BCiftrue)
+                    {
+                        blast->setNthSucc(0, bf->nthSucc(1));
+                    }
+                    else
+                    {
+                        assert(blast->BC == BCgoto);
+                        blast->setNthSucc(0, bf->nthSucc(1));
+                    }
+
+                    // Create new block, bnew, which will replace retblock
+                    block *bnew = block_calloc();
+
+                    /* Rewrite BC_ret block as:
+                     *  if (sflag == flagvalue) goto breakblock; else goto bnew;
+                     */
+                    e = el_bin(OPeqeq, TYbool, el_var(sflag), el_const(TYint, &c));
+                    retblock->Belem = el_combine(retblock->Belem, e);
+                    retblock->BC = BCiftrue;
+                    retblock->appendSucc(breakblock);
+                    retblock->appendSucc(bnew);
+
+                    bnew->Bnext = retblock->Bnext;
+                    retblock->Bnext = bnew;
+
+                    bnew->BC = BC_ret;
+                    bnew->Btry = retblock->Btry;
+                    bf->BS.BI_FINALLY.b_ret = bnew;
+
+                    blast = retblock;
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
+    if (bcret)
+    {
+        *pb = bcret;
+        pb = &(*pb)->Bnext;
+    }
+    if (bcretexp)
+        *pb = bcretexp;
+
+#if 0
+    printf("------- after ----------\n");
+    for (block *b = startblock; b; b = b->Bnext) WRblock(b);
+    printf("-------------------------\n");
+#endif
 }

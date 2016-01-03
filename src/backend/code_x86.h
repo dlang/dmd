@@ -205,6 +205,7 @@ extern regm_t BYTEREGS;
 #define LOOP    0xE2
 #define LES     0xC4
 #define LEA     0x8D
+#define LOCK    0xF0
 
 #define JO      0x70
 #define JNO     0x71
@@ -317,18 +318,13 @@ enum CLIB
         CLIBuldiv,
         CLIBulmod,
 
-#if TARGET_WINDOS
         CLIBdmul,CLIBddiv,CLIBdtst0,CLIBdtst0exc,CLIBdcmp,CLIBdcmpexc,CLIBdneg,CLIBdadd,CLIBdsub,
         CLIBfmul,CLIBfdiv,CLIBftst0,CLIBftst0exc,CLIBfcmp,CLIBfcmpexc,CLIBfneg,CLIBfadd,CLIBfsub,
-#endif
 
         CLIBdbllng,CLIBlngdbl,CLIBdblint,CLIBintdbl,
         CLIBdbluns,CLIBunsdbl,
         CLIBdblulng,
-#if TARGET_WINDOS
-        // used the GNU way of converting unsigned long long to signed
         CLIBulngdbl,
-#endif
         CLIBdblflt,CLIBfltdbl,
         CLIBdblllng,
         CLIBllngdbl,
@@ -351,13 +347,6 @@ enum CLIB
 
         CLIBu64_ldbl,
         CLIBld_u64,
-
-#if TARGET_WINDOS
-        // Win64 versions
-        CLIBdblullng_win64,
-        CLIBullngdbl_win64,
-#endif
-
         CLIBMAX
 };
 

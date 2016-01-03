@@ -246,7 +246,7 @@ One and only one of these macros must be set by the makefile:
 #if __GNUC__
 #define LDOUBLE                 0       // no support for true long doubles
 #else
-#define LDOUBLE         (config.exe == EX_NT)   // support true long doubles
+#define LDOUBLE         (config.exe == EX_WIN32)   // support true long doubles
 #endif
 
 #if _MSC_VER
@@ -491,14 +491,13 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define THUNKS          1       /* use thunks for virtual functions     */
 #define SEPNEWDEL       1       // new/delete are not called within the ctor/dtor,
                                 // they are separate
-#define VBTABLES        1       // use Microsoft object model
 #define UNICODE         1       // support Unicode (wchar_t is unsigned short)
 #define DLCMSGS         0       // if 1, have all messages in a file
 #define NEWMANGLE       TARGET_WINDOS   // use MS name mangling scheme
 #define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 #define USEDLLSHELL     _WINDLL
 #define FARCLASSES      1       // support near/far classes
-#define MFUNC           (I32) //0 && config.exe == EX_NT)       // member functions are TYmfunc
+#define MFUNC           (I32) //0 && config.exe == EX_WIN32)       // member functions are TYmfunc
 #define CV3             0       // 1 means support CV3 debug format
 
 /* Object module format
@@ -551,9 +550,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define CDATAREL 5      /* constant data with relocs    */
 #define UNKNOWN -1      /* unknown segment              */
 #define DGROUPIDX 1     /* group index of DGROUP        */
-
-#define KEEPBITFIELDS 0 /* 0 means code generator cannot handle bit fields, */
-                        /* so replace them with shifts and masks        */
 
 #define REGMAX  29      // registers are numbered 0..10
 
@@ -612,6 +608,18 @@ typedef enum LINKAGE
     LINK_MAXDIM                 /* array dimension                      */
 } linkage_t;
 
+/**********************************
+ * Exception handling method
+ */
+
+enum EHmethod
+{
+    EH_NONE,                    // no exception handling
+    EH_WIN32,                   // Win32 SEH
+    EH_WIN64,                   // Win64 SEH (not supported yet)
+    EH_DM,                      // Digital Mars method
+    EH_DWARF,                   // Dwarf method
+};
 
 // This part of the configuration is saved in the precompiled header for use
 // in comparing to make sure it hasn't changed.
@@ -689,7 +697,7 @@ struct Config
 //#define EX_WIN16      0x20    // Windows 3.x 16 bit program
 #define EX_OS2          0x40    // OS/2 2.0 32 bit program
 #define EX_OS1          0x80    // OS/2 1.x 16 bit program
-#define EX_NT           0x100   // NT
+#define EX_WIN32        0x100
 #define EX_MZ           0x200   // MSDOS real mode program
 #define EX_XENIX        0x400
 #define EX_SCOUNIX      0x800
@@ -706,7 +714,7 @@ struct Config
 #define EX_OPENBSD      0x400000
 #define EX_OPENBSD64    0x800000
 
-#define EX_flat         (EX_OS2 | EX_NT | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
+#define EX_flat         (EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
                          EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
                          EX_OPENBSD | EX_OPENBSD64 | \
                          EX_SOLARIS | EX_SOLARIS64)
@@ -841,6 +849,7 @@ struct Config
 #define THRESHMAX 0xFFFF        // if threshold == THRESHMAX, all data defaults
                                 // to near
     enum LINKAGE linkage;       // default function call linkage
+    enum EHmethod ehmethod;     // exception handling method
 };
 
 // Configuration that is not saved in precompiled header
@@ -962,13 +971,11 @@ union eve
             elem *Eright;       // right child for binary nodes
             Symbol *Edtor;      // OPctor: destructor
         } eop;
-#if MARS
         struct
         {
             elem *Eleft;        // left child for OPddtor
             void *Edecl;        // VarDeclaration being constructed
         } ed;                   // OPdctor,OPddtor
-#endif
 };                              // variants for each type of elem
 
 // Symbols
@@ -979,35 +986,8 @@ union eve
 #define IDSYMBOL
 #endif
 
-#if SCPP
-#define SYMBOLZERO      0,0,0,
-#elif MARS
-#define SYMBOLZERO      0,0,
-#else
-#define SYMBOLZERO
-#endif
-
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,
-#elif TARGET_OSX
-#define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,0,
-#else
-#define UNIXFIELDS
-#endif
-
 typedef unsigned SYMFLGS;
-#if MARS
-#define SYM_PREDEF_SZ 40
-#else
-#define SYM_PREDEF_SZ 22
-#endif
 
-#define SYMBOLY(fl,regsaved,name,flags) \
-        {IDSYMBOL \
-         (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,0,(type *)0,{0},\
-         SYMBOLZERO\
-         UNIXFIELDS\
-         SCextern,(fl),(flags),0,0,0,0,0,0,0,{0},(regsaved),{name}}
 
 /**********************************
  * Storage classes

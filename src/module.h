@@ -92,9 +92,10 @@ public:
     Dsymbol *searchCacheSymbol; // cached value of search
     int searchCacheFlags;       // cached flags
 
-    Module *importedFrom;       // module from command line we're imported from,
-                                // i.e. a module that will be taken all the
-                                // way to an object file
+    // module from command line we're imported from,
+    // i.e. a module that will be taken all the
+    // way to an object file
+    Module *importedFrom;
 
     Dsymbols *decldefs;         // top level declarations for this Module
 
@@ -140,8 +141,8 @@ public:
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }
-                                // true if the module source file is directly
-                                // listed in command line.
+    // true if the module source file is directly
+    // listed in command line.
     bool isCoreModule(Identifier *ident);
 
     // Back end

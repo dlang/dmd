@@ -6708,7 +6708,7 @@ static assert(test11510());
 
 struct MultiArray11534
 {
-    this(size_t[] sizes...)
+    void set(size_t[] sizes...)
     {
         storage = new size_t[5];
     }
@@ -6721,7 +6721,8 @@ struct MultiArray11534
 }
 
 enum test11534 = () {
-    auto m = MultiArray11534(3,2,1);
+    auto m = MultiArray11534();
+    m.set(3,2,1);
     auto start = m.raw_ptr;   //this trigger the bug
     //auto start = m.storage.ptr + 1; //this obviously works
     return 0;
@@ -7652,3 +7653,28 @@ auto structInCaseScope()
 }
 
 static assert(!structInCaseScope());
+
+/**************************************************
+    15233 - ICE in TupleExp, Copy On Write bug
+**************************************************/
+
+alias TT15233(stuff ...) = stuff;
+
+struct Tok15233 {}
+enum tup15233 = TT15233!(Tok15233(), "foo");
+static assert(tup15233[0] == Tok15233());
+static assert(tup15233[1] == "foo");
+
+/**************************************************
+    15251 - void cast in ForStatement.increment
+**************************************************/
+
+int test15251()
+{
+    for (ubyte lwr = 19;
+        lwr != 20;
+        cast(void)++lwr)    // have to to be evaluated with ctfeNeedNothing
+    {}
+    return 1;
+}
+static assert(test15251());

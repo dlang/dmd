@@ -6,13 +6,28 @@
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
 
-module ddmd.objc_stubs;
+module ddmd.objc;
 
 import core.stdc.stdio;
-import ddmd.dclass, ddmd.dscope, ddmd.dstruct, ddmd.func, ddmd.globals, ddmd.id, ddmd.root.stringtable;
+import ddmd.dclass;
+import ddmd.dscope;
+import ddmd.dstruct;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.id;
+import ddmd.root.stringtable;
 
-class ObjcSelector
+struct ObjcSelector
 {
+    extern (C++) static __gshared StringTable stringtable;
+    extern (C++) static __gshared StringTable vTableDispatchSelectors;
+    extern (C++) static __gshared int incnum;
+    const(char)* stringvalue;
+    size_t stringlen;
+    size_t paramCount;
+
+    extern (C++) static void _init();
+
     // MARK: ObjcSelector
     extern (D) this(const(char)* sv, size_t len, size_t pcount)
     {
@@ -20,30 +35,30 @@ class ObjcSelector
         assert(0);
     }
 
-    static ObjcSelector lookup(const(char)* s)
+    extern (C++) static ObjcSelector* lookup(const(char)* s)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
-        return null;
     }
 
-    static ObjcSelector lookup(const(char)* s, size_t len, size_t pcount)
+    extern (C++) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
-        return null;
     }
 
-    static ObjcSelector create(FuncDeclaration fdecl)
+    extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
     {
         printf("Should never be called when D_OBJC is false\n");
         assert(0);
-        return null;
     }
 }
 
 struct Objc_ClassDeclaration
 {
+    // true if this is an Objective-C class/interface
+    bool objc;
+
     // MARK: Objc_ClassDeclaration
     extern (C++) bool isInterface()
     {
@@ -51,6 +66,19 @@ struct Objc_ClassDeclaration
     }
 }
 
+struct Objc_FuncDeclaration
+{
+    FuncDeclaration fdecl;
+    // Objective-C method selector (member function only)
+    ObjcSelector* selector;
+
+    extern (D) this(FuncDeclaration fdecl)
+    {
+        this.fdecl = fdecl;
+    }
+}
+
+// MARK: semantic
 extern (C++) void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration cd)
 {
     cd.error("Objective-C classes not supported");
@@ -72,7 +100,6 @@ extern (C++) bool objc_isUdaSelector(StructDeclaration sd)
 {
     printf("Should never be called when D_OBJC is false\n");
     assert(0);
-    return false;
 }
 
 extern (C++) void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration fd)

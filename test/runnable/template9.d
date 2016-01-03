@@ -3657,7 +3657,7 @@ template component13087(alias vec, char c)
     static assert(is(typeof(f_m( sca1))  == shared(      const int)[]));
     static assert(is(typeof(f_m( sca2))  == shared(      const int)[]));  // <- shared(const(int)[])
     static assert(is(typeof(f_m(swma1))  == shared(inout       int)[]));
-    static assert(is(typeof(f_m(swma2))  == shared(inout       int)[]));  // <- shared(inout(int[])
+    static assert(is(typeof(f_m(swma2))  == shared(inout       int)[]));  // <- shared(inout(int[]))
     static assert(is(typeof(f_m(swca1))  == shared(inout const int)[]));
     static assert(is(typeof(f_m(swca2))  == shared(inout const int)[]));  // <- shared(inout(const(int))[])
     // 9 * 2 - 1
@@ -4621,6 +4621,143 @@ void test14735()
 }
 
 /******************************************/
+// 14743
+
+class A14743
+{
+    auto func1 = (A14743 a) { a.func2!int(); };
+    auto func2(T)() {}
+}
+
+/******************************************/
+// 14802
+
+void test14802()
+{
+    auto func(T)(T x, T y) { return x; }
+
+    struct S1 { double x; alias x this; }
+    struct S2 { double x; alias x this; }
+    S1 s1;
+    S2 s2;
+
+    enum E1 : double { a = 1.0 }
+    enum E2 : double { a = 1.0 }
+
+    static assert(is(typeof( func(1 , 1 ) ) == int));
+    static assert(is(typeof( func(1u, 1u) ) == uint));
+    static assert(is(typeof( func(1u, 1 ) ) == uint));
+    static assert(is(typeof( func(1 , 1u) ) == uint));
+
+    static assert(is(typeof( func(1.0f, 1.0f) ) == float));
+    static assert(is(typeof( func(1.0 , 1.0 ) ) == double));
+    static assert(is(typeof( func(1.0 , 1.0f) ) == double));
+    static assert(is(typeof( func(1.0f, 1.0 ) ) == double));
+
+    static assert(is(typeof( func(s1, s1) ) == S1));
+    static assert(is(typeof( func(s2, s2) ) == S2));
+    static assert(is(typeof( func(s1, s2) ) == double));
+    static assert(is(typeof( func(s2, s1) ) == double));
+
+    static assert(is(typeof( func(E1.a, E1.a) ) == E1));
+    static assert(is(typeof( func(E2.a, E2.a) ) == E2));
+    static assert(is(typeof( func(E1.a, 1.0)  ) == double));
+    static assert(is(typeof( func(E2.a, 1.0)  ) == double));
+    static assert(is(typeof( func(1.0,  E1.a) ) == double));
+    static assert(is(typeof( func(1.0,  E2.a) ) == double));
+    static assert(is(typeof( func(E1.a, E2.a) ) == double));
+    static assert(is(typeof( func(E2.a, E1.a) ) == double));
+}
+
+/******************************************/
+// 14886
+
+void test14886()
+{
+    alias R = int[100_000];
+
+    auto front(T)(T[] a) {}
+    front(R.init);
+
+    auto bar1(T)(T, T[] a) { return T.init; }
+    auto bar2(T)(T[] a, T) { return T.init; }
+
+    static assert(is(typeof(bar1(1L, R.init)) == long));
+    static assert(is(typeof(bar2(R.init, 1L)) == long));
+    // <-- T should be deduced to int because R.init is rvalue...?
+
+    ubyte x;
+    static assert(is(typeof(bar1(x, R.init)) == int));
+    static assert(is(typeof(bar2(R.init, x)) == int));
+}
+
+/******************************************/
+// 15156
+
+// 15156
+auto f15116a(T)(string s, string arg2) { return 1; }
+auto f15116b(T)(int    i, string arg2) { return 2; }
+
+template bish15116(T)
+{
+    alias bish15116 = f15116a!T;
+    alias bish15116 = f15116b!T;
+}
+
+void test15116()
+{
+    alias func = bish15116!string;
+    assert(func("", "") == 1);
+    assert(func(12, "") == 2);
+}
+
+/******************************************/
+// 15152
+
+void test15152()
+{
+    void func(string M)() { }
+
+    struct S
+    {
+        enum name = "a";
+    }
+
+    enum s = S.init;
+    func!(s.name);
+}
+
+/******************************************/
+// 15352
+
+struct S15352(T, T delegate(uint idx) supplier)
+{
+}
+
+auto make15352a(T, T delegate(uint idx) supplier)()
+{
+    enum local = supplier;      // OK
+    S15352!(T, local) ret;
+    return ret;
+}
+
+auto make15352b(T, T delegate(uint idx) supplier)()
+{
+    S15352!(T, supplier) ret;   // OK <- Error
+    return ret;
+}
+
+void test15352()
+{
+    enum dg = delegate(uint idx) => idx;
+    auto s1 = S15352!(uint, dg)();
+    auto s2 = make15352a!(uint, dg)();
+    auto s3 = make15352b!(uint, dg)();
+    assert(is(typeof(s1) == typeof(s2)));
+    assert(is(typeof(s1) == typeof(s3)));
+}
+
+/******************************************/
 
 int main()
 {
@@ -4732,6 +4869,8 @@ int main()
     test13694();
     test14836();
     test14735();
+    test14802();
+    test15116();
 
     printf("Success\n");
     return 0;
