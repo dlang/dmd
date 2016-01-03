@@ -2,6 +2,10 @@
 
 set -exo pipefail
 
+# add missing cc link in gdc-4.9.3 download
+if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
+    ln -s gcc $(dirname $(which gdc))/cc
+fi
 N=2
 
 git clone --depth=1 https://github.com/D-Programming-Language/druntime.git ../druntime
