@@ -169,6 +169,7 @@ struct Param
     const(char)* resfile;
     const(char)* exefile;
     const(char)* mapfile;
+    bool exclude_cwd_from_imports;
 }
 
 struct Compiler
