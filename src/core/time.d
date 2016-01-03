@@ -2633,18 +2633,14 @@ extern(C) void _d_initMonoTime()
     }
     else version(OSX)
     {
-        mach_timebase_info_data_t info;
-        if(mach_timebase_info(&info) == 0)
+        immutable long ticksPerSecond = machTicksPerSecond();
+        foreach(i, typeStr; __traits(allMembers, ClockType))
         {
-            long ticksPerSecond = 1_000_000_000L * info.numer / info.denom;
-            foreach(i, typeStr; __traits(allMembers, ClockType))
-            {
-                // ensure we are only writing immutable data once
-                if(tps[i] != 0)
-                    // should only be called once
-                    assert(0);
-                tps[i] = ticksPerSecond;
-            }
+            // ensure we are only writing immutable data once
+            if(tps[i] != 0)
+                // should only be called once
+                assert(0);
+            tps[i] = ticksPerSecond;
         }
     }
     else version(Posix)
@@ -2944,17 +2940,7 @@ struct TickDuration
         }
         else version(OSX)
         {
-            static if(is(typeof(mach_absolute_time)))
-            {
-                mach_timebase_info_data_t info;
-
-                if(mach_timebase_info(&info))
-                    ticksPerSec = 0;
-                else
-                    ticksPerSec = (1_000_000_000L * info.denom) / info.numer;
-            }
-            else
-                ticksPerSec = 1_000_000;
+            ticksPerSec = machTicksPerSecond();
         }
         else version(Posix)
         {
@@ -4683,6 +4669,21 @@ unittest
     static assert(!__traits(compiles, nextLargerTimeUnits!"years"));
 }
 
+version(OSX)
+long machTicksPerSecond()
+{
+    // Be optimistic that ticksPerSecond (1e9*denom/numer) is integral. So far
+    // so good on Darwin based platforms OS X, iOS.
+    import core.internal.abort : abort;
+    mach_timebase_info_data_t info;
+    if(mach_timebase_info(&info) != 0)
+        abort("Failed in mach_timebase_info().");
+
+    long scaledDenom = 1_000_000_000L * info.denom;
+    if(scaledDenom % info.numer != 0)
+        abort("Non integral ticksPerSecond from mach_timebase_info.");
+    return scaledDenom / info.numer;
+}
 
 /+
     Local version of abs, since std.math.abs is in Phobos, not druntime.

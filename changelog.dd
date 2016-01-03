@@ -1,6 +1,6 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.069.2.
+$(COMMENT Pending changelog for 2.067.0.
 )
 
 $(BUGSTITLE Library Changes,
@@ -8,7 +8,6 @@ $(BUGSTITLE Library Changes,
 $(LI $(RELATIVE_LINK2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
     `TypeInfo.initializer`.))
 )
-
 )
 
 $(BUGSTITLE Library Changes,
@@ -29,8 +28,8 @@ $(LI $(LNAME2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
         2.074.0 release, so that the type property `init` takes over.
     )
 )
-
 )
+
 
 Macros:
     TITLE=Change Log
