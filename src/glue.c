@@ -911,35 +911,31 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             objmod->external_def("_main");
             objmod->ehsections();   // initialize exception handling sections
 #endif
-#if TARGET_WINDOS
             if (global.params.mscoff)
             {
                 objmod->external_def("main");
                 objmod->ehsections();   // initialize exception handling sections
             }
-            else
+            else if (config.exe == EX_WIN32)
             {
                 objmod->external_def("_main");
                 objmod->external_def("__acrtused_con");
             }
-#endif
             objmod->includelib(libname);
             s->Sclass = SCglobal;
         }
         else if (strcmp(s->Sident, "main") == 0 && fd->linkage == LINKc)
         {
-#if TARGET_WINDOS
             if (global.params.mscoff)
             {
                 objmod->includelib("LIBCMT");
                 objmod->includelib("OLDNAMES");
             }
-            else
+            else if (config.exe == EX_WIN32)
             {
                 objmod->external_def("__acrtused_con");        // bring in C startup code
                 objmod->includelib("snn.lib");          // bring in C runtime library
             }
-#endif
             s->Sclass = SCglobal;
         }
 #if TARGET_WINDOS
@@ -1212,8 +1208,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
         buildClosure(fd, &irs);
 
-#if TARGET_WINDOS
-        if (fd->isSynchronized() && cd && config.flags2 & CFG2seh &&
+        if (config.ehmethod == EH_WIN32 && fd->isSynchronized() && cd &&
             !fd->isStatic() && !sbody->usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
@@ -1221,7 +1216,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
              */
             s->Sfunc->Fflags3 |= Fjmonitor;
         }
-#endif
 
         Statement_toIR(sbody, &irs);
         bx.curblock->BC = BCret;
@@ -1335,14 +1329,13 @@ bool onlyOneMain(Loc loc)
     static bool hasMain = false;
     if (hasMain)
     {
-        const char *msg = NULL;
+        const char *msg = "";
         if (global.params.addMain)
             msg = ", -main switch added another main()";
-#if TARGET_WINDOS
-        error(lastLoc, "only one main/WinMain/DllMain allowed%s", msg ? msg : "");
-#else
-        error(lastLoc, "only one main allowed%s", msg ? msg : "");
-#endif
+        const char *othermain = "";
+        if (config.exe == EX_WIN32 || config.exe == EX_WIN64)
+            othermain = "/WinMain/DllMain";
+        error(lastLoc, "only one main%s allowed%s", othermain, msg);
         return false;
     }
     lastLoc = loc;

@@ -671,9 +671,7 @@ typedef struct FUNC_S
         #define Fnteh           0x08    // uses NT Structured EH
         #define Fdoinline       0x40    // do inline walk
         #define Foverridden     0x80    // ignore for overriding purposes
-#if MARS && TARGET_WINDOS
         #define Fjmonitor       0x100   // Mars synchronized function
-#endif
         #define Fnosideeff      0x200   // function has no side effects
         #define F3badoparrow    0x400   // bad operator->()
         #define Fmain           0x800   // function is main() or wmain()
