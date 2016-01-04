@@ -1857,6 +1857,7 @@ extern (C)
     inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize, const TypeInfo tiValArray) pure nothrow;
     inout(void)[] _aaKeys(inout void* p, in size_t keysize, const TypeInfo tiKeyArray) pure nothrow;
     void* _aaRehash(void** pp, in TypeInfo keyti) pure nothrow;
+    void _aaClear(void* p) pure nothrow;
 
     // alias _dg_t = extern(D) int delegate(void*);
     // int _aaApply(void* aa, size_t keysize, _dg_t dg);
@@ -1889,6 +1890,16 @@ void* aaLiteral(Key, Value)(Key[] keys, Value[] values) @trusted pure
 }
 
 alias AssociativeArray(Key, Value) = Value[Key];
+
+void clear(T : Value[Key], Value, Key)(T aa)
+{
+    _aaClear(*cast(void **)&aa);
+}
+
+void clear(T : Value[Key], Value, Key)(T* aa)
+{
+    _aaClear(*cast(void **)aa);
+}
 
 T rehash(T : Value[Key], Value, Key)(T aa)
 {

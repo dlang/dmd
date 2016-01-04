@@ -7,7 +7,8 @@ $(BUGSTITLE Library Changes,
 
 $(LI $(RELATIVE_LINK2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
     `TypeInfo.initializer`.))
-)
+$(LI $(RELATIVE_LINK2 AA.clear, Associative array `clear` method to remove all
+    elements has been added.))
 )
 
 $(BUGSTITLE Library Changes,
@@ -26,6 +27,15 @@ $(LI $(LNAME2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
         2.072.0 release, and is going to be `@disable`d with the 2.073.0
         release. Finally, the special casing is going to be removed with the
         2.074.0 release, so that the type property `init` takes over.
+    )
+)
+$(LI $(LNAME2 AA.clear, Associative array `clear` method to remove all
+    elements has been added.)
+
+    $(P One can now use `aa.clear()` to remove all elements from an
+        associative array. This allows one to remove all elements from all
+        references to the same array (setting to `null` just cleared the
+        reference, not removed the elements).
     )
 )
 )
