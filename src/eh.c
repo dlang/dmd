@@ -251,7 +251,7 @@ void except_fillInEHTable(symbol *s)
             if (c->Iop == (ESCAPE | ESCdctor))
             {
                 code *c2 = code_next(c);
-                if (config.flags2 & CFG2seh)
+                if (config.ehmethod == EH_WIN32)
                     nteh_patchindex(c2, scopeindex);
                 if (config.ehmethod == EH_DM)
                     pdt = dtdword(pdt,boffset - startblock->Boffset); // guard offset
@@ -273,7 +273,7 @@ void except_fillInEHTable(symbol *s)
                         {
                             foffset = eoffset;
                             code *cf = code_next(c2);
-                            if (config.flags2 & CFG2seh)
+                            if (config.ehmethod == EH_WIN32)
                             {
                                 nteh_patchindex(cf, stack[stacki - 1]);
                                 foffset += calccodsize(cf);
