@@ -30,11 +30,11 @@ ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
 
-#ifeq (osx,$(OS))
-#	HOST_CC=clang++
-#else
+ifneq (,$(findstring __clang__, $(shell $(CC) -dM -E -x c /dev/null)))
+	HOST_CC=clang++
+else
 	HOST_CC=g++
-#endif
+endif
 CC=$(HOST_CC)
 AR=ar
 GIT=git
