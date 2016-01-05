@@ -1,0 +1,165 @@
+// See README.md for information on how to configure more tests.
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: Combination of arguments to test basic types and substitutions.
+// CPP:
+void |foo|(|ARGUMENTS|) {}
+// D_SYMBOL: |foo|
+// D:
+void |foo|(|ARGUMENTS|);
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: Combination of arguments for a struct member.
+// CPP:
+struct |S| {
+    void |foo|(|ARGUMENTS|);
+};
+
+void |S|::|foo|(|ARGUMENTS|) {}
+// D_SYMBOL: |S|.|foo|
+// D:
+struct |S| {
+    void |foo|(|ARGUMENTS|);
+}
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: Combination of arguments for a const struct member.
+// CPP:
+struct |S| {
+    void |foo|(|ARGUMENTS|) const;
+};
+
+void |S|::|foo|(|ARGUMENTS|) const {}
+// D_SYMBOL: |S|.|foo|
+// D:
+struct |S| {
+    void |foo|(|ARGUMENTS|) const;
+}
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: simple templated function.
+// CPP:
+template<typename T>
+void |foo|(){};
+
+template void |foo|<|TEMPLATE_TYPES|>();
+// D_SYMBOL: |foo|!(|TEMPLATE_TYPES|)
+// D:
+void |foo|(T)();
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: simple templated function with return value.
+// CPP:
+template<typename T>
+T* |foo|(){ return nullptr; };
+
+template |TEMPLATE_TYPES|* |foo|<|TEMPLATE_TYPES|>();
+// D_SYMBOL: |foo|!(|TEMPLATE_TYPES|)
+// D:
+T* |foo|(T)();
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: simple templated function with return value and argument.
+// CPP:
+template<typename T>
+T* |foo|(T){ return nullptr; };
+
+template |TEMPLATE_TYPES|* |foo|<|TEMPLATE_TYPES|>(|TEMPLATE_TYPES|);
+// D_SYMBOL: |foo|!(|TEMPLATE_TYPES|)
+// D:
+T* |foo|(T)(T);
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: templated function instanciated with templated type.
+// CPP:
+template<typename T>
+struct |S|{};
+
+template<typename T>
+void |foo|(){};
+
+template void |foo|<|S|<|S|<|S|<int> > > >();
+// D_SYMBOL: |foo|!(|S|!(|S|!(|S|!int)))
+// D:
+struct |S|{}
+
+void |foo|(T)();
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: templated function with one argument instanciated with int.
+// CPP:
+template<typename T>
+void |foo|(T){};
+
+template void |foo|<int>(int);
+// D_SYMBOL: |foo|!int
+// D:
+void |foo|(T)(T);
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: templated function with three arguments.
+// CPP:
+template<typename A, typename B, typename C>
+void |foo|(A,B&,C){};
+
+template void |foo|<int,char,unsigned>(int,char&,unsigned);
+// D_SYMBOL: |foo|!(int,char,uint)
+// D:
+void |foo|(A,B,C)(A,ref B,C);
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: function with a struct argument in a nested namespace.
+// NAMESPACE: a.b.c
+// CPP:
+struct |S| {};
+void |foo|(|S|){}
+// D_SYMBOL: |foo|
+// D:
+struct |S| {}
+void |foo|(|S|){}
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: templated function in a templated struct in a nested namespace.
+// NAMESPACE: a.b.c
+// CPP:
+template<typename A>
+struct |S| {
+    template<typename B>
+    B* |foo|(const B**) const;
+};
+
+template<>
+template<>
+char* |S|<int>::|foo|<char>(const char**) const {
+    return nullptr;
+};
+// D_SYMBOL: |S|!int.|foo|!char
+// D:
+struct |S|(A) {
+    B* |foo|(B)(const(B)**) const;
+}
+
+// -----------------------------------------------------------------------------
+// DESCRIPTION: templated function in a templated struct in a nested namespace.
+// NAMESPACE: a.b.c
+// CPP:
+struct |S2| {};
+
+template<typename A>
+struct |S1| {
+    template<typename B>
+    B* |foo|(const B**) const;
+};
+
+template<>
+template<>
+|S2|* |S1|<int>::|foo|<|S2|>(const |S2|**) const {
+    return nullptr;
+};
+// D_SYMBOL: |S1|!int.|foo|!|S2|
+// D:
+struct |S2| {}
+
+struct |S1|(A) {
+    B* |foo|(B)(const(B)**) const;
+}

@@ -1,0 +1,14 @@
+// This is a file of translations from C++ to D (cpp2d extension).
+// One translation per line, C++ and D code are separated by a |.
+
+// This particular file represents types for template instanciation.
+
+bool                 | bool
+char                 | char
+int                  | int
+float                | float
+double               | double
+const int            | const int
+S                    | S
+S*                   | S*
+const S              | const S
