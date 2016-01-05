@@ -937,3 +937,5 @@ import core.vararg;
 struct S3438_1 { this(int x, int y = 1) { } }
 struct S3438_2 { this(int x, ...) { } }
 struct S3438_3 { this(int x, int[] arr...) { } }
+struct S3438_4 { this(...) { } }
+struct S3438_5 { this(int[] arr...) { } }
