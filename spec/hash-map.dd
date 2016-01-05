@@ -22,7 +22,7 @@ $(SPEC_S Associative Arrays,
         $(P $(BLUE $(B Note:)) The built-in associative arrays do not preserve the order
         of the keys inserted into the array. In particular, in a $(D foreach) loop the
         order in which the elements are iterated is unspecified.)
-        
+
 $(H3 Removing Keys)
 
         $(P Particular keys in an associative array can be removed with the
@@ -46,7 +46,7 @@ $(H3 Testing Membership)
 
         ---------
         int* p;
-        
+
         p = ("hello" $(CODE_HIGHLIGHT in) aa);
         if (p !is null)
         {
@@ -235,6 +235,23 @@ $(H3 Construction or Assignment on Setting AA Entries)
         aa["a"] = 20;   // call aa["a"].opAssign(20)
         ---------
     )
+
+$(H3 Static Initialization of AAs)
+
+        ---------
+        immutable long[string] aa = [
+          "foo": 5,
+          "bar": 10,
+          "baz": 2000
+        ];
+
+        unittest
+        {
+            assert(aa["foo"] == 5);
+            assert(aa["bar"] == 10);
+            assert(aa["baz"] == 2000);
+        }
+        ---------
 
 $(H3 Runtime Initialization of Immutable AAs)
 
