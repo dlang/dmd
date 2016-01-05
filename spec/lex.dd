@@ -779,7 +779,7 @@ $(GNAME HexLetter):
     $(MIDRULE)
     $(TROW_EXPLANATORY $(I Explicit suffixes))
 	$(TROW $(D 0L .. 9_223_372_036_854_775_807L), $(D long))
-	$(TROW $(D 0U .. 4_294_967_296U), $(D uint))
+	$(TROW $(D 0U .. 4_294_967_295U), $(D uint))
 	$(TROW $(D 4_294_967_296U .. 18_446_744_073_709_551_615U), $(D
 	ulong))
 	$(TROW $(D 0UL .. 18_446_744_073_709_551_615UL), $(D ulong))
