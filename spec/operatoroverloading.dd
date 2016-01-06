@@ -389,7 +389,7 @@ $(H3 $(LNAME2 compare, Overloading $(D <), $(D <)$(D =), $(D >), and $(D >)$(D =
 
 	$(P Comparison operations are rewritten as follows:)
 
-	$(TABLE2 Rewritting of comparison operations,
+	$(TABLE2 Rewriting of comparison operations,
 	$(THEAD comparison, rewrite 1, rewrite 2)
 	$(TROW $(D a) $(D <) $(D b), $(D a.opCmp(b)) $(D <)
 	$(D 0), $(ARGS $(D b.opCmp(a)) $(D >) $(D 0)))
