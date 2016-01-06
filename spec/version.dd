@@ -249,7 +249,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D MinGW)) , $(ARGS The MinGW environment))
 	$(TROW $(ARGS $(D FreeStanding)) , $(ARGS An environment without an operating system (such as Bare-metal targets)))
 	$(TROW $(ARGS $(D CRuntime_Bionic)) , $(ARGS Bionic C runtime))
-	$(TROW $(ARGS $(D CRuntime_Digitalmars)) , $(ARGS DigitalMars C runtime))
+	$(TROW $(ARGS $(D CRuntime_DigitalMars)) , $(ARGS DigitalMars C runtime))
 	$(TROW $(ARGS $(D CRuntime_Glibc)) , $(ARGS Glibc C runtime))
 	$(TROW $(ARGS $(D CRuntime_Microsoft)) , $(ARGS Microsoft C runtime))
 	$(TROW $(ARGS $(D X86)) , $(ARGS Intel and AMD 32-bit processors))
