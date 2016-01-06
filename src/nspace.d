@@ -159,6 +159,21 @@ public:
         return Dsymbol.oneMember(ps, ident);
     }
 
+    override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    {
+        //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
+        if (_scope && !symtab)
+            semantic(_scope);
+
+        if (!members || !symtab) // opaque or semantic() is not yet called
+        {
+            error("is forward referenced when looking for '%s'", ident.toChars());
+            return null;
+        }
+
+        return ScopeDsymbol.search(loc, ident, flags);
+    }
+
     override int apply(Dsymbol_apply_ft_t fp, void* param)
     {
         if (members)
