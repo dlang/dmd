@@ -81,6 +81,27 @@ extern (C++) LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
     return null;
 }
 
+/***********************************************************
+ * Check an assignment is used as a condition.
+ * Intended to be use before the `semantic` call on `e`.
+ * Params:
+ *  e = condition expression which is not yet run semantic analysis.
+ * Returns:
+ *  `e` or ErrorExp.
+ */
+Expression checkAssignmentAsCondition(Expression e)
+{
+    auto ec = e;
+    while (ec.op == TOKcomma)
+        ec = (cast(CommaExp)ec).e2;
+    if (ec.op == TOKassign)
+    {
+        ec.error("assignment cannot be used as a condition, perhaps == was meant?");
+        return new ErrorExp();
+    }
+    return e;
+}
+
 enum BE : int
 {
     BEnone = 0,
@@ -1787,7 +1808,10 @@ public:
 
     override Statement syntaxCopy()
     {
-        return new WhileStatement(loc, condition.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
+        return new WhileStatement(loc,
+            condition.syntaxCopy(),
+            _body ? _body.syntaxCopy() : null,
+            endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -1832,7 +1856,9 @@ public:
 
     override Statement syntaxCopy()
     {
-        return new DoStatement(loc, _body ? _body.syntaxCopy() : null, condition.syntaxCopy());
+        return new DoStatement(loc,
+            _body ? _body.syntaxCopy() : null,
+            condition.syntaxCopy());
     }
 
     override Statement semantic(Scope* sc)
@@ -1841,15 +1867,22 @@ public:
         if (_body)
             _body = _body.semanticScope(sc, this, this);
         sc.noctor--;
+
+        // check in syntax level
+        condition = checkAssignmentAsCondition(condition);
+
         condition = condition.semantic(sc);
         condition = resolveProperties(sc, condition);
         condition = condition.optimize(WANTvalue);
         condition = checkGC(sc, condition);
+
         condition = condition.toBoolean(sc);
+
         if (condition.op == TOKerror)
             return new ErrorStatement();
         if (_body && _body.isErrorStatement())
             return _body;
+
         return this;
     }
 
@@ -1897,12 +1930,18 @@ public:
 
     override Statement syntaxCopy()
     {
-        return new ForStatement(loc, _init ? _init.syntaxCopy() : null, condition ? condition.syntaxCopy() : null, increment ? increment.syntaxCopy() : null, _body.syntaxCopy(), endloc);
+        return new ForStatement(loc,
+            _init ? _init.syntaxCopy() : null,
+            condition ? condition.syntaxCopy() : null,
+            increment ? increment.syntaxCopy() : null,
+            _body.syntaxCopy(),
+            endloc);
     }
 
     override Statement semantic(Scope* sc)
     {
         //printf("ForStatement::semantic %s\n", toChars());
+
         if (_init)
         {
             /* Rewrite:
@@ -1933,16 +1972,22 @@ public:
             return s;
         }
         assert(_init is null);
+
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
+
         sc.noctor++;
         if (condition)
         {
+            // check in syntax level
+            condition = checkAssignmentAsCondition(condition);
+
             condition = condition.semantic(sc);
             condition = resolveProperties(sc, condition);
             condition = condition.optimize(WANTvalue);
             condition = checkGC(sc, condition);
+
             condition = condition.toBoolean(sc);
         }
         if (increment)
@@ -1952,14 +1997,21 @@ public:
             increment = increment.optimize(WANTvalue);
             increment = checkGC(sc, increment);
         }
+
         sc.sbreak = this;
         sc.scontinue = this;
         if (_body)
             _body = _body.semanticNoScope(sc);
         sc.noctor--;
+
         sc.pop();
-        if (condition && condition.op == TOKerror || increment && increment.op == TOKerror || _body && _body.isErrorStatement())
+
+        if (condition && condition.op == TOKerror ||
+            increment && increment.op == TOKerror ||
+            _body && _body.isErrorStatement())
+        {
             return new ErrorStatement();
+        }
         return this;
     }
 
@@ -3315,7 +3367,11 @@ public:
 
     override Statement syntaxCopy()
     {
-        return new IfStatement(loc, prm ? prm.syntaxCopy() : null, condition.syntaxCopy(), ifbody ? ifbody.syntaxCopy() : null, elsebody ? elsebody.syntaxCopy() : null);
+        return new IfStatement(loc,
+            prm ? prm.syntaxCopy() : null,
+            condition.syntaxCopy(),
+            ifbody ? ifbody.syntaxCopy() : null,
+            elsebody ? elsebody.syntaxCopy() : null);
     }
 
     override Statement semantic(Scope* sc)
@@ -3326,6 +3382,9 @@ public:
         uint* fi0 = sc.saveFieldInit();
         uint* fi1 = null;
 
+        // check in syntax level
+        condition = checkAssignmentAsCondition(condition);
+
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         Scope* scd = sc.push(sym);
@@ -3334,7 +3393,8 @@ public:
             /* Declare prm, which we will set to be the
              * result of condition.
              */
-            match = new VarDeclaration(loc, prm.type, prm.ident, new ExpInitializer(loc, condition));
+            auto ei = new ExpInitializer(loc, condition);
+            match = new VarDeclaration(loc, prm.type, prm.ident, ei);
             match.parent = scd.func;
             match.storage_class |= prm.storageClass;
             match.semantic(scd);

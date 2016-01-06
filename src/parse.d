@@ -4999,8 +4999,6 @@ public:
                     param = new Parameter(storageClass, at, ai, null);
                 }
                 condition = parseExpression();
-                if (condition.op == TOKassign)
-                    error("assignment cannot be used as a condition, perhaps == was meant?");
                 check(TOKrparen);
                 {
                     Loc lookingForElseSave = lookingForElse;

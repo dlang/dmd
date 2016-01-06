@@ -11035,6 +11035,15 @@ public:
         return e2.isBool(result);
     }
 
+    override Expression toBoolean(Scope* sc)
+    {
+        auto ex2 = e2.toBoolean(sc);
+        if (ex2.op == TOKerror)
+            return ex2;
+        e2 = ex2;
+        return this;
+    }
+
     override Expression addDtorHook(Scope* sc)
     {
         e2 = e2.addDtorHook(sc);
@@ -13976,7 +13985,10 @@ public:
 
     override Expression toBoolean(Scope* sc)
     {
-        e2 = e2.toBoolean(sc);
+        auto ex2 = e2.toBoolean(sc);
+        if (ex2.op == TOKerror)
+            return ex2;
+        e2 = ex2;
         return this;
     }
 
@@ -14044,7 +14056,10 @@ public:
 
     override Expression toBoolean(Scope* sc)
     {
-        e2 = e2.toBoolean(sc);
+        auto ex2 = e2.toBoolean(sc);
+        if (ex2.op == TOKerror)
+            return ex2;
+        e2 = ex2;
         return this;
     }
 
@@ -14543,8 +14558,14 @@ public:
 
     override Expression toBoolean(Scope* sc)
     {
-        e1 = e1.toBoolean(sc);
-        e2 = e2.toBoolean(sc);
+        auto ex1 = e1.toBoolean(sc);
+        auto ex2 = e2.toBoolean(sc);
+        if (ex1.op == TOKerror)
+            return ex1;
+        if (ex2.op == TOKerror)
+            return ex2;
+        e1 = ex1;
+        e2 = ex2;
         return this;
     }
 
