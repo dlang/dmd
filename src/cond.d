@@ -233,7 +233,7 @@ public:
             "ELFv1",
             "ELFv2",
             "CRuntime_Bionic",
-            "CRuntime_Digitalmars",
+            "CRuntime_DigitalMars",
             "CRuntime_Glibc",
             "CRuntime_Microsoft",
             "D_Coverage",
