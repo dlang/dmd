@@ -9,6 +9,8 @@
 module ddmd.dimport;
 
 import core.stdc.string;
+import core.stdc.stdio;
+
 import ddmd.arraytypes;
 import ddmd.attrib;
 import ddmd.declaration;
@@ -185,7 +187,7 @@ public:
             mod = Module.load(loc, packages, id);
             if (mod)
             {
-                dst.insert(id, mod); // id may be different from mod->ident,
+                dst.insert(id, mod); // id may be different from mod.ident,
                 // if so then insert alias
             }
         }
@@ -224,7 +226,7 @@ public:
 
     override void semantic(Scope* sc)
     {
-        //printf("Import::semantic('%s')\n", toPrettyChars());
+        //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
         if (_scope)
         {
             sc = _scope;
@@ -240,7 +242,7 @@ public:
         if (mod)
         {
             // Modules need a list of each imported module
-            //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
+            //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
             sc._module.aimports.push(mod);
             if (!isstatic && !aliasId && !names.dim)
             {
@@ -258,7 +260,7 @@ public:
             mod.semantic();
             if (mod.needmoduleinfo)
             {
-                //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
+                //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
                 sc._module.needmoduleinfo = 1;
             }
             sc = sc.push(mod);
@@ -276,7 +278,7 @@ public:
             for (size_t i = 0; i < aliasdecls.dim; i++)
             {
                 AliasDeclaration ad = aliasdecls[i];
-                //printf("\tImport alias semantic('%s')\n", ad->toChars());
+                //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
                 if (mod.search(loc, names[i]))
                 {
                     ad.semantic(sc);
@@ -317,7 +319,7 @@ public:
             ob.writestring(" (");
             escapePath(ob, imod.srcfile.toChars());
             ob.writestring(") : ");
-            // use protection instead of sc->protection because it couldn't be
+            // use protection instead of sc.protection because it couldn't be
             // resolved yet, see the comment above
             protectionToBuffer(ob, Prot(protection));
             ob.writeByte(' ');
@@ -373,7 +375,7 @@ public:
             mod.semantic2();
             if (mod.needmoduleinfo)
             {
-                //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
+                //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
                 sc._module.needmoduleinfo = 1;
             }
         }
@@ -391,6 +393,7 @@ public:
      */
     override void addMember(Scope* sc, ScopeDsymbol sd)
     {
+        //printf("Import.addMember(this=%s, sd=%s, sc=%p)\n", toChars(), sd.toChars(), sc);
         if (names.dim == 0)
             return Dsymbol.addMember(sc, sd);
         if (aliasId)
@@ -412,9 +415,37 @@ public:
         }
     }
 
+    override void setScope(Scope* sc)
+    {
+        Dsymbol.setScope(sc);
+        if (aliasdecls.dim)
+        {
+            if (!mod)
+                importAll(sc);
+
+            sc = sc.push(mod);
+            /* BUG: Protection checks can't be enabled yet. The issue is
+             * that Dsymbol::search errors before overload resolution.
+             */
+            version (none)
+            {
+                sc.protection = protection;
+            }
+            else
+            {
+                sc.protection = Prot(PROTpublic);
+            }
+            foreach (ad; aliasdecls)
+            {
+                ad.setScope(sc);
+            }
+            sc = sc.pop();
+        }
+    }
+
     override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
-        //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
+        //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
         if (!pkg)
         {
             load(null);
