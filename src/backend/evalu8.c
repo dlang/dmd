@@ -546,7 +546,7 @@ elem *poptelem(elem *e)
                 if (e2->Eoper == OPconst)
                 {   targ_int i = e2->EV.Vint;
 
-                    if (i && e1->EV.sp.Vsym->Sfl == FLgot)
+                    if (i && e1->Eoper == OPrelconst && e1->EV.sp.Vsym->Sfl == FLgot)
                         break;
                     if (e->Eoper == OPmin)
                         i = -i;
