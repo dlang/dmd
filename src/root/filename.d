@@ -472,8 +472,10 @@ struct FileName
     {
         version (Windows)
         {
-            /* Disallow % // \\ : and .. in name characters
+            /* Disallow % // \\ : and .. in name characters, also disallows root accrss with \ and / at start of name
              */
+             if (*p == '\\' || *p == '/')
+                return null;
             for (const(char)* p = name; *p; p++)
             {
                 char c = *p;
