@@ -1,10 +1,17 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ * Entry point for DMD.
+ *
+ * This modules defines the entry point (main) for DMD, as well as related
+ * utilities needed for arguments parsing, path manipulation, etc...
+ * This file is not shared with other compilers which use the DMD front-end.
+ *
+ * Copyright:   Copyright (c) 1999-2015 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC mars.d)
+ */
 
 module ddmd.mars;
 
@@ -50,7 +57,16 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.traits;
 
-/** Normalize path by turning forward slashes into backslashes */
+
+/**
+ * Normalize path by turning forward slashes into backslashes
+ *
+ * Params:
+ *   src = Source path, using unix-style ('/') path separators
+ *
+ * Returns:
+ *   A newly-allocated string with '/' turned into backslashes
+ */
 extern (C++) const(char)* toWinPath(const(char)* src)
 {
     if (src is null)
@@ -66,6 +82,14 @@ extern (C++) const(char)* toWinPath(const(char)* src)
     return result;
 }
 
+
+/**
+ * Reads a file, terminate the program on error
+ *
+ * Params:
+ *   loc = The line number information from where the call originates
+ *   f = a `ddmd.root.file.File` handle to read
+ */
 extern (C++) void readFile(Loc loc, File* f)
 {
     if (f.read())
@@ -75,6 +99,14 @@ extern (C++) void readFile(Loc loc, File* f)
     }
 }
 
+
+/**
+ * Writes a file, terminate the program on error
+ *
+ * Params:
+ *   loc = The line number information from where the call originates
+ *   f = a `ddmd.root.file.File` handle to write
+ */
 extern (C++) void writeFile(Loc loc, File* f)
 {
     if (f.write())
@@ -84,6 +116,15 @@ extern (C++) void writeFile(Loc loc, File* f)
     }
 }
 
+
+/**
+ * Ensure the root path (the path minus the name) of the provided path
+ * exists, and terminate the process if it doesn't.
+ *
+ * Params:
+ *   loc = The line number information from where the call originates
+ *   name = a path to check (the name is stripped)
+ */
 extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
 {
     const(char)* pt = FileName.path(name);
@@ -98,11 +139,19 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
     FileName.free(pt);
 }
 
+
+/**
+ * Print DMD's logo on stdout
+ */
 extern (C++) static void logo()
 {
     printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
 }
 
+
+/**
+ * Print DMD's usage message on stdout
+ */
 extern (C++) static void usage()
 {
     static if (TARGET_LINUX)
@@ -200,14 +249,25 @@ Usage:
 ", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
 }
 
+/// DMD-generated module `__entrypoint` where the C main resides
 extern (C++) __gshared Module entrypoint = null;
+/// Module in which the D main is
 extern (C++) __gshared Module rootHasMain = null;
 
-/************************************
+
+/**
  * Generate C main() in response to seeing D main().
+ *
+ * This function will generate a module called `__entrypoint`,
+ * and set the globals `entrypoint` and `rootHasMain`.
+ *
  * This used to be in druntime, but contained a reference to _Dmain
  * which didn't work when druntime was made into a dll and was linked
  * to a program, such as a C++ program, that didn't have a _Dmain.
+ *
+ * Params:
+ *   sc = Scope which triggered the generation of the C main,
+ *        used to get the module where the D main is.
  */
 extern (C++) void genCmain(Scope* sc)
 {
@@ -249,6 +309,20 @@ extern (C++) void genCmain(Scope* sc)
     rootHasMain = sc._module;
 }
 
+
+/**
+ * DMD's real entry point
+ *
+ * Parses command line arguments and config file, open and read all
+ * provided source file and do semantic analysis on them.
+ *
+ * Params:
+ *   argc = Number of arguments passed via command line
+ *   argv = Array of string arguments passed via command line
+ *
+ * Returns:
+ *   Application return code
+ */
 extern (C++) int tryMain(size_t argc, const(char)** argv)
 {
     Strings files;
@@ -1681,6 +1755,13 @@ Language changes listed by -transition=id:
     return status;
 }
 
+
+/**
+ * Entry point which forwards to `tryMain`.
+ *
+ * Returns:
+ *   Return code of the application
+ */
 int main()
 {
     import core.memory;
@@ -1698,9 +1779,17 @@ int main()
     return tryMain(args.argc, cast(const(char)**)args.argv);
 }
 
-/***********************************
- * Parse and append contents of command line string envvalue to args[].
- * The string is separated into arguments, processing \ and ".
+
+/**
+ * Parses an environment variable containing command-line flags
+ * and append them to `args`.
+ *
+ * This function is used to read the content of DFLAGS.
+ * Flags are separated based on spaces and tabs.
+ *
+ * Params:
+ *   envvalue = The content of an environment variable
+ *   args     = Array to append the flags to, if any.
  */
 extern (C++) void getenv_setargv(const(char)* envvalue, Strings* args)
 {
@@ -1772,6 +1861,14 @@ extern (C++) void getenv_setargv(const(char)* envvalue, Strings* args)
     }
 }
 
+
+/**
+ * Takes a path, and escapes '(', ')' and backslashes
+ *
+ * Params:
+ *   buf = Buffer to write the escaped path to
+ *   fname = Path to escape
+ */
 extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
 {
     while (1)
@@ -1792,9 +1889,19 @@ extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
     }
 }
 
-/***********************************
+
+/**
  * Parse command line arguments for -m32 or -m64
  * to detect the desired architecture.
+ *
+ * Params:
+ *   args = Command line arguments
+ *   arch = Default value to use for architecture.
+ *          Should be "32" or "64"
+ *
+ * Returns:
+ *   "32", "64" or "32mscoff" if the "-m32", "-m64", "-m32mscoff" flags were passed,
+ *   respectively. If they weren't, return `arch`.
  */
 extern (C++) static const(char)* parse_arch_arg(Strings* args, const(char)* arch)
 {
@@ -1812,8 +1919,15 @@ extern (C++) static const(char)* parse_arch_arg(Strings* args, const(char)* arch
     return arch;
 }
 
-/***********************************
+
+/**
  * Parse command line arguments for -conf=path.
+ *
+ * Params:
+ *   args = Command line arguments
+ *
+ * Returns:
+ *   Path to the config file to use
  */
 extern (C++) static const(char)* parse_conf_arg(Strings* args)
 {
@@ -1832,16 +1946,37 @@ extern (C++) static const(char)* parse_conf_arg(Strings* args)
     return conf;
 }
 
+
+/**
+ * Helper function used by the glue layer
+ *
+ * Returns:
+ *   A new array of Dsymbol
+ */
 extern (C++) Dsymbols* Dsymbols_create()
 {
     return new Dsymbols();
 }
 
+
+/**
+ * Helper function used by the glue layer
+ *
+ * Returns:
+ *   A new array of VarDeclaration
+ */
 extern (C++) VarDeclarations* VarDeclarations_create()
 {
     return new VarDeclarations();
 }
 
+
+/**
+ * Helper function used by the glue layer
+ *
+ * Returns:
+ *   A new array of Expression
+ */
 extern (C++) Expressions* Expressions_create()
 {
     return new Expressions();
