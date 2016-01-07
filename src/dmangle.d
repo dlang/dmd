@@ -1,16 +1,18 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
+ *
+ * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors: Walter Bright, http://www.digitalmars.com
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(DMDSRC dmangle.d)
+ */
 
 module ddmd.dmangle;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
+
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.cppmangle;
@@ -195,14 +197,14 @@ public:
 
     override void visit(TypeFunction t)
     {
-        //printf("TypeFunction::toDecoBuffer() t = %p %s\n", t, t->toChars());
+        //printf("TypeFunction.toDecoBuffer() t = %p %s\n", t, t.toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
         mangleFuncType(t, t, t.mod, t.next);
     }
 
     void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
     {
-        //printf("mangleFuncType() %s\n", t->toChars());
+        //printf("mangleFuncType() %s\n", t.toChars());
         if (t.inuse)
         {
             t.inuse = 2; // flag error to caller
@@ -264,7 +266,7 @@ public:
         }
         // Write argument types
         paramsToDecoBuffer(t.parameters);
-        //if (buf->data[buf->offset - 1] == '@') assert(0);
+        //if (buf.data[buf.offset - 1] == '@') assert(0);
         buf.writeByte('Z' - t.varargs); // mark end of arg list
         if (tret !is null)
             visitWithMask(tret, 0);
@@ -287,21 +289,21 @@ public:
 
     override void visit(TypeStruct t)
     {
-        //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", t->toChars(), name);
+        //printf("TypeStruct.toDecoBuffer('%s') = '%s'\n", t.toChars(), name);
         visit(cast(Type)t);
         t.sym.accept(this);
     }
 
     override void visit(TypeClass t)
     {
-        //printf("TypeClass::toDecoBuffer('%s' mod=%x) = '%s'\n", t->toChars(), mod, name);
+        //printf("TypeClass.toDecoBuffer('%s' mod=%x) = '%s'\n", t.toChars(), mod, name);
         visit(cast(Type)t);
         t.sym.accept(this);
     }
 
     override void visit(TypeTuple t)
     {
-        //printf("TypeTuple::toDecoBuffer() t = %p, %s\n", t, t->toChars());
+        //printf("TypeTuple.toDecoBuffer() t = %p, %s\n", t, t.toChars());
         visit(cast(Type)t);
         OutBuffer buf2;
         buf2.reserve(32);
@@ -359,8 +361,8 @@ public:
 
     void mangleFunc(FuncDeclaration fd, bool inParent)
     {
-        //printf("deco = '%s'\n", fd->type->deco ? fd->type->deco : "null");
-        //printf("fd->type = %s\n", fd->type->toChars());
+        //printf("deco = '%s'\n", fd.type.deco ? fd.type.deco : "null");
+        //printf("fd.type = %s\n", fd.type.toChars());
         if (fd.needThis() || fd.isNested())
             buf.writeByte(Type.needThisPrefix());
         if (inParent)
@@ -397,8 +399,8 @@ public:
 
     override void visit(Declaration d)
     {
-        //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
-        //        d, d->toChars(), d->parent ? d->parent->toChars() : "null", d->linkage);
+        //printf("Declaration.mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
+        //        d, d.toChars(), d.parent ? d.parent.toChars() : "null", d.linkage);
         if (!d.parent || d.parent.isModule() || d.linkage == LINKcpp) // if at global scope
         {
             switch (d.linkage)
@@ -446,11 +448,11 @@ public:
      *      void foo(long) {}           // _D4test3fooFlZv
      *      void foo(string) {}         // _D4test3fooFAyaZv
      *
-     *      // from FuncDeclaration::mangle().
+     *      // from FuncDeclaration.mangle().
      *      pragma(msg, foo.mangleof);  // prints unexact mangled name "4test3foo"
-     *                                  // by calling Dsymbol::mangle()
+     *                                  // by calling Dsymbol.mangle()
      *
-     *      // from FuncAliasDeclaration::mangle()
+     *      // from FuncAliasDeclaration.mangle()
      *      pragma(msg, __traits(getOverloads, test, "foo")[0].mangleof);  // "_D4test3fooFlZv"
      *      pragma(msg, __traits(getOverloads, test, "foo")[1].mangleof);  // "_D4test3fooFAyaZv"
      *
@@ -458,7 +460,7 @@ public:
      *
      *      void bar() {}
      *      pragma(msg, bar.mangleof);  // still prints "_D4test3barFZv"
-     *                                  // by calling FuncDeclaration::mangleExact().
+     *                                  // by calling FuncDeclaration.mangleExact().
      */
     override void visit(FuncDeclaration fd)
     {
@@ -566,7 +568,7 @@ public:
     {
         version (none)
         {
-            printf("TemplateInstance::mangle() %p %s", ti, ti.toChars());
+            printf("TemplateInstance.mangle() %p %s", ti, ti.toChars());
             if (ti.parent)
                 printf("  parent = %s %s", ti.parent.kind(), ti.parent.toChars());
             printf("\n");
@@ -578,14 +580,14 @@ public:
         ti.getIdent();
         const(char)* id = ti.ident ? ti.ident.toChars() : ti.toChars();
         toBuffer(id, ti);
-        //printf("TemplateInstance::mangle() %s = %s\n", ti->toChars(), ti->id);
+        //printf("TemplateInstance.mangle() %s = %s\n", ti.toChars(), ti.id);
     }
 
     override void visit(Dsymbol s)
     {
         version (none)
         {
-            printf("Dsymbol::mangle() '%s'", s.toChars());
+            printf("Dsymbol.mangle() '%s'", s.toChars());
             if (s.parent)
                 printf("  parent = %s %s", s.parent.kind(), s.parent.toChars());
             printf("\n");
@@ -593,7 +595,7 @@ public:
         mangleParent(s);
         char* id = s.ident ? s.ident.toChars() : s.toChars();
         toBuffer(id, s);
-        //printf("Dsymbol::mangle() %s = %s\n", s->toChars(), id);
+        //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -771,7 +773,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     void paramsToDecoBuffer(Parameters* parameters)
     {
-        //printf("Parameter::paramsToDecoBuffer()\n");
+        //printf("Parameter.paramsToDecoBuffer()\n");
 
         int paramsToDecoBufferDg(size_t n, Parameter p)
         {
