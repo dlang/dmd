@@ -2302,10 +2302,8 @@ public:
 
         sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
-        sc = sc.push(sym);
-
-        sc.noctor++;
-
+        auto sc2 = sc.push(sym);
+        sc2.noctor++;
         switch (tab.ty)
         {
         case Tarray:
@@ -2328,7 +2326,7 @@ public:
                 {
                     int i = (dim == 1) ? 0 : 1; // index of value
                     Parameter p = (*parameters)[i];
-                    p.type = p.type.semantic(loc, sc);
+                    p.type = p.type.semantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     tnv = p.type.toBasetype();
                     if (tnv.ty != tn.ty &&
@@ -2356,7 +2354,7 @@ public:
                 {
                     // Declare parameterss
                     Parameter p = (*parameters)[i];
-                    p.type = p.type.semantic(loc, sc);
+                    p.type = p.type.semantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     VarDeclaration var;
 
@@ -2401,7 +2399,7 @@ public:
                         value = var;
                         if (var.storage_class & STCref)
                         {
-                            if (aggr.checkModifiable(sc, 1) == 2)
+                            if (aggr.checkModifiable(sc2, 1) == 2)
                                 var.storage_class |= STCctorinit;
 
                             Type t = tab.nextOf();
@@ -2510,9 +2508,9 @@ public:
                 _body = new CompoundStatement(loc, ds, _body);
 
                 s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
-                if (LabelStatement ls = checkLabeledLoop(sc, this))
+                if (auto ls = checkLabeledLoop(sc, this))   // Bugzilla 15450: don't use sc2
                     ls.gotoTarget = s;
-                s = s.semantic(sc);
+                s = s.semantic(sc2);
                 break;
             }
         case Taarray:
@@ -2677,7 +2675,7 @@ public:
                         }
                         if (!p.type)
                             p.type = exp.type;
-                        p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc);
+                        p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc2);
                         if (!exp.implicitConvTo(p.type))
                             goto Lrangeerr;
 
@@ -2700,7 +2698,7 @@ public:
                     printf("increment: %s\n", increment.toChars());
                     printf("body: %s\n", forbody.toChars());
                 }
-                s = s.semantic(sc);
+                s = s.semantic(sc2);
                 break;
 
             Lrangeerr:
@@ -2714,7 +2712,7 @@ public:
             {
                 if (checkForArgTypes())
                 {
-                    _body = _body.semanticNoScope(sc);
+                    _body = _body.semanticNoScope(sc2);
                     return this;
                 }
 
@@ -2725,7 +2723,7 @@ public:
                     if (fdapply)
                     {
                         assert(fdapply.type && fdapply.type.ty == Tfunction);
-                        tfld = cast(TypeFunction)fdapply.type.semantic(loc, sc);
+                        tfld = cast(TypeFunction)fdapply.type.semantic(loc, sc2);
                         goto Lget;
                     }
                     else if (tab.ty == Tdelegate)
@@ -2738,7 +2736,7 @@ public:
                             Parameter p = Parameter.getNth(tfld.parameters, 0);
                             if (p.type && p.type.ty == Tdelegate)
                             {
-                                Type t = p.type.semantic(loc, sc);
+                                auto t = p.type.semantic(loc, sc2);
                                 assert(t.ty == Tdelegate);
                                 tfld = cast(TypeFunction)t.nextOf();
                             }
@@ -2756,7 +2754,7 @@ public:
                     StorageClass stc = STCref;
                     Identifier id;
 
-                    p.type = p.type.semantic(loc, sc);
+                    p.type = p.type.semantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     if (tfld)
                     {
@@ -2803,7 +2801,7 @@ public:
                 auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, this);
                 fld.fbody = _body;
                 Expression flde = new FuncExp(loc, fld);
-                flde = flde.semantic(sc);
+                flde = flde.semantic(sc2);
                 fld.tookAddressOf = 0;
 
                 // Resolve any forward referenced goto's
@@ -2824,7 +2822,7 @@ public:
                 if (vinit)
                 {
                     e = new DeclarationExp(loc, vinit);
-                    e = e.semantic(sc);
+                    e = e.semantic(sc2);
                     if (e.op == TOKerror)
                         goto Lerror2;
                 }
@@ -2947,7 +2945,7 @@ public:
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
                     if (tab.ty == Tsarray)
-                        aggr = aggr.castTo(sc, tn.arrayOf());
+                        aggr = aggr.castTo(sc2, tn.arrayOf());
                     // paint delegate argument to the type runtime expects
                     if (!dgty.equals(flde.type))
                     {
@@ -2969,7 +2967,7 @@ public:
                         aggr = (cast(DelegateExp)aggr).e1;
                     }
                     ec = new CallExp(loc, aggr, flde);
-                    ec = ec.semantic(sc);
+                    ec = ec.semantic(sc2);
                     if (ec.op == TOKerror)
                         goto Lerror2;
                     if (ec.type != Type.tint32)
@@ -2987,7 +2985,7 @@ public:
                      */
                     ec = new DotIdExp(loc, aggr, sapply.ident);
                     ec = new CallExp(loc, ec, flde);
-                    ec = ec.semantic(sc);
+                    ec = ec.semantic(sc2);
                     if (ec.op == TOKerror)
                         goto Lerror2;
                     if (ec.type != Type.tint32)
@@ -3025,7 +3023,7 @@ public:
                     s = new CompoundStatement(loc, a);
                     s = new SwitchStatement(loc, e, s, false);
                 }
-                s = s.semantic(sc);
+                s = s.semantic(sc2);
                 break;
             }
         case Terror:
@@ -3037,8 +3035,8 @@ public:
             error("foreach: %s is not an aggregate type", aggr.type.toChars());
             goto Lerror2;
         }
-        sc.noctor--;
-        sc.pop();
+        sc2.noctor--;
+        sc2.pop();
         return s;
     }
 
