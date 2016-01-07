@@ -447,7 +447,7 @@ extern (C++) int runLINK()
         Strings argv;
         const(char)* cc = getenv("CC");
         if (!cc)
-            cc = "gcc";
+            cc = "cc";
         argv.push(cc);
         argv.insert(1, global.params.objfiles);
         version (OSX)

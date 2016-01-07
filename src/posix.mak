@@ -30,14 +30,24 @@ ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
 
-#ifeq (osx,$(OS))
-#	HOST_CC=clang++
-#else
-	HOST_CC=g++
-#endif
-CC=$(HOST_CC)
+HOST_CXX=c++
+# compatibility with old behavior
+ifneq ($(HOST_CC),)
+  $(warning ===== WARNING: Please use HOST_CXX=$(HOST_CC) instead of HOST_CC=$(HOST_CC). =====)
+  HOST_CXX=$(HOST_CC)
+endif
+CXX=$(HOST_CXX)
 AR=ar
 GIT=git
+
+# determine whether CXX is gcc or clang based
+CXX_VERSION:=$(shell $(CXX) --version)
+ifneq (,$(filter %g++% %gcc% %GCC%,$(CXX_VERSION)))
+	CXX_KIND=g++
+endif
+ifneq (,$(filter %clang++% %clang%,$(CXX_VERSION)))
+	CXX_KIND=clang++
+endif
 
 HOST_DC?=
 ifneq (,$(HOST_DC))
@@ -92,16 +102,16 @@ WARNINGS := -Wall -Wextra \
 	-Wno-unused-value \
 	-Wno-unused-variable
 # GCC Specific
-ifeq ($(HOST_CC), g++)
-WARNINGS := $(WARNINGS) \
+ifeq ($(CXX_KIND), g++)
+WARNINGS += \
 	-Wno-logical-op \
 	-Wno-narrowing \
 	-Wno-unused-but-set-variable \
 	-Wno-uninitialized
 endif
 # Clang Specific
-ifeq ($(HOST_CC), clang++)
-WARNINGS := $(WARNINGS) \
+ifeq ($(HOST_CXX_KIND), clang++)
+WARNINGS += \
 	-Wno-tautological-constant-out-of-range-compare \
 	-Wno-tautological-compare \
 	-Wno-constant-logical-operand \
@@ -112,8 +122,8 @@ else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
 # Clang Specific
-ifeq ($(HOST_CC), clang++)
-WARNINGS := $(WARNINGS) \
+ifeq ($(CXX_KIND), clang++)
+WARNINGS += \
     -Wno-logical-op-parentheses \
     -Wno-dynamic-class-memaccess \
     -Wno-switch
@@ -125,13 +135,13 @@ OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 MMD=-MMD -MF $(basename $@).deps
 
 # Default compiler flags for all source files
-CFLAGS := $(WARNINGS) \
+CXXFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
 	$(MODEL_FLAG)
 # GCC Specific
-ifeq ($(HOST_CC), g++)
-CFLAGS := $(CFLAGS) \
+ifeq ($(CXX_KIND), g++)
+CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
@@ -146,24 +156,24 @@ endif
 
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
-CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
+CXXFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
 DFLAGS += -g -debug -unittest
 endif
 ifdef ENABLE_RELEASE
-CFLAGS += -O2
+CXXFLAGS += -O2
 DFLAGS += -O -release -inline
 endif
 ifdef ENABLE_PROFILING
-CFLAGS  += -pg -fprofile-arcs -ftest-coverage
+CXXFLAGS  += -pg -fprofile-arcs -ftest-coverage
 endif
 ifdef ENABLE_PGO_GENERATE
-CFLAGS  += -fprofile-generate=${PGO_DIR}
+CXXFLAGS  += -fprofile-generate=${PGO_DIR}
 endif
 ifdef ENABLE_PGO_USE
-CFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
+CXXFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
 endif
 ifdef ENABLE_LTO
-CFLAGS  += -flto
+CXXFLAGS  += -flto
 endif
 ifdef ENABLE_UNITTEST
 DFLAGS  += -unittest -cov
@@ -305,14 +315,14 @@ backend.a: $(BACK_OBJS)
 	$(AR) rcs backend.a $(BACK_OBJS)
 
 dmd_frontend: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o $(GLUE_OBJS) $(BACK_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
 dmd: $(DMD_SRCS) $(ROOT_SRCS) newdelete.o glue.a backend.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J. -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 endif
 
 clean:
@@ -352,7 +362,7 @@ dmd.conf:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(CC) $(CFLAGS) -I$(TK) $< -o optabgen
+	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -364,7 +374,7 @@ idgen_output = id.h id.d
 $(idgen_output) : idgen
 
 idgen: idgen.d $(HOST_DMD_PATH)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) $<
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) $<
 	./idgen
 
 #########
@@ -397,7 +407,7 @@ $(BACK_OBJS) : $(optabgen_output)
 
 # Specific dependencies other than the source file for all objects
 ########################################################################
-# If additional flags are needed for a specific file add a _CFLAGS as a
+# If additional flags are needed for a specific file add a _CXXFLAGS as a
 # dependency to the object file and assign the appropriate content.
 
 cg.o: fltables.c
@@ -408,7 +418,7 @@ cgelem.o: elxxx.c
 
 debug.o: debtab.c
 
-iasm.o: CFLAGS += -fexceptions
+iasm.o: CXXFLAGS += -fexceptions
 
 var.o: optab.c tytab.c
 
@@ -421,15 +431,15 @@ vpath %.c $(C)
 
 $(BACK_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  BACK_OBJS  $<"
-	$(CC) -c $(CFLAGS) $(BACK_FLAGS) $(MMD) $<
+	$(CXX) -c $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
 $(GLUE_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  GLUE_OBJS  $<"
-	$(CC) -c $(CFLAGS) $(GLUE_FLAGS) $(MMD) $<
+	$(CXX) -c $(CXXFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
 newdelete.o: %.o: $(ROOT)/%.c posix.mak
 	@echo "  (CC)  ROOT_OBJS  $<"
-	$(CC) -c $(CFLAGS) $(ROOT_FLAGS) $(MMD) $<
+	$(CXX) -c $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
 
 -include $(DEPS)
@@ -447,7 +457,7 @@ install: all
 ######################################################
 
 checkwhitespace: $(HOST_DMD_PATH)
-	CC=$(HOST_CC) $(HOST_DMD_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -run checkwhitespace $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
 
 ######################################################
 
@@ -463,7 +473,7 @@ zip:
 ######################################################
 
 ../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
-	$(HOST_DMD_RUN) -Df$@ $<
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -Df$@ $<
 
 #############################
 
