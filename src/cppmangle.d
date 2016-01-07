@@ -1,14 +1,17 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
+ *
+ * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors: Walter Bright, http://www.digitalmars.com
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(DMDSRC cppmangle.d)
+ */
 
 module ddmd.cppmangle;
 
 import core.stdc.string;
+import core.stdc.stdio;
+
 import ddmd.arraytypes;
 import ddmd.declaration;
 import ddmd.dstruct;
@@ -65,7 +68,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         bool substitute(RootObject p)
         {
-            //printf("substitute %s\n", p ? p->toChars() : NULL);
+            //printf("substitute %s\n", p ? p.toChars() : null);
             if (components_on)
                 for (size_t i = 0; i < components.dim; i++)
                 {
@@ -85,7 +88,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         bool exist(RootObject p)
         {
-            //printf("exist %s\n", p ? p->toChars() : NULL);
+            //printf("exist %s\n", p ? p.toChars() : null);
             if (components_on)
                 for (size_t i = 0; i < components.dim; i++)
                 {
@@ -99,14 +102,14 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void store(RootObject p)
         {
-            //printf("store %s\n", p ? p->toChars() : NULL);
+            //printf("store %s\n", p ? p.toChars() : null);
             if (components_on)
                 components.push(p);
         }
 
         void source_name(Dsymbol s, bool skipname = false)
         {
-            //printf("source_name(%s)\n", s->toChars());
+            //printf("source_name(%s)\n", s.toChars());
             TemplateInstance ti = s.isTemplateInstance();
             if (ti)
             {
@@ -241,7 +244,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void prefix_name(Dsymbol s)
         {
-            //printf("prefix_name(%s)\n", s->toChars());
+            //printf("prefix_name(%s)\n", s.toChars());
             if (!substitute(s))
             {
                 Dsymbol p = s.toParent();
@@ -284,7 +287,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void cpp_mangle_name(Dsymbol s, bool qualified)
         {
-            //printf("cpp_mangle_name(%s, %d)\n", s->toChars(), qualified);
+            //printf("cpp_mangle_name(%s, %d)\n", s.toChars(), qualified);
             Dsymbol p = s.toParent();
             Dsymbol se = s;
             bool dont_write_prefix = false;
@@ -409,7 +412,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void mangle_function(FuncDeclaration d)
         {
-            //printf("mangle_function(%s)\n", d->toChars());
+            //printf("mangle_function(%s)\n", d.toChars());
             /*
              * <mangled-name> ::= _Z <encoding>
              * <encoding> ::= <function name> <bare-function-type>
@@ -485,7 +488,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
                     t.error(Loc(), "Use pointer instead.");
                     assert(0);
-                    //t = t->nextOf()->pointerTo();
+                    //t = t.nextOf().pointerTo();
                 }
                 /* If it is a basic, enum or struct type,
                  * then don't mark it const
@@ -696,7 +699,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 buf.writeByte('K');
             assert(t.basetype && t.basetype.ty == Tsarray);
             assert((cast(TypeSArray)t.basetype).dim);
-            //buf.printf("Dv%llu_", ((TypeSArray *)t->basetype)->dim->toInteger());// -- Gnu ABI v.4
+            //buf.printf("Dv%llu_", ((TypeSArray *)t.basetype).dim.toInteger());// -- Gnu ABI v.4
             buf.writestring("U8__vector"); //-- Gnu ABI v.3
             t.basetype.nextOf().accept(this);
         }
@@ -772,7 +775,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
              BUG: Right now, types of functions are never merged, so our simplistic
              component matcher always finds them to be different.
-             We should use Type::equals on these, and use different
+             We should use Type.equals on these, and use different
              TypeFunctions for non-static member functions, and non-static
              member functions of different classes.
              */
@@ -798,7 +801,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         override void visit(TypeStruct t)
         {
             Identifier id = t.sym.ident;
-            //printf("struct id = '%s'\n", id->toChars());
+            //printf("struct id = '%s'\n", id.toChars());
             char c;
             if (id == Id.__c_long)
                 c = 'l';
@@ -894,7 +897,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
     extern (C++) char* toCppMangle(Dsymbol s)
     {
-        //printf("toCppMangle(%s)\n", s->toChars());
+        //printf("toCppMangle(%s)\n", s.toChars());
         scope CppMangleVisitor v = new CppMangleVisitor();
         return v.mangleOf(s);
     }
@@ -1162,7 +1165,7 @@ else static if (TARGET_WINDOS)
 
         override void visit(TypeReference type)
         {
-            //printf("visit(TypeReference); type = %s\n", type->toChars());
+            //printf("visit(TypeReference); type = %s\n", type.toChars());
             if (checkTypeSaved(type))
                 return;
             if (type.isImmutable() || type.isShared())
@@ -1463,7 +1466,7 @@ else static if (TARGET_WINDOS)
 
         void mangleName(Dsymbol sym, bool dont_use_back_reference = false)
         {
-            //printf("mangleName('%s')\n", sym->toChars());
+            //printf("mangleName('%s')\n", sym.toChars());
             const(char)* name = null;
             bool is_dmc_template = false;
             if (sym.isDtorDeclaration())
@@ -1681,7 +1684,7 @@ else static if (TARGET_WINDOS)
             //                ::= <template arg>
             // <template arg>  ::= <type>
             //                ::= $0<encoded integral number>
-            //printf("mangleIdent('%s')\n", sym->toChars());
+            //printf("mangleIdent('%s')\n", sym.toChars());
             Dsymbol p = sym;
             if (p.toParent() && p.toParent().isTemplateInstance())
             {
