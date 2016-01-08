@@ -444,6 +444,7 @@ DDOC_PARAM_ROW = $(TR $0)
 DDOC_PARAM_ID  = $(TD $0)
 DDOC_PARAM_DESC = $(TD $0)
 DDOC_BLANKLINE  = $(BR)$(BR)
+DDOC_PARAGRAPH_SEPARATOR =
 
 DDOC_ANCHOR     = <a name=\"$1\"></a>
 DDOC_PSYMBOL    = $(U $0)
@@ -2133,10 +2134,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
-    int leadingBlank = 1;
-    int inCode = 0;
-    int inBacktick = 0;
-    //int inComment = 0;                  // in <!-- ... --> comment
+    bool leadingBlank = true;
+    bool inCode = 0;
+    bool inBacktick = 0;
+    uint blankLineRun = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
     size_t iLineStart = offset;
@@ -2165,11 +2166,39 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline, strlen(blankline));
+                static immutable blankline = "$(DDOC_BLANKLINE)\n";
+                i = buf.insert(i, blankline.ptr, blankline.length);
             }
-            leadingBlank = 1;
             iLineStart = i + 1;
+            leadingBlank = true;
+            if (inCode)
+            {
+                // Once a section of code is active, blank line runs are reset
+                blankLineRun = 0;
+            }
+            else
+            {
+                // Group two or more newlines into a paragraph break
+                if (i + 1 >= buf.offset) break; // end of file, uninteresting
+                // Look ahead to see if the run is continuing
+                switch (c = buf.data[i + 1])
+                {
+                    case ' ', '\t', '\r':
+                        break;
+                    case '\n':
+                        blankLineRun++;
+                        break;
+                    default:
+                        // End of a run!
+                        if (blankLineRun == 0) break; // just one newline
+                        // Time to insert the paragraph break.
+                        static immutable ps = "$(DDOC_PARAGRAPH_SEPARATOR)";
+                        i = buf.insert(i, ps.ptr, ps.length);
+                        // Reset the counter for the next run
+                        blankLineRun = 0;
+                        break;
+                }
+            }
             break;
         case '<':
             {
@@ -2301,100 +2330,103 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             /* A line beginning with --- delimits a code section.
              * inCode tells us if it is start or end of a code section.
              */
-            if (leadingBlank)
+            if (!leadingBlank)
             {
-                size_t istart = i;
-                size_t eollen = 0;
-                leadingBlank = 0;
-                while (1)
+                // No special meaning uness '-' is the first non-ws in a line
+                break;
+            }
+            size_t istart = i;
+            size_t eollen = 0;
+            leadingBlank = 0;
+            while (1)
+            {
+                ++i;
+                if (i >= buf.offset)
+                    break;
+                c = buf.data[i];
+                if (c == '\n')
                 {
-                    ++i;
-                    if (i >= buf.offset)
-                        break;
-                    c = buf.data[i];
-                    if (c == '\n')
-                    {
-                        eollen = 1;
-                        break;
-                    }
-                    if (c == '\r')
-                    {
-                        eollen = 1;
-                        if (i + 1 >= buf.offset)
-                            break;
-                        if (buf.data[i + 1] == '\n')
-                        {
-                            eollen = 2;
-                            break;
-                        }
-                    }
-                    // BUG: handle UTF PS and LS too
-                    if (c != '-')
-                        goto Lcont;
-                }
-                if (i - istart < 3)
-                    goto Lcont;
-                // We have the start/end of a code section
-                // Remove the entire --- line, including blanks and \n
-                buf.remove(iLineStart, i - iLineStart + eollen);
-                i = iLineStart;
-                if (inCode && (i <= iCodeStart))
-                {
-                    // Empty code section, just remove it completely.
-                    inCode = 0;
+                    eollen = 1;
                     break;
                 }
-                if (inCode)
+                if (c == '\r')
                 {
-                    inCode = 0;
-                    // The code section is from iCodeStart to i
-                    OutBuffer codebuf;
-                    codebuf.write(buf.data + iCodeStart, i - iCodeStart);
-                    codebuf.writeByte(0);
-                    // Remove leading indentations from all lines
-                    bool lineStart = true;
-                    char* endp = cast(char*)codebuf.data + codebuf.offset;
-                    for (char* p = cast(char*)codebuf.data; p < endp;)
+                    eollen = 1;
+                    if (i + 1 >= buf.offset)
+                        break;
+                    if (buf.data[i + 1] == '\n')
                     {
-                        if (lineStart)
-                        {
-                            size_t j = codeIndent;
-                            char* q = p;
-                            while (j-- > 0 && q < endp && isIndentWS(q))
-                                ++q;
-                            codebuf.remove(p - cast(char*)codebuf.data, q - p);
-                            assert(cast(char*)codebuf.data <= p);
-                            assert(p < cast(char*)codebuf.data + codebuf.offset);
-                            lineStart = false;
-                            endp = cast(char*)codebuf.data + codebuf.offset; // update
-                            continue;
-                        }
-                        if (*p == '\n')
-                            lineStart = true;
-                        ++p;
+                        eollen = 2;
+                        break;
                     }
-                    highlightCode2(sc, a, &codebuf, 0);
-                    buf.remove(iCodeStart, i - iCodeStart);
-                    i = buf.insert(iCodeStart, codebuf.data, codebuf.offset);
-                    i = buf.insert(i, cast(const(char)*)")\n", 2);
-                    i -= 2; // in next loop, c should be '\n'
                 }
-                else
+                // BUG: handle UTF PS and LS too
+                if (c != '-')
+                    goto Lcont;
+            }
+            if (i - istart < 3)
+                goto Lcont;
+            // We have the start/end of a code section
+            // Remove the entire --- line, including blanks and \n
+            buf.remove(iLineStart, i - iLineStart + eollen);
+            i = iLineStart;
+            if (inCode && (i <= iCodeStart))
+            {
+                // Empty code section, just remove it completely.
+                inCode = 0;
+                break;
+            }
+            if (inCode)
+            {
+                inCode = 0;
+                // The code section is from iCodeStart to i
+                OutBuffer codebuf;
+                codebuf.write(buf.data + iCodeStart, i - iCodeStart);
+                codebuf.writeByte(0);
+                // Remove leading indentations from all lines
+                bool lineStart = true;
+                char* endp = cast(char*)codebuf.data + codebuf.offset;
+                for (char* p = cast(char*)codebuf.data; p < endp;)
                 {
-                    static __gshared const(char)* d_code = "$(D_CODE ";
-                    inCode = 1;
-                    codeIndent = istart - iLineStart; // save indent count
-                    i = buf.insert(i, d_code, strlen(d_code));
-                    iCodeStart = i;
-                    i--; // place i on >
-                    leadingBlank = true;
+                    if (lineStart)
+                    {
+                        size_t j = codeIndent;
+                        char* q = p;
+                        while (j-- > 0 && q < endp && isIndentWS(q))
+                            ++q;
+                        codebuf.remove(p - cast(char*)codebuf.data, q - p);
+                        assert(cast(char*)codebuf.data <= p);
+                        assert(p < cast(char*)codebuf.data + codebuf.offset);
+                        lineStart = false;
+                        endp = cast(char*)codebuf.data + codebuf.offset; // update
+                        continue;
+                    }
+                    if (*p == '\n')
+                        lineStart = true;
+                    ++p;
                 }
+                highlightCode2(sc, a, &codebuf, 0);
+                buf.remove(iCodeStart, i - iCodeStart);
+                i = buf.insert(iCodeStart, codebuf.data, codebuf.offset);
+                i = buf.insert(i, cast(const(char)*)")\n", 2);
+                i -= 2; // in next loop, c should be '\n'
+            }
+            else
+            {
+                static __gshared const(char)* d_code = "$(D_CODE ";
+                inCode = 1;
+                codeIndent = istart - iLineStart; // save indent count
+                i = buf.insert(i, d_code, strlen(d_code));
+                iCodeStart = i;
+                i--; // place i on >
+                leadingBlank = true;
             }
             break;
         default:
             leadingBlank = 0;
             if (sc._module.isDocFile || inCode)
                 break;
+
             char* start = cast(char*)buf.data + i;
             if (isIdStart(start))
             {
