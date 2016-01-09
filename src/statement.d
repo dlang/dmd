@@ -4246,6 +4246,11 @@ public:
             error("goto default not in switch statement");
             return new ErrorStatement();
         }
+        if (sw.isFinal)
+        {
+            error("goto default not allowed in final switch statement");
+            return new ErrorStatement();
+        }
         return this;
     }
 
