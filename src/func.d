@@ -393,6 +393,7 @@ enum FUNCFLAGnogcInprocess    = 8;      // working on determining @nogc
 enum FUNCFLAGreturnInprocess  = 0x10;   // working on inferring 'return' for parameters
 enum FUNCFLAGinlineScanned    = 0x20;   // function has been scanned for inline possibilities
 
+
 /***********************************************************
  */
 extern (C++) class FuncDeclaration : Declaration
@@ -4665,7 +4666,8 @@ public:
             type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);
         sc = sc.push();
         sc.stc &= ~STCstatic; // not a static destructor
-        sc.linkage = LINKd;
+        if (sc.linkage != LINKcpp)
+            sc.linkage = LINKd;
         FuncDeclaration.semantic(sc);
         sc.pop();
     }

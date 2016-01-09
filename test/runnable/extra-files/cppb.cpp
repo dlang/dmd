@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <exception>
 
 /**************************************/
 
@@ -551,3 +552,30 @@ void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12)
 {
     fuzz3_checkValues(arg10, arg11, arg12);
 }
+
+/******************************************/
+
+void throwit()
+{
+#if _WIN32
+#else
+    std::exception se;
+    throw se;
+#endif
+}
+
+/******************************************/
+
+#if linux
+#include <stdexcept>
+
+void throwle()
+{
+     std::logic_error le("test");
+     throw le;
+}
+
+#endif
+
+/******************************************/
+

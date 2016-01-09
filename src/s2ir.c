@@ -47,6 +47,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 type *Type_toCtype(Type *t);
 elem *toElemDtor(Expression *e, IRState *irs);
 Symbol *toSymbol(Type *t);
+Symbol *toSymbolCpp(ClassDeclaration *cd);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 RET retStyle(TypeFunction *tf);
@@ -1069,7 +1070,8 @@ public:
             elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock->jcatchvar), el_una(OPind, TYnptr, e));
 #else
             //  jcatchvar = __dmd_catch_begin(__exception_object);
-            elem *e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_BEGIN_CATCH)), el_var(seo));
+            elem *ebegin = el_var(getRtlsym(RTLSYM_BEGIN_CATCH));
+            elem *e = el_bin(OPcall, TYnptr, ebegin, el_var(seo));
             elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock->jcatchvar), e);
 #endif
 
@@ -1100,7 +1102,26 @@ public:
 
                 assert(cs->type);
 
-                Symbol *catchtype = toSymbol(cs->type->toBasetype());
+                /* The catch type can be a C++ class or a D class.
+                 * If a D class, insert a pointer to TypeInfo into the typesTable[].
+                 * If a C++ class, insert a pointer to __cpp_type_info_ptr into the typesTable[].
+                 */
+                Type *tcatch = cs->type->toBasetype();
+                ClassDeclaration *cd = tcatch->isClassHandle();
+                bool isCPPclass = cd->isCPPclass();
+                Symbol *catchtype;
+                if (isCPPclass)
+                {
+                    catchtype = toSymbolCpp(cd);
+                    if (i == 0)
+                    {
+                        // rewrite ebegin to use __cxa_begin_catch
+                        Symbol *s = getRtlsym(RTLSYM_CXA_BEGIN_CATCH);
+                        ebegin->EV.sp.Vsym = s;
+                    }
+                }
+                else
+                    catchtype = toSymbol(tcatch);
 
                 /* Look for catchtype in typesTable[] using linear search,
                  * insert if not already there,
@@ -1148,7 +1169,24 @@ public:
                         ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs->var)));
                         block_appendexp(catchState.blx->curblock, ex);
                     }
-                    Statement_toIR(cs->handler, &catchState);
+                    if (isCPPclass)
+                    {
+                        /* C++ catches need to end with call to __cxa_end_catch().
+                         * Create:
+                         *   try { handler } finally { __cxa_end_catch(); }
+                         * Note that this is worst case code because it always sets up an exception handler.
+                         * At some point should try to do better.
+                         */
+                        FuncDeclaration *fdend = FuncDeclaration::genCfunc(NULL, Type::tvoid, "__cxa_end_catch");
+                        Expression *ec = VarExp::create(Loc(), fdend);
+                        Expression *e = CallExp::create(Loc(), ec);
+                        e->type = Type::tvoid;
+                        Statement *sf = ExpStatement::create(Loc(), e);
+                        Statement *stf = TryFinallyStatement::create(Loc(), cs->handler, sf);
+                        Statement_toIR(stf, &catchState);
+                    }
+                    else
+                        Statement_toIR(cs->handler, &catchState);
                 }
                 blx->curblock->appendSucc(breakblock2);
                 if (i + 1 == numcases)
