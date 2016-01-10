@@ -198,6 +198,9 @@ public:
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
 
+    // unique number to distinguish same name symbols in function local
+    uint localNum;
+
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
@@ -246,10 +249,6 @@ public:
     override bool equals(RootObject o)
     {
         if (this == o)
-            return true;
-        Dsymbol s = cast(Dsymbol)o;
-        // Overload sets don't have an ident
-        if (s && ident && s.ident && ident.equals(s.ident))
             return true;
         return false;
     }
@@ -1913,8 +1912,9 @@ public:
     {
         Identifier ident = s.ident;
         Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
+        Dsymbol sprev = *ps;
         *ps = s;
-        return s;
+        return sprev;
     }
 
     // when ident and s are not the same

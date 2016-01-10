@@ -85,6 +85,7 @@ struct Ungag
 
 const char *mangle(Dsymbol *s);
 const char *mangleExact(FuncDeclaration *fd);
+unsigned getFunctionLocalNum(Scope *sc, Dsymbol *s);
 
 enum PROTKIND
 {
@@ -157,6 +158,7 @@ public:
     char *depmsg;               // customized deprecation message
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
+    unsigned localNum;          // unique number to distinguish same name symbols in function local
 
     Dsymbol();
     Dsymbol(Identifier *);

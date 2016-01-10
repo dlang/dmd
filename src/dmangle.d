@@ -19,6 +19,7 @@ import ddmd.cppmangle;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dmodule;
+import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
@@ -129,6 +130,18 @@ extern (C++) void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
     default:
         assert(0);
     }
+}
+
+extern (C++) uint getFunctionLocalNum(Scope *sc, Dsymbol s)
+{
+    auto fd = s.toParent().isFuncDeclaration();
+    if (!fd || fd.semanticRun != PASSsemantic3)
+        return 0;
+
+    auto sprev = fd.localsymtab.update(s);
+    //printf("[%s] %p %s, sprev = %p, fd = %s ==> num:%d\n",
+    //    s.loc.toChars(), s, s.toPrettyChars(), sprev, fd.toPrettyChars(), sprev ? sprev.localNum + 1 : 0);
+    return sprev ? sprev.localNum + 1 : 0;
 }
 
 extern (C++) final class Mangler : Visitor
@@ -319,6 +332,51 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+
+    void mangleParent(Dsymbol s)
+    {
+        TemplateInstance ti = s.isTemplateInstance();
+        if (ti && !ti.isTemplateMixin())
+            s = ti.tempdecl;
+        Dsymbol p = s.parent;
+
+        if (p)
+        {
+            mangleParent(p);
+            if (p.getIdent())
+            {
+                const(char)* id = p.ident.toChars();
+                toBuffer(id, p);
+                if (FuncDeclaration f = p.isFuncDeclaration())
+                    mangleFunc(f, true);
+            }
+            else
+                buf.writeByte('0');
+
+            mangleAnonScopeName(s.localNum);
+        }
+    }
+
+    void mangleAnonScopeName(uint num)
+    {
+        if (!num)
+            return;
+
+        OutBuffer tmp;
+        tmp.writestring("__S");
+
+        // Encode 'num' with the scheme "[A-Z]+"
+        --num;  // change to 0 base
+        do
+        {
+            uint r = num % 26;
+            tmp.writeByte(cast(char)('A' + r));
+            num = (num - r) % 26;
+        } while (num);
+
+        buf.printf("%llu%.*s", cast(ulong)tmp.offset, tmp.offset, tmp.data);
+    }
+
     void mangleDecl(Declaration sthis)
     {
         mangleParent(sthis);
@@ -335,28 +393,6 @@ public:
         }
         else
             assert(0);
-    }
-
-    void mangleParent(Dsymbol s)
-    {
-        Dsymbol p;
-        if (TemplateInstance ti = s.isTemplateInstance())
-            p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
-        else
-            p = s.parent;
-        if (p)
-        {
-            mangleParent(p);
-            if (p.getIdent())
-            {
-                const(char)* id = p.ident.toChars();
-                toBuffer(id, s);
-                if (FuncDeclaration f = p.isFuncDeclaration())
-                    mangleFunc(f, true);
-            }
-            else
-                buf.writeByte('0');
-        }
     }
 
     void mangleFunc(FuncDeclaration fd, bool inParent)
