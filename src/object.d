@@ -1846,6 +1846,13 @@ unittest
     }
 }
 
+/* Used in Exception Handling LSDA tables to 'wrap' C++ type info
+ * so it can be distinguished from D TypeInfo
+ */
+class __cpp_type_info_ptr
+{
+    void* ptr;          // opaque pointer to C++ RTTI type info
+}
 
 extern (C)
 {
