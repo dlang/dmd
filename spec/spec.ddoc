@@ -1,3 +1,55 @@
 ROOT_DIR = ../
 ROOT = ..
 SEARCHDEFAULT_SPEC = selected
+
+SUBNAV=
+$(SUBNAV_TEMPLATE
+    $(DIVC head,
+        $(H2 Language Reference)
+        $(TC p, subnav-duplicate,
+            $(LINK2 $(ROOT_DIR)spec/spec.html, table of contents))
+    )
+    $(UL
+        $(SUBMENU2
+            $(ROOT_DIR)spec/intro.html, Introduction,
+            $(ROOT_DIR)spec/lex.html, Lexical,
+            $(ROOT_DIR)spec/grammar.html, Grammar,
+            $(ROOT_DIR)spec/module.html, Modules,
+            $(ROOT_DIR)spec/declaration.html, Declarations,
+            $(ROOT_DIR)spec/type.html, Types,
+            $(ROOT_DIR)spec/property.html, Properties,
+            $(ROOT_DIR)spec/attribute.html, Attributes,
+            $(ROOT_DIR)spec/pragma.html, Pragmas,
+            $(ROOT_DIR)spec/expression.html, Expressions,
+            $(ROOT_DIR)spec/statement.html, Statements,
+            $(ROOT_DIR)spec/arrays.html, Arrays,
+            $(ROOT_DIR)spec/hash-map.html, Associative Arrays,
+            $(ROOT_DIR)spec/struct.html, Structs and Unions,
+            $(ROOT_DIR)spec/class.html, Classes,
+            $(ROOT_DIR)spec/interface.html, Interfaces,
+            $(ROOT_DIR)spec/enum.html, Enums,
+            $(ROOT_DIR)spec/const3.html, Const and Immutable,
+            $(ROOT_DIR)spec/function.html, Functions,
+            $(ROOT_DIR)spec/operatoroverloading.html, Operator Overloading,
+            $(ROOT_DIR)spec/template.html, Templates,
+            $(ROOT_DIR)spec/template-mixin.html, Template Mixins,
+            $(ROOT_DIR)spec/contracts.html, Contract Programming,
+            $(ROOT_DIR)spec/version.html, Conditional Compilation,
+            $(ROOT_DIR)spec/traits.html, Traits,
+            $(ROOT_DIR)spec/errors.html, Error Handling,
+            $(ROOT_DIR)spec/unittest.html, Unit Tests,
+            $(ROOT_DIR)spec/garbage.html, Garbage Collection,
+            $(ROOT_DIR)spec/float.html, Floating Point,
+            $(ROOT_DIR)spec/iasm.html, D x86 Inline Assembler,
+            $(ROOT_DIR)spec/ddoc.html, Embedded Documentation,
+            $(ROOT_DIR)spec/interfaceToC.html, Interfacing to C,
+            $(ROOT_DIR)spec/cpp_interface.html, Interfacing to C++,
+            $(ROOT_DIR)spec/objc_interface.html, Interfacing to Objective-C,
+            $(ROOT_DIR)spec/portability.html, Portability Guide,
+            $(ROOT_DIR)spec/entity.html, Named Character Entities,
+            $(ROOT_DIR)spec/memory-safe-d.html, Memory Safety,
+            $(ROOT_DIR)spec/abi.html, Application Binary Interface,
+            $(ROOT_DIR)spec/simd.html, Vector Extensions
+        )
+    )
+)
