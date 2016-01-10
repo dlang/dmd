@@ -21,7 +21,6 @@
 
 #include        "obj.h"
 
-#ifdef DEBUG
 extern char debuga;            /* cg - watch assignaddr()              */
 extern char debugb;            /* watch block optimization             */
 extern char debugc;            /* watch code generated                 */
@@ -37,22 +36,6 @@ extern char debugu;
 extern char debugw;            /* watch progress                       */
 extern char debugx;            /* suppress predefined CPP stuff        */
 extern char debugy;            /* watch output to il buffer            */
-#else
-#define debuga 0
-//#define debugb 0
-//#define debugc 0
-#define debugd 0
-#define debuge 0
-//#define debugf 0
-#define debugg 0
-#define debugo 0
-//#define debugr 0
-#define debugs 0
-#define debugt 0
-#define debugu 0
-//#define debugw 0
-//#define debugy 0
-#endif /* DEBUG */
 
 #define CR '\r'                 // Used because the MPW version of the compiler warps
 #define LF '\n'                 // \n into \r and \r into \n.  The translator version
@@ -445,8 +428,6 @@ void compdfo(void);
 
 #define block_initvar(s) (curblock->Binitvar = (s))
 
-#ifdef DEBUG
-
 /* debug.c */
 extern const char *regstring[];
 
@@ -462,21 +443,6 @@ void WRfunc();
 void WRdefnod();
 void WRFL(enum FL);
 char *sym_ident(SYMIDX si);
-
-#else
-#define WRclass(sc)
-#define WRTYxx(ty)
-#define WROP(oper)
-#define WRBC(bc)
-#define WRarglst(a)
-#define WRblock(b)
-#define WRblocklist(bl)
-#define WReqn(e)
-#define WRfunc()
-#define WRdefnod()
-#define WRFL(fl)
-#define sym_ident(si)
-#endif
 
 /* cgelem.c     */
 elem *doptelem(elem *, goal_t);
