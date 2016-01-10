@@ -40,9 +40,7 @@ int TYptrdiff = TYint;
 int TYsize = TYuint;
 int TYsize_t = TYuint;
 
-#ifdef DEBUG
 char debuga,debugb,debugc,debugd,debuge,debugf,debugr,debugs,debugt,debugu,debugw,debugx,debugy;
-#endif
 
 #if !MARS
 linkage_t linkage;

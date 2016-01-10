@@ -3145,8 +3145,6 @@ void el_check(elem *e)
  * Write out expression elem.
  */
 
-#ifdef DEBUG
-
 void elem_print(elem *e)
 { static int nestlevel = 0;
   int i;
@@ -3376,8 +3374,6 @@ case_tym:
             /*assert(0);*/
     }
 }
-
-#endif
 
 /**********************************
  * Hydrate an elem.

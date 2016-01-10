@@ -7134,8 +7134,6 @@ void code_dehydrate(code **pc)
  * Debug code to dump code stucture.
  */
 
-#if DEBUG
-
 void WRcodlst(code *c)
 { for (; c; c = code_next(c))
         c->print();
@@ -7295,6 +7293,5 @@ void code::print()
   }
   printf("\n");
 }
-#endif
 
 #endif // !SPP
