@@ -42,10 +42,10 @@ GIT=git
 
 # determine whether CXX is gcc or clang based
 CXX_VERSION:=$(shell $(CXX) --version)
-ifneq (,$(filter %g++% %gcc% %GCC%,$(CXX_VERSION)))
+ifneq (,$(findstring g++,$(CXX_VERSION))$(findstring gcc,$(CXX_VERSION))$(findstring GCC,$(CXX_VERSION)))
 	CXX_KIND=g++
 endif
-ifneq (,$(filter %clang++% %clang%,$(CXX_VERSION)))
+ifneq (,$(findstring clang,$(CXX_VERSION)))
 	CXX_KIND=clang++
 endif
 
