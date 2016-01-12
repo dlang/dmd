@@ -1127,7 +1127,11 @@ struct CaseVal
     block *target;
 
     /* Sort function for qsort() */
-    static int __cdecl cmp(const void *p, const void *q)
+    static int
+#if __DMC__
+                __cdecl
+#endif
+                cmp(const void *p, const void *q)
     {
         const CaseVal *c1 = (const CaseVal *)p;
         const CaseVal *c2 = (const CaseVal *)q;

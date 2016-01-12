@@ -197,7 +197,45 @@ One and only one of these macros must be set by the makefile:
 #endif
 
 #if __GNUC__
-#include "cdeflnx.h"
+#include <time.h>
+
+#define M_UNIX 1
+#define MEMMODELS 1
+#if __GNUC__
+#define _MSC_VER 0
+#endif
+
+#define ERRSTREAM stderr
+#define isleadbyte(c) 0
+
+char *strupr(char *);
+
+//
+//      Attributes
+//
+
+//      Types of attributes
+#define ATTR_LINKMOD    0x0001  // link modifier
+#define ATTR_TYPEMOD    0x0002  // basic type modifier
+#define ATTR_FUNCINFO   0x0004  // function information
+#define ATTR_DATAINFO   0x0008  // data information
+#define ATTR_TRANSU     0x0010  // transparent union
+#define ATTR_IGNORED    0x0020  // attribute can be ignored
+#define ATTR_WARNING    0x0040  // attribute was ignored
+#define ATTR_SEGMENT    0x0080  // segment secified
+
+
+//      attribute location in code
+#define ALOC_DECSTART   0x001   // start of declaration
+#define ALOC_SYMDEF     0x002   // symbol defined
+#define ALOC_PARAM      0x004   // follows function parameter
+#define ALOC_FUNC       0x008   // follows function declaration
+
+#define ATTR_LINK_MODIFIERS (mTYconst|mTYvolatile|mTYcdecl|mTYstdcall)
+#define ATTR_CAN_IGNORE(a) \
+        (((a) & (ATTR_LINKMOD|ATTR_TYPEMOD|ATTR_FUNCINFO|ATTR_DATAINFO|ATTR_TRANSU)) == 0)
+#define LNX_CHECK_ATTRIBUTES(a,x) assert(((a) & ~(x|ATTR_IGNORED|ATTR_WARNING)) == 0)
+
 #endif
 
 #if _WINDLL
