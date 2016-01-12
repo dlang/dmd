@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Functions,
 
-$(NOT_EBOOK 
+$(NOT_EBOOK
 $(DIVC page-contents quickindex,
     $(DIVC page-contents-header,
         $(H3 Contents)
@@ -226,8 +226,8 @@ pure int foo(int i,
 
 $(H4 $(LNAME2 nothrow-functions, Nothrow Functions))
 
-        $(P Nothrow functions do not throw any exceptions derived
-        from class $(I Exception).
+        $(P Nothrow functions can only throw exceptions derived
+        from class $(I Error).
         )
 
         $(P Nothrow functions are covariant with throwing ones.)
@@ -1936,8 +1936,8 @@ int main(string[] args) { ... }
 $(H3 $(LNAME2 function-templates, Function Templates))
 
     $(P Template functions are useful for avoiding code duplication -
-    instead of writing several copies of a function, each with a 
-    different parameter type, a single function template can be sufficient. 
+    instead of writing several copies of a function, each with a
+    different parameter type, a single function template can be sufficient.
     For example:
     )
 ---
@@ -1963,10 +1963,10 @@ void main()
     parameter, $(D x). $(D T) is a placeholder identifier that can accept
     any type. In this case $(D T) can be inferred from the runtime argument
     type.)
-    
+
     $(P $(B Note:) Using the name $(D T) is just a convention. The name
     $(D TypeOfX) could have been used instead.)
-    
+
     $(P For more information, see
     $(DDSUBLINK spec/template, function-templates, function templates).)
 
