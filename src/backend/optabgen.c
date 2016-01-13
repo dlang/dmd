@@ -41,10 +41,8 @@ int _binary[] =
          OPinfo,OPpair,OPrpair,
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
          OPremquo,OPcmpxchg,
-#if TX86
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
          OPvecsto,
-#endif
         };
 int _unary[] =
         {OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
@@ -64,15 +62,9 @@ int _unary[] =
          OPbsf,OPbsr,OPbswap,OPpopcnt,
          OPddtor,
          OPvector,
-#if TX86 && MARS
          OPva_start,
-#endif
-#if TX86
          OPsqrt,OPsin,OPcos,OPinp,
-#endif
-#if TARGET_SEGMENTED
          OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
-#endif
         };
 int _commut[] = {OPadd,OPand,OPor,OPxor,OPmul,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
@@ -122,12 +114,8 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
                 OPcmpxchg,
-#if TX86 && MARS
                 OPva_start,
-#endif
-#if TX86
                 OPinp,OPoutp,OPvecsto,
-#endif
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
@@ -155,12 +143,8 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPgot,OPremquo,
                 OPnullptr,
                 OProl,OPror,
-#if TX86
                 OPsqrt,OPsin,OPcos,OPscale,
-#endif
-#if TARGET_SEGMENTED
                 OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
-#endif
                 };
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs16_d,
@@ -170,9 +154,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs64_128,OPu64_128,
                 OPu16_d,OPb_8,
                 OPnullptr,
-#if TARGET_SEGMENTED
                 OPnp_fp,OPvp_fp,OPcvp_fp,
-#endif
                 };
 int _lvalue[] = {OPvar,OPind,OPcomma,OPbit};
 
@@ -431,10 +413,8 @@ void dotab()
         case OPxor:     X("^",          elxor,  cdorth);
         case OPstring:  X("string",     elstring,cderr);
         case OPrelconst: X("relconst",  elzot, cdrelconst);
-#if TX86
         case OPinp:     X("inp",        elzot, cdport);
         case OPoutp:    X("outp",       elzot, cdport);
-#endif
         case OPasm:     X("asm",        elzot, cdasm);
         case OPinfo:    X("info",       elinfo,cdinfo);
         case OPdctor:   X("dctor",      elzot, cddctor);
@@ -462,14 +442,12 @@ void dotab()
         case OPneg:     X("-",          elneg,  cdneg);
         case OPuadd:    X("+",          elzot,  cderr);
         case OPabs:     X("abs",        evalu8, cdabs);
-#if TX86
         case OPsqrt:    X("sqrt",       evalu8, cdneg);
         case OPsin:     X("sin",        evalu8, cdneg);
         case OPcos:     X("cos",        evalu8, cdneg);
         case OPscale:   X("scale",      elzot,  cdscale);
         case OPyl2x:    X("yl2x",       elzot,  cdscale);
         case OPyl2xp1:  X("yl2xp1",     elzot,  cdscale);
-#endif
         case OPcmpxchg:     X("cas",        elzot,  cdcmpxchg);
         case OPrint:    X("rint",       evalu8, cdneg);
         case OPrndtol:  X("rndtol",     evalu8, cdrndtol);
@@ -528,14 +506,13 @@ void dotab()
         case OPnug:     X("~!<=",       elcmp,  cdcmp);
         case OPnue:     X("~!<>",       elcmp,  cdcmp);
 
-#if TARGET_SEGMENTED
         case OPvp_fp:   X("vptrfptr",   elvptrfptr,cdcnvt);
         case OPcvp_fp:  X("cvptrfptr",  elvptrfptr,cdcnvt);
         case OPoffset:  X("offset",     ellngsht,cdlngsht);
         case OPnp_fp:   X("ptrlptr",    elptrlptr,cdshtlng);
         case OPnp_f16p: X("tofar16",    elzot,  cdfar16);
         case OPf16p_np: X("fromfar16",  elzot,  cdfar16);
-#endif
+
         case OPs16_32:  X("s16_32",     evalu8, cdshtlng);
         case OPu16_32:  X("u16_32",     evalu8, cdshtlng);
         case OPd_s32:   X("d_s32",      evalu8, cdcnvt);
@@ -607,10 +584,7 @@ void dotab()
         case OPpopcnt:  X("popcnt",     evalu8, cdpopcnt);
         case OPvector:  X("vector",     elzot,  cdvector);
         case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
-
-#if TX86 && MARS
         case OPva_start: X("va_start",  elvalist, cderr);
-#endif
 
         default:
                 printf("opcode hole x%x\n",i);
