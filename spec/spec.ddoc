@@ -2,13 +2,10 @@ ROOT_DIR = ../
 ROOT = ..
 SEARCHDEFAULT_SPEC = selected
 
-SUBNAV=
+SUBNAV=$(SUBNAV_SPEC)
+SUBNAV_SPEC=
 $(SUBNAV_TEMPLATE
-    $(DIVC head,
-        $(H2 Language Reference)
-        $(TC p, subnav-duplicate,
-            $(LINK2 $(ROOT_DIR)spec/spec.html, table of contents))
-    )
+    $(SUBNAV_HEAD Language Reference, spec/spec.html, table of contents, subnav-duplicate)
     $(UL
         $(SUBMENU2
             $(ROOT_DIR)spec/intro.html, Introduction,
