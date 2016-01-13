@@ -360,14 +360,14 @@ STATIC elem *fixconvop(elem *e)
                 OP128_64,       // OPu64_128
                 OP128_64,       // OPs64_128
                 OPs64_128,      // OP128_64
-#if TARGET_SEGMENTED
+
                 0,              /* OPvp_fp      */
                 0,              /* OPcvp_fp     */
                 OPnp_fp,        /* OPoffset     */
                 OPoffset,       /* OPnp_fp      */
                 OPf16p_np,      /* OPnp_f16p    */
                 OPnp_f16p,      /* OPf16p_np    */
-#endif
+
                 OPd_ld,         // OPld_d
                 OPld_d,         // OPd_ld
                 OPu64_d,        // OPld_u64
@@ -4263,7 +4263,6 @@ STATIC elem * elbool(elem *e, goal_t goal)
 }
 
 
-#if TARGET_SEGMENTED
 /*********************************
  * Conversions of pointers to far pointers.
  */
@@ -4277,6 +4276,7 @@ STATIC elem * elptrlptr(elem *e, goal_t goal)
     }
     return e;
 }
+
 
 /*********************************
  * Conversions of handle pointers to far pointers.
@@ -4305,7 +4305,6 @@ STATIC elem * elvptrfptr(elem *e, goal_t goal)
     return e;
 }
 
-#endif
 
 /************************
  * Optimize conversions of longs to ints.
@@ -4848,7 +4847,6 @@ STATIC elem * elclassinit(elem *e, goal_t goal)
 /********************************************
  */
 
-#if TX86 && MARS
 STATIC elem * elvalist(elem *e, goal_t goal)
 {
     assert(e->Eoper == OPva_start);
@@ -4917,7 +4915,6 @@ STATIC elem * elvalist(elem *e, goal_t goal)
 
     return e;
 }
-#endif
 
 /******************************************
  * OPparam

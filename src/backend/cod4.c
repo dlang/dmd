@@ -3308,7 +3308,6 @@ code *cdasm(elem *e,regm_t *pretregs)
     return cat(c,fixresult(e,(I16 ? mDX | mAX : mAX),pretregs));
 }
 
-#if TARGET_SEGMENTED
 /************************
  * Generate code for OPnp_f16p and OPf16p_np.
  */
@@ -3388,7 +3387,6 @@ code *cdfar16( elem *e, regm_t *pretregs)
     }
     return cat4(c,c1,c3,cnop);
 }
-#endif
 
 /*************************
  * Generate code for OPbtst

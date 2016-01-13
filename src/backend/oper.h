@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -48,15 +48,15 @@ enum OPER
         OPabs,                  /* absolute value               */
         OPrndtol,               // round to short, long, long long (inline 8087 only)
         OPrint,                 // round to int
-#if TX86
+
         OPsqrt,                 /* square root                  */
         OPsin,                  // sine
         OPcos,                  // cosine
         OPscale,                // ldexp
         OPyl2x,                 // y * log2(x)
         OPyl2xp1,               // y * log2(x + 1)
-        OPcmpxchg,                      // cmpxchg
-#endif
+        OPcmpxchg,              // cmpxchg
+
         OPstrlen,               /* strlen()                     */
         OPstrcpy,               /* strcpy()                     */
         OPstrcat,               /* strcat()                     */
@@ -178,14 +178,15 @@ enum OPER
         OPu64_128,
         OPs64_128,
         OP128_64,
-#if TARGET_SEGMENTED
+
+        // segmented
         OPvp_fp,
         OPcvp_fp,       // const handle * => far *
         OPoffset,       // get offset of far pointer
         OPnp_fp,        // convert near pointer to far
         OPnp_f16p,      // from 0:32 to 16:16
         OPf16p_np,      // from 16:16 to 0:32
-#endif
+
         OPld_d,
         OPd_ld,
         OPld_u64,
@@ -232,10 +233,9 @@ enum OPER
         OPvector,               // SIMD vector operations
         OPvecsto,               // SIMD vector store operations
 
-#if TX86
         OPinp,                  /* input from I/O port          */
         OPoutp,                 /* output to I/O port           */
-#endif
+
         /* C++ operators */
         OPnew,                  // operator new
         OPanew,                 // operator new[]
@@ -247,13 +247,7 @@ enum OPER
         OPpreinc,               /* ++x overloading              */
         OPpredec,               /* --x overloading              */
 
-#if TX86 && MARS
-        OPva_start,             /* va_start intrinsic           */
-#endif
-
-#ifdef TARGET_INLINEFUNC_OPS
-        TARGET_INLINEFUNC_OPS
-#endif
+        OPva_start,             // va_start intrinsic (dmd)
 
         OPMAX                   /* 1 past last operator         */
 };
@@ -309,6 +303,7 @@ extern unsigned char rel_unord[];
 
 extern const unsigned char optab1[OPMAX],optab2[OPMAX],optab3[OPMAX];
 extern const unsigned char opcost[OPMAX];
+
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */
 #define _OTbinary       1
 #define _OTunary        2
