@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1994 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -62,19 +62,12 @@ struct TYPE
         struct Classsym *Ttag;  // TYstruct,TYmemptr: tag symbol
                                 // TYenum,TYvtshape: tag symbol
         char *Tident;           // TYident: identifier
-#if SCPP
-        struct TYPE *Talternate;        // typtr: type of parameter before converting
-#endif
+        struct TYPE *Talternate;        // C++: typtr: type of parameter before converting
         struct TYPE *Tkey;      // typtr: key type for associative arrays
     };
     list_t Texcspec;            // tyfunc(): list of types of exception specification
-#if 0
-    unsigned short Tstabidx;    // Index into stab types
-#endif
-#if HTOD
     Symbol *Ttypedef;           // if this type came from a typedef, this is
                                 // the typedef symbol
-#endif
 };
 
 typedef struct TYPETEMP
@@ -104,9 +97,7 @@ typedef struct TYPETEMP
 // CPP
 #define TFdependent     4       // template dependent type
 
-#if DEHYDRATE
 #define TFhydrated      0x20    // type data already hydrated
-#endif
 
 /* Return !=0 if function type has a variable number of arguments       */
 #define variadic(t)     (((t)->Tflags & (TFprototype | TFfixed)) == TFprototype)
@@ -181,9 +172,7 @@ targ_size_t type_paramsize(type *t);
 type *type_alloc(tym_t);
 type *type_alloc_template(symbol *s);
 type *type_allocn(tym_t,type *tn);
-#if SCPP
 type *type_allocmemptr(Classsym *stag,type *tn);
-#endif
 type *type_fake(tym_t);
 type *type_setty(type **,long);
 type *type_settype(type **pt, type *t);
