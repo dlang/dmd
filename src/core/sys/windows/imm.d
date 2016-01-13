@@ -8,6 +8,8 @@
  */
 module core.sys.windows.imm;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "imm32");
 
 import core.sys.windows.windef, core.sys.windows.wingdi;

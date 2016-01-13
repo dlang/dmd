@@ -8,6 +8,8 @@
  */
 module core.sys.windows.commdlg;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "comdlg32");
 
 private import core.sys.windows.w32api;

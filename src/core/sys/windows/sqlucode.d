@@ -9,6 +9,8 @@
 module core.sys.windows.sqlucode;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.sqlext;
 
 const SQL_WCHAR        = -8;

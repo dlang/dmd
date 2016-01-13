@@ -8,6 +8,8 @@
  */
 module core.sys.windows.shlobj;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "shell32");
 
 // TODO: fix bitfields

@@ -9,6 +9,8 @@
  */
 module core.sys.windows.winreg;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "advapi32");
 
 private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;

@@ -9,6 +9,8 @@
 module core.sys.windows.richedit;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.windef, core.sys.windows.winuser;
 private import core.sys.windows.wingdi; // for LF_FACESIZE
 

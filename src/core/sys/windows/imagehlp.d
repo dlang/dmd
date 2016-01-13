@@ -10,6 +10,8 @@
 module core.sys.windows.imagehlp;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 /* Comment from MinGW
     NOTE: This strictly does not belong in the Win32 API since it's
     really part of Platform SDK. However, GDB needs it and we might

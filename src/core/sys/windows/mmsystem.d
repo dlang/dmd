@@ -8,6 +8,8 @@
  */
 module core.sys.windows.mmsystem;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "winmm");
 
 /*  The #defines MAKEFOURCC, mmioFOURCC, sndAlias are used to define

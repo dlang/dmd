@@ -10,6 +10,8 @@
 module core.sys.windows.ntsecapi;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import
   core.sys.windows.basetyps, core.sys.windows.ntdef, core.sys.windows.windef, core.sys.windows.winnt, core.sys.windows.w32api;
 

@@ -10,6 +10,8 @@
 module core.sys.windows.msacm;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.basetsd, core.sys.windows.mmsystem, core.sys.windows.windef;
 
 mixin DECLARE_HANDLE!("HACMDRIVERID");

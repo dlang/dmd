@@ -10,6 +10,8 @@
 module core.sys.windows.winldap;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 /* Comment from MinGW
   winldap.h - Header file for the Windows LDAP API
 

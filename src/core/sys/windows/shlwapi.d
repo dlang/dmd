@@ -8,6 +8,8 @@
  */
 module core.sys.windows.shlwapi;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "shlwapi");
 
 /* Changes compared to MinGW:

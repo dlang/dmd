@@ -9,6 +9,8 @@
 module core.sys.windows.tlhelp32;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.windef;
 
 enum : uint {

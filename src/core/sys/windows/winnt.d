@@ -9,6 +9,8 @@
 module core.sys.windows.winnt;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 public import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winerror;
 private import core.sys.windows.w32api;
 

@@ -10,6 +10,8 @@
 module core.sys.windows.custcntl;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.windef;
 
 // FIXME: check type

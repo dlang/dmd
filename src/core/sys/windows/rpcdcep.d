@@ -9,6 +9,8 @@
 module core.sys.windows.rpcdcep;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.basetyps;
 private import core.sys.windows.w32api;
 private import core.sys.windows.windef;

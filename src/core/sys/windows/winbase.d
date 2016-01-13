@@ -8,6 +8,8 @@
  */
 module core.sys.windows.winbase;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "kernel32");
 
 /**

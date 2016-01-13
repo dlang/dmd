@@ -10,6 +10,8 @@
 module core.sys.windows.wincrypt;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
 
 /* FIXME:

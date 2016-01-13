@@ -10,6 +10,8 @@
  */
 module core.sys.windows.rpcnsi;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "rpcns4");
 
 private import core.sys.windows.basetyps, core.sys.windows.rpcdcep, core.sys.windows.rpcnsi, core.sys.windows.rpcdce,

@@ -9,6 +9,8 @@
  */
 module core.sys.windows.setupapi;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "setupapi");
 
 private import core.sys.windows.basetyps, core.sys.windows.commctrl, core.sys.windows.prsht, core.sys.windows.w32api,

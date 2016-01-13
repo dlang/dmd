@@ -10,6 +10,8 @@
 module core.sys.windows.cpl;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.windef, core.sys.windows.winuser;
 
 enum : uint {

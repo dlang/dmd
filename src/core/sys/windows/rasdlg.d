@@ -10,6 +10,8 @@
 module core.sys.windows.rasdlg;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 import core.sys.windows.ras;
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
