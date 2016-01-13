@@ -1034,7 +1034,11 @@ Lcont:
  *      = 0     no difference
  */
 
-int __cdecl autosort_cmp(const void *ps1, const void *ps2)
+int
+#if __DMC__
+ __cdecl
+#endif
+ autosort_cmp(const void *ps1, const void *ps2)
 {
     symbol *s1 = *(symbol **)ps1;
     symbol *s2 = *(symbol **)ps2;

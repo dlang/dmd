@@ -39,7 +39,6 @@
 #ifndef TOKEN_H
 #define TOKEN_H 1
 
-#if !defined(TOKENS_ONLY) || TOKENS_ONLY
 // Keyword tokens. Needn't be ascii sorted
 typedef unsigned char enum_TK;
 enum TK {
@@ -233,9 +232,7 @@ enum TK {
         TKnone, /* no token             */
         TKMAX   /* number of tokens     */
 };
-#endif
 
-#if !defined(TOKENS_ONLY) || !TOKENS_ONLY
 struct token_t
 {
     enum_TK TKval;              // what the token is
@@ -397,7 +394,6 @@ int pragma_defined(void);
 
 #define EXPANDING_LISTING()     (expflag == 0)
 #define NOT_EXPANDING_LISTING() (expflag)
-#endif
 
 /***********************************************
  * This is the token lookahead API, which enables us to
