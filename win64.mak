@@ -411,6 +411,9 @@ $(IMPDIR)\core\sys\linux\termios.d : src\core\sys\linux\termios.d
 $(IMPDIR)\core\sys\linux\time.d : src\core\sys\linux\time.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\timerfd.d : src\core\sys\linux\timerfd.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\tipc.d : src\core\sys\linux\tipc.d
 	copy $** $@
 

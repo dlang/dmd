@@ -50,9 +50,7 @@ SRCS=\
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\sys\event.d \
 	\
-	src\core\sys\linux\epoll.d \
 	src\core\sys\linux\stdio.d \
-	src\core\sys\linux\timerfd.d \
 	src\core\sys\linux\tipc.d \
 	\
 	src\core\sys\posix\signal.d \
