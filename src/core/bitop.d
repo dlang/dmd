@@ -23,6 +23,31 @@ version (X86_64)
 else version (X86)
     version = AnyX86;
 
+// Use to implement 64-bit bitops on 32-bit arch.
+private union Split64
+{
+    ulong u64;
+    struct
+    {
+        version(LittleEndian)
+        {
+            uint lo;
+            uint hi;
+        }
+        else
+        {
+            uint hi;
+            uint lo;
+        }
+    }
+}
+
+unittest
+{
+    const s = Split64(1);
+    assert((s.lo == 1) && (s.hi == 0));
+}
+
 /**
  * Scans the bits in v starting with bit 0, looking
  * for the first set bit.
@@ -32,11 +57,29 @@ else version (X86)
  */
 int bsf(size_t v) pure;
 
+/// ditto
+int bsf(ulong v) pure
+{
+    static if (size_t.sizeof == ulong.sizeof)
+        return bsf(cast(size_t) v);
+    else static if (size_t.sizeof == uint.sizeof)
+    {
+        const sv = Split64(v);
+        return (sv.lo == 0)?
+            bsf(sv.hi) + 32 :
+            bsf(sv.lo);
+    }
+    else
+        static assert(false);
+}
+
 ///
 unittest
 {
     assert(bsf(0x21) == 0);
+    assert(bsf(ulong.max << 39) == 39);
 }
+
 
 /**
  * Scans the bits in v from the most significant bit
@@ -48,10 +91,27 @@ unittest
  */
 int bsr(size_t v) pure;
 
+/// ditto
+int bsr(ulong v) pure
+{
+    static if (size_t.sizeof == ulong.sizeof)
+        return bsr(cast(size_t) v);
+    else static if (size_t.sizeof == uint.sizeof)
+    {
+        const sv = Split64(v);
+        return (sv.hi == 0)?
+            bsr(sv.lo) :
+            bsr(sv.hi) + 32;
+    }
+    else
+        static assert(false);
+}
+
 ///
 unittest
 {
     assert(bsr(0x21) == 5);
+    assert(bsr((ulong.max >> 15) - 1) == 48);
 }
 
 /**
@@ -194,10 +254,130 @@ version (DigitalMars) version (AnyX86) @system // not pure
     uint outpl(uint port_address, uint value);
 }
 
+
+/**
+ *  Calculates the number of set bits in an integer.
+ */
+int popcnt(uint x) pure
+{
+    // Select the fastest method depending on the compiler and CPU architecture
+    version(LDC)
+    {
+        return _popcnt(x);
+    }
+    else
+    {
+        version(DigitalMars)
+        {
+            static if (is(typeof(_popcnt(uint.max))))
+            {
+                import core.cpuid;
+                if (hasPopcnt)
+                    return _popcnt(x);
+            }
+        }
+
+        return soft_popcnt!uint(x);
+    }
+}
+
+unittest
+{
+    assert( popcnt( 0 ) == 0 );
+    assert( popcnt( 7 ) == 3 );
+    assert( popcnt( 0xAA )== 4 );
+    assert( popcnt( 0x8421_1248 ) == 8 );
+    assert( popcnt( 0xFFFF_FFFF ) == 32 );
+    assert( popcnt( 0xCCCC_CCCC ) == 16 );
+    assert( popcnt( 0x7777_7777 ) == 24 );
+}
+
+/// ditto
+int popcnt(ulong x) pure
+{
+    // Select the fastest method depending on the compiler and CPU architecture
+    version(LDC)
+    {
+        return _popcnt(x);
+    }
+    else
+    {
+        import core.cpuid;
+
+        static if (size_t.sizeof == uint.sizeof)
+        {
+            const sx = Split64(x);
+            version(DigitalMars)
+            {
+                static if (is(typeof(_popcnt(uint.max))))
+                {
+                    if (hasPopcnt)
+                        return _popcnt(sx.lo) + _popcnt(sx.hi);
+                }
+            }
+
+            return soft_popcnt!uint(sx.lo) + soft_popcnt!uint(sx.hi);
+        }
+        else static if (size_t.sizeof == ulong.sizeof)
+        {
+            version(DigitalMars)
+            {
+                static if (is(typeof(_popcnt(ulong.max))))
+                {
+                    if (hasPopcnt)
+                        return _popcnt(x);
+                }
+            }
+
+            return soft_popcnt!ulong(x);
+        }
+        else
+            static assert(false);
+    }
+}
+
+unittest
+{
+    assert(popcnt(0uL) == 0);
+    assert(popcnt(1uL) == 1);
+    assert(popcnt((1uL << 32) - 1) == 32);
+    assert(popcnt(0x48_65_6C_6C_6F_3F_21_00uL) == 28);
+    assert(popcnt(ulong.max) == 64);
+}
+
+private int soft_popcnt(N)(N x) pure
+    if (is(N == uint) || is(N == ulong))
+{
+    // Avoid branches, and the potential for cache misses which
+    // could be incurred with a table lookup.
+
+    // We need to mask alternate bits to prevent the
+    // sum from overflowing.
+    // add neighbouring bits. Each bit is 0 or 1.
+    enum mask1 = cast(N) 0x5555_5555_5555_5555L;
+    x = x - ((x>>1) & mask1);
+    // now each two bits of x is a number 00,01 or 10.
+    // now add neighbouring pairs
+    enum mask2a = cast(N) 0xCCCC_CCCC_CCCC_CCCCL;
+    enum mask2b = cast(N) 0x3333_3333_3333_3333L;
+    x = ((x & mask2a)>>2) + (x & mask2b);
+    // now each nibble holds 0000-0100. Adding them won't
+    // overflow any more, so we don't need to mask any more
+
+    enum mask4 = cast(N) 0x0F0F_0F0F_0F0F_0F0FL;
+    x = (x + (x >> 4)) & mask4;
+
+    enum shiftbits = is(N == uint)? 24 : 56;
+    enum maskMul = cast(N) 0x0101_0101_0101_0101L;
+    x = (x * maskMul) >> shiftbits;
+
+    return cast(int) x;
+}
+
 version (DigitalMars) version (AnyX86)
 {
     /**
-     * Calculates the number of set bits in a 32-bit integer
+     * Calculates the number of set bits in an integer
      * using the X86 SSE4 POPCNT instruction.
      * POPCNT is not available on all X86 CPUs.
      */
@@ -246,6 +426,7 @@ version (DigitalMars) version (AnyX86)
         }
     }
 }
+
 
 /*************************************
  * Read/write value from/to the memory location indicated by ptr.
@@ -298,53 +479,6 @@ void volatileStore(ulong * ptr, ulong  value);   /// ditto
         T r = volatileLoad(p);
         assert(r == u);
     }
-}
-
-
-/**
- *  Calculates the number of set bits in a 32-bit integer.
- */
-int popcnt( uint x ) pure
-{
-    // Avoid branches, and the potential for cache misses which
-    // could be incurred with a table lookup.
-
-    // We need to mask alternate bits to prevent the
-    // sum from overflowing.
-    // add neighbouring bits. Each bit is 0 or 1.
-    x = x - ((x>>1) & 0x5555_5555);
-    // now each two bits of x is a number 00,01 or 10.
-    // now add neighbouring pairs
-    x = ((x&0xCCCC_CCCC)>>2) + (x&0x3333_3333);
-    // now each nibble holds 0000-0100. Adding them won't
-    // overflow any more, so we don't need to mask any more
-
-    // Now add the nibbles, then the bytes, then the words
-    // We still need to mask to prevent double-counting.
-    // Note that if we used a rotate instead of a shift, we
-    // wouldn't need the masks, and could just divide the sum
-    // by 8 to account for the double-counting.
-    // On some CPUs, it may be faster to perform a multiply.
-
-    x += (x>>4);
-    x &= 0x0F0F_0F0F;
-    x += (x>>8);
-    x &= 0x00FF_00FF;
-    x += (x>>16);
-    x &= 0xFFFF;
-    return x;
-}
-
-
-unittest
-{
-    assert( popcnt( 0 ) == 0 );
-    assert( popcnt( 7 ) == 3 );
-    assert( popcnt( 0xAA )== 4 );
-    assert( popcnt( 0x8421_1248 ) == 8 );
-    assert( popcnt( 0xFFFF_FFFF ) == 32 );
-    assert( popcnt( 0xCCCC_CCCC ) == 16 );
-    assert( popcnt( 0x7777_7777 ) == 24 );
 }
 
 
