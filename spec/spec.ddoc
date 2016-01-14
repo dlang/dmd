@@ -5,7 +5,7 @@ SEARCHDEFAULT_SPEC = selected
 SUBNAV=$(SUBNAV_SPEC)
 SUBNAV_SPEC=
 $(SUBNAV_TEMPLATE
-    $(SUBNAV_HEAD Language Reference, spec/spec.html, table of contents, subnav-duplicate)
+    $(SUBNAV_HEAD Language Reference, $(ROOT_DIR)spec/spec.html, table of contents, subnav-duplicate)
     $(UL
         $(SUBMENU2
             $(ROOT_DIR)spec/intro.html, Introduction,
