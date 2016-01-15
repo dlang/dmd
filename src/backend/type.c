@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2013 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -33,9 +33,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 static type *type_list = NULL;          // free list of types
 static param_t *param_list = NULL;      // free list of params
 
-#ifdef DEBUG
 static int type_num,type_max;   /* gather statistics on # of types      */
-#endif
 
 typep_t tstypes[TYMAX];
 typep_t tsptr2types[TYMAX];
@@ -67,12 +65,10 @@ targ_size_t type_size(type *t)
         switch (tyb)
         {
             // in case program plays games with function pointers
-#if TARGET_SEGMENTED
             case TYffunc:
             case TYfpfunc:
             case TYfsfunc:
             case TYf16func:
-#endif
             case TYhfunc:
             case TYnfunc:       /* in case program plays games with function pointers */
             case TYnpfunc:
@@ -141,8 +137,13 @@ targ_size_t type_size(type *t)
 #endif
                 s = 1;
                 break;
-#if SCPP
+
             case TYref:
+#if MARS
+                s = tysize(TYnptr);
+                break;
+#endif
+#if SCPP
             case TYmemptr:
             case TYvtshape:
                 s = tysize(tym_conv(t));
@@ -153,11 +154,7 @@ targ_size_t type_size(type *t)
                 s = 1;
                 break;
 #endif
-#if MARS
-            case TYref:
-                s = tysize(TYnptr);
-                break;
-#endif
+
             default:
 #ifdef DEBUG
                 WRTYxx(t->Tty);
@@ -245,9 +242,7 @@ type *type_alloc(tym_t ty)
 {   type *t;
     static type tzero;
 
-#if !MARS
     assert(tybasic(ty) != TYtemplate);
-#endif
     if (type_list)
     {   t = type_list;
         type_list = t->Tnext;
@@ -275,7 +270,7 @@ type *type_alloc(tym_t ty)
  * Allocate a TYtemplate.
  */
 
-#if !MARS
+#if SCPP
 type *type_alloc_template(symbol *s)
 {   type *t;
 
@@ -535,7 +530,7 @@ void type_free(type *t)
         {   param_free(&t->Tparamtypes);
             list_free(&t->Texcspec, (list_free_fp)type_free);
         }
-#if !MARS
+#if SCPP
         else if (ty == TYtemplate)
             param_free(&t->Tparamtypes);
         else if (ty == TYident)
@@ -635,22 +630,14 @@ void type_init()
     }
 
     // Type of trace function
-#if TARGET_SEGMENTED
     tstrace = type_fake(I16 ? TYffunc : TYnfunc);
-#else
-    tstrace = type_fake(TYnfunc);
-#endif
     tstrace->Tmangle = mTYman_c;
     tstrace->Tcount++;
 
     chartype = (config.flags3 & CFG3ju) ? tsuchar : tschar;
 
     // Type of far library function
-#if TARGET_SEGMENTED
     tsclib = type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
-#else
-    tsclib = type_fake(TYnpfunc);
-#endif
     tsclib->Tmangle = mTYman_c;
     tsclib->Tcount++;
 
@@ -688,9 +675,10 @@ void type_init()
  * Free type_list.
  */
 
-#if TERMCODE
 void type_term()
-{   type *tn;
+{
+#if TERMCODE
+    type *tn;
     param_t *pn;
     int i;
 
@@ -730,8 +718,8 @@ void type_term()
         dbg_printf("type_num = %d\n",type_num);
 /*    assert(type_num == 0);*/
 #endif
-}
 #endif // TERMCODE
+}
 
 /*******************************
  * Type type information.
@@ -746,7 +734,7 @@ type *type_copy(type *t)
     param_t *p;
 
     type_debug(t);
-#if !MARS
+#if SCPP
     if (tybasic(t->Tty) == TYtemplate)
     {
         tn = type_alloc_template(((typetemp_t *)t)->Tsym);
@@ -757,7 +745,7 @@ type *type_copy(type *t)
     *tn = *t;
     switch (tybasic(tn->Tty))
     {
-#if !MARS
+#if SCPP
             case TYtemplate:
                 ((typetemp_t *)tn)->Tsym = ((typetemp_t *)t)->Tsym;
                 goto L1;
@@ -966,9 +954,7 @@ int type_isdependent(type *t)
         if (t->Tflags & TFdependent)
             goto Lisdependent;
         if (tyfunc(t->Tty)
-#if TARGET_SEGMENTED
                 || tybasic(t->Tty) == TYtemplate
-#endif
                 )
         {
             for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
@@ -1049,8 +1035,6 @@ int type_isvla(type *t)
  * Pretty-print a type.
  */
 
-#ifdef DEBUG
-
 void type_print(type *t)
 {
   type_debug(t);
@@ -1060,26 +1044,23 @@ void type_print(type *t)
   dbg_printf(" Tcount=%d",t->Tcount);
   if (!(t->Tflags & TFsizeunknown) &&
         tybasic(t->Tty) != TYvoid &&
-#if !MARS
         tybasic(t->Tty) != TYident &&
         tybasic(t->Tty) != TYtemplate &&
-#endif
         tybasic(t->Tty) != TYmfunc &&
         tybasic(t->Tty) != TYarray)
       dbg_printf(" Tsize=%lld",(long long)type_size(t));
   dbg_printf(" Tnext=%p",t->Tnext);
   switch (tybasic(t->Tty))
   {     case TYstruct:
-#if !MARS
         case TYmemptr:
-#endif
             dbg_printf(" Ttag=%p,'%s'",t->Ttag,t->Ttag->Sident);
             //dbg_printf(" Sfldlst=%p",t->Ttag->Sstruct->Sfldlst);
             break;
+
         case TYarray:
             dbg_printf(" Tdim=%ld",(long)t->Tdim);
             break;
-#if !MARS
+
         case TYident:
             dbg_printf(" Tident='%s'",t->Tident);
             break;
@@ -1104,7 +1085,7 @@ dbg_printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p->Pident,p->Ptype,p->Pelem,p
                 }
             }
             break;
-#endif
+
         default:
             if (tyfunc(t->Tty))
             {   param_t *p;
@@ -1163,7 +1144,6 @@ void param_t::print_list()
         p->print();
 }
 
-#endif /* DEBUG */
 
 /**********************************
  * Hydrate a type.
@@ -1206,14 +1186,10 @@ void type_hydrate(type **pt)
                 {   param_hydrate(&t->Tparamtypes);
                     list_hydrate(&t->Texcspec, (list_free_fp)type_hydrate);
                 }
-#if SCPP
                 else if (t->Talternate && typtr(t->Tty))
                     type_hydrate(&t->Talternate);
-#endif
-#if MARS
                 else if (t->Tkey && typtr(t->Tty))
                     type_hydrate(&t->Tkey);
-#endif
                 break;
         }
         pt = &t->Tnext;
@@ -1263,14 +1239,10 @@ void type_dehydrate(type **pt)
                 {   param_dehydrate(&t->Tparamtypes);
                     list_dehydrate(&t->Texcspec, (list_free_fp)type_dehydrate);
                 }
-#if SCPP
                 else if (t->Talternate && typtr(t->Tty))
                     type_dehydrate(&t->Talternate);
-#endif
-#if MARS
                 else if (t->Tkey && typtr(t->Tty))
                     type_dehydrate(&t->Tkey);
-#endif
                 break;
         }
         pt = &t->Tnext;
@@ -1599,9 +1571,7 @@ int typematch(type *t1,type *t2,int relax)
 
             (tybasic(t1ty) != TYstruct
                 && tybasic(t1ty) != TYenum
-#if !MARS
                 && tybasic(t1ty) != TYmemptr
-#endif
              || t1->Ttag == t2->Ttag)
                  &&
 
