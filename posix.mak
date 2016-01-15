@@ -20,6 +20,9 @@ clean:
 test:
 	$(QUIET)$(MAKE) -C test -f Makefile
 
+html:
+	$(QUIET)$(MAKE) -C src -f posix.mak html
+
 # Creates Exuberant Ctags tags file
 tags: posix.mak $(ECTAGS_FILES)
 	ctags --sort=yes --links=no --excmd=number --languages=$(ECTAGS_LANGS) \

@@ -477,4 +477,14 @@ zip:
 
 #############################
 
+ifneq ($(DOCDIR),)
+html: $(DOCDIR)/.generated
+$(DOCDIR)/.generated: $(DMD_SRCS) $(ROOT_SRCS) $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J. -c -Dd$(DOCDIR)\
+	  $(DFLAGS) $(DOCFMT) $(DMD_SRCS) $(ROOT_SRCS)
+	touch $@
+endif
+
+######################################################
+
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)
