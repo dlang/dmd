@@ -5977,7 +5977,29 @@ public:
 
     override Statement semantic(Scope* sc)
     {
-        assert(0);
+        foreach (i; 0 .. imports.dim)
+        {
+            Import s = (*imports)[i].isImport();
+            assert(!s.aliasdecls.dim);
+            foreach (j, name; s.names)
+            {
+                Identifier _alias = s.aliases[j];
+                if (!_alias)
+                    _alias = name;
+                auto tname = new TypeIdentifier(s.loc, name);
+                auto ad = new AliasDeclaration(s.loc, _alias, tname);
+                ad._import = s;
+                s.aliasdecls.push(ad);
+            }
+            s.semantic(sc);
+            //s->semantic2(sc);     // Bugzilla 14666
+            sc.insert(s);
+            foreach (aliasdecl; s.aliasdecls)
+            {
+                sc.insert(aliasdecl);
+            }
+        }
+        return this;
     }
 
     override void accept(Visitor v)
