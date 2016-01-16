@@ -48,6 +48,7 @@ class TryFinallyStatement;
 class CaseStatement;
 class DefaultStatement;
 class LabelStatement;
+class ImportStatement;
 
 // Back end
 struct code;
@@ -110,6 +111,7 @@ public:
     virtual DefaultStatement *isDefaultStatement() { return NULL; }
     virtual LabelStatement *isLabelStatement() { return NULL; }
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
+    virtual ImportStatement *isImportStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -756,6 +758,7 @@ public:
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
 
+    ImportStatement *isImportStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
