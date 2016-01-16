@@ -1150,6 +1150,11 @@ public:
         return null;
     }
 
+    ImportScopeSymbol isImportScopeSymbol()
+    {
+        return null;
+    }
+
     Import isImport()
     {
         return null;
@@ -1832,6 +1837,63 @@ public:
     }
 
     override ArrayScopeSymbol isArrayScopeSymbol()
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class ImportScopeSymbol : ScopeDsymbol
+{
+public:
+    this(Dsymbols *imports)
+    {
+        this.members = imports;
+    }
+
+    override void semantic(Scope *sc)
+    {
+        if (symtab)
+            return;
+
+        symtab = new DsymbolTable();
+
+        Scope *sc2 = sc.push(this);
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol s = (*members)[i];
+            s.addMember(sc2, this);
+        }
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol s = (*members)[i];
+            s.setScope(sc2);
+        }
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol s = (*members)[i];
+            s.importAll(sc2);
+        }
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol s = (*members)[i];
+            s.semantic(sc2);
+        }
+
+        sc2.pop();
+    }
+
+    override ImportScopeSymbol isImportScopeSymbol()
     {
         return this;
     }
