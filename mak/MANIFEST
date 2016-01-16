@@ -70,8 +70,6 @@ MANIFEST=\
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
-	src\core\sys\unwind.d \
-	\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\time.d \
@@ -410,6 +408,7 @@ MANIFEST=\
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	src\rt\tracegc.d \
+	src\rt\unwind.d \
 	\
 	src\rt\backtrace\dwarf.d \
 	src\rt\backtrace\elf.d \

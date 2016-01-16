@@ -337,9 +337,6 @@ $(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
 $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
 	copy $** $@
 
-$(IMPDIR)\core\sys\unwind.d : src\core\sys\unwind.d
-	copy $** $@
-
 $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
 	copy $** $@
 

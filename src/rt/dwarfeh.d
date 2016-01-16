@@ -13,7 +13,7 @@ module rt.dwarfeh;
 
 version (Posix):
 
-import core.sys.unwind;
+import rt.unwind;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 
