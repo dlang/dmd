@@ -1689,7 +1689,6 @@ class Throwable : Object
         sink("@"); sink(file);
         sink("("); sink(sizeToTempString(line, tmpBuff, 10)); sink(")");
 
-        auto msg = message();
         if (msg.length)
         {
             sink(": "); sink(msg);
@@ -1709,19 +1708,6 @@ class Throwable : Object
                 // ignore more errors
             }
         }
-    }
-
-    /**
-     * Get the message describing the error.
-     * Base behavior is to return the `Throwable.msg` field.
-     * Override to return some other error message.
-     *
-     * Returns:
-     *  message
-     */
-    const(char)[] message() const
-    {
-        return msg;
     }
 }
 
