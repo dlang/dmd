@@ -5828,11 +5828,6 @@ public:
         return this;
     }
 
-    override final ImportStatement isImportStatement()
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
