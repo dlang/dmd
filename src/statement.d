@@ -899,6 +899,11 @@ public:
         return null;
     }
 
+    ImportStatement isImportStatement()
+    {
+        return null;
+    }
+
     void accept(Visitor v)
     {
         v.visit(this);
@@ -1427,11 +1432,47 @@ public:
                     printf("[%d]: %s", i, s.toChars());
             }
         }
+
+        Dsymbols *imports = null;
+
         for (size_t i = 0; i < statements.dim;)
         {
             Statement s = (*statements)[i];
             if (s)
             {
+                // if s is a CompileStatement, the import scope is separated.
+                if (ImportStatement imps = s.isImportStatement())
+                {
+                    if (imports)
+                        imports.append(imps.imports);
+                    else
+                        imports = imps.imports.copy();
+                    if (i + 1 < statements.dim)
+                    {
+                        i++;
+                        continue;
+                    }
+                }
+                if (imports)
+                {
+                    ImportScopeSymbol iss = new ImportScopeSymbol(imports);
+                    iss.parent = sc.scopesym;
+
+                    // Copy statements[i .. $] to a
+                    Statements *a = new Statements();
+                    a.reserve(statements.dim - i);
+                    for (size_t j = i + (s.isImportStatement() ? 1 : 0); j < statements.dim; j++)
+                        a.push((*statements)[j]);
+
+                    // Construct: with (iss) statements[i .. $]
+                    s = new CompoundStatement(loc, a);
+                    s = new ScopeStatement(loc, s);
+                    s = new WithStatement(loc, new ScopeExp(loc, iss), s);
+
+                    // statements = statements[0 .. i] ~ s
+                    statements.setDim(i + 1);
+                    (*statements)[i] = s;
+                }
                 Statements* flt = s.flatten(sc);
                 if (flt)
                 {
@@ -1734,18 +1775,18 @@ public:
 
     override Statement semantic(Scope* sc)
     {
-        ScopeDsymbol sym;
         //printf("ScopeStatement::semantic(sc = %p)\n", sc);
         if (statement)
         {
-            sym = new ScopeDsymbol();
+            if (!statement.isCompoundStatement())
+            {
+                statement = new CompoundStatement(loc, statement);
+            }
+
+            ScopeDsymbol sym = new ScopeDsymbol();
             sym.parent = sc.scopesym;
             sc = sc.push(sym);
-            Statements* a = statement.flatten(sc);
-            if (a)
-            {
-                statement = new CompoundStatement(loc, a);
-            }
+
             statement = statement.semantic(sc);
             if (statement)
             {
@@ -5528,12 +5569,28 @@ public:
 
     override Statements* flatten(Scope* sc)
     {
-        Statements* a = statement ? statement.flatten(sc) : null;
+        if (!statement)
+            return null;
+
+        Statements *a = statement.flatten(sc);
+        if (!a && statement.isImportStatement())
+        {
+            a = new Statements();
+            a.push(statement);
+        }
         if (a)
         {
-            foreach (ref s; *a)
+            /* Rewrite 'a':
+             *      [ import a; import b;       s1;       s2; ]
+             * to:
+             *      [ import a; import b; debug s1; debug s2; ]
+             */
+            for (size_t i = 0; i < a.dim; i++)
             {
-                s = new DebugStatement(loc, s);
+                Statement s = (*a)[i];
+                if (s && !s.isImportStatement())
+                    s = new DebugStatement(loc, s);
+                (*a)[i] = s;
             }
         }
         return a;
@@ -5715,19 +5772,38 @@ public:
 
     override Statements* flatten(Scope* sc)
     {
-        Statements* a = null;
-        if (statement)
+        if (!statement)
+            return null;
+
+        Statements *a = statement.flatten(sc);
+        if (!a && statement.isImportStatement())
         {
-            a = statement.flatten(sc);
-            if (a)
+            a = new Statements();
+            a.push(statement);
+        }
+        if (a)
+        {
+            /* Rewrite 'a':
+             *      [ import a; import b;        s1; s2; ]
+             * to:
+             *      [ import a; import b; Label: s1; s2; ]
+             */
+            for (size_t i = 0; ; i++)
             {
-                if (!a.dim)
-                {
+                if (i == a.dim)
                     a.push(new ExpStatement(loc, cast(Expression)null));
-                }
+
+                Statement s = (*a)[i];
+                //if (i >= a.dim)
+                //    printf("[%s] i = %d, a.dim = %d, %s\n", loc.toChars(), i, a.dim, toChars());
+                //assert(i < a.dim);
+                if (s && s.isImportStatement())
+                    continue;
+
                 // reuse 'this' LabelStatement
-                this.statement = (*a)[0];
-                (*a)[0] = this;
+                this.statement = s;
+                (*a)[i] = this;
+                break;
             }
         }
         return a;
