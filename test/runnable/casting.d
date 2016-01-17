@@ -211,19 +211,22 @@ void test14218()
         assert(x == 0);     // false, '0x00'
     }
 
-    // Questionable but currently accepted
-    foreach (To; Seq!( float,  double,  real,
-                      ifloat, idouble, ireal))
+    version (DigitalMars)
     {
-        auto x = cast(To)null;
-        assert(x == 0);     // 0i
-    }
+        // Questionable but currently accepted by DMD (but not GDC).
+        foreach (To; Seq!( float,  double,  real,
+                           ifloat, idouble, ireal))
+        {
+            auto x = cast(To)null;
+            assert(x == 0);     // 0i
+        }
 
-    // Internal error: backend/el.c in el_long()
-    //foreach (To; Seq!(cfloat, cdouble, creal))
-    //{
-    //    static assert(!__traits(compiles, { auto x = cast(To)null; }));
-    //}
+        // Internal error: backend/el.c in el_long()
+        //foreach (To; Seq!(cfloat, cdouble, creal))
+        //{
+        //    static assert(!__traits(compiles, { auto x = cast(To)null; }));
+        //}
+    }
 }
 
 /***************************************************/
