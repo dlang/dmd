@@ -1,7 +1,7 @@
-/*
+/**
  * Exception handling support for Dwarf-style portable exceptions.
  *
- * Copyright: Copyright 2015 D Language Foundation
+ * Copyright: Copyright (c) 2015-2016 by D Language Foundation
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
@@ -275,6 +275,7 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
                _Unwind_Context* context)
 {
     //printf("__dmd_personality_v0(actions = x%x, eo = %p, context = %p)\n", cast(int)actions, exceptionObject, context);
+    //printf("exceptionClass = x%08lx\n", exceptionClass);
     if (ver != 1)
       return _URC_FATAL_PHASE1_ERROR;
     assert(context);
@@ -283,7 +284,6 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     int handler;
     _Unwind_Ptr landing_pad;
 
-    ExceptionHeader *eh = ExceptionHeader.toExceptionHeader(exceptionObject);
     //for (auto ehx = eh; ehx; ehx = ehx.next)
         //printf(" eh: %p next=%014p lsda=%p '%.*s'\n", ehx, ehx.next, ehx.languageSpecificData, ehx.object.msg.length, ehx.object.msg.ptr);
 
@@ -304,7 +304,7 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     auto result = scanLSDA(language_specific_data, ip - Start, exceptionClass,
         (actions & _UA_FORCE_UNWIND) != 0,          // don't catch when forced unwinding
         (actions & _UA_SEARCH_PHASE) != 0,          // search phase is looking for handlers
-        getClassInfo(eh),
+        exceptionObject,
         landing_pad,
         handler);
     landing_pad += Start;
@@ -343,11 +343,13 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             assert(!(actions & _UA_FORCE_UNWIND));
             if (actions & _UA_SEARCH_PHASE)
             {
-                assert(exceptionClass == dmdExceptionClass);   // Can't do handlers for anything but D
-                eh.handler = handler;
-                eh.languageSpecificData = language_specific_data;
-                eh.landingPad = landing_pad;
-
+                if (exceptionClass == dmdExceptionClass)
+                {
+                    auto eh = ExceptionHeader.toExceptionHeader(exceptionObject);
+                    eh.handler = handler;
+                    eh.languageSpecificData = language_specific_data;
+                    eh.landingPad = landing_pad;
+                }
                 return _URC_HANDLER_FOUND;
             }
             break;
@@ -357,50 +359,54 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     //printf( '%.*s' next = %p\n", eh.object.msg.length, eh.object.msg.ptr, eh.next);
 
     // Figure out what to do when there are multiple exceptions in flight
-    while (eh.next)
+    if (exceptionClass == dmdExceptionClass)
     {
-        ExceptionHeader* ehn = eh.next;
-
-        // Don't combine when the exceptions are from different functions
-        if (language_specific_data != ehn.languageSpecificData)
+        auto eh = ExceptionHeader.toExceptionHeader(exceptionObject);
+        while (eh.next)
         {
-            //printf("break: %p %p\n", language_specific_data, ehn.languageSpecificData);
-            break;
-        }
+            ExceptionHeader* ehn = eh.next;
 
-        Error e = cast(Error)eh.object;
-        if (e !is null && (cast(Error)ehn.object) is null)
-        {
-            /* eh is an Error, ehn is not. Skip ehn.
-             */
-            //printf("bypass\n");
-            e.bypassedException = ehn.object;
-        }
-        else
-        {
-            //printf("chain\n");
-            // Append eh's object to ehn's object chain
-            Throwable n = ehn.object;
-            while (n.next)
-                n = n.next;
-            n.next = eh.object;
-
-            // Replace our exception object with in-flight one
-            eh.object = ehn.object;
-            if (ehn.handler != handler)
+            // Don't combine when the exceptions are from different functions
+            if (language_specific_data != ehn.languageSpecificData)
             {
-                handler = ehn.handler;
-
-                eh.handler = handler;
-                eh.languageSpecificData = language_specific_data;
-                eh.landingPad = landing_pad;
+                //printf("break: %p %p\n", language_specific_data, ehn.languageSpecificData);
+                break;
             }
-        }
 
-        // Remove ehn from threaded chain
-        eh.next = ehn.next;
-        //printf("delete %p\n", ehn);
-        _Unwind_DeleteException(&ehn.exception_object); // discard ehn
+            Error e = cast(Error)eh.object;
+            if (e !is null && !cast(Error)ehn.object)
+            {
+                /* eh is an Error, ehn is not. Skip ehn.
+                 */
+                //printf("bypass\n");
+                e.bypassedException = ehn.object;
+            }
+            else
+            {
+                //printf("chain\n");
+                // Append eh's object to ehn's object chain
+                Throwable n = ehn.object;
+                while (n.next)
+                    n = n.next;
+                n.next = eh.object;
+
+                // Replace our exception object with in-flight one
+                eh.object = ehn.object;
+                if (ehn.handler != handler)
+                {
+                    handler = ehn.handler;
+
+                    eh.handler = handler;
+                    eh.languageSpecificData = language_specific_data;
+                    eh.landingPad = landing_pad;
+                }
+            }
+
+            // Remove ehn from threaded chain
+            eh.next = ehn.next;
+            //printf("delete %p\n", ehn);
+            _Unwind_DeleteException(&ehn.exception_object); // discard ehn
+        }
     }
 
     // Set up registers and jump to cleanup or handler
@@ -417,12 +423,13 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
  * Look at the chain of inflight exceptions and pick the class type that'll
  * be looked for in catch clauses.
  * Params:
- *      eh = ExceptionHeader of unwinding exception
+ *      exceptionObject = language specific exception information
  * Returns:
  *      class type to look for
  */
-ClassInfo getClassInfo(ExceptionHeader* eh)
+ClassInfo getClassInfo(_Unwind_Exception* exceptionObject)
 {
+    ExceptionHeader* eh = ExceptionHeader.toExceptionHeader(exceptionObject);
     Throwable ehobject = eh.object;
     //printf("start: %p '%.*s'\n", ehobject, ehobject.classinfo.info.name.length, ehobject.classinfo.info.name.ptr);
     for (ExceptionHeader* ehn = eh.next; ehn; ehn = ehn.next)
@@ -435,7 +442,6 @@ ClassInfo getClassInfo(ExceptionHeader* eh)
     //printf("end  : %p\n", ehobject);
     return ehobject.classinfo;
 }
-
 
 /******************************
  * Decode Unsigned LEB128.
@@ -533,7 +539,7 @@ enum
  *      exceptionClass = which language threw the exception
  *      cleanupsOnly = only look for cleanups
  *      preferHandler = if a handler encloses a cleanup, prefer the handler
- *      catchType = type of thrown object
+ *      exceptionObject = language specific exception information
  *      landingPad = set to landing pad
  *      handler = set to index of which catch clause was matched
  * Returns:
@@ -547,7 +553,7 @@ enum
 LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class exceptionClass,
         bool cleanupsOnly,
         bool preferHandler,
-        ClassInfo catchType,
+        _Unwind_Exception* exceptionObject,
         out _Unwind_Ptr landingPad, out int handler)
 {
     auto p = lsda;
@@ -637,7 +643,7 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
                 if (cleanupsOnly)
                     continue;                   // ignore catch
 
-                auto h = actionTableLookup(catchType, cast(uint)ActionRecordPtr, pActionTable, tt, TType);
+                auto h = actionTableLookup(exceptionObject, cast(uint)ActionRecordPtr, pActionTable, tt, TType, exceptionClass);
                 if (h < 0)
                 {
                     fprintf(stderr, "negative handler\n");
@@ -679,22 +685,29 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
 /********************************************
  * Look up classType in Action Table.
  * Params:
- *      classType = type to loop up in Action Table
+ *      exceptionObject = language specific exception information
  *      actionRecordPtr = starting index in Action Table + 1
  *      pActionTable = pointer to start of Action Table
  *      tt = pointer past end of Type Table
  *      TType = encoding of entries in Type Table
+ *      exceptionClass = which language threw the exception
  * Returns:
  *      >=1 means the handler index of the classType
  *      0 means classType is not in the Action Table
  *      <0 means corrupt
  */
-int actionTableLookup(ClassInfo catchType, uint actionRecordPtr, const(ubyte)* pActionTable,
-                      const(ubyte)* tt, ubyte TType)
+int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, const(ubyte)* pActionTable,
+                      const(ubyte)* tt, ubyte TType, _Unwind_Exception_Class exceptionClass)
 {
     //printf("actionTableLookup(catchType = %p, actionRecordPtr = %d, pActionTable = %p, tt = %p)\n",
         //catchType, actionRecordPtr, pActionTable, tt);
     assert(pActionTable < tt);
+
+    ClassInfo thrownType;
+    if (exceptionClass == dmdExceptionClass)
+    {
+        thrownType = getClassInfo(exceptionObject);
+    }
 
     for (auto ap = pActionTable + actionRecordPtr - 1; 1; )
     {
@@ -752,8 +765,22 @@ int actionTableLookup(ClassInfo catchType, uint actionRecordPtr, const(ubyte)* p
             entry = *cast(_Unwind_Ptr*)entry;
 
         ClassInfo ci = cast(ClassInfo)cast(void*)(entry);
-        //printf("    catchType = %p, ci = %p\n", catchType, ci);
-        if (_d_isbaseof(catchType, ci))
+        if (ci.classinfo is __cpp_type_info_ptr.classinfo)
+        {
+            if (exceptionClass == cppExceptionClass || exceptionClass == cppExceptionClass1)
+            {
+                // sti is catch clause type_info
+                auto sti = cast(CppTypeInfo)((cast(__cpp_type_info_ptr)cast(void*)ci).ptr);
+                auto p = getCppPtrToThrownObject(exceptionObject, sti);
+                if (p) // if found
+                {
+                    auto eh = CppExceptionHeader.toExceptionHeader(exceptionObject);
+                    eh.thrownPtr = p;                   // for __cxa_begin_catch()
+                    return cast(int)TypeFilter;
+                }
+            }
+        }
+        else if (exceptionClass == dmdExceptionClass && _d_isbaseof(thrownType, ci))
             return cast(int)TypeFilter; // found it
 
         if (!NextRecordPtr)
@@ -780,3 +807,99 @@ void terminate(uint line) @nogc
     printf("dwarfeh(%u) fatal error\n", line);
     abort();     // unceremoniously exit
 }
+
+
+/****************************** C++ Support *****************************/
+
+enum _Unwind_Exception_Class cppExceptionClass =
+        (cast(_Unwind_Exception_Class)'G' << 56) |
+        (cast(_Unwind_Exception_Class)'N' << 48) |
+        (cast(_Unwind_Exception_Class)'U' << 40) |
+        (cast(_Unwind_Exception_Class)'C' << 32) |
+        (cast(_Unwind_Exception_Class)'C' << 24) |
+        (cast(_Unwind_Exception_Class)'+' << 16) |
+        (cast(_Unwind_Exception_Class)'+' <<  8) |
+        (cast(_Unwind_Exception_Class)0 <<  0);
+
+enum _Unwind_Exception_Class cppExceptionClass1 = cppExceptionClass + 1;
+
+
+/*****************************************
+ * Get Pointer to Thrown Object if type of thrown object is implicitly
+ * convertible to the catch type.
+ * Params:
+ *      exceptionObject = language specific exception information
+ *      sti = type of catch clause
+ * Returns:
+ *      null if not caught, pointer to thrown object if caught
+ */
+void* getCppPtrToThrownObject(_Unwind_Exception* exceptionObject, CppTypeInfo sti)
+{
+    void* p;    // pointer to thrown object
+    if (exceptionObject.exception_class & 1)
+        p = CppExceptionHeader.toExceptionHeader(exceptionObject).ptr;
+    else
+        p = cast(void*)(exceptionObject + 1);           // thrown object is immediately after it
+
+    const tt = (cast(CppExceptionHeader*)p - 1).typeinfo;
+
+    if (tt.__is_pointer_p())
+        p = *cast(void**)p;
+
+    // Pointer adjustment may be necessary due to multiple inheritance
+    return (sti is tt || sti.__do_catch(tt, &p, 1)) ? p : null;
+}
+
+extern (C++)
+{
+    /**
+     * Access C++ std::type_info's virtual functions from D,
+     * being careful to not require linking with libstd++
+     * or interfere with core.stdcpp.typeinfo.
+     * So, give it a different name.
+     */
+    interface CppTypeInfo // map to C++ std::type_info's virtual functions
+    {
+        void dtor1();                           // consume destructor slot in vtbl[]
+        void dtor2();                           // consume destructor slot in vtbl[]
+        bool __is_pointer_p() const;
+        bool __is_function_p() const;
+        bool __do_catch(const CppTypeInfo, void**, uint) const;
+        bool __do_upcast(const void*, void**) const;
+    }
+}
+
+/// The C++ version of D's ExceptionHeader wrapper
+struct CppExceptionHeader
+{
+    union
+    {
+        CppTypeInfo typeinfo;                   // type that was thrown
+        void* ptr;                              // pointer to real exception
+    }
+    void* p1;                                   // unreferenced placeholders...
+    void* p2;
+    void* p3;
+    void* p4;
+    int i1;
+    int i2;
+    const(ubyte)* p5;
+    const(ubyte)* p6;
+    _Unwind_Ptr p7;
+    void* thrownPtr;                            // pointer to thrown object
+    _Unwind_Exception exception_object;         // the unwinder's data
+
+    /*******************************
+     * Convert from pointer to exception_object field to pointer to CppExceptionHeader
+     * that it is embedded inside of.
+     * Params:
+     *  eo = pointer to exception_object field
+     * Returns:
+     *  pointer to CppExceptionHeader that eo points into.
+     */
+    static CppExceptionHeader* toExceptionHeader(_Unwind_Exception* eo)
+    {
+        return cast(CppExceptionHeader*)(eo + 1) - 1;
+    }
+}
+
