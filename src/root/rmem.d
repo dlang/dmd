@@ -16,7 +16,7 @@ version (GC)
 
     extern (C++) struct Mem
     {
-        char* xstrdup(const char* p)
+        char* xstrdup(const(char)* p)
         {
             return p[0 .. strlen(p) + 1].dup.ptr;
         }
@@ -50,7 +50,7 @@ else
 
     extern (C++) struct Mem
     {
-        char* xstrdup(const char* s)
+        char* xstrdup(const(char)* s)
         {
             if (s)
             {
