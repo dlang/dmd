@@ -1673,7 +1673,16 @@ $(CONSOLE
         may not exit with a throw, goto, break, continue, or
         return; nor may it be entered with a goto.
 
+$(H4 Catching C++ Class Objects)
 
+        $(P
+        On many platforms, catching C++ class objects is supported.
+        Catching C++ objects and D objects cannot both be done
+        in the same $(I TryStatement).
+        Upon exit from the $(I Catch), any destructors for the C++
+        object will be run and the storage used for it reclaimed.
+        C++ objects cannot be caught in $(D @safe) code.
+        )
 
 $(H3 $(LNAME2 asm, Asm Statement))
 
