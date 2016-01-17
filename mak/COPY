@@ -43,8 +43,6 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
-	$(IMPDIR)\core\sys\unwind.d \
-	\
 	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	\
