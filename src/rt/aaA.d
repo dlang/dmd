@@ -142,13 +142,13 @@ private:
     {
         auto obuckets = buckets;
         buckets = allocBuckets(ndim);
-        uint newFirstUsed = cast(uint)ndim;
+        auto newFirstUsed = cast(uint) ndim;
 
-        foreach (ref b; obuckets[firstUsed..$])
+        foreach (ref b; obuckets[firstUsed .. $])
             if (b.filled)
             {
                 auto x = findSlotInsert(b.hash);
-                newFirstUsed = min(newFirstUsed, cast(uint)(x - buckets.ptr));
+                newFirstUsed = min(newFirstUsed, cast(uint) (x - buckets.ptr));
                 *x = b;
             }
 
@@ -160,16 +160,16 @@ private:
 
     void clear() pure nothrow
     {
-        foreach(ref b; buckets[firstUsed..$])
+        foreach (ref b; buckets[firstUsed .. $])
         {
-            if(b.filled)
+            if (b.filled)
             {
                 b.hash = HASH_DELETED;
                 b.entry = null;
             }
         }
         deleted = used;
-        firstUsed = cast(uint)dim;
+        firstUsed = cast(uint) dim;
         resize(INIT_NUM_BUCKETS);
     }
 }
@@ -448,7 +448,7 @@ extern (C) bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
 /// Remove all elements from AA.
 extern (C) void _aaClear(AA aa) pure nothrow
 {
-    if(!aa.empty)
+    if (!aa.empty)
     {
         aa.impl.clear();
     }
@@ -967,7 +967,7 @@ pure nothrow unittest
 {
     int[int] aa;
     assert(aa.length == 0);
-    foreach(i; 0..100)
+    foreach (i; 0 .. 100)
         aa[i] = i * 2;
     assert(aa.length == 100);
     auto aa2 = aa;

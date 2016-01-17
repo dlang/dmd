@@ -1893,12 +1893,12 @@ alias AssociativeArray(Key, Value) = Value[Key];
 
 void clear(T : Value[Key], Value, Key)(T aa)
 {
-    _aaClear(*cast(void **)&aa);
+    _aaClear(*cast(void **) &aa);
 }
 
 void clear(T : Value[Key], Value, Key)(T* aa)
 {
-    _aaClear(*cast(void **)aa);
+    _aaClear(*cast(void **) aa);
 }
 
 T rehash(T : Value[Key], Value, Key)(T aa)
