@@ -57,6 +57,7 @@ void genTypeInfo(Type *t, Scope *sc);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
 FuncDeclaration *search_toString(StructDeclaration *sd);
+Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd);
 
 /* ================================================================ */
 
@@ -607,6 +608,31 @@ dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
     pdt = membersToDt(sd, pdt);
 
     //printf("-StructDeclaration::toDt(), this='%s'\n", sd->toChars());
+    return pdt;
+}
+
+/******************************
+ * Generate data for instance of __cpp_type_info_ptr that refers
+ * to the C++ RTTI symbol for cd.
+ * Params:
+ *      cd = C++ class
+ */
+dt_t **cpp_type_info_ptr_toDt(ClassDeclaration *cd, dt_t **pdt)
+{
+    //printf("cpp_type_info_ptr_toDt(this = '%s')\n", cd->toChars());
+    assert(cd->isCPPclass());
+
+    // Put in first two members, the vtbl[] and the monitor
+    pdt = dtxoff(pdt, toVtblSymbol(ClassDeclaration::cpp_type_info_ptr), 0);
+    pdt = dtsize_t(pdt, 0);             // monitor
+
+    // Create symbol for C++ type info
+    Symbol *s = toSymbolCppTypeInfo(cd);
+
+    // Put in address of cd's C++ type info
+    pdt = dtxoff(pdt, s, 0);
+
+    //printf("-cpp_type_info_ptr_toDt(this = '%s')\n", cd.toChars());
     return pdt;
 }
 

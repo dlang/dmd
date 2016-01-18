@@ -72,8 +72,10 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             if (components_on)
                 for (size_t i = 0; i < components.dim; i++)
                 {
+                    //printf("    component[%d] = %s\n", i, components[i] ? components[i].toChars() : null);
                     if (p == components[i])
                     {
+                        //printf("\tmatch\n");
                         /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
                          */
                         buf.writeByte('S');
@@ -102,7 +104,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         void store(RootObject p)
         {
-            //printf("store %s\n", p ? p.toChars() : null);
+            //printf("store %s\n", p ? p.toChars() : "null");
             if (components_on)
                 components.push(p);
         }
@@ -264,7 +266,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 {
                     prefix_name(p);
                 }
-                store(s);
+                if (!(s.ident == Id.std && is_initial_qualifier(s)))
+                    store(s);
                 source_name(s);
             }
         }
@@ -446,6 +449,11 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 {
                     buf.remove(3, 4);
                     buf.insert(3, cast(const(char)*)"St", 2);
+                }
+                if (buf.offset >= 8 && memcmp(buf.data, cast(char*)"_ZNK3std", 8) == 0)
+                {
+                    buf.remove(4, 4);
+                    buf.insert(4, cast(const(char)*)"St", 2);
                 }
                 if (d.isDtorDeclaration())
                 {
@@ -893,6 +901,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 store(null);
             store(t);
         }
+
+        final const(char)* mangle_typeinfo(Dsymbol s)
+        {
+            buf.writestring("_ZTI");
+            cpp_mangle_name(s, false);
+            return buf.extractString();
+        }
     }
 
     extern (C++) char* toCppMangle(Dsymbol s)
@@ -900,6 +915,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         //printf("toCppMangle(%s)\n", s.toChars());
         scope CppMangleVisitor v = new CppMangleVisitor();
         return v.mangleOf(s);
+    }
+
+    extern (C++) const(char)* cppTypeInfoMangle(Dsymbol s)
+    {
+        //printf("cppTypeInfoMangle(%s)\n", s.toChars());
+        scope CppMangleVisitor v = new CppMangleVisitor();
+        return v.mangle_typeinfo(s);
     }
 }
 else static if (TARGET_WINDOS)
@@ -1909,6 +1931,12 @@ else static if (TARGET_WINDOS)
     {
         scope VisualCPPMangler v = new VisualCPPMangler(!global.params.mscoff);
         return v.mangleOf(s);
+    }
+
+    extern (C++) const(char)* cppTypeInfoMangle(Dsymbol s)
+    {
+        //printf("cppTypeInfoMangle(%s)\n", s.toChars());
+        assert(0);
     }
 }
 else

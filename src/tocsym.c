@@ -52,7 +52,9 @@ Classsym *fake_classsym(Identifier *id);
 type *Type_toCtype(Type *t);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+dt_t **cpp_type_info_ptr_toDt(ClassDeclaration *cd, dt_t **pdt);
 Symbol *toInitializer(AggregateDeclaration *ad);
+const char *cppTypeInfoMangle(Dsymbol *cd);
 
 /*************************************
  * Helper
@@ -726,3 +728,55 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     outdata(s);
     return cre->value->sym;
 }
+
+/**************************************
+ * For C++ class cd, generate an instance of __cpp_type_info_ptr
+ * and populate it with a pointer to the C++ type info.
+ * Params:
+ *      cd = C++ class
+ * Returns:
+ *      symbol of instance of __cpp_type_info_ptr
+ */
+Symbol* toSymbolCpp(ClassDeclaration *cd)
+{
+    assert(cd->isCPPclass());
+
+    /* For the symbol std::exception, the type info is _ZTISt9exception
+     */
+    if (!cd->cpp_type_info_ptr_sym)
+    {
+        static Symbol *scpp;
+        if (!scpp)
+            scpp = fake_classsym(Id::cpp_type_info_ptr);
+        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp->Stype, "");
+        s->Sfl = FLdata;
+        s->Sflags |= SFLnodebug;
+        cpp_type_info_ptr_toDt(cd, &s->Sdt);
+        slist_add(s);
+        outdata(s);
+        cd->cpp_type_info_ptr_sym = s;
+    }
+    return cd->cpp_type_info_ptr_sym;
+}
+
+/**********************************
+ * Generate Symbol of C++ type info for C++ class cd.
+ * Params:
+ *      cd = C++ class
+ * Returns:
+ *      Symbol of cd's rtti type info
+ */
+Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
+{
+    const char *id = cppTypeInfoMangle(cd);
+    Symbol* s = symbol_calloc(id);
+    s->Sclass = SCextern;
+    s->Sfl = FLextern;          // C++ code will provide the definition
+    s->Sflags |= SFLnodebug;
+    TYPE *t = type_fake(TYnptr);
+    t->Tcount++;
+    s->Stype = t;
+    slist_add(s);
+    return s;
+}
+

@@ -181,6 +181,7 @@ public:
     extern (C++) static __gshared ClassDeclaration throwable;
     extern (C++) static __gshared ClassDeclaration exception;
     extern (C++) static __gshared ClassDeclaration errorException;
+    extern (C++) static __gshared ClassDeclaration cpp_type_info_ptr;   // Object.__cpp_type_info_ptr
 
     ClassDeclaration baseClass; // NULL only if this is Object
     FuncDeclaration staticCtor;
@@ -209,6 +210,8 @@ public:
     Baseok baseok;      // set the progress of base classes resolving
 
     Objc_ClassDeclaration objc;
+
+    Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, bool inObject = false)
     {
@@ -366,6 +369,12 @@ public:
                 if (!inObject)
                     error("%s", msg);
                 errorException = this;
+            }
+            if (id == Id.cpp_type_info_ptr)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                cpp_type_info_ptr = this;
             }
         }
         baseok = BASEOKnone;
