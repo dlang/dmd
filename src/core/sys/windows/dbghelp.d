@@ -31,10 +31,10 @@ extern(System)
     alias BOOL         function(DWORD MachineType, HANDLE hProcess, HANDLE hThread, STACKFRAME64 *StackFrame, PVOID ContextRecord,
                                 ReadProcessMemoryProc64 ReadMemoryRoutine, FunctionTableAccessProc64 FunctoinTableAccess,
                                 GetModuleBaseProc64 GetModuleBaseRoutine, TranslateAddressProc64 TranslateAddress) StackWalk64Func;
-    alias BOOL         function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINE64 *line) SymGetLineFromAddr64Func;
+    alias BOOL         function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINEA64 *line) SymGetLineFromAddr64Func;
     alias DWORD64      function(HANDLE hProcess, DWORD64 dwAddr) SymGetModuleBase64Func;
-    alias BOOL         function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULE64 *ModuleInfo) SymGetModuleInfo64Func;
-    alias BOOL         function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOL64 *Symbol) SymGetSymFromAddr64Func;
+    alias BOOL         function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULEA64 *ModuleInfo) SymGetModuleInfo64Func;
+    alias BOOL         function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOLA64 *Symbol) SymGetSymFromAddr64Func;
     alias DWORD        function(PCTSTR DecoratedName, PTSTR UnDecoratedName, DWORD UndecoratedLength, DWORD Flags) UnDecorateSymbolNameFunc;
     alias DWORD64      function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll) SymLoadModule64Func;
     alias BOOL         function(HANDLE HProcess, PTSTR SearchPath, DWORD SearchPathLength) SymGetSearchPathFunc;

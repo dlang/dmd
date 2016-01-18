@@ -242,12 +242,12 @@ private:
         static struct BufSymbol
         {
         align(1):
-            IMAGEHLP_SYMBOL64 _base;
+            IMAGEHLP_SYMBOLA64 _base;
             TCHAR[1024] _buf;
         }
         BufSymbol bufSymbol=void;
-        IMAGEHLP_SYMBOL64* symbol = &bufSymbol._base;
-        symbol.SizeOfStruct = IMAGEHLP_SYMBOL64.sizeof;
+        IMAGEHLP_SYMBOLA64* symbol = &bufSymbol._base;
+        symbol.SizeOfStruct = IMAGEHLP_SYMBOLA64.sizeof;
         symbol.MaxNameLength = bufSymbol._buf.length;
 
         char[][] trace;
@@ -260,8 +260,8 @@ private:
                     *symbol.Name.ptr)
                 {
                     DWORD disp;
-                    IMAGEHLP_LINE64 line=void;
-                    line.SizeOfStruct = IMAGEHLP_LINE64.sizeof;
+                    IMAGEHLP_LINEA64 line=void;
+                    line.SizeOfStruct = IMAGEHLP_LINEA64.sizeof;
 
                     if (dbghelp.SymGetLineFromAddr64(hProcess, pc, &disp, &line))
                         res = formatStackFrame(cast(void*)pc, symbol.Name.ptr,

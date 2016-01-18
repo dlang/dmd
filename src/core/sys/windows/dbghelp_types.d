@@ -81,12 +81,20 @@ struct STACKFRAME64
 
 public import core.sys.windows.winnt : IMAGE_FILE_MACHINE_I386, IMAGE_FILE_MACHINE_IA64, IMAGE_FILE_MACHINE_AMD64;
 
-struct IMAGEHLP_LINE64
+struct IMAGEHLP_LINEA64
 {
     DWORD   SizeOfStruct;
     PVOID   Key;
     DWORD   LineNumber;
-    PTSTR   FileName;
+    PCSTR   FileName;
+    DWORD64 Address;
+}
+struct IMAGEHLP_LINEW64
+{
+    DWORD   SizeOfStruct;
+    PVOID   Key;
+    DWORD   LineNumber;
+    PWSTR FileName;
     DWORD64 Address;
 }
 
@@ -104,7 +112,7 @@ enum SYM_TYPE : int
     NumSymTypes,
 }
 
-struct IMAGEHLP_MODULE64
+struct IMAGEHLP_MODULEA64
 {
     DWORD      SizeOfStruct;
     DWORD64    BaseOfImage;
@@ -113,15 +121,49 @@ struct IMAGEHLP_MODULE64
     DWORD      CheckSum;
     DWORD      NumSyms;
     SYM_TYPE   SymType;
-    TCHAR[32]  ModuleName;
-    TCHAR[256] ImageName;
-    TCHAR[256] LoadedImageName;
+    CHAR[32]   ModuleName;
+    CHAR[256]  ImageName;
+    CHAR[256]  LoadedImageName;
     // new elements: 07-Jun-2002
     version (none)
     {
-        TCHAR[256] LoadedPdbName;
+        CHAR[256]  LoadedPdbName;
         DWORD      CVSig;
-        TCHAR[MAX_PATH*3] CVData;
+        CHAR[MAX_PATH*3] CVData;
+        DWORD      PdbSig;
+        GUID       PdbSig70;
+        DWORD      PdbAge;
+        BOOL       PdbUnmatched;
+        BOOL       DbgUnmachted;
+        BOOL       LineNumbers;
+        BOOL       GlobalSymbols;
+        BOOL       TypeInfo;
+    }
+    // new elements: 17-Dec-2003
+    version (none)
+    {
+        BOOL       SourceIndexed;
+        BOOL       Publics;
+    }
+}
+struct IMAGEHLP_MODULEW64
+{
+    DWORD      SizeOfStruct;
+    DWORD64    BaseOfImage;
+    DWORD      ImageSize;
+    DWORD      TimeDateStamp;
+    DWORD      CheckSum;
+    DWORD      NumSyms;
+    SYM_TYPE   SymType;
+    WCHAR[32]  ModuleName;
+    WCHAR[256] ImageName;
+    WCHAR[256] LoadedImageName;
+    // new elements: 07-Jun-2002
+    version (none)
+    {
+        WCHAR[256] LoadedPdbName;
+        DWORD      CVSig;
+        WCHAR[MAX_PATH*3] CVData;
         DWORD      PdbSig;
         GUID       PdbSig70;
         DWORD      PdbAge;
@@ -139,14 +181,23 @@ struct IMAGEHLP_MODULE64
     }
 }
 
-struct IMAGEHLP_SYMBOL64
+struct IMAGEHLP_SYMBOLA64
 {
     DWORD    SizeOfStruct;
     DWORD64  Address;
     DWORD    Size;
     DWORD    Flags;
     DWORD    MaxNameLength;
-    TCHAR[1] Name;
+    CHAR[1] Name;
+}
+struct IMAGEHLP_SYMBOLW64
+{
+    DWORD    SizeOfStruct;
+    DWORD64  Address;
+    DWORD    Size;
+    DWORD    Flags;
+    DWORD    MaxNameLength;
+    WCHAR[1] Name;
 }
 
 
@@ -164,4 +215,17 @@ struct API_VERSION
     USHORT MinorVersion;
     USHORT Revision;
     USHORT Reserved;
+}
+
+version (Unicode)
+{
+    alias IMAGEHLP_LINEW64 IMAGEHLP_LINE64;
+    alias IMAGEHLP_MODULEW64 IMAGEHLP_MODULE64;
+    alias IMAGEHLP_SYMBOLW64 IMAGEHLP_SYMBOL64;
+}
+else
+{
+    alias IMAGEHLP_LINEA64 IMAGEHLP_LINE64;
+    alias IMAGEHLP_MODULEA64 IMAGEHLP_MODULE64;
+    alias IMAGEHLP_SYMBOLA64 IMAGEHLP_SYMBOL64;
 }
