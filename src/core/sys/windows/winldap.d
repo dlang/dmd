@@ -52,10 +52,10 @@ enum {
  */
 const TCHAR[] LDAP_VENDOR_NAME = "Microsoft Corporation.";
 
-const LDAP_API_VERSION          = 2004;
-const LDAP_VENDOR_VERSION       =  510;
-const LDAP_API_INFO_VERSION     =    1;
-const LDAP_FEATURE_INFO_VERSION =    1;
+enum LDAP_API_VERSION          = 2004;
+enum LDAP_VENDOR_VERSION       =  510;
+enum LDAP_API_INFO_VERSION     =    1;
+enum LDAP_FEATURE_INFO_VERSION =    1;
 
 enum {
     LDAP_SUCCESS                    = 0x00,
@@ -131,7 +131,7 @@ enum {
     LDAP_SSL_GC_PORT = 3269
 }
 
-const void*
+enum void*
     LDAP_OPT_OFF = null,
     LDAP_OPT_ON = cast(void*) 1;
 
@@ -194,7 +194,7 @@ enum {
     LDAP_DEREF_ALWAYS
 }
 
-const LDAP_NO_LIMIT = 0;
+enum LDAP_NO_LIMIT = 0;
 
 const TCHAR[] LDAP_CONTROL_REFERRALS = "1.2.840.113556.1.4.616";
 

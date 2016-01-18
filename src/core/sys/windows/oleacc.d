@@ -155,7 +155,7 @@ enum SELFLAG
     SELFLAG_REMOVESELECTION = 16
 }
 
-const SELFLAG_VALID = 0x0000001F;
+enum SELFLAG_VALID = 0x0000001F;
 
 
 interface IAccessible : IDispatch {

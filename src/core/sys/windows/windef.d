@@ -13,7 +13,7 @@ version (Windows):
 public import core.sys.windows.winnt;
 private import core.sys.windows.w32api;
 
-const size_t MAX_PATH = 260;
+enum size_t MAX_PATH = 260;
 
 pure nothrow @nogc {
     ushort MAKEWORD(ubyte a, ubyte b) {

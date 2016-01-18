@@ -30,21 +30,21 @@ import core.sys.windows.objbase, core.sys.windows.shlobj;
 private import core.sys.windows.basetyps, core.sys.windows.objidl, core.sys.windows.unknwn, core.sys.windows.windef,
   core.sys.windows.winbase, core.sys.windows.winreg;
 
-const DLLVER_PLATFORM_WINDOWS = 0x00000001;
-const DLLVER_PLATFORM_NT      = 0x00000002;
+enum DLLVER_PLATFORM_WINDOWS = 0x00000001;
+enum DLLVER_PLATFORM_NT      = 0x00000002;
 
-const URL_DONT_ESCAPE_EXTRA_INFO  = 0x02000000;
-const URL_DONT_SIMPLIFY           = 0x08000000;
-const URL_ESCAPE_PERCENT          = 0x00001000;
-const URL_ESCAPE_SEGMENT_ONLY     = 0x00002000;
-const URL_ESCAPE_SPACES_ONLY      = 0x04000000;
-const URL_ESCAPE_UNSAFE           = 0x20000000;
-const URL_INTERNAL_PATH           = 0x00800000;
-const URL_PARTFLAG_KEEPSCHEME     = 0x00000001;
-const URL_PLUGGABLE_PROTOCOL      = 0x40000000;
-const URL_UNESCAPE                = 0x10000000;
-const URL_UNESCAPE_HIGH_ANSI_ONLY = 0x00400000;
-const URL_UNESCAPE_INPLACE        = 0x00100000;
+enum URL_DONT_ESCAPE_EXTRA_INFO  = 0x02000000;
+enum URL_DONT_SIMPLIFY           = 0x08000000;
+enum URL_ESCAPE_PERCENT          = 0x00001000;
+enum URL_ESCAPE_SEGMENT_ONLY     = 0x00002000;
+enum URL_ESCAPE_SPACES_ONLY      = 0x04000000;
+enum URL_ESCAPE_UNSAFE           = 0x20000000;
+enum URL_INTERNAL_PATH           = 0x00800000;
+enum URL_PARTFLAG_KEEPSCHEME     = 0x00000001;
+enum URL_PLUGGABLE_PROTOCOL      = 0x40000000;
+enum URL_UNESCAPE                = 0x10000000;
+enum URL_UNESCAPE_HIGH_ANSI_ONLY = 0x00400000;
+enum URL_UNESCAPE_INPLACE        = 0x00100000;
 
 align(1):
 struct DLLVERSIONINFO

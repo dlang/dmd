@@ -12,12 +12,12 @@ version (Windows):
 
 private import core.sys.windows.windef;
 
-const DWORD
+enum DWORD
     DIALOPTION_BILLING  =  64,
     DIALOPTION_QUIET    = 128,
     DIALOPTION_DIALTONE = 256;
 
-const DWORD
+enum DWORD
     MDMVOLFLAG_LOW    = 1,
     MDMVOLFLAG_MEDIUM = 2,
     MDMVOLFLAG_HIGH   = 4;
@@ -28,7 +28,7 @@ enum : DWORD {
     MDMVOL_HIGH   = 2
 }
 
-const DWORD
+enum DWORD
     MDMSPKRFLAG_OFF       = 1,
     MDMSPKRFLAG_DIAL      = 2,
     MDMSPKRFLAG_ON        = 4,
@@ -41,7 +41,7 @@ enum : DWORD {
     MDMSPKR_CALLSETUP
 }
 
-const DWORD
+enum DWORD
     MDM_COMPRESSION      = 0x0001,
     MDM_ERROR_CONTROL    = 0x0002,
     MDM_FORCED_EC        = 0x0004,

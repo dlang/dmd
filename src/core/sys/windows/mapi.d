@@ -54,25 +54,25 @@ enum {
     MAPI_BCC
 }
 
-const MAPI_LOGON_UI          = 0x0001;
-const MAPI_NEW_SESSION       = 0x0002;
-const MAPI_FORCE_DOWNLOAD    = 0x1000;
-const MAPI_LOGOFF_SHARED     = 0x0001;
-const MAPI_LOGOFF_UI         = 0x0002;
-const MAPI_DIALOG            = 0x0008;
-const MAPI_UNREAD_ONLY       = 0x0020;
-const MAPI_LONG_MSGID        = 0x4000;
-const MAPI_GUARANTEE_FIFO    = 0x0100;
-const MAPI_ENVELOPE_ONLY     = 0x0040;
-const MAPI_PEEK              = 0x0080;
-const MAPI_BODY_AS_FILE      = 0x0200;
-const MAPI_SUPPRESS_ATTACH   = 0x0800;
-const MAPI_AB_NOMODIFY       = 0x0400;
-const MAPI_OLE               = 0x0001;
-const MAPI_OLE_STATIC        = 0x0002;
-const MAPI_UNREAD            = 0x0001;
-const MAPI_RECEIPT_REQUESTED = 0x0002;
-const MAPI_SENT              = 0x0004;
+enum MAPI_LOGON_UI          = 0x0001;
+enum MAPI_NEW_SESSION       = 0x0002;
+enum MAPI_FORCE_DOWNLOAD    = 0x1000;
+enum MAPI_LOGOFF_SHARED     = 0x0001;
+enum MAPI_LOGOFF_UI         = 0x0002;
+enum MAPI_DIALOG            = 0x0008;
+enum MAPI_UNREAD_ONLY       = 0x0020;
+enum MAPI_LONG_MSGID        = 0x4000;
+enum MAPI_GUARANTEE_FIFO    = 0x0100;
+enum MAPI_ENVELOPE_ONLY     = 0x0040;
+enum MAPI_PEEK              = 0x0080;
+enum MAPI_BODY_AS_FILE      = 0x0200;
+enum MAPI_SUPPRESS_ATTACH   = 0x0800;
+enum MAPI_AB_NOMODIFY       = 0x0400;
+enum MAPI_OLE               = 0x0001;
+enum MAPI_OLE_STATIC        = 0x0002;
+enum MAPI_UNREAD            = 0x0001;
+enum MAPI_RECEIPT_REQUESTED = 0x0002;
+enum MAPI_SENT              = 0x0004;
 
 alias uint FLAGS, LHANDLE;
 alias uint* LPLHANDLE, LPULONG;

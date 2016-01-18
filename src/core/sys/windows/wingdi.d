@@ -28,7 +28,7 @@ enum : DWORD {
 
 // ---
 // COLORADJUSTMENT -- only for NT 3.1+, Win2000+
-const WORD
+enum WORD
     CA_NEGATIVE   = 1,
     CA_LOG_FILTER = 2;
 
@@ -198,12 +198,12 @@ enum : DWORD {
     EMR_CREATECOLORSPACEW // 122
 }
 
-const EMR_MIN = EMR_HEADER;
+enum EMR_MIN = EMR_HEADER;
 
 static if (_WIN32_WINNT >= 0x500) {
-    const EMR_MAX = EMR_CREATECOLORSPACEW;
+enum EMR_MAX = EMR_CREATECOLORSPACEW;
 } else {
-    const EMR_MAX = EMR_PIXELFORMAT;
+enum EMR_MAX = EMR_PIXELFORMAT;
 }
 
 // ENHMETAHEADER.dSignature, ENHMETAHEADER3.dSignature,
@@ -310,13 +310,13 @@ enum : BYTE {
 
 //deprecated {
 // PIXELFORMATDESCRIPTOR.
-const byte
+enum byte
     PFD_MAIN_PLANE     = 0,
     PFD_OVERLAY_PLANE  = 1,
     PFD_UNDERLAY_PLANE = -1;
 //}
 // PIXELFORMATDESCRIPTOR.dwFlags
-const DWORD
+enum DWORD
     PFD_DOUBLEBUFFER          = 0x00000001,
     PFD_STEREO                = 0x00000002,
     PFD_DRAW_TO_WINDOW        = 0x00000004,
@@ -340,7 +340,7 @@ const DWORD
 
 // ----
 
-const DWORD
+enum DWORD
     BLACKNESS   = 0x000042,
     NOTSRCERASE = 0x1100A6,
     NOTSRCCOPY  = 0x330008,
@@ -357,7 +357,7 @@ const DWORD
     PATPAINT    = 0xFB0A09,
     WHITENESS   = 0xFF0062;
 static if (_WIN32_WINNT >= 0x500) {
-    const DWORD
+enum DWORD
         NOMIRRORBITMAP = 0x80000000,
         CAPTUREBLT     = 0x40000000;
 }
@@ -382,15 +382,15 @@ enum : int {
     R2_WHITE       = 16
 }
 
-const R2_LAST = R2_WHITE;
+enum R2_LAST = R2_WHITE;
 
 // CheckColorsInGamut()
-const ubyte
+enum ubyte
     CM_IN_GAMUT     = 0,
     CM_OUT_OF_GAMUT = 255;
 
 /* UpdateICMRegKey Constants               */
-const int
+enum int
     ICM_ADDPROFILE = 1,
     ICM_DELETEPROFILE = 2,
     ICM_QUERYPROFILE = 3,
@@ -407,8 +407,8 @@ enum : int {
     RGN_COPY = 5
 }
 
-const RGN_MIN = RGN_AND;
-const RGN_MAX = RGN_COPY;
+enum RGN_MIN = RGN_AND;
+enum RGN_MAX = RGN_COPY;
 
 // Return values for CombineRgn()
 enum {
@@ -417,11 +417,11 @@ enum {
     COMPLEXREGION = 3
 }
 
-const ERROR = 0;
+enum ERROR = 0;
 alias ERROR RGN_ERROR;
 
 // CreateDIBitmap()
-const DWORD CBM_INIT = 4;
+enum DWORD CBM_INIT = 4;
 
 // CreateDIBitmap()
 enum : UINT {
@@ -433,18 +433,18 @@ enum : UINT {
 //  Values for LOGFONT and CreateFont()
 
 // FIXME: For D, replace with lfFaceName.length()
-const LF_FACESIZE     = 32;
-const LF_FULLFACESIZE = 64;
+enum LF_FACESIZE     = 32;
+enum LF_FULLFACESIZE = 64;
 
 // FIXME: Not needed for D, only EXTLOGFONT
-const ELF_VENDOR_SIZE = 4;
+enum ELF_VENDOR_SIZE = 4;
 
 // ???
-const ELF_VERSION = 0;
-const ELF_CULTURE_LATIN = 0;
+enum ELF_VERSION = 0;
+enum ELF_CULTURE_LATIN = 0;
 
 // LOGFONT.lfWeight
-const LONG
+enum LONG
     FW_DONTCARE   = 0,
     FW_THIN       = 100,
     FW_EXTRALIGHT = 200,
@@ -523,7 +523,7 @@ enum : BYTE {
 
 // LOGFONT.lfPitchAndFamily
 
-const BYTE
+enum BYTE
     DEFAULT_PITCH  = 0,
     FIXED_PITCH    = 1,
     VARIABLE_PITCH = 2,
@@ -538,7 +538,7 @@ const BYTE
 // ----
 // Enums for the PANOSE struct
 
-const PANOSE_COUNT=10;
+enum PANOSE_COUNT=10;
 
 enum {
     PAN_FAMILYTYPE_INDEX = 0,
@@ -553,7 +553,7 @@ enum {
     PAN_XHEIGHT_INDEX
 }
 
-const PAN_CULTURE_LATIN=0;
+enum PAN_CULTURE_LATIN=0;
 
 // NOTE: the first two values (PAN_ANY and PAN_NO_FIT) apply to all these enums!
 enum : BYTE {
@@ -690,22 +690,22 @@ enum : BYTE {
 
 // ----
 // ???
-const FS_LATIN1      = 0x00000001;
-const FS_LATIN2      = 0x00000002;
-const FS_CYRILLIC    = 0x00000004;
-const FS_GREEK       = 0x00000008;
-const FS_TURKISH     = 0x00000010;
-const FS_HEBREW      = 0x00000020;
-const FS_ARABIC      = 0x00000040;
-const FS_BALTIC      = 0x00000080;
-const FS_VIETNAMESE  = 0x00000100;
-const FS_THAI        = 0x00010000;
-const FS_JISJAPAN    = 0x00020000;
-const FS_CHINESESIMP = 0x00040000;
-const FS_WANSUNG     = 0x00080000;
-const FS_CHINESETRAD = 0x00100000;
-const FS_JOHAB       = 0x00200000;
-const FS_SYMBOL      = 0x80000000;
+enum FS_LATIN1      = 0x00000001;
+enum FS_LATIN2      = 0x00000002;
+enum FS_CYRILLIC    = 0x00000004;
+enum FS_GREEK       = 0x00000008;
+enum FS_TURKISH     = 0x00000010;
+enum FS_HEBREW      = 0x00000020;
+enum FS_ARABIC      = 0x00000040;
+enum FS_BALTIC      = 0x00000080;
+enum FS_VIETNAMESE  = 0x00000100;
+enum FS_THAI        = 0x00010000;
+enum FS_JISJAPAN    = 0x00020000;
+enum FS_CHINESESIMP = 0x00040000;
+enum FS_WANSUNG     = 0x00080000;
+enum FS_CHINESETRAD = 0x00100000;
+enum FS_JOHAB       = 0x00200000;
+enum FS_SYMBOL      = 0x80000000;
 
 // ----
 // Poly Fill Mode
@@ -713,7 +713,7 @@ enum : int {
     ALTERNATE = 1,
     WINDING = 2
 }
-const int POLYFILL_LAST = WINDING;
+enum int POLYFILL_LAST = WINDING;
 
 //---
 // LOGBRUSH
@@ -829,7 +829,7 @@ static if (_WIN32_WINNT >= 0x500) {
 
 
 // return from DC_TRUETYPE
-const DWORD
+enum DWORD
     DCTT_BITMAP           = 1,
     DCTT_DOWNLOAD         = 2,
     DCTT_SUBDEV           = 4,
@@ -848,11 +848,11 @@ enum : DWORD {
 }
 //---
 
-const FLOODFILLBORDER  = 0;
-const FLOODFILLSURFACE = 1;
+enum FLOODFILLBORDER  = 0;
+enum FLOODFILLSURFACE = 1;
 
 // ExtTextOut()
-const UINT
+enum UINT
     ETO_OPAQUE         = 0x0002,
     ETO_CLIPPED        = 0x0004,
     ETO_GLYPH_INDEX    = 0x0010,
@@ -861,7 +861,7 @@ const UINT
     ETO_NUMERICSLATIN  = 0x0800,
     ETO_IGNORELANGUAGE = 0x1000;
 static if (_WIN32_WINNT >= 0x500) {
-    const UINT
+enum UINT
         ETO_PDY = 0x2000;
 }
 
@@ -882,7 +882,7 @@ enum : int {
     AD_CLOCKWISE        = 2
 }
 
-const RDH_RECTANGLES = 1;
+enum RDH_RECTANGLES = 1;
 
 // GCPRESULTS.lpClass
 enum {
@@ -904,7 +904,7 @@ enum {
 }
 
 // GetBoundsRect(), SetBoundsRect()
-const UINT
+enum UINT
     DCB_RESET      = 1,
     DCB_ACCUMULATE = 2,
     DCB_SET        = DCB_RESET | DCB_ACCUMULATE,
@@ -993,7 +993,7 @@ enum : int {
 }
 
 // Return values for GetDeviceCaps(dc, RASTERCAPS)
-const int
+enum int
     RC_NONE         = 0,
     RC_BITBLT       = 1,
     RC_BANDING      = 2,
@@ -1014,21 +1014,21 @@ const int
 
 static if (_WIN32_WINNT >= 0x500) {
     /* Shading and blending caps */
-    const SB_NONE = 0x00000000;
-    const SB_CONST_ALPHA = 0x00000001;
-    const SB_PIXEL_ALPHA = 0x00000002;
-    const SB_PREMULT_ALPHA = 0x00000004;
-    const SB_GRAD_RECT = 0x00000010;
-    const SB_GRAD_TRI = 0x00000020;
+enum SB_NONE = 0x00000000;
+enum SB_CONST_ALPHA = 0x00000001;
+enum SB_PIXEL_ALPHA = 0x00000002;
+enum SB_PREMULT_ALPHA = 0x00000004;
+enum SB_GRAD_RECT = 0x00000010;
+enum SB_GRAD_TRI = 0x00000020;
     /* Color Management caps */
-    const CM_NONE = 0x00000000;
-    const CM_DEVICE_ICM = 0x00000001;
-    const CM_GAMMA_RAMP = 0x00000002;
-    const CM_CMYK_COLOR = 0x00000004;
+enum CM_NONE = 0x00000000;
+enum CM_DEVICE_ICM = 0x00000001;
+enum CM_GAMMA_RAMP = 0x00000002;
+enum CM_CMYK_COLOR = 0x00000004;
 }
 
 // Return values for GetDeviceCaps(dc, CURVECAPS)
-const int
+enum int
     CC_NONE       = 0,
     CC_CIRCLES    = 1,
     CC_PIE        = 2,
@@ -1042,7 +1042,7 @@ const int
 
 // Return values for GetDeviceCaps(dc, LINECAPS)
 
-const int
+enum int
     LC_NONE       = 0,
     LC_POLYLINE   = 2,
     LC_MARKER     = 4,
@@ -1054,7 +1054,7 @@ const int
 
 // Return values for GetDeviceCaps(dc, POLYGONALCAPS)
 
-const int
+enum int
     PC_NONE        = 0,
     PC_POLYGON     = 1,
     PC_RECTANGLE   = 2,
@@ -1069,13 +1069,13 @@ const int
     PC_PATHS       = 512;
 
 /* Clipping Capabilities */
-const int CP_NONE = 0,
+enum int CP_NONE = 0,
     CP_RECTANGLE = 1,
     CP_REGION = 2;
 
 // Return values for GetDeviceCaps(dc, TEXTCAPS)
 
-const int
+enum int
     TC_OP_CHARACTER = 1,
     TC_OP_STROKE    = 2,
     TC_CP_STROKE    = 4,
@@ -1097,7 +1097,7 @@ const int
 // End GetDeviceCaps
 //---------------------
 // GetCharacterPlacement(), and GetFontLanguageInfo()
-const DWORD
+enum DWORD
     GCP_DBCS            = 1,
     GCP_REORDER         = 2,
     GCP_USEKERNING      = 8,
@@ -1137,7 +1137,7 @@ enum : int {
     GM_COMPATIBLE = 1,
     GM_ADVANCED
 }
-const GM_LAST = GM_ADVANCED;
+enum GM_LAST = GM_ADVANCED;
 
 enum : int {
     MM_TEXT = 1,
@@ -1150,13 +1150,13 @@ enum : int {
     MM_ANISOTROPIC,
 }
 
-const int
+enum int
     MM_MIN = MM_TEXT,
     MM_MAX = MM_ANISOTROPIC,
     MM_MAX_FIXEDSCALE = MM_TWIPS;
 
-const ABSOLUTE = 1;
-const RELATIVE = 2;
+enum ABSOLUTE = 1;
+enum RELATIVE = 2;
 
 enum : BYTE {
     PC_RESERVED   = 1,
@@ -1166,13 +1166,13 @@ enum : BYTE {
 
 /* FIXME: move to core.sys.windows.commctrl ? */
 // ImageList
-const COLORREF
+enum COLORREF
     CLR_NONE    = 0xffffffff,
     CLR_INVALID = CLR_NONE,
     CLR_DEFAULT = 0xff000000;
 
 // RASTERIZER_STATUS.wFlags
-const short
+enum short
     TT_AVAILABLE = 1,
     TT_ENABLED   = 2;
 
@@ -1205,9 +1205,9 @@ static if (_WIN32_WINNT >= 0x500) {
 }
 
 static if (_WIN32_WINNT >= 0x500) {
-    const STOCK_LAST = DC_PEN;
+enum STOCK_LAST = DC_PEN;
 } else {
-    const STOCK_LAST = DEFAULT_GUI_FONT;
+enum STOCK_LAST = DEFAULT_GUI_FONT;
 }
 
 // Get/SetSystemPaletteUse()
@@ -1219,7 +1219,7 @@ enum : UINT {
 }
 
 // SetTextAlign()
-const UINT
+enum UINT
     TA_TOP        = 0,
     TA_CENTER     = 6,
     TA_BOTTOM     = 8,
@@ -1244,7 +1244,7 @@ enum : DWORD {
     MWT_RIGHTMULTIPLY
 }
 
-const DWORD
+enum DWORD
     MWT_MIN = MWT_IDENTITY,
     MWT_MAX = MWT_RIGHTMULTIPLY;
 
@@ -1451,22 +1451,22 @@ enum {
 }
 
 /* Value returned for FEATURESETTING_PROTOCOL */
-const PSPROTOCOL_ASCII = 0;
-const PSPROTOCOL_BCP = 1;
-const PSPROTOCOL_TBCP = 2;
-const PSPROTOCOL_BINARY = 3;
+enum PSPROTOCOL_ASCII = 0;
+enum PSPROTOCOL_BCP = 1;
+enum PSPROTOCOL_TBCP = 2;
+enum PSPROTOCOL_BINARY = 3;
 
 // ----
 
-const WPARAM PR_JOBSTATUS = 0;
+enum WPARAM PR_JOBSTATUS = 0;
 
 // ???
-const QDI_SETDIBITS   = 1;
-const QDI_GETDIBITS   = 2;
-const QDI_DIBTOSCREEN = 4;
-const QDI_STRETCHDIB  = 8;
+enum QDI_SETDIBITS   = 1;
+enum QDI_GETDIBITS   = 2;
+enum QDI_DIBTOSCREEN = 4;
+enum QDI_STRETCHDIB  = 8;
 
-const ASPECT_FILTERING = 1;
+enum ASPECT_FILTERING = 1;
 
 // LOGCOLORSPACE.lcsCSType
 enum : LCSCSTYPE {
@@ -1483,7 +1483,7 @@ enum : LCSGAMUTMATCH {
     LCS_GM_ABS_COLORIMETRIC = 8,
 }
 
-const DWORD
+enum DWORD
     RASTER_FONTTYPE   = 1,
     DEVICE_FONTTYPE   = 2,
     TRUETYPE_FONTTYPE = 4;
@@ -1492,12 +1492,12 @@ const DWORD
 // DEVMODE struct
 
 // FIXME: Not needed for D (use .length instead)
-const CCHDEVICENAME = 32;
-const CCHFORMNAME   = 32;
+enum CCHDEVICENAME = 32;
+enum CCHFORMNAME   = 32;
 
 // DEVMODE.dmSpecVersion
 // current version of specification
-const WORD DM_SPECVERSION = 0x0401;
+enum WORD DM_SPECVERSION = 0x0401;
 
 // DEVMODE.dmOrientation
 enum : short {
@@ -1631,15 +1631,15 @@ static if (_WIN32_WINNT >= 0x500) {
     }
 }
 
-const short DMPAPER_FIRST = DMPAPER_LETTER;
+enum short DMPAPER_FIRST = DMPAPER_LETTER;
 
 static if (_WIN32_WINNT >= 0x500) {
-    const short DMPAPER_LAST = DMPAPER_PENV_10_ROTATED;
+enum short DMPAPER_LAST = DMPAPER_PENV_10_ROTATED;
 } else {
-    const short DMPAPER_LAST = DMPAPER_A3_EXTRA_TRANSVERSE;
+enum short DMPAPER_LAST = DMPAPER_A3_EXTRA_TRANSVERSE;
 }
 
-const short DMPAPER_USER = 256;
+enum short DMPAPER_USER = 256;
 
 
 // DEVMODE.dmDefaultSource
@@ -1720,35 +1720,35 @@ static if (_WIN32_WINNT >= 0x501) {
 
 /* FIXME: this flags are deprecated ? */
 // DEVMODE.dmDisplayFlags
-const DWORD
+enum DWORD
     DM_GRAYSCALE  = 1,
     DM_INTERLACED = 2;
 
-const DWORD
+enum DWORD
     DMDISPLAYFLAGS_TEXTMODE = 0x00000004;
 
 /* dmNup , multiple logical page per physical page options */
-const DWORD
+enum DWORD
     DMNUP_SYSTEM = 1,
     DMNUP_ONEUP = 2;
 
 // DEVMODE.dmFields
-const DWORD
+enum DWORD
     DM_ORIENTATION        = 0x00000001,
     DM_PAPERSIZE          = 0x00000002,
     DM_PAPERLENGTH        = 0x00000004,
     DM_PAPERWIDTH         = 0x00000008,
     DM_SCALE              = 0x00000010;
 static if (_WIN32_WINNT >= 0x500) {
-    const DWORD
+enum DWORD
         DM_POSITION       = 0x00000020,
         DM_NUP            = 0x00000040;
 }
 static if (_WIN32_WINNT >= 0x501) {
-    const DWORD
+enum DWORD
         DM_DISPLAYORIENTATION = 0x00000080;
 }
-const DWORD
+enum DWORD
     DM_COPIES             = 0x00000100,
     DM_DEFAULTSOURCE      = 0x00000200,
     DM_PRINTQUALITY       = 0x00000400,
@@ -1771,7 +1771,7 @@ const DWORD
     DM_PANNINGWIDTH       = 0x08000000,
     DM_PANNINGHEIGHT      = 0x10000000;
 static if (_WIN32_WINNT >= 0x501) {
-    const DWORD
+enum DWORD
         DM_DISPLAYFIXEDOUTPUT = 0x20000000;
 }
 
@@ -1818,7 +1818,7 @@ enum : DWORD {
 
 // ----
 // DocumentProperties()
-const DWORD
+enum DWORD
     DM_UPDATE      = 1,
     DM_COPY        = 2,
     DM_PROMPT      = 4,
@@ -1829,18 +1829,18 @@ const DWORD
     DM_OUT_DEFAULT = DM_UPDATE;
 // ---
 
-const GDI_ERROR = 0xFFFFFFFF;
-const HGDI_ERROR= cast(HANDLE)GDI_ERROR;
+enum GDI_ERROR = 0xFFFFFFFF;
+enum HGDI_ERROR= cast(HANDLE)GDI_ERROR;
 
 // TEXTMETRIC.tmPitchAndFamily
-const BYTE
+enum BYTE
     TMPF_FIXED_PITCH = 1,
     TMPF_VECTOR      = 2,
     TMPF_TRUETYPE    = 4,
     TMPF_DEVICE      = 8;
 
 // NEWTEXTMETRIC.ntmFlags
-const DWORD
+enum DWORD
     NTM_ITALIC         = 0x00000001,
     NTM_BOLD           = 0x00000020,
     NTM_REGULAR        = 0x00000040,
@@ -1852,7 +1852,7 @@ const DWORD
     NTM_DSIG           = 0x00200000;
 
 // ---
-const DWORD TT_POLYGON_TYPE = 24;
+enum DWORD TT_POLYGON_TYPE = 24;
 
 // TTPOLYCURVE
 enum : WORD {
@@ -1861,14 +1861,14 @@ enum : WORD {
     TT_PRIM_CSPLINE = 3,
 }
 // ---
-const FONTMAPPER_MAX = 10;
-const ENHMETA_STOCK_OBJECT = 0x80000000;
-const WGL_FONT_LINES = 0;
-const WGL_FONT_POLYGONS = 1;
+enum FONTMAPPER_MAX = 10;
+enum ENHMETA_STOCK_OBJECT = 0x80000000;
+enum WGL_FONT_LINES = 0;
+enum WGL_FONT_POLYGONS = 1;
 
 // ---
 // LAYERPLANEDESCRIPTOR.dwFlags
-const DWORD
+enum DWORD
     LPD_DOUBLEBUFFER   = 1,
     LPD_STEREO         = 2,
     LPD_SUPPORT_GDI    = 16,
@@ -1889,7 +1889,7 @@ enum : BYTE {
 // ---
 
 // wglSwapLayerBuffers()
-const UINT
+enum UINT
     WGL_SWAP_MAIN_PLANE = 1,
     WGL_SWAP_OVERLAY1   = 2,
     WGL_SWAP_OVERLAY2   = 4,
@@ -1922,36 +1922,36 @@ const UINT
     WGL_SWAP_UNDERLAY14 = 0x20000000,
     WGL_SWAP_UNDERLAY15 = 0x40000000;
 
-const AC_SRC_OVER  = 0x00;
-const AC_SRC_ALPHA = 0x01;
+enum AC_SRC_OVER  = 0x00;
+enum AC_SRC_ALPHA = 0x01;
 
 // ???
-const AC_SRC_NO_PREMULT_ALPHA = 0x01;
-const AC_SRC_NO_ALPHA         = 0x02;
-const AC_DST_NO_PREMULT_ALPHA = 0x10;
-const AC_DST_NO_ALPHA         = 0x20;
+enum AC_SRC_NO_PREMULT_ALPHA = 0x01;
+enum AC_SRC_NO_ALPHA         = 0x02;
+enum AC_DST_NO_PREMULT_ALPHA = 0x10;
+enum AC_DST_NO_ALPHA         = 0x20;
 
-const LAYOUT_RTL = 1;
-const LAYOUT_BTT = 2;
-const LAYOUT_VBH = 4;
-const LAYOUT_BITMAPORIENTATIONPRESERVED = 8;
+enum LAYOUT_RTL = 1;
+enum LAYOUT_BTT = 2;
+enum LAYOUT_VBH = 4;
+enum LAYOUT_BITMAPORIENTATIONPRESERVED = 8;
 
-const CS_ENABLE = 0x00000001;
-const CS_DISABLE = 0x00000002;
-const CS_DELETE_TRANSFORM = 0x00000003;
+enum CS_ENABLE = 0x00000001;
+enum CS_DISABLE = 0x00000002;
+enum CS_DELETE_TRANSFORM = 0x00000003;
 
 static if (_WIN32_WINNT > 0x500) {
-    const GRADIENT_FILL_RECT_H=0x00;
-    const GRADIENT_FILL_RECT_V=0x01;
-    const GRADIENT_FILL_TRIANGLE=0x02;
-    const GRADIENT_FILL_OP_FLAG=0xff;
-    const COLORMATCHTOTARGET_EMBEDED=0x00000001;
-    const CREATECOLORSPACE_EMBEDED=0x00000001;
-    const SETICMPROFILE_EMBEDED=0x00000001;
+enum GRADIENT_FILL_RECT_H=0x00;
+enum GRADIENT_FILL_RECT_V=0x01;
+enum GRADIENT_FILL_TRIANGLE=0x02;
+enum GRADIENT_FILL_OP_FLAG=0xff;
+enum COLORMATCHTOTARGET_EMBEDED=0x00000001;
+enum CREATECOLORSPACE_EMBEDED=0x00000001;
+enum SETICMPROFILE_EMBEDED=0x00000001;
 }
 
 // DISPLAY_DEVICE.StateFlags
-const DWORD
+enum DWORD
     DISPLAY_DEVICE_ATTACHED_TO_DESKTOP = 0x00000001,
     DISPLAY_DEVICE_MULTI_DRIVER        = 0x00000002,
     DISPLAY_DEVICE_PRIMARY_DEVICE      = 0x00000004,
@@ -1963,12 +1963,12 @@ const DWORD
     DISPLAY_DEVICE_MODESPRUNED         = 0x08000000;
 
 /* Child device state */
-const DWORD
+enum DWORD
     DISPLAY_DEVICE_ACTIVE = 0x00000001,
     DISPLAY_DEVICE_ATTACHED = 0x00000002;
 
 static if (_WIN32_WINNT >= 0x500) {
-    const GGI_MARK_NONEXISTING_GLYPHS = 1;
+enum GGI_MARK_NONEXISTING_GLYPHS = 1;
 }
 
 // ----------
@@ -3393,7 +3393,7 @@ struct RGNDATA {
 alias RGNDATA* PRGNDATA, NPRGNDATA, LPRGNDATA;
 
 /* for GetRandomRgn */
-const SYSRGN=4;
+enum SYSRGN=4;
 struct GCP_RESULTSA {
     DWORD lStructSize;
     LPSTR lpOutString;
@@ -3445,7 +3445,7 @@ static if (_WIN32_WINNT >= 0x500) {
     }
     alias GLYPHSET* PGLYPHSET, LPGLYPHSET;
 
-    const DWORD GS_8BIT_INDICES = 0x00000001;
+enum DWORD GS_8BIT_INDICES = 0x00000001;
 }
 
 struct KERNINGPAIR {
@@ -3794,7 +3794,7 @@ struct BLENDFUNCTION {
 }
 alias BLENDFUNCTION* PBLENDFUNCTION, LPBLENDFUNCTION;
 
-const MM_MAX_NUMAXES = 16;
+enum MM_MAX_NUMAXES = 16;
 
 struct DESIGNVECTOR {
     DWORD dvReserved;
@@ -3802,12 +3802,12 @@ struct DESIGNVECTOR {
     LONG[MM_MAX_NUMAXES] dvValues;
 }
 alias DESIGNVECTOR* PDESIGNVECTOR, LPDESIGNVECTOR;
-const STAMP_DESIGNVECTOR = 0x8000000 + 'd' + ('v' << 8);
-const STAMP_AXESLIST     = 0x8000000 + 'a' + ('l' << 8);
+enum STAMP_DESIGNVECTOR = 0x8000000 + 'd' + ('v' << 8);
+enum STAMP_AXESLIST     = 0x8000000 + 'a' + ('l' << 8);
 
 static if (_WIN32_WINNT >= 0x500) {
 
-    const MM_MAX_AXES_NAMELEN = 16;
+enum MM_MAX_AXES_NAMELEN = 16;
 
     struct AXISINFOA {
         LONG axMinValue;
@@ -4374,7 +4374,7 @@ extern(Windows) nothrow @nogc {
         HDC hdc;
         UINT uiFlags;
     }
-    const WGL_SWAPMULTIPLE_MAX = 16;
+enum WGL_SWAPMULTIPLE_MAX = 16;
     DWORD  wglSwapMultipleBuffers(UINT, WGLSWAP*);
 }
 

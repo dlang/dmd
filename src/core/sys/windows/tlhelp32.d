@@ -24,7 +24,7 @@ enum : uint {
     LF32_MOVEABLE = 0x4
 }
 
-const MAX_MODULE_NAME32 = 255;
+enum MAX_MODULE_NAME32 = 255;
 
 enum : uint {
     TH32CS_SNAPHEAPLIST = 0x1,

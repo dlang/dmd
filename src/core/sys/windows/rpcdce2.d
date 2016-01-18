@@ -32,7 +32,7 @@ enum {
     RPC_C_VERS_UPTO
 }
 
-const size_t DCE_C_ERROR_STRING_LEN = 256;
+enum size_t DCE_C_ERROR_STRING_LEN = 256;
 
 enum {
     RPC_C_MGMT_INQ_IF_IDS,

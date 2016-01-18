@@ -54,7 +54,7 @@ enum : DWORD {
     REG_QWORD                      = REG_QWORD_LITTLE_ENDIAN
 }
 
-const DWORD
+enum DWORD
     REG_NOTIFY_CHANGE_NAME       = 1,
     REG_NOTIFY_CHANGE_ATTRIBUTES = 2,
     REG_NOTIFY_CHANGE_LAST_SET   = 4,

@@ -22,12 +22,12 @@ private import core.sys.windows.winbase, core.sys.windows.windef;
 
 // FIXME: check types of constants
 
-const API_VERSION_NUMBER = 7;
+enum API_VERSION_NUMBER = 7;
 
-const BIND_NO_BOUND_IMPORTS  = 1;
-const BIND_NO_UPDATE         = 2;
-const BIND_ALL_IMAGES        = 4;
-const BIND_CACHE_IMPORT_DLLS = 8;
+enum BIND_NO_BOUND_IMPORTS  = 1;
+enum BIND_NO_UPDATE         = 2;
+enum BIND_ALL_IMAGES        = 4;
+enum BIND_CACHE_IMPORT_DLLS = 8;
 
 enum {
     CBA_DEFERRED_SYMBOL_LOAD_START = 1,
@@ -37,12 +37,12 @@ enum {
     CBA_DUPLICATE_SYMBOL
 }
 
-const CERT_PE_IMAGE_DIGEST_DEBUG_INFO      = 1;
-const CERT_PE_IMAGE_DIGEST_RESOURCES       = 2;
-const CERT_PE_IMAGE_DIGEST_ALL_IMPORT_INFO = 4;
-const CERT_PE_IMAGE_DIGEST_NON_PE_INFO     = 8;
+enum CERT_PE_IMAGE_DIGEST_DEBUG_INFO      = 1;
+enum CERT_PE_IMAGE_DIGEST_RESOURCES       = 2;
+enum CERT_PE_IMAGE_DIGEST_ALL_IMPORT_INFO = 4;
+enum CERT_PE_IMAGE_DIGEST_NON_PE_INFO     = 8;
 
-const CERT_SECTION_TYPE_ANY = 255;
+enum CERT_SECTION_TYPE_ANY = 255;
 
 enum {
     CHECKSUM_SUCCESS = 0,
@@ -52,19 +52,19 @@ enum {
     CHECKSUM_UNICODE_FAILURE
 }
 
-const IMAGE_SEPARATION = 65536;
+enum IMAGE_SEPARATION = 65536;
 
-const SPLITSYM_REMOVE_PRIVATE    = 1;
-const SPLITSYM_EXTRACT_ALL       = 2;
-const SPLITSYM_SYMBOLPATH_IS_SRC = 4;
+enum SPLITSYM_REMOVE_PRIVATE    = 1;
+enum SPLITSYM_EXTRACT_ALL       = 2;
+enum SPLITSYM_SYMBOLPATH_IS_SRC = 4;
 
-const SYMF_OMAP_GENERATED = 1;
-const SYMF_OMAP_MODIFIED  = 2;
+enum SYMF_OMAP_GENERATED = 1;
+enum SYMF_OMAP_MODIFIED  = 2;
 
-const SYMOPT_CASE_INSENSITIVE  =  1;
-const SYMOPT_UNDNAME           =  2;
-const SYMOPT_DEFERRED_LOADS    =  4;
-const SYMOPT_NO_CPP            =  8;
+enum SYMOPT_CASE_INSENSITIVE  =  1;
+enum SYMOPT_UNDNAME           =  2;
+enum SYMOPT_DEFERRED_LOADS    =  4;
+enum SYMOPT_NO_CPP            =  8;
 //const SYMOPT_LOAD_LINES        = 16;
 //const SYMOPT_OMAP_FIND_NEAREST = 32;
 public import core.sys.windows.dbghelp_types :
@@ -73,23 +73,23 @@ public import core.sys.windows.dbghelp_types :
     SYMOPT_LOAD_LINES,
     SYMOPT_DEBUG;
 
-const UNDNAME_COMPLETE               =     0;
-const UNDNAME_NO_LEADING_UNDERSCORES =     1;
-const UNDNAME_NO_MS_KEYWORDS         =     2;
-const UNDNAME_NO_FUNCTION_RETURNS    =     4;
-const UNDNAME_NO_ALLOCATION_MODEL    =     8;
-const UNDNAME_NO_ALLOCATION_LANGUAGE =    16;
-const UNDNAME_NO_MS_THISTYPE         =    32;
-const UNDNAME_NO_CV_THISTYPE         =    64;
-const UNDNAME_NO_THISTYPE            =    96;
-const UNDNAME_NO_ACCESS_SPECIFIERS   =   128;
-const UNDNAME_NO_THROW_SIGNATURES    =   256;
-const UNDNAME_NO_MEMBER_TYPE         =   512;
-const UNDNAME_NO_RETURN_UDT_MODEL    =  1024;
-const UNDNAME_32_BIT_DECODE          =  2048;
-const UNDNAME_NAME_ONLY              =  4096;
-const UNDNAME_NO_ARGUMENTS           =  8192;
-const UNDNAME_NO_SPECIAL_SYMS        = 16384;
+enum UNDNAME_COMPLETE               =     0;
+enum UNDNAME_NO_LEADING_UNDERSCORES =     1;
+enum UNDNAME_NO_MS_KEYWORDS         =     2;
+enum UNDNAME_NO_FUNCTION_RETURNS    =     4;
+enum UNDNAME_NO_ALLOCATION_MODEL    =     8;
+enum UNDNAME_NO_ALLOCATION_LANGUAGE =    16;
+enum UNDNAME_NO_MS_THISTYPE         =    32;
+enum UNDNAME_NO_CV_THISTYPE         =    64;
+enum UNDNAME_NO_THISTYPE            =    96;
+enum UNDNAME_NO_ACCESS_SPECIFIERS   =   128;
+enum UNDNAME_NO_THROW_SIGNATURES    =   256;
+enum UNDNAME_NO_MEMBER_TYPE         =   512;
+enum UNDNAME_NO_RETURN_UDT_MODEL    =  1024;
+enum UNDNAME_32_BIT_DECODE          =  2048;
+enum UNDNAME_NAME_ONLY              =  4096;
+enum UNDNAME_NO_ARGUMENTS           =  8192;
+enum UNDNAME_NO_SPECIAL_SYMS        = 16384;
 
 enum IMAGEHLP_STATUS_REASON {
     BindOutOfMemory,

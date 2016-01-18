@@ -17,11 +17,11 @@ private import core.sys.windows.basetsd, core.sys.windows.w32api, core.sys.windo
 
 alias DWORD LCTYPE, CALTYPE, CALID, LGRPID, GEOID, GEOTYPE, GEOCLASS;
 
-const size_t
+enum size_t
     MAX_DEFAULTCHAR =  2,
     MAX_LEADBYTES   = 12;
 
-const LCTYPE
+enum LCTYPE
     LOCALE_USE_CP_ACP    = 0x40000000,
     LOCALE_RETURN_NUMBER = 0x20000000;
 
@@ -135,7 +135,7 @@ enum : LCID {
     LOCALE_SYSTEM_DEFAULT = 0x800
 }
 
-const DWORD
+enum DWORD
     NORM_IGNORECASE     =       1,
     NORM_IGNORENONSPACE =       2,
     NORM_IGNORESYMBOLS  =       4,
@@ -143,7 +143,7 @@ const DWORD
     NORM_IGNOREKANATYPE = 0x10000,
     NORM_IGNOREWIDTH    = 0x20000;
 
-const DWORD
+enum DWORD
     LCMAP_LOWERCASE           = 0x00000100,
     LCMAP_UPPERCASE           = 0x00000200,
     LCMAP_SORTKEY             = 0x00000400,
@@ -156,9 +156,9 @@ const DWORD
     LCMAP_SIMPLIFIED_CHINESE  = 0x02000000,
     LCMAP_TRADITIONAL_CHINESE = 0x04000000;
 
-const CALID ENUM_ALL_CALENDARS = -1;
+enum CALID ENUM_ALL_CALENDARS = -1;
 
-const DWORD
+enum DWORD
     DATE_SHORTDATE        =          1,
     DATE_LONGDATE         =          2,
     DATE_USE_ALT_CALENDAR =          4,
@@ -175,7 +175,7 @@ enum : DWORD {
     LCID_ALTERNATE_SORTS = 4
 }
 
-const DWORD
+enum DWORD
     MAP_FOLDCZONE   =  16,
     MAP_PRECOMPOSED =  32,
     MAP_COMPOSITE   =  64,
@@ -197,7 +197,7 @@ enum : DWORD {
     CT_CTYPE3 = 4
 }
 
-const WORD
+enum WORD
     C1_UPPER  =   1,
     C1_LOWER  =   2,
     C1_DIGIT  =   4,
@@ -223,7 +223,7 @@ enum : WORD {
     C2_OTHERNEUTRAL  // = 11
 }
 
-const WORD
+enum WORD
     C3_NOTAPPLICABLE =      0,
     C3_NONSPACING    =      1,
     C3_DIACRITIC     =      2,
@@ -238,19 +238,19 @@ const WORD
     C3_LEXICAL       = 0x0400,
     C3_ALPHA         = 0x8000;
 
-const DWORD
+enum DWORD
     TIME_NOMINUTESORSECONDS = 1,
     TIME_NOSECONDS          = 2,
     TIME_NOTIMEMARKER       = 4,
     TIME_FORCE24HOURFORMAT  = 8;
 
-const DWORD
+enum DWORD
     MB_PRECOMPOSED       = 1,
     MB_COMPOSITE         = 2,
     MB_USEGLYPHCHARS     = 4,
     MB_ERR_INVALID_CHARS = 8;
 
-const DWORD
+enum DWORD
     WC_DISCARDNS      =  16,
     WC_SEPCHARS       =  32,
     WC_DEFAULTCHAR    =  64,
@@ -478,13 +478,13 @@ static if (_WIN32_WINNT >= 0x500) {
         LOCALE_IPAPERSIZE             = 0x100A
     }
 
-    const DWORD
+enum DWORD
         DATE_YEARMONTH  =  8,
         DATE_LTRREADING = 16,
         DATE_RTLREADING = 32;
 
-    const DWORD MAP_EXPAND_LIGATURES = 0x2000;
-    const DWORD WC_NO_BEST_FIT_CHARS = 1024;
+enum DWORD MAP_EXPAND_LIGATURES = 0x2000;
+enum DWORD WC_NO_BEST_FIT_CHARS = 1024;
 
     enum : CALTYPE {
         CAL_SYEARMONTH       = 47,

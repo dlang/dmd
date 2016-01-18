@@ -40,7 +40,7 @@ template TypeDef(T) {
 
 alias TypeDef!(void*) HANDLE;
 /+struct HANDLE {
-    const(void)* h;
+const(void)* h;
     alias h this;
 }+/
 
@@ -51,7 +51,7 @@ alias HANDLE* PHANDLE, LPHANDLE;
 
 version (Win64) {
     alias long __int3264;
-    const ulong ADDRESS_TAG_BIT = 0x40000000000;
+enum ulong ADDRESS_TAG_BIT = 0x40000000000;
 
     alias long INT_PTR, LONG_PTR;
     alias long* PINT_PTR, PLONG_PTR;
@@ -79,7 +79,7 @@ version (Win64) {
 
 } else {
     alias int __int3264;
-    const uint ADDRESS_TAG_BIT = 0x80000000;
+enum uint ADDRESS_TAG_BIT = 0x80000000;
 
     alias int INT_PTR, LONG_PTR;
     alias int* PINT_PTR, PLONG_PTR;

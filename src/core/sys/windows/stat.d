@@ -9,16 +9,16 @@ extern (C) nothrow @nogc:
 
 // Posix version is in core.sys.posix.sys.stat
 
-const S_IFMT   = 0xF000;
-const S_IFDIR  = 0x4000;
-const S_IFCHR  = 0x2000;
-const S_IFIFO  = 0x1000;
-const S_IFREG  = 0x8000;
-const S_IREAD  = 0x0100;
-const S_IWRITE = 0x0080;
-const S_IEXEC  = 0x0040;
-const S_IFBLK  = 0x6000;
-const S_IFNAM  = 0x5000;
+enum S_IFMT   = 0xF000;
+enum S_IFDIR  = 0x4000;
+enum S_IFCHR  = 0x2000;
+enum S_IFIFO  = 0x1000;
+enum S_IFREG  = 0x8000;
+enum S_IREAD  = 0x0100;
+enum S_IWRITE = 0x0080;
+enum S_IEXEC  = 0x0040;
+enum S_IFBLK  = 0x6000;
+enum S_IFNAM  = 0x5000;
 
 @safe pure
 {

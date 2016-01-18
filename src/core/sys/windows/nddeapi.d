@@ -23,9 +23,9 @@ private import core.sys.windows.windef;
 #endif
 +/
 
-const char    SEP_CHAR  = ',';
+enum char    SEP_CHAR  = ',';
 const char[]  BAR_CHAR  = "|";
-const wchar   SEP_WCHAR = ',';
+enum wchar   SEP_WCHAR = ',';
 const wchar[] BAR_WCHAR = "|";
 
 enum {
@@ -59,7 +59,7 @@ enum {
     NDDE_TRUST_SHARE_FAIL
 }
 
-const size_t
+enum size_t
     MAX_NDDESHARENAME = 256,
     MAX_DOMAINNAME = 15,
     MAX_USERNAME = 15,
@@ -67,15 +67,15 @@ const size_t
     MAX_TOPICNAME = 255,
     MAX_ITEMNAME = 255;
 
-const NDDEF_NOPASSWORDPROMPT = 1;
-const NDDEF_NOCACHELOOKUP    = 2;
-const NDDEF_STRIP_NDDE       = 4;
+enum NDDEF_NOPASSWORDPROMPT = 1;
+enum NDDEF_NOCACHELOOKUP    = 2;
+enum NDDEF_STRIP_NDDE       = 4;
 
-const SHARE_TYPE_OLD         = 1;
-const SHARE_TYPE_NEW         = 2;
-const SHARE_TYPE_STATIC      = 4;
+enum SHARE_TYPE_OLD         = 1;
+enum SHARE_TYPE_NEW         = 2;
+enum SHARE_TYPE_STATIC      = 4;
 
-const uint
+enum uint
     NDDE_CMD_SHOW_MASK     = 0x0000FFFF,
     NDDE_TRUST_CMD_SHOW    = 0x10000000,
     NDDE_TRUST_SHARE_DEL   = 0x20000000,

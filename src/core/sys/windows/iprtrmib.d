@@ -15,7 +15,7 @@ private import core.sys.windows.windef;
 
 // FIXME: check types of constants
 
-const size_t
+enum size_t
     MAXLEN_PHYSADDR        =   8,
     MAXLEN_IFDESCR         = 256,
     MAX_INTERFACE_NAME_LEN = 256;
@@ -49,7 +49,7 @@ enum {
     MIB_TCP_STATE_DELETE_TCB // = 12
 }
 
-const DWORD
+enum DWORD
     MIB_USE_CURRENT_TTL        = -1,
     MIB_USE_CURRENT_FORWARDING = -1,
     MIB_TCP_MAXCONN_DYNAMIC    = -1;

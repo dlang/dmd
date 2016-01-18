@@ -27,7 +27,7 @@ enum : UINT {
     ABS_ALWAYSONTOP
 }
 
-const ULONG
+enum ULONG
     SEE_MASK_CLASSNAME      =        1,
     SEE_MASK_CLASSKEY       =        3,
     SEE_MASK_IDLIST         =        4,
@@ -58,7 +58,7 @@ enum : DWORD {
 }
 
 static if (_WIN32_WINNT >= 0x501) {
-    const DWORD ABM_SETSTATE = 10;
+enum DWORD ABM_SETSTATE = 10;
 }
 
 enum : UINT {
@@ -75,7 +75,7 @@ enum : DWORD {
 }
 
 static if (_WIN32_IE >= 0x500) {
-    const NOTIFYICON_VERSION = 3;
+enum NOTIFYICON_VERSION = 3;
 
     enum : DWORD {
         NIM_SETFOCUS = 3,
@@ -83,18 +83,18 @@ static if (_WIN32_IE >= 0x500) {
     }
 }
 
-const UINT
+enum UINT
     NIF_MESSAGE = 1,
     NIF_ICON    = 2,
     NIF_TIP     = 4,
     NIF_STATE   = 8;
 
 static if (_WIN32_IE >= 0x500) {
-    const UINT NIF_INFO = 0x00000010;
+enum UINT NIF_INFO = 0x00000010;
 }
 
 static if (_WIN32_IE >= 0x600) {
-    const UINT NIF_GUID = 0x00000020;
+enum UINT NIF_GUID = 0x00000020;
 }
 
 static if (_WIN32_IE >= 0x500) {
@@ -113,11 +113,11 @@ static if (_WIN32_IE >= 0x600) {
     }
 }
 
-const DWORD
+enum DWORD
     NIS_HIDDEN     = 1,
     NIS_SHAREDICON = 2;
 
-const HINSTANCE
+enum HINSTANCE
     SE_ERR_FNF             = cast(HINSTANCE)  2,
     SE_ERR_PNF             = cast(HINSTANCE)  3,
     SE_ERR_ACCESSDENIED    = cast(HINSTANCE)  5,
@@ -137,7 +137,7 @@ enum : UINT {
     FO_RENAME
 }
 
-const FILEOP_FLAGS
+enum FILEOP_FLAGS
     FOF_MULTIDESTFILES        = 0x0001,
     FOF_CONFIRMMOUSE          = 0x0002,
     FOF_SILENT                = 0x0004,
@@ -159,7 +159,7 @@ enum {
     PO_REN_PORT   = 52
 }
 
-const UINT
+enum UINT
     SHGFI_LARGEICON         = 0x000000,
     SHGFI_SMALLICON         = 0x000001,
     SHGFI_OPENICON          = 0x000002,
@@ -178,14 +178,14 @@ const UINT
     SHGFI_ATTR_SPECIFIED    = 0x020000;
 
 static if (_WIN32_IE >= 0x500) {
-    const uint
+enum uint
         SHGFI_ADDOVERLAYS   = 0x000020,
         SHGFI_OVERLAYINDEX  = 0x000040;
 }
 
-const SHERB_NOCONFIRMATION = 1;
-const SHERB_NOPROGRESSUI   = 2;
-const SHERB_NOSOUND        = 4;
+enum SHERB_NOCONFIRMATION = 1;
+enum SHERB_NOPROGRESSUI   = 2;
+enum SHERB_NOSOUND        = 4;
 
 alias WORD FILEOP_FLAGS, PRINTEROP_FLAGS;
 mixin DECLARE_HANDLE!("HDROP");

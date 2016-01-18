@@ -15,8 +15,8 @@ private import core.sys.windows.uuid; // for GUID_NULL
 
 alias GUID_NULL IID_NULL, CLSID_NULL;
 
-const ROTFLAGS_REGISTRATIONKEEPSALIVE = 0x01;
-const ROTFLAGS_ALLOWANYCLIENT         = 0x02;
+enum ROTFLAGS_REGISTRATIONKEEPSALIVE = 0x01;
+enum ROTFLAGS_ALLOWANYCLIENT         = 0x02;
 
 // also in winsock2.h
 struct BLOB {
@@ -89,8 +89,8 @@ alias LPCWSTR LPCOLESTR;
 alias ushort VARTYPE;
 alias short VARIANT_BOOL;
 alias VARIANT_BOOL _VARIANT_BOOL;
-const VARIANT_BOOL VARIANT_TRUE = -1; // 0xffff;
-const VARIANT_BOOL VARIANT_FALSE = 0;
+enum VARIANT_BOOL VARIANT_TRUE = -1; // 0xffff;
+enum VARIANT_BOOL VARIANT_FALSE = 0;
 
 alias OLECHAR* BSTR;
 alias FLAGGED_WORD_BLOB* wireBSTR;

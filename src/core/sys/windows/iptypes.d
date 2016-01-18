@@ -21,7 +21,7 @@ version(Tango){
 }
 //#include <sys/types.h>
 
-const size_t
+enum size_t
     DEFAULT_MINIMUM_ENTITIES       =  32,
     MAX_ADAPTER_ADDRESS_LENGTH     =   8,
     MAX_ADAPTER_DESCRIPTION_LENGTH = 128,
@@ -30,7 +30,7 @@ const size_t
     MAX_HOSTNAME_LEN               = 128,
     MAX_SCOPE_ID_LEN               = 256;
 
-const UINT
+enum UINT
     BROADCAST_NODETYPE    = 1,
     PEER_TO_PEER_NODETYPE = 2,
     MIXED_NODETYPE        = 4,

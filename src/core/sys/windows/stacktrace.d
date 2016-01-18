@@ -293,7 +293,7 @@ private:
 
         auto res = formatStackFrame(pc);
         res ~= " in ";
-        const(char)[] tempSymName = symName[0 .. strlen(symName)];
+const(char)[] tempSymName = symName[0 .. strlen(symName)];
         //Deal with dmd mangling of long names
         version(DigitalMars) version(Win32)
         {

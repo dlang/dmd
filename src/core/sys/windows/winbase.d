@@ -170,7 +170,7 @@ enum : DWORD {
     RIP_EVENT
 }
 
-const HFILE HFILE_ERROR = cast(HFILE) (-1);
+enum HFILE HFILE_ERROR = cast(HFILE) (-1);
 
 // for SetFilePointer()
 enum : DWORD {
@@ -178,7 +178,7 @@ enum : DWORD {
     FILE_CURRENT = 1,
     FILE_END     = 2
 }
-const DWORD INVALID_SET_FILE_POINTER = -1;
+enum DWORD INVALID_SET_FILE_POINTER = -1;
 
 
 // for OpenFile()
@@ -208,7 +208,7 @@ enum : DWORD {
 }
 
 // for ClearCommError()
-const DWORD
+enum DWORD
     CE_RXOVER   = 0x0001,
     CE_OVERRUN  = 0x0002,
     CE_RXPARITY = 0x0004,
@@ -263,7 +263,7 @@ enum : DWORD {
     PIPE_ACCESS_DUPLEX   = 3
 }
 
-const DWORD
+enum DWORD
     PIPE_TYPE_BYTE        = 0,
     PIPE_TYPE_MESSAGE     = 4,
     PIPE_READMODE_BYTE    = 0,
@@ -272,11 +272,11 @@ const DWORD
     PIPE_NOWAIT           = 1;
 
 // GetNamedPipeInfo()
-const DWORD
+enum DWORD
     PIPE_CLIENT_END  = 0,
     PIPE_SERVER_END  = 1;
 
-const DWORD PIPE_UNLIMITED_INSTANCES = 255;
+enum DWORD PIPE_UNLIMITED_INSTANCES = 255;
 
 // dwCreationFlags for CreateProcess() and CreateProcessAsUser()
 enum : DWORD {
@@ -305,7 +305,7 @@ enum : DWORD {
     PROFILE_SERVER              = 0x40000000
 }
 
-const DWORD CONSOLE_TEXTMODE_BUFFER = 1;
+enum DWORD CONSOLE_TEXTMODE_BUFFER = 1;
 
 // CreateFile()
 enum : DWORD {
@@ -317,7 +317,7 @@ enum : DWORD {
 }
 
 // CreateFile()
-const DWORD
+enum DWORD
     FILE_FLAG_WRITE_THROUGH      = 0x80000000,
     FILE_FLAG_OVERLAPPED         = 0x40000000,
     FILE_FLAG_NO_BUFFERING       = 0x20000000,
@@ -330,11 +330,11 @@ const DWORD
     FILE_FLAG_OPEN_NO_RECALL     = 0x00100000;
 
 static if (_WIN32_WINNT >= 0x500) {
-    const DWORD FILE_FLAG_FIRST_PIPE_INSTANCE = 0x00080000;
+enum DWORD FILE_FLAG_FIRST_PIPE_INSTANCE = 0x00080000;
 }
 
 // for CreateFile()
-const DWORD
+enum DWORD
     SECURITY_ANONYMOUS        = SECURITY_IMPERSONATION_LEVEL.SecurityAnonymous<<16,
     SECURITY_IDENTIFICATION   = SECURITY_IMPERSONATION_LEVEL.SecurityIdentification<<16,
     SECURITY_IMPERSONATION    = SECURITY_IMPERSONATION_LEVEL.SecurityImpersonation<<16,
@@ -346,12 +346,12 @@ const DWORD
 
 
 // Thread exit code
-const DWORD STILL_ACTIVE = 0x103;
+enum DWORD STILL_ACTIVE = 0x103;
 
 /*  ??? The only documentation of this seems to be about Windows CE and to
  *  state what _doesn't_ support it.
  */
-const DWORD FIND_FIRST_EX_CASE_SENSITIVE = 1;
+enum DWORD FIND_FIRST_EX_CASE_SENSITIVE = 1;
 
 // GetBinaryType()
 enum : DWORD {
@@ -363,13 +363,13 @@ enum : DWORD {
     SCS_OS216_BINARY
 }
 
-const size_t
+enum size_t
     MAX_COMPUTERNAME_LENGTH = 15,
     HW_PROFILE_GUIDLEN      = 39,
     MAX_PROFILE_LEN         = 80;
 
 // HW_PROFILE_INFO
-const DWORD
+enum DWORD
     DOCKINFO_UNDOCKED      = 1,
     DOCKINFO_DOCKED        = 2,
     DOCKINFO_USER_SUPPLIED = 4,
@@ -397,7 +397,7 @@ enum : DWORD {
 }
 
 // Get/SetHandleInformation()
-const DWORD
+enum DWORD
     HANDLE_FLAG_INHERIT            = 0x01,
     HANDLE_FLAG_PROTECT_FROM_CLOSE = 0x02;
 
@@ -438,7 +438,7 @@ enum : DWORD {
     TIME_ZONE_ID_INVALID = 0xFFFFFFFF
 }
 
-const DWORD
+enum DWORD
     FS_CASE_SENSITIVE         =     1,
     FS_CASE_IS_PRESERVED      =     2,
     FS_UNICODE_STORED_ON_DISK =     4,
@@ -447,7 +447,7 @@ const DWORD
     FS_VOL_IS_COMPRESSED      = 32768;
 
 // Flags for GlobalAlloc
-const UINT
+enum UINT
     GMEM_FIXED       = 0,
     GMEM_MOVEABLE    = 0x0002,
     GMEM_ZEROINIT    = 0x0040,
@@ -474,7 +474,7 @@ const UINT
     GMEM_NOTIFY         = 16384;
 +/
 
-const UINT
+enum UINT
     LMEM_FIXED          = 0,
     LMEM_MOVEABLE       = 0x0002,
     LMEM_NONZEROLPTR    = 0,
@@ -559,7 +559,7 @@ enum : DWORD {
 }
 
 // for PROCESS_HEAP_ENTRY
-const WORD
+enum WORD
     PROCESS_HEAP_REGION            =  1,
     PROCESS_HEAP_UNCOMMITTED_RANGE =  2,
     PROCESS_HEAP_ENTRY_BUSY        =  4,
@@ -567,22 +567,22 @@ const WORD
     PROCESS_HEAP_ENTRY_DDESHARE    = 32;
 
 // for LoadLibraryEx()
-const DWORD
+enum DWORD
     DONT_RESOLVE_DLL_REFERENCES   = 0x01, // not for WinME and earlier
     LOAD_LIBRARY_AS_DATAFILE      = 0x02,
     LOAD_WITH_ALTERED_SEARCH_PATH = 0x08,
     LOAD_IGNORE_CODE_AUTHZ_LEVEL  = 0x10; // only for XP and later
 
 // for LockFile()
-const DWORD
+enum DWORD
     LOCKFILE_FAIL_IMMEDIATELY = 1,
     LOCKFILE_EXCLUSIVE_LOCK   = 2;
 
-const MAXIMUM_WAIT_OBJECTS  = 64;
-const MAXIMUM_SUSPEND_COUNT = 0x7F;
+enum MAXIMUM_WAIT_OBJECTS  = 64;
+enum MAXIMUM_SUSPEND_COUNT = 0x7F;
 
-const WAIT_OBJECT_0    = 0;
-const WAIT_ABANDONED_0 = 128;
+enum WAIT_OBJECT_0    = 0;
+enum WAIT_ABANDONED_0 = 128;
 
 //const WAIT_TIMEOUT=258;  // also in winerror.h
 
@@ -593,14 +593,14 @@ enum : DWORD {
 }
 
 // PurgeComm()
-const DWORD
+enum DWORD
     PURGE_TXABORT = 1,
     PURGE_RXABORT = 2,
     PURGE_TXCLEAR = 4,
     PURGE_RXCLEAR = 8;
 
 // ReadEventLog()
-const DWORD
+enum DWORD
     EVENTLOG_SEQUENTIAL_READ = 1,
     EVENTLOG_SEEK_READ       = 2,
     EVENTLOG_FORWARDS_READ   = 4,
@@ -617,7 +617,7 @@ enum : WORD {
 }
 
 // FormatMessage()
-const DWORD
+enum DWORD
     FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x0100,
     FORMAT_MESSAGE_IGNORE_INSERTS  = 0x0200,
     FORMAT_MESSAGE_FROM_STRING     = 0x0400,
@@ -625,7 +625,7 @@ const DWORD
     FORMAT_MESSAGE_FROM_SYSTEM     = 0x1000,
     FORMAT_MESSAGE_ARGUMENT_ARRAY  = 0x2000;
 
-const DWORD FORMAT_MESSAGE_MAX_WIDTH_MASK = 255;
+enum DWORD FORMAT_MESSAGE_MAX_WIDTH_MASK = 255;
 
 // also in ddk/ntapi.h
 // To restore default error mode, call SetErrorMode(0)
@@ -643,7 +643,7 @@ enum {
     SLE_WARNING
 }
 
-const SHUTDOWN_NORETRY = 1;
+enum SHUTDOWN_NORETRY = 1;
 
 // Return type for exception filters.
 enum : LONG {
@@ -657,8 +657,8 @@ enum  : ATOM {
     INVALID_ATOM = 0
 }
 
-const IGNORE   = 0;
-const INFINITE = 0xFFFFFFFF;
+enum IGNORE   = 0;
+enum INFINITE = 0xFFFFFFFF;
 
 // EscapeCommFunction()
 enum {
@@ -674,7 +674,7 @@ enum {
 
 
 // for SetCommMask()
-const DWORD
+enum DWORD
     EV_RXCHAR   = 0x0001,
     EV_RXFLAG   = 0x0002,
     EV_TXEMPTY  = 0x0004,
@@ -690,7 +690,7 @@ const DWORD
     EV_EVENT2   = 0x1000;
 
 // GetCommModemStatus()
-const DWORD
+enum DWORD
     MS_CTS_ON  = 0x0010,
     MS_DSR_ON  = 0x0020,
     MS_RING_ON = 0x0040,
@@ -767,7 +767,7 @@ enum : DWORD {
 }
 
 // STARTUPINFO
-const DWORD
+enum DWORD
     STARTF_USESHOWWINDOW    = 0x0001,
     STARTF_USESIZE          = 0x0002,
     STARTF_USEPOSITION      = 0x0004,
@@ -808,15 +808,15 @@ enum {
 +/
 
 // ???
-const HINSTANCE_ERROR = 32;
+enum HINSTANCE_ERROR = 32;
 
 // returned from GetFileSize()
-const DWORD INVALID_FILE_SIZE = 0xFFFFFFFF;
+enum DWORD INVALID_FILE_SIZE = 0xFFFFFFFF;
 
-const DWORD TLS_OUT_OF_INDEXES = 0xFFFFFFFF;
+enum DWORD TLS_OUT_OF_INDEXES = 0xFFFFFFFF;
 
 // GetWriteWatch()
-const DWORD WRITE_WATCH_FLAG_RESET = 1;
+enum DWORD WRITE_WATCH_FLAG_RESET = 1;
 
 // for LogonUser()
 enum : DWORD {
@@ -836,14 +836,14 @@ enum : DWORD {
 }
 
 // for MoveFileEx()
-const DWORD
+enum DWORD
     MOVEFILE_REPLACE_EXISTING   = 1,
     MOVEFILE_COPY_ALLOWED       = 2,
     MOVEFILE_DELAY_UNTIL_REBOOT = 4,
     MOVEFILE_WRITE_THROUGH      = 8;
 
 // DefineDosDevice()
-const DWORD
+enum DWORD
     DDD_RAW_TARGET_PATH       = 1,
     DDD_REMOVE_DEFINITION     = 2,
     DDD_EXACT_MATCH_ON_REMOVE = 4;
@@ -855,19 +855,19 @@ static if (_WIN32_WINNT >= 0x500) {
     }
 
     // ReplaceFile()
-    const DWORD
+enum DWORD
         REPLACEFILE_WRITE_THROUGH       = 1,
         REPLACEFILE_IGNORE_MERGE_ERRORS = 2;
 }
 
 static if (_WIN32_WINNT >= 0x501) {
-    const DWORD
+enum DWORD
         GET_MODULE_HANDLE_EX_FLAG_PIN                = 1,
         GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT = 2,
         GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS       = 4;
 
     // for ACTCTX
-    const DWORD
+enum DWORD
         ACTCTX_FLAG_PROCESSOR_ARCHITECTURE_VALID = 0x01,
         ACTCTX_FLAG_LANGID_VALID                 = 0x02,
         ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID     = 0x04,
@@ -877,11 +877,11 @@ static if (_WIN32_WINNT >= 0x501) {
         ACTCTX_FLAG_HMODULE_VALID                = 0x80;
 
     // DeactivateActCtx()
-    const DWORD DEACTIVATE_ACTCTX_FLAG_FORCE_EARLY_DEACTIVATION = 1;
+enum DWORD DEACTIVATE_ACTCTX_FLAG_FORCE_EARLY_DEACTIVATION = 1;
     // FindActCtxSectionString()
-    const DWORD FIND_ACTCTX_SECTION_KEY_RETURN_HACTCTX          = 1;
+enum DWORD FIND_ACTCTX_SECTION_KEY_RETURN_HACTCTX          = 1;
     // QueryActCtxW()
-    const DWORD
+enum DWORD
         QUERY_ACTCTX_FLAG_USE_ACTIVE_ACTCTX             = 0x04,
         QUERY_ACTCTX_FLAG_ACTCTX_IS_HMODULE             = 0x08,
         QUERY_ACTCTX_FLAG_ACTCTX_IS_ADDRESS             = 0x10;

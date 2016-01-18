@@ -120,13 +120,13 @@ enum : INT {
     SNMP_LOG_VERBOSE
 }
 
-const INT
+enum INT
     SNMP_OUTPUT_TO_CONSOLE  = 1,
     SNMP_OUTPUT_TO_LOGFILE  = 2,
     SNMP_OUTPUT_TO_EVENTLOG = 4,
     SNMP_OUTPUT_TO_DEBUGGER = 8;
 
-const size_t SNMP_MAX_OID_LEN = 128;
+enum size_t SNMP_MAX_OID_LEN = 128;
 
 enum : DWORD {
     SNMP_MEM_ALLOC_ERROR          =  1,

@@ -16,9 +16,9 @@ static assert (_WIN32_WINNT >= 0x501,
     "core.sys.windows.lmmsg is available only if version WindowsXP, Windows2003 "
     "or WindowsVista is set");
 
-const MSGNAME_NOT_FORWARDED  = 0;
-const MSGNAME_FORWARDED_TO   = 4;
-const MSGNAME_FORWARDED_FROM = 16;
+enum MSGNAME_NOT_FORWARDED  = 0;
+enum MSGNAME_FORWARDED_TO   = 4;
+enum MSGNAME_FORWARDED_FROM = 16;
 
 struct MSG_INFO_0 {
     LPWSTR msgi0_name;

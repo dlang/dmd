@@ -13,29 +13,29 @@ version (ANSI) {} else version = Unicode;
 
 private import core.sys.windows.sqlext;
 
-const SQL_WCHAR        = -8;
-const SQL_WVARCHAR     = -9;
-const SQL_WLONGVARCHAR = -10;
-const SQL_C_WCHAR      = SQL_WCHAR;
+enum SQL_WCHAR        = -8;
+enum SQL_WVARCHAR     = -9;
+enum SQL_WLONGVARCHAR = -10;
+enum SQL_C_WCHAR      = SQL_WCHAR;
 
-const SQL_SQLSTATE_SIZEW = 10;
+enum SQL_SQLSTATE_SIZEW = 10;
 version(Unicode) {
-    const SQL_C_TCHAR = SQL_C_WCHAR;
+enum SQL_C_TCHAR = SQL_C_WCHAR;
 } else {
-    const SQL_C_TCHAR = SQL_C_CHAR;
+enum SQL_C_TCHAR = SQL_C_CHAR;
 }
 
 // Moved from sqlext
 static if (ODBCVER <= 0x0300) {
-    const SQL_UNICODE             = -95;
-    const SQL_UNICODE_VARCHAR     = -96;
-    const SQL_UNICODE_LONGVARCHAR = -97;
-    const SQL_UNICODE_CHAR        = SQL_UNICODE;
+enum SQL_UNICODE             = -95;
+enum SQL_UNICODE_VARCHAR     = -96;
+enum SQL_UNICODE_LONGVARCHAR = -97;
+enum SQL_UNICODE_CHAR        = SQL_UNICODE;
 } else {
-    const SQL_UNICODE             = SQL_WCHAR;
-    const SQL_UNICODE_VARCHAR     = SQL_WVARCHAR;
-    const SQL_UNICODE_LONGVARCHAR = SQL_WLONGVARCHAR;
-    const SQL_UNICODE_CHAR        = SQL_WCHAR;
+enum SQL_UNICODE             = SQL_WCHAR;
+enum SQL_UNICODE_VARCHAR     = SQL_WVARCHAR;
+enum SQL_UNICODE_LONGVARCHAR = SQL_WLONGVARCHAR;
+enum SQL_UNICODE_CHAR        = SQL_WCHAR;
 }
 
 extern (Windows) {

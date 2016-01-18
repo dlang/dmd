@@ -36,18 +36,18 @@ DWORD MKFOURCC(char ch0, char ch1, char ch2, char ch3) {
  * COMPMAN - Installable Compression Manager.
  */
 
-const ICVERSION = 0x0104;
+enum ICVERSION = 0x0104;
 
 alias TypeDef!(HANDLE) HIC;
 
-const BI_1632 = 0x32333631;
+enum BI_1632 = 0x32333631;
 
 template aviTWOCC(char c0, char c1) {
-    const WORD aviTWOCC = c0 | (c1 << 8);
+enum WORD aviTWOCC = c0 | (c1 << 8);
 }
 
-const ICTYPE_VIDEO  = mmioFOURCC!('v', 'i', 'd', 'c');
-const ICTYPE_AUDIO  = mmioFOURCC!('a', 'u', 'd', 'c');
+enum ICTYPE_VIDEO  = mmioFOURCC!('v', 'i', 'd', 'c');
+enum ICTYPE_AUDIO  = mmioFOURCC!('a', 'u', 'd', 'c');
 
 enum {
     ICERR_OK            = 0,
@@ -57,21 +57,21 @@ enum {
     ICERR_STOPDRAWING   = 4,
 }
 
-const ICERR_UNSUPPORTED = -1;
-const ICERR_BADFORMAT   = -2;
-const ICERR_MEMORY      = -3;
-const ICERR_INTERNAL    = -4;
-const ICERR_BADFLAGS    = -5;
-const ICERR_BADPARAM    = -6;
-const ICERR_BADSIZE     = -7;
-const ICERR_BADHANDLE   = -8;
-const ICERR_CANTUPDATE  = -9;
-const ICERR_ABORT       = -10;
-const ICERR_ERROR       = -100;
-const ICERR_BADBITDEPTH = -200;
-const ICERR_BADIMAGESIZE = -201;
+enum ICERR_UNSUPPORTED = -1;
+enum ICERR_BADFORMAT   = -2;
+enum ICERR_MEMORY      = -3;
+enum ICERR_INTERNAL    = -4;
+enum ICERR_BADFLAGS    = -5;
+enum ICERR_BADPARAM    = -6;
+enum ICERR_BADSIZE     = -7;
+enum ICERR_BADHANDLE   = -8;
+enum ICERR_CANTUPDATE  = -9;
+enum ICERR_ABORT       = -10;
+enum ICERR_ERROR       = -100;
+enum ICERR_BADBITDEPTH = -200;
+enum ICERR_BADIMAGESIZE = -201;
 
-const ICERR_CUSTOM = -400;
+enum ICERR_CUSTOM = -400;
 
 enum {
     ICMODE_COMPRESS         = 1,
@@ -82,8 +82,8 @@ enum {
     ICMODE_DRAW             = 8,
 }
 
-const ICMODE_INTERNALF_FUNCTION32   = 0x8000;
-const ICMODE_INTERNALF_MASK         = 0x8000;
+enum ICMODE_INTERNALF_FUNCTION32   = 0x8000;
+enum ICMODE_INTERNALF_MASK         = 0x8000;
 
 enum {
     AVIIF_LIST      = 0x00000001,
@@ -91,9 +91,9 @@ enum {
     AVIIF_KEYFRAME  = 0x00000010,
 }
 
-const ICQUALITY_LOW     = 0;
-const ICQUALITY_HIGH    = 10000;
-const ICQUALITY_DEFAULT = -1;
+enum ICQUALITY_LOW     = 0;
+enum ICQUALITY_HIGH    = 10000;
+enum ICQUALITY_DEFAULT = -1;
 
 enum {
     ICM_USER            = DRV_USER + 0x0000,
@@ -120,8 +120,8 @@ enum {
     ICM_GET                 = ICM_RESERVED + 41,
 }
 
-const ICM_FRAMERATE     = mmioFOURCC!('F','r','m','R');
-const ICM_KEYFRAMERATE  = mmioFOURCC!('K','e','y','R');
+enum ICM_FRAMERATE     = mmioFOURCC!('F','r','m','R');
+enum ICM_KEYFRAMERATE  = mmioFOURCC!('K','e','y','R');
 
 // ICM specific messages.
 
@@ -204,7 +204,7 @@ enum {
     VIDCF_FASTTEMPORALD     = 0x0080,
 }
 
-const ICCOMPRESS_KEYFRAME = 0x00000001L;
+enum ICCOMPRESS_KEYFRAME = 0x00000001L;
 
 struct ICCOMPRESS {
     DWORD               dwFlags;
@@ -221,7 +221,7 @@ struct ICCOMPRESS {
     LPVOID              lpPrev;
 }
 
-const ICCOMPRESSFRAMES_PADDING = 0x00000001;
+enum ICCOMPRESSFRAMES_PADDING = 0x00000001;
 
 struct ICCOMPRESSFRAMES {
     DWORD               dwFlags;
@@ -378,8 +378,8 @@ enum {
 
 // query macros
 
-const ICMF_CONFIGURE_QUERY  = 0x00000001;
-const ICMF_ABOUT_QUERY      = 0x00000001;
+enum ICMF_CONFIGURE_QUERY  = 0x00000001;
+enum ICMF_ABOUT_QUERY      = 0x00000001;
 
 DWORD ICQueryAbout(HIC hic) {
     return ICSendMessage(hic, ICM_ABOUT, -1, ICMF_ABOUT_QUERY) == ICERR_OK;
@@ -656,7 +656,7 @@ struct COMPVARS {
 }
 alias COMPVARS* PCOMPVARS;
 
-const ICMF_COMPVARS_VALID = 0x00000001;
+enum ICMF_COMPVARS_VALID = 0x00000001;
 
 extern (Windows) {
     BOOL ICCompressorChoose(HWND hwnd, UINT uiFlags, LPVOID pvIn, LPVOID lpData, PCOMPVARS pc, LPSTR lpszTitle);
@@ -757,28 +757,28 @@ alias DWORD FOURCC;
 
 alias WORD TWOCC;
 
-const formtypeAVI           = mmioFOURCC!('A', 'V', 'I', ' ');
-const listtypeAVIHEADER     = mmioFOURCC!('h', 'd', 'r', 'l');
-const ckidAVIMAINHDR        = mmioFOURCC!('a', 'v', 'i', 'h');
-const listtypeSTREAMHEADER  = mmioFOURCC!('s', 't', 'r', 'l');
-const ckidSTREAMHEADER      = mmioFOURCC!('s', 't', 'r', 'h');
-const ckidSTREAMFORMAT      = mmioFOURCC!('s', 't', 'r', 'f');
-const ckidSTREAMHANDLERDATA = mmioFOURCC!('s', 't', 'r', 'd');
-const ckidSTREAMNAME        = mmioFOURCC!('s', 't', 'r', 'n');
-const listtypeAVIMOVIE      = mmioFOURCC!('m', 'o', 'v', 'i');
-const listtypeAVIRECORD     = mmioFOURCC!('r', 'e', 'c', ' ');
-const ckidAVINEWINDEX       = mmioFOURCC!('i', 'd', 'x', '1');
-const streamtypeVIDEO       = mmioFOURCC!('v', 'i', 'd', 's');
-const streamtypeAUDIO       = mmioFOURCC!('a', 'u', 'd', 's');
-const streamtypeMIDI        = mmioFOURCC!('m', 'i', 'd', 's');
-const streamtypeTEXT        = mmioFOURCC!('t', 'x', 't', 's');
+enum formtypeAVI           = mmioFOURCC!('A', 'V', 'I', ' ');
+enum listtypeAVIHEADER     = mmioFOURCC!('h', 'd', 'r', 'l');
+enum ckidAVIMAINHDR        = mmioFOURCC!('a', 'v', 'i', 'h');
+enum listtypeSTREAMHEADER  = mmioFOURCC!('s', 't', 'r', 'l');
+enum ckidSTREAMHEADER      = mmioFOURCC!('s', 't', 'r', 'h');
+enum ckidSTREAMFORMAT      = mmioFOURCC!('s', 't', 'r', 'f');
+enum ckidSTREAMHANDLERDATA = mmioFOURCC!('s', 't', 'r', 'd');
+enum ckidSTREAMNAME        = mmioFOURCC!('s', 't', 'r', 'n');
+enum listtypeAVIMOVIE      = mmioFOURCC!('m', 'o', 'v', 'i');
+enum listtypeAVIRECORD     = mmioFOURCC!('r', 'e', 'c', ' ');
+enum ckidAVINEWINDEX       = mmioFOURCC!('i', 'd', 'x', '1');
+enum streamtypeVIDEO       = mmioFOURCC!('v', 'i', 'd', 's');
+enum streamtypeAUDIO       = mmioFOURCC!('a', 'u', 'd', 's');
+enum streamtypeMIDI        = mmioFOURCC!('m', 'i', 'd', 's');
+enum streamtypeTEXT        = mmioFOURCC!('t', 'x', 't', 's');
 
-const cktypeDIBbits         = aviTWOCC!('d', 'b');
-const cktypeDIBcompressed   = aviTWOCC!('d', 'c');
-const cktypePALchange       = aviTWOCC!('p', 'c');
-const cktypeWAVEbytes       = aviTWOCC!('w', 'b');
+enum cktypeDIBbits         = aviTWOCC!('d', 'b');
+enum cktypeDIBcompressed   = aviTWOCC!('d', 'c');
+enum cktypePALchange       = aviTWOCC!('p', 'c');
+enum cktypeWAVEbytes       = aviTWOCC!('w', 'b');
 
-const ckidAVIPADDING        = mmioFOURCC!('J', 'U', 'N', 'K');
+enum ckidAVIPADDING        = mmioFOURCC!('J', 'U', 'N', 'K');
 
 DWORD FromHex(char n) {
     return (n >= 'A') ? n + 10 - 'A' : n - '0';
@@ -808,7 +808,7 @@ enum {
     AVIF_COPYRIGHTED    = 0x00020000,
 }
 
-const AVI_HEADERSIZE = 2048;
+enum AVI_HEADERSIZE = 2048;
 
 struct MainAVIHeader {
     DWORD dwMicroSecPerFrame;
@@ -824,9 +824,9 @@ struct MainAVIHeader {
     DWORD[4] dwReserved;
 }
 
-const AVISF_DISABLED = 0x00000001;
+enum AVISF_DISABLED = 0x00000001;
 
-const AVISF_VIDEO_PALCHANGES = 0x00010000;
+enum AVISF_VIDEO_PALCHANGES = 0x00010000;
 
 struct AVIStreamHeader {
     FOURCC      fccType;
@@ -868,7 +868,7 @@ struct AVIPALCHANGE {
     PALETTEENTRY* peNew() return { return _peNew.ptr; }
 }
 
-const AVIGETFRAMEF_BESTDISPLAYFMT = 1;
+enum AVIGETFRAMEF_BESTDISPLAYFMT = 1;
 
 struct AVISTREAMINFOW {
     DWORD   fccType;
@@ -922,8 +922,8 @@ version(Unicode) {
     alias LPAVISTREAMINFOA  LPAVISTREAMINFO;
 }
 
-const AVISTREAMINFO_DISABLED        = 0x00000001;
-const AVISTREAMINFO_FORMATCHANGES   = 0x00010000;
+enum AVISTREAMINFO_DISABLED        = 0x00000001;
+enum AVISTREAMINFO_FORMATCHANGES   = 0x00010000;
 
 struct AVIFILEINFOW {
     DWORD   dwMaxBytesPerSec;
@@ -1476,31 +1476,31 @@ STDAPI EditStreamSetInfoA(PAVISTREAM pavi, LPAVISTREAMINFOA lpInfo, LONG cbInfo)
 #define EditStreamSetName   EditStreamSetNameA
 #endif
 +/
-const AVIERR_OK = 0L;
+enum AVIERR_OK = 0L;
 
 SCODE MAKE_AVIERR(DWORD error) {
     return MAKE_SCODE(SEVERITY_ERROR, FACILITY_ITF, 0x4000 + error);
 }
 
-const AVIERR_UNSUPPORTED    = MAKE_AVIERR(101);
-const AVIERR_BADFORMAT      = MAKE_AVIERR(102);
-const AVIERR_MEMORY         = MAKE_AVIERR(103);
-const AVIERR_INTERNAL       = MAKE_AVIERR(104);
-const AVIERR_BADFLAGS       = MAKE_AVIERR(105);
-const AVIERR_BADPARAM       = MAKE_AVIERR(106);
-const AVIERR_BADSIZE        = MAKE_AVIERR(107);
-const AVIERR_BADHANDLE      = MAKE_AVIERR(108);
-const AVIERR_FILEREAD       = MAKE_AVIERR(109);
-const AVIERR_FILEWRITE      = MAKE_AVIERR(110);
-const AVIERR_FILEOPEN       = MAKE_AVIERR(111);
-const AVIERR_COMPRESSOR     = MAKE_AVIERR(112);
-const AVIERR_NOCOMPRESSOR   = MAKE_AVIERR(113);
-const AVIERR_READONLY       = MAKE_AVIERR(114);
-const AVIERR_NODATA         = MAKE_AVIERR(115);
-const AVIERR_BUFFERTOOSMALL = MAKE_AVIERR(116);
-const AVIERR_CANTCOMPRESS   = MAKE_AVIERR(117);
-const AVIERR_USERABORT      = MAKE_AVIERR(198);
-const AVIERR_ERROR          = MAKE_AVIERR(199);
+enum AVIERR_UNSUPPORTED    = MAKE_AVIERR(101);
+enum AVIERR_BADFORMAT      = MAKE_AVIERR(102);
+enum AVIERR_MEMORY         = MAKE_AVIERR(103);
+enum AVIERR_INTERNAL       = MAKE_AVIERR(104);
+enum AVIERR_BADFLAGS       = MAKE_AVIERR(105);
+enum AVIERR_BADPARAM       = MAKE_AVIERR(106);
+enum AVIERR_BADSIZE        = MAKE_AVIERR(107);
+enum AVIERR_BADHANDLE      = MAKE_AVIERR(108);
+enum AVIERR_FILEREAD       = MAKE_AVIERR(109);
+enum AVIERR_FILEWRITE      = MAKE_AVIERR(110);
+enum AVIERR_FILEOPEN       = MAKE_AVIERR(111);
+enum AVIERR_COMPRESSOR     = MAKE_AVIERR(112);
+enum AVIERR_NOCOMPRESSOR   = MAKE_AVIERR(113);
+enum AVIERR_READONLY       = MAKE_AVIERR(114);
+enum AVIERR_NODATA         = MAKE_AVIERR(115);
+enum AVIERR_BUFFERTOOSMALL = MAKE_AVIERR(116);
+enum AVIERR_CANTCOMPRESS   = MAKE_AVIERR(117);
+enum AVIERR_USERABORT      = MAKE_AVIERR(198);
+enum AVIERR_ERROR          = MAKE_AVIERR(199);
 
 const TCHAR[] MCIWND_WINDOW_CLASS = "MCIWndClass";
 
@@ -1794,8 +1794,8 @@ enum {
     MCIWNDM_NOTIFYERROR = WM_USER + 205,
 }
 
-const MCIWND_START  = -1;
-const MCIWND_END    = -2;
+enum MCIWND_START  = -1;
+enum MCIWND_END    = -2;
 
 enum {
     MCI_CLOSE   = 0x0804,
@@ -2252,8 +2252,8 @@ struct CAPTUREPARMS {
 }
 alias CAPTUREPARMS* PCAPTUREPARMS, LPCAPTUREPARMS;
 
-const AVSTREAMMASTER_AUDIO = 0;
-const AVSTREAMMASTER_NONE  = 1;
+enum AVSTREAMMASTER_AUDIO = 0;
+enum AVSTREAMMASTER_NONE  = 1;
 
 struct CAPINFOCHUNK {
     FOURCC  fccInfoID;
@@ -2287,8 +2287,8 @@ extern (Windows) {
 }
 
 //  CapControlCallback states
-const CONTROLCALLBACK_PREROLL   = 1;
-const CONTROLCALLBACK_CAPTURING = 2;
+enum CONTROLCALLBACK_PREROLL   = 1;
+enum CONTROLCALLBACK_CAPTURING = 2;
 
 extern (Windows) {
     HWND capCreateCaptureWindowA(LPCSTR lpszWindowName, DWORD dwStyle, int x, int y, int nWidth, int nHeight, HWND hwndParent, int nID);
@@ -2306,8 +2306,8 @@ version(Unicode) {
 }
 
 // New Information chunk IDs
-const infotypeDIGITIZATION_TIME = mmioFOURCC!('I', 'D', 'I', 'T');
-const infotypeSMPTE_TIME        = mmioFOURCC!('I', 'S', 'M', 'P');
+enum infotypeDIGITIZATION_TIME = mmioFOURCC!('I', 'D', 'I', 'T');
+enum infotypeSMPTE_TIME        = mmioFOURCC!('I', 'S', 'M', 'P');
 
 // status and error callbacks
 enum {

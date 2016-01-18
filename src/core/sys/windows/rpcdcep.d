@@ -18,18 +18,18 @@ private import core.sys.windows.windef;
 mixin DECLARE_HANDLE!("I_RPC_HANDLE");
 alias long RPC_STATUS;
 
-const RPC_NCA_FLAGS_DEFAULT=0;
-const RPC_NCA_FLAGS_IDEMPOTENT=1;
-const RPC_NCA_FLAGS_BROADCAST=2;
-const RPC_NCA_FLAGS_MAYBE=4;
-const RPCFLG_ASYNCHRONOUS=0x40000000;
-const RPCFLG_INPUT_SYNCHRONOUS=0x20000000;
-const RPC_FLAGS_VALID_BIT=0x8000;
+enum RPC_NCA_FLAGS_DEFAULT=0;
+enum RPC_NCA_FLAGS_IDEMPOTENT=1;
+enum RPC_NCA_FLAGS_BROADCAST=2;
+enum RPC_NCA_FLAGS_MAYBE=4;
+enum RPCFLG_ASYNCHRONOUS=0x40000000;
+enum RPCFLG_INPUT_SYNCHRONOUS=0x20000000;
+enum RPC_FLAGS_VALID_BIT=0x8000;
 
-const TRANSPORT_TYPE_CN=1;
-const TRANSPORT_TYPE_DG=2;
-const TRANSPORT_TYPE_LPC=4;
-const TRANSPORT_TYPE_WMSG=8;
+enum TRANSPORT_TYPE_CN=1;
+enum TRANSPORT_TYPE_DG=2;
+enum TRANSPORT_TYPE_LPC=4;
+enum TRANSPORT_TYPE_WMSG=8;
 
 struct RPC_VERSION {
     ushort MajorVersion;
@@ -81,7 +81,7 @@ struct RPC_SERVER_INTERFACE {
     uint                  RpcProtseqEndpointCount;
     PRPC_PROTSEQ_ENDPOINT RpcProtseqEndpoint;
     void*                 DefaultManagerEpv;
-    const(void)*          InterpreterInfo;
+const(void)*          InterpreterInfo;
 }
 alias RPC_SERVER_INTERFACE* PRPC_SERVER_INTERFACE;
 
@@ -93,7 +93,7 @@ struct RPC_CLIENT_INTERFACE {
     uint                  RpcProtseqEndpointCount;
     PRPC_PROTSEQ_ENDPOINT RpcProtseqEndpoint;
     uint                  Reserved;
-    const(void)*          InterpreterInfo;
+const(void)*          InterpreterInfo;
 }
 alias RPC_CLIENT_INTERFACE* PRPC_CLIENT_INTERFACE;
 

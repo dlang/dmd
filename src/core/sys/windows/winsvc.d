@@ -23,7 +23,7 @@ const TCHAR[]
 
 const TCHAR SC_GROUP_IDENTIFIER = '+';
 
-const DWORD
+enum DWORD
     SC_MANAGER_ALL_ACCESS         = 0xf003f,
     SC_MANAGER_CONNECT            =  1,
     SC_MANAGER_CREATE_SERVICE     =  2,
@@ -32,7 +32,7 @@ const DWORD
     SC_MANAGER_QUERY_LOCK_STATUS  = 16,
     SC_MANAGER_MODIFY_BOOT_CONFIG = 32;
 
-const DWORD SERVICE_NO_CHANGE = 0xffffffff;
+enum DWORD SERVICE_NO_CHANGE = 0xffffffff;
 
 enum : DWORD {
     SERVICE_STOPPED = 1,
@@ -44,7 +44,7 @@ enum : DWORD {
     SERVICE_PAUSED // = 7
 }
 
-const DWORD
+enum DWORD
     SERVICE_ACCEPT_STOP                  =   1,
     SERVICE_ACCEPT_PAUSE_CONTINUE        =   2,
     SERVICE_ACCEPT_SHUTDOWN              =   4,
@@ -77,7 +77,7 @@ enum : DWORD {
     SERVICE_STATE_ALL
 }
 
-const DWORD
+enum DWORD
     SERVICE_QUERY_CONFIG         = 0x0001,
     SERVICE_CHANGE_CONFIG        = 0x0002,
     SERVICE_QUERY_STATUS         = 0x0004,
@@ -90,7 +90,7 @@ const DWORD
     SERVICE_ALL_ACCESS           = 0x01FF | STANDARD_RIGHTS_REQUIRED;
 
 // This is not documented on the MSDN site
-const SERVICE_RUNS_IN_SYSTEM_PROCESS = 1;
+enum SERVICE_RUNS_IN_SYSTEM_PROCESS = 1;
 
 enum : DWORD {
     SERVICE_CONFIG_DESCRIPTION         = 1,

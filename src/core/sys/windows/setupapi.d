@@ -18,34 +18,34 @@ private import core.sys.windows.basetyps, core.sys.windows.commctrl, core.sys.wi
 private import core.sys.windows.winbase; // for SYSTEMTIME
 
 /*static if(_WIN32_WINNT < _WIN32_WINDOWS) {
-    const UINT _SETUPAPI_VER = _WIN32_WINNT; // SetupAPI version follows Windows NT version
+enum UINT _SETUPAPI_VER = _WIN32_WINNT; // SetupAPI version follows Windows NT version
 } else static if(_WIN32_WINDOWS) {
     static if(_WIN32_WINDOWS >= 0x0490) {
-        const UINT _SETUPAPI_VER = 0x0500;     // WinME uses same version of SetupAPI as Win2k
+enum UINT _SETUPAPI_VER = 0x0500;     // WinME uses same version of SetupAPI as Win2k
     } else static if(_WIN32_WINDOWS >= 0x0410) {
-        const UINT _SETUPAPI_VER = 0x0410;     // Indicates version of SetupAPI shipped with Win98
+enum UINT _SETUPAPI_VER = 0x0410;     // Indicates version of SetupAPI shipped with Win98
     } else {
-        const UINT _SETUPAPI_VER = 0x0400;     // Earliest SetupAPI version
+enum UINT _SETUPAPI_VER = 0x0400;     // Earliest SetupAPI version
     }
 } else {
-    const UINT _SETUPAPI_VER = 0x0501;
+enum UINT _SETUPAPI_VER = 0x0501;
 }
 
 version (WindowsNTonly) {
     static if (_WIN32_WINNT >= 0x500) {
-        const UINT USE_SP_DRVINFO_DATA_V1 = 0;
+enum UINT USE_SP_DRVINFO_DATA_V1 = 0;
     } else {
-        const UINT USE_SP_DRVINFO_DATA_V1 = 1;
+enum UINT USE_SP_DRVINFO_DATA_V1 = 1;
     }
 } else {
-    const UINT USE_SP_DRVINFO_DATA_V1 = 1;
+enum UINT USE_SP_DRVINFO_DATA_V1 = 1;
 }*/
 /+
-const UINT _SETUPAPI_VER = 0x0400;     // Earliest SetupAPI version
-const UINT USE_SP_DRVINFO_DATA_V1 = 1;
+enum UINT _SETUPAPI_VER = 0x0400;     // Earliest SetupAPI version
+enum UINT USE_SP_DRVINFO_DATA_V1 = 1;
 +/
-const UINT _SETUPAPI_VER          = _WIN32_WINNT;
-const bool USE_SP_DRVINFO_DATA_V1 = _WIN32_WINNT < 0x500;
+enum UINT _SETUPAPI_VER          = _WIN32_WINNT;
+enum bool USE_SP_DRVINFO_DATA_V1 = _WIN32_WINNT < 0x500;
 
 enum : uint {
     LINE_LEN                  = 256,
@@ -575,7 +575,7 @@ enum : LogSeverity {
     LogSevMaximum // = 4
 }
 
-const MAX_INSTALLWIZARD_DYNAPAGES = 20;
+enum MAX_INSTALLWIZARD_DYNAPAGES = 20;
 
 enum : DWORD {
     NDW_INSTALLFLAG_DIDFACTDEFS        = 0x00000001,
