@@ -53,7 +53,12 @@ pure nothrow @nogc {
     }
 }
 
-enum void* NULL = null;
+enum NULL = null;
+static assert (is(typeof({
+    void test(int* p) {}
+    test(NULL);
+})));
+
 alias ubyte        BYTE;
 alias ubyte*       PBYTE, LPBYTE;
 alias ushort       USHORT, WORD, ATOM;
