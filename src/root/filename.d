@@ -472,7 +472,7 @@ struct FileName
     {
         version (Windows)
         {
-            /* Disallow % // \\ : and .. in name characters, also disallows root accrss with \ and / at start of name
+            /* Disallow % // \\ : and .. in name characters, also disallows root across with \ and / at start of name
              */
              if (*p == '\\' || *p == '/')
                 return null;
