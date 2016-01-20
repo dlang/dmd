@@ -814,8 +814,9 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
     buf->write32(length);                               // Length (no Extended Length)
     buf->write32((startsize + 4) - CIE_offset);         // CIE Pointer
 #if ELFOBJ
-    buf->write32(0);                                    // address of function
-    ElfObj::addrel(dfseg, startsize + 8, R_X86_64_PC32, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
+    int fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
+    buf->write32(I64 ? 0 : sfunc->Soffset);             // address of function
+    ElfObj::addrel(dfseg, startsize + 8, fixup, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
     //ElfObj::reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
 #else
     assert(0);                                          // not supported yet
@@ -826,11 +827,11 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         buf->writeByten(4);                             // Augmentation Data Length
         int etseg = dwarf_getsegment_alloc(except_table_name, 1);
         // if CFG3pic, fixup should be R_X86_64_PC32
-        buf->write32(0);                                // address of LSDA (".gcc_except_table")
+        buf->write32(I64 ? 0 : sfunc->Sfunc->LSDAoffset); // address of LSDA (".gcc_except_table")
         if (config.flags3 & CFG3pic)
         {
 #if ELFOBJ
-            ElfObj::addrel(dfseg, buf->size() - 4, R_X86_64_PC32, MAP_SEG2SYMIDX(etseg), sfunc->Sfunc->LSDAoffset);
+            ElfObj::addrel(dfseg, buf->size() - 4, fixup, MAP_SEG2SYMIDX(etseg), sfunc->Sfunc->LSDAoffset);
 #else
             assert(0);                                  // not supported yet
 #endif
