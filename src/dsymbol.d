@@ -1315,7 +1315,8 @@ public:
                         a = mergeOverloadSet(ident, a, s);
                     s = a;
                 }
-                if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate && !s.parent.isTemplateMixin())
+                if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate &&
+                    !s.parent.isTemplateMixin() && !s.parent.isNspace())
                 {
                     if (!s.isImport())
                         error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
