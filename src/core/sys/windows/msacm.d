@@ -10,6 +10,8 @@
 module core.sys.windows.msacm;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.basetsd, core.sys.windows.mmsystem, core.sys.windows.windef;
 
 mixin DECLARE_HANDLE!("HACMDRIVERID");
@@ -19,7 +21,7 @@ alias HACMDRIVER* LPHACMDRIVER;
 /* Comment from MinGW
     found through experimentation
  */
-const size_t
+enum size_t
     ACMDRIVERDETAILS_SHORTNAME_CHARS =  32,
     ACMDRIVERDETAILS_LONGNAME_CHARS  = 128,
     ACMDRIVERDETAILS_COPYRIGHT_CHARS =  80,
@@ -28,7 +30,7 @@ const size_t
 /* Comment from MinGW
     I don't know the right values for these macros
  */
-const size_t
+enum size_t
     ACMFORMATDETAILS_FORMAT_CHARS       = 256,
     ACMFORMATTAGDETAILS_FORMATTAG_CHARS = 256,
     ACMDRIVERDETAILS_FEATURES_CHARS     = 256;

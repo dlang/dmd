@@ -13,8 +13,8 @@ nothrow:
 alias SOCKET = size_t;
 alias socklen_t = int;
 
-const SOCKET INVALID_SOCKET = cast(SOCKET)~0;
-const int SOCKET_ERROR = -1;
+enum SOCKET INVALID_SOCKET = cast(SOCKET)~0;
+enum int SOCKET_ERROR = -1;
 
 enum WSADESCRIPTION_LEN = 256;
 enum WSASYS_STATUS_LEN = 128;
@@ -32,9 +32,9 @@ struct WSADATA
 alias LPWSADATA = WSADATA*;
 
 
-const int IOCPARM_MASK =  0x7F;
-const int IOC_IN =        cast(int)0x80000000;
-const int FIONBIO =       cast(int)(IOC_IN | ((uint.sizeof & IOCPARM_MASK) << 16) | (102 << 8) | 126);
+enum int IOCPARM_MASK =  0x7F;
+enum int IOC_IN =        cast(int)0x80000000;
+enum int FIONBIO =       cast(int)(IOC_IN | ((uint.sizeof & IOCPARM_MASK) << 16) | (102 << 8) | 126);
 
 enum NI_MAXHOST = 1025;
 enum NI_MAXSERV = 32;
@@ -390,8 +390,8 @@ void FD_CLR(SOCKET fd, fd_set* set) pure @nogc
 // Tests.
 int FD_ISSET(SOCKET fd, const(fd_set)* set) pure @nogc
 {
-    const(SOCKET)* start = set.fd_array.ptr;
-    const(SOCKET)* stop = start + set.fd_count;
+const(SOCKET)* start = set.fd_array.ptr;
+const(SOCKET)* stop = start + set.fd_count;
 
     for(; start != stop; start++)
     {
@@ -662,8 +662,8 @@ union in6_addr
 }
 
 
-const in6_addr IN6ADDR_ANY = { s6_addr8: [0] };
-const in6_addr IN6ADDR_LOOPBACK = { s6_addr8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] };
+enum in6_addr IN6ADDR_ANY = { s6_addr8: [0] };
+enum in6_addr IN6ADDR_LOOPBACK = { s6_addr8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1] };
 //alias IN6ADDR_ANY_INIT = IN6ADDR_ANY;
 //alias IN6ADDR_LOOPBACK_INIT = IN6ADDR_LOOPBACK;
 

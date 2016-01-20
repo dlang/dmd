@@ -9,6 +9,8 @@
  */
 module core.sys.windows.winreg;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "advapi32");
 
 private import core.sys.windows.w32api, core.sys.windows.winbase, core.sys.windows.windef;
@@ -52,7 +54,7 @@ enum : DWORD {
     REG_QWORD                      = REG_QWORD_LITTLE_ENDIAN
 }
 
-const DWORD
+enum DWORD
     REG_NOTIFY_CHANGE_NAME       = 1,
     REG_NOTIFY_CHANGE_ATTRIBUTES = 2,
     REG_NOTIFY_CHANGE_LAST_SET   = 4,

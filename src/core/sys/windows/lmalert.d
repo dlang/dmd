@@ -23,20 +23,20 @@ const TCHAR[]
 
 //MACRO #define ALERT_VAR_DATA(p) ((PBYTE)(p)+sizeof(*p))
 
-const PRJOB_QSTATUS     = 3;
-const PRJOB_DEVSTATUS   = 508;
-const PRJOB_COMPLETE    = 4;
-const PRJOB_INTERV      = 8;
-const PRJOB_            = 16;
-const PRJOB_DESTOFFLINE = 32;
-const PRJOB_DESTPAUSED  = 64;
-const PRJOB_NOTIFY      = 128;
-const PRJOB_DESTNOPAPER = 256;
-const PRJOB_DELETED     = 32768;
-const PRJOB_QS_QUEUED   = 0;
-const PRJOB_QS_PAUSED   = 1;
-const PRJOB_QS_SPOOLING = 2;
-const PRJOB_QS_PRINTING = 3;
+enum PRJOB_QSTATUS     = 3;
+enum PRJOB_DEVSTATUS   = 508;
+enum PRJOB_COMPLETE    = 4;
+enum PRJOB_INTERV      = 8;
+enum PRJOB_            = 16;
+enum PRJOB_DESTOFFLINE = 32;
+enum PRJOB_DESTPAUSED  = 64;
+enum PRJOB_NOTIFY      = 128;
+enum PRJOB_DESTNOPAPER = 256;
+enum PRJOB_DELETED     = 32768;
+enum PRJOB_QS_QUEUED   = 0;
+enum PRJOB_QS_PAUSED   = 1;
+enum PRJOB_QS_SPOOLING = 2;
+enum PRJOB_QS_PRINTING = 3;
 
 struct ADMIN_OTHER_INFO{
     DWORD alrtad_errcode;

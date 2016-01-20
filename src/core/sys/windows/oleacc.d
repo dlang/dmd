@@ -8,6 +8,8 @@
  */
 module core.sys.windows.oleacc;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "oleacc");
 
 private import core.sys.windows.basetyps, core.sys.windows.oaidl, core.sys.windows.unknwn, core.sys.windows.wtypes,
@@ -153,7 +155,7 @@ enum SELFLAG
     SELFLAG_REMOVESELECTION = 16
 }
 
-const SELFLAG_VALID = 0x0000001F;
+enum SELFLAG_VALID = 0x0000001F;
 
 
 interface IAccessible : IDispatch {

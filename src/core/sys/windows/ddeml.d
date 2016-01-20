@@ -9,6 +9,8 @@
  */
 module core.sys.windows.ddeml;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "user32");
 
 private import core.sys.windows.basetsd, core.sys.windows.windef, core.sys.windows.winnt;
@@ -135,7 +137,7 @@ enum : UINT {
 #define CBR_BLOCK   ((HDDEDATA)0xffffffff)
 +/
 
-const DWORD
+enum DWORD
     APPCLASS_STANDARD         = 0,
     APPCLASS_MONITOR          = 0x00000001,
     APPCLASS_MASK             = 0x0000000F,

@@ -45,7 +45,7 @@ struct BerValue {
 alias BerValue LDAP_BERVAL, BERVAL;
 alias BerValue* PLDAP_BERVAL, PBERVAL;
 
-const ber_tag_t
+enum ber_tag_t
     LBER_ERROR   = -1,
     LBER_DEFAULT = -1,
     LBER_USE_DER =  1;

@@ -16,7 +16,7 @@ pragma(lib, "rpcrt4");
 
 // TODO: Bitfields in MIDL_STUB_MESSAGE.
 //       Macros need to be converted.
-const __RPCNDR_H_VERSION__= 450;
+enum __RPCNDR_H_VERSION__= 450;
 
 import core.sys.windows.rpcnsip;
 private import core.sys.windows.rpc, core.sys.windows.rpcdce, core.sys.windows.unknwn, core.sys.windows.windef;
@@ -25,7 +25,7 @@ private import core.sys.windows.basetyps;
 
 extern (Windows):
 
-const uint NDR_CHAR_REP_MASK      = 0xF,
+enum uint NDR_CHAR_REP_MASK      = 0xF,
     NDR_INT_REP_MASK              = 0xF0,
     NDR_FLOAT_REP_MASK            = 0xFF00,
     NDR_LITTLE_ENDIAN             = 0x10,
@@ -44,7 +44,7 @@ alias long hyper;
 alias ulong MIDL_uhyper;
 alias char small;
 
-const cbNDRContext=20;
+enum cbNDRContext=20;
 //MACRO #define NDRSContextValue(hContext) (&(hContext)->userContext)
 //MACRO #define byte_from_ndr(source, target) { *(target) = *(*(char**)&(source)->Buffer)++; }
 
@@ -189,7 +189,7 @@ struct MIDL_STUB_MESSAGE {
     ubyte * pPresentedType;
     ubyte * pTransmitType;
     handle_t SavedHandle;
-    const(_MIDL_STUB_DESC)* StubDesc;
+const(_MIDL_STUB_DESC)* StubDesc;
     _FULL_PTR_XLAT_TABLES *FullPtrXlatTables;
     uint FullPtrRefId;
     int fCheckBounds;
@@ -293,20 +293,20 @@ struct MIDL_STUB_DESC {
         PGENERIC_BINDING_INFO pGenericBindingInfo;
     }
     _IMPLICIT_HANDLE_INFO IMPLICIT_HANDLE_INFO;
-    const(NDR_RUNDOWN)* apfnNdrRundownRoutines;
-    const(GENERIC_BINDING_ROUTINE_PAIR)* aGenericBindingRoutinePairs;
-    const(EXPR_EVAL)* apfnExprEval;
-    const(XMIT_ROUTINE_QUINTUPLE)* aXmitQuintuple;
-    const(char)* *pFormatTypes;
+const(NDR_RUNDOWN)* apfnNdrRundownRoutines;
+const(GENERIC_BINDING_ROUTINE_PAIR)* aGenericBindingRoutinePairs;
+const(EXPR_EVAL)* apfnExprEval;
+const(XMIT_ROUTINE_QUINTUPLE)* aXmitQuintuple;
+const(char)* *pFormatTypes;
     int fCheckBounds;
     uint Version;
     MALLOC_FREE_STRUCT *pMallocFreeStruct;
     int MIDLVersion;
-    const(COMM_FAULT_OFFSETS)* CommFaultOffsets;
-    const(USER_MARSHAL_ROUTINE_QUADRUPLE)* aUserMarshalQuadruple;
-    const(NDR_NOTIFY_ROUTINE)* NotifyRoutineTable;
+const(COMM_FAULT_OFFSETS)* CommFaultOffsets;
+const(USER_MARSHAL_ROUTINE_QUADRUPLE)* aUserMarshalQuadruple;
+const(NDR_NOTIFY_ROUTINE)* NotifyRoutineTable;
     ULONG_PTR mFlags;
-    const(NDR_CS_ROUTINES)* CsRoutineTables;
+const(NDR_CS_ROUTINES)* CsRoutineTables;
     void *Reserved4;
     ULONG_PTR Reserved5;
 }
@@ -321,17 +321,17 @@ struct MIDL_FORMAT_STRING {
 
 struct MIDL_SERVER_INFO {
     PMIDL_STUB_DESC pStubDesc;
-    const(SERVER_ROUTINE)* DispatchTable;
+const(SERVER_ROUTINE)* DispatchTable;
     PFORMAT_STRING ProcString;
-    const(ushort)* FmtStringOffset;
-    const(STUB_THUNK)* ThunkTable;
+const(ushort)* FmtStringOffset;
+const(STUB_THUNK)* ThunkTable;
 }
 alias MIDL_SERVER_INFO * PMIDL_SERVER_INFO;
 
 struct MIDL_STUBLESS_PROXY_INFO {
     PMIDL_STUB_DESC pStubDesc;
     PFORMAT_STRING ProcFormatString;
-    const(ushort)* FormatStringOffset;
+const(ushort)* FormatStringOffset;
 }
 alias MIDL_STUBLESS_PROXY_INFO *PMIDL_STUBLESS_PROXY_INFO;
 

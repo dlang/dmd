@@ -10,6 +10,8 @@
 module core.sys.windows.sspi;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 import core.sys.windows.windef;
 import core.sys.windows.ntdef;
 import core.sys.windows.w32api;

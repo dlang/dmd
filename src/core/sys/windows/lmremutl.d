@@ -14,16 +14,16 @@ pragma(lib, "netapi32");
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
-const SUPPORTS_REMOTE_ADMIN_PROTOCOL =  2;
-const SUPPORTS_RPC                   =  4;
-const SUPPORTS_SAM_PROTOCOL          =  8;
-const SUPPORTS_UNICODE               = 16;
-const SUPPORTS_LOCAL                 = 32;
-const SUPPORTS_ANY                   = 0xFFFFFFFF;
+enum SUPPORTS_REMOTE_ADMIN_PROTOCOL =  2;
+enum SUPPORTS_RPC                   =  4;
+enum SUPPORTS_SAM_PROTOCOL          =  8;
+enum SUPPORTS_UNICODE               = 16;
+enum SUPPORTS_LOCAL                 = 32;
+enum SUPPORTS_ANY                   = 0xFFFFFFFF;
 
-const NO_PERMISSION_REQUIRED = 1;
-const ALLOCATE_RESPONSE      = 2;
-const USE_SPECIFIC_TRANSPORT = 0x80000000;
+enum NO_PERMISSION_REQUIRED = 1;
+enum ALLOCATE_RESPONSE      = 2;
+enum USE_SPECIFIC_TRANSPORT = 0x80000000;
 
 //[Yes] #ifndef DESC_CHAR_UNICODE
 //alias CHAR DESC_CHAR;

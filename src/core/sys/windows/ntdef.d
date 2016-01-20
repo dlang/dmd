@@ -12,7 +12,7 @@ version (Windows):
 
 private import core.sys.windows.basetsd, core.sys.windows.subauth, core.sys.windows.windef, core.sys.windows.winnt;
 
-const uint
+enum uint
     OBJ_INHERIT          = 0x0002,
     OBJ_PERMANENT        = 0x0010,
     OBJ_EXCLUSIVE        = 0x0020,

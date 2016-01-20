@@ -8,5 +8,6 @@ druntime.json
 trace.def
 trace.log
 Makefile
-/errno_c.obj
+/errno_c*.obj
+/msvc*.obj
 make

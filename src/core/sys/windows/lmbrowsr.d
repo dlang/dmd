@@ -11,8 +11,8 @@ version (Windows):
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
-const BROWSER_ROLE_PDC = 1;
-const BROWSER_ROLE_BDC = 2;
+enum BROWSER_ROLE_PDC = 1;
+enum BROWSER_ROLE_BDC = 2;
 
 struct BROWSER_STATISTICS {
     LARGE_INTEGER StatisticsStartTime;

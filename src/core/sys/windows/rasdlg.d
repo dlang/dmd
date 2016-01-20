@@ -10,6 +10,8 @@
 module core.sys.windows.rasdlg;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 import core.sys.windows.ras;
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
@@ -23,15 +25,15 @@ enum {
     RASPBDEVENT_NoUserEdit
 }
 
-const RASPBDFLAG_PositionDlg      =  1;
-const RASPBDFLAG_ForceCloseOnDial =  2;
-const RASPBDFLAG_NoUser           = 16;
+enum RASPBDFLAG_PositionDlg      =  1;
+enum RASPBDFLAG_ForceCloseOnDial =  2;
+enum RASPBDFLAG_NoUser           = 16;
 
-const RASEDFLAG_PositionDlg = 1;
-const RASEDFLAG_NewEntry    = 2;
-const RASEDFLAG_CloneEntry  = 4;
+enum RASEDFLAG_PositionDlg = 1;
+enum RASEDFLAG_NewEntry    = 2;
+enum RASEDFLAG_CloneEntry  = 4;
 
-const RASDDFLAG_PositionDlg = 1;
+enum RASDDFLAG_PositionDlg = 1;
 
 align(4):
 

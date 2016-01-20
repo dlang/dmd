@@ -9,6 +9,8 @@
 // Don't include this file directly, use core.sys.windows.security instead.
 module core.sys.windows.secext;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "secur32");
 
 private import core.sys.windows.w32api, core.sys.windows.windef;

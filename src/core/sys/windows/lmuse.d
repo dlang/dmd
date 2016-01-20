@@ -32,7 +32,7 @@ enum {
     USE_RECONN
 }
 
-const DWORD USE_WILDCARD = -1;
+enum DWORD USE_WILDCARD = -1;
 
 enum {
     USE_DISKDEV,
