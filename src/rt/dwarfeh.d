@@ -410,8 +410,8 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
     }
 
     // Set up registers and jump to cleanup or handler
-    int reg0 = 0;       // RAX is __exception_object
-    int reg1 = 1;       // RDX is __handler
+    int reg0 = 0;       // EAX/RAX is __exception_object
+    int reg1 = (size_t.sizeof == 4) ? 2 : 1;       // EDX/RDX is __handler
     _Unwind_SetGR(context, reg0, cast(_Unwind_Ptr)exceptionObject);
     _Unwind_SetGR(context, reg1, handler);
     _Unwind_SetIP(context, landing_pad);
