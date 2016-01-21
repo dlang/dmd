@@ -89,9 +89,6 @@
     <ClCompile Include="..\tocsym.c" />
     <ClCompile Include="..\tocvdebug.c" />
     <ClCompile Include="..\todt.c" />
-    <ClCompile Include="..\toelfdebug.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\toir.c" />
     <ClCompile Include="..\toobj.c" />
     <ClCompile Include="..\backend\aa.c" />
@@ -185,12 +182,6 @@ popd</Command>
       <Outputs>$(IntDir)generated\optab.c;$(IntDir)generated\debtab.c;$(IntDir)generated\cdxxx.c;$(IntDir)generated\elxxx.c;$(IntDir)generated\tytab.c;$(IntDir)generated\fltables.c;%(Outputs)</Outputs>
       <AdditionalInputs>..\backend\cc.h;..\backend\oper.h;%(AdditionalInputs)</AdditionalInputs>
     </CustomBuild>
-    <ClCompile Include="..\libelf.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\libmach.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\aggregate.h" />
