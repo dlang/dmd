@@ -48,7 +48,6 @@ updated:
 * mak/COPY
 * mak/DOCS
 * mak/IMPORTS
-* mak/MANIFEST
 * mak/SRCS
 
 Operating system bindings
