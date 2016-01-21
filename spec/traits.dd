@@ -697,7 +697,7 @@ $(H2 $(GNAME getUnitTests))
 		Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
 		The result is a tuple of all the unit test functions of that aggregate.
 		The functions returned are like normal nested static functions,
-		$(DDSUBLINK glossary, ctfe, CTEF) will work and
+		$(DDSUBLINK glossary, ctfe, CTFE) will work and
 		$(DDSUBLINK spec/attribute, uda, UDA's) will be accessible.
 	)
 
