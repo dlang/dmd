@@ -19,9 +19,6 @@
     <Filter Include="src\generated">
       <UniqueIdentifier>{6deaa83b-2b97-4159-a330-266507006483}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\no_win">
-      <UniqueIdentifier>{b8c9d61e-7fef-4d7e-83e8-c230ccf89ef5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\vcbuild">
       <UniqueIdentifier>{5fa9d849-fc22-4664-bb36-8ed7e1bff041}</UniqueIdentifier>
     </Filter>
@@ -55,9 +52,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\todt.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\toelfdebug.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\toir.c">
@@ -236,12 +230,6 @@
     </ClCompile>
     <ClCompile Include="..\root\newdelete.c">
       <Filter>src\root</Filter>
-    </ClCompile>
-    <ClCompile Include="..\libelf.c">
-      <Filter>src\no_win</Filter>
-    </ClCompile>
-    <ClCompile Include="..\libmach.c">
-      <Filter>src\no_win</Filter>
     </ClCompile>
     <ClCompile Include="..\backend\backconfig.c">
       <Filter>src\backend</Filter>
