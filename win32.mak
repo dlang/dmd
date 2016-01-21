@@ -26,7 +26,6 @@ target : import copydir copy $(DRUNTIME) $(GCSTUB)
 $(mak\COPY)
 $(mak\DOCS)
 $(mak\IMPORTS)
-$(mak\MANIFEST)
 $(mak\SRCS)
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
@@ -1200,7 +1199,9 @@ zip: druntime.zip
 
 druntime.zip:
 	del druntime.zip
-	zip32 -T -ur druntime $(MANIFEST) src\rt\minit.obj
+	git ls-tree --name-only -r HEAD >MANIFEST.tmp
+	zip32 -T -ur druntime @MANIFEST.tmp
+	del MANIFEST.tmp
 
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
