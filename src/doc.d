@@ -2548,7 +2548,6 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     static immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
                     size_t paramListEnd = buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")") - 1;
 
-
                     // We have the parameter list. While we're here we might
                     // as well wrap the parameters themselves as well
 

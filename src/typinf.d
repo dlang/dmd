@@ -205,6 +205,7 @@ extern (C++) bool isSpeculativeType(Type t)
             }
         }
     }
+
     scope SpeculativeTypeVisitor v = new SpeculativeTypeVisitor();
     t.accept(v);
     return v.result;

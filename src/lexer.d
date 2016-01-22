@@ -1908,6 +1908,7 @@ public:
             else
             {
                 import core.checkedint;
+
                 n = mulu(n, base, overflow);
                 n = addu(n, d, overflow);
             }

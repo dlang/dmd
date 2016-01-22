@@ -4022,7 +4022,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
                 // Too many overloads to sensibly display.
                 // Just show count of remaining overloads.
                 int num = 0;
-                overloadApply(td.overnext, (s){ ++num; return 0; });
+                overloadApply(td.overnext, (s) { ++num; return 0; });
                 if (num > 0)
                     .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
                 return 1;   // stop iterating
@@ -4481,7 +4481,7 @@ public:
                 {
                     if (fbody || !(storage_class & STCdisable))
                     {
-                        error("default constructor for structs only allowed "
+                        error("default constructor for structs only allowed " ~
                             "with @disable, no body, and no parameters");
                         storage_class |= STCdisable;
                         fbody = null;

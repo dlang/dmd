@@ -1004,15 +1004,15 @@ else static if (TARGET_WINDOS)
             {
                 switch (type.ty)
                 {
-                    case Tint64:
-                    case Tuns64:
-                    case Tint128:
-                    case Tuns128:
-                    case Tfloat80:
-                    case Twchar:
-                        if (checkTypeSaved(type))
-                            return;
-                    default:
+                case Tint64:
+                case Tuns64:
+                case Tint128:
+                case Tuns128:
+                case Tfloat80:
+                case Twchar:
+                    if (checkTypeSaved(type))
+                        return;
+                default:
                 }
             }
             mangleModifier(type);

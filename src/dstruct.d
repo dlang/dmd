@@ -292,7 +292,7 @@ public:
         assert(parent && !isAnonymous());
 
         if (this.errors)
-           type = Type.terror;
+            type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {

@@ -1005,7 +1005,6 @@ extern (C++) Expression paintFloatInt(Expression fromVal, Type to)
     return Target.paintAsType(fromVal, to);
 }
 
-
 /******** Constant folding, with support for CTFE ***************************/
 /// Return true if non-pointer expression e can be compared
 /// with >,is, ==, etc, using ctfeCmp, ctfeEqual, ctfeIdentity
