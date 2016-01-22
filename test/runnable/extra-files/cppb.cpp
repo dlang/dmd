@@ -578,4 +578,66 @@ void throwle()
 #endif
 
 /******************************************/
+// 15579
+
+class Base
+{
+public:
+    //virtual ~Base() {}
+    virtual void base();
+    unsigned char x;
+};
+
+class Interface
+{
+public:
+    virtual int MethodCPP() = 0;
+    virtual int MethodD() = 0;
+};
+
+class Derived : public Base, public Interface
+{
+public:
+    Derived();
+    short y;
+    int MethodCPP();
+#if _WIN32 || _WIN64
+    int MethodD();
+#else
+    int MethodD() { return 3; }  // need def or vtbl[] is not generated
+#endif
+};
+
+void Base::base() { }
+int Derived::MethodCPP() { return 30; }
+Derived::Derived() { }
+
+
+Derived *cppfoo(Derived *d)
+{
+    assert(d->x == 4);
+    assert(d->y == 5);
+    assert(d->MethodD() == 3);
+    assert(d->MethodCPP() == 30);
+
+    d = new Derived();
+    d->x = 7;
+    d->y = 8;
+    assert(d->MethodD() == 3);
+    assert(d->MethodCPP() == 30);
+    return d;
+}
+
+Interface *cppfooi(Interface *i)
+{
+    printf("i = %p\n", i);
+    assert(i->MethodD() == 3);
+    assert(i->MethodCPP() == 30);
+
+    Derived *d = new Derived();
+    printf("d = %p, i = %p\n", d, (Interface *)d);
+    return d;
+}
+
+/******************************************/
 

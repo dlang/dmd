@@ -1156,6 +1156,9 @@ public:
                 structsize = Target.ptrsize * 2; // allow room for __vptr and __monitor
         }
 
+        // Add vptr's for any interfaces implemented by this class
+        structsize += setBaseInterfaceOffsets(structsize);
+
         uint offset = structsize;
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -1165,8 +1168,6 @@ public:
         if (sizeok == SIZEOKfwd)
             return;
 
-        // Add vptr's for any interfaces implemented by this class
-        structsize += setBaseInterfaceOffsets(structsize);
         sizeok = SIZEOKdone;
 
         // Calculate fields[i].overlapped
