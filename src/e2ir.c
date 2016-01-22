@@ -3970,28 +3970,6 @@ elem *toElem(Expression *e, IRState *irs)
                 ClassDeclaration *cdfrom = tfrom->isClassHandle();
                 ClassDeclaration *cdto   = t->isClassHandle();
 
-                if (cdfrom->cpp)
-                {
-                    if (cdto->cpp)
-                    {
-                        /* Casting from a C++ interface to a C++ interface
-                         * is always a 'paint' operation
-                         */
-                        goto Lret;                  // no-op
-                    }
-
-                    /* Casting from a C++ interface to a class
-                     * always results in null because there is no runtime
-                     * information available to do it.
-                     *
-                     * Casting from a C++ interface to a non-C++ interface
-                     * always results in null because there's no way one
-                     * can be derived from the other.
-                     */
-                    e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
-                    goto Lret;
-                }
-
                 int offset;
                 if (cdto->isBaseOf(cdfrom, &offset) && offset != OFFSET_RUNTIME)
                 {
@@ -4023,6 +4001,27 @@ elem *toElem(Expression *e, IRState *irs)
                     {
                         // Casting from derived class to base class is a no-op
                     }
+                }
+                else if (cdfrom->cpp)
+                {
+                    if (cdto->cpp)
+                    {
+                        /* Casting from a C++ interface to a C++ interface
+                         * is always a 'paint' operation
+                         */
+                        goto Lret;                  // no-op
+                    }
+
+                    /* Casting from a C++ interface to a class
+                     * always results in null because there is no runtime
+                     * information available to do it.
+                     *
+                     * Casting from a C++ interface to a non-C++ interface
+                     * always results in null because there's no way one
+                     * can be derived from the other.
+                     */
+                    e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
+                    goto Lret;
                 }
                 else
                 {

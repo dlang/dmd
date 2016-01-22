@@ -983,6 +983,61 @@ void testeh3()
 }
 
 /****************************************/
+// 15579
+
+extern (C++)
+{
+    class Base
+    {
+        //~this() {}
+        void based() { }
+        ubyte x = 4;
+    }
+
+    interface Interface
+    {
+        int MethodCPP();
+        int MethodD();
+    }
+
+    class Derived : Base, Interface
+    {
+        short y = 5;
+        int MethodCPP();
+        int MethodD() { return 3; }
+    }
+
+    Derived cppfoo(Derived);
+    Interface cppfooi(Interface);
+}
+
+void test15579()
+{
+    Derived d = new Derived();
+    assert(d.x == 4);
+    assert(d.y == 5);
+    assert(d.MethodD() == 3);
+    assert(d.MethodCPP() == 30);
+
+    d = cppfoo(d);
+    assert(d.x == 7);
+    assert(d.y == 8);
+    version (Win64)
+    {
+        // needs more work
+    }
+    else
+    {
+        assert(d.MethodD() == 3);
+        assert(d.MethodCPP() == 30);
+    }
+    printf("d = %p, i = %p\n", d, cast(Interface)d);
+    Interface i = cppfooi(d);
+    assert(i.MethodD() == 3);
+    assert(i.MethodCPP() == 30);
+}
+
+/****************************************/
 
 void main()
 {
@@ -1018,6 +1073,7 @@ void main()
     testeh();
     testeh2();
     testeh3();
+    test15579();
 
     printf("Success\n");
 }
