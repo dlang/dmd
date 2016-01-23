@@ -25,6 +25,7 @@ extern (C)
 @trusted nothrow
 void[] _d_arraycast(size_t tsize, size_t fsize, void[] a)
 {
+    if (tsize == fsize) return a;
     auto length = a.length;
 
     auto nbytes = length * fsize;
