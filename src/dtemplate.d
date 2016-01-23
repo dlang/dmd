@@ -4532,6 +4532,14 @@ public:
         return null;
     }
 
+    char* toChars()
+    {
+        OutBuffer buf;
+        HdrGenState hgs;
+        .toCBuffer(this, &buf, &hgs);
+        return buf.extractString();
+    }
+
     abstract TemplateParameter syntaxCopy();
 
     abstract bool declareParameter(Scope* sc);

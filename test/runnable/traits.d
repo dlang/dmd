@@ -1414,6 +1414,408 @@ void test_getFunctionAttributes()
 
 /********************************************************/
 
+template NoParamsTempl() { }
+
+template AllParamsTempl(
+    // idx 0
+    TypeParam,
+    TypeParamSpec : int,
+    TypeParamDefault = int,
+    TypeParamSpecDefault : long = int,
+
+    // idx 4
+    int ValueParam,
+    int ValueParamSpec : 1,
+    int ValueParamDefault = 1,
+    int ValueParamSpecDefault : 1 = 2,
+
+    // idx 8
+    alias AliasParam,
+
+    alias AliasParamSpecVal : 1,
+    alias AliasParamDefaultVal = 1,
+    alias AliasParamSpecDefaultVal : 1 = 2,
+
+    // idx 12
+    alias AliasParamSpecSym : NoParamsTempl,
+    alias AliasParamDefaultSym = NoParamsTempl,
+    // alias AliasParamSpecDefaultSym : NoParamsTempl = NoParamsTempl,  // Issue 12676
+
+    // idx 14
+    alias AliasParamSpecExp : "foo",
+    alias AliasParamDefaultExp = "foo",
+    alias AliasParamSpecDefaultExp : "foo" = "foo",
+
+    // idx 17
+    alias int AliasValueParam,
+    // alias int AliasValueParamSpec : 1, // bug?
+    alias int AliasValueParamSpec = 1,
+    // alias int AliasValueParamSpec : 1 = 1,  // bug?
+
+    // idx 19
+    this ThisParam,
+    // this ThisParamSpec : C, // bug?
+    // this ThisParamDefault = C, // bug?
+    // this ThisParamSpecDefault : C = C  // bug?
+
+    // idx 20
+    Tuple...
+) { }
+
+class NoParamsClassTempl() { }
+
+class AllParamsClassTempl(
+    // idx 0
+    TypeParam,
+    TypeParamSpec : int,
+    TypeParamDefault = int,
+    TypeParamSpecDefault : long = int,
+
+    // idx 4
+    int ValueParam,
+    int ValueParamSpec : 1,
+    int ValueParamDefault = 1,
+    int ValueParamSpecDefault : 1 = 2,
+
+    // idx 8
+    alias AliasParam,
+
+    alias AliasParamSpecVal : 1,
+    alias AliasParamDefaultVal = 1,
+    alias AliasParamSpecDefaultVal : 1 = 2,
+
+    // idx 12
+    alias AliasParamSpecSym : NoParamsTempl,
+    alias AliasParamDefaultSym = NoParamsTempl,
+    // alias AliasParamSpecDefaultSym : NoParamsTempl = NoParamsTempl,  // Issue 12676
+
+    // idx 14
+    alias AliasParamSpecExp : "foo",
+    alias AliasParamDefaultExp = "foo",
+    alias AliasParamSpecDefaultExp : "foo" = "foo",
+
+    // idx 17
+    alias int AliasValueParam,
+    // alias int AliasValueParamSpec : 1, // bug?
+    alias int AliasValueParamSpec = 1,
+    // alias int AliasValueParamSpec : 1 = 1,  // bug?
+
+    // idx 19
+    this ThisParam,
+    // this ThisParamSpec : C, // bug?
+    // this ThisParamDefault = C, // bug?
+    // this ThisParamSpecDefault : C = C  // bug?
+
+    // idx 20
+    Tuple...
+) { }
+
+struct NoParamsStructTempl() { }
+
+struct AllParamsStructTempl(
+    // idx 0
+    TypeParam,
+    TypeParamSpec : int,
+    TypeParamDefault = int,
+    TypeParamSpecDefault : long = int,
+
+    // idx 4
+    int ValueParam,
+    int ValueParamSpec : 1,
+    int ValueParamDefault = 1,
+    int ValueParamSpecDefault : 1 = 2,
+
+    // idx 8
+    alias AliasParam,
+
+    alias AliasParamSpecVal : 1,
+    alias AliasParamDefaultVal = 1,
+    alias AliasParamSpecDefaultVal : 1 = 2,
+
+    // idx 12
+    alias AliasParamSpecSym : NoParamsTempl,
+    alias AliasParamDefaultSym = NoParamsTempl,
+    // alias AliasParamSpecDefaultSym : NoParamsTempl = NoParamsTempl,  // Issue 12676
+
+    // idx 14
+    alias AliasParamSpecExp : "foo",
+    alias AliasParamDefaultExp = "foo",
+    alias AliasParamSpecDefaultExp : "foo" = "foo",
+
+    // idx 17
+    alias int AliasValueParam,
+    // alias int AliasValueParamSpec : 1, // bug?
+    alias int AliasValueParamSpec = 1,
+    // alias int AliasValueParamSpec : 1 = 1,  // bug?
+
+    // idx 19
+    this ThisParam,
+    // this ThisParamSpec : C, // bug?
+    // this ThisParamDefault = C, // bug?
+    // this ThisParamSpecDefault : C = C  // bug?
+
+    // idx 20
+    Tuple...
+) { }
+
+void NoParamsFuncTempl()() { }
+
+void AllParamsFuncTempl(
+    // idx 0
+    TypeParam,
+    TypeParamSpec : int,
+    TypeParamDefault = int,
+    TypeParamSpecDefault : long = int,
+
+    // idx 4
+    int ValueParam,
+    int ValueParamSpec : 1,
+    int ValueParamDefault = 1,
+    int ValueParamSpecDefault : 1 = 2,
+
+    // idx 8
+    alias AliasParam,
+
+    alias AliasParamSpecVal : 1,
+    alias AliasParamDefaultVal = 1,
+    alias AliasParamSpecDefaultVal : 1 = 2,
+
+    // idx 12
+    alias AliasParamSpecSym : NoParamsTempl,
+    alias AliasParamDefaultSym = NoParamsTempl,
+    // alias AliasParamSpecDefaultSym : NoParamsTempl = NoParamsTempl,  // Issue 12676
+
+    // idx 14
+    alias AliasParamSpecExp : "foo",
+    alias AliasParamDefaultExp = "foo",
+    alias AliasParamSpecDefaultExp : "foo" = "foo",
+
+    // idx 17
+    alias int AliasValueParam,
+    // alias int AliasValueParamSpec : 1, // bug?
+    alias int AliasValueParamSpec = 1,
+    // alias int AliasValueParamSpec : 1 = 1,  // bug?
+
+    // idx 19
+    this ThisParam,
+    // this ThisParamSpec : C, // bug?
+    // this ThisParamDefault = C, // bug?
+    // this ThisParamSpecDefault : C = C  // bug?
+
+    // idx 20
+    Tuple...
+)() { }
+
+// lambdas only support type parameters
+alias AllParamsLambdaTempl = (
+    valueParam1,
+    values...
+) => valueParam1;
+
+void test_templateIntrospection()
+{
+    alias Tuple(T...) = T;
+
+    template staticIota(int beg, int end)
+    {
+        static if (beg + 1 >= end)
+        {
+            static if (beg >= end)
+            {
+                alias staticIota = Tuple!();
+            }
+            else
+            {
+                alias staticIota = Tuple!(+beg);
+            }
+        }
+        else
+        {
+            enum mid = beg + (end - beg) / 2;
+            alias staticIota = Tuple!(staticIota!(beg, mid), staticIota!(mid, end));
+        }
+    }
+
+    /* getTemplateParamCount */
+    static assert(__traits(getTemplateParamCount, AllParamsLambdaTempl) == 2);
+
+    /* out ouf bounds check */
+    static assert(!__traits(compiles, __traits(isTemplateParamType, AllParamsLambdaTempl, 2)));
+
+    ///* isTemplateTypeParam */
+    static assert(__traits(isTemplateTypeParam, AllParamsLambdaTempl, 0), 0);
+    static assert(__traits(isTemplateTypeParam, AllParamsLambdaTempl, 1), 1);
+
+    foreach (T; Tuple!(NoParamsTempl, NoParamsClassTempl, NoParamsStructTempl, NoParamsFuncTempl))
+    {
+        /* getTemplateParamCount */
+        static assert(__traits(getTemplateParamCount, T) == 0);
+
+        /* out ouf bounds check */
+        static assert(!__traits(compiles, __traits(isTemplateParamType, T, 1)));
+    }
+
+    foreach (T; Tuple!(AllParamsTempl, AllParamsClassTempl, AllParamsStructTempl, AllParamsFuncTempl))
+    {
+        /* getTemplateParamCount */
+        static assert(__traits(getTemplateParamCount, T) == 21);
+
+        /* out ouf bounds check */
+        static assert(!__traits(compiles, __traits(isTemplateParamType, T, 100)));
+
+        /* isTemplateTypeParam */
+        foreach (idx; staticIota!(0, 4))
+            static assert(__traits(isTemplateTypeParam, T, idx), idx);
+
+        foreach (idx; staticIota!(4, 21))
+            static assert(!__traits(isTemplateTypeParam, T, idx), idx);
+
+        /* isTemplateValueParam */
+        foreach (idx; staticIota!(0, 4))
+            static assert(!__traits(isTemplateValueParam, T, idx), idx);
+
+        foreach (idx; staticIota!(4, 8))
+            static assert(__traits(isTemplateValueParam, T, idx), idx);
+
+        foreach (idx; staticIota!(8, 21))
+            static assert(!__traits(isTemplateValueParam, T, idx), idx);
+
+        /* isTemplateAliasParam */
+        foreach (idx; staticIota!(0, 8))
+            static assert(!__traits(isTemplateAliasParam, T, idx), idx);
+
+        foreach (idx; staticIota!(8, 19))
+            static assert(__traits(isTemplateAliasParam, T, idx), idx);
+
+        foreach (idx; staticIota!(19, 21))
+            static assert(!__traits(isTemplateAliasParam, T, idx), idx);
+
+        /* isTemplateThisParam */
+        foreach (idx; staticIota!(0, 19))
+            static assert(!__traits(isTemplateThisParam, T, idx), idx);
+
+        static assert(__traits(isTemplateThisParam, T, 19), 19);
+        static assert(!__traits(isTemplateThisParam, T, 20), 20);
+
+        /* isTemplateVariadicParam */
+        foreach (idx; staticIota!(0, 20))
+            static assert(!__traits(isTemplateVariadicParam, T, idx), idx);
+
+        static assert(__traits(isTemplateVariadicParam, T, 20), 20);
+
+        /* getTemplateParamIdent */
+        static assert(__traits(getTemplateParamIdent, T, 0) == "TypeParam");
+        static assert(__traits(getTemplateParamIdent, T, 1) == "TypeParamSpec");
+        static assert(__traits(getTemplateParamIdent, T, 2) == "TypeParamDefault");
+        static assert(__traits(getTemplateParamIdent, T, 3) == "TypeParamSpecDefault");
+        static assert(__traits(getTemplateParamIdent, T, 4) == "ValueParam");
+        static assert(__traits(getTemplateParamIdent, T, 5) == "ValueParamSpec");
+        static assert(__traits(getTemplateParamIdent, T, 6) == "ValueParamDefault");
+        static assert(__traits(getTemplateParamIdent, T, 7) == "ValueParamSpecDefault");
+        static assert(__traits(getTemplateParamIdent, T, 8) == "AliasParam");
+        static assert(__traits(getTemplateParamIdent, T, 9) == "AliasParamSpecVal");
+        static assert(__traits(getTemplateParamIdent, T, 10) == "AliasParamDefaultVal");
+        static assert(__traits(getTemplateParamIdent, T, 11) == "AliasParamSpecDefaultVal");
+        static assert(__traits(getTemplateParamIdent, T, 12) == "AliasParamSpecSym");
+        static assert(__traits(getTemplateParamIdent, T, 13) == "AliasParamDefaultSym");
+        static assert(__traits(getTemplateParamIdent, T, 14) == "AliasParamSpecExp");
+        static assert(__traits(getTemplateParamIdent, T, 15) == "AliasParamDefaultExp");
+        static assert(__traits(getTemplateParamIdent, T, 16) == "AliasParamSpecDefaultExp");
+        static assert(__traits(getTemplateParamIdent, T, 17) == "AliasValueParam");
+        static assert(__traits(getTemplateParamIdent, T, 18) == "AliasValueParamSpec");
+        static assert(__traits(getTemplateParamIdent, T, 19) == "ThisParam");
+        static assert(__traits(getTemplateParamIdent, T, 20) == "Tuple");
+
+        /* getTemplateParamType */
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 0)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 1)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 2)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 3)));
+
+        // note: tuple syntax used to work around __traits parser bug
+
+        static assert(is(Tuple!(__traits(getTemplateParamType, T, 4))[0] == int));
+        static assert(is(Tuple!(__traits(getTemplateParamType, T, 5))[0] == int));
+        static assert(is(Tuple!(__traits(getTemplateParamType, T, 6))[0] == int));
+        static assert(is(Tuple!(__traits(getTemplateParamType, T, 7))[0] == int));
+
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 8)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 9)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 10)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 11)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 12)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 13)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 14)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 15)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 16)));
+
+        static assert(is(Tuple!(__traits(getTemplateParamType, T, 17))[0] == int));
+        static assert(is(Tuple!(__traits(getTemplateParamType, T, 18))[0] == int));
+
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 19)));
+        static assert(!__traits(compiles, __traits(getTemplateParamType, T, 20)));
+
+        /* getTemplateParamSpec */
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 0)));
+        static assert(is(Tuple!(__traits(getTemplateParamSpec, T, 1))[0] == int));
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 2)));
+        static assert(is(Tuple!(__traits(getTemplateParamSpec, T, 3))[0] == long));
+
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 4)));
+        static assert(__traits(getTemplateParamSpec, T, 5) == 1);
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 6)));
+        static assert(__traits(getTemplateParamSpec, T, 7) == 1);
+
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 8)));
+        static assert(__traits(getTemplateParamSpec, T, 9) == 1);
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 10)));
+        static assert(__traits(getTemplateParamSpec, T, 11) == 1);
+
+        static assert(__traits(isSame, __traits(getTemplateParamSpec, T, 12), NoParamsTempl));
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 13)));
+
+        static assert(__traits(getTemplateParamSpec, T, 14) == "foo");
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 15)));
+        static assert(__traits(getTemplateParamSpec, T, 16) == "foo");
+
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 17)));
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 18)));
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 19)));
+        static assert(!__traits(compiles, __traits(getTemplateParamSpec, T, 20)));
+
+        /* getTemplateParamDefault */
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 0)));
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 1)));
+        static assert(is(Tuple!(__traits(getTemplateParamDefault, T, 2))[0] == int));
+        static assert(is(Tuple!(__traits(getTemplateParamDefault, T, 3))[0] == int));
+
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 4)));
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 5)));
+        static assert(__traits(getTemplateParamDefault, T, 6) == 1);
+        static assert(__traits(getTemplateParamDefault, T, 7) == 2);
+
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 8)));
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 9)));
+        static assert(__traits(getTemplateParamDefault, T, 10) == 1);
+        static assert(__traits(getTemplateParamDefault, T, 11) == 2);
+
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 12)));
+        static assert(__traits(isSame, __traits(getTemplateParamDefault, T, 13), NoParamsTempl));
+
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 14)));
+        static assert(__traits(getTemplateParamDefault, T, 15) == "foo");
+        static assert(__traits(getTemplateParamDefault, T, 16) == "foo");
+
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 17)));
+        static assert(__traits(getTemplateParamDefault, T, 18) == 1);
+
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 19)));
+        static assert(!__traits(compiles, __traits(getTemplateParamDefault, T, 20)));
+    }
+}
+
+/********************************************************/
+
 class TestIsOverrideFunctionBase
 {
     void bar () {}
@@ -1551,6 +1953,7 @@ int main()
     test10096();
     test_getUnitTests();
     test_getFunctionAttributes();
+    test_templateIntrospection();
     test_isOverrideFunction();
     test12237();
 
