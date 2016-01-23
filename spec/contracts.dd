@@ -143,7 +143,7 @@ $(H2 In, Out and Inheritance)
 	effect.
 	)
 
-	$(P Conversely, all of the $(D out) contracts needs to be satisfied,
+	$(P Conversely, all of the $(D out) contracts need to be satisfied,
 	so overriding functions becomes a processes of $(I tightening) the
 	$(D out)
 	contracts.
