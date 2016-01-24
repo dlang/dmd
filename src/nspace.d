@@ -17,6 +17,7 @@ import ddmd.hdrgen;
 import ddmd.identifier;
 import ddmd.root.outbuffer;
 import ddmd.visitor;
+import core.stdc.stdio;
 
 private enum LOG = false;
 
