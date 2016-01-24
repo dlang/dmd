@@ -4452,38 +4452,13 @@ public:
          */
         if (ad && (!parent.isTemplateInstance() || parent.isTemplateMixin()))
         {
-            size_t dim = Parameter.dim(tf.parameters);
-            StructDeclaration sd = ad.isStructDeclaration();
-            if (sd)
+            immutable dim = Parameter.dim(tf.parameters);
+
+            if (auto sd = ad.isStructDeclaration())
             {
-                bool allDefaultedParams = (dim == 0) && tf.varargs == 1;  // c-style: foo(...)
-                bool isDefCtor = dim == 0;
-
-                for (size_t i = 0; i < dim; i++)
+                if (dim == 0 && tf.varargs == 0) // empty default ctor w/o any varargs
                 {
-                    auto arg = Parameter.getNth(tf.parameters, i);
-
-                    // note: D-style variadic arguments allowed as a special-case (tf.varargs == 2)
-                    if (i + 1 == dim && arg.defaultArg)
-                    {
-                        isDefCtor = true;
-                        allDefaultedParams = true;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-                if (isDefCtor)
-                {
-                    if (allDefaultedParams)  // only warn for now
-                    {
-                        warning(loc, "%s %s default constructor for structs "
-                            "only allowed with @disable, no body, and no "
-                            "parameters", kind(), toPrettyChars());
-                    }
-                    else if (fbody || !(storage_class & STCdisable) || dim)
+                    if (fbody || !(storage_class & STCdisable))
                     {
                         error("default constructor for structs only allowed "
                             "with @disable, no body, and no parameters");
@@ -4491,6 +4466,22 @@ public:
                         fbody = null;
                     }
                     sd.noDefaultCtor = true;
+                }
+                else if (dim == 0 && tf.varargs) // allow varargs only ctor
+                {
+                }
+                else if (dim && Parameter.getNth(tf.parameters, 0).defaultArg)
+                {
+                    // if the first parameter has a default argument, then the rest does as well
+                    if (storage_class & STCdisable)
+                    {
+                        deprecation("@disable'd constructor cannot have default "~
+                                    "arguments for all parameters.");
+                        deprecationSupplemental(loc, "Use @disable this(); if you want to disable default initialization.");
+                    }
+                    else
+                        deprecation("all parameters have default arguments, "~
+                                    "but structs cannot have default constructors.");
                 }
             }
             else if (dim == 0 && tf.varargs == 0)
