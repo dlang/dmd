@@ -527,7 +527,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         #endif
                     FuncDeclaration *fd = b->vtbl[j];
                     if (fd)
-                        dtxoff(&dt, toThunkSymbol(fd, b->offset), 0, TYnptr);
+                    {
+                        int offset = b->offset;
+                        if (fd->interfaceVirtual)
+                        {
+                            offset -= fd->interfaceVirtual->offset;
+                        }
+                        dtxoff(&dt, toThunkSymbol(fd, offset), 0, TYnptr);
+                    }
                     else
                         dtsize_t(&dt, 0);
                 }
@@ -565,7 +572,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             assert(j < bvtbl.dim);
                             FuncDeclaration *fd = bvtbl[j];
                             if (fd)
-                                dtxoff(&dt, toThunkSymbol(fd, bs->offset), 0, TYnptr);
+                            {
+                                int offset = bs->offset;
+                                if (fd->interfaceVirtual)
+                                {
+                                    offset -= fd->interfaceVirtual->offset;
+                                }
+                                dtxoff(&dt, toThunkSymbol(fd, offset), 0, TYnptr);
+                            }
                             else
                                 dtsize_t(&dt, 0);
                             offset += Target::ptrsize;

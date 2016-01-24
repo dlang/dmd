@@ -9209,6 +9209,20 @@ public:
             f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1.type : null, arguments);
             if (!f || f.errors || f.type.ty == Terror)
                 return new ErrorExp();
+            if (f.interfaceVirtual)
+            {
+                /* Cast 'this' to the type of the interface, and replace f with the interface's equivalent
+                 */
+                auto b = f.interfaceVirtual;
+                auto ad2 = b.sym;
+                ue.e1 = ue.e1.castTo(sc, ad2.type.addMod(ue.e1.type.mod));
+                ue.e1 = ue.e1.semantic(sc);
+                ue1 = ue.e1;
+                auto vi = f.findVtblIndex(cast(Dsymbols*)&ad2.vtbl, cast(int)ad2.vtbl.dim);
+                assert(vi >= 0);
+                f = ad2.vtbl[vi].isFuncDeclaration();
+                assert(f);
+            }
             if (f.needThis())
             {
                 AggregateDeclaration ad = f.toParent2().isAggregateDeclaration();

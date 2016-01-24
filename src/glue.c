@@ -1206,6 +1206,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             sbody = CompoundStatement::create(Loc(), sp, stf);
         }
 
+        if (fd->interfaceVirtual)
+        {
+            // Adjust the 'this' pointer instead of using a thunk
+            assert(irs.sthis);
+            elem *ethis = el_var(irs.sthis);
+            elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd->interfaceVirtual->offset));
+            block_appendexp(irs.blx->curblock, e);
+        }
+
         buildClosure(fd, &irs);
 
         if (config.ehmethod == EH_WIN32 && fd->isSynchronized() && cd &&

@@ -444,6 +444,7 @@ public:
     // true if errors in semantic3 this function's frame ptr
     bool semantic3Errors;
     ForeachStatement fes;               // if foreach body, this is the foreach
+    BaseClass* interfaceVirtual;        // if virtual, but only appears in base interface vtbl[]
     bool introducing;                   // true if 'introducing' function
     // if !=NULL, then this is the type
     // of the 'introducing' function
@@ -910,7 +911,26 @@ public:
                 }
                 else
                 {
-                    //printf("\tintroducing function\n");
+                    if (global.params.mscoff && cd.cpp)
+                    {
+                        /* if overriding an interface function, then this is not
+                         * introducing and don't put it in the class vtbl[]
+                         */
+                        for (size_t i = 0; i < cd.interfaces_dim; i++)
+                        {
+                            BaseClass* b = cd.interfaces[i];
+                            auto v = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
+                            if (v >= 0)
+                            {
+                                //printf("\tinterface function %s\n", toChars());
+                                cd.vtblFinal.push(this);
+                                interfaceVirtual = b;
+                                goto Linterfaces;
+                            }
+                        }
+                    }
+
+                    //printf("\tintroducing function %s\n", toChars());
                     introducing = 1;
                     if (cd.cpp && Target.reverseCppOverloads)
                     {
@@ -1021,6 +1041,7 @@ public:
              * If this function is covariant with any members of those interface
              * functions, set the tintro.
              */
+        Linterfaces:
             for (size_t i = 0; i < cd.interfaces_dim; i++)
             {
                 BaseClass* b = cd.interfaces[i];

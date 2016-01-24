@@ -8,7 +8,9 @@
 
 module ddmd.dclass;
 
+import core.stdc.stdio;
 import core.stdc.string;
+
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.gluelayer;
@@ -73,7 +75,7 @@ struct BaseClass
     {
         bool result = false;
 
-        //printf("BaseClass::fillVtbl(this='%s', cd='%s')\n", sym->toChars(), cd->toChars());
+        //printf("BaseClass.fillVtbl(this='%s', cd='%s')\n", sym.toChars(), cd.toChars());
         if (vtbl)
             vtbl.setDim(sym.vtbl.dim);
 
@@ -99,6 +101,8 @@ struct BaseClass
                     fd.error("linkage doesn't match interface function");
 
                 // Check that it is current
+                //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
+                    //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
                 if (newinstance && fd.toParent() != cd && ifd.toParent() == sym)
                     cd.error("interface function '%s' is not implemented", ifd.toFullSignature());
 
@@ -107,7 +111,7 @@ struct BaseClass
             }
             else
             {
-                //printf("            not found\n");
+                //printf("            not found %p\n", fd);
                 // BUG: should mark this class as abstract?
                 if (!cd.isAbstract())
                     cd.error("interface function '%s' is not implemented", ifd.toFullSignature());

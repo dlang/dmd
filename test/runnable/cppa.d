@@ -1004,7 +1004,15 @@ extern (C++)
     {
         short y = 5;
         int MethodCPP();
-        int MethodD() { return 3; }
+        int MethodD() {
+            printf("Derived.MethodD(): this = %p, x = %d, y = %d\n", this, x, y);
+            Derived p = this;
+            //p = cast(Derived)(cast(void*)p - 16);
+            assert(p.x == 4 || p.x == 7);
+            assert(p.y == 5 || p.y == 8);
+            return 3;
+        }
+        int Method() { return 6; }
     }
 
     Derived cppfoo(Derived);
@@ -1014,25 +1022,27 @@ extern (C++)
 void test15579()
 {
     Derived d = new Derived();
+    printf("d = %p\n", d);
     assert(d.x == 4);
     assert(d.y == 5);
-    assert(d.MethodD() == 3);
+    assert((cast(Interface)d).MethodCPP() == 30);
+    assert((cast(Interface)d).MethodD() == 3);
     assert(d.MethodCPP() == 30);
+    assert(d.MethodD() == 3);
+    assert(d.Method() == 6);
 
     d = cppfoo(d);
     assert(d.x == 7);
     assert(d.y == 8);
-    version (Win64)
-    {
-        // needs more work
-    }
-    else
-    {
-        assert(d.MethodD() == 3);
-        assert(d.MethodCPP() == 30);
-    }
+
+    printf("d2 = %p\n", d);
+    assert((cast(Interface)d).MethodD() == 3);
+    assert((cast(Interface)d).MethodCPP() == 30);
+    assert(d.Method() == 6);
+
     printf("d = %p, i = %p\n", d, cast(Interface)d);
     Interface i = cppfooi(d);
+    printf("i2: %p\n", i);
     assert(i.MethodD() == 3);
     assert(i.MethodCPP() == 30);
 }
