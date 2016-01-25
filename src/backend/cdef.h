@@ -256,15 +256,11 @@ char *strupr(char *);
 
 // C/C++ Language Features
 #define IMPLIED_PRAGMA_ONCE     1       // include guards count as #pragma once
-#define PSEUDO_REGS             1
-#define INLINE_ASM              1       // support inline assembler
 #define HIDDENPARAM_1ST_ARG     1
-#define HEADER_LIST             1
+const bool HEADER_LIST          = true;
 #define PASCAL_STRINGS          0
-#define KEYWORD_WITH            1
 #define EECONTEXT               1
 #define LOCALE                  0       // locale support for Unicode conversion
-#define HEXFLOATS               1       // support hex floating point constants
 #define OVERLOAD_CV_PARAM       1       // if int foo(int i) and int foo(const int i)
                                         // are different
 #define CPP0X                   1       // support C++0x features
@@ -278,8 +274,6 @@ char *strupr(char *);
  */
 #define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
 
-
-#define STATEMENT_SCOPES CPP
 
 #if __GNUC__
 #define LDOUBLE                 0       // no support for true long doubles

@@ -305,13 +305,10 @@ int os_critsecsize32();
 int os_critsecsize64();
 #endif
 
-#ifdef PSEUDO_REGS
 /* pseudo.c */
 Symbol *pseudo_declar(char *);
-
 extern unsigned char pseudoreg[];
 extern regm_t pseudomask[];
-#endif /* PSEUDO_REGS */
 
 /* Symbol.c */
 symbol **symtab_realloc(symbol **tab, size_t symmax);
