@@ -271,9 +271,12 @@ int popcnt(uint x) pure
         {
             static if (is(typeof(_popcnt(uint.max))))
             {
-                import core.cpuid;
-                if (hasPopcnt)
-                    return _popcnt(x);
+                if(!__ctfe)
+                {
+                    import core.cpuid;
+                    if (hasPopcnt)
+                        return _popcnt(x);
+                }
             }
         }
 
@@ -290,6 +293,10 @@ unittest
     assert( popcnt( 0xFFFF_FFFF ) == 32 );
     assert( popcnt( 0xCCCC_CCCC ) == 16 );
     assert( popcnt( 0x7777_7777 ) == 24 );
+
+    // Make sure popcnt() is available at CTFE
+    enum test_ctfe = popcnt(uint.max);
+    assert(test_ctfe == 32);
 }
 
 /// ditto
@@ -306,13 +313,23 @@ int popcnt(ulong x) pure
 
         static if (size_t.sizeof == uint.sizeof)
         {
-            const sx = Split64(x);
-            version(DigitalMars)
+            Split64 sx = void;
+            if(__ctfe)
             {
-                static if (is(typeof(_popcnt(uint.max))))
+                // union repainting doesn't work in CTFE
+                sx.lo = cast(uint)x;
+                sx.hi = cast(uint)(x >> 32);
+            }
+            else
+            {
+                sx.u64 = x;
+                version(DigitalMars)
                 {
-                    if (hasPopcnt)
-                        return _popcnt(sx.lo) + _popcnt(sx.hi);
+                    static if (is(typeof(_popcnt(uint.max))))
+                    {
+                        if (hasPopcnt)
+                            return _popcnt(sx.lo) + _popcnt(sx.hi);
+                    }
                 }
             }
 
@@ -324,8 +341,11 @@ int popcnt(ulong x) pure
             {
                 static if (is(typeof(_popcnt(ulong.max))))
                 {
-                    if (hasPopcnt)
-                        return _popcnt(x);
+                    if(!__ctfe)
+                    {
+                        if (hasPopcnt)
+                            return _popcnt(x);
+                    }
                 }
             }
 
@@ -343,6 +363,10 @@ unittest
     assert(popcnt((1uL << 32) - 1) == 32);
     assert(popcnt(0x48_65_6C_6C_6F_3F_21_00uL) == 28);
     assert(popcnt(ulong.max) == 64);
+
+    // Make sure popcnt() is available at CTFE
+    enum test_ctfe = popcnt(ulong.max);
+    assert(test_ctfe == 64);
 }
 
 private int soft_popcnt(N)(N x) pure
