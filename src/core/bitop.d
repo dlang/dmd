@@ -42,10 +42,27 @@ private union Split64
     }
 }
 
+pragma(inline, true)
+private auto split64(ulong u64) pure
+{
+    if(__ctfe)
+    {
+        // union repainting doesn't work in CTFE
+        Split64 ret;
+        ret.lo = cast(uint)u64;
+        ret.hi = cast(uint)(u64 >>> 32);
+        return ret;
+    } else
+        return Split64(u64);
+}
+
 unittest
 {
-    const s = Split64(1);
-    assert((s.lo == 1) && (s.hi == 0));
+    const rt = split64(1);
+    assert((rt.lo == 1) && (rt.hi == 0));
+
+    enum ct = split64(1);
+    assert((ct.lo == rt.lo) && (ct.hi == rt.hi));
 }
 
 /**
@@ -64,7 +81,7 @@ int bsf(ulong v) pure
         return bsf(cast(size_t) v);
     else static if (size_t.sizeof == uint.sizeof)
     {
-        const sv = Split64(v);
+        const sv = split64(v);
         return (sv.lo == 0)?
             bsf(sv.hi) + 32 :
             bsf(sv.lo);
@@ -80,6 +97,12 @@ unittest
     assert(bsf(ulong.max << 39) == 39);
 }
 
+unittest
+{
+    // Make sure bsf() is available at CTFE
+    enum test_ctfe = bsf(ulong.max);
+    assert(test_ctfe == 0);
+}
 
 /**
  * Scans the bits in v from the most significant bit
@@ -98,7 +121,7 @@ int bsr(ulong v) pure
         return bsr(cast(size_t) v);
     else static if (size_t.sizeof == uint.sizeof)
     {
-        const sv = Split64(v);
+        const sv = split64(v);
         return (sv.hi == 0)?
             bsr(sv.lo) :
             bsr(sv.hi) + 32;
@@ -112,6 +135,13 @@ unittest
 {
     assert(bsr(0x21) == 5);
     assert(bsr((ulong.max >> 15) - 1) == 48);
+}
+
+unittest
+{
+    // Make sure bsr() is available at CTFE
+    enum test_ctfe = bsr(ulong.max);
+    assert(test_ctfe == 63);
 }
 
 /**
@@ -271,12 +301,9 @@ int popcnt(uint x) pure
         {
             static if (is(typeof(_popcnt(uint.max))))
             {
-                if(!__ctfe)
-                {
-                    import core.cpuid;
-                    if (hasPopcnt)
-                        return _popcnt(x);
-                }
+                import core.cpuid;
+                if (!__ctfe && hasPopcnt)
+                    return _popcnt(x);
             }
         }
 
@@ -313,23 +340,13 @@ int popcnt(ulong x) pure
 
         static if (size_t.sizeof == uint.sizeof)
         {
-            Split64 sx = void;
-            if(__ctfe)
+            const sx = split64(x);
+            version(DigitalMars)
             {
-                // union repainting doesn't work in CTFE
-                sx.lo = cast(uint)x;
-                sx.hi = cast(uint)(x >> 32);
-            }
-            else
-            {
-                sx.u64 = x;
-                version(DigitalMars)
+                static if (is(typeof(_popcnt(uint.max))))
                 {
-                    static if (is(typeof(_popcnt(uint.max))))
-                    {
-                        if (hasPopcnt)
-                            return _popcnt(sx.lo) + _popcnt(sx.hi);
-                    }
+                    if (!__ctfe && hasPopcnt)
+                        return _popcnt(sx.lo) + _popcnt(sx.hi);
                 }
             }
 
@@ -341,11 +358,8 @@ int popcnt(ulong x) pure
             {
                 static if (is(typeof(_popcnt(ulong.max))))
                 {
-                    if(!__ctfe)
-                    {
-                        if (hasPopcnt)
-                            return _popcnt(x);
-                    }
+                    if (!__ctfe && hasPopcnt)
+                        return _popcnt(x);
                 }
             }
 
