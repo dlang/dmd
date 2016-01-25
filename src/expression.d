@@ -5294,9 +5294,9 @@ public:
                         return e.semantic(sc);
                     }
                 }
-                // ti is an instance which requires IFTI.
+                // This is an incompletely instantiated function template (would require IFTI which doesn't apply for ScopeExp itself).
                 sds = ti;
-                type = Type.tvoid;
+                type = new TypeInstance(loc, ti).semantic(loc, sc);
                 return this;
             }
             ti.semantic(sc);
