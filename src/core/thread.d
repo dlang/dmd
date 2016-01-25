@@ -1852,6 +1852,9 @@ unittest
     // create and start instances of each type
     auto derived = new DerivedThread().start();
     auto composed = new Thread(&threadFunc).start();
+    new Thread({
+        // Codes to run in the newly created thread.
+    }).start();
 }
 
 unittest
