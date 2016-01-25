@@ -142,17 +142,12 @@ private:
     {
         auto obuckets = buckets;
         buckets = allocBuckets(ndim);
-        auto newFirstUsed = cast(uint) ndim;
 
         foreach (ref b; obuckets[firstUsed .. $])
             if (b.filled)
-            {
-                auto x = findSlotInsert(b.hash);
-                newFirstUsed = min(newFirstUsed, cast(uint) (x - buckets.ptr));
-                *x = b;
-            }
+                *findSlotInsert(b.hash) = b;
 
-        firstUsed = newFirstUsed;
+        firstUsed = 0;
         used -= deleted;
         deleted = 0;
         GC.free(obuckets.ptr); // safe to free b/c impossible to reference
