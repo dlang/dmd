@@ -3,7 +3,7 @@
 #    pkg_add -r gmake
 # and then run as gmake rather than make.
 
-QUIET:=@
+QUIET:=
 
 include osmodel.mak
 
