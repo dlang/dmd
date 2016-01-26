@@ -72,4 +72,4 @@ $(ROOT)/%.so: $(SRC)/%.d $(DRUNTIMESO)
 	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $< $(LINKDL)
 
 clean:
-	rm -rf $(ROOT)
+	rm -rf $(GENERATED)

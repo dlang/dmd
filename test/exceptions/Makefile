@@ -35,4 +35,4 @@ $(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
 clean:
-	rm -rf $(ROOT)
+	rm -rf $(GENERATED)

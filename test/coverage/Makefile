@@ -39,4 +39,4 @@ $(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/$* $^
 
 clean:
-	rm -rf $(ROOT) *.lst
+	rm -rf $(GENERATED) *.lst

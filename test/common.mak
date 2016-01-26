@@ -10,7 +10,8 @@ LINKDL:=
 LDL:=$(subst -L,,$(LINKDL)) # -ldl
 
 SRC:=src
-ROOT:=./generated/$(OS)/$(BUILD)/$(MODEL)
+GENERATED:=./generated
+ROOT:=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 
 ifneq (default,$(MODEL))
 	MODEL_FLAG:=-m$(MODEL)
