@@ -155,17 +155,11 @@ private:
 
     void clear() pure nothrow
     {
-        foreach (ref b; buckets[firstUsed .. $])
-        {
-            if (b.filled)
-            {
-                b.hash = HASH_DELETED;
-                b.entry = null;
-            }
-        }
-        deleted = used;
+        import core.stdc.string : memset;
+        // clear all data, but don't change bucket array length
+        memset(&buckets[firstUsed], 0, (buckets.length - firstUsed) * Bucket.sizeof);
+        deleted = used = 0;
         firstUsed = cast(uint) dim;
-        resize(INIT_NUM_BUCKETS);
     }
 }
 
