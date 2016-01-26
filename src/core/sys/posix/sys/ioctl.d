@@ -323,13 +323,7 @@ else version (OSX)
     import core.sys.posix.termios; // termios
     import core.sys.posix.sys.time; // timeval
 
-    struct winsize
-    {
-        ushort ws_row;
-        ushort ws_col;
-        ushort ws_xpixel;
-        ushort ws_ypixel;
-    }
+    import core.sys.posix.sys.ttycom; // Terminal related ioctls
 
     struct ttysize
     {
@@ -338,6 +332,11 @@ else version (OSX)
         ushort ts_xxx;
         ushort ts_yyy;
     }
+
+    enum uint TIOCGSIZE = TIOCGWINSZ;
+    enum uint TIOCSSIZE = TIOCSWINSZ;
+
+    import core.sys.posix.sys.filio; // File related ioctls
 
     int ioctl(int fildes, c_ulong request, ...);
 }
