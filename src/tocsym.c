@@ -493,11 +493,14 @@ Symbol *toImport(Dsymbol *ds)
 }
 
 /*************************************
+ * Thunks adjust the incoming 'this' pointer by 'offset'.
  */
 
 Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
 {
-    toSymbol(fd);
+    Symbol *s = toSymbol(fd);
+    if (!offset)
+        return s;
 
     Symbol *sthunk = symbol_generate(SCstatic, fd->csym->Stype);
     sthunk->Sflags |= SFLimplem;
