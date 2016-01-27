@@ -667,11 +667,9 @@ void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
                 case SCparameter:
                     s->Sfl = FLpara;
                     break;
-#if PSEUDO_REGS
                 case SCpseudo:
                     s->Sfl = FLpseudo;
                     break;
-#endif
                 case SCstack:
                     s->Sfl = FLstack;
                     break;
@@ -796,11 +794,9 @@ int cgreg_assign(Symbol *retsym)
                     case SCparameter:
                         s->Sfl = FLpara;
                         break;
-#if PSEUDO_REGS
                     case SCpseudo:
                         s->Sfl = FLpseudo;
                         break;
-#endif
                     case SCstack:
                         s->Sfl = FLstack;
                         break;

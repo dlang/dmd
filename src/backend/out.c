@@ -635,9 +635,7 @@ again:
             case SCglobal:
             case SCcomdat:
             case SCcomdef:
-#if PSEUDO_REGS
             case SCpseudo:
-#endif
             case SCinline:
             case SCsinline:
             case SCeinline:
@@ -1063,11 +1061,9 @@ STATIC void writefunc2(symbol *sfunc)
                 if (!(s->ty() & mTYvolatile))
                     s->Sflags |= GTregcand | SFLunambig; // assume register candidate   */
                 break;
-#if PSEUDO_REGS
             case SCpseudo:
                 s->Sfl = FLpseudo;
                 break;
-#endif
             case SCstatic:
                 break;                  // already taken care of by datadef()
             case SCstack:
