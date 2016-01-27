@@ -1222,9 +1222,7 @@ void stackoffsets(int flags)
             case SCbprel:
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
     }

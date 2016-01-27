@@ -1324,9 +1324,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     L2:
         if (fl == FLreg)
         {
-#ifdef DEBUG
             if (!(s->Sregm & regcon.mvar)) symbol_print(s);
-#endif
             assert(s->Sregm & regcon.mvar);
 
             /* Attempting to paint a float as an integer or an integer as a float
@@ -1442,9 +1440,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 
     default:
         WRFL((enum FL)fl);
-#ifdef DEBUG
         symbol_print(s);
-#endif
         assert(0);
   }
   return c;

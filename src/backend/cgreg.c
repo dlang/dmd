@@ -674,9 +674,7 @@ void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
                     s->Sfl = FLstack;
                     break;
                 default:
-#ifdef DEBUG
                     symbol_print(s);
-#endif
                     assert(0);
             }
         }

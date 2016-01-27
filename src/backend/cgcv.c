@@ -971,9 +971,7 @@ idx_t cv4_struct(Classsym *s,int flags)
         }
             break;
         default:
-#if SCPP
             symbol_print(s);
-#endif
             assert(0);
     }
     TOWORD(d->data,leaf);
