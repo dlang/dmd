@@ -2888,7 +2888,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         case SCglobal:
             if (!s->Sxtrnnum)
             {   // not in symbol table yet - class might change
-                //dbg_printf("\tadding %s to fixlist\n",s->Sident);
+                //printf("\tadding %s to fixlist\n",s->Sident);
                 size_t numbyteswritten = addtofixlist(s,offset,seg,val,flags);
                 assert(numbyteswritten == retsize);
                 return retsize;
@@ -3507,8 +3507,6 @@ void Obj::gotref(symbol *s)
  */
 int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 {
-    assert(I64);                // I32 not implemented yet
-
     if (config.flags3 & CFG3pic)
     {
         /* fixup: R_X86_64_PC32 sym="DW.ref.name"
@@ -3520,10 +3518,10 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
          */
         if (!s->Sdw_ref_idx)
         {
-            int dataDWref_seg = ElfObj::getsegment(".data.DW.ref.", s->Sident, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, 8);
+            int dataDWref_seg = ElfObj::getsegment(".data.DW.ref.", s->Sident, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
             Outbuffer *buf = SegData[dataDWref_seg]->SDbuf;
             assert(buf->size() == 0);
-            ElfObj::reftoident(dataDWref_seg, 0, s, 0, CFoffset64);
+            ElfObj::reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);
 
             // Add "DW.ref." ~ name to the symtab_strings table
             IDXSTR namidx = symtab_strings->size();
@@ -3533,7 +3531,7 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 
             s->Sdw_ref_idx = elf_addsym(namidx, val, 8, STT_OBJECT, STB_WEAK, MAP_SEG2SECIDX(dataDWref_seg), STV_HIDDEN);
         }
-        ElfObj::writerel(seg, offset, R_X86_64_PC32, s->Sdw_ref_idx, 0);
+        ElfObj::writerel(seg, offset, I64 ? R_X86_64_PC32 : R_386_PC32, s->Sdw_ref_idx, 0);
     }
     else
     {

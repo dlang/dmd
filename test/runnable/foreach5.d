@@ -967,6 +967,7 @@ void test12932() @nogc
 
 void test13756()
 {
+    printf("test13756()\n");
     int[int] org = [1:2], aa;
 
     aa = org.dup;
@@ -1075,6 +1076,7 @@ auto scoped14653(T, A...)(A args)
 
 void test14653()
 {
+    printf("test14653()\n");
     foreach (e; scoped14653!RangeClass14653(1))
     {
         result14653 ~= "b";
@@ -1110,6 +1112,7 @@ int main()
     test11291();
     test12103();
     test12739();
+    printf("test12932()\n");
     test12932();
     test13756();
     test14653();

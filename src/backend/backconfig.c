@@ -100,7 +100,7 @@ void out_config_init(
     else
     {
         config.exe = EX_LINUX;
-        config.ehmethod = EH_DM;
+        config.ehmethod = EH_DWARF;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }

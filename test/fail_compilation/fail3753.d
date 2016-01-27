@@ -31,7 +31,7 @@ void main()
         version (Win32) static assert(0);
         version (linux)
         {
-            version (X86_64) static assert(0);
+            static assert(0);
         }
     }
     else

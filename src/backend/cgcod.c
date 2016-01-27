@@ -790,7 +790,12 @@ Lagain:
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;
     pushoff = NDPoff;
-    if (config.flags4 & CFG4speed && (I32 || I64))
+    /* We don't keep track of all the pushes and pops in a function. Hence,
+     * using POP REG to restore registers in the epilog doesn't work, because the Dwarf unwinder
+     * won't be setting ESP correctly. With pushoffuse, the registers are restored
+     * from EBP, which is kept track of properly.
+     */
+    if ((config.flags4 & CFG4speed || config.ehmethod == EH_DWARF) && (I32 || I64))
     {
         /* Instead of pushing the registers onto the stack one by one,
          * allocate space in the stack frame and copy/restore them there.
