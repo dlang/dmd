@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Don Clugston 2005 - 2013.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors:   Don Clugston, Sean Kelly, Walter Bright, Alex Rønne Petersen
+ * Authors:   Don Clugston, Sean Kelly, Walter Bright, Alex Rønne Petersen, Thomas Stuart Bockman
  * Source:    $(DRUNTIMESRC core/_bitop.d)
  */
 
@@ -40,28 +40,26 @@ private union Split64
             uint lo;
         }
     }
-}
 
-pragma(inline, true)
-private auto split64(ulong u64) pure
-{
-    if(__ctfe)
+    pragma(inline, true)
+    this(ulong u64) @safe pure nothrow @nogc
     {
-        // union repainting doesn't work in CTFE
-        Split64 ret;
-        ret.lo = cast(uint)u64;
-        ret.hi = cast(uint)(u64 >>> 32);
-        return ret;
-    } else
-        return Split64(u64);
+        if (__ctfe)
+        {
+            lo = cast(uint) u64;
+            hi = cast(uint) (u64 >>> 32);
+        }
+        else
+            this.u64 = u64;
+    }
 }
 
 unittest
 {
-    const rt = split64(1);
+    const rt = Split64(1);
     assert((rt.lo == 1) && (rt.hi == 0));
 
-    enum ct = split64(1);
+    enum ct = Split64(1);
     assert((ct.lo == rt.lo) && (ct.hi == rt.hi));
 }
 
@@ -81,7 +79,7 @@ int bsf(ulong v) pure
         return bsf(cast(size_t) v);
     else static if (size_t.sizeof == uint.sizeof)
     {
-        const sv = split64(v);
+        const sv = Split64(v);
         return (sv.lo == 0)?
             bsf(sv.hi) + 32 :
             bsf(sv.lo);
@@ -121,7 +119,7 @@ int bsr(ulong v) pure
         return bsr(cast(size_t) v);
     else static if (size_t.sizeof == uint.sizeof)
     {
-        const sv = split64(v);
+        const sv = Split64(v);
         return (sv.hi == 0)?
             bsr(sv.lo) :
             bsr(sv.hi) + 32;
@@ -246,6 +244,21 @@ int bts(size_t* p, size_t bitnum) pure @system;
  */
 uint bswap(uint v) pure;
 
+/**
+ * Swaps bytes in an 8 byte ulong end-to-end, i.e. byte 0 becomes
+ * byte 7, byte 1 becomes byte 6, etc.
+ */
+ulong bswap(ulong v) pure
+{
+    auto sv = Split64(v);
+
+    const temp = sv.lo;
+    sv.lo = bswap(sv.hi);
+    sv.hi = bswap(temp);
+
+    return (cast(ulong) sv.hi << 32) | sv.lo;
+}
+
 version (DigitalMars) version (AnyX86) @system // not pure
 {
     /**
@@ -307,7 +320,7 @@ int popcnt(uint x) pure
             }
         }
 
-        return soft_popcnt!uint(x);
+        return softPopcnt!uint(x);
     }
 }
 
@@ -340,7 +353,7 @@ int popcnt(ulong x) pure
 
         static if (size_t.sizeof == uint.sizeof)
         {
-            const sx = split64(x);
+            const sx = Split64(x);
             version(DigitalMars)
             {
                 static if (is(typeof(_popcnt(uint.max))))
@@ -350,7 +363,7 @@ int popcnt(ulong x) pure
                 }
             }
 
-            return soft_popcnt!uint(sx.lo) + soft_popcnt!uint(sx.hi);
+            return softPopcnt!uint(sx.lo) + softPopcnt!uint(sx.hi);
         }
         else static if (size_t.sizeof == ulong.sizeof)
         {
@@ -363,7 +376,7 @@ int popcnt(ulong x) pure
                 }
             }
 
-            return soft_popcnt!ulong(x);
+            return softPopcnt!ulong(x);
         }
         else
             static assert(false);
@@ -383,7 +396,7 @@ unittest
     assert(test_ctfe == 64);
 }
 
-private int soft_popcnt(N)(N x) pure
+private int softPopcnt(N)(N x) pure
     if (is(N == uint) || is(N == ulong))
 {
     // Avoid branches, and the potential for cache misses which
@@ -523,9 +536,96 @@ void volatileStore(ulong * ptr, ulong  value);   /// ditto
 /**
  * Reverses the order of bits in a 32-bit integer.
  */
-@trusted uint bitswap( uint x ) pure
+pragma(inline, true)
+uint bitswap( uint x ) pure
 {
-    version (AsmX86)
+    if (!__ctfe)
+    {
+        static if (is(typeof(asmBitswap32(x))))
+            return asmBitswap32(x);
+    }
+
+    return softBitswap!uint(x);
+}
+
+unittest
+{
+    static void test(alias impl)()
+    {
+        assert (impl( 0x8000_0100 ) == 0x0080_0001);
+        foreach(i; 0 .. 32)
+            assert (impl(1 << i) == 1 << 32 - i - 1);
+    }
+
+    test!(bitswap)();
+    test!(softBitswap!uint)();
+    static if (is(typeof(asmBitswap32(0u))))
+        test!(asmBitswap32)();
+
+    // Make sure bitswap() is available at CTFE
+    enum test_ctfe = bitswap(1U);
+    assert(test_ctfe == (1U << 31));
+}
+
+/**
+ * Reverses the order of bits in a 64-bit integer.
+ */
+pragma(inline, true)
+ulong bitswap ( ulong x ) pure
+{
+    if (!__ctfe)
+    {
+        static if (is(typeof(asmBitswap64(x))))
+            return asmBitswap64(x);
+    }
+
+    return softBitswap!ulong(x);
+}
+
+unittest
+{
+    static void test(alias impl)()
+    {
+        assert (impl( 0b1000000000000000000000010000000000000000100000000000000000000001)
+            == 0b1000000000000000000000010000000000000000100000000000000000000001);
+        assert (impl( 0b1110000000000000000000010000000000000000100000000000000000000001)
+            == 0b1000000000000000000000010000000000000000100000000000000000000111);
+        foreach (i; 0 .. 64)
+            assert (impl(1UL << i) == 1UL << 64 - i - 1);
+    }
+
+    test!(bitswap)();
+    test!(softBitswap!ulong)();
+    static if (is(typeof(asmBitswap64(0uL))))
+        test!(asmBitswap64)();
+
+    // Make sure bitswap() is available at CTFE
+    enum test_ctfe = bitswap(1UL);
+    assert(test_ctfe == (1UL << 63));
+}
+
+private N softBitswap(N)(N x) pure
+    if (is(N == uint) || is(N == ulong))
+{
+    // swap 1-bit pairs:
+    enum mask1 = cast(N) 0x5555_5555_5555_5555L;
+    x = ((x >> 1) & mask1) | ((x & mask1) << 1);
+    // swap 2-bit pairs:
+    enum mask2 = cast(N) 0x3333_3333_3333_3333L;
+    x = ((x >> 2) & mask2) | ((x & mask2) << 2);
+    // swap 4-bit pairs:
+    enum mask4 = cast(N) 0x0F0F_0F0F_0F0F_0F0FL;
+    x = ((x >> 4) & mask4) | ((x & mask4) << 4);
+
+    // reverse the order of all bytes:
+    x = bswap(x);
+
+    return x;
+}
+
+version (AsmX86)
+{
+    private uint asmBitswap32(uint x) @trusted pure
     {
         asm pure nothrow @nogc { naked; }
 
@@ -562,37 +662,11 @@ void volatileStore(ulong * ptr, ulong  value);   /// ditto
             ret;
         }
     }
-    else
-    {
-        // swap odd and even bits
-        x = ((x >> 1) & 0x5555_5555) | ((x & 0x5555_5555) << 1);
-        // swap consecutive pairs
-        x = ((x >> 2) & 0x3333_3333) | ((x & 0x3333_3333) << 2);
-        // swap nibbles
-        x = ((x >> 4) & 0x0F0F_0F0F) | ((x & 0x0F0F_0F0F) << 4);
-        // swap bytes
-        x = ((x >> 8) & 0x00FF_00FF) | ((x & 0x00FF_00FF) << 8);
-        // swap 2-byte long pairs
-        x = ( x >> 16              ) | ( x               << 16);
-        return x;
-
-    }
 }
 
-
-unittest
+version (D_InlineAsm_X86_64)
 {
-    assert( bitswap( 0x8000_0100 ) == 0x0080_0001 );
-    foreach(i; 0 .. 32)
-        assert(bitswap(1 << i) == 1 << 32 - i - 1);
-}
-
-/**
- * Reverses the order of bits in a 64-bit integer.
- */
-ulong bitswap ( ulong x ) pure @trusted
-{
-    version (D_InlineAsm_X86_64)
+    private ulong asmBitswap64(ulong x) @trusted pure
     {
         asm pure nothrow @nogc { naked; }
 
@@ -631,30 +705,4 @@ ulong bitswap ( ulong x ) pure @trusted
             ret;
         }
     }
-    else
-    {
-        // swap odd and even bits
-        x = ((x >> 1) & 0x5555_5555_5555_5555L) | ((x & 0x5555_5555_5555_5555L) << 1);
-        // swap consecutive pairs
-        x = ((x >> 2) & 0x3333_3333_3333_3333L) | ((x & 0x3333_3333_3333_3333L) << 2);
-        // swap nibbles
-        x = ((x >> 4) & 0x0f0f_0f0f_0f0f_0f0fL) | ((x & 0x0f0f_0f0f_0f0f_0f0fL) << 4);
-        // swap bytes
-        x = ((x >> 8) & 0x00FF_00FF_00FF_00FFL) | ((x & 0x00FF_00FF_00FF_00FFL) << 8);
-        // swap shorts
-        x = ((x >> 16) & 0x0000_FFFF_0000_FFFFL) | ((x & 0x0000_FFFF_0000_FFFFL) << 16);
-        // swap ints
-        x = ( x >> 32 ) | ( x << 32);
-        return x;
-    }
-}
-
-unittest
-{
-    assert (bitswap( 0b1000000000000000000000010000000000000000100000000000000000000001)
-        == 0b1000000000000000000000010000000000000000100000000000000000000001);
-    assert (bitswap( 0b1110000000000000000000010000000000000000100000000000000000000001)
-        == 0b1000000000000000000000010000000000000000100000000000000000000111);
-    foreach (i; 0 .. 64)
-        assert(bitswap(1UL << i) == 1UL << 64 - i - 1);
 }
