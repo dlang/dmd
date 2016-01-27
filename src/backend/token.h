@@ -80,7 +80,7 @@ enum TK {
         TK_Imaginary,
         TKrestrict,
 
-//#if CPP
+        // CPP
         TKbool,
         TKcatch,
         TKclass,
@@ -113,9 +113,8 @@ enum TK {
         TKwchar_t,
         TK_typeinfo,
         TK_typemask,
-//#endif
 
-#if CPP0X
+        // CPP0X
         TKalignof,
         TKchar16_t,
         TKchar32_t,
@@ -125,7 +124,6 @@ enum TK {
         TKnullptr,
         TKstatic_assert,
         TKthread_local,
-#endif
 
         TKasm,
         TK_inf,
