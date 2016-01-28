@@ -902,6 +902,24 @@ public:
                         }
                     }
                 }
+
+                /* These quirky conditions mimic what VC++ appears to do
+                 */
+                if (global.params.mscoff && cd.cpp &&
+                    cd.baseClass && cd.baseClass.vtbl.dim)
+                {
+                    /* if overriding an interface function, then this is not
+                     * introducing and don't put it in the class vtbl[]
+                     */
+                    interfaceVirtual = overrideInterface();
+                    if (interfaceVirtual)
+                    {
+                        //printf("\tinterface function %s\n", toChars());
+                        cd.vtblFinal.push(this);
+                        goto Linterfaces;
+                    }
+                }
+
                 if (isFinalFunc())
                 {
                     // Don't check here, as it may override an interface function
@@ -911,25 +929,6 @@ public:
                 }
                 else
                 {
-                    if (global.params.mscoff && cd.cpp)
-                    {
-                        /* if overriding an interface function, then this is not
-                         * introducing and don't put it in the class vtbl[]
-                         */
-                        for (size_t i = 0; i < cd.interfaces_dim; i++)
-                        {
-                            BaseClass* b = cd.interfaces[i];
-                            auto v = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
-                            if (v >= 0)
-                            {
-                                //printf("\tinterface function %s\n", toChars());
-                                cd.vtblFinal.push(this);
-                                interfaceVirtual = b;
-                                goto Linterfaces;
-                            }
-                        }
-                    }
-
                     //printf("\tintroducing function %s\n", toChars());
                     introducing = 1;
                     if (cd.cpp && Target.reverseCppOverloads)
@@ -2476,6 +2475,27 @@ public:
             }
         }
         return bestvi;
+    }
+
+    /*********************************
+     * If function a function in a base class,
+     * return that base class.
+     * Params:
+     *  cd = class that function is in
+     * Returns:
+     *  base class if overriding, null if not
+     */
+    final BaseClass* overrideInterface()
+    {
+        ClassDeclaration cd = parent.isClassDeclaration();
+        for (size_t i = 0; i < cd.interfaces_dim; i++)
+        {
+            BaseClass* b = cd.interfaces[i];
+            auto v = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
+            if (v >= 0)
+                return b;
+        }
+        return null;
     }
 
     /****************************************************

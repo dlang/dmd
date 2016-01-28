@@ -1048,6 +1048,32 @@ void test15579()
 }
 
 /****************************************/
+// 15610
+
+extern(C++) class Base2
+{
+    int i;
+//    void baser() { }
+}
+
+extern(C++) interface Interface2 { abstract void f(); }
+
+extern(C++) class Derived2 : Base2, Interface2
+{
+    final
+        override void f();
+}
+
+
+void test15610()
+{
+    auto c = new Derived2();
+    printf("test15610(): c = %p\n", c);
+    c.i = 3;
+    c.f();
+}
+
+/****************************************/
 
 void main()
 {
@@ -1084,6 +1110,7 @@ void main()
     testeh2();
     testeh3();
     test15579();
+    test15610();
 
     printf("Success\n");
 }
