@@ -525,7 +525,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
                                 // they are separate
 #define UNICODE         1       // support Unicode (wchar_t is unsigned short)
 #define DLCMSGS         0       // if 1, have all messages in a file
-#define NEWMANGLE       TARGET_WINDOS   // use MS name mangling scheme
 #define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 #define USEDLLSHELL     _WINDLL
 #define FARCLASSES      1       // support near/far classes
