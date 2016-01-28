@@ -334,7 +334,7 @@ struct nlist
     uint8_t n_sect;
     int16_t n_desc;
     uint32_t n_value;
-};
+}
 
 struct nlist_64
 {

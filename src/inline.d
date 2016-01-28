@@ -735,7 +735,7 @@ Expression doInline(Expression e, InlineDoState ids)
                 return null;
             auto newa = new Expressions();
             newa.setDim(a.dim);
-            foreach (i;  0 .. a.dim)
+            foreach (i; 0 .. a.dim)
             {
                 Expression e = (*a)[i];
                 if (e)

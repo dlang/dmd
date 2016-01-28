@@ -1493,6 +1493,7 @@ public:
             ++n;
             return 0;
         }
+
         _foreach(null, members, &dimDg, &n);
         return n;
     }
@@ -1522,7 +1523,7 @@ public:
         return res ? sym : null;
     }
 
-    extern (D)   alias ForeachDg    = int delegate(size_t idx, Dsymbol s);
+    extern (D) alias ForeachDg = int delegate(size_t idx, Dsymbol s);
 
     /***************************************
      * Expands attribute declarations in members in depth first

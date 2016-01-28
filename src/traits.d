@@ -393,6 +393,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     Lfalse:
         return new IntegerExp(e.loc, result, Type.tbool);
     }
+
     alias isTypeX = isX!Type;
     alias isDsymX = isX!Dsymbol;
     alias isDeclX = isX!Declaration;
@@ -1161,6 +1162,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     }
                 }
             }
+
             collectUnitTests(sds.members);
         }
         auto te = new TupleExp(e.loc, exps);

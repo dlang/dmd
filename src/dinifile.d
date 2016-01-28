@@ -219,7 +219,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         buf.reset();
         // First, expand the macros.
         // Macros are bracketed by % characters.
-      Kloop:
+    Kloop:
         for (size_t k = 0; k < i - linestart; ++k)
         {
             // The line is buffer[linestart..i]
@@ -359,4 +359,3 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         }
     }
 }
-

@@ -331,7 +331,7 @@ public:
 
                 // vd and v2 are overlapping. If either has destructors, postblits, etc., then error
                 //printf("overlapping fields %s and %s\n", vd->toChars(), v2->toChars());
-                foreach (k; 0.. 2)
+                foreach (k; 0 .. 2)
                 {
                     auto v = k == 0 ? vd : v2;
                     Type tv = v.type.baseElemOf();

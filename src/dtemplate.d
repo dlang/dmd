@@ -2388,6 +2388,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         }
         return 0;
     }
+
     int applyTemplate(TemplateDeclaration td)
     {
         // skip duplicates

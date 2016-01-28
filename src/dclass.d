@@ -441,7 +441,7 @@ public:
         assert(parent && !isAnonymous());
 
         if (this.errors)
-           type = Type.terror;
+            type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
@@ -1491,7 +1491,7 @@ public:
         assert(parent && !isAnonymous());
 
         if (this.errors)
-           type = Type.terror;
+            type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
