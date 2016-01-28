@@ -50,7 +50,7 @@ bool initFPU()
     int old_cw = _control87(_MCW_EM | _PC_64  | _RC_NEAR,
                             _MCW_EM | _MCW_PC | _MCW_RC);
 #endif
-#if _MSC_VER < 1700
+#if _MSC_VER < 1900
     _set_output_format(_TWO_DIGIT_EXPONENT);
 #endif
     return true;
