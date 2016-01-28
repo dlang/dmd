@@ -3031,9 +3031,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 goto case_SCcomdat;     // treat as initialized common block
 
         default:
-#ifdef DEBUG
             //symbol_print(s);
-#endif
             assert(0);
     }
     return retsize;

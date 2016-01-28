@@ -2326,9 +2326,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
             dest[1 + len] = 0;
             break;
         default:
-#ifdef DEBUG
             symbol_print(s);
-#endif
             assert(0);
     }
     if (ilen > (255-2-sizeof(int)*3))
@@ -2752,9 +2750,7 @@ STATIC void obj_modend()
                 offset += s->Soffset;
                 break;
             default:
-    #ifdef DEBUG
                 //symbol_print(s);
-    #endif
                 assert(0);
         }
 
@@ -3442,9 +3438,7 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                 val += s->Soffset;
             break;
         default:
-#ifdef DEBUG
             symbol_print(s);
-#endif
             assert(0);
     }
 

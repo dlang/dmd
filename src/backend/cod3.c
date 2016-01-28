@@ -4942,9 +4942,7 @@ targ_size_t cod3_bpoffset(symbol *s)
             break;
         default:
             WRFL((enum FL)s->Sfl);
-#ifdef DEBUG
             symbol_print(s);
-#endif
             assert(0);
     }
     assert(hasframe);
@@ -6492,9 +6490,7 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
 #if TARGET_SEGMENTED
         case FLcsdata:
         case FLfardata:
-#if DEBUG
-            symbol_print(uev->sp.Vsym);
-#endif
+            //symbol_print(uev->sp.Vsym);
 #endif
             // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
             // strings and statics are treated like offsets from a

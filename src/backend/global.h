@@ -320,11 +320,7 @@ void symbol_keep(Symbol *s);
 #else
 #define symbol_keep(s) ((void)(s))
 #endif
-#ifdef DEBUG
 void symbol_print(Symbol *s);
-#else
-#define symbol_print(s)
-#endif
 void symbol_term(void);
 char *symbol_ident(symbol *s);
 Symbol *symbol_calloc(const char *id);

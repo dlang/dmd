@@ -674,10 +674,8 @@ again:
                 cpperr(EM_no_template_instance, s->Sident);
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
                 WRclass((enum SC) s->Sclass);
-#endif
                 assert(0);
 #endif
         }
@@ -1070,9 +1068,7 @@ STATIC void writefunc2(symbol *sfunc)
                 s->Sfl = FLstack;
                 break;
             default:
-#ifdef DEBUG
                 symbol_print(s);
-#endif
                 assert(0);
         }
     }

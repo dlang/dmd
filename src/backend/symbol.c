@@ -110,10 +110,9 @@ void symtab_free(symbol **tab)
  * Type out symbol information.
  */
 
-#ifdef DEBUG
-
 void symbol_print(symbol *s)
 {
+#ifdef DEBUG
 #if !SPP
     if (!s) return;
     dbg_printf("symbol %p '%s'\n ",s,s->Sident);
@@ -152,9 +151,9 @@ void symbol_print(symbol *s)
     }
 #endif
 #endif
+#endif
 }
 
-#endif
 
 /*********************************
  * Terminate use of symbol table.
