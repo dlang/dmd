@@ -2294,10 +2294,8 @@ size_t Obj::mangle(Symbol *s,char *dest)
             break;
 #if SCPP || MARS
         case mTYman_cpp:
-#if NEWMANGLE
             memcpy(dest + 1,name,len);
             break;
-#endif
 #endif
         case mTYman_std:
             if (!(config.flags4 & CFG4oldstdmangle) &&
