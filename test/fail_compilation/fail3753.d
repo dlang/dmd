@@ -33,6 +33,10 @@ void main()
         {
             static assert(0);
         }
+        version (FreeBSD)
+        {
+            static assert(0);
+        }
     }
     else
         static assert(0);
