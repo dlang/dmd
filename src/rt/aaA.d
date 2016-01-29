@@ -143,7 +143,7 @@ private:
         auto obuckets = buckets;
         buckets = allocBuckets(ndim);
 
-        foreach (ref b; obuckets)
+        foreach (ref b; obuckets[firstUsed .. $])
             if (b.filled)
                 *findSlotInsert(b.hash) = b;
 
@@ -151,6 +151,15 @@ private:
         used -= deleted;
         deleted = 0;
         GC.free(obuckets.ptr); // safe to free b/c impossible to reference
+    }
+
+    void clear() pure nothrow
+    {
+        import core.stdc.string : memset;
+        // clear all data, but don't change bucket array length
+        memset(&buckets[firstUsed], 0, (buckets.length - firstUsed) * Bucket.sizeof);
+        deleted = used = 0;
+        firstUsed = cast(uint) dim;
     }
 }
 
@@ -423,6 +432,15 @@ extern (C) bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
         return true;
     }
     return false;
+}
+
+/// Remove all elements from AA.
+extern (C) void _aaClear(AA aa) pure nothrow
+{
+    if (!aa.empty)
+    {
+        aa.impl.clear();
+    }
 }
 
 /// Rehash AA
@@ -931,4 +949,23 @@ unittest
     aa3 = null;
     GC.runFinalizers((cast(char*)(&entryDtor))[0 .. 1]);
     assert(T.dtor == 6 && T.postblit == 2);
+}
+
+// for aa.clear
+pure nothrow unittest
+{
+    int[int] aa;
+    assert(aa.length == 0);
+    foreach (i; 0 .. 100)
+        aa[i] = i * 2;
+    assert(aa.length == 100);
+    auto aa2 = aa;
+    assert(aa2.length == 100);
+    aa.clear();
+    assert(aa.length == 0);
+    assert(aa2.length == 0);
+
+    aa2[5] = 6;
+    assert(aa.length == 1);
+    assert(aa[5] == 6);
 }

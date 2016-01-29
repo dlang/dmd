@@ -7,7 +7,8 @@ $(BUGSTITLE Library Changes,
 
 $(LI $(RELATIVE_LINK2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
     `TypeInfo.initializer`.))
-)
+$(LI $(RELATIVE_LINK2 aa-clear, A `clear` method has been added to associative
+    arrays to remove all elements.))
 )
 
 $(BUGSTITLE Library Changes,
@@ -27,6 +28,22 @@ $(LI $(LNAME2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
         release. Finally, the special casing is going to be removed with the
         2.074.0 release, so that the type property `init` takes over.
     )
+)
+$(LI $(LNAME2 aa-clear, A `clear` method has been added to associative
+    arrays to remove all elements.)
+
+    $(P One can now use `aa.clear()` to remove all elements from an
+        associative array. This allows removing all elements from all
+        references to the same array (setting to `null` just reset the
+        reference, but did not removed the elements from other references).
+    )
+
+-------
+auto aa = ["first" : "entry", "second": "entry"];
+auto aa2 = aa1; // reference to the same AA
+aa.clear(); // still retains its current capacity for faster imports
+assert(aa2.length == 0); // other references affected
+-------
 )
 )
 
