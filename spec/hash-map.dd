@@ -37,6 +37,8 @@ $(H3 Removing Keys)
         returns $(D false).  If the given $(I key) does exist, it removes it
         from the AA and returns $(D true).
         )
+        
+        $(P All keys can be removed by using the method `clear`.)
 
 $(H3 Testing Membership)
 
@@ -286,6 +288,23 @@ $(H3 Runtime Initialization of Immutable AAs)
         }
         ---------
 
+$(H3 Construction and Reference Semantics)
+
+    $(P An Associative Array defaults to `null`, and is constructed upon assigning the first key/value
+        pair. However, once constructed, an associative array has $(I reference semantics), meaning that
+        assigning one array to another does not copy the data. This is especially important when attempting
+        to create multiple references to the same array.)
+
+        ------
+        int[int] aa;             // defaults to null
+        int[int] aa2 = aa;       // copies the null reference
+        aa[1] = 1;
+        assert(aa2.length == 0); // aa2 still is null
+        aa2 = aa;
+        aa2[2] = 2;
+        assert(aa[2] == 2);      // now both refer to the same instance
+        ------
+
 
 $(H3 Properties)
 
@@ -307,6 +326,10 @@ Properties for associative arrays are:
         are more efficient. $(D rehash) is effective when, for example,
         the program is done loading up a symbol table and now needs
         fast lookups in it. Returns a reference to the reorganized array.))
+        $(TROW $(D .clear), $(ARGS Removes all remaining keys and values from an associative array.
+        The array is not rehashed after removal, to allow for the existing space to be reused. This
+        is not equivalent `destroy(aa)` which sets the reference to `null`, and will affect other
+        references to the instance.))
         $(TROW $(D .byKey()), $(ARGS Returns a forward range suitable for use
         as a $(I ForeachAggregate) to a $(GLINK2 statement, ForeachStatement)
         which will iterate over the keys of the associative array.))
