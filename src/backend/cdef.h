@@ -251,19 +251,9 @@ char *strupr(char *);
 // C++ Language Features
 #define ANGLE_BRACKET_HACK      0       // >> means two template arglist closes
 
-// C Language Features
-#define CPP_COMMENT             1       // allow C++ style comments
-
 // C/C++ Language Features
 #define IMPLIED_PRAGMA_ONCE     1       // include guards count as #pragma once
-#define HIDDENPARAM_1ST_ARG     1
 const bool HEADER_LIST          = true;
-#define PASCAL_STRINGS          0
-#define EECONTEXT               1
-#define LOCALE                  0       // locale support for Unicode conversion
-#define OVERLOAD_CV_PARAM       1       // if int foo(int i) and int foo(const int i)
-                                        // are different
-#define CPP0X                   1       // support C++0x features
 
 // Support generating code for 16 bit memory models
 #define SIXTEENBIT              (SCPP && TARGET_WINDOS)
