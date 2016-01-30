@@ -134,11 +134,13 @@ void out_config_init(
 #if TARGET_FREEBSD
     if (model == 64)
     {   config.exe = EX_FREEBSD64;
+        config.ehmethod = EH_DWARF;
         config.fpxmmregs = TRUE;
     }
     else
     {
         config.exe = EX_FREEBSD;
+        config.ehmethod = EH_DWARF;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -149,7 +151,6 @@ void out_config_init(
         config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
     config.objfmt = OBJ_ELF;
-    config.ehmethod = EH_DM;
 #endif
 #if TARGET_OPENBSD
     if (model == 64)
