@@ -154,11 +154,6 @@ enum LANG
 #define TRUE            1
 #define FALSE           0
 
-#ifndef ARG_TRUE
-#define ARG_TRUE        ,TRUE
-#define ARG_FALSE       ,FALSE
-#endif
-
 #define arraysize(array)        (sizeof(array) / sizeof(array[0]))
 
 #define IDMAX   900 //467 //254 // identifier max (excluding terminating 0)
