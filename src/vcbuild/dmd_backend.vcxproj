@@ -111,7 +111,6 @@
     <ClCompile Include="..\backend\cod4.c" />
     <ClCompile Include="..\backend\cod5.c" />
     <ClCompile Include="..\backend\code.c" />
-    <ClCompile Include="..\backend\cppman.c" />
     <ClCompile Include="..\backend\debug.c" />
     <ClCompile Include="..\backend\divcoeff.c" />
     <ClCompile Include="..\backend\dt.c" />
@@ -203,7 +202,6 @@ popd</Command>
     <ClInclude Include="..\intrange.h" />
     <ClInclude Include="..\irstate.h" />
     <ClInclude Include="..\json.h" />
-    <ClInclude Include="..\lexer.h" />
     <ClInclude Include="..\lib.h" />
     <ClInclude Include="..\macro.h" />
     <ClInclude Include="..\mars.h" />
@@ -211,7 +209,6 @@ popd</Command>
     <ClInclude Include="..\mtype.h" />
     <ClInclude Include="..\nspace.h" />
     <ClInclude Include="..\objc.h" />
-    <ClInclude Include="..\parse.h" />
     <ClInclude Include="..\scope.h" />
     <ClInclude Include="..\statement.h" />
     <ClInclude Include="..\staticassert.h" />
@@ -219,13 +216,11 @@ popd</Command>
     <ClInclude Include="..\template.h" />
     <ClInclude Include="..\toir.h" />
     <ClInclude Include="..\tokens.h" />
-    <ClInclude Include="..\utf.h" />
     <ClInclude Include="..\version.h" />
     <ClInclude Include="..\backend\aa.h" />
     <ClInclude Include="..\backend\bcomplex.h" />
     <ClInclude Include="..\backend\cc.h" />
     <ClInclude Include="..\backend\cdef.h" />
-    <ClInclude Include="..\backend\cdeflnx.h" />
     <ClInclude Include="..\backend\cgcv.h" />
     <ClInclude Include="..\backend\code.h" />
     <ClInclude Include="..\backend\cv4.h" />
@@ -258,7 +253,6 @@ popd</Command>
     <ClInclude Include="..\root\port.h" />
     <ClInclude Include="..\root\rmem.h" />
     <ClInclude Include="..\root\root.h" />
-    <ClInclude Include="..\root\speller.h" />
     <ClInclude Include="..\root\stringtable.h" />
     <ClInclude Include="..\id.h" />
     <ClInclude Include="..\vcbuild\alloca.h" />
