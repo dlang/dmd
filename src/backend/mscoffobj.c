@@ -1246,8 +1246,6 @@ void MsCoffObj::compiler()
     //dbg_printf("MsCoffObj::compiler\n");
 }
 
-//#if NEWSTATICDTOR
-
 /**************************************
  * Symbol is the function that calls the static constructors.
  * Put a pointer to it into a special segment that the startup code
@@ -1307,7 +1305,6 @@ void MsCoffObj::staticdtor(Symbol *s)
 #endif
 }
 
-//#else
 
 /***************************************
  * Stuff pointer to function in its own segment.
@@ -1319,7 +1316,6 @@ void MsCoffObj::funcptr(Symbol *s)
     //dbg_printf("MsCoffObj::funcptr(%s) \n",s->Sident);
 }
 
-//#endif
 
 /***************************************
  * Stuff the following data (instance of struct FuncTable) in a separate segment:

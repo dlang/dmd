@@ -977,11 +977,7 @@ STATIC void writefunc2(symbol *sfunc)
 
 #if SCPP
     /* If function is _STIxxxx, add in the auto destructors             */
-#if NEWSTATICDTOR
     if (cpp_stidtors && memcmp("__SI",sfunc->Sident,4) == 0)
-#else
-    if (cpp_stidtors && memcmp("_STI",sfunc->Sident,4) == 0)
-#endif
     {   list_t el;
 
         assert(startblock->Bnext == NULL);

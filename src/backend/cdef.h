@@ -325,8 +325,6 @@ typedef long double longdouble;
 //      2: new style
 #define NTEXCEPTIONS            2
 
-#define NEWSTATICDTOR           1       // support new style static destructors
-
 // For Shared Code Base
 #define TARGET_INLINEFUNC_NAMES
 #define PASCAL pascal
