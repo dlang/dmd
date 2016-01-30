@@ -120,9 +120,6 @@
     <ClCompile Include="..\backend\code.c">
       <Filter>src\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\backend\cppman.c">
-      <Filter>src\backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\backend\debug.c">
       <Filter>src\backend</Filter>
     </ClCompile>
@@ -305,9 +302,6 @@
     <ClInclude Include="..\json.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\lexer.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\lib.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -321,9 +315,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\mtype.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\parse.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\scope.h">
@@ -341,9 +332,6 @@
     <ClInclude Include="..\toir.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\utf.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\version.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -357,9 +345,6 @@
       <Filter>src\backend</Filter>
     </ClInclude>
     <ClInclude Include="..\backend\cdef.h">
-      <Filter>src\backend</Filter>
-    </ClInclude>
-    <ClInclude Include="..\backend\cdeflnx.h">
       <Filter>src\backend</Filter>
     </ClInclude>
     <ClInclude Include="..\backend\cgcv.h">
@@ -456,9 +441,6 @@
       <Filter>src\root</Filter>
     </ClInclude>
     <ClInclude Include="..\root\root.h">
-      <Filter>src\root</Filter>
-    </ClInclude>
-    <ClInclude Include="..\root\speller.h">
       <Filter>src\root</Filter>
     </ClInclude>
     <ClInclude Include="..\root\stringtable.h">
