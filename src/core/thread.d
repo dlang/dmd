@@ -4570,16 +4570,22 @@ private:
                 finalHandler = reg.handler;
             }
 
-            pstack -= EXCEPTION_REGISTRATION.sizeof;
+            // When linking with /safeseh (supported by LDC, but not DMD)
+            // the exception chain must not extend to the very top
+            // of the stack, otherwise the exception chain is also considered
+            // invalid. Reserving additional 4 bytes at the top of the stack will
+            // keep the EXCEPTION_REGISTRATION below that limit
+            size_t reserve = EXCEPTION_REGISTRATION.sizeof + 4;
+            pstack -= reserve;
             *(cast(EXCEPTION_REGISTRATION*)pstack) =
                 EXCEPTION_REGISTRATION( sehChainEnd, finalHandler );
 
             push( cast(size_t) &fiber_entryPoint );                 // EIP
-            push( cast(size_t) m_ctxt.bstack - EXCEPTION_REGISTRATION.sizeof ); // EBP
+            push( cast(size_t) m_ctxt.bstack - reserve );           // EBP
             push( 0x00000000 );                                     // EDI
             push( 0x00000000 );                                     // ESI
             push( 0x00000000 );                                     // EBX
-            push( cast(size_t) m_ctxt.bstack - EXCEPTION_REGISTRATION.sizeof ); // FS:[0]
+            push( cast(size_t) m_ctxt.bstack - reserve );           // FS:[0]
             push( cast(size_t) m_ctxt.bstack );                     // FS:[4]
             push( cast(size_t) m_ctxt.bstack - m_size );            // FS:[8]
             push( 0x00000000 );                                     // EAX
