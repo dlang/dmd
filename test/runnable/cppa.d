@@ -396,7 +396,7 @@ void test13955()
 
 extern(C++) class C13161
 {
-    void dummyfunc() {}
+    void dummyfunc();
     long val_5;
     uint val_9;
 }
@@ -411,7 +411,7 @@ extern(C++) size_t getoffset13161();
 
 extern(C++) class C13161a
 {
-    void dummyfunc() {}
+    void dummyfunc();
     c_long_double val_5;
     uint val_9;
 }
