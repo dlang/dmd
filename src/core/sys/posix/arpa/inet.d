@@ -199,7 +199,7 @@ NOTE: The following must must be defined in core.sys.posix.arpa.inet to break
 INET6_ADDRSTRLEN // from core.sys.posix.netinet.in_
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum INET6_ADDRSTRLEN = 46;
 }
@@ -215,7 +215,7 @@ else version( Solaris )
 {
     enum INET6_ADDRSTRLEN = 46;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     enum INET6_ADDRSTRLEN = 46;
 }

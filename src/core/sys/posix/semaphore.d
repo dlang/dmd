@@ -125,7 +125,7 @@ int sem_wait(sem_t*);
 int sem_timedwait(sem_t*, in timespec*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
@@ -141,7 +141,7 @@ else version (Solaris)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }

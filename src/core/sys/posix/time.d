@@ -317,7 +317,7 @@ tm*   gmtime_r(in time_t*, tm*);
 tm*   localtime_r(in time_t*, tm*);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
@@ -345,7 +345,7 @@ else version (Solaris)
     tm* gmtime_r(in time_t*, tm*);
     tm* localtime_r(in time_t*, tm*);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);

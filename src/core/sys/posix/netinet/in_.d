@@ -976,7 +976,7 @@ else version( CRuntime_Bionic )
 IPPROTO_RAW
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum uint IPPROTO_RAW = 255;
 }
@@ -992,7 +992,7 @@ else version( Solaris )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( Android )
+else version( linux )
 {
     enum uint IPPROTO_RAW = 255;
 }

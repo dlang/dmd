@@ -988,7 +988,7 @@ int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
 int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 */
 
-version (linux)
+version (CRuntime_Glibc)
 {
     int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
     int pthread_condattr_setpshared(pthread_condattr_t*, int);
@@ -1024,7 +1024,7 @@ else version (Solaris)
     int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
     int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int pthread_condattr_getpshared(pthread_condattr_t*, int*);
     int pthread_condattr_setpshared(pthread_condattr_t*, int);
