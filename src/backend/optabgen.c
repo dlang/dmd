@@ -389,11 +389,7 @@ void dotab()
 { int i;
   FILE *f;
 
-#if BSDUNIX
-#define X(d,e,c) debtab[i]=d;cdxxx[i]="c",elxxx[i]="e";break
-#else
 #define X(d,e,c) debtab[i]=d;cdxxx[i]=#c,elxxx[i]=#e;break
-#endif
   for (i = 0; i < OPMAX; i++)
   {
     switch (i)
@@ -625,28 +621,20 @@ void fltables()
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
           FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
           FLstack,FLregsave,FLfuncarg,
-#if TX86
           FLndp,
-#endif
         };
-#if TARGET_SEGMENTED
         static char indatafl_s[] = { FLfardata, };
-#endif
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
         { FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
           FLfuncarg,
-#if TX86
           FLndp,
-#endif
         };
 
         static char inflinsymtab[] =    /* is FLxxxx in the symbol table? */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
           FLtlsdata,FLbprel,FLstack };
-#if TARGET_SEGMENTED
         static char inflinsymtab_s[] = { FLfardata,FLcsdata, };
-#endif
 
         for (i = 0; i < FLMAX; i++)
                 datafl[i] = stackfl[i] = flinsymtab[i] = 0;
@@ -660,13 +648,11 @@ void fltables()
         for (i = 0; i < sizeof(inflinsymtab); i++)
                 flinsymtab[inflinsymtab[i]] = 1;
 
-#if TARGET_SEGMENTED
         for (i = 0; i < sizeof(indatafl_s); i++)
                 datafl[indatafl_s[i]] = 1;
 
         for (i = 0; i < sizeof(inflinsymtab_s); i++)
                 flinsymtab[inflinsymtab_s[i]] = 1;
-#endif
 
 /* Segment registers    */
 /* The #undefs are to appease the compiler on Solaris because
@@ -766,9 +752,7 @@ void fltables()
 void dotytab()
 {
     static tym_t _ptr[]      = { TYnptr };
-#if TARGET_SEGMENTED
     static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
-#endif
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
                                  TYfloat4,TYdouble2,
                                };
@@ -786,45 +770,29 @@ void dotytab()
                                  TYchar16, TYcent, TYucent };
     static tym_t _ref[]      = { TYnref,TYref };
     static tym_t _func[]     = { TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc };
-#if TARGET_SEGMENTED
     static tym_t _ref_nflat[] = { TYfref };
     static tym_t _func_nflat[]= { TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, };
-#endif
     static tym_t _uns[]     = { TYuchar,TYushort,TYuint,TYulong,
-#if MARS
                                 TYwchar_t,
-#endif
                                 TYuchar16,TYushort8,TYulong4,TYullong2,
                                 TYdchar,TYullong,TYucent,TYchar16 };
-#if !MARS
     static tym_t _mptr[]    = { TYmemptr };
-#endif
     static tym_t _nullptr[] = { TYnullptr };
-#if TARGET_SEGMENTED
     static tym_t _fv[]      = { TYfptr, TYvptr };
-#if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
-#endif
-#endif
     static tym_t _pasfunc[] = { TYnpfunc,TYnsfunc,TYmfunc,TYjfunc };
-#if TARGET_SEGMENTED
     static tym_t _pasfunc_nf[] = { TYfpfunc,TYf16func,TYfsfunc, };
-#endif
     static tym_t _revfunc[] = { TYnpfunc,TYjfunc };
-#if TARGET_SEGMENTED
     static tym_t _revfunc_nf[] = { TYfpfunc,TYf16func, };
-#endif
     static tym_t _short[]     = { TYbool,TYchar,TYschar,TYuchar,TYshort,
                                   TYwchar_t,TYushort,TYchar16 };
     static tym_t _aggregate[] = { TYstruct,TYarray };
-#if TX86
     static tym_t _xmmreg[] = {
                                  TYfloat,TYdouble,TYifloat,TYidouble,
                                  TYfloat4,TYdouble2,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
                              };
-#endif
     static tym_t _simd[] = {
                                  TYfloat4,TYdouble2,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
@@ -903,7 +871,6 @@ void dotytab()
 "C func",       TYhfunc,        TYhfunc,   TYhfunc,     -1,     0,      0,
 "__near &",     TYnref,         TYnref,    TYnref,      2,      0,      0,
 
-#if TARGET_SEGMENTED
 "__ss *",       TYsptr,         TYsptr,    TYsptr,      2,  0x20,       0x100,
 "__cs *",       TYcptr,         TYcptr,    TYcptr,      2,  0x20,       0x100,
 "__far16 *",    TYf16ptr,       TYf16ptr,  TYf16ptr,    4,  0x40,       0x200,
@@ -917,14 +884,12 @@ void dotytab()
 "sys func",     TYnsysfunc,     TYnsysfunc,TYnsysfunc,  -1,     0x63,   0,
 "far sys func", TYfsysfunc,     TYfsysfunc,TYfsysfunc,  -1,     0x64,   0,
 "__far &",      TYfref,         TYfref,    TYfref,      4,      0,      0,
-#endif
-#if !MARS
+
 "interrupt func", TYifunc,      TYifunc,   TYifunc,     -1,     0x64,   0,
 "memptr",       TYmemptr,       TYmemptr,  TYmemptr,    -1,     0,      0,
 "ident",        TYident,        TYident,   TYident,     -1,     0,      0,
 "template",     TYtemplate,     TYtemplate, TYtemplate, -1,     0,      0,
 "vtshape",      TYvtshape,      TYvtshape,  TYvtshape,  -1,     0,      0,
-#endif
     };
 
     FILE *f;
@@ -946,22 +911,16 @@ void dotytab()
                      };
 
     T1(_ptr,      TYFLptr);
-#if TARGET_SEGMENTED
     T1(_ptr_nflat,TYFLptr);
-#endif
     T1(_real,     TYFLreal);
     T1(_integral, TYFLintegral);
     T1(_imaginary,TYFLimaginary);
     T1(_complex,  TYFLcomplex);
     T1(_uns,      TYFLuns);
-#if !MARS
     T1(_mptr,     TYFLmptr);
-#endif
 
-#if TARGET_SEGMENTED
     T1(_fv,       TYFLfv);
     T2(_farfunc,  TYFLfarfunc);
-#endif
     T2(_pasfunc,  TYFLpascal);
     T2(_revfunc,  TYFLrevparam);
     T2(_short,    TYFLshort);
@@ -969,15 +928,11 @@ void dotytab()
     T2(_ref,      TYFLref);
     T2(_func,     TYFLfunc);
     T2(_nullptr,  TYFLnullptr);
-#if TARGET_SEGMENTED
     T2(_pasfunc_nf, TYFLpascal);
     T2(_revfunc_nf, TYFLrevparam);
     T2(_ref_nflat,  TYFLref);
     T2(_func_nflat, TYFLfunc);
-#endif
-#if TX86
     T1(_xmmreg,    TYFLxmmreg);
-#endif
     T1(_simd,      TYFLsimd);
 #undef T1
 #undef T2

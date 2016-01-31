@@ -102,9 +102,7 @@ void constprop()
 {
     rd_compute();
     intranges();                // compute integer ranges
-#if 0
-    eqeqranges();               // see if we can eliminate some relationals
-#endif
+    //eqeqranges();               // see if we can eliminate some relationals
     elemdatafree(&eqeqlist);
     elemdatafree(&rellist);
     elemdatafree(&inclist);
@@ -132,9 +130,7 @@ STATIC void rd_compute()
 
             switch (b->BC)
             {
-#if MARS
                 case BCjcatch:
-#endif
                 case BC_finally:
                 case BC_lpad:
                 case BCasm:
@@ -424,9 +420,7 @@ STATIC void chkrd(elem *n,list_t rdlist)
 #endif
 
     sv->Sflags |= SFLnord;              // no redundant messages
-#ifdef DEBUG
     //elem_print(n);
-#endif
 }
 
 /**********************************
@@ -1213,9 +1207,7 @@ void elimass(elem *n)
             /* Don't screw up assnod[]. */
             n->Eoper = OPcomma;
             n->Ety |= n->E2->Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared
-#if TARGET_SEGMENTED
                  | mTYfar
-#endif
                 );
             n->E1->Eoper = OPconst;
             break;
@@ -1366,9 +1358,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPind:
             case OPucall:
             case OPucallns:
-#if TARGET_SEGMENTED
             case OPvp_fp:
-#endif
                 accumda(n->E1,DEAD,POSS);
                 vec_subass(POSS,ambigref);      // remove possibly refed
                                                 // assignments from list
