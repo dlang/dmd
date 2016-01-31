@@ -656,4 +656,32 @@ Interface *cppfooi(Interface *i)
 }
 
 /******************************************/
+// 15610
+
+class Base2
+{
+  public:
+    int i;
+//    virtual void baser();
+};
+
+class Interface2
+{
+  public:
+    virtual void f() = 0;
+};
+
+class Derived2 : public Base2, public Interface2
+{
+  public:
+    void f();
+};
+
+void Derived2::f()
+{
+    printf("Derived2::f() this = %p i = %d\n", this, i);
+    assert(i == 3);
+}
+
+/******************************************/
 

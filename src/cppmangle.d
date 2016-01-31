@@ -1364,7 +1364,9 @@ else static if (TARGET_WINDOS)
             if (d.needThis()) // <flags> ::= <virtual/protection flag> <const/volatile flag> <calling convention flag>
             {
                 // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
-                if (d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual))
+                //printf("%s: isVirtualMethod = %d, isVirtual = %d, vtblIndex = %d, interfaceVirtual = %p\n",
+                    //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
+                if (d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface()))
                 {
                     switch (d.protection.kind)
                     {
