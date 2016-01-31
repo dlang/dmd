@@ -327,9 +327,9 @@ Properties for associative arrays are:
         the program is done loading up a symbol table and now needs
         fast lookups in it. Returns a reference to the reorganized array.))
         $(TROW $(D .clear), $(ARGS Removes all remaining keys and values from an associative array.
-        The array is not rehashed after removal, to allow for the existing space to be reused. This
-        is not equivalent `destroy(aa)` which sets the reference to `null`, and will affect other
-        references to the instance.))
+        The array is not rehashed after removal, to allow for the existing storage to be reused.
+        This will affect all references to the same instance and is not equivalent to `destroy(aa)`
+        which only sets the current reference to `null`))
         $(TROW $(D .byKey()), $(ARGS Returns a forward range suitable for use
         as a $(I ForeachAggregate) to a $(GLINK2 statement, ForeachStatement)
         which will iterate over the keys of the associative array.))
