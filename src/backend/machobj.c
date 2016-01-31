@@ -1515,7 +1515,6 @@ void Obj::compiler()
     //dbg_printf("Obj::compiler\n");
 }
 
-//#if NEWSTATICDTOR
 
 /**************************************
  * Symbol is the function that calls the static constructors.
@@ -1576,7 +1575,6 @@ void Obj::staticdtor(Symbol *s)
 #endif
 }
 
-//#else
 
 /***************************************
  * Stuff pointer to function in its own segment.
@@ -1588,7 +1586,6 @@ void Obj::funcptr(Symbol *s)
     //dbg_printf("Obj::funcptr(%s) \n",s->Sident);
 }
 
-//#endif
 
 /***************************************
  * Stuff the following data (instance of struct FuncTable) in a separate segment:

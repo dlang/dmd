@@ -1594,7 +1594,6 @@ void Obj::segment_group(targ_size_t codesize,targ_size_t datasize,
 #endif
 }
 
-//#if NEWSTATICDTOR
 
 /**************************************
  * Symbol is the function that calls the static constructors.
@@ -1676,7 +1675,6 @@ void Obj::staticdtor(Symbol *s)
     assert(0);
 }
 
-//#else
 
 /***************************************
  * Stuff pointer to function in its own segment.
@@ -1737,7 +1735,6 @@ void Obj::funcptr(Symbol *s)
     obj.lnameidx += 3;                  // for next time
 }
 
-//#endif
 
 /***************************************
  * Stuff pointer to function in its own segment.
