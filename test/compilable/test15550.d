@@ -1,3 +1,6 @@
+// REQUIRED_ARGS: -o-
+// PERMUTE_ARGS:
+
 struct Vector(T, int N)
 {
     void opDispatch(string, U)(U)

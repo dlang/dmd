@@ -7536,11 +7536,20 @@ public:
         }
         if (exp.op == TOKscope)
         {
-            ScopeDsymbol sds = (cast(ScopeExp)exp).sds;
+            auto sds = (cast(ScopeExp)exp).sds;
             if (sds.isPackage())
             {
                 error(loc, "%s has no type", exp.toChars());
                 goto Lerr;
+            }
+            if (auto ti = sds.isTemplateInstance())
+            {
+                if (ti.needsTypeInference(sc))
+                {
+                    // Bugzilla 15550: ti is a partial instantiation form fun!tiargs.
+                    error(loc, "expression (%s) has no type", exp.toChars());
+                    goto Lerr;
+                }
             }
         }
 
