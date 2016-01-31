@@ -436,7 +436,7 @@ $(H2 Configuring the Garbage Collector)
 $(H2 References)
 
 	$(UL
-	$(LI $(LINK2 http://en.wikipedia.org/wiki/Garbage_collection_$(PERCENT)28computer_science$(PERCENT)29, Wikipedia))
+	$(LI $(LINK2 https://en.wikipedia.org/wiki/Garbage_collection_$(PERCENT)28computer_science$(PERCENT)29, Wikipedia))
 	$(LI $(LINK2 http://www.iecc.com/gclist/GC-faq.html, GC FAQ))
 	$(LI $(LINK2 ftp://ftp.cs.utexas.edu/pub/garbage/gcsurvey.ps, Uniprocessor Garbage Collector Techniques))
 	$(LI $(AMAZONLINK 0471941484, Garbage Collection: Algorithms for Automatic Dynamic Memory Management))

@@ -827,12 +827,12 @@ d = 'd';     // d is assigned the character 'd'
 
 $(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
         $(P Note that built-in comparison operators operate on a
-        $(HTTP goo.gl/zRY1K, code unit) basis. 
+        $(HTTPS goo.gl/zRY1K, code unit) basis. 
         The end result for valid strings is the same as that of 
-        $(HTTP goo.gl/WR424, code point) 
-        for $(HTTP goo.gl/WR424, code point)
+        $(HTTPS goo.gl/WR424, code point) 
+        for $(HTTPS goo.gl/WR424, code point)
         comparison as long as both strings are in the same
-        $(HTTP goo.gl/3DKfI, normalization form).
+        $(HTTPS goo.gl/3DKfI, normalization form).
         Since normalization is a costly operation not suitable for language 
         primitives it's assumed to be enforced by the user.
         )

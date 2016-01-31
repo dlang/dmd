@@ -153,7 +153,7 @@ S* p;     // ok, knowledge of members is not necessary
 ---
 
 	$(P They can be used to implement the
-	$(LINK2 http://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
+	$(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
 $(H3 Static Initialization of Structs)

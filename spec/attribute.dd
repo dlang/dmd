@@ -130,7 +130,7 @@ extern (Windows):
 
 	$(P The Windows convention is distinct from the C convention only on Win32 platforms,
 	where it is equivalent to the
-	$(LINK2 http://en.wikipedia.org/wiki/X86_calling_conventions, stdcall) convention.)
+	$(LINK2 https://en.wikipedia.org/wiki/X86_calling_conventions, stdcall) convention.)
 
         $(P Note that a lone $(D extern) declaration is used as a
         $(DDSUBLINK spec/declaration, extern, storage class).)

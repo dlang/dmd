@@ -20,7 +20,7 @@ $(SECTION3 C ABI,
 
 $(SECTION3 Endianness,
 
-	$(P The $(LINK2 http://en.wikipedia.org/wiki/Endianness, endianness)
+	$(P The $(LINK2 https://en.wikipedia.org/wiki/Endianness, endianness)
 	(byte order) of the layout of the data
 	will conform to the endianness of the target machine.
 	The Intel x86 CPUs are $(I little endian) meaning that

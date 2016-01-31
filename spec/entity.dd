@@ -10,7 +10,7 @@ $(GNAME NamedCharacterEntity):
 	$(P D supports the full list of named character entities from HTML 5. However,
         dmd does not yet support named entities which contain multiple code points.
         Below is a $(I partial) list of the named character entities. See the
-        $(LINK2 http://w3.org/TR/html5/syntax.html#named-character-references, HTML 5 Spec)
+        $(LINK2 https://w3.org/TR/html5/syntax.html#named-character-references, HTML 5 Spec)
         for the full list.
 	)
 
