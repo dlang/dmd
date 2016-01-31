@@ -323,7 +323,7 @@ else version (OSX)
     import core.sys.posix.termios; // termios
     import core.sys.posix.sys.time; // timeval
 
-    import core.sys.posix.sys.ttycom; // Terminal related ioctls
+    public import core.sys.posix.sys.ttycom; // Terminal related ioctls
 
     struct ttysize
     {
@@ -336,7 +336,7 @@ else version (OSX)
     enum uint TIOCGSIZE = TIOCGWINSZ;
     enum uint TIOCSSIZE = TIOCSWINSZ;
 
-    import core.sys.posix.sys.filio; // File related ioctls
+    public import core.sys.posix.sys.filio; // File related ioctls
 
     int ioctl(int fildes, c_ulong request, ...);
 }
