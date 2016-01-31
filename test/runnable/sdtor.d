@@ -3943,6 +3943,50 @@ void test14264()
 }
 
 /**********************************/
+// 14686
+
+int test14686()
+{
+    string r;
+
+    struct S
+    {
+        int n;
+        this(this) { r ~= cast(char)('0' + n); }
+    }
+
+    S s1 = S(1);
+    S s2 = S(2);
+    S[] a1 = [S(1)];
+
+    S[2] sa1 = [s1, s2];
+    assert(r == "12", r);       // OK
+
+    r = "";
+    S[] a2 = a1 ~ s2;           // runtime concatenation
+    assert(r == "12", r);       // OK <- NG only in CTFE
+
+    r = "";
+    S[2] sa2a = [s1] ~ s2;
+    assert(r == "12", r);       // OK <- NG, s2 is not copied
+
+    r = "";
+    S[2] sa2b = s2 ~ [s1];
+    assert(r == "21", r);       // OK <- NG, s2 is not copied
+
+    r = "";
+    S[3] sa3a = ([s1] ~ [s1]) ~ s2;
+    assert(r == "112", r);      // OK <- NG, s2 is not copied
+
+    r = "";
+    S[3] sa3b = s2 ~ ([s1] ~ [s1]);
+    assert(r == "211", r);      // OK <- NG, s2 is not copied
+
+    return 1;
+}
+static assert(test14686());
+
+/**********************************/
 // 14815
 
 int test14815()
@@ -4315,6 +4359,7 @@ int main()
     test13669();
     test13095();
     test14264();
+    test14686();
     test14815();
     test14860();
     test14696();
