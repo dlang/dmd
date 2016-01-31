@@ -3168,6 +3168,40 @@ struct Test110s { this(int, int, int){} }
 auto test110 = [Test110f(1, Test110s(1, 2, 3))];
 
 /************************************************/
+// 6907
+
+int test6907()
+{
+    int dtor1;
+    class C { ~this() { ++dtor1; } }
+
+    // delete on Object
+    { Object o; delete o; }
+    { scope o = new Object(); }
+    { Object o = new Object(); delete o; }
+
+    // delete on C
+    { C c; delete c; }
+    { { scope c = new C(); } assert(dtor1 == 1); }
+    { { scope Object o = new C(); } assert(dtor1 == 2); }
+    { C c = new C(); delete c; assert(dtor1 == 3); }
+    { Object o = new C(); delete o; assert(dtor1 == 4); }
+
+    int dtor2;
+    struct S1 { ~this() { ++dtor2; } }
+
+    // delete on S1
+    { S1* p; delete p; }
+    { S1* p = new S1(); delete p; assert(dtor2 == 1); }
+
+    // delete on S1[]
+    { S1[] a = [S1(), S1()]; delete a; assert(dtor2 == 3); }
+
+    return 1;
+}
+static assert(test6907());
+
+/************************************************/
 // 9023
 
 bool test9023()
@@ -3512,6 +3546,7 @@ int main()
     test6439();
     test6504();
     test8818();
+    test6907();
     test9023();
     test9954();
     test14140();
