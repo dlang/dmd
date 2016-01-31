@@ -23,3 +23,6 @@ enum __USE_BSD = _BSD_SOURCE;
 enum __USE_SVID = _SVID_SOURCE;
 enum __USE_ATFILE = _ATFILE_SOURCE;
 enum __USE_GNU = _GNU_SOURCE;
+
+// Available in bionic from API 21
+version(CRuntime_Bionic) enum __WORDSIZE = 32;

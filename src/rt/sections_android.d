@@ -67,8 +67,8 @@ void initSections()
     auto mend = cast(immutable ModuleInfo**)&__stop_minfo;
     _sections.moduleGroup = ModuleGroup(mbeg[0 .. mend - mbeg]);
 
-    auto pbeg = cast(void*)&etext;
-    auto pend = cast(void*)&_end;
+    auto pbeg = cast(void*)&_tls_end;
+    auto pend = cast(void*)&__bss_end__;
     _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
 }
 
@@ -105,15 +105,32 @@ void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) noth
  *       the corresponding address in the TLS dynamic per-thread data.
  */
 
-// NB: the compiler mangles this function as '___tls_get_addr' even though it is extern(D)
-extern(D) void* ___tls_get_addr( void* p )
+version(X86)
 {
-    debug(PRINTF) printf("  ___tls_get_addr input - %p\n", p);
-    immutable offset = cast(size_t)(p - cast(void*)&_tlsstart);
-    auto tls = getTLSBlockAlloc();
-    assert(offset < tls.length);
-    return tls.ptr + offset;
+    // NB: the compiler mangles this function as '___tls_get_addr'
+    // even though it is extern(D)
+    extern(D) void* ___tls_get_addr( void* p )
+    {
+        debug(PRINTF) printf("  ___tls_get_addr input - %p\n", p);
+        immutable offset = cast(size_t)(p - cast(void*)&_tlsstart);
+        auto tls = getTLSBlockAlloc();
+        assert(offset < tls.length);
+        return tls.ptr + offset;
+    }
 }
+else version(ARM)
+{
+    extern(C) void* __tls_get_addr( void** p )
+    {
+        debug(PRINTF) printf("  __tls_get_addr input - %p\n", *p);
+        immutable offset = cast(size_t)(*p - cast(void*)&_tlsstart);
+        auto tls = getTLSBlockAlloc();
+        assert(offset < tls.length);
+        return tls.ptr + offset;
+    }
+}
+else
+    static assert( false, "Android architecture not supported." );
 
 private:
 
@@ -163,8 +180,7 @@ extern(C)
         void* __start_minfo;
         void* __stop_minfo;
 
-        size_t etext;
-        size_t _end;
+        size_t __bss_end__;
 
         void* _tlsstart;
         void* _tlsend;

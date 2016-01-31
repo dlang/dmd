@@ -265,6 +265,7 @@ else version( linux )
     {
         INADDR_ANY       = 0x00000000,
         INADDR_BROADCAST = 0xffffffff,
+        INADDR_LOOPBACK  = 0x7f000001,
         INADDR_NONE      = 0xFFFFFFFF
     }
 }

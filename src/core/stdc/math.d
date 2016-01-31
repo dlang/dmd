@@ -1967,7 +1967,8 @@ else version(CRuntime_Bionic)
     double  ldexp(double x, int exp);
     ///
     float   ldexpf(float x, int exp);
-    // alias for double: real    ldexpl(real x, int exp);
+    ///
+    real    ldexpl(real x, int exp);
 
     ///
     double  log(double x);
@@ -2009,7 +2010,8 @@ else version(CRuntime_Bionic)
     double  scalbn(double x, int n);
     ///
     float   scalbnf(float x, int n);
-    // alias for double: real    scalbnl(real x, int n);
+    ///
+    real    scalbnl(real x, int n);
 
     ///
     double  scalbln(double x, c_long n);

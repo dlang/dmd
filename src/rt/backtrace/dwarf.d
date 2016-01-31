@@ -12,7 +12,7 @@
 
 module rt.backtrace.dwarf;
 
-version(linux) version = linux_or_freebsd;
+version(CRuntime_Glibc) version = linux_or_freebsd;
 else version(FreeBSD) version = linux_or_freebsd;
 
 version(linux_or_freebsd):

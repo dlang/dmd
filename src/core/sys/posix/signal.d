@@ -125,7 +125,7 @@ version( Solaris )
         return sig;
     }
 }
-else version( linux )
+else version( CRuntime_Glibc )
 {
     private extern (C) nothrow @nogc
     {
