@@ -2172,6 +2172,7 @@ public:
 
         if (checkClosure())
         {
+            // We should be setting errors here instead of relying on the global error count.
             //errors = true;
         }
 
