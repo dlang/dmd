@@ -3504,62 +3504,53 @@ public:
      */
     final bool checkClosure()
     {
-        if (needsClosure())
+        if (!needsClosure())
+            return false;
+
+        if (setGC())
         {
-            if (setGC())
-            {
-                error("is @nogc yet allocates closures with the GC");
-                if (global.gag)     // need not report supplemental errors
-                    return true;
-            }
-            else
-            {
-                printGCUsage(loc, "using closure causes GC allocation");
-                return false;
-            }
+            error("is @nogc yet allocates closures with the GC");
+            if (global.gag)     // need not report supplemental errors
+                return true;
+        }
+        else
+        {
+            printGCUsage(loc, "using closure causes GC allocation");
+            return false;
+        }
 
-            FuncDeclarations a;
-            for (size_t i = 0; i < closureVars.dim; i++)
+        FuncDeclarations a;
+        foreach (v; closureVars)
+        {
+            foreach (f; v.nestedrefs)
             {
-                VarDeclaration v = closureVars[i];
+                assert(f !is this);
 
-                for (size_t j = 0; j < v.nestedrefs.dim; j++)
+            LcheckAncestorsOfANestedRef:
+                for (Dsymbol s = f; s && s !is this; s = s.parent)
                 {
-                    FuncDeclaration f = v.nestedrefs[j];
-                    assert(f !is this);
-
-                    for (Dsymbol s = f; s && s !is this; s = s.parent)
+                    auto fx = s.isFuncDeclaration();
+                    if (!fx)
+                        continue;
+                    if (fx.isThis() ||
+                        fx.tookAddressOf ||
+                        checkEscapingSiblings(fx, this))
                     {
-                        FuncDeclaration fx = s.isFuncDeclaration();
-                        if (!fx)
-                            continue;
-                        if (fx.isThis() || fx.tookAddressOf)
-                            goto Lfound;
-                        if (checkEscapingSiblings(fx, this))
-                            goto Lfound;
-                    }
-                    continue;
-
-                Lfound:
-                    for (size_t k = 0; ; k++)
-                    {
-                        if (k == a.dim)
+                        foreach (f2; a)
                         {
-                            a.push(f);
-                            .errorSupplemental(f.loc, "%s closes over variable %s at %s",
-                                f.toPrettyChars(), v.toChars(), v.loc.toChars());
-                            break;
+                            if (f2 == f)
+                                break LcheckAncestorsOfANestedRef;
                         }
-                        if (a[k] == f)
-                            break;
+                        a.push(f);
+                        .errorSupplemental(f.loc, "%s closes over variable %s at %s",
+                            f.toPrettyChars(), v.toChars(), v.loc.toChars());
+                        break LcheckAncestorsOfANestedRef;
                     }
-                    continue;
                 }
             }
-
-            return true;
         }
-        return false;
+
+        return true;
     }
 
     /***********************************************
