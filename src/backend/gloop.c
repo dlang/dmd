@@ -567,10 +567,8 @@ STATIC int looprotate(loop *l)
         if (b == head)                  // if loop already rotated
             goto Lret;
 
-#if SCPP
     if (head->BC == BCtry)
          goto Lret;
-#endif
     if (head->BC == BC_try)
          goto Lret;
 #ifdef DEBUG
@@ -988,9 +986,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPvoid:
         case OPstrlen:
         case OPddtor:
-#if TX86
         case OPinp:
-#endif
                 markinvar(n->E1,rd);
                 break;
         case OPcond:
@@ -998,9 +994,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:                      // OPbt is like OPind, assume not LI
-#if TX86
         case OPoutp:
-#endif
                 markinvar(n->E1,rd);
                 markinvar(n->E2,rd);
                 break;
@@ -1055,16 +1049,12 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPbsr:
         case OPbswap:
         case OPpopcnt:
-#if TX86
         case OPsqrt:
         case OPsin:
         case OPcos:
-#endif
-#if TARGET_SEGMENTED
         case OPvp_fp: /* BUG for MacHandles */
         case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
         case OPcvp_fp:
-#endif
                 markinvar(n->E1,rd);
                 if (isLI(n->E1))        /* if child is LI               */
                         makeLI(n);
@@ -1116,11 +1106,9 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPpair:
         case OPrpair:
         case OPremquo:
-#if TX86
         case OPscale:
         case OPyl2x:
         case OPyl2xp1:
-#endif
                 markinvar(n->E1,rd);
                 markinvar(n->E2,rd);
                 if (isLI(n->E2) && isLI(n->E1))
@@ -1930,12 +1918,10 @@ STATIC famlist * newfamlist(tym_t ty)
                 c.Vshort = 1;
                 break;
 
-#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYfptr:
             case TYvptr:
-#endif
             case TYnptr:
             case TYnullptr:
                 ty = TYint;
@@ -1946,10 +1932,9 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYuint:
                 c.Vint = 1;
                 break;
-#if TARGET_SEGMENTED
+
             case TYhptr:
                 ty = TYlong;
-#endif
             case TYlong:
             case TYulong:
             case TYdchar:
@@ -1962,10 +1947,8 @@ STATIC famlist * newfamlist(tym_t ty)
         if (typtr(ty))
         {
             ty = TYint;
-#if TARGET_SEGMENTED
             if (tybasic(ty) == TYhptr)
                 ty = TYlong;
-#endif
             if (I64)
                 ty = TYllong;
         }
@@ -2350,7 +2333,6 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
                 n1 = n->E1;
         }
 
-#if TARGET_SEGMENTED
         // Get rid of case where we painted a far pointer to a long
         if (op == OPadd || op == OPmin)
         {   int sz;
@@ -2360,7 +2342,6 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
                 (sz != tysize(n1->Ety) || sz != tysize(n2->Ety)))
                 return;
         }
-#endif
 
         /* Look for function of basic IV (-biv or biv op const)         */
         if (n1->Eoper == OPvar && n1->EV.sp.Vsym == biv->IVbasic)
@@ -2406,11 +2387,9 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
                                 /* Check for subtracting two pointers */
                                 if (typtr(c2ty) && typtr(n2->Ety))
                                 {
-#if TARGET_SEGMENTED
                                     if (tybasic(c2ty) == TYhptr)
                                         c2ty = TYlong;
                                     else
-#endif
                                         c2ty = I64 ? TYllong : TYint;
                                 }
                           L1:
@@ -2679,11 +2658,9 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     else                        /* can't subtract fptr  */
                         goto L1;
                 }
-#if TARGET_SEGMENTED
                 if (tybasic(fls->c2->Ety) == TYhptr)
                     tymin = TYlong;
                 else
-#endif
                     tymin = I64 ? TYllong : TYint;         /* type of (ptr - ptr) */
         }
 
@@ -2950,7 +2927,6 @@ STATIC void elimbasivs(loop *l)
                     }
                 }
 
-#if TARGET_SEGMENTED
                 /* Fix if leaves of compare are TYfptrs and the compare */
                 /* operator is < <= > >=.                               */
                 if (ref->Eoper >= OPle && ref->Eoper <= OPge && tyfv(ref->E1->Ety))
@@ -2958,7 +2934,6 @@ STATIC void elimbasivs(loop *l)
                         ref->E1 = el_una(OPoffset,TYuint,ref->E1);
                         ref->E2 = el_una(OPoffset,TYuint,fofe);
                 }
-#endif
 #ifdef DEBUG
                 if (debugc)
                 {   WReqn(ref);
@@ -2989,14 +2964,12 @@ STATIC void elimbasivs(loop *l)
                                 ne = el_bin(OPmin,ty,
                                         el_var(fl->FLtemp),
                                         C2);
-#if TARGET_SEGMENTED
                                 if (tybasic(ne->E1->Ety) == TYfptr &&
                                     tybasic(ne->E2->Ety) == TYfptr)
                                 {   ne->Ety = I64 ? TYllong : TYint;
                                     if (tylong(ty) && intsize == 2)
                                         ne = el_una(OPs16_32,ty,ne);
                                 }
-#endif
 
                                 ne = el_bin(OPeq,X->ty(),
                                         el_var(X),
@@ -3214,10 +3187,8 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                         goto Lf2;
                 break;
 
-#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
-#endif
             case TYnptr:        // BUG: 64 bit pointers?
             case TYnullptr:
             case TYint:
@@ -3229,11 +3200,9 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
             case TYlong:
             case TYulong:
             case TYdchar:
-#if TARGET_SEGMENTED
             case TYfptr:
             case TYvptr:
             case TYhptr:
-#endif
             case_long:
                 if (t2->Vlong == 1 ||
                     t1->Vlong != 1 && f2->c2->EV.Vlong == 0)
