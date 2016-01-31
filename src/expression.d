@@ -5234,12 +5234,12 @@ extern (C++) final class ScopeExp : Expression
 public:
     ScopeDsymbol sds;
 
-    extern (D) this(Loc loc, ScopeDsymbol sds)
+    extern (D) this(Loc loc, ScopeDsymbol pkg)
     {
         super(loc, TOKscope, __traits(classInstanceSize, ScopeExp));
-        //printf("ScopeExp::ScopeExp(sds = '%s')\n", sds.toChars());
+        //printf("ScopeExp::ScopeExp(sds = '%s')\n", pkg->toChars());
         //static int count; if (++count == 38) *(char*)0=0;
-        this.sds = sds;
+        this.sds = pkg;
     }
 
     override Expression syntaxCopy()
@@ -5253,8 +5253,8 @@ public:
         {
             printf("+ScopeExp::semantic(%p '%s')\n", this, toChars());
         }
-        if (type)
-            return this;
+        //if (type == Type::tvoid)
+        //    return this;
 
         ScopeDsymbol sds2 = sds;
         TemplateInstance ti = sds2.isTemplateInstance();
@@ -5294,9 +5294,6 @@ public:
                         return e.semantic(sc);
                     }
                 }
-                // ti is an instance which requires IFTI.
-                sds = ti;
-                type = Type.tvoid;
                 return this;
             }
             ti.semantic(sc);
@@ -8901,7 +8898,7 @@ public:
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */
-        if (e1.op == TOKscope)
+        if (e1.op == TOKscope && !e1.type)
         {
             ScopeExp se = cast(ScopeExp)e1;
             TemplateInstance ti = se.sds.isTemplateInstance();
