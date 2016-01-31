@@ -710,11 +710,6 @@ extern (C++) Expression ctfeInterpret(Expression e)
 {
     if (e.op == TOKerror)
         return e;
-    if (e.op == TOKscope && !e.type) // workaround Bugzilla 15239
-    {
-        e.error("cannot interpret %s at compile time", e.toChars());
-        return new ErrorExp();
-    }
     assert(e.type); // Bugzilla 14642
     //assert(e->type->ty != Terror);    // FIXME
     if (e.type.ty == Terror)
