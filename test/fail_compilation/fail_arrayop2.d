@@ -193,3 +193,177 @@ void test14895()
     int[] a;
     int[] b = (a[] + 1) ~ a[] * 2;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_arrayop2.d(245): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(246): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(247): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(252): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(255): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(264): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(267): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(268): Error: array operation "abc"[] + '\x01' without destination memory not allowed
+fail_compilation/fail_arrayop2.d(271): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(274): Error: ([1] * 6)[0..2] is not an lvalue
+fail_compilation/fail_arrayop2.d(277): Error: can only * a pointer, not a 'int[]'
+fail_compilation/fail_arrayop2.d(280): Error: [1] * 6 is not an lvalue
+fail_compilation/fail_arrayop2.d(283): Error: array operation da[] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(286): Error: array operation da[] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(289): Error: [1] * 6 is not an lvalue
+fail_compilation/fail_arrayop2.d(290): Error: invalid array operation '[1] * 6 -= 1' for element type int
+fail_compilation/fail_arrayop2.d(293): Error: [1] * 6 is not an lvalue
+fail_compilation/fail_arrayop2.d(294): Error: ([1] * 6)[] is not an lvalue
+fail_compilation/fail_arrayop2.d(297): Error: invalid array operation '[1] * 6 += 1' for element type int
+fail_compilation/fail_arrayop2.d(298): Error: invalid array operation '[1] * 6 *= 2' for element type int
+fail_compilation/fail_arrayop2.d(299): Error: invalid array operation '[1] * 6 ^^= 3' for element type int
+fail_compilation/fail_arrayop2.d(302): Error: [1] * 6 is not an lvalue
+fail_compilation/fail_arrayop2.d(303): Error: [1] * 6 is not an lvalue
+fail_compilation/fail_arrayop2.d(306): Error: '[1] * 6' is not of integral type, it is a int[]
+fail_compilation/fail_arrayop2.d(307): Error: '[1] * 6' is not of integral type, it is a int[]
+fail_compilation/fail_arrayop2.d(308): Error: '[1] * 6' is not of integral type, it is a int[]
+fail_compilation/fail_arrayop2.d(311): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(312): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(315): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(316): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(317): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(320): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(320): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(320): Error: array operation [1] * 6 without destination memory not allowed
+---
+*/
+// Test all expressions, which can take arrays as their operands but cannot be a part of array operation.
+void test15407exp()
+{
+    struct S { int[] a; }
+    void f(int[] a) {}
+
+    int[] da;
+    int[6] sa;
+
+    { auto r = [[1] * 6]; }     // ArrayLiteralExp
+    { auto r = [[1] * 6 :
+                [1] * 6]; }     // AssocArrayLiteralExp
+
+    //TupleExp
+
+    // StructLiteralExp.elements <- preFunctionParameters in CallExp
+    { auto r = S([1] * 6); }
+
+    // NewExp.newargs/arguments <- preFunctionParameters
+    { auto r = new S([1] * 6); }
+
+    // TODO: TypeidExp
+    //auto ti = typeid([1] * 6);
+    //auto foo(T)(T t) {}
+    //foo(typeid([1] * 6));
+    //auto a = [typeid([1] * 6)];
+
+    // CommaExp.e1
+    { auto r = ([1] * 6, 1); }
+
+    // AssertExp
+    assert([1] * 6,
+           cast(char)1 + "abc"[]);
+
+    // CallExp.arguments <- preFunctionParameters
+    f([1] * 6);
+
+    // AddrExp, if a CT-known length slice can become an TypeSarray lvalue in the future.
+    { auto r = &(([1] * 6)[0..2]); }
+
+    // PtrExp, *([1] * 6).ptr is also invalid -> show better diagnostic
+    { auto r = *([1] * 6); }
+
+    // DeleteExp - e1
+    delete ([1] * 6);
+
+    // TypeDArray.dotExp, cannot check in ArrayLengthExp.semantic()
+    { auto r = (6 * da[]).length; }
+
+    // IndexExp - e1
+    { auto x1 = (da[] * 6)[1]; }
+
+    // Pre, PostExp - e1
+    ([1] * 6)++;
+    --([1] * 6);
+
+    // AssignExp e1
+    ([1] * 6) = 10;
+    ([1] * 6)[] = 10;
+
+    // BinAssignExp e1
+    ([1] * 6) += 1;
+    ([1] * 6)[] *= 2;
+    ([1] * 6)[] ^^= 3;
+
+    // CatExp e1
+    ([1] * 6) ~= 1;
+    ([1] * 6)[] ~= 2;
+
+    // Shl, Shr, UshrExp - e1, e2 --> checkIntegralBin
+    { auto r = ([1] * 6) << 1; }
+    { auto r = ([1] * 6) >> 1; }
+    { auto r = ([1] * 6) >>> 1; }
+
+    // AndAnd, OrOrExp - e1, e2
+    { auto r = sa[0..5] && [1] * 6; }
+    { auto r = sa[0..5] || [1] * 6; }
+
+    // Cmp, Equal, IdentityExp - e1, e2
+    { auto r = sa[0..5] <= [1] * 6; }
+    { auto r = sa[0..5] == [1] * 6; }
+    { auto r = sa[0..5] is [1] * 6; }
+
+    // CondExp - econd, e1, e2
+    { auto r = [1] * 6 ? [1] * 6 : [1] * 6; }
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail_arrayop2.d(341): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(344): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(347): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(348): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(349): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(352): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(355): Error: array operation [1] * 6 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(358): Error: array operation "str"[] + cast(immutable(char))1 without destination memory not allowed
+fail_compilation/fail_arrayop2.d(366): Error: CTFE internal error: non-constant value "uvt"[]
+---
+*/
+// Test all statements, which can take arrays as their operands.
+void test15407stmt()
+{
+    // ExpStatement - exp
+    [1] * 6;
+
+    // DoStatement - condition
+    do {} while ([1] * 6);
+
+    // ForStatement - condition, increment
+    for ([1] * 6;       // init == ExpStatement
+         [1] * 6;
+         [1] * 6) {}
+
+    // ForeachStatement - aggr -> lowered to ForStatement
+    foreach (e; [1] * 6) {}
+
+    // IfStatement condition
+    if ([1] * 6) {}
+
+    // SwitchStatement - condition
+    switch ("str"[] + 1)
+    {
+        case "tus":         break;
+        default:            break;
+    }
+    // CaseStatement - exp
+    switch ("tus")
+    {
+        case "uvt"[] - 1:   break;
+        default:            break;
+    }
+}

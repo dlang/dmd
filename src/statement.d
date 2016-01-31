@@ -1165,6 +1165,8 @@ public:
             exp = exp.semantic(sc);
             exp = resolveProperties(sc, exp);
             exp = exp.addDtorHook(sc);
+            if (checkNonAssignmentArrayOp(exp))
+                exp = new ErrorExp();
             discardValue(exp);
             exp = exp.optimize(WANTvalue);
             exp = checkGC(sc, exp);
@@ -1874,6 +1876,8 @@ public:
 
         condition = condition.semantic(sc);
         condition = resolveProperties(sc, condition);
+        if (checkNonAssignmentArrayOp(condition))
+            condition = new ErrorExp();
         condition = condition.optimize(WANTvalue);
         condition = checkGC(sc, condition);
 
@@ -1986,6 +1990,8 @@ public:
 
             condition = condition.semantic(sc);
             condition = resolveProperties(sc, condition);
+            if (checkNonAssignmentArrayOp(condition))
+                condition = new ErrorExp();
             condition = condition.optimize(WANTvalue);
             condition = checkGC(sc, condition);
 
@@ -1995,6 +2001,8 @@ public:
         {
             increment = increment.semantic(sc);
             increment = resolveProperties(sc, increment);
+            if (checkNonAssignmentArrayOp(increment))
+                increment = new ErrorExp();
             increment = increment.optimize(WANTvalue);
             increment = checkGC(sc, increment);
         }
@@ -3417,6 +3425,8 @@ public:
             condition = resolveProperties(scd, condition);
             condition = condition.addDtorHook(scd);
         }
+        if (checkNonAssignmentArrayOp(condition))
+            condition = new ErrorExp();
         condition = checkGC(scd, condition);
 
         // Convert to boolean after declaring prm so this works:
@@ -3824,10 +3834,13 @@ public:
                 break;
             }
         }
+        if (checkNonAssignmentArrayOp(condition))
+            condition = new ErrorExp();
         condition = condition.optimize(WANTvalue);
         condition = checkGC(sc, condition);
         if (condition.op == TOKerror)
             conditionError = true;
+
         bool needswitcherror = false;
         sc = sc.push();
         sc.sbreak = this;

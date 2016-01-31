@@ -7784,6 +7784,12 @@ public:
             return e1;
         if (msg && msg.op == TOKerror)
             return msg;
+
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = msg && checkNonAssignmentArrayOp(msg);
+        if (f1 || f2)
+            return new ErrorExp();
+
         if (e1.isBool(false))
         {
             FuncDeclaration fd = sc.parent.isFuncDeclaration();
@@ -9770,6 +9776,9 @@ public:
         e1 = e1.toLvalue(sc, null);
         if (e1.op == TOKerror)
             return e1;
+        if (checkNonAssignmentArrayOp(e1))
+            return new ErrorExp();
+
         if (!e1.type)
         {
             error("cannot take address of %s", e1.toChars());
@@ -9935,6 +9944,8 @@ public:
             break;
         case Tsarray:
         case Tarray:
+            if (isNonAssignmentArrayOp(e1))
+                goto default;
             error("using * on an array is no longer supported; use *(%s).ptr instead", e1.toChars());
             type = (cast(TypeArray)tb).next;
             e1 = e1.castTo(sc, type.pointerTo());
@@ -11018,6 +11029,10 @@ public:
         if (Expression ex = binSemanticProp(sc))
             return ex;
         e1 = e1.addDtorHook(sc);
+
+        if (checkNonAssignmentArrayOp(e1))
+            return new ErrorExp();
+
         type = e2.type;
         return this;
     }
@@ -11287,6 +11302,10 @@ public:
             sc = sc.pop();
         if (e2.type == Type.terror)
             return new ErrorExp();
+
+        if (checkNonAssignmentArrayOp(e1))
+            return new ErrorExp();
+
         switch (t1b.ty)
         {
         case Tpointer:
@@ -13983,6 +14002,11 @@ public:
         sc.mergeCallSuper(loc, cs1);
         e2 = resolveProperties(sc, e2);
 
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = checkNonAssignmentArrayOp(e2);
+        if (f1 || f2)
+            return new ErrorExp();
+
         if (e2.type.ty == Tvoid)
             type = Type.tvoid;
         else
@@ -14053,6 +14077,11 @@ public:
         e2 = e2.semantic(sc);
         sc.mergeCallSuper(loc, cs1);
         e2 = resolveProperties(sc, e2);
+
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = checkNonAssignmentArrayOp(e2);
+        if (f1 || f2)
+            return new ErrorExp();
 
         if (e2.type.ty == Tvoid)
             type = Type.tvoid;
@@ -14131,9 +14160,17 @@ public:
             }
             return e;
         }
+
         if (Expression ex = typeCombine(this, sc))
             return ex;
+
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = checkNonAssignmentArrayOp(e2);
+        if (f1 || f2)
+            return new ErrorExp();
+
         type = Type.tbool;
+
         // Special handling for array comparisons
         t1 = e1.type.toBasetype();
         t2 = e2.type.toBasetype();
@@ -14370,6 +14407,11 @@ public:
         if (auto e = typeCombine(this, sc))
             return e;
 
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = checkNonAssignmentArrayOp(e2);
+        if (f1 || f2)
+            return new ErrorExp();
+
         type = Type.tbool;
 
         // Special handling for array comparisons
@@ -14412,11 +14454,20 @@ public:
     {
         if (type)
             return this;
-        if (Expression ex = binSemanticProp(sc))
-            return ex;
+
+        if (auto e = binSemanticProp(sc))
+            return e;
+
+        if (auto e = typeCombine(this, sc))
+            return e;
+
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = checkNonAssignmentArrayOp(e2);
+        if (f1 || f2)
+            return new ErrorExp();
+
         type = Type.tbool;
-        if (Expression ex = typeCombine(this, sc))
-            return ex;
+
         if (e1.type != e2.type && e1.type.isfloating() && e2.type.isfloating())
         {
             // Cast both to complex
@@ -14460,36 +14511,50 @@ public:
         }
         if (type)
             return this;
+
         Expression ec = econd.semantic(sc);
         ec = resolveProperties(sc, ec);
         ec = ec.toBoolean(sc);
+
         uint cs0 = sc.callSuper;
         uint* fi0 = sc.saveFieldInit();
         Expression e1x = e1.semantic(sc);
         e1x = resolveProperties(sc, e1x);
+
         uint cs1 = sc.callSuper;
         uint* fi1 = sc.fieldinit;
         sc.callSuper = cs0;
         sc.fieldinit = fi0;
         Expression e2x = e2.semantic(sc);
         e2x = resolveProperties(sc, e2x);
+
         sc.mergeCallSuper(loc, cs1);
         sc.mergeFieldInit(loc, fi1);
+
         if (ec.op == TOKerror)
             return ec;
         if (ec.type == Type.terror)
             return new ErrorExp();
         econd = ec;
+
         if (e1x.op == TOKerror)
             return e1x;
         if (e1x.type == Type.terror)
             return new ErrorExp();
         e1 = e1x;
+
         if (e2x.op == TOKerror)
             return e2x;
         if (e2x.type == Type.terror)
             return new ErrorExp();
         e2 = e2x;
+
+        auto f0 = checkNonAssignmentArrayOp(econd);
+        auto f1 = checkNonAssignmentArrayOp(e1);
+        auto f2 = checkNonAssignmentArrayOp(e2);
+        if (f0 || f1 || f2)
+            return new ErrorExp();
+
         // If either operand is void, the result is void
         Type t1 = e1.type;
         Type t2 = e2.type;
@@ -14501,6 +14566,7 @@ public:
         {
             if (Expression ex = typeCombine(this, sc))
                 return ex;
+
             switch (e1.type.toBasetype().ty)
             {
             case Tcomplex32:
@@ -14534,6 +14600,7 @@ public:
             printf("e1 : %s\n", e1.type.toChars());
             printf("e2 : %s\n", e2.type.toChars());
         }
+
         /* Bugzilla 14696: If either e1 or e2 contain temporaries which need dtor,
          * make them conditional.
          * Rewrite:
@@ -14545,6 +14612,7 @@ public:
          *      __tmp2->edtor --> __cond || __tmp2.dtor()
          */
         hookDtors(sc);
+
         return this;
     }
 

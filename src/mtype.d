@@ -20,6 +20,7 @@ import ddmd.access;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.argtypes;
+import ddmd.arrayop;
 import ddmd.arraytypes;
 import ddmd.attrib;
 import ddmd.gluelayer;
@@ -4986,6 +4987,8 @@ public:
             }
             if (e.op == TOKnull)
                 return new IntegerExp(e.loc, 0, Type.tsize_t);
+            if (checkNonAssignmentArrayOp(e))
+                return new ErrorExp();
             e = new ArrayLengthExp(e.loc, e);
             e.type = Type.tsize_t;
             return e;
