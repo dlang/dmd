@@ -408,8 +408,8 @@ $(GNAME Lambda):
 
 $(GRAMMAR
 $(GNAME AssertExpression):
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
 )
 
 $(GRAMMAR

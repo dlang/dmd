@@ -1634,8 +1634,8 @@ $(H4 Assert Expressions)
 
 $(GRAMMAR
 $(GNAME AssertExpression):
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
 )
 
     $(P The assert expression is used to declare conditions that the
