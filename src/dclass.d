@@ -49,10 +49,9 @@ struct BaseClass
     // for interfaces: Array of FuncDeclaration's making up the vtbl[]
     FuncDeclarations vtbl;
 
-    size_t baseInterfaces_dim;
     // if BaseClass is an interface, these
     // are a copy of the InterfaceDeclaration::interfaces
-    BaseClass* baseInterfaces;
+    BaseClass[] baseInterfaces;
 
     extern (D) this(Type type, Prot protection)
     {
@@ -129,10 +128,10 @@ struct BaseClass
         //printf("+copyBaseInterfaces(), %s\n", sym->toChars());
         //    if (baseInterfaces_dim)
         //      return;
-        baseInterfaces_dim = sym.interfaces_dim;
-        baseInterfaces = cast(BaseClass*)mem.xcalloc(baseInterfaces_dim, BaseClass.sizeof);
+        auto bc = cast(BaseClass*)mem.xcalloc(sym.interfaces_dim, BaseClass.sizeof);
+        baseInterfaces = bc[0 .. sym.interfaces_dim];
         //printf("%s.copyBaseInterfaces()\n", sym->toChars());
-        for (size_t i = 0; i < baseInterfaces_dim; i++)
+        for (size_t i = 0; i < baseInterfaces.length; i++)
         {
             BaseClass* b = &baseInterfaces[i];
             BaseClass* b2 = sym.interfaces[i];
@@ -1348,7 +1347,7 @@ public:
             //printf("\tvtblInterfaces[%d] b->sym = %s, offset = %d\n", i, b->sym->toChars(), b->offset);
 
             // Take care of single inheritance offsets
-            while (b.baseInterfaces_dim)
+            while (b.baseInterfaces.length)
             {
                 b = &b.baseInterfaces[0];
                 b.offset = offset;
@@ -1850,7 +1849,7 @@ public:
     bool isBaseOf(BaseClass* bc, int* poffset)
     {
         //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->sym->toChars());
-        for (size_t j = 0; j < bc.baseInterfaces_dim; j++)
+        for (size_t j = 0; j < bc.baseInterfaces.length; j++)
         {
             BaseClass* b = &bc.baseInterfaces[j];
             //printf("\tY base %s\n", b->sym->toChars());
