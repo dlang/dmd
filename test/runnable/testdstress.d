@@ -622,33 +622,48 @@ void test29()
 }
 
 /* ================================ */
+// Test for FinalizeError - it will be thrown if an Exception is thrown
+// during the class object finalization.
 
 int status30;
 
 class C30
 {
-	this(){
-		status30++;
-	}
-	
-	~this(){
-		status30--;
-		throw new Exception("E2");
-	}
+    this()
+    {
+        status30++;
+    }
+
+    ~this()
+    {
+        status30--;
+        throw new Exception("E2");
+    }
 }
 
 void test30()
 {
-	try{
-		scope C30 m = new C30();
-		assert(status30 == 1);
-		delete m;
-	}catch(Error e){
-		assert(status30 == 0);
-		status30--;
-	}
-	
-	assert(status30 == -1);
+    try
+    {
+        //scope C30 m = new C30();
+        // It will insert one more `delete m` for the scope destruction, and it will be
+        // called during stack unwinding.
+        // Instead use bare memory chunk on stack to construct dummy class instance.
+        void[__traits(classInstanceSize, C30)] payload = typeid(C30).init[];
+        C30 m = cast(C30)payload.ptr;
+        m.__ctor();
+
+        assert(status30 == 1);
+
+        delete m;   // _d_callfinalizer
+    }
+    catch (Error e) // FinalizeError
+    {
+        assert(status30 == 0);
+        status30--;
+    }
+
+    assert(status30 == -1);
 }
 
 /* ================================ */

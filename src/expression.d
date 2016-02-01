@@ -2745,7 +2745,8 @@ public:
             FuncDeclaration ff = outerfunc;
             if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
             {
-                error("pure function '%s' cannot call impure function '%s'", ff.toPrettyChars(), f.toPrettyChars());
+                error("pure %s '%s' cannot call impure %s '%s'",
+                    ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
         }
@@ -2805,7 +2806,8 @@ public:
                     break;
                 if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
                 {
-                    error("pure function '%s' cannot access mutable static data '%s'", ff.toPrettyChars(), v.toChars());
+                    error("pure %s '%s' cannot access mutable static data '%s'",
+                        ff.kind(), ff.toPrettyChars(), v.toChars());
                     err = true;
                     break;
                 }
@@ -2851,7 +2853,8 @@ public:
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable nested function '%s' cannot access mutable data '%s'", ff.toPrettyChars(), v.toChars());
+                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                            ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
                     }
@@ -2861,7 +2864,8 @@ public:
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable member function '%s' cannot access mutable data '%s'", ff.toPrettyChars(), v.toChars());
+                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                            ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
                     }
@@ -2876,7 +2880,8 @@ public:
         {
             if (sc.func.setUnsafe())
             {
-                error("safe function '%s' cannot access __gshared data '%s'", sc.func.toChars(), v.toChars());
+                error("safe %s '%s' cannot access __gshared data '%s'",
+                    sc.func.kind(), sc.func.toChars(), v.toChars());
                 err = true;
             }
         }
@@ -2905,7 +2910,8 @@ public:
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("safe function '%s' cannot call system function '%s'", sc.func.toPrettyChars(), f.toPrettyChars());
+                error("safe %s '%s' cannot call system %s '%s'",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
         }
@@ -2934,7 +2940,8 @@ public:
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("@nogc function '%s' cannot call non-@nogc function '%s'", sc.func.toPrettyChars(), f.toPrettyChars());
+                error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
         }
@@ -9568,17 +9575,20 @@ public:
                 bool err = false;
                 if (!tf.purity && !(sc.flags & SCOPEdebug) && sc.func.setImpure())
                 {
-                    error("pure function '%s' cannot call impure %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("pure %s '%s' cannot call impure %s '%s'",
+                        sc.func.kind(), sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (!tf.isnogc && sc.func.setGC())
                 {
-                    error("@nogc function '%s' cannot call non-@nogc %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                        sc.func.kind(), sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (tf.trust <= TRUSTsystem && sc.func.setUnsafe())
                 {
-                    error("safe function '%s' cannot call system %s '%s'", sc.func.toPrettyChars(), p, e1.toChars());
+                    error("safe %s '%s' cannot call system %s '%s'",
+                        sc.func.kind(), sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
                 if (err)
@@ -10229,33 +10239,35 @@ public:
         if (e1.op == TOKerror)
             return e1;
         type = Type.tvoid;
+
+        AggregateDeclaration ad = null;
         Type tb = e1.type.toBasetype();
         switch (tb.ty)
         {
         case Tclass:
             {
-                TypeClass tc = cast(TypeClass)tb;
-                ClassDeclaration cd = tc.sym;
+                auto cd = (cast(TypeClass)tb).sym;
                 if (cd.isCOMinterface())
                 {
                     /* Because COM classes are deleted by IUnknown.Release()
                      */
                     error("cannot delete instance of COM interface %s", cd.toChars());
-                    goto Lerr;
+                    return new ErrorExp();
                 }
+
+                ad = cd;
                 break;
             }
         case Tpointer:
             tb = (cast(TypePointer)tb).next.toBasetype();
             if (tb.ty == Tstruct)
             {
-                TypeStruct ts = cast(TypeStruct)tb;
-                StructDeclaration sd = ts.sym;
-                FuncDeclaration f = sd.aggDelete;
-                FuncDeclaration fd = sd.dtor;
+                ad = (cast(TypeStruct)tb).sym;
+                auto f = ad.aggDelete;
+                auto fd = ad.dtor;
                 if (!f)
                 {
-                    semanticTypeInfo(sc, ts);
+                    semanticTypeInfo(sc, tb);
                     break;
                 }
                 /* Construct:
@@ -10302,20 +10314,37 @@ public:
                 Type tv = tb.nextOf().baseElemOf();
                 if (tv.ty == Tstruct)
                 {
-                    TypeStruct ts = cast(TypeStruct)tv;
-                    StructDeclaration sd = ts.sym;
-                    if (sd.dtor)
-                        semanticTypeInfo(sc, ts);
+                    ad = (cast(TypeStruct)tv).sym;
+                    if (ad.dtor)
+                        semanticTypeInfo(sc, ad.type);
                 }
                 break;
             }
         default:
             error("cannot delete type %s", e1.type.toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
+
+        if (ad)
+        {
+            bool err = false;
+            if (ad.dtor)
+            {
+                err |= checkPurity(sc, ad.dtor);
+                err |= checkSafety(sc, ad.dtor);
+                err |= checkNogc(sc, ad.dtor);
+            }
+            if (ad.aggDelete && tb.ty != Tarray)
+            {
+                err |= checkPurity(sc, ad.aggDelete);
+                err |= checkSafety(sc, ad.aggDelete);
+                err |= checkNogc(sc, ad.aggDelete);
+            }
+            if (err)
+                return new ErrorExp();
+        }
+
         return this;
-    Lerr:
-        return new ErrorExp();
     }
 
     override Expression toBoolean(Scope* sc)

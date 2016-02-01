@@ -8,6 +8,7 @@
 
 module ddmd.nogc;
 
+import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
@@ -71,7 +72,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("array literal in @nogc function %s may cause GC allocation", f.toChars());
+            e.error("array literal in @nogc %s '%s' may cause GC allocation",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -84,7 +86,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("associative array literal in @nogc function %s may cause GC allocation", f.toChars());
+            e.error("associative array literal in @nogc %s '%s' may cause GC allocation",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -104,7 +107,8 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("cannot use 'new' in @nogc function %s", f.toChars());
+            e.error("cannot use 'new' in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -119,9 +123,31 @@ public:
             if (v && v.onstack)
                 return; // delete for scope allocated class object
         }
+
+        Type tb = e.e1.type.toBasetype();
+        AggregateDeclaration ad = null;
+        switch (tb.ty)
+        {
+        case Tclass:
+            ad = (cast(TypeClass)tb).sym;
+            break;
+
+        case Tpointer:
+            tb = (cast(TypePointer)tb).next.toBasetype();
+            if (tb.ty == Tstruct)
+                ad = (cast(TypeStruct)tb).sym;
+            break;
+
+        default:
+            break;
+        }
+        if (ad && ad.aggDelete)
+            return;
+
         if (f.setGC())
         {
-            e.error("cannot use 'delete' in @nogc function %s", f.toChars());
+            e.error("cannot use 'delete' in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -135,7 +161,8 @@ public:
         {
             if (f.setGC())
             {
-                e.error("indexing an associative array in @nogc function %s may cause GC allocation", f.toChars());
+                e.error("indexing an associative array in @nogc %s '%s' may cause GC allocation",
+                    f.kind(), f.toPrettyChars());
                 err = true;
                 return;
             }
@@ -149,7 +176,8 @@ public:
         {
             if (f.setGC())
             {
-                e.error("setting 'length' in @nogc function %s may cause GC allocation", f.toChars());
+                e.error("setting 'length' in @nogc %s '%s' may cause GC allocation",
+                    f.kind(), f.toPrettyChars());
                 err = true;
                 return;
             }
@@ -161,7 +189,8 @@ public:
     {
         if (f.setGC())
         {
-            e.error("cannot use operator ~= in @nogc function %s", f.toChars());
+            e.error("cannot use operator ~= in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
@@ -172,7 +201,8 @@ public:
     {
         if (f.setGC())
         {
-            e.error("cannot use operator ~ in @nogc function %s", f.toChars());
+            e.error("cannot use operator ~ in @nogc %s '%s'",
+                f.kind(), f.toPrettyChars());
             err = true;
             return;
         }

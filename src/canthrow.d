@@ -8,6 +8,7 @@
 
 module ddmd.canthrow;
 
+import ddmd.aggregate;
 import ddmd.apply;
 import ddmd.arraytypes;
 import ddmd.attrib;
@@ -64,48 +65,119 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
              */
             Type t = ce.e1.type.toBasetype();
             if (ce.f && ce.f == func)
+                return;
+            if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
+                return;
+            if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
+                return;
+
+            if (mustNotThrow)
             {
-            }
-            else if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
-            {
-            }
-            else if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
-            {
-            }
-            else
-            {
-                if (mustNotThrow)
+                if (ce.f)
                 {
-                    const(char)* s;
-                    if (ce.f)
-                        s = ce.f.toPrettyChars();
-                    else if (ce.e1.op == TOKstar)
-                    {
-                        // print 'fp' if ce->e1 is (*fp)
-                        s = (cast(PtrExp)ce.e1).e1.toChars();
-                    }
-                    else
-                        s = ce.e1.toChars();
-                    ce.error("'%s' is not nothrow", s);
+                    ce.error("%s '%s' is not nothrow",
+                        ce.f.kind(), ce.f.toPrettyChars());
                 }
-                stop = true;
+                else
+                {
+                    auto e1 = ce.e1;
+                    if (e1.op == TOKstar)   // print 'fp' if e1 is (*fp)
+                        e1 = (cast(PtrExp)e1).e1;
+                    ce.error("'%s' is not nothrow", e1.toChars());
+                }
             }
+            stop = true;
         }
 
         override void visit(NewExp ne)
         {
             if (ne.member)
             {
+                if (ne.allocator)
+                {
+                    // Bugzilla 14407
+                    Type t = ne.allocator.type.toBasetype();
+                    if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                    {
+                        if (mustNotThrow)
+                        {
+                            ne.error("%s '%s' is not nothrow",
+                                ne.allocator.kind(), ne.allocator.toPrettyChars());
+                        }
+                        stop = true;
+                    }
+                }
                 // See if constructor call can throw
                 Type t = ne.member.type.toBasetype();
                 if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
-                        ne.error("constructor %s is not nothrow", ne.member.toChars());
+                    {
+                        ne.error("%s '%s' is not nothrow",
+                            ne.member.kind(), ne.member.toPrettyChars());
+                    }
                     stop = true;
                 }
             }
             // regard storage allocation failures as not recoverable
+        }
+
+        override void visit(DeleteExp de)
+        {
+            Type tb = de.e1.type.toBasetype();
+            AggregateDeclaration ad = null;
+            switch (tb.ty)
+            {
+            case Tclass:
+                ad = (cast(TypeClass)tb).sym;
+                break;
+
+            case Tpointer:
+                tb = (cast(TypePointer)tb).next.toBasetype();
+                if (tb.ty == Tstruct)
+                    ad = (cast(TypeStruct)tb).sym;
+                break;
+
+            case Tarray:
+                Type tv = tb.nextOf().baseElemOf();
+                if (tv.ty == Tstruct)
+                {
+                    ad = (cast(TypeStruct)tv).sym;
+                    break;
+                }
+
+            default:
+                break;
+            }
+            if (!ad)
+                return;
+
+            if (ad.dtor)
+            {
+                Type t = ad.dtor.type.toBasetype();
+                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                {
+                    if (mustNotThrow)
+                    {
+                        de.error("%s '%s' is not nothrow",
+                            ad.dtor.kind(), ad.dtor.toPrettyChars());
+                    }
+                    stop = true;
+                }
+            }
+            if (ad.aggDelete && tb.ty != Tarray)
+            {
+                Type t = ad.aggDelete.type;
+                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                {
+                    if (mustNotThrow)
+                    {
+                        de.error("%s '%s' is not nothrow",
+                            ad.aggDelete.kind(), ad.aggDelete.toPrettyChars());
+                    }
+                    stop = true;
+                }
+            }
         }
 
         override void visit(AssignExp ae)
@@ -138,7 +210,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             else
             {
                 if (mustNotThrow)
-                    ae.error("'%s' is not nothrow", sd.postblit.toPrettyChars());
+                {
+                    ae.error("%s '%s' is not nothrow",
+                        sd.postblit.kind(), sd.postblit.toPrettyChars());
+                }
                 stop = true;
             }
         }
