@@ -2946,7 +2946,7 @@ elem *toElem(Expression *e, IRState *irs)
                     elem *etmp = el_una(OPaddr, TYnptr, el_var(stmp));
 
                     /* Generate:
-                     *      _d_arrayassign_r(ti, e2, e1, etmp)
+                     *      _d_arrayassign_l(ti, e2, e1, etmp)
                      * or:
                      *      _d_arrayassign_r(ti, e2, e1, etmp)
                      */
