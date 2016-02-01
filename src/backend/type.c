@@ -463,7 +463,6 @@ type *type_enum(const char *name, type *tbase)
     s->Sclass = SCenum;
     s->Senum = (enum_t *) MEM_PH_CALLOC(sizeof(enum_t));
     s->Senum->SEflags |= SENforward;        // forward reference
-    slist_add(s);
 
     type *t = type_allocn(TYenum, tbase);
     t->Ttag = (Classsym *)s;            // enum tag name
@@ -505,7 +504,6 @@ type *type_struct_class(const char *name, unsigned alignsize, unsigned structsiz
     t->Ttag = (Classsym *)s;            // structure tag name
     t->Tcount++;
     s->Stype = t;
-    slist_add(s);
     t->Tcount++;
     return t;
 }

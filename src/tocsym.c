@@ -45,9 +45,6 @@
 
 typedef Array<struct Symbol *> Symbols;
 
-void slist_add(Symbol *s);
-void slist_reset();
-
 Classsym *fake_classsym(Identifier *id);
 type *Type_toCtype(Type *t);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
@@ -187,7 +184,6 @@ Symbol *toSymbol(Dsymbol *s)
                 }
                 s->Sclass = SCextern;
                 s->Sfl = FLextern;
-                slist_add(s);
                 /* if it's global or static, then it needs to have a qualified but unmangled name.
                  * This gives some explanation of the separation in treating name mangling.
                  * It applies to PDB format, but should apply to CV as PDB derives from CV.
@@ -281,7 +277,6 @@ Symbol *toSymbol(Dsymbol *s)
             //printf("\tid = '%s'\n", id);
             //printf("\ttype = %s\n", fd->type->toChars());
             Symbol *s = symbol_calloc(id);
-            slist_add(s);
 
             s->prettyIdent = fd->toPrettyChars(true);
             s->Sclass = SCglobal;
@@ -378,7 +373,6 @@ Symbol *toSymbol(Dsymbol *s)
             Symbol *s = toSymbolX(cd, "__Class", SCextern, scc->Stype, "Z");
             s->Sfl = FLextern;
             s->Sflags |= SFLnodebug;
-            slist_add(s);
             result = s;
         }
 
@@ -394,7 +388,6 @@ Symbol *toSymbol(Dsymbol *s)
             Symbol *s = toSymbolX(id, "__Interface", SCextern, scc->Stype, "Z");
             s->Sfl = FLextern;
             s->Sflags |= SFLnodebug;
-            slist_add(s);
             result = s;
         }
 
@@ -410,7 +403,6 @@ Symbol *toSymbol(Dsymbol *s)
             Symbol *s = toSymbolX(m, "__ModuleInfo", SCextern, scc->Stype, "Z");
             s->Sfl = FLextern;
             s->Sflags |= SFLnodebug;
-            slist_add(s);
             result = s;
         }
     };
@@ -456,7 +448,6 @@ static Symbol *toImport(Symbol *sym)
     s->Stype = t;
     s->Sclass = SCextern;
     s->Sfl = FLextern;
-    slist_add(s);
     return s;
 }
 
@@ -527,7 +518,6 @@ Symbol *toVtblSymbol(ClassDeclaration *cd)
         s->Sflags |= SFLnodebug;
         s->Sfl = FLextern;
         cd->vtblsym = s;
-        slist_add(s);
     }
     return cd->vtblsym;
 }
@@ -547,7 +537,6 @@ Symbol *toInitializer(AggregateDeclaration *ad)
         StructDeclaration *sd = ad->isStructDeclaration();
         if (sd)
             s->Salignment = sd->alignment;
-        slist_add(s);
         ad->sinit = s;
     }
     return ad->sinit;
@@ -565,7 +554,6 @@ Symbol *toInitializer(EnumDeclaration *ed)
         ed->ident = ident_save;
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
-        slist_add(s);
         ed->sinit = s;
     }
     return ed->sinit;
@@ -585,7 +573,6 @@ Symbol *toModuleAssert(Module *m)
         m->massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
         m->massert->Sfl = FLextern;
         m->massert->Sflags |= SFLnodebug | SFLexit;
-        slist_add(m->massert);
     }
     return m->massert;
 }
@@ -600,7 +587,6 @@ Symbol *toModuleUnittest(Module *m)
         m->munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
         m->munittest->Sfl = FLextern;
         m->munittest->Sflags |= SFLnodebug;
-        slist_add(m->munittest);
     }
     return m->munittest;
 }
@@ -618,7 +604,6 @@ Symbol *toModuleArray(Module *m)
         m->marray = toSymbolX(m, "__array", SCextern, t, "Z");
         m->marray->Sfl = FLextern;
         m->marray->Sflags |= SFLnodebug | SFLexit;
-        slist_add(m->marray);
     }
     return m->marray;
 }
@@ -660,7 +645,6 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
         // Create new Symbol
 
         Symbol *s = symbol_calloc(id);
-        slist_add(s);
         s->Sclass = SCextern;
         s->Ssymnum = -1;
         symbol_func(s);
@@ -691,7 +675,6 @@ Symbol* toSymbol(StructLiteralExp *sle)
     dt_t *d = NULL;
     Expression_toDt(sle, &d);
     s->Sdt = d;
-    slist_add(s);
     outdata(s);
     return sle->sym;
 }
@@ -710,7 +693,6 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     dt_t *d = NULL;
     ClassReferenceExp_toInstanceDt(cre, &d);
     s->Sdt = d;
-    slist_add(s);
     outdata(s);
     return cre->value->sym;
 }
@@ -738,7 +720,6 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
         s->Sfl = FLdata;
         s->Sflags |= SFLnodebug;
         cpp_type_info_ptr_toDt(cd, &s->Sdt);
-        slist_add(s);
         outdata(s);
         cd->cpp_type_info_ptr_sym = s;
     }
@@ -762,7 +743,5 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
     TYPE *t = type_fake(TYnptr);
     t->Tcount++;
     s->Stype = t;
-    slist_add(s);
     return s;
 }
-

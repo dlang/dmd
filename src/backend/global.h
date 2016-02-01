@@ -348,9 +348,7 @@ SYMIDX symbol_add(Symbol *s);
 void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol * symbol_copy(Symbol *s);
 Symbol * symbol_searchlist(symlist_t sl, const char *vident);
-void slist_add(Symbol *s);
-void slist_reset();
-
+void symbol_reset(Symbol *s);
 
 #if TX86
 // cg87.c
@@ -502,4 +500,3 @@ int  lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int 
 #endif
 
 #endif /* GLOBAL_H */
-

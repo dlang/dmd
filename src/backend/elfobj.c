@@ -268,6 +268,7 @@ static int local_cnt;           // Number of symbols with STB_LOCAL
 
 // Symbol Table
 Outbuffer  *SYMbuf;             // Buffer to build symbol table in
+Outbuffer  *reset_symbuf;       // Keep pointers to reset symbols
 
 // Extended section header indices
 static Outbuffer *shndx_data;
@@ -814,6 +815,18 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 
     if (SYMbuf)
         SYMbuf->setsize(0);
+    if (reset_symbuf)
+    {
+        symbol **p = (symbol **)reset_symbuf->buf;
+        const size_t n = reset_symbuf->size() / sizeof(symbol *);
+        for (size_t i = 0; i < n; ++i)
+            symbol_reset(p[i]);
+        reset_symbuf->setsize(0);
+    }
+    else
+    {
+        reset_symbuf = new Outbuffer(50 * sizeof(symbol *));
+    }
     if (shndx_data)
         shndx_data->setsize(0);
     symbol_idx = 0;
@@ -2186,6 +2199,7 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
 #endif
 
     symbol_debug(s);
+    reset_symbuf->write(&s, sizeof(s));
     IDXSTR namidx = elf_addmangled(s);
     //printf("\tnamidx %d,section %d\n",namidx,MAP_SEG2SECIDX(seg));
     if (tyfunc(s->ty()))
@@ -2238,6 +2252,7 @@ int Obj::external(Symbol *s)
 
     //dbg_printf("Obj::external('%s') %x\n",s->Sident,s->Svalue);
     symbol_debug(s);
+    reset_symbuf->write(&s, sizeof(s));
     IDXSTR namidx = elf_addmangled(s);
 
 #if SCPP
@@ -2305,6 +2320,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
         return s->Sseg;
     }
 #if 0
+    reset_symbuf->write(s);
     IDXSTR namidx = elf_addmangled(s);
     alignOffset(UDATA,size);
     IDXSYM symidx = elf_addsym(namidx, SegData[UDATA]->SDoffset, size*count,

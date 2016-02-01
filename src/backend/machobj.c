@@ -126,6 +126,14 @@ static Outbuffer *local_symbuf;
 static Outbuffer *public_symbuf;
 static Outbuffer *extern_symbuf;
 
+static void reset_symbols(Outbuffer *buf)
+{
+    symbol **p = (symbol **)buf->buf;
+    const size_t n = buf->size() / sizeof(symbol *);
+    for (size_t i = 0; i < n; ++i)
+        symbol_reset(p[i]);
+}
+
 struct Comdef { symbol *sym; targ_size_t size; int count; };
 static Outbuffer *comdef_symbuf;        // Comdef's are stored here
 
@@ -436,13 +444,21 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         local_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
     local_symbuf->setsize(0);
 
-    if (!public_symbuf)
+    if (public_symbuf)
+    {
+        reset_symbols(public_symbuf);
+        public_symbuf->setsize(0);
+    }
+    else
         public_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    public_symbuf->setsize(0);
 
-    if (!extern_symbuf)
+    if (extern_symbuf)
+    {
+        reset_symbols(extern_symbuf);
+        extern_symbuf->setsize(0);
+    }
+    else
         extern_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    extern_symbuf->setsize(0);
 
     if (!comdef_symbuf)
         comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);

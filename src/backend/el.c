@@ -43,10 +43,6 @@ static int elfreed = 0;                 /* number of freed elems        */
 static int eprm_cnt;                    /* max # of allocs at any point */
 #endif
 
-#if TARGET_OSX
-extern void slist_add(Symbol *s);
-#endif
-
 /*******************************
  * Do our own storage allocation of elems.
  */
@@ -1254,7 +1250,6 @@ elem *el_picvar(symbol *s)
                      */
                     tls_get_addr_sym = symbol_name("___tls_get_addr",SCglobal,type_fake(TYjfunc));
                     symbol_keep(tls_get_addr_sym);
-                    slist_add(tls_get_addr_sym);
                 }
                 if (x == 1)
                     e = el_una(OPind, TYnptr, e);
