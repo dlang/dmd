@@ -678,7 +678,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
     else
         offset = 0;
 
-    if (cd)
+    if (cd && cd->cpp)
     {
         // Interface vptr initializations
         toSymbol(cd);                                         // define csym
@@ -766,6 +766,30 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
         offset = vd->offset + vd->type->size();
     }
 
+    if (cd && !cd->cpp)
+    {
+        // Interface vptr initializations
+        toSymbol(cd);                                         // define csym
+
+        for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+        {
+            BaseClass *b = (*cd->vtblInterfaces)[i];
+            for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
+            {
+                assert(cd2);
+                unsigned csymoffset = baseVtblOffset(cd2, b);
+                if (csymoffset != ~0)
+                {
+                    if (offset < b->offset)
+                        pdt = dtnzeros(pdt, b->offset - offset);
+                    pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
+                    break;
+                }
+            }
+            offset = b->offset + Target::ptrsize;
+        }
+    }
+
     if (offset < ad->structsize)
         pdt = dtnzeros(pdt, ad->structsize - offset);
 
@@ -804,7 +828,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
     else
         offset = 0;
 
-    if (cd)
+    if (cd && cd->cpp)
     {
         // Interface vptr initializations
         toSymbol(cd);                                         // define csym
@@ -869,6 +893,30 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
 
         pdt = dtcat(pdt, dt);
         offset = vd->offset + vd->type->size();
+    }
+
+    if (cd && !cd->cpp)
+    {
+        // Interface vptr initializations
+        toSymbol(cd);                                         // define csym
+
+        for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+        {
+            BaseClass *b = (*cd->vtblInterfaces)[i];
+            for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
+            {
+                assert(cd2);
+                unsigned csymoffset = baseVtblOffset(cd2, b);
+                if (csymoffset != ~0)
+                {
+                    if (offset < b->offset)
+                        pdt = dtnzeros(pdt, b->offset - offset);
+                    pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
+                    break;
+                }
+            }
+            offset = b->offset + Target::ptrsize;
+        }
     }
 
     if (offset < ad->structsize)

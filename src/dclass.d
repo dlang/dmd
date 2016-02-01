@@ -1162,7 +1162,8 @@ public:
         }
 
         // Add vptr's for any interfaces implemented by this class
-        structsize += setBaseInterfaceOffsets(structsize);
+        if (cpp)
+            structsize += setBaseInterfaceOffsets(structsize);
 
         uint offset = structsize;
         for (size_t i = 0; i < members.dim; i++)
@@ -1172,6 +1173,10 @@ public:
         }
         if (sizeok == SIZEOKfwd)
             return;
+
+        // Add vptr's for any interfaces implemented by this class
+        if (!cpp)
+            structsize += setBaseInterfaceOffsets(structsize);
 
         sizeok = SIZEOKdone;
 
