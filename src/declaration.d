@@ -2216,11 +2216,14 @@ public:
             return false;
         if (isDataseg() || (storage_class & STCmanifest))
             return false;
+
         // The current function
         FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
         if (!fdthis)
             return false; // out of function scope
+
         Dsymbol p = toParent2();
+
         // Function literals from fdthis to p must be delegates
         // TODO: here is similar to checkFrameAccess.
         for (Dsymbol s = fdthis; s && s != p; s = s.toParent2())
@@ -2239,68 +2242,70 @@ public:
                     break;
             }
         }
-        if (1)
+
+        // The function that this variable is in
+        FuncDeclaration fdv = p.isFuncDeclaration();
+        if (!fdv || fdv == fdthis)
+            return false;
+
+        // Add fdthis to nestedrefs[] if not already there
+        for (size_t i = 0; 1; i++)
         {
-            // The function that this variable is in
-            FuncDeclaration fdv = p.isFuncDeclaration();
-            if (fdv && fdv != fdthis)
+            if (i == nestedrefs.dim)
             {
-                // Add fdthis to nestedrefs[] if not already there
-                for (size_t i = 0; 1; i++)
-                {
-                    if (i == nestedrefs.dim)
-                    {
-                        nestedrefs.push(fdthis);
-                        break;
-                    }
-                    if (nestedrefs[i] == fdthis)
-                        break;
-                }
-                if (fdthis.ident != Id.require && fdthis.ident != Id.ensure)
-                {
-                    /* __require and __ensure will always get called directly,
-                     * so they never make outer functions closure.
-                     */
-                    //printf("\tfdv = %s\n", fdv->toChars());
-                    //printf("\tfdthis = %s\n", fdthis->toChars());
-                    if (loc.filename)
-                    {
-                        int lv = fdthis.getLevel(loc, sc, fdv);
-                        if (lv == -2) // error
-                            return true;
-                    }
-                    // Add this to fdv->closureVars[] if not already there
-                    for (size_t i = 0; 1; i++)
-                    {
-                        if (i == fdv.closureVars.dim)
-                        {
-                            if (!sc.intypeof && !(sc.flags & SCOPEcompile))
-                                fdv.closureVars.push(this);
-                            break;
-                        }
-                        if (fdv.closureVars[i] == this)
-                            break;
-                    }
-                    //printf("fdthis is %s\n", fdthis->toChars());
-                    //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
-                    // __dollar creates problems because it isn't a real variable Bugzilla 3326
-                    if (ident == Id.dollar)
-                    {
-                        .error(loc, "cannnot use $ inside a function literal");
-                        return true;
-                    }
-                    if (ident == Id.withSym) // Bugzilla 1759
-                    {
-                        ExpInitializer ez = _init.isExpInitializer();
-                        assert(ez);
-                        Expression e = ez.exp;
-                        if (e.op == TOKconstruct || e.op == TOKblit)
-                            e = (cast(AssignExp)e).e2;
-                        return lambdaCheckForNestedRef(e, sc);
-                    }
-                }
+                nestedrefs.push(fdthis);
+                break;
             }
+            if (nestedrefs[i] == fdthis)
+                break;
         }
+
+        /* __require and __ensure will always get called directly,
+         * so they never make outer functions closure.
+         */
+        if (fdthis.ident == Id.require || fdthis.ident == Id.ensure)
+            return false;
+
+        //printf("\tfdv = %s\n", fdv.toChars());
+        //printf("\tfdthis = %s\n", fdthis.toChars());
+        if (loc.filename)
+        {
+            int lv = fdthis.getLevel(loc, sc, fdv);
+            if (lv == -2) // error
+                return true;
+        }
+
+        // Add this to fdv.closureVars[] if not already there
+        for (size_t i = 0; 1; i++)
+        {
+            if (i == fdv.closureVars.dim)
+            {
+                if (!sc.intypeof && !(sc.flags & SCOPEcompile))
+                    fdv.closureVars.push(this);
+                break;
+            }
+            if (fdv.closureVars[i] == this)
+                break;
+        }
+
+        //printf("fdthis is %s\n", fdthis.toChars());
+        //printf("var %s in function %s is nested ref\n", toChars(), fdv.toChars());
+        // __dollar creates problems because it isn't a real variable Bugzilla 3326
+        if (ident == Id.dollar)
+        {
+            .error(loc, "cannnot use $ inside a function literal");
+            return true;
+        }
+        if (ident == Id.withSym) // Bugzilla 1759
+        {
+            ExpInitializer ez = _init.isExpInitializer();
+            assert(ez);
+            Expression e = ez.exp;
+            if (e.op == TOKconstruct || e.op == TOKblit)
+                e = (cast(AssignExp)e).e2;
+            return lambdaCheckForNestedRef(e, sc);
+        }
+
         return false;
     }
 
