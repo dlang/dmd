@@ -180,11 +180,15 @@ struct ClassFlags
 extern (C++) class ClassDeclaration : AggregateDeclaration
 {
 public:
-    extern (C++) static __gshared ClassDeclaration object;
-    extern (C++) static __gshared ClassDeclaration throwable;
-    extern (C++) static __gshared ClassDeclaration exception;
-    extern (C++) static __gshared ClassDeclaration errorException;
-    extern (C++) static __gshared ClassDeclaration cpp_type_info_ptr;   // Object.__cpp_type_info_ptr
+    extern (C++) __gshared
+    {
+        // Names found by reading object.d in druntime
+        ClassDeclaration object;
+        ClassDeclaration throwable;
+        ClassDeclaration exception;
+        ClassDeclaration errorException;
+        ClassDeclaration cpp_type_info_ptr;   // Object.__cpp_type_info_ptr
+    }
 
     ClassDeclaration baseClass; // NULL only if this is Object
     FuncDeclaration staticCtor;
