@@ -128,8 +128,8 @@ struct BaseClass
         //printf("+copyBaseInterfaces(), %s\n", sym->toChars());
         //    if (baseInterfaces_dim)
         //      return;
-        auto bc = cast(BaseClass*)mem.xcalloc(sym.interfaces_dim, BaseClass.sizeof);
-        baseInterfaces = bc[0 .. sym.interfaces_dim];
+        auto bc = cast(BaseClass*)mem.xcalloc(sym.interfaces.length, BaseClass.sizeof);
+        baseInterfaces = bc[0 .. sym.interfaces.length];
         //printf("%s.copyBaseInterfaces()\n", sym->toChars());
         for (size_t i = 0; i < baseInterfaces.length; i++)
         {
@@ -195,9 +195,9 @@ public:
     // Array of BaseClass's; first is super, rest are Interface's
     BaseClasses* baseclasses;
 
-    // interfaces[interfaces_dim] for this class (does not include baseClass)
-    size_t interfaces_dim;
-    BaseClass** interfaces;
+    /* Slice of baseclasses[] that does not include baseClass
+     */
+    BaseClass*[] interfaces;
 
     // array of base interfaces that have their own vtbl[]
     BaseClasses* vtblInterfaces;
@@ -675,11 +675,9 @@ public:
                 storage_class |= baseClass.storage_class & STC_TYPECTOR;
             }
 
-            interfaces_dim = baseclasses.dim - (baseClass ? 1 : 0);
-            interfaces = baseclasses.tdata() + (baseClass ? 1 : 0);
-            for (size_t i = 0; i < interfaces_dim; i++)
+            interfaces = baseclasses.tdata()[(baseClass ? 1 : 0) .. baseclasses.dim];
+            foreach (b; interfaces)
             {
-                BaseClass* b = interfaces[i];
                 // If this is an interface, and it derives from a COM interface,
                 // then this is a COM interface too.
                 if (b.sym.isCOMinterface())
@@ -1320,10 +1318,9 @@ public:
     final void interfaceSemantic(Scope* sc)
     {
         vtblInterfaces = new BaseClasses();
-        vtblInterfaces.reserve(interfaces_dim);
-        for (size_t i = 0; i < interfaces_dim; i++)
+        vtblInterfaces.reserve(interfaces.length);
+        foreach (b; interfaces)
         {
-            BaseClass* b = interfaces[i];
             vtblInterfaces.push(b);
             b.copyBaseInterfaces(vtblInterfaces);
         }
@@ -1632,11 +1629,9 @@ public:
             }
             baseok = BASEOKdone;
 
-            interfaces_dim = baseclasses.dim;
-            interfaces = baseclasses.tdata();
-            for (size_t i = 0; i < interfaces_dim; i++)
+            interfaces = baseclasses.tdata()[0 .. baseclasses.dim];
+            foreach (b; interfaces)
             {
-                BaseClass* b = interfaces[i];
                 // If this is an interface, and it derives from a COM interface,
                 // then this is a COM interface too.
                 if (b.sym.isCOMinterface())
@@ -1684,10 +1679,8 @@ public:
                 vtbl.push(this); // leave room at vtbl[0] for classinfo
 
             // Cat together the vtbl[]'s from base interfaces
-            for (size_t i = 0; i < interfaces_dim; i++)
+            foreach (i, b; interfaces)
             {
-                BaseClass* b = interfaces[i];
-
                 // Skip if b has already appeared
                 for (size_t k = 0; k < i; k++)
                 {
@@ -1807,9 +1800,8 @@ public:
     {
         //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
         assert(!baseClass);
-        for (size_t j = 0; j < cd.interfaces_dim; j++)
+        foreach (j, b; cd.interfaces)
         {
-            BaseClass* b = cd.interfaces[j];
             //printf("\tX base %s\n", b->sym->toChars());
             if (this == b.sym)
             {

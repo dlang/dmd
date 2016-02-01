@@ -3995,9 +3995,8 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     // Test the base class
                     deduceBaseClassParameters(*(*s.baseclasses)[0], sc, tparam, parameters, dedtypes, best, numBaseClassMatches);
                     // Test the interfaces inherited by the base class
-                    for (size_t i = 0; i < s.interfaces_dim; ++i)
+                    foreach (b; s.interfaces)
                     {
-                        BaseClass* b = s.interfaces[i];
                         deduceBaseClassParameters(*b, sc, tparam, parameters, dedtypes, best, numBaseClassMatches);
                     }
                     s = (*s.baseclasses)[0].sym;
