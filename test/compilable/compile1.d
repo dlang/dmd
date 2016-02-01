@@ -939,3 +939,18 @@ struct S3438_2 { this(int x, ...) { } }
 struct S3438_3 { this(int x, int[] arr...) { } }
 struct S3438_4 { this(...) { } }
 struct S3438_5 { this(int[] arr...) { } }
+
+/***************************************************/
+// 15362
+
+void func15362()
+{
+    assert(true);
+    assert(true,);
+    assert(true, "So true");
+    assert(true, "Very, very true",);
+    static assert(true);
+    static assert(true,);
+    static assert(true, "So true");
+    static assert(true, "Very, very true",);
+}

@@ -1920,7 +1920,12 @@ public:
         if (token.value == TOKcomma)
         {
             nextToken();
-            msg = parseAssignExp();
+            if (token.value != TOKrparen)
+            {
+                msg = parseAssignExp();
+                if (token.value == TOKcomma)
+                    nextToken();
+            }
         }
         check(TOKrparen);
         check(TOKsemicolon);
@@ -6902,7 +6907,12 @@ public:
                 if (token.value == TOKcomma)
                 {
                     nextToken();
-                    msg = parseAssignExp();
+                    if (token.value != TOKrparen)
+                    {
+                        msg = parseAssignExp();
+                        if (token.value == TOKcomma)
+                            nextToken();
+                    }
                 }
                 check(TOKrparen);
                 e = new AssertExp(loc, e, msg);
