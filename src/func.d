@@ -1041,9 +1041,8 @@ public:
              * functions, set the tintro.
              */
         Linterfaces:
-            for (size_t i = 0; i < cd.interfaces_dim; i++)
+            foreach (b; cd.interfaces)
             {
-                BaseClass* b = cd.interfaces[i];
                 vi = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
                 switch (vi)
                 {
@@ -1123,9 +1122,8 @@ public:
             /* Go through all the interface bases.
              * Disallow overriding any final functions in the interface(s).
              */
-            for (size_t i = 0; i < cd.interfaces_dim; i++)
+            foreach (b; cd.interfaces)
             {
-                BaseClass* b = cd.interfaces[i];
                 if (b.sym)
                 {
                     Dsymbol s = search_function(b.sym, ident);
@@ -2488,9 +2486,8 @@ public:
     final BaseClass* overrideInterface()
     {
         ClassDeclaration cd = parent.isClassDeclaration();
-        for (size_t i = 0; i < cd.interfaces_dim; i++)
+        foreach (b; cd.interfaces)
         {
-            BaseClass* b = cd.interfaces[i];
             auto v = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
             if (v >= 0)
                 return b;

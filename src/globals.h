@@ -243,6 +243,14 @@ typedef longdouble              d_float80;
 
 typedef longdouble real_t;
 
+// Represents a D [ ] array
+template<typename T>
+struct DArray
+{
+    size_t length;
+    T *ptr;
+};
+
 // file location
 struct Loc
 {
