@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -42,8 +42,8 @@ dt_t **Type_toDt(Type *t, dt_t **pdt);
 dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
 dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
 dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
-dt_t **membersToDt(AggregateDeclaration *cd, dt_t **pdt, ClassDeclaration * = NULL);
-dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t = 0, ClassDeclaration * = NULL);
+//static dt_t **membersToDt(AggregateDeclaration *cd, dt_t **pdt, ClassDeclaration * = NULL);
+static dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t, ClassDeclaration *);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
@@ -459,7 +459,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
         {
             //printf("StructLiteralExp::toDt() %s, ctfe = %d\n", sle->toChars(), sle->ownedByCtfe);
             assert(sle->sd->fields.dim - sle->sd->isNested() <= sle->elements->dim);
-            pdt = membersToDt(sle->sd, pdt, sle->elements);
+            pdt = membersToDt(sle->sd, pdt, sle->elements, 0, NULL);
         }
 
         void visit(SymOffExp *e)
@@ -596,7 +596,7 @@ dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
         pdt = dtsize_t(pdt, 0);             // monitor
 
     // Put in the rest
-    pdt = membersToDt(cd, pdt, cd);
+    pdt = membersToDt(cd, pdt, NULL, 0, cd);
 
     //printf("-ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
     return pdt;
@@ -605,7 +605,7 @@ dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
 dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
 {
     //printf("+StructDeclaration::toDt(), this='%s'\n", sd->toChars());
-    pdt = membersToDt(sd, pdt);
+    pdt = membersToDt(sd, pdt, NULL, 0, NULL);
 
     //printf("-StructDeclaration::toDt(), this='%s'\n", sd->toChars());
     return pdt;
@@ -642,169 +642,25 @@ dt_t **cpp_type_info_ptr_toDt(ClassDeclaration *cd, dt_t **pdt)
  * have to use this optimized version to reduce memory footprint.
  * Params:
  *      ad = aggregate with members
- *      pdt = tail of initializer list
+ *      pdt = tail of initializer list to start appending initialized data to
+ *      elements = values to use as initializers, NULL means use default initializers
+ *      firstFieldIndex = starting place is elements[firstFieldIndex]
  *      concreteType = structs: null, classes: top level class
  * Returns:
  *      updated tail of dt_t list
  */
-dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
+static dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
+        Expressions *elements, size_t firstFieldIndex,
         ClassDeclaration *concreteType)
 {
     //printf("membersToDt(ad = '%s')\n", ad->toChars());
     ClassDeclaration *cd = ad->isClassDeclaration();
 
     /* Order:
-     *  { base class } or { __vptr, __monitor)
+     *  { base class } or { __vptr, __monitor }
      *  interfaces
      *  fields
      */
-
-    unsigned offset;
-    if (cd)
-    {
-        if (ClassDeclaration *cdb = cd->baseClass)
-        {
-            pdt = membersToDt(cdb, pdt, concreteType);
-            offset = cdb->structsize;
-        }
-        else
-        {
-            if (cd->cpp)
-                offset = Target::ptrsize;       // allow room for __vptr
-            else
-                offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
-        }
-    }
-    else
-        offset = 0;
-
-    if (cd && cd->cpp)
-    {
-        // Interface vptr initializations
-        toSymbol(cd);                                         // define csym
-
-        for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
-        {
-            BaseClass *b = (*cd->vtblInterfaces)[i];
-            for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
-            {
-                assert(cd2);
-                unsigned csymoffset = baseVtblOffset(cd2, b);
-                if (csymoffset != ~0)
-                {
-                    if (offset < b->offset)
-                        pdt = dtnzeros(pdt, b->offset - offset);
-                    pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
-                    break;
-                }
-            }
-            offset = b->offset + Target::ptrsize;
-        }
-    }
-
-    for (size_t i = 0; i < ad->fields.dim; i++)
-    {
-        if (ad->fields[i]->_init && ad->fields[i]->_init->isVoidInitializer())
-            continue;
-
-        VarDeclaration *vd = NULL;
-        size_t k;
-        for (size_t j = i; j < ad->fields.dim; j++)
-        {
-            VarDeclaration *v2 = ad->fields[j];
-            if (v2->offset < offset)
-                continue;
-            if (v2->_init && v2->_init->isVoidInitializer())
-                continue;
-            // find the nearest field
-            if (!vd || v2->offset < vd->offset)
-            {
-                vd = v2;
-                k = j;
-                assert(vd == v2 || !vd->isOverlappedWith(v2));
-            }
-        }
-        if (!vd)
-            continue;
-
-        assert(offset <= vd->offset);
-        if (offset < vd->offset)
-            pdt = dtnzeros(pdt, vd->offset - offset);
-
-        dt_t *dt = NULL;
-        if (Initializer *init = vd->_init)
-        {
-            //printf("\t\t%s has initializer %s\n", vd->toChars(), init->toChars());
-            if (init->isVoidInitializer())
-                continue;
-
-            /* Because of issue 14666, function local import does not invoke
-             * semantic2 pass for the imported module, and surprisingly there's
-             * no opportunity to do it today.
-             * As a workaround for the issue 9057, have to resolve forward reference
-             * in `init` before its use.
-             */
-            if (vd->sem < Semantic2Done && vd->_scope)
-                vd->semantic2(vd->_scope);
-
-            ExpInitializer *ei = init->isExpInitializer();
-            Type *tb = vd->type->toBasetype();
-            if (ei && tb->ty == Tsarray)
-                toDtElem(((TypeSArray *)tb), &dt, ei->exp);
-            else
-                Initializer_toDt(init, &dt);
-        }
-        else if (offset <= vd->offset)
-        {
-            //printf("\t\tdefault initializer\n");
-            Type_toDt(vd->type, &dt);
-        }
-        if (!dt)
-            continue;
-
-        pdt = dtcat(pdt, dt);
-        offset = vd->offset + vd->type->size();
-    }
-
-    if (cd && !cd->cpp)
-    {
-        // Interface vptr initializations
-        toSymbol(cd);                                         // define csym
-
-        for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
-        {
-            BaseClass *b = (*cd->vtblInterfaces)[i];
-            for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
-            {
-                assert(cd2);
-                unsigned csymoffset = baseVtblOffset(cd2, b);
-                if (csymoffset != ~0)
-                {
-                    if (offset < b->offset)
-                        pdt = dtnzeros(pdt, b->offset - offset);
-                    pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
-                    break;
-                }
-            }
-            offset = b->offset + Target::ptrsize;
-        }
-    }
-
-    if (offset < ad->structsize)
-        pdt = dtnzeros(pdt, ad->structsize - offset);
-
-    return pdt;
-}
-
-/****************************************************
- * Put out elements[].
- */
-dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
-        Expressions *elements, size_t firstFieldIndex,
-        ClassDeclaration *concreteType)
-{
-    //printf("membersToDt(ad = '%s', elements = %s)\n", ad->toChars(), elements->toChars());
-    ClassDeclaration *cd = ad->isClassDeclaration();
 
     unsigned offset;
     if (cd)
@@ -852,11 +708,15 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
         }
     }
 
-    assert(firstFieldIndex <= elements->dim &&
+    assert(!elements ||
+           firstFieldIndex <= elements->dim &&
            firstFieldIndex + ad->fields.dim <= elements->dim);
+
     for (size_t i = 0; i < ad->fields.dim; i++)
     {
-        if (!(*elements)[firstFieldIndex + i])
+        if (elements && !(*elements)[firstFieldIndex + i])
+            continue;
+        else if (ad->fields[i]->_init && ad->fields[i]->_init->isVoidInitializer())
             continue;
 
         VarDeclaration *vd = NULL;
@@ -866,8 +726,12 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             VarDeclaration *v2 = ad->fields[j];
             if (v2->offset < offset)
                 continue;
-            if (!(*elements)[firstFieldIndex + j])
+
+            if (elements && !(*elements)[firstFieldIndex + j])
                 continue;
+            if (v2->_init && v2->_init->isVoidInitializer())
+                continue;
+
             // find the nearest field
             if (!vd || v2->offset < vd->offset)
             {
@@ -884,12 +748,47 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             pdt = dtnzeros(pdt, vd->offset - offset);
 
         dt_t *dt = NULL;
-        Expression *e = (*elements)[firstFieldIndex + k];
-        Type *tb = vd->type->toBasetype();
-        if (tb->ty == Tsarray)
-            toDtElem(((TypeSArray *)tb), &dt, e);
+        if (elements)
+        {
+            Expression *e = (*elements)[firstFieldIndex + k];
+            Type *tb = vd->type->toBasetype();
+            if (tb->ty == Tsarray)
+                toDtElem(((TypeSArray *)tb), &dt, e);
+            else
+                Expression_toDt(e, &dt);    // convert e to an initializer dt
+        }
         else
-            Expression_toDt(e, &dt);    // convert e to an initializer dt
+        {
+            if (Initializer *init = vd->_init)
+            {
+                //printf("\t\t%s has initializer %s\n", vd->toChars(), init->toChars());
+                if (init->isVoidInitializer())
+                    continue;
+
+                /* Because of issue 14666, function local import does not invoke
+                 * semantic2 pass for the imported module, and surprisingly there's
+                 * no opportunity to do it today.
+                 * As a workaround for the issue 9057, have to resolve forward reference
+                 * in `init` before its use.
+                 */
+                if (vd->sem < Semantic2Done && vd->_scope)
+                    vd->semantic2(vd->_scope);
+
+                ExpInitializer *ei = init->isExpInitializer();
+                Type *tb = vd->type->toBasetype();
+                if (ei && tb->ty == Tsarray)
+                    toDtElem(((TypeSArray *)tb), &dt, ei->exp);
+                else
+                    Initializer_toDt(init, &dt);
+            }
+            else if (offset <= vd->offset)
+            {
+                //printf("\t\tdefault initializer\n");
+                Type_toDt(vd->type, &dt);
+            }
+            if (!dt)
+                continue;
+        }
 
         pdt = dtcat(pdt, dt);
         offset = vd->offset + vd->type->size();
@@ -924,6 +823,7 @@ dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
 
     return pdt;
 }
+
 
 /* ================================================================= */
 
