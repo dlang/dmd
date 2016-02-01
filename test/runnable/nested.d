@@ -866,6 +866,7 @@ class Foo35
                 //writefln("y = %s", y);
                 assert(x == 42);
                 assert(y == 43);
+                static assert(is(typeof(this.outer) == void*)); // Bugzilla 14442
             }
         };
     }
@@ -2486,6 +2487,159 @@ void test14846()
 }
 
 /*******************************************/
+// 15422
+
+class App15422(T)
+{
+    this() {}
+
+    auto test1(T val)
+    in {} body      // necessary to reproduce the crash
+    {
+        struct Foo
+        {
+            this(int k) {}
+            T a;
+        }
+
+        Foo foo;
+        foo.a = val;
+
+        // Frame of test2 function, allocated on heap.
+        assert(foo.tupleof[$-1] !is null);
+
+        //printf("&foo = %p\n", &foo);                  // stack
+        //printf("&this = %p\n", &this);                // stack?
+        //printf("foo.vthis = %p\n", foo.tupleof[$-1]); // stack...!?
+        //assert(cast(void*)&this !is *cast(void**)&foo.tupleof[$-1], "bad");
+        // BUG: currently foo.vthis set to the address of 'this' variable on the stack.
+        // It's should be stomped to null, because Foo.vthis is never be used.
+
+        int[Foo] map;
+        map[foo] = 1;   // OK <- crash
+
+        return foo;
+    }
+
+    auto test2(T val)
+    //in {} body
+    {
+        int closVar;
+        struct Foo
+        {
+            this(int k) { closVar = k; }
+            // Make val a closure variable.
+
+            T a;
+        }
+
+        Foo foo;
+        foo.a = val;
+
+        // Frame of test2 function, allocated on heap.
+        assert(foo.tupleof[$-1] !is null);
+
+        return foo;
+    }
+}
+
+void test15422a()
+{
+    alias App = App15422!int;
+    App app1 = new App;
+    {
+        auto x = app1.test1(1);
+        auto y = app1.test1(1);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // int (bitwise comparison)
+        assert(x.a == y.a);
+
+        assert(*cast(void**)&x.tupleof[$-1] is *cast(void**)&y.tupleof[$-1]);
+
+        // bitwise equality (needOpEquals() and needToHash() returns false)
+        assert(x == y);
+
+        // BUG
+        //assert(*cast(void**)&x.tupleof[$-1] is null);
+        //assert(*cast(void**)&y.tupleof[$-1] is null);
+        auto getZ() { auto z = app1.test1(1); return z; }
+        auto z = getZ();
+        assert(x.a == z.a);
+        //assert(x.tupleof[$-1] is z.tupleof[$-1]);   // should pass
+        //assert(x == z);                             // should pass
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+    App app2 = new App;
+    {
+        auto x = app1.test2(1);
+        auto y = app2.test2(1);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // int (bitwise comparison)
+        assert(x.a == y.a);
+
+        // closure envirionments
+        assert(*cast(void**)&x.tupleof[$-1] !is *cast(void**)&y.tupleof[$-1]);
+
+        // Changed to bitwise equality (needOpEquals() and needToHash() returns false)
+        assert(x != y);         // OK <- crash
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+}
+
+void test15422b()
+{
+    alias App = App15422!string;
+    App app1 = new App;
+    {
+        auto x = app1.test1("a".idup);
+        auto y = app1.test1("a".idup);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // string (element-wise comparison)
+        assert(x.a == y.a);
+
+        assert(*cast(void**)&x.tupleof[$-1] is *cast(void**)&y.tupleof[$-1]);
+
+        // memberwise equality (needToHash() returns true)
+        assert(x == y);
+        // Lowered to: x.a == y.a && x.tupleof[$-1] is y.tupleof[$-1]
+
+        // BUG
+        //assert(*cast(void**)&x.tupleof[$-1] is null);
+        //assert(*cast(void**)&y.tupleof[$-1] is null);
+        auto getZ() { auto z = app1.test1("a".idup); return z; }
+        auto z = getZ();
+        assert(x.a == z.a);
+        //assert(x.tupleof[$-1] is z.tupleof[$-1]);   // should pass
+        //assert(x == z);                             // should pass
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+    App app2 = new App;
+    {
+        auto x = app1.test2("a".idup);
+        auto y = app2.test2("a".idup);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // string (element-wise comparison)
+        assert(x.a == y.a);
+
+        // closure envirionments
+        assert(*cast(void**)&x.tupleof[$-1] !is *cast(void**)&y.tupleof[$-1]);
+
+        // Changed to memberwise equality (needToHash() returns true)
+        // Lowered to: x.a == y.a && x.tupleof[$-1] is y.tupleof[$-1]
+        assert(x != y);         // OK <- crash
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2577,8 +2731,9 @@ int main()
     test13861();
     test14398();
     test14846();
+    test15422a();
+    test15422b();
 
     printf("Success\n");
     return 0;
 }
-
