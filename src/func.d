@@ -2192,6 +2192,15 @@ public:
             type = f.semantic(loc, sc);
             sc = sc.pop();
         }
+        auto ad1 = isThis();
+        if (ad1)
+        {
+            auto cad = cast(ClassDeclaration)ad1;
+            if  (cad !is null && cad.isAbstract() && !fbody) {
+                //printf("isThis:%s %s %d fbody:%d\n", toChars(), ad1.toChars(), (cad is null) ? false : cad.isAbstract(), fbody ? true : false);
+                storage_class |= STCabstract;
+            }
+        }
         /* If this function had instantiated with gagging, error reproduction will be
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
