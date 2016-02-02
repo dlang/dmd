@@ -68,3 +68,28 @@ fail_compilation/nogc3.d(68):        nogc3.testClosure3.bar closes over variable
     int bar() { return x; }
     takeDelegate3(&bar);
 }
+
+/****************** ErrorExp ***********************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/nogc3.d(86): Error: array literal in @nogc function 'nogc3.foo13702' may cause GC allocation
+fail_compilation/nogc3.d(87): Error: array literal in @nogc function 'nogc3.foo13702' may cause GC allocation
+fail_compilation/nogc3.d(93): Error: array literal in @nogc function 'nogc3.bar13702' may cause GC allocation
+fail_compilation/nogc3.d(92): Error: array literal in @nogc function 'nogc3.bar13702' may cause GC allocation
+---
+*/
+int[] foo13702(bool b) @nogc
+{
+    if (b)
+        return [1];     // error
+    return 1 ~ [2];     // error
+}
+int[] bar13702(bool b) @nogc
+{
+    if (b)
+        return [1];     // error <- no error report
+    auto aux = 1 ~ [2]; // error
+    return aux;
+}
