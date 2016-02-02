@@ -3,10 +3,13 @@ import std.stdio;
 import std.math;
 import core.bitop;
 
-version (X86_64)
-    version = AnyX86;
-else version (X86)
-    version = AnyX86;
+version (DigitalMars)
+{
+    version (X86_64)
+        version = AnyX86;
+    else version (X86)
+        version = AnyX86;
+}
 
 /*******************************************/
 
