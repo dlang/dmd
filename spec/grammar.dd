@@ -1724,8 +1724,8 @@ $(GNAME DebugSpecification):
 
 $(GRAMMAR
 $(GNAME StaticAssert):
-    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN);)
-    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,) $(ASSIGNEXPRESSION) $(D $(RPAREN);)
+    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,)$(OPT) $(D $(RPAREN);)
+    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,) $(ASSIGNEXPRESSION) $(D ,)$(OPT) $(D $(RPAREN);)
 )
 
 $(H3 $(LNAME2 module, Module))

@@ -537,8 +537,8 @@ $(H2 $(LEGACY_LNAME2 StaticAssert, static-assert, Static Assert))
 
 $(GRAMMAR
 $(GNAME StaticAssert):
-    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN);)
-    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,) $(ASSIGNEXPRESSION) $(D $(RPAREN);)
+    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,)$(OPT) $(D $(RPAREN);)
+    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,) $(ASSIGNEXPRESSION) $(D ,)$(OPT) $(D $(RPAREN);)
 )
 
 	$(P $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
