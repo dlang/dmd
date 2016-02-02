@@ -5629,20 +5629,11 @@ public:
                 else if (fdn)
                 {
                     // make sure the parent context fdn of cd is reachable from sc
-                    for (Dsymbol sp = sc.parent; 1; sp = sp.parent)
+                    if (checkNestedRef(sc.parent, fdn))
                     {
-                        if (fdn == sp)
-                            break;
-                        FuncDeclaration fsp = sp ? sp.isFuncDeclaration() : null;
-                        if (!sp || (fsp && fsp.isStatic()))
-                        {
-                            error("outer function context of %s is needed to 'new' nested class %s", fdn.toPrettyChars(), cd.toPrettyChars());
-                            goto Lerr;
-                        }
-                        else if (FuncLiteralDeclaration fld = sp.isFuncLiteralDeclaration())
-                        {
-                            fld.tok = TOKdelegate;
-                        }
+                        error("outer function context of %s is needed to 'new' nested class %s",
+                            fdn.toPrettyChars(), cd.toPrettyChars());
+                        goto Lerr;
                     }
                 }
                 else
