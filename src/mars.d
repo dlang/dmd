@@ -665,7 +665,6 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
                     num = strtol(p + 9, cast(char**)&p, 10);
                     if (*p || errno || num > INT_MAX)
                         goto Lerror;
-                    // Bugzilla issue number
                     global.errorLimit = cast(uint)num;
                 }
                 else
