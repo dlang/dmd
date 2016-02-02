@@ -408,8 +408,8 @@ $(GNAME Lambda):
 
 $(GRAMMAR
 $(GNAME AssertExpression):
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
-    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
+    $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
 )
 
 $(GRAMMAR
@@ -1724,8 +1724,8 @@ $(GNAME DebugSpecification):
 
 $(GRAMMAR
 $(GNAME StaticAssert):
-    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN);)
-    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,) $(ASSIGNEXPRESSION) $(D $(RPAREN);)
+    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,)$(OPT) $(D $(RPAREN);)
+    $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,) $(ASSIGNEXPRESSION) $(D ,)$(OPT) $(D $(RPAREN);)
 )
 
 $(H3 $(LNAME2 module, Module))
