@@ -682,6 +682,12 @@ $(CONSOLE
         }
         --------------
 
+    $(P It is important to make sure that, if $(D opApply) catches any exceptions, that those
+        exceptions did not origin at the delegate passed to $(I opApply). Catching an exception
+        that escaped from the delegate would cause a condition that the user expected would terminate
+        the loop to not do so.
+     )
+
 $(H4 $(LEGACY_LNAME2 foreach_with_ranges, foreach-with-ranges, Foreach over Structs and Classes with Ranges))
 
     $(P If the aggregate expression is a struct or class object, but the
