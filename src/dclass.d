@@ -1788,11 +1788,11 @@ public:
 
     override void finalizeSize(Scope* sc)
     {
-        structsize = Target.ptrsize * 2;
-        sizeok = SIZEOKdone;
-
         // set the offset of base interfaces
-        setBaseInterfaceOffsets(0);
+        structsize = setBaseInterfaceOffsets(0);
+        if (structsize == 0)
+            structsize = Target.ptrsize;
+        sizeok = SIZEOKdone;
     }
 
     /*******************************************
