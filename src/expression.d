@@ -358,7 +358,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         TemplateInstance ti = s.isTemplateInstance();
         if (ti && !ti.semanticRun && ti.tempdecl)
         {
-            //assert(ti->needsTypeInference(sc));
+            //assert(ti.needsTypeInference(sc));
             if (!ti.semanticTiargs(sc))
                 goto Leprop;
             tiargs = ti.tiargs;
@@ -2588,16 +2588,31 @@ public:
         return this;
     }
 
+    /****************************************
+     * Check that the expression has a valid type.
+     * If not, generates an error "... has no type".
+     * Returns:
+     *      true if the expression is not valid.
+     * Note:
+     *      When this function returns true, `checkValue()` should also return true.
+     */
+    bool checkType()
+    {
+        return false;
+    }
+
+    /****************************************
+     * Check that the expression has a valid value.
+     * If not, generates an error "... has no value".
+     * Returns:
+     *      true if the expression is not valid or has void type.
+     */
     bool checkValue()
     {
         if (type && type.toBasetype().ty == Tvoid)
         {
             error("expression %s is void and has no value", toChars());
-            version (none)
-            {
-                print();
-                assert(0);
-            }
+            //print(); assert(0);
             if (!global.gag)
                 type = Type.terror;
             return true;
@@ -5252,6 +5267,12 @@ public:
         return e;
     }
 
+    override bool checkType()
+    {
+        error("type %s is not an expression", toChars());
+        return true;
+    }
+
     override bool checkValue()
     {
         error("type %s has no value", toChars());
@@ -5411,6 +5432,33 @@ public:
         return this;
     }
 
+    override bool checkType()
+    {
+        if (sds.isPackage())
+        {
+            error("%s %s has no type", sds.kind(), sds.toChars());
+            return true;
+        }
+        if (auto ti = sds.isTemplateInstance())
+        {
+            //assert(ti.needsTypeInference(sc));
+            if (ti.tempdecl &&
+                ti.semantictiargsdone &&
+                ti.semanticRun == PASSinit)
+            {
+                error("partial %s %s has no type", sds.kind(), toChars());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    override bool checkValue()
+    {
+        error("%s %s has no value", sds.kind(), sds.toChars());
+        return true;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5447,9 +5495,15 @@ public:
         return DsymbolExp.resolve(loc, sc, fd, true);
     }
 
+    override bool checkType()
+    {
+        error("%s %s has no type", td.kind(), toChars());
+        return true;
+    }
+
     override bool checkValue()
     {
-        error("template %s has no value", toChars());
+        error("%s %s has no value", td.kind(), toChars());
         return true;
     }
 
@@ -6535,6 +6589,16 @@ public:
     override char* toChars()
     {
         return fd.toChars();
+    }
+
+    override bool checkType()
+    {
+        if (td)
+        {
+            error("template lambda has no type");
+            return true;
+        }
+        return false;
     }
 
     override bool checkValue()
@@ -9774,7 +9838,7 @@ public:
             DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
             TemplateInstance ti = dti.ti;
             {
-                //assert(ti->needsTypeInference(sc));
+                //assert(ti.needsTypeInference(sc));
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
@@ -9792,7 +9856,7 @@ public:
             TemplateInstance ti = (cast(ScopeExp)e1).sds.isTemplateInstance();
             if (ti)
             {
-                //assert(ti->needsTypeInference(sc));
+                //assert(ti.needsTypeInference(sc));
                 ti.semantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
@@ -10391,11 +10455,24 @@ public:
         if (type)
             return this;
 
-        if (Expression ex = unaSemantic(sc))
-            return ex;
-        Expression e1x = resolveProperties(sc, e1);
+        if (to)
+        {
+            to = to.semantic(loc, sc);
+            if (to == Type.terror)
+                return new ErrorExp();
+
+            // When e1 is a template lambda, this cast may instantiate it with
+            // the type 'to'.
+            e1 = inferType(e1, to);
+        }
+
+        if (auto e = unaSemantic(sc))
+            return e;
+        auto e1x = resolveProperties(sc, e1);
         if (e1x.op == TOKerror)
             return e1x;
+        if (e1x.checkType())
+            return new ErrorExp();
         e1 = e1x;
 
         if (!e1.type)
@@ -10405,23 +10482,17 @@ public:
         }
 
         if (!to) // Handle cast(const) and cast(immutable), etc.
+        {
             to = e1.type.castMod(mod);
-        to = to.semantic(loc, sc);
-        if (to == Type.terror)
-            return new ErrorExp();
+            to = to.semantic(loc, sc);
+            if (to == Type.terror)
+                return new ErrorExp();
+        }
+
         if (to.ty == Ttuple)
         {
             error("cannot cast %s to tuple type %s", e1.toChars(), to.toChars());
             return new ErrorExp();
-        }
-
-        if (e1.type.ty != Tvoid ||
-            e1.op == TOKfunction && to.ty == Tvoid ||
-            e1.op == TOKtype ||
-            e1.op == TOKtemplate)
-        {
-            if (e1.checkValue())
-                return new ErrorExp();
         }
 
         // cast(void) is used to mark e1 as unused, so it is safe
