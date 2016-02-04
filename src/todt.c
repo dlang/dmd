@@ -42,8 +42,7 @@ dt_t **Type_toDt(Type *t, dt_t **pdt);
 dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e);
 dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
 dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
-//static dt_t **membersToDt(AggregateDeclaration *cd, dt_t **pdt, ClassDeclaration * = NULL);
-static dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t, ClassDeclaration *);
+static dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t, ClassDeclaration *, BaseClass ***ppb = NULL);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
@@ -590,12 +589,6 @@ dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt)
 {
     //printf("ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
 
-    // Put in first two members, the vtbl[] and the monitor
-    pdt = dtxoff(pdt, toVtblSymbol(cd), 0);
-    if (!cd->cpp)
-        pdt = dtsize_t(pdt, 0);             // monitor
-
-    // Put in the rest
     pdt = membersToDt(cd, pdt, NULL, 0, cd);
 
     //printf("-ClassDeclaration::toDt(this = '%s')\n", cd->toChars());
@@ -645,16 +638,26 @@ dt_t **cpp_type_info_ptr_toDt(ClassDeclaration *cd, dt_t **pdt)
  *      pdt = tail of initializer list to start appending initialized data to
  *      elements = values to use as initializers, NULL means use default initializers
  *      firstFieldIndex = starting place is elements[firstFieldIndex]
- *      concreteType = structs: null, classes: top level class
+ *      concreteType = structs: null, classes: most derived class
+ *      ppb = pointer that moves through BaseClass[] from most derived class
  * Returns:
  *      updated tail of dt_t list
  */
 static dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
         Expressions *elements, size_t firstFieldIndex,
-        ClassDeclaration *concreteType)
+        ClassDeclaration *concreteType,
+        BaseClass ***ppb)
 {
-    //printf("membersToDt(ad = '%s')\n", ad->toChars());
+    //printf("membersToDt(ad = '%s', concrete = '%s', ppb = %p)\n", ad->toChars(), concreteType ? concreteType->toChars() : "null", ppb);
     ClassDeclaration *cd = ad->isClassDeclaration();
+#if 0
+    printf(" interfaces.length = %d\n", (int)cd->interfaces.length);
+    for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+    {
+        BaseClass *b = (*cd->vtblInterfaces)[i];
+        printf("  vbtblInterfaces[%d] b = %p, b->sym = %s\n", (int)i, b, b->sym->toChars());
+    }
+#endif
 
     /* Order:
      *  { base class } or { __vptr, __monitor }
@@ -673,40 +676,63 @@ static dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt,
             pdt = membersToDt(cdb, pdt, elements, index, concreteType);
             offset = cdb->structsize;
         }
+        else if (InterfaceDeclaration *id = cd->isInterfaceDeclaration())
+        {
+            offset = (**ppb)->offset;
+            if (id->vtblInterfaces->dim == 0)
+            {
+                BaseClass *b = **ppb;
+                //printf("  Interface %s, b = %p\n", id->toChars(), b);
+                ++(*ppb);
+                for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
+                {
+                    assert(cd2);
+                    unsigned csymoffset = baseVtblOffset(cd2, b);
+                    //printf("    cd2 %s csymoffset = %d\n", cd2 ? cd2->toChars() : "null", csymoffset);
+                    if (csymoffset != ~0)
+                    {
+                        pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
+                        offset += Target::ptrsize;
+                        break;
+                    }
+                }
+            }
+        }
         else
         {
-            if (cd->cpp)
-                offset = Target::ptrsize;       // allow room for __vptr
+            pdt = dtxoff(pdt, toVtblSymbol(concreteType), 0);  // __vptr
+            offset = Target::ptrsize;
+            if (!cd->cpp)
+            {
+                pdt = dtsize_t(pdt, 0);              // __monitor
+                offset += Target::ptrsize;
+            }
+        }
+
+        if (cd->cpp)
+        {
+            // Interface vptr initializations
+            toSymbol(cd);                                         // define csym
+
+            BaseClass **pb;
+            if (!ppb)
+                pb = cd->vtblInterfaces->data;
             else
-                offset = Target::ptrsize * 2;   // allow room for __vptr and __monitor
+                pb = *ppb;
+
+            for (size_t i = 0; i < cd->interfaces.length; ++i)
+            {
+                BaseClass *b = *pb;
+                if (offset < b->offset)
+                    pdt = dtnzeros(pdt, b->offset - offset);
+                pdt = membersToDt(cd->interfaces.ptr[i]->sym, pdt, elements, firstFieldIndex, concreteType, &pb);
+                //printf("b->offset = %d, b->sym->structsize = %d\n", (int)b->offset, (int)b->sym->structsize);
+                offset = b->offset + b->sym->structsize;
+            }
         }
     }
     else
         offset = 0;
-
-    if (cd && cd->cpp)
-    {
-        // Interface vptr initializations
-        toSymbol(cd);                                         // define csym
-
-        for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
-        {
-            BaseClass *b = (*cd->vtblInterfaces)[i];
-            for (ClassDeclaration *cd2 = concreteType; 1; cd2 = cd2->baseClass)
-            {
-                assert(cd2);
-                unsigned csymoffset = baseVtblOffset(cd2, b);
-                if (csymoffset != ~0)
-                {
-                    if (offset < b->offset)
-                        pdt = dtnzeros(pdt, b->offset - offset);
-                    pdt = dtxoff(pdt, toSymbol(cd2), csymoffset);
-                    break;
-                }
-            }
-            offset = b->offset + Target::ptrsize;
-        }
-    }
 
     assert(!elements ||
            firstFieldIndex <= elements->dim &&
@@ -922,10 +948,6 @@ dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
 {
     //printf("ClassReferenceExp::toInstanceDt() %d\n", ce->op);
     ClassDeclaration *cd = ce->originalClass();
-
-    pdt = dtxoff(pdt, toVtblSymbol(cd), 0);
-    if (!cd->cpp)
-        pdt = dtsize_t(pdt, 0);                 // monitor
 
     // Put in the rest
     size_t firstFieldIndex = 0;

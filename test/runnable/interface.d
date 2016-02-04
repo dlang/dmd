@@ -1,6 +1,5 @@
-// PERMUTE_ARGS:
 
-extern(C) int printf(const char*, ...);
+import core.stdc.stdio;
 
 /*******************************************/
 
@@ -65,16 +64,22 @@ interface K3 {
 interface J3 : I3, K3 {}
 
 class A3 : J3 {
-    void f(){ }
-    void h(){ } 
+    short x = 3;
+
+    void f(){ assert(x == 3); }
+    void h(){ assert(x == 3); }
 }
 
 void test3()
 {
     auto a = new A3();
-    J3 b = a;
-    K3 c = a;
-    assert(&b.f == &c.f); // Bugzilla 3706
+    a.f();
+    a.h();
+    J3 j = a;
+    j.f();
+    K3 k = a;
+    k.f();
+    assert(&j.f == &k.f); // Bugzilla 3706
 }
 
 /*******************************************/
