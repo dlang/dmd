@@ -80,9 +80,9 @@ $(TABLE_3COLS Class Object Layout,
 $(THEAD size, property, contents)
 $(TROW $(I ptrsize), $(D .__vptr), pointer to vtable)
 $(TROW $(I ptrsize), $(D .__monitor), monitor)
+$(TROW $(I ptrsize)..., $(NBSP), $(ARGS vptr's for any interfaces implemented by this class in left to right, most to least derived, order))
 $(TROW $(D ...), $(D ...), $(ARGS super's non-static fields and super's interface vptrs, from least to most derived))
 $(TROW $(D ...), named fields, non-static fields)
-$(TROW $(I ptrsize)..., $(NBSP), $(ARGS vptr's for any interfaces implemented by this class in left to right, most to least derived, order))
 )
 
 	$(P The vtable consists of:)
