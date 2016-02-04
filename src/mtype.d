@@ -8631,7 +8631,7 @@ public:
                     return Type.getProperty(e.loc, ident, 0);
                 return new DotTypeExp(e.loc, e, sym);
             }
-            if (ClassDeclaration cbase = sym.searchBase(e.loc, ident))
+            if (ClassDeclaration cbase = sym.searchBase(ident))
             {
                 if (e.op == TOKtype)
                     return Type.getProperty(e.loc, ident, 0);

@@ -1119,20 +1119,27 @@ public:
         return s;
     }
 
-    final ClassDeclaration searchBase(Loc loc, Identifier ident)
+    /************************************
+     * Search base classes in depth-first, left-to-right order for
+     * a class or interface named 'ident'.
+     * Stops at first found. Does not look for additional matches.
+     * Params:
+     *  ident = identifier to search for
+     * Returns:
+     *  ClassDeclaration if found, null if not
+     */
+    final ClassDeclaration searchBase(Identifier ident)
     {
-        // Search bases classes in depth-first, left to right order
-        for (size_t i = 0; i < baseclasses.dim; i++)
+        foreach (b; *baseclasses)
         {
-            BaseClass* b = (*baseclasses)[i];
-            ClassDeclaration cdb = b.type.isClassHandle();
+            auto cdb = b.type.isClassHandle();
             if (!cdb) // Bugzilla 10616
                 return null;
             if (cdb.ident.equals(ident))
                 return cdb;
-            cdb = cdb.searchBase(loc, ident);
-            if (cdb)
-                return cdb;
+            auto result = cdb.searchBase(ident);
+            if (result)
+                return result;
         }
         return null;
     }
