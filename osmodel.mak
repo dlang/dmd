@@ -15,6 +15,9 @@ ifeq (,$(OS))
   ifeq (OpenBSD,$(uname_S))
     OS:=openbsd
   endif
+  ifeq (NetBSD,$(uname_S))
+    OS:=netbsd
+  endif
   ifeq (Solaris,$(uname_S))
     OS:=solaris
   endif
