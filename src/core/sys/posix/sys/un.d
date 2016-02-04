@@ -69,6 +69,15 @@ else version( FreeBSD )
         byte[104]   sun_path;
     }
 }
+else version(NetBSD)
+{
+    struct sockaddr_un
+    {
+        ubyte       sun_len;
+        sa_family_t sun_family;
+        byte[104]   sun_path;
+    }
+}
 else version( Solaris )
 {
     struct sockaddr_un

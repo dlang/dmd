@@ -62,6 +62,22 @@ else version(FreeBSD)
 
     int uname(utsname* __name);
 }
+else version(NetBSD)
+{
+    private enum utsNameLength = 256;
+
+    struct utsname
+    {
+        char[utsNameLength] sysname;
+        char[utsNameLength] nodename;
+        char[utsNameLength] release;
+        // The field name is version but version is a keyword in D.
+        char[utsNameLength] update;
+        char[utsNameLength] machine;
+    }
+
+    int uname(utsname* __name);
+}
 else version(Solaris)
 {
     private enum SYS_NMLN = 257;
