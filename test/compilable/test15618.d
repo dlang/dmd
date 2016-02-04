@@ -16,4 +16,4 @@ class Derived : Base, Interface
 }
 
 static assert(Derived.x.offsetof == (void*).sizeof * 2);
-static assert(Derived.y.offsetof == (void*).sizeof * 3);
+static assert(Derived.y.offsetof == (void*).sizeof * 4);
