@@ -7530,28 +7530,18 @@ public:
         exp = resolvePropertiesOnly(sc2, exp);
         sc2.pop();
 
-        if (exp.op == TOKtype)
+        if (exp.op == TOKtype ||
+            exp.op == TOKscope)
         {
-            error(loc, "argument %s to typeof is not an expression", exp.toChars());
-            goto Lerr;
-        }
-        if (exp.op == TOKscope)
-        {
-            auto sds = (cast(ScopeExp)exp).sds;
-            if (sds.isPackage())
-            {
-                error(loc, "%s has no type", exp.toChars());
+            if (exp.checkType())
                 goto Lerr;
-            }
-            if (auto ti = sds.isTemplateInstance())
-            {
-                if (ti.needsTypeInference(sc))
-                {
-                    // Bugzilla 15550: ti is a partial instantiation form fun!tiargs.
-                    error(loc, "expression (%s) has no type", exp.toChars());
-                    goto Lerr;
-                }
-            }
+
+            /* Today, 'typeof(func)' returns void if func is a
+             * function template (TemplateExp), or
+             * template lambda (FuncExp).
+             * It's actually used in Phobos as an idiom, to branch code for
+             * template functions.
+             */
         }
 
         Type t = exp.type;
