@@ -641,7 +641,7 @@ interface ICov19 {
 }
 
 class Child19 : ICov19, IFoo19 {
-    Child19 covfunc() { 
+    Child19 covfunc() {
         printf("in Child19.covfunc()\n");
         return this;
     }
@@ -1122,6 +1122,77 @@ void testTypeid()
 
 /*******************************************************/
 
+extern (C++)
+{
+    interface IA47
+    {
+        char a();
+    }
+
+    interface IB47
+    {
+        char b();
+    }
+
+    interface IC47 : IA47, IB47
+    {
+        char c();
+    }
+
+    interface ID47
+    {
+        char d();
+    }
+
+    interface IE47 : IC47, ID47
+    {
+        char e();
+    }
+
+    class Foo47 : IE47
+    {
+        int x = 9;
+        char a() { printf("a.this = %p\n", this); return('a'); }
+        char b() { printf("b.this = %p\n", this); return('b'); }
+        char c() { printf("c.this = %p\n", this); return('c'); }
+        char d() { printf("d.this = %p\n", this); return('d'); }
+        char e() { printf("e.this = %p\n", this); return('e'); }
+    }
+}
+
+void test15647()
+{
+    auto foo = new Foo47;
+    printf("Foo: %p %c %c %c %c %c\n", foo, foo.a, foo.b, foo.c, foo.d, foo.e);
+    IA47 a = foo;
+    printf("A: %c\n", a.a);
+    assert(a.a == 'a');
+    IB47 b = foo;
+    printf("B: %c\n", b.b);
+    assert(b.b == 'b');
+    IC47 c = foo;
+    printf("C: %p %c %c %c\n", c, c.a, c.b, c.c);
+    assert(c.a == 'a');
+    assert(c.b == 'b');
+    assert(c.c == 'c');
+    ID47 d = foo;
+    printf("D: %c\n", d.d);
+    assert(d.d == 'd');
+    IE47 e = foo;
+    printf("E: %c %c %c %c %c\n", e.a, e.b, e.c, e.d, e.e);
+    assert(e.a == 'a');
+    assert(e.b == 'b');
+    assert(e.c == 'c');
+    assert(e.d == 'd');
+    assert(e.e == 'e');
+
+    b = e;
+    printf("IB47: %c\n", b.b);
+    assert(b.b == 'b');
+}
+
+/*******************************************************/
+
 int main()
 {
     test1();
@@ -1155,6 +1226,7 @@ int main()
     test2553();
     test11034();
     testTypeid();
+    test15647();
 
     printf("Success\n");
     return 0;
