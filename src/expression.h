@@ -1170,8 +1170,8 @@ public:
 
 enum MemorySet
 {
-    MemorySet_blockAssign     = 1,    // setting the contents of an array
-    MemorySet_referenceInit   = 2,    // setting the reference of STCref variable
+    blockAssign     = 1,    // setting the contents of an array
+    referenceInit   = 2,    // setting the reference of STCref variable
 };
 
 class AssignExp : public BinExp

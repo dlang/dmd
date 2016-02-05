@@ -2520,7 +2520,7 @@ elem *toElem(Expression *e, IRState *irs)
                 Type *ta = are->e1->type->toBasetype();
 
                 // which we do if the 'next' types match
-                if (ae->memset & MemorySet_blockAssign)
+                if (ae->memset & blockAssign)
                 {
                     // Do a memset for array[]=v
                     //printf("Lpair %s\n", ae->toChars());
@@ -2710,7 +2710,7 @@ elem *toElem(Expression *e, IRState *irs)
 
             /* Look for reference initializations
              */
-            if (ae->memset & MemorySet_referenceInit)
+            if (ae->memset & referenceInit)
             {
                 assert(ae->op == TOKconstruct || ae->op == TOKblit);
                 assert(ae->e1->op == TOKvar);
