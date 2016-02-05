@@ -1162,19 +1162,63 @@ public:
         else
         {
             alignsize = Target.ptrsize;
-            if (cpp)
-                structsize = Target.ptrsize; // allow room for __vptr
-            else
-                structsize = Target.ptrsize * 2; // allow room for __vptr and __monitor
+            structsize = Target.ptrsize;      // allow room for __vptr
+            if (!cpp)
+                structsize += Target.ptrsize; // allow room for __monitor
         }
 
-        // Add vptr's for any interfaces implemented by this class
-        structsize += setBaseInterfaceOffsets(structsize);
+        //printf("finalizeSize() %s\n", toChars());
+        size_t bi = 0;                  // index into vtblInterfaces[]
+
+        /****
+         * Runs through the inheritance graph to set the BaseClass.offset fields.
+         * Recursive in order to account for the size of the interface classes, if they are
+         * more than just interfaces.
+         * Params:
+         *      cd = interface to look at
+         *      baseOffset = offset of where cd will be placed
+         * Returns:
+         *      subset of instantiated size used by cd for interfaces
+         */
+        uint membersPlace(ClassDeclaration cd, uint baseOffset)
+        {
+            //printf("    membersPlace(%s, %d)\n", cd.toChars(), baseOffset);
+            uint offset = baseOffset;
+
+            foreach (BaseClass* b; cd.interfaces)
+            {
+                if (!b.sym.alignsize)
+                    b.sym.alignsize = Target.ptrsize;
+                alignmember(b.sym.alignsize, b.sym.alignsize, &offset);
+                assert(bi < vtblInterfaces.dim);
+                BaseClass* bv = (*vtblInterfaces)[bi];
+                if (b.sym.interfaces.length == 0)
+                {
+                    //printf("\tvtblInterfaces[%d] b=%p b.sym = %s, offset = %d\n", bi, bv, bv.sym.toChars(), offset);
+                    bv.offset = offset;
+                    ++bi;
+                    // All the base interfaces down the left side share the same offset
+                    for (BaseClass* b2 = bv; b2.baseInterfaces.length; )
+                    {
+                        b2 = &b2.baseInterfaces[0];
+                        b2.offset = offset;
+                        //printf("\tvtblInterfaces[%d] b=%p   sym = %s, offset = %d\n", bi, b2, b2.sym.toChars(), b2.offset);
+                    }
+                }
+                membersPlace(b.sym, offset);
+                //printf(" %s size = %d\n", b.sym.toChars(), b.sym.structsize);
+                offset += b.sym.structsize;
+                if (alignsize < b.sym.alignsize)
+                    alignsize = b.sym.alignsize;
+            }
+            return offset - baseOffset;
+        }
+
+        structsize += membersPlace(this, structsize);
 
         uint offset = structsize;
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (s; *members)
         {
-            Dsymbol s = (*members)[i];
             s.setFieldOffset(this, &offset, false);
         }
         if (sizeok == SIZEOKfwd)
@@ -1345,9 +1389,8 @@ public:
         uint offset = baseOffset;
 
         //if (vtblInterfaces.dim) printf("\n%s.finalizeSize()\n", toChars());
-        for (size_t i = 0; i < vtblInterfaces.dim; i++)
+        foreach (i, b; *vtblInterfaces)
         {
-            BaseClass* b = (*vtblInterfaces)[i];
             uint thissize = Target.ptrsize;
 
             alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
