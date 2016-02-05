@@ -1067,7 +1067,7 @@ public:
      * Determine if 'this' has complete base class information.
      * This is used to detect forward references in covariant overloads.
      */
-    final bool isBaseInfoComplete()
+    final bool isBaseInfoComplete() const
     {
         return baseok >= BASEOKdone;
     }
@@ -1371,22 +1371,22 @@ public:
 
     /****************************************
      */
-    final bool isCOMclass()
+    final bool isCOMclass() const
     {
         return com;
     }
 
-    bool isCOMinterface()
+    bool isCOMinterface() const
     {
         return false;
     }
 
-    final bool isCPPclass()
+    final bool isCPPclass() const
     {
         return cpp;
     }
 
-    bool isCPPinterface()
+    bool isCPPinterface() const
     {
         return false;
     }
@@ -1419,14 +1419,14 @@ public:
      *      0       vtbl[0] is first virtual function pointer
      *      1       vtbl[0] is classinfo/interfaceinfo pointer
      */
-    int vtblOffset()
+    int vtblOffset() const
     {
         return cpp ? 0 : 1;
     }
 
     /****************************************
      */
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "class";
     }
@@ -1878,7 +1878,7 @@ public:
 
     /*******************************************
      */
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "interface";
     }
@@ -1889,19 +1889,19 @@ public:
      * For COM interfaces, no.
      * For non-COM interfaces, yes, this is where the Interface ptr goes.
      */
-    override int vtblOffset()
+    override int vtblOffset() const
     {
         if (isCOMinterface() || isCPPinterface())
             return 0;
         return 1;
     }
 
-    override bool isCPPinterface()
+    override bool isCPPinterface() const
     {
         return cpp;
     }
 
-    override bool isCOMinterface()
+    override bool isCOMinterface() const
     {
         return com;
     }
