@@ -40,32 +40,29 @@ version (OSX)
     enum uint IOC_DIRMASK = 0xe0000000; // mask to extract above direction parameters
 
     // encode the ioctl info into 32 bits
-    uint _IOC(uint inorout, uint group, uint num, size_t len)
+    uint _IOC(T=typeof(null))(uint inorout, uint group, uint num, size_t len)
     {
-        assert((group & 0xff) == group);
-        assert((num & 0xff) == num);
-        assert((len & IOCPARM_MASK) == len);
         return (inorout | ((len & IOCPARM_MASK) << 16) | (group << 8) | num);
     }
 
     // encode a command with no parameters
-    uint _IO(uint g, uint n)
+    uint _IO(char g, int n)
     {
-        return _IOC(IOC_VOID, g, n, 0);
+        return _IOC(IOC_VOID, cast(uint)g, cast(uint)n, cast(size_t)0);
     }
     // encode a command that returns info
-    uint _IOR(T)(uint g, uint n)
+    uint _IOR(T)(char g, int n)
     {
-        return _IOC(IOC_OUT, g, n, T.sizeof);
+        return _IOC!(T)(IOC_OUT, cast(uint)g, cast(uint)n, T.sizeof);
     }
     // encode a command that takes info
-    uint _IOW(T)(uint g, uint n)
+    uint _IOW(T)(char g, int n)
     {
-        return _IOC(IOC_IN, g, n, T.sizeof);
+        return _IOC!(T)(IOC_IN, cast(uint)g, cast(uint)n, T.sizeof);
     }
     // encode a command that takes info and returns info
-    uint _IOWR(T)(uint g, uint n)
+    uint _IOWR(T)(char g, int n)
     {
-        return _IOC(IOC_INOUT, g, n, T.sizeof);
+        return _IOC!(T)(IOC_INOUT, cast(uint)g, cast(uint)n, T.sizeof);
     }
 }
