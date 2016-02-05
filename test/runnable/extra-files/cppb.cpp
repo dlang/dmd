@@ -662,7 +662,7 @@ class Base2
 {
   public:
     int i;
-//    virtual void baser();
+    virtual void baser() { }
 };
 
 class Interface2

@@ -1053,7 +1053,7 @@ void test15579()
 extern(C++) class Base2
 {
     int i;
-//    void baser() { }
+    void baser() { }
 }
 
 extern(C++) interface Interface2 { abstract void f(); }
