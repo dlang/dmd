@@ -1839,6 +1839,7 @@ public:
                                 exp = exp.castTo(sc2, exp.type.wildOf());
                         }
                         exp = exp.implicitCastTo(sc2, tret);
+
                         if (f.isref)
                         {
                             // Function returns a reference
@@ -1852,16 +1853,20 @@ public:
                             /* Bugzilla 10789:
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
-                            if (!nrvo_can && exp.isLvalue())
-                                exp = callCpCtor(sc2, exp);
+                            if (!nrvo_can)
+                                exp = doCopyOrMove(sc2, exp);
+
                             checkEscape(sc2, exp, false);
                         }
+
                         exp = checkGC(sc2, exp);
+
                         if (vresult)
                         {
                             // Create: return vresult = exp;
                             exp = new BlitExp(rs.loc, vresult, exp);
                             exp.type = vresult.type;
+
                             if (rs.caseDim)
                                 exp = Expression.combine(exp, new IntegerExp(rs.caseDim));
                         }
