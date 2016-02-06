@@ -453,7 +453,7 @@ public:
         return createNewScope(sc, sc.stc, this.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
     }
 
-    override char* toChars()
+    override char* toChars() const
     {
         return cast(char*)"extern ()";
     }

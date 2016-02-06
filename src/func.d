@@ -4605,7 +4605,7 @@ public:
         return "constructor";
     }
 
-    override char* toChars()
+    override char* toChars() const
     {
         return cast(char*)"this";
     }
@@ -4777,7 +4777,7 @@ public:
         return "destructor";
     }
 
-    override char* toChars()
+    override char* toChars() const
     {
         return cast(char*)"~this";
     }
