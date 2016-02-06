@@ -994,8 +994,7 @@ elem *toElem(Expression *e, IRState *irs)
                      * contract, instead look at the original stack data.
                      */
                     bool forceStackAccess = false;
-                    if (s->Sclass == SCparameter &&
-                        fd->isVirtual() && (fd->fdrequire || fd->fdensure))
+                    if (fd->isVirtual() && (fd->fdrequire || fd->fdensure))
                     {
                         Dsymbol *sx = irs->getFunc();
                         while (sx != fd)
@@ -1035,7 +1034,7 @@ elem *toElem(Expression *e, IRState *irs)
                     e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
                     if (se->op == TOKvar)
                         e = el_una(OPind, TYnptr, e);
-                    if (ISREF(se->var, tb) && !(ISWIN64REF(se->var) && v && v->offset))
+                    if (ISREF(se->var, tb) && !(ISWIN64REF(se->var) && v && v->offset && !forceStackAccess))
                         e = el_una(OPind, s->ty(), e);
                     else if (se->op == TOKsymoff && nrvo)
                     {

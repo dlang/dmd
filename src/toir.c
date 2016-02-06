@@ -671,7 +671,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
          *        ~this() { call destructor }
          *    }
          */
-        //printf("FuncDeclaration::buildClosure() %s\n", toChars());
+        //printf("FuncDeclaration::buildClosure() %s\n", fd->toChars());
 
         /* Generate type name for closure struct */
         const char *name1 = "CLOSURE.";
@@ -711,6 +711,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
                  */
                 v->error("cannot reference variadic arguments from closure");
             }
+
             /* Align and allocate space for v in the closure
              * just like AggregateDeclaration::addField() does.
              */
