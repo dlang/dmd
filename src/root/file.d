@@ -20,7 +20,7 @@ struct File
     int _ref; // != 0 if this is a reference to someone else's buffer
     ubyte* buffer; // data for our file
     size_t len; // amount of data in buffer[]
-    FileName* name; // name of our file
+    const(FileName)* name; // name of our file
 
     extern (D) this(const(char)* n)
     {
@@ -40,7 +40,7 @@ struct File
         _ref = 0;
         buffer = null;
         len = 0;
-        name = cast(FileName*)n;
+        name = n;
     }
 
     extern (C++) ~this()
@@ -59,7 +59,7 @@ struct File
 
     extern (C++) char* toChars()
     {
-        return name.toChars();
+        return cast(char*)name.toChars();
     }
 
     /*************************************
@@ -73,7 +73,7 @@ struct File
             size_t size;
             stat_t buf;
             ssize_t numread;
-            char* name = this.name.toChars();
+            const(char)* name = this.name.toChars();
             //printf("File::read('%s')\n",name);
             int fd = open(name, O_RDONLY);
             if (fd == -1)
@@ -126,7 +126,7 @@ struct File
         {
             DWORD size;
             DWORD numread;
-            char* name = this.name.toChars();
+            const(char)* name = this.name.toChars();
             HANDLE h = CreateFileA(name, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
             if (h == INVALID_HANDLE_VALUE)
                 goto err1;
@@ -173,7 +173,7 @@ struct File
         version (Posix)
         {
             ssize_t numwritten;
-            char* name = this.name.toChars();
+            const(char)* name = this.name.toChars();
             int fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
             if (fd == -1)
                 goto err;
@@ -192,7 +192,7 @@ struct File
         else version (Windows)
         {
             DWORD numwritten;
-            char* name = this.name.toChars();
+            const(char)* name = this.name.toChars();
             HANDLE h = CreateFileA(name, GENERIC_WRITE, 0, null, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
             if (h == INVALID_HANDLE_VALUE)
                 goto err;

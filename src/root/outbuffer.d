@@ -276,7 +276,7 @@ struct OutBuffer
         offset += 4;
     }
 
-    extern (C++) void write(OutBuffer* buf)
+    extern (C++) void write(const OutBuffer* buf)
     {
         if (buf)
         {

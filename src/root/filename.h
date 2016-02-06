@@ -53,7 +53,7 @@ struct FileName
     static const char *canonicalName(const char *name);
 
     static void free(const char *str);
-    char *toChars();
+    const char *toChars() const;
 };
 
 #endif
