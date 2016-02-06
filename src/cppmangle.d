@@ -326,10 +326,10 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         // Replace ::std::basic_string < char, ::std::char_traits<char>, ::std::allocator<char> >
                         // with Ss
                         //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
-                        if (buf.offset - off >= 26 && memcmp(buf.data + off, cast(char*)"IcSt11char_traitsIcESaIcEE", 26) == 0)
+                        if (buf.offset - off >= 26 && memcmp(buf.data + off, "IcSt11char_traitsIcESaIcEE".ptr, 26) == 0)
                         {
                             buf.remove(off - 2, 28);
-                            buf.insert(off - 2, cast(const(char)*)"Ss", 2);
+                            buf.insert(off - 2, "Ss".ptr, 2);
                             return;
                         }
                         buf.setsize(off);
@@ -347,7 +347,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         source_name(se, true);
                         components_on = true;
                         //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
-                        if (buf.offset - off >= 21 && memcmp(buf.data + off, cast(char*)"IcSt11char_traitsIcEE", 21) == 0)
+                        if (buf.offset - off >= 21 && memcmp(buf.data + off, "IcSt11char_traitsIcEE".ptr, 21) == 0)
                         {
                             buf.remove(off, 21);
                             char[2] mbuf;
@@ -433,27 +433,27 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 prefix_name(p);
                 // See ABI 5.1.8 Compression
                 // Replace ::std::allocator with Sa
-                if (buf.offset >= 17 && memcmp(buf.data, cast(char*)"_ZN3std9allocator", 17) == 0)
+                if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator".ptr, 17) == 0)
                 {
                     buf.remove(3, 14);
-                    buf.insert(3, cast(const(char)*)"Sa", 2);
+                    buf.insert(3, "Sa".ptr, 2);
                 }
                 // Replace ::std::basic_string with Sb
-                if (buf.offset >= 21 && memcmp(buf.data, cast(char*)"_ZN3std12basic_string", 21) == 0)
+                if (buf.offset >= 21 && memcmp(buf.data, "_ZN3std12basic_string".ptr, 21) == 0)
                 {
                     buf.remove(3, 18);
-                    buf.insert(3, cast(const(char)*)"Sb", 2);
+                    buf.insert(3, "Sb".ptr, 2);
                 }
                 // Replace ::std with St
-                if (buf.offset >= 7 && memcmp(buf.data, cast(char*)"_ZN3std", 7) == 0)
+                if (buf.offset >= 7 && memcmp(buf.data, "_ZN3std".ptr, 7) == 0)
                 {
                     buf.remove(3, 4);
-                    buf.insert(3, cast(const(char)*)"St", 2);
+                    buf.insert(3, "St".ptr, 2);
                 }
-                if (buf.offset >= 8 && memcmp(buf.data, cast(char*)"_ZNK3std", 8) == 0)
+                if (buf.offset >= 8 && memcmp(buf.data, "_ZNK3std".ptr, 8) == 0)
                 {
                     buf.remove(4, 4);
-                    buf.insert(4, cast(const(char)*)"St", 2);
+                    buf.insert(4, "St".ptr, 2);
                 }
                 if (d.isDtorDeclaration())
                 {
@@ -524,7 +524,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             this.components_on = true;
         }
 
-        char* mangleOf(Dsymbol s)
+        const(char)* mangleOf(Dsymbol s)
         {
             VarDeclaration vd = s.isVarDeclaration();
             FuncDeclaration fd = s.isFuncDeclaration();
@@ -808,7 +808,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 
         override void visit(TypeStruct t)
         {
-            Identifier id = t.sym.ident;
+            const id = t.sym.ident;
             //printf("struct id = '%s'\n", id.toChars());
             char c;
             if (id == Id.__c_long)
@@ -910,7 +910,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
         }
     }
 
-    extern (C++) char* toCppMangle(Dsymbol s)
+    extern (C++) const(char)* toCppMangle(Dsymbol s)
     {
         //printf("toCppMangle(%s)\n", s.toChars());
         scope CppMangleVisitor v = new CppMangleVisitor();
@@ -927,8 +927,8 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
 else static if (TARGET_WINDOS)
 {
     // Windows DMC and Microsoft Visual C++ mangling
-    enum VC_SAVED_TYPE_CNT = 10;
-    enum VC_SAVED_IDENT_CNT = 10;
+    enum VC_SAVED_TYPE_CNT = 10u;
+    enum VC_SAVED_IDENT_CNT = 10u;
 
     extern (C++) final class VisualCPPMangler : Visitor
     {
@@ -1228,7 +1228,7 @@ else static if (TARGET_WINDOS)
 
         override void visit(TypeStruct type)
         {
-            Identifier id = type.sym.ident;
+            const id = type.sym.ident;
             char c;
             if (id == Id.__c_long_double)
                 c = 'O'; // VC++ long double
@@ -1335,7 +1335,7 @@ else static if (TARGET_WINDOS)
             flags &= ~IGNORE_CONST;
         }
 
-        char* mangleOf(Dsymbol s)
+        const(char)* mangleOf(Dsymbol s)
         {
             VarDeclaration vd = s.isVarDeclaration();
             FuncDeclaration fd = s.isFuncDeclaration();
@@ -1663,7 +1663,7 @@ else static if (TARGET_WINDOS)
         // returns true if name already saved
         bool checkAndSaveIdent(const(char)* name)
         {
-            for (uint i = 0; i < VC_SAVED_IDENT_CNT; i++)
+            foreach (i; 0 .. VC_SAVED_IDENT_CNT)
             {
                 if (!saved_idents[i]) // no saved same name
                 {
@@ -1681,7 +1681,7 @@ else static if (TARGET_WINDOS)
 
         void saveIdent(const(char)* name)
         {
-            for (size_t i = 0; i < VC_SAVED_IDENT_CNT; i++)
+            foreach (i; 0 .. VC_SAVED_IDENT_CNT)
             {
                 if (!saved_idents[i]) // no saved same name
                 {
@@ -1865,7 +1865,7 @@ else static if (TARGET_WINDOS)
                 flags &= ~IGNORE_CONST;
                 if (rettype.ty == Tstruct || rettype.ty == Tenum)
                 {
-                    Identifier id = rettype.toDsymbol(null).ident;
+                    const id = rettype.toDsymbol(null).ident;
                     if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong)
                     {
                         tmp.buf.writeByte('?');
@@ -1929,7 +1929,7 @@ else static if (TARGET_WINDOS)
         }
     }
 
-    extern (C++) char* toCppMangle(Dsymbol s)
+    extern (C++) const(char)* toCppMangle(Dsymbol s)
     {
         scope VisualCPPMangler v = new VisualCPPMangler(!global.params.mscoff);
         return v.mangleOf(s);
