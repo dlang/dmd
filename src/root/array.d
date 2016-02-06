@@ -30,11 +30,11 @@ public:
             mem.xfree(data);
     }
 
-    char* toChars()
+    const(char)* toChars()
     {
         static if (is(typeof(T.init.toChars())))
         {
-            char** buf = cast(char**)mem.xmalloc(dim * (char*).sizeof);
+            const(char)** buf = cast(const(char)**)mem.xmalloc(dim * (char*).sizeof);
             size_t len = 2;
             for (size_t u = 0; u < dim; u++)
             {
@@ -155,9 +155,9 @@ public:
         return data;
     }
 
-    typeof(this)* copy()
+    Array!T* copy() const
     {
-        auto a = new typeof(this)();
+        auto a = new Array!T();
         a.setDim(dim);
         memcpy(a.data, data, dim * (void*).sizeof);
         return a;
