@@ -286,7 +286,7 @@ public:
     DsymbolTable *symtab;       // members[] sorted into table
 
 private:
-    Dsymbols *imports;          // imported Dsymbol's
+    Dsymbols *importedScopes;   // imported Dsymbol's
     PROTKIND *prots;            // array of PROTKIND, one for each import
 
 public:
