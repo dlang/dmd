@@ -145,12 +145,12 @@ public:
         dim = newdim;
     }
 
-    ref T opIndex(size_t i)
+    ref inout(T) opIndex(size_t i) inout
     {
         return data[i];
     }
 
-    T* tdata()
+    inout(T)* tdata() inout
     {
         return data;
     }
@@ -200,7 +200,7 @@ public:
             assert(0);
     }
 
-    extern (D) T[] opSlice()
+    extern (D) inout(T)[] opSlice() inout
     {
         return data[0 .. dim];
     }

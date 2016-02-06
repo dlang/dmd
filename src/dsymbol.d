@@ -231,14 +231,14 @@ public:
     {
         if (!loc.filename) // avoid bug 5861.
         {
-            Module m = getModule();
+            auto m = getModule();
             if (m && m.srcfile)
                 loc.filename = m.srcfile.toChars();
         }
         return loc;
     }
 
-    final char* locToChars()
+    final const(char)* locToChars()
     {
         return getLoc().toChars();
     }
@@ -1185,6 +1185,8 @@ public:
         return null;
     }
 
+    /************
+     */
     void accept(Visitor v)
     {
         v.visit(this);
