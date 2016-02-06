@@ -504,7 +504,7 @@ public:
         return s;
     }
 
-    const(char)* kind()
+    const(char)* kind() const
     {
         return "symbol";
     }
@@ -1035,7 +1035,7 @@ public:
         return null;
     }
 
-    AggregateDeclaration isAggregateDeclaration()
+    inout(AggregateDeclaration) isAggregateDeclaration() inout
     {
         return null;
     }
@@ -1423,7 +1423,7 @@ public:
         }
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "ScopeDsymbol";
     }
@@ -1872,7 +1872,7 @@ public:
         return this;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "overloadset";
     }

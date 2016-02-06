@@ -591,7 +591,7 @@ public:
         return ScopeDsymbol.search(loc, ident, flags);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "struct";
     }
@@ -843,7 +843,7 @@ public:
         return StructDeclaration.syntaxCopy(ud);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "union";
     }

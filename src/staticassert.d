@@ -117,7 +117,7 @@ public:
         return true;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "static assert";
     }

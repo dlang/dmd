@@ -303,7 +303,7 @@ public:
         return type;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "enum";
     }
@@ -532,7 +532,7 @@ public:
         return new EnumMember(loc, ident, value ? value.syntaxCopy() : null, origType ? origType.syntaxCopy() : null);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "enum member";
     }

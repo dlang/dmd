@@ -3295,7 +3295,7 @@ public:
         return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "function";
     }
@@ -4371,7 +4371,7 @@ public:
         return this;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "function alias";
     }
@@ -4486,7 +4486,7 @@ public:
         return this;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         // GCC requires the (char*) casts
         return (tok != TOKfunction) ? cast(char*)"delegate" : cast(char*)"function";
@@ -4600,7 +4600,7 @@ public:
         }
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "constructor";
     }
@@ -4772,7 +4772,7 @@ public:
         sc.pop();
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "destructor";
     }
@@ -5355,7 +5355,7 @@ public:
         FuncDeclaration.semantic(sc);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "allocator";
     }
@@ -5444,7 +5444,7 @@ public:
         FuncDeclaration.semantic(sc);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "deallocator";
     }

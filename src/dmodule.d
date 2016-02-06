@@ -122,7 +122,7 @@ public:
         this.isPkgMod = PKGunknown;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "package";
     }
@@ -443,7 +443,7 @@ public:
         return m;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "module";
     }

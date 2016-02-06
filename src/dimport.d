@@ -102,7 +102,7 @@ public:
         aliases.push(_alias);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return isstatic ? cast(char*)"static import" : cast(char*)"import";
     }
