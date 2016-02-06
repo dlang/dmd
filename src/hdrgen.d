@@ -135,9 +135,8 @@ public:
 
     override void visit(CompoundStatement s)
     {
-        for (size_t i = 0; i < s.statements.dim; i++)
+        foreach (sx; *s.statements)
         {
-            Statement sx = (*s.statements)[i];
             if (sx)
                 sx.accept(this);
         }
@@ -146,15 +145,14 @@ public:
     override void visit(CompoundDeclarationStatement s)
     {
         bool anywritten = false;
-        for (size_t i = 0; i < s.statements.dim; i++)
+        foreach (sx; *s.statements)
         {
-            Statement sx = (*s.statements)[i];
-            ExpStatement ds = sx ? sx.isExpStatement() : null;
+            auto ds = sx ? sx.isExpStatement() : null;
             if (ds && ds.exp.op == TOKdeclaration)
             {
-                Dsymbol d = (cast(DeclarationExp)ds.exp).declaration;
+                auto d = (cast(DeclarationExp)ds.exp).declaration;
                 assert(d.isDeclaration());
-                if (VarDeclaration v = d.isVarDeclaration())
+                if (auto v = d.isVarDeclaration())
                     visitVarDecl(v, anywritten);
                 else
                     d.accept(this);
@@ -171,9 +169,8 @@ public:
         buf.writestring("unrolled {");
         buf.writenl();
         buf.level++;
-        for (size_t i = 0; i < s.statements.dim; i++)
+        foreach (sx; *s.statements)
         {
-            Statement sx = (*s.statements)[i];
             if (sx)
                 sx.accept(this);
         }
@@ -253,9 +250,8 @@ public:
     {
         buf.writestring(Token.toChars(s.op));
         buf.writestring(" (");
-        for (size_t i = 0; i < s.parameters.dim; i++)
+        foreach (i, p; *s.parameters)
         {
-            Parameter p = (*s.parameters)[i];
             if (i)
                 buf.writestring(", ");
             if (stcToBuffer(buf, p.storageClass))
@@ -539,9 +535,8 @@ public:
         buf.writenl();
         if (s._body)
             s._body.accept(this);
-        for (size_t i = 0; i < s.catches.dim; i++)
+        foreach (c; *s.catches)
         {
-            Catch c = (*s.catches)[i];
             visit(c);
         }
     }
@@ -636,9 +631,8 @@ public:
 
     override void visit(ImportStatement s)
     {
-        for (size_t i = 0; i < s.imports.dim; i++)
+        foreach (imp; *s.imports)
         {
-            Dsymbol imp = (*s.imports)[i];
             imp.accept(this);
         }
     }
@@ -904,11 +898,11 @@ public:
         if (td)
         {
             buf.writeByte('(');
-            for (size_t i = 0; i < td.origParameters.dim; i++)
+            foreach (i, p; *td.origParameters)
             {
                 if (i)
                     buf.writestring(", ");
-                (*td.origParameters)[i].accept(this);
+                p.accept(this);
             }
             buf.writeByte(')');
         }
@@ -923,9 +917,8 @@ public:
 
     void visitTypeQualifiedHelper(TypeQualified t)
     {
-        for (size_t i = 0; i < t.idents.dim; i++)
+        foreach (id; t.idents)
         {
-            RootObject id = t.idents[i];
             if (id.dyncast() == DYNCAST_DSYMBOL)
             {
                 buf.writeByte('.');
@@ -1093,9 +1086,8 @@ public:
         }
         if (imp.packages && imp.packages.dim)
         {
-            for (size_t i = 0; i < imp.packages.dim; i++)
+            foreach (const pid; *imp.packages)
             {
-                Identifier pid = (*imp.packages)[i];
                 buf.printf("%s.", pid.toChars());
             }
         }
@@ -1103,12 +1095,11 @@ public:
         if (imp.names.dim)
         {
             buf.writestring(" : ");
-            for (size_t i = 0; i < imp.names.dim; i++)
+            foreach (const i, const name; imp.names)
             {
                 if (i)
                     buf.writestring(", ");
-                Identifier name = imp.names[i];
-                Identifier _alias = imp.aliases[i];
+                const _alias = imp.aliases[i];
                 if (_alias)
                     buf.printf("%s = %s", _alias.toChars(), name.toChars());
                 else
@@ -1152,8 +1143,8 @@ public:
             buf.writeByte('{');
             buf.writenl();
             buf.level++;
-            for (size_t i = 0; i < d.decl.dim; i++)
-                (*d.decl)[i].accept(this);
+            foreach (de; *d.decl)
+                de.accept(this);
             buf.level--;
             buf.writeByte('}');
         }
@@ -1232,8 +1223,8 @@ public:
         buf.level++;
         if (d.decl)
         {
-            for (size_t i = 0; i < d.decl.dim; i++)
-                (*d.decl)[i].accept(this);
+            foreach (de; *d.decl)
+                de.accept(this);
         }
         buf.level--;
         buf.writestring("}");
@@ -1263,8 +1254,8 @@ public:
             buf.level++;
             if (d.decl)
             {
-                for (size_t i = 0; i < d.decl.dim; i++)
-                    (*d.decl)[i].accept(this);
+                foreach (de; *d.decl)
+                    de.accept(this);
             }
             buf.level--;
             buf.writeByte('}');
@@ -1276,8 +1267,8 @@ public:
                 buf.writeByte('{');
                 buf.writenl();
                 buf.level++;
-                for (size_t i = 0; i < d.elsedecl.dim; i++)
-                    (*d.elsedecl)[i].accept(this);
+                foreach (de; *d.elsedecl)
+                    de.accept(this);
                 buf.level--;
                 buf.writeByte('}');
             }
@@ -1330,8 +1321,8 @@ public:
             buf.writeByte('{');
             buf.writenl();
             buf.level++;
-            for (size_t i = 0; i < d.members.dim; i++)
-                (*d.members)[i].accept(this);
+            foreach (s; *d.members)
+                s.accept(this);
             buf.level--;
             buf.writeByte('}');
             buf.writenl();
@@ -1375,8 +1366,8 @@ public:
                 buf.writeByte('{');
                 buf.writenl();
                 buf.level++;
-                for (size_t i = 0; i < ad.members.dim; i++)
-                    (*ad.members)[i].accept(this);
+                foreach (s; *ad.members)
+                    s.accept(this);
                 buf.level--;
                 buf.writeByte('}');
             }
@@ -1419,11 +1410,11 @@ public:
     {
         if (!parameters || !parameters.dim)
             return;
-        for (size_t i = 0; i < parameters.dim; i++)
+        foreach (i, p; *parameters)
         {
             if (i)
                 buf.writestring(", ");
-            (*parameters)[i].accept(this);
+            p.accept(this);
         }
     }
 
@@ -1491,11 +1482,11 @@ public:
         }
         buf.writeByte('(');
         ti.nest++;
-        for (size_t i = 0; i < ti.tiargs.dim; i++)
+        foreach (i, arg; *ti.tiargs)
         {
             if (i)
                 buf.writestring(", ");
-            objectToBuffer((*ti.tiargs)[i]);
+            objectToBuffer(arg);
         }
         ti.nest--;
         buf.writeByte(')');
@@ -1513,12 +1504,12 @@ public:
          * (see Bugzilla 7375).
          * Perhaps it would be better to demangle what genIdent() does.
          */
-        if (Type t = isType(oarg))
+        if (auto t = isType(oarg))
         {
             //printf("\tt: %s ty = %d\n", t->toChars(), t->ty);
             typeToBuffer(t, null);
         }
-        else if (Expression e = isExpression(oarg))
+        else if (auto e = isExpression(oarg))
         {
             if (e.op == TOKvar)
                 e = e.optimize(WANTvalue); // added to fix Bugzilla 7375
@@ -1526,17 +1517,17 @@ public:
         }
         else if (Dsymbol s = isDsymbol(oarg))
         {
-            const(char)* p = s.ident ? s.ident.toChars() : s.toChars();
+            const p = s.ident ? s.ident.toChars() : s.toChars();
             buf.writestring(p);
         }
-        else if (Tuple v = isTuple(oarg))
+        else if (auto v = isTuple(oarg))
         {
-            Objects* args = &v.objects;
-            for (size_t i = 0; i < args.dim; i++)
+            auto args = &v.objects;
+            foreach (i, arg; *args)
             {
                 if (i)
                     buf.writestring(", ");
-                objectToBuffer((*args)[i]);
+                objectToBuffer(arg);
             }
         }
         else if (!oarg)
@@ -1576,9 +1567,8 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        for (size_t i = 0; i < d.members.dim; i++)
+        foreach (em; *d.members)
         {
-            EnumMember em = (*d.members)[i].isEnumMember();
             if (!em)
                 continue;
             em.accept(this);
@@ -1599,8 +1589,8 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        for (size_t i = 0; i < d.members.dim; i++)
-            (*d.members)[i].accept(this);
+        foreach (s; *d.members)
+            s.accept(this);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -1621,8 +1611,8 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        for (size_t i = 0; i < d.members.dim; i++)
-            (*d.members)[i].accept(this);
+        foreach (s; *d.members)
+            s.accept(this);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
@@ -1643,8 +1633,8 @@ public:
             buf.writeByte('{');
             buf.writenl();
             buf.level++;
-            for (size_t i = 0; i < d.members.dim; i++)
-                (*d.members)[i].accept(this);
+            foreach (s; *d.members)
+                s.accept(this);
             buf.level--;
             buf.writeByte('}');
         }
@@ -1658,11 +1648,10 @@ public:
         if (!d || !d.baseclasses.dim)
             return;
         buf.writestring(" : ");
-        for (size_t i = 0; i < d.baseclasses.dim; i++)
+        foreach (i, b; *d.baseclasses)
         {
             if (i)
                 buf.writestring(", ");
-            BaseClass* b = (*d.baseclasses)[i];
             typeToBuffer(b.type, null);
         }
     }
@@ -1939,16 +1928,16 @@ public:
     {
         //printf("StructInitializer::toCBuffer()\n");
         buf.writeByte('{');
-        for (size_t i = 0; i < si.field.dim; i++)
+        foreach (i, const id; si.field)
         {
             if (i)
                 buf.writestring(", ");
-            if (Identifier id = si.field[i])
+            if (id)
             {
                 buf.writestring(id.toChars());
                 buf.writeByte(':');
             }
-            if (Initializer iz = si.value[i])
+            if (auto iz = si.value[i])
                 iz.accept(this);
         }
         buf.writeByte('}');
@@ -1957,16 +1946,16 @@ public:
     override void visit(ArrayInitializer ai)
     {
         buf.writeByte('[');
-        for (size_t i = 0; i < ai.index.dim; i++)
+        foreach (i, ex; ai.index)
         {
             if (i)
                 buf.writestring(", ");
-            if (Expression ex = ai.index[i])
+            if (ex)
             {
                 ex.accept(this);
                 buf.writeByte(':');
             }
-            if (Initializer iz = ai.value[i])
+            if (auto iz = ai.value[i])
                 iz.accept(this);
         }
         buf.writeByte(']');
@@ -2311,14 +2300,13 @@ public:
     override void visit(AssocArrayLiteralExp e)
     {
         buf.writeByte('[');
-        for (size_t i = 0; i < e.keys.dim; i++)
+        foreach (i, key; *e.keys)
         {
-            Expression key = (*e.keys)[i];
-            Expression value = (*e.values)[i];
             if (i)
                 buf.writestring(", ");
             expToBuffer(key, PREC_assign);
             buf.writeByte(':');
+            auto value = (*e.values)[i];
             expToBuffer(value, PREC_assign);
         }
         buf.writeByte(']');
@@ -2487,10 +2475,10 @@ public:
         buf.writestring(e.ident.toChars());
         if (e.args)
         {
-            for (size_t i = 0; i < e.args.dim; i++)
+            foreach (arg; *e.args)
             {
                 buf.writestring(", ");
-                objectToBuffer((*e.args)[i]);
+                objectToBuffer(arg);
             }
         }
         buf.writeByte(')');
@@ -2902,7 +2890,7 @@ public:
         if (parameters)
         {
             size_t dim = Parameter.dim(parameters);
-            for (size_t i = 0; i < dim; i++)
+            foreach (i; 0 .. dim)
             {
                 if (i)
                     buf.writestring(", ");
@@ -2946,9 +2934,8 @@ public:
             buf.writeByte(';');
             buf.writenl();
         }
-        for (size_t i = 0; i < m.members.dim; i++)
+        foreach (s; *m.members)
         {
-            Dsymbol s = (*m.members)[i];
             s.accept(this);
         }
     }
@@ -3196,11 +3183,11 @@ extern (C++) void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
         return;
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
-    for (size_t i = 0; i < arguments.dim; i++)
+    foreach (i, arg; *arguments)
     {
         if (i)
             buf.writestring(", ");
-        v.typeToBuffer((*arguments)[i].type, null);
+        v.typeToBuffer(arg.type, null);
     }
 }
 
@@ -3216,11 +3203,11 @@ extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
         return;
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, &hgs);
-    for (size_t i = 0; i < objects.dim; i++)
+    foreach (i, o; *objects)
     {
         if (i)
             buf.writestring(", ");
-        v.objectToBuffer((*objects)[i]);
+        v.objectToBuffer(o);
     }
 }
 
