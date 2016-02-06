@@ -41,27 +41,27 @@ public:
         return new Identifier(string, value);
     }
 
-    override bool equals(RootObject o)
+    override bool equals(RootObject o) const
     {
         return this == o || strncmp(string, o.toChars(), len + 1) == 0;
     }
 
-    override int compare(RootObject o)
+    override int compare(RootObject o) const
     {
         return strncmp(string, o.toChars(), len + 1);
     }
 
-    override void print()
+    override void print() const
     {
         fprintf(stderr, "%s", string);
     }
 
-    override char* toChars()
+    override char* toChars() const
     {
         return cast(char*)string;
     }
 
-    const(char)* toHChars2()
+    const(char)* toHChars2() const
     {
         const(char)* p = null;
         if (this == Id.ctor)
@@ -94,7 +94,7 @@ public:
         return p;
     }
 
-    override int dyncast()
+    override int dyncast() const
     {
         return DYNCAST_IDENTIFIER;
     }
