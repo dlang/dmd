@@ -361,7 +361,7 @@ public:
         return protection;
     }
 
-    override final Declaration isDeclaration()
+    override final inout(Declaration) isDeclaration() inout
     {
         return this;
     }
@@ -489,7 +489,7 @@ public:
         return false;
     }
 
-    override TupleDeclaration isTupleDeclaration()
+    override inout(TupleDeclaration) isTupleDeclaration() inout
     {
         return this;
     }
@@ -865,7 +865,7 @@ public:
         return s;
     }
 
-    override AliasDeclaration isAliasDeclaration()
+    override inout(AliasDeclaration) isAliasDeclaration() inout
     {
         return this;
     }
@@ -990,7 +990,7 @@ public:
         return result;
     }
 
-    override OverDeclaration isOverDeclaration()
+    override inout(OverDeclaration) isOverDeclaration() inout
     {
         return this;
     }
@@ -2287,9 +2287,9 @@ public:
     }
 
     // Eliminate need for dynamic_cast
-    override final VarDeclaration isVarDeclaration()
+    override final inout(VarDeclaration) isVarDeclaration() inout
     {
-        return cast(VarDeclaration)this;
+        return this;
     }
 
     override void accept(Visitor v)
@@ -2315,9 +2315,9 @@ public:
     }
 
     // Eliminate need for dynamic_cast
-    override SymbolDeclaration isSymbolDeclaration()
+    override inout(SymbolDeclaration) isSymbolDeclaration() inout
     {
-        return cast(SymbolDeclaration)this;
+        return this;
     }
 
     override void accept(Visitor v)
@@ -2367,7 +2367,7 @@ public:
         return buf.extractString();
     }
 
-    override final TypeInfoDeclaration isTypeInfoDeclaration()
+    override final inout(TypeInfoDeclaration) isTypeInfoDeclaration() inout
     {
         return this;
     }
@@ -2811,7 +2811,7 @@ public:
         assert(0); // should never be produced by syntax
     }
 
-    override ThisDeclaration isThisDeclaration()
+    override inout(ThisDeclaration) isThisDeclaration() inout
     {
         return this;
     }

@@ -975,62 +975,62 @@ public:
     }
 
     // Eliminate need for dynamic_cast
-    Package isPackage()
+    inout(Package) isPackage() inout
     {
         return null;
     }
 
-    Module isModule()
+    inout(Module) isModule() inout
     {
         return null;
     }
 
-    EnumMember isEnumMember()
+    inout(EnumMember) isEnumMember() inout
     {
         return null;
     }
 
-    TemplateDeclaration isTemplateDeclaration()
+    inout(TemplateDeclaration) isTemplateDeclaration() inout
     {
         return null;
     }
 
-    TemplateInstance isTemplateInstance()
+    inout(TemplateInstance) isTemplateInstance() inout
     {
         return null;
     }
 
-    TemplateMixin isTemplateMixin()
+    inout(TemplateMixin) isTemplateMixin() inout
     {
         return null;
     }
 
-    Nspace isNspace()
+    inout(Nspace) isNspace() inout
     {
         return null;
     }
 
-    Declaration isDeclaration()
+    inout(Declaration) isDeclaration() inout
     {
         return null;
     }
 
-    ThisDeclaration isThisDeclaration()
+    inout(ThisDeclaration) isThisDeclaration() inout
     {
         return null;
     }
 
-    TypeInfoDeclaration isTypeInfoDeclaration()
+    inout(TypeInfoDeclaration) isTypeInfoDeclaration() inout
     {
         return null;
     }
 
-    TupleDeclaration isTupleDeclaration()
+    inout(TupleDeclaration) isTupleDeclaration() inout
     {
         return null;
     }
 
-    AliasDeclaration isAliasDeclaration()
+    inout(AliasDeclaration) isAliasDeclaration() inout
     {
         return null;
     }
@@ -1040,147 +1040,147 @@ public:
         return null;
     }
 
-    FuncDeclaration isFuncDeclaration()
+    inout(FuncDeclaration) isFuncDeclaration() inout
     {
         return null;
     }
 
-    FuncAliasDeclaration isFuncAliasDeclaration()
+    inout(FuncAliasDeclaration) isFuncAliasDeclaration() inout
     {
         return null;
     }
 
-    OverDeclaration isOverDeclaration()
+    inout(OverDeclaration) isOverDeclaration() inout
     {
         return null;
     }
 
-    FuncLiteralDeclaration isFuncLiteralDeclaration()
+    inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
     {
         return null;
     }
 
-    CtorDeclaration isCtorDeclaration()
+    inout(CtorDeclaration) isCtorDeclaration() inout
     {
         return null;
     }
 
-    PostBlitDeclaration isPostBlitDeclaration()
+    inout(PostBlitDeclaration) isPostBlitDeclaration() inout
     {
         return null;
     }
 
-    DtorDeclaration isDtorDeclaration()
+    inout(DtorDeclaration) isDtorDeclaration() inout
     {
         return null;
     }
 
-    StaticCtorDeclaration isStaticCtorDeclaration()
+    inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout
     {
         return null;
     }
 
-    StaticDtorDeclaration isStaticDtorDeclaration()
+    inout(StaticDtorDeclaration) isStaticDtorDeclaration() inout
     {
         return null;
     }
 
-    SharedStaticCtorDeclaration isSharedStaticCtorDeclaration()
+    inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout
     {
         return null;
     }
 
-    SharedStaticDtorDeclaration isSharedStaticDtorDeclaration()
+    inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout
     {
         return null;
     }
 
-    InvariantDeclaration isInvariantDeclaration()
+    inout(InvariantDeclaration) isInvariantDeclaration() inout
     {
         return null;
     }
 
-    UnitTestDeclaration isUnitTestDeclaration()
+    inout(UnitTestDeclaration) isUnitTestDeclaration() inout
     {
         return null;
     }
 
-    NewDeclaration isNewDeclaration()
+    inout(NewDeclaration) isNewDeclaration() inout
     {
         return null;
     }
 
-    VarDeclaration isVarDeclaration()
+    inout(VarDeclaration) isVarDeclaration() inout
     {
         return null;
     }
 
-    ClassDeclaration isClassDeclaration()
+    inout(ClassDeclaration) isClassDeclaration() inout
     {
         return null;
     }
 
-    StructDeclaration isStructDeclaration()
+    inout(StructDeclaration) isStructDeclaration() inout
     {
         return null;
     }
 
-    UnionDeclaration isUnionDeclaration()
+    inout(UnionDeclaration) isUnionDeclaration() inout
     {
         return null;
     }
 
-    InterfaceDeclaration isInterfaceDeclaration()
+    inout(InterfaceDeclaration) isInterfaceDeclaration() inout
     {
         return null;
     }
 
-    ScopeDsymbol isScopeDsymbol()
+    inout(ScopeDsymbol) isScopeDsymbol() inout
     {
         return null;
     }
 
-    WithScopeSymbol isWithScopeSymbol()
+    inout(WithScopeSymbol) isWithScopeSymbol() inout
     {
         return null;
     }
 
-    ArrayScopeSymbol isArrayScopeSymbol()
+    inout(ArrayScopeSymbol) isArrayScopeSymbol() inout
     {
         return null;
     }
 
-    Import isImport()
+    inout(Import) isImport() inout
     {
         return null;
     }
 
-    EnumDeclaration isEnumDeclaration()
+    inout(EnumDeclaration) isEnumDeclaration() inout
     {
         return null;
     }
 
-    DeleteDeclaration isDeleteDeclaration()
+    inout(DeleteDeclaration) isDeleteDeclaration() inout
     {
         return null;
     }
 
-    SymbolDeclaration isSymbolDeclaration()
+    inout(SymbolDeclaration) isSymbolDeclaration() inout
     {
         return null;
     }
 
-    AttribDeclaration isAttribDeclaration()
+    inout(AttribDeclaration) isAttribDeclaration() inout
     {
         return null;
     }
 
-    AnonDeclaration isAnonDeclaration()
+    inout(AnonDeclaration) isAnonDeclaration() inout
     {
         return null;
     }
 
-    OverloadSet isOverloadSet()
+    inout(OverloadSet) isOverloadSet() inout
     {
         return null;
     }
@@ -1565,7 +1565,7 @@ public:
         return result;
     }
 
-    override final ScopeDsymbol isScopeDsymbol()
+    override final inout(ScopeDsymbol) isScopeDsymbol() inout
     {
         return this;
     }
@@ -1620,7 +1620,7 @@ public:
         return null;
     }
 
-    override WithScopeSymbol isWithScopeSymbol()
+    override inout(WithScopeSymbol) isWithScopeSymbol() inout
     {
         return this;
     }
@@ -1833,7 +1833,7 @@ public:
         return null;
     }
 
-    override ArrayScopeSymbol isArrayScopeSymbol()
+    override inout(ArrayScopeSymbol) isArrayScopeSymbol() inout
     {
         return this;
     }
@@ -1867,7 +1867,7 @@ public:
         a.push(s);
     }
 
-    override OverloadSet isOverloadSet()
+    override inout(OverloadSet) isOverloadSet() inout
     {
         return this;
     }

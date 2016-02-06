@@ -815,7 +815,7 @@ public:
         return (ispod == ISPODyes);
     }
 
-    override final StructDeclaration isStructDeclaration()
+    override final inout(StructDeclaration) isStructDeclaration() inout
     {
         return this;
     }
@@ -848,7 +848,7 @@ public:
         return "union";
     }
 
-    override UnionDeclaration isUnionDeclaration()
+    override inout(UnionDeclaration) isUnionDeclaration() inout
     {
         return this;
     }

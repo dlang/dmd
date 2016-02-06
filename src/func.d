@@ -3827,7 +3827,7 @@ public:
         return fd;
     }
 
-    override final FuncDeclaration isFuncDeclaration()
+    override final inout(FuncDeclaration) isFuncDeclaration() inout
     {
         return this;
     }
@@ -4366,7 +4366,7 @@ public:
         userAttribDecl = funcalias.userAttribDecl;
     }
 
-    override FuncAliasDeclaration isFuncAliasDeclaration()
+    override inout(FuncAliasDeclaration) isFuncAliasDeclaration() inout
     {
         return this;
     }
@@ -4481,7 +4481,7 @@ public:
             (cast(TypeFunction)type).next = tret;
     }
 
-    override FuncLiteralDeclaration isFuncLiteralDeclaration()
+    override inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
     {
         return this;
     }
@@ -4625,7 +4625,7 @@ public:
         return (isThis() && vthis && global.params.useInvariants);
     }
 
-    override CtorDeclaration isCtorDeclaration()
+    override inout(CtorDeclaration) isCtorDeclaration() inout
     {
         return this;
     }
@@ -4706,7 +4706,7 @@ public:
         return false; // cannot overload postblits
     }
 
-    override PostBlitDeclaration isPostBlitDeclaration()
+    override inout(PostBlitDeclaration) isPostBlitDeclaration() inout
     {
         return this;
     }
@@ -4803,7 +4803,7 @@ public:
         return false; // cannot overload destructors
     }
 
-    override DtorDeclaration isDtorDeclaration()
+    override inout(DtorDeclaration) isDtorDeclaration() inout
     {
         return this;
     }
@@ -4921,7 +4921,7 @@ public:
         return true;
     }
 
-    override final StaticCtorDeclaration isStaticCtorDeclaration()
+    override final inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout
     {
         return this;
     }
@@ -4949,7 +4949,7 @@ public:
         return FuncDeclaration.syntaxCopy(scd);
     }
 
-    override SharedStaticCtorDeclaration isSharedStaticCtorDeclaration()
+    override inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout
     {
         return this;
     }
@@ -5070,7 +5070,7 @@ public:
         return false;
     }
 
-    override final StaticDtorDeclaration isStaticDtorDeclaration()
+    override final inout(StaticDtorDeclaration) isStaticDtorDeclaration() inout
     {
         return this;
     }
@@ -5098,7 +5098,7 @@ public:
         return FuncDeclaration.syntaxCopy(sdd);
     }
 
-    override SharedStaticDtorDeclaration isSharedStaticDtorDeclaration()
+    override inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout
     {
         return this;
     }
@@ -5173,7 +5173,7 @@ public:
         return false;
     }
 
-    override InvariantDeclaration isInvariantDeclaration()
+    override inout(InvariantDeclaration) isInvariantDeclaration() inout
     {
         return this;
     }
@@ -5283,7 +5283,7 @@ public:
         return false;
     }
 
-    override UnitTestDeclaration isUnitTestDeclaration()
+    override inout(UnitTestDeclaration) isUnitTestDeclaration() inout
     {
         return this;
     }
@@ -5375,7 +5375,7 @@ public:
         return false;
     }
 
-    override NewDeclaration isNewDeclaration()
+    override inout(NewDeclaration) isNewDeclaration() inout
     {
         return this;
     }
@@ -5469,7 +5469,7 @@ public:
         return false;
     }
 
-    override DeleteDeclaration isDeleteDeclaration()
+    override inout(DeleteDeclaration) isDeleteDeclaration() inout
     {
         return this;
     }

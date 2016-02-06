@@ -187,7 +187,7 @@ public:
         return dst;
     }
 
-    override final Package isPackage()
+    override final inout(Package) isPackage() inout
     {
         return this;
     }
@@ -1270,7 +1270,7 @@ public:
     Symbol* munittest; // module unittest failure function
     Symbol* marray; // module array bounds function
 
-    override Module isModule()
+    override inout(Module) isModule() inout
     {
         return this;
     }

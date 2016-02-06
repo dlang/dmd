@@ -1441,9 +1441,9 @@ public:
     // Back end
     Symbol* vtblsym;
 
-    override final ClassDeclaration isClassDeclaration()
+    override final inout(ClassDeclaration) isClassDeclaration() inout
     {
-        return cast(ClassDeclaration)this;
+        return this;
     }
 
     override void accept(Visitor v)
@@ -1906,7 +1906,7 @@ public:
         return com;
     }
 
-    override InterfaceDeclaration isInterfaceDeclaration()
+    override inout(InterfaceDeclaration) isInterfaceDeclaration() inout
     {
         return this;
     }

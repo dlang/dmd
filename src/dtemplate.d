@@ -2146,7 +2146,7 @@ public:
         --numinstances;
     }
 
-    override TemplateDeclaration isTemplateDeclaration()
+    override inout(TemplateDeclaration) isTemplateDeclaration() inout
     {
         return this;
     }
@@ -7919,7 +7919,7 @@ public:
         --nest;
     }
 
-    override final TemplateInstance isTemplateInstance()
+    override final inout(TemplateInstance) isTemplateInstance() inout
     {
         return this;
     }
@@ -8483,7 +8483,7 @@ public:
         return true;
     }
 
-    override TemplateMixin isTemplateMixin()
+    override inout(TemplateMixin) isTemplateMixin() inout
     {
         return this;
     }

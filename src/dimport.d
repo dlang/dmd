@@ -469,7 +469,7 @@ public:
             return false;
     }
 
-    override Import isImport()
+    override inout(Import) isImport() inout
     {
         return this;
     }
