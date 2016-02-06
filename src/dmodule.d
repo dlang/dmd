@@ -539,7 +539,7 @@ public:
     Module parse()
     {
         //printf("Module::parse(srcfile='%s') this=%p\n", srcfile->name->toChars(), this);
-        char* srcname = srcfile.name.toChars();
+        const(char)* srcname = srcfile.name.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
         isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0);
         char* buf = cast(char*)srcfile.buffer;

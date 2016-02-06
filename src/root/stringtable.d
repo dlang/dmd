@@ -86,12 +86,12 @@ struct StringValue
         return cast(char*)(&this + 1);
     }
 
-    extern (C++) const(size_t) len()
+    extern (C++) size_t len() const
     {
         return length;
     }
 
-    extern (C++) const(const(char)*) toDchars()
+    extern (C++) const(char)* toDchars() const
     {
         return cast(const(char)*)(&this + 1);
     }

@@ -31,7 +31,7 @@ struct FileName
         this.str = mem.xstrdup(str);
     }
 
-    extern (C++) bool equals(RootObject obj)
+    extern (C++) bool equals(const RootObject obj) const
     {
         return compare(obj) == 0;
     }
@@ -41,7 +41,7 @@ struct FileName
         return compare(name1, name2) == 0;
     }
 
-    extern (C++) int compare(RootObject obj)
+    extern (C++) int compare(const RootObject obj) const
     {
         return compare(str, (cast(FileName*)obj).str);
     }
@@ -114,7 +114,7 @@ struct FileName
         }
     }
 
-    extern (C++) const(char)* ext()
+    extern (C++) const(char)* ext() const
     {
         return ext(str);
     }
@@ -176,7 +176,7 @@ struct FileName
         }
     }
 
-    extern (C++) const(char)* name()
+    extern (C++) const(char)* name() const
     {
         return name(str);
     }
@@ -422,7 +422,7 @@ struct FileName
     /******************************
      * Return !=0 if extensions match.
      */
-    extern (C++) bool equalsExt(const(char)* ext)
+    extern (C++) bool equalsExt(const(char)* ext) const
     {
         return equalsExt(str, ext);
     }
@@ -675,7 +675,7 @@ struct FileName
         mem.xfree(cast(void*)str);
     }
 
-    extern (C++) char* toChars()
+    extern (C++) const(char)* toChars() const
     {
         return cast(char*)str; // toChars() should really be const
     }
