@@ -61,10 +61,7 @@ SRCS=\
 	src\core\sys\posix\sys\stat.d \
 	src\core\sys\posix\sys\wait.d \
 	src\core\sys\posix\netdb.d \
-	src\core\sys\posix\sys\filio.d \
-	src\core\sys\posix\sys\ioccom.d \
 	src\core\sys\posix\sys\ioctl.d \
-	src\core\sys\posix\sys\ttycom.d \
 	src\core\sys\posix\sys\utsname.d \
 	src\core\sys\posix\netinet\in_.d \
 	src\core\sys\posix\arpa\inet.d \
