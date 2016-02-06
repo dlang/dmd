@@ -772,6 +772,11 @@ public:
             // initialize vtbl
             if (baseClass)
             {
+                if (cpp && baseClass.vtbl.dim == 0)
+                {
+                    error("C++ base class %s needs at least one virtual function", baseClass.toChars());
+                }
+
                 // Copy vtbl[] from base class
                 vtbl.setDim(baseClass.vtbl.dim);
                 memcpy(vtbl.tdata(), baseClass.vtbl.tdata(), (void*).sizeof * vtbl.dim);
