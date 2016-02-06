@@ -439,7 +439,7 @@ public:
                             initdone = true;
                             time_t ct;
                             .time(&ct);
-                            char* p = ctime(&ct);
+                            const p = ctime(&ct);
                             assert(p);
                             sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
                             sprintf(&time[0], "%.8s", p + 11);
@@ -447,26 +447,26 @@ public:
                         }
                         if (id == Id.DATE)
                         {
-                            t.ustring = cast(char*)date;
+                            t.ustring = date.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.TIME)
                         {
-                            t.ustring = cast(char*)time;
+                            t.ustring = time.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = cast(char*)global.compiler.vendor;
+                            t.ustring = global.compiler.vendor;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)
                         {
-                            t.ustring = cast(char*)timestamp;
+                            t.ustring = timestamp.ptr;
                         Lstr:
                             t.value = TOKstring;
                             t.postfix = 0;
-                            t.len = cast(uint)strlen(cast(char*)t.ustring);
+                            t.len = cast(uint)strlen(t.ustring);
                         }
                         else if (id == Id.VERSIONX)
                         {
@@ -1263,18 +1263,13 @@ public:
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.ustring = cast(char*)"";
-                t.len = 0;
-                t.postfix = 0;
+                t.setString();
                 return TOKstring;
             case '"':
             case '`':
                 if (c == tc)
                 {
-                    t.len = cast(uint)stringbuffer.offset;
-                    stringbuffer.writeByte(0);
-                    t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
-                    memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
+                    t.setString(stringbuffer);
                     stringPostfix(t);
                     return TOKstring;
                 }
@@ -1330,9 +1325,7 @@ public:
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.ustring = cast(char*)"";
-                t.len = 0;
-                t.postfix = 0;
+                t.setString();
                 return TOKxstring;
             case '"':
                 if (n & 1)
@@ -1340,10 +1333,7 @@ public:
                     error("odd number (%d) of hex characters in hex string", n);
                     stringbuffer.writeByte(v);
                 }
-                t.len = cast(uint)stringbuffer.offset;
-                stringbuffer.writeByte(0);
-                t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
-                memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
+                t.setString(stringbuffer);
                 stringPostfix(t);
                 return TOKxstring;
             default:
@@ -1432,9 +1422,7 @@ public:
             case 0:
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
-                t.ustring = cast(char*)"";
-                t.len = 0;
-                t.postfix = 0;
+                t.setString();
                 return TOKstring;
             default:
                 if (c & 0x80)
@@ -1534,10 +1522,7 @@ public:
             error("delimited string must end in %s\"", hereid.toChars());
         else
             error("delimited string must end in %c\"", delimright);
-        t.len = cast(uint)stringbuffer.offset;
-        stringbuffer.writeByte(0);
-        t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
-        memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
+        t.setString(stringbuffer);
         stringPostfix(t);
         return TOKstring;
     }
@@ -1567,19 +1552,14 @@ public:
             case TOKrcurly:
                 if (--nest == 0)
                 {
-                    t.len = cast(uint)(p - 1 - pstart);
-                    t.ustring = cast(char*)mem.xmalloc(t.len + 1);
-                    memcpy(t.ustring, pstart, t.len);
-                    t.ustring[t.len] = 0;
+                    t.setString(pstart, p - 1 - pstart);
                     stringPostfix(t);
                     return TOKstring;
                 }
                 continue;
             case TOKeof:
                 error("unterminated token string constant starting at %s", start.toChars());
-                t.ustring = cast(char*)"";
-                t.len = 0;
-                t.postfix = 0;
+                t.setString();
                 return TOKstring;
             default:
                 continue;
@@ -1625,19 +1605,14 @@ public:
                 endOfLine();
                 break;
             case '"':
-                t.len = cast(uint)stringbuffer.offset;
-                stringbuffer.writeByte(0);
-                t.ustring = cast(char*)mem.xmalloc(stringbuffer.offset);
-                memcpy(t.ustring, stringbuffer.data, stringbuffer.offset);
+                t.setString(stringbuffer);
                 stringPostfix(t);
                 return TOKstring;
             case 0:
             case 0x1A:
                 p--;
                 error("unterminated string constant starting at %s", start.toChars());
-                t.ustring = cast(char*)"";
-                t.len = 0;
-                t.postfix = 0;
+                t.setString();
                 return TOKstring;
             default:
                 if (c & 0x80)
@@ -2130,15 +2105,16 @@ public:
             ++pstart;
         }
         stringbuffer.writeByte(0);
+        auto sbufptr = cast(const(char)*)stringbuffer.data;
         TOK result;
-        t.float80value = Port.strtold(cast(char*)stringbuffer.data, null);
+        t.float80value = Port.strtold(sbufptr, null);
         errno = 0;
         switch (*p)
         {
         case 'F':
         case 'f':
             // Only interested in errno return
-            cast(void)Port.strtof(cast(char*)stringbuffer.data, null);
+            cast(void)Port.strtof(sbufptr, null);
             result = TOKfloat32v;
             p++;
             break;
@@ -2148,7 +2124,7 @@ public:
              * 2.22508e-308. Not sure who is right.
              */
             // Only interested in errno return
-            cast(void)Port.strtod(cast(char*)stringbuffer.data, null);
+            cast(void)Port.strtod(sbufptr, null);
             result = TOKfloat64v;
             break;
         case 'l':
@@ -2180,8 +2156,8 @@ public:
         }
         if (errno == ERANGE)
         {
-            const(char)* suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
-            error(scanloc, "number '%s%s' is not representable", cast(char*)stringbuffer.data, suffix);
+            const char* suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
+            error(scanloc, "number '%s%s' is not representable", sbufptr, suffix);
         }
         debug
         {
@@ -2244,7 +2220,7 @@ public:
     {
         Token tok;
         int linnum = this.scanloc.linnum;
-        char* filespec = null;
+        const(char)* filespec = null;
         Loc loc = this.loc();
         scan(&tok);
         if (tok.value == TOKint32v || tok.value == TOKint64v)
@@ -2288,7 +2264,7 @@ public:
                 continue;
                 // skip white space
             case '_':
-                if (memcmp(p, cast(char*)"__FILE__", 8) == 0)
+                if (memcmp(p, "__FILE__".ptr, 8) == 0)
                 {
                     p += 8;
                     filespec = mem.xstrdup(scanloc.filename);
@@ -2313,7 +2289,7 @@ public:
                         goto Lerr;
                     case '"':
                         stringbuffer.writeByte(0);
-                        filespec = mem.xstrdup(cast(char*)stringbuffer.data);
+                        filespec = mem.xstrdup(cast(const(char)*)stringbuffer.data);
                         p++;
                         break;
                     default:
@@ -2501,9 +2477,9 @@ public:
         const(char)** dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, cast(char*)buf.data);
+            *dc = combineComments(*dc, cast(const(char)*)buf.data);
         else
-            *dc = cast(char*)buf.extractData();
+            *dc = cast(const(char)*)buf.extractData();
     }
 
     /********************************************
@@ -2513,21 +2489,21 @@ public:
     final static const(char)* combineComments(const(char)* c1, const(char)* c2)
     {
         //printf("Lexer::combineComments('%s', '%s')\n", c1, c2);
-        const(char)* c = c2;
+        auto c = c2;
         if (c1)
         {
             c = c1;
             if (c2)
             {
-                size_t len1 = strlen(cast(char*)c1);
-                size_t len2 = strlen(cast(char*)c2);
+                size_t len1 = strlen(c1);
+                size_t len2 = strlen(c2);
                 int insertNewLine = 0;
                 if (len1 && c1[len1 - 1] != '\n')
                 {
                     ++len1;
                     insertNewLine = 1;
                 }
-                char* p = cast(char*)mem.xmalloc(len1 + 1 + len2 + 1);
+                auto p = cast(char*)mem.xmalloc(len1 + 1 + len2 + 1);
                 memcpy(p, c1, len1 - insertNewLine);
                 if (insertNewLine)
                     p[len1 - 1] = '\n';
