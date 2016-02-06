@@ -104,7 +104,7 @@ public:
         //printf("DebugSymbol::semantic() %s\n", toChars());
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "debug";
     }
@@ -199,7 +199,7 @@ public:
     {
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "version";
     }

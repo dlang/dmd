@@ -222,7 +222,7 @@ public:
         }
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "attribute";
     }
@@ -536,7 +536,7 @@ public:
         return AttribDeclaration.addMember(sc, sds);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "protection attribute";
     }
@@ -699,7 +699,7 @@ public:
         }
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return (isunion ? "anonymous union" : "anonymous struct");
     }
@@ -1009,7 +1009,7 @@ public:
         return sc;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "pragma";
     }
@@ -1202,7 +1202,7 @@ public:
         Dsymbol.setScope(sc);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "static if";
     }
@@ -1301,7 +1301,7 @@ public:
         AttribDeclaration.semantic(sc);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "mixin";
     }
@@ -1411,7 +1411,7 @@ public:
         return exps;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "UserAttribute";
     }

@@ -703,7 +703,7 @@ public:
     Symbol* stag; // tag symbol for debug data
     Symbol* sinit;
 
-    override final AggregateDeclaration isAggregateDeclaration()
+    override final inout(AggregateDeclaration) isAggregateDeclaration() inout
     {
         return this;
     }

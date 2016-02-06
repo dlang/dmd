@@ -633,9 +633,9 @@ public:
         return false; // don't scan uninstantiated templates
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
-        return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : cast(char*)"template";
+        return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : "template";
     }
 
     override char* toChars()
@@ -6427,7 +6427,7 @@ public:
         return inst;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "template instance";
     }
@@ -8343,7 +8343,7 @@ public:
         }
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "mixin";
     }

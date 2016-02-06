@@ -249,7 +249,7 @@ public:
         }
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "namespace";
     }

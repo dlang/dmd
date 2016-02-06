@@ -191,7 +191,7 @@ public:
     {
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "declaration";
     }
@@ -393,7 +393,7 @@ public:
         assert(0);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "tuple";
     }
@@ -777,7 +777,7 @@ public:
         return true;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "alias";
     }
@@ -902,7 +902,7 @@ public:
         }
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "overload alias"; // todo
     }
@@ -1912,7 +1912,7 @@ public:
         sem = Semantic2Done;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "variable";
     }

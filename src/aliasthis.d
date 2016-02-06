@@ -98,7 +98,7 @@ public:
         ad.aliasthis = s;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "alias this";
     }

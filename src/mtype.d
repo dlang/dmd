@@ -590,7 +590,7 @@ public:
         this.ty = ty;
     }
 
-    const(char)* kind()
+    const(char)* kind() const
     {
         assert(false); // should be overridden
     }
@@ -3384,7 +3384,7 @@ public:
         merge();
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return dstring;
     }
@@ -4127,7 +4127,7 @@ public:
         this.basetype = basetype;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "vector";
     }
@@ -4447,7 +4447,7 @@ public:
         this.dim = dim;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "sarray";
     }
@@ -4879,7 +4879,7 @@ public:
         //printf("TypeDArray(t = %p)\n", t);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "darray";
     }
@@ -5088,7 +5088,7 @@ public:
         return new TypeAArray(t, index);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "aarray";
     }
@@ -5435,7 +5435,7 @@ public:
         super(Tpointer, t);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "pointer";
     }
@@ -5614,7 +5614,7 @@ public:
         // BUG: what about references to static arrays?
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "reference";
     }
@@ -5781,7 +5781,7 @@ public:
         return new TypeFunction(parameters, treturn, varargs, linkage, stc);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "function";
     }
@@ -6659,7 +6659,7 @@ public:
         ty = Tdelegate;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "delegate";
     }
@@ -7227,7 +7227,7 @@ public:
         this.ident = ident;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "identifier";
     }
@@ -7358,7 +7358,7 @@ public:
         this.tempinst = tempinst;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "instance";
     }
@@ -7471,7 +7471,7 @@ public:
         this.exp = exp;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "typeof";
     }
@@ -7615,7 +7615,7 @@ public:
         super(Treturn, loc);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "return";
     }
@@ -7737,7 +7737,7 @@ public:
         this.sym = sym;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "struct";
     }
@@ -8252,7 +8252,7 @@ public:
         this.sym = sym;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "enum";
     }
@@ -8503,7 +8503,7 @@ public:
         this.sym = sym;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "class";
     }
@@ -9110,7 +9110,7 @@ public:
         arguments.push(new Parameter(0, t2, null, null));
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "tuple";
     }
@@ -9225,7 +9225,7 @@ public:
         this.upr = upr;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "slice";
     }
@@ -9356,7 +9356,7 @@ public:
         super(Tnull);
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "null";
     }
