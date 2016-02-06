@@ -706,3 +706,38 @@ version (D_InlineAsm_X86_64)
         }
     }
 }
+
+/**
+ *  Bitwise rotates unsigned arithmetic types
+ */
+pure T rotl(T)(in T u, in uint s)
+    if (__traits(isArithmetic, T) && __traits(isUnsigned, T))
+{
+    return cast(T) ((u << s) | (u >> (-s & (T.sizeof * 8 - 1))));
+}
+
+pure T rotr(T)(in T u, in uint s)
+    if (__traits(isArithmetic, T) && __traits(isUnsigned, T))
+{
+    return cast(T) ((u >> s) | (u << (-s & (T.sizeof * 8 - 1))));
+}
+
+unittest
+{
+    ubyte a = 0b10101010U;
+    ulong b = ulong.max;
+
+    assert(rotl(a, 1) == 0b01010101);
+    assert(rotr(a, 1) == 0b01010101);
+    assert(rotl(a, 3) == 0b01010101);
+    assert(rotr(a, 3) == 0b01010101);
+
+    assert(rotl(a, 0) == a);
+    assert(rotr(a, 0) == a);
+
+    assert(rotl(a, 16) == a);
+    assert(rotr(a, 16) == a);
+
+    assert(rotl(b, 64) == ulong.max);
+    assert(rotr(b, 64) == ulong.max);
+}
