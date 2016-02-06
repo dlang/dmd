@@ -569,7 +569,7 @@ extern (C++) struct Token
 
         struct
         {
-            char* ustring; // UTF8 string
+            const(char)* ustring; // UTF8 string
             uint len;
             ubyte postfix; // 'c', 'w', 'd'
         }
@@ -737,6 +737,42 @@ extern (C++) struct Token
         }
     }
 
+    /****
+     * Set to contents of ptr[0..length]
+     * Params:
+     *  ptr = pointer to string
+     *  length = length of string
+     */
+    final void setString(const(char)* ptr, size_t length)
+    {
+        auto s = cast(char*)mem.xmalloc(length + 1);
+        memcpy(s, ptr, length);
+        s[length] = 0;
+        ustring = s;
+        len = cast(uint)length;
+        postfix = 0;
+    }
+
+    /****
+     * Set to contents of buf
+     * Params:
+     *  buf = string (not zero terminated)
+     */
+    final void setString(const ref OutBuffer buf)
+    {
+        setString(cast(const(char)*)buf.data, buf.offset);
+    }
+
+    /****
+     * Set to empty string
+     */
+    final void setString()
+    {
+        ustring = "";
+        len = 0;
+        postfix = 0;
+    }
+
     extern (C++) const(char)* toChars()
     {
         __gshared char[3 + 3 * float80value.sizeof + 1] buffer;
@@ -788,7 +824,7 @@ extern (C++) struct Token
                 for (size_t i = 0; i < len;)
                 {
                     uint c;
-                    utf_decodeChar(cast(char*)ustring, len, &i, &c);
+                    utf_decodeChar(ustring, len, &i, &c);
                     switch (c)
                     {
                     case 0:

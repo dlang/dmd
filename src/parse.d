@@ -6678,9 +6678,9 @@ public:
         case TOKxstring:
             {
                 // cat adjacent strings
-                char* s = token.ustring;
-                size_t len = token.len;
-                ubyte postfix = token.postfix;
+                auto s = token.ustring;
+                auto len = token.len;
+                auto postfix = token.postfix;
                 while (1)
                 {
                     nextToken();
@@ -6692,10 +6692,10 @@ public:
                                 error("mismatched string literal postfixes '%c' and '%c'", postfix, token.postfix);
                             postfix = token.postfix;
                         }
-                        size_t len1 = len;
-                        size_t len2 = token.len;
+                        const len1 = len;
+                        const len2 = token.len;
                         len = len1 + len2;
-                        char* s2 = cast(char*)mem.xmalloc((len + 1) * char.sizeof);
+                        auto s2 = cast(char*)mem.xmalloc((len + 1) * char.sizeof);
                         memcpy(s2, s, len1 * char.sizeof);
                         memcpy(s2 + len1, token.ustring, (len2 + 1) * char.sizeof);
                         s = s2;
@@ -6703,7 +6703,7 @@ public:
                     else
                         break;
                 }
-                e = new StringExp(loc, s, len, postfix);
+                e = new StringExp(loc, cast(char*)s, len, postfix);
                 break;
             }
         case TOKvoid:
