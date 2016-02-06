@@ -294,12 +294,12 @@ public:
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
     unsigned setBaseInterfaceOffsets(unsigned baseOffset);
-    bool isCOMclass();
-    virtual bool isCOMinterface();
-    bool isCPPclass();
-    virtual bool isCPPinterface();
+    bool isCOMclass() const;
+    virtual bool isCOMinterface() const;
+    bool isCPPclass() const;
+    virtual bool isCPPinterface() const;
     bool isAbstract();
-    virtual int vtblOffset();
+    virtual int vtblOffset() const;
     const char *kind();
 
     void addLocalClass(ClassDeclarations *);
@@ -321,9 +321,9 @@ public:
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();
-    int vtblOffset();
-    bool isCPPinterface();
-    bool isCOMinterface();
+    int vtblOffset() const;
+    bool isCPPinterface() const;
+    bool isCOMinterface() const;
 
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
