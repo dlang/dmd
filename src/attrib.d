@@ -304,7 +304,7 @@ public:
         }
     }
 
-    override final AttribDeclaration isAttribDeclaration()
+    override final inout(AttribDeclaration) isAttribDeclaration() inout
     {
         return this;
     }
@@ -704,7 +704,7 @@ public:
         return (isunion ? "anonymous union" : "anonymous struct");
     }
 
-    override final AnonDeclaration isAnonDeclaration()
+    override final inout(AnonDeclaration) isAnonDeclaration() inout
     {
         return this;
     }

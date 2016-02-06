@@ -485,7 +485,7 @@ public:
         return memtype;
     }
 
-    override EnumDeclaration isEnumDeclaration()
+    override inout(EnumDeclaration) isEnumDeclaration() inout
     {
         return this;
     }
@@ -755,7 +755,7 @@ public:
         return e.semantic(sc);
     }
 
-    override EnumMember isEnumMember()
+    override inout(EnumMember) isEnumMember() inout
     {
         return this;
     }

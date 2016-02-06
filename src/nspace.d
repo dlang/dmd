@@ -254,7 +254,7 @@ public:
         return "namespace";
     }
 
-    override Nspace isNspace()
+    override inout(Nspace) isNspace() inout
     {
         return this;
     }
