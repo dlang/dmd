@@ -391,7 +391,7 @@ public:
 
     override char* toChars()
     {
-        return objects.toChars();
+        return cast(char*)objects.toChars();
     }
 }
 
