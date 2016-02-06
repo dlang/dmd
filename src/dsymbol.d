@@ -1892,7 +1892,7 @@ public:
     AA* tab;
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
-    Dsymbol lookup(Identifier ident)
+    Dsymbol lookup(const Identifier ident)
     {
         //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
         return cast(Dsymbol)dmd_aaGetRvalue(tab, cast(void*)ident);
@@ -1902,7 +1902,7 @@ public:
     Dsymbol insert(Dsymbol s)
     {
         //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s->ident->toChars());
-        Identifier ident = s.ident;
+        const ident = s.ident;
         Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
         if (*ps)
             return null; // already in table
@@ -1913,14 +1913,14 @@ public:
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol update(Dsymbol s)
     {
-        Identifier ident = s.ident;
+        const ident = s.ident;
         Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
         *ps = s;
         return s;
     }
 
     // when ident and s are not the same
-    Dsymbol insert(Identifier ident, Dsymbol s)
+    Dsymbol insert(const Identifier ident, Dsymbol s)
     {
         //printf("DsymbolTable::insert()\n");
         Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);

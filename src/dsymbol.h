@@ -367,14 +367,14 @@ public:
     DsymbolTable();
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
-    Dsymbol *lookup(Identifier *ident);
+    Dsymbol *lookup(Identifier const * const ident);
 
     // Insert Dsymbol in table. Return NULL if already there.
     Dsymbol *insert(Dsymbol *s);
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol *update(Dsymbol *s);
-    Dsymbol *insert(Identifier *ident, Dsymbol *s);     // when ident and s are not the same
+    Dsymbol *insert(Identifier const * const ident, Dsymbol *s);     // when ident and s are not the same
 };
 
 #endif /* DMD_DSYMBOL_H */
