@@ -122,11 +122,6 @@ Symbol *toSymbol(Dsymbol *s)
         {
             //printf("VarDeclaration::toSymbol(%s)\n", vd->toChars());
             assert(!vd->needThis());
-            if (vd->csym)
-            {
-                result = vd->csym;
-                return;
-            }
 
             const char *id;
             if (vd->isDataseg())
@@ -255,8 +250,7 @@ Symbol *toSymbol(Dsymbol *s)
             type_setmangle(&t, m);
             s->Stype = t;
 
-            vd->csym = s;
-            result = vd->csym;
+            result = s;
         }
 
         void visit(TypeInfoDeclaration *tid)
@@ -281,12 +275,6 @@ Symbol *toSymbol(Dsymbol *s)
 
         void visit(FuncDeclaration *fd)
         {
-            if (fd->csym)
-            {
-                result = fd->csym;
-                return;
-            }
-
             const char *id = mangleExact(fd);
 
             //printf("FuncDeclaration::toSymbol(%s %s)\n", fd->kind(), fd->toChars());
@@ -375,8 +363,7 @@ Symbol *toSymbol(Dsymbol *s)
             s->Stype = t;
             //s->Sfielddef = this;
 
-            fd->csym = s;
-            result = fd->csym;
+            result = s;
         }
 
         /*************************************
@@ -385,21 +372,14 @@ Symbol *toSymbol(Dsymbol *s)
 
         void visit(ClassDeclaration *cd)
         {
-            if (cd->csym)
-            {
-                result = cd->csym;
-                return;
-            }
-
             if (!scc)
                 scc = fake_classsym(Id::ClassInfo);
 
             Symbol *s = toSymbolX(cd, "__Class", SCextern, scc->Stype, "Z");
             s->Sfl = FLextern;
             s->Sflags |= SFLnodebug;
-            cd->csym = s;
             slist_add(s);
-            result = cd->csym;
+            result = s;
         }
 
         /*************************************
@@ -408,21 +388,14 @@ Symbol *toSymbol(Dsymbol *s)
 
         void visit(InterfaceDeclaration *id)
         {
-            if (id->csym)
-            {
-                result = id->csym;
-                return;
-            }
-
             if (!scc)
                 scc = fake_classsym(Id::ClassInfo);
 
             Symbol *s = toSymbolX(id, "__Interface", SCextern, scc->Stype, "Z");
             s->Sfl = FLextern;
             s->Sflags |= SFLnodebug;
-            id->csym = s;
             slist_add(s);
-            result = id->csym;
+            result = s;
         }
 
         /*************************************
@@ -431,26 +404,23 @@ Symbol *toSymbol(Dsymbol *s)
 
         void visit(Module *m)
         {
-            if (m->csym)
-            {
-                result = m->csym;
-                return;
-            }
-
             if (!scc)
                 scc = fake_classsym(Id::ClassInfo);
 
             Symbol *s = toSymbolX(m, "__ModuleInfo", SCextern, scc->Stype, "Z");
             s->Sfl = FLextern;
             s->Sflags |= SFLnodebug;
-            m->csym = s;
             slist_add(s);
-            result = m->csym;
+            result = s;
         }
     };
 
+    if (s->csym)
+        return s->csym;
+
     ToSymbol v;
     s->accept(&v);
+    s->csym = v.result;
     return v.result;
 }
 
