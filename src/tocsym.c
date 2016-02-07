@@ -727,23 +727,26 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
 {
     assert(cd->isCPPclass());
 
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, cd);
+    if (*psym)
+        return *psym;
+
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (!cd->cpp_type_info_ptr_sym)
-    {
-        static Symbol *scpp;
-        if (!scpp)
-            scpp = fake_classsym(Id::cpp_type_info_ptr);
-        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp->Stype, "");
-        s->Sfl = FLdata;
-        s->Sflags |= SFLnodebug;
-        DtBuilder dtb;
-        cpp_type_info_ptr_toDt(cd, &dtb);
-        s->Sdt = dtb.finish();
-        outdata(s);
-        cd->cpp_type_info_ptr_sym = s;
-    }
-    return cd->cpp_type_info_ptr_sym;
+    static Symbol *scpp;
+    if (!scpp)
+        scpp = fake_classsym(Id::cpp_type_info_ptr);
+    Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp->Stype, "");
+    s->Sfl = FLdata;
+    s->Sflags |= SFLnodebug;
+    DtBuilder dtb;
+    cpp_type_info_ptr_toDt(cd, &dtb);
+    s->Sdt = dtb.finish();
+    outdata(s);
+
+    *psym = s;
+    return s;
 }
 
 /**********************************
