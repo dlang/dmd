@@ -192,7 +192,6 @@ extern (C++) class Dsymbol : RootObject
 public:
     Identifier ident;
     Dsymbol parent;
-    Symbol* csym;           // symbol for code generator
     Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
     Loc loc;                // where defined

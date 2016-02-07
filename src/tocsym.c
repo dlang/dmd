@@ -31,6 +31,7 @@
 #include "id.h"
 #include "ctfe.h"
 #include "rmem.h"
+#include "aav.h"
 
 // Back end
 #include "cc.h"
@@ -91,6 +92,8 @@ static Classsym *scc;
 
 /*************************************
  */
+
+static AA *csymMap;
 
 Symbol *toSymbol(Dsymbol *s)
 {
@@ -411,13 +414,21 @@ Symbol *toSymbol(Dsymbol *s)
         }
     };
 
-    if (s->csym)
-        return s->csym;
+    Symbol **pcsym = (Symbol **)dmd_aaGet(&csymMap, s);
+    if (*pcsym)
+        return *pcsym;
 
     ToSymbol v;
     s->accept(&v);
-    s->csym = v.result;
+    *pcsym = v.result;
     return v.result;
+}
+
+void setSymbol(Dsymbol *s, Symbol *csym)
+{
+    Symbol **pcsym = (Symbol **)dmd_aaGet(&csymMap, s);
+    assert(!*pcsym);
+    *pcsym = csym;
 }
 
 /*************************************

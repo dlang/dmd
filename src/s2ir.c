@@ -50,6 +50,7 @@ Symbol *toSymbolCpp(ClassDeclaration *cd);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 RET retStyle(TypeFunction *tf);
+void setSymbol(Dsymbol *s, Symbol *csym);
 
 #define elem_setLoc(e,loc)      srcpos_setLoc(&(e)->Esrcpos, loc)
 #define block_setLoc(b,loc)     srcpos_setLoc(&(b)->Bsrcpos, loc)
@@ -1091,7 +1092,7 @@ public:
 
                 Catch *cs = (*s->catches)[i];
                 if (cs->var)
-                    cs->var->csym = tryblock->jcatchvar;
+                    setSymbol(cs->var, tryblock->jcatchvar);
 
                 assert(cs->type);
 
@@ -1209,7 +1210,7 @@ public:
             {
                 Catch *cs = (*s->catches)[i];
                 if (cs->var)
-                    cs->var->csym = tryblock->jcatchvar;
+                    setSymbol(cs->var, tryblock->jcatchvar);
                 block *bcatch = blx->curblock;
                 if (cs->type)
                     bcatch->Bcatchtype = toSymbol(cs->type->toBasetype());
