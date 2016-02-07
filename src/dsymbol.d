@@ -1201,7 +1201,8 @@ public:
     DsymbolTable symtab;        // members[] sorted into table
 
 private:
-    Dsymbols* importedScopes;   // imported Dsymbol's
+    /// symbols whoose members have been imported, i.e. imported modules and template mixins
+    Dsymbols* importedScopes;
     PROTKIND* prots;            // array of PROTKIND, one for each import
 
 public:
