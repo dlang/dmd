@@ -779,10 +779,6 @@ public:
         return type;
     }
 
-    // Back end
-    Symbol* stag; // tag symbol for debug data
-    Symbol* sinit;
-
     override final inout(AggregateDeclaration) isAggregateDeclaration() inout
     {
         return this;

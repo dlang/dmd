@@ -488,8 +488,6 @@ public:
         return this;
     }
 
-    Symbol* sinit;
-
     override void accept(Visitor v)
     {
         v.visit(this);

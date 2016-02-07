@@ -537,35 +537,41 @@ Symbol *toVtblSymbol(ClassDeclaration *cd)
 
 Symbol *toInitializer(AggregateDeclaration *ad)
 {
-    if (!ad->sinit)
-    {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        StructDeclaration *sd = ad->isStructDeclaration();
-        if (sd)
-            s->Salignment = sd->alignment;
-        ad->sinit = s;
-    }
-    return ad->sinit;
+    static AA *initMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&initMap, ad);
+    if (*psym)
+        return *psym;
+
+    Classsym *stag = fake_classsym(Id::ClassInfo);
+    Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    StructDeclaration *sd = ad->isStructDeclaration();
+    if (sd)
+        s->Salignment = sd->alignment;
+
+    *psym = s;
+    return s;
 }
 
 Symbol *toInitializer(EnumDeclaration *ed)
 {
-    if (!ed->sinit)
-    {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Identifier *ident_save = ed->ident;
-        if (!ed->ident)
-            ed->ident = Identifier::generateId("__enum");
-        Symbol *s = toSymbolX(ed, "__init", SCextern, stag->Stype, "Z");
-        ed->ident = ident_save;
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        ed->sinit = s;
-    }
-    return ed->sinit;
+    static AA *initMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&initMap, ed);
+    if (*psym)
+        return *psym;
+
+    Classsym *stag = fake_classsym(Id::ClassInfo);
+    Identifier *ident_save = ed->ident;
+    if (!ed->ident)
+        ed->ident = Identifier::generateId("__enum");
+    Symbol *s = toSymbolX(ed, "__init", SCextern, stag->Stype, "Z");
+    ed->ident = ident_save;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+
+    *psym = s;
+    return s;
 }
 
 

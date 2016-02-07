@@ -885,22 +885,22 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 genTypeInfo(sd->type, NULL);
 
                 // Generate static initializer
-                toInitializer(sd);
+                Symbol *sinit = toInitializer(sd);
                 if (sd->isInstantiated())
                 {
-                    sd->sinit->Sclass = SCcomdat;
+                    sinit->Sclass = SCcomdat;
                 }
                 else
                 {
-                    sd->sinit->Sclass = SCglobal;
+                    sinit->Sclass = SCglobal;
                 }
 
-                sd->sinit->Sfl = FLdata;
+                sinit->Sfl = FLdata;
                 DtBuilder dtb;
                 StructDeclaration_toDt(sd, &dtb);
-                sd->sinit->Sdt = dtb.finish();
-                out_readonly(sd->sinit);    // put in read-only segment
-                outdata(sd->sinit);
+                sinit->Sdt = dtb.finish();
+                out_readonly(sinit);    // put in read-only segment
+                outdata(sinit);
 
                 // Put out the members
                 for (size_t i = 0; i < sd->members->dim; i++)
@@ -1041,13 +1041,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     scclass = SCcomdat;
 
                 // Generate static initializer
-                toInitializer(ed);
-                ed->sinit->Sclass = scclass;
-                ed->sinit->Sfl = FLdata;
+                Symbol *sinit = toInitializer(ed);
+                sinit->Sclass = scclass;
+                sinit->Sfl = FLdata;
                 DtBuilder dtb;
                 Expression_toDt(tc->sym->defaultval, &dtb);
-                ed->sinit->Sdt = dtb.finish();
-                outdata(ed->sinit);
+                sinit->Sdt = dtb.finish();
+                outdata(sinit);
             }
             ed->semanticRun = PASSobj;
         }

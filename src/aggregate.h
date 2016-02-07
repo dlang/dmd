@@ -144,10 +144,6 @@ public:
     // 'this' type
     Type *handleType() { return type; }
 
-    // Back end
-    Symbol *stag;               // tag symbol for debug data
-    Symbol *sinit;
-
     AggregateDeclaration *isAggregateDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
