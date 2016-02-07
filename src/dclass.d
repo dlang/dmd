@@ -1500,9 +1500,6 @@ public:
         aclasses.push(this);
     }
 
-    // Back end
-    Symbol* vtblsym;
-
     override final inout(ClassDeclaration) isClassDeclaration() inout
     {
         return this;

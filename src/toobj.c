@@ -373,7 +373,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // vtbl[]
             dtb.size(cd->vtbl.dim);
             if (cd->vtbl.dim)
-                dtb.xoff(cd->vtblsym, 0, TYnptr);
+                dtb.xoff(toVtblSymbol(cd), 0, TYnptr);
             else
                 dtb.size(0);
 
@@ -675,13 +675,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                  */
                 dtbv.size(0);
             }
-            cd->vtblsym->Sdt = dtbv.finish();
-            cd->vtblsym->Sclass = scclass;
-            cd->vtblsym->Sfl = FLdata;
-            out_readonly(cd->vtblsym);
-            outdata(cd->vtblsym);
+            Symbol *vtblsym = toVtblSymbol(cd);
+            vtblsym->Sdt = dtbv.finish();
+            vtblsym->Sclass = scclass;
+            vtblsym->Sfl = FLdata;
+            out_readonly(vtblsym);
+            outdata(vtblsym);
             if (cd->isExport())
-                objmod->export_symbol(cd->vtblsym,0);
+                objmod->export_symbol(vtblsym,0);
         }
 
         void visit(InterfaceDeclaration *id)

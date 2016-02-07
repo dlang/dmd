@@ -517,18 +517,21 @@ Classsym *fake_classsym(Identifier *id)
 
 Symbol *toVtblSymbol(ClassDeclaration *cd)
 {
-    if (!cd->vtblsym)
-    {
-        toSymbol(cd);
+    static AA *vtblMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&vtblMap, cd);
+    if (*psym)
+        return *psym;
 
-        TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
-        t->Tmangle = mTYman_d;
-        Symbol *s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
-        s->Sflags |= SFLnodebug;
-        s->Sfl = FLextern;
-        cd->vtblsym = s;
-    }
-    return cd->vtblsym;
+    toSymbol(cd);
+
+    TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
+    t->Tmangle = mTYman_d;
+    Symbol *s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
+    s->Sflags |= SFLnodebug;
+    s->Sfl = FLextern;
+
+    *psym = s;
+    return s;
 }
 
 /**********************************
