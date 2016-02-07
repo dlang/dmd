@@ -463,9 +463,7 @@ Symbol *toImport(Dsymbol *ds)
 {
     if (!ds->isym)
     {
-        if (!ds->csym)
-            ds->csym = toSymbol(ds);
-        ds->isym = toImport(ds->csym);
+        ds->isym = toImport(toSymbol(ds));
     }
     return ds->isym;
 }
@@ -480,9 +478,9 @@ Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
     if (!offset)
         return s;
 
-    Symbol *sthunk = symbol_generate(SCstatic, fd->csym->Stype);
+    Symbol *sthunk = symbol_generate(SCstatic, s->Stype);
     sthunk->Sflags |= SFLimplem;
-    cod3_thunk(sthunk, fd->csym, 0, TYnptr, -offset, -1, 0);
+    cod3_thunk(sthunk, s, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 
@@ -513,8 +511,7 @@ Symbol *toVtblSymbol(ClassDeclaration *cd)
 {
     if (!cd->vtblsym)
     {
-        if (!cd->csym)
-            toSymbol(cd);
+        toSymbol(cd);
 
         TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
         t->Tmangle = mTYman_d;

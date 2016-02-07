@@ -1054,7 +1054,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     if (fd->vthis)
     {
-        assert(!fd->vthis->csym);
         sthis = toSymbol(fd->vthis);
         irs.sthis = sthis;
         if (!(f->Fflags3 & Fnested))
@@ -1088,7 +1087,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         {
             VarDeclaration *v = (*fd->parameters)[i];
             //printf("param[%d] = %p, %s\n", i, v, v->toChars());
-            assert(!v->csym);
             params[pi + i] = toSymbol(v);
         }
         pi += fd->parameters->dim;

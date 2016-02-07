@@ -85,8 +85,8 @@ void genModuleInfo(Module *m)
 
     //////////////////////////////////////////////
 
-    m->csym->Sclass = SCglobal;
-    m->csym->Sfl = FLdata;
+    msym->Sclass = SCglobal;
+    msym->Sfl = FLdata;
 
     DtBuilder dtb;
     ClassDeclarations aclasses;
@@ -204,9 +204,9 @@ void genModuleInfo(Module *m)
     }
 
     objc_Module_genmoduleinfo_classes();
-    m->csym->Sdt = dtb.finish();
-    out_readonly(m->csym);
-    outdata(m->csym);
+    msym->Sdt = dtb.finish();
+    out_readonly(msym);
+    outdata(msym);
 
     //////////////////////////////////////////////
 
@@ -284,7 +284,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
 
             // Generate C symbols
-            toSymbol(cd);
+            Symbol *csym = toSymbol(cd);
             toVtblSymbol(cd);
             Symbol *sinit = toInitializer(cd);
 
@@ -310,8 +310,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the ClassInfo
-            cd->csym->Sclass = scclass;
-            cd->csym->Sfl = FLdata;
+            csym->Sclass = scclass;
+            csym->Sfl = FLdata;
 
             /* The layout is:
                {
@@ -368,7 +368,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 namelen = strlen(name);
             }
             dtb.size(namelen);
-            dt_t *pdtname = dtb.xoffpatch(cd->csym, 0, TYnptr);
+            dt_t *pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
             // vtbl[]
             dtb.size(cd->vtbl.dim);
@@ -380,7 +380,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // interfaces[]
             dtb.size(cd->vtblInterfaces->dim);
             if (cd->vtblInterfaces->dim)
-                dtb.xoff(cd->csym, offset, TYnptr);      // (*)
+                dtb.xoff(csym, offset, TYnptr);      // (*)
             else
                 dtb.size(0);
 
@@ -491,7 +491,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
                 // vtbl[]
                 dtb.size(id->vtbl.dim);
-                dtb.xoff(cd->csym, offset, TYnptr);
+                dtb.xoff(csym, offset, TYnptr);
 
                 // offset
                 dtb.size(b->offset);
@@ -515,7 +515,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     //dtb.xoff(toSymbol(id), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtb.xoff(cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
+                    dtb.xoff(csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
                     j = 1;
                 }
                 assert(id->vtbl.dim == b->vtbl.dim);
@@ -603,11 +603,11 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             const size_t namepad = -(namelen + 1) & (Target::ptrsize - 1); // align
             dtb.nzeros(namepad);
 
-            cd->csym->Sdt = dtb.finish();
+            csym->Sdt = dtb.finish();
             // ClassInfo cannot be const data, because we use the monitor on it
-            outdata(cd->csym);
+            outdata(csym);
             if (cd->isExport())
-                objmod->export_symbol(cd->csym, 0);
+                objmod->export_symbol(csym, 0);
 
             //////////////////////////////////////////////
 
@@ -615,7 +615,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //printf("putting out %s.vtbl[]\n", toChars());
             DtBuilder dtbv;
             if (cd->vtblOffset())
-                dtbv.xoff(cd->csym, 0, TYnptr);           // first entry is ClassInfo reference
+                dtbv.xoff(csym, 0, TYnptr);           // first entry is ClassInfo reference
             for (size_t i = cd->vtblOffset(); i < cd->vtbl.dim; i++)
             {
                 FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
@@ -710,7 +710,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
 
             // Generate C symbols
-            toSymbol(id);
+            Symbol *csym = toSymbol(id);
 
             //////////////////////////////////////////////
 
@@ -721,8 +721,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the ClassInfo
-            id->csym->Sclass = scclass;
-            id->csym->Sfl = FLdata;
+            csym->Sclass = scclass;
+            csym->Sfl = FLdata;
 
             /* The layout is:
                {
@@ -760,7 +760,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             const char *name = id->toPrettyChars();
             size_t namelen = strlen(name);
             dtb.size(namelen);
-            dt_t *pdtname = dtb.xoffpatch(id->csym, 0, TYnptr);
+            dt_t *pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
             // vtbl[]
             dtb.size(0);
@@ -779,7 +779,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         fatal();
                     }
                 }
-                dtb.xoff(id->csym, offset, TYnptr);      // (*)
+                dtb.xoff(csym, offset, TYnptr);      // (*)
             }
             else
             {
@@ -852,11 +852,11 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             const size_t namepad =  -(namelen + 1) & (Target::ptrsize - 1); // align
             dtb.nzeros(namepad);
 
-            id->csym->Sdt = dtb.finish();
-            out_readonly(id->csym);
-            outdata(id->csym);
+            csym->Sdt = dtb.finish();
+            out_readonly(csym);
+            outdata(csym);
             if (id->isExport())
-                objmod->export_symbol(id->csym, 0);
+                objmod->export_symbol(csym, 0);
         }
 
         void visit(StructDeclaration *sd)
