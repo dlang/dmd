@@ -7800,26 +7800,16 @@ public:
         {
             TypeAArray taa = cast(TypeAArray)t;
             Type index = taa.index;
-            Expression e = index.toExpression();
-            if (e)
-            {
-                arguments = new Expressions();
-                arguments.push(e);
-                t = new TypeDArray(taa.next);
-            }
-            else
+            Expression edim = index.toExpression();
+            if (!edim)
             {
                 error("need size of rightmost array, not type %s", index.toChars());
                 return new NullExp(loc);
             }
+            t = new TypeSArray(taa.next, edim);
         }
         else if (t.ty == Tsarray)
         {
-            TypeSArray tsa = cast(TypeSArray)t;
-            Expression e = tsa.dim;
-            arguments = new Expressions();
-            arguments.push(e);
-            t = new TypeDArray(tsa.next);
         }
         else if (token.value == TOKlparen)
         {

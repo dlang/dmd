@@ -5559,7 +5559,11 @@ public:
 
     override Expression syntaxCopy()
     {
-        return new NewExp(loc, thisexp ? thisexp.syntaxCopy() : null, arraySyntaxCopy(newargs), newtype.syntaxCopy(), arraySyntaxCopy(arguments));
+        return new NewExp(loc,
+            thisexp ? thisexp.syntaxCopy() : null,
+            arraySyntaxCopy(newargs),
+            newtype.syntaxCopy(),
+            arraySyntaxCopy(arguments));
     }
 
     override Expression semantic(Scope* sc)
@@ -5573,57 +5577,84 @@ public:
         }
         if (type) // if semantic() already run
             return this;
-        Type tb;
+
+        // Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
+        // T should be analyzed first and edim should go into arguments iff it's
+        // not a tuple.
+        Expression edim = null;
+        if (!arguments && newtype.ty == Tsarray)
+        {
+            edim = (cast(TypeSArray)newtype).dim;
+            newtype = (cast(TypeNext)newtype).next;
+        }
+
         ClassDeclaration cdthis = null;
-        size_t nargs;
-        Expression newprefix = null;
-    Lagain:
         if (thisexp)
         {
             thisexp = thisexp.semantic(sc);
+            if (thisexp.op == TOKerror)
+                return new ErrorExp();
             cdthis = thisexp.type.isClassHandle();
-            if (cdthis)
-            {
-                sc = sc.push(cdthis);
-                type = newtype.semantic(loc, sc);
-                sc = sc.pop();
-                if (type.ty == Terror)
-                    goto Lerr;
-                if (!MODimplicitConv(thisexp.type.mod, newtype.mod))
-                {
-                    error("nested type %s should have the same or weaker constancy as enclosing type %s", newtype.toChars(), thisexp.type.toChars());
-                    goto Lerr;
-                }
-            }
-            else
+            if (!cdthis)
             {
                 error("'this' for nested class must be a class type, not %s", thisexp.type.toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
+
+            sc = sc.push(cdthis);
+            type = newtype.semantic(loc, sc);
+            sc = sc.pop();
         }
         else
         {
             type = newtype.semantic(loc, sc);
-            if (type.ty == Terror)
-                goto Lerr;
         }
+        if (type.ty == Terror)
+            return new ErrorExp();
+
+        if (edim)
+        {
+            if (type.toBasetype().ty == Ttuple)
+            {
+                // --> new T[edim]
+                type = new TypeSArray(type, edim);
+                type = type.semantic(loc, sc);
+                if (type.ty == Terror)
+                    return new ErrorExp();
+            }
+            else
+            {
+                // --> new T[](edim)
+                arguments = new Expressions();
+                arguments.push(edim);
+                type = type.arrayOf();
+            }
+        }
+
         newtype = type; // in case type gets cast to something else
-        tb = type.toBasetype();
-        //printf("tb: %s, deco = %s\n", tb->toChars(), tb->deco);
-        if (arrayExpressionSemantic(newargs, sc) || preFunctionParameters(loc, sc, newargs))
+        Type tb = type.toBasetype();
+        //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
+
+        if (arrayExpressionSemantic(newargs, sc) ||
+            preFunctionParameters(loc, sc, newargs))
         {
-            goto Lerr;
+            return new ErrorExp();
         }
-        if (arrayExpressionSemantic(arguments, sc) || preFunctionParameters(loc, sc, arguments))
+        if (arrayExpressionSemantic(arguments, sc) ||
+            preFunctionParameters(loc, sc, arguments))
         {
-            goto Lerr;
+            return new ErrorExp();
         }
-        nargs = arguments ? arguments.dim : 0;
+
         if (thisexp && tb.ty != Tclass)
         {
             error("e.new is only for allocating nested classes, not %s", tb.toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
+
+        size_t nargs = arguments ? arguments.dim : 0;
+        Expression newprefix = null;
+
         if (tb.ty == Tclass)
         {
             ClassDeclaration cd = (cast(TypeClass)tb).sym;
@@ -5633,12 +5664,13 @@ public:
             if (cd.noDefaultCtor && !nargs && !cd.defaultCtor)
             {
                 error("default construction is disabled for type %s", cd.type.toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
+
             if (cd.isInterfaceDeclaration())
             {
                 error("cannot create instance of interface %s", cd.toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
             if (cd.isAbstract())
             {
@@ -5647,21 +5679,23 @@ public:
                 {
                     FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
                     if (fd && fd.isAbstract())
-                        errorSupplemental(loc, "function '%s' is not implemented", fd.toFullSignature());
+                    {
+                        errorSupplemental(loc, "function '%s' is not implemented",
+                            fd.toFullSignature());
+                    }
                 }
-                goto Lerr;
+                return new ErrorExp();
             }
             // checkDeprecated() is already done in newtype->semantic().
+
             if (cd.isNested())
             {
                 /* We need a 'this' pointer for the nested class.
                  * Ensure we have the right one.
                  */
                 Dsymbol s = cd.toParent2();
-                ClassDeclaration cdn = s.isClassDeclaration();
-                FuncDeclaration fdn = s.isFuncDeclaration();
-                //printf("cd isNested, cdn = %s\n", cdn ? cdn->toChars() : "null");
-                if (cdn)
+                //printf("cd isNested, parent = %s '%s'\n", s.kind(), s.toPrettyChars());
+                if (auto cdn = s.isClassDeclaration())
                 {
                     if (!cdthis)
                     {
@@ -5671,8 +5705,9 @@ public:
                         {
                             if (!sp)
                             {
-                                error("outer class %s 'this' needed to 'new' nested class %s", cdn.toChars(), cd.toChars());
-                                goto Lerr;
+                                error("outer class %s 'this' needed to 'new' nested class %s",
+                                    cdn.toChars(), cd.toChars());
+                                return new ErrorExp();
                             }
                             ClassDeclaration cdp = sp.isClassDeclaration();
                             if (!cdp)
@@ -5682,32 +5717,39 @@ public:
                             // Add a '.outer' and try again
                             thisexp = new DotIdExp(loc, thisexp, Id.outer);
                         }
-                        if (!global.errors)
-                            goto Lagain;
+
+                        thisexp = thisexp.semantic(sc);
+                        if (thisexp.op == TOKerror)
+                            return new ErrorExp();
+                        cdthis = thisexp.type.isClassHandle();
                     }
-                    if (cdthis)
+                    if (cdthis != cdn && !cdn.isBaseOf(cdthis, null))
                     {
-                        //printf("cdthis = %s\n", cdthis->toChars());
-                        if (cdthis != cdn && !cdn.isBaseOf(cdthis, null))
-                        {
-                            error("'this' for nested class must be of type %s, not %s", cdn.toChars(), thisexp.type.toChars());
-                            goto Lerr;
-                        }
+                        //printf("cdthis = %s\n", cdthis.toChars());
+                        error("'this' for nested class must be of type %s, not %s",
+                            cdn.toChars(), thisexp.type.toChars());
+                        return new ErrorExp();
+                    }
+                    if (!MODimplicitConv(thisexp.type.mod, newtype.mod))
+                    {
+                        error("nested type %s should have the same or weaker constancy as enclosing type %s",
+                            newtype.toChars(), thisexp.type.toChars());
+                        return new ErrorExp();
                     }
                 }
                 else if (thisexp)
                 {
                     error("e.new is only for allocating nested classes");
-                    goto Lerr;
+                    return new ErrorExp();
                 }
-                else if (fdn)
+                else if (auto fdn = s.isFuncDeclaration())
                 {
                     // make sure the parent context fdn of cd is reachable from sc
                     if (checkNestedRef(sc.parent, fdn))
                     {
                         error("outer function context of %s is needed to 'new' nested class %s",
                             fdn.toPrettyChars(), cd.toPrettyChars());
-                        goto Lerr;
+                        return new ErrorExp();
                     }
                 }
                 else
@@ -5716,8 +5758,9 @@ public:
             else if (thisexp)
             {
                 error("e.new is only for allocating nested classes");
-                goto Lerr;
+                return new ErrorExp();
             }
+
             if (cd.aggNew)
             {
                 // Prepend the size argument to newargs[]
@@ -5725,18 +5768,21 @@ public:
                 if (!newargs)
                     newargs = new Expressions();
                 newargs.shift(e);
+
                 FuncDeclaration f = resolveFuncCall(loc, sc, cd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
-                    goto Lerr;
+                    return new ErrorExp();
                 checkDeprecated(sc, f);
                 checkPurity(sc, f);
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
+
                 TypeFunction tf = cast(TypeFunction)f.type;
                 Type rettype;
                 if (functionParameters(loc, sc, tf, null, newargs, f, &rettype, &newprefix))
                     return new ErrorExp();
+
                 allocator = f.isNewDeclaration();
                 assert(allocator);
             }
@@ -5745,24 +5791,27 @@ public:
                 if (newargs && newargs.dim)
                 {
                     error("no allocator for %s", cd.toChars());
-                    goto Lerr;
+                    return new ErrorExp();
                 }
             }
+
             if (cd.ctor)
             {
                 FuncDeclaration f = resolveFuncCall(loc, sc, cd.ctor, null, tb, arguments, 0);
                 if (!f || f.errors)
-                    goto Lerr;
+                    return new ErrorExp();
                 checkDeprecated(sc, f);
                 checkPurity(sc, f);
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
+
                 TypeFunction tf = cast(TypeFunction)f.type;
                 if (!arguments)
                     arguments = new Expressions();
                 if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
                     return new ErrorExp();
+
                 member = f.isCtorDeclaration();
                 assert(member);
             }
@@ -5771,7 +5820,7 @@ public:
                 if (nargs)
                 {
                     error("no constructor for %s", cd.toChars());
-                    goto Lerr;
+                    return new ErrorExp();
                 }
             }
         }
@@ -5784,9 +5833,10 @@ public:
             if (sd.noDefaultCtor && !nargs)
             {
                 error("default construction is disabled for type %s", sd.type.toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
             // checkDeprecated() is already done in newtype->semantic().
+
             if (sd.aggNew)
             {
                 // Prepend the uint size argument to newargs[]
@@ -5794,18 +5844,21 @@ public:
                 if (!newargs)
                     newargs = new Expressions();
                 newargs.shift(e);
+
                 FuncDeclaration f = resolveFuncCall(loc, sc, sd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
-                    goto Lerr;
+                    return new ErrorExp();
                 checkDeprecated(sc, f);
                 checkPurity(sc, f);
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
+
                 TypeFunction tf = cast(TypeFunction)f.type;
                 Type rettype;
                 if (functionParameters(loc, sc, tf, null, newargs, f, &rettype, &newprefix))
                     return new ErrorExp();
+
                 allocator = f.isNewDeclaration();
                 assert(allocator);
             }
@@ -5814,26 +5867,30 @@ public:
                 if (newargs && newargs.dim)
                 {
                     error("no allocator for %s", sd.toChars());
-                    goto Lerr;
+                    return new ErrorExp();
                 }
             }
+
             if (sd.ctor && nargs)
             {
                 FuncDeclaration f = resolveFuncCall(loc, sc, sd.ctor, null, tb, arguments, 0);
                 if (!f || f.errors)
-                    goto Lerr;
+                    return new ErrorExp();
                 checkDeprecated(sc, f);
                 checkPurity(sc, f);
                 checkSafety(sc, f);
                 checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
+
                 TypeFunction tf = cast(TypeFunction)f.type;
                 if (!arguments)
                     arguments = new Expressions();
                 if (functionParameters(loc, sc, tf, type, arguments, f, &type, &argprefix))
                     return new ErrorExp();
+
                 member = f.isCtorDeclaration();
                 assert(member);
+
                 if (checkFrameAccess(loc, sc, sd, sd.fields.dim))
                     return new ErrorExp();
             }
@@ -5841,13 +5898,17 @@ public:
             {
                 if (!arguments)
                     arguments = new Expressions();
+
                 if (!sd.fit(loc, sc, arguments, tb))
                     return new ErrorExp();
+
                 if (!sd.fill(loc, arguments, false))
                     return new ErrorExp();
+
                 if (checkFrameAccess(loc, sc, sd, arguments ? arguments.dim : 0))
                     return new ErrorExp();
             }
+
             type = type.pointerTo();
         }
         else if (tb.ty == Tarray && nargs)
@@ -5858,15 +5919,16 @@ public:
             if (ad && ad.noDefaultCtor)
             {
                 error("default construction is disabled for type %s", tb.nextOf().toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
             for (size_t i = 0; i < nargs; i++)
             {
                 if (tb.ty != Tarray)
                 {
                     error("too many arguments for array");
-                    goto Lerr;
+                    return new ErrorExp();
                 }
+
                 Expression arg = (*arguments)[i];
                 arg = resolveProperties(sc, arg);
                 arg = arg.implicitCastTo(sc, Type.tsize_t);
@@ -5874,7 +5936,7 @@ public:
                 if (arg.op == TOKint64 && cast(sinteger_t)arg.toInteger() < 0)
                 {
                     error("negative array index %s", arg.toChars());
-                    goto Lerr;
+                    return new ErrorExp();
                 }
                 (*arguments)[i] = arg;
                 tb = (cast(TypeDArray)tb).next.toBasetype();
@@ -5894,23 +5956,24 @@ public:
             else
             {
                 error("more than one argument for construction of %s", type.toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
+
             type = type.pointerTo();
         }
         else
         {
             error("new can only create structs, dynamic arrays or class objects, not %s's", type.toChars());
-            goto Lerr;
+            return new ErrorExp();
         }
+
         //printf("NewExp: '%s'\n", toChars());
         //printf("NewExp:type '%s'\n", type->toChars());
         semanticTypeInfo(sc, type);
+
         if (newprefix)
             return combine(newprefix, this);
         return this;
-    Lerr:
-        return new ErrorExp();
     }
 
     override void accept(Visitor v)

@@ -5951,8 +5951,46 @@ void test10642()
     test(Date(1999, 1, 1), 1, MonthDay(1,1));
 }
 
+/***************************************************/
+// 11581
+
+alias TT11581(T...) = T;
+
+void test11581()
+{
+    static class A {}
+
+    static class C { alias Types = TT11581!(4, int); }
+    static C makeC() { return null; }
+
+    alias T = TT11581!(A);
+
+    // edim == IntergerExp(0)
+    auto a1 = new T[0];
+    static assert(is(typeof(a1) == A));
+
+    enum d2 = 0;
+
+    // edim == TypeIdentifier('d2') --> IdentifierExp
+    auto a2 = new T[d2];
+    static assert(is(typeof(a2) == A));
+
+    alias U = int;
+    int d3 = 3;
+
+    // edim == TypeIdentifier('d3') --> IdentifierExp
+    auto a3 = new U[d3];
+    static assert(is(typeof(a3) == U[]));
+    assert(a3.length == d3);
+
+    // edim == IndexExp(DotIdExp(CallExp(makeC, []), 'Types'), 0)
+    auto a4 = new U[makeC().Types[0]];
+    static assert(is(typeof(a4) == U[]));
+    assert(a4.length == C.Types[0]);
+}
 
 /***************************************************/
+// 7436
 
 void test7436()
 {
@@ -6301,6 +6339,7 @@ int main()
     test11265();
     test10633();
     test10642();
+    test11581();
     test7436();
     test12138();
     test14430();
