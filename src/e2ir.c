@@ -68,6 +68,7 @@ Symbol* toSymbol(ClassReferenceExp *cre);
 elem *filelinefunction(IRState *irs, Expression *e);
 void toTraceGC(IRState *irs, elem *e, Loc *loc);
 void genTypeInfo(Type *t, Scope *sc);
+void setClosureVarOffset(FuncDeclaration *fd);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -3417,6 +3418,14 @@ elem *toElem(Expression *e, IRState *irs)
                 printf("[%s] dve = %s, dve->type = %s, v->type = %s\n", dve->loc.toChars(), dve->toChars(), dve->type->toChars(), v->type->toChars());
 #endif
             assert(txb->ty == tyb->ty);
+
+            // Bugzilla 14730
+            if (global.params.useInline && v->offset == 0)
+            {
+                FuncDeclaration *fd = v->parent->isFuncDeclaration();
+                if (fd && fd->semanticRun < PASSobj)
+                    setClosureVarOffset(fd);
+            }
 
             elem *e = toElem(dve->e1, irs);
             Type *tb1 = dve->e1->type->toBasetype();
