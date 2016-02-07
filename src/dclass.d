@@ -851,15 +851,15 @@ public:
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (s; *members)
         {
-            Dsymbol s = (*members)[i];
             s.importAll(sc2);
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        // Note that members.dim can grow due to tuple expansion during semantic()
+        for (size_t i = 0; i < members.dim; ++i)
         {
-            Dsymbol s = (*members)[i];
+            auto s = (*members)[i];
             s.semantic(sc2);
         }
 
@@ -869,9 +869,8 @@ public:
         {
             // semantic() failed due to forward references
             // Unwind what we did, and defer it for later
-            for (size_t i = 0; i < fields.dim; i++)
+            foreach (v; fields)
             {
-                VarDeclaration v = fields[i];
                 v.offset = 0;
             }
             fields.setDim(0);
@@ -927,7 +926,7 @@ public:
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
 
-        // this.ctor is already set in finalizeSize()
+        // this.ctor is already set
 
         if (!ctor && noDefaultCtor)
         {
@@ -1149,7 +1148,7 @@ public:
         return null;
     }
 
-    override void finalizeSize(Scope* sc)
+    final override void finalizeSize(Scope* sc)
     {
         if (sizeok != SIZEOKnone)
             return;
@@ -1163,6 +1162,14 @@ public:
             structsize = baseClass.structsize;
             if (cpp && global.params.isWindows)
                 structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+        }
+        else if (isInterfaceDeclaration())
+        {
+            if (interfaces.length == 0)
+            {
+                alignsize = Target.ptrsize;
+                structsize = Target.ptrsize;      // allow room for __vptr
+            }
         }
         else
         {
@@ -1221,11 +1228,18 @@ public:
 
         structsize += membersPlace(this, structsize);
 
+        if (isInterfaceDeclaration())
+        {
+            sizeok = SIZEOKdone;
+            return;
+        }
+
         uint offset = structsize;
         foreach (s; *members)
         {
             s.setFieldOffset(this, &offset, false);
         }
+
         if (sizeok == SIZEOKfwd)
             return;
 
@@ -1252,9 +1266,8 @@ public:
                 }
             }
 
-            for (size_t i = 0; i < members.dim; i++)
+            foreach (s; *members)
             {
-                Dsymbol s = (*members)[i];
                 s.apply(&SearchCtor.fp, null);
             }
         }
@@ -1394,36 +1407,6 @@ public:
         }
     }
 
-    final uint setBaseInterfaceOffsets(uint baseOffset)
-    {
-        assert(vtblInterfaces); // Bugzilla 12984
-
-        // set the offset of base interfaces from this (most derived) class/interface.
-        uint offset = baseOffset;
-
-        //if (vtblInterfaces.dim) printf("\n%s.finalizeSize()\n", toChars());
-        foreach (i, b; *vtblInterfaces)
-        {
-            uint thissize = Target.ptrsize;
-
-            alignmember(STRUCTALIGN_DEFAULT, thissize, &offset);
-            b.offset = offset;
-            //printf("\tvtblInterfaces[%d] b.sym = %s, offset = %d\n", i, b.sym.toChars(), b.offset);
-
-            // Take care of single inheritance offsets
-            while (b.baseInterfaces.length)
-            {
-                b = &b.baseInterfaces[0];
-                b.offset = offset;
-                //printf("\tvtblInterfaces[%d] +  sym = %s, offset = %d\n", i, b.sym.toChars(), b.offset);
-            }
-
-            offset += thissize;
-            if (alignsize < thissize)
-                alignsize = thissize;
-        }
-        return offset - baseOffset;
-    }
 
     /****************************************
      */
@@ -1796,8 +1779,6 @@ public:
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
 
-        finalizeSize(sc2);
-
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
@@ -1819,6 +1800,8 @@ public:
             Dsymbol s = (*members)[i];
             s.semantic(sc2);
         }
+
+        finalizeSize(sc2);
 
         semanticRun = PASSsemanticdone;
 
@@ -1844,14 +1827,6 @@ public:
         assert(type.ty != Tclass || (cast(TypeClass)type).sym == this);
     }
 
-    override void finalizeSize(Scope* sc)
-    {
-        // set the offset of base interfaces
-        structsize = setBaseInterfaceOffsets(0);
-        if (structsize == 0)
-            structsize = Target.ptrsize;
-        sizeok = SIZEOKdone;
-    }
 
     /*******************************************
      * Determine if 'this' is a base class of cd.
