@@ -768,3 +768,19 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
     s->Stype = t;
     return s;
 }
+
+static AA *shiddenMap;
+
+void setHiddenVar(FuncDeclaration *fd, Symbol *shidden)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&shiddenMap, fd);
+    assert(!*psym);
+    *psym = shidden;
+}
+
+Symbol *getHiddenVar(FuncDeclaration *fd)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&shiddenMap, fd);
+    assert(*psym);
+    return *psym;
+}

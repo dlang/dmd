@@ -63,6 +63,7 @@ Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
 static void genhelpers(Module *m);
+void setHiddenVar(FuncDeclaration *fd, Symbol *shidden);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -1041,8 +1042,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         shidden->Sflags |= SFLtrue | SFLfree;
         if (fd->nrvo_can && fd->nrvo_var && fd->nrvo_var->nestedrefs.dim)
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
+        setHiddenVar(fd, shidden);
         irs.shidden = shidden;
-        fd->shidden = shidden;
     }
     else
     {
