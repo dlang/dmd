@@ -35,7 +35,7 @@ struct File
     File(const FileName *);
     ~File();
 
-    char *toChars();
+    const char *toChars();
 
     /* Read file, return true if error
      */

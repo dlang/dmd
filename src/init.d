@@ -76,7 +76,7 @@ public:
 
     abstract Expression toExpression(Type t = null);
 
-    override final char* toChars()
+    override final const(char)* toChars()
     {
         OutBuffer buf;
         HdrGenState hgs;

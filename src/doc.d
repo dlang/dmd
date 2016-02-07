@@ -513,10 +513,10 @@ extern (C++) void gendocfile(Module m)
         Macro.define(&m.macrotable, cast(char*)"DATETIME", 8, cast(char*)p, strlen(p));
         Macro.define(&m.macrotable, cast(char*)"YEAR", 4, cast(char*)p + 20, 4);
     }
-    char* srcfilename = m.srcfile.toChars();
-    Macro.define(&m.macrotable, cast(char*)"SRCFILENAME", 11, cast(char*)srcfilename, strlen(srcfilename));
-    char* docfilename = m.docfile.toChars();
-    Macro.define(&m.macrotable, cast(char*)"DOCFILENAME", 11, cast(char*)docfilename, strlen(docfilename));
+    const srcfilename = m.srcfile.toChars();
+    Macro.define(&m.macrotable, "SRCFILENAME", 11, srcfilename, strlen(srcfilename));
+    const docfilename = m.docfile.toChars();
+    Macro.define(&m.macrotable, "DOCFILENAME", 11, docfilename, strlen(docfilename));
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;

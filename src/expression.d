@@ -2382,7 +2382,7 @@ public:
         fflush(stderr);
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
         OutBuffer buf;
         HdrGenState hgs;
@@ -6606,7 +6606,7 @@ public:
         return m;
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
         return fd.toChars();
     }
@@ -8257,8 +8257,8 @@ public:
             }
             else if (ident == Id.stringof)
             {
-                char* p = ie.toChars();
-                e = new StringExp(loc, p, strlen(p));
+                const p = ie.toChars();
+                e = new StringExp(loc, cast(char*)p, strlen(p));
                 e = e.semantic(sc);
                 return e;
             }

@@ -1877,7 +1877,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 // Construct: (e1 || ModuleAssert(line))
                 Module *m = irs->blx->module;
-                char *mname = m->srcfile->toChars();
+                char *mname = (char*)m->srcfile->toChars();
 
                 //printf("filename = '%s'\n", ae->loc.filename);
                 //printf("module = '%s'\n", m->srcfile->toChars());

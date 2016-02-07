@@ -389,9 +389,9 @@ public:
         return DYNCAST_TUPLE;
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
-        return cast(char*)objects.toChars();
+        return objects.toChars();
     }
 }
 
@@ -638,7 +638,7 @@ public:
         return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : "template";
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
         if (literal)
             return Dsymbol.toChars();
@@ -6438,7 +6438,7 @@ public:
         return true;
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);
@@ -7752,7 +7752,7 @@ public:
         assert(tempdecl);
         //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
         OutBuffer buf;
-        char* id = tempdecl.ident.toChars();
+        const id = tempdecl.ident.toChars();
         if (!members)
         {
             // Use "__U" for the symbols declared inside template constraint.
@@ -7858,9 +7858,9 @@ public:
                 assert(0);
         }
         buf.writeByte('Z');
-        id = buf.peekString();
-        //printf("\tgenIdent = %s\n", id);
-        return Identifier.idPool(id);
+        const id2 = buf.peekString();
+        //printf("\tgenIdent = %s\n", id2);
+        return Identifier.idPool(id2);
     }
 
     final void expandMembers(Scope* sc2)
@@ -8404,7 +8404,7 @@ public:
         }
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);

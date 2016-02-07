@@ -4605,9 +4605,9 @@ public:
         return "constructor";
     }
 
-    override char* toChars() const
+    override const(char)* toChars() const
     {
-        return cast(char*)"this";
+        return "this";
     }
 
     override bool isVirtual()
@@ -4777,9 +4777,9 @@ public:
         return "destructor";
     }
 
-    override char* toChars() const
+    override const(char)* toChars() const
     {
-        return cast(char*)"~this";
+        return "~this";
     }
 
     override bool isVirtual()

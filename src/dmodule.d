@@ -395,7 +395,7 @@ public:
         //  foo.bar.baz
         // into:
         //  foo\bar\baz
-        char* filename = ident.toChars();
+        auto filename = ident.toChars();
         if (packages && packages.dim)
         {
             OutBuffer buf;
@@ -414,7 +414,7 @@ public:
             }
             buf.writestring(filename);
             buf.writeByte(0);
-            filename = cast(char*)buf.extractData();
+            filename = buf.extractData();
         }
         auto m = new Module(filename, ident, 0, 0);
         m.loc = loc;
@@ -1297,7 +1297,7 @@ struct ModuleDeclaration
         this.id = id;
     }
 
-    extern (C++) char* toChars()
+    extern (C++) const(char)* toChars()
     {
         OutBuffer buf;
         if (packages && packages.dim)

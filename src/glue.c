@@ -101,7 +101,7 @@ void obj_write_deferred(Library *library)
         char *mname;
         if (m)
         {
-            mname = m->srcfile->toChars();
+            mname = (char*)m->srcfile->toChars();
             lastmname = mname;
         }
         else
@@ -321,7 +321,7 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
-    lastmname = m->srcfile->toChars();
+    lastmname = (char*)m->srcfile->toChars();
 
     objmod->initfile(lastmname, NULL, m->toPrettyChars());
 
