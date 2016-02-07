@@ -160,6 +160,8 @@ public:
                         {
                             // mod is a package.d, or a normal module which conflicts with the package name.
                             assert(mod.isPackageFile == (p.isPkgMod == PKGmodule));
+                            if (mod.isPackageFile)
+                                mod.id = p.id; // reuse the same package id
                         }
                     }
                     else
@@ -244,19 +246,42 @@ public:
             // Modules need a list of each imported module
             //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
             sc._module.aimports.push(mod);
-            if (!isstatic && !aliasId && !names.dim)
+
+            if (!aliasId && !names.dim) // neither a selective nor a renamed import
             {
-                if (sc.explicitProtection)
-                    protection = sc.protection.kind;
+                ScopeDsymbol scopesym;
                 for (Scope* scd = sc; scd; scd = scd.enclosing)
                 {
-                    if (scd.scopesym)
+                    if (!scd.scopesym)
+                        continue;
+                    scopesym = scd.scopesym;
+                    break;
+                }
+
+                if (!isstatic)
+                {
+                    if (sc.explicitProtection)
+                        protection = sc.protection.kind;
+                    scopesym.importScope(mod, Prot(protection));
+                }
+
+                // Mark the imported packages as accessible from the current
+                // scope. This access check is necessary when using FQN b/c
+                // we're using a single global package tree. See Bugzilla 313.
+                if (packages)
+                {
+                    // import a.b.c.d;
+                    auto p = pkg; // a
+                    scopesym.addAccessiblePackage(p);
+                    foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
                     {
-                        scd.scopesym.importScope(mod, Prot(protection));
-                        break;
+                        p = cast(Package) p.symtab.lookup(id);
+                        scopesym.addAccessiblePackage(p);
                     }
                 }
+                scopesym.addAccessiblePackage(mod); // d
             }
+
             mod.semantic();
             if (mod.needmoduleinfo)
             {

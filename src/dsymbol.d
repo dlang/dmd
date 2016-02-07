@@ -1211,6 +1211,9 @@ private:
     Dsymbols* importedScopes;
     PROTKIND* prots;            // array of PROTKIND, one for each import
 
+    import std.bitmanip : BitArray;
+    BitArray accessiblePackages;// whitelist of accessible (imported) packages
+
 public:
     final extern (D) this()
     {
@@ -1431,6 +1434,19 @@ public:
             prots = cast(PROTKIND*)mem.xrealloc(prots, importedScopes.dim * (prots[0]).sizeof);
             prots[importedScopes.dim - 1] = protection.kind;
         }
+    }
+
+    final void addAccessiblePackage(Package p)
+    {
+        if (accessiblePackages.length <= p.id)
+            accessiblePackages.length = p.id + 1;
+        accessiblePackages[p.id] = true;
+    }
+
+    final bool isPackageAccessible(Package p)
+    {
+        return p.id < accessiblePackages.length &&
+            accessiblePackages[p.id];
     }
 
     override final bool isforwardRef()

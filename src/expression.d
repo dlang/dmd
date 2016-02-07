@@ -8304,6 +8304,8 @@ public:
                  */
                 if (Declaration d = s.isDeclaration())
                     checkAccess(loc, sc, null, d);
+                if (auto p = s.isPackage())
+                    checkAccess(loc, sc, p);
 
                 // if 's' is a tuple variable, the tuple is returned.
                 s = s.toAlias();

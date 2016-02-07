@@ -1,10 +1,11 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.070. This will get copied to dlang.org and
-    cleared when master gets merged into stable prior to 2.069.
+$(COMMENT Pending changelog for 2.071. This will get copied to dlang.org and
+    cleared when master gets merged into stable.
 )
 
 $(BUGSTITLE Compiler Changes,
+    $(LI $(RELATIVE_LINK2 imports-313, Import access checks for fully qualified names were fixed.))
 )
 
 $(BUGSTITLE Language Changes,
@@ -13,7 +14,21 @@ $(BUGSTITLE Language Changes,
 )
 
 $(BUGSTITLE Compiler Changes,
+    $(LI $(LNAME2 imports-313, Import access checks for fully qualified names were fixed.)
 
+    $(P It is no longer possible to bypass private imports by using fully qualified names, e.g.
+        the following example will fail with `package std.range is not accessible here`.
+    )
+
+    ---
+    import std.algorithm;
+
+    static assert(std.range.isForwardRange!string);
+    ---
+
+    $(P To ease updating existing code, the old behavior was retained but deprecated.
+    )
+    )
 )
 
 $(BUGSTITLE Language Changes,

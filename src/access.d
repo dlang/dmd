@@ -410,3 +410,26 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     }
     return false;
 }
+
+/****************************************
+ * Check access to package/module p for scope sc.
+ *
+ * Returns: true if the package is not accessible.
+ *
+ * Because we use a global symbol table tree for imported packages/modules,
+ * access to them needs to be checked based on the imports in the scope chain
+ * (see Bugzilla 313).
+ *
+ */
+extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
+{
+    if (sc._module == p)
+        return false;
+    for (; sc; sc = sc.enclosing)
+    {
+        if (sc.scopesym && sc.scopesym.isPackageAccessible(p))
+            return false;
+    }
+    deprecation(loc, "%s %s is not accessible here", p.kind(), p.toPrettyChars());
+    return true;
+}

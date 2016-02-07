@@ -37,6 +37,7 @@ class Package : public ScopeDsymbol
 {
 public:
     PKG isPkgMod;
+    unsigned id;        // auto increment id for package tree masks
     Module *mod;        // != NULL if isPkgMod == PKGmodule
 
     Package(Identifier *ident);

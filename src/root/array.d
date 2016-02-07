@@ -204,4 +204,10 @@ public:
     {
         return data[0 .. dim];
     }
+
+    extern (D) inout(T)[] opSlice(size_t a, size_t b) inout
+    {
+        assert(a <= b && b <= dim);
+        return data[a .. b];
+    }
 }
