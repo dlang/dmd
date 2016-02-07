@@ -1199,12 +1199,13 @@ public:
 extern (C++) class ScopeDsymbol : Dsymbol
 {
 public:
-    Dsymbols* members;      // all Dsymbol's in this scope
-    DsymbolTable symtab;    // members[] sorted into table
+    Dsymbols* members;          // all Dsymbol's in this scope
+    DsymbolTable symtab;        // members[] sorted into table
 
 private:
-    Dsymbols* imports;      // imported Dsymbol's
-    PROTKIND* prots;        // array of PROTKIND, one for each import
+    /// symbols whoose members have been imported, i.e. imported modules and template mixins
+    Dsymbols* importedScopes;
+    PROTKIND* prots;            // array of PROTKIND, one for each import
 
 public:
     final extern (D) this()
@@ -1234,24 +1235,25 @@ public:
         //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
         // Look in symbols declared in this module
         Dsymbol s1 = symtab ? symtab.lookup(ident) : null;
-        //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
+        //printf("\ts1 = %p, importedScopes = %p, %d\n",
+        //       s1, importedScopes, importedScopes ? importedScopes.dim : 0);
         if (s1)
         {
             //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
             return s1;
         }
-        if (imports)
+        if (importedScopes)
         {
             Dsymbol s = null;
             OverloadSet a = null;
             int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
             // Look in imported modules
-            for (size_t i = 0; i < imports.dim; i++)
+            for (size_t i = 0; i < importedScopes.dim; i++)
             {
                 // If private import, don't search it
                 if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
                     continue;
-                Dsymbol ss = (*imports)[i];
+                Dsymbol ss = (*importedScopes)[i];
                 //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
                 /* Don't find private members if ss is a module
                  */
@@ -1381,13 +1383,13 @@ public:
         // No circular or redundant import's
         if (s != this)
         {
-            if (!imports)
-                imports = new Dsymbols();
+            if (!importedScopes)
+                importedScopes = new Dsymbols();
             else
             {
-                for (size_t i = 0; i < imports.dim; i++)
+                for (size_t i = 0; i < importedScopes.dim; i++)
                 {
-                    Dsymbol ss = (*imports)[i];
+                    Dsymbol ss = (*importedScopes)[i];
                     if (ss == s) // if already imported
                     {
                         if (protection.kind > prots[i])
@@ -1396,9 +1398,9 @@ public:
                     }
                 }
             }
-            imports.push(s);
-            prots = cast(PROTKIND*)mem.xrealloc(prots, imports.dim * (prots[0]).sizeof);
-            prots[imports.dim - 1] = protection.kind;
+            importedScopes.push(s);
+            prots = cast(PROTKIND*)mem.xrealloc(prots, importedScopes.dim * (prots[0]).sizeof);
+            prots[importedScopes.dim - 1] = protection.kind;
         }
     }
 
