@@ -284,7 +284,6 @@ public:
     bool canTakeAddressOf();
     bool needsAutoDtor();
     Expression *callScopeDtor(Scope *sc);
-    ExpInitializer *getExpInitializer();
     Expression *getConstInitializer(bool needFullType = true);
     void checkCtorConstInit();
     bool checkNestedReference(Scope *sc, Loc loc);
