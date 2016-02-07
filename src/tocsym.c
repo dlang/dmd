@@ -431,11 +431,19 @@ void setSymbol(Dsymbol *s, Symbol *csym)
     *pcsym = csym;
 }
 
-/*************************************
+/*********************************
+ * Generate import symbol from symbol.
  */
 
-static Symbol *toImport(Symbol *sym)
+Symbol *toImport(Dsymbol *ds)
 {
+    static AA *isymMap;
+    Symbol **pisym = (Symbol **)dmd_aaGet(&isymMap, ds);
+    if (*pisym)
+        return *pisym;
+
+    Symbol *sym = toSymbol(ds);
+
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
     char *n = sym->Sident;
     char *id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
@@ -463,20 +471,9 @@ static Symbol *toImport(Symbol *sym)
     s->Stype = t;
     s->Sclass = SCextern;
     s->Sfl = FLextern;
+
+    *pisym = s;
     return s;
-}
-
-/*********************************
- * Generate import symbol from symbol.
- */
-
-Symbol *toImport(Dsymbol *ds)
-{
-    if (!ds->isym)
-    {
-        ds->isym = toImport(toSymbol(ds));
-    }
-    return ds->isym;
 }
 
 /*************************************
