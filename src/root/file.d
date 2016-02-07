@@ -57,9 +57,9 @@ struct File
         }
     }
 
-    extern (C++) char* toChars()
+    extern (C++) const(char)* toChars()
     {
-        return cast(char*)name.toChars();
+        return name.toChars();
     }
 
     /*************************************

@@ -56,9 +56,9 @@ public:
         fprintf(stderr, "%s", string);
     }
 
-    override char* toChars() const
+    override const(char)* toChars() const
     {
-        return cast(char*)string;
+        return string;
     }
 
     const(char)* toHChars2() const

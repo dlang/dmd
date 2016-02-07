@@ -593,7 +593,7 @@ public:
             printf("\n");
         }
         mangleParent(s);
-        char* id = s.ident ? s.ident.toChars() : s.toChars();
+        auto id = s.ident ? s.ident.toChars() : s.toChars();
         toBuffer(id, s);
         //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
     }

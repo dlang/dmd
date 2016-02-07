@@ -358,7 +358,7 @@ struct Loc
         this.filename = filename;
     }
 
-    extern (C++) char* toChars() const
+    extern (C++) const(char)* toChars() const
     {
         OutBuffer buf;
         if (filename)

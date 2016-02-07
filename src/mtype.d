@@ -799,7 +799,7 @@ public:
     /********************************
      * For pretty-printing a type.
      */
-    override char* toChars()
+    final override const(char)* toChars()
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -2441,8 +2441,8 @@ public:
         }
         else if (ident == Id.stringof)
         {
-            char* s = toChars();
-            e = new StringExp(loc, s, strlen(s));
+            const s = toChars();
+            e = new StringExp(loc, cast(char*)s, strlen(s));
             Scope sc;
             e = e.semantic(&sc);
         }
@@ -2521,8 +2521,8 @@ public:
             /* Bugzilla 3796: this should demangle e->type->deco rather than
              * pretty-printing the type.
              */
-            char* s = e.toChars();
-            e = new StringExp(e.loc, s, strlen(s));
+            const s = e.toChars();
+            e = new StringExp(e.loc, cast(char*)s, strlen(s));
         }
         else
             e = getProperty(e.loc, ident, flag);
@@ -2591,7 +2591,7 @@ public:
                     fd.error("must be a template opDispatch(string s), not a %s", fd.kind());
                     return new ErrorExp();
                 }
-                auto se = new StringExp(e.loc, ident.toChars());
+                auto se = new StringExp(e.loc, cast(char*)ident.toChars());
                 auto tiargs = new Objects();
                 tiargs.push(se);
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
@@ -8349,8 +8349,8 @@ public:
         }
         else if (ident == Id.stringof)
         {
-            char* s = toChars();
-            e = new StringExp(loc, s, strlen(s));
+            const s = toChars();
+            e = new StringExp(loc, cast(char*)s, strlen(s));
             Scope sc;
             e = e.semantic(&sc);
         }

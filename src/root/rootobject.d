@@ -35,7 +35,7 @@ extern (C++) class RootObject
         printf("%s %p\n", toChars(), this);
     }
 
-    char* toChars()
+    const(char)* toChars()
     {
         assert(0);
     }

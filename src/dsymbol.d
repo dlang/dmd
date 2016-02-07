@@ -216,13 +216,13 @@ public:
         return new Dsymbol(ident);
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
-        return ident ? ident.toChars() : cast(char*)"__anonymous";
+        return ident ? ident.toChars() : "__anonymous";
     }
 
     // helper to print fully qualified (template) arguments
-    char* toPrettyCharsHelper()
+    const(char)* toPrettyCharsHelper()
     {
         return toChars();
     }
@@ -492,7 +492,7 @@ public:
         *q = 0;
         for (p = this; p; p = p.parent)
         {
-            char* t = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
+            const t = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
             len = strlen(t);
             q -= len;
             memcpy(q, t, len);

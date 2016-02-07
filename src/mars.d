@@ -1687,7 +1687,7 @@ Language changes listed by -transition=id:
     else if (global.params.oneobj)
     {
         if (modules.dim)
-            obj_start(modules[0].srcfile.toChars());
+            obj_start(cast(char*)modules[0].srcfile.toChars());
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module m = modules[i];
@@ -1709,7 +1709,7 @@ Language changes listed by -transition=id:
             Module m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m.toChars());
-            obj_start(m.srcfile.toChars());
+            obj_start(cast(char*)m.srcfile.toChars());
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, global.params.multiobj);

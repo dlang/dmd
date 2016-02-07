@@ -267,7 +267,7 @@ struct Loc
 
     Loc(const char *filename, unsigned linnum, unsigned charnum);
 
-    char *toChars() const;
+    const char *toChars() const;
     bool equals(const Loc& loc);
 };
 

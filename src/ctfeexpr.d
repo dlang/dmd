@@ -148,9 +148,9 @@ public:
         this.type = var.type;
     }
 
-    override char* toChars() const
+    override const(char)* toChars() const
     {
-        return cast(char*)"void";
+        return "void";
     }
 
     override void accept(Visitor v)
@@ -187,9 +187,9 @@ public:
         this.type = victim.type;
     }
 
-    override char* toChars() const
+    override const(char)* toChars() const
     {
-        return cast(char*)"CTFE ThrownException";
+        return "CTFE ThrownException";
     }
 
     // Generate an error message when this exception is not caught
@@ -224,20 +224,20 @@ public:
         type = Type.tvoid;
     }
 
-    override char* toChars() const
+    override const(char)* toChars() const
     {
         switch (op)
         {
         case TOKcantexp:
-            return cast(char*)"<cant>";
+            return "<cant>";
         case TOKvoidexp:
-            return cast(char*)"<void>";
+            return "<void>";
         case TOKbreak:
-            return cast(char*)"<break>";
+            return "<break>";
         case TOKcontinue:
-            return cast(char*)"<continue>";
+            return "<continue>";
         case TOKgoto:
-            return cast(char*)"<goto>";
+            return "<goto>";
         default:
             assert(0);
         }

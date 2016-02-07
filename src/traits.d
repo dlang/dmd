@@ -565,7 +565,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             id = s.ident;
         }
 
-        auto se = new StringExp(e.loc, id.toChars());
+        auto se = new StringExp(e.loc, cast(char*)id.toChars());
         return se.semantic(sc);
     }
     if (e.ident == Id.getProtection)
@@ -804,7 +804,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto exps = new Expressions();
         if (ad.aliasthis)
-            exps.push(new StringExp(e.loc, ad.aliasthis.ident.toChars()));
+            exps.push(new StringExp(e.loc, cast(char*)ad.aliasthis.ident.toChars()));
         Expression ex = new TupleExp(e.loc, exps);
         ex = ex.semantic(sc);
         return ex;
@@ -982,7 +982,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto exps = cast(Expressions*)idents;
         foreach (i, id; *idents)
         {
-            auto se = new StringExp(e.loc, id.toChars());
+            auto se = new StringExp(e.loc, cast(char*)id.toChars());
             (*exps)[i] = se;
         }
 

@@ -50,7 +50,7 @@ public:
         return ds;
     }
 
-    override char* toChars() const
+    override const(char)* toChars() const
     {
         if (ident)
             return ident.toChars();
@@ -145,7 +145,7 @@ public:
         return ds;
     }
 
-    override char* toChars()
+    override const(char)* toChars()
     {
         if (ident)
             return ident.toChars();

@@ -153,7 +153,7 @@ public:
         fflush(stderr);
     }
 
-    override final char* toChars()
+    override final const(char)* toChars()
     {
         HdrGenState hgs;
         OutBuffer buf;
@@ -5159,8 +5159,8 @@ public:
             foreach (j; 0 .. i)
             {
                 Catch cj = (*catches)[j];
-                char* si = c.loc.toChars();
-                char* sj = cj.loc.toChars();
+                const si = c.loc.toChars();
+                const sj = cj.loc.toChars();
                 if (c.type.toBasetype().implicitConvTo(cj.type.toBasetype()))
                 {
                     error("catch at %s hides catch at %s", sj, si);

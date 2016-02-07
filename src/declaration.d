@@ -2337,7 +2337,7 @@ public:
         assert(linkage == LINKc);
     }
 
-    override final char* toChars()
+    override final const(char)* toChars()
     {
         //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo->toChars());
         OutBuffer buf;

@@ -187,12 +187,12 @@ extern (C++) void deprecationSupplemental(Loc loc, const(char)* format, ...)
 // Just print, doesn't care about gagging
 extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
-    char* p = loc.toChars();
+    const p = loc.toChars();
     if (global.params.color)
         setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
-    mem.xfree(p);
+    mem.xfree(cast(void*)p);
     if (global.params.color)
         setConsoleColor(headerColor, true);
     fputs(header, stderr);
