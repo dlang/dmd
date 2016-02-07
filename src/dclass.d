@@ -1296,6 +1296,13 @@ public:
     /****************
      * Find virtual function matching identifier and type.
      * Used to build virtual function tables for interface implementations.
+     * Params:
+     *  ident = function's identifier
+     *  tf = function's type
+     * Returns:
+     *  function symbol if found, null if not
+     * Errors:
+     *  prints error message if more than one match
      */
     final FuncDeclaration findFunc(Identifier ident, TypeFunction tf)
     {
@@ -1303,13 +1310,11 @@ public:
         FuncDeclaration fdmatch = null;
         FuncDeclaration fdambig = null;
 
-        ClassDeclaration cd = this;
-        Dsymbols* vtbl = &cd.vtbl;
-        while (1)
+        void searchVtbl(ref Dsymbols vtbl)
         {
-            for (size_t i = 0; i < vtbl.dim; i++)
+            foreach (s; vtbl)
             {
-                FuncDeclaration fd = (*vtbl)[i].isFuncDeclaration();
+                auto fd = s.isFuncDeclaration();
                 if (!fd)
                     continue;
 
@@ -1364,11 +1369,14 @@ public:
                 }
                 //else printf("\t\t%d\n", fd.type.covariant(tf));
             }
-            if (!cd)
-                break;
-            vtbl = &cd.vtblFinal;
-            cd = cd.baseClass;
         }
+
+        searchVtbl(vtbl);
+        for (auto cd = this; cd; cd = cd.baseClass)
+        {
+            searchVtbl(cd.vtblFinal);
+        }
+
         if (fdambig)
             error("ambiguous virtual function %s", fdambig.toChars());
 
