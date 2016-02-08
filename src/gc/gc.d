@@ -347,7 +347,6 @@ struct GC
 
     auto runLocked(alias func, alias time, alias count, Args...)(auto ref Args args)
     {
-        debug(PROFILE_API) {} else pragma(inline, true);
         debug(PROFILE_API) immutable tm = (GC.config.profile > 1 ? currTime.ticks : 0);
         gcLock.lock();
         debug(PROFILE_API) immutable tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
