@@ -345,40 +345,29 @@ struct GC
         gcx.disabled++;
     }
 
-
-    mixin template doLock()
+    auto runLocked(alias func, alias time, alias count, Args...)(auto ref Args args)
     {
-        debug(PROFILE_API)
-        {
-            long tm = (GC.config.profile > 1 ? currTime.ticks : 0);
-        }
+        debug(PROFILE_API) {} else pragma(inline, true);
+        debug(PROFILE_API) immutable tm = (GC.config.profile > 1 ? currTime.ticks : 0);
+        gcLock.lock();
+        debug(PROFILE_API) immutable tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
 
-        bool locked = (gcLock.lock(), true);
-
-        debug(PROFILE_API)
-        {
-            long tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
-        }
-    }
-
-    mixin template doUnlock(alias time, alias count)
-    {
-        debug(PROFILE_API)
-        {
-            bool unlocked = () {
-                if (GC.config.profile > 1)
-                {
-                    count++;
-                    long now = currTicks;
-                    lockTime += tm2 - tm;
-                    time += now - tm2;
-                }
-                gcLock.unlock();
-                return true;
-            }();
-        }
+        static if (is(typeof(func(args)) == void))
+            func(args);
         else
-            bool unlocked = (gcLock.unlock(), true);
+            auto res = func(args);
+
+        debug(PROFILE_API) if (GC.config.profile > 1)
+        {
+            count++;
+            immutable now = currTime.ticks;
+            lockTime += tm2 - tm;
+            time += now - tm2;
+        }
+        gcLock.unlock();
+
+        static if (!is(typeof(func(args)) == void))
+            return res;
     }
 
     /**
@@ -391,7 +380,7 @@ struct GC
             return 0;
         }
 
-        uint go() nothrow
+        static uint go(Gcx* gcx, void* p) nothrow
         {
             Pool* pool = gcx.findPool(p);
             uint  oldb = 0;
@@ -406,10 +395,7 @@ struct GC
             return oldb;
         }
 
-        mixin doLock!();
-        uint rc = go();
-        mixin doUnlock!(otherTime, numOthers);
-        return rc;
+        return runLocked!(go, otherTime, numOthers)(gcx, p);
     }
 
 
@@ -423,7 +409,7 @@ struct GC
             return 0;
         }
 
-        uint go() nothrow
+        static uint go(Gcx* gcx, void* p, uint mask) nothrow
         {
             Pool* pool = gcx.findPool(p);
             uint  oldb = 0;
@@ -439,10 +425,7 @@ struct GC
             return oldb;
         }
 
-        mixin doLock!();
-        uint rc = go();
-        mixin doUnlock!(otherTime, numOthers);
-        return rc;
+        return runLocked!(go, otherTime, numOthers)(gcx, p, mask);
     }
 
 
@@ -456,7 +439,7 @@ struct GC
             return 0;
         }
 
-        uint go() nothrow
+        static uint go(Gcx* gcx, void* p, uint mask) nothrow
         {
             Pool* pool = gcx.findPool(p);
             uint  oldb = 0;
@@ -472,10 +455,7 @@ struct GC
             return oldb;
         }
 
-        mixin doLock!();
-        uint rc = go();
-        mixin doUnlock!(otherTime, numOthers);
-        return rc;
+        return runLocked!(go, otherTime, numOthers)(gcx, p, mask);
     }
 
     /**
@@ -490,16 +470,10 @@ struct GC
             return null;
         }
 
-        void* p = void;
         size_t localAllocSize = void;
         if(alloc_size is null) alloc_size = &localAllocSize;
 
-        // Since a finalizer could launch a new thread, we always need to lock
-        // when collecting.  The safest way to do this is to simply always lock
-        // when allocating.
-        mixin doLock!();
-        p = mallocNoSync(size, bits, *alloc_size, ti);
-        mixin doUnlock!(mallocTime, numMallocs);
+        auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, *alloc_size, ti);
 
         if (!(bits & BlkAttr.NO_SCAN))
         {
@@ -553,15 +527,9 @@ struct GC
         }
 
         size_t localAllocSize = void;
-        void* p = void;
         if(alloc_size is null) alloc_size = &localAllocSize;
 
-        // Since a finalizer could launch a new thread, we always need to lock
-        // when collecting.  The safest way to do this is to simply always lock
-        // when allocating.
-        mixin doLock!();
-        p = mallocNoSync(size, bits, *alloc_size, ti);
-        mixin doUnlock!(mallocTime, numMallocs);
+        auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, *alloc_size, ti);
 
         memset(p, 0, size);
         if (!(bits & BlkAttr.NO_SCAN))
@@ -581,12 +549,7 @@ struct GC
         auto oldp = p;
         if(alloc_size is null) alloc_size = &localAllocSize;
 
-        // Since a finalizer could launch a new thread, we always need to lock
-        // when collecting.  The safest way to do this is to simply always lock
-        // when allocating.
-        mixin doLock!();
-        p = reallocNoSync(p, size, bits, *alloc_size, ti);
-        mixin doUnlock!(mallocTime, numMallocs);
+        p = runLocked!(reallocNoSync, mallocTime, numMallocs)(p, size, bits, *alloc_size, ti);
 
         if (p !is oldp && !(bits & BlkAttr.NO_SCAN))
         {
@@ -752,11 +715,7 @@ struct GC
      */
     size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
     {
-        mixin doLock!();
-        size_t rc = extendNoSync(p, minsize, maxsize, ti);
-        mixin doUnlock!(extendTime, numExtends);
-
-        return rc;
+        return runLocked!(extendNoSync, extendTime, numExtends)(p, minsize, maxsize, ti);
     }
 
 
@@ -861,9 +820,7 @@ struct GC
             return;
         }
 
-        mixin doLock!();
-        freeNoSync(p);
-        mixin doUnlock!(freeTime, numFrees);
+        return runLocked!(freeNoSync, freeTime, numFrees)(p);
     }
 
 
@@ -944,11 +901,7 @@ struct GC
             return null;
         }
 
-        mixin doLock!();
-        void* rc = addrOfNoSync(p);
-        mixin doUnlock!(otherTime, numOthers);
-
-        return rc;
+        return runLocked!(addrOfNoSync, otherTime, numOthers)(p);
     }
 
 
@@ -980,11 +933,7 @@ struct GC
             return 0;
         }
 
-        mixin doLock!();
-        size_t rc = sizeOfNoSync(p);
-        mixin doUnlock!(otherTime, numOthers);
-
-        return rc;
+        return runLocked!(sizeOfNoSync, otherTime, numOthers)(p);
     }
 
 
@@ -1035,11 +984,7 @@ struct GC
             return  i;
         }
 
-        mixin doLock!();
-        BlkInfo rc = queryNoSync(p);
-        mixin doUnlock!(otherTime, numOthers);
-
-        return rc;
+        return runLocked!(queryNoSync, otherTime, numOthers)(p);
     }
 
 
@@ -1076,9 +1021,7 @@ struct GC
             return;
         }
 
-        mixin doLock!();
-        checkNoSync(p);
-        mixin doUnlock!(otherTime, numOthers);
+        return runLocked!(checkNoSync, otherTime, numOthers)(p);
     }
 
 
@@ -1133,9 +1076,11 @@ struct GC
             return;
         }
 
-        mixin doLock!();
-        gcx.addRoot(p);
-        mixin doUnlock!(otherTime, numOthers);
+        static void go(Gcx* gcx, void* p) nothrow
+        {
+            gcx.addRoot(p);
+        }
+        return runLocked!(go, otherTime, numOthers)(gcx, p);
     }
 
 
@@ -1149,9 +1094,11 @@ struct GC
             return;
         }
 
-        mixin doLock!();
-        gcx.removeRoot(p);
-        mixin doUnlock!(otherTime, numOthers);
+        static void go(Gcx* gcx, void* p) nothrow
+        {
+            gcx.removeRoot(p);
+        }
+        return runLocked!(go, otherTime, numOthers)(gcx, p);
     }
 
 
@@ -1182,13 +1129,11 @@ struct GC
             return;
         }
 
-        //debug(PRINTF) printf("+GC.addRange(p = %p, sz = 0x%zx), p + sz = %p\n", p, sz, p + sz);
-
-        mixin doLock!();
-        gcx.addRange(p, p + sz, ti);
-        mixin doUnlock!(otherTime, numOthers);
-
-        //debug(PRINTF) printf("-GC.addRange()\n");
+        static void go(Gcx* gcx, void* p, size_t sz, const TypeInfo ti) nothrow @nogc
+        {
+            gcx.addRange(p, p + sz, ti);
+        }
+        return runLocked!(go, otherTime, numOthers)(gcx, p, sz, ti);
     }
 
 
@@ -1202,9 +1147,11 @@ struct GC
             return;
         }
 
-        mixin doLock!();
-        gcx.removeRange(p);
-        mixin doUnlock!(otherTime, numOthers);
+        static void go(Gcx* gcx, void* p) nothrow @nogc
+        {
+            gcx.removeRange(p);
+        }
+        return runLocked!(go, otherTime, numOthers)(gcx, p);
     }
 
     /**
@@ -1212,9 +1159,11 @@ struct GC
      */
     void runFinalizers(in void[] segment) nothrow
     {
-        mixin doLock!();
-        gcx.runFinalizers(segment);
-        mixin doUnlock!(otherTime, numOthers);
+        static void go(Gcx* gcx, in void[] segment) nothrow
+        {
+            gcx.runFinalizers(segment);
+        }
+        return runLocked!(go, otherTime, numOthers)(gcx, segment);
     }
 
     private auto rangeIterImpl(scope int delegate(ref Range) nothrow dg) nothrow
