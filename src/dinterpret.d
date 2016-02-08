@@ -3842,18 +3842,17 @@ public:
                     e.error("cannot modify read-only string literal %s", ie.e1.toChars());
                     return CTFEExp.cantexp;
                 }
-                void* s = existingSE.string;
                 dinteger_t value = newval.toInteger();
                 switch (existingSE.sz)
                 {
                 case 1:
-                    (cast(char*)s)[index] = cast(char)value;
+                    existingSE.string[index] = cast(char)value;
                     break;
                 case 2:
-                    (cast(utf16_t*)s)[index] = cast(utf16_t)value;
+                    existingSE.wstring[index] = cast(wchar)value;
                     break;
                 case 4:
-                    (cast(utf32_t*)s)[index] = cast(utf32_t)value;
+                    existingSE.dstring[index] = cast(dchar)value;
                     break;
                 default:
                     assert(0);
@@ -4106,19 +4105,18 @@ public:
             }
             // String literal block slice assign
             dinteger_t value = newval.toInteger();
-            void* s = existingSE.string;
             for (size_t i = 0; i < upperbound - lowerbound; i++)
             {
                 switch (existingSE.sz)
                 {
                 case 1:
-                    (cast(char*)s)[cast(size_t)(i + firstIndex)] = cast(char)value;
+                    existingSE.string[cast(size_t)(i + firstIndex)] = cast(char)value;
                     break;
                 case 2:
-                    (cast(utf16_t*)s)[cast(size_t)(i + firstIndex)] = cast(utf16_t)value;
+                    existingSE.wstring[cast(size_t)(i + firstIndex)] = cast(wchar)value;
                     break;
                 case 4:
-                    (cast(utf32_t*)s)[cast(size_t)(i + firstIndex)] = cast(utf32_t)value;
+                    existingSE.dstring[cast(size_t)(i + firstIndex)] = cast(dchar)value;
                     break;
                 default:
                     assert(0);

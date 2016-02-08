@@ -1773,10 +1773,10 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
                 (cast(char*)s)[cast(size_t)(indxlo + elemi)] = cast(char)defaultValue;
                 break;
             case 2:
-                (cast(utf16_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf16_t)defaultValue;
+                (cast(wchar*)s)[cast(size_t)(indxlo + elemi)] = cast(wchar)defaultValue;
                 break;
             case 4:
-                (cast(utf32_t*)s)[cast(size_t)(indxlo + elemi)] = cast(utf32_t)defaultValue;
+                (cast(dchar*)s)[cast(size_t)(indxlo + elemi)] = cast(dchar)defaultValue;
                 break;
             default:
                 assert(0);

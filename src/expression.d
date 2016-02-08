@@ -4191,8 +4191,13 @@ public:
 extern (C++) final class StringExp : Expression
 {
 public:
-    void* string;       // char, wchar, or dchar data
-    size_t len;         // number of chars, wchars, or dchars
+    union
+    {
+        char* string;   // if sz == 1
+        wchar* wstring; // if sz == 2
+        dchar* dstring; // if sz == 4
+    }                   // (const if ownedByCtfe == OWNEDcode)
+    size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
     ubyte committed;    // !=0 if type is committed
     char postfix = 0;   // 'c', 'w', 'd'
@@ -4203,21 +4208,24 @@ public:
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
         this.string = string;
         this.len = strlen(string);
+        this.sz = 1;                    // work around bug in LDC
     }
 
     extern (D) this(Loc loc, void* string, size_t len)
     {
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
-        this.string = string;
+        this.string = cast(char*)string;
         this.len = len;
+        this.sz = 1;                    // work around bug in LDC
     }
 
     extern (D) this(Loc loc, void* string, size_t len, char postfix)
     {
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
-        this.string = string;
+        this.string = cast(char*)string;
         this.len = len;
         this.postfix = postfix;
+        this.sz = 1;                    // work around bug in LDC
     }
 
     static StringExp create(Loc loc, char* s)
@@ -4257,7 +4265,7 @@ public:
         case 'd':
             for (u = 0; u < len;)
             {
-                p = utf_decodeChar(cast(char*)string, len, &u, &c);
+                p = utf_decodeChar(string, len, &u, &c);
                 if (p)
                 {
                     error("%s", p);
@@ -4270,7 +4278,7 @@ public:
                 }
             }
             buffer.write4(0);
-            string = buffer.extractData();
+            dstring = cast(dchar*)buffer.extractData();
             len = newlen;
             sz = 4;
             type = new TypeDArray(Type.tdchar.immutableOf());
@@ -4279,7 +4287,7 @@ public:
         case 'w':
             for (u = 0; u < len;)
             {
-                p = utf_decodeChar(cast(char*)string, len, &u, &c);
+                p = utf_decodeChar(string, len, &u, &c);
                 if (p)
                 {
                     error("%s", p);
@@ -4294,7 +4302,7 @@ public:
                 }
             }
             buffer.writeUTF16(0);
-            string = buffer.extractData();
+            wstring = cast(wchar*)buffer.extractData();
             len = newlen;
             sz = 2;
             type = new TypeDArray(Type.twchar.immutableOf());
@@ -4341,7 +4349,7 @@ public:
         case 1:
             for (size_t u = 0; u < len;)
             {
-                if (const(char)* p = utf_decodeChar(cast(char*)string, len, &u, &c))
+                if (const p = utf_decodeChar(string, len, &u, &c))
                 {
                     error("%s", p);
                     return 0;
@@ -4352,7 +4360,7 @@ public:
         case 2:
             for (size_t u = 0; u < len;)
             {
-                if (const(char)* p = utf_decodeWchar(cast(utf16_t*)string, len, &u, &c))
+                if (const p = utf_decodeWchar(cast(utf16_t*)wstring, len, &u, &c))
                 {
                     error("%s", p);
                     return 0;
@@ -4361,11 +4369,9 @@ public:
             }
             break;
         case 4:
-            for (size_t u = 0; u < len;)
+            foreach (u; 0 .. len)
             {
-                c = *(cast(utf32_t*)(cast(char*)string + u));
-                u += 4;
-                result += utf_codeLength(encSize, c);
+                result += utf_codeLength(encSize, dstring[u]);
             }
             break;
         default:

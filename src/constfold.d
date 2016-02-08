@@ -1366,25 +1366,24 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
 /* Set a slice of char/integer array literal 'existingAE' from a string 'newval'.
  * existingAE[firstIndex..firstIndex+newval.length] = newval.
  */
-extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, StringExp newval, size_t firstIndex)
+extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringExp newval, size_t firstIndex)
 {
-    size_t newlen = newval.len;
-    size_t sz = newval.sz;
-    void* s = newval.string;
+    const len = newval.len;
+    const sz = newval.sz;
     Type elemType = existingAE.type.nextOf();
-    for (size_t j = 0; j < newlen; j++)
+    foreach (j; 0 .. len)
     {
         dinteger_t val;
         switch (sz)
         {
         case 1:
-            val = (cast(char*)s)[j];
+            val = newval.string[j];
             break;
         case 2:
-            val = (cast(utf16_t*)s)[j];
+            val = newval.wstring[j];
             break;
         case 4:
-            val = (cast(utf32_t*)s)[j];
+            val = newval.dstring[j];
             break;
         default:
             assert(0);
@@ -1398,20 +1397,20 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
  */
 extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
 {
-    void* s = existingSE.string;
-    for (size_t j = 0; j < newae.elements.dim; j++)
+    assert(existingSE.ownedByCtfe != OWNEDcode);
+    foreach (j; 0 .. newae.elements.dim)
     {
         uint val = cast(uint)newae.getElement(j).toInteger();
         switch (existingSE.sz)
         {
         case 1:
-            (cast(char*)s)[j + firstIndex] = cast(char)val;
+            existingSE.string[j + firstIndex] = cast(char)val;
             break;
         case 2:
-            (cast(utf16_t*)s)[j + firstIndex] = cast(utf16_t)val;
+            existingSE.wstring[j + firstIndex] = cast(wchar)val;
             break;
         case 4:
-            (cast(utf32_t*)s)[j + firstIndex] = cast(utf32_t)val;
+            existingSE.dstring[j + firstIndex] = cast(dchar)val;
             break;
         default:
             assert(0);
@@ -1422,24 +1421,22 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
 /* Set a slice of string 'existingSE' from a string 'newstr'.
  *   existingSE[firstIndex..firstIndex+newstr.length] = newstr.
  */
-extern (C++) void sliceAssignStringFromString(StringExp existingSE, StringExp newstr, size_t firstIndex)
+extern (C++) void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, size_t firstIndex)
 {
-    void* s = existingSE.string;
+    assert(existingSE.ownedByCtfe != OWNEDcode);
     size_t sz = existingSE.sz;
     assert(sz == newstr.sz);
-    memcpy(cast(char*)s + firstIndex * sz, newstr.string, sz * newstr.len);
+    memcpy(existingSE.string + firstIndex * sz, newstr.string, sz * newstr.len);
 }
 
 /* Compare a string slice with another string slice.
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  se2[lo2..lo2+len])
  */
-extern (C++) int sliceCmpStringWithString(StringExp se1, StringExp se2, size_t lo1, size_t lo2, size_t len)
+extern (C++) int sliceCmpStringWithString(const StringExp se1, const StringExp se2, size_t lo1, size_t lo2, size_t len)
 {
-    void* s1 = se1.string;
-    void* s2 = se2.string;
     size_t sz = se1.sz;
     assert(sz == se2.sz);
-    return memcmp(cast(char*)s1 + sz * lo1, cast(char*)s2 + sz * lo2, sz * len);
+    return memcmp(se1.string + sz * lo1, se2.string + sz * lo2, sz * len);
 }
 
 /* Compare a string slice with an array literal slice
@@ -1447,22 +1444,21 @@ extern (C++) int sliceCmpStringWithString(StringExp se1, StringExp se2, size_t l
  */
 extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len)
 {
-    void* s = se1.string;
-    size_t sz = se1.sz;
-    for (size_t j = 0; j < len; j++)
+    const sz = se1.sz;
+    foreach (j; 0 .. len)
     {
         uint val2 = cast(uint)ae2.getElement(j + lo2).toInteger();
         uint val1;
         switch (sz)
         {
         case 1:
-            val1 = (cast(char*)s)[j + lo1];
+            val1 = se1.string[j + lo1];
             break;
         case 2:
-            val1 = (cast(utf16_t*)s)[j + lo1];
+            val1 = se1.wstring[j + lo1];
             break;
         case 4:
-            val1 = (cast(utf32_t*)s)[j + lo1];
+            val1 = se1.dstring[j + lo1];
             break;
         default:
             assert(0);
