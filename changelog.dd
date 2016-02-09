@@ -8,7 +8,6 @@ $(BUGSTITLE Compiler Changes,
 )
 
 $(BUGSTITLE Language Changes,
-$(LI $(RELATIVE_LINK2 alias-funclit, Add syntactic support to make an alias to a function literal.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -16,22 +15,6 @@ $(BUGSTITLE Compiler Changes,
 )
 
 $(BUGSTITLE Language Changes,
-
-$(LI $(LNAME2 alias-funclit, Add syntactic support to make an alias to a function literal.)
-
-    $(P Example:)
-
-        ---
-        alias less1 = (a, b) => a < b;
-        alias less2 = (a, b) => a > b;
-
-        import std.algorithm : sort, equal;
-
-        int[] arr = [4, 1, 3, 2];
-        assert(equal(sort!less1(arr), [1, 2, 3, 4]));
-        assert(equal(sort!less2(arr), [4, 3, 2, 1]));
-        ---
-)
 
 )
 
