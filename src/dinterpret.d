@@ -3842,21 +3842,7 @@ public:
                     e.error("cannot modify read-only string literal %s", ie.e1.toChars());
                     return CTFEExp.cantexp;
                 }
-                dinteger_t value = newval.toInteger();
-                switch (existingSE.sz)
-                {
-                case 1:
-                    existingSE.string[index] = cast(char)value;
-                    break;
-                case 2:
-                    existingSE.wstring[index] = cast(wchar)value;
-                    break;
-                case 4:
-                    existingSE.dstring[index] = cast(dchar)value;
-                    break;
-                default:
-                    assert(0);
-                }
+                existingSE.setCodeUnit(index, cast(dchar)newval.toInteger());
                 return null;
             }
             if (aggregate.op != TOKarrayliteral)
@@ -4104,23 +4090,10 @@ public:
                 return newval;
             }
             // String literal block slice assign
-            dinteger_t value = newval.toInteger();
-            for (size_t i = 0; i < upperbound - lowerbound; i++)
+            const value = cast(dchar)newval.toInteger();
+            foreach (i; 0 .. upperbound - lowerbound)
             {
-                switch (existingSE.sz)
-                {
-                case 1:
-                    existingSE.string[cast(size_t)(i + firstIndex)] = cast(char)value;
-                    break;
-                case 2:
-                    existingSE.wstring[cast(size_t)(i + firstIndex)] = cast(wchar)value;
-                    break;
-                case 4:
-                    existingSE.dstring[cast(size_t)(i + firstIndex)] = cast(dchar)value;
-                    break;
-                default:
-                    assert(0);
-                }
+                existingSE.setCodeUnit(cast(size_t)(i + firstIndex), value);
             }
             if (goal == ctfeNeedNothing)
                 return null; // avoid creating an unused literal
