@@ -34,7 +34,6 @@ import ddmd.identifier;
 import ddmd.lexer;
 import ddmd.mars;
 import ddmd.mtype;
-import ddmd.root.aav;
 import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
@@ -768,19 +767,32 @@ extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc)
         emitAnchorName(&anc, s, skipNonQualScopes(sc));
         ident = Identifier.idPool(anc.peekString());
     }
-    size_t* count = cast(size_t*)dmd_aaGet(&sc.anchorCounts, cast(void*)ident);
-    TemplateDeclaration td = getEponymousParent(s);
-    // don't write an anchor for matching consecutive ditto symbols
-    if (*count > 0 && sc.prevAnchor == ident && sc.lastdc && (isDitto(s.comment) || (td && isDitto(td.comment))))
-        return;
-    (*count)++;
+
+    auto pcount = cast(void*)ident in sc.anchorCounts;
+    typeof(*pcount) count;
+    if (pcount)
+    {
+        // Existing anchor,
+        // don't write an anchor for matching consecutive ditto symbols
+        TemplateDeclaration td = getEponymousParent(s);
+        if (sc.prevAnchor == ident && sc.lastdc && (isDitto(s.comment) || (td && isDitto(td.comment))))
+            return;
+
+        count = ++*pcount;
+    }
+    else
+    {
+        sc.anchorCounts[cast(void*)ident] = 1;
+        count = 1;
+    }
+
     // cache anchor name
     sc.prevAnchor = ident;
     buf.writestring("$(DDOC_ANCHOR ");
     buf.writestring(ident.string);
     // only append count once there's a duplicate
-    if (*count != 1)
-        buf.printf(".%u", *count);
+    if (count > 1)
+        buf.printf(".%u", count);
     buf.writeByte(')');
 }
 

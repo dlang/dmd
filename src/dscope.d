@@ -26,7 +26,6 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
-import ddmd.root.aav;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.speller;
@@ -165,8 +164,8 @@ struct Scope
     UserAttributeDeclaration userAttribDecl;
 
     DocComment* lastdc;        // documentation comment for last symbol at this scope
-    AA* anchorCounts;        // lookup duplicate anchor name count
-    Identifier prevAnchor;        // qualified symbol name of last doc anchor
+    uint[void*] anchorCounts;  // lookup duplicate anchor name count
+    Identifier prevAnchor;     // qualified symbol name of last doc anchor
 
     extern (C++) static __gshared Scope* freelist;
 
