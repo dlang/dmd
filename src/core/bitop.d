@@ -708,36 +708,53 @@ version (D_InlineAsm_X86_64)
 }
 
 /**
- *  Bitwise rotates unsigned arithmetic types
+ *  Bitwise rotates unsigned integer types
  */
-pure T rotl(T)(in T u, in uint s)
-    if (__traits(isArithmetic, T) && __traits(isUnsigned, T))
+pure T rol(T)(in T value, in uint count)
+    if (__traits(isIntegral, T) && __traits(isUnsigned, T))
 {
-    return cast(T) ((u << s) | (u >> (-s & (T.sizeof * 8 - 1))));
+    assert(count < 8 * T.sizeof);
+    return cast(T) ((value << count) | (value >> (-count & (T.sizeof * 8 - 1))));
+}
+/// ditto
+pure T ror(T)(in T value, in uint count)
+    if (__traits(isIntegral, T) && __traits(isUnsigned, T))
+{
+    assert(count < 8 * T.sizeof);
+    return cast(T) ((value >> count) | (value << (-count & (T.sizeof * 8 - 1))));
+}
+/// ditto
+pure T rol(uint count, T)(in T value)
+    if (__traits(isIntegral, T) && __traits(isUnsigned, T))
+{
+    static assert(count < 8 * T.sizeof);
+    return cast(T) ((value << count) | (value >> (-count & (T.sizeof * 8 - 1))));
+}
+/// ditto
+pure T ror(uint count, T)(in T value)
+    if (__traits(isIntegral, T) && __traits(isUnsigned, T))
+{
+    static assert(count < 8 * T.sizeof);
+    return cast(T) ((value >> count) | (value << (-count & (T.sizeof * 8 - 1))));
 }
 
-pure T rotr(T)(in T u, in uint s)
-    if (__traits(isArithmetic, T) && __traits(isUnsigned, T))
-{
-    return cast(T) ((u >> s) | (u << (-s & (T.sizeof * 8 - 1))));
-}
-
+///
 unittest
 {
     ubyte a = 0b10101010U;
     ulong b = ulong.max;
 
-    assert(rotl(a, 1) == 0b01010101);
-    assert(rotr(a, 1) == 0b01010101);
-    assert(rotl(a, 3) == 0b01010101);
-    assert(rotr(a, 3) == 0b01010101);
+    assert(rol(a, 1) == 0b01010101);
+    assert(ror(a, 1) == 0b01010101);
+    assert(rol(a, 3) == 0b01010101);
+    assert(ror(a, 3) == 0b01010101);
 
-    assert(rotl(a, 0) == a);
-    assert(rotr(a, 0) == a);
+    assert(rol(a, 0) == a);
+    assert(ror(a, 0) == a);
 
-    assert(rotl(a, 16) == a);
-    assert(rotr(a, 16) == a);
+    assert(rol(b, 63) == ulong.max);
+    assert(ror(b, 63) == ulong.max);
 
-    assert(rotl(b, 64) == ulong.max);
-    assert(rotr(b, 64) == ulong.max);
+    assert(rol!3(a) == 0b01010101);
+    assert(ror!3(a) == 0b01010101);
 }
