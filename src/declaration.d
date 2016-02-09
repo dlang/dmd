@@ -1326,6 +1326,7 @@ public:
                 {
                     //printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
                     if (sc.scopesym.members)
+                        // Note this prevents using foreach() over members, because the limits can change
                         sc.scopesym.members.push(v);
                 }
                 Expression e = new DsymbolExp(loc, v);
