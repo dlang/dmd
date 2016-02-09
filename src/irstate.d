@@ -15,10 +15,11 @@ import ddmd.dsymbol;
 import ddmd.func;
 import ddmd.identifier;
 import ddmd.statement;
-import ddmd.root.aav;
 import ddmd.globals;
 import ddmd.mtype;
 import ddmd.errors;
+
+extern (C++) struct Label;
 
 /***********************************************************
  */
@@ -37,7 +38,7 @@ struct IRState
     elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
     VarDeclarations* varsInScope;   // variables that are in scope that will need destruction later
-    AA** labels;                    // table of labels used/declared in function
+    Label*[void*]* labels;          // table of labels used/declared in function
 
     block* breakBlock;
     block* contBlock;
@@ -83,6 +84,29 @@ struct IRState
     {
         this.m = m;
         symbol = s;
+    }
+
+    /****
+     * Access labels AA from C++ code.
+     * Params:
+     *  s = key
+     * Returns:
+     *  pointer to value if it's there, null if not
+     */
+    extern (C++) Label** lookupLabel(Statement s)
+    {
+        return cast(void*)s in *labels;
+    }
+
+    /****
+     * Access labels AA from C++ code.
+     * Params:
+     *  s = key
+     *  label = value
+     */
+    extern (C++) void insertLabel(Statement s, Label* label)
+    {
+        (*labels)[cast(void*)s] = label;
     }
 
     extern (C++) block* getBreakBlock(Identifier ident)

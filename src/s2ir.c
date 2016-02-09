@@ -35,7 +35,6 @@
 #include        "global.h"
 #include        "dt.h"
 
-#include        "aav.h"
 #include        "rmem.h"
 #include        "target.h"
 #include        "visitor.h"
@@ -97,14 +96,15 @@ struct Label
 
 static Label *getLabel(IRState *irs, Blockx *blx, Statement *s)
 {
-    Label **slot = (Label **)dmd_aaGet(irs->labels, (void *)s);
+    Label **slot = irs->lookupLabel(s);
 
-    if (*slot == NULL)
+    if (slot == NULL)
     {
         Label *label = new Label();
         label->lblock = blx ? block_calloc(blx) : block_calloc();
         label->fwdrefs = NULL;
-        *slot = label;
+        irs->insertLabel(s, label);
+        return label;
     }
     return *slot;
 }
