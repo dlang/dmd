@@ -2186,6 +2186,8 @@ public:
         if (!f.deco && ident != Id.xopEquals && ident != Id.xopCmp)
         {
             sc = sc.push();
+            if (isCtorDeclaration()) // Bugzilla #15665
+                sc.flags |= SCOPEctor;
             sc.stc = 0;
             sc.linkage = linkage; // Bugzilla 8496
             type = f.semantic(loc, sc);
