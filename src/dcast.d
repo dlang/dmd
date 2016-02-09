@@ -1656,8 +1656,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     void* s = cast(void*)mem.xmalloc((se.len + 1) * se.sz);
                     memcpy(s, se.string, se.len * se.sz);
-                    memset(cast(char*)s + se.len * se.sz, 0, se.sz);
-                    se.string = s;
+                    memset(s + se.len * se.sz, 0, se.sz);
+                    se.string = cast(char*)s;
                 }
                 result = se;
                 return;
@@ -1716,7 +1716,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         uint c;
-                        const(char)* p = utf_decodeChar(cast(char*)se.string, e.len, &u, &c);
+                        const p = utf_decodeChar(se.string, e.len, &u, &c);
                         if (p)
                             e.error("%s", p);
                         else
@@ -1729,7 +1729,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         uint c;
-                        const(char)* p = utf_decodeChar(cast(char*)se.string, e.len, &u, &c);
+                        const p = utf_decodeChar(se.string, e.len, &u, &c);
                         if (p)
                             e.error("%s", p);
                         buffer.write4(c);
@@ -1741,7 +1741,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         uint c;
-                        const(char)* p = utf_decodeWchar(cast(ushort*)se.string, e.len, &u, &c);
+                        const p = utf_decodeWchar(cast(utf16_t*)se.wstring, e.len, &u, &c);
                         if (p)
                             e.error("%s", p);
                         else
@@ -1754,7 +1754,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         uint c;
-                        const(char)* p = utf_decodeWchar(cast(ushort*)se.string, e.len, &u, &c);
+                        const p = utf_decodeWchar(cast(utf16_t*)se.wstring, e.len, &u, &c);
                         if (p)
                             e.error("%s", p);
                         buffer.write4(c);
@@ -1765,7 +1765,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Tdchar, Tchar):
                     for (size_t u = 0; u < e.len; u++)
                     {
-                        uint c = (cast(uint*)se.string)[u];
+                        uint c = se.dstring[u];
                         if (!utf_isValidDchar(c))
                             e.error("invalid UCS-32 char \\U%08x", c);
                         else
@@ -1778,7 +1778,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Tdchar, Twchar):
                     for (size_t u = 0; u < e.len; u++)
                     {
-                        uint c = (cast(uint*)se.string)[u];
+                        uint c = se.dstring[u];
                         if (!utf_isValidDchar(c))
                             e.error("invalid UCS-32 char \\U%08x", c);
                         else
@@ -1823,8 +1823,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     void* s = cast(void*)mem.xmalloc((dim2 + 1) * newsz);
                     memcpy(s, se.string, d * newsz);
                     // Extend with 0, add terminating 0
-                    memset(cast(char*)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
-                    se.string = s;
+                    memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);
+                    se.string = cast(char*)s;
                     se.len = dim2;
                 }
             }
