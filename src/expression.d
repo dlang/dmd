@@ -55,7 +55,6 @@ import ddmd.nspace;
 import ddmd.opover;
 import ddmd.optimize;
 import ddmd.parse;
-import ddmd.root.aav;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.longdouble;
@@ -6417,8 +6416,7 @@ public:
                 symtab = sds.symtab;
             }
             assert(symtab);
-            int num = cast(int)dmd_aaLen(symtab.tab) + 1;
-            Identifier id = Identifier.generateId(s, num);
+            Identifier id = Identifier.generateId(s, symtab.len() + 1);
             fd.ident = id;
             if (td)
                 td.ident = id;

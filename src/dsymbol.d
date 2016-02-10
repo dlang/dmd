@@ -1933,4 +1933,13 @@ public:
         *ps = s;
         return s;
     }
+
+    /*****
+     * Returns:
+     *  number of symbols in symbol table
+     */
+    uint len() const pure
+    {
+        return cast(uint)dmd_aaLen(tab);
+    }
 }
