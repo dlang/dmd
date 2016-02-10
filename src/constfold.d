@@ -1369,25 +1369,10 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
 extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, const StringExp newval, size_t firstIndex)
 {
     const len = newval.len;
-    const sz = newval.sz;
     Type elemType = existingAE.type.nextOf();
     foreach (j; 0 .. len)
     {
-        dinteger_t val;
-        switch (sz)
-        {
-        case 1:
-            val = newval.string[j];
-            break;
-        case 2:
-            val = newval.wstring[j];
-            break;
-        case 4:
-            val = newval.dstring[j];
-            break;
-        default:
-            assert(0);
-        }
+        const val = newval.getCodeUnit(j);
         (*existingAE.elements)[j + firstIndex] = new IntegerExp(newval.loc, val, elemType);
     }
 }
@@ -1400,21 +1385,7 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
     assert(existingSE.ownedByCtfe != OWNEDcode);
     foreach (j; 0 .. newae.elements.dim)
     {
-        uint val = cast(uint)newae.getElement(j).toInteger();
-        switch (existingSE.sz)
-        {
-        case 1:
-            existingSE.string[j + firstIndex] = cast(char)val;
-            break;
-        case 2:
-            existingSE.wstring[j + firstIndex] = cast(wchar)val;
-            break;
-        case 4:
-            existingSE.dstring[j + firstIndex] = cast(dchar)val;
-            break;
-        default:
-            assert(0);
-        }
+        existingSE.setCodeUnit(firstIndex + j, cast(dchar)newae.getElement(j).toInteger());
     }
 }
 
@@ -1442,28 +1413,13 @@ extern (C++) int sliceCmpStringWithString(const StringExp se1, const StringExp s
 /* Compare a string slice with an array literal slice
  * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  ae2[lo2..lo2+len])
  */
-extern (C++) int sliceCmpStringWithArray(StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len)
+extern (C++) int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1, size_t lo2, size_t len)
 {
-    const sz = se1.sz;
     foreach (j; 0 .. len)
     {
-        uint val2 = cast(uint)ae2.getElement(j + lo2).toInteger();
-        uint val1;
-        switch (sz)
-        {
-        case 1:
-            val1 = se1.string[j + lo1];
-            break;
-        case 2:
-            val1 = se1.wstring[j + lo1];
-            break;
-        case 4:
-            val1 = se1.dstring[j + lo1];
-            break;
-        default:
-            assert(0);
-        }
-        int c = val1 - val2;
+        const val2 = cast(dchar)ae2.getElement(j + lo2).toInteger();
+        const val1 = se1.getCodeUnit(j + lo1);
+        const int c = val1 - val2;
         if (c)
             return c;
     }

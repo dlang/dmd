@@ -4208,7 +4208,7 @@ public:
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
         this.string = string;
         this.len = strlen(string);
-        this.sz = 1;                    // work around bug in LDC
+        this.sz = 1;                    // work around LDC bug #1286
     }
 
     extern (D) this(Loc loc, void* string, size_t len)
@@ -4216,7 +4216,7 @@ public:
         super(loc, TOKstring, __traits(classInstanceSize, StringExp));
         this.string = cast(char*)string;
         this.len = len;
-        this.sz = 1;                    // work around bug in LDC
+        this.sz = 1;                    // work around LDC bug #1286
     }
 
     extern (D) this(Loc loc, void* string, size_t len, char postfix)
@@ -4225,7 +4225,7 @@ public:
         this.string = cast(char*)string;
         this.len = len;
         this.postfix = postfix;
-        this.sz = 1;                    // work around bug in LDC
+        this.sz = 1;                    // work around LDC bug #1286
     }
 
     static StringExp create(Loc loc, char* s)
@@ -4408,6 +4408,50 @@ public:
         }
         else
             assert(0);
+    }
+
+    /*********************************************
+     * Get the code unit at index i
+     * Params:
+     *  i = index
+     * Returns:
+     *  code unit at index i
+     */
+    final dchar getCodeUnit(size_t i) const pure
+    {
+        assert(i < len);
+        final switch (sz)
+        {
+        case 1:
+            return string[i];
+        case 2:
+            return wstring[i];
+        case 4:
+            return dstring[i];
+        }
+    }
+
+    /*********************************************
+     * Set the code unit at index i to c
+     * Params:
+     *  i = index
+     *  c = code unit to set it to
+     */
+    final void setCodeUnit(size_t i, dchar c)
+    {
+        assert(i < len);
+        final switch (sz)
+        {
+        case 1:
+            string[i] = cast(char)c;
+            break;
+        case 2:
+            wstring[i] = cast(wchar)c;
+            break;
+        case 4:
+            dstring[i] = cast(dchar)c;
+            break;
+        }
     }
 
     /**************************************************
