@@ -663,8 +663,8 @@ $(H3 $(LNAME2 static-constructor, Static Constructors))
 
 $(GRAMMAR
 $(GNAME StaticConstructor):
-    $(D static this ( )) $(D ;)
-    $(D static this ( )) $(GLINK2 function, FunctionBody)
+    $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
 	$(P
@@ -815,8 +815,8 @@ $(H3 Shared Static Constructors)
 
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
-    $(D shared static this ( )) $(D ;)
-    $(D shared static this ( )) $(GLINK2 function, FunctionBody)
+    $(D shared static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D shared static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
         $(P Shared static constructors are executed before any $(GLINK StaticConstructor)s,
