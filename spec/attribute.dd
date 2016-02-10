@@ -698,7 +698,9 @@ $(P
 $(P
         Functions declared as abstract can still have function
         bodies. This is so that even though they must be overridden,
-        they can still provide $(SINGLEQUOTE base class functionality.)
+        they can still provide $(SINGLEQUOTE base class functionality),
+        e.g. through $(D super.foo()) in a derived class.
+        Note that the class is still abstract and cannot be instantiated directly.
 )
 
 $(SECTION3 $(LNAME2 uda, User Defined Attributes),
