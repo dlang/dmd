@@ -1304,16 +1304,16 @@ $(GNAME UnitTest):
 
 $(GRAMMAR
 $(GNAME StaticConstructor):
-    $(D static this ( )) $(D ;)
-    $(D static this ( )) $(GLINK FunctionBody)
+    $(D static this ( )) $(GLINK MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D static this ( )) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK FunctionBody)
 
 $(GNAME StaticDestructor):
     $(D static ~ this ( )) $(GLINK MemberFunctionAttributes)$(OPT) $(D ;)
     $(D static ~ this ( )) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK FunctionBody)
 
 $(GNAME SharedStaticConstructor):
-    $(D shared static this ( )) $(D ;)
-    $(D shared static this ( )) $(GLINK FunctionBody)
+    $(D shared static this ( )) $(GLINK MemberFunctionAttributes)$(OPT) $(D ;)
+    $(D shared static this ( )) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK FunctionBody)
 
 $(GNAME SharedStaticDestructor):
     $(D shared static ~ this ( )) $(GLINK MemberFunctionAttributes)$(OPT) $(D ;)
