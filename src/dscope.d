@@ -157,7 +157,7 @@ struct Scope
     int explicitProtection;         // set if in an explicit protection attribute
 
     StorageClass stc;               // storage class
-    char* depmsg;                   // customized deprecation message
+    DeprecatedDeclaration depdecl;  // customized deprecation message
 
     uint flags;
 
@@ -602,7 +602,7 @@ struct Scope
         this.protection = sc.protection;
         this.explicitProtection = sc.explicitProtection;
         this.stc = sc.stc;
-        this.depmsg = sc.depmsg;
+        this.depdecl = sc.depdecl;
         this.inunion = sc.inunion;
         this.nofree = sc.nofree;
         this.noctor = sc.noctor;

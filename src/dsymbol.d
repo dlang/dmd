@@ -191,7 +191,7 @@ public:
     bool errors;            // this symbol failed to pass semantic()
     PASS semanticRun;
 
-    char* depmsg;           // customized deprecation message
+    DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes
 
     // !=null means there's a ddoc unittest associated with this symbol
@@ -312,7 +312,7 @@ public:
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
             {
-                message = p.depmsg;
+                message = p.depdecl ? p.depdecl.msgstr : null;
                 if (message)
                     break;
             }
@@ -570,8 +570,8 @@ public:
         if (!sc.nofree)
             sc.setNoFree(); // may need it even after semantic() finishes
         _scope = sc;
-        if (sc.depmsg)
-            depmsg = sc.depmsg;
+        if (sc.depdecl)
+            depdecl = sc.depdecl;
         if (!userAttribDecl)
             userAttribDecl = sc.userAttribDecl;
     }
