@@ -1292,6 +1292,7 @@ public:
                         te.exps.push(new ErrorExp());
                 }
             }
+
             auto exps = new Objects();
             exps.setDim(nelems);
             for (size_t i = 0; i < nelems; i++)
@@ -1301,6 +1302,7 @@ public:
                 buf.printf("__%s_field_%llu", ident.toChars(), cast(ulong)i);
                 const(char)* name = buf.extractString();
                 Identifier id = Identifier.idPool(name);
+
                 Initializer ti;
                 if (ie)
                 {
@@ -1316,12 +1318,14 @@ public:
                 }
                 else
                     ti = _init ? _init.syntaxCopy() : null;
+
                 auto v = new VarDeclaration(loc, arg.type, id, ti);
                 v.storage_class |= STCtemp | storage_class;
                 if (arg.storageClass & STCparameter)
                     v.storage_class |= arg.storageClass;
                 //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
                 v.semantic(sc);
+
                 if (sc.scopesym)
                 {
                     //printf("adding %s to %s\n", v->toChars(), sc->scopesym->toChars());
@@ -1329,6 +1333,7 @@ public:
                         // Note this prevents using foreach() over members, because the limits can change
                         sc.scopesym.members.push(v);
                 }
+
                 Expression e = new DsymbolExp(loc, v);
                 (*exps)[i] = e;
             }
