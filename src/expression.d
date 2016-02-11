@@ -4650,7 +4650,8 @@ public:
             }
             else if (o.dyncast() == DYNCAST_EXPRESSION)
             {
-                Expression e = cast(Expression)o;
+                auto e = (cast(Expression)o).copy();
+                e.loc = loc;    // Bugzilla 15669
                 this.exps.push(e);
             }
             else if (o.dyncast() == DYNCAST_TYPE)
