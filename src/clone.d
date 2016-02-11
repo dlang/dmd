@@ -234,7 +234,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         if (sd.dtor)
         {
             tmp = new VarDeclaration(loc, sd.type, idtmp, new VoidInitializer(loc));
-            tmp.noscope = 1;
+            tmp.noscope = true;
             tmp.storage_class |= STCtemp | STCctfe;
             e = new DeclarationExp(loc, tmp);
             ec = new BlitExp(loc, new VarExp(loc, tmp), new ThisExp(loc));

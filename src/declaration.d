@@ -1008,7 +1008,7 @@ extern (C++) class VarDeclaration : Declaration
 public:
     Initializer _init;
     uint offset;
-    bool noscope;                   // no auto semantics
+    bool noscope;                   // if scope destruction is disabled
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
     bool isargptr;                  // if parameter that _argptr points to
     structalign_t alignment;
@@ -2021,12 +2021,10 @@ public:
     /******************************************
      * Return true if variable needs to call the destructor.
      */
-    final bool needsAutoDtor()
+    final bool needsScopeDtor()
     {
-        //printf("VarDeclaration::needsAutoDtor() %s\n", toChars());
-        if (noscope || !edtor)
-            return false;
-        return true;
+        //printf("VarDeclaration::needsScopeDtor() %s\n", toChars());
+        return edtor && !noscope;
     }
 
     /******************************************
@@ -2784,7 +2782,7 @@ public:
     extern (D) this(Loc loc, Type t)
     {
         super(loc, t, Id.This, null);
-        noscope = 1;
+        noscope = true;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

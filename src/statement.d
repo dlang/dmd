@@ -1145,23 +1145,7 @@ public:
     {
         if (exp)
         {
-            //printf("ExpStatement::semantic() %s\n", exp->toChars());
-            version (none)
-            {
-                // Doesn't work because of difficulty dealing with things like a.b.c!(args).Foo!(args)
-                // See if this should be rewritten as a TemplateMixin
-                if (exp.op == TOKdeclaration)
-                {
-                    DeclarationExp de = cast(DeclarationExp)exp;
-                    Dsymbol s = de.declaration;
-                    printf("s: %s %s\n", s.kind(), s.toChars());
-                    VarDeclaration v = s.isVarDeclaration();
-                    if (v)
-                    {
-                        printf("%s, %d\n", v.type.toChars(), v.type.ty);
-                    }
-                }
-            }
+            //printf("ExpStatement::semantic() %s\n", exp.toChars());
             exp = exp.semantic(sc);
             exp = resolveProperties(sc, exp);
             exp = exp.addDtorHook(sc);
@@ -1183,42 +1167,17 @@ public:
         *sentry = null;
         *sexception = null;
         *sfinally = null;
-        if (exp)
+        if (exp && exp.op == TOKdeclaration)
         {
-            if (exp.op == TOKdeclaration)
+            auto de = cast(DeclarationExp)exp;
+            auto v = de.declaration.isVarDeclaration();
+            if (v && !v.isDataseg())
             {
-                DeclarationExp de = cast(DeclarationExp)exp;
-                VarDeclaration v = de.declaration.isVarDeclaration();
-                if (v && !v.noscope && !v.isDataseg())
+                if (v.needsScopeDtor())
                 {
-                    Expression e = v.edtor;
-                    if (e)
-                    {
-                        //printf("dtor is: "); e->print();
-                        version (none)
-                        {
-                            if (v.type.toBasetype().ty == Tstruct)
-                            {
-                                /* Need a 'gate' to turn on/off destruction,
-                                 * in case v gets moved elsewhere.
-                                 */
-                                Identifier id = Identifier.generateId("__runDtor");
-                                auto ie = new ExpInitializer(loc, new IntegerExp(1));
-                                auto rd = new VarDeclaration(loc, Type.tint32, id, ie);
-                                rd.storage_class |= STCtemp;
-                                *sentry = new ExpStatement(loc, rd);
-                                v.rundtor = rd;
-                                /* Rewrite e as:
-                                 *  rundtor && e
-                                 */
-                                Expression ve = new VarExp(loc, v.rundtor);
-                                e = new AndAndExp(loc, ve, e);
-                                e.type = Type.tbool;
-                            }
-                        }
-                        *sfinally = new DtorExpStatement(loc, e, v);
-                    }
-                    v.noscope = 1; // don't add in dtor again
+                    //printf("dtor is: "); v.edtor.print();
+                    *sfinally = new DtorExpStatement(loc, v.edtor, v);
+                    v.noscope = true; // don't add in dtor again
                 }
             }
         }
@@ -3416,7 +3375,7 @@ public:
                 Statement sdtor = new ExpStatement(loc, match.edtor);
                 sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
                 ifbody = new CompoundStatement(loc, sdtor, ifbody);
-                match.noscope = 1;
+                match.noscope = true;
             }
         }
         else

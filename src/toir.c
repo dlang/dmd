@@ -754,7 +754,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             VarDeclaration *v = fd->closureVars[i];
             //printf("closure var %s\n", v->toChars());
 
-            if (v->needsAutoDtor())
+            if (v->needsScopeDtor())
             {
                 /* Because the value needs to survive the end of the scope!
                  */

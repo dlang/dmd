@@ -838,7 +838,7 @@ public:
     {
         Blockx *blx = irs->blx;
 
-        //printf("ExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
+        //printf("ExpStatement::toIR(), exp = %s\n", s->exp ? s->exp->toChars() : "");
         incUsage(irs, s->loc);
         if (s->exp)
             block_appendexp(blx->curblock,toElemDtor(s->exp, irs));
