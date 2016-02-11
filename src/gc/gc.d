@@ -2002,79 +2002,114 @@ struct Gcx
     Lagain:
         size_t pcache = 0;
 
+        // let dmd allocate a register for this.pools
+        auto pools = pooltable.pools;
+        const npools = pooltable.npools;
+        const minAddr = pooltable.minAddr;
+        const maxAddr = pooltable.maxAddr;
+
         //printf("marking range: [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
-        for (; p1 < p2 && stackPos != stack.length; p1++)
+    Lnext: for (; p1 < p2; p1++)
         {
             auto p = cast(byte *)(*p1);
 
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
-            if (p >= pooltable.minAddr && p < pooltable.maxAddr)
+            if (p >= minAddr && p < maxAddr)
             {
                 if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
                     continue;
 
-                auto pool = findPool(p);
-                if (pool)
+                Pool* pool = void;
+                if (npools > 1)
                 {
-                    size_t offset = cast(size_t)(p - pool.baseAddr);
-                    size_t biti = void;
-                    size_t pn = offset / PAGESIZE;
-                    Bins   bin = cast(Bins)pool.pagetable[pn];
-                    void* base = void;
-
-                    //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
-
-                    // Adjust bit to be at start of allocated memory block
-                    if (bin < B_PAGE)
+                    size_t low = 0;
+                    size_t high = npools - 1;
+                    while (true)
                     {
-                        // We don't care abou setting pointsToBase correctly
-                        // because it's ignored for small object pools anyhow.
-                        auto offsetBase = offset & notbinsize[bin];
-                        biti = offsetBase >> pool.shiftBy;
-                        base = pool.baseAddr + offsetBase;
-                        //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
+                        size_t mid = (low + high) >> 1;
+                        pool = pools[mid];
+                        if (p < pool.baseAddr)
+                            high = mid - 1;
+                        else if (p >= pool.topAddr)
+                            low = mid + 1;
+                        else break;
 
-                        if (!pool.mark.set(biti) && !pool.noscan.test(biti))
-                            stack[stackPos++] = Range(base, base + binsize[bin]);
+                        if (low > high)
+                            continue Lnext;
                     }
-                    else if (bin == B_PAGE)
-                    {
-                        auto offsetBase = offset & notbinsize[bin];
-                        base = pool.baseAddr + offsetBase;
-                        biti = offsetBase >> pool.shiftBy;
-                        //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
+                }
+                else
+                {
+                    pool = pools[0];
+                }
 
-                        pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
+                size_t offset = cast(size_t)(p - pool.baseAddr);
+                size_t biti = void;
+                size_t pn = offset / PAGESIZE;
+                Bins   bin = cast(Bins)pool.pagetable[pn];
+                void* base = void;
 
-                        // For the NO_INTERIOR attribute.  This tracks whether
-                        // the pointer is an interior pointer or points to the
-                        // base address of a block.
-                        bool pointsToBase = (base == sentinel_sub(p));
-                        if(!pointsToBase && pool.nointerior.nbits && pool.nointerior.test(biti))
-                            continue;
+                //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
 
-                        if (!pool.mark.set(biti) && !pool.noscan.test(biti))
-                            stack[stackPos++] = Range(base, base + pool.bPageOffsets[pn] * PAGESIZE);
+                // Adjust bit to be at start of allocated memory block
+                if (bin < B_PAGE)
+                {
+                    // We don't care abou setting pointsToBase correctly
+                    // because it's ignored for small object pools anyhow.
+                    auto offsetBase = offset & notbinsize[bin];
+                    biti = offsetBase >> pool.shiftBy;
+                    base = pool.baseAddr + offsetBase;
+                    //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
+
+                    if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
+                        stack[stackPos++] = Range(base, base + binsize[bin]);
+                        if (stackPos == stack.length)
+                            break;
                     }
-                    else if (bin == B_PAGEPLUS)
-                    {
-                        pn -= pool.bPageOffsets[pn];
-                        base = pool.baseAddr + (pn * PAGESIZE);
-                        biti = pn * (PAGESIZE >> pool.shiftBy);
+                }
+                else if (bin == B_PAGE)
+                {
+                    auto offsetBase = offset & notbinsize[bin];
+                    base = pool.baseAddr + offsetBase;
+                    biti = offsetBase >> pool.shiftBy;
+                    //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
-                        pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
-                        if(pool.nointerior.nbits && pool.nointerior.test(biti))
-                            continue;
+                    pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
 
-                        if (!pool.mark.set(biti) && !pool.noscan.test(biti))
-                            stack[stackPos++] = Range(base, base + pool.bPageOffsets[pn] * PAGESIZE);
-                    }
-                    else
-                    {
-                        // Don't mark bits in B_FREE pages
-                        assert(bin == B_FREE);
+                    // For the NO_INTERIOR attribute.  This tracks whether
+                    // the pointer is an interior pointer or points to the
+                    // base address of a block.
+                    bool pointsToBase = (base == sentinel_sub(p));
+                    if(!pointsToBase && pool.nointerior.nbits && pool.nointerior.test(biti))
                         continue;
+
+                    if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
+                        stack[stackPos++] = Range(base, base + pool.bPageOffsets[pn] * PAGESIZE);
+                        if (stackPos == stack.length)
+                            break;
                     }
+                }
+                else if (bin == B_PAGEPLUS)
+                {
+                    pn -= pool.bPageOffsets[pn];
+                    base = pool.baseAddr + (pn * PAGESIZE);
+                    biti = pn * (PAGESIZE >> pool.shiftBy);
+
+                    pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
+                    if(pool.nointerior.nbits && pool.nointerior.test(biti))
+                        continue;
+
+                    if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
+                        stack[stackPos++] = Range(base, base + pool.bPageOffsets[pn] * PAGESIZE);
+                        if (stackPos == stack.length)
+                            break;
+                    }
+                }
+                else
+                {
+                    // Don't mark bits in B_FREE pages
+                    assert(bin == B_FREE);
+                    continue;
                 }
             }
         }
