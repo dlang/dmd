@@ -31,7 +31,6 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.nogc;
-import ddmd.root.aav;
 import ddmd.root.array;
 import ddmd.root.rootobject;
 import ddmd.root.speller;
@@ -1133,7 +1132,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto exps = new Expressions();
         if (global.params.useUnitTests)
         {
-            AA* uniqueUnitTests = null;
+            bool[void*] uniqueUnitTests;
 
             void collectUnitTests(Dsymbols* a)
             {
@@ -1148,7 +1147,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     }
                     if (auto ud = s.isUnitTestDeclaration())
                     {
-                        if (dmd_aaGetRvalue(uniqueUnitTests, cast(void*)ud))
+                        if (cast(void*)ud in uniqueUnitTests)
                             continue;
 
                         auto ad = new FuncAliasDeclaration(ud.ident, ud, 0);
@@ -1157,8 +1156,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                         auto e = new DsymbolExp(Loc(), ad);
                         exps.push(e);
 
-                        auto pv = cast(bool*)dmd_aaGet(&uniqueUnitTests, cast(void*)ud);
-                        *pv = true;
+                        uniqueUnitTests[cast(void*)ud] = true;
                     }
                 }
             }
