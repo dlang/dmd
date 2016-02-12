@@ -1156,7 +1156,7 @@ public:
             }
             else
             {
-                todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
+                todo = cast(Dsymbol*)mem.xmalloc(len * Dsymbol.sizeof);
                 assert(todo);
                 todoalloc = todo;
             }

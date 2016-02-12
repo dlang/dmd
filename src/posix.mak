@@ -145,7 +145,7 @@ CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
-DFLAGS=
+DFLAGS=-version=GC
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
