@@ -206,6 +206,7 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 
 copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\stdc
+	mkdir $(IMPDIR)\core\stdcpp
 	mkdir $(IMPDIR)\core\internal
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\sys
@@ -342,6 +343,12 @@ $(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
 	copy $** $@
 
 $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
+	copy $** $@
+
+$(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
+	copy $** $@
+
+$(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\unwind.d : src\core\sys\unwind.d

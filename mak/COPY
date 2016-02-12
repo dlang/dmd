@@ -43,6 +43,9 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
+	$(IMPDIR)\core\stdcpp\typeinfo.d \
+	$(IMPDIR)\core\stdcpp\exception.d \
+	\
 	$(IMPDIR)\core\sys\unwind.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
