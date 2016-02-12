@@ -1076,9 +1076,9 @@ public:
         return baseok >= BASEOKdone;
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
-        //printf("%s.ClassDeclaration.search('%s')\n", toChars(), ident.toChars());
+        //printf("%s.ClassDeclaration.search('%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (scope) printf("%s baseok = %d\n", toChars(), baseok);
         if (_scope && baseok < BASEOKdone)
         {
@@ -1098,7 +1098,7 @@ public:
             return null;
         }
 
-        Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
+        Dsymbol s = ScopeDsymbol.search(loc, ident, (flags & SearchImportsOnly) ? flags : flags | SearchLocalsOnly);
         if (!s)
         {
             // Search bases classes in depth-first, left to right order
@@ -1111,7 +1111,7 @@ public:
                         error("base %s is forward referenced", b.sym.ident.toChars());
                     else
                     {
-                        s = b.sym.search(loc, ident, flags);
+                        s = b.sym.search(loc, ident, flags | SearchLocalsOnly);
                         if (s == this) // happens if s is nested in this and derives from this
                             s = null;
                         else if (s)

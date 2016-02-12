@@ -308,7 +308,7 @@ public:
         return "enum";
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
         if (_scope)

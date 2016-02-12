@@ -637,31 +637,56 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
  */
 extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
 {
+    //printf("searchUFCS(ident = %s)\n", ident.toChars());
     Loc loc = ue.loc;
-    Dsymbol s = null;
-    for (Scope* scx = sc; scx; scx = scx.enclosing)
+
+    // TODO: merge with Scope.search.searchScopes()
+    Dsymbol searchScopes(int flags)
     {
-        if (!scx.scopesym)
-            continue;
-        s = scx.scopesym.search(loc, ident);
-        if (s)
+        Dsymbol s = null;
+        for (Scope* scx = sc; scx; scx = scx.enclosing)
         {
-            // overload set contains only module scope symbols.
-            if (s.isOverloadSet())
-                break;
-            // selective/renamed imports also be picked up
-            if (AliasDeclaration ad = s.isAliasDeclaration())
+            if (!scx.scopesym)
+                continue;
+            if (scx.scopesym.isModule())
+                flags |= SearchUnqualifiedModule;    // tell Module.search() that SearchLocalsOnly is to be obeyed
+            s = scx.scopesym.search(loc, ident, flags);
+            if (s)
             {
-                if (ad._import)
+                // overload set contains only module scope symbols.
+                if (s.isOverloadSet())
+                    break;
+                // selective/renamed imports also be picked up
+                if (AliasDeclaration ad = s.isAliasDeclaration())
+                {
+                    if (ad._import)
+                        break;
+                }
+                // See only module scope symbols for UFCS target.
+                Dsymbol p = s.toParent2();
+                if (p && p.isModule())
                     break;
             }
-            // See only module scope symbols for UFCS target.
-            Dsymbol p = s.toParent2();
-            if (p && p.isModule())
+            s = null;
+
+            // Stop when we hit a module, but keep going if that is not just under the global scope
+            if (scx.scopesym.isModule() && !(scx.enclosing && !scx.enclosing.enclosing))
                 break;
         }
-        s = null;
+        return s;
     }
+
+    Dsymbol s;
+
+    if (global.params.bug10378)
+        s = searchScopes(0);
+    else
+    {
+        s = searchScopes(SearchLocalsOnly);
+        if (!s)
+            s = searchScopes(SearchImportsOnly);
+    }
+
     if (!s)
         return ue.e1.type.Type.getProperty(loc, ident, 0);
     FuncDeclaration f = s.isFuncDeclaration();
@@ -686,6 +711,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     }
     else
     {
+        //printf("-searchUFCS() %s\n", s.toChars());
         return new DsymbolExp(loc, s);
     }
 }
@@ -8269,7 +8295,8 @@ public:
              * The check for 'is sds our current module' is because
              * the current module should have access to its own imports.
              */
-            Dsymbol s = ie.sds.search(loc, ident, (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateMembers : IgnoreNone);
+            Dsymbol s = ie.sds.search(loc, ident,
+                (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateMembers | SearchLocalsOnly : SearchLocalsOnly);
             if (s)
             {
                 /* Check for access before resolving aliases because public

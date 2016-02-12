@@ -32,6 +32,8 @@ import ddmd.root.speller;
 import ddmd.root.stringtable;
 import ddmd.statement;
 
+//version=LOGSEARCH;
+
 extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool mustInit)
 {
     if (fi != fieldInit)
@@ -419,9 +421,44 @@ struct Scope
         return minst ? minst : _module;
     }
 
+    /************************************
+     * Perform unqualified name lookup by following the chain of scopes up
+     * until found.
+     *
+     * Params:
+     *  loc = location to use for error messages
+     *  ident = name to look up
+     *  pscopesym = if supplied and name is found, set to scope that ident was found in
+     *  flags = modify search based on flags
+     *
+     * Returns:
+     *  symbol if found, null if not
+     */
     extern (C++) Dsymbol search(Loc loc, Identifier ident, Dsymbol* pscopesym, int flags = IgnoreNone)
     {
-        //printf("Scope::search(%p, '%s')\n", this, ident->toChars());
+        version (LOGSEARCH)
+        {
+            printf("Scope.search(%p, '%s' flags=x%x)\n", &this, ident.toChars(), flags);
+            // Print scope chain
+            for (Scope* sc = &this; sc; sc = sc.enclosing)
+            {
+                if (!sc.scopesym)
+                    continue;
+                printf("\tscope %s\n", sc.scopesym.toChars());
+            }
+
+            static void printMsg(string txt, Dsymbol s)
+            {
+                printf("%.*s  %s.%s, kind = '%s'\n", cast(int)msg.length, msg.ptr,
+                    s.parent ? s.parent.toChars() : "", s.toChars(), s.kind());
+            }
+        }
+
+        // This function is called only for unqualified lookup
+        assert(!(flags & (SearchLocalsOnly | SearchImportsOnly)));
+
+        /* If ident is "start at module scope", only look at module scope
+         */
         if (ident == Id.empty)
         {
             // Look for module scope
@@ -432,7 +469,7 @@ struct Scope
                     continue;
                 if (Dsymbol s = sc.scopesym.isModule())
                 {
-                    //printf("\tfound %s.%s\n", s->parent ? s->parent->toChars() : "", s->toChars());
+                    //printMsg("\tfound", s);
                     if (pscopesym)
                         *pscopesym = sc.scopesym;
                     return s;
@@ -440,25 +477,62 @@ struct Scope
             }
             return null;
         }
-        for (Scope* sc = &this; sc; sc = sc.enclosing)
+
+        Dsymbol searchScopes(int flags)
         {
-            assert(sc != sc.enclosing);
-            if (!sc.scopesym)
-                continue;
-            //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-            if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
+            for (Scope* sc = &this; sc; sc = sc.enclosing)
             {
-                if (ident == Id.length && sc.scopesym.isArrayScopeSymbol() && sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
+                assert(sc != sc.enclosing);
+                if (!sc.scopesym)
+                    continue;
+                //printf("\tlooking in scopesym '%s', kind = '%s', flags = x%x\n", sc.scopesym.toChars(), sc.scopesym.kind(), flags);
+
+                if (sc.scopesym.isModule())
+                    flags |= SearchUnqualifiedModule;        // tell Module.search() that SearchLocalsOnly is to be obeyed
+
+                if (Dsymbol s = sc.scopesym.search(loc, ident, flags))
                 {
-                    warning(s.loc, "array 'length' hides other 'length' name in outer scope");
+                    if (!(flags & (SearchImportsOnly | IgnoreErrors)) &&
+                        ident == Id.length && sc.scopesym.isArrayScopeSymbol() &&
+                        sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
+                    {
+                        warning(s.loc, "array 'length' hides other 'length' name in outer scope");
+                    }
+                    //printMsg("\tfound local", s);
+                    if (pscopesym)
+                        *pscopesym = sc.scopesym;
+                    return s;
                 }
-                //printf("\tfound %s.%s, kind = '%s'\n", s->parent ? s->parent->toChars() : "", s->toChars(), s->kind());
-                if (pscopesym)
-                    *pscopesym = sc.scopesym;
-                return s;
+                // Stop when we hit a module, but keep going if that is not just under the global scope
+                if (sc.scopesym.isModule() && !(sc.enclosing && !sc.enclosing.enclosing))
+                    break;
             }
+            return null;
         }
-        return null;
+
+        if (global.params.bug10378)
+            return searchScopes(flags);
+
+        // First look in local scopes
+        Dsymbol s = searchScopes(flags | SearchLocalsOnly);
+
+        if (s)
+        {
+            version (LOGSEARCH)
+                printMsg("-Scope.search() found local", s);
+            return s;
+        }
+
+        s = searchScopes(flags | SearchImportsOnly);     // look in imported modules
+
+        version (LOGSEARCH)
+        {
+            if (s)
+                printMsg("-Scope.search() found import", s);
+            else
+                printf("-Scope.search() not found\n");
+        }
+        return s;
     }
 
     extern (C++) Dsymbol search_correct(Identifier ident)

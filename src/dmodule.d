@@ -222,8 +222,10 @@ public:
     {
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
+        //printf("%s Package.search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
+        flags &= ~SearchLocalsOnly;  // searching an import is always transitive
         if (!isModule() && mod)
         {
             // Prefer full package name.
@@ -1068,15 +1070,22 @@ public:
         return needmoduleinfo || global.params.cov;
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         /* Since modules can be circularly referenced,
          * need to stop infinite recursive searches.
          * This is done with the cache.
          */
-        //printf("%s Module::search('%s', flags = %d) insearch = %d\n", toChars(), ident->toChars(), flags, insearch);
+        //printf("%s Module.search('%s', flags = x%x) insearch = %d\n", toChars(), ident.toChars(), flags, insearch);
         if (insearch)
             return null;
+
+        /* Qualified module searches always search their imports,
+         * even if SearchLocalsOnly
+         */
+        if (!(flags & SearchUnqualifiedModule))
+            flags &= ~(SearchUnqualifiedModule | SearchLocalsOnly);
+
         if (searchCacheIdent == ident && searchCacheFlags == flags)
         {
             //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n",

@@ -943,7 +943,7 @@ void getProtection()
 
 void test9546()
 {
-    import imports.a9546;
+    import imports.a9546 : S;
 
     S s;
     static assert(__traits(getProtection, s.privA) == "private");

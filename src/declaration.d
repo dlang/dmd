@@ -234,7 +234,7 @@ public:
         return 1;
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         Dsymbol s = Dsymbol.search(loc, ident, flags);
         if (!s && type)

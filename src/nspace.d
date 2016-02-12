@@ -186,7 +186,7 @@ public:
         return Dsymbol.oneMember(ps, ident);
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
         if (_scope && !symtab)

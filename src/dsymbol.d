@@ -166,12 +166,19 @@ alias PASSinline = PASS.PASSinline;
 alias PASSinlinedone = PASS.PASSinlinedone;
 alias PASSobj = PASS.PASSobj;
 
+// Search options
 enum : int
 {
     IgnoreNone              = 0x00, // default
     IgnorePrivateMembers    = 0x01, // don't find private members
     IgnoreErrors            = 0x02, // don't give error messages
     IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
+    SearchLocalsOnly        = 0x08, // only look at locals (don't search imports)
+    SearchImportsOnly       = 0x10, // only look in imports
+    SearchUnqualifiedModule = 0x20, // the module scope search is unqualified,
+                                    // meaning don't search imports in that scope,
+                                    // because qualified module searches search
+                                    // their imports
 }
 
 extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
@@ -606,14 +613,16 @@ public:
 
     /*********************************************
      * Search for ident as member of s.
-     * Input:
-     *      flags:  (see IgnoreXXX declared in dsymbol.h)
+     * Params:
+     *  loc = location to print for error messages
+     *  ident = identifier to search for
+     *  flags = IgnoreXXXX
      * Returns:
-     *      NULL if not found
+     *  null if not found
      */
     Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
-        //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
+        //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         return null;
     }
 
@@ -1224,32 +1233,55 @@ public:
      * This function is #1 on the list of functions that eat cpu time.
      * Be very, very careful about slowing it down.
      */
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
-        //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
+        //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
+
+        if (global.params.bug10378)
+            flags &= ~(SearchImportsOnly | SearchLocalsOnly);
+
         // Look in symbols declared in this module
-        Dsymbol s1 = symtab ? symtab.lookup(ident) : null;
-        //printf("\ts1 = %p, importedScopes = %p, %d\n",
-        //       s1, importedScopes, importedScopes ? importedScopes.dim : 0);
-        if (s1)
+        if (symtab && !(flags & SearchImportsOnly))
         {
-            //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
-            return s1;
+            //printf(" look in locals\n");
+            auto s1 = symtab.lookup(ident);
+            if (s1)
+            {
+                //printf("\tfound in locals = '%s.%s'\n",toChars(),s1.toChars());
+                return s1;
+            }
         }
+        //printf(" not found in locals\n");
+
+        // Look in imported scopes
         if (importedScopes)
         {
+            //printf(" look in imports\n");
             Dsymbol s = null;
             OverloadSet a = null;
-            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
             // Look in imported modules
             for (size_t i = 0; i < importedScopes.dim; i++)
             {
                 // If private import, don't search it
                 if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
                     continue;
+                int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
                 Dsymbol ss = (*importedScopes)[i];
                 //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
+
+                if (ss.isModule())
+                {
+                    if (flags & SearchLocalsOnly)
+                        continue;
+                }
+                else
+                {
+                    if (flags & SearchImportsOnly)
+                        continue;
+                    sflags |= SearchLocalsOnly;
+                }
+
                 /* Don't find private members if ss is a module
                  */
                 Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateMembers : IgnoreNone));
@@ -1320,10 +1352,12 @@ public:
                     if (!s.isImport())
                         error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
                 }
+                //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
                 return s;
             }
+            //printf(" not found in imports\n");
         }
-        return s1;
+        return null;
     }
 
     final OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
@@ -1588,8 +1622,11 @@ public:
         this.withstate = withstate;
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
+        //printf("WithScopeSymbol.search(%s)\n", ident.toChars());
+        if (flags & SearchImportsOnly)
+            return null;
         // Acts as proxy to the with class declaration
         Dsymbol s = null;
         Expression eold = null;
@@ -1610,7 +1647,7 @@ public:
             }
             if (s)
             {
-                s = s.search(loc, ident);
+                s = s.search(loc, ident, flags);
                 if (s)
                     return s;
             }
