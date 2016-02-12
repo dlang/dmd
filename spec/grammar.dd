@@ -1637,7 +1637,7 @@ $(GNAME AlignAttribute):
 $(GRAMMAR
 $(GNAME DeprecatedAttribute):
     $(D deprecated)
-    $(D deprecated $(LPAREN)) $(GLINK_LEX StringLiteral) $(D $(RPAREN))
+    $(D deprecated $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
 )
 
 $(GRAMMAR

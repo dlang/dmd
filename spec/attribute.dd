@@ -289,7 +289,7 @@ $(H3 $(LNAME2 deprecated, $(D deprecated) Attribute))
 $(GRAMMAR
 $(GNAME DeprecatedAttribute):
     $(D deprecated)
-    $(D deprecated $(LPAREN)) $(GLINK2 lex, StringLiteral) $(D $(RPAREN))
+    $(D deprecated $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
 )
 
         $(P It is often necessary to deprecate a feature in a library,
@@ -308,13 +308,25 @@ $(GNAME DeprecatedAttribute):
         oldFoo();   // Deprecated: function test.oldFoo is deprecated
         ---------------
 
-        $(P Optional $(GLINK2 lex, StringLiteral) can show additional
-        information in the deprecation message.
+        $(P Optionally a string literal or manifest constant can be used
+        to provide additional information in the deprecation message.
         )
 
         ---------------
         deprecated("Don't use bar") void oldBar();
         oldBar();   // Deprecated: function test.oldBar is deprecated - Don't use bar
+        ---------------
+
+        $(P Calling CTFE-able functions or using manifest constants is also possible.
+        )
+
+        ---------------
+        import std.format;
+        enum Message = format("%s and all its members are obsolete", Foobar.stringof);
+        deprecated(Message) class Foobar {}
+        auto f = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar and all its members are obsolete
+        deprecated(format("%s is also obsolete", "This class")) class BarFoo {}
+        auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This class is also obsolete
         ---------------
 
         $(P $(D Implementation Note:) The compiler should have a switch
@@ -818,4 +830,3 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
 Macros:
         TITLE=Attributes
         WIKI=Attribute
-
