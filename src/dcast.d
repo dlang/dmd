@@ -2508,7 +2508,7 @@ extern (C++) Type rawTypeMerge(Type t1, Type t2)
  */
 extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 {
-    //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
+    //printf("typeMerge() %s op %s\n", pe1.toChars(), pe2.toChars());
     MATCH m;
     Expression e1 = *pe1;
     Expression e2 = *pe2;
@@ -2804,8 +2804,8 @@ Lagain:
                 ClassDeclaration cd2 = tc2.sym.baseClass;
                 if (cd1 && cd2)
                 {
-                    t1 = cd1.type;
-                    t2 = cd2.type;
+                    t1 = cd1.type.castMod(t1.mod);
+                    t2 = cd2.type.castMod(t2.mod);
                 }
                 else if (cd1)
                     t1 = cd1.type;

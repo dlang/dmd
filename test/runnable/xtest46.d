@@ -7736,6 +7736,48 @@ void test15369()
     assert(*p == '\0');
 }
 
+void test15638()
+{
+    class A {}
+    class B : A {}
+    class C : A {}
+
+    B b;
+    C c;
+    const(B) cb;
+    const(C) cc;
+    immutable(B) ib;
+    immutable(C) ic;
+
+    // Common type for const derived classes
+    auto constCommon = true ? cb : cc;
+    static assert(is(typeof(constCommon) == const(A)));
+
+    // Common type for immutable derived classes
+    auto immutableCommon = true ? ib : ic;
+    static assert(is(typeof(immutableCommon) == immutable(A)));
+
+    // Common type for mixed const/immutable derived classes
+    auto mixed1 = true ? cb : ic;
+    static assert(is(typeof(mixed1) == const(A)));
+    auto mixed2 = true ? ib : cc;
+    static assert(is(typeof(mixed2) == const(A)));
+
+    // Common type for mixed mutable/immutable derived classes
+    auto mixed3 = true ? b : ic;
+    static assert(is(typeof(mixed3) == const(A)));
+    auto mixed4 = true ? ib : c;
+    static assert(is(typeof(mixed4) == const(A)));
+
+    // Array literal type deduction
+    auto arr1 = [ new immutable(B), new C ];
+    auto arr2 = [ new B,            new const(C) ];
+    auto arr3 = [ new immutable(B), new immutable(C) ];
+    static assert(is(typeof(arr1) == const(A)[]));
+    static assert(is(typeof(arr2) == const(A)[]));
+    static assert(is(typeof(arr3) == immutable(A)[]));
+}
+
 /***************************************************/
 
 int main()
@@ -8051,6 +8093,7 @@ int main()
     test14211();
     test15141();
     test15369();
+    test15638();
 
     printf("Success\n");
     return 0;
