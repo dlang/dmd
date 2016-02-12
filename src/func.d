@@ -1603,19 +1603,14 @@ public:
                 sym.parent = sc2.scopesym;
                 sc2 = sc2.push(sym);
                 AggregateDeclaration ad2 = isAggregateMember2();
-                uint* fieldinit = null;
                 /* If this is a class constructor
                  */
                 if (ad2 && isCtorDeclaration())
                 {
-                    fieldinit = cast(uint*)mem.xmalloc(uint.sizeof * ad2.fields.dim);
-                    sc2.fieldinit = fieldinit;
-                    sc2.fieldinit_dim = ad2.fields.dim;
-                    for (size_t i = 0; i < ad2.fields.dim; i++)
+                    sc2.allocFieldinit(ad2.fields.dim);
+                    foreach (v; ad2.fields)
                     {
-                        VarDeclaration v = ad2.fields[i];
                         v.ctorinit = 0;
-                        sc2.fieldinit[i] = 0;
                     }
                 }
                 if (!inferRetType && retStyle(f) != RETstack)
@@ -1712,8 +1707,7 @@ public:
                             }
                         }
                     }
-                    sc2.fieldinit = null;
-                    sc2.fieldinit_dim = 0;
+                    sc2.freeFieldinit();
                     if (cd && !(sc2.callSuper & CSXany_ctor) && cd.baseClass && cd.baseClass.ctor)
                     {
                         sc2.callSuper = 0;
@@ -1884,8 +1878,6 @@ public:
                     nw.sc = sc2;
                     nw.visitStmt(fbody);
                 }
-                if (fieldinit)
-                    mem.xfree(fieldinit);
                 sc2 = sc2.pop();
             }
             Statement freq = frequire;

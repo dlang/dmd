@@ -255,14 +255,15 @@ struct Scope
         if (enclosing)
         {
             enclosing.callSuper |= callSuper;
-            if (enclosing.fieldinit && fieldinit)
+            if (fieldinit)
             {
-                assert(fieldinit != enclosing.fieldinit);
-                size_t dim = fieldinit_dim;
-                for (size_t i = 0; i < dim; i++)
-                    enclosing.fieldinit[i] |= fieldinit[i];
-                mem.xfree(fieldinit);
-                fieldinit = null;
+                if (enclosing.fieldinit)
+                {
+                    assert(fieldinit != enclosing.fieldinit);
+                    foreach (i; 0 .. fieldinit_dim)
+                        enclosing.fieldinit[i] |= fieldinit[i];
+                }
+                freeFieldinit();
             }
         }
         if (!nofree)
@@ -272,6 +273,20 @@ struct Scope
             flags |= SCOPEfree;
         }
         return enc;
+    }
+
+    void allocFieldinit(size_t dim)
+    {
+        fieldinit = cast(typeof(fieldinit))mem.xcalloc(typeof(*fieldinit).sizeof, dim);
+        fieldinit_dim = dim;
+    }
+
+    void freeFieldinit()
+    {
+        if (fieldinit)
+            mem.xfree(fieldinit);
+        fieldinit = null;
+        fieldinit_dim = 0;
     }
 
     extern (C++) Scope* startCTFE()
