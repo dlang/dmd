@@ -106,22 +106,17 @@ public:
 
     override void visit(ExpStatement s)
     {
+        if (s.exp && s.exp.op == TOKdeclaration)
+        {
+            // bypass visit(DeclarationExp)
+            (cast(DeclarationExp)s.exp).declaration.accept(this);
+            return;
+        }
         if (s.exp)
-        {
             s.exp.accept(this);
-            if (s.exp.op != TOKdeclaration)
-            {
-                buf.writeByte(';');
-                if (!hgs.forStmtInit)
-                    buf.writenl();
-            }
-        }
-        else
-        {
-            buf.writeByte(';');
-            if (!hgs.forStmtInit)
-                buf.writenl();
-        }
+        buf.writeByte(';');
+        if (!hgs.forStmtInit)
+            buf.writenl();
     }
 
     override void visit(CompileStatement s)
@@ -1713,7 +1708,7 @@ public:
         if (v._init)
         {
             buf.writestring(" = ");
-            ExpInitializer ie = v._init.isExpInitializer();
+            auto ie = v._init.isExpInitializer();
             if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
                 (cast(AssignExp)ie.exp).e2.accept(this);
             else
@@ -2459,7 +2454,23 @@ public:
 
     override void visit(DeclarationExp e)
     {
-        e.declaration.accept(this);
+        /* Normal dmd execution won't reach here - regular variable declarations
+         * are handled in visit(ExpStatement), so here would be used only when
+         * we'll directly call Expression.toChars() for debugging.
+         */
+        if (auto v = e.declaration.isVarDeclaration())
+        {
+            // For debugging use:
+            // - Avoid printing newline.
+            // - Intentionally use the format (Type var;)
+            //   which isn't correct as regular D code.
+            buf.writeByte('(');
+            visitVarDecl(v, false);
+            buf.writeByte(';');
+            buf.writeByte(')');
+        }
+        else
+            e.declaration.accept(this);
     }
 
     override void visit(TypeidExp e)
@@ -2979,13 +2990,13 @@ extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
     bool result = false;
     while (stc)
     {
+        const(char)* p = stcToChars(stc);
+        if (!p) // there's no visible storage classes
+            break;
         if (!result)
             result = true;
         else
             buf.writeByte(' ');
-        const(char)* p = stcToChars(stc);
-        if (!p)
-            break;
         buf.writestring(p);
     }
     return result;
