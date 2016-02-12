@@ -8143,8 +8143,7 @@ public:
                 symtab = sc.parent.isScopeDsymbol().symtab;
             L1:
                 assert(symtab);
-                int num = cast(int)dmd_aaLen(symtab.tab) + 1;
-                ident = Identifier.generateId(s, num);
+                ident = Identifier.generateId(s, symtab.len + 1);
                 symtab.insert(this);
             }
         }

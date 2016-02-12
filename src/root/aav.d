@@ -39,7 +39,7 @@ struct AA
 /****************************************************
  * Determine number of entries in associative array.
  */
-extern (C++) size_t dmd_aaLen(AA* aa)
+extern (C++) size_t dmd_aaLen(const AA* aa) pure
 {
     return aa ? aa.nodes : 0;
 }
