@@ -72,11 +72,6 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
 
 /*******************************************
  * Check given aggregate actually has an identity opAssign or not.
- * Params:
- *      ad = struct or class
- *      sc = current scope
- * Returns:
- *      if found, returns FuncDeclaration of opAssign, otherwise null
  */
 extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
@@ -85,24 +80,23 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
     {
         /* check identity opAssign exists
          */
-        scope er = new NullExp(ad.loc, ad.type);    // dummy rvalue
-        scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
+        Expression er = new NullExp(ad.loc, ad.type); // dummy rvalue
+        Expression el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
         el.type = ad.type;
-        Expressions a;
+        auto a = new Expressions();
         a.setDim(1);
-        const errors = global.startGagging(); // Do not report errors, even if the
+        FuncDeclaration f = null;
+        uint errors = global.startGagging(); // Do not report errors, even if the
         sc = sc.push();
         sc.tinst = null;
         sc.minst = null;
-
-        a[0] = er;
-        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
-        if (!f)
+        for (size_t i = 0; i < 2; i++)
         {
-            a[0] = el;
-            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
+            (*a)[0] = (i == 0 ? er : el);
+            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, a, 1);
+            if (f)
+                break;
         }
-
         sc = sc.pop();
         global.endGagging(errors);
         if (f)
@@ -110,10 +104,10 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
             if (f.errors)
                 return null;
             int varargs;
-            auto fparams = f.getParameters(&varargs);
+            Parameters* fparams = f.getParameters(&varargs);
             if (fparams.dim >= 1)
             {
-                auto fparam0 = Parameter.getNth(fparams, 0);
+                Parameter fparam0 = Parameter.getNth(fparams, 0);
                 if (fparam0.type.toDsymbol(null) != ad)
                     f = null;
             }
@@ -371,31 +365,35 @@ extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope*
     {
         /* check identity opEquals exists
          */
-        scope er = new NullExp(ad.loc, null); // dummy rvalue
-        scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
-        Expressions a;
+        Expression er = new NullExp(ad.loc, null); // dummy rvalue
+        Expression el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
+        auto a = new Expressions();
         a.setDim(1);
-        foreach (i; 0 .. 5)
+        for (size_t i = 0;; i++)
         {
             Type tthis = null; // dead-store to prevent spurious warning
-            final switch (i)
-            {
-                case 0:  tthis = ad.type;                 break;
-                case 1:  tthis = ad.type.constOf();       break;
-                case 2:  tthis = ad.type.immutableOf();   break;
-                case 3:  tthis = ad.type.sharedOf();      break;
-                case 4:  tthis = ad.type.sharedConstOf(); break;
-            }
+            if (i == 0)
+                tthis = ad.type;
+            if (i == 1)
+                tthis = ad.type.constOf();
+            if (i == 2)
+                tthis = ad.type.immutableOf();
+            if (i == 3)
+                tthis = ad.type.sharedOf();
+            if (i == 4)
+                tthis = ad.type.sharedConstOf();
+            if (i == 5)
+                break;
             FuncDeclaration f = null;
-            const errors = global.startGagging(); // Do not report errors, even if the
+            uint errors = global.startGagging(); // Do not report errors, even if the
             sc = sc.push();
             sc.tinst = null;
             sc.minst = null;
-            foreach (j; 0 .. 2)
+            for (size_t j = 0; j < 2; j++)
             {
-                a[0] = (j == 0 ? er : el);
-                a[0].type = tthis;
-                f = resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, 1);
+                (*a)[0] = (j == 0 ? er : el);
+                (*a)[0].type = tthis;
+                f = resolveFuncCall(ad.loc, sc, eq, null, tthis, a, 1);
                 if (f)
                     break;
             }
