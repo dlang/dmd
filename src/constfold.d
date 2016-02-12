@@ -1457,12 +1457,12 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
                 t = t.nextOf().toBasetype();
             ubyte sz = cast(ubyte)t.size();
             dinteger_t v = e.toInteger();
-            size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar_t)v);
+            size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
             void* s = mem.xmalloc((len + 1) * sz);
             if (t.ty == tn.ty)
                 memcpy(s, &v, sz);
             else
-                utf_encode(sz, s, cast(dchar_t)v);
+                utf_encode(sz, s, cast(dchar)v);
             // Add terminating 0
             memset(cast(char*)s + len * sz, 0, sz);
             emplaceExp!(StringExp)(&ue, loc, s, len);
@@ -1589,13 +1589,13 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
         size_t len = es1.len;
-        len += homoConcat ? 1 : utf_codeLength(sz, cast(dchar_t)v);
+        len += homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v);
         void* s = mem.xmalloc((len + 1) * sz);
         memcpy(s, es1.string, es1.len * sz);
         if (homoConcat)
             memcpy(cast(char*)s + (sz * es1.len), &v, sz);
         else
-            utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar_t)v);
+            utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar)v);
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
         emplaceExp!(StringExp)(&ue, loc, s, len);

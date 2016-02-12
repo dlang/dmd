@@ -8,17 +8,12 @@
 
 module ddmd.utf;
 
-/// A UTF-16 code unit
-alias utf16_t = ushort;
-
-/// A UTF-32 code unit
-alias utf32_t = uint;
-alias dchar_t = utf32_t;
+nothrow pure @nogc:
 
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]
 /// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
 /// and non-characters (which end in 0xFFFE or 0xFFFF).
-bool utf_isValidDchar(dchar_t c)
+bool utf_isValidDchar(dchar c)
 {
     // TODO: Whether non-char code points should be rejected is pending review
     // largest character code point
@@ -37,9 +32,9 @@ bool utf_isValidDchar(dchar_t c)
  * Return !=0 if unicode alpha.
  * Use table from C99 Appendix D.
  */
-bool isUniAlpha(dchar_t c)
+bool isUniAlpha(dchar c)
 {
-    static immutable utf16_t[2][] ALPHA_TABLE =
+    static immutable wchar[2][] ALPHA_TABLE =
     [
         [0x00AA, 0x00AA],
         [0x00B5, 0x00B5],
@@ -311,12 +306,12 @@ bool isUniAlpha(dchar_t c)
 /**
  * Returns the code length of c in code units.
  */
-int utf_codeLengthChar(dchar_t c)
+int utf_codeLengthChar(dchar c)
 {
     return c <= 0x7F ? 1 : c <= 0x7FF ? 2 : c <= 0xFFFF ? 3 : c <= 0x10FFFF ? 4 : (assert(false), 6);
 }
 
-int utf_codeLengthWchar(dchar_t c)
+int utf_codeLengthWchar(dchar c)
 {
     return c <= 0xFFFF ? 1 : 2;
 }
@@ -325,7 +320,7 @@ int utf_codeLengthWchar(dchar_t c)
  * Returns the code length of c in code units for the encoding.
  * sz is the encoding: 1 = utf8, 2 = utf16, 4 = utf32.
  */
-int utf_codeLength(int sz, dchar_t c)
+int utf_codeLength(int sz, dchar c)
 {
     if (sz == 1)
         return utf_codeLengthChar(c);
@@ -335,7 +330,7 @@ int utf_codeLength(int sz, dchar_t c)
     return 1;
 }
 
-void utf_encodeChar(char* s, dchar_t c)
+void utf_encodeChar(char* s, dchar c)
 {
     assert(s !is null);
     assert(utf_isValidDchar(c));
@@ -365,41 +360,45 @@ void utf_encodeChar(char* s, dchar_t c)
         assert(0);
 }
 
-void utf_encodeWchar(utf16_t* s, dchar_t c)
+void utf_encodeWchar(wchar* s, dchar c)
 {
     assert(s !is null);
     assert(utf_isValidDchar(c));
     if (c <= 0xFFFF)
     {
-        s[0] = cast(utf16_t)c;
+        s[0] = cast(wchar)c;
     }
     else
     {
-        s[0] = cast(utf16_t)((((c - 0x010000) >> 10) & 0x03FF) + 0xD800);
-        s[1] = cast(utf16_t)(((c - 0x010000) & 0x03FF) + 0xDC00);
+        s[0] = cast(wchar)((((c - 0x010000) >> 10) & 0x03FF) + 0xD800);
+        s[1] = cast(wchar)(((c - 0x010000) & 0x03FF) + 0xDC00);
     }
 }
 
-void utf_encode(int sz, void* s, dchar_t c)
+void utf_encode(int sz, void* s, dchar c)
 {
     if (sz == 1)
         utf_encodeChar(cast(char*)s, c);
     else if (sz == 2)
-        utf_encodeWchar(cast(utf16_t*)s, c);
+        utf_encodeWchar(cast(wchar*)s, c);
     else
     {
         assert(sz == 4);
-        *(cast(utf32_t*)s) = c;
+        *(cast(dchar*)s) = c;
     }
 }
 
 /********************************************
  * Decode a UTF-8 sequence as a single UTF-32 code point.
+ * Params:
+ *      s = UTF-8 sequence
+ *      len = number of code units in s[]
+ *      ridx = starting index in s[], updated to reflect number of code units decoded
+ *      rresult = set to character decoded
  * Returns:
- *      NULL    success
- *      !=NULL  error message string
+ *      null on success, otherwise error message string
  */
-immutable(char*) utf_decodeChar(const(char)* s, size_t len, size_t* pidx, dchar_t* presult)
+immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out dchar rresult)
 {
     // UTF-8 decoding errors
     static immutable char* UTF8_DECODE_OK = null; // no error
@@ -679,13 +678,11 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, size_t* pidx, dchar_
     ];
 
     assert(s !is null);
-    assert(pidx !is null);
-    assert(presult !is null);
-    size_t i = (*pidx)++;
+    size_t i = ridx++;
     assert(i < len);
     char u = s[i];
     // Pre-stage results for ASCII and error cases
-    *presult = u;
+    rresult = u;
     //printf("utf_decodeChar(s = %02x, %02x, %02x len = %d)\n", u, s[1], s[2], len);
     // Get expected sequence length
     size_t n = UTF8_STRIDE[u];
@@ -706,7 +703,7 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, size_t* pidx, dchar_
     if (len < i + n) // source too short
         return UTF8_DECODE_TRUNCATED_SEQUENCE;
     // Pick off 7 - n low bits from first code unit
-    utf32_t c = u & ((1 << (7 - n)) - 1);
+    dchar c = u & ((1 << (7 - n)) - 1);
     /* The following combinations are overlong, and illegal:
      *      1100000x (10xxxxxx)
      *      11100000 100xxxxx (10xxxxxx)
@@ -728,18 +725,22 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, size_t* pidx, dchar_
     }
     if (!utf_isValidDchar(c))
         return UTF8_DECODE_INVALID_CODE_POINT;
-    *pidx = i;
-    *presult = c;
+    ridx = i;
+    rresult = c;
     return UTF8_DECODE_OK;
 }
 
 /********************************************
  * Decode a UTF-16 sequence as a single UTF-32 code point.
+ * Params:
+ *      s = UTF-16 sequence
+ *      len = number of code units in s[]
+ *      ridx = starting index in s[], updated to reflect number of code units decoded
+ *      rresult = set to character decoded
  * Returns:
- *      NULL    success
- *      !=NULL  error message string
+ *      null on success, otherwise error message string
  */
-immutable(char*) utf_decodeWchar(const(utf16_t)* s, size_t len, size_t* pidx, dchar_t* presult)
+immutable(char*) utf_decodeWchar(const(wchar)* s, size_t len, ref size_t ridx, out dchar rresult)
 {
     // UTF-16 decoding errors
     static immutable char* UTF16_DECODE_OK = null; // no error
@@ -749,28 +750,26 @@ immutable(char*) utf_decodeWchar(const(utf16_t)* s, size_t len, size_t* pidx, dc
     static immutable char* UTF16_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
 
     assert(s !is null);
-    assert(pidx !is null);
-    assert(presult !is null);
-    size_t i = (*pidx)++;
+    size_t i = ridx++;
     assert(i < len);
     // Pre-stage results for ASCII and error cases
-    utf32_t u = *presult = s[i];
+    dchar u = rresult = s[i];
     if (u < 0x80) // ASCII
         return UTF16_DECODE_OK;
     if (0xD800 <= u && u <= 0xDBFF) // Surrogate pair
     {
         if (len <= i + 1)
             return UTF16_DECODE_TRUNCATED_SEQUENCE;
-        utf16_t u2 = s[i + 1];
+        wchar u2 = s[i + 1];
         if (u2 < 0xDC00 || 0xDFFF < u)
             return UTF16_DECODE_INVALID_SURROGATE;
         u = ((u - 0xD7C0) << 10) + (u2 - 0xDC00);
-        ++*pidx;
+        ++ridx;
     }
     else if (0xDC00 <= u && u <= 0xDFFF)
         return UTF16_DECODE_UNPAIRED_SURROGATE;
     if (!utf_isValidDchar(u))
         return UTF16_DECODE_INVALID_CODE_POINT;
-    *presult = u;
+    rresult = u;
     return UTF16_DECODE_OK;
 }

@@ -823,8 +823,8 @@ extern (C++) struct Token
                 buf.writeByte('"');
                 for (size_t i = 0; i < len;)
                 {
-                    uint c;
-                    utf_decodeChar(ustring, len, &i, &c);
+                    dchar c;
+                    utf_decodeChar(ustring, len, i, c);
                     switch (c)
                     {
                     case 0:

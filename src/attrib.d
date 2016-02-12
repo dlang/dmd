@@ -912,7 +912,7 @@ public:
                 for (size_t i = 0; i < se.len;)
                 {
                     char* p = cast(char*)se.string;
-                    dchar_t c = p[i];
+                    dchar c = p[i];
                     if (c < 0x80)
                     {
                         if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c != 0 && strchr("$%().:?@[]_", c))
@@ -926,7 +926,7 @@ public:
                             break;
                         }
                     }
-                    if (const(char)* msg = utf_decodeChar(cast(char*)se.string, se.len, &i, &c))
+                    if (const msg = utf_decodeChar(se.string, se.len, i, c))
                     {
                         error("%s", msg);
                         break;

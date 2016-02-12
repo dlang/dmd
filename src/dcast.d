@@ -1715,8 +1715,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Tchar, Twchar):
                     for (size_t u = 0; u < e.len;)
                     {
-                        uint c;
-                        const p = utf_decodeChar(se.string, e.len, &u, &c);
+                        dchar c;
+                        const p = utf_decodeChar(se.string, e.len, u, c);
                         if (p)
                             e.error("%s", p);
                         else
@@ -1728,8 +1728,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Tchar, Tdchar):
                     for (size_t u = 0; u < e.len;)
                     {
-                        uint c;
-                        const p = utf_decodeChar(se.string, e.len, &u, &c);
+                        dchar c;
+                        const p = utf_decodeChar(se.string, e.len, u, c);
                         if (p)
                             e.error("%s", p);
                         buffer.write4(c);
@@ -1740,8 +1740,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Twchar, Tchar):
                     for (size_t u = 0; u < e.len;)
                     {
-                        uint c;
-                        const p = utf_decodeWchar(cast(utf16_t*)se.wstring, e.len, &u, &c);
+                        dchar c;
+                        const p = utf_decodeWchar(se.wstring, e.len, u, c);
                         if (p)
                             e.error("%s", p);
                         else
@@ -1753,8 +1753,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Twchar, Tdchar):
                     for (size_t u = 0; u < e.len;)
                     {
-                        uint c;
-                        const p = utf_decodeWchar(cast(utf16_t*)se.wstring, e.len, &u, &c);
+                        dchar c;
+                        const p = utf_decodeWchar(se.wstring, e.len, u, c);
                         if (p)
                             e.error("%s", p);
                         buffer.write4(c);

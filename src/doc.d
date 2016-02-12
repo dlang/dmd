@@ -1909,9 +1909,9 @@ extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
 {
     while (i < buf.offset)
     {
-        dchar_t c;
+        dchar c;
         size_t oi = i;
-        if (utf_decodeChar(cast(char*)buf.data, buf.offset, &i, &c))
+        if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
         {
             /* Ignore UTF errors, but still consume input
              */
@@ -1937,9 +1937,9 @@ extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
 {
     while (i < buf.offset)
     {
-        dchar_t c;
+        dchar c;
         size_t oi = i;
-        if (utf_decodeChar(cast(char*)buf.data, buf.offset, &i, &c))
+        if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
         {
             /* Ignore UTF errors, but still consume input
              */
@@ -2683,13 +2683,13 @@ extern (C++) bool isCVariadicArg(const(char)* p, size_t len)
  */
 extern (C++) bool isIdStart(const(char)* p)
 {
-    uint c = *p;
+    dchar c = *p;
     if (isalpha(c) || c == '_')
         return true;
     if (c >= 0x80)
     {
         size_t i = 0;
-        if (utf_decodeChar(p, 4, &i, &c))
+        if (utf_decodeChar(p, 4, i, c))
             return false; // ignore errors
         if (isUniAlpha(c))
             return true;
@@ -2702,13 +2702,13 @@ extern (C++) bool isIdStart(const(char)* p)
  */
 extern (C++) bool isIdTail(const(char)* p)
 {
-    uint c = *p;
+    dchar c = *p;
     if (isalnum(c) || c == '_')
         return true;
     if (c >= 0x80)
     {
         size_t i = 0;
-        if (utf_decodeChar(p, 4, &i, &c))
+        if (utf_decodeChar(p, 4, i, c))
             return false; // ignore errors
         if (isUniAlpha(c))
             return true;
@@ -2729,10 +2729,10 @@ extern (C++) bool isIndentWS(const(char)* p)
  */
 extern (C++) int utfStride(const(char)* p)
 {
-    uint c = *p;
+    dchar c = *p;
     if (c < 0x80)
         return 1;
     size_t i = 0;
-    utf_decodeChar(p, 4, &i, &c); // ignore errors, but still consume input
+    utf_decodeChar(p, 4, i, c); // ignore errors, but still consume input
     return cast(int)i;
 }

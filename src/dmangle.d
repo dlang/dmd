@@ -696,8 +696,8 @@ public:
             m = 'w';
             for (size_t u = 0; u < e.len;)
             {
-                uint c;
-                const(char)* p = utf_decodeWchar(cast(ushort*)e.string, e.len, &u, &c);
+                dchar c;
+                const p = utf_decodeWchar(e.wstring, e.len, u, c);
                 if (p)
                     e.error("%s", p);
                 else
