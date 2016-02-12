@@ -2327,7 +2327,7 @@ public:
      */
     final uint decodeUTF()
     {
-        dchar_t u;
+        dchar u;
         char c;
         const(char)* s = p;
         size_t len;
@@ -2340,7 +2340,7 @@ public:
         {
         }
         idx = 0;
-        msg = utf_decodeChar(s, len, &idx, &u);
+        msg = utf_decodeChar(s, len, idx, u);
         p += idx - 1;
         if (msg)
         {

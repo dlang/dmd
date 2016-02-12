@@ -153,8 +153,8 @@ public:
         idx = 0;
         while (p[idx])
         {
-            dchar_t dc;
-            const(char)* q = utf_decodeChar(cast(char*)p, len, &idx, &dc);
+            dchar dc;
+            const q = utf_decodeChar(p, len, idx, dc);
             if (q)
                 goto Linvalid;
             if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))

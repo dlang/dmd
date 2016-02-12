@@ -4258,13 +4258,13 @@ public:
         size_t newlen = 0;
         const(char)* p;
         size_t u;
-        uint c;
+        dchar c;
         switch (postfix)
         {
         case 'd':
             for (u = 0; u < len;)
             {
-                p = utf_decodeChar(string, len, &u, &c);
+                p = utf_decodeChar(string, len, u, c);
                 if (p)
                 {
                     error("%s", p);
@@ -4286,7 +4286,7 @@ public:
         case 'w':
             for (u = 0; u < len;)
             {
-                p = utf_decodeChar(string, len, &u, &c);
+                p = utf_decodeChar(string, len, u, c);
                 if (p)
                 {
                     error("%s", p);
@@ -4342,13 +4342,13 @@ public:
         if (sz == encSize)
             return len;
         size_t result = 0;
-        dchar_t c;
+        dchar c;
         switch (sz)
         {
         case 1:
             for (size_t u = 0; u < len;)
             {
-                if (const p = utf_decodeChar(string, len, &u, &c))
+                if (const p = utf_decodeChar(string, len, u, c))
                 {
                     error("%s", p);
                     return 0;
@@ -4359,7 +4359,7 @@ public:
         case 2:
             for (size_t u = 0; u < len;)
             {
-                if (const p = utf_decodeWchar(cast(utf16_t*)wstring, len, &u, &c))
+                if (const p = utf_decodeWchar(wstring, len, u, c))
                 {
                     error("%s", p);
                     return 0;

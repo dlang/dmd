@@ -6437,14 +6437,14 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
     Expression eresult = null; // ded-store to prevent spurious warning
     // Buffers for encoding; also used for decoding array literals
     char[4] utf8buf;
-    ushort[2] utf16buf;
+    wchar[2] utf16buf;
     size_t start = rvs ? len : 0;
     size_t end = rvs ? 0 : len;
     for (size_t indx = start; indx != end;)
     {
         // Step 1: Decode the next dchar from the string.
         const(char)* errmsg = null; // Used for reporting decoding errors
-        dchar_t rawvalue; // Holds the decoded dchar
+        dchar rawvalue; // Holds the decoded dchar
         size_t currentIndex = indx; // The index of the decoded character
         if (ale)
         {
@@ -6479,7 +6479,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                     utf8buf[i] = cast(char)(cast(IntegerExp)r).getInteger();
                 }
                 n = 0;
-                errmsg = utf_decodeChar(&utf8buf[0], buflen, &n, &rawvalue);
+                errmsg = utf_decodeChar(&utf8buf[0], buflen, n, rawvalue);
                 break;
             case 2:
                 if (rvs)
@@ -6505,7 +6505,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                     utf16buf[i] = cast(ushort)(cast(IntegerExp)r).getInteger();
                 }
                 n = 0;
-                errmsg = utf_decodeWchar(&utf16buf[0], buflen, &n, &rawvalue);
+                errmsg = utf_decodeWchar(&utf16buf[0], buflen, n, rawvalue);
                 break;
             case 4:
                 {
@@ -6513,7 +6513,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                         --indx;
                     Expression r = (*ale.elements)[indx];
                     assert(r.op == TOKint64);
-                    rawvalue = cast(dchar_t)(cast(IntegerExp)r).getInteger();
+                    rawvalue = cast(dchar)(cast(IntegerExp)r).getInteger();
                     n = 1;
                 }
                 break;
@@ -6539,7 +6539,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                         --indx;
                     saveindx = indx;
                 }
-                errmsg = utf_decodeChar(cast(char*)se.string, se.len, &indx, &rawvalue);
+                errmsg = utf_decodeChar(se.string, se.len, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;
@@ -6553,7 +6553,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                         --indx;
                     saveindx = indx;
                 }
-                errmsg = utf_decodeWchar(cast(ushort*)se.string, se.len, &indx, &rawvalue);
+                errmsg = utf_decodeWchar(se.wstring, se.len, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;
@@ -6599,7 +6599,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
         Expression val = null;
         for (int k = 0; k < charlen; ++k)
         {
-            dchar_t codepoint;
+            dchar codepoint;
             switch (charType.size())
             {
             case 1:
