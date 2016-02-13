@@ -114,15 +114,15 @@ extern (C++) class Package : ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    uint id;        // auto increment id, used to mask package tree in scopes
+    uint tag;        // auto incremented tag, used to mask package tree in scopes
     Module mod;     // !=null if isPkgMod == PKGmodule
 
     final extern (D) this(Identifier ident)
     {
         super(ident);
         this.isPkgMod = PKGunknown;
-        __gshared uint packageId;
-        this.id = packageId++;
+        __gshared uint packageTag;
+        this.tag = packageTag++;
     }
 
     override const(char)* kind() const
@@ -862,7 +862,7 @@ public:
             p.parent = this.parent;
             p.isPkgMod = PKGmodule;
             p.mod = this;
-            p.id = this.id; // reuse the same package id
+            p.tag = this.tag; // reuse the same package tag
             p.symtab = new DsymbolTable();
             s = p;
         }
@@ -893,7 +893,7 @@ public:
                      */
                     pkg.isPkgMod = PKGmodule;
                     pkg.mod = this;
-                    pkg.id = this.id; // reuse the same package id
+                    pkg.tag = this.tag; // reuse the same package tag
                 }
                 else
                     error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());

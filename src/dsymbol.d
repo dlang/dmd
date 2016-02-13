@@ -1438,15 +1438,15 @@ public:
 
     final void addAccessiblePackage(Package p)
     {
-        if (accessiblePackages.length <= p.id)
-            accessiblePackages.length = p.id + 1;
-        accessiblePackages[p.id] = true;
+        if (accessiblePackages.length <= p.tag)
+            accessiblePackages.length = p.tag + 1;
+        accessiblePackages[p.tag] = true;
     }
 
     final bool isPackageAccessible(Package p)
     {
-        return p.id < accessiblePackages.length &&
-            accessiblePackages[p.id];
+        return p.tag < accessiblePackages.length &&
+            accessiblePackages[p.tag];
     }
 
     override final bool isforwardRef()

@@ -37,7 +37,7 @@ class Package : public ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    unsigned id;        // auto increment id for package tree masks
+    unsigned tag;       // auto incremented tag, used to mask package tree in scopes
     Module *mod;        // != NULL if isPkgMod == PKGmodule
 
     Package(Identifier *ident);

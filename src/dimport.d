@@ -161,7 +161,7 @@ public:
                             // mod is a package.d, or a normal module which conflicts with the package name.
                             assert(mod.isPackageFile == (p.isPkgMod == PKGmodule));
                             if (mod.isPackageFile)
-                                mod.id = p.id; // reuse the same package id
+                                mod.tag = p.tag; // reuse the same package tag
                         }
                     }
                     else
