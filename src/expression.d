@@ -3843,14 +3843,14 @@ public:
             //printf("'%s' is an overload set\n", o->toChars());
             return new OverExp(loc, o);
         }
-        if (Import imp = s.isImport())
+        if (auto imp = s.isImport())
         {
-            if (!imp.pkg)
+            if (!imp.mod)
             {
                 .error(loc, "forward reference of import %s", imp.toChars());
                 return new ErrorExp();
             }
-            auto ie = new ScopeExp(loc, imp.pkg);
+            auto ie = new ScopeExp(loc, imp.mod);
             return ie.semantic(sc);
         }
         if (Package pkg = s.isPackage())
@@ -8359,10 +8359,14 @@ public:
                         e = new DotExp(loc, eleft, e);
                     return e;
                 }
-                Import imp = s.isImport();
-                if (imp)
+                if (auto imp = s.isImport())
                 {
-                    ie = new ScopeExp(loc, imp.pkg);
+                    if (!imp.mod)
+                    {
+                        error("forward reference of import %s", imp.toChars());
+                        return new ErrorExp();
+                    }
+                    ie = new ScopeExp(loc, imp.mod);
                     return ie.semantic(sc);
                 }
                 // BUG: handle other cases like in IdentifierExp::semantic()
@@ -9623,6 +9627,8 @@ public:
             OverExp eo = cast(OverExp)e1;
             FuncDeclaration f = null;
             Dsymbol s = null;
+            bool err = false;
+            size_t lastmatch = eo.vars.a.dim;
             for (size_t i = 0; i < eo.vars.a.dim; i++)
             {
                 s = eo.vars.a[i];
@@ -9638,10 +9644,16 @@ public:
                         /* Error if match in more than one overload set,
                          * even if one is a 'better' match than the other.
                          */
+                        if (eo.vars.bug12359)
+                            continue;
+                        err = true;
                         ScopeDsymbol.multiplyDefined(loc, f, f2);
                     }
                     else
+                    {
                         f = f2;
+                        lastmatch = i;
+                    }
                 }
             }
             if (!f)
@@ -9650,6 +9662,10 @@ public:
                  */
                 error("no overload matches for %s", s.toChars());
                 return new ErrorExp();
+            }
+            if (eo.vars.bug12359 && !err && lastmatch != eo.vars.a.dim - 1)
+            {
+                deprecation("implicit overload merging with selective/renamed import is now removed.");
             }
             if (ethis)
                 e1 = new DotVarExp(loc, ethis, f);

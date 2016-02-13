@@ -1,5 +1,6 @@
 module example7190.controllers.HomeController;
 
+import serenity7190.core.Model;
 import serenity7190.core.Controller;
 
 class HomeController : Controller {

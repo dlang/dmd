@@ -7064,7 +7064,7 @@ public:
                         sm = t.toDsymbol(sc);
                         if (sm && id.dyncast() == DYNCAST_IDENTIFIER)
                         {
-                            sm = sm.search(loc, cast(Identifier)id);
+                            sm = sm.search(loc, cast(Identifier)id, IgnoreImportedFQN);
                             if (sm)
                                 goto L2;
                         }
@@ -7163,12 +7163,25 @@ public:
             if (!t)
             {
                 // If the symbol is an import, try looking inside the import
-                if (Import si = s.isImport())
+                if (auto imp = s.isImport())
                 {
-                    s = si.search(loc, s.ident);
-                    if (s && s != si)
-                        goto L1;
-                    s = si;
+                    if (idents.dim == 0)
+                    {
+                        /* Special case for runnable/Same.d:
+                         *
+                         * module Same;
+                         * class Same {}
+                         *
+                         * module Other;
+                         * import Same;
+                         * class Other : Same {}
+                         * // -> 'Same' is equivalent with 'Same.Same'
+                         */
+                        s = imp.search(loc, s.ident);
+                        if (s && s != imp)
+                            goto L1;
+                    }
+                    s = imp.mod;
                 }
                 *ps = s;
                 return;
@@ -7846,7 +7859,8 @@ public:
                 // goto L1;
             }
         }
-        s = sym.search(e.loc, ident);
+
+        s = sym.search(e.loc, ident, IgnoreImportedFQN);
     L1:
         if (!s)
         {
@@ -8610,7 +8624,8 @@ public:
             sc2.pop();
             return e;
         }
-        s = sym.search(e.loc, ident);
+
+        s = sym.search(e.loc, ident, IgnoreImportedFQN);
     L1:
         if (!s)
         {

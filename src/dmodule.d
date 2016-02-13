@@ -114,7 +114,10 @@ extern (C++) class Package : ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Module mod;     // !=null if isPkgMod == PKGmodule
+
+    // isPkgMod == PKGmodule: Module/Import object corresponding to 'package.d'
+    // isPkgMod != PKGmodule: Package object in enclosing scope
+    Dsymbol aliassym;
 
     final extern (D) this(Identifier ident)
     {
@@ -127,19 +130,29 @@ public:
         return "package";
     }
 
+    override final Prot prot()
+    {
+        // local package tree is always private in each scope
+        return Prot(PROTprivate);
+    }
+
     /****************************************************
      * Input:
+     *      dst             package tree root
      *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod
      * Returns:
      *      the symbol table that mod should be inserted into
      * Output:
-     *      *pparent        the rightmost package, i.e. pkg2, or NULL if no packages
      *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
+     *      *pparent        the rightmost package, i.e. pkg2, or NULL if no packages
      */
-    final static DsymbolTable resolve(Identifiers* packages, Dsymbol* pparent, Package* ppkg)
+    final static DsymbolTable resolve(DsymbolTable dst, Identifiers* packages, Package* ppkg, Package* pparent)
     {
-        DsymbolTable dst = Module.modules;
-        Dsymbol parent = null;
+        if (!dst)
+            dst = Module.modules;
+
+        Package parent = null;
+
         //printf("Package::resolve()\n");
         if (ppkg)
             *ppkg = null;
@@ -224,16 +237,39 @@ public:
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
     {
-        if (!isModule() && mod)
+        //printf("%s.Package::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
+
+        assert(!isModule());
+
+        if (isPkgMod == PKGmodule)
         {
-            // Prefer full package name.
-            Dsymbol s = symtab ? symtab.lookup(ident) : null;
+            /* Prefer symbols declared in package.d.
+             *
+             *  import std.algorithm;
+             *  import std; // std/package.d
+             *  void main() {
+             *      map!(a=>a*2)([1,2,3]);
+             *      std.map!(a=>a*2)([1,2,3]);
+             *      std.algorithm.map!(a=>a*2)([1,2,3]);
+             *      // iff std/package.d doesn't have a symbol named "algorithm",
+             *      // std/algorithm.d would hit.
+             *  }
+             */
+            auto s = aliassym.search(loc, ident, flags | IgnoreImportedFQN);
             if (s)
                 return s;
-            //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
-            return mod.search(loc, ident, flags);
         }
-        return ScopeDsymbol.search(loc, ident, flags);
+
+        auto s = ScopeDsymbol.search(loc, ident, flags);
+        if (!s && !isPackageMod())
+        {
+            if (auto pkg = enclosingPkg())
+            {
+                assert(pkg !is this);
+                s = pkg.search(loc, ident, flags);
+            }
+        }
+        return s;
     }
 
     override void accept(Visitor v)
@@ -245,8 +281,18 @@ public:
     {
         if (isPkgMod == PKGmodule)
         {
-            return mod;
+            if (auto mod = aliassym.isModule())
+                return mod;
+            if (auto imp = aliassym.isImport())
+                return imp.mod;
         }
+        return null;
+    }
+
+    Package enclosingPkg()
+    {
+        if (isPkgMod != PKGmodule && aliassym)
+            return aliassym.isPackage();
         return null;
     }
 }
@@ -338,6 +384,8 @@ public:
     // i.e. a module that will be taken all the
     // way to an object file
     Module importedFrom;
+
+    Dsymbols* publicImports;    // array of public import declarations
 
     Dsymbols* decldefs;         // top level declarations for this Module
 
@@ -760,9 +808,12 @@ public:
              * the name of this module.
              */
             this.ident = md.id;
+            Package pparent = null;
             Package ppack = null;
-            dst = Package.resolve(md.packages, &this.parent, &ppack);
+            dst = Package.resolve(null, md.packages, &ppack, &pparent);
+            this.parent = pparent;
             assert(dst);
+
             Module m = ppack ? ppack.isModule() : null;
             if (m && strcmp(m.srcfile.name.name(), "package.d") != 0)
             {
@@ -856,7 +907,7 @@ public:
             auto p = new Package(ident);
             p.parent = this.parent;
             p.isPkgMod = PKGmodule;
-            p.mod = this;
+            p.aliassym = this;
             p.symtab = new DsymbolTable();
             s = p;
         }
@@ -886,7 +937,7 @@ public:
                      * link it to the actual module.
                      */
                     pkg.isPkgMod = PKGmodule;
-                    pkg.mod = this;
+                    pkg.aliassym = this;
                 }
                 else
                     error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());

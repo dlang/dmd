@@ -138,6 +138,11 @@ enum
     IgnorePrivateMembers    = 0x01, // don't find private members
     IgnoreErrors            = 0x02, // don't give error messages
     IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
+    IgnoreImportedFQN       = 0x08, // don't find imported FQNs
+    IgnorePrivateImports    = 0x10, // don't find privately imported symbols
+    IgnoreOverloadImports   = 0x20, // don't find overloaded imports
+
+    IgnorePrivateSymbols    = IgnorePrivateMembers | IgnorePrivateImports,
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
@@ -349,6 +354,7 @@ class OverloadSet : public Dsymbol
 {
 public:
     Dsymbols a;         // array of Dsymbols
+    bool bug12359;
 
     OverloadSet(Identifier *ident, OverloadSet *os = NULL);
     void push(Dsymbol *s);
