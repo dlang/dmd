@@ -412,11 +412,15 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
 }
 
 /****************************************
- * Check access to package/module p for scope sc.
+ * Check access to package/module `p` from scope `sc`.
  *
+ * Params:
+ *   loc = source location for issued error message
+ *   sc = scope from which to access to a fully qualified package name
+ *   p = the package/module to check access for
  * Returns: true if the package is not accessible.
  *
- * Because we use a global symbol table tree for imported packages/modules,
+ * Because a global symbol table tree is used for imported packages/modules,
  * access to them needs to be checked based on the imports in the scope chain
  * (see Bugzilla 313).
  *
