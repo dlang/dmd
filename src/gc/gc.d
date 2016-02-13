@@ -2004,7 +2004,7 @@ struct Gcx
 
         // let dmd allocate a register for this.pools
         auto pools = pooltable.pools;
-        const npools = pooltable.npools;
+        const highpool = pooltable.npools - 1;
         const minAddr = pooltable.minAddr;
         const maxAddr = pooltable.maxAddr;
 
@@ -2020,10 +2020,10 @@ struct Gcx
                     continue;
 
                 Pool* pool = void;
-                if (npools > 1)
+                if (npools > 0)
                 {
                     size_t low = 0;
-                    size_t high = npools - 1;
+                    size_t high = highpool;
                     while (true)
                     {
                         size_t mid = (low + high) >> 1;
