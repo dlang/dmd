@@ -2034,8 +2034,6 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         Expression ethis, Expressions* arguments, bool asStatements,
         out Expression eresult, out Statement sresult, out bool again)
 {
-    Expression e = null;
-    Statements* as = null;
     TypeFunction tf = cast(TypeFunction)fd.type;
     static if (LOG || CANINLINE_LOG || EXPANDINLINE_LOG)
         printf("FuncDeclaration.expandInline('%s')\n", fd.toChars());
@@ -2046,92 +2044,104 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     }
     scope ids = new InlineDoState(parent, fd);
 
-    if (asStatements)
-        as = new Statements();
-
-    VarDeclaration vret = null;
+    VarDeclaration vret;    // will be set the function call result
     if (eret)
     {
         if (eret.op == TOKvar)
         {
             vret = (cast(VarExp)eret).var.isVarDeclaration();
             assert(!(vret.storage_class & (STCout | STCref)));
+            eret = null;
         }
         else
         {
             /* Inlining:
              *   this.field = foo();   // inside constructor
              */
-            vret = new VarDeclaration(fd.loc, eret.type, Identifier.generateId("_satmp"), null);
+            auto ei = new ExpInitializer(callLoc, null);
+            auto tmp = Identifier.generateId("__retvar");
+            vret = new VarDeclaration(fd.loc, eret.type, tmp, ei);
             vret.storage_class |= STCtemp | STCforeach | STCref;
             vret.linkage = LINKd;
             vret.parent = parent;
 
-            Expression de = new DeclarationExp(fd.loc, vret);
+            ei.exp = new ConstructExp(fd.loc, vret, eret);
+            ei.exp.type = vret.type;
+
+            auto de = new DeclarationExp(fd.loc, vret);
             de.type = Type.tvoid;
-            e = Expression.combine(e, de);
-
-            Expression ex = new ConstructExp(fd.loc, vret, eret);
-            ex.type = vret.type;
-            e = Expression.combine(e, ex);
-        }
-    }
-
-    // Set up vthis
-    if (ethis)
-    {
-        if (ethis.type.ty == Tpointer)
-        {
-            Type t = ethis.type.nextOf();
-            ethis = new PtrExp(ethis.loc, ethis);
-            ethis.type = t;
+            eret = de;
         }
 
-        auto ei = new ExpInitializer(fd.loc, ethis);
-        auto vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
-        if (ethis.type.ty != Tclass)
-            vthis.storage_class = STCref;
-        else
-            vthis.storage_class = STCin;
-        vthis.linkage = LINKd;
-        vthis.parent = parent;
-
-        ei.exp = new ConstructExp(fd.loc, vthis, ethis);
-        ei.exp.type = vthis.type;
-
-        ids.vthis = vthis;
-
-        auto de = new DeclarationExp(fd.loc, vthis);
-        de.type = Type.tvoid;
-        e = Expression.combine(e, de);
-    }
-
-    if (!asStatements && fd.nrvo_var)
-    {
-        if (vret)
+        if (!asStatements && fd.nrvo_var)
         {
             ids.from.push(fd.nrvo_var);
             ids.to.push(vret);
         }
-        else
+    }
+    else
+    {
+        if (!asStatements && fd.nrvo_var)
         {
-            auto tmp = Identifier.generateId("__nrvoretval");
-            auto vd = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, null);
+            auto tmp = Identifier.generateId("__retvar");
+            vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, null);
             assert(!tf.isref);
-            vd.storage_class = STCtemp | STCrvalue;
-            vd.linkage = tf.linkage;
-            vd.parent = parent;
+            vret.storage_class = STCtemp | STCrvalue;
+            vret.linkage = tf.linkage;
+            vret.parent = parent;
+
+            auto de = new DeclarationExp(fd.loc, vret);
+            de.type = Type.tvoid;
+            eret = de;
 
             ids.from.push(fd.nrvo_var);
-            ids.to.push(vd);
-
-            auto de = new DeclarationExp(fd.loc, vd);
-            de.type = Type.tvoid;
-            e = Expression.combine(e, de);
+            ids.to.push(vret);
         }
     }
 
+    // Set up vthis
+    VarDeclaration vthis;
+    if (ethis)
+    {
+        Expression e0;
+        ethis = Expression.extractLast(ethis, &e0);
+        if (ethis.op == TOKvar)
+        {
+            vthis = (cast(VarExp)ethis).var.isVarDeclaration();
+        }
+        else
+        {
+            //assert(ethis.type.ty != Tpointer);
+            if (ethis.type.ty == Tpointer)
+            {
+                Type t = ethis.type.nextOf();
+                ethis = new PtrExp(ethis.loc, ethis);
+                ethis.type = t;
+            }
+
+            auto ei = new ExpInitializer(fd.loc, ethis);
+            vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
+            if (ethis.type.ty != Tclass)
+                vthis.storage_class = STCref;
+            else
+                vthis.storage_class = STCin;
+            vthis.linkage = LINKd;
+            vthis.parent = parent;
+
+            ei.exp = new ConstructExp(fd.loc, vthis, ethis);
+            ei.exp.type = vthis.type;
+
+            auto de = new DeclarationExp(fd.loc, vthis);
+            de.type = Type.tvoid;
+            e0 = Expression.combine(e0, de);
+        }
+        ethis = e0;
+
+        ids.vthis = vthis;
+    }
+
     // Set up parameters
+    Expression eparams;
     if (arguments && arguments.dim)
     {
         assert(fd.parameters.dim == arguments.dim);
@@ -2159,7 +2169,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
 
             auto de = new DeclarationExp(vto.loc, vto);
             de.type = Type.tvoid;
-            e = Expression.combine(e, de);
+            eparams = Expression.combine(eparams, de);
 
             /* If function pointer or delegate parameters are present,
              * inline scan again because if they are initialized to a symbol,
@@ -2188,16 +2198,24 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
 
     if (asStatements)
     {
-        if (e)
-        {
-            as.push(new ExpStatement(callLoc, e));
-            e = null;
-        }
+        /* Construct:
+         *  { eret; ethis; eparams; fd.fbody; }
+         */
+
+        auto as = new Statements();
+        if (eret)
+            as.push(new ExpStatement(callLoc, eret));
+        if (ethis)
+            as.push(new ExpStatement(callLoc, ethis));
+        if (eparams)
+            as.push(new ExpStatement(callLoc, eparams));
+
         fd.inlineNest++;
         Statement s = inlineAsStatement(fd.fbody, ids);
-        as.push(s);
-        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as));
         fd.inlineNest--;
+        as.push(s);
+
+        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as));
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline sresult =\n%s\n",
@@ -2205,13 +2223,16 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     }
     else
     {
+        /* Construct:
+         *  (eret, ethis, eparams, fd.fbody)
+         */
+
         fd.inlineNest++;
-        Expression eb = doInline(fd.fbody, ids);
-        e = Expression.combine(e, eb);
+        auto e = doInline(fd.fbody, ids);
         fd.inlineNest--;
-        //eb.type.print();
-        //eb.print();
-        //eb.print();
+        //e.type.print();
+        //e.print();
+        //e.print();
 
         // Bugzilla 11322:
         if (tf.isref)
@@ -2263,7 +2284,10 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             e.type = Type.tvoid;
         }
 
-        eresult = e;
+        eresult = Expression.combine(eresult, eret);
+        eresult = Expression.combine(eresult, ethis);
+        eresult = Expression.combine(eresult, eparams);
+        eresult = Expression.combine(eresult, e);
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline eresult = %s\n",
