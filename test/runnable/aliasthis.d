@@ -1197,6 +1197,25 @@ void test7945()
 }
 
 /***************************************************/
+// 15674 - alias this on out parameter, consistent with 7945 case
+
+struct S15674
+{
+    int v;
+    alias v this;
+}
+void foo15674(out int i){ i = 42; }
+
+void test15674()
+{
+    S15674 s;
+    s.v = 1;    foo15674(s);    assert(s.v == 42);
+    s.v = 1;    foo15674(s.v);  assert(s.v == 42);
+    s.v = 1;    s.foo15674();   assert(s.v == 42);
+    s.v = 1;    s.v.foo15674(); assert(s.v == 42);
+}
+
+/***************************************************/
 // 7979
 
 void test7979()
@@ -1981,6 +2000,7 @@ int main()
     test7731();
     test7808();
     test7945();
+    test15674();
     test7979();
     test7992();
     test8169();
