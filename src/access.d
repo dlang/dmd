@@ -434,6 +434,10 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
         if (sc.scopesym && sc.scopesym.isPackageAccessible(p))
             return false;
     }
-    deprecation(loc, "%s %s is not accessible here", p.kind(), p.toPrettyChars());
+    auto name = p.toPrettyChars();
+    if (p.isPkgMod == PKGmodule || p.isModule())
+        deprecation(loc, "%s %s is not accessible here, perhaps add 'static import %s;'", p.kind(), name, name);
+    else
+        deprecation(loc, "%s %s is not accessible here", p.kind(), name);
     return true;
 }
