@@ -264,7 +264,10 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 }
                 if (p && !p.isModule())
                 {
-                    prefix_name(p);
+                    if (p.ident == Id.std && is_initial_qualifier(p))
+                        buf.writestring("St");
+                    else
+                        prefix_name(p);
                 }
                 if (!(s.ident == Id.std && is_initial_qualifier(s)))
                     store(s);
