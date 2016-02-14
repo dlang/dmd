@@ -6533,9 +6533,8 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                 if (rvs)
                 {
                     // find the start of the string
-                    char* s = cast(char*)se.string;
                     --indx;
-                    while (indx > 0 && ((s[indx] & 0xC0) == 0x80))
+                    while (indx > 0 && ((se.getCodeUnit(indx) & 0xC0) == 0x80))
                         --indx;
                     saveindx = indx;
                 }
@@ -6547,9 +6546,9 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
                 if (rvs)
                 {
                     // find the start
-                    ushort* s = cast(ushort*)se.string;
                     --indx;
-                    if (s[indx] >= 0xDC00 && s[indx] <= 0xDFFF)
+                    auto wc = se.getCodeUnit(indx);
+                    if (wc >= 0xDC00 && wc <= 0xDFFF)
                         --indx;
                     saveindx = indx;
                 }
@@ -6560,7 +6559,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
             case 4:
                 if (rvs)
                     --indx;
-                rawvalue = (cast(uint*)se.string)[indx];
+                rawvalue = se.getCodeUnit(indx);
                 if (!rvs)
                     ++indx;
                 break;

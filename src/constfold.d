@@ -1328,9 +1328,8 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
         {
             size_t len = cast(size_t)(iupr - ilwr);
             ubyte sz = es1.sz;
-            void* s = mem.xmalloc((len + 1) * sz);
+            void* s = mem.xmalloc(len * sz);
             memcpy(cast(char*)s, cast(char*)es1.string + ilwr * sz, len * sz);
-            memset(cast(char*)s + len * sz, 0, sz);
             emplaceExp!(StringExp)(&ue, loc, s, len, es1.postfix);
             StringExp es = cast(StringExp)ue.exp();
             es.sz = sz;
@@ -1458,13 +1457,11 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             ubyte sz = cast(ubyte)t.size();
             dinteger_t v = e.toInteger();
             size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
-            void* s = mem.xmalloc((len + 1) * sz);
+            void* s = mem.xmalloc(len * sz);
             if (t.ty == tn.ty)
                 memcpy(s, &v, sz);
             else
                 utf_encode(sz, s, cast(dchar)v);
-            // Add terminating 0
-            memset(cast(char*)s + len * sz, 0, sz);
             emplaceExp!(StringExp)(&ue, loc, s, len);
             StringExp es = cast(StringExp)ue.exp();
             es.sz = sz;
@@ -1527,11 +1524,9 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             assert(ue.exp().type);
             return ue;
         }
-        void* s = mem.xmalloc((len + 1) * sz);
+        void* s = mem.xmalloc(len * sz);
         memcpy(cast(char*)s, es1.string, es1.len * sz);
         memcpy(cast(char*)s + es1.len * sz, es2.string, es2.len * sz);
-        // Add terminating 0
-        memset(cast(char*)s + len * sz, 0, sz);
         emplaceExp!(StringExp)(&ue, loc, s, len);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
@@ -1590,14 +1585,12 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         bool homoConcat = (sz == t2.size());
         size_t len = es1.len;
         len += homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v);
-        void* s = mem.xmalloc((len + 1) * sz);
+        void* s = mem.xmalloc(len * sz);
         memcpy(s, es1.string, es1.len * sz);
         if (homoConcat)
             memcpy(cast(char*)s + (sz * es1.len), &v, sz);
         else
             utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar)v);
-        // Add terminating 0
-        memset(cast(char*)s + len * sz, 0, sz);
         emplaceExp!(StringExp)(&ue, loc, s, len);
         es = cast(StringExp)ue.exp();
         es.sz = sz;
@@ -1613,11 +1606,9 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         size_t len = 1 + es2.len;
         ubyte sz = es2.sz;
         dinteger_t v = e1.toInteger();
-        void* s = mem.xmalloc((len + 1) * sz);
+        void* s = mem.xmalloc(len * sz);
         memcpy(cast(char*)s, &v, sz);
         memcpy(cast(char*)s + sz, es2.string, es2.len * sz);
-        // Add terminating 0
-        memset(cast(char*)s + len * sz, 0, sz);
         emplaceExp!(StringExp)(&ue, loc, s, len);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;

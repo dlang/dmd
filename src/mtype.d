@@ -2434,7 +2434,7 @@ public:
             }
             else
             {
-                e = new StringExp(loc, cast(char*)deco, strlen(deco));
+                e = new StringExp(loc, cast(char*)deco);
                 Scope sc;
                 e = e.semantic(&sc);
             }
@@ -2442,7 +2442,7 @@ public:
         else if (ident == Id.stringof)
         {
             const s = toChars();
-            e = new StringExp(loc, cast(char*)s, strlen(s));
+            e = new StringExp(loc, cast(char*)s);
             Scope sc;
             e = e.semantic(&sc);
         }
@@ -2522,7 +2522,7 @@ public:
              * pretty-printing the type.
              */
             const s = e.toChars();
-            e = new StringExp(e.loc, cast(char*)s, strlen(s));
+            e = new StringExp(e.loc, cast(char*)s);
         }
         else
             e = getProperty(e.loc, ident, flag);
@@ -8350,7 +8350,7 @@ public:
         else if (ident == Id.stringof)
         {
             const s = toChars();
-            e = new StringExp(loc, cast(char*)s, strlen(s));
+            e = new StringExp(loc, cast(char*)s);
             Scope sc;
             e = e.semantic(&sc);
         }
