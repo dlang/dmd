@@ -4825,6 +4825,56 @@ static assert( __traits(compiles, { alias Baz = CallsFoo15623!WithFoo15623d; ret
 static assert(!__traits(compiles, { alias Baz = CallsFoo15623!WithoutFoo15623d; return Baz.init; }()));
 
 /******************************************/
+// 15653
+
+alias TypeTuple15653(T...) = T;
+
+void test15653()
+{
+    void foo(U, T)(const T x)     { static assert(is(T == U)); }
+    void bar(U, T)(immutable T x) { static assert(is(T == U)); }
+
+    struct X { int a; long[2] b; }
+    struct Y { int* a; long[] b; }
+
+    foreach (U; TypeTuple15653!( byte,    short,   int,  long,
+                                ubyte,   ushort,  uint, ulong,
+                                 float,  double,  real,
+                                ifloat, idouble, ireal,
+                                cfloat, cdouble, creal,
+                                void delegate(),
+                                int[2], X, X[2]))
+    {
+        foo!U(U.init);      // OK
+        bar!U(U.init);      // OK <- Error
+
+        U u;
+        foo!U(u);           // OK
+        bar!U(u);           // OK <- Error
+    }
+
+    foreach (U; TypeTuple15653!(void*, int**, long[], double*[2]))
+    {
+        foo!U(U.init);      // OK
+        bar!U(U.init);      // OK <- Error
+
+        U u;
+        foo!U(u);
+        static assert(!__traits(compiles, bar!U(u)), U.stringof);
+    }
+
+    foreach (U; TypeTuple15653!(Object, Y, Y[2]))
+    {
+        foo!U(U.init);      // OK
+        static assert(!__traits(compiles, bar!U(U.init)), U.stringof);
+
+        U u;
+        foo!U(u);           // OK
+        static assert(!__traits(compiles, bar!U(u)), U.stringof);
+    }
+}
+
+/******************************************/
 // 15781
 
 void test15781()
@@ -4961,6 +5011,7 @@ int main()
     test14735();
     test14802();
     test15116();
+    test15653();
 
     printf("Success\n");
     return 0;
