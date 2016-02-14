@@ -1012,6 +1012,36 @@ body
 	    ;
 	}
 	}
+	else version (Solaris)
+	{
+	asm     // assembler by W. Bright
+	{
+	    // EDX = (A.length - 1) * real.sizeof
+	    mov     ECX,A[EBP]          ; // ECX = A.length
+	    dec     ECX                 ;
+	    lea     EDX,[ECX][ECX*8]    ;
+	    add     EDX,ECX             ;
+	    add     EDX,ECX             ;
+	    add     EDX,ECX             ;
+	    add     EDX,A+4[EBP]        ;
+	    fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
+	    jecxz   return_ST           ;
+	    fld     x[EBP]              ; // ST0 = x
+	    fxch    ST(1)               ; // ST1 = x, ST0 = r
+	    align   4                   ;
+    L2:     fmul    ST,ST(1)            ; // r *= x
+	    fld     real ptr -12[EDX]   ;
+	    sub     EDX,12              ; // deg--
+	    faddp   ST(1),ST            ;
+	    dec     ECX                 ;
+	    jne     L2                  ;
+	    fxch    ST(1)               ; // ST1 = r, ST0 = x
+	    fstp    ST(0)               ; // dump x
+	    align   4                   ;
+    return_ST:                          ;
+	    ;
+	}
+	}
 	else
 	{
 	asm     // assembler by W. Bright
