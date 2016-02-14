@@ -5498,8 +5498,8 @@ public:
         //printf("\tparent = '%s'\n", sds2.parent.toChars());
         sds2.semantic(sc);
 
-        if (auto ad = sds2.isAggregateDeclaration())
-            return (new TypeExp(loc, ad.type)).semantic(sc);
+        if (auto t = sds2.getType())    // (Aggregate|Enum)Declaration
+            return (new TypeExp(loc, t)).semantic(sc);
 
         sds = sds2;
         type = Type.tvoid;
