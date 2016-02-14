@@ -1881,7 +1881,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 if (f)
                 {
                     f.tookAddressOf++;
-                    auto se = new SymOffExp(e.loc, f, 0, 0);
+                    auto se = new SymOffExp(e.loc, f, 0, false);
                     se.semantic(sc);
                     // Let SymOffExp::castTo() do the heavy lifting
                     visit(se);
@@ -1901,7 +1901,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     f = f.overloadExactMatch(tb.nextOf());
                     if (f)
                     {
-                        result = new VarExp(e.loc, f);
+                        result = new VarExp(e.loc, f, false);
                         result.type = f.type;
                         result = new AddrExp(e.loc, result);
                         result.type = t;
@@ -2075,8 +2075,10 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = e;
                 return;
             }
+
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
+
             if (tb.equals(typeb))
             {
                 result = e.copy();
@@ -2084,8 +2086,11 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 (cast(SymOffExp)result).hasOverloads = false;
                 return;
             }
+
             // Look for pointers to functions where the functions are overloaded.
-            if (e.hasOverloads && typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction && (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            if (e.hasOverloads &&
+                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
                 FuncDeclaration f = e.var.isFuncDeclaration();
                 f = f ? f.overloadExactMatch(tb.nextOf()) : null;
@@ -2095,12 +2100,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     {
                         if (f.needThis() && hasThis(sc))
                         {
-                            result = new DelegateExp(e.loc, new ThisExp(e.loc), f);
+                            result = new DelegateExp(e.loc, new ThisExp(e.loc), f, false);
                             result = result.semantic(sc);
                         }
                         else if (f.isNested())
                         {
-                            result = new DelegateExp(e.loc, new IntegerExp(0), f);
+                            result = new DelegateExp(e.loc, new IntegerExp(0), f, false);
                             result = result.semantic(sc);
                         }
                         else if (f.needThis())
@@ -2118,13 +2123,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     }
                     else
                     {
-                        result = new SymOffExp(e.loc, f, 0);
+                        result = new SymOffExp(e.loc, f, 0, false);
                         result.type = t;
                     }
                     f.tookAddressOf++;
                     return;
                 }
             }
+
             visit(cast(Expression)e);
         }
 
@@ -2162,7 +2168,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                             e.error("%s", msg);
                         if (f != e.func)    // if address not already marked as taken
                             f.tookAddressOf++;
-                        result = new DelegateExp(e.loc, e.e1, f);
+                        result = new DelegateExp(e.loc, e.e1, f, false);
                         result.type = t;
                         return;
                     }

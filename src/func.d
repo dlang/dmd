@@ -1219,7 +1219,7 @@ public:
                 auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
                 fd.fbody = frequire;
                 Statement s1 = new ExpStatement(loc, fd);
-                Expression e = new CallExp(loc, new VarExp(loc, fd, 0), cast(Expressions*)null);
+                Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
                 Statement s2 = new ExpStatement(loc, e);
                 frequire = new CompoundStatement(loc, s1, s2);
                 fdrequire = fd;
@@ -1252,7 +1252,7 @@ public:
                 Expression eresult = null;
                 if (outId)
                     eresult = new IdentifierExp(loc, outId);
-                Expression e = new CallExp(loc, new VarExp(loc, fd, 0), eresult);
+                Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
                 Statement s2 = new ExpStatement(loc, e);
                 fensure = new CompoundStatement(loc, s1, s2);
                 fdensure = fd;
@@ -2002,7 +2002,7 @@ public:
                             if (global.params.is64bit && global.params.isWindows)
                             {
                                 offset += Target.ptrsize;
-                                if (p.storage_class & STClazy || p.type.size() > Target.ptrsize)
+                                if ((p.storage_class & STClazy) || p.type.size() > Target.ptrsize)
                                 {
                                     /* Necessary to offset the extra level of indirection the Win64
                                      * ABI demands
@@ -3016,11 +3016,6 @@ public:
         return true; // functions can be overloaded
     }
 
-    override final bool hasOverloads()
-    {
-        return overnext !is null;
-    }
-
     final PURE isPure()
     {
         //printf("FuncDeclaration::isPure() '%s'\n", toChars());
@@ -3682,7 +3677,7 @@ public:
                  *   catch { frequire; }
                  */
                 Expression eresult = null;
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, 0), eresult);
+                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), eresult);
                 Statement s2 = new ExpStatement(loc, e);
                 auto c = new Catch(loc, null, null, sf);
                 c.internalCatch = true;
@@ -3750,7 +3745,7 @@ public:
                         eresult = new CommaExp(Loc(), de, ve);
                     }
                 }
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, 0), eresult);
+                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), eresult);
                 Statement s2 = new ExpStatement(loc, e);
                 if (sf)
                 {
@@ -3877,7 +3872,7 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
              */
             e = new ThisExp(Loc());
             e.type = vthis.type;
-            e = new DotVarExp(Loc(), e, inv, 0);
+            e = new DotVarExp(Loc(), e, inv, false);
             e.type = inv.type;
             e = new CallExp(Loc(), e);
             e.type = Type.tvoid;

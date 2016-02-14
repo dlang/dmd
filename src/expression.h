@@ -311,7 +311,7 @@ public:
     Dsymbol *s;
     bool hasOverloads;
 
-    DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
+    DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = true);
     Expression *semantic(Scope *sc);
     static Expression resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
     bool isLvalue();
@@ -602,7 +602,7 @@ class SymOffExp : public SymbolExp
 public:
     dinteger_t offset;
 
-    SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = false);
+    SymOffExp(Loc loc, Declaration *var, dinteger_t offset, bool hasOverloads = true);
     Expression *semantic(Scope *sc);
     bool isBool(bool result);
 
@@ -614,8 +614,8 @@ public:
 class VarExp : public SymbolExp
 {
 public:
-    VarExp(Loc loc, Declaration *var, bool hasOverloads = false);
-    static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = false);
+    VarExp(Loc loc, Declaration *var, bool hasOverloads = true);
+    static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
@@ -852,7 +852,7 @@ public:
     Declaration *var;
     bool hasOverloads;
 
-    DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads = false);
+    DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads = true);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     bool checkReadModifyWrite();
@@ -882,7 +882,7 @@ public:
     FuncDeclaration *func;
     bool hasOverloads;
 
-    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, bool hasOverloads = false);
+    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, bool hasOverloads = true);
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }

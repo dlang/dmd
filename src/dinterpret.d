@@ -2205,7 +2205,7 @@ public:
         }
         else
         {
-            result = new DelegateExp(e.loc, result, e.func);
+            result = new DelegateExp(e.loc, result, e.func, false);
             result.type = e.type;
         }
     }
@@ -5896,7 +5896,7 @@ public:
                 result = e; // optimize: reuse this CTFE reference
             else
             {
-                result = new DotVarExp(e.loc, ex, f);
+                result = new DotVarExp(e.loc, ex, f, false);
                 result.type = e.type;
             }
             return;

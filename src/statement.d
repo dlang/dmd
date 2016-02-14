@@ -2912,7 +2912,7 @@ public:
                     }
                     exps.push(new IntegerExp(Loc(), keysize, Type.tsize_t));
                     exps.push(flde);
-                    ec = new VarExp(Loc(), fdapply[i]);
+                    ec = new VarExp(Loc(), fdapply[i], false);
                     ec = new CallExp(loc, ec, exps);
                     ec.type = Type.tint32; // don't run semantic() on ec
                 }
@@ -2972,7 +2972,7 @@ public:
                         flde = new CastExp(loc, flde, flde.type);
                         flde.type = dgty;
                     }
-                    ec = new VarExp(Loc(), fdapply);
+                    ec = new VarExp(Loc(), fdapply, false);
                     ec = new CallExp(loc, ec, aggr, flde);
                     ec.type = Type.tint32; // don't run semantic() on ec
                 }
@@ -4830,6 +4830,7 @@ public:
             exp = checkGC(sc, exp);
             if (exp.op == TOKerror)
                 goto Lbody;
+
             ClassDeclaration cd = exp.type.isClassHandle();
             if (!cd)
             {
@@ -4846,9 +4847,11 @@ public:
                     error("missing or corrupt object.d");
                     fatal();
                 }
+
                 Type t = ClassDeclaration.object.type;
                 t = t.semantic(Loc(), sc).toBasetype();
                 assert(t.ty == Tclass);
+
                 exp = new CastExp(loc, exp, t);
                 exp = exp.semantic(sc);
             }
@@ -4863,20 +4866,25 @@ public:
                 auto ie = new ExpInitializer(loc, exp);
                 auto tmp = new VarDeclaration(loc, exp.type, id, ie);
                 tmp.storage_class |= STCtemp;
+
                 auto cs = new Statements();
                 cs.push(new ExpStatement(loc, tmp));
+
                 auto args = new Parameters();
                 args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
+
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
-                Expression e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
+                Expression e = new CallExp(loc, new VarExp(loc, fdenter, false), new VarExp(loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
+
                 cs.push(new ExpStatement(loc, e));
                 FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit);
-                e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
+                e = new CallExp(loc, new VarExp(loc, fdexit, false), new VarExp(loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
                 Statement s = new ExpStatement(loc, e);
                 s = new TryFinallyStatement(loc, _body, s);
                 cs.push(s);
+
                 s = new CompoundStatement(loc, cs);
                 return s.semantic(sc);
             }
@@ -4892,30 +4900,36 @@ public:
             Type t = new TypeSArray(Type.tint8, new IntegerExp(Target.ptrsize + Target.critsecsize()));
             auto tmp = new VarDeclaration(loc, t, id, null);
             tmp.storage_class |= STCtemp | STCgshared | STCstatic;
+
             auto cs = new Statements();
             cs.push(new ExpStatement(loc, tmp));
+
             /* This is just a dummy variable for "goto skips declaration" error.
              * Backend optimizer could remove this unused variable.
              */
             auto v = new VarDeclaration(loc, Type.tvoidptr, Identifier.generateId("__sync"), null);
             v.semantic(sc);
             cs.push(new ExpStatement(loc, v));
+
             auto args = new Parameters();
             args.push(new Parameter(0, t.pointerTo(), null, null));
+
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STCnothrow);
             Expression e = new DotIdExp(loc, new VarExp(loc, tmp), Id.ptr);
             e = e.semantic(sc);
-            e = new CallExp(loc, new VarExp(loc, fdenter), e);
+            e = new CallExp(loc, new VarExp(loc, fdenter, false), e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(loc, e));
+
             FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STCnothrow);
             e = new DotIdExp(loc, new VarExp(loc, tmp), Id.ptr);
             e = e.semantic(sc);
-            e = new CallExp(loc, new VarExp(loc, fdexit), e);
+            e = new CallExp(loc, new VarExp(loc, fdexit, false), e);
             e.type = Type.tvoid; // do not run semantic on e
             Statement s = new ExpStatement(loc, e);
             s = new TryFinallyStatement(loc, _body, s);
             cs.push(s);
+
             s = new CompoundStatement(loc, cs);
             return s.semantic(sc);
         }
