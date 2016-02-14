@@ -608,10 +608,10 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type typ
  * Helper for NewExp
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
-extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, uint value, size_t dim, ubyte sz)
+extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, dchar value, size_t dim, ubyte sz)
 {
-    char* s = cast(char*)mem.xcalloc(dim + 1, sz);
-    for (size_t elemi = 0; elemi < dim; ++elemi)
+    auto s = cast(char*)mem.xcalloc(dim, sz);
+    foreach (elemi; 0 .. dim)
     {
         switch (sz)
         {
@@ -619,10 +619,10 @@ extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, ui
             s[elemi] = cast(char)value;
             break;
         case 2:
-            (cast(ushort*)s)[elemi] = cast(ushort)value;
+            (cast(wchar*)s)[elemi] = cast(wchar)value;
             break;
         case 4:
-            (cast(uint*)s)[elemi] = value;
+            (cast(dchar*)s)[elemi] = value;
             break;
         default:
             assert(0);

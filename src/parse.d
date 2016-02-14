@@ -6631,7 +6631,7 @@ public:
         case TOKfile:
             {
                 const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
-                e = new StringExp(loc, cast(char*)s, strlen(s), 0);
+                e = new StringExp(loc, cast(char*)s);
                 nextToken();
                 break;
             }
@@ -6642,7 +6642,7 @@ public:
         case TOKmodulestring:
             {
                 const(char)* s = md ? md.toChars() : mod.toChars();
-                e = new StringExp(loc, cast(char*)s, strlen(s), 0);
+                e = new StringExp(loc, cast(char*)s);
                 nextToken();
                 break;
             }
@@ -6695,9 +6695,9 @@ public:
                         const len1 = len;
                         const len2 = token.len;
                         len = len1 + len2;
-                        auto s2 = cast(char*)mem.xmalloc((len + 1) * char.sizeof);
+                        auto s2 = cast(char*)mem.xmalloc(len * char.sizeof);
                         memcpy(s2, s, len1 * char.sizeof);
-                        memcpy(s2 + len1, token.ustring, (len2 + 1) * char.sizeof);
+                        memcpy(s2 + len1, token.ustring, len2 * char.sizeof);
                         s = s2;
                     }
                     else
