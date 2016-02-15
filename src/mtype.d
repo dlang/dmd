@@ -2657,16 +2657,20 @@ public:
         OutBuffer buf;
         buf.reserve(32);
         mangleToBuffer(this, &buf, internal != 0);
+
         size_t len = buf.offset;
         buf.writeByte(0);
+
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;
         size_t namelen = 19 + len.sizeof * 3 + len + 1;
-        char* name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
+        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
         assert(name);
+
         sprintf(name, "_D%lluTypeInfo_%s6__initZ", cast(ulong)9 + len, buf.data);
-        //printf("%p, deco = %s, name = %s\n", this, deco, name);
+        //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
         assert(strlen(name) < namelen); // don't overflow the buffer
+
         size_t off = 0;
         static if (!IN_GCC)
         {
@@ -2674,6 +2678,7 @@ public:
                 ++off; // C mangling will add '_' back in
         }
         auto id = Identifier.idPool(name + off, strlen(name + off));
+
         if (name != namebuf.ptr)
             free(name);
         return id;
