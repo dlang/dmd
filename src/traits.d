@@ -628,7 +628,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             if (auto fld = f.isFuncLiteralDeclaration())
             {
                 // Directly translate to VarExp instead of FuncExp
-                Expression ex = new VarExp(e.loc, fld, 1);
+                Expression ex = new VarExp(e.loc, fld, true);
                 return ex.semantic(sc);
             }
         }
@@ -747,10 +747,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
                 if (e.ident == Id.getVirtualMethods && !fd.isVirtualMethod())
                     return 0;
-                auto fa = new FuncAliasDeclaration(fd.ident, fd, 0);
+
+                auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
                 fa.protection = fd.protection;
-                Expression e = ex ? new DotVarExp(Loc(), ex, fa)
-                                  : new DsymbolExp(Loc(), fa);
+
+                auto e = ex ? new DotVarExp(Loc(), ex, fa, false)
+                            : new DsymbolExp(Loc(), fa, false);
+
                 exps.push(e);
                 return 0;
             });
@@ -1150,10 +1153,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                         if (cast(void*)ud in uniqueUnitTests)
                             continue;
 
-                        auto ad = new FuncAliasDeclaration(ud.ident, ud, 0);
+                        auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
                         ad.protection = ud.protection;
 
-                        auto e = new DsymbolExp(Loc(), ad);
+                        auto e = new DsymbolExp(Loc(), ad, false);
                         exps.push(e);
 
                         uniqueUnitTests[cast(void*)ud] = true;

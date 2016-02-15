@@ -776,11 +776,6 @@ public:
         return false;
     }
 
-    bool hasOverloads()
-    {
-        return false;
-    }
-
     // is this a LabelDsymbol()?
     LabelDsymbol isLabel()
     {

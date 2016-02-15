@@ -2022,7 +2022,7 @@ public:
                  * fix properly.
                  */
                 e.type = e.type.mutableOf();
-                e = new DotVarExp(loc, e, sd.dtor, 0);
+                e = new DotVarExp(loc, e, sd.dtor, false);
                 e = new CallExp(loc, e);
             }
             else

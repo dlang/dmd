@@ -4338,7 +4338,7 @@ public:
                 params.push(new Parameter(0, arrty, null, null));
                 reverseFd[i] = FuncDeclaration.genCfunc(params, arrty, reverseName[i]);
             }
-            Expression ec = new VarExp(Loc(), reverseFd[i]);
+            Expression ec = new VarExp(Loc(), reverseFd[i], false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             auto arguments = new Expressions();
             arguments.push(e);
@@ -4359,7 +4359,7 @@ public:
                 params.push(new Parameter(0, arrty, null, null));
                 sortFd[i] = FuncDeclaration.genCfunc(params, arrty, sortName[i]);
             }
-            Expression ec = new VarExp(Loc(), sortFd[i]);
+            Expression ec = new VarExp(Loc(), sortFd[i], false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             auto arguments = new Expressions();
             arguments.push(e);
@@ -4383,7 +4383,7 @@ public:
                 adReverse_fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), Id.adReverse);
             }
             fd = adReverse_fd;
-            ec = new VarExp(Loc(), fd);
+            ec = new VarExp(Loc(), fd, false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             arguments = new Expressions();
             arguments.push(e);
@@ -4404,7 +4404,7 @@ public:
                 params.push(new Parameter(0, Type.dtypeinfo.type, null, null));
                 fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), "_adSort");
             }
-            ec = new VarExp(Loc(), fd);
+            ec = new VarExp(Loc(), fd, false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             arguments = new Expressions();
             arguments.push(e);
@@ -4613,7 +4613,7 @@ public:
         {
             // It's really an index expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s);
             *pe = new ArrayExp(loc, *pe, dim);
         }
         else if (*ps)
@@ -4946,7 +4946,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s);
             *pe = new ArrayExp(loc, *pe);
         }
         else if (*ps)
@@ -5339,7 +5339,7 @@ public:
                 tf.isnothrow = true;
                 tf.isnogc = false;
             }
-            Expression ev = new VarExp(e.loc, fd_aaLen);
+            Expression ev = new VarExp(e.loc, fd_aaLen, false);
             e = new CallExp(e.loc, ev, e);
             e.type = (cast(TypeFunction)fd_aaLen.type).next;
         }
@@ -5992,7 +5992,7 @@ public:
                         // Replace function literal with a function symbol,
                         // since default arg expression must be copied when used
                         // and copying the literal itself is wrong.
-                        e = new VarExp(e.loc, fe.fd, 0);
+                        e = new VarExp(e.loc, fe.fd, false);
                         e = new AddrExp(e.loc, e);
                         e = e.semantic(argsc);
                     }
@@ -7073,9 +7073,9 @@ public:
                         VarDeclaration v = s.isVarDeclaration();
                         FuncDeclaration f = s.isFuncDeclaration();
                         if (intypeid || !v && !f)
-                            e = DsymbolExp.resolve(loc, sc, s, false);
+                            e = DsymbolExp.resolve(loc, sc, s, true);
                         else
-                            e = new VarExp(loc, s.isDeclaration());
+                            e = new VarExp(loc, s.isDeclaration(), true);
 
                         e = toExpressionHelper(e, i);
                         e = e.semantic(sc);
@@ -7153,7 +7153,7 @@ public:
             {
                 if (FuncDeclaration fd = s.isFuncDeclaration())
                 {
-                    *pe = new DsymbolExp(loc, fd, 1);
+                    *pe = new DsymbolExp(loc, fd);
                     return;
                 }
             }
@@ -7975,7 +7975,7 @@ public:
             if (d.semanticRun == PASSinit && d._scope)
                 d.semantic(d._scope);
             checkAccess(e.loc, sc, e, d);
-            auto ve = new VarExp(e.loc, d, 1);
+            auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
@@ -7990,8 +7990,10 @@ public:
             e = e.semantic(sc);
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d);
-        return de.semantic(sc);
+
+        e = new DotVarExp(e.loc, e, d);
+        e = e.semantic(sc);
+        return e;
     }
 
     override structalign_t alignment()
@@ -8703,7 +8705,7 @@ public:
                 if (sym.vthis._scope)
                     sym.vthis.semantic(null);
                 ClassDeclaration cdp = sym.toParent2().isClassDeclaration();
-                auto de = new DotVarExp(e.loc, e, sym.vthis, 0);
+                auto de = new DotVarExp(e.loc, e, sym.vthis);
                 de.type = (cdp ? cdp.type : sym.vthis.type).addMod(e.type.mod);
                 return de;
             }
@@ -8862,7 +8864,7 @@ public:
                             }
                             else
                             {
-                                e = new VarExp(e.loc, d, 1);
+                                e = new VarExp(e.loc, d);
                                 return e;
                             }
                         }
@@ -8883,7 +8885,7 @@ public:
             if (d.semanticRun == PASSinit && d._scope)
                 d.semantic(d._scope);
             checkAccess(e.loc, sc, e, d);
-            auto ve = new VarExp(e.loc, d, 1);
+            auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
@@ -8901,13 +8903,15 @@ public:
         if (d.parent && d.toParent().isModule())
         {
             // (e, d)
-            auto ve = new VarExp(e.loc, d, 1);
+            auto ve = new VarExp(e.loc, d);
             e = new CommaExp(e.loc, e, ve);
             e.type = d.type;
             return e;
         }
-        auto de = new DotVarExp(e.loc, e, d, d.hasOverloads());
-        return de.semantic(sc);
+
+        e = new DotVarExp(e.loc, e, d);
+        e = e.semantic(sc);
+        return e;
     }
 
     override ClassDeclaration isClassHandle()
@@ -9283,7 +9287,7 @@ public:
         {
             // It's really a slice expression
             if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s, 1);
+                *pe = new DsymbolExp(loc, s);
             *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, lwr, upr));
         }
         else if (*ps)
