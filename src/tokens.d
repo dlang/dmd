@@ -719,7 +719,7 @@ extern (C++) struct Token
         freelist = &this;
     }
 
-    int isKeyword()
+    int isKeyword() const
     {
         foreach (kw; keywords)
         {
