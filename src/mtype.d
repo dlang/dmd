@@ -261,12 +261,12 @@ extern (C++) Type stripDefaultArgs(Type t)
         return t;
     if (t.ty == Tfunction)
     {
-        TypeFunction tf = cast(TypeFunction)t;
+        TypeFunction tf = paint!TypeFunction(t);
         Type tret = stripDefaultArgs(tf.next);
         Parameters* params = stripParams(tf.parameters);
         if (tret == tf.next && params == tf.parameters)
             goto Lnot;
-        tf = cast(TypeFunction)tf.copy();
+        tf = paint!TypeFunction(tf.copy());
         tf.parameters = params;
         tf.next = tret;
         //printf("strip %s\n   <- %s\n", tf->toChars(), t->toChars());
@@ -274,12 +274,12 @@ extern (C++) Type stripDefaultArgs(Type t)
     }
     else if (t.ty == Ttuple)
     {
-        TypeTuple tt = cast(TypeTuple)t;
+        TypeTuple tt = paint!TypeTuple(t);
         Parameters* args = stripParams(tt.arguments);
         if (args == tt.arguments)
             goto Lnot;
         t = t.copy();
-        (cast(TypeTuple)t).arguments = args;
+        paint!TypeTuple(t).arguments = args;
     }
     else if (t.ty == Tenum)
     {
@@ -293,7 +293,7 @@ extern (C++) Type stripDefaultArgs(Type t)
         if (n == tn)
             goto Lnot;
         t = t.copy();
-        (cast(TypeNext)t).next = n;
+        paint!TypeNext(t).next = n;
     }
     //printf("strip %s\n", t->toChars());
 Lnot:

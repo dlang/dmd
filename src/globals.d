@@ -446,3 +446,50 @@ alias PINLINEalways = PINLINE.PINLINEalways;
 alias StorageClass = uinteger_t;
 
 extern (C++) __gshared Global global;
+
+
+/***********************************
+ * Perform a cast of b to
+ * its derived type Derived by simply
+ * changing its type, i.e. not doing a dynamic
+ * cast.
+ * const-ness of b is preserved in the result.
+ * Params:
+ *      b = Base class instance to convert
+ *      Derived = derived class to convert it to
+ * Returns:
+ *      b reinterpreted as an instance of Derived
+ */
+
+inout(Derived) paint(Derived, Base)(inout(Base) b)
+        if (is(Base == class) && is(Derived == class))
+{
+    //pragma(inline, true);     // not supported yet by build compiler
+    debug
+    {
+        /* Check that it is a valid cast by using
+         * the dynamic cast and checking that it succeeded
+         */
+        auto c = cast(inout(Derived))b;
+        assert(c !is null);
+        return c;
+    }
+    else
+    {
+        return cast(inout(Derived)) cast(inout(void)*) b;
+    }
+}
+
+unittest
+{
+    class B { }
+    class C : B { }
+
+    B b = new B();
+    C c = paint!C(b);
+
+    const B bc = new B();
+    const C cc = paint!C(bc);
+}
+
+
