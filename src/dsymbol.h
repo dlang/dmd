@@ -288,8 +288,7 @@ private:
     Dsymbols *importedScopes;   // imported Dsymbol's
     PROTKIND *prots;            // array of PROTKIND, one for each import
 
-    struct BitArray { size_t len; size_t *ptr; };
-    BitArray importTreeMask;
+    BitArray accessiblePackages;
 
 public:
     ScopeDsymbol();

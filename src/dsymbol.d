@@ -1211,7 +1211,7 @@ private:
     Dsymbols* importedScopes;
     PROTKIND* prots;            // array of PROTKIND, one for each import
 
-    import std.bitmanip : BitArray;
+    import ddmd.root.array : BitArray;
     BitArray accessiblePackages;// whitelist of accessible (imported) packages
 
 public:

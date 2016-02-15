@@ -211,3 +211,45 @@ public:
         return data[a .. b];
     }
 }
+
+struct BitArray
+{
+    size_t length() const
+    {
+        return len;
+    }
+
+    void length(size_t nlen)
+    {
+        ptr = cast(size_t*)mem.xrealloc(ptr, (nlen + 7) / 8);
+        len = nlen;
+    }
+
+    bool opIndex(size_t idx) const
+    {
+        import core.bitop : bt;
+
+        assert(idx < length);
+        return !!bt(ptr, idx);
+    }
+
+    void opIndexAssign(bool val, size_t idx)
+    {
+        import core.bitop : btc, bts;
+
+        assert(idx < length);
+        if (val)
+            bts(ptr, idx);
+        else
+            btc(ptr, idx);
+    }
+
+    ~this()
+    {
+        mem.xfree(ptr);
+    }
+
+private:
+    size_t len;
+    size_t *ptr;
+}
