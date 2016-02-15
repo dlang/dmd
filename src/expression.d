@@ -2406,7 +2406,7 @@ public:
         printf("%s %s\n", Token.toChars(op), type ? type.toChars() : "");
     }
 
-    final void error(const(char)* format, ...)
+    final void error(const(char)* format, ...) const
     {
         if (type != Type.terror)
         {
@@ -2417,7 +2417,7 @@ public:
         }
     }
 
-    final void warning(const(char)* format, ...)
+    final void warning(const(char)* format, ...) const
     {
         if (type != Type.terror)
         {
@@ -2428,7 +2428,7 @@ public:
         }
     }
 
-    final void deprecation(const(char)* format, ...)
+    final void deprecation(const(char)* format, ...) const
     {
         if (type != Type.terror)
         {
@@ -4327,7 +4327,7 @@ public:
      * Returns:
      *      number of code units
      */
-    final size_t numberOfCodeUnits(int tynto = 0)
+    final size_t numberOfCodeUnits(int tynto = 0) const
     {
         int encSize;
         switch (tynto)
@@ -4387,7 +4387,7 @@ public:
      *  tyto = encoding type of the result
      *  zero = add terminating 0
      */
-    void writeTo(void* dest, bool zero, int tyto = 0)
+    void writeTo(void* dest, bool zero, int tyto = 0) const
     {
         int encSize;
         switch (tyto)
@@ -4562,7 +4562,7 @@ public:
         return new ErrorExp();
     }
 
-    uint charAt(uinteger_t i)
+    uint charAt(uinteger_t i) const
     {
         uint value;
         switch (sz)
@@ -4586,7 +4586,7 @@ public:
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().
      */
-    final char* toStringz()
+    final const(char)* toStringz() const
     {
         auto nbytes = len * sz;
         char* s = cast(char*)mem.xmalloc(nbytes + sz);
@@ -7858,7 +7858,7 @@ public:
         }
         se = se.toUTF8(sc);
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, cast(char*)se.string, se.len, 0);
+        scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
         Expression e = p.parseExpression();
@@ -7898,7 +7898,7 @@ public:
             printf("ImportExp::semantic('%s')\n", toChars());
         }
         const(char)* name;
-        char* namez;
+        const(char)* namez;
         StringExp se;
 
         sc = sc.startCTFE();

@@ -141,9 +141,9 @@ public:
     void print();
     char *toChars();
     virtual void printAST(int ident = 0);
-    void error(const char *format, ...);
-    void warning(const char *format, ...);
-    void deprecation(const char *format, ...);
+    void error(const char *format, ...) const;
+    void warning(const char *format, ...) const;
+    void deprecation(const char *format, ...) const;
 
     // creates a single expression which is effectively (e1, e2)
     // this new expression does not necessarily need to have valid D source code representation,
@@ -378,11 +378,11 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    unsigned charAt(uinteger_t i);
+    unsigned charAt(uinteger_t i) const;
     void accept(Visitor *v) { v->visit(this); }
-    char *toStringz();
-    size_t numberOfCodeUnits(int tynto = 0);
-    void writeTo(void* dest, bool zero, int tyto = 0);
+    const char *toStringz() const;
+    size_t numberOfCodeUnits(int tynto = 0) const;
+    void writeTo(void* dest, bool zero, int tyto = 0) const;
     char *toPtr();
 };
 
