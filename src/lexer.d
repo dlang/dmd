@@ -257,7 +257,7 @@ public:
      */
     final void scan(Token* t)
     {
-        uint lastLine = scanloc.linnum;
+        const lastLine = scanloc.linnum;
         Loc startLoc;
         t.blockComment = null;
         t.lineComment = null;
@@ -407,16 +407,15 @@ public:
             case '_':
             case_ident:
                 {
-                    char c;
                     while (1)
                     {
-                        c = *++p;
+                        const c = *++p;
                         if (isidchar(c))
                             continue;
                         else if (c & 0x80)
                         {
-                            const(char)* s = p;
-                            uint u = decodeUTF();
+                            const s = p;
+                            const u = decodeUTF();
                             if (isUniAlpha(u))
                                 continue;
                             error("char 0x%04x not allowed in identifier", u);
@@ -475,7 +474,7 @@ public:
                             bool point = false;
                             for (const(char)* p = global._version + 1; 1; p++)
                             {
-                                c = *p;
+                                const c = *p;
                                 if (isdigit(cast(char)c))
                                     minor = minor * 10 + c - '0';
                                 else if (c == '.')
@@ -519,7 +518,7 @@ public:
                     {
                         while (1)
                         {
-                            char c = *p;
+                            const c = *p;
                             switch (c)
                             {
                             case '/':
@@ -543,7 +542,7 @@ public:
                             default:
                                 if (c & 0x80)
                                 {
-                                    uint u = decodeUTF();
+                                    const u = decodeUTF();
                                     if (u == PS || u == LS)
                                         endOfLine();
                                 }
@@ -573,7 +572,7 @@ public:
                     startLoc = loc();
                     while (1)
                     {
-                        char c = *++p;
+                        const c = *++p;
                         switch (c)
                         {
                         case '\n':
@@ -600,7 +599,7 @@ public:
                         default:
                             if (c & 0x80)
                             {
-                                uint u = decodeUTF();
+                                const u = decodeUTF();
                                 if (u == PS || u == LS)
                                     break;
                             }
@@ -1020,7 +1019,7 @@ public:
                 }
             default:
                 {
-                    uint c = *p;
+                    dchar c = *p;
                     if (c & 0x80)
                     {
                         c = decodeUTF();
@@ -1109,7 +1108,6 @@ public:
     final uint escapeSequence()
     {
         uint c = *p;
-        int n;
         int ndigits;
         switch (c)
         {
@@ -1154,9 +1152,8 @@ public:
             c = *p;
             if (ishex(cast(char)c))
             {
-                uint v;
-                n = 0;
-                v = 0;
+                uint v = 0;
+                int n = 0;
                 while (1)
                 {
                     if (isdigit(cast(char)c))
@@ -1187,7 +1184,7 @@ public:
             break;
         case '&':
             // named character entity
-            for (const(char)* idstart = ++p; 1; p++)
+            for (const idstart = ++p; 1; p++)
             {
                 switch (*p)
                 {
@@ -1217,9 +1214,8 @@ public:
         default:
             if (isoctal(cast(char)c))
             {
-                uint v;
-                n = 0;
-                v = 0;
+                uint v = 0;
+                int n = 0;
                 do
                 {
                     v = v * 8 + (c - '0');
@@ -1241,13 +1237,12 @@ public:
      */
     final TOK wysiwygStringConstant(Token* t, int tc)
     {
-        uint c;
         Loc start = loc();
         p++;
         stringbuffer.reset();
         while (1)
         {
-            c = *p++;
+            dchar c = *p++;
             switch (c)
             {
             case '\n':
@@ -1278,7 +1273,7 @@ public:
                 if (c & 0x80)
                 {
                     p--;
-                    uint u = decodeUTF();
+                    const u = decodeUTF();
                     p++;
                     if (u == PS || u == LS)
                         endOfLine();
@@ -1297,7 +1292,6 @@ public:
      */
     final TOK hexStringConstant(Token* t)
     {
-        uint c;
         Loc start = loc();
         uint n = 0;
         uint v = ~0; // dead assignment, needed to suppress warning
@@ -1305,7 +1299,7 @@ public:
         stringbuffer.reset();
         while (1)
         {
-            c = *p++;
+            dchar c = *p++;
             switch (c)
             {
             case ' ':
@@ -1346,7 +1340,7 @@ public:
                 else if (c & 0x80)
                 {
                     p--;
-                    uint u = decodeUTF();
+                    const u = decodeUTF();
                     p++;
                     if (u == PS || u == LS)
                         endOfLine();
@@ -1381,10 +1375,9 @@ public:
      */
     final TOK delimitedStringConstant(Token* t)
     {
-        uint c;
         Loc start = loc();
-        uint delimleft = 0;
-        uint delimright = 0;
+        dchar delimleft = 0;
+        dchar delimright = 0;
         uint nest = 1;
         uint nestcount = ~0; // dead assignment, needed to suppress warning
         Identifier hereid = null;
@@ -1394,7 +1387,7 @@ public:
         stringbuffer.reset();
         while (1)
         {
-            c = *p++;
+            dchar c = *p++;
             //printf("c = '%c'\n", c);
             switch (c)
             {
@@ -1538,8 +1531,8 @@ public:
     final TOK tokenStringConstant(Token* t)
     {
         uint nest = 1;
-        Loc start = loc();
-        const(char)* pstart = ++p;
+        const start = loc();
+        const pstart = ++p;
         while (1)
         {
             Token tok;
@@ -1571,13 +1564,12 @@ public:
      */
     final TOK escapeStringConstant(Token* t, int wide)
     {
-        uint c;
-        Loc start = loc();
+        const start = loc();
         p++;
         stringbuffer.reset();
         while (1)
         {
-            c = *p++;
+            dchar c = *p++;
             switch (c)
             {
             case '\\':
@@ -1638,11 +1630,10 @@ public:
      */
     final TOK charConstant(Token* t)
     {
-        uint c;
-        TOK tk = TOKcharv;
+        auto tk = TOKcharv;
         //printf("Lexer::charConstant\n");
         p++;
-        c = *p++;
+        dchar c = *p++;
         switch (c)
         {
         case '\\':
@@ -1730,13 +1721,12 @@ public:
     final TOK number(Token* t)
     {
         int base = 10;
-        const(char)* start = p;
-        uint c;
+        const start = p;
         uinteger_t n = 0; // unsigned >=64 bit integer type
         int d;
         bool err = false;
         bool overflow = false;
-        c = *p;
+        dchar c = *p;
         if (c == '0')
         {
             ++p;
@@ -1882,7 +1872,7 @@ public:
                 n = n * base + d;
             else
             {
-                import core.checkedint;
+                import core.checkedint : mulu, addu;
 
                 n = mulu(n, base, overflow);
                 n = addu(n, d, overflow);
@@ -1909,10 +1899,10 @@ public:
 
         FLAGS flags = (base == 10) ? FLAGS_decimal : FLAGS_none;
         // Parse trailing 'u', 'U', 'l' or 'L' in any combination
-        const(char)* psuffix = p;
+        const psuffix = p;
         while (1)
         {
-            char f;
+            FLAGS f;
             switch (*p)
             {
             case 'U':
@@ -2031,9 +2021,9 @@ public:
             assert(*p == '.' || isdigit(*p));
         }
         stringbuffer.reset();
-        const(char)* pstart = p;
-        char hex = 0;
-        uint c = *p++;
+        auto pstart = p;
+        bool hex = false;
+        dchar c = *p++;
         // Leading '0x'
         if (c == '0')
         {
@@ -2218,14 +2208,14 @@ public:
      */
     final void poundLine()
     {
-        Token tok;
-        int linnum = this.scanloc.linnum;
+        auto linnum = this.scanloc.linnum;
         const(char)* filespec = null;
-        Loc loc = this.loc();
+        const loc = this.loc();
+        Token tok;
         scan(&tok);
         if (tok.value == TOKint32v || tok.value == TOKint64v)
         {
-            int lin = cast(int)(tok.uns64value - 1);
+            const lin = cast(int)(tok.uns64value - 1);
             if (lin != tok.uns64value - 1)
                 error("line number %lld out of range", cast(ulong)tok.uns64value);
             else
@@ -2327,20 +2317,16 @@ public:
      */
     final uint decodeUTF()
     {
-        dchar u;
-        char c;
-        const(char)* s = p;
-        size_t len;
-        size_t idx;
-        const(char)* msg;
-        c = *s;
-        assert(c & 0x80);
+        const s = p;
+        assert(*s & 0x80);
         // Check length of remaining string up to 6 UTF-8 characters
+        size_t len;
         for (len = 1; len < 6 && s[len]; len++)
         {
         }
-        idx = 0;
-        msg = utf_decodeChar(s, len, idx, u);
+        size_t idx = 0;
+        dchar u;
+        const msg = utf_decodeChar(s, len, idx, u);
         p += idx - 1;
         if (msg)
         {
@@ -2361,7 +2347,7 @@ public:
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
-        char ct = t.ptr[2];
+        const ct = t.ptr[2];
         /* Start of comment text skips over / * *, / + +, or / / /
          */
         const(char)* q = t.ptr + 3; // start of comment text
