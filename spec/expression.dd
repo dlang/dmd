@@ -879,6 +879,22 @@ $(GNAME CastExpression):
         ---
     )
 
+    $(P Casting a floating point value to an integral type is the equivalent
+        of converting to an integer using truncation.
+
+        ---
+        void main()
+        {
+            int a = cast(int) 0.8f;
+            assert(a == 0);
+            long b = cast(long) 1.5;
+            assert(b == 1L);
+            long c = cast(long) -1.5;
+            assert(c == -1);
+        }
+        ---
+    )
+
     $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
         of the same type, is equivalent to:
 
