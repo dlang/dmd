@@ -231,7 +231,7 @@ Usage:
   -release       compile release version
   -run srcfile args...   run resulting program, passing args
   -shared        generate shared library (DLL)
-  -transition=id show additional info about language change identified by 'id'
+  -transition=id help with language change identified by 'id'
   -transition=?  list all language changes
   -unittest      compile in unit tests
   -v             verbose
@@ -683,6 +683,7 @@ Language changes listed by -transition=id:
   =all           list information on all language changes
   =complex,14488 list all usages of complex or imaginary types
   =field,3449    list all non-mutable fields which occupy an object instance
+  =import,10378  revert to single phase name lookup
   =tls           list all variables going into thread local storage
 ");
                         return EXIT_FAILURE;
@@ -699,6 +700,9 @@ Language changes listed by -transition=id:
                         {
                         case 3449:
                             global.params.vfield = true;
+                            break;
+                        case 10378:
+                            global.params.bug10378 = true;
                             break;
                         case 14488:
                             global.params.vcomplex = true;
@@ -730,6 +734,13 @@ Language changes listed by -transition=id:
                             if (strcmp(ident, "field") == 0)
                             {
                                 global.params.vfield = true;
+                                break;
+                            }
+                            goto Lerror;
+                        case 6:
+                            if (strcmp(ident, "import") == 0)
+                            {
+                                global.params.bug10378 = true;
                                 break;
                             }
                             goto Lerror;

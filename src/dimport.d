@@ -443,9 +443,9 @@ public:
         }
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
-        //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
+        //printf("%s.Import.search(ident = '%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
         if (!pkg)
         {
             load(null);

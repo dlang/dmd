@@ -9,6 +9,7 @@ $(BUGSTITLE Compiler Changes,
 
 $(BUGSTITLE Language Changes,
     $(LI $(RELATIVE_LINK2 extended-deprecated, Manifest constant can now be used for deprecation message.))
+    $(LI $(RELATIVE_LINK2 import-lookup, Imports no longer hide locals declared in outer scopes.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -28,6 +29,30 @@ $(BUGSTITLE Language Changes,
     deprecated("Some long deprecation " ~ "message") class Bar {}
     ---
     )
+
+    $(LI $(LNAME2 import-lookup, Imports no longer hide locals declared in outer scopes.))
+
+    These changes were made to the name lookup algorithm:
+
+    $(OL
+        $(LI Lookup for unqualified names is change from one pass to two pass. The first
+        pass goes through the scopes but does not check import declarations. If not found,
+        the second pass goes through the scopes and only looks at import declarations.
+        )
+        $(LI Qualified name lookups, base class lookups, and WithStatement lookups no longer
+        search import declarations, unless a module is the subject of the lookup, where the
+        behavior remains as before.
+        )
+    )
+
+    $(P This can break existing code, although reliance on the previous behavior tends to be
+    unintended, and fixing it improves the comprehensibility of the code. Breakage tends
+    to take the form of a symbol now being flagged as undefined. Fixing the breakage can
+    be done by fully qualifying the name, or adding an alias to the import declaration.)
+
+    $(P Restore old behavior using the -transition=import compiler switch.)
+
+    $(P See also $(BUGZILLA 10378))
 )
 
 Macros:
