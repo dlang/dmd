@@ -37,12 +37,16 @@ class Package : public ScopeDsymbol
 {
 public:
     PKG isPkgMod;
-    Module *mod;        // != NULL if isPkgMod == PKGmodule
+
+    // isPkgMod == PKGmodule: Module/Import object corresponding to 'package.d'
+    // isPkgMod != PKGmodule: Package object in enclosing scope
+    Dsymbol *aliassym;
 
     Package(Identifier *ident);
     const char *kind();
+    Prot prot() { return Prot(PROTprivate); }   // local package tree is always private in each scope
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
+    static DsymbolTable *resolve(DsymbolTable *dst, Identifiers *packages, Package **ppkg, Package **pparent);
 
     Package *isPackage() { return this; }
 
@@ -53,6 +57,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
+    Package *enclosingPkg();
 };
 
 class Module : public Package
@@ -96,6 +101,7 @@ public:
     // i.e. a module that will be taken all the
     // way to an object file
     Module *importedFrom;
+    Dsymbols *publicImports;    // array of public import declarations
 
     Dsymbols *decldefs;         // top level declarations for this Module
 

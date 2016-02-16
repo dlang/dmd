@@ -275,6 +275,7 @@ public:
     bool isabstract;                    // true if abstract class
     int inuse;                          // to prevent recursive attempts
     Baseok baseok;                      // set the progress of base classes resolving
+    Dsymbols *publicImports;            // array of public/protected import declarations
     Objc_ClassDeclaration objc;
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 

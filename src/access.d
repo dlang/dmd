@@ -243,7 +243,7 @@ extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
         {
             if (Module m = s.isModule())
             {
-                DsymbolTable dst = Package.resolve(m.md ? m.md.packages : null, null, null);
+                auto dst = Package.resolve(null, m.md ? m.md.packages : null, null, null);
                 assert(dst);
                 Dsymbol s2 = dst.lookup(m.ident);
                 assert(s2);
