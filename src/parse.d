@@ -266,7 +266,7 @@ public:
 
     Dsymbols* parseModule()
     {
-        const(char)* comment = token.blockComment;
+        const comment = token.blockComment;
         bool isdeprecated = false;
         Expression msg = null;
         Expressions* udas = null;
@@ -301,7 +301,7 @@ public:
                 case TOKat:
                     {
                         Expressions* exps = null;
-                        StorageClass stc = parseAttribute(&exps);
+                        const stc = parseAttribute(&exps);
                         if (stc == STCproperty || stc == STCnogc || stc == STCdisable || stc == STCsafe || stc == STCtrusted || stc == STCsystem)
                         {
                             error("@%s attribute for module declaration is not supported", token.toChars());
@@ -332,7 +332,7 @@ public:
         // ModuleDeclation leads off
         if (token.value == TOKmodule)
         {
-            Loc loc = token.loc;
+            const loc = token.loc;
             nextToken();
             if (token.value != TOKidentifier)
             {
@@ -342,8 +342,7 @@ public:
             else
             {
                 Identifiers* a = null;
-                Identifier id;
-                id = token.ident;
+                Identifier id = token.ident;
                 while (nextToken() == TOKdot)
                 {
                     if (!a)
@@ -385,7 +384,7 @@ public:
         Dsymbol lastDecl = null; // used to link unittest to its previous declaration
         if (!pLastDecl)
             pLastDecl = &lastDecl;
-        LINK linksave = linkage; // save global state
+        const linksave = linkage; // save global state
         //printf("Parser::parseDeclDefs()\n");
         auto decldefs = new Dsymbols();
         do
@@ -434,7 +433,7 @@ public:
                 break;
             case TOKmixin:
                 {
-                    Loc loc = token.loc;
+                    const loc = token.loc;
                     switch (peekNext())
                     {
                     case TOKlparen:
@@ -580,7 +579,7 @@ public:
                 return decldefs;
             case TOKstatic:
                 {
-                    TOK next = peekNext();
+                    const next = peekNext();
                     if (next == TOKthis)
                         s = parseStaticCtor(pAttrs);
                     else if (next == TOKtilde)
@@ -595,7 +594,7 @@ public:
                             athen = parseBlock(pLastDecl);
                         else
                         {
-                            Loc lookingForElseSave = lookingForElse;
+                            const lookingForElseSave = lookingForElse;
                             lookingForElse = token.loc;
                             athen = parseBlock(pLastDecl);
                             lookingForElse = lookingForElseSave;
@@ -603,7 +602,7 @@ public:
                         Dsymbols* aelse = null;
                         if (token.value == TOKelse)
                         {
-                            Loc elseloc = token.loc;
+                            const elseloc = token.loc;
                             nextToken();
                             aelse = parseBlock(pLastDecl);
                             checkDanglingElse(elseloc);
@@ -634,7 +633,7 @@ public:
                 goto Lstc;
             case TOKshared:
                 {
-                    TOK next = peekNext();
+                    const next = peekNext();
                     if (next == TOKlparen)
                         goto Ldeclaration;
                     if (next == TOKstatic)
@@ -798,9 +797,9 @@ public:
                         stc = STCextern;
                         goto Lstc;
                     }
-                    Loc linkLoc = token.loc;
+                    const linkLoc = token.loc;
                     Identifiers* idents = null;
-                    LINK link = parseLinkage(&idents);
+                    const link = parseLinkage(&idents);
                     if (pAttrs.link != LINKdefault)
                     {
                         if (pAttrs.link != link)
@@ -882,7 +881,7 @@ public:
                             break;
                         }
                     }
-                    Loc attrloc = token.loc;
+                    const attrloc = token.loc;
                     a = parseBlock(pLastDecl, pAttrs);
                     if (pAttrs.protection.kind != PROTundefined)
                     {
@@ -952,7 +951,7 @@ public:
             case TOKpragma:
                 {
                     Expressions* args = null;
-                    Loc loc = token.loc;
+                    const loc = token.loc;
                     nextToken();
                     check(TOKlparen);
                     if (token.value != TOKidentifier)
@@ -1034,7 +1033,7 @@ public:
                         athen = parseBlock(pLastDecl);
                     else
                     {
-                        Loc lookingForElseSave = lookingForElse;
+                        const lookingForElseSave = lookingForElse;
                         lookingForElse = token.loc;
                         athen = parseBlock(pLastDecl);
                         lookingForElse = lookingForElseSave;
@@ -1042,7 +1041,7 @@ public:
                     Dsymbols* aelse = null;
                     if (token.value == TOKelse)
                     {
-                        Loc elseloc = token.loc;
+                        const elseloc = token.loc;
                         nextToken();
                         aelse = parseBlock(pLastDecl);
                         checkDanglingElse(elseloc);
@@ -1095,7 +1094,7 @@ public:
         auto a = new Dsymbols();
         while (1)
         {
-            Loc loc = token.loc;
+            const loc = token.loc;
             Identifier ident = token.ident;
             nextToken(); // skip over ident
             TemplateParameters* tpl = null;
@@ -1156,7 +1155,7 @@ public:
             break;
         case TOKlcurly:
             {
-                Loc lookingForElseSave = lookingForElse;
+                const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
                 nextToken();
                 a = parseDeclDefs(0, pLastDecl);
@@ -1255,7 +1254,7 @@ public:
                 Expression exp = parsePrimaryExp();
                 if (token.value == TOKlparen)
                 {
-                    Loc loc = token.loc;
+                    const loc = token.loc;
                     exp = new CallExp(loc, exp, parseArguments());
                 }
                 udas = new Expressions();
@@ -1402,7 +1401,7 @@ public:
         TemplateParameters* tpl;
         Dsymbols* decldefs;
         Expression constraint = null;
-        Loc loc = token.loc;
+        const loc = token.loc;
         nextToken();
         if (token.value != TOKidentifier)
         {
@@ -1616,9 +1615,9 @@ public:
         Identifier id;
         Objects* tiargs;
         //printf("parseMixin()\n");
-        Loc locMixin = token.loc;
+        const locMixin = token.loc;
         nextToken(); // skip 'mixin'
-        Loc loc = token.loc;
+        auto loc = token.loc;
         TypeQualified tqual = null;
         if (token.value == TOKdot)
         {
@@ -1909,7 +1908,7 @@ public:
      */
     StaticAssert parseStaticAssert()
     {
-        Loc loc = token.loc;
+        const loc = token.loc;
         Expression exp;
         Expression msg = null;
         //printf("parseStaticAssert()\n");
@@ -1939,7 +1938,7 @@ public:
     TypeQualified parseTypeof()
     {
         TypeQualified t;
-        Loc loc = token.loc;
+        const loc = token.loc;
         nextToken();
         check(TOKlparen);
         if (token.value == TOKreturn) // typeof(return)
@@ -1962,7 +1961,7 @@ public:
      */
     Type parseVector()
     {
-        Loc loc = token.loc;
+        const loc = token.loc;
         nextToken();
         check(TOKlparen);
         Type tb = parseType();
@@ -2163,7 +2162,7 @@ public:
     {
         Expression exp;
         Condition condition;
-        Loc loc = token.loc;
+        const loc = token.loc;
         nextToken();
         nextToken();
         if (token.value == TOKlparen)
@@ -2193,7 +2192,7 @@ public:
     Dsymbol parseCtor(PrefixAttributes* pAttrs)
     {
         Expressions* udas = null;
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         if (token.value == TOKlparen && peekNext() == TOKthis && peekNext2() == TOKrparen)
@@ -2274,7 +2273,7 @@ public:
     Dsymbol parseDtor(PrefixAttributes* pAttrs)
     {
         Expressions* udas = null;
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         check(TOKthis);
@@ -2309,7 +2308,7 @@ public:
     Dsymbol parseStaticCtor(PrefixAttributes* pAttrs)
     {
         //Expressions *udas = NULL;
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         nextToken();
@@ -2342,7 +2341,7 @@ public:
     Dsymbol parseStaticDtor(PrefixAttributes* pAttrs)
     {
         Expressions* udas = null;
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         nextToken();
@@ -2382,7 +2381,7 @@ public:
     Dsymbol parseSharedStaticCtor(PrefixAttributes* pAttrs)
     {
         //Expressions *udas = NULL;
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         nextToken();
@@ -2414,7 +2413,7 @@ public:
     Dsymbol parseSharedStaticDtor(PrefixAttributes* pAttrs)
     {
         Expressions* udas = null;
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         nextToken();
@@ -2452,7 +2451,7 @@ public:
      */
     Dsymbol parseInvariant(PrefixAttributes* pAttrs)
     {
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         if (token.value == TOKlparen) // optional ()
@@ -2474,7 +2473,7 @@ public:
      */
     Dsymbol parseUnitTest(PrefixAttributes* pAttrs)
     {
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         const(char)* begPtr = token.ptr + 1; // skip '{'
@@ -2513,7 +2512,7 @@ public:
      */
     Dsymbol parseNew(PrefixAttributes* pAttrs)
     {
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         int varargs;
@@ -2532,7 +2531,7 @@ public:
      */
     Dsymbol parseDelete(PrefixAttributes* pAttrs)
     {
-        Loc loc = token.loc;
+        const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
         nextToken();
         int varargs;
@@ -2667,7 +2666,7 @@ public:
                         if (tpl && token.value == TOKidentifier && (t = peek(&token), (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot)))
                         {
                             Identifier id = Identifier.generateId("__T");
-                            Loc loc = token.loc;
+                            const loc = token.loc;
                             at = new TypeIdentifier(loc, id);
                             if (!*tpl)
                                 *tpl = new TemplateParameters();
@@ -2728,7 +2727,7 @@ public:
         EnumDeclaration e;
         Identifier id;
         Type memtype;
-        Loc loc = token.loc;
+        auto loc = token.loc;
         //printf("Parser::parseEnum()\n");
         nextToken();
         if (token.value == TOKidentifier)
@@ -2742,7 +2741,7 @@ public:
         {
             nextToken();
             int alt = 0;
-            Loc typeLoc = token.loc;
+            const typeLoc = token.loc;
             memtype = parseBasicType();
             memtype = parseDeclarator(memtype, &alt, null);
             checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
@@ -2832,7 +2831,7 @@ public:
         Identifier id;
         TemplateParameters* tpl = null;
         Expression constraint = null;
-        Loc loc = token.loc;
+        const loc = token.loc;
         TOK tok = token.value;
         //printf("Parser::parseAggregate()\n");
         nextToken();
@@ -3001,7 +3000,7 @@ public:
                 error("identifier expected following import");
                 break;
             }
-            Loc loc = token.loc;
+            const loc = token.loc;
             Identifier id = token.ident;
             Identifiers* a = null;
             nextToken();
@@ -3126,7 +3125,7 @@ public:
             }
             break;
         }
-        Loc typeLoc = token.loc;
+        const typeLoc = token.loc;
         Type t;
         t = parseBasicType();
         int alt = 0;
@@ -3343,7 +3342,7 @@ public:
                         }
                         maybeArray = null;
                     }
-                    Loc loc = token.loc;
+                    const loc = token.loc;
                     Identifier id = token.ident;
                     nextToken();
                     if (token.value == TOKnot)
@@ -3809,7 +3808,7 @@ public:
         TOK tok = TOKreserved;
         LINK link = linkage;
         uint structalign = 0;
-        Loc loc = token.loc;
+        auto loc = token.loc;
         Expressions* udas = null;
         Token* tk;
         //printf("parseDeclarations() %s\n", token.toChars());
@@ -4229,7 +4228,7 @@ public:
 
     Dsymbol parseFunctionLiteral()
     {
-        Loc loc = token.loc;
+        const loc = token.loc;
         TemplateParameters* tpl = null;
         Parameters* parameters = null;
         int varargs = 0;
@@ -4307,7 +4306,7 @@ public:
         if (token.value == TOKgoesto)
         {
             check(TOKgoesto);
-            Loc returnloc = token.loc;
+            const returnloc = token.loc;
             Expression ae = parseAssignExp();
             fd.fbody = new ReturnStatement(returnloc, ae);
             fd.endloc = token.loc;
@@ -4468,7 +4467,7 @@ public:
         Statement ifbody;
         Statement elsebody;
         bool isfinal;
-        Loc loc = token.loc;
+        const loc = token.loc;
         //printf("parseStatement()\n");
         if (flags & PScurly && token.value != TOKlcurly)
             error("statement expected to be { }, not %s", token.toChars());
@@ -4727,7 +4726,7 @@ public:
             }
         case TOKlcurly:
             {
-                Loc lookingForElseSave = lookingForElse;
+                const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
                 nextToken();
                 //if (token.value == TOKsemicolon)
@@ -4776,7 +4775,7 @@ public:
                 Statement _body;
                 Expression condition;
                 nextToken();
-                Loc lookingForElseSave = lookingForElse;
+                const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
                 _body = parseStatement(PSscope);
                 lookingForElse = lookingForElseSave;
@@ -4805,7 +4804,7 @@ public:
                 }
                 else
                 {
-                    Loc lookingForElseSave = lookingForElse;
+                    const lookingForElseSave = lookingForElse;
                     lookingForElse = Loc();
                     _init = parseStatement(0);
                     lookingForElse = lookingForElseSave;
@@ -5006,14 +5005,14 @@ public:
                 condition = parseExpression();
                 check(TOKrparen);
                 {
-                    Loc lookingForElseSave = lookingForElse;
+                    const lookingForElseSave = lookingForElse;
                     lookingForElse = loc;
                     ifbody = parseStatement(PSscope);
                     lookingForElse = lookingForElseSave;
                 }
                 if (token.value == TOKelse)
                 {
-                    Loc elseloc = token.loc;
+                    const elseloc = token.loc;
                     nextToken();
                     elsebody = parseStatement(PSscope);
                     checkDanglingElse(elseloc);
@@ -5079,7 +5078,7 @@ public:
             goto Lcondition;
         Lcondition:
             {
-                Loc lookingForElseSave = lookingForElse;
+                const lookingForElseSave = lookingForElse;
                 lookingForElse = loc;
                 ifbody = parseStatement(0);
                 lookingForElse = lookingForElseSave;
@@ -5087,7 +5086,7 @@ public:
             elsebody = null;
             if (token.value == TOKelse)
             {
-                Loc elseloc = token.loc;
+                const elseloc = token.loc;
                 nextToken();
                 elsebody = parseStatement(0);
                 checkDanglingElse(elseloc);
@@ -5322,7 +5321,7 @@ public:
                 Catches* catches = null;
                 Statement finalbody = null;
                 nextToken();
-                Loc lookingForElseSave = lookingForElse;
+                const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
                 _body = parseStatement(PSscope);
                 lookingForElse = lookingForElseSave;
@@ -5332,7 +5331,7 @@ public:
                     Catch c;
                     Type t;
                     Identifier id;
-                    Loc catchloc = token.loc;
+                    const catchloc = token.loc;
                     nextToken();
                     if (token.value == TOKlcurly || token.value != TOKlparen)
                     {
@@ -5513,7 +5512,7 @@ public:
         Identifier id;
         Initializer value;
         int comma;
-        Loc loc = token.loc;
+        const loc = token.loc;
         Token* t;
         int braces;
         int brackets;
@@ -6510,15 +6509,13 @@ public:
 
     Expression parseExpression()
     {
-        Expression e;
-        Expression e2;
-        Loc loc = token.loc;
+        auto loc = token.loc;
         //printf("Parser::parseExpression() loc = %d\n", loc.linnum);
-        e = parseAssignExp();
+        auto e = parseAssignExp();
         while (token.value == TOKcomma)
         {
             nextToken();
-            e2 = parseAssignExp();
+            auto e2 = parseAssignExp();
             e = new CommaExp(loc, e, e2);
             loc = token.loc;
         }
@@ -6531,7 +6528,7 @@ public:
         Expression e;
         Type t;
         Identifier id;
-        Loc loc = token.loc;
+        const loc = token.loc;
         //printf("parsePrimaryExp(): loc = %d\n", loc.linnum);
         switch (token.value)
         {
@@ -7015,7 +7012,7 @@ public:
     Expression parseUnaryExp()
     {
         Expression e;
-        Loc loc = token.loc;
+        const loc = token.loc;
         switch (token.value)
         {
         case TOKand:
@@ -7157,8 +7154,7 @@ public:
             }
         case TOKlparen:
             {
-                Token* tk;
-                tk = peek(&token);
+                auto tk = peek(&token);
                 static if (CCASTSYNTAX)
                 {
                     // If cast
@@ -7242,9 +7238,8 @@ public:
                         case TOKvoid:
                             {
                                 // (type) una_exp
-                                Type t;
                                 nextToken();
-                                t = parseType();
+                                auto t = parseType();
                                 check(TOKrparen);
                                 // if .identifier
                                 // or .identifier!( ... )
@@ -7293,10 +7288,9 @@ public:
 
     Expression parsePostExp(Expression e)
     {
-        Loc loc;
         while (1)
         {
-            loc = token.loc;
+            const loc = token.loc;
             switch (token.value)
             {
             case TOKdot:
@@ -7372,27 +7366,25 @@ public:
 
     Expression parseMulExp()
     {
-        Expression e;
-        Expression e2;
-        Loc loc = token.loc;
-        e = parseUnaryExp();
+        const loc = token.loc;
+        auto e = parseUnaryExp();
         while (1)
         {
             switch (token.value)
             {
             case TOKmul:
                 nextToken();
-                e2 = parseUnaryExp();
+                auto e2 = parseUnaryExp();
                 e = new MulExp(loc, e, e2);
                 continue;
             case TOKdiv:
                 nextToken();
-                e2 = parseUnaryExp();
+                auto e2 = parseUnaryExp();
                 e = new DivExp(loc, e, e2);
                 continue;
             case TOKmod:
                 nextToken();
-                e2 = parseUnaryExp();
+                auto e2 = parseUnaryExp();
                 e = new ModExp(loc, e, e2);
                 continue;
             default:
@@ -7405,27 +7397,25 @@ public:
 
     Expression parseAddExp()
     {
-        Expression e;
-        Expression e2;
-        Loc loc = token.loc;
-        e = parseMulExp();
+        const loc = token.loc;
+        auto e = parseMulExp();
         while (1)
         {
             switch (token.value)
             {
             case TOKadd:
                 nextToken();
-                e2 = parseMulExp();
+                auto e2 = parseMulExp();
                 e = new AddExp(loc, e, e2);
                 continue;
             case TOKmin:
                 nextToken();
-                e2 = parseMulExp();
+                auto e2 = parseMulExp();
                 e = new MinExp(loc, e, e2);
                 continue;
             case TOKtilde:
                 nextToken();
-                e2 = parseMulExp();
+                auto e2 = parseMulExp();
                 e = new CatExp(loc, e, e2);
                 continue;
             default:
@@ -7438,27 +7428,25 @@ public:
 
     Expression parseShiftExp()
     {
-        Expression e;
-        Expression e2;
-        Loc loc = token.loc;
-        e = parseAddExp();
+        const loc = token.loc;
+        auto e = parseAddExp();
         while (1)
         {
             switch (token.value)
             {
             case TOKshl:
                 nextToken();
-                e2 = parseAddExp();
+                auto e2 = parseAddExp();
                 e = new ShlExp(loc, e, e2);
                 continue;
             case TOKshr:
                 nextToken();
-                e2 = parseAddExp();
+                auto e2 = parseAddExp();
                 e = new ShrExp(loc, e, e2);
                 continue;
             case TOKushr:
                 nextToken();
-                e2 = parseAddExp();
+                auto e2 = parseAddExp();
                 e = new UshrExp(loc, e, e2);
                 continue;
             default:
@@ -7471,31 +7459,29 @@ public:
 
     Expression parseCmpExp()
     {
-        Expression e;
-        Expression e2;
-        Token* t;
-        Loc loc = token.loc;
-        e = parseShiftExp();
+        const loc = token.loc;
+        auto e = parseShiftExp();
         TOK op = token.value;
         switch (op)
         {
         case TOKequal:
         case TOKnotequal:
             nextToken();
-            e2 = parseShiftExp();
+            auto e2 = parseShiftExp();
             e = new EqualExp(op, loc, e, e2);
             break;
         case TOKis:
             op = TOKidentity;
             goto L1;
         case TOKnot:
+        {
             // Attempt to identify '!is'
-            t = peek(&token);
+            auto t = peek(&token);
             if (t.value == TOKin)
             {
                 nextToken();
                 nextToken();
-                e2 = parseShiftExp();
+                auto e2 = parseShiftExp();
                 e = new InExp(loc, e, e2);
                 e = new NotExp(loc, e);
                 break;
@@ -7505,9 +7491,10 @@ public:
             nextToken();
             op = TOKnotidentity;
             goto L1;
+        }
         L1:
             nextToken();
-            e2 = parseShiftExp();
+            auto e2 = parseShiftExp();
             e = new IdentityExp(op, loc, e, e2);
             break;
         case TOKlt:
@@ -7523,12 +7510,12 @@ public:
         case TOKug:
         case TOKue:
             nextToken();
-            e2 = parseShiftExp();
+            auto e2 = parseShiftExp();
             e = new CmpExp(op, loc, e, e2);
             break;
         case TOKin:
             nextToken();
-            e2 = parseShiftExp();
+            auto e2 = parseShiftExp();
             e = new InExp(loc, e, e2);
             break;
         default:
@@ -7540,12 +7527,12 @@ public:
     Expression parseAndExp()
     {
         Loc loc = token.loc;
-        Expression e = parseCmpExp();
+        auto e = parseCmpExp();
         while (token.value == TOKand)
         {
             checkParens(TOKand, e);
             nextToken();
-            Expression e2 = parseCmpExp();
+            auto e2 = parseCmpExp();
             checkParens(TOKand, e2);
             e = new AndExp(loc, e, e2);
             loc = token.loc;
@@ -7555,13 +7542,13 @@ public:
 
     Expression parseXorExp()
     {
-        Loc loc = token.loc;
-        Expression e = parseAndExp();
+        const loc = token.loc;
+        auto e = parseAndExp();
         while (token.value == TOKxor)
         {
             checkParens(TOKxor, e);
             nextToken();
-            Expression e2 = parseAndExp();
+            auto e2 = parseAndExp();
             checkParens(TOKxor, e2);
             e = new XorExp(loc, e, e2);
         }
@@ -7570,13 +7557,13 @@ public:
 
     Expression parseOrExp()
     {
-        Loc loc = token.loc;
-        Expression e = parseXorExp();
+        const loc = token.loc;
+        auto e = parseXorExp();
         while (token.value == TOKor)
         {
             checkParens(TOKor, e);
             nextToken();
-            Expression e2 = parseXorExp();
+            auto e2 = parseXorExp();
             checkParens(TOKor, e2);
             e = new OrExp(loc, e, e2);
         }
@@ -7585,14 +7572,12 @@ public:
 
     Expression parseAndAndExp()
     {
-        Expression e;
-        Expression e2;
-        Loc loc = token.loc;
-        e = parseOrExp();
+        const loc = token.loc;
+        auto e = parseOrExp();
         while (token.value == TOKandand)
         {
             nextToken();
-            e2 = parseOrExp();
+            auto e2 = parseOrExp();
             e = new AndAndExp(loc, e, e2);
         }
         return e;
@@ -7600,14 +7585,12 @@ public:
 
     Expression parseOrOrExp()
     {
-        Expression e;
-        Expression e2;
-        Loc loc = token.loc;
-        e = parseAndAndExp();
+        const loc = token.loc;
+        auto e = parseAndAndExp();
         while (token.value == TOKoror)
         {
             nextToken();
-            e2 = parseAndAndExp();
+            auto e2 = parseAndAndExp();
             e = new OrOrExp(loc, e, e2);
         }
         return e;
@@ -7615,17 +7598,14 @@ public:
 
     Expression parseCondExp()
     {
-        Expression e;
-        Expression e1;
-        Expression e2;
-        Loc loc = token.loc;
-        e = parseOrOrExp();
+        const loc = token.loc;
+        auto e = parseOrOrExp();
         if (token.value == TOKquestion)
         {
             nextToken();
-            e1 = parseExpression();
+            auto e1 = parseExpression();
             check(TOKcolon);
-            e2 = parseCondExp();
+            auto e2 = parseCondExp();
             e = new CondExp(loc, e, e1, e2);
         }
         return e;
@@ -7633,83 +7613,80 @@ public:
 
     Expression parseAssignExp()
     {
-        Expression e;
-        Expression e2;
-        Loc loc;
-        e = parseCondExp();
+        auto e = parseCondExp();
         while (1)
         {
-            loc = token.loc;
+            const loc = token.loc;
             switch (token.value)
             {
             case TOKassign:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new AssignExp(loc, e, e2);
                 continue;
             case TOKaddass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new AddAssignExp(loc, e, e2);
                 continue;
             case TOKminass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new MinAssignExp(loc, e, e2);
                 continue;
             case TOKmulass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new MulAssignExp(loc, e, e2);
                 continue;
             case TOKdivass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new DivAssignExp(loc, e, e2);
                 continue;
             case TOKmodass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new ModAssignExp(loc, e, e2);
                 continue;
             case TOKpowass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new PowAssignExp(loc, e, e2);
                 continue;
             case TOKandass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new AndAssignExp(loc, e, e2);
                 continue;
             case TOKorass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new OrAssignExp(loc, e, e2);
                 continue;
             case TOKxorass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new XorAssignExp(loc, e, e2);
                 continue;
             case TOKshlass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new ShlAssignExp(loc, e, e2);
                 continue;
             case TOKshrass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new ShrAssignExp(loc, e, e2);
                 continue;
             case TOKushrass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new UshrAssignExp(loc, e, e2);
                 continue;
             case TOKcatass:
                 nextToken();
-                e2 = parseAssignExp();
+                auto e2 = parseAssignExp();
                 e = new CatAssignExp(loc, e, e2);
                 continue;
             default:
@@ -7728,7 +7705,6 @@ public:
     {
         // function call
         Expressions* arguments;
-        Expression arg;
         TOK endtok;
         arguments = new Expressions();
         if (token.value == TOKlbracket)
@@ -7739,7 +7715,7 @@ public:
             nextToken();
             while (token.value != endtok && token.value != TOKeof)
             {
-                arg = parseAssignExp();
+                auto arg = parseAssignExp();
                 arguments.push(arg);
                 if (token.value == endtok)
                     break;
@@ -7754,12 +7730,10 @@ public:
      */
     Expression parseNewExp(Expression thisexp)
     {
-        Type t;
-        Expressions* newargs;
-        Expressions* arguments = null;
-        Loc loc = token.loc;
+        const loc = token.loc;
         nextToken();
-        newargs = null;
+        Expressions* newargs = null;
+        Expressions* arguments = null;
         if (token.value == TOKlparen)
         {
             newargs = parseArguments();
@@ -7789,18 +7763,18 @@ public:
                 nextToken();
                 cd.members = decl;
             }
-            Expression e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
+            auto e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
             return e;
         }
-        StorageClass stc = parseTypeCtor();
-        t = parseBasicType(true);
+        const stc = parseTypeCtor();
+        auto t = parseBasicType(true);
         t = parseBasicType2(t);
         t = t.addSTC(stc);
         if (t.ty == Taarray)
         {
             TypeAArray taa = cast(TypeAArray)t;
             Type index = taa.index;
-            Expression edim = index.toExpression();
+            auto edim = index.toExpression();
             if (!edim)
             {
                 error("need size of rightmost array, not type %s", index.toChars());
@@ -7815,7 +7789,7 @@ public:
         {
             arguments = parseArguments();
         }
-        Expression e = new NewExp(loc, thisexp, newargs, t, arguments);
+        auto e = new NewExp(loc, thisexp, newargs, t, arguments);
         return e;
     }
 
