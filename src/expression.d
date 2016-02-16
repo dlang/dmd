@@ -9127,11 +9127,9 @@ public:
         {
             /* Rewrite (a,b)(args) as (a,(b(args)))
              */
-            CommaExp ce = cast(CommaExp)e1;
+            auto ce = cast(CommaExp)e1;
             e1 = ce.e2;
-            e1.type = ce.type;
             ce.e2 = this;
-            ce.type = null;
             return ce.semantic(sc);
         }
         if (e1.op == TOKdelegate)
