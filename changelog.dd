@@ -30,7 +30,7 @@ $(BUGSTITLE Language Changes,
     ---
     )
 
-    $(LI $(LNAME2 import-lookup, Imports no longer hide locals declared in outer scopes.))
+    $(LI $(LNAME2 import-lookup, Imports no longer hide locals declared in outer scopes.)
 
     These changes were made to the name lookup algorithm:
 
@@ -53,6 +53,7 @@ $(BUGSTITLE Language Changes,
     $(P Restore old behavior using the -transition=import compiler switch.)
 
     $(P See also $(BUGZILLA 10378))
+    )
 )
 
 Macros:
