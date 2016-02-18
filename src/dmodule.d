@@ -987,7 +987,7 @@ public:
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s->toChars());
+            //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s.toChars());
             s.semantic(sc);
             runDeferredSemantic();
         }
