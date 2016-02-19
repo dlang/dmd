@@ -265,6 +265,7 @@ struct Objstate
     int segidx;                 // index of next SEGDEF record
     int extidx;                 // index of next EXTDEF record
     int pubnamidx;              // index of COMDAT public name index
+    Outbuffer *reset_symbuf;    // Keep pointers to reset symbols
 
     Symbol *startaddress;       // if !NULL, then Symbol is start address
 
@@ -590,10 +591,26 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         //printf("Obj::init()\n");
         Obj *mobj = new Obj();
 
+        Outbuffer *reset_symbuf = obj.reset_symbuf;
+        if (reset_symbuf)
+        {
+            symbol **p = (symbol **)reset_symbuf->buf;
+            const size_t n = reset_symbuf->size() / sizeof(symbol *);
+            for (size_t i = 0; i < n; ++i)
+                symbol_reset(p[i]);
+            reset_symbuf->setsize(0);
+        }
+        else
+        {
+            reset_symbuf = new Outbuffer(50 * sizeof(symbol *));
+        }
+
         memset(&obj,0,sizeof(obj));
 
         obj.buf = objbuf;
         obj.buf->reserve(40000);
+
+        obj.reset_symbuf = reset_symbuf; // reuse buffer
 
         obj.lastfardatasegi = -1;
 
@@ -1869,6 +1886,7 @@ int Obj::comdat(Symbol *s)
     tym_t ty;
 
     symbol_debug(s);
+    obj.reset_symbuf->write(&s, sizeof(s));
     ty = s->ty();
     isfunc = tyfunc(ty) != 0;
 
@@ -2438,6 +2456,8 @@ void Obj::pubdef(int seg,Symbol *s,targ_size_t offset)
     unsigned ti;
 
     assert(offset < 100000000);
+    obj.reset_symbuf->write(&s, sizeof(s));
+
     int idx = SegData[seg]->segidx;
     if (obj.pubdatai + 1 + (IDMAX + IDOHD) + 4 + 2 > sizeof(obj.pubdata) ||
         idx != getindex(obj.pubdata + 1))
@@ -2509,6 +2529,7 @@ int Obj::external(Symbol *s)
 {
     //dbg_printf("Obj::external('%s')\n",s->Sident);
     symbol_debug(s);
+    obj.reset_symbuf->write(&s, sizeof(s));
     if (obj.extdatai + (IDMAX + IDOHD) + 3 > sizeof(obj.extdata))
         outextdata();
 
@@ -2709,6 +2730,7 @@ STATIC void obj_modend()
         // Turn startaddress into a fixup.
         // Borrow heavilly from Obj::reftoident()
 
+        obj.reset_symbuf->write(&s, sizeof(s));
         symbol_debug(s);
         offset = 0;
         ty = s->ty();

@@ -318,7 +318,6 @@ dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset)
     s->Sflags |= SFLnodebug;
     s->Stype = t;
     s->Sdt = dt;
-    slist_add(s);
     outdata(s);
     return dtxoff(pdtend, s, offset);
 }

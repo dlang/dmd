@@ -378,9 +378,16 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     string_table->setsize(0);
     string_table->write32(4);           // first 4 bytes are length of string table
 
-    if (!symbuf)
+    if (symbuf)
+    {
+        symbol **p = (symbol **)symbuf->buf;
+        const size_t n = symbuf->size() / sizeof(symbol *);
+        for (size_t i = 0; i < n; ++i)
+            symbol_reset(p[i]);
+        symbuf->setsize(0);
+    }
+    else
         symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    symbuf->setsize(0);
 
     if (!syment_buf)
         syment_buf = new Outbuffer(sizeof(SymbolTable32) * SYM_TAB_INIT);
