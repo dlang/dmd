@@ -981,6 +981,7 @@ public:
 
     int canassign;                  // it can be assigned to
     bool overlapped;                // if it is a field and has overlapping
+    bool overlapsImmutable;         // if it overlaps mutable with immutable
     Dsymbol aliassym;               // if redone as alias to another symbol
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
 

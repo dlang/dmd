@@ -8662,10 +8662,17 @@ public:
 
     override int checkModifiable(Scope* sc, int flag)
     {
-        //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type->toChars());
+        //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
+        VarDeclaration vd = var.isVarDeclaration();
+        if (!flag && vd.overlapped && vd.overlapsImmutable && sc.func &&
+            sc.func.setUnsafe())
+        {
+            e1.error("field %s cannot be modified in @safe code because it overlaps mutable and immutable", toChars());
+            return 2;
+        }
         if (e1.op == TOKthis)
             return var.checkModify(loc, sc, type, e1, flag);
-        //printf("\te1 = %s\n", e1->toChars());
+        //printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
     }
 
