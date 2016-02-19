@@ -291,45 +291,49 @@ void test()
 
 $(H3 Public Imports)
 
-	$(P By default, imports are $(I private). This means that
-	if module A imports module B, and module B imports module
-	C, then C's names are not searched for. An import can
-	be specifically declared $(I public), when it will be
-	treated as if any imports of the module with the $(I ImportDeclaration)
-	also import the public imported modules.)
+    $(P By default, imports are $(I private). This means that if module A
+    imports module B, and module B imports module C, then names from C are
+    visible only from B and not from A. This prevents surprising name clashes
+    from modules which haven't directly been imported.)
+
+    $(P An import can be however specifically declared $(I public), which will
+    cause names from the imported module to be visible to further imports. So in
+    the above example where module A imports module B, if module B $(I publicly)
+    imports module C, names from C will be visible in A as well.)
 
     $(P All symbols from a publicly imported module are also aliased in the
-    importing module. This means that if module D imports module C, and
-    module C $(I publicly) imports module B which has the symbol $(I bar),
-    in module D you can access the symbol via $(D bar), $(D B.bar), and $(D C.bar).)
+    importing module. Thus in the above example if C contains the name foo, it
+    will be accessible in A as $(D foo), $(D B.foo) and $(D C.foo).)
+
+    $(P For another example:)
 
 ---
-module A;
+module W;
 void foo() { }
 ---
 
 ---
-module B;
+module X;
 void bar() { }
 ---
 
 ---
-module C;
-import A;
-public import B;
+module Y;
+import W;
+public import X;
 ...
-foo();  // call  A.foo()
-bar();  // calls B.bar()
+foo();  // calls W.foo()
+bar();  // calls X.bar()
 ---
 
 ---
-module D;
-import C;
+module Z;
+import Y;
 ...
 foo();	 // error, foo() is undefined
-bar();	 // ok, calls B.bar()
-B.bar(); // ditto
-C.bar(); // ok, calls C.bar() which is an alias to B.bar()
+bar();	 // ok, calls X.bar()
+X.bar(); // ditto
+Y.bar(); // ok, Y.bar() is an alias to X.bar()
 ---
 
 $(H3 Static Imports)
