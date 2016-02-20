@@ -251,6 +251,9 @@ struct BitArray
 
     size_t len;
     size_t *ptr;
+
+private:
+    BitArray(const BitArray&);
 };
 
 #endif

@@ -244,6 +244,8 @@ struct BitArray
             btc(ptr, idx);
     }
 
+    @disable this(this);
+
     ~this()
     {
         mem.xfree(ptr);
