@@ -84,7 +84,8 @@ struct Target
         if (global.params.is64bit && global.params.isWindows)
             c_long_doublesize = 8;
 
-        cppExceptions = global.params.dwarfeh || global.params.isLinux || global.params.isFreeBSD;
+        cppExceptions = global.params.dwarfeh || global.params.isLinux || global.params.isFreeBSD ||
+            (global.params.isOSX && global.params.is64bit);
     }
 
     /******************************

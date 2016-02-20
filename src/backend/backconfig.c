@@ -117,11 +117,14 @@ void out_config_init(
     if (model == 64)
     {   config.exe = EX_OSX64;
         config.fpxmmregs = TRUE;
+        config.ehmethod = EH_DWARF;
     }
     else
+    {
         config.exe = EX_OSX;
+        config.ehmethod = EH_DM;
+    }
     config.flags |= CFGnoebp;
-    if (!exe)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
@@ -129,7 +132,6 @@ void out_config_init(
     }
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
-    config.ehmethod = EH_DM;
 #endif
 #if TARGET_FREEBSD
     if (model == 64)
