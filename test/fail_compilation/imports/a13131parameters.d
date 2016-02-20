@@ -4,6 +4,7 @@ auto createParameterMixins()    // auto is necessary to invoke semantic3 to calc
 {
     pragma(msg, "+B");
     enum fullModuleName = "imports.a13131elec";  // necessary
+    mixin("import "~fullModuleName~";");
     foreach (e ; __traits(derivedMembers, mixin(fullModuleName)))
     {
         // will access yet-not semantic analyzed invalid symbol 'econn' in imports.elec

@@ -237,4 +237,23 @@ struct Array
     }
 };
 
+struct BitArray
+{
+    BitArray()
+      : len(0)
+      , ptr(NULL)
+    {}
+
+    ~BitArray()
+    {
+        mem.xfree(ptr);
+    }
+
+    size_t len;
+    size_t *ptr;
+
+private:
+    BitArray(const BitArray&);
+};
+
 #endif

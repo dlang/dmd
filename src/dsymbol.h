@@ -288,6 +288,8 @@ private:
     Dsymbols *importedScopes;   // imported Dsymbol's
     PROTKIND *prots;            // array of PROTKIND, one for each import
 
+    BitArray accessiblePackages;
+
 public:
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);

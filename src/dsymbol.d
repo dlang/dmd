@@ -1211,6 +1211,9 @@ private:
     Dsymbols* importedScopes;
     PROTKIND* prots;            // array of PROTKIND, one for each import
 
+    import ddmd.root.array : BitArray;
+    BitArray accessiblePackages;// whitelist of accessible (imported) packages
+
 public:
     final extern (D) this()
     {
@@ -1431,6 +1434,19 @@ public:
             prots = cast(PROTKIND*)mem.xrealloc(prots, importedScopes.dim * (prots[0]).sizeof);
             prots[importedScopes.dim - 1] = protection.kind;
         }
+    }
+
+    final void addAccessiblePackage(Package p)
+    {
+        if (accessiblePackages.length <= p.tag)
+            accessiblePackages.length = p.tag + 1;
+        accessiblePackages[p.tag] = true;
+    }
+
+    final bool isPackageAccessible(Package p)
+    {
+        return p.tag < accessiblePackages.length &&
+            accessiblePackages[p.tag];
     }
 
     override final bool isforwardRef()
