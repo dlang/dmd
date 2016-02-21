@@ -399,7 +399,7 @@ struct OPND
     opflag_t usFlags;
     Dsymbol *s;
     targ_llong disp;
-    longdouble real;
+    real_t real;
     Type *ptype;
     ASM_JUMPTYPE ajt;
 
@@ -3510,13 +3510,13 @@ static code *asm_db_parse(OP *pop)
                 switch (op)
                 {
                     case OPdf:
-                        dt.f = asmtok->float80value;
+                        dt.f = asmtok->floatvalue;
                         break;
                     case OPdd:
-                        dt.d = asmtok->float80value;
+                        dt.d = asmtok->floatvalue;
                         break;
                     case OPde:
-                        dt.ld = asmtok->float80value;
+                        dt.ld = asmtok->floatvalue;
                         break;
                     default:
                         asmerr("integer expected");
@@ -4452,21 +4452,21 @@ static OPND *asm_primary_exp()
 
         case TOKfloat32v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat32;
             asm_token();
             break;
 
         case TOKfloat64v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat64;
             asm_token();
             break;
 
         case TOKfloat80v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat80;
             asm_token();
             break;

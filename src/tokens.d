@@ -13,8 +13,8 @@ import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.globals;
 import ddmd.identifier;
-import ddmd.root.port;
 import ddmd.root.outbuffer;
+import ddmd.root.real_t;
 import ddmd.root.rmem;
 import ddmd.utf;
 
@@ -558,7 +558,7 @@ extern (C++) struct Token
         d_int64 int64value;
         d_uns64 uns64value;
         // Floats
-        d_float80 float80value;
+        real_t floatvalue;
 
         struct
         {
@@ -768,7 +768,7 @@ extern (C++) struct Token
 
     extern (C++) const(char)* toChars() const
     {
-        __gshared char[3 + 3 * float80value.sizeof + 1] buffer;
+        __gshared char[3 + 3 * floatvalue.sizeof + 1] buffer;
         const(char)* p = &buffer[0];
         switch (value)
         {
@@ -788,26 +788,26 @@ extern (C++) struct Token
             sprintf(&buffer[0], "%lluUL", cast(ulong)uns64value);
             break;
         case TOKfloat32v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
+            TargetReal.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "f");
             break;
         case TOKfloat64v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
+            TargetReal.sprint(&buffer[0], 'g', floatvalue);
             break;
         case TOKfloat80v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
+            TargetReal.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "L");
             break;
         case TOKimaginary32v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
+            TargetReal.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "fi");
             break;
         case TOKimaginary64v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
+            TargetReal.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "i");
             break;
         case TOKimaginary80v:
-            Port.ld_sprint(&buffer[0], 'g', float80value);
+            TargetReal.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "Li");
             break;
         case TOKstring:

@@ -20,6 +20,7 @@ import ddmd.func;
 import ddmd.globals;
 import ddmd.mtype;
 import ddmd.root.port;
+import ddmd.root.real_t;
 import ddmd.root.stringtable;
 import ddmd.tokens;
 
@@ -50,35 +51,35 @@ extern (C++) Expression eval_sin(Loc loc, FuncDeclaration fd, Expressions* argum
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
-    return new RealExp(loc, sinl(arg0.toReal()), arg0.type);
+    return new RealExp(loc, TargetReal.sin(arg0.toReal()), arg0.type);
 }
 
 extern (C++) Expression eval_cos(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
-    return new RealExp(loc, cosl(arg0.toReal()), arg0.type);
+    return new RealExp(loc, TargetReal.cos(arg0.toReal()), arg0.type);
 }
 
 extern (C++) Expression eval_tan(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
-    return new RealExp(loc, tanl(arg0.toReal()), arg0.type);
+    return new RealExp(loc, TargetReal.tan(arg0.toReal()), arg0.type);
 }
 
 extern (C++) Expression eval_sqrt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
-    return new RealExp(loc, Port.sqrt(arg0.toReal()), arg0.type);
+    return new RealExp(loc, TargetReal.sqrt(arg0.toReal()), arg0.type);
 }
 
 extern (C++) Expression eval_fabs(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
-    return new RealExp(loc, fabsl(arg0.toReal()), arg0.type);
+    return new RealExp(loc, TargetReal.fabs(arg0.toReal()), arg0.type);
 }
 
 extern (C++) Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
@@ -152,10 +153,10 @@ extern (C++) Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* argu
     assert(arg0.op == TOKfloat64);
     Expression arg1 = (*arguments)[1];
     assert(arg1.op == TOKfloat64);
-    real x = arg0.toReal();
-    real y = arg1.toReal();
-    real result;
-    Port.yl2x_impl(&x, &y, &result);
+    const x = arg0.toReal();
+    const y = arg1.toReal();
+    real_t result;
+    Port.yl2x(&x, &y, &result);
     return new RealExp(loc, result, arg0.type);
 }
 
@@ -165,10 +166,10 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
     assert(arg0.op == TOKfloat64);
     Expression arg1 = (*arguments)[1];
     assert(arg1.op == TOKfloat64);
-    real x = arg0.toReal();
-    real y = arg1.toReal();
-    real result;
-    Port.yl2xp1_impl(&x, &y, &result);
+    const x = arg0.toReal();
+    const y = arg1.toReal();
+    real_t result;
+    Port.yl2xp1(&x, &y, &result);
     return new RealExp(loc, result, arg0.type);
 }
 

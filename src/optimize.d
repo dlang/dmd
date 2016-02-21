@@ -18,7 +18,7 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.root.longdouble;
+import ddmd.root.real_t;
 import ddmd.sideeffect;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -765,7 +765,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 if (e.e1.type.isintegral())
                     ret = new IntegerExp(e.loc, 1, e.e1.type);
                 else
-                    ret = new RealExp(e.loc, ldouble(1.0), e.e1.type);
+                    ret = new RealExp(e.loc, 1, e.e1.type);
                 ret = new CommaExp(e.loc, e.e1, ret);
                 return;
             }
@@ -778,7 +778,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // Replace x ^^ -1.0 by (1.0 / x)
             if ((e.e2.op == TOKfloat64 && e.e2.toReal() == -1.0))
             {
-                ret = new DivExp(e.loc, new RealExp(e.loc, ldouble(1.0), e.e2.type), e.e1);
+                ret = new DivExp(e.loc, new RealExp(e.loc, 1, e.e2.type), e.e1);
                 return;
             }
             // All other negative integral powers are illegal
@@ -798,7 +798,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     // https://issues.dlang.org/show_bug.cgi?id=14952
                     // This can be removed once compiling with DMD 2.068 or
                     // older is no longer supported.
-                    d_float80 r = e.e2.toReal();
+                    const r = e.e2.toReal();
                     if (r == cast(sinteger_t)r)
                         e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
                 }

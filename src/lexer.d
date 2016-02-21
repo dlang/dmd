@@ -22,6 +22,7 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
+import ddmd.root.real_t;
 import ddmd.root.rmem;
 import ddmd.tokens;
 import ddmd.utf;
@@ -2082,24 +2083,18 @@ class Lexer
         stringbuffer.writeByte(0);
         auto sbufptr = cast(const(char)*)stringbuffer.data;
         TOK result;
-        t.float80value = Port.strtold(sbufptr, null);
-        errno = 0;
+        bool isOutOfRange = false;
+        t.floatvalue = TargetReal.parse(sbufptr, &isOutOfRange);
         switch (*p)
         {
         case 'F':
         case 'f':
-            // Only interested in errno return
-            cast(void)Port.strtof(sbufptr, null);
+            isOutOfRange = (isOutOfRange || Port.isFloat32LiteralOutOfRange(sbufptr));
             result = TOKfloat32v;
             p++;
             break;
         default:
-            /* Should do our own strtod(), since dmc and linux gcc
-             * accept 2.22507e-308, while apple gcc will only take
-             * 2.22508e-308. Not sure who is right.
-             */
-            // Only interested in errno return
-            cast(void)Port.strtod(sbufptr, null);
+            isOutOfRange = (isOutOfRange || Port.isFloat64LiteralOutOfRange(sbufptr));
             result = TOKfloat64v;
             break;
         case 'l':
@@ -2130,7 +2125,8 @@ class Lexer
                 break;
             }
         }
-        if (errno == ERANGE)
+        const isLong = (result == TOKfloat80v || result == TOKimaginary80v);
+        if (isOutOfRange && !isLong)
         {
             const char* suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
             error(scanloc, "number '%s%s' is not representable", sbufptr, suffix);

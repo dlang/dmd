@@ -27,7 +27,7 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
-import ddmd.root.port;
+import ddmd.root.real_t;
 import ddmd.utf;
 import ddmd.visitor;
 
@@ -664,17 +664,17 @@ public:
          * -0X1.1BC18BA997B95P+79   => N11BC18BA997B95P79
          * 0X1.9P+2                 => 19P2
          */
-        if (Port.isNan(value))
+        if (TargetReal.isNaN(value))
             buf.writestring("NAN"); // no -NAN bugs
-        else if (Port.isInfinity(value))
+        else if (TargetReal.isInfinity(value))
             buf.writestring(value < 0 ? "NINF" : "INF");
         else
         {
-            const(size_t) BUFFER_LEN = 36;
+            enum BUFFER_LEN = 36;
             char[BUFFER_LEN] buffer;
-            size_t n = Port.ld_sprint(buffer.ptr, 'A', value);
+            const n = TargetReal.sprint(buffer.ptr, 'A', value);
             assert(n < BUFFER_LEN);
-            for (size_t i = 0; i < n; i++)
+            for (int i = 0; i < n; i++)
             {
                 char c = buffer[i];
                 switch (c)

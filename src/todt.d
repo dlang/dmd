@@ -300,7 +300,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 case Tfloat32:
                 case Timaginary32:
                 {
-                    d_float32 fvalue = e.value;
+                    auto fvalue = cast(float)e.value;
                     dtb.nbytes(4, cast(char*)&fvalue);
                     break;
                 }
@@ -308,7 +308,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 case Tfloat64:
                 case Timaginary64:
                 {
-                    d_float64 dvalue = e.value;
+                    auto dvalue = cast(double)e.value;
                     dtb.nbytes(8, cast(char*)&dvalue);
                     break;
                 }
@@ -316,7 +316,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 case Tfloat80:
                 case Timaginary80:
                 {
-                    d_float80 evalue = e.value;
+                    auto evalue = e.value;
                     dtb.nbytes(Target.realsize - Target.realpad, cast(char*)&evalue);
                     dtb.nzeros(Target.realpad);
                     break;
@@ -336,25 +336,25 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             {
                 case Tcomplex32:
                 {
-                    d_float32 fvalue = creall(e.value);
+                    auto fvalue = cast(float)creall(e.value);
                     dtb.nbytes(4, cast(char*)&fvalue);
-                    fvalue = cimagl(e.value);
+                    fvalue = cast(float)cimagl(e.value);
                     dtb.nbytes(4, cast(char*)&fvalue);
                     break;
                 }
 
                 case Tcomplex64:
                 {
-                    d_float64 dvalue = creall(e.value);
+                    auto dvalue = cast(double)creall(e.value);
                     dtb.nbytes(8, cast(char*)&dvalue);
-                    dvalue = cimagl(e.value);
+                    dvalue = cast(double)cimagl(e.value);
                     dtb.nbytes(8, cast(char*)&dvalue);
                     break;
                 }
 
                 case Tcomplex80:
                 {
-                    d_float80 evalue = creall(e.value);
+                    auto evalue = creall(e.value);
                     dtb.nbytes(Target.realsize - Target.realpad, cast(char*)&evalue);
                     dtb.nzeros(Target.realpad);
                     evalue = cimagl(e.value);

@@ -434,6 +434,9 @@
     <ClInclude Include="..\root\port.h">
       <Filter>src\root</Filter>
     </ClInclude>
+    <ClInclude Include="..\root\real_t.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
     <ClInclude Include="..\root\rmem.h">
       <Filter>src\root</Filter>
     </ClInclude>

@@ -1,0 +1,121 @@
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2016 by Digital Mars
+// All Rights Reserved
+// written by Walter Bright
+// http://www.digitalmars.com
+// Distributed under the Boost Software License, Version 1.0.
+// http://www.boost.org/LICENSE_1_0.txt
+
+module ddmd.root.real_t;
+
+static import core.math, core.stdc.math;
+import core.stdc.errno;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+
+alias real_t = real;
+
+private
+{
+    version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;
+
+    version(CRuntime_Microsoft) extern (C++)
+    {
+        struct longdouble { real_t r; }
+        size_t ld_sprint(char* str, int fmt, longdouble x);
+        longdouble strtold_dm(const(char)* p, char** endp);
+    }
+}
+
+extern (C++) struct TargetReal
+{
+    static __gshared real_t snan;
+
+    static this()
+    {
+        /*
+         * Use a payload which is different from the machine NaN,
+         * so that uninitialised variables can be
+         * detected even if exceptions are disabled.
+         */
+        ushort* us = cast(ushort*)&snan;
+        us[0] = 0;
+        us[1] = 0;
+        us[2] = 0;
+        us[3] = 0xA000;
+        us[4] = 0x7FFF;
+    }
+
+    static real_t  sin(real_t x) { return core.math.sin(x); }
+    static real_t  cos(real_t x) { return core.math.cos(x); }
+    static real_t  tan(real_t x) { return core.stdc.math.tanl(x); }
+    static real_t sqrt(real_t x) { return core.math.sqrt(x); }
+    static real_t fabs(real_t x) { return core.math.fabs(x); }
+
+    static bool isIdentical(real_t a, real_t b)
+    {
+        // don't compare pad bytes in extended precision
+        enum sz = (real_t.mant_dig == 64) ? 10 : real_t.sizeof;
+        return memcmp(&a, &b, sz) == 0;
+    }
+
+    static bool isNaN(real_t r)
+    {
+        return !(r == r);
+    }
+
+    static bool isSignallingNaN(real_t r)
+    {
+        return isNaN(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
+    }
+
+    static bool isInfinity(real_t r)
+    {
+        return r is real_t.infinity || r is -real_t.infinity;
+    }
+
+    static real_t parse(const(char)* literal, bool* isOutOfRange = null)
+    {
+        errno = 0;
+        version(CRuntime_DigitalMars)
+        {
+            auto save = __locale_decpoint;
+            __locale_decpoint = ".";
+        }
+        version(CRuntime_Microsoft)
+            auto r = strtold_dm(literal, null).r;
+        else
+            auto r = strtold(literal, null);
+        version(CRuntime_DigitalMars) __locale_decpoint = save;
+        if (isOutOfRange)
+            *isOutOfRange = (errno == ERANGE);
+        return r;
+    }
+
+    static int sprint(char* str, char fmt, real_t x)
+    {
+        version(CRuntime_Microsoft)
+        {
+            return cast(int)ld_sprint(str, fmt, longdouble(x));
+        }
+        else
+        {
+            if (real_t(cast(ulong)x) == x)
+            {
+                // ((1.5 -> 1 -> 1.0) == 1.5) is false
+                // ((1.0 -> 1 -> 1.0) == 1.0) is true
+                // see http://en.cppreference.com/w/cpp/io/c/fprintf
+                char[5] sfmt = "%#Lg\0";
+                sfmt[3] = fmt;
+                return sprintf(str, sfmt.ptr, x);
+            }
+            else
+            {
+                char[4] sfmt = "%Lg\0";
+                sfmt[2] = fmt;
+                return sprintf(str, sfmt.ptr, x);
+            }
+        }
+    }
+}

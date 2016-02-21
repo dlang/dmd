@@ -12,19 +12,19 @@
 #ifndef DMD_COMPLEX_T_H
 #define DMD_COMPLEX_T_H
 
+#include "real_t.h"
+
 /* Roll our own complex type for compilers that don't support complex
  */
 
 struct complex_t
 {
-    longdouble re;
-    longdouble im;
+    real_t re;
+    real_t im;
 
     complex_t() { this->re = 0; this->im = 0; }
-    complex_t(longdouble re) { this->re = re; this->im = 0; }
-    complex_t(double re) { this->re = re; this->im = 0; }
-    complex_t(longdouble re, longdouble im) { this->re = re; this->im = im; }
-    complex_t(double re, double im) { this->re = re; this->im = im; }
+    complex_t(real_t re) { this->re = re; this->im = 0; }
+    complex_t(real_t re, real_t im) { this->re = re; this->im = im; }
 
     complex_t operator + (complex_t y) { complex_t r; r.re = re + y.re; r.im = im + y.im; return r; }
     complex_t operator - (complex_t y) { complex_t r; r.re = re - y.re; r.im = im - y.im; return r; }
@@ -33,21 +33,17 @@ struct complex_t
 
     complex_t operator / (complex_t y)
     {
-        longdouble abs_y_re = y.re < 0 ? -y.re : y.re;
-        longdouble abs_y_im = y.im < 0 ? -y.im : y.im;
-        longdouble r, den;
-
-        if (abs_y_re < abs_y_im)
+        if (TargetReal::fabs(y.re) < TargetReal::fabs(y.im))
         {
-            r = y.re / y.im;
-            den = y.im + r * y.re;
+            real_t r = y.re / y.im;
+            real_t den = y.im + r * y.re;
             return complex_t((re * r + im) / den,
                              (im * r - re) / den);
         }
         else
         {
-            r = y.im / y.re;
-            den = y.re + r * y.im;
+            real_t r = y.im / y.re;
+            real_t den = y.re + r * y.im;
             return complex_t((re + r * im) / den,
                              (im - r * re) / den);
         }
@@ -59,17 +55,17 @@ struct complex_t
     int operator != (complex_t y) { return re != y.re || im != y.im; }
 };
 
-inline complex_t operator * (longdouble x, complex_t y) { return complex_t(x) * y; }
-inline complex_t operator * (complex_t x, longdouble y) { return x * complex_t(y); }
-inline complex_t operator / (complex_t x, longdouble y) { return x / complex_t(y); }
+inline complex_t operator * (real_t x, complex_t y) { return complex_t(x) * y; }
+inline complex_t operator * (complex_t x, real_t y) { return x * complex_t(y); }
+inline complex_t operator / (complex_t x, real_t y) { return x / complex_t(y); }
 
 
-inline longdouble creall(complex_t x)
+inline real_t creall(complex_t x)
 {
     return x.re;
 }
 
-inline longdouble cimagl(complex_t x)
+inline real_t cimagl(complex_t x)
 {
     return x.im;
 }

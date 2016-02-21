@@ -13,7 +13,7 @@
 #include        <string.h>
 #include        <time.h>
 
-#include        "port.h"
+#include        "real_t.h"
 #include        "target.h"
 
 #include        "expression.h"
@@ -1278,7 +1278,7 @@ elem *toElem(Expression *e, IRState *irs)
                      * unfortunately also converts SNAN to QNAN.
                      */
                     c.Vfloat = re->value;
-                    if (Port::isSignallingNan(re->value))
+                    if (TargetReal::isSignallingNaN(re->value))
                     {
                         // Put SNAN back
                         c.Vuns &= 0xFFBFFFFFL;
@@ -1291,7 +1291,7 @@ elem *toElem(Expression *e, IRState *irs)
                      * unfortunately also converts SNAN to QNAN.
                      */
                     c.Vdouble = re->value;
-                    if (Port::isSignallingNan(re->value))
+                    if (TargetReal::isSignallingNaN(re->value))
                     {
                         // Put SNAN back
                         c.Vullong &= 0xFFF7FFFFFFFFFFFFULL;
@@ -1331,7 +1331,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 case TYcfloat:
                     c.Vcfloat.re = (float) re;
-                    if (Port::isSignallingNan(re))
+                    if (TargetReal::isSignallingNaN(re))
                     {
                         union { float f; unsigned i; } u;
                         u.f = c.Vcfloat.re;
@@ -1339,7 +1339,7 @@ elem *toElem(Expression *e, IRState *irs)
                         c.Vcfloat.re = u.f;
                     }
                     c.Vcfloat.im = (float) im;
-                    if (Port::isSignallingNan(im))
+                    if (TargetReal::isSignallingNaN(im))
                     {
                         union { float f; unsigned i; } u;
                         u.f = c.Vcfloat.im;
@@ -1350,7 +1350,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 case TYcdouble:
                     c.Vcdouble.re = (double) re;
-                    if (Port::isSignallingNan(re))
+                    if (TargetReal::isSignallingNaN(re))
                     {
                         union { double d; unsigned long long i; } u;
                         u.d = c.Vcdouble.re;
@@ -1358,7 +1358,7 @@ elem *toElem(Expression *e, IRState *irs)
                         c.Vcdouble.re = u.d;
                     }
                     c.Vcdouble.im = (double) im;
-                    if (Port::isSignallingNan(re))
+                    if (TargetReal::isSignallingNaN(re))
                     {
                         union { double d; unsigned long long i; } u;
                         u.d = c.Vcdouble.im;

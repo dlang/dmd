@@ -440,10 +440,10 @@
     <File path="..\root\array.d" />
     <File path="..\root\file.d" />
     <File path="..\root\filename.d" />
-    <File path="..\root\longdouble.d" />
     <File path="..\root\man.d" />
     <File path="..\root\outbuffer.d" />
     <File path="..\root\port.d" />
+    <File path="..\root\real_t.d" />
     <File path="..\root\response.d" />
     <File path="..\root\rmem.d" />
     <File path="..\root\rootobject.d" />

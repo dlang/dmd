@@ -13,8 +13,8 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
-import ddmd.root.longdouble;
 import ddmd.root.outbuffer;
+import ddmd.root.real_t;
 
 /***********************************************************
  */
@@ -332,7 +332,7 @@ extern (C++) static Expression decodeInteger(Loc loc, Type type, ubyte* buffer)
     return new IntegerExp(loc, value, type);
 }
 
-// Write the real value of 'e' into a unsigned byte buffer.
+// Write the real_t value of 'e' into a unsigned byte buffer.
 extern (C++) static void encodeReal(Expression e, ubyte* buffer)
 {
     switch (e.type.ty)
@@ -354,23 +354,23 @@ extern (C++) static void encodeReal(Expression e, ubyte* buffer)
     }
 }
 
-// Write the bytes encoded in 'buffer' into a longdouble and returns
+// Write the bytes encoded in 'buffer' into a real_t and returns
 // the value as a new RealExp.
 extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
 {
-    real value;
+    real_t value;
     switch (type.ty)
     {
     case Tfloat32:
         {
             float* p = cast(float*)buffer;
-            value = ldouble(*p);
+            value = real_t(*p);
             break;
         }
     case Tfloat64:
         {
             double* p = cast(double*)buffer;
-            value = ldouble(*p);
+            value = real_t(*p);
             break;
         }
     default:

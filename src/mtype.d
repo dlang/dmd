@@ -43,9 +43,8 @@ import ddmd.identifier;
 import ddmd.imphint;
 import ddmd.init;
 import ddmd.opover;
-import ddmd.root.longdouble;
 import ddmd.root.outbuffer;
-import ddmd.root.port;
+import ddmd.root.real_t;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.root.stringtable;
@@ -3642,7 +3641,7 @@ extern (C++) final class TypeBasic : Type
     {
         Expression e;
         dinteger_t ivalue;
-        d_float80 fvalue;
+        real_t fvalue;
         //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
         if (ident == Id.max)
         {
@@ -3697,7 +3696,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = Port.ldbl_max;
+                fvalue = real_t.max;
                 goto Lfvalue;
             default:
                 break;
@@ -3765,7 +3764,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = LDBL_MIN;
+                fvalue = real_t.min_normal;
                 goto Lfvalue;
             default:
                 break;
@@ -3784,10 +3783,8 @@ extern (C++) final class TypeBasic : Type
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                {
-                    fvalue = Port.ldbl_nan;
-                    goto Lfvalue;
-                }
+                fvalue = real_t.nan;
+                goto Lfvalue;
             default:
                 break;
             }
@@ -3805,7 +3802,7 @@ extern (C++) final class TypeBasic : Type
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                fvalue = Port.ldbl_infinity;
+                fvalue = real_t.infinity;
                 goto Lfvalue;
             default:
                 break;
@@ -3828,7 +3825,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = LDBL_DIG;
+                ivalue = real_t.dig;
                 goto Lint;
             default:
                 break;
@@ -3851,7 +3848,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = LDBL_EPSILON;
+                fvalue = real_t.epsilon;
                 goto Lfvalue;
             default:
                 break;
@@ -3874,7 +3871,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = LDBL_MANT_DIG;
+                ivalue = real_t.mant_dig;
                 goto Lint;
             default:
                 break;
@@ -3897,7 +3894,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = LDBL_MAX_10_EXP;
+                ivalue = real_t.max_10_exp;
                 goto Lint;
             default:
                 break;
@@ -3920,7 +3917,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = LDBL_MAX_EXP;
+                ivalue = real_t.max_exp;
                 goto Lint;
             default:
                 break;
@@ -3943,7 +3940,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = LDBL_MIN_10_EXP;
+                ivalue = real_t.min_10_exp;
                 goto Lint;
             default:
                 break;
@@ -3966,7 +3963,7 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = LDBL_MIN_EXP;
+                ivalue = real_t.min_exp;
                 goto Lint;
             default:
                 break;
@@ -3983,10 +3980,7 @@ extern (C++) final class TypeBasic : Type
             e = new RealExp(loc, fvalue, this);
         else
         {
-            complex_t cvalue;
-            cvalue.re = fvalue;
-            cvalue.im = fvalue;
-
+            const cvalue = complex_t(fvalue, fvalue);
             //for (int i = 0; i < 20; i++)
             //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
             //printf("\n");
@@ -4042,7 +4036,7 @@ extern (C++) final class TypeBasic : Type
                 t = tfloat80;
                 goto L2;
             L2:
-                e = new RealExp(e.loc, ldouble(0.0), t);
+                e = new RealExp(e.loc, 0, t);
                 break;
 
             default:
@@ -4093,7 +4087,7 @@ extern (C++) final class TypeBasic : Type
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                e = new RealExp(e.loc, ldouble(0.0), this);
+                e = new RealExp(e.loc, 0, this);
                 break;
 
             default:
@@ -4258,8 +4252,8 @@ extern (C++) final class TypeBasic : Type
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
                 complex_t cvalue;
-                (cast(real_t*)&cvalue)[0] = Port.snan;
-                (cast(real_t*)&cvalue)[1] = Port.snan;
+                (cast(real_t*)&cvalue)[0] = TargetReal.snan;
+                (cast(real_t*)&cvalue)[1] = TargetReal.snan;
                 return new ComplexExp(loc, cvalue, this);
             }
 

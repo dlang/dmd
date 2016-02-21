@@ -204,7 +204,7 @@ struct Token
         d_uns64 uns64value;
 
         // Floats
-        d_float80 float80value;
+        real_t floatvalue;
 
         struct
         {   utf8_t *ustring;     // UTF8 string
