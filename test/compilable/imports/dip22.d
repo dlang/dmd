@@ -13,3 +13,9 @@ interface Base2
     enum baz = 2;
     alias T = short;
 }
+
+void bar() {}
+private void bar(int) {}
+
+private void baz(int) {}
+void baz() {}

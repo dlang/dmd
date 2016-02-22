@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -de
 import imports.dip22;
 
 class Foo : Base1, Base2
@@ -8,4 +9,10 @@ class Foo : Base1, Base2
         static assert(baz == 2);
         static assert(T.sizeof == 2);
     }
+}
+
+void test()
+{
+    bar();
+    baz();
 }
