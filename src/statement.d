@@ -2499,7 +2499,9 @@ public:
                 }
 
                 // T value = tmp[key];
-                value._init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
+                IndexExp indexExp = new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key));
+                indexExp.indexIsInBounds = true; // disabling bounds checking in foreach statements.
+                value._init = new ExpInitializer(loc, indexExp);
                 Statement ds = new ExpStatement(loc, value);
 
                 if (dim == 2)
