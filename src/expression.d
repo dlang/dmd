@@ -8321,13 +8321,19 @@ public:
              */
             Dsymbol s = ie.sds.search(loc, ident,
                 (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateImports | SearchLocalsOnly : SearchLocalsOnly);
+            /* Check for visibility before resolving aliases because public
+             * aliases to private symbols are public.
+             */
+            if (s && !symbolIsVisible(sc._module, s))
+            {
+                if (s.isDeclaration())
+                    .error(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+                else
+                    .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+                // s = null;
+            }
             if (s)
             {
-                /* Check for access before resolving aliases because public
-                 * aliases to private symbols are public.
-                 */
-                if (Declaration d = s.isDeclaration())
-                    checkAccess(loc, sc, null, d);
                 if (auto p = s.isPackage())
                     checkAccess(loc, sc, p);
 
