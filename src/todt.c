@@ -896,7 +896,7 @@ dt_t **toDtElem(TypeSArray *tsa, dt_t **pdt, Expression *e)
         pdt = dtend(pdt);
         Type *tnext = tsa->next;
         Type *tbn = tnext->toBasetype();
-        while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
+        while (tbn->ty == Tsarray && (!e || !tbn->equivalent(e->type->nextOf())))
         {
             len *= ((TypeSArray *)tbn)->dim->toInteger();
             tnext = tbn->nextOf();
