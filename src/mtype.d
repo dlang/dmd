@@ -6454,8 +6454,10 @@ public:
                 Expression arg = (*args)[u];
                 assert(arg);
                 //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
+
                 Type targ = arg.type;
                 Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
+
                 if (p.storageClass & STClazy && tprm.ty == Tvoid && targ.ty != Tvoid)
                     m = MATCHconvert;
                 else
@@ -6470,15 +6472,20 @@ public:
                         m = arg.implicitConvTo(tprm);
                     //printf("match %d\n", m);
                 }
+
                 // Non-lvalues do not match ref or out parameters
-                if (p.storageClass & STCref)
+                if (p.storageClass & (STCref | STCout))
                 {
                     // Bugzilla 13783: Don't use toBasetype() to handle enum types.
                     Type ta = targ;
                     Type tp = tprm;
                     //printf("fparam[%d] ta = %s, tp = %s\n", u, ta->toChars(), tp->toChars());
+
                     if (m && !arg.isLvalue())
                     {
+                        if (p.storageClass & STCout)
+                            goto Nomatch;
+
                         if (arg.op == TOKstring && tp.ty == Tsarray)
                         {
                             if (ta.ty != Tsarray)
@@ -6501,7 +6508,9 @@ public:
                         else
                             goto Nomatch;
                     }
-                    /* find most derived alias this type being matched.
+
+                    /* Find most derived alias this type being matched.
+                     * Bugzilla 15674: Allow on both ref and out parameters.
                      */
                     while (1)
                     {
@@ -6510,6 +6519,7 @@ public:
                             break;
                         ta = tat;
                     }
+
                     /* A ref variable should work like a head-const reference.
                      * e.g. disallows:
                      *  ref T      <- an lvalue of const(T) argument
@@ -6518,16 +6528,8 @@ public:
                     if (!ta.constConv(tp))
                         goto Nomatch;
                 }
-                else if (p.storageClass & STCout)
-                {
-                    if (m && !arg.isLvalue())
-                        goto Nomatch;
-                    Type targb = targ.toBasetype();
-                    Type tprmb = tprm.toBasetype();
-                    if (!targb.constConv(tprmb))
-                        goto Nomatch;
-                }
             }
+
             /* prefer matching the element type rather than the array
              * type when more arguments are present with T[]...
              */
