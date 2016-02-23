@@ -271,6 +271,7 @@ public:
         Expression msg = null;
         Expressions* udas = null;
         Dsymbols* decldefs;
+        Dsymbol lastDecl = mod; // for attaching ddoc unittests to module decl
         Token* tk;
         if (skipAttributes(&token, &tk) && tk.value == TOKmodule)
         {
@@ -365,7 +366,7 @@ public:
                 addComment(mod, comment);
             }
         }
-        decldefs = parseDeclDefs(0);
+        decldefs = parseDeclDefs(0, &lastDecl);
         if (token.value != TOKeof)
         {
             error(token.loc, "unrecognized declaration");
