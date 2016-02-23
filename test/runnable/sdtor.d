@@ -4345,8 +4345,8 @@ struct S63
 
     this(int x)
     {
-	assert(p == 87);
-	p += x;
+        assert(p == 87);
+        p += x;
     }
 
     ~this() { }
@@ -4357,13 +4357,53 @@ struct S63
 
     static void tester()
     {
-	S63(3).funky();
+        S63(3).funky();
     }
 }
 
 void test63()
 {
     S63.tester();
+}
+
+/**********************************/
+// 15661
+
+struct X15661
+{
+    ~this() {}
+}
+
+X15661 createX15661() { return X15661(); }
+
+struct Y15661
+{
+    static int dtor;
+
+    @disable this();
+    @disable this(this);
+    this(X15661 a1, X15661 a2) {}
+    ~this() { ++dtor; }
+}
+
+struct Z15661
+{
+    this(int)
+    {
+        b = Y15661(createX15661(), createX15661());
+        assert(Y15661.dtor == 0);
+    }
+
+    private Y15661 b;
+}
+
+void test15661()
+{
+    {
+        auto v = Z15661(5);
+        assert(Y15661.dtor == 0);
+    }
+    assert(Y15661.dtor == 1);
 }
 
 /**********************************/
@@ -4493,6 +4533,7 @@ int main()
     test14696();
     test14838();
     test63();
+    test15661();
 
     printf("Success\n");
     return 0;

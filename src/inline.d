@@ -2084,7 +2084,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         if (!asStatements && fd.nrvo_var)
         {
             auto tmp = Identifier.generateId("__retvar");
-            vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, null);
+            vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, new VoidInitializer(fd.loc));
             assert(!tf.isref);
             vret.storage_class = STCtemp | STCrvalue;
             vret.linkage = tf.linkage;

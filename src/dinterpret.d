@@ -4862,9 +4862,13 @@ public:
             istate = &istateComma;
         }
         result = CTFEExp.cantexp;
+
         // If the comma returns a temporary variable, it needs to be an lvalue
         // (this is particularly important for struct constructors)
-        if (e.e1.op == TOKdeclaration && e.e2.op == TOKvar && (cast(DeclarationExp)e.e1).declaration == (cast(VarExp)e.e2).var && (cast(VarExp)e.e2).var.storage_class & STCctfe) // same as Expression::isTemp
+        if (e.e1.op == TOKdeclaration &&
+            e.e2.op == TOKvar &&
+            (cast(DeclarationExp)e.e1).declaration == (cast(VarExp)e.e2).var &&
+            (cast(VarExp)e.e2).var.storage_class & STCctfe)
         {
             VarExp ve = cast(VarExp)e.e2;
             VarDeclaration v = ve.var.isVarDeclaration();

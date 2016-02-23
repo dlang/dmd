@@ -1435,7 +1435,7 @@ public:
                                          * the oded == oarg
                                          */
                                         (*dedargs)[i] = oded;
-                                        MATCH m2 = tparam.matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, null);
+                                        MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
                                         //printf("m2 = %d\n", m2);
                                         if (m2 <= MATCHnomatch)
                                             goto Lnomatch;
@@ -1453,7 +1453,7 @@ public:
                                 }
                                 else
                                 {
-                                    oded = tparam.defaultArg(loc, paramscope);
+                                    oded = tparam.defaultArg(instLoc, paramscope);
                                     if (oded)
                                         (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                                 }
