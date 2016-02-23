@@ -3429,6 +3429,35 @@ void test14862()
 }
 
 /************************************************/
+// 15681
+
+void test15681()
+{
+    static struct A { float value; }
+
+    static struct S
+    {
+        A[2] values;
+
+        this(float)
+        {
+            values[0].value = 0;
+            values[1].value = 1;
+        }
+    }
+
+    auto s1 = S(1.0f);
+    assert(s1.values[0].value == 0);        // OK
+    assert(s1.values[1].value == 1);        // OK
+
+    enum s2 = S(1.0f);
+    static assert(s2.values[0].value == 0); // OK <- NG
+    static assert(s2.values[1].value == 1); // OK
+    assert(s2.values[0].value == 0);        // OK <- NG
+    assert(s2.values[1].value == 1);        // OK
+}
+
+/************************************************/
 
 int main()
 {
@@ -3551,6 +3580,7 @@ int main()
     test9954();
     test14140();
     test14862();
+    test15681();
 
     printf("Success\n");
     return 0;
