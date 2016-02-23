@@ -265,6 +265,7 @@ else version( linux )
     {
         INADDR_ANY       = 0x00000000,
         INADDR_BROADCAST = 0xffffffff,
+        INADDR_LOOPBACK  = 0x7f000001,
         INADDR_NONE      = 0xFFFFFFFF
     }
 }
@@ -976,7 +977,7 @@ else version( CRuntime_Bionic )
 IPPROTO_RAW
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum uint IPPROTO_RAW = 255;
 }
@@ -992,7 +993,7 @@ else version( Solaris )
 {
     enum uint IPPROTO_RAW = 255;
 }
-else version( Android )
+else version( linux )
 {
     enum uint IPPROTO_RAW = 255;
 }

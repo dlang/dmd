@@ -1094,7 +1094,7 @@ else version( Solaris )
 int fsync(int);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int fsync(int) @trusted;
 }
@@ -1106,7 +1106,7 @@ else version( FreeBSD )
 {
     int fsync(int) @trusted;
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     int fsync(int) @trusted;
 }

@@ -97,7 +97,7 @@ PROT_EXEC
 PROT_NONE
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     enum PROT_NONE      = 0x0;
     enum PROT_READ      = 0x1;
@@ -125,7 +125,7 @@ else version (Solaris)
     enum PROT_WRITE = 0x02;
     enum PROT_EXEC = 0x04;
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     enum PROT_NONE = 0x00;
     enum PROT_READ = 0x01;
@@ -458,7 +458,7 @@ int mlock(in void*, size_t);
 int munlock(in void*, size_t);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
@@ -478,7 +478,7 @@ else version (Solaris)
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);

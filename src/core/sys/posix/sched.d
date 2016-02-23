@@ -132,7 +132,7 @@ int sched_setscheduler(pid_t, int, in sched_param*);
 int sched_yield();
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     int sched_yield();
 }
@@ -148,7 +148,7 @@ else version (Solaris)
 {
     int sched_yield();
 }
-else version (Android)
+else version (CRuntime_Bionic)
 {
     int sched_yield();
 }

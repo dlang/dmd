@@ -38,7 +38,7 @@ group* getgrnam(in char*);
 group* getgrgid(gid_t);
 */
 
-version( linux )
+version( CRuntime_Glibc )
 {
     struct group
     {
@@ -78,7 +78,7 @@ else version( Solaris )
         char**  gr_mem;
     }
 }
-else version( Android )
+else version( CRuntime_Bionic )
 {
     struct group
     {
