@@ -665,7 +665,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("string must be chars");
             return new ErrorExp();
         }
-        Identifier id = Identifier.idPool(se.string, se.len);
+        auto id = Identifier.idPool(se.peekSlice());
 
         /* Prefer dsymbol, because it might need some runtime contexts.
          */

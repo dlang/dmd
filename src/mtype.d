@@ -2662,7 +2662,7 @@ public:
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;
         size_t namelen = 19 + len.sizeof * 3 + len + 1;
-        char* name = namelen <= namebuf.sizeof ? namebuf.ptr : cast(char*)malloc(namelen);
+        char* name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
         assert(name);
         sprintf(name, "_D%lluTypeInfo_%s6__initZ", cast(ulong)9 + len, buf.data);
         //printf("%p, deco = %s, name = %s\n", this, deco, name);
@@ -2673,7 +2673,7 @@ public:
             if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
                 ++off; // C mangling will add '_' back in
         }
-        Identifier id = Identifier.idPool(name + off);
+        auto id = Identifier.idPool(name + off, strlen(name + off));
         if (name != namebuf.ptr)
             free(name);
         return id;

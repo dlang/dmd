@@ -1434,7 +1434,7 @@ Language changes listed by -transition=id:
         /* At this point, name is the D source file name stripped of
          * its path and extension.
          */
-        Identifier id = Identifier.idPool(name);
+        auto id = Identifier.idPool(name, strlen(name));
         auto m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
         if (firstmodule)

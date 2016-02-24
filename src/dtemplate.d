@@ -7858,9 +7858,8 @@ public:
                 assert(0);
         }
         buf.writeByte('Z');
-        const id2 = buf.peekString();
-        //printf("\tgenIdent = %s\n", id2);
-        return Identifier.idPool(id2);
+        //printf("\tgenIdent = %s\n", buf.peekString());
+        return Identifier.idPool(buf.peekSlice());
     }
 
     final void expandMembers(Scope* sc2)

@@ -3783,7 +3783,7 @@ public:
      */
     final static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = 0)
     {
-        return genCfunc(fparams, treturn, Identifier.idPool(name), stc);
+        return genCfunc(fparams, treturn, Identifier.idPool(name, strlen(name)), stc);
     }
 
     final static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = 0)

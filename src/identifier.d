@@ -112,16 +112,15 @@ public:
         OutBuffer buf;
         buf.writestring(prefix);
         buf.printf("%llu", cast(ulong)i);
-        char* id = buf.peekString();
-        return idPool(id);
+        return idPool(buf.peekSlice());
     }
 
     /********************************************
      * Create an identifier in the string table.
      */
-    static Identifier idPool(const(char)* s)
+    extern (D) static Identifier idPool(const(char)[] s)
     {
-        return idPool(s, strlen(s));
+        return idPool(s.ptr, s.length);
     }
 
     static Identifier idPool(const(char)* s, size_t len)
