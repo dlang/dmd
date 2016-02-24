@@ -177,8 +177,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
     /* Append deco of array element type
      */
     buf.writestring(e.type.toBasetype().nextOf().toBasetype().mutableOf().deco);
-    char* name = buf.peekString();
-    Identifier ident = Identifier.idPool(name);
+    auto ident = Identifier.idPool(buf.peekSlice());
 
     FuncDeclaration* pFd = cast(void*)ident in arrayfuncs;
     FuncDeclaration fd;

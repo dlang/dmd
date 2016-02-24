@@ -67,8 +67,7 @@ extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
         const(char)* prefix = flags == SCOPErequire ? "__in_" : "__out_";
         OutBuffer buf;
         buf.printf("%s%s", prefix, ident.toChars());
-        const(char)* name = buf.extractString();
-        ident = Identifier.idPool(name);
+        ident = Identifier.idPool(buf.peekSlice());
     }
     return ident;
 }

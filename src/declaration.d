@@ -1261,8 +1261,7 @@ public:
                 Parameter arg = Parameter.getNth(tt.arguments, i);
                 OutBuffer buf;
                 buf.printf("__%s_field_%llu", ident.toChars(), cast(ulong)i);
-                const(char)* name = buf.extractString();
-                Identifier id = Identifier.idPool(name);
+                auto id = Identifier.idPool(buf.peekSlice());
 
                 Initializer ti;
                 if (ie)

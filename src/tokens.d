@@ -587,7 +587,7 @@ extern (C++) struct Token
             //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
             const(char)* s = kw.name;
             TOK v = kw.value;
-            Identifier id = Identifier.idPool(s);
+            auto id = Identifier.idPool(s, strlen(s));
             id.value = v;
             //printf("tochars[%d] = '%s'\n",v, s);
             Token.tochars[v] = s;

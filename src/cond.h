@@ -70,11 +70,7 @@ class VersionCondition : public DVCondition
 public:
     static void setGlobalLevel(unsigned level);
     static bool isPredefined(const char *ident);
-    static void checkPredefined(Loc loc, const char *ident)
-    {
-        if (isPredefined(ident))
-            error(loc, "version identifier '%s' is reserved and cannot be set", ident);
-    }
+    static void checkPredefined(Loc loc, const char *ident);
     static void addGlobalIdent(const char *ident);
     static void addPredefinedGlobalIdent(const char *ident);
 

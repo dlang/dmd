@@ -765,7 +765,7 @@ extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc)
     {
         OutBuffer anc;
         emitAnchorName(&anc, s, skipNonQualScopes(sc));
-        ident = Identifier.idPool(anc.peekString());
+        ident = Identifier.idPool(anc.peekSlice());
     }
 
     auto pcount = cast(void*)ident in sc.anchorCounts;
