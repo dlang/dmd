@@ -4770,6 +4770,37 @@ void test15352()
 }
 
 /******************************************/
+// 15623
+
+struct WithFoo15623a { void foo() {} }
+struct WithFoo15623b { void foo() {} }
+struct WithFoo15623c { void foo() {} }
+struct WithFoo15623d { void foo() {} }
+
+struct WithoutFoo15623a {}
+struct WithoutFoo15623b {}
+struct WithoutFoo15623c {}
+struct WithoutFoo15623d {}
+
+struct CallsFoo15623(T)
+{
+    T t;
+    void bar() { t.foo(); }     // error occurs during TemplateInstance.semantic3
+}
+
+// Instantiations outside of function bodies
+static assert( is(CallsFoo15623!WithFoo15623a));
+static assert(!is(CallsFoo15623!WithoutFoo15623a));                     // OK <- NG
+static assert( __traits(compiles, CallsFoo15623!WithFoo15623b));
+static assert(!__traits(compiles, CallsFoo15623!WithoutFoo15623b));     // OK <- NG
+
+// Instantiations inside function bodies (OK)
+static assert( is(typeof({ alias Baz = CallsFoo15623!WithFoo15623c; return Baz.init; }())));
+static assert(!is(typeof({ alias Baz = CallsFoo15623!WithoutFoo15623c; return Baz.init; }())));
+static assert( __traits(compiles, { alias Baz = CallsFoo15623!WithFoo15623d; return Baz.init; }()));
+static assert(!__traits(compiles, { alias Baz = CallsFoo15623!WithoutFoo15623d; return Baz.init; }()));
+
+/******************************************/
 
 int main()
 {

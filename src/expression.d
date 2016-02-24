@@ -7132,6 +7132,7 @@ public:
         Scope* sc2 = sc.copy(); // keep sc->flags
         sc2.tinst = null;
         sc2.minst = null;
+        sc2.flags |= SCOPEfullinst;
         Type t = targ.trySemantic(loc, sc2);
         sc2.pop();
         if (!t)

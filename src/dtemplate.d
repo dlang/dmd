@@ -6120,7 +6120,7 @@ public:
         }
         if (global.errors != errorsave)
             goto Laftersemantic;
-        if (sc.func && !tinst)
+        if ((sc.func || (sc.flags & SCOPEfullinst)) && !tinst)
         {
             /* If a template is instantiated inside function, the whole instantiation
              * should be done at that position. But, immediate running semantic3 of
