@@ -69,7 +69,6 @@ void initSections()
 
 void finiSections()
 {
-    .free(cast(void*)_sections.modules.ptr);
 }
 
 void[] initTLSRanges()
