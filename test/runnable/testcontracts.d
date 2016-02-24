@@ -698,6 +698,139 @@ void test9383()
 }
 
 /*******************************************/
+// 15524 - Different from issue 9383 cases, closed variable size is bigger than REGSIZE.
+
+class A15524
+{
+    static void delegate() dg;
+    static string val;
+
+    void failInBase() { assert(typeid(this) is typeid(A15524)); }
+
+    // in-contract tests
+    void foo1(string s) in  { A15524.val = s; failInBase; } body { }                                // no closure
+    void foo2(string s) in  { A15524.val = s; failInBase; } body { string x; dg = { x = null; }; }  // closure [local]
+    void foo3(string s) in  { A15524.val = s; failInBase; } body {           dg = { s = null; }; }  // closure [parameter]
+    void foo4(string s) in  { A15524.val = s; failInBase; } body { }                                // no closure
+    void foo5(string s) in  { A15524.val = s; failInBase; } body { }                                // no closure
+    void foo6(string s) in  { A15524.val = s; failInBase; } body { string x; dg = { x = null; }; }  // closure [local]
+    void foo7(string s) in  { A15524.val = s; failInBase; } body {           dg = { s = null; }; }  // closure [parameter]
+
+    // out-contract tests
+    void bar1(string s) out { A15524.val = s;             } body { }                                // no closure
+    void bar2(string s) out { A15524.val = s;             } body { string x; dg = { x = null; }; }  // closure [local]
+    void bar3(string s) out { A15524.val = s;             } body {           dg = { s = null; }; }  // closure [parameter]
+    void bar4(string s) out { A15524.val = s;             } body { }                                // no closure
+    void bar5(string s) out { A15524.val = s;             } body { }                                // no closure
+    void bar6(string s) out { A15524.val = s;             } body { string x; dg = { x = null; }; }  // closure [local]
+    void bar7(string s) out { A15524.val = s;             } body {           dg = { s = null; }; }  // closure [parameter]
+}
+
+class B15524 : A15524
+{
+    static string val;
+
+    // in-contract tests
+    override void foo1(string s) in  { B15524.val = s; } body { }                                   // -> no closure
+    override void foo2(string s) in  { B15524.val = s; } body { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void foo3(string s) in  { B15524.val = s; } body {           dg = { s = null; }; }     // -> closure [parameter]
+    override void foo4(string s) in  { B15524.val = s; } body { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void foo5(string s) in  { B15524.val = s; } body {           dg = { s = null; }; }     // -> closure [parameter] appears
+    override void foo6(string s) in  { B15524.val = s; } body { }                                   // -> closure [local] disappears
+    override void foo7(string s) in  { B15524.val = s; } body { }                                   // -> closure [parameter] disappears
+
+    // out-contract tests
+    override void bar1(string s) out { B15524.val = s; } body { }                                   // -> no closure
+    override void bar2(string s) out { B15524.val = s; } body { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void bar3(string s) out { B15524.val = s; } body {           dg = { s = null; }; }     // -> closure [parameter]
+    override void bar4(string s) out { B15524.val = s; } body { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void bar5(string s) out { B15524.val = s; } body {           dg = { s = null; }; }     // -> closure [parameter] appears
+    override void bar6(string s) out { B15524.val = s; } body { }                                   // -> closure [local] disappears
+    override void bar7(string s) out { B15524.val = s; } body { }                                   // -> closure [parameter] disappears
+}
+
+void test15524()
+{
+    auto a = new A15524();
+    auto b = new B15524();
+
+    // base class in-contract is used from derived class.           // base                   derived
+    b.foo1("1"); assert(A15524.val == "1" && B15524.val == "1");    // no closure          -> no closure
+    b.foo2("2"); assert(A15524.val == "2" && B15524.val == "2");    // closure [local]     -> closure [local] appears
+    b.foo3("3"); assert(A15524.val == "3" && B15524.val == "3");    // closure [parameter] -> closure [parameter]
+    b.foo4("4"); assert(A15524.val == "4" && B15524.val == "4");    // no closure          -> closure [local] appears
+    b.foo5("5"); assert(A15524.val == "5" && B15524.val == "5");    // no closure          -> closure [parameter] appears
+    b.foo6("6"); assert(A15524.val == "6" && B15524.val == "6");    // closure [local]     -> closure [local] disappears
+    b.foo7("7"); assert(A15524.val == "7" && B15524.val == "7");    // closure [parameter] -> closure [parameter] disappears
+
+    // base class out-contract is used from derived class.          // base                   derived
+    b.bar1("1"); assert(A15524.val == "1" && B15524.val == "1");    // no closure          -> no closure
+    b.bar2("2"); assert(A15524.val == "2" && B15524.val == "2");    // closure [local]     -> closure [local] appears
+    b.bar3("3"); assert(A15524.val == "3" && B15524.val == "3");    // closure [parameter] -> closure [parameter]
+    b.bar4("4"); assert(A15524.val == "4" && B15524.val == "4");    // no closure          -> closure [local] appears
+    b.bar5("5"); assert(A15524.val == "5" && B15524.val == "5");    // no closure          -> closure [parameter] appears
+    b.bar6("6"); assert(A15524.val == "6" && B15524.val == "6");    // closure [local]     -> closure [local] disappears
+    b.bar7("7"); assert(A15524.val == "7" && B15524.val == "7");    // closure [parameter] -> closure [parameter] disappears
+
+    // in-contract in base class.
+    a.foo1("1"); assert(A15524.val == "1");     // no closure
+    a.foo2("2"); assert(A15524.val == "2");     // closure [local]
+    a.foo3("3"); assert(A15524.val == "3");     // closure [parameter]
+
+    // out-contract in base class.
+    a.bar1("1"); assert(A15524.val == "1");     // no closure
+    a.bar2("2"); assert(A15524.val == "2");     // closure [local]
+    a.bar3("3"); assert(A15524.val == "3");     // closure [parameter]
+}
+
+void test15524a()
+{
+    auto t1 = new Test15524a();
+    t1.infos["first"] = 0; //t1.add("first");
+    t1.add("second");
+
+    auto t2 = new Test15524b();
+    t2.add("second");
+}
+
+class Test15524a
+{
+    int[string] infos;
+
+    void add(string key)
+    in
+    {
+        assert(key !in infos); // @@@ crash here at second
+    }
+    body
+    {
+        auto item = new class
+        {
+            void notCalled()
+            {
+                infos[key] = 0;
+                    // affects, key parameter is made a closure variable.
+            }
+        };
+    }
+}
+
+class Test15524b
+{
+    void add(string key)
+    in
+    {
+        assert(key == "second"); // @@@ fails
+    }
+    body
+    {
+        static void delegate() dg;
+        dg = { auto x = key; };
+            // affects, key parameter is made a closure variable.
+    }
+}
+
+/*******************************************/
 // 10479
 
 class B10479
@@ -791,6 +924,8 @@ int main()
     test8073();
     test8093();
     test9383();
+    test15524();
+    test15524a();
     test14779();
 
     printf("Success\n");
