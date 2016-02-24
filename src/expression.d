@@ -4629,6 +4629,12 @@ public:
         return s;
     }
 
+    extern (D) const(char)[] peekSlice() const
+    {
+        assert(sz == 1);
+        return this.string[0 .. len];
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);

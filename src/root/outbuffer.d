@@ -401,6 +401,11 @@ struct OutBuffer
         this.offset -= nbytes;
     }
 
+    extern (D) const(char)[] peekSlice()
+    {
+        return (cast(const char*)data)[0 .. offset];
+    }
+
     // Append terminating null if necessary and get view of internal buffer
     extern (C++) char* peekString()
     {
