@@ -143,21 +143,60 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
         {
             // We have a 'this' pointer for the current function
 
-            /* If no variables in the current function's frame are
-             * referenced by nested functions, then we can 'skip'
-             * adding this frame into the linked list of stack
-             * frames.
-             */
-            if (thisfd->hasNestedFrameRefs())
+            if (fdp != thisfd)
+            {
+                /* fdparent (== thisfd) is a derived member function,
+                 * fdp is the overridden member function in base class, and
+                 * fd is the nested function '__require' or '__ensure'.
+                 * Even if there's a closure environment, we should give
+                 * original stack data as the nested function frame.
+                 * See also: SymbolExp::toElem() in e2ir.c (Bugzilla 9383 fix)
+                 */
+                /* Address of 'sthis' gives the 'this' for the nested
+                 * function.
+                 */
+                //printf("L%d fd = %s, fdparent = %s, fd->toParent2() = %s\n",
+                //    __LINE__, fd->toPrettyChars(), fdparent->toPrettyChars(), fdp->toPrettyChars());
+                assert(fd->ident == Id::require || fd->ident == Id::ensure);
+                assert(thisfd->hasNestedFrameRefs());
+
+                ClassDeclaration *cdp = fdp->isThis()->isClassDeclaration();
+                ClassDeclaration *cd = thisfd->isThis()->isClassDeclaration();
+                assert(cdp && cd);
+
+                int offset;
+                cdp->isBaseOf(cd, &offset);
+                assert(offset != OFFSET_RUNTIME);
+                //printf("%s to %s, offset = %d\n", cd->toChars(), cdp->toChars(), offset);
+                if (offset)
+                {
+                    /* Bugzilla 7517: If fdp is declared in interface, offset the
+                     * 'this' pointer to get correct interface type reference.
+                     */
+                    Symbol *stmp = symbol_genauto(TYnptr);
+                    ethis = el_bin(OPadd, TYnptr, el_var(irs->sthis), el_long(TYsize_t, offset));
+                    ethis = el_bin(OPeq, TYnptr, el_var(stmp), ethis);
+                    ethis = el_combine(ethis, el_ptr(stmp));
+                    //elem_print(ethis);
+                }
+                else
+                    ethis = el_ptr(irs->sthis);
+            }
+            else if (thisfd->hasNestedFrameRefs())
             {
                 /* Local variables are referenced, can't skip.
                  * Address of 'sthis' gives the 'this' for the nested
-                 * function
+                 * function.
                  */
                 ethis = el_ptr(irs->sthis);
             }
             else
             {
+                /* If no variables in the current function's frame are
+                 * referenced by nested functions, then we can 'skip'
+                 * adding this frame into the linked list of stack
+                 * frames.
+                 */
                 ethis = el_var(irs->sthis);
             }
         }
