@@ -510,6 +510,25 @@ struct Scope
             return null;
         }
 
+        if (global.params.check10378)
+        {
+            // Search both ways
+
+            auto sold = searchScopes(flags | SearchCheck10378);
+
+            auto snew = searchScopes(flags | SearchCheck10378 | SearchLocalsOnly);
+            if (!snew)
+                snew = searchScopes(flags | SearchCheck10378 | SearchImportsOnly);
+
+            if (sold !is snew)
+            {
+                deprecation(loc, "local import search method found %s %s instead of %s %s",
+                    sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
+                    snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
+            }
+            return sold;
+        }
+
         if (global.params.bug10378)
             return searchScopes(flags);
 

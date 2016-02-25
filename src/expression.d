@@ -678,7 +678,25 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
 
     Dsymbol s;
 
-    if (global.params.bug10378)
+    if (global.params.check10378)
+    {
+        // Search both ways
+
+        auto sold = searchScopes(SearchCheck10378);
+
+        auto snew = searchScopes(SearchCheck10378 | SearchLocalsOnly);
+        if (!snew)
+            snew = searchScopes(SearchCheck10378 | SearchImportsOnly);
+
+        if (sold !is snew)
+        {
+            deprecation(loc, "local import search method found %s %s instead of %s %s",
+                sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
+                snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
+        }
+        s = sold;
+    }
+    else if (global.params.bug10378)
         s = searchScopes(0);
     else
     {

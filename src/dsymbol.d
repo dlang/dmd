@@ -179,6 +179,7 @@ enum : int
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
+    SearchCheck10378        = 0x40, // unqualified search with transition=checkimports switch
 }
 
 extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
@@ -1276,7 +1277,15 @@ public:
                 if (ss.isModule())
                 {
                     if (flags & SearchLocalsOnly)
+                    {
+                        if (global.params.check10378 && !(flags & SearchCheck10378))
+                        {
+                            auto s3 = ss.search(loc, ident, sflags | IgnorePrivateMembers);
+                            if (s3)
+                                deprecation("%s %s found in local import", s3.kind(), s3.toPrettyChars());
+                        }
                         continue;
+                    }
                 }
                 else
                 {
