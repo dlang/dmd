@@ -799,10 +799,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             break;
 #if MARS
         case BCjcatch:
+        {
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
-            c = cat(c,getregs((I32 | I64) ? allregs : (ALLREGS | mES)));
+            c = cat(c,getregs(lpadregs()));
             goto case_goto;
+        }
 #endif
 #if SCPP
         case BCcatch:
@@ -915,14 +917,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             goto case_goto;
 
         case BC_finally:
-            // Mark all registers as destroyed. This will prevent
-            // register assignments to variables used in finally blocks.
-            {
-                code *cy = getregs(allregs);
-                assert(!cy);
-            }
             if (config.ehmethod == EH_DWARF)
             {
+                // Mark scratch registers as destroyed.
+                code *cy = getregs(lpadregs());
+                assert(!cy);
+
                 retregs = 0;
                 bl->Bcode = gencodelem(NULL,bl->Belem,&retregs,TRUE);
 
@@ -932,6 +932,11 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             }
             else
             {
+                // Mark all registers as destroyed. This will prevent
+                // register assignments to variables used in finally blocks.
+                code *cy = getregs(lpadregs());
+                assert(!cy);
+
                 assert(!e);
                 assert(!bl->Bcode);
                 // Generate CALL to finalizer code
@@ -947,7 +952,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             assert(config.ehmethod == EH_DWARF);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in finally blocks.
-            code *cy = getregs(allregs);
+            code *cy = getregs(lpadregs());
             assert(!cy);
 
             retregs = 0;

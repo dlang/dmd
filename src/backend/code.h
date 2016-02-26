@@ -252,6 +252,7 @@ code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym , int line , const
 #else
 code *allocreg (regm_t *pretregs , unsigned *preg , tym_t tym );
 #endif
+regm_t lpadregs();
 void useregs (regm_t regm );
 code *getregs (regm_t r );
 code *getregs_imm (regm_t r );
