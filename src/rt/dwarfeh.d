@@ -603,7 +603,7 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
 
     ubyte CallSiteFormat = *p++;
 
-    _Unwind_Ptr CallSiteTableSize = dw_pe_value(CallSiteFormat);
+    _Unwind_Ptr CallSiteTableSize = dw_pe_value(DW_EH_PE_uleb128);
     ///*printf("  CallSiteFormat = "); print_dw_pe(CallSiteFormat);*/ printf(" CallSiteTableSize = x%08llx\n", CallSiteTableSize);
 
     //printf("  Call Site Table\n");
