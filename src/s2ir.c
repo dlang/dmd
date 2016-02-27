@@ -769,7 +769,6 @@ public:
                     char save[sizeof(StructLiteralExp)];
                     memcpy(save, (void*)se, sizeof(StructLiteralExp));
                     se->sym = irs->shidden;
-                    se->soffset = 0;
                     se->fillHoles = 1;
                     e = toElemDtor(s->exp, irs);
                     memcpy((void*)se, save, sizeof(StructLiteralExp));

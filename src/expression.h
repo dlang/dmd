@@ -473,7 +473,6 @@ public:
 
     Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
     Symbol *sym;                // back end symbol to initialize with literal
-    size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
     OwnedBy ownedByCtfe;
 
