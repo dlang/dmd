@@ -30,23 +30,6 @@ private
 
 extern (C++) struct TargetReal
 {
-    static __gshared real_t snan;
-
-    static this()
-    {
-        /*
-         * Use a payload which is different from the machine NaN,
-         * so that uninitialised variables can be
-         * detected even if exceptions are disabled.
-         */
-        ushort* us = cast(ushort*)&snan;
-        us[0] = 0;
-        us[1] = 0;
-        us[2] = 0;
-        us[3] = 0xA000;
-        us[4] = 0x7FFF;
-    }
-
     static real_t  sin(real_t x) { return core.math.sin(x); }
     static real_t  cos(real_t x) { return core.math.cos(x); }
     static real_t  tan(real_t x) { return core.stdc.math.tanl(x); }

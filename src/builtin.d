@@ -155,7 +155,7 @@ extern (C++) Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* argu
     assert(arg1.op == TOKfloat64);
     const x = arg0.toReal();
     const y = arg1.toReal();
-    real_t result;
+    real_t result = 0;
     Port.yl2x(&x, &y, &result);
     return new RealExp(loc, result, arg0.type);
 }
@@ -168,7 +168,7 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
     assert(arg1.op == TOKfloat64);
     const x = arg0.toReal();
     const y = arg1.toReal();
-    real_t result;
+    real_t result = 0;
     Port.yl2xp1(&x, &y, &result);
     return new RealExp(loc, result, arg0.type);
 }

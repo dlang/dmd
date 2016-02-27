@@ -16,8 +16,6 @@ typedef longdouble real_t;
 
 struct TargetReal
 {
-    static real_t snan;
-
     static real_t  sin(real_t x);
     static real_t  cos(real_t x);
     static real_t  tan(real_t x);
@@ -29,7 +27,7 @@ struct TargetReal
     static bool isSignallingNaN(real_t r);
     static bool isInfinity(real_t r);
 
-    static real_t parse(const char *literal, bool *isOutOfRange);
+    static real_t parse(const char *literal, bool *isOutOfRange = NULL);
     static int sprint(char *str, char fmt, real_t x);
 };
 

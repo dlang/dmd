@@ -131,13 +131,13 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
     {
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
-        complex_t c1;
+        auto c1 = complex_t(real_t(0));
         real_t r1 = 0;
         real_t i1 = 0;
-        complex_t c2;
+        auto c2 = complex_t(real_t(0));
         real_t r2 = 0;
         real_t i2 = 0;
-        complex_t v;
+        auto v = complex_t(real_t(0));
         int x;
         if (e1.type.isreal())
         {
@@ -171,7 +171,7 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
         switch (x)
         {
         case 0 + 0:
-            v = complex_t(r1 + r2, 0);
+            v = complex_t(r1 + r2);
             break;
         case 0 + 1:
             v = complex_t(r1, i2);
@@ -183,7 +183,7 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
             v = complex_t(r2, i1);
             break;
         case 3 + 1:
-            v = complex_t(0, i1 + i2);
+            v = complex_t(real_t(0), i1 + i2);
             break;
         case 3 + 2:
             v = complex_t(creall(c2), i1 + cimagl(c2));
@@ -234,13 +234,13 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
     {
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
-        complex_t c1;
+        auto c1 = complex_t(real_t(0));
         real_t r1 = 0;
         real_t i1 = 0;
-        complex_t c2;
+        auto c2 = complex_t(real_t(0));
         real_t r2 = 0;
         real_t i2 = 0;
-        complex_t v;
+        auto v = complex_t(real_t(0));
         int x;
         if (e1.type.isreal())
         {
@@ -274,7 +274,7 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
         switch (x)
         {
         case 0 + 0:
-            v = complex_t(r1 - r2, 0);
+            v = complex_t(r1 - r2);
             break;
         case 0 + 1:
             v = complex_t(r1, -i2);
@@ -286,7 +286,7 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
             v = complex_t(-r2, i1);
             break;
         case 3 + 1:
-            v = complex_t(0, i1 - i2);
+            v = complex_t(real_t(0), i1 - i2);
             break;
         case 3 + 2:
             v = complex_t(-creall(c2), i1 - cimagl(c2));
@@ -323,8 +323,8 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
     UnionExp ue;
     if (type.isfloating())
     {
-        complex_t c;
-        real_t r;
+        auto c = complex_t(real_t(0));
+        real_t r = 0;
         if (e1.type.isreal())
         {
             r = e1.toReal();
@@ -372,7 +372,7 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
     UnionExp ue;
     if (type.isfloating())
     {
-        complex_t c;
+        auto c = complex_t(real_t(0));
         //e1->type->print();
         //e2->type->print();
         if (e2.type.isreal())
@@ -446,7 +446,7 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
     UnionExp ue;
     if (type.isfloating())
     {
-        complex_t c;
+        auto c = complex_t(real_t(0));
         if (e2.type.isreal())
         {
             const r2 = e2.toReal();
@@ -528,7 +528,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         if (e1.type.iscomplex())
         {
             emplaceExp!(ComplexExp)(&ur, loc, e1.toComplex(), e1.type);
-            emplaceExp!(ComplexExp)(&uv, loc, complex_t(1, 0), e1.type);
+            emplaceExp!(ComplexExp)(&uv, loc, complex_t(real_t(1)), e1.type);
         }
         else if (e1.type.isfloating())
         {
@@ -570,7 +570,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
     else if (e2.type.isfloating())
     {
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
-        if (e1.toReal() < 0.0)
+        if (e1.toReal() < real_t(0))
         {
             emplaceExp!(RealExp)(&ue, loc, real_t.nan, type);
         }
@@ -703,8 +703,8 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
 {
     UnionExp ue;
     int cmp = 0;
-    real_t r1;
-    real_t r2;
+    real_t r1 = 0;
+    real_t r2 = 0;
     //printf("Equal(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     assert(op == TOKequal || op == TOKnotequal);
     if (e1.op == TOKnull)
@@ -949,8 +949,8 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
 {
     UnionExp ue;
     dinteger_t n;
-    real_t r1;
-    real_t r2;
+    real_t r1 = 0;
+    real_t r2 = 0;
     //printf("Cmp(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     if (e1.op == TOKstring && e2.op == TOKstring)
     {
@@ -1069,18 +1069,18 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             switch (typeb.ty)
             {
             case Tint8:
-                result = cast(d_int8)r;
+                result = cast(d_int8)cast(sinteger_t)r;
                 break;
             case Tchar:
             case Tuns8:
-                result = cast(d_uns8)r;
+                result = cast(d_uns8)cast(dinteger_t)r;
                 break;
             case Tint16:
-                result = cast(d_int16)r;
+                result = cast(d_int16)cast(sinteger_t)r;
                 break;
             case Twchar:
             case Tuns16:
-                result = cast(d_uns16)r;
+                result = cast(d_uns16)cast(dinteger_t)r;
                 break;
             case Tint32:
                 result = cast(d_int32)r;

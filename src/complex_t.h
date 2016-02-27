@@ -22,13 +22,12 @@ struct complex_t
     real_t re;
     real_t im;
 
-    complex_t() { this->re = 0; this->im = 0; }
-    complex_t(real_t re) { this->re = re; this->im = 0; }
-    complex_t(real_t re, real_t im) { this->re = re; this->im = im; }
+    complex_t(real_t re) : re(re), im(0) {}
+    complex_t(real_t re, real_t im) : re(re), im(im) {}
 
-    complex_t operator + (complex_t y) { complex_t r; r.re = re + y.re; r.im = im + y.im; return r; }
-    complex_t operator - (complex_t y) { complex_t r; r.re = re - y.re; r.im = im - y.im; return r; }
-    complex_t operator - () { complex_t r; r.re = -re; r.im = -im; return r; }
+    complex_t operator + (complex_t y) { return complex_t(re + y.re, im + y.im); }
+    complex_t operator - (complex_t y) { return complex_t(re - y.re, im - y.im); }
+    complex_t operator - () { return complex_t(-re, -im); }
     complex_t operator * (complex_t y) { return complex_t(re * y.re - im * y.im, im * y.re + re * y.im); }
 
     complex_t operator / (complex_t y)
@@ -53,6 +52,9 @@ struct complex_t
 
     int operator == (complex_t y) { return re == y.re && im == y.im; }
     int operator != (complex_t y) { return re != y.re || im != y.im; }
+
+private:
+    complex_t() : re(0), im(0) {}
 };
 
 inline complex_t operator * (real_t x, complex_t y) { return complex_t(x) * y; }

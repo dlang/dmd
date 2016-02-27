@@ -1245,8 +1245,8 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     {
         return e1.toInteger() != e2.toInteger();
     }
-    real_t r1;
-    real_t r2;
+    real_t r1 = 0;
+    real_t r2 = 0;
     if (e1.type.isreal())
     {
         r1 = e1.toReal();

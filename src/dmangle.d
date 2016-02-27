@@ -667,7 +667,7 @@ public:
         if (TargetReal.isNaN(value))
             buf.writestring("NAN"); // no -NAN bugs
         else if (TargetReal.isInfinity(value))
-            buf.writestring(value < 0 ? "NINF" : "INF");
+            buf.writestring(value < real_t(0) ? "NINF" : "INF");
         else
         {
             enum BUFFER_LEN = 36;

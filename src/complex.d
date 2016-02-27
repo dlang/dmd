@@ -14,13 +14,14 @@ import ddmd.root.real_t;
 
 struct complex_t
 {
-    real_t re = 0;
-    real_t im = 0;
+    real_t re;
+    real_t im;
+
+    this() @disable;
 
     this(real_t re)
     {
-        this.re = re;
-        this.im = 0;
+        this(re, real_t(0));
     }
 
     this(real_t re, real_t im)
@@ -31,26 +32,17 @@ struct complex_t
 
     complex_t opAdd(complex_t y)
     {
-        complex_t r;
-        r.re = re + y.re;
-        r.im = im + y.im;
-        return r;
+        return complex_t(re + y.re, im + y.im);
     }
 
     complex_t opSub(complex_t y)
     {
-        complex_t r;
-        r.re = re - y.re;
-        r.im = im - y.im;
-        return r;
+        return complex_t(re - y.re, im - y.im);
     }
 
     complex_t opNeg()
     {
-        complex_t r;
-        r.re = -re;
-        r.im = -im;
-        return r;
+        return complex_t(-re, -im);
     }
 
     complex_t opMul(complex_t y)

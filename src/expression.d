@@ -2774,19 +2774,19 @@ extern (C++) abstract class Expression : RootObject
     real_t toReal()
     {
         error("floating point constant expression expected instead of %s", toChars());
-        return 0;
+        return real_t(0);
     }
 
     real_t toImaginary()
     {
         error("floating point constant expression expected instead of %s", toChars());
-        return 0;
+        return real_t(0);
     }
 
     complex_t toComplex()
     {
         error("floating point constant expression expected instead of %s", toChars());
-        return cast(complex_t)0.0;
+        return complex_t(real_t(0));
     }
 
     StringExp toStringExp()
@@ -3554,12 +3554,12 @@ extern (C++) final class IntegerExp : Expression
 
     override real_t toImaginary()
     {
-        return 0;
+        return real_t(0);
     }
 
     override complex_t toComplex()
     {
-        return cast(complex_t)toReal();
+        return complex_t(toReal());
     }
 
     override bool isBool(bool result)
@@ -3745,7 +3745,7 @@ extern (C++) final class RealExp : Expression
 
     override bool isBool(bool result)
     {
-        return result ? (value != 0) : (value == 0);
+        return result ? cast(bool)value : !cast(bool)value;
     }
 
     override void accept(Visitor v)
@@ -8021,7 +8021,7 @@ extern (C++) abstract class BinExp : Expression
                 {
                     // x/iv = i(-x/v)
                     // Therefore, the result is 0
-                    e2 = new CommaExp(loc, e2, new RealExp(loc, 0, t1));
+                    e2 = new CommaExp(loc, e2, new RealExp(loc, real_t(0), t1));
                     e2.type = t1;
                     Expression e = new AssignExp(loc, e1, e2);
                     e.type = t1;
@@ -14659,7 +14659,7 @@ extern (C++) final class PowExp : BinExp
         sinteger_t intpow = 0;
         if (e2.op == TOKint64 && (cast(sinteger_t)e2.toInteger() == 2 || cast(sinteger_t)e2.toInteger() == 3))
             intpow = e2.toInteger();
-        else if (e2.op == TOKfloat64 && (e2.toReal() == cast(sinteger_t)e2.toReal()))
+        else if (e2.op == TOKfloat64 && (e2.toReal() == real_t(cast(sinteger_t)e2.toReal())))
             intpow = cast(sinteger_t)e2.toReal();
 
         // Deal with x^^2, x^^3 immediately, since they are of practical importance.
@@ -14694,7 +14694,7 @@ extern (C++) final class PowExp : BinExp
         }
         e = new ScopeExp(loc, mmath);
 
-        if (e2.op == TOKfloat64 && e2.toReal() == 0.5)
+        if (e2.op == TOKfloat64 && e2.toReal() == real_t(0.5))
         {
             // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
             e = new CallExp(loc, new DotIdExp(loc, e, Id._sqrt), e1);

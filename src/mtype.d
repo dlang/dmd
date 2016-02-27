@@ -3641,7 +3641,7 @@ extern (C++) final class TypeBasic : Type
     {
         Expression e;
         dinteger_t ivalue;
-        real_t fvalue;
+        real_t fvalue = 0;
         //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
         if (ident == Id.max)
         {
@@ -3686,12 +3686,12 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = FLT_MAX;
+                fvalue = real_t(FLT_MAX);
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = DBL_MAX;
+                fvalue = real_t(DBL_MAX);
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
@@ -3754,12 +3754,12 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = FLT_MIN;
+                fvalue = real_t(FLT_MIN);
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = DBL_MIN;
+                fvalue = real_t(DBL_MIN);
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
@@ -3838,12 +3838,12 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = FLT_EPSILON;
+                fvalue = real_t(FLT_EPSILON);
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = DBL_EPSILON;
+                fvalue = real_t(DBL_EPSILON);
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
@@ -4036,7 +4036,7 @@ extern (C++) final class TypeBasic : Type
                 t = tfloat80;
                 goto L2;
             L2:
-                e = new RealExp(e.loc, 0, t);
+                e = new RealExp(e.loc, real_t(0), t);
                 break;
 
             default:
@@ -4087,7 +4087,7 @@ extern (C++) final class TypeBasic : Type
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                e = new RealExp(e.loc, 0, this);
+                e = new RealExp(e.loc, real_t(0), this);
                 break;
 
             default:
@@ -4244,16 +4244,14 @@ extern (C++) final class TypeBasic : Type
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-            return new RealExp(loc, Port.snan, this);
+            return new RealExp(loc, real_t.init, this);
 
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                complex_t cvalue;
-                (cast(real_t*)&cvalue)[0] = TargetReal.snan;
-                (cast(real_t*)&cvalue)[1] = TargetReal.snan;
+                const cvalue = complex_t(real_t.init, real_t.init);
                 return new ComplexExp(loc, cvalue, this);
             }
 

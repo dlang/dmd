@@ -463,17 +463,16 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             case Tfloat80:
                 {
-                    real_t f;
                     if (e.type.isunsigned())
                     {
-                        f = real_t(value);
-                        if (f != value) // isn't this a noop, because the compiler prefers ld
+                        const f = real_t(value);
+                        if (cast(dinteger_t)f != value) // isn't this a noop, because the compiler prefers ld
                             return;
                     }
                     else
                     {
-                        f = real_t(cast(sinteger_t)value);
-                        if (f != cast(sinteger_t)value)
+                        const f = real_t(cast(sinteger_t)value);
+                        if (cast(sinteger_t)f != cast(sinteger_t)value)
                             return;
                     }
                     break;
