@@ -4344,6 +4344,7 @@ public:
             break;
         case 'c':
             committed = 1;
+            goto default;
         default:
             type = new TypeDArray(Type.tchar.immutableOf());
             break;
@@ -10245,6 +10246,7 @@ public:
             break;
         default:
             error("can only * a pointer, not a '%s'", e1.type.toChars());
+            goto case Terror;
         case Terror:
             return new ErrorExp();
         }
@@ -14683,6 +14685,7 @@ public:
             }
         default:
             error("rvalue of in expression must be an associative array, not %s", e2.type.toChars());
+            goto case Terror;
         case Terror:
             return new ErrorExp();
         }

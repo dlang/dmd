@@ -172,21 +172,21 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
     case MODshared | MODconst:
         buf.writestring(Token.tochars[TOKshared]);
         buf.writeByte(' ');
-        /* fall through */
+        goto case; /+ fall through +/
     case MODconst:
         buf.writestring(Token.tochars[TOKconst]);
         break;
     case MODshared | MODwild:
         buf.writestring(Token.tochars[TOKshared]);
         buf.writeByte(' ');
-        /* fall through */
+        goto case; /+ fall through +/
     case MODwild:
         buf.writestring(Token.tochars[TOKwild]);
         break;
     case MODshared | MODwildconst:
         buf.writestring(Token.tochars[TOKshared]);
         buf.writeByte(' ');
-        /* fall through */
+        goto case; /+ fall through +/
     case MODwildconst:
         buf.writestring(Token.tochars[TOKwild]);
         buf.writeByte(' ');
@@ -5170,6 +5170,7 @@ public:
         case Tnone:
         case Ttuple:
             error(loc, "can't have associative array key of %s", index.toBasetype().toChars());
+            goto case Terror;
         case Terror:
             return Type.terror;
         default:
@@ -5280,6 +5281,7 @@ public:
         case Tnone:
         case Ttuple:
             error(loc, "can't have associative array of %s", next.toChars());
+            goto case Terror;
         case Terror:
             return Type.terror;
         default:
@@ -5463,6 +5465,7 @@ public:
         {
         case Ttuple:
             error(loc, "can't have pointer to %s", n.toChars());
+            goto case Terror;
         case Terror:
             return Type.terror;
         default:
@@ -6555,6 +6558,7 @@ public:
                         sz = tsa.dim.toInteger();
                         if (sz != nargs - u)
                             goto Nomatch;
+                        goto case Tarray;
                     case Tarray:
                         {
                             TypeArray ta = cast(TypeArray)tb;

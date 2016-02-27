@@ -293,6 +293,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             case 3:
                 if (!global.params.is64bit)
                     goto Lmemory;
+                goto case;
             case 4:
                 t1 = Type.tint32;
                 break;
@@ -301,6 +302,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             case 7:
                 if (!global.params.is64bit)
                     goto Lmemory;
+                goto case;
             case 8:
                 t1 = Type.tint64;
                 break;

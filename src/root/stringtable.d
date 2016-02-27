@@ -42,11 +42,14 @@ private uint calcHash(const(char)* key, size_t len) pure nothrow @nogc
     {
     case 3:
         h ^= data[2] << 16;
+        goto case;
     case 2:
         h ^= data[1] << 8;
+        goto case;
     case 1:
         h ^= data[0];
         h *= m;
+        goto default;
     default:
         break;
     }

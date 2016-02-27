@@ -360,6 +360,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             case Tchar:
                 if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
                     return;
+                goto case Tuns8;
             case Tuns8:
                 //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
                 if (cast(ubyte)value != value)
@@ -374,6 +375,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             case Twchar:
                 if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
                     return;
+                goto case Tuns16;
             case Tuns16:
                 if (cast(ushort)value != value)
                     return;
@@ -460,6 +462,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                      */
                     break;
                 }
+                goto default;
             default:
                 visit(cast(Expression)e);
                 return;
@@ -600,7 +603,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                 return;
                             }
                         }
-                        /* fall through */
+                        goto case; /+ fall through +/
                     case Tarray:
                     case Tpointer:
                         Type tn = t.nextOf();

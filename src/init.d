@@ -533,6 +533,7 @@ public:
         case Tpointer:
             if (t.nextOf().ty != Tfunction)
                 break;
+            goto default;
         default:
             error(loc, "cannot use array to initialize %s", t.toChars());
             goto Lerr;

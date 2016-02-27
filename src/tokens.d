@@ -832,6 +832,7 @@ extern (C++) struct Token
                     case '"':
                     case '\\':
                         buf.writeByte('\\');
+                        goto default;
                     default:
                         if (c <= 0x7F)
                         {

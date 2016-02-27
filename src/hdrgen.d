@@ -2087,6 +2087,7 @@ public:
                     buf.printf("'\\U%08x'", v);
                     break;
                 }
+                goto case;
             case Tchar:
                 {
                     size_t o = buf.offset;
@@ -2263,6 +2264,7 @@ public:
             case '"':
             case '\\':
                 buf.writeByte('\\');
+                goto default;
             default:
                 if (c <= 0xFF)
                 {

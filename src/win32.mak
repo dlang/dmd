@@ -129,7 +129,8 @@ CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
-DFLAGS=$(DOPT) $(DDEBUG)
+DFLAGS=$(DOPT) $(DDEBUG) -wi
+
 # Recursive make
 DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) HOST_DC="$(HOST_DC)"
 

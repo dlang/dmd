@@ -146,6 +146,8 @@ CXXFLAGS += \
 endif
 # Default D compiler flags for all source files
 DFLAGS=
+# Enable D warnings
+DFLAGS += -wi
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1

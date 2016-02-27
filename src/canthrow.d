@@ -141,10 +141,8 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             case Tarray:
                 Type tv = tb.nextOf().baseElemOf();
                 if (tv.ty == Tstruct)
-                {
                     ad = (cast(TypeStruct)tv).sym;
-                    break;
-                }
+                break;
 
             default:
                 break;
