@@ -28,13 +28,6 @@ version (NoBackend)
     struct TYPE;
     alias type = TYPE;
 
-    // tocsym
-
-    extern (C++) Symbol* toInitializer(AggregateDeclaration ad)
-    {
-        return null;
-    }
-
     // glue
 
     extern (C++) void obj_write_deferred(Library library)
@@ -98,8 +91,6 @@ else
     alias Blockx = ddmd.backend.Blockx;
     alias elem = ddmd.backend.elem;
     alias type = ddmd.backend.type;
-
-    extern extern (C++) Symbol* toInitializer(AggregateDeclaration sd);
 
     extern extern (C++) void obj_write_deferred(Library library);
     extern extern (C++) void obj_start(char* srcfile);

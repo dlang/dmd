@@ -471,7 +471,7 @@ public:
     Expressions *elements;      // parallels sd->fields[] with NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
 
-    Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
+    bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
     Symbol *sym;                // back end symbol to initialize with literal
     int fillHoles;              // fill alignment 'holes' with zero
     OwnedBy ownedByCtfe;

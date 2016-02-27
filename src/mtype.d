@@ -2422,7 +2422,7 @@ public:
             if (tb.ty == Tstruct && tb.needsNested())
             {
                 StructLiteralExp se = cast(StructLiteralExp)e;
-                se.sinit = toInitializer(se.sd);
+                se.useStaticInit = true;
             }
         }
         else if (ident == Id._mangleof)
@@ -2511,7 +2511,7 @@ public:
                 if (tb.ty == Tstruct && tb.needsNested())
                 {
                     StructLiteralExp se = cast(StructLiteralExp)e;
-                    se.sinit = toInitializer(se.sd);
+                    se.useStaticInit = true;
                 }
                 goto Lreturn;
             }
@@ -8065,7 +8065,7 @@ public:
          * otherwise the literals expressed as code get excessively large.
          */
         if (size(loc) > Target.ptrsize * 4 && !needsNested())
-            structinit.sinit = toInitializer(sym);
+            structinit.useStaticInit = true;
         structinit.type = this;
         return structinit;
     }

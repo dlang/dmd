@@ -3536,7 +3536,7 @@ elem *toElem(Expression *e, IRState *irs)
                 if (dve->e1->op == TOKstructliteral)
                 {
                     StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
-                    sle->sinit = NULL;          // don't modify initializer
+                    sle->useStaticInit = false;          // don't modify initializer
                 }
 
                 ec = toElem(dve->e1, irs);
@@ -5310,9 +5310,9 @@ elem *toElem(Expression *e, IRState *irs)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
 
-            if (sle->sinit)
+            if (sle->useStaticInit)
             {
-                elem *e = el_var(sle->sinit);
+                elem *e = el_var(toInitializer(sle->sd));
                 e->ET = Type_toCtype(sle->sd->type);
                 el_setLoc(e, sle->loc);
 
