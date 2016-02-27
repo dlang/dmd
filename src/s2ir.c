@@ -766,12 +766,9 @@ public:
                 if (s->exp->op == TOKstructliteral)
                 {
                     StructLiteralExp *se = (StructLiteralExp *)s->exp;
-                    char save[sizeof(StructLiteralExp)];
-                    memcpy(save, (void*)se, sizeof(StructLiteralExp));
                     se->sym = irs->shidden;
                     se->fillHoles = 1;
                     e = toElemDtor(s->exp, irs);
-                    memcpy((void*)se, save, sizeof(StructLiteralExp));
                 }
                 else
                     e = toElemDtor(s->exp, irs);

@@ -1629,16 +1629,10 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     StructLiteralExp *se = StructLiteralExp::create(ne->loc, sd, ne->arguments, t);
 
-                    Symbol *symSave = se->sym;
-                    int fillHolesSave = se->fillHoles;
-
                     se->sym = ev->EV.sp.Vsym;
                     se->fillHoles = 0;
 
                     ez = toElem(se, irs);
-
-                    se->sym = symSave;
-                    se->fillHoles = fillHolesSave;
                 }
                 //elem_print(ex);
                 //elem_print(ey);
@@ -2832,17 +2826,11 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     StructLiteralExp *se = (StructLiteralExp *)ae->e2;
 
-                    Symbol *symSave = se->sym;
-                    int fillHolesSave = se->fillHoles;
-
                     se->sym = ex->EV.sp.Vsym;
                     se->fillHoles = (ae->op == TOKconstruct || ae->op == TOKblit) ? 1 : 0;
 
                     el_free(e1);
                     e = toElem(ae->e2, irs);
-
-                    se->sym = symSave;
-                    se->fillHoles = fillHolesSave;
                     goto Lret;
                 }
 
