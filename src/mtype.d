@@ -2668,7 +2668,7 @@ public:
         //printf("%p, deco = %s, name = %s\n", this, deco, name);
         assert(strlen(name) < namelen); // don't overflow the buffer
         size_t off = 0;
-        static if (!IN_GCC)
+        static if (!IN_GCC && !IN_LLVM)
         {
             if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
                 ++off; // C mangling will add '_' back in
