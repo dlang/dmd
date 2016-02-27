@@ -854,11 +854,6 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
                     break;
             }
         }
-        if (cmp && es1.type.needsNested())
-        {
-            if ((es1.sinit !is null) != (es2.sinit !is null))
-                cmp = 0;
-        }
     }
     else if (e1.isConst() != 1 || e2.isConst() != 1)
     {
