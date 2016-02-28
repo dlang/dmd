@@ -1562,6 +1562,7 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+    GC.disable();
     backend_init();
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
