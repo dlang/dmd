@@ -767,7 +767,7 @@ public:
                 {
                     StructLiteralExp *se = (StructLiteralExp *)s->exp;
                     se->sym = irs->shidden;
-                    se->fillHoles = 1;
+                    se->fillHoles = true;
                     e = toElemDtor(s->exp, irs);
                 }
                 else

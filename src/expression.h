@@ -473,7 +473,7 @@ public:
 
     bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
     Symbol *sym;                // back end symbol to initialize with literal
-    int fillHoles;              // fill alignment 'holes' with zero
+    bool fillHoles;             // fill alignment 'holes' with zero
     OwnedBy ownedByCtfe;
 
     // pointer to the origin instance of the expression.
