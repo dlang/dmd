@@ -4395,7 +4395,7 @@ public:
         case TOKlt:
         case TOKle:
             ret *= -1;
-            /* fall through */
+            goto case; /+ fall through +/
         case TOKgt:
         case TOKge:
             *p1 = (cast(BinExp)e).e1;

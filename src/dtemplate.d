@@ -1674,7 +1674,7 @@ public:
                                 }
                             }
                         }
-                        /* fall through */
+                        goto case Tarray;
                     }
                 case Tarray:
                     {

@@ -326,6 +326,7 @@ public:
                 if (p[1] != '"')
                     goto case_ident;
                 p++;
+                goto case '`';
             case '`':
                 t.value = wysiwygStringConstant(t, *p);
                 return;
@@ -1306,13 +1307,12 @@ public:
             case '\t':
             case '\v':
             case '\f':
-                continue;
-                // skip white space
+                continue; // skip white space
             case '\r':
                 if (*p == '\n')
-                    continue;
-                // ignore
+                    continue; // ignore '\r' if followed by '\n'
                 // Treat isolated '\r' as if it were a '\n'
+                goto case '\n';
             case '\n':
                 endOfLine();
                 continue;
@@ -1360,6 +1360,7 @@ public:
                 break;
             }
         }
+        assert(0); // see bug 15731
     }
 
     /**************************************
@@ -1656,6 +1657,7 @@ public:
         case '\n':
         L1:
             endOfLine();
+            goto case;
         case '\r':
         case 0:
         case 0x1A:
@@ -2119,6 +2121,7 @@ public:
             break;
         case 'l':
             error("use 'L' suffix instead of 'l'");
+            goto case 'L';
         case 'L':
             result = TOKfloat80v;
             p++;
@@ -2437,6 +2440,7 @@ public:
                 break;
             Lnewline:
                 c = '\n'; // replace all newlines with \n
+                goto case;
             case '\n':
                 linestart = 1;
                 /* Trim trailing whitespace

@@ -1891,6 +1891,7 @@ extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
         case ')':
         case '\\':
             buf.writeByte('\\');
+            goto default;
         default:
             buf.writeByte(*fname);
             break;

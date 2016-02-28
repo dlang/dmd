@@ -4260,7 +4260,7 @@ public:
                 // delegate { statements... }
                 break;
             }
-            /* fall through to TOKlparen */
+            goto case TOKlparen;
         case TOKlparen:
             {
                 // (parameters) => expression
@@ -4411,7 +4411,7 @@ public:
                 nextToken();
                 break;
             }
-            /* fall through */
+            goto default;
         default:
             if (literal)
             {
@@ -4505,7 +4505,7 @@ public:
                     s = new LabelStatement(loc, ident, s);
                     break;
                 }
-                // fallthrough to TOKdot
+                goto case TOKdot;
             }
         case TOKdot:
         case TOKtypeof:
@@ -4630,6 +4630,7 @@ public:
                 goto Lexp;
             if (peekNext() == TOKlparen)
                 goto Lexp;
+            goto case;
         case TOKtypedef:
         case TOKalias:
         case TOKconst:
@@ -7168,6 +7169,7 @@ public:
                             tk = peek(tk);
                             if (tk.value == TOKis || tk.value == TOKin) // !is or !in
                                 break;
+                            goto case;
                         case TOKdot:
                         case TOKplusplus:
                         case TOKminusminus:

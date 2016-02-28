@@ -656,6 +656,7 @@ public:
                     if (i < 2)
                         break;
                     // skip leading 0X
+                    goto default;
                 default:
                     buf.writeByte(c);
                     break;

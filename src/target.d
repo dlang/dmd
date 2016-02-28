@@ -266,7 +266,6 @@ struct Target
         default:
             assert(0);
         }
-        return null; // avoid warning
     }
 
     /******************************

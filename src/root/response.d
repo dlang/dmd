@@ -94,6 +94,7 @@ extern (C++) bool response_expand(Strings* args)
                 {
                     comment = 0;
                 }
+                goto case;
             case 0:
             case ' ':
             case '\t':
@@ -108,6 +109,7 @@ extern (C++) bool response_expand(Strings* args)
                     continue;
                 }
                 recurse = 1;
+                goto default;
             default:
                 /* start of new argument   */
                 if (comment)
@@ -175,6 +177,7 @@ extern (C++) bool response_expand(Strings* args)
                             *d = 0; // terminate argument
                             goto Lnextarg;
                         }
+                        goto default;
                     default:
                     Ladd:
                         if (c == '\\')
