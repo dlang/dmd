@@ -14,7 +14,7 @@ private import core.sys.windows.lmcons, core.sys.windows.windef;
 
 // FIXME: check types of constants
 
-const size_t
+enum size_t
     RASSAPI_MAX_PHONENUMBER_SIZE = 128,
     RASSAPI_MAX_MEDIA_NAME       =  16,
     RASSAPI_MAX_PORT_NAME        =  16,
@@ -22,11 +22,11 @@ const size_t
     RASSAPI_MAX_DEVICETYPE_NAME  =  16,
     RASSAPI_MAX_PARAM_KEY_SIZE   =  32;
 
-const RASPRIV_NoCallback        = 0x01;
-const RASPRIV_AdminSetCallback  = 0x02;
-const RASPRIV_CallerSetCallback = 0x04;
-const RASPRIV_DialinPrivilege   = 0x08;
-const RASPRIV_CallbackType      = 0x07;
+enum RASPRIV_NoCallback        = 0x01;
+enum RASPRIV_AdminSetCallback  = 0x02;
+enum RASPRIV_CallerSetCallback = 0x04;
+enum RASPRIV_DialinPrivilege   = 0x08;
+enum RASPRIV_CallbackType      = 0x07;
 
 enum {
     RAS_MODEM_OPERATIONAL = 1,
@@ -54,14 +54,14 @@ enum {
     MEDIA_ISDN
 }
 
-const USER_AUTHENTICATED = 0x0001;
-const MESSENGER_PRESENT  = 0x0002;
-const PPP_CLIENT         = 0x0004;
-const GATEWAY_ACTIVE     = 0x0008;
-const REMOTE_LISTEN      = 0x0010;
-const PORT_MULTILINKED   = 0x0020;
+enum USER_AUTHENTICATED = 0x0001;
+enum MESSENGER_PRESENT  = 0x0002;
+enum PPP_CLIENT         = 0x0004;
+enum GATEWAY_ACTIVE     = 0x0008;
+enum REMOTE_LISTEN      = 0x0010;
+enum PORT_MULTILINKED   = 0x0020;
 
-const size_t
+enum size_t
     RAS_IPADDRESSLEN  = 15,
     RAS_IPXADDRESSLEN = 22,
     RAS_ATADDRESSLEN  = 32;

@@ -46,8 +46,6 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
 	\
-	$(IMPDIR)\core\sys\unwind.d \
-	\
 	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	\

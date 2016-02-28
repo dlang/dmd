@@ -10,6 +10,8 @@
 module core.sys.windows.dbt;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 import core.sys.windows.w32api, core.sys.windows.windef;
 import core.sys.windows.basetyps; // for GUID
 

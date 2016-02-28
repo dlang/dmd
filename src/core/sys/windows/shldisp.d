@@ -12,7 +12,7 @@ version (Windows):
 private import core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;
 
 // options for IAutoComplete2
-const DWORD ACO_AUTOSUGGEST = 0x01;
+enum DWORD ACO_AUTOSUGGEST = 0x01;
 
 interface IAutoComplete : IUnknown {
     HRESULT Init(HWND, IUnknown, LPCOLESTR, LPCOLESTR);

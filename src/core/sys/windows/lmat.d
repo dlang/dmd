@@ -12,14 +12,14 @@ pragma(lib, "netapi32");
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
-const JOB_RUN_PERIODICALLY = 1;
-const JOB_EXEC_ERROR       = 2;
-const JOB_RUNS_TODAY       = 4;
-const JOB_ADD_CURRENT_DATE = 8;
-const JOB_NONINTERACTIVE   = 16;
-const JOB_INPUT_FLAGS      = JOB_RUN_PERIODICALLY | JOB_ADD_CURRENT_DATE
+enum JOB_RUN_PERIODICALLY = 1;
+enum JOB_EXEC_ERROR       = 2;
+enum JOB_RUNS_TODAY       = 4;
+enum JOB_ADD_CURRENT_DATE = 8;
+enum JOB_NONINTERACTIVE   = 16;
+enum JOB_INPUT_FLAGS      = JOB_RUN_PERIODICALLY | JOB_ADD_CURRENT_DATE
                              | JOB_NONINTERACTIVE;
-const JOB_OUTPUT_FLAGS     = JOB_RUN_PERIODICALLY | JOB_EXEC_ERROR
+enum JOB_OUTPUT_FLAGS     = JOB_RUN_PERIODICALLY | JOB_EXEC_ERROR
                              | JOB_RUNS_TODAY | JOB_NONINTERACTIVE;
 
 struct AT_ENUM {

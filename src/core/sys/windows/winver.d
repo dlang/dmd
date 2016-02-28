@@ -9,6 +9,8 @@
  */
 module core.sys.windows.winver;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "version");
 
 private import core.sys.windows.windef;

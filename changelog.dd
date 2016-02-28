@@ -1,34 +1,16 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.067.0.
+$(COMMENT Pending changelog for 2.071.0.
 )
 
 $(BUGSTITLE Library Changes,
 
-$(LI $(RELATIVE_LINK2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
-    `TypeInfo.initializer`.))
 $(LI $(RELATIVE_LINK2 aa-clear, A `clear` method has been added to associative
     arrays to remove all elements.))
 )
 
 $(BUGSTITLE Library Changes,
 
-$(LI $(LNAME2 TypeInfo.initializer, `TypeInfo.init` has been renamed to
-    `TypeInfo.initializer`.)
-
-    $(P The method `TypeInfo.init` has been renamed to
-        $(A ../phobos-prerelease/object.html#.TypeInfo.initializer,
-        `TypeInfo.initializer`).
-        This is necessary because the method clashes with the
-        $(A ../property.html#init, type property of the same name).
-    )
-    $(P An alias with the old name has been added, and it's supposed to stay
-        around through version 2.071.0. It's scheduled to be deprecated with the
-        2.072.0 release, and is going to be `@disable`d with the 2.073.0
-        release. Finally, the special casing is going to be removed with the
-        2.074.0 release, so that the type property `init` takes over.
-    )
-)
 $(LI $(LNAME2 aa-clear, A `clear` method has been added to associative
     arrays to remove all elements.)
 

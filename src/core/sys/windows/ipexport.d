@@ -12,7 +12,7 @@ version (Windows):
 
 private import core.sys.windows.windef;
 
-const size_t MAX_ADAPTER_NAME = 128;
+enum size_t MAX_ADAPTER_NAME = 128;
 
 // IP STATUS flags
 enum : IP_STATUS {
@@ -46,7 +46,7 @@ enum : IP_STATUS {
 }
 
 // IP header Flags values
-const byte IP_FLAG_DF = 2;
+enum byte IP_FLAG_DF = 2;
 
 // IP Option types
 enum : ubyte {
@@ -61,7 +61,7 @@ enum : ubyte {
     IP_OPT_ROUTER_ALERT = 0x94
 }
 
-const ubyte MAX_OPT_SIZE = 40;
+enum ubyte MAX_OPT_SIZE = 40;
 
 alias uint IPAddr, IPMask, IP_STATUS;
 

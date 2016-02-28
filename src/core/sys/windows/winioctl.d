@@ -14,7 +14,7 @@ version (Windows):
 
 private import core.sys.windows.basetyps, core.sys.windows.windef;
 
-const size_t
+enum size_t
     HIST_NO_OF_BUCKETS = 24,
     HISTOGRAM_BUCKET_SIZE = HISTOGRAM_BUCKET.sizeof,
     DISK_HISTOGRAM_SIZE = DISK_HISTOGRAM.sizeof;
@@ -103,14 +103,14 @@ enum {
 +/
 
 template CTL_CODE_T(DEVICE_TYPE t, uint f, uint m, uint a) {
-    const DWORD CTL_CODE_T = (t << 16) | (a << 14) | (f << 2) | m;
+enum DWORD CTL_CODE_T = (t << 16) | (a << 14) | (f << 2) | m;
 }
 
 DEVICE_TYPE DEVICE_TYPE_FROM_CTL_CODE(DWORD c) {
     return (c & 0xFFFF0000) >> 16;
 }
 
-const DEVICE_TYPE
+enum DEVICE_TYPE
     IOCTL_STORAGE_BASE = FILE_DEVICE_MASS_STORAGE,
     IOCTL_DISK_BASE    = FILE_DEVICE_DISK,
     IOCTL_VOLUME_BASE  = 'V';
@@ -215,7 +215,7 @@ enum : BYTE {
     PARTITION_UNIX            = 0x63
 }
 
-const BYTE
+enum BYTE
     PARTITION_NTFT = 0x80,
     VALID_NTFT     = 0xC0;
 

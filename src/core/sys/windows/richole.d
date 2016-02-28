@@ -15,7 +15,7 @@ private import core.sys.windows.richedit; // for CHARRANGE
 
 align(4):
 
-const ULONG
+enum ULONG
     REO_GETOBJ_NO_INTERFACES = 0,
     REO_GETOBJ_POLEOBJ = 1,
     REO_GETOBJ_PSTG = 2,

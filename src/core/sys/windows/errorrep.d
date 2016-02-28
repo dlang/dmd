@@ -10,6 +10,8 @@
 module core.sys.windows.errorrep;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.w32api, core.sys.windows.windef;
 
 static assert (_WIN32_WINNT >= 0x501,

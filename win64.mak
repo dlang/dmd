@@ -351,9 +351,6 @@ $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
-$(IMPDIR)\core\sys\unwind.d : src\core\sys\unwind.d
-	copy $** $@
-
 $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
 	copy $** $@
 

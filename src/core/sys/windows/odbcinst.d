@@ -9,6 +9,8 @@
 module core.sys.windows.odbcinst;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 import core.sys.windows.sql;
 private import core.sys.windows.windef;
 

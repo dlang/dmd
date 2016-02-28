@@ -14,9 +14,9 @@ private import core.sys.windows.mmsystem;
 
 // FIXME: check types and grouping of constants
 
-const MCI_MCIAVI_PLAY_WINDOW     = 0x01000000;
-const MCI_MCIAVI_PLAY_FULLSCREEN = 0x02000000;
-const MCI_MCIAVI_PLAY_FULLBY2    = 0x04000000;
+enum MCI_MCIAVI_PLAY_WINDOW     = 0x01000000;
+enum MCI_MCIAVI_PLAY_FULLSCREEN = 0x02000000;
+enum MCI_MCIAVI_PLAY_FULLBY2    = 0x04000000;
 
 enum {
     MCI_AVI_STATUS_FRAMES_SKIPPED     = 0x00008001,

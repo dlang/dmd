@@ -179,7 +179,7 @@ public:
     /// Is AMD 3DNOW Ext supported?
     bool amd3dnowExt()  {return _amd3dnowExt;}
     /// Are AMD extensions to MMX supported?
-    bool amdMmx()       {return amdMmx;}
+    bool amdMmx()       {return _amdMmx;}
     /// Is fxsave/fxrstor supported?
     bool hasFxsr()          {return _hasFxsr;}
     /// Is cmov supported?
