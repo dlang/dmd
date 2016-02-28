@@ -52,7 +52,7 @@ public:
             // The namespace becomes 'imported' into the enclosing scope
             for (Scope* sce = sc; 1; sce = sce.enclosing)
             {
-                ScopeDsymbol sds2 = cast(ScopeDsymbol)sce.scopesym;
+                ScopeDsymbol sds2 = sce.scopesym;
                 if (sds2)
                 {
                     sds2.importScope(this, Prot(PROTpublic));

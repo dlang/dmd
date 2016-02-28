@@ -4483,7 +4483,7 @@ public:
             wstring[i] = cast(wchar)c;
             break;
         case 4:
-            dstring[i] = cast(dchar)c;
+            dstring[i] = c;
             break;
         }
     }
@@ -4497,7 +4497,7 @@ public:
      */
     char* toPtr()
     {
-        return (sz == 1) ? cast(char*)string : null;
+        return (sz == 1) ? string : null;
     }
 
     override StringExp toStringExp()
@@ -4542,7 +4542,7 @@ public:
             switch (sz)
             {
             case 1:
-                return memcmp(cast(char*)string, cast(char*)se2.string, len1);
+                return memcmp(string, se2.string, len1);
             case 2:
                 {
                     wchar* s1 = cast(wchar*)string;
@@ -9512,7 +9512,7 @@ public:
                 ue.e1 = ue.e1.castTo(sc, ad2.type.addMod(ue.e1.type.mod));
                 ue.e1 = ue.e1.semantic(sc);
                 ue1 = ue.e1;
-                auto vi = f.findVtblIndex(cast(Dsymbols*)&ad2.vtbl, cast(int)ad2.vtbl.dim);
+                auto vi = f.findVtblIndex(&ad2.vtbl, cast(int)ad2.vtbl.dim);
                 assert(vi >= 0);
                 f = ad2.vtbl[vi].isFuncDeclaration();
                 assert(f);
@@ -12015,7 +12015,7 @@ public:
                     /* Rewrite (a[arguments] = e2) as:
                      *      a.opIndexAssign(e2, arguments)
                      */
-                    Expressions* a = cast(Expressions*)ae.arguments.copy();
+                    Expressions* a = ae.arguments.copy();
                     a.insert(0, e2);
                     result = new DotIdExp(loc, ae.e1, Id.indexass);
                     result = new CallExp(loc, result, a);

@@ -393,7 +393,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     else if (e.type.ty == Tclass)
     {
         // Do access check
-        ClassDeclaration cd = cast(ClassDeclaration)(cast(TypeClass)e.type).sym;
+        ClassDeclaration cd = (cast(TypeClass)e.type).sym;
         if (e.op == TOKsuper)
         {
             ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration();
@@ -405,7 +405,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     else if (e.type.ty == Tstruct)
     {
         // Do access check
-        StructDeclaration cd = cast(StructDeclaration)(cast(TypeStruct)e.type).sym;
+        StructDeclaration cd = (cast(TypeStruct)e.type).sym;
         return checkAccess(cd, loc, sc, d);
     }
     return false;

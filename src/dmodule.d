@@ -595,7 +595,7 @@ public:
                     }
                     dbuf.writeByte(0); // add 0 as sentinel for scanner
                     buflen = dbuf.offset - 1; // don't include sentinel in count
-                    buf = cast(char*)dbuf.extractData();
+                    buf = dbuf.extractData();
                 }
                 else
                 {
@@ -652,7 +652,7 @@ public:
                     }
                     dbuf.writeByte(0); // add 0 as sentinel for scanner
                     buflen = dbuf.offset - 1; // don't include sentinel in count
-                    buf = cast(char*)dbuf.extractData();
+                    buf = dbuf.extractData();
                 }
             }
             else if (buf[0] == 0xFE && buf[1] == 0xFF)
@@ -810,29 +810,29 @@ public:
             }
             if (arreq)
             {
-                scope Parser p = new Parser(loc, this, code_ArrayEq, strlen(cast(const(char)*)code_ArrayEq), 0);
+                scope Parser p = new Parser(loc, this, code_ArrayEq, strlen(code_ArrayEq), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayPostblit, strlen(cast(const(char)*)code_ArrayPostblit), 0);
+                scope Parser p = new Parser(loc, this, code_ArrayPostblit, strlen(code_ArrayPostblit), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             {
-                scope Parser p = new Parser(loc, this, code_ArrayDtor, strlen(cast(const(char)*)code_ArrayDtor), 0);
+                scope Parser p = new Parser(loc, this, code_ArrayDtor, strlen(code_ArrayDtor), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopeq)
             {
-                scope Parser p = new Parser(loc, this, code_xopEquals, strlen(cast(const(char)*)code_xopEquals), 0);
+                scope Parser p = new Parser(loc, this, code_xopEquals, strlen(code_xopEquals), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }
             if (xopcmp)
             {
-                scope Parser p = new Parser(loc, this, code_xopCmp, strlen(cast(const(char)*)code_xopCmp), 0);
+                scope Parser p = new Parser(loc, this, code_xopCmp, strlen(code_xopCmp), 0);
                 p.nextToken();
                 members.append(p.parseDeclDefs(0));
             }

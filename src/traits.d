@@ -1200,7 +1200,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return null;
         cost = 0;
         StringValue* sv = traitsStringTable.lookup(seed, len);
-        return sv ? cast(void*)sv.ptrvalue : null;
+        return sv ? sv.ptrvalue : null;
     }
 
     if (auto sub = cast(const(char)*)speller(e.ident.toChars(), &trait_search_fp, idchars))

@@ -689,7 +689,7 @@ public:
         {
         case 1:
             m = 'a';
-            q = cast(char*)e.string;
+            q = e.string;
             qlen = e.len;
             break;
         case 2:

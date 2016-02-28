@@ -3997,7 +3997,7 @@ public:
                 uint dim = cast(uint)dollar;
                 lowerbound = cast(int)(lwr ? lwr.toInteger() : 0);
                 upperbound = cast(size_t)(upr ? upr.toInteger() : dim);
-                if (cast(int)lowerbound < 0 || dim < upperbound)
+                if (lowerbound < 0 || dim < upperbound)
                 {
                     e.error("array bounds [0..%d] exceeded in slice [%d..%d]", dim, lowerbound, upperbound);
                     return CTFEExp.cantexp;
@@ -4084,7 +4084,7 @@ public:
             }
             if (newval.op == TOKstring)
             {
-                sliceAssignStringFromString(cast(StringExp)existingSE, cast(StringExp)newval, cast(size_t)firstIndex);
+                sliceAssignStringFromString(existingSE, cast(StringExp)newval, cast(size_t)firstIndex);
                 return newval;
             }
             if (newval.op == TOKarrayliteral)
@@ -6674,9 +6674,9 @@ extern (C++) Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDecla
             if (nargs == 1 && fd.ident == Id.aaLen)
                 return interpret_length(istate, firstarg);
             if (nargs == 3 && !strcmp(fd.ident.string, "_aaApply"))
-                return interpret_aaApply(istate, firstarg, cast(Expression)arguments.data[2]);
+                return interpret_aaApply(istate, firstarg, arguments.data[2]);
             if (nargs == 3 && !strcmp(fd.ident.string, "_aaApply2"))
-                return interpret_aaApply(istate, firstarg, cast(Expression)arguments.data[2]);
+                return interpret_aaApply(istate, firstarg, arguments.data[2]);
             if (nargs == 1 && !strcmp(fd.ident.string, "keys") && !strcmp(fd.toParent2().ident.string, "object"))
                 return interpret_keys(istate, firstarg, firstAAtype.index.arrayOf());
             if (nargs == 1 && !strcmp(fd.ident.string, "values") && !strcmp(fd.toParent2().ident.string, "object"))

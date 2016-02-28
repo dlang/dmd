@@ -1667,7 +1667,7 @@ public:
                                 else
                                 {
                                     Type vt = tvp.valType.semantic(Loc(), sc);
-                                    MATCH m = cast(MATCH)dim.implicitConvTo(vt);
+                                    MATCH m = dim.implicitConvTo(vt);
                                     if (m <= MATCHnomatch)
                                         goto Lnomatch;
                                     (*dedtypes)[i] = dim;
@@ -4337,7 +4337,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         override void visit(CommaExp e)
         {
-            (cast(CommaExp)e).e2.accept(this);
+            e.e2.accept(this);
         }
     }
 
@@ -8202,7 +8202,7 @@ public:
         symtab = new DsymbolTable();
         for (Scope* sce = sc; 1; sce = sce.enclosing)
         {
-            ScopeDsymbol sds = cast(ScopeDsymbol)sce.scopesym;
+            ScopeDsymbol sds = sce.scopesym;
             if (sds)
             {
                 sds.importScope(this, Prot(PROTpublic));

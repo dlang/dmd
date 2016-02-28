@@ -508,7 +508,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         /* Rewrite op(a[arguments]) as:
                          *      a.opIndexUnary!(op)(arguments)
                          */
-                        Expressions* a = cast(Expressions*)ae.arguments.copy();
+                        Expressions* a = ae.arguments.copy();
                         Objects* tiargs = opToArg(sc, e.op);
                         result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opIndexUnary, tiargs);
                         result = new CallExp(e.loc, result, a);
@@ -676,7 +676,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     /* Rewrite e1[arguments] as:
                      *      e1.opIndex(arguments)
                      */
-                    Expressions* a = cast(Expressions*)ae.arguments.copy();
+                    Expressions* a = ae.arguments.copy();
                     result = new DotIdExp(ae.loc, ae.e1, Id.index);
                     result = new CallExp(ae.loc, result, a);
                     if (maybeSlice) // a[] might be: a.opSlice()
@@ -1370,7 +1370,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         /* Rewrite a[arguments] op= e2 as:
                          *      a.opIndexOpAssign!(op)(e2, arguments)
                          */
-                        Expressions* a = cast(Expressions*)ae.arguments.copy();
+                        Expressions* a = ae.arguments.copy();
                         a.insert(0, e.e2);
                         Objects* tiargs = opToArg(sc, e.op);
                         result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opIndexOpAssign, tiargs);

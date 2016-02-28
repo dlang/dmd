@@ -291,7 +291,7 @@ extern (C++) void genCmain(Scope* sc)
     };
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
-    scope Parser p = new Parser(m, cmaincode, strlen(cast(const(char)*)cmaincode), 0);
+    scope Parser p = new Parser(m, cmaincode, strlen(cmaincode), 0);
     p.scanloc = Loc();
     p.nextToken();
     m.members = p.parseModule();

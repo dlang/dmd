@@ -50,7 +50,7 @@ extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename, size_t le
     for (size_t i = 0; i < len; i++)
     {
         char c = filename[i];
-        if (isalnum(cast(char)c) || c == '_')
+        if (isalnum(c) || c == '_')
             continue;
         /* Need to quote
          */

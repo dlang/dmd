@@ -1431,7 +1431,7 @@ else static if (TARGET_WINDOS)
                 // <flags> ::= Y <calling convention flag>
                 buf.writeByte('Y');
             }
-            const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, cast(bool)d.needThis(), d.isCtorDeclaration() || d.isDtorDeclaration());
+            const(char)* args = mangleFunctionType(cast(TypeFunction)d.type, d.needThis(), d.isCtorDeclaration() || d.isDtorDeclaration());
             buf.writestring(args);
         }
 
@@ -1470,7 +1470,7 @@ else static if (TARGET_WINDOS)
             Type t = d.type;
             if (t.isImmutable() || t.isShared())
             {
-                visit(cast(Type)t);
+                visit(t);
                 return;
             }
             if (t.isConst())
@@ -1786,7 +1786,7 @@ else static if (TARGET_WINDOS)
                 return;
             if (type.isImmutable() || type.isShared())
             {
-                visit(cast(Type)type);
+                visit(type);
                 return;
             }
             if (type.isConst())

@@ -209,7 +209,7 @@ public:
                     if (!m)
                     {
                         static __gshared const(char)* undef = "DDOC_UNDEFINED_MACRO";
-                        m = search(cast(const(char)*)undef, strlen(undef));
+                        m = search(undef, strlen(undef));
                         if (m)
                         {
                             // Macro was not defined, so this is an expansion of

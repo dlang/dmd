@@ -878,7 +878,7 @@ public:
             /* Find index of existing function in base class's vtbl[] to override
              * (the index will be the same as in cd's current vtbl[])
              */
-            int vi = cd.baseClass ? findVtblIndex(cast(Dsymbols*)&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.dim) : -1;
+            int vi = cd.baseClass ? findVtblIndex(&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.dim) : -1;
             bool doesoverride = false;
             switch (vi)
             {
@@ -1044,7 +1044,7 @@ public:
         Linterfaces:
             foreach (b; cd.interfaces)
             {
-                vi = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
+                vi = findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
                 switch (vi)
                 {
                 case -1:
@@ -2496,7 +2496,7 @@ public:
         ClassDeclaration cd = parent.isClassDeclaration();
         foreach (b; cd.interfaces)
         {
-            auto v = findVtblIndex(cast(Dsymbols*)&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
+            auto v = findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
             if (v >= 0)
                 return b;
         }
@@ -2803,7 +2803,7 @@ public:
                 e = p.type.defaultInitLiteral(Loc());
             args[u] = e;
         }
-        MATCH m = cast(MATCH)tg.callMatch(null, &args, 1);
+        MATCH m = tg.callMatch(null, &args, 1);
         if (m > MATCHnomatch)
         {
             /* A variadic parameter list is less specialized than a

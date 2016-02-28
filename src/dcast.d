@@ -1654,7 +1654,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                  */
                 if ((se.len + 1) * se.sz > (e.len + 1) * e.sz)
                 {
-                    void* s = cast(void*)mem.xmalloc((se.len + 1) * se.sz);
+                    void* s = mem.xmalloc((se.len + 1) * se.sz);
                     memcpy(s, se.string, se.len * se.sz);
                     memset(s + se.len * se.sz, 0, se.sz);
                     se.string = cast(char*)s;
@@ -1820,7 +1820,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     // Copy when changing the string literal
                     size_t newsz = se.sz;
                     size_t d = (dim2 < se.len) ? dim2 : se.len;
-                    void* s = cast(void*)mem.xmalloc((dim2 + 1) * newsz);
+                    void* s = mem.xmalloc((dim2 + 1) * newsz);
                     memcpy(s, se.string, d * newsz);
                     // Extend with 0, add terminating 0
                     memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);
@@ -1922,7 +1922,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
             TupleExp te = cast(TupleExp)e.copy();
             te.e0 = e.e0 ? e.e0.copy() : null;
-            te.exps = cast(Expressions*)e.exps.copy();
+            te.exps = e.exps.copy();
             for (size_t i = 0; i < te.exps.dim; i++)
             {
                 Expression ex = (*te.exps)[i];
