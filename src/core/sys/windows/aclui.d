@@ -33,7 +33,7 @@ struct SI_OBJECT_INFO {
 alias SI_OBJECT_INFO* PSI_OBJECT_INFO;
 
 // values for SI_OBJECT_INFO.dwFlags
-const DWORD
+enum DWORD
     SI_EDIT_PERMS               = 0x00000000,
     SI_EDIT_OWNER               = 0x00000001,
     SI_EDIT_AUDITS              = 0x00000002,
@@ -61,7 +61,7 @@ const DWORD
                                   | SI_EDIT_AUDITS;
 
 struct SI_ACCESS {
-    const(GUID)* pguid;
+const(GUID)* pguid;
     ACCESS_MASK  mask;
     LPCWSTR      pszName;
     DWORD        dwFlags;
@@ -69,7 +69,7 @@ struct SI_ACCESS {
 alias SI_ACCESS* PSI_ACCESS;
 
 // values for SI_ACCESS.dwFlags
-const DWORD
+enum DWORD
     SI_ACCESS_SPECIFIC  = 0x00010000,
     SI_ACCESS_GENERAL   = 0x00020000,
     SI_ACCESS_CONTAINER = 0x00040000,
@@ -77,7 +77,7 @@ const DWORD
 
 
 struct SI_INHERIT_TYPE {
-    const(GUID)* pguid;
+const(GUID)* pguid;
     ULONG        dwFlags;
     LPCWSTR      pszName;
 }
@@ -94,7 +94,7 @@ enum SI_PAGE_TYPE {
     SI_PAGE_OWNER
 }
 
-const uint PSPCB_SI_INITDIALOG = WM_USER + 1;
+enum uint PSPCB_SI_INITDIALOG = WM_USER + 1;
 
 interface ISecurityInformation : IUnknown {
     HRESULT GetObjectInformation(PSI_OBJECT_INFO);

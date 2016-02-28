@@ -14,6 +14,8 @@
 module core.sys.windows.psapi;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.w32api;
 private import core.sys.windows.winbase;
 private import core.sys.windows.windef;

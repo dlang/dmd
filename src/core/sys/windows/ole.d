@@ -9,6 +9,7 @@
  */
 module core.sys.windows.ole;
 version (Windows):
+pragma(lib, "ole32");
 
 private import core.sys.windows.windef, core.sys.windows.wingdi, core.sys.windows.uuid;
 
@@ -23,10 +24,10 @@ enum {
     OT_STATIC
 }
 
-const OLEVERB_PRIMARY = 0;
-const OF_SET          = 1;
-const OF_GET          = 2;
-const OF_HANDLER      = 4;
+enum OLEVERB_PRIMARY = 0;
+enum OF_SET          = 1;
+enum OF_GET          = 2;
+enum OF_HANDLER      = 4;
 
 struct OLETARGETDEVICE {
     USHORT otdDeviceNameOffset;

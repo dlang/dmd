@@ -10,12 +10,14 @@
 module core.sys.windows.custcntl;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.windef;
 
 // FIXME: check type
-const CCF_NOTEXT = 1;
+enum CCF_NOTEXT = 1;
 
-const size_t
+enum size_t
     CCHCCCLASS =  32,
     CCHCCDESC  =  32,
     CCHCCTEXT  = 256;

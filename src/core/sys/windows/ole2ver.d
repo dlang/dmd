@@ -10,5 +10,5 @@ module core.sys.windows.ole2ver;
 version (Windows):
 
 // These are apparently not documented on the MSDN site
-const rmm = 23;
-const rup = 639;
+enum rmm = 23;
+enum rup = 639;

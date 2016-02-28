@@ -8,6 +8,8 @@
  */
 module core.sys.windows.wincon;
 version (Windows):
+
+version (ANSI) {} else version = Unicode;
 pragma(lib, "kernel32");
 
 private import core.sys.windows.w32api, core.sys.windows.windef;
@@ -245,7 +247,7 @@ HWND GetConsoleWindow();
 static if (_WIN32_WINNT >= 0x501) {
 BOOL AttachConsole(DWORD);
 BOOL SetConsoleDisplayMode(HANDLE, DWORD, PCOORD);
-const DWORD ATTACH_PARENT_PROCESS = cast(DWORD)-1;
+enum DWORD ATTACH_PARENT_PROCESS = cast(DWORD)-1;
 }
 
 BOOL SetConsoleMode(HANDLE, DWORD);

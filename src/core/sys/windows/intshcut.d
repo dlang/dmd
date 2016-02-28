@@ -10,6 +10,8 @@
 module core.sys.windows.intshcut;
 version (Windows):
 
+version (ANSI) {} else version = Unicode;
+
 private import core.sys.windows.unknwn, core.sys.windows.windef;
 
 enum : SCODE {

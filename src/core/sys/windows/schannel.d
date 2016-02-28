@@ -13,8 +13,8 @@ version (Windows):
 import core.sys.windows.wincrypt;
 private import core.sys.windows.windef;
 
-const DWORD SCHANNEL_CRED_VERSION = 4;
-const SCHANNEL_SHUTDOWN           = 1;
+enum DWORD SCHANNEL_CRED_VERSION = 4;
+enum SCHANNEL_SHUTDOWN           = 1;
 /* Comment from MinGW
     ? Do these belong here or in wincrypt.h
  */
@@ -23,7 +23,7 @@ enum : DWORD {
     AUTHTYPE_SERVER = 2
 }
 
-const DWORD
+enum DWORD
     SP_PROT_PCT1_SERVER = 0x01,
     SP_PROT_PCT1_CLIENT = 0x02,
     SP_PROT_SSL2_SERVER = 0x04,
@@ -37,7 +37,7 @@ const DWORD
     SP_PROT_SSL2        = SP_PROT_SSL2_CLIENT | SP_PROT_SSL2_SERVER,
     SP_PROT_SSL3        = SP_PROT_SSL3_CLIENT | SP_PROT_SSL3_SERVER;
 
-const DWORD
+enum DWORD
     SCH_CRED_NO_SYSTEM_MAPPER                    = 0x0002,
     SCH_CRED_NO_SERVERNAME_CHECK                 = 0x0004,
     SCH_CRED_MANUAL_CRED_VALIDATION              = 0x0008,

@@ -4,10 +4,10 @@
  *
  * See_Also:
  *      Itanium C++ ABI: Exception Handling ($Revision: 1.22 $)
- * Source: $(DRUNTIMESRC src/core/sys/_unwind.d)
+ * Source: $(DRUNTIMESRC src/rt/_unwind.d)
  */
 
-module core.sys.unwind;
+module rt.unwind;
 
 import core.stdc.stdint;
 
@@ -124,5 +124,3 @@ _Unwind_Reason_Code _Unwind_SjLj_RaiseException(_Unwind_Exception*);
 _Unwind_Reason_Code _Unwind_SjLj_ForcedUnwind(_Unwind_Exception , _Unwind_Stop_Fn, void*);
 void _Unwind_SjLj_Resume(_Unwind_Exception*);
 _Unwind_Reason_Code _Unwind_SjLj_Resume_or_Rethrow(_Unwind_Exception*);
-
-

@@ -18,7 +18,7 @@ private import core.sys.windows.basetyps, core.sys.windows.objidl, core.sys.wind
 private import core.sys.windows.objfwd; // for LPMONIKER
 private import core.sys.windows.wingdi; // for LPLOGPALETTE
 
-const MK_ALT = 32;
+enum MK_ALT = 32;
 
 enum BINDSPEED {
     BINDSPEED_INDEFINITE = 1,
