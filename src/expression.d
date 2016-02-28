@@ -5116,9 +5116,8 @@ public:
     Expressions* elements;  // parallels sd.fields[] with null entries for fields to skip
     Type stype;             // final type of result (can be different from sd's type)
 
-    Symbol* sinit;          // if this is a defaultInitLiteral, this symbol contains the default initializer
+    bool useStaticInit;     // if this is true, use the StructDeclaration's init symbol
     Symbol* sym;            // back end symbol to initialize with literal
-    size_t soffset;         // offset from start of s
     int fillHoles = 1;      // fill alignment 'holes' with zero
     OwnedBy ownedByCtfe = OWNEDcode;
 
@@ -5258,10 +5257,10 @@ public:
                     e = e.copy();
                     e.type = type;
                 }
-                if (sinit && e.op == TOKstructliteral && e.type.needsNested())
+                if (useStaticInit && e.op == TOKstructliteral && e.type.needsNested())
                 {
                     StructLiteralExp se = cast(StructLiteralExp)e;
-                    se.sinit = toInitializer(se.sd);
+                    se.useStaticInit = true;
                 }
             }
         }
@@ -9398,7 +9397,7 @@ public:
                     /* Constructor takes a mutable object, so don't use
                      * the immutable initializer symbol.
                      */
-                    sle.sinit = null;
+                    sle.useStaticInit = false;
 
                     Expression e = sle;
                     if (CtorDeclaration cf = sd.ctor.isCtorDeclaration())
