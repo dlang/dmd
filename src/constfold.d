@@ -1324,7 +1324,7 @@ extern (C++) UnionExp Slice(Type type, Expression e1, Expression lwr, Expression
             size_t len = cast(size_t)(iupr - ilwr);
             ubyte sz = es1.sz;
             void* s = mem.xmalloc(len * sz);
-            memcpy(cast(char*)s, cast(char*)es1.string + ilwr * sz, len * sz);
+            memcpy(cast(char*)s, es1.string + ilwr * sz, len * sz);
             emplaceExp!(StringExp)(&ue, loc, s, len, es1.postfix);
             StringExp es = cast(StringExp)ue.exp();
             es.sz = sz;

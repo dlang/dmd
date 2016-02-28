@@ -509,8 +509,8 @@ extern (C++) void gendocfile(Module m)
         time(&t);
         char* p = ctime(&t);
         p = mem.xstrdup(p);
-        Macro.define(&m.macrotable, cast(char*)"DATETIME", 8, cast(char*)p, strlen(p));
-        Macro.define(&m.macrotable, cast(char*)"YEAR", 4, cast(char*)p + 20, 4);
+        Macro.define(&m.macrotable, cast(char*)"DATETIME", 8, p, strlen(p));
+        Macro.define(&m.macrotable, cast(char*)"YEAR", 4, p + 20, 4);
     }
     const srcfilename = m.srcfile.toChars();
     Macro.define(&m.macrotable, "SRCFILENAME", 11, srcfilename, strlen(srcfilename));
@@ -1872,7 +1872,7 @@ extern (C++) bool isDitto(const(char)* comment)
     if (comment)
     {
         const(char)* p = skipwhitespace(comment);
-        if (Port.memicmp(cast(const(char)*)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
+        if (Port.memicmp(p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
             return true;
     }
     return false;
@@ -1971,11 +1971,11 @@ extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
     char* p = cast(char*)&buf.data[i];
     size_t j;
     uint sawdot = 0;
-    if (length > 7 && Port.memicmp(cast(char*)p, "http://", 7) == 0)
+    if (length > 7 && Port.memicmp(p, "http://", 7) == 0)
     {
         j = 7;
     }
-    else if (length > 8 && Port.memicmp(cast(char*)p, "https://", 8) == 0)
+    else if (length > 8 && Port.memicmp(p, "https://", 8) == 0)
     {
         j = 8;
     }

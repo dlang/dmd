@@ -794,7 +794,7 @@ public:
                     if (se)
                     {
                         se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, cast(char*)se.string);
+                        fprintf(stderr, "%.*s", cast(int)se.len, se.string);
                     }
                     else
                         fprintf(stderr, "%s", e.toChars());
@@ -837,7 +837,7 @@ public:
                         ob.writestring(" (");
                         escapePath(ob, imod.srcfile.toChars());
                         ob.writestring(") : ");
-                        ob.writestring(cast(char*)name);
+                        ob.writestring(name);
                         ob.writenl();
                     }
                     mem.xfree(name);
@@ -911,7 +911,7 @@ public:
                  */
                 for (size_t i = 0; i < se.len;)
                 {
-                    char* p = cast(char*)se.string;
+                    char* p = se.string;
                     dchar c = p[i];
                     if (c < 0x80)
                     {

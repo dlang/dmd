@@ -410,7 +410,7 @@ public:
             if (em.origValue)
                 property("value", em.origValue.toChars());
         }
-        property("comment", cast(const(char)*)s.comment);
+        property("comment", s.comment);
         property("line", "char", &s.loc);
     }
 
@@ -459,7 +459,7 @@ public:
         property("kind", s.kind());
         filename = s.srcfile.toChars();
         property("file", filename);
-        property("comment", cast(const(char)*)s.comment);
+        property("comment", s.comment);
         propertyStart("members");
         arrayStart();
         for (size_t i = 0; i < s.members.dim; i++)
@@ -490,7 +490,7 @@ public:
         stringEnd();
         comma();
         property("kind", s.kind());
-        property("comment", cast(const(char)*)s.comment);
+        property("comment", s.comment);
         property("line", "char", &s.loc);
         if (s.prot().kind != PROTpublic)
             property("protection", protectionToChars(s.prot().kind));

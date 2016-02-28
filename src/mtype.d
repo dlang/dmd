@@ -1010,7 +1010,7 @@ public:
         assert(t);
         if (!t.deco)
             return t.merge();
-        StringValue* sv = stringtable.lookup(cast(char*)t.deco, strlen(t.deco));
+        StringValue* sv = stringtable.lookup(t.deco, strlen(t.deco));
         if (sv && sv.ptrvalue)
         {
             t = cast(Type)sv.ptrvalue;
@@ -2434,7 +2434,7 @@ public:
             }
             else
             {
-                e = new StringExp(loc, cast(char*)deco);
+                e = new StringExp(loc, deco);
                 Scope sc;
                 e = e.semantic(&sc);
             }
@@ -4101,7 +4101,7 @@ public:
     // For eliminating dynamic_cast
     override TypeBasic isTypeBasic()
     {
-        return cast(TypeBasic)this;
+        return this;
     }
 
     override void accept(Visitor v)
@@ -8060,7 +8060,7 @@ public:
                 offset = vd.offset + cast(uint)vd.type.size();
             (*structelems)[j] = e;
         }
-        auto structinit = new StructLiteralExp(loc, cast(StructDeclaration)sym, structelems);
+        auto structinit = new StructLiteralExp(loc, sym, structelems);
         /* Copy from the initializer symbol for larger symbols,
          * otherwise the literals expressed as code get excessively large.
          */

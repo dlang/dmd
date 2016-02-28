@@ -869,7 +869,7 @@ extern (C++) struct Token
                 if (postfix)
                     buf.writeByte(postfix);
                 buf.writeByte(0);
-                p = cast(char*)buf.extractData();
+                p = buf.extractData();
                 break;
             }
         case TOKidentifier:
