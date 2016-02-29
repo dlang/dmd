@@ -132,7 +132,7 @@ ABC x;
 )
 
 
-$(H3 Opaque Structs and Unions)
+$(H3 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
 
     $(P Opaque struct and union declarations do not have a $(GLINK AggregateBody):)
 
@@ -156,7 +156,7 @@ S* p;     // ok, knowledge of members is not necessary
 	$(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
-$(H3 Static Initialization of Structs)
+$(H3 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
         Static struct members are by default initialized to whatever the
         default initializer for the member is, and if none supplied, to
@@ -199,7 +199,7 @@ void test(int i)
 ----
 
 
-$(H3 Static Initialization of Unions)
+$(H3 $(LNAME2 static_union_init, Static Initialization of Unions))
 
         Unions are initialized explicitly.
 
@@ -212,7 +212,7 @@ static U u = { b : 5.0 }; // u.b = 5.0
         but occupy more storage, have
         the extra storage initialized to zero.
 
-$(H3 Dynamic Initialization of Structs)
+$(H3 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
 
         $(P Structs can be dynamically initialized from another
         value of the same type:)
@@ -281,7 +281,7 @@ $(H3 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         initialized.
         )
 
-$(H3 Struct Properties)
+$(H3 $(LNAME2 struct_properties, Struct Properties))
 
 $(TABLE2 Struct Properties,
 $(THEAD Name, Description)
@@ -605,7 +605,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
         ---
     )
 
-$(H2 Unions and Special Member Functions)
+$(H2 $(LNAME2 unions_and_special_memb_funct, Unions and Special Member Functions))
 
     $(P Unions may not have postblits, destructors, or invariants.)
 

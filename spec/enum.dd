@@ -48,7 +48,7 @@ $(GNAME AnonymousEnumMember):
 	$(LI Manifest constants.)
 	)
 
-$(H2 Named Enums)
+$(H2 $(LNAME2 named_enums, Named Enums))
 
 	$(P
 	Named enums are used to declare related
@@ -120,7 +120,7 @@ enum E : C
 	$(P An empty enum body (For example $(CODE enum E;)) signifies an opaque
 	enum - the enum members are unknown.)
 
-$(H3 Enum Default Initializer)
+$(H3 $(LNAME2 enum_default_initializer, Enum Default Initializer))
 
 	$(P The $(CODE .init) property of an enum type is the value
 	of the first member of that enum.
@@ -132,7 +132,7 @@ enum X { A=3, B, C }
 X x;      // x is initialized to 3
 ------
 
-$(H3 Enum Properties)
+$(H3 $(LNAME2 enum_properties, Enum Properties))
 
 	$(P Enum properties only exist for named enums.
 	)
@@ -159,7 +159,7 @@ X.sizeof // is same as int.sizeof
 	)
 
 
-$(H2 Anonymous Enums)
+$(H2 $(LNAME2 anonymous_enums, Anonymous Enums))
 
 	$(P If the enum $(I Identifier) is not present, then the enum
 	is an $(I anonymous enum), and the $(I EnumMembers) are declared
@@ -239,7 +239,7 @@ enum
 }
 ---
 
-$(H2 Manifest Constants)
+$(H2 $(LNAME2 manifest_constants, Manifest Constants))
 
 	$(P If there is only one member of an anonymous enum, the { } can
 	be omitted. Gramatically speaking, this is an $(GLINK2 declaration, AutoDeclaration).
