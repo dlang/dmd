@@ -681,6 +681,7 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
                         printf("
 Language changes listed by -transition=id:
   =all           list information on all language changes
+  =checkimports  give deprecation messages about 10378 anomalies
   =complex,14488 list all usages of complex or imaginary types
   =field,3449    list all non-mutable fields which occupy an object instance
   =import,10378  revert to single phase name lookup
@@ -703,6 +704,7 @@ Language changes listed by -transition=id:
                             break;
                         case 10378:
                             global.params.bug10378 = true;
+                            global.params.check10378 = false;
                             break;
                         case 14488:
                             global.params.vcomplex = true;
@@ -713,44 +715,31 @@ Language changes listed by -transition=id:
                     }
                     else if (Identifier.isValidIdentifier(p + 12))
                     {
-                        const(char)* ident = p + 12;
-                        switch (strlen(ident))
+                        const ident = p + 12;
+                        switch (ident[0 .. strlen(ident)])
                         {
-                        case 3:
-                            if (strcmp(ident, "all") == 0)
-                            {
-                                global.params.vtls = true;
-                                global.params.vfield = true;
-                                global.params.vcomplex = true;
-                                break;
-                            }
-                            if (strcmp(ident, "tls") == 0)
-                            {
-                                global.params.vtls = true;
-                                break;
-                            }
-                            goto Lerror;
-                        case 5:
-                            if (strcmp(ident, "field") == 0)
-                            {
-                                global.params.vfield = true;
-                                break;
-                            }
-                            goto Lerror;
-                        case 6:
-                            if (strcmp(ident, "import") == 0)
-                            {
-                                global.params.bug10378 = true;
-                                break;
-                            }
-                            goto Lerror;
-                        case 7:
-                            if (strcmp(ident, "complex") == 0)
-                            {
-                                global.params.vcomplex = true;
-                                break;
-                            }
-                            goto Lerror;
+                        case "all":
+                            global.params.vtls = true;
+                            global.params.vfield = true;
+                            global.params.vcomplex = true;
+                            break;
+                        case "checkimports":
+                            global.params.check10378 = true;
+                            global.params.bug10378 = false;
+                            break;
+                        case "complex":
+                            global.params.vcomplex = true;
+                            break;
+                        case "field":
+                            global.params.vfield = true;
+                            break;
+                        case "import":
+                            global.params.bug10378 = true;
+                            global.params.check10378 = false;
+                            break;
+                        case "tls":
+                            global.params.vtls = true;
+                            break;
                         default:
                             goto Lerror;
                         }

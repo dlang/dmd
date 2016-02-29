@@ -66,7 +66,10 @@ $(BUGSTITLE Language Changes,
     to take the form of a symbol now being flagged as undefined. Fixing the breakage can
     be done by fully qualifying the name, or adding an alias to the import declaration.)
 
-    $(P Restore old behavior using the -transition=import compiler switch.)
+    $(P The old lookup behavior can be restored using the -transition=import compiler switch.
+    With -transition=checkimports the compiler will perform both the old and new
+    lookup and issue a deprecation warning when the found symbols mismatch.
+    )
 
     $(P See also $(BUGZILLA 10378))
     )

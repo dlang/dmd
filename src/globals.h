@@ -93,6 +93,8 @@ struct Param
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
     bool dwarfeh;       // generate dwarf eh exception handling
+    bool check10378;    // check for issues transitioning to 10738
+    bool bug10378;      // use pre-bugzilla 10378 search strategy
 
     BOUNDSCHECK useArrayBounds;
 
