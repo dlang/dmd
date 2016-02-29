@@ -10,7 +10,7 @@ $(SPEC_S Lexical,
 	rules and there is only one phase of translation. The tokens are readily
 	recognizable by those familiar with C and C++.
 
-$(H3 Source Text)
+$(H3 $(LNAME2 source_text, Source Text))
 
 	D source text can be in one of the following formats:
 
@@ -69,14 +69,14 @@ $(H3 Source Text)
 	)
 	)
 
-$(H3 Character Set)
+$(H3 $(LNAME2 character_set, Character Set))
 
 $(GRAMMAR
 $(GNAME Character):
     $(I any Unicode character)
 )
 
-$(H3 End of File)
+$(H3 $(LNAME2 end_of_file, End of File))
 
 $(GRAMMAR
 $(GNAME EndOfFile):
@@ -86,7 +86,7 @@ $(GNAME EndOfFile):
 
 The source text is terminated by whichever comes first.
 
-$(H3 End of Line)
+$(H3 $(LNAME2 end_of_line, End of Line))
 
 $(GRAMMAR
 $(GNAME EndOfLine):
@@ -100,7 +100,7 @@ $(GNAME EndOfLine):
 	There is no backslash line splicing, nor are there any limits
 	on the length of a line.
 
-$(H3 White Space)
+$(H3 $(LNAME2 white_space, White Space))
 
 $(GRAMMAR
 $(GNAME WhiteSpace):
@@ -171,7 +171,7 @@ a = /+ /* +/ */ 3; // parses as if 'a = */ 3;'
 	$(D abc/**/def) is two tokens, $(D abc) and $(D def),
 	not one $(D abcdef) token.
 
-$(H3 Tokens)
+$(H3 $(LNAME2 tokens, Tokens))
 
 $(GRAMMAR
 $(GNAME Token):
@@ -247,7 +247,7 @@ $(MULTICOLS 4,     $(GLINK Identifier)
 )
 )
 
-$(H3 Identifiers)
+$(H3 $(LNAME2 identifiers, Identifiers))
 
 $(GRAMMAR
 $(GNAME Identifier):
@@ -278,7 +278,7 @@ $(GNAME IdentifierChar):
 	Identifiers can be arbitrarily long, and are case sensitive.
 	Identifiers starting with $(D __) (two underscores) are reserved.
 
-$(H3 String Literals)
+$(H3 $(LNAME2 string_literals, String Literals))
 
 $(GRAMMAR
 $(GNAME StringLiteral):
@@ -932,7 +932,7 @@ $(GNAME LeadingDecimal):
 4.5 + 6.2i  // complex number (phased out)
 ---------
 
-$(H3 Keywords)
+$(H3 $(LNAME2 keywords Keywords))
 
 	Keywords are reserved identifiers.
 
@@ -1074,7 +1074,7 @@ $(MULTICOLS 4,
     $(LINK2 expression.html#IsExpression, $(D __parameters))
 ))
 
-$(H3 Globally Defined Symbols)
+$(H3 $(LNAME2 global_symbols, Globally Defined Symbols))
 
 	These are defined in object$(UNDERSCORE).d, which is automatically imported by the default implementation.
 
