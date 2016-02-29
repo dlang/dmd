@@ -544,12 +544,27 @@ struct Scope
 
         s = searchScopes(flags | SearchImportsOnly);     // look in imported modules
 
-        version (LOGSEARCH)
+        if (s)
         {
-            if (s)
+            version (LOGSEARCH)
                 printMsg("-Scope.search() found import", s);
-            else
-                printf("-Scope.search() not found\n");
+            return s;
+        }
+
+        /** Still find private symbols, so that symbols that weren't access
+         * checked by the compiler remain usable.  Once the deprecation is over,
+         * this should be moved to search_correct instead.
+         */
+        s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+        if (!s)
+            s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
+
+        if (s)
+        {
+            version (LOGSEARCH)
+                printMsg("-Scope.search() found imported private symbol", s);
+            if (!(flags & IgnoreErrors))
+                .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), _module.toChars());
         }
         return s;
     }
