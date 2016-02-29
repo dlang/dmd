@@ -82,7 +82,7 @@ $(GNAME DeclDef):
 
 	)
 
-$(H3 Module Declaration)
+$(H3 $(LNAME2 module_declaration, Module Declaration))
 
 	$(P The $(I ModuleDeclaration) sets the name of the module and what
 	package it belongs to. If absent, the module name is taken to be the
@@ -219,7 +219,7 @@ $(GNAME ModuleAliasIdentifier):
 	with whatever packages they are in. They are not considered to
 	be relative to the module that imports them.)
 
-$(H3 Basic Imports)
+$(H3 $(LNAME2 basic_imports, Basic Imports))
 
 	$(P The simplest form of importing is to just list the
 	modules being imported:)
@@ -289,7 +289,7 @@ void test()
 }
 ---
 
-$(H3 Public Imports)
+$(H3 $(LNAME2 public_imports, Public Imports))
 
     $(P By default, imports are $(I private). This means that if module A
     imports module B, and module B imports module C, then names from C are
@@ -336,7 +336,7 @@ X.bar(); // ditto
 Y.bar(); // ok, Y.bar() is an alias to X.bar()
 ---
 
-$(H3 Static Imports)
+$(H3 $(LNAME2 static_imports, Static Imports))
 
 	$(P Basic imports work well for programs with relatively few modules
 	and imports. If there are a lot of imports, name collisions
@@ -357,7 +357,7 @@ void main()
 ---
 
 
-$(H3 Renamed Imports)
+$(H3 $(LNAME2 renamed_imports, Renamed Imports))
 
 	$(P A local name for an import can be given, through which
 	all references to the module's symbols must be qualified
@@ -377,7 +377,7 @@ void main()
 	$(P Renamed imports are handy when dealing with
 	very long import names.)
 
-$(H3 Selective Imports)
+$(H3 $(LNAME2 selective_imports, Selective Imports))
 
 	$(P Specific symbols can be exclusively imported from
 	a module and bound into the current namespace:)
@@ -397,7 +397,7 @@ void main()
 
 	$(P $(D static) cannot be used with selective imports.)
 
-$(H3 Renamed and Selective Imports)
+$(H3 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
 
 	$(P When renaming and selective importing are combined:)
 
@@ -419,7 +419,7 @@ void main()
 --------------
 
 
-$(H3 Scoped Imports)
+$(H3 $(LNAME2 scoped_imports, Scoped Imports))
 
     $(P Import declarations may be used at any scope. For example:)
 
@@ -460,7 +460,7 @@ void main()
 
 
 
-$(H3 Module Scope Operator)
+$(H3 $(LNAME2 module_scope_operators, Module Scope Operator))
 
 	Sometimes, it's necessary to override the usual lexical scoping rules
 	to access a name hidden by a local name. This is done with the
@@ -501,7 +501,7 @@ $(H3 $(LNAME2 staticorder, Static Construction and Destruction))
 	)
 
 
-$(H3 Order of Static Construction)
+$(H3 $(LNAME2 order_of_static_ctor, Order of Static Construction))
 
 	$(P Shared static constructors on all modules are run before any static
 	constructors.
@@ -522,12 +522,12 @@ $(H3 Order of Static Construction)
 	in a runtime exception.
 	)
 
-$(H3 Order of Static Construction within a Module)
+$(H3 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
 
 	Within a module, the static construction occurs in the lexical
 	order in which they appear.
 
-$(H3 Order of Static Destruction)
+$(H3 $(LNAME2 order_static_dtor, Order of Static Destruction))
 
 	$(P It is defined to be exactly the reverse order that static
 	construction was performed in. Static destructors for individual
@@ -539,7 +539,7 @@ $(H3 Order of Static Destruction)
 
 
 
-$(H3 Order of Unit tests)
+$(H3 $(LNAME2 order_of_unittests, Order of Unit tests))
 
 	Unit tests are run in the lexical order in which they appear
 	within a module.
