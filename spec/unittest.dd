@@ -58,7 +58,7 @@ class Sum
 }
 ------
 
-$(H4 Attributed Unittests)
+$(H4 $(LNAME2 attributes_unittest, Attributed Unittests))
 
 $(P A unittest may be attributed with any of the global function attributes.
 Such unittests are useful in verifying the given attribute(s) on a template
@@ -196,7 +196,7 @@ code sample generated, even if it is empty or only includes comments
 </dl>
 
 
-$(H3 Versioning)
+$(H3 $(LNAME2 versioning, Versioning))
 
 	$(P The $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
 	$(D unittest) is predefined if the compilation
