@@ -4609,6 +4609,30 @@ template SubOps14568(Args...)
 struct Nat14568 { mixin SubOps14568!(null); }
 
 /******************************************/
+// 14603, 14604
+
+struct S14603
+{
+    template opDispatch(string name)
+    {
+        void opDispatch()() {}
+    }
+}
+alias a14603 = S14603.opDispatch!"go";  // OK
+alias b14603 = S14603.go;               // OK <- NG
+
+struct S14604
+{
+    template opDispatch(string name)
+    {
+        void opDispatch()() {}
+    }
+}
+alias Id14604(alias thing) = thing;
+alias c14604 = Id14604!(S14604.opDispatch!"go");     // ok
+alias d14604 = Id14604!(S14604.go);                  // issue 14604, 'Error: template instance opDispatch!"go" cannot resolve forward reference'
+
+/******************************************/
 // 14735
 
 enum CS14735 { yes, no }

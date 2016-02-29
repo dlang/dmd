@@ -157,6 +157,8 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
             else
                 sa = (cast(FuncExp)ea).fd;
         }
+        else if (ea.op == TOKtemplate)
+            sa = (cast(TemplateExp)ea).td;
         else
             sa = null;
     }
@@ -7443,7 +7445,7 @@ public:
                 {
                     if (!td2.onemember || !td2.onemember.isFuncDeclaration())
                         return 0;
-                    if (tiargs.dim > td.parameters.dim && !td.isVariadic())
+                    if (tiargs.dim >= td.parameters.dim - (td.isVariadic() ? 1 : 0))
                         return 0;
                     return 1;
                 }
