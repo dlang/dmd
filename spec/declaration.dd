@@ -211,7 +211,7 @@ $(GNAME StructMemberInitializer):
     $(I Identifier) $(D :) $(GLINK NonVoidInitializer)
 )
 
-$(H3 Declaration Syntax)
+$(H3 $(LNAME2 declaration_syntax, Declaration Syntax))
 
 $(P Declaration syntax generally reads right to left:)
 
@@ -583,7 +583,7 @@ $(GNAME Typeof):
         template code.
         )
 
-$(H3 Void Initializations)
+$(H3 $(LNAME2 void_init, Void Initializations))
 
 $(GRAMMAR
 $(GNAME VoidInitializer):
@@ -609,7 +609,7 @@ void foo()
         last resort when optimizing critical code.
 	)
 
-$(H3 Global and Static Initializers)
+$(H3 $(LNAME2 global_static_init, Global and Static Initializers))
 
 	$(P The $(GLINK Initializer) for a global or static variable must be
 	evaluatable at compile time.
@@ -618,7 +618,7 @@ $(H3 Global and Static Initializers)
 	Runtime initialization can be done with static constructors.
 	)
 
-$(H3 Type Qualifiers vs. Storage Classes)
+$(H3 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
 	$(P D draws a distinction between a type qualifer and a storage class.)
 	
