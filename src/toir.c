@@ -793,7 +793,10 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
             VarDeclaration *v = fd->closureVars[i];
             //printf("closure var %s\n", v->toChars());
 
-            if (v->needsScopeDtor())
+            // Hack for the case fail_compilation/fail10666.d,
+            // until proper issue 5730 fix will come.
+            bool isScopeDtorParam = v->edtor && (v->storage_class & STCparameter);
+            if (v->needsScopeDtor() || isScopeDtorParam)
             {
                 /* Because the value needs to survive the end of the scope!
                  */

@@ -2087,19 +2087,23 @@ public:
                     Statement s = new ReturnStatement(Loc(), new IntegerExp(0));
                     a.push(s);
                 }
+
                 Statement sbody = new CompoundStatement(Loc(), a);
+
                 /* Append destructor calls for parameters as finally blocks.
                  */
                 if (parameters)
                 {
-                    for (size_t i = 0; i < parameters.dim; i++)
+                    foreach (v; *parameters)
                     {
-                        VarDeclaration v = (*parameters)[i];
                         if (v.storage_class & (STCref | STCout | STClazy))
                             continue;
                         if (v.needsScopeDtor())
                         {
-                            Statement s = new ExpStatement(Loc(), v.edtor);
+                            // same with ExpStatement.scopeCode()
+                            Statement s = new DtorExpStatement(Loc(), v.edtor, v);
+                            v.noscope = true;
+
                             s = s.semantic(sc2);
 
                             uint nothrowErrors = global.errors;
@@ -2119,6 +2123,7 @@ public:
                 }
                 // from this point on all possible 'throwers' are checked
                 flags &= ~FUNCFLAGnothrowInprocess;
+
                 if (isSynchronized())
                 {
                     /* Wrap the entire function body in a synchronized statement

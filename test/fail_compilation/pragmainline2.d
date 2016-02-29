@@ -16,15 +16,15 @@ void foo()
     pragma(inline, false);
     pragma(inline);
     pragma(inline, true);   // this last one will affect to the 'foo'
-    while (0) { }
+    asm { nop; }
 }
 
-pragma(inline, true)   void f1t() { while (0) {} }  // cannot inline
-pragma(inline, false)  void f1f() { while (0) {} }
-pragma(inline)         void f1d() { while (0) {} }
-void f2t() { pragma(inline, true);  while (0) {} }  // cannot inline
-void f2f() { pragma(inline, false); while (0) {} }
-void f2d() { pragma(inline);        while (0) {} }
+pragma(inline, true)   void f1t() { asm { nop; } }  // cannot inline
+pragma(inline, false)  void f1f() { asm { nop; } }
+pragma(inline)         void f1d() { asm { nop; } }
+void f2t() { pragma(inline, true);  asm { nop; } }  // cannot inline
+void f2f() { pragma(inline, false); asm { nop; } }
+void f2d() { pragma(inline);        asm { nop; } }
 
 void main()
 {
