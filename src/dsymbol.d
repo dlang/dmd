@@ -170,7 +170,7 @@ alias PASSobj = PASS.PASSobj;
 enum : int
 {
     IgnoreNone              = 0x00, // default
-    IgnorePrivateMembers    = 0x01, // don't find private members
+    IgnorePrivateImports    = 0x01, // don't search private imports
     IgnoreErrors            = 0x02, // don't give error messages
     IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
     SearchLocalsOnly        = 0x08, // only look at locals (don't search imports)
@@ -1268,7 +1268,7 @@ public:
             for (size_t i = 0; i < importedScopes.dim; i++)
             {
                 // If private import, don't search it
-                if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
+                if ((flags & IgnorePrivateImports) && prots[i] == PROTprivate)
                     continue;
                 int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
                 Dsymbol ss = (*importedScopes)[i];
@@ -1280,7 +1280,7 @@ public:
                     {
                         if (global.params.check10378 && !(flags & SearchCheck10378))
                         {
-                            auto s3 = ss.search(loc, ident, sflags | IgnorePrivateMembers);
+                            auto s3 = ss.search(loc, ident, sflags | IgnorePrivateImports);
                             if (s3)
                                 deprecation("%s %s found in local import", s3.kind(), s3.toPrettyChars());
                         }
@@ -1296,7 +1296,7 @@ public:
 
                 /* Don't find private members if ss is a module
                  */
-                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateMembers : IgnoreNone));
+                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
                 if (!s)
                 {
                     s = s2;

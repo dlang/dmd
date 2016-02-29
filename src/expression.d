@@ -8320,7 +8320,7 @@ public:
              * the current module should have access to its own imports.
              */
             Dsymbol s = ie.sds.search(loc, ident,
-                (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateMembers | SearchLocalsOnly : SearchLocalsOnly);
+                (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateImports | SearchLocalsOnly : SearchLocalsOnly);
             if (s)
             {
                 /* Check for access before resolving aliases because public
