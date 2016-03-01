@@ -533,6 +533,27 @@ extern (C++) int runLINK()
             argv.push("-m64");
         else
             argv.push("-m32");
+        version (OSX)
+        {
+            /* Without this switch, ld generates messages of the form:
+             * ld: warning: could not create compact unwind for __Dmain: offset of saved registers too far to encode
+             * meaning they are further than 255 bytes from the frame register.
+             * ld reverts to the old method instead.
+             * See: https://ghc.haskell.org/trac/ghc/ticket/5019
+             * which gives this tidbit:
+             * "When a C++ (or x86_64 Objective-C) exception is thrown, the runtime must unwind the
+             *  stack looking for some function to catch the exception.  Traditionally, the unwind
+             *  information is stored in the __TEXT/__eh_frame section of each executable as Dwarf
+             *  CFI (call frame information).  Beginning in Mac OS X 10.6, the unwind information is
+             *  also encoded in the __TEXT/__unwind_info section using a two-level lookup table of
+             *  compact unwind encodings.
+             *  The unwinddump tool displays the content of the __TEXT/__unwind_info section."
+             *
+             * A better fix would be to save the registers next to the frame pointer.
+             */
+            argv.push("-Xlinker");
+            argv.push("-no_compact_unwind");
+        }
         if (global.params.map || global.params.mapfile)
         {
             argv.push("-Xlinker");

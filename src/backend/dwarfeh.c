@@ -114,8 +114,8 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
 
     et->reserve(100);
     block *startblock = sfunc->Sfunc->Fstartblock;
-    //printf("genDwarfEh: func = %s, offset = x%x, startblock->Boffset = x%x, scancode = %d\n",
-      //sfunc->Sident, (int)sfunc->Soffset, (int)startblock->Boffset, scancode);
+    //printf("genDwarfEh: func = %s, offset = x%x, startblock->Boffset = x%x, scancode = %d startoffset=x%x, retoffset=x%x\n",
+      //sfunc->Sident, (int)sfunc->Soffset, (int)startblock->Boffset, scancode, startoffset, retoffset);
 
 #if 0
     printf("------- before ----------\n");
@@ -139,8 +139,8 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     {
         unsigned i = deh->push();
         DwEhTableEntry *d = deh->index(i);
-        d->start = startoffset;
-        d->end = retoffset;
+        d->start = startblock->Boffset + startoffset;
+        d->end = startblock->Boffset + retoffset;
         d->lpad = 0;                    // no cleanup, no catches
         index = i;
     }
@@ -228,15 +228,23 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
         DwEhTableEntry *d = deh->index(i);
         if (d->start < d->end)
         {
-            unsigned CallSiteStart = d->start - startblock->Boffset;
-            cstbuf.writeuLEB128(CallSiteStart);
-            unsigned CallSiteRange = d->end - d->start;
-            cstbuf.writeuLEB128(CallSiteRange);
-            unsigned LandingPad = d->lpad - startblock->Boffset;
-            cstbuf.writeuLEB128(LandingPad);
-            unsigned ActionTable = d->action;
-            cstbuf.writeuLEB128(ActionTable);
-            //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
+#if ELFOBJ
+                #define WRITE writeuLEB128
+#elif MACHOBJ
+                #define WRITE write32
+#else
+                assert(0);
+#endif
+                unsigned CallSiteStart = d->start - startblock->Boffset;
+                cstbuf.WRITE(CallSiteStart);
+                unsigned CallSiteRange = d->end - d->start;
+                cstbuf.WRITE(CallSiteRange);
+                unsigned LandingPad = d->lpad ? d->lpad - startblock->Boffset : 0;
+                cstbuf.WRITE(LandingPad);
+                unsigned ActionTable = d->action;
+                cstbuf.writeuLEB128(ActionTable);
+                //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
+                #undef WRITE
         }
     }
 #else
@@ -269,15 +277,23 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
                 }
                 if (start < dend)
                 {
+#if ELFOBJ
+                    #define WRITE writeLEB128
+#elif MACHOBJ
+                    #define WRITE write32
+#else
+                    assert(0);
+#endif
                     unsigned CallSiteStart = start - startblock->Boffset;
-                    cstbuf.writeuLEB128(CallSiteStart);
+                    cstbuf.WRITE(CallSiteStart);
                     unsigned CallSiteRange = dend - start;
-                    cstbuf.writeuLEB128(CallSiteRange);
+                    cstbuf.WRITE(CallSiteRange);
                     unsigned LandingPad = d->lpad - startblock->Boffset;
-                    cstbuf.writeuLEB128(LandingPad);
+                    cstbuf.WRITE(LandingPad);
                     unsigned ActionTable = d->action;
-                    cstbuf.writeuLEB128(ActionTable);
+                    cstbuf.WRITE(ActionTable);
                     //printf("\t%x %x %x %x\n", CallSiteStart, CallSiteRange, LandingPad, ActionTable);
+                    #undef WRITE
                 }
 
                 end = dend;
@@ -327,7 +343,13 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
         et->writeuLEB128(TTbase);
     unsigned TToffset = TTbase + et->size() - startsize;
 
+#if ELFOBJ
     const unsigned char CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_uleb128;
+#elif MACHOBJ
+    const unsigned char CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_udata4;
+#else
+    assert(0);
+#endif
     et->writeByte(CallSiteFormat);
     et->writeuLEB128(CallSiteTableSize);
 
@@ -347,6 +369,10 @@ void genDwarfEh(Funcsym *sfunc, int seg, Outbuffer *et, bool scancode, unsigned 
     for (int i = sfunc->Sfunc->typesTableDim; i--; )
     {
         Symbol *s = typesTable[i];
+        /* MACHOBJ 64: pcrel 1 length 1 extern 1 RELOC_GOT
+         *         32: [0] address x004c pcrel 0 length 2 value x224 type 4 RELOC_LOCAL_SECTDIFF
+         *             [1] address x0000 pcrel 0 length 2 value x160 type 1 RELOC_PAIR
+         */
         dwarf_reftoident(seg, et->size(), s, 0);
     }
     assert(TToffset == et->size() - startsize);

@@ -37,6 +37,10 @@ void main()
         {
             static assert(0);
         }
+        version (OSX)
+        {
+            static assert(0);
+        }
     }
     else
         static assert(0);
