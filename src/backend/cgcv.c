@@ -418,11 +418,9 @@ void cv_init()
             dttab4[TYptr]  = 0x400;
             dttab4[TYnptr] = 0x400;
         }
-#if TARGET_SEGMENTED
         dttab4[TYsptr] = 0x400;
         dttab4[TYcptr] = 0x400;
         dttab4[TYfptr] = 0x500;
-#endif
 
         if (config.flags & CFGeasyomf)
         {   cgcv.LCFDoffset  = EASY_LCFDoffset;
@@ -1604,14 +1602,12 @@ unsigned char cv4_callconv(type *t)
 
     switch (tybasic(t->Tty))
     {
-#if TARGET_SEGMENTED
         case TYffunc:   call = 1;       break;
         case TYfpfunc:  call = 3;       break;
         case TYf16func: call = 3;       break;
         case TYfsfunc:  call = 8;       break;
         case TYnsysfunc: call = 9;      break;
         case TYfsysfunc: call = 10;     break;
-#endif
         case TYnfunc:   call = 0;       break;
         case TYnpfunc:  call = 2;       break;
         case TYnsfunc:  call = 7;       break;
@@ -1788,17 +1784,14 @@ L1:
             if (t->Tkey)
                 goto Laarray;
 #endif
-#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
-#endif
         Lptr:
                         attribute |= I32 ? 10 : 0;      goto L2;
-#if TARGET_SEGMENTED
+
         case TYfptr:
         case TYvptr:    attribute |= I32 ? 11 : 1;      goto L2;
         case TYhptr:    attribute |= 2; goto L2;
-#endif
 
         L2:
             if (config.fulltypes == CV4)
@@ -2020,14 +2013,12 @@ L1:
             typidx = cv_debtyp(d);
             break;
         }
-#if TARGET_SEGMENTED
         case TYffunc:
         case TYfpfunc:
         case TYf16func:
         case TYfsfunc:
         case TYnsysfunc:
         case TYfsysfunc:
-#endif
         case TYnfunc:
         case TYnpfunc:
         case TYnsfunc:
@@ -2437,12 +2428,10 @@ STATIC void cv4_outsym(symbol *s)
                         idx1 = idx2 = s->Sxtrnnum;
                     }
                 }
-#if TARGET_SEGMENTED
                 else if (s->ty() & (mTYfar | mTYcs))
                 {   fd = 0x04;
                     idx1 = idx2 = SegData[s->Sseg]->segidx;
                 }
-#endif
                 else
                 {   fd = 0x14;
                     idx1 = DGROUPIDX;
@@ -2585,10 +2574,8 @@ STATIC void cv4_func(Funcsym *s)
 
             case TYint:
             case TYuint:
-#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
-#endif
             case TYnullptr:
             case TYnptr:
             case TYnref:
@@ -2609,7 +2596,6 @@ STATIC void cv4_func(Funcsym *s)
                 else
                     goto case_dxax;
 
-#if TARGET_SEGMENTED
             case TYfptr:
             case TYhptr:
                 if (I32)
@@ -2622,7 +2608,6 @@ STATIC void cv4_func(Funcsym *s)
                     goto case_edxebx;
                 else
                     goto case_dxbx;
-#endif
 
             case TYdouble:
             case TYidouble:

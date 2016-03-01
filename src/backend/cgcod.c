@@ -2622,12 +2622,11 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                     break;
 
                 case TYnptr:
-#if TARGET_SEGMENTED
                 case TYsptr:
                 case TYcptr:
-#endif
                     *pretregs |= IDXREGS;
                     break;
+
                 case TYshort:
                 case TYushort:
                 case TYint:
@@ -2638,11 +2637,9 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                 case TYullong:
                 case TYcent:
                 case TYucent:
-#if TARGET_SEGMENTED
                 case TYfptr:
                 case TYhptr:
                 case TYvptr:
-#endif
                     *pretregs |= ALLREGS;
                     break;
             }
