@@ -1484,7 +1484,7 @@ public:
                 if (f.linkage == LINKd || (f.parameters && Parameter.dim(f.parameters)))
                 {
                     // Declare _argptr
-                    Type t = Type.tvalist;
+                    Type t = Type.tvalist.semantic(loc, sc);
                     argptr = new VarDeclaration(Loc(), t, Id._argptr, null);
                     argptr.storage_class |= STCtemp;
                     argptr.semantic(sc2);
