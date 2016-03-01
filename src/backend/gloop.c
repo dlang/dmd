@@ -2664,7 +2664,6 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     tymin = I64 ? TYllong : TYint;         /* type of (ptr - ptr) */
         }
 
-#if TARGET_SEGMENTED
         /* If e1 and fls->c2 are fptrs, and are not from the same       */
         /* segment, we cannot subtract them.                            */
         if (tyfv(e1->Ety) && tyfv(fls->c2->Ety))
@@ -2676,12 +2675,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     continue;
                 }
         }
-#else
-L1:
-        el_free(flse1);
-        continue;
 
-#endif
         /* Some more type checking...   */
         sz = tysize(fl->FLty);
         if (sz != tysize(e1->Ety) &&
@@ -2699,11 +2693,8 @@ L1:
                                     el_copytree(fls->c2)));
         if (sz < tysize(tymin) && sz == tysize(e1->Ety))
         {
-#if TARGET_SEGMENTED
+            assert(I16);
             flse1->E2 = el_una(OPoffset,fl->FLty,flse1->E2);
-#else
-            assert(0);
-#endif
         }
 
         flse1 = doptelem(flse1,GOALvalue | GOALagain);

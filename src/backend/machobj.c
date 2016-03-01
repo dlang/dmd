@@ -2224,11 +2224,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
     symbol_debug(s);
 
     // can't have code or thread local comdef's
-    assert(!(s->ty() & (
-#if TARGET_SEGMENTED
-                    mTYcs |
-#endif
-                    mTYthread)));
+    assert(!(s->ty() & (mTYcs | mTYthread)));
 
     struct Comdef comdef;
     comdef.sym = s;
