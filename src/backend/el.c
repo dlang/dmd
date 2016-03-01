@@ -2626,10 +2626,8 @@ L1:
                     case TYnullptr:
                     case TYnptr:
                     case TYnref:
-#if TARGET_SEGMENTED
                     case TYsptr:
                     case TYcptr:
-#endif
                         if (NPTRSIZE == SHORTSIZE)
                             goto case_short;
                         else if (NPTRSIZE == LONGSIZE)
@@ -2646,7 +2644,7 @@ L1:
                         if (n1->EV.Vschar != n2->EV.Vschar)
                                 goto nomatch;
                         break;
-#if TARGET_SEGMENTED
+
                     case TYfptr:
                     case TYhptr:
                     case TYvptr:
@@ -2657,7 +2655,7 @@ L1:
                         if (memcmp(&n1->EV,&n2->EV,tysize[tybasic(tym)]))
                             goto nomatch;
                         break;
-#endif
+
                         /* Compare bit patterns w/o worrying about
                            exceptions, unordered comparisons, etc.
                          */
@@ -2907,10 +2905,8 @@ L1:
             goto L1;
 #endif
 
-#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
-#endif
         case TYnptr:
         case TYnullptr:
         case TYnref:
@@ -2929,11 +2925,9 @@ L1:
 
         case TYulong:
         case TYdchar:
-#if TARGET_SEGMENTED
         case TYfptr:
         case TYhptr:
         case TYvptr:
-#endif
         case TYvoid:                    /* some odd cases               */
         Ulong:
             result = e->EV.Vulong;
@@ -3244,10 +3238,8 @@ case_tym:
         case TYuchar:
             dbg_printf("%d ",e->EV.Vuchar);
             break;
-#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
-#endif
         case TYnullptr:
         case TYnptr:
         case TYnref:
@@ -3279,11 +3271,9 @@ case_tym:
         case TYlong:
         case TYulong:
         case TYdchar:
-#if TARGET_SEGMENTED
         case TYfptr:
         case TYvptr:
         case TYhptr:
-#endif
         L1:
             dbg_printf("%dL ",e->EV.Vlong);
             break;
