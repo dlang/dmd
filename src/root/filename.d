@@ -15,7 +15,7 @@ version (Windows) extern (C) int mkdir(const char*);
 version (Windows) alias _mkdir = mkdir;
 version (Posix) extern (C) char* canonicalize_file_name(const char*);
 version (Windows) extern (C) int stricmp(const char*, const char*);
-version (Windows) extern (Windows) DWORD GetFullPathNameA(LPCTSTR lpFileName, DWORD nBufferLength, LPTSTR lpBuffer, LPTSTR* lpFilePart);
+version (Windows) extern (Windows) DWORD GetFullPathNameA(LPCSTR lpFileName, DWORD nBufferLength, LPSTR lpBuffer, LPSTR* lpFilePart);
 
 alias Strings = Array!(const(char)*);
 alias Files = Array!(File*);
