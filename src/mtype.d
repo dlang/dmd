@@ -1139,47 +1139,47 @@ public:
             s.checkDeprecated(loc, sc);
     }
 
-    final bool isConst()
+    final bool isConst() const
     {
         return (mod & MODconst) != 0;
     }
 
-    final bool isImmutable()
+    final bool isImmutable() const
     {
         return (mod & MODimmutable) != 0;
     }
 
-    final bool isMutable()
+    final bool isMutable() const
     {
         return (mod & (MODconst | MODimmutable | MODwild)) == 0;
     }
 
-    final bool isShared()
+    final bool isShared() const
     {
         return (mod & MODshared) != 0;
     }
 
-    final bool isSharedConst()
+    final bool isSharedConst() const
     {
         return (mod & (MODshared | MODconst)) == (MODshared | MODconst);
     }
 
-    final bool isWild()
+    final bool isWild() const
     {
         return (mod & MODwild) != 0;
     }
 
-    final bool isWildConst()
+    final bool isWildConst() const
     {
         return (mod & MODwildconst) == MODwildconst;
     }
 
-    final bool isSharedWild()
+    final bool isSharedWild() const
     {
         return (mod & (MODshared | MODwild)) == (MODshared | MODwild);
     }
 
-    final bool isNaked()
+    final bool isNaked() const
     {
         return mod == 0;
     }
@@ -2758,7 +2758,7 @@ public:
     /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
-    int hasWild()
+    int hasWild() const
     {
         return mod & MODwild;
     }
@@ -2992,7 +2992,7 @@ public:
             next.checkDeprecated(loc, sc);
     }
 
-    override final int hasWild()
+    override final int hasWild() const
     {
         if (ty == Tfunction)
             return 0;
@@ -3395,7 +3395,7 @@ public:
         return this;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc) const
     {
         uint size;
         //printf("TypeBasic::size()\n");
@@ -3935,32 +3935,32 @@ public:
         return (flags & TFLAGSintegral) != 0;
     }
 
-    override bool isfloating()
+    override bool isfloating() const
     {
         return (flags & TFLAGSfloating) != 0;
     }
 
-    override bool isreal()
+    override bool isreal() const
     {
         return (flags & TFLAGSreal) != 0;
     }
 
-    override bool isimaginary()
+    override bool isimaginary() const
     {
         return (flags & TFLAGSimaginary) != 0;
     }
 
-    override bool iscomplex()
+    override bool iscomplex() const
     {
         return (flags & TFLAGScomplex) != 0;
     }
 
-    override bool isscalar()
+    override bool isscalar() const
     {
         return (flags & (TFLAGSintegral | TFLAGSfloating)) != 0;
     }
 
-    override bool isunsigned()
+    override bool isunsigned() const
     {
         return (flags & TFLAGSunsigned) != 0;
     }
@@ -4076,7 +4076,7 @@ public:
         return new IntegerExp(loc, value, this);
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         switch (ty)
         {
@@ -4234,7 +4234,7 @@ public:
         return basetype.nextOf().isunsigned();
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
         return false;
     }
@@ -4897,13 +4897,13 @@ public:
         return t;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc) const
     {
         //printf("TypeDArray::size()\n");
         return Target.ptrsize * 2;
     }
 
-    override uint alignsize()
+    override uint alignsize() const
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
@@ -5011,12 +5011,12 @@ public:
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         return true;
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
         return true;
     }
@@ -5057,7 +5057,7 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         return true;
     }
@@ -5359,12 +5359,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         return true;
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
         return true;
     }
@@ -5381,7 +5381,7 @@ public:
         return null;
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         return true;
     }
@@ -5496,7 +5496,7 @@ public:
         }
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc) const
     {
         return Target.ptrsize;
     }
@@ -5576,7 +5576,7 @@ public:
         return TypeNext.constConv(to);
     }
 
-    override bool isscalar()
+    override bool isscalar() const
     {
         return true;
     }
@@ -5590,12 +5590,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         return true;
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         return true;
     }
@@ -5646,7 +5646,7 @@ public:
         return merge();
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc) const
     {
         return Target.ptrsize;
     }
@@ -5670,7 +5670,7 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         return true;
     }
@@ -6640,7 +6640,7 @@ public:
         return false;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc) const
     {
         error(loc, "function does not have a default initializer");
         return new ErrorExp();
@@ -6712,12 +6712,12 @@ public:
         }
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc) const
     {
         return Target.ptrsize * 2;
     }
 
-    override uint alignsize()
+    override uint alignsize() const
     {
         return Target.ptrsize;
     }
@@ -6762,12 +6762,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         return true;
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
         return true;
     }
@@ -6795,7 +6795,7 @@ public:
         return e;
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         return true;
     }
@@ -8074,7 +8074,7 @@ public:
         return structinit;
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         return sym.zeroInit != 0;
     }
@@ -8114,12 +8114,12 @@ public:
         return assignable;
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
         return false;
     }
 
-    override bool needsDestruction()
+    override bool needsDestruction() const
     {
         return sym.dtor !is null;
     }
@@ -8516,7 +8516,7 @@ public:
         return "class";
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc) const
     {
         return Target.ptrsize;
     }
@@ -9015,22 +9015,22 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(Loc loc) const
     {
         return true;
     }
 
-    override bool isscope()
+    override bool isscope() const
     {
         return sym.isscope;
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
         return true;
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         return true;
     }
@@ -9395,17 +9395,17 @@ public:
         return MATCHnomatch;
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
         return true;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(Loc loc) const
     {
         return tvoidptr.size(loc);
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(Loc loc) const
     {
         return new NullExp(Loc(), Type.tnull);
     }
