@@ -105,6 +105,8 @@ enum SCOPEctfe          = 0x0080;   // inside a ctfe-only expression
 enum SCOPEcompile       = 0x0100;   // inside __traits(compile)
 enum SCOPEfree          = 0x8000;   // is on free list
 
+enum SCOPEfullinst      = 0x10000;  // fully instantiate templates
+
 struct Scope
 {
     Scope* enclosing;               // enclosing Scope

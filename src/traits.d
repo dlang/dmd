@@ -1010,7 +1010,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             Scope* sc2 = sc.push();
             sc2.tinst = null;
             sc2.minst = null;
-            sc2.flags = (sc.flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile;
+            sc2.flags = (sc.flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile | SCOPEfullinst;
 
             bool err = false;
 
