@@ -33,7 +33,9 @@ enum __FreeBSD__    = xversion!`FreeBSD`;
 enum __OpenBSD__    = xversion!`OpenBSD`;
 enum __sun          = xversion!`Solaris`;
 
-enum IN_GCC     = xversion!`IN_GCC`;
+enum IN_GCC         = xversion!`IN_GCC`;       // Set when building GDC
+enum IN_LLVM        = xversion!`IN_LLVM`;      // Set when building LDC
+enum IN_LLVM_MSVC   = xversion!`IN_LLVM_MSVC`; // Set when building LDC with MSVC
 
 enum TARGET_LINUX   = xversion!`linux`;
 enum TARGET_OSX     = xversion!`OSX`;
