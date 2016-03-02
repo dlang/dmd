@@ -997,14 +997,12 @@ STATIC void cpp_basic_data_type(type *t)
             CHAR('_');
             goto dochar;
 
-#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
         case TYf16ptr:
         case TYfptr:
         case TYhptr:
         case TYvptr:
-#endif
 #if !MARS
         case TYmemptr:
 #endif
@@ -1115,7 +1113,6 @@ STATIC void cpp_ecsu_data_indirect_type(type *t)
     {   ty = t->Tnext->Tty & (mTYconst | mTYvolatile);
         switch (tybasic(t->Tty))
         {
-#if TARGET_SEGMENTED
             case TYfptr:
             case TYvptr:
             case TYfref:
@@ -1130,16 +1127,13 @@ STATIC void cpp_ecsu_data_indirect_type(type *t)
                 if (LARGEDATA && !(ty & mTYLINK))
                     ty |= mTYfar;
                 break;
-#endif
         }
     }
     else
         ty = t->Tty & (mTYLINK | mTYconst | mTYvolatile);
     i |= cpp_cvidx(ty);
-#if TARGET_SEGMENTED
     if (ty & (mTYcs | mTYfar))
         i += 4;
-#endif
     CHAR('A' + i);
 }
 
@@ -1264,27 +1258,19 @@ STATIC void cpp_calling_convention(type *t)
     {
         case TYnfunc:
         case TYhfunc:
-#if TARGET_SEGMENTED
         case TYffunc:
-#endif
             c = 'A';        break;
-#if TARGET_SEGMENTED
         case TYf16func:
         case TYfpfunc:
-#endif
         case TYnpfunc:
             c = 'C';        break;
         case TYnsfunc:
-#if TARGET_SEGMENTED
         case TYfsfunc:
-#endif
             c = 'G';        break;
         case TYjfunc:
         case TYmfunc:
-#if TARGET_SEGMENTED
         case TYnsysfunc:
         case TYfsysfunc:
-#endif
             c = 'E';       break;
         case TYifunc:
             c = 'K';        break;
@@ -1322,10 +1308,8 @@ STATIC void cpp_storage_convention(symbol *s)
     type *t = s->Stype;
 
     ty = t->Tty;
-#if TARGET_SEGMENTED
     if (LARGEDATA && !(ty & mTYLINK))
         t->Tty |= mTYfar;
-#endif
     cpp_data_indirect_type(t);
     t->Tty = ty;
 }
@@ -1385,11 +1369,9 @@ STATIC void cpp_function_type(type *t)
     //cpp_return_type(s);
     tn = t->Tnext;
     ty = tn->Tty;
-#if TARGET_SEGMENTED
     if (LARGEDATA && (tybasic(ty) == TYstruct || tybasic(ty) == TYenum) &&
         !(ty & mTYLINK))
         tn->Tty |= mTYfar;
-#endif
     cpp_data_type(tn);
     tn->Tty = ty;
     cpp_argument_types(t);

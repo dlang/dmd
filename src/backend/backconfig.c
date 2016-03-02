@@ -335,13 +335,11 @@ void util_set32()
 #else
     assert(0);
 #endif
-#if TARGET_SEGMENTED
     tysize[TYsptr] = LONGSIZE;
     tysize[TYcptr] = LONGSIZE;
     tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
     tysize[TYvptr] = 6;     // tysize[x] == tysize[TYfptr] so don't set
     tysize[TYfref] = 6;     // tysize[TYfptr] to tysize[TYnptr]
-#endif
 
     tyalignsize[TYenum] = LONGSIZE;
     tyalignsize[TYint ] = LONGSIZE;
@@ -364,10 +362,8 @@ void util_set32()
 #else
     assert(0);
 #endif
-#if TARGET_SEGMENTED
     tyalignsize[TYsptr] = LONGSIZE;
     tyalignsize[TYcptr] = LONGSIZE;
-#endif
 }
 
 /*******************************
@@ -400,13 +396,11 @@ void util_set64()
 #else
     assert(0);
 #endif
-#if TARGET_SEGMENTED
     tysize[TYsptr] = 8;
     tysize[TYcptr] = 8;
     tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
     tysize[TYvptr] = 10;    // tysize[x] == tysize[TYfptr] so don't set
     tysize[TYfref] = 10;    // tysize[TYfptr] to tysize[TYnptr]
-#endif
 
     tyalignsize[TYenum] = LONGSIZE;
     tyalignsize[TYint ] = LONGSIZE;
@@ -429,13 +423,11 @@ void util_set64()
 #else
     assert(0);
 #endif
-#if TARGET_SEGMENTED
     tyalignsize[TYsptr] = 8;
     tyalignsize[TYcptr] = 8;
     tyalignsize[TYfptr] = 8;
     tyalignsize[TYvptr] = 8;
     tyalignsize[TYfref] = 8;
-#endif
     tytab[TYjfunc] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
 
     TYptrdiff = TYllong;
