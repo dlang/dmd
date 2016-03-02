@@ -250,7 +250,6 @@ void outdata(symbol *s)
         seg = objmod->comdatsize(s, datasize);
         switch (ty & mTYLINK)
         {
-#if TARGET_SEGMENTED
             case mTYfar:                // if far data
                 s->Sfl = FLfardata;
                 break;
@@ -258,7 +257,7 @@ void outdata(symbol *s)
             case mTYcs:
                 s->Sfl = FLcsdata;
                 break;
-#endif
+
             case mTYnear:
             case 0:
                 s->Sfl = FLdata;        // initialized data
@@ -341,11 +340,9 @@ void outdata(symbol *s)
                     flags = CFoff | CFseg;
                 if (I64)
                     flags |= CFoffset64;
-#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                     objmod->reftocodeseg(seg,offset,dt->DTabytes);
                 else
-#endif
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     objmod->reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
@@ -426,7 +423,6 @@ void outcommon(symbol *s,targ_size_t n)
     if (n != 0)
     {
         assert(s->Sclass == SCglobal);
-#if TARGET_SEGMENTED
         if (s->ty() & mTYcs) // if store in code segment
         {
             /* COMDEFs not supported in code segment
@@ -438,9 +434,7 @@ void outcommon(symbol *s,targ_size_t n)
             out_extdef(s);
 #endif
         }
-        else
-#endif
-        if (s->ty() & mTYthread) // if store in thread local segment
+        else if (s->ty() & mTYthread) // if store in thread local segment
         {
             if (config.objfmt == OBJ_ELF)
             {
@@ -466,16 +460,11 @@ void outcommon(symbol *s,targ_size_t n)
             s->Sclass = SCcomdef;
             if (config.objfmt == OBJ_OMF)
             {
-#if TARGET_SEGMENTED
                 s->Sxtrnnum = objmod->common_block(s,(s->ty() & mTYfar) == 0,n,1);
                 if (s->ty() & mTYfar)
                     s->Sfl = FLfardata;
                 else
                     s->Sfl = FLextern;
-#else
-                s->Sxtrnnum = objmod->common_block(s,true,n,1);
-                s->Sfl = FLextern;
-#endif
                 s->Sseg = UNKNOWN;
                 pstate.STflags |= PFLcomdef;
 #if SCPP
@@ -649,10 +638,8 @@ again:
                 {
                     s->Sflags &= ~(SFLunambig | GTregcand);
                 }
-#if TARGET_SEGMENTED
                 else if (s->ty() & mTYfar)
                     e->Ety |= mTYfar;
-#endif
                 break;
 #if SCPP
             case SCmember:
