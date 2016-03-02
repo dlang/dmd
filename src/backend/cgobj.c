@@ -1936,12 +1936,11 @@ int Obj::comdat(Symbol *s)
 #endif
                                 break;
 
-#if TARGET_SEGMENTED
             case mTYcs:         lr->flags |= 0x08;      // data in code seg
                                 atyp = 0x11;    break;
 
             case mTYfar:        atyp = 0x12;    break;
-#endif
+
             case mTYthread:     lr->pubbase = Obj::tlsseg()->segidx;
                                 atyp = 0x10;    // pick any (also means it is
                                                 // not searched for in a library)
@@ -2777,17 +2776,11 @@ STATIC void obj_modend()
             switch (s->Sfl)
             {
                 case FLextern:
-                    if (!(ty & (
-#if TARGET_SEGMENTED
-                                    mTYcs |
-#endif
-                                    mTYthread)))
+                    if (!(ty & (mTYcs | mTYthread)))
                         goto L1;
                 case FLfunc:
-#if TARGET_SEGMENTED
                 case FLfardata:
                 case FLcsdata:
-#endif
                 case FLtlsdata:
                     if (config.exe & EX_flat)
                     {   fd |= FD_F1;
@@ -2812,17 +2805,11 @@ STATIC void obj_modend()
             switch (s->Sfl)
             {
                 case FLextern:
-                    if (!(ty & (
-#if TARGET_SEGMENTED
-                                    mTYcs |
-#endif
-                                    mTYthread)))
+                    if (!(ty & (mTYcs | mTYthread)))
                         goto L1;
                 case FLfunc:
-#if TARGET_SEGMENTED
                 case FLfardata:
                 case FLcsdata:
-#endif
                 case FLtlsdata:
                     if (config.exe & EX_flat)
                     {   fd |= FD_F1;
@@ -3126,11 +3113,7 @@ void Obj::ledata(int seg,targ_size_t offset,targ_size_t data,
 {   unsigned i;
     unsigned size;                      // number of bytes to output
 
-#if TARGET_SEGMENTED
     unsigned ptrsize = tysize[TYfptr];
-#else
-    unsigned ptrsize = I64 ? 10 : 6;
-#endif
 
     if ((lcfd & LOCxx) == obj.LOCpointer)
         size = ptrsize;
@@ -3200,11 +3183,7 @@ L1:     ;
 void Obj::write_long(int seg,targ_size_t offset,unsigned long data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
 {
-#if TARGET_SEGMENTED
     unsigned sz = tysize[TYfptr];
-#else
-    unsigned sz = I64 ? 10 : 6;
-#endif
     Ledatarec *lr = SegData[seg]->ledata;
     if (!lr)
          lr = ledata_new(seg, offset);
@@ -3406,11 +3385,7 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                 break;
             case CFoff | CFseg:
                 lc = obj.LOCpointer;
-#if TARGET_SEGMENTED
                 numbytes = tysize[TYfptr];
-#else
-                numbytes = I64 ? 10 : 6;
-#endif
                 break;
         }
         break;
@@ -3466,17 +3441,11 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
         switch (s->Sfl)
         {
             case FLextern:
-                if (!(ty & (
-#if TARGET_SEGMENTED
-                                mTYcs |
-#endif
-                                mTYthread)))
+                if (!(ty & (mTYcs | mTYthread)))
                     goto L1;
             case FLfunc:
-#if TARGET_SEGMENTED
             case FLfardata:
             case FLcsdata:
-#endif
             case FLtlsdata:
                 if (config.exe & EX_flat)
                 {   lc |= FD_F1;
@@ -3501,17 +3470,11 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
         switch (s->Sfl)
         {
             case FLextern:
-                if (!(ty & (
-#if TARGET_SEGMENTED
-                                mTYcs |
-#endif
-                                mTYthread)))
+                if (!(ty & (mTYcs | mTYthread)))
                     goto L1;
             case FLfunc:
-#if TARGET_SEGMENTED
             case FLfardata:
             case FLcsdata:
-#endif
             case FLtlsdata:
                 if (config.exe & EX_flat)
                 {   lc |= FD_F1;
