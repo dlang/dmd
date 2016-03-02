@@ -131,13 +131,11 @@ int elemisone(elem *e)
             case TYllong:
             case TYullong:
             case TYnullptr:
-#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYhptr:
             case TYfptr:
             case TYvptr:
-#endif
             case TYnptr:
             case TYbool:
             case TYwchar_t:
@@ -194,13 +192,11 @@ int elemisnegone(elem *e)
             case TYullong:
             case TYnullptr:
             case TYnptr:
-#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYhptr:
             case TYfptr:
             case TYvptr:
-#endif
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -546,7 +542,6 @@ STATIC elem * elstring(elem *e, goal_t goal)
 /************************
  */
 
-#if TARGET_SEGMENTED
 /************************
  * Convert far pointer to pointer.
  */
@@ -560,7 +555,6 @@ STATIC void eltonear(elem **pe)
     e->Ety = ty;
     *pe = optelem(e,GOALvalue);
 }
-#endif
 
 /************************
  */
@@ -571,7 +565,6 @@ STATIC elem * elstrcpy(elem *e, goal_t goal)
     elem_debug(e);
     switch (e->E2->Eoper)
     {
-#if TARGET_SEGMENTED
         case OPnp_fp:
             if (OPTIMIZER)
             {
@@ -579,7 +572,7 @@ STATIC elem * elstrcpy(elem *e, goal_t goal)
                 e = optelem(e,GOALvalue);
             }
             break;
-#endif
+
         case OPstring:
             /* Replace strcpy(e1,"string") with memcpy(e1,"string",sizeof("string")) */
             // As streq
@@ -608,17 +601,13 @@ STATIC elem * elstrcmp(elem *e, goal_t goal)
     elem_debug(e);
     if (OPTIMIZER)
     {
-#if TARGET_SEGMENTED
         if (e->E1->Eoper == OPnp_fp)
             eltonear(&e->E1);
-#endif
         switch (e->E2->Eoper)
         {
-#if TARGET_SEGMENTED
             case OPnp_fp:
                 eltonear(&e->E2);
                 break;
-#endif
 
             case OPstring:
                 // Replace strcmp(e1,"string") with memcmp(e1,"string",sizeof("string"))
@@ -644,20 +633,16 @@ STATIC elem * elmemxxx(elem *e, goal_t goal)
         ex = e->E1;
         switch (e->Eoper)
         {   case OPmemcmp:
-#if TARGET_SEGMENTED
                 if (ex->E1->Eoper == OPnp_fp)
                     eltonear(&ex->E1);
                 if (ex->E2->Eoper == OPnp_fp)
                     eltonear(&ex->E2);
-#endif
                 break;
 
             case OPmemset:
-#if TARGET_SEGMENTED
                 if (ex->Eoper == OPnp_fp)
                     eltonear(&ex);
                 else
-#endif
                 {
                     // lvalue OPmemset (nbytes param value)
                     elem *enbytes = e->E2->E1;
@@ -713,15 +698,11 @@ STATIC elem * elmemxxx(elem *e, goal_t goal)
                 break;
 
             case OPmemcpy:
-#if TARGET_SEGMENTED
                 if (ex->Eoper == OPnp_fp)
                     eltonear(&e->E1);
-#endif
                 ex = e->E2;
-#if TARGET_SEGMENTED
                 if (ex->E1->Eoper == OPnp_fp)
                     eltonear(&ex->E1);
-#endif
                 if (ex->E2->Eoper == OPconst)
                 {
                     if (!boolres(ex->E2))
@@ -744,10 +725,8 @@ STATIC elem * elmemxxx(elem *e, goal_t goal)
                     ex->E1 = NULL;
                     el_free(ex);
                     ex = el_copytree(e->E1->E1);
-#if TARGET_SEGMENTED
                     if (tysize(e->Ety) > tysize(ex->Ety))
                         ex = el_una(OPnp_fp,e->Ety,ex);
-#endif
                     e = el_bin(OPcomma,e->Ety,e,ex);
                     if (el_sideeffect(e->E2))
                         fixside(&e->E1->E1->E1,&e->E2);
@@ -868,7 +847,6 @@ L1:
         e1->E2->Eoper = OPconst;
         e1->E2->Ety = TYint;
         {
-#if TARGET_SEGMENTED
             /* Watch out for pointer types changing, requiring a conversion */
             tym_t ety,e11ty;
 
@@ -881,7 +859,6 @@ L1:
                             e->Ety,e);
                 e->E1->Ety = e1->Ety;
             }
-#endif
         }
         again = 1;
         return e;
@@ -1097,9 +1074,7 @@ L1:
   if (e1->Eoper == OPadd && e2->Eoper == OPadd &&
       cnst(e1->E2) && cnst(e2->E2) &&
       (tyintegral(tym) || tybasic(tym) == TYnptr
-#if TARGET_SEGMENTED
        || tybasic(tym) == TYsptr
-#endif
       ))
   {
         e->Eoper = OPadd;
@@ -1823,11 +1798,9 @@ STATIC elem * elnot(elem *e, goal_t goal)
         case OPs8_16:
         case OPu32_64:
         case OPs32_64:
-#if TARGET_SEGMENTED
         case OPvp_fp:
         case OPcvp_fp:
         case OPnp_fp:
-#endif
             e1->Eoper = e->Eoper;
             goto L1;
 
@@ -2872,7 +2845,6 @@ STATIC elem * elind(elem *e, goal_t goal)
           }
             break;
         case OPadd:
-#if TARGET_SEGMENTED
             if (OPTIMIZER)
             {   /* Try to convert far pointer to stack pointer  */
                 elem *e12 = e1->E2;
@@ -2885,7 +2857,6 @@ STATIC elem * elind(elem *e, goal_t goal)
                     e12->Ety = (e12->Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared | mTYLINK)) | TYsptr;
                 }
             }
-#endif
             break;
         case OPcomma:
             // Replace (*(ea,eb)) with (ea,*eb)
@@ -2929,7 +2900,6 @@ STATIC elem * eladdr(elem *e, goal_t goal)
 
         tym2 = e1->E1->Ety;
 
-#if TARGET_SEGMENTED
         /* Watch out for conversions between near and far pointers      */
         sz = tysize(tym) - tysize(tym2);
         if (sz != 0)
@@ -2943,7 +2913,7 @@ STATIC elem * eladdr(elem *e, goal_t goal)
             e = el_una(op,tym,e);
             goto L1;
         }
-#endif
+
         e = el_selecte1(el_selecte1(e));
         e->Ety = tym;
         break;
@@ -3270,11 +3240,7 @@ elem * elstruct(elem *e, goal_t goal)
                 /* We should do the analysis to see if we can use
                    something simpler than TYfptr.
                  */
-#if TARGET_SEGMENTED
                 tym_t typ = (intsize == LONGSIZE) ? TYnptr : TYfptr;
-#else
-                tym_t typ = TYnptr;
-#endif
                 e2 = el_una(OPaddr,typ,e2);
                 e2 = optelem(e2,GOALvalue);          /* distribute & to x and y leaves */
                 *pe2 = el_una(OPind,ty2,e2);
@@ -4350,7 +4316,6 @@ STATIC elem * ellngsht(elem *e, goal_t goal)
         e = el_selecte1(e);
         break;
 
-#if TARGET_SEGMENTED
     case OPnp_fp:
         if (e->Eoper != OPoffset)
             goto case_default;
@@ -4358,7 +4323,6 @@ STATIC elem * ellngsht(elem *e, goal_t goal)
         e = el_selecte1(el_selecte1(e));
         e->Ety = ty;                    // retain original type
         break;
-#endif
 
     case OPbtst:
         e = el_selecte1(e);
@@ -4394,7 +4358,7 @@ STATIC elem * ellngsht(elem *e, goal_t goal)
                         }
                     }
                     break;
-#if TARGET_SEGMENTED
+
                 case OPoffset:
                     if (intsize == LONGSIZE)
                     {
@@ -4418,7 +4382,6 @@ STATIC elem * ellngsht(elem *e, goal_t goal)
                         break;
                     }
                     /* FALL-THROUGH */
-#endif
                 case OP32_16:
                     /* Make sure e1->E1 is of the type we're converting from */
                     if (tysize(ty1) == LONGSIZE)
@@ -5362,9 +5325,7 @@ beg:
             goto retnull;
         if (e1->Eoper == OPconst)
         {
-#if TARGET_SEGMENTED
             if (!(op == OPnp_fp && el_tolong(e1) != 0))
-#endif
                 return evalu8(e, GOALvalue);
         }
         e2 = NULL;
