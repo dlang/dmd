@@ -16,3 +16,5 @@ template Template(T)
 {
     private void bar() {}
 }
+
+private void bar(int) {}

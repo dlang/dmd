@@ -14,8 +14,8 @@ interface Base2
     alias T = short;
 }
 
-void bar() {}
-private void bar(int) {}
+private void bar() {}
+void bar(int) {}
 
-private void baz(int) {}
-void baz() {}
+void baz(int) {}
+private void baz() {}

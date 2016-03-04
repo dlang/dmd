@@ -703,6 +703,19 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
         s = searchScopes(SearchLocalsOnly);
         if (!s)
             s = searchScopes(SearchImportsOnly);
+
+        /** Still find private symbols, so that symbols that weren't access
+         * checked by the compiler remain usable.  Once the deprecation is over,
+         * this should be moved to search_correct instead.
+         */
+        if (!s)
+        {
+            s = searchScopes(SearchLocalsOnly | IgnoreSymbolVisibility);
+            if (!s)
+                s = searchScopes(SearchImportsOnly | IgnoreSymbolVisibility);
+            if (s)
+                .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+        }
     }
 
     if (!s)

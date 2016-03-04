@@ -13,6 +13,8 @@ class Foo : Base1, Base2
 
 void test()
 {
-    bar();
-    baz();
+    bar(12);
+    baz(12);
+    12.bar();
+    12.baz();
 }
