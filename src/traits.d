@@ -10,6 +10,7 @@ module ddmd.traits;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.attrib;
@@ -1284,7 +1285,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else if (e.ident == Id.getTemplateParamIdent)
         {
-            StringExp se = new StringExp(e.loc, tp.ident.toChars());
+            const(char)* tpIdent = tp.ident.toChars();
+            char* tpIdentM = cast(char*)malloc(char.sizeof * (strlen(tpIdent) + 1));
+            strcpy(tpIdentM, tpIdent);
+            StringExp se = new StringExp(e.loc, tpIdentM);
             return se.semantic(sc);
         }
         else if (e.ident == Id.getTemplateParamType)
