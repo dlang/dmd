@@ -191,7 +191,7 @@ void test()
 }
 ------
 
-$(H2 Mixin Scope)
+$(H2 $(LNAME2 mixin_scope, Mixin Scope))
 
         The declarations in a mixin are $(SINGLEQUOTE imported) into the surrounding
         scope. If the name of a declaration in a mixin is the same

@@ -1158,7 +1158,7 @@ $(H3 $(LNAME2 variadic, Variadic Functions))
         )
 
 
-$(H4 C-style Variadic Functions)
+$(H4 $(LNAME2 c_style_cariadic_functions, C-style Variadic Functions))
 
         A C-style variadic function is declared as taking
         a parameter of ... after the required function parameters.
@@ -1217,7 +1217,7 @@ void foo(int x, int y, ...)
 ------
 
 
-$(H4 D-style Variadic Functions)
+$(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
 
         Variadic functions with argument and type info are declared as taking
         a parameter of ... after the required function parameters.
@@ -1336,7 +1336,7 @@ Bar
 ------
 
 
-$(H4 Typesafe Variadic Functions)
+$(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         $(P Typesafe variadic functions are used when the variable argument
         portion of the arguments are used to construct an array or
@@ -1449,7 +1449,7 @@ int[] x;
 test(x);    // error, type mismatch
 ------
 
-$(H4 Lazy Variadic Functions)
+$(H4 $(LNAME2 lazy_variadic_functions, Lazy Variadic Functions))
 
         $(P If the variadic parameter is an array of delegates
         with no parameters:

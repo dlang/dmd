@@ -29,7 +29,7 @@ $(COMMENT <img src="../images/d4.gif" alt="Contracts make D bug resistant" borde
 	out of date, wrong, or non-existent. Moving the contracts into the code makes them
 	verifiable against the program.)
 
-$(H2 Assert Contract)
+$(H2 $(LNAME2 assert_contracts, Assert Contract))
 
 	$(P The most basic contract is the
 	$(GLINK2 expression, AssertExpression).
@@ -53,7 +53,7 @@ assert(expression);
 	$(P The compiler is free to assume the assert expression is true and
 	optimize subsequent code accordingly.)
 
-$(H2 Pre and Post Contracts)
+$(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
 	The pre contracts specify the preconditions before a statement is executed. The most
 	typical use of this would be in validating the parameters to a function. The post
@@ -125,7 +125,7 @@ body
 	In an out statement, $(I result) is initialized and set to the
 	return value of the function.
 
-$(H2 In, Out and Inheritance)
+$(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
 	$(P If a function in a derived class overrides a function in its
 	super class, then only one of
@@ -249,7 +249,7 @@ assert(&s);               // check that struct S invariant holds
 	The compiler is free to assume the invariant holds true, regardless of whether code is generated for it or not, and
 	may optimize code accordingly.)
 
-$(H2 References)
+$(H2 $(LNAME2 references, References))
 
 	$(LIST
 	$(LINK2 http://people.cs.uchicago.edu/~robby/contract-reading-list/, Contracts Reading List),

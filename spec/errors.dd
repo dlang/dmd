@@ -19,7 +19,7 @@ $(UL
 	$(LI Requesting a system service that is not supported.)
 )
 
-$(H2 The Error Handling Problem)
+$(H2 $(LNAME2 the_error_handling_problem, The Error Handling Problem))
 
 The traditional C way of detecting and reporting errors is not traditional,
 it is ad-hoc and varies from function to function, including:
@@ -70,7 +70,7 @@ $(UL
 	$(LI It is easy to make the error handling source code look good.)
 )
 
-$(H2 The D Error Handling Solution)
+$(H2 $(LNAME2 the_d_error_handling_solution, The D Error Handling Solution))
 
 Let's first make some observations and assumptions about errors:
 
