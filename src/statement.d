@@ -3866,7 +3866,7 @@ public:
             else
                 needswitcherror = true;
         }
-        if (!sc.sw.sdefault && (!isFinal || needswitcherror || global.params.useAssert))
+        if (!sdefault && (!isFinal || needswitcherror || global.params.useAssert))
         {
             hasNoDefault = 1;
             if (!isFinal && !_body.isErrorStatement())
@@ -3880,11 +3880,11 @@ public:
             else
                 s = new ExpStatement(loc, new HaltExp(loc));
             a.reserve(2);
-            sc.sw.sdefault = new DefaultStatement(loc, s);
+            sdefault = new DefaultStatement(loc, s);
             a.push(_body);
             if (_body.blockExit(sc.func, false) & BEfallthru)
                 a.push(new BreakStatement(Loc(), null));
-            a.push(sc.sw.sdefault);
+            a.push(sdefault);
             cs = new CompoundStatement(loc, a);
             _body = cs;
         }
