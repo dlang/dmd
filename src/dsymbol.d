@@ -91,11 +91,13 @@ struct Prot
         this.kind = kind;
     }
 
+    extern (C++):
+
     /**
      * Checks if `this` is superset of `other` restrictions.
      * For example, "protected" is more restrictive than "public".
      */
-    extern (C++) bool isMoreRestrictiveThan(Prot other)
+    bool isMoreRestrictiveThan(const Prot other) const
     {
         return this.kind < other.kind;
     }
@@ -103,7 +105,7 @@ struct Prot
     /**
      * Checks if `this` is absolutely identical protection attribute to `other`
      */
-    extern (C++) bool opEquals(Prot other)
+    bool opEquals(ref const Prot other) const
     {
         if (this.kind == other.kind)
         {
@@ -124,7 +126,7 @@ struct Prot
      *  'true' if parent is already more restrictive than this one and thus
      *  no differentiation is needed.
      */
-    extern (C++) bool isSubsetOf(Prot parent)
+    bool isSubsetOf(ref const Prot parent) const
     {
         if (this.kind != parent.kind)
             return false;

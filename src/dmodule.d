@@ -208,17 +208,13 @@ public:
      * Returns:
      *  see description
      */
-    final bool isAncestorPackageOf(Package pkg)
+    final bool isAncestorPackageOf(const Package pkg) const
     {
-        while (pkg)
-        {
-            if (this == pkg)
-                return true;
-            if (!pkg.parent)
-                break;
-            pkg = pkg.parent.isPackage();
-        }
-        return false;
+        if (this == pkg)
+            return true;
+        if (!pkg || !pkg.parent)
+            return false;
+        return isAncestorPackageOf(pkg.parent.isPackage());
     }
 
     override final void semantic(Scope* sc)
