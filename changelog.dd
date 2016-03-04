@@ -11,6 +11,7 @@ $(BUGSTITLE Compiler Changes,
 $(BUGSTITLE Language Changes,
     $(LI $(RELATIVE_LINK2 extended-deprecated, Manifest constant can now be used for deprecation message.))
     $(LI $(RELATIVE_LINK2 import-lookup, Imports no longer hide locals declared in outer scopes.))
+    $(LI $(RELATIVE_LINK2 dip22, Private symbols are no longer visible in other modules.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -73,11 +74,33 @@ $(BUGSTITLE Language Changes,
 
     $(P See also $(BUGZILLA 10378))
     )
+
+    $(LI $(LNAME2 dip22, Private symbols are no longer visible in other modules.)
+
+    $(P Protection (private, package, protected) is now already enforced during
+        symbol lookup in order to resolve any conflicts between private and
+        public symbols that could occur with the old access check scheme.
+    )
+
+    $(P The visibility of overloaded symbols with mixed protection is determined
+        by the most visibile member, but additional access check against the exact
+        symbol is performed after overload resolution.
+    )
+
+    $(P To ease updating existing code, a deprecated search for invisible symbols will be performed.
+        For the the old lookup behavior (using the -transition=import or -transition=checkimports compiler switch)
+        symbol visibility is ignored.
+        All existing access checks remain active during the deprecation phase.
+    )
+
+    $(P See also $(LINK2 http://wiki.dlang.org/DIP22, DIP22))
+    )
 )
 
 Macros:
     TITLE=Change Log
 
+    H4 = <h4>$0</h4>
     BUGSTITLE = <div class="bugsfixed">$(H4 $1) $(OL $2 )</div>
 
     RELATIVE_LINK2=<a href="#$1">$+</a>
