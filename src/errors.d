@@ -124,6 +124,14 @@ extern (C++) void resetConsoleColor()
 /**************************************
  * Print error message
  */
+extern (C++) void error(const ref Loc loc, const(char)* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    verror(loc, format, ap);
+    va_end(ap);
+}
+
 extern (C++) void error(Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -135,7 +143,7 @@ extern (C++) void error(Loc loc, const(char)* format, ...)
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
     Loc loc;
-    loc.filename = cast(char*)filename;
+    loc.filename = filename;
     loc.linnum = linnum;
     loc.charnum = charnum;
     va_list ap;
@@ -144,7 +152,7 @@ extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(
     va_end(ap);
 }
 
-extern (C++) void errorSupplemental(Loc loc, const(char)* format, ...)
+extern (C++) void errorSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -152,7 +160,7 @@ extern (C++) void errorSupplemental(Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void warning(Loc loc, const(char)* format, ...)
+extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -160,7 +168,7 @@ extern (C++) void warning(Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
+extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -168,7 +176,7 @@ extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void deprecation(Loc loc, const(char)* format, ...)
+extern (C++) void deprecation(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -176,7 +184,7 @@ extern (C++) void deprecation(Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void deprecationSupplemental(Loc loc, const(char)* format, ...)
+extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -185,7 +193,7 @@ extern (C++) void deprecationSupplemental(Loc loc, const(char)* format, ...)
 }
 
 // Just print, doesn't care about gagging
-extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+extern (C++) void verrorPrint(const ref Loc loc, COLOR headerColor, const(char)* header, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
     const p = loc.toChars();
     if (global.params.color)
@@ -209,7 +217,7 @@ extern (C++) void verrorPrint(Loc loc, COLOR headerColor, const(char)* header, c
 }
 
 // header is "Error: " by default (see errors.h)
-extern (C++) void verror(Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
+extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null, const(char)* header = "Error: ")
 {
     global.errors++;
     if (!global.gag)
@@ -227,13 +235,13 @@ extern (C++) void verror(Loc loc, const(char)* format, va_list ap, const(char)* 
 }
 
 // Doesn't increase error count, doesn't print "Error:".
-extern (C++) void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
+extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (!global.gag)
         verrorPrint(loc, COLOR_RED, "       ", format, ap);
 }
 
-extern (C++) void vwarning(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
@@ -244,13 +252,13 @@ extern (C++) void vwarning(Loc loc, const(char)* format, va_list ap)
     }
 }
 
-extern (C++) void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vwarningSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
         verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
 }
 
-extern (C++) void vdeprecation(Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
+extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
     static __gshared const(char)* header = "Deprecation: ";
     if (global.params.useDeprecated == 0)
@@ -259,7 +267,7 @@ extern (C++) void vdeprecation(Loc loc, const(char)* format, va_list ap, const(c
         verrorPrint(loc, COLOR_BLUE, header, format, ap, p1, p2);
 }
 
-extern (C++) void vdeprecationSupplemental(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vdeprecationSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
     if (global.params.useDeprecated == 0)
         verrorSupplemental(loc, format, ap);

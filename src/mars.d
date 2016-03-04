@@ -570,7 +570,8 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
             {
                 static if (TARGET_OSX)
                 {
-                    deprecation(Loc(), "use -shared instead of -dylib");
+                    Loc loc;
+                    deprecation(loc, "use -shared instead of -dylib");
                     global.params.dll = true;
                 }
                 else
@@ -1114,7 +1115,8 @@ Language changes listed by -transition=id:
          that the switch has effectively not been supported. Time to
          remove it from dmd.
          Step 1 (2.069): Deprecate -property and ignore it. */
-        deprecation(Loc(), "The -property switch is deprecated and has no " ~
+        Loc loc;
+        deprecation(loc, "The -property switch is deprecated and has no " ~
             "effect anymore.");
         /* Step 2: Remove -property. Throw an error when it's set.
          Do this by removing global.params.enforcePropertySyntax and the code
