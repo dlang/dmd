@@ -514,11 +514,19 @@ struct Scope
         {
             // Search both ways
 
-            auto sold = searchScopes(flags | SearchCheck10378);
+            auto sold = searchScopes(flags | SearchCheck10378 | IgnoreSymbolVisibility);
 
             auto snew = searchScopes(flags | SearchCheck10378 | SearchLocalsOnly);
             if (!snew)
                 snew = searchScopes(flags | SearchCheck10378 | SearchImportsOnly);
+            if (!snew)
+            {
+                snew = searchScopes(flags | SearchCheck10378 | SearchLocalsOnly | IgnoreSymbolVisibility);
+                if (!snew)
+                    snew = searchScopes(flags | SearchCheck10378 | SearchImportsOnly | IgnoreSymbolVisibility);
+                if (snew)
+                    .deprecation(loc, "%s is not visible from module %s", snew.toPrettyChars(), _module.toChars());
+            }
 
             if (sold !is snew)
             {
@@ -530,7 +538,7 @@ struct Scope
         }
 
         if (global.params.bug10378)
-            return searchScopes(flags);
+            return searchScopes(flags | IgnoreSymbolVisibility);
 
         // First look in local scopes
         Dsymbol s = searchScopes(flags | SearchLocalsOnly);

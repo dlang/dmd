@@ -682,11 +682,19 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     {
         // Search both ways
 
-        auto sold = searchScopes(SearchCheck10378);
+        auto sold = searchScopes(SearchCheck10378 | IgnoreSymbolVisibility);
 
         auto snew = searchScopes(SearchCheck10378 | SearchLocalsOnly);
         if (!snew)
             snew = searchScopes(SearchCheck10378 | SearchImportsOnly);
+        if (!snew)
+        {
+            snew = searchScopes(SearchCheck10378 | SearchLocalsOnly | IgnoreSymbolVisibility);
+            if (!snew)
+                snew = searchScopes(SearchCheck10378 | SearchImportsOnly | IgnoreSymbolVisibility);
+            if (snew)
+                .deprecation(loc, "%s is not visible from module %s", snew.toPrettyChars(), sc._module.toChars());
+        }
 
         if (sold !is snew)
         {
@@ -697,7 +705,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
         s = sold;
     }
     else if (global.params.bug10378)
-        s = searchScopes(0);
+        s = searchScopes(0 | IgnoreSymbolVisibility);
     else
     {
         s = searchScopes(SearchLocalsOnly);
