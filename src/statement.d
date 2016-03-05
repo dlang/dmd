@@ -3595,11 +3595,7 @@ public:
                     }
                     else if (global.params.verbose)
                     {
-                        char* name = cast(char*)mem.malloc(se.len + 1);
-                        memcpy(name, se.string, se.len);
-                        name[se.len] = 0;
-                        fprintf(global.stdmsg, "library   %s\n", name);
-                        mem.free(name);
+                        fprintf(global.stdmsg, "library   %.*s\n", cast(int)se.len, se.string);
                     }
                 }
             }
