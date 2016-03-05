@@ -10,7 +10,7 @@
 
 module ddmd.complex;
 
-import ddmd.root.real_t;
+import ddmd.root.ctfloat;
 
 struct complex_t
 {
@@ -67,7 +67,7 @@ struct complex_t
 
     complex_t opDiv(complex_t y)
     {
-        if (TargetReal.fabs(y.re) < TargetReal.fabs(y.im))
+        if (CTFloat.fabs(y.re) < CTFloat.fabs(y.im))
         {
             const r = y.re / y.im;
             const den = y.im + r * y.re;

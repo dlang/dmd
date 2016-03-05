@@ -18,7 +18,7 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.root.real_t;
+import ddmd.root.ctfloat;
 import ddmd.sideeffect;
 import ddmd.tokens;
 import ddmd.visitor;

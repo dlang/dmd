@@ -6,7 +6,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
 
-module ddmd.root.real_t;
+module ddmd.root.ctfloat;
 
 static import core.math, core.stdc.math;
 import core.stdc.errno;
@@ -14,6 +14,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+// Type used by the front-end for compile-time reals
 alias real_t = real;
 
 private
@@ -28,11 +29,39 @@ private
     }
 }
 
-extern (C++) struct TargetReal
+// Compile-time floating-point helper
+extern (C++) struct CTFloat
 {
-    static real_t  sin(real_t x) { return core.math.sin(x); }
-    static real_t  cos(real_t x) { return core.math.cos(x); }
-    static real_t  tan(real_t x) { return core.stdc.math.tanl(x); }
+    version(DigitalMars)
+    {
+        static __gshared bool yl2x_supported = true;
+        static __gshared bool yl2xp1_supported = true;
+    }
+    else
+    {
+        static __gshared bool yl2x_supported = false;
+        static __gshared bool yl2xp1_supported = false;
+    }
+
+    static void yl2x(const real_t* x, const real_t* y, real_t* res)
+    {
+        version(DigitalMars)
+            *res = core.math.yl2x(*x, *y);
+        else
+            assert(0);
+    }
+
+    static void yl2xp1(const real_t* x, const real_t* y, real_t* res)
+    {
+        version(DigitalMars)
+            *res = core.math.yl2xp1(*x, *y);
+        else
+            assert(0);
+    }
+
+    static real_t sin(real_t x) { return core.math.sin(x); }
+    static real_t cos(real_t x) { return core.math.cos(x); }
+    static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
     static real_t sqrt(real_t x) { return core.math.sqrt(x); }
     static real_t fabs(real_t x) { return core.math.fabs(x); }
 
@@ -48,7 +77,7 @@ extern (C++) struct TargetReal
         return !(r == r);
     }
 
-    static bool isSignallingNaN(real_t r)
+    static bool isSNaN(real_t r)
     {
         return isNaN(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
     }

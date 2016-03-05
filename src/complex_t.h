@@ -12,7 +12,7 @@
 #ifndef DMD_COMPLEX_T_H
 #define DMD_COMPLEX_T_H
 
-#include "real_t.h"
+#include "ctfloat.h"
 
 /* Roll our own complex type for compilers that don't support complex
  */
@@ -32,7 +32,7 @@ struct complex_t
 
     complex_t operator / (complex_t y)
     {
-        if (TargetReal::fabs(y.re) < TargetReal::fabs(y.im))
+        if (CTFloat::fabs(y.re) < CTFloat::fabs(y.im))
         {
             real_t r = y.re / y.im;
             real_t den = y.im + r * y.re;

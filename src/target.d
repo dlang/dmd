@@ -13,8 +13,8 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
-import ddmd.root.real_t;
 
 /***********************************************************
  */

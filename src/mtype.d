@@ -10,7 +10,6 @@
 module ddmd.mtype;
 
 import core.checkedint;
-import core.stdc.float_;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -43,8 +42,9 @@ import ddmd.identifier;
 import ddmd.imphint;
 import ddmd.init;
 import ddmd.opover;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
-import ddmd.root.real_t;
+import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.root.stringtable;
@@ -3686,17 +3686,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = real_t(FLT_MAX);
+                fvalue = TargetFloatProperties.max;
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = real_t(DBL_MAX);
+                fvalue = TargetDoubleProperties.max;
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = real_t.max;
+                fvalue = TargetRealProperties.max;
                 goto Lfvalue;
             default:
                 break;
@@ -3754,17 +3754,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = real_t(FLT_MIN);
+                fvalue = TargetFloatProperties.min_normal;
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = real_t(DBL_MIN);
+                fvalue = TargetDoubleProperties.min_normal;
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = real_t.min_normal;
+                fvalue = TargetRealProperties.min_normal;
                 goto Lfvalue;
             default:
                 break;
@@ -3783,7 +3783,7 @@ extern (C++) final class TypeBasic : Type
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                fvalue = real_t.nan;
+                fvalue = TargetRealProperties.nan;
                 goto Lfvalue;
             default:
                 break;
@@ -3802,7 +3802,7 @@ extern (C++) final class TypeBasic : Type
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                fvalue = real_t.infinity;
+                fvalue = TargetRealProperties.infinity;
                 goto Lfvalue;
             default:
                 break;
@@ -3815,17 +3815,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = FLT_DIG;
+                ivalue = TargetFloatProperties.dig;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = DBL_DIG;
+                ivalue = TargetDoubleProperties.dig;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = real_t.dig;
+                ivalue = TargetRealProperties.dig;
                 goto Lint;
             default:
                 break;
@@ -3838,17 +3838,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                fvalue = real_t(FLT_EPSILON);
+                fvalue = TargetFloatProperties.epsilon;
                 goto Lfvalue;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                fvalue = real_t(DBL_EPSILON);
+                fvalue = TargetDoubleProperties.epsilon;
                 goto Lfvalue;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                fvalue = real_t.epsilon;
+                fvalue = TargetRealProperties.epsilon;
                 goto Lfvalue;
             default:
                 break;
@@ -3861,17 +3861,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = FLT_MANT_DIG;
+                ivalue = TargetFloatProperties.mant_dig;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = DBL_MANT_DIG;
+                ivalue = TargetDoubleProperties.mant_dig;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = real_t.mant_dig;
+                ivalue = TargetRealProperties.mant_dig;
                 goto Lint;
             default:
                 break;
@@ -3884,17 +3884,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = FLT_MAX_10_EXP;
+                ivalue = TargetFloatProperties.max_10_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = DBL_MAX_10_EXP;
+                ivalue = TargetDoubleProperties.max_10_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = real_t.max_10_exp;
+                ivalue = TargetRealProperties.max_10_exp;
                 goto Lint;
             default:
                 break;
@@ -3907,17 +3907,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = FLT_MAX_EXP;
+                ivalue = TargetFloatProperties.max_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = DBL_MAX_EXP;
+                ivalue = TargetDoubleProperties.max_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = real_t.max_exp;
+                ivalue = TargetRealProperties.max_exp;
                 goto Lint;
             default:
                 break;
@@ -3930,17 +3930,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = FLT_MIN_10_EXP;
+                ivalue = TargetFloatProperties.min_10_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = DBL_MIN_10_EXP;
+                ivalue = TargetDoubleProperties.min_10_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = real_t.min_10_exp;
+                ivalue = TargetRealProperties.min_10_exp;
                 goto Lint;
             default:
                 break;
@@ -3953,17 +3953,17 @@ extern (C++) final class TypeBasic : Type
             case Tcomplex32:
             case Timaginary32:
             case Tfloat32:
-                ivalue = FLT_MIN_EXP;
+                ivalue = TargetFloatProperties.min_exp;
                 goto Lint;
             case Tcomplex64:
             case Timaginary64:
             case Tfloat64:
-                ivalue = DBL_MIN_EXP;
+                ivalue = TargetDoubleProperties.min_exp;
                 goto Lint;
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                ivalue = real_t.min_exp;
+                ivalue = TargetRealProperties.min_exp;
                 goto Lint;
             default:
                 break;
@@ -4244,14 +4244,14 @@ extern (C++) final class TypeBasic : Type
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-            return new RealExp(loc, real_t.init, this);
+            return new RealExp(loc, TargetRealProperties.snan, this);
 
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                const cvalue = complex_t(real_t.init, real_t.init);
+                const cvalue = complex_t(TargetRealProperties.snan, TargetRealProperties.snan);
                 return new ComplexExp(loc, cvalue, this);
             }
 

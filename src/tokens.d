@@ -13,8 +13,8 @@ import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.globals;
 import ddmd.identifier;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
-import ddmd.root.real_t;
 import ddmd.root.rmem;
 import ddmd.utf;
 
@@ -788,26 +788,26 @@ extern (C++) struct Token
             sprintf(&buffer[0], "%lluUL", cast(ulong)uns64value);
             break;
         case TOKfloat32v:
-            TargetReal.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "f");
             break;
         case TOKfloat64v:
-            TargetReal.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], 'g', floatvalue);
             break;
         case TOKfloat80v:
-            TargetReal.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "L");
             break;
         case TOKimaginary32v:
-            TargetReal.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "fi");
             break;
         case TOKimaginary64v:
-            TargetReal.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "i");
             break;
         case TOKimaginary80v:
-            TargetReal.sprint(&buffer[0], 'g', floatvalue);
+            CTFloat.sprint(&buffer[0], 'g', floatvalue);
             strcat(&buffer[0], "Li");
             break;
         case TOKstring:

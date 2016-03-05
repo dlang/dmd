@@ -16,7 +16,7 @@
 #pragma once
 #endif
 
-#include "real_t.h"
+#include "ctfloat.h"
 #include "outbuffer.h"
 #include "filename.h"
 

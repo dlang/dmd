@@ -26,8 +26,8 @@ import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.mtype;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
-import ddmd.root.real_t;
 import ddmd.utf;
 import ddmd.visitor;
 
@@ -664,15 +664,15 @@ public:
          * -0X1.1BC18BA997B95P+79   => N11BC18BA997B95P79
          * 0X1.9P+2                 => 19P2
          */
-        if (TargetReal.isNaN(value))
+        if (CTFloat.isNaN(value))
             buf.writestring("NAN"); // no -NAN bugs
-        else if (TargetReal.isInfinity(value))
+        else if (CTFloat.isInfinity(value))
             buf.writestring(value < real_t(0) ? "NINF" : "INF");
         else
         {
             enum BUFFER_LEN = 36;
             char[BUFFER_LEN] buffer;
-            const n = TargetReal.sprint(buffer.ptr, 'A', value);
+            const n = CTFloat.sprint(buffer.ptr, 'A', value);
             assert(n < BUFFER_LEN);
             for (int i = 0; i < n; i++)
             {

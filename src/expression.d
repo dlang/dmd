@@ -51,10 +51,10 @@ import ddmd.nspace;
 import ddmd.opover;
 import ddmd.optimize;
 import ddmd.parse;
+import ddmd.root.ctfloat;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
-import ddmd.root.real_t;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.sideeffect;
@@ -2151,7 +2151,7 @@ private:
  */
 extern (C++) int RealEquals(real_t x1, real_t x2)
 {
-    return (TargetReal.isNaN(x1) && TargetReal.isNaN(x2)) || TargetReal.isIdentical(x1, x2);
+    return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
 }
 
 /************************ TypeDotIdExp ************************************/

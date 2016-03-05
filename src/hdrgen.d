@@ -37,8 +37,8 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.nspace;
 import ddmd.parse;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
-import ddmd.root.real_t;
 import ddmd.root.rootobject;
 import ddmd.statement;
 import ddmd.staticassert;
@@ -2194,13 +2194,13 @@ public:
          Plus one for rounding. */
         const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
         char[BUFFER_LEN] buffer;
-        TargetReal.sprint(buffer.ptr, 'g', value);
+        CTFloat.sprint(buffer.ptr, 'g', value);
         assert(strlen(buffer.ptr) < BUFFER_LEN);
         if (hgs.hdrgen)
         {
-            real_t r = TargetReal.parse(buffer.ptr);
+            real_t r = CTFloat.parse(buffer.ptr);
             if (r != value) // if exact duplication
-                TargetReal.sprint(buffer.ptr, 'a', value);
+                CTFloat.sprint(buffer.ptr, 'a', value);
         }
         buf.writestring(buffer.ptr);
         if (type)

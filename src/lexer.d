@@ -20,9 +20,9 @@ import ddmd.errors;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
-import ddmd.root.real_t;
 import ddmd.root.rmem;
 import ddmd.tokens;
 import ddmd.utf;
@@ -2084,7 +2084,7 @@ class Lexer
         auto sbufptr = cast(const(char)*)stringbuffer.data;
         TOK result;
         bool isOutOfRange = false;
-        t.floatvalue = TargetReal.parse(sbufptr, &isOutOfRange);
+        t.floatvalue = CTFloat.parse(sbufptr, &isOutOfRange);
         switch (*p)
         {
         case 'F':

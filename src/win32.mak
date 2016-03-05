@@ -176,8 +176,8 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	ph2.obj util2.obj eh.obj tk.obj \
 
 # Root package
-ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/file.d $(ROOT)/filename.d \
-	$(ROOT)/man.d $(ROOT)/outbuffer.d $(ROOT)/port.d $(ROOT)/real_t.d \
+ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
+	$(ROOT)/filename.d $(ROOT)/man.d $(ROOT)/outbuffer.d $(ROOT)/port.d \
 	$(ROOT)/response.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
 	$(ROOT)/speller.d $(ROOT)/stringtable.d
 
@@ -229,10 +229,10 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 ROOTSRCC=$(ROOT)\newdelete.c
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
-	$(ROOT)\real_t.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
+	$(ROOT)\ctfloat.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
 	$(ROOT)\file.d $(ROOT)\array.d
 ROOTSRC= $(ROOT)\root.h $(ROOT)\stringtable.h \
-	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\real_t.h \
+	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
 	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\rmem.h $(ROOTSRCC) \
 	$(ROOTSRCD)
 # Removed garbage collector bits (look in history)

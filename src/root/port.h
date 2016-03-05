@@ -13,8 +13,6 @@
 // Portable wrapper around compiler/system specific things.
 // The idea is to minimize #ifdef's in the app code.
 
-#include "real_t.h"
-
 #include <stdlib.h> // for alloca
 #include <stdint.h>
 
@@ -31,12 +29,6 @@ typedef unsigned char utf8_t;
 
 struct Port
 {
-    static bool yl2x_supported;
-    static bool yl2xp1_supported;
-
-    static void yl2x(const real_t *x, const real_t *y, real_t *res);
-    static void yl2xp1(const real_t *x, const real_t *y, real_t *res);
-
     static int memicmp(const char *s1, const char *s2, int n);
     static char *strupr(char *s);
 

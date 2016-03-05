@@ -15,8 +15,7 @@ import core.stdc.errno;
 import core.stdc.string;
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.math;
-import ddmd.root.real_t;
+import ddmd.root.ctfloat;
 
 private extern (C)
 {
@@ -32,35 +31,35 @@ private extern (C)
     }
 }
 
+template FPTypeProperties(T)
+{
+    enum : real_t
+    {
+        max = T.max,
+        min_normal = T.min_normal,
+        nan = T.nan,
+        snan = T.init,
+        infinity = T.infinity,
+        epsilon = T.epsilon
+    }
+
+    enum : long
+    {
+        dig = T.dig,
+        mant_dig = T.mant_dig,
+        max_exp = T.max_exp,
+        min_exp = T.min_exp,
+        max_10_exp = T.max_10_exp,
+        min_10_exp = T.min_10_exp
+    }
+}
+
+alias TargetFloatProperties = FPTypeProperties!float;
+alias TargetDoubleProperties = FPTypeProperties!double;
+alias TargetRealProperties = FPTypeProperties!real;
+
 extern (C++) struct Port
 {
-    version (DigitalMars)
-    {
-        static __gshared bool yl2x_supported = true;
-        static __gshared bool yl2xp1_supported = true;
-    }
-    else
-    {
-        static __gshared bool yl2x_supported = false;
-        static __gshared bool yl2xp1_supported = false;
-    }
-
-    static void yl2x(const real_t* x, const real_t* y, real_t* res)
-    {
-        version (DigitalMars)
-            *res = core.math.yl2x(*x, *y);
-        else
-            assert(0);
-    }
-
-    static void yl2xp1(const real_t* x, const real_t* y, real_t* res)
-    {
-        version (DigitalMars)
-            *res = core.math.yl2xp1(*x, *y);
-        else
-            assert(0);
-    }
-
     static int memicmp(const char* s1, const char* s2, size_t n)
     {
         int result = 0;

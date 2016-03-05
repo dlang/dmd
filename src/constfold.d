@@ -21,8 +21,8 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
 import ddmd.mtype;
+import ddmd.root.ctfloat;
 import ddmd.root.port;
-import ddmd.root.real_t;
 import ddmd.root.rmem;
 import ddmd.sideeffect;
 import ddmd.tokens;
@@ -572,7 +572,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
         if (e1.toReal() < real_t(0))
         {
-            emplaceExp!(RealExp)(&ue, loc, real_t.nan, type);
+            emplaceExp!(RealExp)(&ue, loc, TargetRealProperties.nan, type);
         }
         else
             emplaceExp!(CTFEExp)(&ue, TOKcantexp);
@@ -871,7 +871,7 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
         r1 = e1.toImaginary();
         r2 = e2.toImaginary();
     L1:
-        if (TargetReal.isNaN(r1) || TargetReal.isNaN(r2)) // if unordered
+        if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             cmp = 0;
         }
