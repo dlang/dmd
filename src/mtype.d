@@ -7864,6 +7864,11 @@ public:
             if (!s)
                 return noMember(sc, e, ident, flag);
         }
+        if (!symbolIsVisible(sc._module, s))
+        {
+            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+            // return noMember(sc, e, ident, flag);
+        }
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);
         s = s.toAlias();
@@ -8719,6 +8724,11 @@ public:
             {
                 return noMember(sc, e, ident, flag);
             }
+        }
+        if (!symbolIsVisible(sc._module, s))
+        {
+            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+            // return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
             s.checkDeprecated(e.loc, sc);

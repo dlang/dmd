@@ -516,11 +516,19 @@ struct Scope
         {
             // Search both ways
 
-            auto sold = searchScopes(flags | SearchCheck10378);
+            auto sold = searchScopes(flags | SearchCheck10378 | IgnoreSymbolVisibility);
 
             auto snew = searchScopes(flags | SearchCheck10378 | SearchLocalsOnly);
             if (!snew)
                 snew = searchScopes(flags | SearchCheck10378 | SearchImportsOnly);
+            if (!snew)
+            {
+                snew = searchScopes(flags | SearchCheck10378 | SearchLocalsOnly | IgnoreSymbolVisibility);
+                if (!snew)
+                    snew = searchScopes(flags | SearchCheck10378 | SearchImportsOnly | IgnoreSymbolVisibility);
+                if (snew)
+                    .deprecation(loc, "%s is not visible from module %s", snew.toPrettyChars(), _module.toChars());
+            }
 
             if (sold !is snew)
             {
@@ -532,7 +540,7 @@ struct Scope
         }
 
         if (global.params.bug10378)
-            return searchScopes(flags);
+            return searchScopes(flags | IgnoreSymbolVisibility);
 
         // First look in local scopes
         Dsymbol s = searchScopes(flags | SearchLocalsOnly);
@@ -546,12 +554,27 @@ struct Scope
 
         s = searchScopes(flags | SearchImportsOnly);     // look in imported modules
 
-        version (LOGSEARCH)
+        if (s)
         {
-            if (s)
+            version (LOGSEARCH)
                 printMsg("-Scope.search() found import", s);
-            else
-                printf("-Scope.search() not found\n");
+            return s;
+        }
+
+        /** Still find private symbols, so that symbols that weren't access
+         * checked by the compiler remain usable.  Once the deprecation is over,
+         * this should be moved to search_correct instead.
+         */
+        s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+        if (!s)
+            s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
+
+        if (s)
+        {
+            version (LOGSEARCH)
+                printMsg("-Scope.search() found imported private symbol", s);
+            if (!(flags & IgnoreErrors))
+                .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), _module.toChars());
         }
         return s;
     }

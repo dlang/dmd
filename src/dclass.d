@@ -1111,10 +1111,16 @@ public:
                         error("base %s is forward referenced", b.sym.ident.toChars());
                     else
                     {
+                        import ddmd.access : symbolIsVisible;
+
                         s = b.sym.search(loc, ident, flags | SearchLocalsOnly);
-                        if (s == this) // happens if s is nested in this and derives from this
+                        if (!s)
+                            continue;
+                        else if (s == this) // happens if s is nested in this and derives from this
                             s = null;
-                        else if (s)
+                        else if (!(flags & IgnoreSymbolVisibility) && !(s.prot().kind == PROTprotected) && !symbolIsVisible(this, s))
+                            s = null;
+                        else
                             break;
                     }
                 }

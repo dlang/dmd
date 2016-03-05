@@ -673,11 +673,19 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     {
         // Search both ways
 
-        auto sold = searchScopes(SearchCheck10378);
+        auto sold = searchScopes(SearchCheck10378 | IgnoreSymbolVisibility);
 
         auto snew = searchScopes(SearchCheck10378 | SearchLocalsOnly);
         if (!snew)
             snew = searchScopes(SearchCheck10378 | SearchImportsOnly);
+        if (!snew)
+        {
+            snew = searchScopes(SearchCheck10378 | SearchLocalsOnly | IgnoreSymbolVisibility);
+            if (!snew)
+                snew = searchScopes(SearchCheck10378 | SearchImportsOnly | IgnoreSymbolVisibility);
+            if (snew)
+                .deprecation(loc, "%s is not visible from module %s", snew.toPrettyChars(), sc._module.toChars());
+        }
 
         if (sold !is snew)
         {
@@ -688,12 +696,25 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
         s = sold;
     }
     else if (global.params.bug10378)
-        s = searchScopes(0);
+        s = searchScopes(0 | IgnoreSymbolVisibility);
     else
     {
         s = searchScopes(SearchLocalsOnly);
         if (!s)
             s = searchScopes(SearchImportsOnly);
+
+        /** Still find private symbols, so that symbols that weren't access
+         * checked by the compiler remain usable.  Once the deprecation is over,
+         * this should be moved to search_correct instead.
+         */
+        if (!s)
+        {
+            s = searchScopes(SearchLocalsOnly | IgnoreSymbolVisibility);
+            if (!s)
+                s = searchScopes(SearchImportsOnly | IgnoreSymbolVisibility);
+            if (s)
+                .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+        }
     }
 
     if (!s)
@@ -8321,14 +8342,20 @@ public:
              * the current module should have access to its own imports.
              */
             Dsymbol s = ie.sds.search(loc, ident,
-                (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateMembers | SearchLocalsOnly : SearchLocalsOnly);
+                (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateImports | SearchLocalsOnly : SearchLocalsOnly);
+            /* Check for visibility before resolving aliases because public
+             * aliases to private symbols are public.
+             */
+            if (s && !symbolIsVisible(sc._module, s))
+            {
+                if (s.isDeclaration())
+                    .error(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+                else
+                    .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+                // s = null;
+            }
             if (s)
             {
-                /* Check for access before resolving aliases because public
-                 * aliases to private symbols are public.
-                 */
-                if (Declaration d = s.isDeclaration())
-                    checkAccess(loc, sc, null, d);
                 if (auto p = s.isPackage())
                     checkAccess(loc, sc, p);
 

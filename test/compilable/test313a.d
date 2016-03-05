@@ -21,6 +21,3 @@ void test3()
 {
     imports.pkg313.c313.bug();
 }
-
-// private symbols from other modules are still visible
-static assert(core.stringof == "package core");

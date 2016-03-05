@@ -170,7 +170,7 @@ alias PASSobj = PASS.PASSobj;
 enum : int
 {
     IgnoreNone              = 0x00, // default
-    IgnorePrivateMembers    = 0x01, // don't find private members
+    IgnorePrivateImports    = 0x01, // don't search private imports
     IgnoreErrors            = 0x02, // don't give error messages
     IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
     SearchLocalsOnly        = 0x08, // only look at locals (don't search imports)
@@ -180,6 +180,7 @@ enum : int
                                     // because qualified module searches search
                                     // their imports
     SearchCheck10378        = 0x40, // unqualified search with transition=checkimports switch
+    IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
 }
 
 extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
@@ -1268,9 +1269,9 @@ public:
             for (size_t i = 0; i < importedScopes.dim; i++)
             {
                 // If private import, don't search it
-                if ((flags & IgnorePrivateMembers) && prots[i] == PROTprivate)
+                if ((flags & IgnorePrivateImports) && prots[i] == PROTprivate)
                     continue;
-                int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
+                int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
                 Dsymbol ss = (*importedScopes)[i];
                 //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
 
@@ -1280,7 +1281,7 @@ public:
                     {
                         if (global.params.check10378 && !(flags & SearchCheck10378))
                         {
-                            auto s3 = ss.search(loc, ident, sflags | IgnorePrivateMembers);
+                            auto s3 = ss.search(loc, ident, sflags | IgnorePrivateImports);
                             if (s3)
                                 deprecation("%s %s found in local import", s3.kind(), s3.toPrettyChars());
                         }
@@ -1296,7 +1297,10 @@ public:
 
                 /* Don't find private members if ss is a module
                  */
-                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateMembers : IgnoreNone));
+                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
+                import ddmd.access : symbolIsVisible;
+                if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
+                    continue;
                 if (!s)
                 {
                     s = s2;
@@ -1358,8 +1362,9 @@ public:
                         a = mergeOverloadSet(ident, a, s);
                     s = a;
                 }
+                // TODO: remove once private symbol visibility has been deprecated
                 if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate &&
-                    !s.parent.isTemplateMixin() && !s.parent.isNspace())
+                    !s.isOverloadable() && !s.parent.isTemplateMixin() && !s.parent.isNspace())
                 {
                     if (!s.isImport())
                         error(loc, "%s %s is private", s.kind(), s.toPrettyChars());

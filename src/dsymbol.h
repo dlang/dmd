@@ -135,9 +135,17 @@ enum PASS
 enum
 {
     IgnoreNone              = 0x00, // default
-    IgnorePrivateMembers    = 0x01, // don't find private members
+    IgnorePrivateImports    = 0x01, // don't search private imports
     IgnoreErrors            = 0x02, // don't give error messages
     IgnoreAmbiguous         = 0x04, // return NULL if ambiguous
+    SearchLocalsOnly        = 0x08, // only look at locals (don't search imports)
+    SearchImportsOnly       = 0x10, // only look in imports
+    SearchUnqualifiedModule = 0x20, // the module scope search is unqualified,
+                                    // meaning don't search imports in that scope,
+                                    // because qualified module searches search
+                                    // their imports
+    SearchCheck10378        = 0x40, // unqualified search with transition=checkimports switch
+    IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
 };
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
