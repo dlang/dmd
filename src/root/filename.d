@@ -165,6 +165,7 @@ struct FileName
                      */
                     if (e == str + 1 || e == str + len - 1)
                         return e + 1;
+                    goto default;
                 }
             default:
                 if (e == str)
@@ -174,6 +175,7 @@ struct FileName
             }
             return e;
         }
+        assert(0);
     }
 
     extern (C++) const(char)* name() const

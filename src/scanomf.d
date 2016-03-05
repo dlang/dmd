@@ -175,6 +175,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
         case PUBDEF:
             if (easyomf)
                 recTyp = PUB386; // convert to MS format
+            goto case;
         case PUB386:
             if (!(parseIdx(&p) | parseIdx(&p)))
                 p += 2; // skip seg, grp, frame
@@ -189,6 +190,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
         case COMDAT:
             if (easyomf)
                 recTyp = COMDAT + 1; // convert to MS format
+            goto case;
         case COMDAT + 1:
             {
                 int pickAny = 0;

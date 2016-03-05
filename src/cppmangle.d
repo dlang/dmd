@@ -1015,7 +1015,10 @@ else static if (TARGET_WINDOS)
                 case Twchar:
                     if (checkTypeSaved(type))
                         return;
+                    break;
+
                 default:
+                    break;
                 }
             }
             mangleModifier(type);
