@@ -115,7 +115,7 @@ $(SPEC_S Garbage Collection,
 	to allow its use in scenarios where the use of GC infrastructure is not possible.
 	)
 
-$(H2 How Garbage Collection Works)
+$(H2 $(LNAME2 how_gc_works, How Garbage Collection Works))
 
 	$(P The GC works by:)
 
@@ -145,7 +145,7 @@ $(H2 How Garbage Collection Works)
 	$(LI Returning the current thread to whatever work it was doing.)
 	)
 
-$(H2 Interfacing Garbage Collected Objects With Foreign Code)
+$(H2 $(LNAME2 gc_foreign_obj, Interfacing Garbage Collected Objects With Foreign Code))
 
 	$(P The garbage collector looks for roots in:)
 	$(OL
@@ -175,7 +175,7 @@ $(H2 Interfacing Garbage Collected Objects With Foreign Code)
 	)
 	)
 
-$(H2 Pointers and the Garbage Collector)
+$(H2 $(LNAME2 pointers_and_gc, Pointers and the Garbage Collector))
 
 	$(P Pointers in D can be broadly divided into two categories: Those that
 	point to garbage collected memory, and those that do not. Examples
@@ -335,7 +335,7 @@ char[] q = p[3..6];
 	some low level work.
 	)
 
-$(H2 Working with the Garbage Collector)
+$(H2 $(LNAME2 working_with_the_gc, Working with the Garbage Collector))
 
 	$(P Garbage collection doesn't solve every memory deallocation problem.
 	For
@@ -350,7 +350,7 @@ $(H2 Working with the Garbage Collector)
 	stack to be nulled because new stack frames are initialized anyway.
 	)
 
-$(H2 Object Pinning and a Moving Garbage Collector)
+$(H2 $(LNAME2 obj_pinning_and_gc, Object Pinning and a Moving Garbage Collector))
 
 	$(P Although D does not currently use a moving garbage collector, by following
 	the rules listed above one can be implemented. No special action is required
@@ -359,7 +359,7 @@ $(H2 Object Pinning and a Moving Garbage Collector)
 	All other objects will be automatically pinned.
 	)
 
-$(H2 D Operations That Involve the Garbage Collector)
+$(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Garbage Collector))
 
 	$(P Some sections of code may need to avoid using the garbage collector.
 	The following constructs may allocate memory using the garbage collector:
@@ -380,7 +380,7 @@ $(H2 D Operations That Involve the Garbage Collector)
 	$(LI An $(GLINK2 expression, AssertExpression) that fails its condition)
 	)
 
-$(H2 Configuring the Garbage Collector)
+$(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
 
     $(P Since version 2.067, The garbage collector can now be configured
         through the command line, the environment or by options embedded
@@ -433,7 +433,7 @@ $(H2 Configuring the Garbage Collector)
         options specified through the environment or embedded in the executable.
     )
 
-$(H2 References)
+$(H2 $(LNAME2 references, References))
 
 	$(UL
 	$(LI $(LINK2 https://en.wikipedia.org/wiki/Garbage_collection_$(PERCENT)28computer_science$(PERCENT)29, Wikipedia))

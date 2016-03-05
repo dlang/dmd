@@ -54,7 +54,7 @@ $(GNAME TemplateParameter):
         $(I TemplateParameter) in case one is not supplied.
     )
 
-$(H2 Explicit Template Instantiation)
+$(H2 $(LNAME2 explicit_tmp_instantiation, Explicit Template Instantiation))
 
     $(P Templates are explicitly instantiated with:
     )
@@ -188,7 +188,7 @@ $(GNAME TemplateSingleArgument):
         ------
     )
 
-$(H2 Instantiation Scope)
+$(H2 $(LNAME2 instantiation_scope, Instantiation Scope))
 
     $(P $(I TemplateInstantance)s are always performed in the scope of where
         the $(I TemplateDeclaration) is declared, with the addition of the
@@ -328,7 +328,7 @@ $(GNAME TemplateTypeParameterDefault):
     $(D =) $(GLINK2 declaration, Type)
 )
 
-$(H3 Specialization)
+$(H3 $(LNAME2 parameters_specialization, Specialization))
 
     $(P Templates may be specialized for particular types of arguments
         by following the template parameter identifier with a : and the
@@ -357,7 +357,7 @@ $(H3 Specialization)
     )
 
 
-$(H2 Template This Parameters)
+$(H2 $(LNAME2 template_this_parameter, Template This Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateThisParameter):
@@ -457,7 +457,7 @@ immutable(S)
         ---
     )
 
-$(H2 Template Value Parameters)
+$(H2 $(LNAME2 template_value_parameter, Template Value Parameters))
 
 $(GRAMMAR
 $(GNAME TemplateValueParameter):
@@ -659,7 +659,7 @@ $(GNAME TemplateAliasParameterDefault):
         )
     )
 
-$(H3 Typed alias parameters)
+$(H3 $(LNAME2 typed_alias_op, Typed alias parameters))
 
     $(P Alias parameters can also be typed.
         These parameters will accept symbols of that type:
@@ -674,7 +674,7 @@ $(H3 Typed alias parameters)
         ------
     )
 
-$(H3 Specialization)
+$(H3 $(LNAME2 alias_parameter_specialization, Specialization))
 
     $(P Alias parameters can accept both literals and user-defined type symbols,
         but they are less specialized than the matches to type parameters and
@@ -826,7 +826,7 @@ a
         See also: $(FULL_XREF functional, partial)
     )
 
-$(H3 Specialization)
+$(H3 $(LNAME2 variadic_template_specialization, Specialization))
 
     $(P If both a template with a tuple parameter and a template
         without a tuple parameter exactly match a template instantiation,
@@ -849,7 +849,7 @@ $(H3 Specialization)
         ----
     )
 
-$(H2 Template Parameter Default Values)
+$(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
 
     $(P Trailing template parameters can be given default values:
 
@@ -863,7 +863,7 @@ $(H2 Template Parameter Default Values)
         ------
     )
 
-$(H2 Implicit Template Properties)
+$(H2 $(LNAME2 implicit_template_properties, Implicit Template Properties))
 
     $(P If a template has exactly one member in it, and the name of that
         member is the same as the template name, that member is assumed
@@ -882,7 +882,7 @@ $(H2 Implicit Template Properties)
         ------
     )
 
-$(H2 Template Constructors)
+$(H2 $(LNAME2 template_ctors, Template Constructors))
 
 $(GRAMMAR
 $(GNAME ConstructorTemplate):
@@ -893,7 +893,7 @@ $(GNAME ConstructorTemplate):
     $(P Templates can be used to form constructors for classes  and structs.
     )
 
-$(H2 Aggregate Templates)
+$(H2 $(LNAME2 aggregate_templates, Aggregate Templates))
 
 $(GRAMMAR
 $(GNAME ClassTemplateDeclaration):
@@ -1299,7 +1299,7 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         ---
     )
 
-    $(H3 Limitation:)
+    $(H3 $(LNAME2 nested_template_limitation, Limitation:))
 
     $(P Currently nested templates can capture at most one context. As a typical
         example, non-static template member functions cannot take local symbol
@@ -1344,7 +1344,7 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
         inner context.
     )
 
-$(H2 Recursive Templates)
+$(H2 $(LNAME2 recursive_templates, Recursive Templates))
 
     $(P Template features can be combined to produce some interesting
         effects, such as compile time evaluation of non-trivial functions.
@@ -1368,7 +1368,7 @@ $(H2 Recursive Templates)
         ------
     )
 
-$(H2 Template Constraints)
+$(H2 $(LNAME2 template_cosntraints, Template Constraints))
 
 $(GRAMMAR
 $(GNAME Constraint):
@@ -1400,7 +1400,7 @@ $(GNAME Constraint):
     )
 
 
-$(H2 Limitations)
+$(H2 $(LNAME2 limitations, Limitations))
 
     $(P Templates cannot be used to add non-static members or
         virtual functions to classes.

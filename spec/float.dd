@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Floating Point,
 
-$(H3 Floating Point Intermediate Values)
+$(H3 $(LNAME2 fp_intermediate_values, Floating Point Intermediate Values))
 
 	$(P On many computers, greater
 	precision operations do not take any longer than lesser
@@ -41,7 +41,7 @@ $(H3 Floating Point Intermediate Values)
 	    $(LI data and function argument compatibility with C)
 	)
 
-$(H3 Floating Point Constant Folding)
+$(H3 $(LNAME2 fp_const_folding, Floating Point Constant Folding))
 
 	$(P Regardless of the type of the operands, floating point
 	constant folding is done in $(D real) or greater precision.
@@ -91,7 +91,7 @@ writeln(f - 0.2);
 	folding, therefore the results of floating point calculations may differ
 	depending on those settings.)
 
-$(H3 Rounding Control)
+$(H3 $(LNAME2 rounding_control, Rounding Control))
 
 	$(P IEEE 754 floating point arithmetic includes the ability to set 4
 	different rounding modes.
@@ -105,7 +105,7 @@ $(H3 Rounding Control)
 	)
 
 
-$(H3 Exception Flags)
+$(H3 $(LNAME2 esception_flags, Exception Flags))
 
 	$(P IEEE 754 floating point arithmetic can set several flags based on what
 	happened with a

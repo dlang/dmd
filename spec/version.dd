@@ -410,7 +410,7 @@ debug:
 ------
 
 
-$(H3 Debug Specification)
+$(H3 $(LNAME2 debug_specification, Debug Specification))
 
 $(GRAMMAR
 $(GNAME DebugSpecification):
