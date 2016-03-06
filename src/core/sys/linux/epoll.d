@@ -45,11 +45,35 @@ enum
     EPOLL_CTL_MOD = 3, // Change file descriptor epoll_event structure.
 }
 
-align(1) struct epoll_event
+version (X86)
 {
-align(1):
-    uint events;
-    epoll_data_t data;
+    align(1) struct epoll_event
+    {
+    align(1):
+        uint events;
+        epoll_data_t data;
+    }
+}
+else version (X86_64)
+{
+    align(1) struct epoll_event
+    {
+    align(1):
+        uint events;
+        epoll_data_t data;
+    }
+}
+else version (ARM)
+{
+    struct epoll_event
+    {
+        uint events;
+        epoll_data_t data;
+    }
+}
+else
+{
+    static assert(false, "Platform not supported");
 }
 
 union epoll_data_t
