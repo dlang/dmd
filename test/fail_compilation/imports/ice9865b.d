@@ -1,2 +1,2 @@
-import ice9865;
+public import ice9865;
 class Bar { Foo foo; }
