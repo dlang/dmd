@@ -7,8 +7,8 @@
  * https://github.com/D-Programming-Language/dmd/blob/master/src/root/port.h
  */
 
-#ifndef REAL_T_H
-#define REAL_T_H
+#ifndef CTFLOAT_H
+#define CTFLOAT_H
 
 #include "longdouble.h"
 

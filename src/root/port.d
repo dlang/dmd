@@ -15,7 +15,6 @@ import core.stdc.errno;
 import core.stdc.string;
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import ddmd.root.ctfloat;
 
 private extern (C)
 {
@@ -30,33 +29,6 @@ private extern (C)
         int _atodbl(double* value, const(char)* str);
     }
 }
-
-template FPTypeProperties(T)
-{
-    enum : real_t
-    {
-        max = T.max,
-        min_normal = T.min_normal,
-        nan = T.nan,
-        snan = T.init,
-        infinity = T.infinity,
-        epsilon = T.epsilon
-    }
-
-    enum : long
-    {
-        dig = T.dig,
-        mant_dig = T.mant_dig,
-        max_exp = T.max_exp,
-        min_exp = T.min_exp,
-        max_10_exp = T.max_10_exp,
-        min_10_exp = T.min_10_exp
-    }
-}
-
-alias TargetFloatProperties = FPTypeProperties!float;
-alias TargetDoubleProperties = FPTypeProperties!double;
-alias TargetRealProperties = FPTypeProperties!real;
 
 extern (C++) struct Port
 {

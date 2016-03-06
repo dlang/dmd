@@ -31,6 +31,33 @@ struct Target
     extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
     extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
 
+    template FPTypeProperties(T)
+    {
+        enum : real_t
+        {
+            max = T.max,
+            min_normal = T.min_normal,
+            nan = T.nan,
+            snan = T.init,
+            infinity = T.infinity,
+            epsilon = T.epsilon
+        }
+
+        enum : long
+        {
+            dig = T.dig,
+            mant_dig = T.mant_dig,
+            max_exp = T.max_exp,
+            min_exp = T.min_exp,
+            max_10_exp = T.max_10_exp,
+            min_10_exp = T.min_10_exp
+        }
+    }
+
+    alias FloatProperties = FPTypeProperties!float;
+    alias DoubleProperties = FPTypeProperties!double;
+    alias RealProperties = FPTypeProperties!real;
+
     extern (C++) static void _init()
     {
         // These have default values for 32 bit code, they get

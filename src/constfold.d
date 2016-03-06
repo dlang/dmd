@@ -25,6 +25,7 @@ import ddmd.root.ctfloat;
 import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.sideeffect;
+import ddmd.target;
 import ddmd.tokens;
 import ddmd.utf;
 
@@ -572,7 +573,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
         if (e1.toReal() < real_t(0))
         {
-            emplaceExp!(RealExp)(&ue, loc, TargetRealProperties.nan, type);
+            emplaceExp!(RealExp)(&ue, loc, Target.RealProperties.nan, type);
         }
         else
             emplaceExp!(CTFEExp)(&ue, TOKcantexp);
