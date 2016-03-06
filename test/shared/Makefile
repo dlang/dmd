@@ -13,12 +13,12 @@ $(ROOT)/loadDR.done $(ROOT)/host.done: RUN_ARGS:=$(DRUNTIMESO)
 
 $(ROOT)/%_mod_collision.done: $(ROOT)/%_mod_collision
 	@echo Testing $*_mod_collision
-	$(QUIET)($< $(RUN_ARGS) 2>&1 || true) | grep -qF 'already defined'
+	$(QUIET)($(TIMELIMIT)$< $(RUN_ARGS) 2>&1 || true) | grep -qF 'already defined'
 	@touch $@
 
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)$< $(RUN_ARGS)
+	$(QUIET)$(TIMELIMIT)$< $(RUN_ARGS)
 	@touch $@
 
 $(ROOT)/link: $(SRC)/link.d $(ROOT)/lib.so $(DRUNTIMESO)

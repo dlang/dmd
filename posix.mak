@@ -97,6 +97,9 @@ LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 
 MAKEFILE = $(firstword $(MAKEFILE_LIST))
 
+# use timelimit to avoid deadlocks if available
+TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
+
 ######################## All of'em ##############################
 
 ifneq (,$(SHARED))
@@ -239,7 +242,7 @@ $(ROOT)/unittest/% : $(ROOT)/unittest/test_runner
 # make the file very old so it builds and runs again if it fails
 	@touch -t 197001230123 $@
 # run unittest in its own directory
-	$(QUIET)$(RUN) $< $(call moduleName,$*)
+	$(QUIET)$(TIMELIMIT)$< $(call moduleName,$*)
 # succeeded, render the file new again
 	@touch $@
 
@@ -248,7 +251,8 @@ test/shared/.run: $(DRUNTIMESO)
 
 test/%/.run: test/%/Makefile
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
-		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET) LINKDL=$(LINKDL)
+		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
+		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)'
 
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)

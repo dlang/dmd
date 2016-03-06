@@ -16,7 +16,7 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/line_trace.done: $(ROOT)/line_trace
 	@echo Testing line_trace
-	$(QUIET)$(ROOT)/line_trace $(RUN_ARGS) > $(ROOT)/line_trace.output
+	$(QUIET)$(TIMELIMIT)$(ROOT)/line_trace $(RUN_ARGS) > $(ROOT)/line_trace.output
 	$(QUIET)$(SED) "s/\[0x[0-9a-f]*\]/\[ADDR\]/g" $(ROOT)/line_trace.output | $(DIFF) line_trace.exp -
 	@rm -f $(ROOT)/line_trace.output
 	@touch $@
@@ -26,7 +26,7 @@ $(ROOT)/unittest_assert.done: STDERR_EXP="unittest_assert msg"
 $(ROOT)/invalid_memory_operation.done: STDERR_EXP="InvalidMemoryOperationError"
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
+	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
 	@touch $@
 
 $(ROOT)/unittest_assert: DFLAGS+=-unittest
