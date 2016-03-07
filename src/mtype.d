@@ -7549,6 +7549,17 @@ public:
              * template functions.
              */
         }
+        if (auto f = exp.op == TOKvar    ? (cast(   VarExp)exp).var.isFuncDeclaration()
+                   : exp.op == TOKdotvar ? (cast(DotVarExp)exp).var.isFuncDeclaration() : null)
+        {
+            if (f.checkForwardRef(loc))
+                goto Lerr;
+        }
+        if (auto f = isFuncAddress(exp))
+        {
+            if (f.checkForwardRef(loc))
+                goto Lerr;
+        }
 
         Type t = exp.type;
         if (!t)

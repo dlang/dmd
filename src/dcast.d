@@ -1913,6 +1913,15 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
             }
 
+            if (auto f = isFuncAddress(e))
+            {
+                if (f.checkForwardRef(e.loc))
+                {
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+
             visit(cast(Expression)e);
         }
 
@@ -2134,6 +2143,15 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
             }
 
+            if (auto f = isFuncAddress(e))
+            {
+                if (f.checkForwardRef(e.loc))
+                {
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+
             visit(cast(Expression)e);
         }
 
@@ -2177,6 +2195,15 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     }
                     if (e.func.tintro)
                         e.error("%s", msg);
+                }
+            }
+
+            if (auto f = isFuncAddress(e))
+            {
+                if (f.checkForwardRef(e.loc))
+                {
+                    result = new ErrorExp();
+                    return;
                 }
             }
 

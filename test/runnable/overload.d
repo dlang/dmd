@@ -664,9 +664,9 @@ template Foo1900(T)
     {
     }
 }
-mixin Foo1900!(int) A;
-mixin Foo1900!(char) B;
-alias Bar1900!(int) bar;    //error
+mixin Foo1900!(int) A1900;
+mixin Foo1900!(char) B1900;
+alias Bar1900!(int) bar1900;    // error
 
 /***************************************************/
 // 7780
@@ -1136,6 +1136,82 @@ void test14989()
 }
 
 /***************************************************/
+// 14965
+
+auto f14965a1() { return f14965a1(123); }
+int f14965a1(int x) { return x; }
+
+int f14965a2(int x) { return x; }
+auto f14965a2() { return f14965a2(123); }
+
+auto f14965b1() { int function(int) fp = &f14965b1; return fp(123); }
+int f14965b1(int x) { return x; }
+
+int f14965b2(int x) { return x; }
+auto f14965b2() { int function(int) fp = &f14965b2; return fp(123); }
+
+auto f14965c1() { auto fp = cast(int function(int))&f14965c1; return fp(123); }
+int f14965c1(int x) { return x; }
+
+int f14965c2(int x) { return x; }
+auto f14965c2() { auto fp = cast(int function(int))&f14965c2; return fp(123); }
+
+int function(int) f14965d1() { return &f14965d1; }
+int f14965d1(int n) { return 10 + n; }
+
+int f14965d2(int n) { return 10 + n; }
+int function(int) f14965d2() { return &f14965d2; }
+
+class C
+{
+    auto fa1() { return this.fa1(123); }
+    int fa1(int x) { return x; }
+
+    int fa2(int x) { return x; }
+    auto fa2() { return this.fa2(123); }
+
+    auto fb1() { int delegate(int) dg = &this.fb1; return dg(123); }
+    int fb1(int x) { return x; }
+
+    int fb2(int x) { return x; }
+    auto fb2() { int delegate(int) dg = &this.fb2; return dg(123); }
+
+    auto fc1() { auto dg = cast(int delegate(int))&this.fc1; return dg(123); }
+    int fc1(int x) { return x; }
+
+    int fc2(int x) { return x; }
+    auto fc2() { auto dg = cast(int delegate(int))&this.fc2; return dg(123); }
+
+    int delegate(int) fd1() { return &fd1; }
+    int fd1(int n) { return 10 + n; }
+
+    int fd2(int n) { return 10 + n; }
+    int delegate(int) fd2() { return &fd2; }
+}
+
+void test14965()
+{
+    assert(f14965a1() == 123);
+    assert(f14965b1() == 123);
+    assert(f14965c1() == 123);
+    assert(f14965d1()(113) == 123);
+    assert(f14965a2() == 123);
+    assert(f14965b2() == 123);
+    assert(f14965c2() == 123);
+    assert(f14965d2()(113) == 123);
+
+    auto c = new C();
+    assert(c.fa1() == 123);
+    assert(c.fb1() == 123);
+    assert(c.fc1() == 123);
+    assert(c.fd1()(113) == 123);
+    assert(c.fa2() == 123);
+    assert(c.fb2() == 123);
+    assert(c.fc2() == 123);
+    assert(c.fd2()(113) == 123);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1170,6 +1246,7 @@ int main()
     test11916();
     test13783();
     test14858();
+    test14965();
 
     printf("Success\n");
     return 0;
