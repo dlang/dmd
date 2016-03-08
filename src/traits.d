@@ -777,10 +777,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("first argument is not a class");
             return new ErrorExp();
         }
-        if (cd.sizeok == SIZEOKnone)
+        if (cd.sizeok != SIZEOKdone)
         {
-            if (cd._scope)
-                cd.semantic(cd._scope);
+            cd.size(e.loc);
         }
         if (cd.sizeok != SIZEOKdone)
         {

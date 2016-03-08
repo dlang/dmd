@@ -5791,10 +5791,12 @@ public:
 
         if (tb.ty == Tclass)
         {
-            ClassDeclaration cd = (cast(TypeClass)tb).sym;
+            auto cd = (cast(TypeClass)tb).sym;
             cd.size(loc);
             if (cd.sizeok != SIZEOKdone)
                 return new ErrorExp();
+            if (!cd.ctor)
+                cd.ctor = cd.searchCtor();
             if (cd.noDefaultCtor && !nargs && !cd.defaultCtor)
             {
                 error("default construction is disabled for type %s", cd.type.toChars());
@@ -5960,10 +5962,12 @@ public:
         }
         else if (tb.ty == Tstruct)
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             sd.size(loc);
             if (sd.sizeok != SIZEOKdone)
                 return new ErrorExp();
+            if (!sd.ctor)
+                sd.ctor = sd.searchCtor();
             if (sd.noDefaultCtor && !nargs)
             {
                 error("default construction is disabled for type %s", sd.type.toChars());
@@ -6919,7 +6923,10 @@ public:
             else if (sc.func)
             {
                 // Bugzilla 11720 - include Dataseg variables
-                if ((s.isFuncDeclaration() || s.isAggregateDeclaration() || s.isEnumDeclaration() || v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
+                if ((s.isFuncDeclaration() ||
+                     s.isAggregateDeclaration() ||
+                     s.isEnumDeclaration() ||
+                     v && v.isDataseg()) && !sc.func.localsymtab.insert(s))
                 {
                     error("declaration %s is already defined in another scope in %s", s.toPrettyChars(), sc.func.toChars());
                     return new ErrorExp();
@@ -9400,6 +9407,8 @@ public:
                 sd.size(loc); // Resolve forward references to construct object
                 if (sd.sizeok != SIZEOKdone)
                     return new ErrorExp();
+                if (!sd.ctor)
+                    sd.ctor = sd.searchCtor();
 
                 // First look for constructor
                 if (e1.op == TOKtype && sd.ctor)
@@ -9422,15 +9431,15 @@ public:
                     sle.useStaticInit = false;
 
                     Expression e = sle;
-                    if (CtorDeclaration cf = sd.ctor.isCtorDeclaration())
+                    if (auto cf = sd.ctor.isCtorDeclaration())
                     {
                         e = new DotVarExp(loc, e, cf, true);
                     }
-                    else if (TemplateDeclaration td = sd.ctor.isTemplateDeclaration())
+                    else if (auto td = sd.ctor.isTemplateDeclaration())
                     {
                         e = new DotTemplateExp(loc, e, td);
                     }
-                    else if (OverloadSet os = sd.ctor.isOverloadSet())
+                    else if (auto os = sd.ctor.isOverloadSet())
                     {
                         e = new DotExp(loc, e, new OverExp(loc, os));
                     }
@@ -12327,6 +12336,12 @@ public:
                 Type t2 = e2x.type.toBasetype();
                 if (t2.ty == Tstruct && sd == (cast(TypeStruct)t2).sym)
                 {
+                    sd.size(loc);
+                    if (sd.sizeok != SIZEOKdone)
+                        return new ErrorExp();
+                    if (!sd.ctor)
+                        sd.ctor = sd.searchCtor();
+
                     // Bugzilla 15661: Look for the form from last of comma chain.
                     auto e2y = e2x;
                     while (e2y.op == TOKcomma)
@@ -12438,6 +12453,12 @@ public:
                 }
                 else if (!e2x.implicitConvTo(t1))
                 {
+                    sd.size(loc);
+                    if (sd.sizeok != SIZEOKdone)
+                        return new ErrorExp();
+                    if (!sd.ctor)
+                        sd.ctor = sd.searchCtor();
+
                     if (sd.ctor)
                     {
                         /* Look for implicit constructor call

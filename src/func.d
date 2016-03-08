@@ -562,8 +562,6 @@ public:
             _scope = null;
         }
 
-        uint dprogress_save = Module.dprogress;
-
         foverrides.setDim(0); // reset in case semantic() is being retried for this function
 
         storage_class |= sc.stc & ~STCref;
@@ -975,11 +973,11 @@ public:
                     }
                 }
                 break;
+
             case -2:
-                // can't determine because of fwd refs
-                cd.sizeok = SIZEOKfwd; // can't finish due to forward reference
-                Module.dprogress = dprogress_save;
+                // can't determine because of forward references
                 return;
+
             default:
                 {
                     FuncDeclaration fdv = cd.baseClass.vtbl[vi].isFuncDeclaration();
@@ -1062,17 +1060,20 @@ public:
                 {
                 case -1:
                     break;
+
                 case -2:
-                    cd.sizeok = SIZEOKfwd; // can't finish due to forward reference
-                    Module.dprogress = dprogress_save;
+                    // can't determine because of forward references
                     return;
+
                 default:
                     {
-                        FuncDeclaration fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
+                        auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
                         Type ti = null;
+
                         /* Remember which functions this overrides
                          */
                         foverrides.push(fdv);
+
                         /* Should we really require 'override' when implementing
                          * an interface function?
                          */
@@ -1085,20 +1086,8 @@ public:
                             /* Only need to have a tintro if the vptr
                              * offsets differ
                              */
-                            uint errors = global.errors;
-                            global.gag++; // suppress printing of error messages
                             int offset;
-                            int baseOf = fdv.type.nextOf().isBaseOf(type.nextOf(), &offset);
-                            global.gag--; // suppress printing of error messages
-                            if (errors != global.errors)
-                            {
-                                // any error in isBaseOf() is a forward reference error, so we bail out
-                                global.errors = errors;
-                                cd.sizeok = SIZEOKfwd; // can't finish due to forward reference
-                                Module.dprogress = dprogress_save;
-                                return;
-                            }
-                            if (baseOf)
+                            if (fdv.type.nextOf().isBaseOf(type.nextOf(), &offset))
                             {
                                 ti = fdv.type;
                             }
@@ -1691,9 +1680,10 @@ public:
                     // Verify that all the ctorinit fields got initialized
                     if (!(sc2.callSuper & CSXthis_ctor))
                     {
-                        for (size_t i = 0; i < ad2.fields.dim; i++)
+                        foreach (i, v; ad2.fields)
                         {
-                            VarDeclaration v = ad2.fields[i];
+                            if (v.isThisDeclaration())
+                                continue;
                             if (v.ctorinit == 0)
                             {
                                 /* Current bugs in the flow analysis:
