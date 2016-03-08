@@ -649,3 +649,68 @@ void test15726y()
     Range r;
     r = r;  // opAssign
 }
+
+/***************************************************/
+// 15726
+
+struct RC15726(T)
+{
+    struct Impl
+    {
+        T _payload;
+    }
+
+    Impl* _store;
+
+    ~this()
+    {
+        destroy15726a(_store._payload);
+    }
+}
+
+// ----
+
+struct Con15726a(T)
+{
+    alias Stmt15726a = .Stmt15726a!T;
+}
+
+struct Stmt15726a(T)
+{
+    alias Con15726a = .Con15726a!T;
+
+    RC15726!Payload data;
+
+    struct Payload
+    {
+        Con15726a con;
+    }
+}
+
+Con15726a!int x15726a;
+
+void destroy15726a(T)(ref T obj) @trusted
+{
+    auto buf = (cast(ubyte*)&obj)[0 .. T.sizeof];
+}
+
+// ----
+
+struct Util15726b(C, S) {}
+
+struct Con15726b(T)
+{
+    alias Util15726b = .Util15726b!(Con15726b!T, Stmt15726b!T);
+}
+
+struct Stmt15726b(T)
+{
+    struct Payload
+    {
+        Con15726b!T con;
+    }
+
+    RC15726!Payload data;
+}
+
+Con15726b!int x15726b;
