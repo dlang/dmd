@@ -261,6 +261,7 @@ public:
     extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
     extern (C++) static __gshared Modules amodules;     // array of all modules
     extern (C++) static __gshared Dsymbols deferred;    // deferred Dsymbol's needing semantic() run on them
+    extern (C++) static __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
 
@@ -1131,6 +1132,18 @@ public:
         deferred.push(s);
     }
 
+    static void addDeferredSemantic2(Dsymbol s)
+    {
+        //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
+        deferred2.push(s);
+    }
+
+    static void addDeferredSemantic3(Dsymbol s)
+    {
+        //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
+        deferred3.push(s);
+    }
+
     /******************************************
      * Run semantic() on deferred symbols.
      */
@@ -1184,13 +1197,26 @@ public:
         //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
     }
 
-    static void addDeferredSemantic3(Dsymbol s)
+    static void runDeferredSemantic2()
     {
-        deferred3.push(s);
+        Module.runDeferredSemantic();
+
+        Dsymbols* a = &Module.deferred2;
+        for (size_t i = 0; i < a.dim; i++)
+        {
+            Dsymbol s = (*a)[i];
+            //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
+            s.semantic2(null);
+
+            if (global.errors)
+                break;
+        }
     }
 
     static void runDeferredSemantic3()
     {
+        Module.runDeferredSemantic2();
+
         Dsymbols* a = &Module.deferred3;
         for (size_t i = 0; i < a.dim; i++)
         {

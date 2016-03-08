@@ -392,7 +392,8 @@ public:
             if (mod.needmoduleinfo)
             {
                 //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                sc._module.needmoduleinfo = 1;
+                if (sc)
+                    sc._module.needmoduleinfo = 1;
             }
         }
     }

@@ -8196,7 +8196,7 @@ public:
             //printf("test3: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
             s.semantic(sc2);
             //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
-            sc2._module.runDeferredSemantic();
+            Module.runDeferredSemantic();
         }
     }
 

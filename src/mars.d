@@ -1456,6 +1456,7 @@ Language changes listed by -transition=id:
             fprintf(global.stdmsg, "semantic2 %s\n", m.toChars());
         m.semantic2();
     }
+    Module.runDeferredSemantic2();
     if (global.errors)
         fatal();
 
