@@ -49,8 +49,7 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp,        // add stack stomping code
-        bool dwarfeh            // use Dwarf eh
+        bool stackstomp         // add stack stomping code
         )
 {
 #if MARS
