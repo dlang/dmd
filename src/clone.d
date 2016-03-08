@@ -747,20 +747,22 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
+
     for (size_t i = 0; i < sd.postblits.dim; i++)
     {
         stc |= sd.postblits[i].storage_class & STCdisable;
     }
+
     Statements* a = null;
     for (size_t i = 0; i < sd.fields.dim && !(stc & STCdisable); i++)
     {
-        VarDeclaration v = sd.fields[i];
+        auto v = sd.fields[i];
         if (v.storage_class & STCref)
             continue;
         Type tv = v.type.baseElemOf();
-        if (tv.ty != Tstruct || !v.type.size())
+        if (tv.ty != Tstruct)
             continue;
-        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+        auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.postblit)
             continue;
         sdv.postblit.functionSemantic();
@@ -774,36 +776,57 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         }
         if (!a)
             a = new Statements();
-        Expression ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v);
-        if (v.type.toBasetype().ty == Tstruct)
+
+        Expression ex;
+        tv = v.type.toBasetype();
+        if (tv.ty == Tstruct)
         {
             // this.v.__xpostblit()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new AddrExp(loc, ex);
             ex = new CastExp(loc, ex, v.type.mutableOf().pointerTo());
             ex = new PtrExp(loc, ex);
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
+
             ex = new DotVarExp(loc, ex, sdv.postblit, false);
             ex = new CallExp(loc, ex);
         }
         else
         {
             // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t n = 1;
+            while (tv.ty == Tsarray)
+            {
+                n *= (cast(TypeSArray)tv).dim.toUInteger();
+                tv = tv.nextOf().toBasetype();
+            }
+            if (n == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id.ptr);
             ex = new CastExp(loc, ex, sdv.type.pointerTo());
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
-            uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
             ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayPostblit), ex);
         }
         a.push(new ExpStatement(loc, ex)); // combine in forward order
+
         /* Bugzilla 10972: When the following field postblit calls fail,
          * this field should be destructed for Exception Safety.
          */
@@ -811,37 +834,57 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             continue;
         sdv.dtor.functionSemantic();
 
-        ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v);
-        if (v.type.toBasetype().ty == Tstruct)
+        tv = v.type.toBasetype();
+        if (tv.ty == Tstruct)
         {
             // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new AddrExp(loc, ex);
             ex = new CastExp(loc, ex, v.type.mutableOf().pointerTo());
             ex = new PtrExp(loc, ex);
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
+
             ex = new DotVarExp(loc, ex, sdv.dtor, false);
             ex = new CallExp(loc, ex);
         }
         else
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t n = 1;
+            while (tv.ty == Tsarray)
+            {
+                n *= (cast(TypeSArray)tv).dim.toUInteger();
+                tv = tv.nextOf().toBasetype();
+            }
+            //if (n == 0)
+            //    continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id.ptr);
             ex = new CastExp(loc, ex, sdv.type.pointerTo());
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
-            uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+
             ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
         }
         a.push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
     }
+
     /* Build our own "postblit" which executes a
      */
     if (a || (stc & STCdisable))
@@ -854,14 +897,17 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         sd.members.push(dd);
         dd.semantic(sc);
     }
+
     FuncDeclaration xpostblit = null;
     switch (sd.postblits.dim)
     {
     case 0:
         break;
+
     case 1:
         xpostblit = sd.postblits[0];
         break;
+
     default:
         Expression e = null;
         stc = STCsafe | STCnothrow | STCpure | STCnogc;
@@ -887,6 +933,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         xpostblit = dd;
         break;
     }
+
     // Add an __xpostblit alias to make the inclusive postblit accessible
     if (xpostblit)
     {
@@ -911,16 +958,17 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
+
     Expression e = null;
     for (size_t i = 0; i < ad.fields.dim; i++)
     {
-        VarDeclaration v = ad.fields[i];
+        auto v = ad.fields[i];
         if (v.storage_class & STCref)
             continue;
-        Type tv = v.type.baseElemOf();
-        if (tv.ty != Tstruct || !v.type.size())
+        auto tv = v.type.baseElemOf();
+        if (tv.ty != Tstruct)
             continue;
-        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+        auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.dtor)
             continue;
         sdv.dtor.functionSemantic();
@@ -931,37 +979,59 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             e = null;
             break;
         }
-        Expression ex = new ThisExp(loc);
-        ex = new DotVarExp(loc, ex, v);
-        if (v.type.toBasetype().ty == Tstruct)
+
+        Expression ex;
+        tv = v.type.toBasetype();
+        if (tv.ty == Tstruct)
         {
             // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new AddrExp(loc, ex);
             ex = new CastExp(loc, ex, v.type.mutableOf().pointerTo());
             ex = new PtrExp(loc, ex);
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
+
             ex = new DotVarExp(loc, ex, sdv.dtor, false);
             ex = new CallExp(loc, ex);
         }
         else
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t n = 1;
+            while (tv.ty == Tsarray)
+            {
+                n *= (cast(TypeSArray)tv).dim.toUInteger();
+                tv = tv.nextOf().toBasetype();
+            }
+            if (n == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, v);
+
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id.ptr);
             ex = new CastExp(loc, ex, sdv.type.pointerTo());
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
-            uinteger_t n = v.type.size() / sdv.type.size();
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, n, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+
             ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
         }
         e = Expression.combine(ex, e); // combine in reverse order
     }
+
     /* Build our own "destructor" which executes e
      */
     if (e || (stc & STCdisable))
@@ -974,14 +1044,17 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         ad.members.push(dd);
         dd.semantic(sc);
     }
+
     FuncDeclaration xdtor = null;
     switch (ad.dtors.dim)
     {
     case 0:
         break;
+
     case 1:
         xdtor = ad.dtors[0];
         break;
+
     default:
         e = null;
         stc = STCsafe | STCnothrow | STCpure | STCnogc;
@@ -1007,6 +1080,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         xdtor = dd;
         break;
     }
+
     // Add an __xdtor alias to make the inclusive dtor accessible
     if (xdtor)
     {
@@ -1063,8 +1137,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
             }
             e = Expression.combine(e, new CallExp(loc, new VarExp(loc, ad.invs[i], false)));
         }
-        InvariantDeclaration inv;
-        inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant);
+        auto inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant);
         inv.fbody = new ExpStatement(loc, e);
         ad.members.push(inv);
         inv.semantic(sc);
