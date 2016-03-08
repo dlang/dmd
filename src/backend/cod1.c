@@ -846,19 +846,15 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
              (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
             !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
             e1->Ecount == e1->Ecomsub &&
-#if TARGET_SEGMENTED
             (!e1->Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
-#endif
             tysize(e11->Ety) == REGSIZE
            )
         {   unsigned char t;            /* component of r/m field */
             int ss;
             int ssi;
 
-#if !TARGET_SEGMENTED
             if (e12->Eoper == OPrelconst)
                 f = el_fl(e12);
-#endif
             /*assert(datafl[f]);*/              /* what if addr of func? */
             if (!I16)
             {   /* Any register can be an index register        */
@@ -993,10 +989,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 refparam = TRUE;
             else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
                 reflocal = TRUE;
-#if TARGET_SEGMENTED
             else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
                 pcs->Iflags |= CFcs;
-#endif
             else
                 assert(f != FLreg);
             pcs->IFL1 = f;
@@ -1012,7 +1006,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 idxregs = IDXREGS & ~keepmsk;
                 c = cat(c,allocreg(&idxregs,&reg,TYoffset));
 
-#if TARGET_SEGMENTED
                 /* If desired result is a far pointer, we'll have       */
                 /* to load another register with the segment of v       */
                 if (e1ty == TYfptr)
@@ -1025,7 +1018,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                                                 /* MOV msreg,segreg     */
                     c = genregs(c,0x8C,segfl[f],msreg);
                 }
-#endif
                 opsave = pcs->Iop;
                 flagsave = pcs->Iflags;
                 unsigned char rexsave = pcs->Irex;
@@ -1065,7 +1057,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             keepmsk & RMstore)
             idxregs |= regcon.mvar;
 
-#if TARGET_SEGMENTED
         switch (e1ty)
         {   case TYfptr:                        /* if far pointer       */
             case TYhptr:
@@ -1081,7 +1072,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 pcs->Iflags |= CFcs;            /* then need CS: override */
                 break;
         }
-#endif
         pcs->IFL1 = FLoffset;
         pcs->IEV1.Vuns = 0;
 
@@ -1306,10 +1296,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
 #endif
         }
-#if TARGET_SEGMENTED
         if (s->ty() & mTYcs && LARGECODE)
             goto Lfardata;
-#endif
         goto L3;
     case FLdata:
     case FLudata:
@@ -1356,12 +1344,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     pcs->Irex |= REX;
             }
         }
-#if TARGET_SEGMENTED
         else if (s->ty() & mTYcs && !(fl == FLextern && LARGECODE))
         {
             pcs->Iflags |= CFcs | CFoff;
         }
-#endif
         if (I64 && config.flags3 & CFG3pic &&
             (fl == FLtlsdata || s->ty() & mTYthread))
         {
@@ -2851,10 +2837,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
     }
 
     unsigned stackalign = REGSIZE;
-#if TARGET_SEGMENTED
     if (tyf == TYf16func)
         stackalign = 2;
-#endif
     // Figure out which parameters go in registers.
     // Compute numpara, the total bytes pushed on the stack
     FuncParamRegs fpr(tyf);
@@ -2945,9 +2929,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     case OPstrctor:
                     case OPstrthis:
                     case OPstrpar:
-#if TARGET_SEGMENTED
                     case OPnp_fp:
-#endif
                         goto Lno;
                 }
             }
@@ -3338,7 +3320,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
             s->Sflags &= ~GTregcand;
             s->Sflags |= SFLread;
             ce = cat(c1,cdrelconst(e1,&retregs));
-#if TARGET_SEGMENTED
             if (farfunc)
             {
                 unsigned reg = findregmsw(retregs);
@@ -3355,7 +3336,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
                         modregrm(2,3,BPRM),FLfltreg,0);
             }
             else
-#endif
             {
                 unsigned reg = findreg(retregs);
                 ce = gen2(ce,0xFF,modregrmx(3,2,reg));   /* CALL reg     */
@@ -3408,11 +3388,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         assert(e1->Eoper == OPind);
         elem *e11 = e1->E1;
         tym_t e11ty = tybasic(e11->Ety);
-#if TARGET_SEGMENTED
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
-#else
-        assert(!I16 || (e11ty == TYnptr));
-#endif
         c = cat(c, load_localgot());
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic && I32)
@@ -3433,7 +3409,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
             cgstate.stackclean--;
             /* Kill registers destroyed by an arbitrary function call */
             ce = cat(ce,getregs(desmsk));
-#if TARGET_SEGMENTED
             if (e11ty == TYfptr)
             {
                 unsigned reg = findregmsw(retregs);
@@ -3450,7 +3425,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
                         modregrm(2,3,BPRM),FLfltreg,0);
             }
             else
-#endif
             {
                 unsigned reg = findreg(retregs);
                 ce = gen2(ce,0xFF,modregrmx(3,2,reg));   /* CALL reg     */
@@ -3631,9 +3605,7 @@ static code *movParams(elem *e,unsigned stackalign, unsigned funcargtos)
         case OPstrctor:
         case OPstrthis:
         case OPstrpar:
-#if TARGET_SEGMENTED
         case OPnp_fp:
-#endif
             assert(0);
         case OPrelconst:
         {
@@ -3920,7 +3892,6 @@ code *pushParams(elem *e,unsigned stackalign)
                 npushes = sz / pushsize;
                 switch (e1->Eoper)
                 {   case OPind:
-#if TARGET_SEGMENTED
                         if (sz)
                         {   switch (tybasic(e1->E1->Ety))
                             {
@@ -3938,7 +3909,6 @@ code *pushParams(elem *e,unsigned stackalign)
                                     break;
                             }
                         }
-#endif
                         c1 = codelem(e1->E1,&retregs,FALSE);
                         freenode(e1);
                         break;
@@ -3958,13 +3928,11 @@ code *pushParams(elem *e,unsigned stackalign)
                             int fl;
 
                             fl = el_fl(e1);
-#if TARGET_SEGMENTED
                             if (fl == FLfardata)
                             {   seg = CFes;
                                 retregs |= mES;
                             }
                             else
-#endif
                             {
                                 s = segfl[fl];
                                 assert(s < 4);
@@ -3973,12 +3941,10 @@ code *pushParams(elem *e,unsigned stackalign)
                                     seg = 0;
                             }
                         }
-#if TARGET_SEGMENTED
                         if (e1->Ety & mTYfar)
                         {   seg = CFes;
                             retregs |= mES;
                         }
-#endif
                         c1 = cdrelconst(e1,&retregs);
                         /* Reverse the effect of the previous add       */
                         if (doneoff)
@@ -4106,7 +4072,7 @@ code *pushParams(elem *e,unsigned stackalign)
                 goto L2;
         }
         break;
-#if TARGET_SEGMENTED
+
     case OPnp_fp:
         if (!e->Ecount)                         /* if (far *)e1 */
         {
@@ -4133,7 +4099,7 @@ code *pushParams(elem *e,unsigned stackalign)
             goto L2;
         }
         break;
-#endif
+
     case OPrelconst:
 #if TARGET_SEGMENTED
         /* Determine if we can just push the segment register           */
