@@ -1091,7 +1091,7 @@ class Thread
      *
      * ------------------------------------------------------------------------
      */
-    static void sleep( Duration val ) nothrow
+    static void sleep( Duration val ) @nogc nothrow
     in
     {
         assert( !val.isNegative );
@@ -1134,7 +1134,7 @@ class Thread
                 if( !nanosleep( &tin, &tout ) )
                     return;
                 if( errno != EINTR )
-                    throw new ThreadError( "Unable to sleep for the specified duration" );
+                    assert(0, "Unable to sleep for the specified duration");
                 tin = tout;
             }
         }
@@ -1144,7 +1144,7 @@ class Thread
     /**
      * Forces a context switch to occur away from the calling thread.
      */
-    static void yield() nothrow
+    static void yield() @nogc nothrow
     {
         version( Windows )
             SwitchToThread();

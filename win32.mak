@@ -268,6 +268,9 @@ $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\spinlock.d : src\core\internal\spinlock.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\string.d : src\core\internal\string.d
 	copy $** $@
 
