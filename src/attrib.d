@@ -715,16 +715,22 @@ public:
                 anonstructsize = 1;
                 anonalignsize = 1;
             }
+
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
              */
-            anonoffset = AggregateDeclaration.placeField(poffset, anonstructsize, anonalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
+            anonoffset = AggregateDeclaration.placeField(
+                poffset,
+                anonstructsize, anonalignsize, alignment,
+                &ad.structsize, &ad.alignsize,
+                isunion);
+
             // Add to the anon fields the base offset of this anonymous aggregate
             //printf("anon fields, anonoffset = %d\n", anonoffset);
             for (size_t i = fieldstart; i < ad.fields.dim; i++)
             {
                 VarDeclaration v = ad.fields[i];
-                //printf("\t[%d] %s %d\n", i, v->toChars(), v->offset);
+                //printf("\t[%d] %s %d\n", i, v.toChars(), v.offset);
                 v.offset += anonoffset;
             }
         }

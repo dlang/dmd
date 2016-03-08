@@ -122,7 +122,7 @@ public:
 
     override final void semantic2(Scope* sc)
     {
-        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type->toChars(), errors);
+        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
         if (!members)
             return;
 
@@ -138,7 +138,7 @@ public:
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
         //if (isUnionDeclaration())     // TODO
-        //    sc2->inunion = 1;
+        //    sc2.inunion = 1;
         sc2.protection = Prot(PROTpublic);
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
@@ -147,7 +147,7 @@ public:
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            //printf("\t[%d] %s\n", i, s->toChars());
+            //printf("\t[%d] %s\n", i, s.toChars());
             s.semantic2(sc2);
         }
 
@@ -652,7 +652,7 @@ public:
         }
         if (enclosing)
         {
-            //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
+            //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
             assert(t);
             if (t.ty == Tstruct)
                 t = Type.tvoidptr; // t should not be a ref type
