@@ -215,6 +215,8 @@ public:
             sd.semanticTypeInfoMembers();
     }
 
+    abstract void finalizeSize();
+
     override final uint size(Loc loc)
     {
         //printf("AggregateDeclaration::size() %s, scope = %p\n", toChars(), scope);
@@ -271,7 +273,7 @@ public:
                 if (s.apply(&SV.func, &sv))
                     goto L1;
             }
-            finalizeSize(null);
+            finalizeSize();
 
         L1:
         }
@@ -287,8 +289,6 @@ public:
         }
         return structsize;
     }
-
-    abstract void finalizeSize(Scope* sc);
 
     /***************************************
      * Calculate field[i].overlapped, and check that all of explicit
