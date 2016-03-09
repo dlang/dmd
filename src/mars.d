@@ -380,7 +380,6 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.mscoff = false;
 
-    setDefaultLibrary();
     // Predefine version identifiers
     addDefaultVersionIdentifiers();
 
@@ -936,15 +935,10 @@ Language changes listed by -transition=id:
             }
             else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0)
             {
-                static if (TARGET_WINDOS)
-                {
-                    setdefaultlib = true;
-                }
                 global.params.defaultlibname = p + 1 + 11;
             }
             else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)
             {
-                setdebuglib = true;
                 global.params.debuglibname = p + 1 + 9;
             }
             else if (memcmp(p + 1, cast(char*)"deps", 4) == 0)
@@ -1074,8 +1068,6 @@ Language changes listed by -transition=id:
         usage();
         return EXIT_FAILURE;
     }
-    if (!setdebuglib)
-        global.params.debuglibname = global.params.defaultlibname;
     static if (TARGET_OSX)
     {
         global.params.pic = 1;
@@ -1152,12 +1144,6 @@ Language changes listed by -transition=id:
         static if (TARGET_WINDOS)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
-            if (!setdefaultlib)
-            {
-                global.params.defaultlibname = "phobos64";
-                if (!setdebuglib)
-                    global.params.debuglibname = global.params.defaultlibname;
-            }
         }
     }
     else
@@ -1172,12 +1158,6 @@ Language changes listed by -transition=id:
         static if (TARGET_WINDOS)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
-            if (!setdefaultlib && global.params.mscoff)
-            {
-                global.params.defaultlibname = "phobos32mscoff";
-                if (!setdebuglib)
-                    global.params.debuglibname = global.params.defaultlibname;
-            }
         }
     }
     static if (TARGET_WINDOS)
@@ -1191,6 +1171,7 @@ Language changes listed by -transition=id:
     {
         VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
     }
+
     if (global.params.isLP64)
         VersionCondition.addPredefinedGlobalIdent("D_LP64");
     if (global.params.doDocComments)
@@ -1207,6 +1188,8 @@ Language changes listed by -transition=id:
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
     objc_tryMain_dObjc();
+
+    setDefaultLibrary();
 
     // Initialization
     Type._init();
@@ -1924,7 +1907,7 @@ extern (C++) Expressions* Expressions_create()
 }
 
 /**
- * Set the default library to link against, if not already set
+ * Set the default and debug libraries to link against, if not already set
  *
  * Must be called after argument parsing is done, as it won't
  * override any value.
@@ -1937,7 +1920,12 @@ private void setDefaultLibrary()
     {
         static if (TARGET_WINDOS)
         {
-            global.params.defaultlibname = "phobos";
+            if (global.params.is64bit)
+                global.params.defaultlibname = "phobos64";
+            else if (global.params.mscoff)
+                global.params.defaultlibname = "phobos32mscoff";
+            else
+                global.params.defaultlibname = "phobos";
         }
         else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
         {
@@ -1952,6 +1940,8 @@ private void setDefaultLibrary()
             static assert(0, "fix this");
         }
     }
+    if (global.params.debuglibname is null)
+        global.params.debuglibname = global.params.defaultlibname;
 }
 
 
