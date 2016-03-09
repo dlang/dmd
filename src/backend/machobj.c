@@ -967,7 +967,30 @@ void Obj::term(const char *objfilename)
                         }
                         else
                         {
-                            assert(0);
+                            // address = segment + offset
+                            int targ_address = SecHdrTab[SegData[s->Sseg]->SDshtidx].addr + s->Soffset;
+                            int fixup_address = psechdr->addr + r->offset;
+
+                            int32_t *p = patchAddr(seg, r->offset);
+                            srel.r_scattered = 1;
+                            srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
+                            srel.r_address = r->offset;
+                            srel.r_pcrel = 0;
+                            srel.r_length = 2;
+                            srel.r_value = targ_address;
+                            fobjbuf->write(&srel, sizeof(srel));
+                            foffset += sizeof(srel);
+                            ++nreloc;
+
+                            srel.r_type = GENERIC_RELOC_PAIR;
+                            srel.r_address = 0;
+                            srel.r_value = fixup_address;
+                            fobjbuf->write(&srel, sizeof(srel));
+                            foffset += sizeof(srel);
+                            ++nreloc;
+
+                            *p += targ_address - fixup_address;
+                            continue;
                         }
                     }
                     else if (pseg->isCode())
@@ -1128,8 +1151,13 @@ void Obj::term(const char *objfilename)
                     else
                     {
                         srel.r_type = GENERIC_RELOC_PAIR;
-                        srel.r_value = SecHdrTab[pseg->SDshtidx].addr +
-                                r->funcsym->Slocalgotoffset + NPTRSIZE;
+                        if (r->funcsym)
+                            srel.r_value = SecHdrTab[pseg->SDshtidx].addr +
+                                    r->funcsym->Slocalgotoffset + NPTRSIZE;
+                        else
+                            srel.r_value = psechdr->addr + r->offset;
+                        //printf("srel.r_value = x%x, psechdr->addr = x%x, r->offset = x%x\n",
+                            //(int)srel.r_value, (int)psechdr->addr, (int)r->offset);
                     }
                     srel.r_pcrel = 0;
                     fobjbuf->write(&srel, sizeof(srel));
@@ -1148,8 +1176,13 @@ void Obj::term(const char *objfilename)
                     {
                         p = patchAddr(seg, r->offset);
                         //printf("address = x%x, p = %p *p = x%x\n", r->offset, p, *p);
-                        *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -
-                              (SecHdrTab[pseg->SDshtidx].addr + r->funcsym->Slocalgotoffset + NPTRSIZE);
+                        if (r->funcsym)
+                            *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -
+                                  (SecHdrTab[pseg->SDshtidx].addr + r->funcsym->Slocalgotoffset + NPTRSIZE);
+                        else
+                            // targ_address - fixup_address
+                            *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -
+                                  (psechdr->addr + r->offset);
                     }
                     continue;
                 }
@@ -2576,12 +2609,14 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 MachObj::addrel(seg, offset, NULL, jumpTableSeg, RELrel);
             }
             else if (SegData[seg]->isCode() &&
+                     !(flags & CFindirect) &&
                     ((s->Sclass != SCextern && SegData[s->Sseg]->isCode()) || s->Sclass == SClocstat || s->Sclass == SCstatic))
             {
                 val += s->Soffset;
                 MachObj::addrel(seg, offset, NULL, s->Sseg, RELaddr);
             }
-            else if (SegData[seg]->isCode() && !tyfunc(s->ty()))
+            else if ((flags & CFindirect) ||
+                     SegData[seg]->isCode() && !tyfunc(s->ty()))
             {
                 if (!pointersSeg)
                 {
@@ -2612,8 +2647,24 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 indirectsymbuf2->write(&s, sizeof(Symbol *));
 
              L2:
-                //printf("Obj::reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s->Sident, val, pointersSeg);
-                MachObj::addrel(seg, offset, NULL, pointersSeg, RELaddr);
+                //printf("Obj::reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, (int)offset, s->Sident, (int)val, pointersSeg);
+                if (flags & CFindirect)
+                {
+                    Relocation rel;
+                    rel.offset = offset;
+                    rel.targsym = NULL;
+                    rel.targseg = pointersSeg;
+                    rel.rtype = RELaddr;
+                    rel.flag = 0;
+                    rel.funcsym = NULL;
+                    rel.val = 0;
+                    seg_data *pseg = SegData[seg];
+                    if (!pseg->SDrel)
+                        pseg->SDrel = new Outbuffer();
+                    pseg->SDrel->write(&rel, sizeof(rel));
+                }
+                else
+                    MachObj::addrel(seg, offset, NULL, pointersSeg, RELaddr);
             }
             else
             {   //val -= s->Soffset;
@@ -2763,7 +2814,8 @@ void Obj::gotref(symbol *s)
  */
 int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 {
-    MachObj::reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFselfrel);
+    //printf("dwarf_reftoident(seg=%d offset=x%x s=%s val=x%x\n", seg, (int)offset, s->Sident, (int)val);
+    MachObj::reftoident(seg, offset, s, val + 4, I64 ? CFoff : CFindirect);
     return 4;
 }
 
