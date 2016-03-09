@@ -327,7 +327,6 @@ extern (C++) int tryMain(size_t argc, const(char)** argv)
 {
     Strings files;
     Strings libmodules;
-    size_t argcstart = argc;
     bool setdebuglib = false;
     static if (TARGET_WINDOS)
     {
@@ -1057,7 +1056,7 @@ Language changes listed by -transition=id:
             else if (strcmp(p + 1, "run") == 0)
             {
                 global.params.run = true;
-                size_t length = ((i >= argcstart) ? argc : argcstart) - i - 1;
+                size_t length = argc - i - 1;
                 if (length)
                 {
                     const(char)* ext = FileName.ext(arguments[i + 1]);
