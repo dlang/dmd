@@ -221,7 +221,11 @@ struct BitArray
 
     void length(size_t nlen)
     {
-        ptr = cast(size_t*)mem.xrealloc(ptr, (nlen + 7) / 8);
+        immutable obytes = (len + 7) / 8;
+        immutable nbytes = (nlen + 7) / 8;
+        ptr = cast(size_t*)mem.xrealloc(ptr, nbytes);
+        if (nbytes > obytes)
+            (cast(ubyte*)ptr)[obytes .. nbytes] = 0;
         len = nlen;
     }
 
