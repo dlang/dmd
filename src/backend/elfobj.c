@@ -3125,6 +3125,16 @@ void Obj::moduleinfo(Symbol *scc)
         reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFflags);
 }
 
+/*************************************
+ * Emit an imported module or declaration.
+ */
+
+void Obj::importmodule(const char *decl, const char *name)
+{
+    if (config.fulltypes)
+        dwarf_importmodule(decl, name);
+}
+
 
 /***************************************
  * Create startup/shutdown code to register an executable/shared

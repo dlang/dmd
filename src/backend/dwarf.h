@@ -12,6 +12,8 @@ void dwarf_initmodule(const char *filename, const char *modulename);
 void dwarf_termmodule();
 void dwarf_func_start(Symbol *sfunc);
 void dwarf_func_term(Symbol *sfunc);
+void dwarf_importmodule(const char *decl, const char *name);
+unsigned dwarf_modidx(const char *modulename);
 unsigned dwarf_typidx(type *t);
 unsigned dwarf_abbrev_code(unsigned char *data, size_t nbytes);
 

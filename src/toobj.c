@@ -1210,6 +1210,22 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 }
             }
         }
+
+        void visit(Import *imp)
+        {
+            if (imp->isstatic)
+                return;
+
+            // Importing the entire module
+            if (imp->ident)
+            {
+                const char *import = imp->ident->string;
+                const char *name = imp->aliasId ? imp->aliasId->string : NULL;
+                Obj::importmodule(import, name);
+            }
+
+            // XXX: Loop over each imported declaration emitting a DW_TAG_imported_declaration
+        }
     };
 
     ToObjFile v(multiobj);

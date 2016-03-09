@@ -1216,6 +1216,37 @@ void dwarf_termmodule()
         infobuf->writeByte(0);  // end of DW_TAG_module's children
 }
 
+void dwarf_importmodule(const char *decl, const char *name)
+{
+#if (DWARF_VERSION >= 3)
+    unsigned impcode, modidx;
+    Outbuffer impbuf;
+
+    impbuf.writeByte(DW_TAG_imported_module);
+    impbuf.writeByte(0);
+    if (name)
+    {
+        impbuf.writeByte(DW_AT_name);
+        impbuf.writeByte(DW_FORM_string);
+    }
+    impbuf.writeByte(DW_AT_import);
+    impbuf.writeByte(DW_FORM_ref4);
+    impbuf.writeByte(0);
+    impbuf.writeByte(0);
+
+    // ??? Not important, but should probably output the referenced
+    // DW_TAG_module tag after the imported module, but that requires
+    // setting data at an arbitrary place in the infobuf.
+    modidx = dwarf_modidx(decl);
+
+    impcode = dwarf_abbrev_code(impbuf.buf, impbuf.size());
+    infobuf->writeuLEB128(impcode);         // abbreviation code
+    if (name)
+        infobuf->writeString(name);         // DW_AT_name
+    infobuf->write32(modidx);               // DW_AT_import
+#endif
+}
+
 /*************************************
  * Finish writing Dwarf debug info to object file.
  */
@@ -2711,6 +2742,50 @@ Lret:
     /* If infobuf->buf[idx .. size()] is already in infobuf,
      * discard this one and use the previous one.
      */
+    Atype atype;
+    atype.buf = infobuf;
+    atype.start = idx;
+    atype.end = infobuf->size();
+
+    if (!type_table)
+        /* unsigned[Adata] type_table;
+         * where the table values are the type indices
+         */
+        type_table = new AArray(&ti_atype, sizeof(unsigned));
+
+    unsigned *pidx;
+    pidx = (unsigned *)type_table->get(&atype);
+    if (!*pidx)                 // if no idx assigned yet
+    {
+        *pidx = idx;            // assign newly computed idx
+    }
+    else
+    {   // Reuse existing code
+        infobuf->setsize(idx);  // discard current
+        idx = *pidx;
+    }
+    return idx;
+}
+
+unsigned dwarf_modidx(const char *modulename)
+{
+    // FIXME: Should hook in dwarf_initmodule into this to allow referencing
+    // back to output modules.  Also need a way to set 'children' correctly.
+    static unsigned char abbrevModule[] =
+    {
+        DW_TAG_module,
+        0,                  // no children
+        DW_AT_name,         DW_FORM_string, // module name
+        0,                  0,
+    };
+
+    // Modules aren't types, but we share the same index system for simplicity
+    unsigned idx = infobuf->size();
+    unsigned code = dwarf_abbrev_code(abbrevModule, sizeof(abbrevModule));
+
+    infobuf->writeuLEB128(code);
+    infobuf->writeString(modulename);    // DW_AT_name
+
     Atype atype;
     atype.buf = infobuf;
     atype.start = idx;
