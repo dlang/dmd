@@ -380,9 +380,6 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.mscoff = false;
 
-    // Predefine version identifiers
-    addDefaultVersionIdentifiers();
-
     // Temporary: Use 32 bits as the default on Windows, for config parsing
     static if (TARGET_WINDOS)
         global.params.is64bit = false;
@@ -1136,57 +1133,9 @@ Language changes listed by -transition=id:
             //fatal();
         }
     }
-    if (global.params.is64bit)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-        VersionCondition.addPredefinedGlobalIdent("X86_64");
-        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        static if (TARGET_WINDOS)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win64");
-        }
-    }
-    else
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-        VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET_OSX)
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        }
-        static if (TARGET_WINDOS)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win32");
-        }
-    }
-    static if (TARGET_WINDOS)
-    {
-        if (global.params.mscoff)
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
-        else
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
-    }
-    else static if (TARGET_LINUX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
-    }
 
-    if (global.params.isLP64)
-        VersionCondition.addPredefinedGlobalIdent("D_LP64");
-    if (global.params.doDocComments)
-        VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
-    if (global.params.cov)
-        VersionCondition.addPredefinedGlobalIdent("D_Coverage");
-    if (global.params.pic)
-        VersionCondition.addPredefinedGlobalIdent("D_PIC");
-    if (global.params.useUnitTests)
-        VersionCondition.addPredefinedGlobalIdent("unittest");
-    if (global.params.useAssert)
-        VersionCondition.addPredefinedGlobalIdent("assert");
-    if (global.params.useArrayBounds == BOUNDSCHECKoff)
-        VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
-    VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+    // Predefined version identifiers
+    addDefaultVersionIdentifiers();
     objc_tryMain_dObjc();
 
     setDefaultLibrary();
@@ -1948,6 +1897,10 @@ private void setDefaultLibrary()
 /**
  * Add default `version` identifier for ddmd, and set the
  * target platform in `global`.
+ *
+ * Needs to be run after all arguments parsing (command line, DFLAGS environment
+ * variable and config file) in order to add final flags (such as `X86_64` or
+ * the `CRuntime` used).
  */
 private void addDefaultVersionIdentifiers()
 {
@@ -2000,4 +1953,56 @@ private void addDefaultVersionIdentifiers()
     VersionCondition.addPredefinedGlobalIdent("LittleEndian");
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
     VersionCondition.addPredefinedGlobalIdent("all");
+
+    if (global.params.is64bit)
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+        VersionCondition.addPredefinedGlobalIdent("X86_64");
+        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
+        static if (TARGET_WINDOS)
+        {
+            VersionCondition.addPredefinedGlobalIdent("Win64");
+        }
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
+        VersionCondition.addPredefinedGlobalIdent("X86");
+        static if (TARGET_OSX)
+        {
+            VersionCondition.addPredefinedGlobalIdent("D_SIMD");
+        }
+        static if (TARGET_WINDOS)
+        {
+            VersionCondition.addPredefinedGlobalIdent("Win32");
+        }
+    }
+    static if (TARGET_WINDOS)
+    {
+        if (global.params.mscoff)
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
+        else
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
+    }
+    else static if (TARGET_LINUX)
+    {
+        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+    }
+
+    if (global.params.isLP64)
+        VersionCondition.addPredefinedGlobalIdent("D_LP64");
+    if (global.params.doDocComments)
+        VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
+    if (global.params.cov)
+        VersionCondition.addPredefinedGlobalIdent("D_Coverage");
+    if (global.params.pic)
+        VersionCondition.addPredefinedGlobalIdent("D_PIC");
+    if (global.params.useUnitTests)
+        VersionCondition.addPredefinedGlobalIdent("unittest");
+    if (global.params.useAssert)
+        VersionCondition.addPredefinedGlobalIdent("assert");
+    if (global.params.useArrayBounds == BOUNDSCHECKoff)
+        VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
+    VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 }
