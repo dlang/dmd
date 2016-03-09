@@ -657,25 +657,30 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
 extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
 {
     uint par_open = 0;
+    bool inCode = 0;
     for (size_t u = start; u < buf.offset; u++)
     {
         char c = buf.data[u];
         switch (c)
         {
         case '(':
-            par_open++;
+            if (!inCode)
+                par_open++;
             break;
         case ')':
-            if (par_open == 0)
+            if (!inCode)
             {
-                //stray ')'
-                warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
-                buf.remove(u, 1); //remove the )
-                buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
-                u += 8; //skip over newly inserted macro
+                if (par_open == 0)
+                {
+                    //stray ')'
+                    warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
+                    buf.remove(u, 1); //remove the )
+                    buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
+                    u += 8; //skip over newly inserted macro
+                }
+                else
+                    par_open--;
             }
-            else
-                par_open--;
             break;
             version (none)
             {
@@ -686,6 +691,18 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                 loc.linnum++;
                 break;
             }
+        case '-':
+            // Issue 15465: don't try to escape unbalanced parens inside code
+            // blocks.
+            int numdash = 0;
+            while (u < buf.offset && buf.data[u] == '-')
+            {
+                numdash++;
+                u++;
+            }
+            if (numdash >= 3)
+                inCode = !inCode;
+            break;
         default:
             break;
         }
