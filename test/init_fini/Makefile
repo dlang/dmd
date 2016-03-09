@@ -7,7 +7,7 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(QUIET)$(ROOT)/$* $(RUN_ARGS)
+	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS)
 	@touch $@
 
 $(ROOT)/%: $(SRC)/%.d

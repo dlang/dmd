@@ -5,8 +5,9 @@ BUILD:=
 DMD:=
 DRUNTIME:=
 DRUNTIMESO:=
-QUIET:=
 LINKDL:=
+QUIET:=
+TIMELIMIT:=
 LDL:=$(subst -L,,$(LINKDL)) # -ldl
 
 SRC:=src
