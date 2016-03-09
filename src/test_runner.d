@@ -29,8 +29,6 @@ bool tester()
         try
         {
             immutable t0 = MonoTime.currTime;
-            printf("STARTING %.*s\n",
-                cast(uint)name.length, name.ptr);
             fp();
             printf("%.3fs PASS %.*s %.*s\n",
                 (MonoTime.currTime - t0).total!"msecs" / 1000.0,
