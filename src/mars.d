@@ -379,29 +379,15 @@ private int tryMain(size_t argc, const(char)** argv)
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.mscoff = false;
-    static if (TARGET_WINDOS)
-    {
-        global.params.is64bit = false;
-        global.params.defaultlibname = "phobos";
-    }
-    else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-    {
-        global.params.defaultlibname = "libphobos2.a";
-    }
-    else static if (TARGET_OSX)
-    {
-        global.params.defaultlibname = "phobos2";
-    }
-    else
-    {
-        static assert(0, "fix this");
-    }
+
+    setDefaultLibrary();
     // Predefine version identifiers
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
     static if (TARGET_WINDOS)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
         global.params.isWindows = true;
+        global.params.is64bit = false;
     }
     else static if (TARGET_LINUX)
     {
@@ -1979,4 +1965,35 @@ extern (C++) VarDeclarations* VarDeclarations_create()
 extern (C++) Expressions* Expressions_create()
 {
     return new Expressions();
+}
+
+/**
+ * Set the default library to link against, if not already set
+ *
+ * Must be called after argument parsing is done, as it won't
+ * override any value.
+ * Note that if `-defaultlib=` or `-debuglib=` was used,
+ * we don't override that either.
+ */
+private void setDefaultLibrary()
+{
+    if (global.params.defaultlibname is null)
+    {
+        static if (TARGET_WINDOS)
+        {
+            global.params.defaultlibname = "phobos";
+        }
+        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        {
+            global.params.defaultlibname = "libphobos2.a";
+        }
+        else static if (TARGET_OSX)
+        {
+            global.params.defaultlibname = "phobos2";
+        }
+        else
+        {
+            static assert(0, "fix this");
+        }
+    }
 }
