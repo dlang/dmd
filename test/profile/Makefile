@@ -41,4 +41,4 @@ $(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/$* $<
 
 clean:
-	rm -rf $(ROOT) *.log *.def
+	rm -rf $(GENERATED) *.log *.def
