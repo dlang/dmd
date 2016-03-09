@@ -382,56 +382,12 @@ private int tryMain(size_t argc, const(char)** argv)
 
     setDefaultLibrary();
     // Predefine version identifiers
-    VersionCondition.addPredefinedGlobalIdent("DigitalMars");
+    addDefaultVersionIdentifiers();
+
+    // Temporary: Use 32 bits as the default on Windows, for config parsing
     static if (TARGET_WINDOS)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Windows");
-        global.params.isWindows = true;
         global.params.is64bit = false;
-    }
-    else static if (TARGET_LINUX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("linux");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isLinux = true;
-    }
-    else static if (TARGET_OSX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OSX");
-        global.params.isOSX = true;
-        // For legacy compatibility
-        VersionCondition.addPredefinedGlobalIdent("darwin");
-    }
-    else static if (TARGET_FREEBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("FreeBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isFreeBSD = true;
-    }
-    else static if (TARGET_OPENBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OpenBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isFreeBSD = true;
-    }
-    else static if (TARGET_SOLARIS)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("Solaris");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isSolaris = true;
-    }
-    else
-    {
-        static assert(0, "fix this");
-    }
-    VersionCondition.addPredefinedGlobalIdent("LittleEndian");
-    VersionCondition.addPredefinedGlobalIdent("D_Version2");
-    VersionCondition.addPredefinedGlobalIdent("all");
+
     global.inifilename = parse_conf_arg(&arguments);
     if (global.inifilename)
     {
@@ -1996,4 +1952,62 @@ private void setDefaultLibrary()
             static assert(0, "fix this");
         }
     }
+}
+
+
+/**
+ * Add default `version` identifier for ddmd, and set the
+ * target platform in `global`.
+ */
+private void addDefaultVersionIdentifiers()
+{
+    VersionCondition.addPredefinedGlobalIdent("DigitalMars");
+    static if (TARGET_WINDOS)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Windows");
+        global.params.isWindows = true;
+    }
+    else static if (TARGET_LINUX)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("linux");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isLinux = true;
+    }
+    else static if (TARGET_OSX)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("OSX");
+        global.params.isOSX = true;
+        // For legacy compatibility
+        VersionCondition.addPredefinedGlobalIdent("darwin");
+    }
+    else static if (TARGET_FREEBSD)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("FreeBSD");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isFreeBSD = true;
+    }
+    else static if (TARGET_OPENBSD)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("OpenBSD");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isFreeBSD = true;
+    }
+    else static if (TARGET_SOLARIS)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("Solaris");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isSolaris = true;
+    }
+    else
+    {
+        static assert(0, "fix this");
+    }
+    VersionCondition.addPredefinedGlobalIdent("LittleEndian");
+    VersionCondition.addPredefinedGlobalIdent("D_Version2");
+    VersionCondition.addPredefinedGlobalIdent("all");
 }
