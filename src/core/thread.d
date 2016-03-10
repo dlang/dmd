@@ -305,6 +305,10 @@ else version( Posix )
             }
             assert( obj );
 
+            // loadedLibraries need to be inherited from parent thread
+            // before initilizing GC for TLS (rt_tlsgc_init)
+            version (Shared) inheritLoadedLibraries(loadedLibraries);
+
             assert( obj.m_curr is &obj.m_main );
             obj.m_main.bstack = getStackBottom();
             obj.m_main.tstack = obj.m_main.bstack;
@@ -378,7 +382,6 @@ else version( Posix )
 
             try
             {
-                version (Shared) inheritLoadedLibraries(loadedLibraries);
                 rt_moduleTlsCtor();
                 try
                 {
