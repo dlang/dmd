@@ -384,6 +384,8 @@ struct code
 #define CFjmp5      0x400000    // always a 5 byte jmp
 #define CFswitch    0x800000    // kludge for switch table fixups
 
+#define CFindirect  0x1000000   // OSX32: indirect fixups
+
 /* These are for CFpc32 fixups, they're the negative of the offset of the fixup
  * from the program counter
  */

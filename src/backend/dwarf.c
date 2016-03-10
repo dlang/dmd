@@ -224,14 +224,27 @@ struct CFA_state
 };
 
 #if TX86
+/***********************
+ * Convert CPU register number to Dwarf register number.
+ * Params:
+ *      reg = CPU register
+ * Returns:
+ *      dwarf register
+ */
 int dwarf_regno(int reg)
 {
     assert(reg < NUMGENREGS);
-    if (I16 || I32)
+    if (I32)
+    {
+#if MACHOBJ
+        if (reg == BP || reg == SP)
+            reg ^= BP ^ SP;     // swap EBP and ESP register values for OSX (!)
+#endif
         return reg;
+    }
     else
     {
-#if 1
+        assert(I64);
         /* See https://software.intel.com/sites/default/files/article/402129/mpx-linux64-abi.pdf
          * Figure 3.3.8 pg. 62
          * R8..15    :  8..15
@@ -243,11 +256,6 @@ int dwarf_regno(int reg)
         static const int to_amd64_reg_map[8] =
         // AX CX DX BX SP BP SI DI
         {   0, 2, 1, 3, 7, 6, 4, 5 };
-#else
-        static const int to_amd64_reg_map[8] =
-        { 0 /*AX*/, 2 /*CX*/, 3 /*DX*/, 1 /*BX*/,
-          7 /*SP*/, 6 /*BP*/, 4 /*SI*/, 5 /*DI*/ };
-#endif
         return reg < 8 ? to_amd64_reg_map[reg] : reg;
     }
 }
@@ -255,7 +263,7 @@ int dwarf_regno(int reg)
 
 static CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
 {   0,                // location
-    dwarf_regno(SP),  // register
+    -1,               // register
     4,                // offset
     {   { 0 },        // 0: EAX
         { 0 },        // 1: ECX
@@ -271,7 +279,7 @@ static CFA_state CFA_state_init_32 =       // initial CFA state as defined by CI
 
 static CFA_state CFA_state_init_64 =       // initial CFA state as defined by CIE
 {   0,                // location
-    dwarf_regno(SP),  // register
+    -1,               // register
     8,                // offset
     {   { 0 },        // 0: RAX
         { 0 },        // 1: RBX
@@ -726,7 +734,7 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
     if (I64)
     {
         buf->writeByten(DW_CFA_def_cfa);        // DEF_CFA r7,8   RSP is at offset 8
-        buf->writeByten(7);
+        buf->writeByten(7);                     // r7 is RSP
         buf->writeByten(8);
 
         buf->writeByten(DW_CFA_offset + 16);    // OFFSET r16,1   RIP is at -8*1[RSP]
@@ -734,8 +742,8 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
     }
     else
     {
-        buf->writeByten(DW_CFA_def_cfa);        // DEF_CFA r4,4
-        buf->writeByten(4);
+        buf->writeByten(DW_CFA_def_cfa);        // DEF_CFA ESP,4
+        buf->writeByten(dwarf_regno(SP));
         buf->writeByten(4);
 
         buf->writeByten(DW_CFA_offset + 8);     // OFFSET r8,1
@@ -1422,6 +1430,7 @@ void dwarf_func_start(Symbol *sfunc)
         CFA_state_current = CFA_state_init_64;
     else
         assert(0);
+    CFA_state_current.reg = dwarf_regno(SP);
     assert(CFA_state_current.offset == OFFSET_FAC);
     cfa_buf.reset();
 }
