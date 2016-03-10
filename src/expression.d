@@ -9311,6 +9311,12 @@ public:
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXsuper_ctor;
             }
+            if (auto os = cd.baseClass.ctor.isOverloadSet())
+            {
+                // Workaround for bugzilla 15744
+                os.error(loc, "is aliased to a function");
+                return new ErrorExp();
+            }
             tthis = cd.type.addMod(sc.func.type.mod);
             f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
@@ -9344,6 +9350,12 @@ public:
                 if ((sc.callSuper & CSXreturn) && !(sc.callSuper & CSXany_ctor))
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXthis_ctor;
+            }
+            if (auto os = cd.ctor.isOverloadSet())
+            {
+                // Workaround for bugzilla 15744
+                os.error(loc, "is aliased to a function");
+                return new ErrorExp();
             }
             tthis = cd.type.addMod(sc.func.type.mod);
             f = resolveFuncCall(loc, sc, cd.ctor, null, tthis, arguments, 0);
