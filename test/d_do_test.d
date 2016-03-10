@@ -284,6 +284,7 @@ string genTempFilename(string result_path)
 
 int system(string command)
 {
+    static import core.stdc.stdlib;
     if (!command) return core.stdc.stdlib.system(null);
     const commandz = toStringz(command);
     auto status = core.stdc.stdlib.system(commandz);
