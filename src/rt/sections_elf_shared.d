@@ -200,6 +200,11 @@ version (Shared)
         assert(_loadedDSOs.empty);
         _loadedDSOs.swap(*cast(Array!(ThreadDSO)*)p);
         .free(p);
+        foreach (ref dso; _loadedDSOs)
+        {
+            // the copied _tlsRange corresponds to parent thread
+            dso.updateTLSRange();
+        }
     }
 
     // Called after all TLS dtors ran, decrements all remaining dlopen refs.
@@ -267,6 +272,11 @@ version (Shared)
         else static assert(0, "unimplemented");
         void[] _tlsRange;
         alias _pdso this;
+        // update the _tlsRange for the executing thread
+        void updateTLSRange()
+        {
+            _tlsRange = getTLSRange(_pdso._tlsMod, _pdso._tlsSize);
+        }
     }
     Array!(ThreadDSO) _loadedDSOs;
 
