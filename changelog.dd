@@ -6,6 +6,7 @@ $(COMMENT Pending changelog for 2.071. This will get copied to dlang.org and
 
 $(BUGSTITLE Compiler Changes,
     $(LI $(RELATIVE_LINK2 imports-313, Import access checks for fully qualified names were fixed.))
+    $(LI $(RELATIVE_LINK2 imports-314, Protection for selective and renamed imports were fixed.))
 )
 
 $(BUGSTITLE Language Changes,
@@ -28,6 +29,28 @@ $(BUGSTITLE Compiler Changes,
     ---
 
     $(P To ease updating existing code, the old behavior was retained but deprecated.
+    )
+    )
+
+    $(LI $(LNAME2 imports-314, Protection for selective and renamed imports were fixed.)
+
+    $(P It is no longer possible to use private selective or renamed imports in another module, e.g.
+        the following example will fail with `a.File is not visible from module b`.
+    )
+
+    ---
+    module a;
+    import std.stdio : File; // imports are private by default
+    ---
+    ---
+    module b;
+    import a;
+
+    File f; // File is private
+    ---
+
+    $(P To ease updating existing code, the old behavior was retained but deprecated.
+        This fix relies on the visibility changes introduced with $(RELATIVE_LINK2 dip22, DIP22).
     )
     )
 )

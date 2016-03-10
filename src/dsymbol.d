@@ -1368,7 +1368,12 @@ public:
                 if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate &&
                     !s.isOverloadable() && !s.parent.isTemplateMixin() && !s.parent.isNspace())
                 {
-                    if (!s.isImport())
+                    AliasDeclaration ad = void;
+                    // accessing private selective and renamed imports is
+                    // deprecated by restricting the symbol visibility
+                    if (s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
+                    {}
+                    else
                         error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
                 }
                 //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());

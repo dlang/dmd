@@ -39,7 +39,7 @@ public:
     Identifier id;          // module Identifier
     Identifier aliasId;
     int isstatic;           // !=0 if static import
-    PROTKIND protection;
+    Prot protection;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
@@ -109,7 +109,7 @@ public:
 
     override Prot prot()
     {
-        return Prot(protection);
+        return protection;
     }
 
     // copy only syntax trees
@@ -216,11 +216,11 @@ public:
                         mod.deprecation(loc, "is deprecated");
                 }
                 mod.importAll(null);
+                if (sc.explicitProtection)
+                    protection = sc.protection;
                 if (!isstatic && !aliasId && !names.dim)
                 {
-                    if (sc.explicitProtection)
-                        protection = sc.protection.kind;
-                    sc.scopesym.importScope(mod, Prot(protection));
+                    sc.scopesym.importScope(mod, protection);
                 }
             }
         }
@@ -247,6 +247,9 @@ public:
             //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
             sc._module.aimports.push(mod);
 
+            if (sc.explicitProtection)
+                protection = sc.protection;
+
             if (!aliasId && !names.dim) // neither a selective nor a renamed import
             {
                 ScopeDsymbol scopesym;
@@ -260,9 +263,7 @@ public:
 
                 if (!isstatic)
                 {
-                    if (sc.explicitProtection)
-                        protection = sc.protection.kind;
-                    scopesym.importScope(mod, Prot(protection));
+                    scopesym.importScope(mod, protection);
                 }
 
                 // Mark the imported packages as accessible from the current
@@ -289,17 +290,7 @@ public:
                 sc._module.needmoduleinfo = 1;
             }
             sc = sc.push(mod);
-            /* BUG: Protection checks can't be enabled yet. The issue is
-             * that Dsymbol::search errors before overload resolution.
-             */
-            version (none)
-            {
-                sc.protection = protection;
-            }
-            else
-            {
-                sc.protection = Prot(PROTpublic);
-            }
+            sc.protection = protection;
             for (size_t i = 0; i < aliasdecls.dim; i++)
             {
                 AliasDeclaration ad = aliasdecls[i];
@@ -346,7 +337,7 @@ public:
             ob.writestring(") : ");
             // use protection instead of sc.protection because it couldn't be
             // resolved yet, see the comment above
-            protectionToBuffer(ob, Prot(protection));
+            protectionToBuffer(ob, protection);
             ob.writeByte(' ');
             if (isstatic)
             {
@@ -449,21 +440,9 @@ public:
                 importAll(sc);
 
             sc = sc.push(mod);
-            /* BUG: Protection checks can't be enabled yet. The issue is
-             * that Dsymbol::search errors before overload resolution.
-             */
-            version (none)
-            {
-                sc.protection = protection;
-            }
-            else
-            {
-                sc.protection = Prot(PROTpublic);
-            }
+            sc.protection = protection;
             foreach (ad; aliasdecls)
-            {
                 ad.setScope(sc);
-            }
             sc = sc.pop();
         }
     }
