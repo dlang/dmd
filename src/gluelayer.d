@@ -28,56 +28,28 @@ version (NoBackend)
     struct TYPE;
     alias type = TYPE;
 
-    // glue
-
-    extern (C++) void obj_write_deferred(Library library)
+    extern (C++)
     {
-    }
+        // glue
+        void obj_write_deferred(Library library)        {}
+        void obj_start(char* srcfile)                   {}
+        void obj_end(Library library, File* objfile)    {}
+        void genObjFile(Module m, bool multiobj)        {}
 
-    extern (C++) void obj_start(char* srcfile)
-    {
-    }
+        // msc
+        void backend_init() {}
+        void backend_term() {}
 
-    extern (C++) void obj_end(Library library, File* objfile)
-    {
-    }
+        // iasm
+        Statement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
 
-    extern (C++) void genObjFile(Module m, bool multiobj)
-    {
-    }
+        // toir
+        RET retStyle(TypeFunction tf)               { return RETregs; }
+        void toObjFile(Dsymbol ds, bool multiobj)   {}
 
-    // msc
-
-    extern (C++) void backend_init()
-    {
-    }
-
-    extern (C++) void backend_term()
-    {
-    }
-
-    // iasm
-
-    extern (C++) Statement asmSemantic(AsmStatement s, Scope* sc)
-    {
-        assert(0);
-    }
-
-    // toir
-
-    extern (C++) RET retStyle(TypeFunction tf)
-    {
-        return RETregs;
-    }
-
-    extern (C++) void toObjFile(Dsymbol ds, bool multiobj)
-    {
-    }
-
-    version (OSX)
-    {
-        extern (C++) void objc_initSymbols()
+        version (OSX)
         {
+            void objc_initSymbols() {}
         }
     }
 }
@@ -92,21 +64,24 @@ else
     alias elem = ddmd.backend.elem;
     alias type = ddmd.backend.type;
 
-    extern extern (C++) void obj_write_deferred(Library library);
-    extern extern (C++) void obj_start(char* srcfile);
-    extern extern (C++) void obj_end(Library library, File* objfile);
-    extern extern (C++) void genObjFile(Module m, bool multiobj);
-
-    extern extern (C++) void backend_init();
-    extern extern (C++) void backend_term();
-
-    extern extern (C++) Statement asmSemantic(AsmStatement s, Scope* sc);
-
-    extern extern (C++) RET retStyle(TypeFunction tf);
-    extern extern (C++) void toObjFile(Dsymbol ds, bool multiobj);
-
-    version (OSX)
+    extern (C++)
     {
-        extern (C++) void objc_initSymbols();
+        void obj_write_deferred(Library library);
+        void obj_start(char* srcfile);
+        void obj_end(Library library, File* objfile);
+        void genObjFile(Module m, bool multiobj);
+
+        void backend_init();
+        void backend_term();
+
+        Statement asmSemantic(AsmStatement s, Scope* sc);
+
+        RET retStyle(TypeFunction tf);
+        void toObjFile(Dsymbol ds, bool multiobj);
+
+        version (OSX)
+        {
+            void objc_initSymbols();
+        }
     }
 }

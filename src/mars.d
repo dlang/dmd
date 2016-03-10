@@ -143,7 +143,7 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
 /**
  * Print DMD's logo on stdout
  */
-extern (C++) static void logo()
+private void logo()
 {
     printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
 }
@@ -152,7 +152,7 @@ extern (C++) static void logo()
 /**
  * Print DMD's usage message on stdout
  */
-extern (C++) static void usage()
+private  void usage()
 {
     static if (TARGET_LINUX)
     {
@@ -323,11 +323,10 @@ extern (C++) void genCmain(Scope* sc)
  * Returns:
  *   Application return code
  */
-extern (C++) int tryMain(size_t argc, const(char)** argv)
+private int tryMain(size_t argc, const(char)** argv)
 {
     Strings files;
     Strings libmodules;
-    size_t argcstart = argc;
     bool setdebuglib = false;
     static if (TARGET_WINDOS)
     {
@@ -1057,7 +1056,7 @@ Language changes listed by -transition=id:
             else if (strcmp(p + 1, "run") == 0)
             {
                 global.params.run = true;
-                size_t length = ((i >= argcstart) ? argc : argcstart) - i - 1;
+                size_t length = argc - i - 1;
                 if (length)
                 {
                     const(char)* ext = FileName.ext(arguments[i + 1]);
@@ -1790,7 +1789,7 @@ int main()
  *   envvalue = The content of an environment variable
  *   args     = Array to append the flags to, if any.
  */
-extern (C++) void getenv_setargv(const(char)* envvalue, Strings* args)
+private void getenv_setargv(const(char)* envvalue, Strings* args)
 {
     if (!envvalue)
         return;
@@ -1903,7 +1902,7 @@ extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
  *   "32", "64" or "32mscoff" if the "-m32", "-m64", "-m32mscoff" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
-extern (C++) static const(char)* parse_arch_arg(Strings* args, const(char)* arch)
+private const(char)* parse_arch_arg(Strings* args, const(char)* arch)
 {
     for (size_t i = 0; i < args.dim; ++i)
     {
@@ -1929,7 +1928,7 @@ extern (C++) static const(char)* parse_arch_arg(Strings* args, const(char)* arch
  * Returns:
  *   Path to the config file to use
  */
-extern (C++) static const(char)* parse_conf_arg(Strings* args)
+private const(char)* parse_conf_arg(Strings* args)
 {
     const(char)* conf = null;
     for (size_t i = 0; i < args.dim; ++i)

@@ -1,10 +1,18 @@
-/*
- * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2015 by Digital Mars
- * All Rights Reserved
- * http://www.digitalmars.com
- * Written by Walter Bright
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Expose a function to expand response files (files starting with '@').
+ * For more details, see $(D response_expand)'s documentation.
+ * This file is not shared with other compilers which use the DMD front-end.
+ *
+ * Copyright:
+ * Some portions copyright (c) 1994-1995 by Symantec
+ * Copyright (c) 1999-2015 by Digital Mars, All Rights Reserved
+ *
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ *
+ * License:
  * This source file is made available for personal use
  * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
@@ -42,7 +50,7 @@ import ddmd.root.file, ddmd.root.filename;
  *   0   success
  *   !=0   failure (argc, argv unchanged)
  */
-extern (C++) bool response_expand(Strings* args)
+bool response_expand(Strings* args)
 {
     const(char)* cp;
     int recurse = 0;
@@ -58,8 +66,7 @@ extern (C++) bool response_expand(Strings* args)
         char* buffer;
         char* bufend;
         cp++;
-        char* p = getenv(cp);
-        if (p)
+        if (auto p = getenv(cp))
         {
             buffer = strdup(p);
             if (!buffer)
@@ -77,7 +84,7 @@ extern (C++) bool response_expand(Strings* args)
         }
         // The logic of this should match that in setargv()
         int comment = 0;
-        for (p = buffer; p < bufend; p++)
+        for (auto p = buffer; p < bufend; p++)
         {
             char* d;
             char c, lastc;
