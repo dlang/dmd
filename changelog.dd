@@ -7,6 +7,7 @@ $(BUGSTITLE Library Changes,
 
 $(LI $(RELATIVE_LINK2 aa-clear, A `clear` method has been added to associative
     arrays to remove all elements.))
+$(LI Calls to $(NCXREF memory, GC.free) are now ignored during finalization instead of throwing an InvalidMemoryOperationError, see $(BUGZILLA 15353).)
 )
 
 $(BUGSTITLE Library Changes,
@@ -42,6 +43,12 @@ Macros:
     COREMODREF = <a href="phobos/core_$1.html">$2</a>
     XREF = <a href="phobos/std_$1.html#$2">$2</a>
     CXREF = <a href="phobos/core_$1.html#$2">$2</a>
+    OXREF = <a href="phobos/object.html#$2">$2</a>
+    NXREF = <a href="phobos/std_$1.html#.$2">$2</a>
+    NCXREF = <a href="phobos/core_$1.html#.$2">$2</a>
+    NOXREF = <a href="phobos/object.html#.$2">$2</a>
+
+    BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
 
     BOOKTABLE = <table><caption>$1</caption>$+</table>
     PRE = <pre>$0</pre>
