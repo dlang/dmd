@@ -2361,8 +2361,32 @@ void xreduce(alias f)()
     f(4);
 }
 
-void test11297() {
+void test11297()
+{
     xreduce!foo11297();
+}
+
+/*******************************************/
+// 11886
+
+struct Lambda11886(alias fun)
+{
+    auto opCall(A...)(A args) { return fun(args); }
+}
+void test11886()
+{
+    int n = 10;
+    Lambda11886!(x => x + n) f;
+    assert(f(1) == 11); // Line 9
+
+    struct NS
+    {
+        auto foo(T)(T t) { return t * n; }
+    }
+    static assert(NS.tupleof.length == 1);
+    static assert(NS.sizeof == (void*).sizeof);
+    NS ns;
+    assert(ns.foo(2) == 20);
 }
 
 /*******************************************/
@@ -2727,6 +2751,7 @@ int main()
     test9244();
     test11385();
     test11297();
+    test11886();
     test12234();
     test13861();
     test14398();

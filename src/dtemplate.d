@@ -500,12 +500,14 @@ public:
         if (semanticRun != PASSinit)
             return; // semantic() already run
         semanticRun = PASSsemantic;
+
         // Remember templates defined in module object that we need to know about
         if (sc._module && sc._module.ident == Id.object)
         {
             if (ident == Id.RTInfo)
                 Type.rtinfo = this;
         }
+
         /* Remember Scope for later instantiations, but make
          * a copy since attributes can change.
          */
@@ -514,15 +516,23 @@ public:
             this._scope = sc.copy();
             this._scope.setNoFree();
         }
+
+        parent = sc.parent;
+        protection = sc.protection;
+        isstatic = toParent().isModule() || (_scope.stc & STCstatic);
+
+        if (!isstatic)
+        {
+            if (auto ad = parent.pastMixin().isAggregateDeclaration())
+                ad.makeNested();
+        }
+
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
-        paramsym.parent = sc.parent;
+        paramsym.parent = parent;
         Scope* paramscope = sc.push(paramsym);
         paramscope.stc = 0;
-        if (!parent)
-            parent = sc.parent;
-        isstatic = toParent().isModule() || (_scope.stc & STCstatic);
-        protection = sc.protection;
+
         if (global.params.doDocComments)
         {
             origParameters = new TemplateParameters();
@@ -533,6 +543,7 @@ public:
                 (*origParameters)[i] = tp.syntaxCopy();
             }
         }
+
         for (size_t i = 0; i < parameters.dim; i++)
         {
             TemplateParameter tp = (*parameters)[i];
@@ -551,6 +562,7 @@ public:
                 errors = true;
             }
         }
+
         /* Calculate TemplateParameter::dependent
          */
         TemplateParameters tparams;
@@ -559,11 +571,13 @@ public:
         {
             TemplateParameter tp = (*parameters)[i];
             tparams[0] = tp;
+
             for (size_t j = 0; j < parameters.dim; j++)
             {
                 // Skip cases like: X(T : T)
                 if (i == j)
                     continue;
+
                 if (TemplateTypeParameter ttp = (*parameters)[j].isTemplateTypeParameter())
                 {
                     if (reliesOnTident(ttp.specType, &tparams))
@@ -571,14 +585,17 @@ public:
                 }
                 else if (TemplateAliasParameter tap = (*parameters)[j].isTemplateAliasParameter())
                 {
-                    if (reliesOnTident(tap.specType, &tparams) || reliesOnTident(isType(tap.specAlias), &tparams))
+                    if (reliesOnTident(tap.specType, &tparams) ||
+                        reliesOnTident(isType(tap.specAlias), &tparams))
                     {
                         tp.dependent = true;
                     }
                 }
             }
         }
+
         paramscope.pop();
+
         // Compute again
         onemember = null;
         if (members)
@@ -590,6 +607,7 @@ public:
                 s.parent = this;
             }
         }
+
         /* BUG: should check:
          *  o no virtual functions or non-static data members of classes
          */
