@@ -9,16 +9,15 @@ $(SPEC_S Application Binary Interface,
 	D binaries built by other implementations.
 	)
 
-$(SECTION3 C ABI,
+$(H3 $(LNAME2 c_abi, C ABI))
 
 	$(P The C ABI referred to in this specification means the C Application
 	Binary Interface of the target system.
 	C and D code should be freely linkable together, in particular, D
 	code shall have access to the entire C ABI runtime library.
 	)
-)
 
-$(SECTION3 Endianness,
+$(H3 $(LNAME2 endianness, Endianness))
 
 	$(P The $(LINK2 https://en.wikipedia.org/wiki/Endianness, endianness)
 	(byte order) of the layout of the data
@@ -27,9 +26,8 @@ $(SECTION3 Endianness,
 	the value 0x0A0B0C0D is stored in memory as:
 	$(D 0D 0C 0B 0A).
 	)
-)
 
-$(SECTION3 Basic Types,
+$(H3 $(LNAME2 basic_types, Basic Types))
 
 	$(TABLE
 	$(TROW bool, 8 bit byte with the values 0 for false and 1 for true)
@@ -48,9 +46,8 @@ $(SECTION3 Basic Types,
 	$(TROW real, implementation defined floating point value$(COMMA) for x86 it is
 	 80 bit IEEE 754 extended real)
 	)
-)
 
-$(SECTION3 Delegates,
+$(H3 $(LNAME2 delegates, Delegates))
 
 	$(P Delegates are $(I fat pointers) with two parts:)
 
@@ -65,25 +62,23 @@ $(SECTION3 Delegates,
 	a closure (nested functions) or a pointer to an enclosing
 	function's stack frame (nested functions).
 	)
-)
 
-$(SECTION3 Structs,
+$(H3 $(LNAME2 structs, Structs))
 
 	$(P Conforms to the target's C ABI struct layout.)
-)
 
-$(SECTION3 Classes,
+$(H3 $(LNAME2 classes, Classes))
 
 	$(P An object consists of:)
 
-$(TABLE_3COLS Class Object Layout,
-$(THEAD size, property, contents)
-$(TROW $(I ptrsize), $(D .__vptr), pointer to vtable)
-$(TROW $(I ptrsize), $(D .__monitor), monitor)
-$(TROW $(I ptrsize)..., $(NBSP), $(ARGS vptr's for any interfaces implemented by this class in left to right, most to least derived, order))
-$(TROW $(D ...), $(D ...), $(ARGS super's non-static fields and super's interface vptrs, from least to most derived))
-$(TROW $(D ...), named fields, non-static fields)
-)
+    $(TABLE_3COLS Class Object Layout,
+    $(THEAD size, property, contents)
+    $(TROW $(I ptrsize), $(D .__vptr), pointer to vtable)
+    $(TROW $(I ptrsize), $(D .__monitor), monitor)
+    $(TROW $(I ptrsize)..., $(NBSP), $(ARGS vptr's for any interfaces implemented by this class in left to right, most to least derived, order))
+    $(TROW $(D ...), $(D ...), $(ARGS super's non-static fields and super's interface vptrs, from least to most derived))
+    $(TROW $(D ...), named fields, non-static fields)
+    )
 
 	$(P The vtable consists of:)
 
@@ -135,9 +130,8 @@ class XXXX
 
 	$(LI An instance of StaticClassXXXX called StaticXXXX for the static members.)
 	)
-)
 
-$(SECTION3 Interfaces,
+$(H3 $(LNAME2 interfaces, Interfaces))
 
 	$(P An interface is a pointer to a pointer to a vtbl[].
 	The vtbl[0] entry is a pointer to the corresponding
@@ -158,9 +152,7 @@ $(SECTION3 Interfaces,
 	on the target machine.
 	)
 
-)
-
-$(SECTION3 Arrays,
+$(H3 $(LNAME2 arrays, Arrays))
 
 	$(P A dynamic array consists of:)
 
@@ -186,9 +178,8 @@ type[dimension] array;
 	so it is implemented like in C. Static array's and Dynamic arrays can be easily converted back
 	and forth to each other.
 	)
-)
 
-$(SECTION3 Associative Arrays,
+$(H3 $(LNAME2 associative_arrays, Associative Arrays))
 
 	$(P Associative arrays consist of a pointer to an opaque, implementation
 	defined type.
@@ -196,36 +187,34 @@ $(SECTION3 Associative Arrays,
 	The current implementation is contained in and defined by
 	 $(DRUNTIMESRC rt/aaA.d).
 	)
-)
 
-$(SECTION3 Reference Types,
+$(H3 $(LNAME2 references_types, Reference Types))
 
 	$(P D has reference types, but they are implicit. For example, classes are always
 	referred to by reference; this means that class instances can never reside on the stack
 	or be passed as function parameters.
 	)
-)
 
 
-$(SECTION3 Name Mangling,
+$(H3 $(LNAME2 name_mangling, Name Mangling))
 
 	$(P D accomplishes typesafe linking by $(I mangling) a D identifier
 	to include scope and type information.
 	)
 
-$(GRAMMAR
-$(GNAME MangledName):
-    $(B _D) $(GLINK QualifiedName) $(GLINK Type)
-    $(B _D) $(GLINK QualifiedName) $(B M) $(GLINK Type)
+    $(GRAMMAR
+    $(GNAME MangledName):
+        $(B _D) $(GLINK QualifiedName) $(GLINK Type)
+        $(B _D) $(GLINK QualifiedName) $(B M) $(GLINK Type)
 
-$(GNAME QualifiedName):
-    $(GLINK SymbolName)
-    $(GLINK SymbolName) $(I QualifiedName)
+    $(GNAME QualifiedName):
+        $(GLINK SymbolName)
+        $(GLINK SymbolName) $(I QualifiedName)
 
-$(GNAME SymbolName):
-    $(GLINK LName)
-    $(GLINK TemplateInstanceName)
-)
+    $(GNAME SymbolName):
+        $(GLINK LName)
+        $(GLINK TemplateInstanceName)
+    )
 
 	$(P The $(B M) means that the symbol is a function that requires
 	a $(D this) pointer.)
@@ -234,391 +223,388 @@ $(GNAME SymbolName):
 	encoded into it:
 	)
 
-$(GRAMMAR
-$(GNAME TemplateInstanceName):
-    $(GLINK Number) $(B __T) $(GLINK LName) $(GLINK TemplateArgs) $(B Z)
+    $(GRAMMAR
+        $(GNAME TemplateInstanceName):
+            $(GLINK Number) $(B __T) $(GLINK LName) $(GLINK TemplateArgs) $(B Z)
 
-$(GNAME TemplateArgs):
-    $(GLINK TemplateArg)
-    $(GLINK TemplateArg) $(I TemplateArgs)
+        $(GNAME TemplateArgs):
+            $(GLINK TemplateArg)
+            $(GLINK TemplateArg) $(I TemplateArgs)
 
-$(GNAME TemplateArg):
-    $(GLINK TemplateArgX)
-    $(B H) $(GLINK TemplateArgX)
+        $(GNAME TemplateArg):
+            $(GLINK TemplateArgX)
+            $(B H) $(GLINK TemplateArgX)
 
-$(GNAME TemplateArgX):
-    $(B T) $(GLINK Type)
-    $(B V) $(GLINK Type) $(GLINK Value)
-    $(B S) $(GLINK LName)
+        $(GNAME TemplateArgX):
+            $(B T) $(GLINK Type)
+            $(B V) $(GLINK Type) $(GLINK Value)
+            $(B S) $(GLINK LName)
 
-$(GNAME Value):
-    $(B n)
-    $(GLINK Number)
-    $(B i) $(GLINK Number)
-    $(B N) $(GLINK Number)
-    $(B e) $(GLINK HexFloat)
-    $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat)
-    $(GLINK CharWidth) $(GLINK Number) $(B _) $(GLINK HexDigits)
-    $(B A) $(GLINK Number) $(GLINK Value)...
-    $(B S) $(GLINK Number) $(GLINK Value)...
+        $(GNAME Value):
+            $(B n)
+            $(GLINK Number)
+            $(B i) $(GLINK Number)
+            $(B N) $(GLINK Number)
+            $(B e) $(GLINK HexFloat)
+            $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat)
+            $(GLINK CharWidth) $(GLINK Number) $(B _) $(GLINK HexDigits)
+            $(B A) $(GLINK Number) $(GLINK Value)...
+            $(B S) $(GLINK Number) $(GLINK Value)...
 
-$(GNAME HexFloat):
-    $(B NAN)
-    $(B INF)
-    $(B NINF)
-    $(B N) $(GLINK HexDigits) $(B P) $(GLINK Exponent)
-    $(GLINK HexDigits) $(B P) $(GLINK Exponent)
+        $(GNAME HexFloat):
+            $(B NAN)
+            $(B INF)
+            $(B NINF)
+            $(B N) $(GLINK HexDigits) $(B P) $(GLINK Exponent)
+            $(GLINK HexDigits) $(B P) $(GLINK Exponent)
 
-$(GNAME Exponent):
-    $(B N) $(GLINK Number)
-    $(GLINK Number)
+        $(GNAME Exponent):
+            $(B N) $(GLINK Number)
+            $(GLINK Number)
 
-$(GNAME HexDigits):
-    $(GLINK HexDigit)
-    $(GLINK HexDigit) $(GLINK HexDigits)
+        $(GNAME HexDigits):
+            $(GLINK HexDigit)
+            $(GLINK HexDigit) $(GLINK HexDigits)
 
-$(GNAME HexDigit):
-    $(GLINK Digit)
-    $(B A)
-    $(B B)
-    $(B C)
-    $(B D)
-    $(B E)
-    $(B F)
+        $(GNAME HexDigit):
+            $(GLINK Digit)
+            $(B A)
+            $(B B)
+            $(B C)
+            $(B D)
+            $(B E)
+            $(B F)
 
-$(GNAME CharWidth):
-    $(B a)
-    $(B w)
-    $(B d)
-)
+        $(GNAME CharWidth):
+            $(B a)
+            $(B w)
+            $(B d)
+    )
 
-$(DL
-	$(DT $(B n))
-	$(DD is for $(B null) arguments.)
+    $(DL
+	    $(DT $(B n))
+	    $(DD is for $(B null) arguments.)
 
-	$(DT $(GLINK Number))
-	$(DD is for positive numeric literals (including
-	character literals).)
+	    $(DT $(GLINK Number))
+	    $(DD is for positive numeric literals (including
+	    character literals).)
 
-	$(DT $(B N) $(GLINK Number))
-	$(DD is for negative numeric literals.)
+	    $(DT $(B N) $(GLINK Number))
+	    $(DD is for negative numeric literals.)
 
-	$(DT $(B e) $(GLINK HexFloat))
-	$(DD is for real and imaginary floating point literals.)
+	    $(DT $(B e) $(GLINK HexFloat))
+	    $(DD is for real and imaginary floating point literals.)
 
-	$(DT $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat))
-	$(DD is for complex floating point literals.)
+	    $(DT $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat))
+	    $(DD is for complex floating point literals.)
 
-	$(DT $(GLINK CharWidth) $(GLINK Number) $(D _) $(GLINK HexDigits))
-	$(DD $(GLINK CharWidth) is whether the characters
-	are 1 byte ($(B a)), 2 bytes ($(B w)) or 4 bytes ($(B d)) in size.
-	$(GLINK Number) is the number of characters in the string.
-	The $(GLINK HexDigits) are the hex data for the string.
-	)
+	    $(DT $(GLINK CharWidth) $(GLINK Number) $(D _) $(GLINK HexDigits))
+	    $(DD $(GLINK CharWidth) is whether the characters
+	    are 1 byte ($(B a)), 2 bytes ($(B w)) or 4 bytes ($(B d)) in size.
+	    $(GLINK Number) is the number of characters in the string.
+	    The $(GLINK HexDigits) are the hex data for the string.
+	    )
 
-	$(DT $(B A) $(GLINK Number) $(GLINK Value)...)
-	$(DD An array or asssociative array literal.
-	$(GLINK Number) is the length of the array.
-	$(GLINK Value) is repeated $(GLINK Number) times for a normal array,
-	and 2 * $(GLINK Number) times for an associative array.
-	)
+	    $(DT $(B A) $(GLINK Number) $(GLINK Value)...)
+	    $(DD An array or asssociative array literal.
+	    $(GLINK Number) is the length of the array.
+	    $(GLINK Value) is repeated $(GLINK Number) times for a normal array,
+	    and 2 * $(GLINK Number) times for an associative array.
+	    )
 
-	$(DT $(B S) $(GLINK Number) $(GLINK Value)...)
-	$(DD A struct literal. $(GLINK Value) is repeated $(GLINK Number) times.
-	)
+	    $(DT $(B S) $(GLINK Number) $(GLINK Value)...)
+	    $(DD A struct literal. $(GLINK Value) is repeated $(GLINK Number) times.
+	    )
+    )
 
-)
+    $(GRAMMAR
+    $(GNAME Name):
+        $(GLINK Namestart)
+        $(GLINK Namestart) $(GLINK Namechars)
 
-$(GRAMMAR
-$(GNAME Name):
-    $(GLINK Namestart)
-    $(GLINK Namestart) $(GLINK Namechars)
+    $(GNAME Namestart):
+        $(B _)
+        $(I Alpha)
 
-$(GNAME Namestart):
-    $(B _)
-    $(I Alpha)
+    $(GNAME Namechar):
+        $(GLINK Namestart)
+        $(GLINK Digit)
 
-$(GNAME Namechar):
-    $(GLINK Namestart)
-    $(GLINK Digit)
-
-$(GNAME Namechars):
-    $(GLINK Namechar)
-    $(GLINK Namechar) $(I Namechars)
-)
+    $(GNAME Namechars):
+        $(GLINK Namechar)
+        $(GLINK Namechar) $(I Namechars)
+    )
 
 	$(P A $(GLINK Name) is a standard D identifier.)
 
-$(GRAMMAR
-$(GNAME LName):
-    $(GLINK Number) $(GLINK Name)
+    $(GRAMMAR
+    $(GNAME LName):
+        $(GLINK Number) $(GLINK Name)
 
-$(GNAME Number):
-    $(GLINK Digit)
-    $(GLINK Digit) $(I Number)
+    $(GNAME Number):
+        $(GLINK Digit)
+        $(GLINK Digit) $(I Number)
 
-$(GNAME Digit):
-    $(B 0)
-    $(B 1)
-    $(B 2)
-    $(B 3)
-    $(B 4)
-    $(B 5)
-    $(B 6)
-    $(B 7)
-    $(B 8)
-    $(B 9)
-)
+    $(GNAME Digit):
+        $(B 0)
+        $(B 1)
+        $(B 2)
+        $(B 3)
+        $(B 4)
+        $(B 5)
+        $(B 6)
+        $(B 7)
+        $(B 8)
+        $(B 9)
+    )
 
 	$(P An $(GLINK LName) is a name preceded by a $(GLINK Number) giving
 	the number of characters in the $(GLINK Name).
 	)
-)
 
-$(SECTION3 Type Mangling,
+$(H3 $(LNAME2 type_mangling, Type Mangling))
 
 	$(P Types are mangled using a simple linear scheme:)
 
-$(GRAMMAR
-$(GNAME Type):
-    $(GLINK TypeModifiers)$(OPT) $(GLINK TypeX)
+    $(GRAMMAR
+    $(GNAME Type):
+        $(GLINK TypeModifiers)$(OPT) $(GLINK TypeX)
 
-$(GNAME TypeX):
-    $(GLINK TypeArray)
-    $(GLINK TypeStaticArray)
-    $(GLINK TypeAssocArray)
-    $(GLINK TypePointer)
-    $(GLINK TypeFunction)
-    $(GLINK TypeIdent)
-    $(GLINK TypeClass)
-    $(GLINK TypeStruct)
-    $(GLINK TypeEnum)
-    $(GLINK TypeTypedef)
-    $(GLINK TypeDelegate)
-    $(GLINK TypeVoid)
-    $(GLINK TypeByte)
-    $(GLINK TypeUbyte)
-    $(GLINK TypeShort)
-    $(GLINK TypeUshort)
-    $(GLINK TypeInt)
-    $(GLINK TypeUint)
-    $(GLINK TypeLong)
-    $(GLINK TypeUlong)
-    $(GLINK TypeFloat)
-    $(GLINK TypeDouble)
-    $(GLINK TypeReal)
-    $(GLINK TypeIfloat)
-    $(GLINK TypeIdouble)
-    $(GLINK TypeIreal)
-    $(GLINK TypeCfloat)
-    $(GLINK TypeCdouble)
-    $(GLINK TypeCreal)
-    $(GLINK TypeBool)
-    $(GLINK TypeChar)
-    $(GLINK TypeWchar)
-    $(GLINK TypeDchar)
-    $(GLINK TypeNull)
-    $(GLINK TypeTuple)
-    $(GLINK TypeVector)
-    $(GLINK Internal)
+    $(GNAME TypeX):
+        $(GLINK TypeArray)
+        $(GLINK TypeStaticArray)
+        $(GLINK TypeAssocArray)
+        $(GLINK TypePointer)
+        $(GLINK TypeFunction)
+        $(GLINK TypeIdent)
+        $(GLINK TypeClass)
+        $(GLINK TypeStruct)
+        $(GLINK TypeEnum)
+        $(GLINK TypeTypedef)
+        $(GLINK TypeDelegate)
+        $(GLINK TypeVoid)
+        $(GLINK TypeByte)
+        $(GLINK TypeUbyte)
+        $(GLINK TypeShort)
+        $(GLINK TypeUshort)
+        $(GLINK TypeInt)
+        $(GLINK TypeUint)
+        $(GLINK TypeLong)
+        $(GLINK TypeUlong)
+        $(GLINK TypeFloat)
+        $(GLINK TypeDouble)
+        $(GLINK TypeReal)
+        $(GLINK TypeIfloat)
+        $(GLINK TypeIdouble)
+        $(GLINK TypeIreal)
+        $(GLINK TypeCfloat)
+        $(GLINK TypeCdouble)
+        $(GLINK TypeCreal)
+        $(GLINK TypeBool)
+        $(GLINK TypeChar)
+        $(GLINK TypeWchar)
+        $(GLINK TypeDchar)
+        $(GLINK TypeNull)
+        $(GLINK TypeTuple)
+        $(GLINK TypeVector)
+        $(GLINK Internal)
 
-$(GNAME TypeModifiers)
-    $(GLINK Const)
-    $(GLINK Wild)
-    $(GLINK Wild) $(GLINK Const)
-    $(GLINK Shared)
-    $(GLINK Shared) $(GLINK Const)
-    $(GLINK Shared) $(GLINK Wild)
-    $(GLINK Shared) $(GLINK Wild) $(GLINK Const)
-    $(GLINK Immutable)
+    $(GNAME TypeModifiers)
+        $(GLINK Const)
+        $(GLINK Wild)
+        $(GLINK Wild) $(GLINK Const)
+        $(GLINK Shared)
+        $(GLINK Shared) $(GLINK Const)
+        $(GLINK Shared) $(GLINK Wild)
+        $(GLINK Shared) $(GLINK Wild) $(GLINK Const)
+        $(GLINK Immutable)
 
-$(GNAME Shared):
-    $(B O)
+    $(GNAME Shared):
+        $(B O)
 
-$(GNAME Const):
-    $(B x)
+    $(GNAME Const):
+        $(B x)
 
-$(GNAME Immutable):
-    $(B y)
+    $(GNAME Immutable):
+        $(B y)
 
-$(GNAME Wild):
-    $(B Ng)
+    $(GNAME Wild):
+        $(B Ng)
 
-$(GNAME TypeArray):
-    $(B A) $(GLINK Type)
+    $(GNAME TypeArray):
+        $(B A) $(GLINK Type)
 
-$(GNAME TypeStaticArray):
-    $(B G) $(GLINK Number) $(GLINK Type)
+    $(GNAME TypeStaticArray):
+        $(B G) $(GLINK Number) $(GLINK Type)
 
-$(GNAME TypeAssocArray):
-    $(B H) $(GLINK Type) $(GLINK Type)
+    $(GNAME TypeAssocArray):
+        $(B H) $(GLINK Type) $(GLINK Type)
 
-$(GNAME TypePointer):
-    $(B P) $(GLINK Type)
+    $(GNAME TypePointer):
+        $(B P) $(GLINK Type)
 
-$(GNAME TypeVector):
-    $(B Nh) $(GLINK Type)
+    $(GNAME TypeVector):
+        $(B Nh) $(GLINK Type)
 
-$(GNAME TypeFunction):
-    $(GLINK CallConvention) $(GLINK FuncAttrs) $(GLINK Parameters) $(GLINK ParamClose) $(GLINK Type)
+    $(GNAME TypeFunction):
+        $(GLINK CallConvention) $(GLINK FuncAttrs) $(GLINK Parameters) $(GLINK ParamClose) $(GLINK Type)
 
-$(GNAME CallConvention):
-    $(B F)       $(GREEN // D)
-    $(B U)       $(GREEN // C)
-    $(B W)       $(GREEN // Windows)
-    $(B V)       $(GREEN // Pascal)
-    $(B R)       $(GREEN // C++)
+    $(GNAME CallConvention):
+        $(B F)       $(GREEN // D)
+        $(B U)       $(GREEN // C)
+        $(B W)       $(GREEN // Windows)
+        $(B V)       $(GREEN // Pascal)
+        $(B R)       $(GREEN // C++)
 
-$(GNAME FuncAttrs):
-    $(GLINK FuncAttr)
-    $(GLINK FuncAttr) $(I FuncAttrs)
+    $(GNAME FuncAttrs):
+        $(GLINK FuncAttr)
+        $(GLINK FuncAttr) $(I FuncAttrs)
 
-$(GNAME FuncAttr):
-    $(I empty)
-    $(GLINK FuncAttrPure)
-    $(GLINK FuncAttrNothrow)
-    $(GLINK FuncAttrProperty)
-    $(GLINK FuncAttrRef)
-    $(GLINK FuncAttrTrusted)
-    $(GLINK FuncAttrSafe)
-    $(GLINK FuncAttrNogc)
+    $(GNAME FuncAttr):
+        $(I empty)
+        $(GLINK FuncAttrPure)
+        $(GLINK FuncAttrNothrow)
+        $(GLINK FuncAttrProperty)
+        $(GLINK FuncAttrRef)
+        $(GLINK FuncAttrTrusted)
+        $(GLINK FuncAttrSafe)
+        $(GLINK FuncAttrNogc)
 
-$(GNAME FuncAttrPure):
-    $(B Na)
+    $(GNAME FuncAttrPure):
+        $(B Na)
 
-$(GNAME FuncAttrNothrow):
-    $(B Nb)
+    $(GNAME FuncAttrNothrow):
+        $(B Nb)
 
-$(GNAME FuncAttrRef):
-    $(B Nc)
+    $(GNAME FuncAttrRef):
+        $(B Nc)
 
-$(GNAME FuncAttrProperty):
-    $(B Nd)
+    $(GNAME FuncAttrProperty):
+        $(B Nd)
 
-$(GNAME FuncAttrTrusted):
-    $(B Ne)
+    $(GNAME FuncAttrTrusted):
+        $(B Ne)
 
-$(GNAME FuncAttrSafe):
-    $(B Nf)
+    $(GNAME FuncAttrSafe):
+        $(B Nf)
 
-$(GNAME FuncAttrNogc):
-    $(B Ni)
+    $(GNAME FuncAttrNogc):
+        $(B Ni)
 
-$(GNAME Parameters):
-    $(GLINK Parameter)
-    $(GLINK Parameter) $(I Parameters)
+    $(GNAME Parameters):
+        $(GLINK Parameter)
+        $(GLINK Parameter) $(I Parameters)
 
-$(GNAME Parameter):
-    $(GLINK Parameter2)
-    $(B M) $(GLINK Parameter2)     $(GREEN // scope)
+    $(GNAME Parameter):
+        $(GLINK Parameter2)
+        $(B M) $(GLINK Parameter2)     $(GREEN // scope)
 
-$(GNAME Parameter2):
-    $(GLINK Type)
-    $(B J) $(GLINK Type)     $(GREEN // out)
-    $(B K) $(GLINK Type)     $(GREEN // ref)
-    $(B L) $(GLINK Type)     $(GREEN // lazy)
+    $(GNAME Parameter2):
+        $(GLINK Type)
+        $(B J) $(GLINK Type)     $(GREEN // out)
+        $(B K) $(GLINK Type)     $(GREEN // ref)
+        $(B L) $(GLINK Type)     $(GREEN // lazy)
 
-$(GNAME ParamClose)
-    $(B X)     $(GREEN // variadic T t...$(RPAREN) style)
-    $(B Y)     $(GREEN // variadic T t,...$(RPAREN) style)
-    $(B Z)     $(GREEN // not variadic)
+    $(GNAME ParamClose)
+        $(B X)     $(GREEN // variadic T t...$(RPAREN) style)
+        $(B Y)     $(GREEN // variadic T t,...$(RPAREN) style)
+        $(B Z)     $(GREEN // not variadic)
 
-$(GNAME TypeIdent):
-    $(B I) $(GLINK QualifiedName)
+    $(GNAME TypeIdent):
+        $(B I) $(GLINK QualifiedName)
 
-$(GNAME TypeClass):
-    $(B C) $(GLINK QualifiedName)
+    $(GNAME TypeClass):
+        $(B C) $(GLINK QualifiedName)
 
-$(GNAME TypeStruct):
-    $(B S) $(GLINK QualifiedName)
+    $(GNAME TypeStruct):
+        $(B S) $(GLINK QualifiedName)
 
-$(GNAME TypeEnum):
-    $(B E) $(GLINK QualifiedName)
+    $(GNAME TypeEnum):
+        $(B E) $(GLINK QualifiedName)
 
-$(GNAME TypeTypedef):
-    $(B T) $(GLINK QualifiedName)
+    $(GNAME TypeTypedef):
+        $(B T) $(GLINK QualifiedName)
 
-$(GNAME TypeDelegate):
-    $(B D) $(GLINK TypeModifiers)$(OPT) $(GLINK TypeFunction)
+    $(GNAME TypeDelegate):
+        $(B D) $(GLINK TypeModifiers)$(OPT) $(GLINK TypeFunction)
 
-$(GNAME TypeVoid):
-    $(B v)
+    $(GNAME TypeVoid):
+        $(B v)
 
-$(GNAME TypeByte):
-    $(B g)
+    $(GNAME TypeByte):
+        $(B g)
 
-$(GNAME TypeUbyte):
-    $(B h)
+    $(GNAME TypeUbyte):
+        $(B h)
 
-$(GNAME TypeShort):
-    $(B s)
+    $(GNAME TypeShort):
+        $(B s)
 
-$(GNAME TypeUshort):
-    $(B t)
+    $(GNAME TypeUshort):
+        $(B t)
 
-$(GNAME TypeInt):
-    $(B i)
+    $(GNAME TypeInt):
+        $(B i)
 
-$(GNAME TypeUint):
-    $(B k)
+    $(GNAME TypeUint):
+        $(B k)
 
-$(GNAME TypeLong):
-    $(B l)
+    $(GNAME TypeLong):
+        $(B l)
 
-$(GNAME TypeUlong):
-    $(B m)
+    $(GNAME TypeUlong):
+        $(B m)
 
-$(GNAME TypeFloat):
-    $(B f)
+    $(GNAME TypeFloat):
+        $(B f)
 
-$(GNAME TypeDouble):
-    $(B d)
+    $(GNAME TypeDouble):
+        $(B d)
 
-$(GNAME TypeReal):
-    $(B e)
+    $(GNAME TypeReal):
+        $(B e)
 
-$(GNAME TypeIfloat):
-    $(B o)
+    $(GNAME TypeIfloat):
+        $(B o)
 
-$(GNAME TypeIdouble):
-    $(B p)
+    $(GNAME TypeIdouble):
+        $(B p)
 
-$(GNAME TypeIreal):
-    $(B j)
+    $(GNAME TypeIreal):
+        $(B j)
 
-$(GNAME TypeCfloat):
-    $(B q)
+    $(GNAME TypeCfloat):
+        $(B q)
 
-$(GNAME TypeCdouble):
-    $(B r)
+    $(GNAME TypeCdouble):
+        $(B r)
 
-$(GNAME TypeCreal):
-    $(B c)
+    $(GNAME TypeCreal):
+        $(B c)
 
-$(GNAME TypeBool):
-    $(B b)
+    $(GNAME TypeBool):
+        $(B b)
 
-$(GNAME TypeChar):
-    $(B a)
+    $(GNAME TypeChar):
+        $(B a)
 
-$(GNAME TypeWchar):
-    $(B u)
+    $(GNAME TypeWchar):
+        $(B u)
 
-$(GNAME TypeDchar):
-    $(B w)
+    $(GNAME TypeDchar):
+        $(B w)
 
-$(GNAME TypeNull):
-    $(B n)
+    $(GNAME TypeNull):
+        $(B n)
 
-$(GNAME TypeTuple):
-    $(B B) $(GLINK Number) $(GLINK Parameters)
+    $(GNAME TypeTuple):
+        $(B B) $(GLINK Number) $(GLINK Parameters)
 
-$(GNAME Internal):
-    $(B Z)
-)
-)
+    $(GNAME Internal):
+        $(B Z)
+    )
 
-$(SECTION3 Function Calling Conventions,
+$(H3 $(LNAME2 function_calling_conventions, Function Calling Conventions))
 
 	$(P The $(D extern (C)) and $(D extern (D)) calling convention matches the C
 	calling convention
@@ -626,7 +612,7 @@ $(SECTION3 Function Calling Conventions,
 	Except that the extern (D) calling convention for Windows x86 is described here.
 	)
 
-$(SECTION4 Register Conventions,
+$(H4 $(LNAME2 register_conventions, Register Conventions))
 
 	$(UL
 
@@ -646,9 +632,8 @@ $(SECTION4 Register Conventions,
 	These must be cleaned off by the caller, even if they are not used.)
 
 	)
-)
 
-$(SECTION4 Return Value,
+$(H4 $(LNAME2 return_value, Return Value))
 
 	$(UL
 
@@ -688,9 +673,8 @@ $(SECTION4 Return Value,
 	$(LI Constructors return the this pointer in EAX.)
 
 	)
-)
 
-$(SECTION4 Parameters,
+$(H4 $(LNAME2 parameters, Parameters))
 
 	$(P The parameters to the non-variadic function:)
 
@@ -781,20 +765,16 @@ foo(a1, a2, a3, ..., an);
 	$(P The caller is expected to clean the stack.
 	$(D _argptr) is not
 	passed, it is computed by the callee.)
-)
 
-)
+$(H3 $(LNAME2 exception_handling, Exception Handling))
 
-$(SECTION3 Exception Handling,
-
-    $(SECTION4 Windows,
+    $(H4 $(LNAME2 windows_eh, Windows))
 
 	$(P Conforms to the Microsoft Windows Structured Exception Handling
 	conventions.
 	)
-    )
 
-    $(SECTION4 Linux$(COMMA) FreeBSD and OS X,
+    $(H4 $(LNAME2 ninux_fbsd_osx_eh, Linux$(COMMA) FreeBSD and OS X))
 
 	$(P Uses static address range/handler tables.
 	It is not compatible with the ELF/Mach-O exception handling tables.
@@ -863,20 +843,16 @@ $(SECTION3 Exception Handling,
 	$(TROW $(D uint), offset from EBP/RBP to catch variable)
 	$(TR $(D void*), catch handler code)
 	)
-    )
-)
 
-$(SECTION3 Garbage Collection,
+$(H3 $(LNAME2 garbage_collection, Garbage Collection))
 
 	$(P The interface to this is found in $(D phobos/internal/gc).)
-)
 
-$(SECTION3 Runtime Helper Functions,
+$(H3 $(LNAME2 runtime_helper_functions, Runtime Helper Functions))
 
 	$(P These are found in $(D phobos/internal).)
-)
 
-$(SECTION3 Module Initialization and Termination,
+$(H3 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
 
 	$(P All the static constructors for a module are aggregated into a
 	single function, and a pointer to that function is inserted
@@ -889,18 +865,16 @@ $(SECTION3 Module Initialization and Termination,
 	into the dtor member of the ModuleInfo instance for that
 	module.
 	)
-)
 
-$(SECTION3 Unit Testing,
+$(H3 $(LNAME2 unit_testing, Unit Testing))
 
 	$(P All the unit tests for a module are aggregated into a
 	single function, and a pointer to that function is inserted
 	into the unitTest member of the ModuleInfo instance for that
 	module.
 	)
-)
 
-$(SECTION2 Symbolic Debugging,
+$(H2 $(LNAME2 symbolic_debugging, Symbolic Debugging))
 
 	$(P D has types that are not represented in existing C or C++ debuggers.
 	These are dynamic arrays, associative arrays, and delegates.
@@ -925,7 +899,7 @@ $(SECTION2 Symbolic Debugging,
 	following extensions help them fully support the types.
 	)
 
-$(SECTION3 $(LNAME2 codeview, Codeview Debugger Extensions),
+$(H3 $(LNAME2 codeview, Codeview Debugger Extensions))
 
 	$(P The D $(B dchar) type is represented by the special
 	primitive type 0x78.)
@@ -957,9 +931,6 @@ $(SECTION3 $(LNAME2 codeview, Codeview Debugger Extensions),
 	$(P The $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg) debugger
 	supports them.)
 	)
-)
-
-)
 )
 
 Macros:

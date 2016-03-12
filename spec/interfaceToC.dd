@@ -13,7 +13,7 @@ $(SPEC_S Interfacing to C,
 	and function call/return sequences.
 	)
 
-$(H2 Calling C Functions)
+$(H2 $(LNAME2 calling_c_functions, Calling C Functions))
 
 	$(P C functions can be called directly from D. There is no need for
 	wrapper functions, argument swizzling, and the C functions do not
@@ -81,7 +81,7 @@ extern (C)
 }
 ------
 
-$(H2 Storage Allocation)
+$(H2 $(LNAME2 storage_allocation, Storage Allocation))
 
 	$(P C code explicitly manages memory with calls to
 	$(LINK2 http://www.digitalmars.com/rtl/stdlib.html#malloc, malloc()) and
@@ -133,7 +133,7 @@ $(H2 Storage Allocation)
 	segments of other DLL's, etc.
 	)
 
-$(H2 Data Type Compatibility)
+$(H2 $(LNAME2 data_type_compat, Data Type Compatibility))
 
 	$(TABLE2 D And C Type Equivalence,
     $(ELABORATE_HEADER)
@@ -183,7 +183,7 @@ $(H2 Data Type Compatibility)
 	does not pin down the sizes of the types, so some care is needed.
 	)
 
-$(H2 Passing D Array Arguments to C Functions)
+$(H2 $(LNAME2 passing_d_array, Passing D Array Arguments to C Functions))
 
 	$(P In C, arrays are passed to functions as pointers even if the function
 	prototype says its an array. In D, static arrays are passed by value,
@@ -206,7 +206,7 @@ extern (C)
 ---
 
 
-$(H2 Calling printf())
+$(H2 $(LNAME2 calling_printf, Calling printf()))
 
 	$(P This mostly means checking that the
 	$(LINK2 http://www.digitalmars.com/rtl/stdio.html#printf, printf format specifier)
@@ -235,7 +235,7 @@ void foo(char[] string)
 	$(CODE std.stdio.writef()).
 	)
 
-$(H2 Structs and Unions)
+$(H2 $(LNAME2 structs_and_unions, Structs and Unions))
 
 	$(P D structs and unions are analogous to C's.
 	)
@@ -278,7 +278,7 @@ union Info  // D code
 }
 ---
 
-$(H2 Callbacks)
+$(H2 $(LNAME2 callbacks, Callbacks))
 
     $(P D can easily call C callbacks (function pointers), and C can call
     callbacks provided by D code if the callback is an $(D extern(C)) function,

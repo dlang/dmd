@@ -7,7 +7,7 @@ $(D_S Type Qualifiers,
 	Each applies transitively to all subtypes.
 	)
 
-$(SECTION2 Const and Immutable,
+$(H2 $(LNAME2 const_and_immutable, Const and Immutable))
 
 	$(P When examining a data structure or interface, it is very
 	helpful to be able to easily tell which data can be expected to not
@@ -39,9 +39,8 @@ $(SECTION2 Const and Immutable,
 	that any data reachable through an immutable reference is also
 	immutable, and likewise for const.
 	)
-)
 
-$(SECTION2 Immutable Storage Class,
+$(H2 $(LNAME2 immutable_storage_class, Immutable Storage Class))
 
 	$(P
 	The simplest immutable declarations use it as a storage class.
@@ -116,9 +115,8 @@ s = "bar";   // error, s is immutable
 	$(P Immutable declarations can appear as lvalues, i.e. they can
 	have their address taken, and occupy storage.
 	)
-)
 
-$(SECTION2 Const Storage Class,
+$(H2 $(LNAME2 const_storage_class, Const Storage Class))
 
 	$(P
 	A const declaration is exactly like an immutable declaration,
@@ -201,9 +199,8 @@ $(TR $(TD $(GREEN green)) $(TD exact match))
 $(TR $(TD $(ORANGE orange)) $(TD implicit conversion))
 )
 )
-)
 
-$(SECTION2 Immutable Type,
+$(H2 $(LNAME2 immutable_type, Immutable Type))
 
 	$(P
 	Data that will never change its value can be typed as immutable.
@@ -246,10 +243,9 @@ p = ...;        // ok, p is not immutable
 immutable int x = 3;   // x is typed as immutable(int)
 immutable(int) y = 3;  // y is immutable
 ---
-)
 
 
-$(SECTION2 Creating Immutable Data,
+$(H2 $(LNAME2 creating_immutable_data, Creating Immutable Data))
 
 	$(P
 	The first way is to use a literal that is already immutable,
@@ -284,7 +280,7 @@ auto p = s.idup;
 p[0] = ...;	  // error, p[] is immutable
 ---
 
-$(H2 Removing Immutable or Const with a Cast)
+$(H2 $(LNAME2 removing_with_cast, Removing Immutable or Const with a Cast))
 
 	$(P
 	An immutable or const type qualifier can be removed with a cast:
@@ -329,10 +325,8 @@ void main()
     assert(x == 1); // guaranteed to hold
 }
 ---
-)
 
-
-$(SECTION2 Immutable Member Functions,
+$(H2 $(LNAME2 immutable_member_functions, Immutable Member Functions))
 
 	$(P
 	Immutable member functions are guaranteed that the object
@@ -384,30 +378,27 @@ struct S
     }
 }
 ---
-)
 
 
-$(SECTION2 Const Type,
+$(H2 $(LNAME2 const_type, Const Type))
 
 	$(P
 	Const types are like immutable types, except that const
 	forms a read-only $(I view) of data. Other aliases to that
 	same data may change it at any time.
 	)
-)
 
 
-$(SECTION2 Const Member Functions,
+$(H2 $(LNAME2 const_member_functions, Const Member Functions))
 
 	$(P
 	Const member functions are functions that are not allowed to
 	change any part of the object through the member function's
 	this reference.
 	)
-)
 
 
-$(SECTION2 Implicit Conversions,
+$(H2 $(LNAME2 implicit_conversions, Implicit Conversions))
 
 	$(P Values can be implicitly converted between $(I mutable), $(D const), $(D immutable),
 	$(D shared const), $(D inout) and $(D inout shared).
@@ -471,7 +462,6 @@ void main()
 	when an implicit version is disallowed, but this cannot be done in $(D @safe) code,
 	and the correctness of it must be verified by the user.
 	)
-)
 
 
 )
