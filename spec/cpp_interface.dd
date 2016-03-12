@@ -5,9 +5,8 @@ $(SPEC_S Interfacing to C++,
     $(P This document specifies how to interface with C++ directly.)
 
     $(P It is also possible to indirectly interface with C++ code, either
-    through a $(DDLINK interfaceToC, Interfacing to C, C interface) or a
-    $(DPLLINK COM.html, COM interface), specified in their respective
-    documents.)
+    through a $(DDLINK spec/interfaceToC, Interfacing to C, C interface) or a
+    COM interface.)
 
 $(H2 The General Idea)
 
