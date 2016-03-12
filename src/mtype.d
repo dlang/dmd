@@ -7031,6 +7031,11 @@ public:
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
+                if (sm && !symbolIsVisible(sc, sm))
+                {
+                    .deprecation(loc, "%s is not visible from module %s", sm.toPrettyChars(), sc._module.toChars());
+                    // sm = null;
+                }
                 if (global.errors != errorsave)
                 {
                     *pt = Type.terror;
@@ -7875,9 +7880,9 @@ public:
             if (!s)
                 return noMember(sc, e, ident, flag);
         }
-        if (!symbolIsVisible(sc._module, s))
+        if (!symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
@@ -8736,7 +8741,7 @@ public:
                 return noMember(sc, e, ident, flag);
             }
         }
-        if (!symbolIsVisible(sc._module, s))
+        if (!symbolIsVisible(sc, s))
         {
             .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
             // return noMember(sc, e, ident, flag);
