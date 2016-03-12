@@ -1749,6 +1749,7 @@ public:
         {
             TemplateParameter tparam = (*parameters)[i];
             //printf("tparam[%d] = %s\n", i, tparam->ident->toChars());
+
             /* For T:T*, the dedargs is the T*, dedtypes is the T
              * But for function templates, we really need them to match
              */
@@ -1790,7 +1791,9 @@ public:
                         // if tuple parameter and
                         // tuple parameter was not in function parameter list and
                         // we're one or more arguments short (i.e. no tuple argument)
-                        if (tparam == tp && fptupindex == IDX_NOTFOUND && ntargs <= dedargs.dim - 1)
+                        if (tparam == tp &&
+                            fptupindex == IDX_NOTFOUND &&
+                            ntargs <= dedargs.dim - 1)
                         {
                             // make tuple argument an empty tuple
                             oded = cast(RootObject)new Tuple();
@@ -1801,6 +1804,7 @@ public:
                     if (isError(oded))
                         goto Lerror;
                     ntargs++;
+
                     /* At the template parameter T, the picked default template argument
                      * X!int should be matched to T in order to deduce dependent
                      * template parameter A.
@@ -1821,20 +1825,23 @@ public:
                     }
                 }
                 oded = declareParameter(paramscope, tparam, oded);
-                /* Bugzilla 7469: Normalize ti->tiargs for the correct mangling of template instance.
-                 */
-                Tuple va = isTuple(oded);
-                if (va && va.objects.dim)
-                {
-                    dedargs.setDim(parameters.dim - 1 + va.objects.dim);
-                    for (size_t j = 0; j < va.objects.dim; j++)
-                        (*dedargs)[i + j] = va.objects[j];
-                    i = dedargs.dim - 1;
-                }
-                else
-                    (*dedargs)[i] = oded;
+                (*dedargs)[i] = oded;
             }
         }
+
+        /* Bugzilla 7469: As same as the code for 7469 in findBestMatch,
+         * expand a Tuple in dedargs to normalize template arguments.
+         */
+        if (auto d = dedargs.dim)
+        {
+            if (auto va = isTuple((*dedargs)[d - 1]))
+            {
+                dedargs.setDim(d - 1);
+                dedargs.insert(d - 1, &va.objects);
+            }
+        }
+        ti.tiargs = dedargs; // update to the normalized template arguments.
+
         // Partially instantiate function for constraint and fd->leastAsSpecialized()
         {
             assert(paramsym);
@@ -1844,18 +1851,22 @@ public:
             sc2.parent = ti;
             sc2.tinst = ti;
             sc2.minst = sc.minst;
+
             fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
+
             sc2 = sc2.pop();
             sc2 = sc2.pop();
+
             if (!fd)
                 goto Lnomatch;
         }
-        ti.tiargs = dedargs; // update to the normalized template arguments.
+
         if (constraint)
         {
             if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
                 goto Lnomatch;
         }
+
         version (none)
         {
             for (size_t i = 0; i < dedargs.dim; i++)
@@ -1864,13 +1875,16 @@ public:
                 printf("\tdedargs[%d] = %d, %s\n", i, o.dyncast(), o.toChars());
             }
         }
+
         paramscope.pop();
         //printf("\tmatch %d\n", match);
         return cast(MATCH)(match | (matchTiargs << 4));
+
     Lnomatch:
         paramscope.pop();
         //printf("\tnomatch\n");
         return MATCHnomatch;
+
     Lerror:
         // todo: for the future improvement
         paramscope.pop();
