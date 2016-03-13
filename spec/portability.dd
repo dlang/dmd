@@ -51,7 +51,7 @@ static assert(int.sizeof == (int*).sizeof);
 	)
 	)
 
-$(H2 32 to 64 Bit Portability)
+$(H2 $(LNAME2 32_to_64bit, 32 to 64 Bit Portability))
 
 	$(P 64 bit processors and operating systems are here.
 	With that in mind:
@@ -80,7 +80,7 @@ $(H2 32 to 64 Bit Portability)
 
 	)
 
-$(H2 Endianness)
+$(H2 $(LNAME2 endianness, Endianness))
 
 	$(P Endianness refers to the order in which multibyte types
 	are stored. The two main orders are $(I big endian) and
@@ -101,7 +101,7 @@ $(H2 Endianness)
 	type like $(D long)s or $(D double)s.)
 	)
 
-$(H2 OS Specific Code)
+$(H2 $(LNAME2 os_specific_code, OS Specific Code))
 
 	$(P System specific code is handled by isolating the differences into
 	separate modules. At compile time, the correct system specific
