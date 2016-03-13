@@ -528,13 +528,16 @@ $(GNAME TemplateAliasParameterDefault):
 )
 
     $(P Alias parameters enable templates to be parameterized with
-        any type of D symbol, including type names, global names, local names,
-        module names, template names, and template instance names.
+        almost any kind of D symbol, including user-defined type names, 
+        global names, local names, module names, template names, and 
+        template instance names.
         Literals can also be used as arguments to alias parameters.
     )
+    
+    $(P $(B Examples:))
 
     $(UL
-        $(LI Type names
+        $(LI User-defined type names
 
         ------
         class Foo
@@ -714,7 +717,7 @@ $(GNAME TemplateSequenceParameter):
         is declared as a $(I TemplateSequenceParameter),
         it is a match with any trailing template arguments.
         Such a sequence of arguments can be defined using the template
-        $(I AliasSeq) in the Phobos std.traits module and will thus henceforth
+        $(XREF meta, AliasSeq) and will thus henceforth
         be referred to by that name for clarity.
         An $(I AliasSeq) is not itself a type, value, or symbol.
         It is a compile-time sequence of any mix of types, values or symbols.
@@ -749,8 +752,8 @@ $(GNAME TemplateSequenceParameter):
 
         void main()
         {
-            Print!(1,'a',6.8).print();                    // prints: args are 1a6.8
-            Write!(int, char, double).write(1, 'a', 6.8); // prints: args are 1a6.8
+            print!(1,'a',6.8).print();                    // prints: args are 1a6.8
+            write!(int, char, double).write(1, 'a', 6.8); // prints: args are 1a6.8
         }
         ---
     )
