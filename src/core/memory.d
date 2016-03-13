@@ -552,12 +552,12 @@ struct GC
 
 
     /**
-     * Deallocates the memory referenced by p.  If p is null, no action
-     * occurs.  If p references memory not originally allocated by this
-     * garbage collector, or if it points to the interior of a memory block,
-     * no action will be taken.  The block will not be finalized regardless
-     * of whether the FINALIZE attribute is set.  If finalization is desired,
-     * use delete instead.
+     * Deallocates the memory referenced by p.  If p is null, no action occurs.
+     * If p references memory not originally allocated by this garbage
+     * collector, if p points to the interior of a memory block, or if this
+     * method is called from a finalizer, no action will be taken.  The block
+     * will not be finalized regardless of whether the FINALIZE attribute is
+     * set.  If finalization is desired, use delete instead.
      *
      * Params:
      *  p = A pointer to the root of a valid memory block or to null.

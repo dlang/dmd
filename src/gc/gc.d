@@ -813,7 +813,7 @@ struct GC
      */
     void free(void *p) nothrow
     {
-        if (!p)
+        if (!p || inFinalizer)
         {
             return;
         }
@@ -3248,6 +3248,23 @@ unittest // bugzilla 14467
     assert(arr.capacity);
     arr = arr[$..$];
     assert(arr.capacity);
+}
+
+unittest // bugzilla 15353
+{
+    import core.memory : GC;
+
+    static struct Foo
+    {
+        ~this()
+        {
+            GC.free(buf); // ignored in finalizer
+        }
+
+        void* buf;
+    }
+    new Foo(GC.malloc(10));
+    GC.collect();
 }
 
 /* ============================ SENTINEL =============================== */
