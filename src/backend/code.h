@@ -409,11 +409,11 @@ extern int EBPtoESP;            // add to EBP offset to get ESP offset
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
 code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds);
-code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter);
+code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset);
 code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
 code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
 code* prolog_setupalloca();
-code* prolog_saveregs(code *c, regm_t topush);
+code* prolog_saveregs(code *c, regm_t topush, int cfa_offset);
 code* epilog_restoreregs(code *c, regm_t topop);
 code* prolog_trace(bool farfunc, unsigned* regsaved);
 code* prolog_gen_win64_varargs();

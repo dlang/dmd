@@ -2951,13 +2951,15 @@ code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds)
  * Output:
  *      *enter          set to TRUE if ENTER instruction can be used, FALSE otherwise
  *      *xlocalsize     amount to be subtracted from stack pointer
+ *      *cfa_offset     the frame pointer's offset from the CFA
  * Returns:
  *      generated code
  */
 
-code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
+code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset)
 {
     code* c = NULL;
+    *cfa_offset = 0;
 
     if (0 && config.exe == EX_WIN64)
     {
@@ -3004,14 +3006,16 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
 #endif
         if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
             config.ehmethod == EH_DWARF)
-        {   int off = 2 * REGSIZE;
+        {   int off = 2 * REGSIZE;      // 1 for the return address + 1 for the PUSH EBP
             dwarf_CFA_set_loc(1);           // address after PUSH EBP
             dwarf_CFA_set_reg_offset(SP, off); // CFA is now 8[ESP]
             dwarf_CFA_offset(BP, -off);       // EBP is at 0[ESP]
             dwarf_CFA_set_loc(I64 ? 4 : 3);   // address after MOV EBP,ESP
-            // Yes, I know the parameter is 8 when we mean 0!
-            // But this gets the cfa register set to EBP correctly
+            /* Oddly, the CFA is not the same as the frame pointer,
+             * which is why the offset of BP is set to 8
+             */
             dwarf_CFA_set_reg_offset(BP, off);        // CFA is now 0[EBP]
+            *cfa_offset = off;  // remember the difference between the CFA and the frame pointer
         }
         *enter = false;              /* do not use ENTER instruction */
     }
@@ -3130,9 +3134,15 @@ code* prolog_setupalloca()
  * Save registers that the function destroys,
  * but that the ABI says should be preserved across
  * function calls.
+ * Params:
+ *      c = append generated instructions to this
+ *      topush = mask of registers to push
+ *      cfa_offset = offset of frame pointer from CFA
+ * Returns:
+ *      c appended with generated code
  */
 
-code* prolog_saveregs(code *c, regm_t topush)
+code* prolog_saveregs(code *c, regm_t topush, int cfa_offset)
 {
     if (pushoffuse)
     {
@@ -3180,7 +3190,7 @@ code* prolog_saveregs(code *c, regm_t topush)
                 {   // Emit debug_frame data giving location of saved register
                     pinholeopt(c, NULL);
                     dwarf_CFA_set_loc(calcblksize(c));  // address after save
-                    dwarf_CFA_offset(reg, gpoffset);
+                    dwarf_CFA_offset(reg, gpoffset - cfa_offset);
                 }
                 gpoffset += REGSIZE;
             }
@@ -3212,7 +3222,7 @@ code* prolog_saveregs(code *c, regm_t topush)
                     // relative to 0[EBP]
                     pinholeopt(c, NULL);
                     dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
-                    dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
+                    dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE - cfa_offset);
                 }
             }
         }

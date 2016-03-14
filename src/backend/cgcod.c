@@ -683,6 +683,7 @@ code *prolog()
 Lagain:
     spoff = 0;
     char guessneedframe = needframe;
+    int cfa_offset = 0;
 //    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & ~NTEHjmonitor))
 //      usednteh |= NTEHpassthru;
 
@@ -900,7 +901,7 @@ Lagain:
     }
     else if (needframe)                 // if variables or parameters
     {
-        c = cat(c, prolog_frame(farfunc, &xlocalsize, &enter));
+        c = cat(c, prolog_frame(farfunc, &xlocalsize, &enter, &cfa_offset));
         hasframe = 1;
     }
 
@@ -996,7 +997,7 @@ Lagain:
     }
 #endif
 
-    c = prolog_saveregs(c, topush);
+    c = prolog_saveregs(c, topush, cfa_offset);
 
 Lcont:
 
