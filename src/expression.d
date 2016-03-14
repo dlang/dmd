@@ -9173,11 +9173,13 @@ public:
                     earg.type.print();
             }
         }
+
         Type t1;
         Objects* tiargs = null; // initial list of template arguments
         Expression ethis = null;
         Type tthis = null;
         Expression e1org = e1;
+
         if (e1.op == TOKcomma)
         {
             /* Rewrite (a,b)(args) as (a,(b(args)))
@@ -9205,8 +9207,10 @@ public:
             if (e1.op == TOKerror)
                 return e1;
         }
+
         if (Expression ex = resolveUFCS(sc, this))
             return ex;
+
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */
@@ -9252,6 +9256,7 @@ public:
                 }
             }
         }
+
         /* This recognizes:
          *  expr.foo!(tiargs)(funcargs)
          */
@@ -9292,6 +9297,7 @@ public:
                 }
             }
         }
+
     Lagain:
         //printf("Lagain: %s\n", toChars());
         f = null;
@@ -9328,6 +9334,7 @@ public:
                 if (ex)
                     return ex;
             }
+
             /* Look for e1 being a lazy parameter
              */
             if (e1.op == TOKvar)
@@ -9347,6 +9354,7 @@ public:
                 if (v && ve.checkPurity(sc, v))
                     return new ErrorExp();
             }
+
             if (e1.op == TOKsymoff && (cast(SymOffExp)e1).hasOverloads)
             {
                 SymOffExp se = cast(SymOffExp)e1;
@@ -9369,13 +9377,16 @@ public:
                 e1 = (cast(PtrExp)e1).e1;
             }
         }
+
         t1 = e1.type ? e1.type.toBasetype() : null;
+
         if (e1.op == TOKerror)
             return e1;
         if (arrayExpressionSemantic(arguments, sc) || preFunctionParameters(loc, sc, arguments))
         {
             return new ErrorExp();
         }
+
         // Check for call operator overload
         if (t1)
         {
@@ -9476,6 +9487,37 @@ public:
                 return e;
             }
         }
+
+        static FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
+            OverloadSet os, Objects* tiargs, Type tthis, Expressions* arguments)
+        {
+            FuncDeclaration f = null;
+            foreach (s; os.a)
+            {
+                if (tiargs && s.isFuncDeclaration())
+                    continue;
+                if (auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1))
+                {
+                    if (f2.errors)
+                        return null;
+                    if (f)
+                    {
+                        /* Error if match in more than one overload set,
+                         * even if one is a 'better' match than the other.
+                         */
+                        ScopeDsymbol.multiplyDefined(loc, f, f2);
+                    }
+                    else
+                        f = f2;
+                }
+            }
+            if (!f)
+                .error(loc, "no overload matches for %s", os.toChars());
+            else if (f.errors)
+                f = null;
+            return f;
+        }
+
         if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
         {
             UnaExp ue = cast(UnaExp)e1;
@@ -9598,9 +9640,8 @@ public:
         else if (e1.op == TOKsuper)
         {
             // Base class constructor call
-            ClassDeclaration cd = null;
-            if (sc.func && sc.func.isThis())
-                cd = sc.func.isThis().isClassDeclaration();
+            auto ad = sc.func ? sc.func.isThis() : null;
+            auto cd = ad ? ad.isClassDeclaration() : null;
             if (!cd || !cd.baseClass || !sc.func.isCtorDeclaration())
             {
                 error("super class constructor call must be in a constructor");
@@ -9611,6 +9652,7 @@ public:
                 error("no super class constructor for %s", cd.baseClass.toChars());
                 return new ErrorExp();
             }
+
             if (!sc.intypeof && !(sc.callSuper & CSXhalt))
             {
                 if (sc.noctor || sc.callSuper & CSXlabel)
@@ -9621,14 +9663,12 @@ public:
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXsuper_ctor;
             }
-            if (auto os = cd.baseClass.ctor.isOverloadSet())
-            {
-                // Workaround for bugzilla 15744
-                os.error(loc, "is aliased to a function");
-                return new ErrorExp();
-            }
+
             tthis = cd.type.addMod(sc.func.type.mod);
-            f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
+            if (auto os = cd.baseClass.ctor.isOverloadSet())
+                f = resolveOverloadSet(loc, sc, os, null, tthis, arguments);
+            else
+                f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
             checkDeprecated(sc, f);
@@ -9636,6 +9676,7 @@ public:
             checkSafety(sc, f);
             checkNogc(sc, f);
             checkAccess(loc, sc, null, f);
+
             e1 = new DotVarExp(e1.loc, e1, f, false);
             e1 = e1.semantic(sc);
             t1 = e1.type;
@@ -9643,14 +9684,13 @@ public:
         else if (e1.op == TOKthis)
         {
             // same class constructor call
-            AggregateDeclaration cd = null;
-            if (sc.func && sc.func.isThis())
-                cd = sc.func.isThis().isAggregateDeclaration();
-            if (!cd || !sc.func.isCtorDeclaration())
+            auto ad = sc.func ? sc.func.isThis() : null;
+            if (!ad || !sc.func.isCtorDeclaration())
             {
                 error("constructor call must be in a constructor");
                 return new ErrorExp();
             }
+
             if (!sc.intypeof && !(sc.callSuper & CSXhalt))
             {
                 if (sc.noctor || sc.callSuper & CSXlabel)
@@ -9661,14 +9701,12 @@ public:
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXthis_ctor;
             }
-            if (auto os = cd.ctor.isOverloadSet())
-            {
-                // Workaround for bugzilla 15744
-                os.error(loc, "is aliased to a function");
-                return new ErrorExp();
-            }
-            tthis = cd.type.addMod(sc.func.type.mod);
-            f = resolveFuncCall(loc, sc, cd.ctor, null, tthis, arguments, 0);
+
+            tthis = ad.type.addMod(sc.func.type.mod);
+            if (auto os = ad.ctor.isOverloadSet())
+                f = resolveOverloadSet(loc, sc, os, null, tthis, arguments);
+            else
+                f = resolveFuncCall(loc, sc, ad.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
             checkDeprecated(sc, f);
@@ -9676,9 +9714,11 @@ public:
             checkSafety(sc, f);
             checkNogc(sc, f);
             //checkAccess(loc, sc, NULL, f);    // necessary?
+
             e1 = new DotVarExp(e1.loc, e1, f, false);
             e1 = e1.semantic(sc);
             t1 = e1.type;
+
             // BUG: this should really be done by checking the static
             // call graph
             if (f == sc.func)
@@ -9689,37 +9729,10 @@ public:
         }
         else if (e1.op == TOKoverloadset)
         {
-            OverExp eo = cast(OverExp)e1;
-            FuncDeclaration f = null;
-            Dsymbol s = null;
-            for (size_t i = 0; i < eo.vars.a.dim; i++)
-            {
-                s = eo.vars.a[i];
-                if (tiargs && s.isFuncDeclaration())
-                    continue;
-                FuncDeclaration f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
-                if (f2)
-                {
-                    if (f2.errors)
-                        return new ErrorExp();
-                    if (f)
-                    {
-                        /* Error if match in more than one overload set,
-                         * even if one is a 'better' match than the other.
-                         */
-                        ScopeDsymbol.multiplyDefined(loc, f, f2);
-                    }
-                    else
-                        f = f2;
-                }
-            }
+            auto os = (cast(OverExp)e1).vars;
+            f = resolveOverloadSet(loc, sc, os, tiargs, tthis, arguments);
             if (!f)
-            {
-                /* No overload matches
-                 */
-                error("no overload matches for %s", s.toChars());
                 return new ErrorExp();
-            }
             if (ethis)
                 e1 = new DotVarExp(loc, ethis, f, false);
             else
@@ -9929,17 +9942,20 @@ public:
             t1 = f.type;
         }
         assert(t1.ty == Tfunction);
+
         Expression argprefix;
         if (!arguments)
             arguments = new Expressions();
         if (functionParameters(loc, sc, cast(TypeFunction)t1, tthis, arguments, f, &type, &argprefix))
             return new ErrorExp();
+
         if (!type)
         {
             e1 = e1org; // Bugzilla 10922, avoid recursive expression printing
             error("forward reference to inferred return type of function call '%s'", toChars());
             return new ErrorExp();
         }
+
         if (f && f.tintro)
         {
             Type t = type;
@@ -9951,11 +9967,13 @@ public:
                 return combine(argprefix, castTo(sc, t));
             }
         }
+
         // Handle the case of a direct lambda call
         if (f && f.isFuncLiteralDeclaration() && sc.func && !sc.intypeof)
         {
             f.tookAddressOf = 0;
         }
+
         return combine(argprefix, this);
     }
 
