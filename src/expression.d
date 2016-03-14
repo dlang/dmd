@@ -9621,6 +9621,12 @@ public:
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXsuper_ctor;
             }
+            if (auto os = cd.baseClass.ctor.isOverloadSet())
+            {
+                // Workaround for bugzilla 15744
+                os.error(loc, "is aliased to a function");
+                return new ErrorExp();
+            }
             tthis = cd.type.addMod(sc.func.type.mod);
             f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
@@ -9654,6 +9660,12 @@ public:
                 if ((sc.callSuper & CSXreturn) && !(sc.callSuper & CSXany_ctor))
                     error("an earlier return statement skips constructor");
                 sc.callSuper |= CSXany_ctor | CSXthis_ctor;
+            }
+            if (auto os = cd.ctor.isOverloadSet())
+            {
+                // Workaround for bugzilla 15744
+                os.error(loc, "is aliased to a function");
+                return new ErrorExp();
             }
             tthis = cd.type.addMod(sc.func.type.mod);
             f = resolveFuncCall(loc, sc, cd.ctor, null, tthis, arguments, 0);
@@ -12832,7 +12844,18 @@ public:
                     e2x = e2x.castTo(sc, e1.type.constOf());
             }
             else
-                e2x = e2x.implicitCastTo(sc, e1.type);
+            {
+                /* Bugzilla 15778: A string literal has an array type of immutable
+                 * elements by default, and normally it cannot be convertible to
+                 * array type of mutable elements. But for element-wise assignment,
+                 * elements need to be const at best. So we should give a chance
+                 * to change code unit size for polysemous string literal.
+                 */
+                if (e2x.op == TOKstring)
+                    e2x = e2x.implicitCastTo(sc, e1.type.constOf());
+                else
+                    e2x = e2x.implicitCastTo(sc, e1.type);
+            }
         }
         else
         {
