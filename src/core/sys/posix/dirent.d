@@ -96,14 +96,18 @@ else version( OSX )
         DT_WHT      = 14
     }
 
-    align(4)
+    // _DARWIN_FEATURE_64_BIT_INODE dirent is default for Mac OSX >10.5 and is
+    // only meaningful type for other OS X/Darwin variants (e.g. iOS).
+    // man dir(5) has some info, man stat(2) gives details.
     struct dirent
     {
         ino_t       d_ino;
+        alias       d_fileno = d_ino;
+        ulong       d_seekoff;
         ushort      d_reclen;
+        ushort      d_namlen;
         ubyte       d_type;
-        ubyte       d_namlen;
-        char[256]   d_name;
+        char[1024]  d_name;
     }
 
     struct DIR
@@ -111,7 +115,9 @@ else version( OSX )
         // Managed by OS
     }
 
-    dirent* readdir(DIR*);
+    // OS X maintains backwards compatibility with older binaries using 32-bit
+    // inode functions by appending $INODE64 to newer 64-bit inode functions.
+    pragma(mangle, "readdir$INODE64") dirent* readdir(DIR*);
 }
 else version( FreeBSD )
 {
@@ -205,10 +211,30 @@ else
     static assert(false, "Unsupported platform");
 }
 
-int     closedir(DIR*);
-DIR*    opendir(in char*);
-//dirent* readdir(DIR*);
-void    rewinddir(DIR*);
+version( OSX )
+{
+    version( D_LP64 )
+    {
+        int closedir(DIR*);
+        pragma(mangle, "opendir$INODE64")   DIR* opendir(in char*);
+        pragma(mangle, "rewinddir$INODE64") void rewinddir(DIR*);
+    }
+    else
+    {
+        // 32-bit mangles __DARWIN_UNIX03 specific functions with $UNIX2003 to
+        // maintain backward compatibility with binaries build pre 10.5
+        pragma(mangle, "closedir$UNIX2003")          int closedir(DIR*);
+        pragma(mangle, "opendir$INODE64$UNIX2003")   DIR* opendir(in char*);
+        pragma(mangle, "rewinddir$INODE64$UNIX2003") void rewinddir(DIR*);
+    }
+}
+else
+{
+    int     closedir(DIR*);
+    DIR*    opendir(in char*);
+    //dirent* readdir(DIR*);
+    void    rewinddir(DIR*);
+}
 
 //
 // Thread-Safe Functions (TSF)
@@ -231,7 +257,7 @@ version( CRuntime_Glibc )
 }
 else version( OSX )
 {
-    int readdir_r(DIR*, dirent*, dirent**);
+    pragma(mangle, "readdir_r$INODE64") int readdir_r(DIR*, dirent*, dirent**);
 }
 else version( FreeBSD )
 {
@@ -276,8 +302,20 @@ else version( FreeBSD )
     void   seekdir(DIR*, c_long);
     c_long telldir(DIR*);
 }
-else version (OSX)
+else version ( OSX )
 {
+    version ( D_LP64 )
+    {
+        pragma(mangle, "seekdir$INODE64") void seekdir(DIR*, c_long);
+        pragma(mangle, "telldir$INODE64") c_long telldir(DIR*);
+    }
+    else
+    {
+        // 32-bit mangles __DARWIN_UNIX03 specific functions with $UNIX2003 to
+        // maintain backward compatibility with binaries build pre 10.5
+        pragma(mangle, "seekdir$INODE64$UNIX2003") void seekdir(DIR*, c_long);
+        pragma(mangle, "telldir$INODE64$UNIX2003") c_long telldir(DIR*);
+    }
 }
 else version (Solaris)
 {
