@@ -4411,6 +4411,9 @@ public:
     TOK tok;        // TOKfunction or TOKdelegate
     Type treq;      // target of return type inference
 
+    // backend
+    bool deferToObj;
+
     extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
     {
         super(loc, endloc, null, STCundefined, type);

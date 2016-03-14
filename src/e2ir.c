@@ -978,6 +978,11 @@ elem *toElem(Expression *e, IRState *irs)
                     fld->tok = TOKfunction;
                     fld->vthis = NULL;
                 }
+                if (!fld->deferToObj)
+                {
+                    fld->deferToObj = true;
+                    irs->deferToObj->push(fld);
+                }
             }
 
             Symbol *s = toSymbol(se->var);
@@ -1159,22 +1164,28 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(FuncExp *fe)
         {
             //printf("FuncExp::toElem() %s\n", fe->toChars());
-            if (fe->fd->tok == TOKreserved && fe->type->ty == Tpointer)
+            FuncLiteralDeclaration *fld = fe->fd;
+
+            if (fld->tok == TOKreserved && fe->type->ty == Tpointer)
             {
                 // change to non-nested
-                fe->fd->tok = TOKfunction;
-                fe->fd->vthis = NULL;
+                fld->tok = TOKfunction;
+                fld->vthis = NULL;
             }
-            Symbol *s = toSymbol(fe->fd);
-            elem *e = el_ptr(s);
-            if (fe->fd->isNested())
+            if (!fld->deferToObj)
             {
-                elem *ethis = getEthis(fe->loc, irs, fe->fd);
-                e = el_pair(TYdelegate, ethis, e);
+                fld->deferToObj = true;
+                irs->deferToObj->push(fld);
             }
 
-            irs->deferToObj->push(fe->fd);
-            el_setLoc(e,fe->loc);
+            Symbol *s = toSymbol(fld);
+            elem *e = el_ptr(s);
+            if (fld->isNested())
+            {
+                elem *ethis = getEthis(fe->loc, irs, fld);
+                e = el_pair(TYdelegate, ethis, e);
+            }
+            el_setLoc(e, fe->loc);
             result = e;
         }
 
