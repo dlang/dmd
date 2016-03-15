@@ -250,7 +250,7 @@ tryagain:
             block* b = dfo[dfoidx];
             blcodgen(b);                        // gen code in depth-first order
             //printf("b->Bregcon.used = %s\n", regm_str(b->Bregcon.used));
-            cgreg_used(dfoidx,b->Bregcon.used); // gather register used information
+            cgreg_used(dfoidx, b->Bregcon.used); // gather register used information
         }
     }
     else
@@ -1991,6 +1991,22 @@ L3:
 #warning cpu specific code
 #endif
 }
+
+/******************************
+ * Determine registers that should be destroyed upon arrival
+ * to code entry point for exception handling.
+ */
+regm_t lpadregs()
+{
+    regm_t used;
+    if (config.ehmethod == EH_DWARF)
+        used = allregs & ~mfuncreg;
+    else
+	used = (I32 | I64) ? allregs : (ALLREGS | mES);
+    //printf("lpadregs(): used=%s, allregs=%s, mfuncreg=%s\n", regm_str(used), regm_str(allregs), regm_str(mfuncreg));
+    return used;
+}
+
 
 /*************************
  * Mark registers as used.
