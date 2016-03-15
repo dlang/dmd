@@ -379,73 +379,11 @@ private int tryMain(size_t argc, const(char)** argv)
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.mscoff = false;
+
+    // Temporary: Use 32 bits as the default on Windows, for config parsing
     static if (TARGET_WINDOS)
-    {
         global.params.is64bit = false;
-        global.params.defaultlibname = "phobos";
-    }
-    else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-    {
-        global.params.defaultlibname = "libphobos2.a";
-    }
-    else static if (TARGET_OSX)
-    {
-        global.params.defaultlibname = "phobos2";
-    }
-    else
-    {
-        static assert(0, "fix this");
-    }
-    // Predefine version identifiers
-    VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    static if (TARGET_WINDOS)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Windows");
-        global.params.isWindows = true;
-    }
-    else static if (TARGET_LINUX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("linux");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isLinux = true;
-    }
-    else static if (TARGET_OSX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OSX");
-        global.params.isOSX = true;
-        // For legacy compatibility
-        VersionCondition.addPredefinedGlobalIdent("darwin");
-    }
-    else static if (TARGET_FREEBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("FreeBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isFreeBSD = true;
-    }
-    else static if (TARGET_OPENBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OpenBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isFreeBSD = true;
-    }
-    else static if (TARGET_SOLARIS)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("Solaris");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isSolaris = true;
-    }
-    else
-    {
-        static assert(0, "fix this");
-    }
-    VersionCondition.addPredefinedGlobalIdent("LittleEndian");
-    VersionCondition.addPredefinedGlobalIdent("D_Version2");
-    VersionCondition.addPredefinedGlobalIdent("all");
+
     global.inifilename = parse_conf_arg(&arguments);
     if (global.inifilename)
     {
@@ -994,15 +932,10 @@ Language changes listed by -transition=id:
             }
             else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0)
             {
-                static if (TARGET_WINDOS)
-                {
-                    setdefaultlib = true;
-                }
                 global.params.defaultlibname = p + 1 + 11;
             }
             else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)
             {
-                setdebuglib = true;
                 global.params.debuglibname = p + 1 + 9;
             }
             else if (memcmp(p + 1, cast(char*)"deps", 4) == 0)
@@ -1132,8 +1065,6 @@ Language changes listed by -transition=id:
         usage();
         return EXIT_FAILURE;
     }
-    if (!setdebuglib)
-        global.params.debuglibname = global.params.defaultlibname;
     static if (TARGET_OSX)
     {
         global.params.pic = 1;
@@ -1202,69 +1133,12 @@ Language changes listed by -transition=id:
             //fatal();
         }
     }
-    if (global.params.is64bit)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-        VersionCondition.addPredefinedGlobalIdent("X86_64");
-        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        static if (TARGET_WINDOS)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win64");
-            if (!setdefaultlib)
-            {
-                global.params.defaultlibname = "phobos64";
-                if (!setdebuglib)
-                    global.params.debuglibname = global.params.defaultlibname;
-            }
-        }
-    }
-    else
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-        VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET_OSX)
-        {
-            VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        }
-        static if (TARGET_WINDOS)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win32");
-            if (!setdefaultlib && global.params.mscoff)
-            {
-                global.params.defaultlibname = "phobos32mscoff";
-                if (!setdebuglib)
-                    global.params.debuglibname = global.params.defaultlibname;
-            }
-        }
-    }
-    static if (TARGET_WINDOS)
-    {
-        if (global.params.mscoff)
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
-        else
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
-    }
-    else static if (TARGET_LINUX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
-    }
-    if (global.params.isLP64)
-        VersionCondition.addPredefinedGlobalIdent("D_LP64");
-    if (global.params.doDocComments)
-        VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
-    if (global.params.cov)
-        VersionCondition.addPredefinedGlobalIdent("D_Coverage");
-    if (global.params.pic)
-        VersionCondition.addPredefinedGlobalIdent("D_PIC");
-    if (global.params.useUnitTests)
-        VersionCondition.addPredefinedGlobalIdent("unittest");
-    if (global.params.useAssert)
-        VersionCondition.addPredefinedGlobalIdent("assert");
-    if (global.params.useArrayBounds == BOUNDSCHECKoff)
-        VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
-    VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
+
+    // Predefined version identifiers
+    addDefaultVersionIdentifiers();
     objc_tryMain_dObjc();
+
+    setDefaultLibrary();
 
     // Initialization
     Type._init();
@@ -1979,4 +1853,156 @@ extern (C++) VarDeclarations* VarDeclarations_create()
 extern (C++) Expressions* Expressions_create()
 {
     return new Expressions();
+}
+
+/**
+ * Set the default and debug libraries to link against, if not already set
+ *
+ * Must be called after argument parsing is done, as it won't
+ * override any value.
+ * Note that if `-defaultlib=` or `-debuglib=` was used,
+ * we don't override that either.
+ */
+private void setDefaultLibrary()
+{
+    if (global.params.defaultlibname is null)
+    {
+        static if (TARGET_WINDOS)
+        {
+            if (global.params.is64bit)
+                global.params.defaultlibname = "phobos64";
+            else if (global.params.mscoff)
+                global.params.defaultlibname = "phobos32mscoff";
+            else
+                global.params.defaultlibname = "phobos";
+        }
+        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        {
+            global.params.defaultlibname = "libphobos2.a";
+        }
+        else static if (TARGET_OSX)
+        {
+            global.params.defaultlibname = "phobos2";
+        }
+        else
+        {
+            static assert(0, "fix this");
+        }
+    }
+    if (global.params.debuglibname is null)
+        global.params.debuglibname = global.params.defaultlibname;
+}
+
+
+/**
+ * Add default `version` identifier for ddmd, and set the
+ * target platform in `global`.
+ *
+ * Needs to be run after all arguments parsing (command line, DFLAGS environment
+ * variable and config file) in order to add final flags (such as `X86_64` or
+ * the `CRuntime` used).
+ */
+private void addDefaultVersionIdentifiers()
+{
+    VersionCondition.addPredefinedGlobalIdent("DigitalMars");
+    static if (TARGET_WINDOS)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Windows");
+        global.params.isWindows = true;
+    }
+    else static if (TARGET_LINUX)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("linux");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isLinux = true;
+    }
+    else static if (TARGET_OSX)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("OSX");
+        global.params.isOSX = true;
+        // For legacy compatibility
+        VersionCondition.addPredefinedGlobalIdent("darwin");
+    }
+    else static if (TARGET_FREEBSD)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("FreeBSD");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isFreeBSD = true;
+    }
+    else static if (TARGET_OPENBSD)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("OpenBSD");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isFreeBSD = true;
+    }
+    else static if (TARGET_SOLARIS)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("Solaris");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isSolaris = true;
+    }
+    else
+    {
+        static assert(0, "fix this");
+    }
+    VersionCondition.addPredefinedGlobalIdent("LittleEndian");
+    VersionCondition.addPredefinedGlobalIdent("D_Version2");
+    VersionCondition.addPredefinedGlobalIdent("all");
+
+    if (global.params.is64bit)
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
+        VersionCondition.addPredefinedGlobalIdent("X86_64");
+        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
+        static if (TARGET_WINDOS)
+        {
+            VersionCondition.addPredefinedGlobalIdent("Win64");
+        }
+    }
+    else
+    {
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
+        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
+        VersionCondition.addPredefinedGlobalIdent("X86");
+        static if (TARGET_OSX)
+        {
+            VersionCondition.addPredefinedGlobalIdent("D_SIMD");
+        }
+        static if (TARGET_WINDOS)
+        {
+            VersionCondition.addPredefinedGlobalIdent("Win32");
+        }
+    }
+    static if (TARGET_WINDOS)
+    {
+        if (global.params.mscoff)
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
+        else
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
+    }
+    else static if (TARGET_LINUX)
+    {
+        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+    }
+
+    if (global.params.isLP64)
+        VersionCondition.addPredefinedGlobalIdent("D_LP64");
+    if (global.params.doDocComments)
+        VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
+    if (global.params.cov)
+        VersionCondition.addPredefinedGlobalIdent("D_Coverage");
+    if (global.params.pic)
+        VersionCondition.addPredefinedGlobalIdent("D_PIC");
+    if (global.params.useUnitTests)
+        VersionCondition.addPredefinedGlobalIdent("unittest");
+    if (global.params.useAssert)
+        VersionCondition.addPredefinedGlobalIdent("assert");
+    if (global.params.useArrayBounds == BOUNDSCHECKoff)
+        VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
+    VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 }
