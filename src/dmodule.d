@@ -1134,7 +1134,8 @@ public:
             if (sd == s)
                 return;
         }
-        //printf("Module::addDeferredSemantic('%s')\n", s->toChars());
+
+        //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
         deferred.push(s);
     }
 
@@ -1145,11 +1146,13 @@ public:
     {
         if (dprogress == 0)
             return;
+
         static __gshared int nested;
         if (nested)
             return;
         //if (deferred.dim) printf("+Module::runDeferredSemantic(), len = %d\n", deferred.dim);
         nested++;
+
         size_t len;
         do
         {
@@ -1157,6 +1160,7 @@ public:
             len = deferred.dim;
             if (!len)
                 break;
+
             Dsymbol* todo;
             Dsymbol* todoalloc = null;
             Dsymbol tmp;
@@ -1172,11 +1176,12 @@ public:
             }
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
             deferred.setDim(0);
+
             for (size_t i = 0; i < len; i++)
             {
                 Dsymbol s = todo[i];
                 s.semantic(null);
-                //printf("deferred: %s, parent = %s\n", s->toChars(), s->parent->toChars());
+                //printf("deferred: %s, parent = %s\n", s.toChars(), s.parent.toChars());
             }
             //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
             if (todoalloc)
@@ -1205,8 +1210,9 @@ public:
         for (size_t i = 0; i < a.dim; i++)
         {
             Dsymbol s = (*a)[i];
-            //printf("[%d] %s semantic3a\n", i, s->toPrettyChars());
+            //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
             s.semantic3(null);
+
             if (global.errors)
                 break;
         }

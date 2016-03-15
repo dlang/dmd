@@ -3818,7 +3818,7 @@ public:
     Lagain:
         Expression e;
         //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
-        //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
+        //printf("s = '%s', s.kind = '%s'\n", s.toChars(), s.kind());
         Dsymbol olds = s;
         Declaration d = s.isDeclaration();
         if (d && (d.storage_class & STCtemplateparameter))
@@ -3833,7 +3833,7 @@ public:
             // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
 
-            //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
+            //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
             if (s != olds && !s.isFuncDeclaration())
                 s.checkDeprecated(loc, sc);
         }
@@ -3844,7 +3844,7 @@ public:
         }
         if (VarDeclaration v = s.isVarDeclaration())
         {
-            //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
+            //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v.type.toChars());
             if (!v.type)
             {
                 .error(loc, "forward reference of %s %s", v.kind(), v.toChars());
@@ -3877,7 +3877,7 @@ public:
         }
         if (auto fld = s.isFuncLiteralDeclaration())
         {
-            //printf("'%s' is a function literal\n", fld->toChars());
+            //printf("'%s' is a function literal\n", fld.toChars());
             e = new FuncExp(loc, fld);
             return e.semantic(sc);
         }
@@ -3902,7 +3902,7 @@ public:
         }
         if (OverloadSet o = s.isOverloadSet())
         {
-            //printf("'%s' is an overload set\n", o->toChars());
+            //printf("'%s' is an overload set\n", o.toChars());
             return new OverExp(loc, o);
         }
         if (Import imp = s.isImport())

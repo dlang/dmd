@@ -1689,7 +1689,7 @@ public:
 
     override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
-        //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad->toChars(), toChars());
+        //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
         if (aliassym)
         {
             // If this variable was really a tuple, set the offsets for the tuple fields
@@ -1760,16 +1760,19 @@ public:
             ad.sizeok = SIZEOKfwd; // cannot finish; flag as forward referenced
             return;
         }
-        // List in ad->fields. Even if the type is error, it's necessary to avoid
+
+        // List in ad.fields. Even if the type is error, it's necessary to avoid
         // pointless error diagnostic "more initializers than fields" on struct literal.
         ad.fields.push(this);
+
         if (t.ty == Terror)
             return;
+
         uint memsize = cast(uint)t.size(loc); // size of member
         uint memalignsize = Target.fieldalign(t); // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(poffset, memsize, memalignsize, alignment, &ad.structsize, &ad.alignsize, isunion);
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
-        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
+        //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
     }
 
     override final void semantic2(Scope* sc)

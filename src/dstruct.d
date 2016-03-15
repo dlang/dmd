@@ -266,7 +266,7 @@ public:
 
     override final void semantic(Scope* sc)
     {
-        //printf("StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent.toChars(), toChars(), sizeok);
+        //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
 
         //static int count; if (++count == 20) assert(0);
 
@@ -275,7 +275,7 @@ public:
         uint dprogress_save = Module.dprogress;
         int errors = global.errors;
 
-        //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent.toChars(), toChars(), sizeok);
+        //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
         Scope* scx = null;
         if (_scope)
         {
@@ -338,7 +338,7 @@ public:
             for (size_t i = 0; i < members.dim; i++)
             {
                 Dsymbol s = (*members)[i];
-                //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
+                //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
                 s.addMember(sc, this);
             }
         }
@@ -363,7 +363,7 @@ public:
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            //printf("struct: setScope %s %s\n", s->kind(), s->toChars());
+            //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
             s.setScope(sc2);
         }
 
@@ -447,16 +447,6 @@ public:
         xcmp = buildXopCmp(this, sc2);
         xhash = buildXtoHash(this, sc2);
 
-        /* Even if the struct is merely imported and its semantic3 is not run,
-         * the TypeInfo object would be speculatively stored in each object
-         * files. To set correct function pointer, run semantic3 for xeq and xcmp.
-         */
-        //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
-        //    Module::addDeferredSemantic3(this);
-
-        /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
-         * See semanticTypeInfo().
-         */
         inv = buildInv(this, sc2);
 
         sc2.pop();

@@ -8,6 +8,7 @@
 
 module ddmd.clone;
 
+import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.declaration;
@@ -132,10 +133,10 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
  */
 extern (C++) bool needOpAssign(StructDeclaration sd)
 {
-    //printf("StructDeclaration::needOpAssign() %s\n", sd->toChars());
+    //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
     if (sd.hasIdentityAssign)
-        goto Lneed;
-    // because has identity==elaborate opAssign
+        goto Lneed; // because has identity==elaborate opAssign
+
     if (sd.dtor || sd.postblit)
         goto Lneed;
     /* If any of the fields need an opAssign, then we
@@ -192,7 +193,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     // will be defined.
     if (!needOpAssign(sd))
         return null;
-    //printf("StructDeclaration::buildOpAssign() %s\n", sd->toChars());
+
+    //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
@@ -298,7 +300,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     sc2.linkage = LINKd;
     fop.semantic(sc2);
     fop.semantic2(sc2);
-    // Bugzilla 15044: fop->semantic3 isn't run here for lazy forward reference resolution.
+    // Bugzilla 15044: fop.semantic3 isn't run here for lazy forward reference resolution.
 
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
@@ -307,7 +309,8 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         fop.storage_class |= STCdisable;
         fop.fbody = null; // remove fbody which contains the error
     }
-    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd->toChars(), (fop->storage_class & STCdisable) != 0);
+
+    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd.toChars(), (fop.storage_class & STCdisable) != 0);
     return fop;
 }
 
@@ -318,7 +321,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
  */
 extern (C++) bool needOpEquals(StructDeclaration sd)
 {
-    //printf("StructDeclaration::needOpEquals() %s\n", sd->toChars());
+    //printf("StructDeclaration::needOpEquals() %s\n", sd.toChars());
     if (sd.hasIdentityEquals)
         goto Lneed;
     if (sd.isUnionDeclaration())
@@ -446,7 +449,8 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
 {
     if (!needOpEquals(sd))
         return null; // bitwise comparison would work
-    //printf("StructDeclaration::buildXopEquals() %s\n", sd->toChars());
+
+    //printf("StructDeclaration::buildXopEquals() %s\n", sd.toChars());
     if (Dsymbol eq = search_function(sd, Id.eq))
     {
         if (FuncDeclaration fd = eq.isFuncDeclaration())
@@ -538,9 +542,8 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     }
     else
     {
-        version (none)
+        version (none) // FIXME: doesn't work for recursive alias this
         {
-            // FIXME: doesn't work for recursive alias this
             /* Check opCmp member exists.
              * Consider 'alias this', but except opDispatch.
              */
@@ -630,7 +633,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
  */
 extern (C++) bool needToHash(StructDeclaration sd)
 {
-    //printf("StructDeclaration::needToHash() %s\n", sd->toChars());
+    //printf("StructDeclaration::needToHash() %s\n", sd.toChars());
     if (sd.xhash)
         goto Lneed;
     if (sd.isUnionDeclaration())
@@ -699,7 +702,8 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     }
     if (!needToHash(sd))
         return null;
-    //printf("StructDeclaration::buildXtoHash() %s\n", sd->toPrettyChars());
+
+    //printf("StructDeclaration::buildXtoHash() %s\n", sd.toPrettyChars());
     Loc declLoc = Loc(); // loc is unnecessary so __xtoHash is never called directly
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
     auto parameters = new Parameters();
@@ -725,7 +729,8 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     fop.semantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
-    //printf("%s fop = %s %s\n", sd->toChars(), fop->toChars(), fop->type->toChars());
+
+    //printf("%s fop = %s %s\n", sd.toChars(), fop.toChars(), fop.type.toChars());
     return fop;
 }
 
@@ -738,7 +743,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
  */
 extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 {
-    //printf("StructDeclaration::buildPostBlit() %s\n", sd->toChars());
+    //printf("StructDeclaration::buildPostBlit() %s\n", sd.toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
@@ -902,7 +907,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
  */
 extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 {
-    //printf("AggregateDeclaration::buildDtor() %s\n", ad->toChars());
+    //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage

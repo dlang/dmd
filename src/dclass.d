@@ -1079,7 +1079,7 @@ public:
     override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.ClassDeclaration.search('%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
-        //if (scope) printf("%s baseok = %d\n", toChars(), baseok);
+        //if (_scope) printf("%s baseok = %d\n", toChars(), baseok);
         if (_scope && baseok < BASEOKdone)
         {
             if (!inuse)
