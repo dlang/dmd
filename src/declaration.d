@@ -918,11 +918,6 @@ public:
         return true;
     }
 
-    override Dsymbol toAlias()
-    {
-        return this;
-    }
-
     Dsymbol isUnique()
     {
         if (!hasOverloads)
