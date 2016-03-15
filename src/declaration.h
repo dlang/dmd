@@ -695,6 +695,9 @@ public:
     TOK tok;                       // TOKfunction or TOKdelegate
     Type *treq;                         // target of return type inference
 
+    // backend
+    bool deferToObj;
+
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, TOK tok,
         ForeachStatement *fes, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
