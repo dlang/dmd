@@ -18,10 +18,6 @@
 #include        <ctype.h>
 #include        <time.h>
 
-#if _WIN32 || __linux__
-#include        <malloc.h>
-#endif
-
 #include        "cc.h"
 #include        "global.h"
 #include        "code.h"
@@ -239,30 +235,6 @@ static IDXSTR elf_addmangled(Symbol *s)
     {
         if (strncmp(name,"__ct__",6) == 0)
             name += 4;
-#if 0
-        switch(name[2])
-        {
-            case 'c':
-                if (strncmp(name,"__ct__",6) == 0)
-                    name += 4;
-                break;
-            case 'd':
-                if (strcmp(name,"__dl__FvP") == 0)
-                    name = "__builtin_delete";
-                break;
-            case 'v':
-                //if (strcmp(name,"__vec_delete__FvPiUIPi") == 0)
-                    //name = "__builtin_vec_del";
-                //else
-                //if (strcmp(name,"__vn__FPUI") == 0)
-                    //name = "__builtin_vec_new";
-                break;
-            case 'n':
-                if (strcmp(name,"__nw__FPUI") == 0)
-                    name = "__builtin_new";
-                break;
-        }
-#endif
     }
     else if (tyfunc(s->ty()) && s->Sfunc && s->Sfunc->Fredirect)
         name = s->Sfunc->Fredirect;
@@ -283,28 +255,12 @@ static IDXSTR elf_addmangled(Symbol *s)
 
 symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 {
-    symbol *s;
-
-#if 0
-    if (I64)
-    {
-        alignOffset(DATA, tysize(ty));
-        s = symboldata(Doffset, ty);
-        SegData[DATA]->SDbuf->write(p,len);
-        s->Sseg = DATA;
-        s->Soffset = Doffset;   // Remember its offset into DATA section
-        Doffset += len;
-    }
-    else
-#endif
-    {
-        //printf("MsCoffObj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
-        alignOffset(CDATA, tysize(ty));
-        s = symboldata(CDoffset, ty);
-        s->Sseg = CDATA;
-        MsCoffObj::pubdef(CDATA, s, CDoffset);
-        MsCoffObj::bytes(CDATA, CDoffset, len, p);
-    }
+    //printf("MsCoffObj::sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
+    alignOffset(CDATA, tysize(ty));
+    symbol *s = symboldata(CDoffset, ty);
+    s->Sseg = CDATA;
+    MsCoffObj::pubdef(CDATA, s, CDoffset);
+    MsCoffObj::bytes(CDATA, CDoffset, len, p);
 
     s->Sfl = FLdata; //FLextern;
     return s;
@@ -318,24 +274,19 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
 int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
-#if !MARS
-    if (I64 || I32)
-    {
-        oldoff = Doffset;
-        SegData[DATA]->SDbuf->reserve(len);
-        SegData[DATA]->SDbuf->writen(p,len);
-        Doffset += len;
-        *pseg = DATA;
-    }
-    else
+#if SCPP
+    oldoff = Doffset;
+    SegData[DATA]->SDbuf->reserve(len);
+    SegData[DATA]->SDbuf->writen(p,len);
+    Doffset += len;
+    *pseg = DATA;
+#else
+    oldoff = CDoffset;
+    SegData[CDATA]->SDbuf->reserve(len);
+    SegData[CDATA]->SDbuf->writen(p,len);
+    CDoffset += len;
+    *pseg = CDATA;
 #endif
-    {
-        oldoff = CDoffset;
-        SegData[CDATA]->SDbuf->reserve(len);
-        SegData[CDATA]->SDbuf->writen(p,len);
-        CDoffset += len;
-        *pseg = CDATA;
-    }
     return oldoff;
 }
 
@@ -912,7 +863,6 @@ void MsCoffObj::term(const char *objfilename)
                         if (I64)
                         {
 //printf("test1 %s %d\n", s->Sident, r->val);
-#if 1
                             rel.r_type = (r->rtype == RELrel)
                                     ? IMAGE_REL_AMD64_REL32
                                     : IMAGE_REL_AMD64_REL32;
@@ -943,18 +893,7 @@ void MsCoffObj::term(const char *objfilename)
                             {
                                 rel.r_vaddr = r->offset;
                                 rel.r_symndx = s->Sxtrnnum;
-#if 0
-                                int32_t *p = patchAddr(seg, r->offset);
-                                // Absolute address; add in addr of start of targ seg
-//printf("*p = x%x, .s_vaddr = x%x, Soffset = x%x\n", *p, (int)ScnhdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr, (int)s->Soffset);
-//printf("pseg = x%x, r->offset = x%x\n", (int)ScnhdrTab[pseg->SDshtidx].s_vaddr, (int)r->offset);
-                                *p += ScnhdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr;
-                                *p += s->Soffset;
-                                *p -= ScnhdrTab[pseg->SDshtidx].s_vaddr + r->offset + 4;
-                                //patch(pseg, r->offset, s->Sseg, s->Soffset);
-#endif
                             }
-#endif
                         }
                         else if (I32)
                         {
@@ -1014,61 +953,10 @@ void MsCoffObj::term(const char *objfilename)
 
                         rel.r_vaddr = r->offset;
                         rel.r_symndx = s->Sxtrnnum;
-#if 0
-                        if (s->Sclass == SCextern ||
-                            s->Sclass == SCcomdef ||
-                            s->Sclass == SCcomdat)
-                        {
-                            rel.r_address = r->offset;
-                            rel.r_symbolnum = s->Sxtrnnum;
-                            rel.r_pcrel = 0;
-                            rel.r_length = 2;
-                            rel.r_extern = 1;
-                            rel.r_type = IMAGE_REL_I386_DIR32;
-                            if (I64)
-                            {
-                                rel.r_type = IMAGE_REL_AMD64_ADDR32;
-                                rel.r_length = 3;
-                            }
-                        }
-                        else
-                        {
-                            rel.r_address = r->offset;
-                            rel.r_symbolnum = s->Sseg;
-                            rel.r_pcrel = 0;
-                            rel.r_length = 2;
-                            rel.r_extern = 0;
-                            rel.r_type = IMAGE_REL_I386_DIR32;
-                            if (I64)
-                            {
-                                rel.r_type = IMAGE_REL_AMD64_ADDR32;
-                                rel.r_length = 3;
-                                if (0 && s->Sseg != seg)
-                                    rel.r_type = IMAGE_REL_AMD64_REL32;
-                            }
-                            if (I64)
-                            {
-                                rel.r_length = 3;
-                                int32_t *p = patchAddr64(seg, r->offset);
-                                // Absolute address; add in addr of start of targ seg
-                                *p += ScnhdrTab64[SegData[s->Sseg]->SDshtidx].s_vaddr + s->Soffset;
-                                //patch(pseg, r->offset, s->Sseg, s->Soffset);
-                            }
-                            else
-                            {
-                                int32_t *p = patchAddr(seg, r->offset);
-                                // Absolute address; add in addr of start of targ seg
-                                *p += ScnhdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr + s->Soffset;
-                                //patch(pseg, r->offset, s->Sseg, s->Soffset);
-                            }
-                        }
-#endif
                     }
                 }
                 else if (r->rtype == RELaddr && pseg->isCode())
                 {
-printf("test3\n");
-#if 1
                     int32_t *p = NULL;
                     p = patchAddr(seg, r->offset);
 
@@ -1087,55 +975,10 @@ printf("test3\n");
                         //srel.r_value = ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr + *p;
                         //printf("SECTDIFF: x%x + x%x = x%x\n", ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr, *p, srel.r_value);
                     }
-#endif
                 }
                 else
                 {
-printf("test4\n");
-#if 0
-                    rel.r_address = r->offset;
-                    rel.r_symbolnum = r->targseg;
-                    rel.r_pcrel = (r->rtype == RELaddr) ? 0 : 1;
-                    rel.r_length = 2;
-                    rel.r_extern = 0;
-                    rel.r_type = GENERIC_RELOC_VANILLA;
-                    if (I64)
-                    {
-                        rel.r_type = IMAGE_REL_AMD64_SECREL;
-                        rel.r_length = 3;
-                        if (0 && r->targseg != seg)
-                            rel.r_type = IMAGE_REL_AMD64_REL32;
-                    }
-
-                    if (I64)
-                    {
-                        int32_t *p64 = patchAddr64(seg, r->offset);
-                        //int64_t before = *p64;
-                        if (rel.r_pcrel)
-                            // Relative address
-                            patch(pseg, r->offset, r->targseg, 0);
-                        else
-                        {   // Absolute address; add in addr of start of targ seg
-//printf("*p = x%x, targ.s_vaddr = x%x\n", *p64, (int)ScnhdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr);
-//printf("pseg = x%x, r->offset = x%x\n", (int)ScnhdrTab64[pseg->SDshtidx].s_vaddr, (int)r->offset);
-                            *p64 += ScnhdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr;
-                            //*p64 -= ScnhdrTab64[pseg->SDshtidx].s_vaddr;
-                        }
-                        //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r->offset, before, *p64, rel.r_pcrel);
-                    }
-                    else
-                    {
-                        int32_t *p = patchAddr(seg, r->offset);
-                        //int32_t before = *p;
-                        if (rel.r_pcrel)
-                            // Relative address
-                            patch(pseg, r->offset, r->targseg, 0);
-                        else
-                            // Absolute address; add in addr of start of targ seg
-                            *p += ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr;
-                        //printf("%d:x%04x before = x%04x, after = x%04x pcrel = %d\n", seg, r->offset, before, *p, rel.r_pcrel);
-                    }
-#endif
+                    assert(0);
                 }
 
                 /* Some programs do generate a lot of symbols.
@@ -1814,27 +1657,6 @@ char *obj_mangle2(Symbol *s,char *dest)
             strupr(dest);               // to upper case
             break;
         case mTYman_std:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            if (tyfunc(s->ty()) && !variadic(s->Stype))
-#else
-            if (!(config.flags4 & CFG4oldstdmangle) &&
-                config.exe == EX_WIN32 && tyfunc(s->ty()) &&
-                !variadic(s->Stype))
-#endif
-            {
-                char *pstr = unsstr(type_paramsize(s->Stype));
-                size_t pstrlen = strlen(pstr);
-                size_t prelen = I32 ? 1 : 0;
-                size_t destlen = prelen + len + 1 + pstrlen + 1;
-
-                if (destlen > DEST_LEN)
-                    dest = (char *)mem_malloc(destlen);
-                dest[0] = '_';
-                memcpy(dest + prelen,name,len);
-                dest[prelen + len] = '@';
-                memcpy(dest + prelen + 1 + len, pstr, pstrlen + 1);
-                break;
-            }
         case mTYman_cpp:
         case mTYman_d:
         case mTYman_sys:
@@ -1954,13 +1776,6 @@ void MsCoffObj::func_term(Symbol *sfunc)
     //dbg_printf("MsCoffObj::func_term(%s) offset %x, Coffset %x symidx %d\n",
 //          sfunc->Sident, sfunc->Soffset,Coffset,sfunc->Sxtrnnum);
 
-#if 0
-    // fill in the function size
-    if (I64)
-        SymbolTable64[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
-    else
-        SymbolTable[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
-#endif
     if (config.fulltypes)
         cv8_func_term(sfunc);
 }
@@ -2255,24 +2070,6 @@ void mach_relsort(Outbuffer *buf)
 }
 
 /*******************************
- * Output a relocation entry for a segment
- * Input:
- *      seg =           where the address is going
- *      offset =        offset within seg
- *      type =          ELF relocation type
- *      index =         Related symbol table index
- *      val =           addend or displacement from address
- */
-
-#if 0
-void MsCoffObj::addrel(segidx_t seg, targ_size_t offset, unsigned type,
-                                        IDXSYM symidx, targ_size_t val)
-{
-    printf("addrel2()\n");
-}
-#endif
-
-/*******************************
  * Refer to address that is in the data segment.
  * Input:
  *      seg:offset =    the address being fixed up
@@ -2411,39 +2208,7 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
         {
             if (SegData[seg]->isCode() && flags & CFselfrel)
             {
-#if 0
-                if (!jumpTableSeg)
-                {
-                    jumpTableSeg =
-                        MsCoffObj::getsegment("__jump_table", "__IMPORT",  0, S_SYMBOL_STUBS | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS | S_ATTR_SELF_MODIFYING_CODE);
-                }
-#endif
                 seg_data *pseg = SegData[jumpTableSeg];
-//                ScnhdrTab[pseg->SDshtidx].reserved2 = 5;
-
-#if 0
-                if (!indirectsymbuf1)
-                    indirectsymbuf1 = new Outbuffer();
-                else
-                {   // Look through indirectsym to see if it is already there
-                    int n = indirectsymbuf1->size() / sizeof(Symbol *);
-                    Symbol **psym = (Symbol **)indirectsymbuf1->buf;
-                    for (int i = 0; i < n; i++)
-                    {   // Linear search, pretty pathetic
-                        if (s == psym[i])
-                        {   val = i * 5;
-                            goto L1;
-                        }
-                    }
-                }
-
-                val = pseg->SDbuf->size();
-                static char halts[5] = { 0xF4,0xF4,0xF4,0xF4,0xF4 };
-                pseg->SDbuf->write(halts, 5);
-
-                // Add symbol s to indirectsymbuf1
-                indirectsymbuf1->write(&s, sizeof(Symbol *));
-#endif
              L1:
                 val -= offset + 4;
                 MsCoffObj::addrel(seg, offset, NULL, jumpTableSeg, RELrel, 0);
@@ -2456,11 +2221,6 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
             }
             else if (SegData[seg]->isCode() && !tyfunc(s->ty()))
             {
-                if (!pointersSeg)
-                {
-//                    pointersSeg =
-//                        MsCoffObj::getsegment("__pointers", "__IMPORT",  0, S_NON_LAZY_SYMBOL_POINTERS);
-                }
                 seg_data *pseg = SegData[pointersSeg];
 
                 if (!indirectsymbuf2)
@@ -2582,33 +2342,6 @@ void MsCoffObj::moduleinfo(Symbol *scc)
     SegData[seg]->SDoffset += MsCoffObj::reftoident(seg, Offset(seg), scc, 0, flags);
 }
 
-#endif
-
-/*************************************
- */
-
-#if 0
-void MsCoffObj::gotref(symbol *s)
-{
-    //printf("MsCoffObj::gotref(%x '%s', %d)\n",s,s->Sident, s->Sclass);
-    switch(s->Sclass)
-    {
-        case SCstatic:
-        case SClocstat:
-            s->Sfl = FLgotoff;
-            break;
-
-        case SCextern:
-        case SCglobal:
-        case SCcomdat:
-        case SCcomdef:
-            s->Sfl = FLgot;
-            break;
-
-        default:
-            break;
-    }
-}
 #endif
 
 /**********************************
