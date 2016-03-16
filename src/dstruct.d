@@ -379,7 +379,7 @@ public:
             s.semantic(sc2);
         }
 
-        finalizeSize(sc2);
+        finalizeSize();
 
         if (sizeok == SIZEOKfwd)
         {
@@ -586,7 +586,7 @@ public:
         return "struct";
     }
 
-    override final void finalizeSize(Scope* sc)
+    override final void finalizeSize()
     {
         //printf("StructDeclaration::finalizeSize() %s\n", toChars());
         if (sizeok != SIZEOKnone)

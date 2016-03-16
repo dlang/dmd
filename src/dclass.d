@@ -863,7 +863,7 @@ public:
             s.semantic(sc2);
         }
 
-        finalizeSize(sc2);
+        finalizeSize();
 
         if (sizeok == SIZEOKfwd)
         {
@@ -1154,7 +1154,7 @@ public:
         return null;
     }
 
-    final override void finalizeSize(Scope* sc)
+    final override void finalizeSize()
     {
         if (sizeok != SIZEOKnone)
             return;
@@ -1807,7 +1807,7 @@ public:
             s.semantic(sc2);
         }
 
-        finalizeSize(sc2);
+        finalizeSize();
 
         semanticRun = PASSsemanticdone;
 
