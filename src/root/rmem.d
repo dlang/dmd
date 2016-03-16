@@ -113,7 +113,7 @@ else
             return p;
         }
 
-        void error()
+        static void error()
         {
             printf("Error: out of memory\n");
             exit(EXIT_FAILURE);

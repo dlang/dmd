@@ -31,7 +31,7 @@ struct Mem
     void *xrealloc(void *p, d_size_t size);
     void xfree(void *p);
     void *xmallocdup(void *o, d_size_t size);
-    void error();
+    static void error();
 };
 
 extern Mem mem;

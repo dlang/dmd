@@ -11,6 +11,8 @@ module ddmd.dsymbol;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib;
+
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
@@ -199,6 +201,7 @@ public:
     const(char)* comment;   // documentation comment for this Dsymbol
     Loc loc;                // where defined
     Scope* _scope;          // !=null means context to use for semantic()
+    const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
     PASS semanticRun;
 
@@ -488,30 +491,58 @@ public:
 
     const(char)* toPrettyChars(bool QualifyTypes = false)
     {
-        Dsymbol p;
-        char* s;
-        char* q;
-        size_t len;
+        if (prettystring && !QualifyTypes)
+            return prettystring;
+
         //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
         if (!parent)
-            return toChars();
-        len = 0;
-        for (p = this; p; p = p.parent)
-            len += strlen(QualifyTypes ? p.toPrettyCharsHelper() : p.toChars()) + 1;
-        s = cast(char*)mem.xmalloc(len);
-        q = s + len - 1;
-        *q = 0;
-        for (p = this; p; p = p.parent)
         {
-            const t = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
-            len = strlen(t);
+            auto s = toChars();
+            if (!QualifyTypes)
+                prettystring = s;
+            return s;
+        }
+
+        // Computer number of components
+        size_t complength = 0;
+        for (Dsymbol p = this; p; p = p.parent)
+            ++complength;
+
+        // Allocate temporary array comp[]
+        alias T = const(char)[];
+        auto compptr = cast(T*)malloc(complength * T.sizeof);
+        if (!compptr)
+            Mem.error();
+        auto comp = compptr[0 .. complength];
+
+        // Fill in comp[] and compute length of final result
+        size_t length = 0;
+        int i;
+        for (Dsymbol p = this; p; p = p.parent)
+        {
+            const s = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
+            const len = strlen(s);
+            comp[i] = s[0 .. len];
+            ++i;
+            length += len + 1;
+        }
+
+        auto s = cast(char*)mem.xmalloc(length);
+        auto q = s + length - 1;
+        *q = 0;
+        foreach (j; 0 .. complength)
+        {
+            const t = comp[j].ptr;
+            const len = comp[j].length;
             q -= len;
             memcpy(q, t, len);
             if (q == s)
                 break;
-            q--;
-            *q = '.';
+            *--q = '.';
         }
+        free(comp.ptr);
+        if (!QualifyTypes)
+            prettystring = s;
         return s;
     }
 
