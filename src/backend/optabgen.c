@@ -835,15 +835,15 @@ void dotytab()
 "float",        TYfloat,        TYfloat,   TYfloat,     FLOATSIZE, 0x88,0x40,
 "double",       TYdouble,       TYdouble,  TYdouble,    DOUBLESIZE,0x89,0x41,
 "double alias", TYdouble_alias, TYdouble_alias,  TYdouble_alias,8, 0x89,0x41,
-"long double",  TYldouble,      TYldouble,  TYldouble,  LNGDBLSIZE, 0x89,0x42,
+"long double",  TYldouble,      TYldouble,  TYldouble,  -1, 0x89,0x42,
 
 "imaginary float",      TYifloat,       TYifloat,   TYifloat,   FLOATSIZE, 0x88,0x40,
 "imaginary double",     TYidouble,      TYidouble,  TYidouble,  DOUBLESIZE,0x89,0x41,
-"imaginary long double",TYildouble,     TYildouble, TYildouble, LNGDBLSIZE,0x89,0x42,
+"imaginary long double",TYildouble,     TYildouble, TYildouble, -1,0x89,0x42,
 
 "complex float",        TYcfloat,       TYcfloat,   TYcfloat,   2*FLOATSIZE, 0x88,0x50,
 "complex double",       TYcdouble,      TYcdouble,  TYcdouble,  2*DOUBLESIZE,0x89,0x51,
-"complex long double",  TYcldouble,     TYcldouble, TYcldouble, 2*LNGDBLSIZE,0x89,0x52,
+"complex long double",  TYcldouble,     TYcldouble, TYcldouble, -1,0x89,0x52,
 
 "float[4]",              TYfloat4,    TYfloat4,  TYfloat4,    16,     0,      0,
 "double[2]",             TYdouble2,   TYdouble2, TYdouble2,   16,     0,      0,

@@ -4223,7 +4223,7 @@ code *pushParams(elem *e,unsigned stackalign)
             goto L2;
         }
 
-        assert(I64 || sz <= LNGDBLSIZE);
+        assert(I64 || sz <= tysize[TYldouble]);
         int i = sz;
         if (!I16 && i == 2)
             flag = CFopsize;

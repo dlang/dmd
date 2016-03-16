@@ -4816,7 +4816,7 @@ void assignaddrc(code *c)
 #if MARS
                 assert(c->IEV1.Vuns < NDP::savetop);
 #endif
-                c->IEVpointer1 = c->IEV1.Vuns * NDPSAVESIZE + NDPoff + BPoff;
+                c->IEVpointer1 = c->IEV1.Vuns * tysize[TYldouble] + NDPoff + BPoff;
                 c->Iflags |= CFunambig;
                 goto L2;
             case FLoffset:
