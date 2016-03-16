@@ -118,7 +118,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 if (!skipname && !substitute(ti.tempdecl))
                 {
                     store(ti.tempdecl);
-                    const(char)* name = ti.toAlias().ident.toChars();
+                    const(char)* name = ti.tempdecl.toAlias().ident.toChars();
                     buf.printf("%d%s", strlen(name), name);
                 }
                 buf.writeByte('I');
