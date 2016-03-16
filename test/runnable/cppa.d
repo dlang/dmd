@@ -1091,7 +1091,9 @@ extern(C++) int foo15372(T)(T v);
 
 void test15372()
 {
-    assert(foo15372!int(1) == 1);
+    version(Windows){}
+    else
+        assert(foo15372!int(1) == 1);
 }
 
 /****************************************/
@@ -1105,7 +1107,9 @@ extern(C++) {
 
 void test15802()
 {
-    assert(Foo15802!(int).boo(1) == 1);
+    version(Windows){}
+    else
+        assert(Foo15802!(int).boo(1) == 1);
 }
 
 
