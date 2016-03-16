@@ -108,16 +108,11 @@ void block_init()
 
 void block_term()
 {
-#if TERMCODE
-    block *b;
-
     while (block_freelist)
-    {   b = block_freelist->Bnext;
+    {   block *b = block_freelist->Bnext;
         mem_ffree(block_freelist);
         block_freelist = b;
     }
-
-#endif
 }
 
 /**************************
@@ -133,9 +128,7 @@ void block_next(Blockx *bctx,enum BC bc,block *bn)
         bn = block_calloc_i();
     bctx->curblock->Bnext = bn;                 // next block
     bctx->curblock = bctx->curblock->Bnext;     // new current block
-#if NTEXCEPTIONS
     bctx->curblock->Btry = bctx->tryblock;
-#endif
     bctx->curblock->Bflags |= bctx->flags;
 }
 #else
@@ -214,16 +207,13 @@ void block_goto(block *bgoto,block *bnew)
  */
 
 void block_ptr()
-{   block *b;
-
-/*    dbg_printf("block_ptr()\n");*/
+{
+    //printf("block_ptr()\n");
 
     numblks = 0;
-    for (b = startblock; b; b = b->Bnext)       /* for each block        */
+    for (block *b = startblock; b; b = b->Bnext)       /* for each block        */
     {
-#if SCPP
         b->Bblknum = numblks;
-#endif
         numblks++;
     }
     maxblks = 3 * numblks;              /* allow for increase in # of blocks */
@@ -356,11 +346,11 @@ void block_free(block *b)
             type_free(b->Bcatchtype);
             break;
 #endif
-        case BCjcatch:
 #if MARS
+        case BCjcatch:
             free(b->BS.BIJCATCH.actionTable);
-#endif
             break;
+#endif
         case BCasm:
             code_free(b->Bcode);
             break;
@@ -386,20 +376,16 @@ void blocklist_hydrate(block **pb)
         list_hydrate(&b->Bsucc,FPNULL);
         list_hydrate(&b->Bpred,FPNULL);
         (void) ph_hydrate(&b->Btry);
-#if SCPP
         (void) ph_hydrate(&b->Bendscope);
         symbol_hydrate(&b->Binitvar);
-#endif
         switch (b->BC)
         {
-#if SCPP
             case BCtry:
                 symbol_hydrate(&b->catchvar);
                 break;
             case BCcatch:
                 type_hydrate(&b->Bcatchtype);
                 break;
-#endif
             case BCswitch:
                 (void) ph_hydrate(&b->BS.Bswitch);
                 break;
@@ -416,10 +402,8 @@ void blocklist_hydrate(block **pb)
                 code_hydrate(&b->Bcode);
                 break;
         }
-#if TX86
         filename_translate(&b->Bsrcpos);
         srcpos_hydrate(&b->Bsrcpos);
-#endif
         pb = &b->Bnext;
     }
 }
@@ -442,20 +426,16 @@ void blocklist_dehydrate(block **pb)
         list_dehydrate(&b->Bsucc,FPNULL);
         list_dehydrate(&b->Bpred,FPNULL);
         ph_dehydrate(&b->Btry);
-#if SCPP
         ph_dehydrate(&b->Bendscope);
         symbol_dehydrate(&b->Binitvar);
-#endif
         switch (b->BC)
         {
-#if SCPP
             case BCtry:
                 symbol_dehydrate(&b->catchvar);
                 break;
             case BCcatch:
                 type_dehydrate(&b->Bcatchtype);
                 break;
-#endif
             case BCswitch:
                 ph_dehydrate(&b->BS.Bswitch);
                 break;
@@ -472,9 +452,7 @@ void blocklist_dehydrate(block **pb)
                 code_dehydrate(&b->Bcode);
                 break;
         }
-#if TX86
         srcpos_dehydrate(&b->Bsrcpos);
-#endif
         pb = &b->Bnext;
     }
 }
@@ -546,9 +524,6 @@ void block_appendexp(block *b,elem *e)
 
 void block_initvar(symbol *s)
 {
-#ifdef DEBUG
-    assert(curblock);
-#endif
     symbol_debug(s);
     curblock->Binitvar = s;
 }
@@ -564,10 +539,8 @@ void block_initvar(symbol *s)
 
 void block_endfunc(int flag)
 {
-#if SCPP
     curblock->Bsymend = globsym.top;
     curblock->Bendscope = curblock;
-#endif
     if (flag)
     {   elem *e;
 
@@ -598,12 +571,6 @@ void blockopt(int iter)
         do
         {
             //printf("changes = %d, count = %d, dfotop = %d\n",go.changes,count,dfotop);
-#if MARS
-            util_progress();
-#else
-            if (controlc_saw)
-                util_exit(EXIT_BREAK);
-#endif
             go.changes = 0;
             bropt();                    // branch optimization
             brrear();                   // branch rearrangement
@@ -835,9 +802,7 @@ void brcombine()
                 b2 = list_block(b->Bsucc);
                 if (!list_next(b2->Bpred) && b2->BC != BCasm    // if b is only parent
                     && b2 != startblock
-#if SCPP
                     && b2->BC != BCtry
-#endif
                     && b2->BC != BC_try
                     && b->Btry == b2->Btry
                    )
@@ -1244,9 +1209,7 @@ STATIC int mergeblks()
                             continue;
 
                         if (
-#if SCPP
                             bL2->BC == BCtry ||
-#endif
                             bL2->BC == BC_try ||
                             b->Btry != bL2->Btry)
                             continue;
@@ -1369,13 +1332,9 @@ STATIC void blident()
                             continue;
                         break;
 
-#if SCPP
                     case BCtry:
                     case BCcatch:
-#endif
-#if MARS
                     case BCjcatch:
-#endif
                     case BC_try:
                     case BC_finally:
                     case BC_lpad:
@@ -1644,13 +1603,9 @@ STATIC void bltailmerge()
                                 continue;
                             break;
 
-#if SCPP
                         case BCtry:
                         case BCcatch:
-#endif
-#if MARS
                         case BCjcatch:
-#endif
                         case BC_try:
                         case BC_finally:
                         case BC_lpad:
@@ -1789,17 +1744,11 @@ STATIC void brmin()
                 if (bn->Bnext == bs)
                     break;
             }
-#if 1
             bn->Bnext = NULL;
             b->Bnext = bs;
             for (bn = bs; bn->Bnext; bn = bn->Bnext)
                 ;
             bn->Bnext = bnext;
-#else
-            bn->Bnext = bs->Bnext;
-            bs->Bnext = bnext;
-            b->Bnext = bs;
-#endif
             cmes3("Moving block %p to appear after %p\n",bs,b);
             go.changes++;
             break;
@@ -2039,7 +1988,6 @@ STATIC void emptyloops()
                 einit->E1->Eoper != OPvar)
                 continue;
 
-#if 1
             // Look for ((i += 1) < limit)
             erel = b->Belem;
             if (erel->Eoper != OPlt ||
@@ -2074,44 +2022,6 @@ STATIC void emptyloops()
 #endif
                 go.changes++;
              }
-#else
-            // Find einc and erel
-            if (b->Belem->Eoper != OPcomma)
-                continue;
-            einc = b->Belem->E1;
-            erel = b->Belem->E2;
-            if (einc->Eoper != OPaddass ||
-                einc->E1->Eoper != OPvar ||
-                einc->E2->Eoper != OPconst ||
-                erel->Eoper != OPlt ||
-                erel->E1->Eoper != OPvar ||
-                erel->E2->Eoper != OPconst ||
-                !el_match(einit->E1,einc->E1) ||
-                !el_match(einit->E1,erel->E1)
-               )
-                continue;
-
-            if (!tyintegral(einit->E1->Ety) ||
-                el_tolong(einc->E2) != 1 ||
-                el_tolong(einit->E2) >= el_tolong(erel->E2)
-               )
-                continue;
-
-             {
-                erel->Eoper = OPeq;
-                erel->Ety = erel->E1->Ety;
-                b->BC = BCgoto;
-                list_subtract(&b->Bsucc,b);
-                list_subtract(&b->Bpred,b);
-#ifdef DEBUG
-                if (debugc)
-                {   WReqn(erel);
-                    dbg_printf(" eliminated loop\n");
-                }
-#endif
-                go.changes++;
-             }
-#endif
         }
     }
 }
@@ -2124,7 +2034,7 @@ STATIC void emptyloops()
  * statics or indirect references.
  */
 
-STATIC int funcsideeffect_walk(elem *e);
+static int funcsideeffect_walk(elem *e);
 
 void funcsideeffects()
 {
