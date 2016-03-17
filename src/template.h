@@ -68,8 +68,7 @@ public:
     Expression *constraint;
 
     // Hash table to look up TemplateInstance's of this TemplateDeclaration
-    Array<TemplateInstances *> buckets;
-    size_t numinstances;                // number of instances in the hash table
+    void *instances;
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
@@ -313,7 +312,7 @@ public:
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
     bool gagged;                        // if the instantiation is done with error gagging
-    hash_t hash;                        // cached result of hashCode()
+    hash_t hash;                        // cached result of toHash()
     Expressions *fargs;                 // for function template, these are the function arguments
 
     TemplateInstances* deferred;
@@ -340,7 +339,7 @@ public:
     void printInstantiationTrace();
     Identifier *getIdent();
     int compare(RootObject *o);
-    hash_t hashCode();
+    hash_t toHash();
 
     bool needsCodegen();
 

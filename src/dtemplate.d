@@ -415,8 +415,7 @@ public:
     Expression constraint;
 
     // Hash table to look up TemplateInstance's of this TemplateDeclaration
-    Array!(TemplateInstances*) buckets;
-    size_t numinstances;                // number of instances in the hash table
+    TemplateInstance[TemplateInstanceBox] instances;
 
     TemplateDeclaration overnext;       // next overloaded TemplateDeclaration
     TemplateDeclaration overroot;       // first in overnext list
@@ -2067,33 +2066,12 @@ public:
      */
     TemplateInstance findExistingInstance(TemplateInstance tithis, Expressions* fargs)
     {
+        //printf("findExistingInstance(%p)\n", tithis);
         tithis.fargs = fargs;
-        hash_t hash = tithis.hashCode();
-        if (!buckets.dim)
-        {
-            buckets.setDim(7);
-            buckets.zero();
-        }
-        size_t bi = hash % buckets.dim;
-        TemplateInstances* instances = buckets[bi];
-        if (instances)
-        {
-            for (size_t i = 0; i < instances.dim; i++)
-            {
-                TemplateInstance ti = (*instances)[i];
-                static if (LOG)
-                {
-                    printf("\t%s: checking for match with instance %d (%p): '%s'\n", tithis.toChars(), i, ti, ti.toChars());
-                }
-                if (hash == ti.hash && tithis.compare(ti) == 0)
-                {
-                    //printf("hash = %p yes %d n = %d\n", hash, instances->dim, numinstances);
-                    return ti;
-                }
-            }
-        }
-        //printf("hash = %p no\n", hash);
-        return null; // didn't find a match
+        auto tibox = TemplateInstanceBox(tithis);
+        auto p = tibox in instances;
+        //if (p) printf("\tfound %p\n", *p); else printf("\tnot found\n");
+        return p ? *p : null;
     }
 
     /********************************************
@@ -2102,42 +2080,9 @@ public:
      */
     TemplateInstance addInstance(TemplateInstance ti)
     {
-        /* See if we need to rehash
-         */
-        if (numinstances > buckets.dim * 4)
-        {
-            // rehash
-            //printf("rehash\n");
-            size_t newdim = buckets.dim * 2 + 1;
-            TemplateInstances** newp = cast(TemplateInstances**).calloc(newdim, (TemplateInstances*).sizeof);
-            assert(newp);
-            for (size_t bi = 0; bi < buckets.dim; ++bi)
-            {
-                TemplateInstances* instances = buckets[bi];
-                if (instances)
-                {
-                    for (size_t i = 0; i < instances.dim; i++)
-                    {
-                        TemplateInstance ti1 = (*instances)[i];
-                        size_t newbi = ti1.hash % newdim;
-                        TemplateInstances* newinstances = newp[newbi];
-                        if (!newinstances)
-                            newp[newbi] = newinstances = new TemplateInstances();
-                        newinstances.push(ti1);
-                    }
-                }
-            }
-            buckets.setDim(newdim);
-            memcpy(buckets.tdata(), newp, newdim * TemplateInstance.sizeof);
-            .free(newp);
-        }
-        // Insert ti into hash table
-        size_t bi = ti.hash % buckets.dim;
-        TemplateInstances* instances = buckets[bi];
-        if (!instances)
-            buckets[bi] = instances = new TemplateInstances();
-        instances.push(ti);
-        ++numinstances;
+        //printf("addInstance() %p %p\n", instances, ti);
+        auto tibox = TemplateInstanceBox(ti);
+        instances[tibox] = ti;
         return ti;
     }
 
@@ -2146,20 +2091,11 @@ public:
      * Input:
      *      handle returned by addInstance()
      */
-    void removeInstance(TemplateInstance handle)
+    void removeInstance(TemplateInstance ti)
     {
-        size_t bi = handle.hash % buckets.dim;
-        TemplateInstances* instances = buckets[bi];
-        for (size_t i = 0; i < instances.dim; i++)
-        {
-            TemplateInstance ti = (*instances)[i];
-            if (handle == ti)
-            {
-                instances.remove(i);
-                break;
-            }
-        }
-        --numinstances;
+        //printf("removeInstance()\n");
+        auto tibox = TemplateInstanceBox(ti);
+        instances.remove(tibox);
     }
 
     override inout(TemplateDeclaration) isTemplateDeclaration() inout
@@ -5726,7 +5662,7 @@ public:
     bool semantictiargsdone;    // has semanticTiargs() been done?
     bool havetempdecl;          // if used second constructor
     bool gagged;                // if the instantiation is done with error gagging
-    hash_t hash;                // cached result of hashCode()
+    hash_t hash;                // cached result of toHash()
     Expressions* fargs;         // for function template, these are the function arguments
 
     TemplateInstances* deferred;
@@ -6278,18 +6214,13 @@ public:
              * On such case, the cached error instance needs to be overridden by the
              * succeeded instance.
              */
-            size_t bi = hash % tempdecl.buckets.dim;
-            TemplateInstances* instances = tempdecl.buckets[bi];
-            assert(instances);
-            for (size_t i = 0; i < instances.dim; i++)
-            {
-                TemplateInstance ti = (*instances)[i];
-                if (ti == errinst)
-                {
-                    (*instances)[i] = this; // override
-                    break;
-                }
-            }
+            //printf("replaceInstance()\n");
+            assert(errinst.errors);
+            auto ti1 = TemplateInstanceBox(errinst);
+            tempdecl.instances.remove(ti1);
+
+            auto ti2 = TemplateInstanceBox(this);
+            tempdecl.instances[ti2] = this;
         }
         static if (LOG)
         {
@@ -6552,6 +6483,15 @@ public:
         return ident;
     }
 
+    /*************************************
+     * Compare proposed template instantiation with existing template instantiation.
+     * Note that this is not commutative because of the auto ref check.
+     * Params:
+     *  this = proposed template instantiation
+     *  o = existing template instantiation
+     * Returns:
+     *  0 for match, 1 for no match
+     */
     override final int compare(RootObject o)
     {
         TemplateInstance ti = cast(TemplateInstance)o;
@@ -6606,12 +6546,13 @@ public:
         return 1;
     }
 
-    final hash_t hashCode()
+    final hash_t toHash()
     {
         if (!hash)
         {
             hash = cast(size_t)cast(void*)enclosing;
             hash += arrayObjectHash(&tdtypes);
+            hash += hash == 0;
         }
         return hash;
     }
@@ -8507,3 +8448,41 @@ public:
         v.visit(this);
     }
 }
+
+/************************************
+ * This struct is needed for TemplateInstance to be the key in an associative array.
+ * Fixing Bugzillas 15812 and 15813 would make it unnecessary.
+ */
+struct TemplateInstanceBox
+{
+    TemplateInstance ti;
+
+    this(TemplateInstance ti)
+    {
+        this.ti = ti;
+        this.ti.toHash();
+        assert(this.ti.hash);
+    }
+
+    size_t toHash() const @trusted pure nothrow
+    {
+        assert(ti.hash);
+        return ti.hash;
+    }
+
+    bool opEquals(ref const TemplateInstanceBox s) @trusted const
+    {
+        if (ti.inst && s.ti.inst)
+            /* This clause is only used when an instance with errors
+             * is replaced with a correct instance.
+             */
+            return ti is s.ti;
+        else
+            /* Used when a proposed instance is used to see if there's
+             * an existing instance.
+             */
+            return (cast()s.ti).compare(cast()ti) == 0;
+    }
+}
+
+
