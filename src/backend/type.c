@@ -474,8 +474,8 @@ type *type_enum(const char *name, type *tbase)
 
 /**************************************
  * Create a struct/union/class type.
- * Input:
- *      name    name of struct
+ * Params:
+ *      name = name of struct (this function makes its own copy of the string)
  * Returns:
  *      Tcount already incremented
  */
