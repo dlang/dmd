@@ -587,7 +587,14 @@ typedef int bool;
 #endif
 
 #if _WINDLL
-#define COPYRIGHT "Copyright © 2001 Digital Mars"
+/* We reference the required Windows-1252 encoding of the copyright symbol
+   by escaping its character code (0xA9) rather than directly embedding it in
+   the source text. The character code is invalid in UTF-8, which causes some
+   of our source-code preprocessing tools (e.g. tolf) to choke. */
+#ifndef COPYRIGHT_SYMBOL
+#define COPYRIGHT_SYMBOL "\xA9"
+#endif
+#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001 Digital Mars"
 #else
 #ifdef DEBUG
 #define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
