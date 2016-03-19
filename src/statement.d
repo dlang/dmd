@@ -5986,10 +5986,6 @@ extern (C++) final class AsmStatement : Statement
 {
 public:
     Token* tokens;
-    code* asmcode;
-    uint asmalign;  // alignment of this statement
-    uint regs;      // mask of registers modified (must match regm_t in back end)
-    bool refparam;  // true if function parameter is referenced
     bool naked;     // true if function is to be naked
 
     extern (D) this(Loc loc, Token* tokens)

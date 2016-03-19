@@ -35,6 +35,7 @@
 #include        "global.h"
 #include        "dt.h"
 
+#include        "aav.h"
 #include        "rmem.h"
 #include        "target.h"
 #include        "visitor.h"
@@ -143,6 +144,30 @@ void incUsage(IRState *irs, Loc loc)
     {
         block_appendexp(irs->blx->curblock, incUsageElem(irs, loc));
     }
+}
+
+struct AsmInfo
+{
+    code *asmcode;
+    unsigned asmalign;          // alignment of this statement
+    unsigned regs;              // mask of registers modified (must match regm_t in back end)
+    bool refparam;              // true if function parameter is referenced
+};
+
+AsmInfo *getAsmInfo(AsmStatement *s)
+{
+    static AA *asmInfoMap;
+
+    AsmInfo **ai = (AsmInfo **)dmd_aaGet(&asmInfoMap, s);
+    if (!*ai)
+    {
+        *ai = new AsmInfo;
+        (*ai)->asmcode = NULL;
+        (*ai)->asmalign = 0;
+        (*ai)->regs = 0;
+        (*ai)->refparam = false;
+    }
+    return *ai;
 }
 
 void Statement_toIR(Statement *s, IRState *irs);
@@ -1450,16 +1475,17 @@ public:
         Symbol *sym;
         Blockx *blx = irs->blx;
 
-        //printf("AsmStatement::toIR(asmcode = %x)\n", asmcode);
+        AsmInfo *ai = getAsmInfo(s);
+        //printf("AsmStatement::toIR(asmcode = %x)\n", ai->asmcode);
         bpre = blx->curblock;
         block_next(blx,BCgoto,NULL);
         basm = blx->curblock;
         bpre->appendSucc(basm);
-        basm->Bcode = s->asmcode;
-        basm->Balign = s->asmalign;
+        basm->Bcode = ai->asmcode;
+        basm->Balign = ai->asmalign;
 
         // Loop through each instruction, fixing Dsymbols into Symbol's
-        for (code *c = s->asmcode; c; c = c->next)
+        for (code *c = ai->asmcode; c; c = c->next)
         {   LabelDsymbol *label;
             block *b;
 
@@ -1510,8 +1536,8 @@ public:
             //c->print();
         }
 
-        basm->bIasmrefparam = s->refparam;             // are parameters reference?
-        basm->usIasmregs = s->regs;                    // registers modified
+        basm->bIasmrefparam = ai->refparam;             // are parameters reference?
+        basm->usIasmregs = ai->regs;                    // registers modified
 
         block_next(blx,BCasm, NULL);
         basm->prependSucc(blx->curblock);
