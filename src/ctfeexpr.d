@@ -1474,7 +1474,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
                 return ue;
             }
             dinteger_t v = es2e.toInteger();
-            memcpy(cast(char*)s + i * sz, &v, sz);
+            Port.valcpy(cast(char*)s + i * sz, v, sz);
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
@@ -1504,7 +1504,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
                 return ue;
             }
             dinteger_t v = es2e.toInteger();
-            memcpy(cast(char*)s + (es1.len + i) * sz, &v, sz);
+            Port.valcpy(cast(char*)s + (es1.len + i) * sz, v, sz);
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);

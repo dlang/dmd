@@ -75,6 +75,7 @@ struct Port
     static unsigned readlongBE(void* buffer);
     static unsigned readwordLE(void* buffer);
     static unsigned readwordBE(void* buffer);
+    static void valcpy(void *dst, uint64_t val, size_t size);
 };
 
 #endif
