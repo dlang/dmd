@@ -1,4 +1,4 @@
-module imp1;
+module imports.imp1;
 
 enum X = 1;
 enum Y = 1;

@@ -641,7 +641,6 @@ Language changes listed by -transition=id:
                             break;
                         case 10378:
                             global.params.bug10378 = true;
-                            global.params.check10378 = false;
                             break;
                         case 14488:
                             global.params.vcomplex = true;
@@ -662,7 +661,6 @@ Language changes listed by -transition=id:
                             break;
                         case "checkimports":
                             global.params.check10378 = true;
-                            global.params.bug10378 = false;
                             break;
                         case "complex":
                             global.params.vcomplex = true;
@@ -672,7 +670,6 @@ Language changes listed by -transition=id:
                             break;
                         case "import":
                             global.params.bug10378 = true;
-                            global.params.check10378 = false;
                             break;
                         case "tls":
                             global.params.vtls = true;

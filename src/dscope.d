@@ -512,69 +512,52 @@ struct Scope
             return null;
         }
 
+        Dsymbol sold = void;
+        if (global.params.bug10378 || global.params.check10378)
+        {
+            sold = searchScopes(flags | IgnoreSymbolVisibility);
+            if (!global.params.check10378)
+                return sold;
+
+            // Search both ways
+            flags |= SearchCheck10378;
+        }
+
+        // First look in local scopes
+        Dsymbol s = searchScopes(flags | SearchLocalsOnly);
+        version (LOGSEARCH) if (s) printMsg("-Scope.search() found local", s);
+        if (!s)
+        {
+            // Second look in imported modules
+            s = searchScopes(flags | SearchImportsOnly);
+            version (LOGSEARCH) if (s) printMsg("-Scope.search() found import", s);
+
+            /** Still find private symbols, so that symbols that weren't access
+             * checked by the compiler remain usable.  Once the deprecation is over,
+             * this should be moved to search_correct instead.
+             */
+            if (!s)
+            {
+                s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+                if (!s)
+                    s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
+
+                if (s && !(flags & IgnoreErrors))
+                    .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), _module.toChars());
+                version (LOGSEARCH) if (s) printMsg("-Scope.search() found imported private symbol", s);
+            }
+        }
         if (global.params.check10378)
         {
-            // Search both ways
-
-            auto sold = searchScopes(flags | SearchCheck10378 | IgnoreSymbolVisibility);
-
-            auto snew = searchScopes(flags | SearchCheck10378 | SearchLocalsOnly);
-            if (!snew)
-                snew = searchScopes(flags | SearchCheck10378 | SearchImportsOnly);
-            if (!snew)
-            {
-                snew = searchScopes(flags | SearchCheck10378 | SearchLocalsOnly | IgnoreSymbolVisibility);
-                if (!snew)
-                    snew = searchScopes(flags | SearchCheck10378 | SearchImportsOnly | IgnoreSymbolVisibility);
-                if (snew)
-                    .deprecation(loc, "%s is not visible from module %s", snew.toPrettyChars(), _module.toChars());
-            }
-
+            alias snew = s;
             if (sold !is snew)
             {
                 deprecation(loc, "local import search method found %s %s instead of %s %s",
                     sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
                     snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
             }
-            return sold;
-        }
-
-        if (global.params.bug10378)
-            return searchScopes(flags | IgnoreSymbolVisibility);
-
-        // First look in local scopes
-        Dsymbol s = searchScopes(flags | SearchLocalsOnly);
-
-        if (s)
-        {
-            version (LOGSEARCH)
-                printMsg("-Scope.search() found local", s);
-            return s;
-        }
-
-        s = searchScopes(flags | SearchImportsOnly);     // look in imported modules
-
-        if (s)
-        {
-            version (LOGSEARCH)
-                printMsg("-Scope.search() found import", s);
-            return s;
-        }
-
-        /** Still find private symbols, so that symbols that weren't access
-         * checked by the compiler remain usable.  Once the deprecation is over,
-         * this should be moved to search_correct instead.
-         */
-        s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-        if (!s)
-            s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
-
-        if (s)
-        {
-            version (LOGSEARCH)
-                printMsg("-Scope.search() found imported private symbol", s);
-            if (!(flags & IgnoreErrors))
-                .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), _module.toChars());
+            if (global.params.bug10378)
+                s = sold;
         }
         return s;
     }
