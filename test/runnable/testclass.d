@@ -57,6 +57,19 @@ class Concrete13353 : Derived13353
 }
 
 /***************************************************/
+// 15733
+
+class CStmt15733 : CNode15733 {}
+class CDecl15733 : CStmt15733 {}
+class CNode15733 { mixin CMix!CDecl15733; }
+template CMix(T){ mixin("static " ~ T.stringof ~ " x;"); }
+
+interface IStmt15733 : INode15733 {}
+interface IDecl15733 : IStmt15733 {}
+interface INode15733 { mixin IMix!IDecl15733; }
+template IMix(T){ mixin("static " ~ T.stringof ~ " x;"); }
+
+/***************************************************/
 
 int main()
 {
