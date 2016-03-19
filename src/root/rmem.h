@@ -25,12 +25,12 @@ struct Mem
 {
     Mem() { }
 
-    char *xstrdup(const char *s);
-    void *xmalloc(d_size_t size);
-    void *xcalloc(d_size_t size, d_size_t n);
-    void *xrealloc(void *p, d_size_t size);
-    void xfree(void *p);
-    void *xmallocdup(void *o, d_size_t size);
+    static char *xstrdup(const char *s);
+    static void *xmalloc(d_size_t size);
+    static void *xcalloc(d_size_t size, d_size_t n);
+    static void *xrealloc(void *p, d_size_t size);
+    static void xfree(void *p);
+    static void *xmallocdup(void *o, d_size_t size);
     static void error();
 };
 
