@@ -151,15 +151,11 @@ public:
 
     // Back end
 
-    int doppelganger;           // sub-module
     Symbol *cov;                // private uint[] __coverage;
+    Module *doppelganger;           // sub-module
     unsigned *covb;             // bit array of valid code line numbers
 
     bool hasModuleInfo;
-
-    Symbol *massert;            // module assert function
-    Symbol *munittest;          // module unittest failure function
-    Symbol *marray;             // module array bounds function
 
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }

@@ -583,30 +583,44 @@ Symbol *toInitializer(EnumDeclaration *ed)
 
 Symbol *toModuleAssert(Module *m)
 {
-    if (!m->massert)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
+    if (m->doppelganger)
+        m = m->doppelganger;
 
-        m->massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
-        m->massert->Sfl = FLextern;
-        m->massert->Sflags |= SFLnodebug | SFLexit;
-    }
-    return m->massert;
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (*psym)
+        return *psym;
+
+    type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
+    t->Tmangle = mTYman_d;
+
+    Symbol *xmassert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
+    xmassert->Sfl = FLextern;
+    xmassert->Sflags |= SFLnodebug | SFLexit;
+    *psym = xmassert;
+
+    return *psym;
 }
 
 Symbol *toModuleUnittest(Module *m)
 {
-    if (!m->munittest)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
+    if (m->doppelganger)
+        m = m->doppelganger;
 
-        m->munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
-        m->munittest->Sfl = FLextern;
-        m->munittest->Sflags |= SFLnodebug;
-    }
-    return m->munittest;
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (*psym)
+        return *psym;
+
+    type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
+    t->Tmangle = mTYman_d;
+
+    Symbol *xmunittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
+    xmunittest->Sfl = FLextern;
+    xmunittest->Sflags |= SFLnodebug;
+    *psym = xmunittest;
+
+    return *psym;
 }
 
 /******************************************
@@ -614,16 +628,23 @@ Symbol *toModuleUnittest(Module *m)
 
 Symbol *toModuleArray(Module *m)
 {
-    if (!m->marray)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
+    if (m->doppelganger)
+        m = m->doppelganger;
 
-        m->marray = toSymbolX(m, "__array", SCextern, t, "Z");
-        m->marray->Sfl = FLextern;
-        m->marray->Sflags |= SFLnodebug | SFLexit;
-    }
-    return m->marray;
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (*psym)
+        return *psym;
+
+    type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
+    t->Tmangle = mTYman_d;
+
+    Symbol *xmarray = toSymbolX(m, "__array", SCextern, t, "Z");
+    xmarray->Sfl = FLextern;
+    xmarray->Sflags |= SFLnodebug | SFLexit;
+    *psym = xmarray;
+
+    return *psym;
 }
 
 /********************************************

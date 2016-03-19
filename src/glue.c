@@ -141,12 +141,8 @@ void obj_write_deferred(Library *library)
             Module *md = Module::create(mname, id, 0, 0);
             md->members = Dsymbols_create();
             md->members->push(s);   // its only 'member' is s
-            md->doppelganger = 1;       // identify this module as doppelganger
+            md->doppelganger = m;       // identify this module as doppelganger
             md->md = m->md;
-            md->aimports.push(m);       // it only 'imports' m
-            md->massert = m->massert;
-            md->munittest = m->munittest;
-            md->marray = m->marray;
 
             genObjFile(md, false);
         }
@@ -336,13 +332,11 @@ void genObjFile(Module *m, bool multiobj)
     sshareddtors.setDim(0);
     stests.setDim(0);
 
-    if (m->doppelganger)
+    if (Module *mod = m->doppelganger)
     {
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *mod = m->aimports[0];
-        assert(mod);
         if (mod->hasModuleInfo)
         {
             Symbol *s = toSymbol(mod);
