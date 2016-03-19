@@ -70,6 +70,7 @@ void toTraceGC(IRState *irs, elem *e, Loc *loc);
 void genTypeInfo(Type *t, Scope *sc);
 void setClosureVarOffset(FuncDeclaration *fd);
 Symbol *getHiddenVar(FuncDeclaration *fd);
+Symbol *getStructLiteralSym(StructLiteralExp *sle);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -5252,7 +5253,7 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(StructLiteralExp *sle)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
-            result = toElemStructLit(sle, irs, TOKconstruct, sle->sym, true);
+            result = toElemStructLit(sle, irs, TOKconstruct, getStructLiteralSym(sle), true);
         }
 
         /*****************************************************/

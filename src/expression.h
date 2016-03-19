@@ -471,8 +471,6 @@ public:
     Type *stype;                // final type of result (can be different from sd's type)
 
     bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
-    Symbol *sym;                // back end symbol to initialize with literal
-
     OwnedBy ownedByCtfe;
 
     // pointer to the origin instance of the expression.

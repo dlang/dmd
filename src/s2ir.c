@@ -51,6 +51,7 @@ unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 RET retStyle(TypeFunction *tf);
 void setSymbol(Dsymbol *s, Symbol *csym);
+void setStructLiteralSym(StructLiteralExp *sle, Symbol *sym);
 
 #define elem_setLoc(e,loc)      srcpos_setLoc(&(e)->Esrcpos, loc)
 #define block_setLoc(b,loc)     srcpos_setLoc(&(b)->Bsrcpos, loc)
@@ -767,7 +768,7 @@ public:
                 if (s->exp->op == TOKstructliteral)
                 {
                     StructLiteralExp *sle = (StructLiteralExp *)s->exp;
-                    sle->sym = irs->shidden;
+                    setStructLiteralSym(sle, irs->shidden);
                 }
                 e = toElemDtor(s->exp, irs);
                 assert(e);

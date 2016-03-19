@@ -679,9 +679,28 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 /*                   CTFE stuff                      */
 /*****************************************************/
 
+static AA *structLiteralSymMap;
+
+Symbol *getStructLiteralSym(StructLiteralExp *sle)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&structLiteralSymMap, sle);
+    if (!*psym)
+        *psym = NULL;
+    return *psym;
+}
+
+void setStructLiteralSym(StructLiteralExp *sle, Symbol *sym)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&structLiteralSymMap, sle);
+    *psym = sym;
+}
+
 Symbol* toSymbol(StructLiteralExp *sle)
 {
-    if (sle->sym) return sle->sym;
+    Symbol *csym = getStructLiteralSym(sle);
+    if (csym)
+        return csym;
+
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -689,17 +708,21 @@ Symbol* toSymbol(StructLiteralExp *sle)
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    sle->sym = s;
+    setStructLiteralSym(sle, s);
     DtBuilder dtb;
     Expression_toDt(sle, &dtb);
     s->Sdt = dtb.finish();
     outdata(s);
-    return sle->sym;
+
+    return s;
 }
 
 Symbol* toSymbol(ClassReferenceExp *cre)
 {
-    if (cre->value->sym) return cre->value->sym;
+    Symbol *csym = getStructLiteralSym(cre->value);
+    if (csym)
+        return csym;
+
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -707,12 +730,13 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    cre->value->sym = s;
+    setStructLiteralSym(cre->value, s);
     DtBuilder dtb;
     ClassReferenceExp_toInstanceDt(cre, &dtb);
     s->Sdt = dtb.finish();
     outdata(s);
-    return cre->value->sym;
+
+    return s;
 }
 
 /**************************************
