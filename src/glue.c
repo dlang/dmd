@@ -30,6 +30,7 @@
 #include "target.h"
 
 #include "rmem.h"
+#include "aav.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"
@@ -1577,12 +1578,14 @@ elem *toEfilename(Module *m)
     const char *id = m->srcfile->toChars();
     size_t len = strlen(id);
 
-    if (!m->sfilename)
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (!*psym)
     {
         // Put out as a static array
-        m->sfilename = toStringSymbol(id, len, 1);
+        *psym = toStringSymbol(id, len, 1);
     }
 
     // Turn static array into dynamic array
-    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
+    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(*psym));
 }

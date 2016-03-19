@@ -1284,7 +1284,6 @@ public:
     Symbol* cov; // private uint[] __coverage;
     uint* covb; // bit array of valid code line numbers
     bool hasModuleInfo;
-    Symbol* sfilename; // symbol for filename
     Symbol* massert; // module assert function
     Symbol* munittest; // module unittest failure function
     Symbol* marray; // module array bounds function
