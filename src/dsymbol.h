@@ -53,7 +53,6 @@ class UnitTestDeclaration;
 class NewDeclaration;
 class VarDeclaration;
 class AttribDeclaration;
-struct Symbol;
 class Package;
 class Module;
 class Import;

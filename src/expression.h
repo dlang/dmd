@@ -43,7 +43,6 @@ class TemplateInstance;
 class TemplateDeclaration;
 class ClassDeclaration;
 class BinExp;
-struct Symbol;          // back end symbol
 class OverloadSet;
 class Initializer;
 class StringExp;

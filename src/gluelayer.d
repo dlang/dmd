@@ -18,7 +18,6 @@ import ddmd.root.file;
 
 version (NoBackend)
 {
-    struct Symbol;
     struct code;
     struct block;
     struct Blockx;
@@ -55,7 +54,6 @@ else
 {
     import ddmd.backend;
 
-    alias Symbol = ddmd.backend.Symbol;
     alias code = ddmd.backend.code;
     alias block = ddmd.backend.block;
     alias Blockx = ddmd.backend.Blockx;
