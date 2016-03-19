@@ -86,13 +86,17 @@ $(BUGSTITLE Language Changes,
     )
 
     $(P This can break existing code, although reliance on the previous behavior tends to be
-    unintended, and fixing it improves the comprehensibility of the code. Breakage tends
-    to take the form of a symbol now being flagged as undefined. Fixing the breakage can
-    be done by fully qualifying the name, or adding an alias to the import declaration.)
+        unintended, and fixing it improves the comprehensibility of the code. Breakage tends
+        to take the form of a symbol now being flagged as undefined. Fixing the breakage can
+        be done by fully qualifying the name, or adding an alias to the import declaration.
+    )
 
-    $(P The old lookup behavior can be restored using the -transition=import compiler switch.
-    With -transition=checkimports the compiler will perform both the old and new
-    lookup and issue a deprecation warning when the found symbols mismatch.
+    $(P The old lookup behavior can be restored using the -transition=import
+        compiler switch.  With -transition=checkimports the compiler will issue
+        deprecation warnings when the old and new lookup find different
+        symbols.
+        You can combine both switches to use the old lookup and still get
+        deprecation warnings.
     )
 
     $(P See also $(BUGZILLA 10378))
