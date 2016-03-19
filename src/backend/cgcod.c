@@ -782,11 +782,7 @@ Lagain:
 
     CSoff = alignsection(Alloca.offset - cstop * REGSIZE, REGSIZE, bias);
 
-#if TX86
-    NDPoff = alignsection(CSoff - NDP::savetop * NDPSAVESIZE, REGSIZE, bias);
-#else
-    NDPoff = CSoff;
-#endif
+    NDPoff = alignsection(CSoff - NDP::savetop * tysize[TYldouble], REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;
@@ -2002,7 +1998,7 @@ regm_t lpadregs()
     if (config.ehmethod == EH_DWARF)
         used = allregs & ~mfuncreg;
     else
-	used = (I32 | I64) ? allregs : (ALLREGS | mES);
+        used = (I32 | I64) ? allregs : (ALLREGS | mES);
     //printf("lpadregs(): used=%s, allregs=%s, mfuncreg=%s\n", regm_str(used), regm_str(allregs), regm_str(mfuncreg));
     return used;
 }

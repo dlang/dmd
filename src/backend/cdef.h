@@ -468,20 +468,7 @@ typedef unsigned        targ_uns;
 #define CENTSIZE        16
 #define FLOATSIZE       4
 #define DOUBLESIZE      8
-#if TARGET_OSX
-#define LNGDBLSIZE      16      // 80 bit reals
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define LNGDBLSIZE      12      // 80 bit reals
-#else
-#define LNGDBLSIZE      10      // 80 bit reals
-#endif
-#define TMAXSIZE        LNGDBLSIZE      // largest size a constant can be
-
-#if 0
-#define NDPSAVESIZE     DOUBLESIZE
-#else
-#define NDPSAVESIZE     LNGDBLSIZE
-#endif
+#define TMAXSIZE        16      // largest size a constant can be
 
 #define intsize         tysize[TYint]
 #define REGSIZE         tysize[TYnptr]
