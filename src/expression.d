@@ -3645,7 +3645,7 @@ public:
             /* See if the symbol was a member of an enclosing 'with'
              */
             WithScopeSymbol withsym = scopesym.isWithScopeSymbol();
-            if (withsym && withsym.withstate.wthis)
+            if (withsym)
             {
                 /* Disallow shadowing
                  */
@@ -3663,10 +3663,22 @@ public:
                     Dsymbol s2;
                     if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
                     {
-                        error("with symbol %s is shadowing local symbol %s", s.toPrettyChars(), s2.toPrettyChars());
+                        auto exp = withsym.withstate.exp;
+                        if (exp.op == TOKscope && (cast(ScopeExp)exp).sds.isImportScopeSymbol())
+                        {
+                            auto ad = s.isAliasDeclaration();
+                            if (ad && ad._import)   // If 's' is an internal alias
+                                s = s.toAlias();    // associated with selective imports.
+                            error("imported symbol '%s' is shadowing local symbol '%s'", s.toPrettyChars(), s2.toPrettyChars());
+                        }
+                        else
+                            error("with symbol %s is shadowing local symbol %s", s.toPrettyChars(), s2.toPrettyChars());
                         return new ErrorExp();
                     }
                 }
+            }
+            if (withsym && withsym.withstate.wthis)
+            {
                 s = s.toAlias();
 
                 // Same as wthis.ident
