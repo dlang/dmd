@@ -56,7 +56,7 @@ Dsymbols *Dsymbols_create();
 Expressions *Expressions_create();
 type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
-void genModuleInfo(Module *m);
+void genModuleInfo(Module *m, Symbol *sictor, Symbol *sctor, Symbol *sdtor, Symbol *ssharedctor, Symbol *sshareddtor, Symbol *stext);
 void genObjFile(Module *m, bool multiobj);
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
@@ -342,7 +342,7 @@ void genObjFile(Module *m, bool multiobj)
          */
         Module *mod = m->aimports[0];
         assert(mod);
-        if (mod->sictor || mod->sctor || mod->sdtor || mod->ssharedctor || mod->sshareddtor)
+        if (mod->hasModuleInfo)
         {
             Symbol *s = toSymbol(mod);
             //objextern(s);
@@ -392,6 +392,7 @@ void genObjFile(Module *m, bool multiobj)
         toObjFile(member, multiobj);
     }
 
+    Symbol *sictor = NULL;
     if (global.params.cov)
     {
         /* Generate
@@ -423,8 +424,9 @@ void genObjFile(Module *m, bool multiobj)
         type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_c;
 
-        m->sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
-        cstate.CSpsymtab = &m->sictor->Sfunc->Flocsym;
+        sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
+        m->hasModuleInfo = true;
+        cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
         localgot = ictorlocalgot;
 
         elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(m->cov));
@@ -451,6 +453,11 @@ void genObjFile(Module *m, bool multiobj)
         ictorlocalgot = localgot;
     }
 
+    Symbol *sctor = NULL;
+    Symbol *sdtor = NULL;
+    Symbol *ssharedctor = NULL;
+    Symbol *sshareddtor = NULL;
+    Symbol *stest = NULL;
     // If coverage / static constructor / destructor / unittest calls
     if (eictor || sctors.dim || ectorgates.dim || sdtors.dim ||
         ssharedctors.dim || esharedctorgates.dim || sshareddtors.dim || stests.dim)
@@ -462,20 +469,21 @@ void genObjFile(Module *m, bool multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = eictor;
-            m->sictor->Sfunc->Fstartline.Sfilename = m->arg;
-            m->sictor->Sfunc->Fstartblock = b;
-            writefunc(m->sictor);
+            sictor->Sfunc->Fstartline.Sfilename = m->arg;
+            sictor->Sfunc->Fstartblock = b;
+            writefunc(sictor);
         }
 
-        m->sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
-        m->sdtor = callFuncsAndGates(m, &sdtors, NULL, "__moddtor");
+        sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
+        sdtor = callFuncsAndGates(m, &sdtors, NULL, "__moddtor");
+        m->hasModuleInfo = true;
 
-        m->ssharedctor = callFuncsAndGates(m, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
-        m->sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
-        m->stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
+        ssharedctor = callFuncsAndGates(m, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
+        sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
+        stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
 
         if (m->doppelganger)
-            genModuleInfo(m);
+            genModuleInfo(m, sictor, sctor, sdtor, ssharedctor, sshareddtor, stest);
     }
 
     if (m->doppelganger)
@@ -488,7 +496,7 @@ void genObjFile(Module *m, bool multiobj)
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
-        genModuleInfo(m);
+        genModuleInfo(m, sictor, sctor, sdtor, ssharedctor, sshareddtor, stest);
 
     /* Always generate helper functions b/c of later templates instantiations
      * with different -release/-debug/-boundscheck/-unittest flags.

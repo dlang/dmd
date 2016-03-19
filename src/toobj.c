@@ -72,7 +72,7 @@ void objc_Module_genmoduleinfo_classes();
 
 // Put out instance of ModuleInfo for this Module
 
-void genModuleInfo(Module *m)
+void genModuleInfo(Module *m, Symbol *sictor, Symbol *sctor, Symbol *sdtor, Symbol *ssharedctor, Symbol *sshareddtor, Symbol *stest)
 {
     //printf("Module::genmoduleinfo() %s\n", m->toChars());
 
@@ -127,19 +127,19 @@ void genModuleInfo(Module *m)
     unsigned flags = 0;
     if (!m->needmoduleinfo)
         flags |= MIstandalone;
-    if (m->sctor)
+    if (sctor)
         flags |= MItlsctor;
-    if (m->sdtor)
+    if (sdtor)
         flags |= MItlsdtor;
-    if (m->ssharedctor)
+    if (ssharedctor)
         flags |= MIctor;
-    if (m->sshareddtor)
+    if (sshareddtor)
         flags |= MIdtor;
     if (sgetmembers)
         flags |= MIxgetMembers;
-    if (m->sictor)
+    if (sictor)
         flags |= MIictor;
-    if (m->stest)
+    if (stest)
         flags |= MIunitTest;
     if (aimports_dim)
         flags |= MIimportedModules;
@@ -151,19 +151,19 @@ void genModuleInfo(Module *m)
     dtb.dword(0);            // _index
 
     if (flags & MItlsctor)
-        dtb.xoff(m->sctor, 0, TYnptr);
+        dtb.xoff(sctor, 0, TYnptr);
     if (flags & MItlsdtor)
-        dtb.xoff(m->sdtor, 0, TYnptr);
+        dtb.xoff(sdtor, 0, TYnptr);
     if (flags & MIctor)
-        dtb.xoff(m->ssharedctor, 0, TYnptr);
+        dtb.xoff(ssharedctor, 0, TYnptr);
     if (flags & MIdtor)
-        dtb.xoff(m->sshareddtor, 0, TYnptr);
+        dtb.xoff(sshareddtor, 0, TYnptr);
     if (flags & MIxgetMembers)
         dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
-        dtb.xoff(m->sictor, 0, TYnptr);
+        dtb.xoff(sictor, 0, TYnptr);
     if (flags & MIunitTest)
-        dtb.xoff(m->stest, 0, TYnptr);
+        dtb.xoff(stest, 0, TYnptr);
     if (flags & MIimportedModules)
     {
         dtb.size(aimports_dim);
