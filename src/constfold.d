@@ -1454,7 +1454,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
             size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
             void* s = mem.xmalloc(len * sz);
             if (t.ty == tn.ty)
-                memcpy(s, &v, sz);
+                Port.valcpy(s, v, sz);
             else
                 utf_encode(sz, s, cast(dchar)v);
             emplaceExp!(StringExp)(&ue, loc, s, len);
@@ -1583,7 +1583,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         void* s = mem.xmalloc(len * sz);
         memcpy(s, es1.string, es1.len * sz);
         if (homoConcat)
-            memcpy(cast(char*)s + (sz * es1.len), &v, sz);
+            Port.valcpy(cast(char*)s + (sz * es1.len), v, sz);
         else
             utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar)v);
         emplaceExp!(StringExp)(&ue, loc, s, len);
