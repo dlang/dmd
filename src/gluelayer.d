@@ -18,12 +18,6 @@ import ddmd.root.file;
 
 version (NoBackend)
 {
-    struct block;
-    struct Blockx;
-    struct elem;
-    struct TYPE;
-    alias type = TYPE;
-
     extern (C++)
     {
         // glue
@@ -52,11 +46,6 @@ version (NoBackend)
 else
 {
     import ddmd.backend;
-
-    alias block = ddmd.backend.block;
-    alias Blockx = ddmd.backend.Blockx;
-    alias elem = ddmd.backend.elem;
-    alias type = ddmd.backend.type;
 
     extern (C++)
     {
