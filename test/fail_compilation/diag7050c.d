@@ -1,11 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag7050c.d(6): Error: safe destructor 'diag7050c.B.~this' cannot call system destructor 'diag7050c.A.~this'
+fail_compilation/diag7050c.d(13): Error: safe destructor 'diag7050c.B.~this' cannot call system destructor 'diag7050c.A.~this'
 ---
 */
 
-#line 1
 struct A
 {
     ~this(){}
