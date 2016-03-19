@@ -326,7 +326,7 @@ public:
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
             {
-                message = p.depdecl ? p.depdecl.msgstr : null;
+                message = p.depdecl ? p.depdecl.getMessage() : null;
                 if (message)
                     break;
             }

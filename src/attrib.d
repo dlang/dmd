@@ -427,6 +427,14 @@ public:
         return scx;
     }
 
+    override void setScope(Scope* sc)
+    {
+        //printf("DeprecatedDeclaration::setScope() %p\n", this);
+        if (decl)
+            Dsymbol.setScope(sc); // for forward reference
+        return AttribDeclaration.setScope(sc);
+    }
+
     /**
      * Run the DeprecatedDeclaration's semantic2 phase then its members.
      *
@@ -439,18 +447,28 @@ public:
      */
     override void semantic2(Scope* sc)
     {
-        assert(msg);
-        sc = sc.startCTFE();
-        msg = msg.semantic(sc);
-        msg = resolveProperties(sc, msg);
-        sc = sc.endCTFE();
-        msg = msg.ctfeInterpret();
-        StringExp se = msg.toStringExp();
-        if (se)
-            msgstr = se.toStringz();
-        else
-            msg.error("compile time constant expected, not '%s'", msg.toChars());
+        getMessage();
         super.semantic2(sc);
+    }
+
+    const(char)* getMessage()
+    {
+        if (auto sc = _scope)
+        {
+            _scope = null;
+
+            sc = sc.startCTFE();
+            msg = msg.semantic(sc);
+            msg = resolveProperties(sc, msg);
+            sc = sc.endCTFE();
+            msg = msg.ctfeInterpret();
+
+            if (auto se = msg.toStringExp())
+                msgstr = se.toStringz();
+            else
+                msg.error("compile time constant expected, not '%s'", msg.toChars());
+        }
+        return msgstr;
     }
 
     override void accept(Visitor v)
@@ -1434,9 +1452,8 @@ public:
 
     Expressions* getAttributes()
     {
-        if (_scope)
+        if (auto sc = _scope)
         {
-            Scope* sc = _scope;
             _scope = null;
             arrayExpressionSemantic(atts, sc);
         }
