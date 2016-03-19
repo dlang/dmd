@@ -1,4 +1,4 @@
-module imp2;
+module imports.imp2;
 
 enum X = 2;
 enum Y = 2;

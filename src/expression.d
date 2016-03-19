@@ -667,41 +667,29 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
         return s;
     }
 
+    int flags = 0;
     Dsymbol s;
 
-    if (global.params.check10378)
+    Dsymbol sold = void;
+    if (global.params.bug10378 || global.params.check10378)
     {
+        sold = searchScopes(flags | IgnoreSymbolVisibility);
+        if (!global.params.check10378)
+        {
+            s = sold;
+            goto Lsearchdone;
+        }
+
         // Search both ways
-
-        auto sold = searchScopes(SearchCheck10378 | IgnoreSymbolVisibility);
-
-        auto snew = searchScopes(SearchCheck10378 | SearchLocalsOnly);
-        if (!snew)
-            snew = searchScopes(SearchCheck10378 | SearchImportsOnly);
-        if (!snew)
-        {
-            snew = searchScopes(SearchCheck10378 | SearchLocalsOnly | IgnoreSymbolVisibility);
-            if (!snew)
-                snew = searchScopes(SearchCheck10378 | SearchImportsOnly | IgnoreSymbolVisibility);
-            if (snew)
-                .deprecation(loc, "%s is not visible from module %s", snew.toPrettyChars(), sc._module.toChars());
-        }
-
-        if (sold !is snew)
-        {
-            deprecation(loc, "local import search method found %s %s instead of %s %s",
-                sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
-                snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
-        }
-        s = sold;
+        flags |= SearchCheck10378;
     }
-    else if (global.params.bug10378)
-        s = searchScopes(0 | IgnoreSymbolVisibility);
-    else
+
+    // First look in local scopes
+    s = searchScopes(flags | SearchLocalsOnly);
+    if (!s)
     {
-        s = searchScopes(SearchLocalsOnly);
-        if (!s)
-            s = searchScopes(SearchImportsOnly);
+        // Second look in imported modules
+        s = searchScopes(flags | SearchImportsOnly);
 
         /** Still find private symbols, so that symbols that weren't access
          * checked by the compiler remain usable.  Once the deprecation is over,
@@ -709,13 +697,27 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
          */
         if (!s)
         {
-            s = searchScopes(SearchLocalsOnly | IgnoreSymbolVisibility);
+            s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
             if (!s)
-                s = searchScopes(SearchImportsOnly | IgnoreSymbolVisibility);
+                s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
+
             if (s)
                 .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
         }
     }
+    if (global.params.check10378)
+    {
+        alias snew = s;
+        if (sold !is snew)
+        {
+            deprecation(loc, "local import search method found %s %s instead of %s %s",
+                sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
+                snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
+        }
+        if (global.params.bug10378)
+            s = sold;
+    }
+Lsearchdone:
 
     if (!s)
         return ue.e1.type.Type.getProperty(loc, ident, 0);
