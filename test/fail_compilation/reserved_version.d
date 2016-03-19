@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -verrors=1000
+// REQUIRED_ARGS: -verrors=0
 /*
 TEST_OUTPUT:
 ---
