@@ -2512,23 +2512,22 @@ extern (C++) bool isVoidArrayLiteral(Expression e, Type other)
 // used by deduceType()
 extern (C++) Type rawTypeMerge(Type t1, Type t2)
 {
-    Type t1b = t1.toBasetype();
-    Type t2b = t2.toBasetype();
-
     if (t1.equals(t2))
-    {
         return t1;
-    }
-    else if (t1b.equals(t2b))
-    {
+    if (t1.equivalent(t2))
+        return t1.castMod(MODmerge(t1.mod, t2.mod));
+
+    auto t1b = t1.toBasetype();
+    auto t2b = t2.toBasetype();
+    if (t1b.equals(t2b))
         return t1b;
-    }
-    else
-    {
-        TY ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
-        if (ty != Terror)
-            return Type.basic[ty];
-    }
+    if (t1b.equivalent(t2b))
+        return t1b.castMod(MODmerge(t1b.mod, t2b.mod));
+
+    auto ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
+    if (ty != Terror)
+        return Type.basic[ty];
+
     return null;
 }
 

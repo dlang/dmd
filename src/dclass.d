@@ -486,20 +486,42 @@ public:
 
         if (baseok < BASEOKdone)
         {
+            /* Bugzilla 12078, 12143 and 15733:
+             * While resolving base classes and interfaces, a base may refer
+             * the member of this derived class. In that time, if all bases of
+             * this class can  be determined, we can go forward the semantc process
+             * beyond the Lancestorsdone. To do the recursive semantic analysis,
+             * temporarily set and unset `_scope` around exp().
+             */
+            T resolveBase(T)(lazy T exp)
+            {
+                if (!scx)
+                {
+                    scx = sc.copy();
+                    scx.setNoFree();
+                }
+                static if (!is(T == void))
+                {
+                    _scope = scx;
+                    auto r = exp();
+                    _scope = null;
+                    return r;
+                }
+                else
+                {
+                    _scope = scx;
+                    exp();
+                    _scope = null;
+                }
+            }
+
             baseok = BASEOKin;
 
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
             {
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-
-                BaseClass* b = (*baseclasses)[i];
-                //printf("+ %s [%d] b.type = %s\n", toChars(), i, b.type.toChars());
-                b.type = b.type.semantic(loc, sc);
-                //printf("- %s [%d] b.type = %s\n", toChars(), i, b.type.toChars());
-
-                _scope = null;
+                auto b = (*baseclasses)[i];
+                b.type = resolveBase(b.type.semantic(loc, sc));
 
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
@@ -571,7 +593,7 @@ public:
                 b.sym = baseClass;
 
                 if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
-                    tc.sym.semantic(null); // Try to resolve forward reference
+                    resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
@@ -621,7 +643,7 @@ public:
                 b.sym = tc.sym;
 
                 if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
-                    tc.sym.semantic(null); // Try to resolve forward reference
+                    resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
@@ -1577,18 +1599,35 @@ public:
 
         if (baseok < BASEOKdone)
         {
+            T resolveBase(T)(lazy T exp)
+            {
+                if (!scx)
+                {
+                    scx = sc.copy();
+                    scx.setNoFree();
+                }
+                static if (!is(T == void))
+                {
+                    _scope = scx;
+                    auto r = exp();
+                    _scope = null;
+                    return r;
+                }
+                else
+                {
+                    _scope = scx;
+                    exp();
+                    _scope = null;
+                }
+            }
+
             baseok = BASEOKin;
 
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < baseclasses.dim;)
             {
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-
-                BaseClass* b = (*baseclasses)[i];
-                b.type = b.type.semantic(loc, sc);
-
-                _scope = null;
+                auto b = (*baseclasses)[i];
+                b.type = resolveBase(b.type.semantic(loc, sc));
 
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
@@ -1665,7 +1704,7 @@ public:
                 b.sym = tc.sym;
 
                 if (tc.sym._scope && tc.sym.baseok < BASEOKdone)
-                    tc.sym.semantic(null); // Try to resolve forward reference
+                    resolveBase(tc.sym.semantic(null)); // Try to resolve forward reference
                 if (tc.sym.baseok < BASEOKdone)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
