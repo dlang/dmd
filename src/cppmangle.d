@@ -17,6 +17,7 @@ import ddmd.declaration;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
+import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
@@ -175,7 +176,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         else
                         {
                             s.error("Internal Compiler Error: C++ %s template value parameter is not supported", tv.valType.toChars());
-                            assert(0);
+                            fatal();
                         }
                     }
                     else if (!tp || tp.isTemplateTypeParameter())
@@ -191,7 +192,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         if (!d && !e)
                         {
                             s.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o.toChars());
-                            assert(0);
+                            fatal();
                         }
                         if (d && d.isFuncDeclaration())
                         {
@@ -221,13 +222,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         else
                         {
                             s.error("Internal Compiler Error: %s is unsupported parameter for C++ template", o.toChars());
-                            assert(0);
+                            fatal();
                         }
                     }
                     else
                     {
                         s.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                        assert(0);
+                        fatal();
                     }
                 }
                 if (is_var_arg)
@@ -392,7 +393,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             if (!(d.storage_class & (STCextern | STCgshared)))
             {
                 d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-                assert(0);
+                fatal();
             }
             Dsymbol p = d.toParent();
             if (p && !p.isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
@@ -498,7 +499,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     // Mangle static arrays as pointers
                     t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
                     t.error(Loc(), "Use pointer instead.");
-                    assert(0);
+                    fatal();
                     //t = t.nextOf().pointerTo();
                 }
                 /* If it is a basic, enum or struct type,
@@ -557,7 +558,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             {
                 t.error(Loc(), "Internal Compiler Error: unsupported type %s\n", t.toChars());
             }
-            assert(0); //Assert, because this error should be handled in frontend
+            fatal(); //Fatal, because this error should be handled in frontend
         }
 
         override void visit(TypeBasic t)
@@ -983,7 +984,7 @@ else static if (TARGET_WINDOS)
             {
                 type.error(Loc(), "Internal Compiler Error: unsupported type %s\n", type.toChars());
             }
-            assert(0); // Assert, because this error should be handled in frontend
+            fatal(); //Fatal, because this error should be handled in frontend
         }
 
         override void visit(TypeBasic type)
@@ -1445,7 +1446,7 @@ else static if (TARGET_WINDOS)
             if (!(d.storage_class & (STCextern | STCgshared)))
             {
                 d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
-                assert(0);
+                fatal();
             }
             buf.writeByte('?');
             mangleIdent(d);
@@ -1569,7 +1570,7 @@ else static if (TARGET_WINDOS)
                         else
                         {
                             sym.error("Internal Compiler Error: C++ %s template value parameter is not supported", tv.valType.toChars());
-                            assert(0);
+                            fatal();
                         }
                     }
                     else if (!tp || tp.isTemplateTypeParameter())
@@ -1585,7 +1586,7 @@ else static if (TARGET_WINDOS)
                         if (!d && !e)
                         {
                             sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template", o.toChars());
-                            assert(0);
+                            fatal();
                         }
                         if (d && d.isFuncDeclaration())
                         {
@@ -1626,7 +1627,7 @@ else static if (TARGET_WINDOS)
                                 else
                                 {
                                     sym.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                                    assert(0);
+                                    fatal();
                                 }
                             }
                             tmp.mangleIdent(d);
@@ -1634,13 +1635,13 @@ else static if (TARGET_WINDOS)
                         else
                         {
                             sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o.toChars());
-                            assert(0);
+                            fatal();
                         }
                     }
                     else
                     {
                         sym.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
-                        assert(0);
+                        fatal();
                     }
                 }
                 name = tmp.buf.extractString();
