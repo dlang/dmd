@@ -577,7 +577,112 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    static __gshared const(char)*[TOKMAX] tochars;
+    static __gshared const(char)*[TOKMAX] tochars =
+    [
+        TOKeof: "EOF",
+        TOKlcurly: "{",
+        TOKrcurly: "}",
+        TOKlparen: "(",
+        TOKrparen: ")",
+        TOKlbracket: "[",
+        TOKrbracket: "]",
+        TOKsemicolon: ";",
+        TOKcolon: ":",
+        TOKcomma: ",",
+        TOKdot: ".",
+        TOKxor: "^",
+        TOKxorass: "^=",
+        TOKassign: "=",
+        TOKconstruct: "=",
+        TOKblit: "=",
+        TOKlt: "<",
+        TOKgt: ">",
+        TOKle: "<=",
+        TOKge: ">=",
+        TOKequal: "==",
+        TOKnotequal: "!=",
+        TOKunord: "!<>=",
+        TOKue: "!<>",
+        TOKlg: "<>",
+        TOKleg: "<>=",
+        TOKule: "!>",
+        TOKul: "!>=",
+        TOKuge: "!<",
+        TOKug: "!<=",
+        TOKnot: "!",
+        TOKtobool: "!!",
+        TOKshl: "<<",
+        TOKshr: ">>",
+        TOKushr: ">>>",
+        TOKadd: "+",
+        TOKmin: "-",
+        TOKmul: "*",
+        TOKdiv: "/",
+        TOKmod: "%",
+        TOKslice: "..",
+        TOKdotdotdot: "...",
+        TOKand: "&",
+        TOKandand: "&&",
+        TOKor: "|",
+        TOKoror: "||",
+        TOKarray: "[]",
+        TOKindex: "[i]",
+        TOKaddress: "&",
+        TOKstar: "*",
+        TOKtilde: "~",
+        TOKdollar: "$",
+        TOKcast: "cast",
+        TOKplusplus: "++",
+        TOKminusminus: "--",
+        TOKpreplusplus: "++",
+        TOKpreminusminus: "--",
+        TOKtype: "type",
+        TOKquestion: "?",
+        TOKneg: "-",
+        TOKuadd: "+",
+        TOKvar: "var",
+        TOKaddass: "+=",
+        TOKminass: "-=",
+        TOKmulass: "*=",
+        TOKdivass: "/=",
+        TOKmodass: "%=",
+        TOKshlass: "<<=",
+        TOKshrass: ">>=",
+        TOKushrass: ">>>=",
+        TOKandass: "&=",
+        TOKorass: "|=",
+        TOKcatass: "~=",
+        TOKcat: "~",
+        TOKcall: "call",
+        TOKidentity: "is",
+        TOKnotidentity: "!is",
+        TOKidentifier: "identifier",
+        TOKat: "@",
+        TOKpow: "^^",
+        TOKpowass: "^^=",
+        TOKgoesto: "=>",
+        TOKpound: "#",
+
+        // For debugging
+        TOKerror: "error",
+        TOKdotid: "dotid",
+        TOKdottd: "dottd",
+        TOKdotti: "dotti",
+        TOKdotvar: "dotvar",
+        TOKdottype: "dottype",
+        TOKsymoff: "symoff",
+        TOKarraylength: "arraylength",
+        TOKarrayliteral: "arrayliteral",
+        TOKassocarrayliteral: "assocarrayliteral",
+        TOKstructliteral: "structliteral",
+        TOKstring: "string",
+        TOKdsymbol: "symbol",
+        TOKtuple: "tuple",
+        TOKdeclaration: "declaration",
+        TOKon_scope_exit: "scope(exit)",
+        TOKon_scope_success: "scope(success)",
+        TOKon_scope_failure: "scope(failure)",
+    ];
 
     static this()
     {
@@ -592,111 +697,6 @@ extern (C++) struct Token
             //printf("tochars[%d] = '%s'\n",v, s);
             Token.tochars[v] = s;
         }
-        Token.tochars[TOKeof] = "EOF";
-        Token.tochars[TOKlcurly] = "{";
-        Token.tochars[TOKrcurly] = "}";
-        Token.tochars[TOKlparen] = "(";
-        Token.tochars[TOKrparen] = ")";
-        Token.tochars[TOKlbracket] = "[";
-        Token.tochars[TOKrbracket] = "]";
-        Token.tochars[TOKsemicolon] = ";";
-        Token.tochars[TOKcolon] = ":";
-        Token.tochars[TOKcomma] = ",";
-        Token.tochars[TOKdot] = ".";
-        Token.tochars[TOKxor] = "^";
-        Token.tochars[TOKxorass] = "^=";
-        Token.tochars[TOKassign] = "=";
-        Token.tochars[TOKconstruct] = "=";
-        Token.tochars[TOKblit] = "=";
-        Token.tochars[TOKlt] = "<";
-        Token.tochars[TOKgt] = ">";
-        Token.tochars[TOKle] = "<=";
-        Token.tochars[TOKge] = ">=";
-        Token.tochars[TOKequal] = "==";
-        Token.tochars[TOKnotequal] = "!=";
-        Token.tochars[TOKnotidentity] = "!is";
-        Token.tochars[TOKtobool] = "!!";
-        Token.tochars[TOKunord] = "!<>=";
-        Token.tochars[TOKue] = "!<>";
-        Token.tochars[TOKlg] = "<>";
-        Token.tochars[TOKleg] = "<>=";
-        Token.tochars[TOKule] = "!>";
-        Token.tochars[TOKul] = "!>=";
-        Token.tochars[TOKuge] = "!<";
-        Token.tochars[TOKug] = "!<=";
-        Token.tochars[TOKnot] = "!";
-        Token.tochars[TOKtobool] = "!!";
-        Token.tochars[TOKshl] = "<<";
-        Token.tochars[TOKshr] = ">>";
-        Token.tochars[TOKushr] = ">>>";
-        Token.tochars[TOKadd] = "+";
-        Token.tochars[TOKmin] = "-";
-        Token.tochars[TOKmul] = "*";
-        Token.tochars[TOKdiv] = "/";
-        Token.tochars[TOKmod] = "%";
-        Token.tochars[TOKslice] = "..";
-        Token.tochars[TOKdotdotdot] = "...";
-        Token.tochars[TOKand] = "&";
-        Token.tochars[TOKandand] = "&&";
-        Token.tochars[TOKor] = "|";
-        Token.tochars[TOKoror] = "||";
-        Token.tochars[TOKarray] = "[]";
-        Token.tochars[TOKindex] = "[i]";
-        Token.tochars[TOKaddress] = "&";
-        Token.tochars[TOKstar] = "*";
-        Token.tochars[TOKtilde] = "~";
-        Token.tochars[TOKdollar] = "$";
-        Token.tochars[TOKcast] = "cast";
-        Token.tochars[TOKplusplus] = "++";
-        Token.tochars[TOKminusminus] = "--";
-        Token.tochars[TOKpreplusplus] = "++";
-        Token.tochars[TOKpreminusminus] = "--";
-        Token.tochars[TOKtype] = "type";
-        Token.tochars[TOKquestion] = "?";
-        Token.tochars[TOKneg] = "-";
-        Token.tochars[TOKuadd] = "+";
-        Token.tochars[TOKvar] = "var";
-        Token.tochars[TOKaddass] = "+=";
-        Token.tochars[TOKminass] = "-=";
-        Token.tochars[TOKmulass] = "*=";
-        Token.tochars[TOKdivass] = "/=";
-        Token.tochars[TOKmodass] = "%=";
-        Token.tochars[TOKshlass] = "<<=";
-        Token.tochars[TOKshrass] = ">>=";
-        Token.tochars[TOKushrass] = ">>>=";
-        Token.tochars[TOKandass] = "&=";
-        Token.tochars[TOKorass] = "|=";
-        Token.tochars[TOKcatass] = "~=";
-        Token.tochars[TOKcat] = "~";
-        Token.tochars[TOKcall] = "call";
-        Token.tochars[TOKidentity] = "is";
-        Token.tochars[TOKnotidentity] = "!is";
-        Token.tochars[TOKidentifier] = "identifier";
-        Token.tochars[TOKat] = "@";
-        Token.tochars[TOKpow] = "^^";
-        Token.tochars[TOKpowass] = "^^=";
-        Token.tochars[TOKgoesto] = "=>";
-        Token.tochars[TOKpound] = "#";
-
-        // For debugging
-        Token.tochars[TOKerror] = "error";
-        Token.tochars[TOKdotid] = "dotid";
-        Token.tochars[TOKdottd] = "dottd";
-        Token.tochars[TOKdotti] = "dotti";
-        Token.tochars[TOKdotvar] = "dotvar";
-        Token.tochars[TOKdottype] = "dottype";
-        Token.tochars[TOKsymoff] = "symoff";
-        Token.tochars[TOKarraylength] = "arraylength";
-        Token.tochars[TOKarrayliteral] = "arrayliteral";
-        Token.tochars[TOKassocarrayliteral] = "assocarrayliteral";
-        Token.tochars[TOKstructliteral] = "structliteral";
-        Token.tochars[TOKstring] = "string";
-        Token.tochars[TOKdsymbol] = "symbol";
-        Token.tochars[TOKtuple] = "tuple";
-        Token.tochars[TOKdeclaration] = "declaration";
-        Token.tochars[TOKon_scope_exit] = "scope(exit)";
-        Token.tochars[TOKon_scope_success] = "scope(success)";
-        Token.tochars[TOKon_scope_failure] = "scope(failure)";
     }
 
     static __gshared Token* freelist = null;
