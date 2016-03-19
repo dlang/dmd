@@ -4040,10 +4040,12 @@ extern (C++) static void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rh
  *      flags           1: do not issue error message on no match, just return NULL
  *                      2: overloadResolve only
  */
-extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
+extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
+    Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
 {
     if (!s)
         return null; // no match
+
     version (none)
     {
         printf("resolveFuncCall('%s')\n", s.toChars());
@@ -4058,13 +4060,18 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
             }
         }
     }
-    if (tiargs && arrayObjectIsError(tiargs) || fargs && arrayObjectIsError(cast(Objects*)fargs))
+
+    if (tiargs && arrayObjectIsError(tiargs) ||
+        fargs && arrayObjectIsError(cast(Objects*)fargs))
     {
         return null;
     }
+
     Match m;
     m.last = MATCHnomatch;
+
     functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
+
     if (m.last > MATCHnomatch && m.lastf)
     {
         if (m.count == 1) // exactly one match
@@ -4078,6 +4085,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
             return m.lastf;
         }
     }
+
     /* Failed to find a best match.
      * Do nothing or print error.
      */
@@ -4086,16 +4094,21 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         // error was caused on matched function
         if (m.count == 1)
             return m.lastf;
+
         // if do not print error messages
         if (flags & 1)
             return null; // no match
     }
-    FuncDeclaration fd = s.isFuncDeclaration();
-    TemplateDeclaration td = s.isTemplateDeclaration();
+
+    auto fd = s.isFuncDeclaration();
+    auto od = s.isOverDeclaration();
+    auto td = s.isTemplateDeclaration();
     if (td && td.funcroot)
         s = fd = td.funcroot;
+
     OutBuffer tiargsBuf;
     arrayObjectsToBuffer(&tiargsBuf, tiargs);
+
     OutBuffer fargsBuf;
     fargsBuf.writeByte('(');
     argExpTypesToCBuffer(&fargsBuf, fargs);
@@ -4110,7 +4123,9 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
     {
         if (td && !fd) // all of overloads are templates
         {
-            .error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:", td.kind(), td.parent.toPrettyChars(), td.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
+            .error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
+                td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
+                tiargsBuf.peekString(), fargsBuf.peekString());
 
             // Display candidate templates (even if there are no multiple overloads)
             int numToDisplay = numOverloadsDisplay;
@@ -4132,11 +4147,17 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
                 return 1;   // stop iterating
             });
         }
+        else if (od)
+        {
+            .error(loc, "none of the overloads of '%s' are callable using argument types !(%s)%s",
+                od.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
+        }
         else
         {
             assert(fd);
+
             bool hasOverloads = fd.overnext !is null;
-            TypeFunction tf = cast(TypeFunction)fd.type;
+            auto tf = cast(TypeFunction)fd.type;
             if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
@@ -4144,7 +4165,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
                 MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
                 if (hasOverloads)
                 {
-                    .error(loc, "None of the overloads of '%s' are callable using a %sobject, candidates are:",
+                    .error(loc, "none of the overloads of '%s' are callable using a %sobject, candidates are:",
                         fd.ident.toChars(), thisBuf.peekString());
                 }
                 else
@@ -4159,7 +4180,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
                 //printf("tf = %s, args = %s\n", tf->deco, (*fargs)[0]->type->deco);
                 if (hasOverloads)
                 {
-                    .error(loc, "None of the overloads of '%s' are callable using argument types %s, candidates are:",
+                    .error(loc, "none of the overloads of '%s' are callable using argument types %s, candidates are:",
                         fd.ident.toChars(), fargsBuf.peekString());
                 }
                 else
@@ -4198,7 +4219,11 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s, Obje
         TypeFunction tf2 = cast(TypeFunction)m.nextf.type;
         const(char)* lastprms = parametersTypeToChars(tf1.parameters, tf1.varargs);
         const(char)* nextprms = parametersTypeToChars(tf2.parameters, tf2.varargs);
-        .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s\nand:\n%s:     %s%s", s.parent.toPrettyChars(), s.ident.toChars(), fargsBuf.peekString(), m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms);
+        .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s\nand:\n%s:     %s%s",
+            s.parent.toPrettyChars(), s.ident.toChars(),
+            fargsBuf.peekString(),
+            m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms,
+            m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms);
     }
     return null;
 }

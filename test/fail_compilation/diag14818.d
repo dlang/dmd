@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag14818.d(34): Error: None of the overloads of 'func' are callable using argument types (string), candidates are:
+fail_compilation/diag14818.d(34): Error: none of the overloads of 'func' are callable using argument types (string), candidates are:
 fail_compilation/diag14818.d(12):        diag14818.foo(int _param_0)
 fail_compilation/diag14818.d(13):        diag14818.bar(double _param_0)
 fail_compilation/diag14818.d(35): Error: overload alias diag14818.X does not match any template declaration
