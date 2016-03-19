@@ -291,6 +291,21 @@ void obj_startaddress(Symbol *s)
     return objmod->startaddress(s);
 }
 
+struct CovInfo { Symbol *sym; unsigned *covb; };
+
+CovInfo *getCoverageInfo(Module *m)
+{
+    static AA *infoMap;
+
+    CovInfo **ci = (CovInfo **)dmd_aaGet(&infoMap, m);
+    if (!*ci)
+    {
+        *ci = new CovInfo;
+        (*ci)->sym = NULL;
+        (*ci)->covb = NULL;
+    }
+    return *ci;
+}
 
 /**************************************
  * Generate .obj file for Module.
@@ -359,25 +374,28 @@ void genObjFile(Module *m, bool multiobj)
         }
     }
 
+    CovInfo *ci = NULL;
     if (global.params.cov)
     {
         /* Create coverage identifier:
          *  private uint[numlines] __coverage;
          */
-        m->cov = symbol_calloc("__coverage");
-        m->cov->Stype = type_fake(TYint);
-        m->cov->Stype->Tmangle = mTYman_c;
-        m->cov->Stype->Tcount++;
-        m->cov->Sclass = SCstatic;
-        m->cov->Sfl = FLdata;
+        ci = getCoverageInfo(m);
+
+        ci->sym = symbol_calloc("__coverage");
+        ci->sym->Stype = type_fake(TYint);
+        ci->sym->Stype->Tmangle = mTYman_c;
+        ci->sym->Stype->Tcount++;
+        ci->sym->Sclass = SCstatic;
+        ci->sym->Sfl = FLdata;
 
         DtBuilder dtb;
         dtb.nzeros(4 * m->numlines);
-        m->cov->Sdt = dtb.finish();
+        ci->sym->Sdt = dtb.finish();
 
-        outdata(m->cov);
+        outdata(ci->sym);
 
-        m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
+        ci->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*ci->covb));
     }
 
     for (size_t i = 0; i < m->members->dim; i++)
@@ -400,13 +418,13 @@ void genObjFile(Module *m, bool multiobj)
         bcov->Sfl = FLdata;
 
         DtBuilder dtb;
-        dtb.nbytes((m->numlines + 32) / 32 * sizeof(*m->covb), (char *)m->covb);
+        dtb.nbytes((m->numlines + 32) / 32 * sizeof(*ci->covb), (char *)ci->covb);
         bcov->Sdt = dtb.finish();
 
         outdata(bcov);
 
-        free(m->covb);
-        m->covb = NULL;
+        free(ci->covb);
+        ci->covb = NULL;
 
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
@@ -424,7 +442,7 @@ void genObjFile(Module *m, bool multiobj)
         cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
         localgot = ictorlocalgot;
 
-        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(m->cov));
+        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(ci->sym));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(bcov));
 
         if (config.exe == EX_WIN64)

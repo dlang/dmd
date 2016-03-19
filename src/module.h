@@ -151,9 +151,7 @@ public:
 
     // Back end
 
-    Symbol *cov;                // private uint[] __coverage;
     Module *doppelganger;           // sub-module
-    unsigned *covb;             // bit array of valid code line numbers
 
     bool hasModuleInfo;
 

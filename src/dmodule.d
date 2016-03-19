@@ -1280,9 +1280,7 @@ public:
     }
 
     // Back end
-    Symbol* cov; // private uint[] __coverage;
     Module doppelganger; // sub-module
-    uint* covb; // bit array of valid code line numbers
     bool hasModuleInfo;
 
     override inout(Module) isModule() inout
