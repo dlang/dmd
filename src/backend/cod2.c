@@ -1655,6 +1655,8 @@ code *cdnot(elem *e,regm_t *pretregs)
                 cs.IFL2 = FLconst;
                 cs.IEV2.Vint = 0;
             }
+            if (I64 && (sz == 1) && reg >= 4)
+                cs.Irex |= REX;
             cs.Iop ^= (sz == 1);
             code_newreg(&cs,reg);
             c = gen(c,&cs);                             // CMP e1,0
@@ -1689,6 +1691,8 @@ code *cdnot(elem *e,regm_t *pretregs)
             cs.IFL2 = FLconst;
             cs.IEV2.Vint = 1;
         }
+        if (I64 && (sz == 1) && reg >= 4)
+            cs.Irex |= REX;
         cs.Iop ^= (sz == 1);
         code_newreg(&cs,reg);
         c = gen(c,&cs);                         // CMP e1,1
