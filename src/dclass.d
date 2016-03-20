@@ -41,7 +41,6 @@ import ddmd.visitor;
 struct BaseClass
 {
     Type type;          // (before semantic processing)
-    Prot protection;    // protection for the base interface
 
     ClassDeclaration sym;
     uint offset;        // 'this' pointer offset
@@ -53,11 +52,10 @@ struct BaseClass
     // are a copy of the InterfaceDeclaration.interfaces
     BaseClass[] baseInterfaces;
 
-    extern (D) this(Type type, Prot protection)
+    extern (D) this(Type type)
     {
         //printf("BaseClass(this = %p, '%s')\n", this, type.toChars());
         this.type = type;
-        this.protection = protection;
     }
 
     /****************************************
@@ -400,7 +398,7 @@ public:
         for (size_t i = 0; i < cd.baseclasses.dim; i++)
         {
             BaseClass* b = (*this.baseclasses)[i];
-            auto b2 = new BaseClass(b.type.syntaxCopy(), b.protection);
+            auto b2 = new BaseClass(b.type.syntaxCopy());
             (*cd.baseclasses)[i] = b2;
         }
 
@@ -527,13 +525,12 @@ public:
                 if (tb.ty == Ttuple)
                 {
                     TypeTuple tup = cast(TypeTuple)tb;
-                    Prot protection = b.protection;
                     baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
                     for (size_t j = 0; j < dim; j++)
                     {
                         Parameter arg = Parameter.getNth(tup.arguments, j);
-                        b = new BaseClass(arg.type, protection);
+                        b = new BaseClass(arg.type);
                         baseclasses.insert(i + j, b);
                     }
                 }
@@ -678,7 +675,7 @@ public:
                 assert(t.ty == Tclass);
                 TypeClass tc = cast(TypeClass)t;
 
-                auto b = new BaseClass(tc, Prot(PROTpublic));
+                auto b = new BaseClass(tc);
                 baseclasses.shift(b);
 
                 baseClass = tc.sym;
@@ -1633,13 +1630,12 @@ public:
                 if (tb.ty == Ttuple)
                 {
                     TypeTuple tup = cast(TypeTuple)tb;
-                    Prot protection = b.protection;
                     baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
                     for (size_t j = 0; j < dim; j++)
                     {
                         Parameter arg = Parameter.getNth(tup.arguments, j);
-                        b = new BaseClass(arg.type, protection);
+                        b = new BaseClass(arg.type);
                         baseclasses.insert(i + j, b);
                     }
                 }

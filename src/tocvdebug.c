@@ -55,11 +55,11 @@ int cvMember(Dsymbol *s, unsigned char *p);
  * Convert D protection attribute to cv attribute.
  */
 
-unsigned PROTtoATTR(Prot prot)
+unsigned PROTtoATTR(PROTKIND prot)
 {
     unsigned attribute;
 
-    switch (prot.kind)
+    switch (prot)
     {
         case PROTprivate:       attribute = 1;  break;
         case PROTpackage:       attribute = 2;  break;
@@ -677,7 +677,7 @@ void toDebug(ClassDeclaration *cd)
             {
                 BaseClass *bc = (*cd->baseclasses)[i];
                 idx_t typidx = cv4_typidx(Type_toCtype(bc->sym->type)->Tnext);
-                unsigned attribute = PROTtoATTR(bc->protection);
+                unsigned attribute = PROTtoATTR(PROTpublic);
 
                 unsigned elementlen;
                 switch (config.fulltypes)
@@ -867,7 +867,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
                 q += 2;
         //      for (s = sf; s; s = s->Sfunc->Foversym)
                 {
-                    unsigned attribute = PROTtoATTR(fd->prot());
+                    unsigned attribute = PROTtoATTR(fd->prot().kind);
 
                     /* 0*4 vanilla method
                      * 1*4 virtual method
@@ -975,7 +975,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             else
             {
                 idx_t typidx = cv_typidx(Type_toCtype(vd->type));
-                unsigned attribute = PROTtoATTR(vd->prot());
+                unsigned attribute = PROTtoATTR(vd->prot().kind);
                 assert((attribute & ~3) == 0);
                 switch (config.fulltypes)
                 {

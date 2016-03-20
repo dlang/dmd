@@ -61,8 +61,8 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
             case PROTpublic:
             case PROTexport:
                 // If access is to be tightened
-                if (b.protection.isMoreRestrictiveThan(access))
-                    access = b.protection;
+                if (PROTpublic < access.kind)
+                    access = Prot(PROTpublic);
                 // Pick path with loosest access
                 if (access_ret.isMoreRestrictiveThan(access))
                     access_ret = access;

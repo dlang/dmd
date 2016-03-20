@@ -2947,36 +2947,7 @@ public:
         auto baseclasses = new BaseClasses();
         for (; 1; nextToken())
         {
-            bool prot = false;
-            Prot protection = Prot(PROTpublic);
-            switch (token.value)
-            {
-            case TOKprivate:
-                prot = true;
-                protection = Prot(PROTprivate);
-                nextToken();
-                break;
-            case TOKpackage:
-                prot = true;
-                protection = Prot(PROTpackage);
-                nextToken();
-                break;
-            case TOKprotected:
-                prot = true;
-                protection = Prot(PROTprotected);
-                nextToken();
-                break;
-            case TOKpublic:
-                prot = true;
-                protection = Prot(PROTpublic);
-                nextToken();
-                break;
-            default:
-                break;
-            }
-            if (prot)
-                error("use of base class protection is no longer supported");
-            auto b = new BaseClass(parseBasicType(), protection);
+            auto b = new BaseClass(parseBasicType());
             baseclasses.push(b);
             if (token.value != TOKcomma)
                 break;
