@@ -720,7 +720,7 @@ public:
     Identifier *id;     // can be NULL
     TOK tok;       // ':' or '=='
     Type *tspec;        // can be NULL
-    TOK tok2;      // 'struct', 'union', 'typedef', etc.
+    TOK tok2;      // 'struct', 'union', etc.
     TemplateParameters *parameters;
 
     IsExp(Loc loc, Type *targ, Identifier *id, TOK tok, Type *tspec,

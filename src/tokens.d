@@ -209,7 +209,6 @@ enum TOK : int
     TOKunion,
     TOKenum,
     TOKimport,
-    TOKtypedef,
     TOKalias,
     TOKoverride,
     TOKdelegate,
@@ -466,7 +465,6 @@ alias TOKinterface = TOK.TOKinterface;
 alias TOKunion = TOK.TOKunion;
 alias TOKenum = TOK.TOKenum;
 alias TOKimport = TOK.TOKimport;
-alias TOKtypedef = TOK.TOKtypedef;
 alias TOKalias = TOK.TOKalias;
 alias TOKoverride = TOK.TOKoverride;
 alias TOKdelegate = TOK.TOKdelegate;
@@ -1006,7 +1004,6 @@ immutable Keyword[] keywords =
     Keyword("static", TOKstatic),
     Keyword("final", TOKfinal),
     Keyword("const", TOKconst),
-    Keyword("typedef", TOKtypedef),
     Keyword("alias", TOKalias),
     Keyword("override", TOKoverride),
     Keyword("abstract", TOKabstract),

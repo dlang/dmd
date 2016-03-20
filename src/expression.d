@@ -7126,7 +7126,7 @@ public:
     Identifier id;      // can be null
     TOK tok;            // ':' or '=='
     Type tspec;         // can be null
-    TOK tok2;           // 'struct', 'union', 'typedef', etc.
+    TOK tok2;           // 'struct', 'union', etc.
     TemplateParameters* parameters;
 
     extern (D) this(Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
@@ -7181,8 +7181,6 @@ public:
         {
             switch (tok2)
             {
-            case TOKtypedef:
-                goto Lno;
             case TOKstruct:
                 if (targ.ty != Tstruct)
                     goto Lno;
