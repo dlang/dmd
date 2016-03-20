@@ -31,15 +31,6 @@ version (Windows) extern (C) int spawnl(int, const char*, const char*, const cha
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
 version (CRuntime_Microsoft) extern (Windows) uint GetShortPathNameA(const char* lpszLongPath, char* lpszShortPath, uint cchBuffer);
 
-static if (__linux__ || __APPLE__)
-{
-    enum HAS_POSIX_SPAWN = 1;
-}
-else
-{
-    enum HAS_POSIX_SPAWN = 0;
-}
-
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
@@ -69,7 +60,7 @@ extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename)
     writeFilename(buf, filename, strlen(filename));
 }
 
-static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+version (Posix)
 {
     /*****************************
      * As it forwards the linker error message to stderr, checks for the presence
@@ -439,7 +430,7 @@ extern (C++) int runLINK()
             return status;
         }
     }
-    else static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+    else version (Posix)
     {
         pid_t childpid;
         int status;
@@ -457,7 +448,7 @@ extern (C++) int runLINK()
             if (global.params.dll)
                 argv.push("-dynamiclib");
         }
-        else static if (__linux__ || __FreeBSD__ || __OpenBSD__ || __sun)
+        else version (Posix)
         {
             if (global.params.dll)
                 argv.push("-shared");
@@ -889,7 +880,7 @@ extern (C++) int runProgram()
         // spawnlp returns intptr_t in some systems, not int
         return spawnv(0, ex, argv.tdata());
     }
-    else static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+    else version (Posix)
     {
         pid_t childpid;
         int status;

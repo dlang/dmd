@@ -72,7 +72,7 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
     filename = FileName.replaceName(argv0, inifile);
     if (FileName.exists(filename))
         return filename;
-    static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+    version (Posix)
     {
         // Search PATH for argv0
         auto p = getenv("PATH");
