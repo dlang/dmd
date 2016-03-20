@@ -992,7 +992,7 @@ public:
                         error("cannot override final function %s", fdv.toPrettyChars());
                     doesoverride = true;
                     if (!isOverride())
-                        .deprecation(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
+                        .error(loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), toPrettyChars());
                     if (fdc.toParent() == parent)
                     {
                         // If both are mixins, or both are not, then error.
