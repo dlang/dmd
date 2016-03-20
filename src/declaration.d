@@ -613,7 +613,7 @@ public:
             s = null;
             type = Type.terror;
         }
-        if (!s || !((s.getType() && type.equals(s.getType())) || s.isEnumMember()))
+        if (!s || !s.isEnumMember())
         {
             Type t;
             Expression e;
