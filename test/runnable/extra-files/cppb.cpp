@@ -695,4 +695,32 @@ void Derived2::f()
 }
 
 /******************************************/
+// 15455
+
+struct X6
+{
+    unsigned short a;
+    unsigned short b;
+    unsigned char c;
+    unsigned char d;
+};
+
+struct X8
+{
+    unsigned short a;
+    X6 b;
+};
+
+void test15455b(X8 s)
+{
+    assert(sizeof(X6) == 6);
+    assert(sizeof(X8) == 8);
+    assert(s.a == 1);
+    assert(s.b.a == 2);
+    assert(s.b.b == 3);
+    assert(s.b.c == 4);
+    assert(s.b.d == 5);
+}
+
+/******************************************/
 
