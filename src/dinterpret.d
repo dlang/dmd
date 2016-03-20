@@ -3267,14 +3267,6 @@ public:
         case TOKle:
         case TOKgt:
         case TOKge:
-        case TOKleg:
-        case TOKlg:
-        case TOKunord:
-        case TOKue:
-        case TOKug:
-        case TOKuge:
-        case TOKul:
-        case TOKule:
             interpretCompareCommon(e, &ctfeCmp);
             return;
         default:

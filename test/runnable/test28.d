@@ -1056,7 +1056,7 @@ void test55()
 	if((a.length != 1) || (a[0].length != 1)){
 		assert(0);
 	}
-	if (a[0][0] <>= 0.0){
+	if (a[0][0] == a[0][0]){
 		assert(0);
 	}
 }

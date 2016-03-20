@@ -14706,17 +14706,18 @@ public:
                 if (altop == TOKerror)
                 {
                     const(char)* s = op == TOKunord ? "false" : "true";
-                    deprecation("floating point operator '%s' always returns %s for non-floating comparisons", Token.toChars(op), s);
+                    error("floating point operator '%s' always returns %s for non-floating comparisons", Token.toChars(op), s);
                 }
                 else
                 {
-                    deprecation("use '%s' for non-floating comparisons rather than floating point operator '%s'", Token.toChars(altop), Token.toChars(op));
+                    error("use '%s' for non-floating comparisons rather than floating point operator '%s'", Token.toChars(altop), Token.toChars(op));
                 }
             }
             else
             {
-                deprecation("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'", Token.toChars(op));
+                error("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'", Token.toChars(op));
             }
+            return new ErrorExp();
         }
         //printf("CmpExp: %s, type = %s\n", e->toChars(), e->type->toChars());
         return this;

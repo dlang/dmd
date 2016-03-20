@@ -909,20 +909,6 @@ void test46()
 
 /**************************************/
 
-void test47()
-{
-    assert(0 <>=  1);
-    assert(0 <>   1);
-    assert(!(0 !<>= 1));
-    assert(!(0 !<>  1));
-    assert(!(0 !<=  1));
-    assert(!(0 !<   1));
-    assert(0 !>=  1);
-    assert(0 !>   1);
-}
-
-/**************************************/
-
 struct Bar48
 {
     uint k;
@@ -1380,7 +1366,6 @@ int main(string[] argv)
     test44();
     test45();
     test46();
-    test47();
     test48();
     test49();
     test50();

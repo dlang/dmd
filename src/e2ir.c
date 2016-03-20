@@ -2176,15 +2176,6 @@ elem *toElem(Expression *e, IRState *irs)
                 case TOKequal:  eop = OPeqeq;   break;
                 case TOKnotequal: eop = OPne;   break;
 
-                // NCEG floating point compares
-                case TOKunord:  eop = OPunord;  break;
-                case TOKlg:     eop = OPlg;     break;
-                case TOKleg:    eop = OPleg;    break;
-                case TOKule:    eop = OPule;    break;
-                case TOKul:     eop = OPul;     break;
-                case TOKuge:    eop = OPuge;    break;
-                case TOKug:     eop = OPug;     break;
-                case TOKue:     eop = OPue;     break;
                 default:
                     ce->print();
                     assert(0);
