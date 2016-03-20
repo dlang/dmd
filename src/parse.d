@@ -484,7 +484,6 @@ public:
             case TOKcomplex80:
             case TOKvoid:
             case TOKalias:
-            case TOKtypedef:
             case TOKidentifier:
             case TOKsuper:
             case TOKtypeof:
@@ -3958,12 +3957,6 @@ public:
 
             // alias StorageClasses type ident;
         }
-        else if (token.value == TOKtypedef)
-        {
-            error("use alias instead of typedef");
-            tok = token.value;
-            nextToken();
-        }
         parseStorageClasses(storage_class, link, structalign, udas);
         if (token.value == TOKstruct || token.value == TOKunion || token.value == TOKclass || token.value == TOKinterface)
         {
@@ -4049,7 +4042,7 @@ public:
                 checkCstyleTypeSyntax(loc, t, alt, ident);
             else if (!isThis)
                 error("no identifier for declarator %s", t.toChars());
-            if (tok == TOKtypedef || tok == TOKalias)
+            if (tok == TOKalias)
             {
                 Declaration v;
                 Initializer _init = null;
@@ -4066,21 +4059,15 @@ public:
                     nextToken();
                     _init = parseInitializer();
                 }
-                if (tok == TOKtypedef)
+                if (_init)
                 {
-                    v = new AliasDeclaration(loc, ident, t); // dummy
+                    if (isThis)
+                        error("cannot use syntax 'alias this = %s', use 'alias %s this' instead", _init.toChars(), _init.toChars());
+                    else
+                        error("alias cannot have initializer");
                 }
-                else
-                {
-                    if (_init)
-                    {
-                        if (isThis)
-                            error("cannot use syntax 'alias this = %s', use 'alias %s this' instead", _init.toChars(), _init.toChars());
-                        else
-                            error("alias cannot have initializer");
-                    }
-                    v = new AliasDeclaration(loc, ident, t);
-                }
+                v = new AliasDeclaration(loc, ident, t);
+
                 v.storage_class = storage_class;
                 if (pAttrs)
                 {
@@ -4631,7 +4618,6 @@ public:
             if (peekNext() == TOKlparen)
                 goto Lexp;
             goto case;
-        case TOKtypedef:
         case TOKalias:
         case TOKconst:
         case TOKauto:
@@ -6864,12 +6850,10 @@ public:
                     {
                         tok = token.value;
                         nextToken();
-                        if (tok == TOKequal && (token.value == TOKtypedef || token.value == TOKstruct || token.value == TOKunion || token.value == TOKclass || token.value == TOKsuper || token.value == TOKenum || token.value == TOKinterface || token.value == TOKargTypes || token.value == TOKparameters || token.value == TOKconst && peek(&token).value == TOKrparen || token.value == TOKimmutable && peek(&token).value == TOKrparen || token.value == TOKshared && peek(&token).value == TOKrparen || token.value == TOKwild && peek(&token).value == TOKrparen || token.value == TOKfunction || token.value == TOKdelegate || token.value == TOKreturn))
+                        if (tok == TOKequal && (token.value == TOKstruct || token.value == TOKunion || token.value == TOKclass || token.value == TOKsuper || token.value == TOKenum || token.value == TOKinterface || token.value == TOKargTypes || token.value == TOKparameters || token.value == TOKconst && peek(&token).value == TOKrparen || token.value == TOKimmutable && peek(&token).value == TOKrparen || token.value == TOKshared && peek(&token).value == TOKrparen || token.value == TOKwild && peek(&token).value == TOKrparen || token.value == TOKfunction || token.value == TOKdelegate || token.value == TOKreturn))
                         {
                             tok2 = token.value;
                             nextToken();
-                            if (tok2 == TOKtypedef)
-                                deprecation("typedef is removed");
                         }
                         else
                         {
