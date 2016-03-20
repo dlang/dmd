@@ -27,12 +27,6 @@ private string stripRight(string s)
     return s;
 }
 
-enum __linux__      = xversion!`linux`;
-enum __APPLE__      = xversion!`OSX`;
-enum __FreeBSD__    = xversion!`FreeBSD`;
-enum __OpenBSD__    = xversion!`OpenBSD`;
-enum __sun          = xversion!`Solaris`;
-
 enum IN_GCC     = xversion!`IN_GCC`;
 
 enum TARGET_LINUX   = xversion!`linux`;

@@ -397,7 +397,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             global.inifilename = findConfFile(global.params.argv0, "sc.ini");
         }
-        else static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+        else version (Posix)
         {
             global.inifilename = findConfFile(global.params.argv0, "dmd.conf");
         }

@@ -68,7 +68,7 @@ extern (C++) bool isConsoleColorSupported()
     {
         return isatty(fileno(stderr)) != 0;
     }
-    else static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+    else version (Posix)
     {
         const(char)* term = getenv("TERM");
         return isatty(STDERR_FILENO) && term && term[0] && 0 != strcmp(term, "dumb");
