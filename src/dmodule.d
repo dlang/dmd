@@ -1127,14 +1127,6 @@ public:
      */
     static void addDeferredSemantic(Dsymbol s)
     {
-        // Don't add it if it is already there
-        for (size_t i = 0; i < deferred.dim; i++)
-        {
-            Dsymbol sd = deferred[i];
-            if (sd == s)
-                return;
-        }
-
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
         deferred.push(s);
     }
@@ -1194,13 +1186,6 @@ public:
 
     static void addDeferredSemantic3(Dsymbol s)
     {
-        // Don't add it if it is already there
-        for (size_t i = 0; i < deferred3.dim; i++)
-        {
-            Dsymbol sd = deferred3[i];
-            if (sd == s)
-                return;
-        }
         deferred3.push(s);
     }
 
