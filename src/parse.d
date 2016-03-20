@@ -5379,12 +5379,6 @@ public:
                 s = new ThrowStatement(loc, exp);
                 break;
             }
-        case TOKvolatile:
-            nextToken();
-            s = parseStatement(PSsemi | PScurlyscope);
-            error("volatile statements no longer allowed; use synchronized statements instead");
-            s = new SynchronizedStatement(loc, cast(Expression)null, s);
-            break;
         case TOKasm:
             {
                 // Parse the asm block into a sequence of AsmStatements,

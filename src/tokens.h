@@ -139,7 +139,7 @@ enum TOK
         TOKmixin,
 
         TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
-        TOKstatic, TOKfinal, TOKconst, TOKabstract, TOKvolatile,
+        TOKstatic, TOKfinal, TOKconst, TOKabstract,
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
         TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
 
