@@ -26,6 +26,28 @@ void tls_alloc() { tls_root = new Object(); }
 void tls_access() { assert(tls_root.toString() !is null); } // vtbl call will fail if finalized
 void tls_free() { tls_root = null; }
 
+void stack(alias func)()
+{
+    // allocate some extra stack space to not keep references to GC memory on the scanned stack
+    ubyte[1024] buf = void;
+    func();
+}
+
+void testGC()
+{
+    import core.memory;
+
+    stack!alloc();
+    stack!tls_alloc();
+    stack!access();
+    stack!tls_access();
+    GC.collect();
+    stack!tls_access();
+    stack!access();
+    stack!tls_free();
+    stack!free();
+}
+
 // test Init
 import core.atomic : atomicOp;
 shared uint shared_static_ctor, shared_static_dtor, static_ctor, static_dtor;
@@ -45,7 +67,7 @@ extern(C) int runTests()
 
 void runTestsImpl()
 {
-    import core.memory, core.thread;
+    import core.thread;
 
     bool passed;
     try
@@ -55,15 +77,7 @@ void runTestsImpl()
     assert(passed);
     assert(collectException({throwException();}) !is null);
 
-    alloc();
-    tls_alloc();
-    access();
-    tls_access();
-    GC.collect();
-    tls_access();
-    access();
-    tls_free();
-    free();
+    testGC();
 
     assert(shared_static_ctor == 1);
     assert(static_ctor == 1);
@@ -71,6 +85,7 @@ void runTestsImpl()
     {
         assert(static_ctor == 2);
         assert(shared_static_ctor == 1);
+        testGC();
     }
     auto thr = new Thread(&run);
     thr.start();
