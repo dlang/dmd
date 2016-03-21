@@ -640,7 +640,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 c = 'd';
                 break;
             case Tfloat80:
-                c = (Target.realsize - Target.realpad == 16) ? 'g' : 'e';
+                c = Target.realislongdouble ? 'e' : 'g';
                 break;
             case Tbool:
                 c = 'b';
