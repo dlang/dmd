@@ -119,7 +119,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 if (!skipname && !substitute(ti.tempdecl))
                 {
                     store(ti.tempdecl);
-                    const(char)* name = ti.toAlias().ident.toChars();
+                    const(char)* name = ti.tempdecl.toAlias().ident.toChars();
                     buf.printf("%d%s", strlen(name), name);
                 }
                 buf.writeByte('I');
@@ -429,7 +429,9 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
             TypeFunction tf = cast(TypeFunction)d.type;
             buf.writestring("_Z");
             Dsymbol p = d.toParent();
-            if (p && !p.isModule() && tf.linkage == LINKcpp)
+            TemplateDeclaration ftd = getFuncTemplateDecl(d);
+
+            if (p && !p.isModule() && tf.linkage == LINKcpp && !ftd)
             {
                 buf.writeByte('N');
                 if (d.type.isConst())
@@ -468,6 +470,13 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                     source_name(d);
                 }
                 buf.writeByte('E');
+            }
+            else if (ftd)
+            {
+                source_name(p);
+                this.is_top_level = true;
+                tf.nextOf().accept(this);
+                this.is_top_level = false;
             }
             else
             {
