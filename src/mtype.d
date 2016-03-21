@@ -3569,17 +3569,6 @@ public:
             case Tdchar:
                 ivalue = 0;
                 goto Livalue;
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                error(loc, "use .min_normal property instead of .min");
-                return new ErrorExp();
             default:
                 break;
             }
