@@ -5,6 +5,8 @@
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:    Martin Nowak
  */
+module aabench.string;
+
 import std.algorithm, std.file;
 
 void runTest(R)(R words)
