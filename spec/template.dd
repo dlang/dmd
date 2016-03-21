@@ -1381,7 +1381,7 @@ $(GNAME Constraint):
         The $(I Expression) is computed at compile time
         and returns a result that is converted to a boolean value.
         If that value is true, then the template is matched,
-        otherwise the template is not matched and compilation fails.
+        otherwise the template is not matched.
     )
 
     $(P For example, the following function template only
