@@ -224,7 +224,6 @@ enum TOK : int
     TOKfinal,
     TOKconst,
     TOKabstract,
-    TOKvolatile,
     TOKdebug,
     TOKdeprecated,
     TOKin,
@@ -480,7 +479,6 @@ alias TOKstatic = TOK.TOKstatic;
 alias TOKfinal = TOK.TOKfinal;
 alias TOKconst = TOK.TOKconst;
 alias TOKabstract = TOK.TOKabstract;
-alias TOKvolatile = TOK.TOKvolatile;
 alias TOKdebug = TOK.TOKdebug;
 alias TOKdeprecated = TOK.TOKdeprecated;
 alias TOKin = TOK.TOKin;
@@ -1007,7 +1005,6 @@ immutable Keyword[] keywords =
     Keyword("alias", TOKalias),
     Keyword("override", TOKoverride),
     Keyword("abstract", TOKabstract),
-    Keyword("volatile", TOKvolatile),
     Keyword("debug", TOKdebug),
     Keyword("deprecated", TOKdeprecated),
     Keyword("in", TOKin),
