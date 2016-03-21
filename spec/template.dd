@@ -1381,7 +1381,7 @@ $(GNAME Constraint):
         The $(I Expression) is computed at compile time
         and returns a result that is converted to a boolean value.
         If that value is true, then the template is matched,
-        otherwise the template is not matched.
+        otherwise the template is not matched and compilation fails.
     )
 
     $(P For example, the following function template only
@@ -1394,10 +1394,26 @@ $(GNAME Constraint):
             ...
         }
         ...
-        foo!(3)();  // ok, matches
-        foo!(4)();  // error, no match
+        foo!(3)();  // OK, matches
+        foo!(4)();  // Error, no match
         ---
     )
+    
+    $(P Template constraints can be used with aggregate types (structs, classes, unions). 
+        Constraints are effectively used with library module "std.traits":
+    
+        ---
+        import std.traits;
+        
+        struct Bar(T)
+            if( isIntegral!T )
+        {
+            ...
+        }
+        ...
+        auto x = Bar!int;       // OK, int is an integral type
+        auto y = Bar!double;    // Error, double does not satisfy constraint
+        ---
 
 
 $(H2 $(LNAME2 limitations, Limitations))
