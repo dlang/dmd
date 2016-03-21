@@ -1414,7 +1414,7 @@ $(GNAME Constraint):
         auto x = Bar!int;       // OK, int is an integral type
         auto y = Bar!double;    // Error, double does not satisfy constraint
         ---
-
+    )
 
 $(H2 $(LNAME2 limitations, Limitations))
 
