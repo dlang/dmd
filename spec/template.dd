@@ -1406,7 +1406,7 @@ $(GNAME Constraint):
         import std.traits;
         
         struct Bar(T)
-            if( isIntegral!T )
+            if (isIntegral!T)
         {
             ...
         }
