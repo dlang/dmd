@@ -73,6 +73,8 @@ IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
         unsigned char visibility = STV_DEFAULT);
 #endif
 
+static Outbuffer  *reset_symbuf;        // Keep pointers to reset symbols
+
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
@@ -972,6 +974,21 @@ void dwarf_initfile(const char *filename)
         Outbuffer *buf = SegData[seg]->SDbuf;
         buf->reserve(1000);
         writeDebugFrameHeader(buf);
+    }
+
+    /* ======================================== */
+
+    if (reset_symbuf)
+    {
+        symbol **p = (symbol **)reset_symbuf->buf;
+        const size_t n = reset_symbuf->size() / sizeof(symbol *);
+        for (size_t i = 0; i < n; ++i)
+            symbol_reset(p[i]);
+        reset_symbuf->setsize(0);
+    }
+    else
+    {
+        reset_symbuf = new Outbuffer(10 * sizeof(symbol *));
     }
 
     /* ======================================== */
@@ -2623,6 +2640,7 @@ unsigned dwarf_typidx(type *t)
                 infobuf->writeByte(0);          // no more children
             }
             s->Stypidx = idx;
+            reset_symbuf->write(&s, sizeof(s));
             return idx;                 // no need to cache it
         }
 
@@ -2710,6 +2728,7 @@ unsigned dwarf_typidx(type *t)
             infobuf->writeByte(0);              // no more children
 
             s->Stypidx = idx;
+            reset_symbuf->write(&s, sizeof(s));
             return idx;                 // no need to cache it
         }
 
