@@ -17,6 +17,7 @@ else version (WatchOS)
 version (Darwin):
 extern (C):
 nothrow:
+@nogc:
 
 public import core.sys.posix.sys.mman;
 import core.sys.darwin.sys.cdefs;

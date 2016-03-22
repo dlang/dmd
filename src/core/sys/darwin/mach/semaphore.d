@@ -25,6 +25,7 @@ else version (WatchOS)
 version (Darwin):
 extern (C):
 nothrow:
+@nogc:
 
 public import core.sys.darwin.mach.kern_return;
 public import core.sys.darwin.mach.port;

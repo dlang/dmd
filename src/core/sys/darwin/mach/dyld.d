@@ -23,6 +23,8 @@ else version (WatchOS)
 
 version (Darwin):
 extern (C):
+nothrow:
+@nogc:
 
 public import core.stdc.stdint; // for intptr_t
 public import core.sys.darwin.mach.loader;

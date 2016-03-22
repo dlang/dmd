@@ -25,6 +25,7 @@ else version (WatchOS)
 version (Darwin):
 extern (C):
 nothrow:
+@nogc:
 
 public import core.sys.posix.pthread;
 public import core.sys.darwin.mach.port;
