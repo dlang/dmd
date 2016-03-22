@@ -75,7 +75,7 @@ else version (CRuntime_Glibc)
         {
             this();
             //virtual ~this();
-            const(char)* what() const;
+            override const(char)* what() const;
         }
     }
 }

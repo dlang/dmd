@@ -133,14 +133,14 @@ else version (CRuntime_Glibc)
         {
             this();
             //~this();
-            const(char)* what() const;
+            override const(char)* what() const;
         }
 
         class bad_typeid : core.stdcpp.exception.std.exception
         {
             this();
             //~this();
-            const(char)* what() const;
+            override const(char)* what() const;
         }
     }
 }
