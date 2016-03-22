@@ -27,6 +27,7 @@
 #include        "parser.h"
 #include        "cpp.h"
 #endif
+#include        "outbuf.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -43,6 +44,8 @@ static vec_t debtypvec;         // vector of used entries
 
 #define DEBTYPHASHDIM   1009
 static unsigned debtyphash[DEBTYPHASHDIM];
+
+static Outbuffer *reset_symbuf; // Keep pointers to reset symbols
 
 #define DEB_NULL cgcv.deb_offset        // index of null debug type record
 
@@ -395,6 +398,19 @@ void cv_init()
 
     debtypvec = vec_calloc(DEBTYPVECDIM);
     memset(debtyphash,0,sizeof(debtyphash));
+
+    if (reset_symbuf)
+    {
+        symbol **p = (symbol **)reset_symbuf->buf;
+        const size_t n = reset_symbuf->size() / sizeof(symbol *);
+        for (size_t i = 0; i < n; ++i)
+            symbol_reset(p[i]);
+        reset_symbuf->setsize(0);
+    }
+    else
+    {
+        reset_symbuf = new Outbuffer(10 * sizeof(symbol *));
+    }
 
     /* Reset for different OBJ file formats     */
     if (I32 || I64)
@@ -1001,6 +1017,7 @@ printf("fwd struct ref\n");
         s->Stypidx = cv_debtyp(d);
         d->length = len;                // restore length
     }
+    reset_symbuf->write(&s, sizeof(s));
 
     if (refonly)                        // if reference only
     {
@@ -1445,7 +1462,10 @@ printf("fwd struct ref\n");
 
 #if SYMDEB_TDB
     if (config.fulltypes == CVTDB)
+    {
         s->Stypidx = cv_debtyp(d);
+        reset_symbuf->write(&s, sizeof(s));
+    }
 #endif
 #if SCPP
     if (CPP)
@@ -1531,6 +1551,7 @@ STATIC unsigned cv4_enum(symbol *s)
         s->Stypidx = cv_debtyp(d);
         d->length = len;                // restore length
     }
+    reset_symbuf->write(&s, sizeof(s));
 
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
@@ -2453,6 +2474,7 @@ STATIC void cv4_outsym(symbol *s)
 #if 1
             case SCtypedef:
                 s->Stypidx = typidx;
+                reset_symbuf->write(&s, sizeof(s));
                 goto L4;
 
             case SCstruct:

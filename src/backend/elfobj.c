@@ -268,7 +268,7 @@ static int local_cnt;           // Number of symbols with STB_LOCAL
 
 // Symbol Table
 Outbuffer  *SYMbuf;             // Buffer to build symbol table in
-Outbuffer  *reset_symbuf;       // Keep pointers to reset symbols
+static Outbuffer *reset_symbuf; // Keep pointers to reset symbols
 
 // Extended section header indices
 static Outbuffer *shndx_data;
