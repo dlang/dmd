@@ -2833,6 +2833,7 @@ public:
         Expression constraint = null;
         const loc = token.loc;
         TOK tok = token.value;
+
         //printf("Parser::parseAggregate()\n");
         nextToken();
         if (token.value != TOKidentifier)
@@ -2843,6 +2844,7 @@ public:
         {
             id = token.ident;
             nextToken();
+
             if (token.value == TOKlparen)
             {
                 // Class template declaration.
@@ -2851,13 +2853,15 @@ public:
                 constraint = parseConstraint();
             }
         }
+
         switch (tok)
         {
         case TOKclass:
         case TOKinterface:
             {
                 if (!id)
-                    error("anonymous classes not allowed");
+                    error(loc, "anonymous classes not allowed");
+
                 // Collect base class(es)
                 BaseClasses* baseclasses = null;
                 if (token.value == TOKcolon)
@@ -2878,6 +2882,7 @@ public:
                     if (token.value != TOKlcurly)
                         error("members expected");
                 }
+
                 if (tok == TOKclass)
                 {
                     bool inObject = md && !md.packages && md.id == Id.object;
@@ -2893,12 +2898,14 @@ public:
             else
                 anon = 1;
             break;
+
         case TOKunion:
             if (id)
                 a = new UnionDeclaration(loc, id);
             else
                 anon = 2;
             break;
+
         default:
             assert(0);
         }
@@ -2912,7 +2919,8 @@ public:
             nextToken();
             Dsymbols* decl = parseDeclDefs(0);
             if (token.value != TOKrcurly)
-                error("} expected following members in %s declaration at %s", Token.toChars(tok), loc.toChars());
+                error("} expected following members in %s declaration at %s",
+                    Token.toChars(tok), loc.toChars());
             nextToken();
             if (anon)
             {
@@ -2928,6 +2936,7 @@ public:
             error("{ } expected following %s declaration", Token.toChars(tok));
             a = new StructDeclaration(loc, null);
         }
+
         if (tpl)
         {
             // Wrap a template around the aggregate declaration
