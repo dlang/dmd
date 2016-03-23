@@ -291,7 +291,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
 
         override void visit(TypeNull t)
         {
-            assert(0);
+            // always a null pointer
         }
 
         override void visit(TypeStruct t)
