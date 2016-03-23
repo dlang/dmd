@@ -1071,11 +1071,7 @@ struct GC
             return;
         }
 
-        static void go(Gcx* gcx, void* p) nothrow
-        {
-            gcx.addRoot(p);
-        }
-        return runLocked!(go, otherTime, numOthers)(gcx, p);
+        gcx.addRoot(p);
     }
 
 
@@ -1089,29 +1085,16 @@ struct GC
             return;
         }
 
-        static void go(Gcx* gcx, void* p) nothrow
-        {
-            gcx.removeRoot(p);
-        }
-        return runLocked!(go, otherTime, numOthers)(gcx, p);
+        gcx.removeRoot(p);
     }
 
-
-    private auto rootIterImpl(scope int delegate(ref Root) nothrow dg) nothrow
-    {
-        static int go(ref Treap!(Root) roots, scope int delegate(ref Root) nothrow dg) nothrow
-        {
-            return roots.opApply(dg);
-        }
-        return runLocked!(go, otherTime, numOthers)(gcx.roots, dg);
-    }
 
     /**
      *
      */
     @property auto rootIter() @nogc
     {
-        return &rootIterImpl;
+        return &gcx.rootsApply;
     }
 
 
@@ -1125,11 +1108,7 @@ struct GC
             return;
         }
 
-        static void go(Gcx* gcx, void* p, size_t sz, const TypeInfo ti) nothrow @nogc
-        {
-            gcx.addRange(p, p + sz, ti);
-        }
-        return runLocked!(go, otherTime, numOthers)(gcx, p, sz, ti);
+        gcx.addRange(p, p + sz, ti);
     }
 
 
@@ -1143,12 +1122,18 @@ struct GC
             return;
         }
 
-        static void go(Gcx* gcx, void* p) nothrow @nogc
-        {
-            gcx.removeRange(p);
-        }
-        return runLocked!(go, otherTime, numOthers)(gcx, p);
+        gcx.removeRange(p);
     }
+
+
+    /**
+     *
+     */
+    @property auto rangeIter() @nogc
+    {
+        return &gcx.rangesApply;
+    }
+
 
     /**
      * run finalizers
@@ -1160,23 +1145,6 @@ struct GC
             gcx.runFinalizers(segment);
         }
         return runLocked!(go, otherTime, numOthers)(gcx, segment);
-    }
-
-    private auto rangeIterImpl(scope int delegate(ref Range) nothrow dg) nothrow
-    {
-        static int go(ref Treap!(Range) ranges, scope int delegate(ref Range) nothrow dg) nothrow
-        {
-            return ranges.opApply(dg);
-        }
-        return runLocked!(go, otherTime, numOthers)(gcx.ranges, dg);
-    }
-
-    /**
-     *
-     */
-    @property auto rangeIter() @nogc
-    {
-        return &rangeIterImpl;
     }
 
 
@@ -1364,6 +1332,9 @@ private void set(ref PageBits bits, size_t i) @nogc pure nothrow
 
 struct Gcx
 {
+    import core.internal.spinlock;
+    auto rootsLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
+    auto rangesLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
     Treap!Root roots;
     Treap!Range ranges;
 
@@ -1471,12 +1442,14 @@ struct Gcx
             //printf("Gcx.invariant(): this = %p\n", &this);
             pooltable.Invariant();
 
+            rangesLock.lock();
             foreach (range; ranges)
             {
                 assert(range.pbot);
                 assert(range.ptop);
                 assert(range.pbot <= range.ptop);
             }
+            rangesLock.unlock();
 
             for (size_t i = 0; i < B_PAGE; i++)
             {
@@ -1493,7 +1466,10 @@ struct Gcx
      */
     void addRoot(void *p) nothrow
     {
+        rootsLock.lock();
+        scope (failure) rootsLock.unlock();
         roots.insert(Root(p));
+        rootsLock.unlock();
     }
 
 
@@ -1502,7 +1478,23 @@ struct Gcx
      */
     void removeRoot(void *p) nothrow
     {
+        rootsLock.lock();
+        scope (failure) rootsLock.unlock();
         roots.remove(Root(p));
+        rootsLock.unlock();
+    }
+
+
+    /**
+     *
+     */
+    int rootsApply(scope int delegate(ref Root) nothrow dg) nothrow
+    {
+        rootsLock.lock();
+        scope (failure) rootsLock.unlock();
+        auto ret = roots.opApply(dg);
+        rootsLock.unlock();
+        return ret;
     }
 
 
@@ -1513,7 +1505,10 @@ struct Gcx
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("%p.Gcx::addRange(%p, %p)\n", &this, pbot, ptop);
+        rangesLock.lock();
+        scope (failure) rangesLock.unlock();
         ranges.insert(Range(pbot, ptop));
+        rangesLock.unlock();
     }
 
 
@@ -1524,13 +1519,28 @@ struct Gcx
     {
         //debug(PRINTF) printf("Thread %x ", pthread_self());
         debug(PRINTF) printf("Gcx.removeRange(%p)\n", pbot);
+        rangesLock.lock();
+        scope (failure) rangesLock.unlock();
         ranges.remove(Range(pbot, pbot)); // only pbot is used, see Range.opCmp
+        rangesLock.unlock();
 
         // debug(PRINTF) printf("Wrong thread\n");
         // This is a fatal error, but ignore it.
         // The problem is that we can get a Close() call on a thread
         // other than the one the range was allocated on.
         //assert(zero);
+    }
+
+    /**
+     *
+     */
+    int rangesApply(scope int delegate(ref Range) nothrow dg) nothrow
+    {
+        rangesLock.lock();
+        scope (failure) rangesLock.unlock();
+        auto ret = ranges.opApply(dg);
+        rangesLock.unlock();
+        return ret;
     }
 
 
@@ -2417,21 +2427,31 @@ struct Gcx
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
-        thread_suspendAll();
-
-        prepare();
-
-        if (GC.config.profile)
         {
-            stop = currTime;
-            prepTime += (stop - start);
-            start = stop;
+            // lock roots and ranges around suspending threads b/c they're not reentrant safe
+            rangesLock.lock();
+            rootsLock.lock();
+            scope (exit)
+            {
+                rangesLock.unlock();
+                rootsLock.unlock();
+            }
+            thread_suspendAll();
+
+            prepare();
+
+            if (GC.config.profile)
+            {
+                stop = currTime;
+                prepTime += (stop - start);
+                start = stop;
+            }
+
+            markAll(nostack);
+
+            thread_processGCMarks(&isMarked);
+            thread_resumeAll();
         }
-
-        markAll(nostack);
-
-        thread_processGCMarks(&isMarked);
-        thread_resumeAll();
 
         if (GC.config.profile)
         {
@@ -3264,6 +3284,27 @@ unittest // bugzilla 15353
         void* buf;
     }
     new Foo(GC.malloc(10));
+    GC.collect();
+}
+
+unittest // bugzilla 15822
+{
+    import core.memory : GC;
+
+    ubyte[16] buf;
+    static struct Foo
+    {
+        ~this()
+        {
+            GC.removeRange(ptr);
+            GC.removeRoot(ptr);
+        }
+
+        ubyte* ptr;
+    }
+    GC.addRoot(buf.ptr);
+    GC.addRange(buf.ptr, buf.length);
+    new Foo(buf.ptr);
     GC.collect();
 }
 
