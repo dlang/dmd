@@ -7,11 +7,8 @@ $(BUGSTITLE Library Changes,
 
 $(LI $(RELATIVE_LINK2 aa-clear, A `clear` method has been added to associative
     arrays to remove all elements.))
+$(LI $(RELATIVE_LINK2 spinlock, The GC now uses a spinlock instead of a recursive mutex.))
 $(LI Calls to $(NCXREF memory, GC.free) are now ignored during finalization instead of throwing an InvalidMemoryOperationError, see $(BUGZILLA 15353).)
-)
-
-$(LI $(RELATIVE_LINK2 spinlock, The GC now uses a spinlock instead of a
-recursive mutex.))
 )
 
 $(BUGSTITLE Library Changes,
@@ -41,7 +38,7 @@ $(LI $(LNAME2 spinlock, The GC is no longer wrapped in a pthread_mutex, it
         more details.
     )
 )
-
+)
 
 Macros:
     TITLE=Change Log
