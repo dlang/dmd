@@ -222,6 +222,10 @@ public:
 
     final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, bool inObject = false)
     {
+        if (!id)
+            id = Identifier.generateId("__anonclass");
+        assert(id);
+
         super(loc, id);
 
         static __gshared const(char)* msg = "only object.d can define this reserved class name";
@@ -432,16 +436,9 @@ public:
 
         if (!parent)
         {
-            assert(sc.parent && (sc.func || !ident));
+            assert(sc.parent);
             parent = sc.parent;
-
-            if (!ident) // if anonymous class
-            {
-                const(char)* id = "__anonclass";
-                ident = Identifier.generateId(id);
-            }
         }
-        assert(parent && !isAnonymous());
 
         if (this.errors)
             type = Type.terror;
