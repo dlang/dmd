@@ -90,12 +90,6 @@ SRCS:=$(subst \,/,$(SRCS))
 
 OBJS= $(ROOT)/errno_c.o $(ROOT)/bss_section.o $(ROOT)/threadasm.o
 
-ifeq ($(OS),osx)
-ifeq ($(MODEL), 64)
-	OBJS+=$(ROOT)/osx_tls.o
-endif
-endif
-
 # build with shared library support
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
 
