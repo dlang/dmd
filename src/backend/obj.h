@@ -52,12 +52,11 @@ struct Obj
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    virtual int  comdat(Symbol *);
-    virtual int  comdatsize(Symbol *, targ_size_t symsize);
+    VIRTUAL int  comdat(Symbol *);
+    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
     VIRTUAL void setcodeseg(int seg);
-    virtual seg_data *tlsseg();
-    virtual seg_data *tlsseg_bss();
-    VIRTUAL seg_data *tlsseg_data();
+    VIRTUAL seg_data *tlsseg();
+    VIRTUAL seg_data *tlsseg_bss();
     static int  fardata(char *name, targ_size_t size, targ_size_t *poffset);
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
@@ -86,8 +85,6 @@ struct Obj
     VIRTUAL symbol *sym_cdata(tym_t, char *, int);
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
-
-    VIRTUAL symbol *tlv_bootstrap();
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     static unsigned addstr(Outbuffer *strtab, const char *);
@@ -120,14 +117,6 @@ struct MachObj : Obj
         unsigned targseg, int rtype, int val = 0);
 };
 
-struct MachObj64 : MachObj
-{
-    MachObj64();
-
-    seg_data *tlsseg();
-    seg_data *tlsseg_bss();
-};
-
 struct MsCoffObj : Obj
 {
     static MsCoffObj *init(Outbuffer *, const char *filename, const char *csegname);
@@ -157,12 +146,11 @@ struct MsCoffObj : Obj
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    virtual int  comdat(Symbol *);
-    virtual int  comdatsize(Symbol *, targ_size_t symsize);
+    VIRTUAL int  comdat(Symbol *);
+    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
     VIRTUAL void setcodeseg(int seg);
-    virtual seg_data *tlsseg();
-    virtual seg_data *tlsseg_bss();
-    virtual seg_data *tlsseg_data();
+    VIRTUAL seg_data *tlsseg();
+    VIRTUAL seg_data *tlsseg_bss();
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
     VIRTUAL void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
@@ -210,8 +198,6 @@ struct MsCoffObj : Obj
     static int seg_debugS();
     VIRTUAL int seg_debugT();
     static int seg_debugS_comdat(Symbol *sfunc);
-
-    VIRTUAL symbol *tlv_bootstrap();
 };
 
 #undef VIRTUAL
