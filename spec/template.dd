@@ -863,7 +863,7 @@ $(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
         ------
     )
 
-$(H2 $(LNAME2 implicit_template_properties, Implicit Template Properties))
+$(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
 
     $(P If a template has exactly one member in it, and the name of that
         member is the same as the template name, that member is assumed
@@ -1368,7 +1368,7 @@ $(H2 $(LNAME2 recursive_templates, Recursive Templates))
         ------
     )
 
-$(H2 $(LNAME2 template_cosntraints, Template Constraints))
+$(H2 $(LNAME2 template_constraints, Template Constraints))
 
 $(GRAMMAR
 $(GNAME Constraint):
