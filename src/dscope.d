@@ -519,6 +519,9 @@ struct Scope
             if (!global.params.check10378)
                 return sold;
 
+            if (ident == Id.dollar) // Bugzilla 15825
+                return sold;
+
             // Search both ways
             flags |= SearchCheck10378;
         }
