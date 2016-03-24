@@ -121,6 +121,50 @@ extern (C++) struct Port
         return t;
     }
 
+    /**
+     * Concatenates the two given strings.
+     *
+     * Params:
+     *      str1 = the first string
+     *      str1Len = the length of the first string
+     *      str2 = the second string
+     *      str1Len = the length of the second string
+     *
+     * Returns: a new string which is the concatenation of the two strings
+     */
+    static char* concat(in char* str1, uint str1Len, in char* str2, uint str2Len)
+    {
+        import core.stdc.stdlib;
+
+        // Ensure we have a long-enough buffer for the symbol name. Previous buffer is reused.
+        __gshared static char* result = null;
+        __gshared static size_t sdim = 0;
+
+        if (str1Len + str2Len + 1 >= sdim)
+        {
+            sdim = str1Len + str2Len + 12;
+            result = cast(char*) realloc(result, sdim);
+        }
+
+        memmove(result, str1, str1Len);
+        memmove(result + str1Len, str2, str2Len);
+        result[str2Len + str1Len] = 0;
+
+        return result;
+    }
+
+    ///
+    unittest
+    {
+        auto str1 = "foo";
+        auto str2 = "bar";
+
+        auto result = concat(str1.ptr, cast(uint) str1.length, str2.ptr, cast(uint) str2.length);
+        auto dString = result[0 .. str1.length + str2.length];
+
+        assert(dString == "foobar");
+    }
+
     static int isSignallingNan(double r)
     {
         return isNan(r) && !(((cast(ubyte*)&r)[6]) & 8);

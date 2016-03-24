@@ -174,6 +174,9 @@ Symbol *toSymbol(Dsymbol *s)
                     type_setty(&t, t->Tty | mTYthread);
                     ts->Tcount--;
 
+                    if (config.objfmt == OBJ_MACH && I64)
+                        s->Salignment = 2;
+
                     if (global.params.vtls)
                     {
                         const char *p = vd->loc.toChars();
@@ -227,6 +230,7 @@ Symbol *toSymbol(Dsymbol *s)
                     m = mTYman_pas;
                     break;
 
+                case LINKobjc:
                 case LINKc:
                     m = mTYman_c;
                     break;
