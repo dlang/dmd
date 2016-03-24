@@ -144,6 +144,7 @@ alias string[3] sint3;
 alias string[3][2] sint3_2;
 alias int delegate() dg;
 alias int function() fn;
+alias typeof(null) NullType;
 
 // span multiple bitmap elements
 struct Large
@@ -214,6 +215,7 @@ void testRTInfo()
     testType!(dg)           ([ 0b01 ]);
     testType!(fn)           ([ 0b0 ]);
     testType!(S!fn)         ([ 0b100 ]);
+    testType!(NullType)     ([ 0b0 ]);
     version(D_LP64)
         testType!(__vector(float[4]))  ([ 0b00 ]);
 
