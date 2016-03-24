@@ -9396,20 +9396,23 @@ public:
         {
             if (t1.ty == Tstruct)
             {
-                StructDeclaration sd = (cast(TypeStruct)t1).sym;
+                auto sd = (cast(TypeStruct)t1).sym;
                 sd.size(loc); // Resolve forward references to construct object
                 if (sd.sizeok != SIZEOKdone)
                     return new ErrorExp();
+
                 // First look for constructor
                 if (e1.op == TOKtype && sd.ctor)
                 {
                     if (!sd.noDefaultCtor && !(arguments && arguments.dim))
                         goto Lx;
+
                     auto sle = new StructLiteralExp(loc, sd, null, e1.type);
                     if (!sd.fill(loc, sle.elements, true))
                         return new ErrorExp();
                     if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
                         return new ErrorExp();
+
                     // Bugzilla 14556: Set concrete type to avoid further redundant semantic().
                     sle.type = e1.type;
 
@@ -12347,9 +12350,9 @@ public:
         }
         else if (t1.ty == Tstruct)
         {
-            Expression e1x = e1;
-            Expression e2x = e2;
-            StructDeclaration sd = (cast(TypeStruct)t1).sym;
+            auto e1x = e1;
+            auto e2x = e2;
+            auto sd = (cast(TypeStruct)t1).sym;
 
             if (op == TOKconstruct)
             {
@@ -12377,26 +12380,37 @@ public:
                          * variable with a bit copy of the default
                          * initializer
                          */
-                        AssignExp ae = this;
+                        Expression einit;
                         if (sd.zeroInit == 1 && !sd.isNested())
                         {
                             // Bugzilla 14606: Always use BlitExp for the special expression: (struct = 0)
-                            ae = new BlitExp(ae.loc, ae.e1, new IntegerExp(loc, 0, Type.tint32));
+                            einit = new IntegerExp(loc, 0, Type.tint32);
+                        }
+                        else if (sd.isNested())
+                        {
+                            auto sle = new StructLiteralExp(loc, sd, null, t1);
+                            if (!sd.fill(loc, sle.elements, true))
+                                return new ErrorExp();
+                            if (checkFrameAccess(loc, sc, sd, sle.elements.dim))
+                                return new ErrorExp();
+                            sle.type = t1;
+
+                            einit = sle;
                         }
                         else
                         {
-                            // Keep ae->op == TOKconstruct
-                            ae.e2 = sd.isNested() ? t1.defaultInitLiteral(loc) : t1.defaultInit(loc);
+                            einit = t1.defaultInit(loc);
                         }
+                        auto ae = new BlitExp(loc, e1, einit);
                         ae.type = e1x.type;
 
                         /* Replace __ctmp being constructed with e1.
                          * We need to copy constructor call expression,
                          * because it may be used in other place.
                          */
-                        DotVarExp dvx = cast(DotVarExp)dve.copy();
+                        auto dvx = cast(DotVarExp)dve.copy();
                         dvx.e1 = e1x;
-                        CallExp cx = cast(CallExp)ce.copy();
+                        auto cx = cast(CallExp)ce.copy();
                         cx.e1 = dvx;
 
                         Expression e0;
