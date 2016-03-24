@@ -2165,7 +2165,7 @@ public:
                     return new ErrorStatement();
             }
 
-            TypeTuple tuple = cast(TypeTuple)tab;
+            auto tt = cast(TypeTuple)tab;
             auto statements = new Statements();
             //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
             size_t n;
@@ -2177,7 +2177,7 @@ public:
             }
             else if (aggr.op == TOKtype) // type tuple
             {
-                n = Parameter.dim(tuple.arguments);
+                n = Parameter.dim(tt.arguments);
             }
             else
                 assert(0);
@@ -2189,7 +2189,7 @@ public:
                 if (te)
                     e = (*te.exps)[k];
                 else
-                    t = Parameter.getNth(tuple.arguments, k).type;
+                    t = Parameter.getNth(tt.arguments, k).type;
                 Parameter p = (*parameters)[0];
                 auto st = new Statements();
 
@@ -2248,6 +2248,8 @@ public:
                         auto fe = cast(FuncExp)e;
                         ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                     }
+                    else if (e.op == TOKoverloadset)
+                        ds = (cast(OverExp)e).vars;
 
                     if (ds)
                     {
@@ -2328,7 +2330,9 @@ public:
         sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         auto sc2 = sc.push(sym);
+
         sc2.noctor++;
+
         switch (tab.ty)
         {
         case Tarray:
@@ -2667,6 +2671,7 @@ public:
                         error("%s.front is void and has no value", oaggr.toChars());
                         goto Lerror2;
                     }
+
                     // Resolve inout qualifier of front type
                     tfront = tfront.substWildTo(tab.mod);
 
