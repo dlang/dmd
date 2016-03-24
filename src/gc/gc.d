@@ -2030,29 +2030,21 @@ struct Gcx
                     continue;
 
                 Pool* pool = void;
-                if (npools > 0)
+                size_t low = 0;
+                size_t high = highpool;
+                while (true)
                 {
-                    size_t low = 0;
-                    size_t high = highpool;
-                    while (true)
-                    {
-                        size_t mid = (low + high) >> 1;
-                        pool = pools[mid];
-                        if (p < pool.baseAddr)
-                            high = mid - 1;
-                        else if (p >= pool.topAddr)
-                            low = mid + 1;
-                        else break;
+                    size_t mid = (low + high) >> 1;
+                    pool = pools[mid];
+                    if (p < pool.baseAddr)
+                        high = mid - 1;
+                    else if (p >= pool.topAddr)
+                        low = mid + 1;
+                    else break;
 
-                        if (low > high)
-                            continue Lnext;
-                    }
+                    if (low > high)
+                        continue Lnext;
                 }
-                else
-                {
-                    pool = pools[0];
-                }
-
                 size_t offset = cast(size_t)(p - pool.baseAddr);
                 size_t biti = void;
                 size_t pn = offset / PAGESIZE;
