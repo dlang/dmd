@@ -4300,7 +4300,9 @@ public:
     FuncDeclaration parseContracts(FuncDeclaration f)
     {
         LINK linksave = linkage;
+
         bool literal = f.isFuncLiteralDeclaration() !is null;
+
         // The following is irrelevant, as it is overridden by sc->linkage in
         // TypeFunction::semantic
         linkage = LINKd; // nested functions have D linkage
@@ -4313,11 +4315,13 @@ public:
             f.fbody = parseStatement(PSsemi);
             f.endloc = endloc;
             break;
+
         case TOKbody:
             nextToken();
             f.fbody = parseStatement(PScurly);
             f.endloc = endloc;
             break;
+
             version (none)
             {
                 // Do we want this for function declarations, so we can do:
@@ -4326,6 +4330,7 @@ public:
                 nextToken();
                 continue;
             }
+
             version (none)
             {
                 // Dumped feature
@@ -4348,12 +4353,14 @@ public:
                 check(TOKrparen);
                 goto L1;
             }
+
         case TOKin:
             nextToken();
             if (f.frequire)
                 error("redundant 'in' statement");
             f.frequire = parseStatement(PScurly | PSscope);
             goto L1;
+
         case TOKout:
             // parse: out (identifier) { statement }
             nextToken();
@@ -4370,15 +4377,18 @@ public:
                 error("redundant 'out' statement");
             f.fensure = parseStatement(PScurly | PSscope);
             goto L1;
+
         case TOKsemicolon:
             if (!literal)
             {
-                if (f.frequire || f.fensure)
-                    error("missing body { ... } after in or out");
-                nextToken();
+                // Bugzilla 15799: Semicolon becomes a part of function declaration
+                // only when neither of contracts exists.
+                if (!f.frequire && !f.fensure)
+                    nextToken();
                 break;
             }
             goto default;
+
         default:
             if (literal)
             {
@@ -4396,7 +4406,9 @@ public:
             // Set empty function body for error recovery
             f.fbody = new CompoundStatement(Loc(), cast(Statement)null);
         }
+
         linkage = linksave;
+
         return f;
     }
 

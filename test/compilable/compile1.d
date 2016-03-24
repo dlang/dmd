@@ -954,3 +954,16 @@ void func15362()
     static assert(true, "So true");
     static assert(true, "Very, very true",);
 }
+
+/***************************************************/
+// 15799
+
+interface I15799
+{
+    void funA();
+
+    void funB(int n)
+    in {
+        assert(n);
+    }; // Semicolon is not a part of function declaration. It's an empty declaration.
+}
