@@ -1616,14 +1616,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             }
             if (p.storageClass & STCref)
             {
-                if (p.storageClass & STCautoref &&
-                    (arg.op == TOKthis || arg.op == TOKsuper))
-                {
-                    // suppress deprecation message for auto ref parameter
-                    // temporary workaround for Bugzilla 14283
-                }
-                else
-                    arg = arg.toLvalue(sc, arg);
+                arg = arg.toLvalue(sc, arg);
             }
             else if (p.storageClass & STCout)
             {
@@ -4068,20 +4061,15 @@ public:
     override final bool isLvalue()
     {
         // Class `this` should be an rvalue; struct `this` should be an lvalue.
-        // Need to deprecate the old behavior first, see Bugzilla 14262.
-        return true;
+        return type.toBasetype().ty != Tclass;
     }
 
     override final Expression toLvalue(Scope* sc, Expression e)
     {
         if (type.toBasetype().ty == Tclass)
         {
-            // use Expression::toLvalue when deprecation is over
-            if (!e)
-                e = this;
-            else if (!loc.filename)
-                loc = e.loc;
-            deprecation("%s is not an lvalue", e.toChars());
+            // Class `this` is an rvalue; struct `this` is an lvalue.
+            return Expression.toLvalue(sc, e);
         }
         return this;
     }
