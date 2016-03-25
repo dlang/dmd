@@ -3910,7 +3910,14 @@ void epilog(block *b)
             assert(hasframe);
             if (xlocalsize)
             {
-                if (config.flags2 & CFG2stomp)
+                if (config.flags2 & CFG2stomp &&
+                    /* Experiments show that this loop adjusting RSP
+                     * causes the Dwarf unwinder to fail. I suspect it is
+                     * examining the epilog code looking for certain patterns
+                     * (not unusual, despite being undocumnted behavior).
+                     * See Bugzilla 15779
+                     */
+                    config.ehmethod != EH_DWARF)
                 {   /*   MOV  ECX,0xBEAF
                      * L1:
                      *   MOV  [ESP],ECX
