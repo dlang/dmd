@@ -4367,6 +4367,32 @@ void test63()
 }
 
 /**********************************/
+
+struct X64
+{
+    static int dtor;
+
+    ~this() { ++dtor; }
+}
+
+struct S64
+{
+    int n;
+    long[10] dummy;     // S64 needs to be passed by stack
+}
+
+S64 foo64()
+{
+    return S64((X64(), 1));
+}
+
+void test64()
+{
+    auto s = foo64();
+    assert(X64.dtor == 1);
+}
+
+/**********************************/
 // 15661
 
 struct X15661
@@ -4533,6 +4559,7 @@ int main()
     test14696();
     test14838();
     test63();
+    test64();
     test15661();
 
     printf("Success\n");
