@@ -591,6 +591,8 @@ public:
     // Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 
+    FuncDeclarations *inlinedNestedCallees;
+
     unsigned flags;                     // FUNCFLAGxxxxx
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
