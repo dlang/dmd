@@ -1,4 +1,4 @@
-/* Copyright (c) 1999-2014 by Digital Mars
+/* Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved, written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.

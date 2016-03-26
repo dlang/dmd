@@ -8,7 +8,7 @@
  *
  * Copyright:
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2015 by Digital Mars, All Rights Reserved
+ * Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
  *
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  *

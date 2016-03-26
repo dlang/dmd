@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2013 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright

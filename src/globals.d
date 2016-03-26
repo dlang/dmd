@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
+// Copyright (c) 1999-2016 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -305,7 +305,7 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        copyright = "Copyright (c) 1999-2015 by Digital Mars";
+        copyright = "Copyright (c) 1999-2016 by Digital Mars";
         written = "written by Walter Bright";
         _version = ('v' ~ stripRight(import("verstr.h"))[1 .. $ - 1] ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
