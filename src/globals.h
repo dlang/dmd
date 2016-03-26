@@ -311,5 +311,6 @@ enum PINLINE
 };
 
 typedef uinteger_t StorageClass;
+typedef uinteger_t WarningCategory;
 
 #endif /* DMD_GLOBALS_H */

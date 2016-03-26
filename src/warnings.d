@@ -11,23 +11,38 @@ import core.stdc.stdarg;
 import ddmd.errors;
 import ddmd.globals;
 
-extern (C++) void warning(Loc loc, const(char)* format, ...)
+struct WarnCat
+{
+    alias Type = WarningCategory;
+
+    enum Type none = 0x0;
+    enum Type all  = ~none;
+
+    enum Type general      = (0x1L << 0);
+    enum Type advice       = (0x1L << 1);
+    enum Type ddoc         = (0x1L << 2);
+    enum Type notreachable = (0x1L << 3);
+
+    enum Type uncat = (0x1L << 13);  // temporary category for yet uncategorized warnings
+}
+
+extern (C++) void warning(Loc loc, const WarningCategory cat, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    vwarning(loc, format, ap);
+    vwarning(loc, cat, format, ap);
     va_end(ap);
 }
 
-extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
+extern (C++) void warningSupplemental(Loc loc, const WarningCategory cat, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    vwarningSupplemental(loc, format, ap);
+    vwarningSupplemental(loc, cat, format, ap);
     va_end(ap);
 }
 
-extern (C++) void vwarning(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vwarning(Loc loc, const WarningCategory cat, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
@@ -38,7 +53,7 @@ extern (C++) void vwarning(Loc loc, const(char)* format, va_list ap)
     }
 }
 
-extern (C++) void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
+extern (C++) void vwarningSupplemental(Loc loc, const WarningCategory cat, const(char)* format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
         verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);

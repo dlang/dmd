@@ -440,5 +440,6 @@ alias PINLINEnever = PINLINE.never;
 alias PINLINEalways = PINLINE.always;
 
 alias StorageClass = uinteger_t;
+alias WarningCategory = uinteger_t;
 
 extern (C++) __gshared Global global;

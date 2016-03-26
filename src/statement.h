@@ -83,7 +83,7 @@ public:
     char *toChars();
 
     void error(const char *format, ...);
-    void warning(const char *format, ...);
+    void warning(const WarningCategory cat, const char *format, ...);
     void deprecation(const char *format, ...);
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);

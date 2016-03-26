@@ -18,9 +18,26 @@
 
 #include "mars.h"
 
-void warning(Loc loc, const char *format, ...);
-void warningSupplemental(Loc loc, const char *format, ...);
-void vwarning(Loc loc, const char *format, va_list);
-void vwarningSupplemental(Loc loc, const char *format, va_list ap);
+struct WarnCat
+{
+    typedef WarningCategory Type;
+    enum
+    {
+        none = Type(0),
+        all  = ~Type(0),
+
+        general      = Type(0x1L << 0),
+        advice       = Type(0x1L << 1),
+        ddoc         = Type(0x1L << 2),
+        notreachable = Type(0x1L << 3),
+
+        uncat = Type(0x1L << 13),  // temporary category for yet uncategorized warnings
+    };
+};
+
+void warning(Loc loc, const WarningCategory cat, const char *format, ...);
+void warningSupplemental(Loc loc, const WarningCategory cat, const char *format, ...);
+void vwarning(Loc loc, const WarningCategory cat, const char *format, va_list);
+void vwarningSupplemental(Loc loc, const WarningCategory cat, const char *format, va_list ap);
 
 #endif /* DMD_WARNINGS_H */

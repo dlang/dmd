@@ -342,7 +342,7 @@ public:
     void checkComplexTransition(Loc loc);
 
     static void error(Loc loc, const char *format, ...);
-    static void warning(Loc loc, const char *format, ...);
+    static void warning(Loc loc, const WarningCategory cat, const char *format, ...);
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
