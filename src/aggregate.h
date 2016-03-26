@@ -207,7 +207,6 @@ public:
 struct BaseClass
 {
     Type *type;                         // (before semantic processing)
-    Prot protection;                    // protection for the base interface
 
     ClassDeclaration *sym;
     unsigned offset;                    // 'this' pointer offset
@@ -221,7 +220,7 @@ struct BaseClass
     BaseClass *baseInterfaces;
 
     BaseClass();
-    BaseClass(Type *type, Prot protection);
+    BaseClass(Type *type);
 
     bool fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
     void copyBaseInterfaces(BaseClasses *);

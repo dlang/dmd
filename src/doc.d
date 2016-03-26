@@ -1416,8 +1416,6 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             for (size_t i = 0; i < cd.baseclasses.dim; i++)
             {
                 BaseClass* bc = (*cd.baseclasses)[i];
-                if (bc.protection.kind == PROTprivate)
-                    continue;
                 if (bc.sym && bc.sym.ident == Id.Object)
                     continue;
                 if (any)
@@ -1427,7 +1425,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writestring(": ");
                     any = 1;
                 }
-                emitProtection(buf, bc.protection);
+                emitProtection(buf, Prot(PROTpublic));
                 if (bc.sym)
                 {
                     buf.printf("$(DDOC_PSUPER_SYMBOL %s)", bc.sym.toPrettyChars());
