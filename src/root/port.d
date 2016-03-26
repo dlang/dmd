@@ -61,11 +61,28 @@ extern (C++) struct Port
          * detected even if exceptions are disabled.
          */
         ushort* us = cast(ushort*)&snan;
-        us[0] = 0;
-        us[1] = 0;
-        us[2] = 0;
-        us[3] = 0xA000;
-        us[4] = 0x7FFF;
+        version (LittleEndian)
+        {
+            static if (real.mant_dig == 53)
+            {
+                us[0] = 0;
+                us[1] = 0;
+                us[2] = 0;
+                us[3] = 0x7FFC;
+            }
+            else static if (real.mant_dig == 64)
+            {
+                us[0] = 0;
+                us[1] = 0;
+                us[2] = 0;
+                us[3] = 0xA000;
+                us[4] = 0x7FFF;
+            }
+            else
+                static assert(false, "Missing support for real type");
+        }
+        else
+            static assert(false, "Missing support for BigEndian");
     }
 
     static bool isNan(double r)
@@ -85,7 +102,12 @@ extern (C++) struct Port
 
     static real fequal(real a, real b)
     {
-        return memcmp(&a, &b, 10) == 0;
+        static if (real.mant_dig == 53)
+            return memcmp(&a, &b, 8) == 0;
+        else static if (real.mant_dig == 64)
+            return memcmp(&a, &b, 10) == 0;
+        else
+            static assert(false, "Missing support for real type");
     }
 
     static int memicmp(const char* s1, const char* s2, size_t n)
