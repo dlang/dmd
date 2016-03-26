@@ -526,6 +526,7 @@ public:
         TypeFunction f;
         AggregateDeclaration ad;
         InterfaceDeclaration id;
+
         version (none)
         {
             printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc.linkage);
@@ -534,6 +535,7 @@ public:
             printf("sc->parent = %s, parent = %s\n", sc.parent.toChars(), parent ? parent.toChars() : "");
             printf("type: %p, %s\n", type, type.toChars());
         }
+
         if (semanticRun != PASSinit && isFuncLiteralDeclaration())
         {
             /* Member functions that have return types that are
@@ -543,33 +545,40 @@ public:
              */
             return;
         }
+
         if (semanticRun >= PASSsemanticdone)
             return;
         assert(semanticRun <= PASSsemantic);
         semanticRun = PASSsemantic;
+
         parent = sc.parent;
         Dsymbol parent = toParent();
+
         if (_scope)
         {
             sc = _scope;
             _scope = null;
         }
+
         uint dprogress_save = Module.dprogress;
+
         foverrides.setDim(0); // reset in case semantic() is being retried for this function
+
         storage_class |= sc.stc & ~STCref;
         ad = isThis();
         if (ad)
         {
             storage_class |= ad.storage_class & (STC_TYPECTOR | STCsynchronized);
-            if (StructDeclaration sd = ad.isStructDeclaration())
-                sd.makeNested();
+            ad.makeNested();
         }
         if (sc.func)
             storage_class |= sc.func.storage_class & STCdisable;
         // Remove prefix storage classes silently.
         if ((storage_class & STC_TYPECTOR) && !(ad || isNested()))
             storage_class &= ~STC_TYPECTOR;
+
         //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
+
         FuncLiteralDeclaration fld = isFuncLiteralDeclaration();
         if (fld && fld.treq)
         {
@@ -588,12 +597,14 @@ public:
         inlining = sc.inlining;
         protection = sc.protection;
         userAttribDecl = sc.userAttribDecl;
+
         if (!originalType)
             originalType = type.syntaxCopy();
         if (!type.deco)
         {
             sc = sc.push();
             sc.stc |= storage_class & (STCdisable | STCdeprecated); // forward to function type
+
             TypeFunction tf = cast(TypeFunction)type;
             if (sc.func)
             {
