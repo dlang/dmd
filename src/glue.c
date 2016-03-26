@@ -881,6 +881,23 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     if (fd->isArrayOp)
         s->Sclass = SCcomdat;
 
+    if (fd->inlinedNestedCallees)
+    {
+        /* Bugzilla 15333: If fd contains inlined expressions that come from
+         * nested function bodies, the enclosing of the functions must be
+         * generated first, in order to calculate correct frame pointer offset.
+         */
+        for (size_t i = 0; i < fd->inlinedNestedCallees->dim; i++)
+        {
+            FuncDeclaration *f = (*fd->inlinedNestedCallees)[i];
+            FuncDeclaration *fp = f->toParent2()->isFuncDeclaration();;
+            if (fp && fp->semanticRun < PASSobj)
+            {
+                toObjFile(fp, multiobj);
+            }
+        }
+    }
+
     if (fd->isNested())
     {
         //if (!(config.flags3 & CFG3pic))

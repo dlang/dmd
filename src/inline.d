@@ -2069,6 +2069,13 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     }
     scope ids = new InlineDoState(parent, fd);
 
+    if (fd.isNested())
+    {
+        if (!parent.inlinedNestedCallees)
+            parent.inlinedNestedCallees = new FuncDeclarations();
+        parent.inlinedNestedCallees.push(fd);
+    }
+
     VarDeclaration vret;    // will be set the function call result
     if (eret)
     {

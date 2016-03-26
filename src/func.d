@@ -484,6 +484,8 @@ public:
     // Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 
+    FuncDeclarations *inlinedNestedCallees;
+
     uint flags;                         // FUNCFLAGxxxxx
 
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
