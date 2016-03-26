@@ -330,6 +330,7 @@ SRCS=\
 	src\rt\typeinfo\ti_int.d \
 	src\rt\typeinfo\ti_ireal.d \
 	src\rt\typeinfo\ti_long.d \
+	src\rt\typeinfo\ti_n.d \
 	src\rt\typeinfo\ti_ptr.d \
 	src\rt\typeinfo\ti_real.d \
 	src\rt\typeinfo\ti_short.d \
