@@ -205,7 +205,7 @@ FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf)
+	warnings typinf)
 
 ifeq ($(D_OBJC),1)
 	FRONT_SRCS += objc.d
@@ -261,7 +261,7 @@ SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
 	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d         \
+	version.h visitor.h warnings.h libomf.d scanomf.d libmscoff.d scanmscoff.d \
 	$(DMD_SRCS)
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h file.h filename.h		\

@@ -70,6 +70,7 @@ import ddmd.traits;
 import ddmd.typinf;
 import ddmd.utf;
 import ddmd.visitor;
+import ddmd.warnings;
 
 enum LOGSEMANTIC = false;
 void emplaceExp(T : Expression, Args...)(void* p, Args args)

@@ -42,6 +42,7 @@ import ddmd.root.rootobject;
 import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.tokens;
+import ddmd.warnings;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.

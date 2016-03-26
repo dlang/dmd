@@ -57,6 +57,7 @@ import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+import ddmd.warnings;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()

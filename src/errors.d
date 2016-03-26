@@ -152,22 +152,6 @@ extern (C++) void errorSupplemental(Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void warning(Loc loc, const(char)* format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    vwarning(loc, format, ap);
-    va_end(ap);
-}
-
-extern (C++) void warningSupplemental(Loc loc, const(char)* format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    vwarningSupplemental(loc, format, ap);
-    va_end(ap);
-}
-
 extern (C++) void deprecation(Loc loc, const(char)* format, ...)
 {
     va_list ap;
@@ -231,23 +215,6 @@ extern (C++) void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
 {
     if (!global.gag)
         verrorPrint(loc, COLOR_RED, "       ", format, ap);
-}
-
-extern (C++) void vwarning(Loc loc, const(char)* format, va_list ap)
-{
-    if (global.params.warnings && !global.gag)
-    {
-        verrorPrint(loc, COLOR_YELLOW, "Warning: ", format, ap);
-        //halt();
-        if (global.params.warnings == 1)
-            global.warnings++; // warnings don't count if gagged
-    }
-}
-
-extern (C++) void vwarningSupplemental(Loc loc, const(char)* format, va_list ap)
-{
-    if (global.params.warnings && !global.gag)
-        verrorPrint(loc, COLOR_YELLOW, "       ", format, ap);
 }
 
 extern (C++) void vdeprecation(Loc loc, const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)

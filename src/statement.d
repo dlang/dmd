@@ -54,6 +54,7 @@ import ddmd.staticassert;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+import ddmd.warnings;
 
 extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
 {

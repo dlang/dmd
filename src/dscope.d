@@ -31,6 +31,7 @@ import ddmd.root.rmem;
 import ddmd.root.speller;
 import ddmd.root.stringtable;
 import ddmd.statement;
+import ddmd.warnings;
 
 //version=LOGSEARCH;
 

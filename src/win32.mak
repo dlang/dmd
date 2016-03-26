@@ -147,7 +147,7 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	impcnvtab.d init.d inline.d intrange.d json.d lexer.d lib.d link.d	\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
-	traits.d utf.d visitor.d libomf.d scanomf.d typinf.d \
+	traits.d utf.d visitor.d warnings.d libomf.d scanomf.d typinf.d \
 	libmscoff.d scanmscoff.d
 
 GLUE_SRCS=irstate.d toctype.d backend.d gluelayer.d
@@ -185,7 +185,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
 	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h $(DMD_SRCS)
+	version.h visitor.h warnings.h $(DMD_SRCS)
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \

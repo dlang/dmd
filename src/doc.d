@@ -43,6 +43,7 @@ import ddmd.root.rmem;
 import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
+import ddmd.warnings;
 
 struct Escape
 {
