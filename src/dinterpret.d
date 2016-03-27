@@ -1140,9 +1140,8 @@ public:
         {
             Statement sx = (*s.statements)[i];
             Expression e = interpret(sx, istate);
-            if (!e) // suceeds to interpret, or goto target
+            if (!e) // suceeds to interpret, or goto target was not found
                 continue;
-            // was not fonnd when istate->start != NULL
             if (exceptionOrCant(e))
                 return;
             if (e.op == TOKbreak)
@@ -3879,9 +3878,8 @@ public:
             // in the druntime internal functions so they don't appear in AST.
             // Therefore interpreter should handle them specially.
             assert(oldval);
-            version (all)
+            version (all) // todo: instead we can directly access to each elements of the slice
             {
-                // todo: instead we can directly access to each elements of the slice
                 newval = resolveSlice(newval);
                 if (CTFEExp.isCantExp(newval))
                 {
@@ -3962,9 +3960,8 @@ public:
             //   aggregate[low..upp] = newval
             // ------------------------------
             SliceExp se = cast(SliceExp)e1;
-            version (all)
+            version (all) // should be move in interpretAssignCommon as the evaluation of e1
             {
-                // should be move in interpretAssignCommon as the evaluation of e1
                 Expression oldval = interpret(se.e1, istate);
                 // Set the $ variable
                 uinteger_t dollar = resolveArrayLength(oldval);
@@ -4065,9 +4062,8 @@ public:
                     e.error("overlapping slice assignment [%d..%d] = [%llu..%llu]", lowerbound, upperbound, se.lwr.toInteger(), se.upr.toInteger());
                     return CTFEExp.cantexp;
                 }
-                version (all)
+                version (all) // todo: instead we can directly access to each elements of the slice
                 {
-                    // todo: instead we can directly access to each elements of the slice
                     Expression orignewval = newval;
                     newval = resolveSlice(newval);
                     if (CTFEExp.isCantExp(newval))
@@ -4177,9 +4173,8 @@ public:
                     e.error("overlapping slice assignment [%d..%d] = [%llu..%llu]", lowerbound, upperbound, se.lwr.toInteger(), se.upr.toInteger());
                     return CTFEExp.cantexp;
                 }
-                version (all)
+                version (all) // todo: instead we can directly access to each elements of the slice
                 {
-                    // todo: instead we can directly access to each elements of the slice
                     Expression orignewval = newval;
                     newval = resolveSlice(newval);
                     if (CTFEExp.isCantExp(newval))

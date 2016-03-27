@@ -716,8 +716,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     if (m < result)
                         result = m; // remember worst match
                     if (result == MATCHnomatch)
-                        break;
-                    // no need to check for worse
+                        break; // no need to check for worse
                 }
                 return;
             }
@@ -739,15 +738,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     if (m < result)
                         result = m; // remember worst match
                     if (result == MATCHnomatch)
-                        break;
-                    // no need to check for worse
+                        break; // no need to check for worse
                     el = (*e.values)[i];
                     m = el.implicitConvTo(tb.nextOf());
                     if (m < result)
                         result = m; // remember worst match
                     if (result == MATCHnomatch)
-                        break;
-                    // no need to check for worse
+                        break; // no need to check for worse
                 }
                 return;
             }
@@ -1497,8 +1494,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 goto Lok;
             // typeof(null) <-- non-null references or values
             if (tob.ty == Tnull && t1b.ty != Tnull)
-                goto Lfail;
-            // Bugzilla 14629
+                goto Lfail; // Bugzilla 14629
             // typeof(null) --> non-null references or arithmetic values
             if (t1b.ty == Tnull && tob.ty != Tnull)
                 goto Lok;
@@ -1691,8 +1687,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     copied = 1;
                 }
                 if (tb.ty == Tsarray)
-                    goto L2;
-                // handle possible change in static array dimension
+                    goto L2; // handle possible change in static array dimension
                 se.type = t;
                 result = se;
                 return;
@@ -3394,12 +3389,12 @@ extern (C++) IntRange getIntRange(Expression e)
              due to the rules of D (C)'s % operator, we need to consider the cases
              separately in different range of signs.
 
-             case 1. [500, 1700] % [7, 23] (numerator is always positive)
-             = [0, 22]
-             case 2. [-500, 1700] % [7, 23] (numerator can be negative)
-             = [-22, 22]
-             case 3. [-1700, -500] % [7, 23] (numerator is always negative)
-             = [-22, 0]
+                 case 1. [500, 1700] % [7, 23] (numerator is always positive)
+                     = [0, 22]
+                 case 2. [-500, 1700] % [7, 23] (numerator can be negative)
+                     = [-22, 22]
+                 case 3. [-1700, -500] % [7, 23] (numerator is always negative)
+                     = [-22, 0]
 
              the number 22 is the maximum absolute value in the denomator's range. We
              don't care about divide by zero.

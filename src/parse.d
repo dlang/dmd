@@ -688,14 +688,13 @@ public:
             case TOKgshared:
                 stc = STCgshared;
                 goto Lstc;
-                //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
+            //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
             case TOKat:
                 {
                     Expressions* exps = null;
                     stc = parseAttribute(&exps);
                     if (stc)
-                        goto Lstc;
-                    // it's a predefined attribute
+                        goto Lstc; // it's a predefined attribute
                     // no redundant/conflicting check for UDAs
                     pAttrs.udas = UserAttributeDeclaration.concat(pAttrs.udas, exps);
                     goto Lautodecl;
@@ -3041,8 +3040,7 @@ public:
                     s.addAlias(name, _alias);
                 }
                 while (token.value == TOKcomma);
-                break;
-                // no comma-separated imports of this form
+                break; // no comma-separated imports of this form
             }
             aliasid = null;
         }
@@ -3077,8 +3075,7 @@ public:
             {
             case TOKconst:
                 if (peekNext() == TOKlparen)
-                    break;
-                // const as type constructor
+                    break; // const as type constructor
                 stc |= STCconst; // const as storage class
                 nextToken();
                 continue;
@@ -3621,8 +3618,8 @@ public:
                     Parameters* parameters = parseParameters(&varargs);
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
                      */
-                    StorageClass stc = parsePostfix(storageClass, pudas);
                     // merge prefix storage classes
+                    StorageClass stc = parsePostfix(storageClass, pudas);
                     Type tf = new TypeFunction(parameters, t, varargs, linkage, stc);
                     tf = tf.addSTC(stc);
                     if (pdisable)
@@ -3657,8 +3654,7 @@ public:
             {
             case TOKconst:
                 if (peek(&token).value == TOKlparen)
-                    break;
-                // const as type constructor
+                    break; // const as type constructor
                 stc = STCconst; // const as storage class
                 goto L1;
             case TOKimmutable:
@@ -4698,7 +4694,7 @@ public:
                 lookingForElse = Loc();
                 nextToken();
                 //if (token.value == TOKsemicolon)
-                //error("use '{ }' for an empty statement, not a ';'");
+                //    error("use '{ }' for an empty statement, not a ';'");
                 auto statements = new Statements();
                 while (token.value != TOKrcurly && token.value != TOKeof)
                 {
@@ -4995,8 +4991,7 @@ public:
             }
         case TOKscope:
             if (peek(&token).value != TOKlparen)
-                goto Ldeclaration;
-            // scope used as storage class
+                goto Ldeclaration; // scope used as storage class
             nextToken();
             check(TOKlparen);
             if (token.value != TOKidentifier)
@@ -5539,8 +5534,7 @@ public:
                     nextToken();
                     comma = 2;
                     continue;
-                case TOKrcurly:
-                    // allow trailing comma's
+                case TOKrcurly: // allow trailing comma's
                     nextToken();
                     break;
                 case TOKeof:
@@ -5640,8 +5634,7 @@ public:
                     nextToken();
                     comma = 2;
                     continue;
-                case TOKrbracket:
-                    // allow trailing comma's
+                case TOKrbracket: // allow trailing comma's
                     nextToken();
                     break;
                 case TOKeof:
@@ -5959,7 +5952,7 @@ public:
             switch (t.value)
             {
             case TOKmul:
-                //case TOKand:
+            //case TOKand:
                 t = peek(t);
                 continue;
             case TOKlbracket:
@@ -6126,7 +6119,7 @@ public:
                     break;
                 }
                 continue;
-                // Valid tokens that follow a declaration
+            // Valid tokens that follow a declaration
             case TOKrparen:
             case TOKrbracket:
             case TOKassign:
@@ -6398,7 +6391,7 @@ public:
             case TOKref:
             case TOKgshared:
             case TOKreturn:
-                //case TOKmanifest:
+            //case TOKmanifest:
                 break;
             case TOKat:
                 t = peek(t);
@@ -7022,8 +7015,7 @@ public:
             e = parseUnaryExp();
             e = new DeleteExp(loc, e);
             break;
-        case TOKcast:
-            // cast(type) expression
+        case TOKcast: // cast(type) expression
             {
                 nextToken();
                 check(TOKlparen);
@@ -7037,8 +7029,7 @@ public:
                     {
                     case TOKconst:
                         if (peekNext() == TOKlparen)
-                            break;
-                        // const as type constructor
+                            break; // const as type constructor
                         m |= MODconst; // const as storage class
                         nextToken();
                         continue;
@@ -7084,8 +7075,7 @@ public:
         case TOKwild:
         case TOKshared:
         case TOKconst:
-        case TOKimmutable:
-            // immutable(type)(arguments) / immutable(type).init
+        case TOKimmutable: // immutable(type)(arguments) / immutable(type).init
             {
                 StorageClass stc = parseTypeCtor();
                 Type t = parseBasicType();

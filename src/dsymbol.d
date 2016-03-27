@@ -981,7 +981,7 @@ public:
     void addComment(const(char)* comment)
     {
         //if (comment)
-        //printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
+        //    printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());
         if (!this.comment)
             this.comment = comment;
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)

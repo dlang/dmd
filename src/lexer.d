@@ -277,19 +277,16 @@ public:
             case '\v':
             case '\f':
                 p++;
-                continue;
-                // skip white space
+                continue; // skip white space
             case '\r':
                 p++;
                 if (*p != '\n') // if CR stands by itself
                     endOfLine();
-                continue;
-                // skip white space
+                continue; // skip white space
             case '\n':
                 p++;
                 endOfLine();
-                continue;
-                // skip white space
+                continue; // skip white space
             case '0':
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
                 {
@@ -481,8 +478,7 @@ public:
                                 else if (c == '.')
                                 {
                                     if (point)
-                                        break;
-                                    // ignore everything after second '.'
+                                        break; // ignore everything after second '.'
                                     point = true;
                                     major = minor;
                                     minor = 0;
@@ -568,8 +564,7 @@ public:
                         getDocComment(t, lastLine == startLoc.linnum);
                     }
                     continue;
-                case '/':
-                    // do // style comments
+                case '/': // do // style comments
                     startLoc = loc();
                     while (1)
                     {
@@ -1251,8 +1246,7 @@ public:
                 break;
             case '\r':
                 if (*p == '\n')
-                    continue;
-                // ignore
+                    continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
                 break;
@@ -1409,8 +1403,7 @@ public:
                 break;
             case '\r':
                 if (*p == '\n')
-                    continue;
-                // ignore
+                    continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 goto Lnextline;
             case 0:
@@ -1592,8 +1585,7 @@ public:
                 break;
             case '\r':
                 if (*p == '\n')
-                    continue;
-                // ignore
+                    continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
                 break;
@@ -1759,13 +1751,10 @@ public:
                 break;
             case '.':
                 if (p[1] == '.')
-                    goto Ldone;
-                // if ".."
+                    goto Ldone; // if ".."
                 if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
-                    goto Ldone;
-                // if ".identifier" or ".unicode"
-                goto Lreal;
-                // '.' is part of current token
+                    goto Ldone; // if ".identifier" or ".unicode"
+                goto Lreal; // '.' is part of current token
             case 'i':
             case 'f':
             case 'F':
@@ -1850,13 +1839,10 @@ public:
                 goto Ldone;
             case '.':
                 if (p[1] == '.')
-                    goto Ldone;
-                // if ".."
+                    goto Ldone; // if ".."
                 if (base == 10 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
-                    goto Ldone;
-                // if ".identifier" or ".unicode"
-                goto Lreal;
-                // otherwise as part of a floating point literal
+                    goto Ldone; // if ".identifier" or ".unicode"
+                goto Lreal; // otherwise as part of a floating point literal
             case 'p':
             case 'P':
             case 'i':
@@ -2254,8 +2240,7 @@ public:
             case '\v':
             case '\f':
                 p++;
-                continue;
-                // skip white space
+                continue; // skip white space
             case '_':
                 if (memcmp(p, "__FILE__".ptr, 8) == 0)
                 {
@@ -2423,8 +2408,7 @@ public:
                 break;
             case '\r':
                 if (q[1] == '\n')
-                    continue;
-                // skip the \r
+                    continue; // skip the \r
                 goto Lnewline;
             default:
                 if (c == 226)

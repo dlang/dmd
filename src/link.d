@@ -663,7 +663,7 @@ extern (C++) int runLINK()
                 argv.push(buf);
             }
         }
-        //    argv.push("-ldruntime");
+        //argv.push("-ldruntime");
         argv.push("-lpthread");
         argv.push("-lm");
         version (linux)
@@ -800,8 +800,8 @@ version (Windows)
             // spawnlp returns intptr_t in some systems, not int
             status = spawnlp(0, cmd, cmd, args, null);
         }
-        //    if (global.params.verbose)
-        //      fprintf(global.stdmsg, "\n");
+        //if (global.params.verbose)
+        //    fprintf(global.stdmsg, "\n");
         if (status)
         {
             if (status == -1)
