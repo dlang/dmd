@@ -44,6 +44,7 @@ elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 type *Type_toCtype(Type *t);
+elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fillHoles);
 elem *toElemDtor(Expression *e, IRState *irs);
 Symbol *toSymbol(Type *t);
 Symbol *toSymbolCpp(ClassDeclaration *cd);
@@ -765,13 +766,10 @@ public:
                  */
                 if (s->exp->op == TOKstructliteral)
                 {
-                    StructLiteralExp *se = (StructLiteralExp *)s->exp;
-                    se->sym = irs->shidden;
-                    se->fillHoles = true;
-                    e = toElemDtor(s->exp, irs);
+                    StructLiteralExp *sle = (StructLiteralExp *)s->exp;
+                    sle->sym = irs->shidden;
                 }
-                else
-                    e = toElemDtor(s->exp, irs);
+                e = toElemDtor(s->exp, irs);
                 assert(e);
 
                 if (s->exp->op == TOKstructliteral ||
