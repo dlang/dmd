@@ -1020,7 +1020,7 @@ public import core.stdc.stdio : SEEK_SET, SEEK_CUR, SEEK_END;
 
 alias DWORD MCIERROR;
 alias UINT MCIDEVICEID;
-alias UINT function (MCIDEVICEID, DWORD) YIELDPROC;
+extern(Windows) alias UINT function (MCIDEVICEID, DWORD) YIELDPROC;
 alias UINT MMVERSION;
 alias UINT MMRESULT;
 

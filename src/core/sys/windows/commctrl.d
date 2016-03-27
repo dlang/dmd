@@ -3869,7 +3869,7 @@ static if (_WIN32_WINNT >= 0x501) {
     }
     alias LVINSERTGROUPSORTED* PLVINSERTGROUPSORTED;
 
-    alias int function(INT, INT, VOID*) PFNLVGROUPCOMPARE;
+    extern (Windows) alias int function(INT, INT, VOID*) PFNLVGROUPCOMPARE;
 
     struct LVSETINFOTIP {
         UINT    cbSize = LVSETINFOTIP.sizeof;
@@ -3923,7 +3923,7 @@ static if (_WIN32_WINNT >= 0x600) {
     }
 }
 
-alias int function(LPARAM, LPARAM, LPARAM) PFNLVCOMPARE;
+extern (Windows) alias int function(LPARAM, LPARAM, LPARAM) PFNLVCOMPARE;
 
 struct NMLISTVIEW {
     NMHDR  hdr;
@@ -4084,7 +4084,7 @@ static if (_WIN32_WINNT >= 0x600) {
     }
 }
 
-alias int function(LPARAM, LPARAM, LPARAM) PFNTVCOMPARE;
+extern (Windows) alias int function(LPARAM, LPARAM, LPARAM) PFNTVCOMPARE;
 struct TVSORTCB {
     HTREEITEM    hParent;
     PFNTVCOMPARE lpfnCompare;
@@ -4893,9 +4893,11 @@ version (Unicode) {
 }
 
 
+extern (Windows) {
 alias INT function(PVOID, PVOID) PFNDPAENUMCALLBACK;
 alias INT function(PVOID, PVOID) PFNDSAENUMCALLBACK;
 alias INT function(PVOID, PVOID, LPARAM) PFNDPACOMPARE;
+}
 
 static if (_WIN32_WINNT >= 0x501) {
     extern (Windows)
@@ -4929,13 +4931,15 @@ uint INDEXTOOVERLAYMASK(uint i) { return i << 8; }
 uint INDEXTOSTATEIMAGEMASK(uint i) { return i << 12; }
 
 template HANDLE_WM_NOTIFY(R) {
-    R HANDLE_WM_NOTIFY(HWND hwnd, WPARAM wParam, LPARAM lParam,
-          R function(HWND, int, NMHDR*) fn) {
+    private alias _prm_HANDLE_WM_NOTIFY = extern (Windows)
+        R function(HWND, int, NMHDR*); // to inject linkage type
+    R HANDLE_WM_NOTIFY(HWND hwnd, WPARAM wParam, LPARAM lParam, _prm_HANDLE_WM_NOTIFY fn) {
         return fn(hwnd, wParam, cast(NMHDR*) lParam);
     }
 }
-int FORWARD_WM_NOTIFY(HWND hwnd, int idFrom, NMHDR* pnmhdr,
-      int function(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) fn) {
+private alias _prm_FORWARD_WM_NOTIFY = extern (Windows)
+    int function(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam); // to inject linkage type
+int FORWARD_WM_NOTIFY(HWND hwnd, int idFrom, NMHDR* pnmhdr, _prm_FORWARD_WM_NOTIFY fn) {
     return fn(hwnd, WM_NOTIFY, idFrom, cast(LPARAM) pnmhdr);
 }
 
