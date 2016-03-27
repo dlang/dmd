@@ -9,6 +9,7 @@
 module ddmd.apply;
 
 import ddmd.arraytypes;
+import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.visitor;
 
@@ -71,6 +72,11 @@ public:
     {
         //printf("NewAnonClassExp::apply(): %s\n", toChars());
         doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
+    }
+
+    override void visit(TypeidExp e)
+    {
+        doCond(isExpression(e.obj)) || applyTo(e);
     }
 
     override void visit(UnaExp e)

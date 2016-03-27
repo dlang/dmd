@@ -8,6 +8,7 @@
 
 module ddmd.delegatize;
 
+import core.stdc.stdio;
 import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
