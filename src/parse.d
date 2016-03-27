@@ -127,7 +127,6 @@ __gshared PREC[TOKMAX] precedence =
     TOKneg : PREC_unary,
     TOKuadd : PREC_unary,
     TOKnot : PREC_unary,
-    TOKtobool : PREC_add,
     TOKtilde : PREC_unary,
     TOKdelete : PREC_unary,
     TOKnew : PREC_unary,

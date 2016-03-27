@@ -1008,11 +1008,6 @@ public:
         visit(cast(UnaExp)e);
     }
 
-    void visit(BoolExp e)
-    {
-        visit(cast(UnaExp)e);
-    }
-
     void visit(DeleteExp e)
     {
         visit(cast(UnaExp)e);

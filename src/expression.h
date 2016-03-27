@@ -980,14 +980,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class BoolExp : public UnaExp
-{
-public:
-    BoolExp(Loc loc, Expression *e, Type *type);
-    Expression *semantic(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
-};
-
 class DeleteExp : public UnaExp
 {
 public:

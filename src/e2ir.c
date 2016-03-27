@@ -3745,12 +3745,6 @@ elem *toElem(Expression *e, IRState *irs)
             result = e;
         }
 
-        void visit(BoolExp *e)
-        {
-            elem *e1 = toElem(e->e1, irs);
-            result = el_una(OPbool, totym(e->type), e1);
-        }
-
         void visit(DeleteExp *de)
         {
             Type *tb;

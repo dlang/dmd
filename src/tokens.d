@@ -90,9 +90,8 @@ enum TOK : int
     TOKnotidentity,
     TOKindex,
     TOKis,
-    TOKtobool,
 
-    // 65
+    // 64
     // NCEG floating point compares
     // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
     TOKunord,
@@ -104,7 +103,7 @@ enum TOK : int
     TOKug,
     TOKue,
 
-    // 73
+    // 72
     TOKshl,
     TOKshr,
     TOKshlass,
@@ -145,7 +144,7 @@ enum TOK : int
     TOKpreplusplus,
     TOKpreminusminus,
 
-    // 112
+    // 111
     // Numeric literals
     TOKint32v,
     TOKuns32v,
@@ -201,7 +200,7 @@ enum TOK : int
     TOKdchar,
     TOKbool,
 
-    // 159
+    // 158
     // Aggregates
     TOKstruct,
     TOKclass,
@@ -363,7 +362,6 @@ alias TOKidentity = TOK.TOKidentity;
 alias TOKnotidentity = TOK.TOKnotidentity;
 alias TOKindex = TOK.TOKindex;
 alias TOKis = TOK.TOKis;
-alias TOKtobool = TOK.TOKtobool;
 alias TOKunord = TOK.TOKunord;
 alias TOKlg = TOK.TOKlg;
 alias TOKleg = TOK.TOKleg;
@@ -606,7 +604,6 @@ extern (C++) struct Token
         TOKuge: "!<",
         TOKug: "!<=",
         TOKnot: "!",
-        TOKtobool: "!!",
         TOKshl: "<<",
         TOKshr: ">>",
         TOKushr: ">>>",

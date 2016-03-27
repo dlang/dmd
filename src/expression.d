@@ -10523,38 +10523,6 @@ public:
 
 /***********************************************************
  */
-extern (C++) final class BoolExp : UnaExp
-{
-public:
-    extern (D) this(Loc loc, Expression e, Type t)
-    {
-        super(loc, TOKtobool, __traits(classInstanceSize, BoolExp), e);
-        type = t;
-    }
-
-    override Expression semantic(Scope* sc)
-    {
-        if (type)
-            return this;
-        // Note there is no operator overload
-        if (Expression ex = unaSemantic(sc))
-            return ex;
-        e1 = resolveProperties(sc, e1);
-        e1 = e1.toBoolean(sc);
-        if (e1.type == Type.terror)
-            return e1;
-        type = Type.tbool;
-        return this;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- */
 extern (C++) final class DeleteExp : UnaExp
 {
 public:
