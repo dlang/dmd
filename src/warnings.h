@@ -26,12 +26,12 @@ struct WarnCat
         none = Type(0),
         all  = ~Type(0),
 
-        general      = Type(0x1L << 0),
-        advice       = Type(0x1L << 1),
-        ddoc         = Type(0x1L << 2),
-        notreachable = Type(0x1L << 3),
+        general      = Type(1 << 0),
+        advice       = Type(1 << 1),
+        ddoc         = Type(1 << 2),
+        notreachable = Type(1 << 3),
 
-        uncat = Type(0x1L << 13),  // temporary category for yet uncategorized warnings
+        uncat = Type(1 << 13),  // temporary category for yet uncategorized warnings
     };
 };
 

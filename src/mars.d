@@ -56,6 +56,7 @@ import ddmd.root.stringtable;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.traits;
+import ddmd.warnings;
 
 
 /**
@@ -242,8 +243,10 @@ Usage:
   --version      print compiler version and exit
   -version=level compile in version code >= level
   -version=ident compile in version code identified by ident
-  -w             warnings as errors (compilation will halt)
-  -wi            warnings as messages (compilation will continue)
+  -w             enable all warnings, warnings as errors (compilation halts)
+  -wi            enable all warnings, warnings as messages
+  -Werror        warnings as errors
+  -W[no-]<cat>   enables (-W) or disables (-Wno-) warning category <cat>
   -X             generate JSON file
   -Xffilename    write JSON file to filename
 ", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
@@ -685,9 +688,34 @@ Language changes listed by -transition=id:
                     goto Lerror;
             }
             else if (strcmp(p + 1, "w") == 0)
+            {
                 global.params.warnings = 1;
+                global.params.enabledWarnings = WarnCat.all;
+            }
             else if (strcmp(p + 1, "wi") == 0)
+            {
                 global.params.warnings = 2;
+                global.params.enabledWarnings = WarnCat.all;
+            }
+            else if (strcmp(p + 1, "Werror") == 0)
+            {
+                global.params.warnings = 1;
+            }
+            else if (p[1] == 'W')
+            {
+                bool disable = (p[2] == 'n') && (p[3] == 'o') && (p[4] == '-');
+                auto warncatstr = disable ? p+5 : p+2;
+                auto warncat = warnStringToCat(warncatstr);
+                if (warncat == WarnCat.none)
+                {
+                    error(Loc(), "Unknown -W category '%s'", warncatstr);
+                    break;
+                }
+                if (disable)
+                    global.params.enabledWarnings &= ~warncat;
+                else
+                    global.params.enabledWarnings |= warncat;
+            }
             else if (strcmp(p + 1, "O") == 0)
                 global.params.optimize = true;
             else if (p[1] == 'o')

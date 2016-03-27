@@ -49,6 +49,8 @@ alias BOUNDSCHECKoff = BOUNDSCHECK.BOUNDSCHECKoff;
 alias BOUNDSCHECKon = BOUNDSCHECK.BOUNDSCHECKon;
 alias BOUNDSCHECKsafeonly = BOUNDSCHECK.BOUNDSCHECKsafeonly;
 
+alias WarningCategory = uint;
+
 // Put command line switches in here
 struct Param
 {
@@ -94,10 +96,14 @@ struct Param
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
+
     // 0: disable warnings
     // 1: warnings as errors
     // 2: informational warnings (no errors)
     byte warnings;
+    // Flags which warning categories are enabled
+    WarningCategory enabledWarnings;
+
     bool pic;               // generate position-independent-code for shared libs
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -440,6 +446,5 @@ alias PINLINEnever = PINLINE.never;
 alias PINLINEalways = PINLINE.always;
 
 alias StorageClass = uinteger_t;
-alias WarningCategory = uinteger_t;
 
 extern (C++) __gshared Global global;
