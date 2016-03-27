@@ -20,8 +20,11 @@
 
 module ddmd.root.response;
 
-import core.stdc.stdio, core.stdc.stdlib, core.stdc.string;
-import ddmd.root.file, ddmd.root.filename;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import ddmd.root.file;
+import ddmd.root.filename;
 
 /*********************************
  * #include <stdlib.h>

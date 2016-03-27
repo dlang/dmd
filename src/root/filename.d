@@ -8,8 +8,18 @@
 
 module ddmd.root.filename;
 
-import core.stdc.ctype, core.stdc.errno, core.stdc.stdlib, core.stdc.string, core.sys.posix.stdlib, core.sys.posix.sys.stat, core.sys.windows.windows;
-import ddmd.root.array, ddmd.root.file, ddmd.root.outbuffer, ddmd.root.rmem, ddmd.root.rootobject;
+import core.stdc.ctype;
+import core.stdc.errno;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.posix.stdlib;
+import core.sys.posix.sys.stat;
+import core.sys.windows.windows;
+import ddmd.root.array;
+import ddmd.root.file;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+import ddmd.root.rootobject;
 
 version (Windows) extern (C) int mkdir(const char*);
 version (Windows) alias _mkdir = mkdir;

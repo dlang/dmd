@@ -8,8 +8,25 @@
 
 module ddmd.libmscoff;
 
-import core.stdc.stdlib, core.stdc.string, core.sys.windows.windows, core.sys.windows.stat, core.stdc.time, core.stdc.stdio, core.stdc.stdarg, core.stdc.string;
-import ddmd.globals, ddmd.lib, ddmd.mars, ddmd.root.array, ddmd.root.file, ddmd.root.filename, ddmd.root.outbuffer, ddmd.root.port, ddmd.root.stringtable, ddmd.scanmscoff, ddmd.errors;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.windows.windows;
+import core.sys.windows.stat;
+import core.stdc.time;
+import core.stdc.stdio;
+import core.stdc.stdarg;
+import core.stdc.string;
+import ddmd.globals;
+import ddmd.lib;
+import ddmd.mars;
+import ddmd.root.array;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.port;
+import ddmd.root.stringtable;
+import ddmd.scanmscoff;
+import ddmd.errors;
 
 enum LOG = false;
 
