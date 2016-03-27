@@ -6,8 +6,8 @@
 #
 #    run_tests:          run all tests
 #    run_runnable_tests:         run just the runnable tests
-#    run_compilable_tests:       run just the runnable tests
-#    run_fail_compilation_tests: run just the runnable tests
+#    run_compilable_tests:       run just the compilable tests
+#    run_fail_compilation_tests: run just the fail compilation tests
 #
 #    quick:              run all tests with no default permuted args
 #                        (individual test specified options still honored)
