@@ -1657,6 +1657,24 @@ char *obj_mangle2(Symbol *s,char *dest)
             strupr(dest);               // to upper case
             break;
         case mTYman_std:
+            if (!(config.flags4 & CFG4oldstdmangle) &&
+                config.exe == EX_WIN32 && tyfunc(s->ty()) &&
+                !variadic(s->Stype))
+            {
+                char *pstr = unsstr(type_paramsize(s->Stype));
+                size_t pstrlen = strlen(pstr);
+                size_t prelen = I32 ? 1 : 0;
+                size_t destlen = prelen + len + 1 + pstrlen + 1;
+
+                if (destlen > DEST_LEN)
+                    dest = (char *)mem_malloc(destlen);
+                dest[0] = '_';
+                memcpy(dest + prelen,name,len);
+                dest[prelen + len] = '@';
+                memcpy(dest + prelen + 1 + len, pstr, pstrlen + 1);
+                break;
+            }
+            // fall through
         case mTYman_cpp:
         case mTYman_d:
         case mTYman_sys:

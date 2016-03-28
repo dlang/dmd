@@ -3930,13 +3930,16 @@ void epilog(block *b)
                     reg_t reg = CX;
                     mfuncreg &= ~mask[reg];
                     unsigned grex = I64 ? REX_W << 16 : 0;
-                    c = genc2(c,0xC7,grex | modregrmx(3,0,reg),value);  // MOV reg,value
-                    code *c1 = gen2sib(CNIL,0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP));  // MOV [ESP],reg
+                    code *c1 = genc2(CNIL,0xC7,grex | modregrmx(3,0,reg),value);// MOV reg,value
+                    gen2sib(c1,0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP)); // MOV [ESP],reg
                     genc2(c1,0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
                     genregs(c1,0x39,SP,BP);                             // CMP EBP,ESP
                     if (I64)
                         code_orrex(c1,REX_W);
-                    genjmp(c1,JNE,FLcode,(block *)c1);                  // JNE L1
+                    code *cjmp = genjmp(CNIL,JNE,FLcode,(block *)c1);           // JNE L1
+                    // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
+                    cjmp->Iflags &= ~CFjmp16;
+                    c1 = cat(c1, cjmp);
                     gen1(c1,0x58 + BP);                                 // POP BP
                     c = cat(c,c1);
                 }
