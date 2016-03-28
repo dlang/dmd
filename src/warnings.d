@@ -23,12 +23,17 @@ struct WarnCat
     enum Type none = 0;
     enum Type all  = ~none;
 
-    enum Type general      = (1 << 0);
-    enum Type advice       = (1 << 1);
-    enum Type ddoc         = (1 << 2);
-    enum Type notreachable = (1 << 3);
-
-    enum Type uncat = (1 << 13);  // temporary category for yet uncategorized warnings
+    enum Type general        = (1 << 0);
+    enum Type advice         = (1 << 1);
+    enum Type ddoc           = (1 << 2);
+    enum Type notReachable   = (1 << 3);
+    enum Type fallthrough    = (1 << 4);
+    enum Type braces         = (1 << 5);
+    enum Type Cstyle         = (1 << 6);
+    enum Type hiding         = (1 << 7);
+    enum Type soonDeprecated = (1 << 8);
+    enum Type unusedValue    = (1 << 9);
+    enum Type conversion     = (1 << 10);
 }
 
 const (char*)[] warningTable =
@@ -37,18 +42,14 @@ const (char*)[] warningTable =
     "advice",
     "ddoc",
     "not-reachable",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11",
-    "12",
-    "uncat",
+    "fallthrough",
+    "braces",
+    "C-style",
+    "hiding",
+    "soon-deprecated",
+    "unused-value",
+    "conversion",
 ];
-
 
 // If cat is a combination of multiple categories, the lowest index category is chosen.
 const(char)* warnCatToString(const WarningCategory cat)

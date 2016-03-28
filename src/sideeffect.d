@@ -266,7 +266,7 @@ extern (C++) void discardValue(Expression e)
                     }
                     else
                         s = ce.e1.toChars();
-                    e.warning(WarnCat.uncat, "calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
+                    e.warning(WarnCat.unusedValue, "calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
                 }
             }
         }

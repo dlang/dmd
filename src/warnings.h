@@ -26,12 +26,17 @@ struct WarnCat
         none = Type(0),
         all  = ~Type(0),
 
-        general      = Type(1 << 0),
-        advice       = Type(1 << 1),
-        ddoc         = Type(1 << 2),
-        notreachable = Type(1 << 3),
-
-        uncat = Type(1 << 13),  // temporary category for yet uncategorized warnings
+        general        = Type(1 << 0),
+        advice         = Type(1 << 1),
+        ddoc           = Type(1 << 2),
+        notreachable   = Type(1 << 3),
+        fallthrough    = Type(1 << 4),
+        braces         = Type(1 << 5),
+        Cstyle         = Type(1 << 6),
+        hiding         = Type(1 << 7),
+        soonDeprecated = Type(1 << 8);
+        unusedValue    = Type(1 << 9);
+        conversion     = Type(1 << 10);
     };
 };
 

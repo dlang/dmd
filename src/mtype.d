@@ -4323,7 +4323,7 @@ public:
         {
             static __gshared const(char)** reverseName = ["_adReverseChar", "_adReverseWchar"];
             static __gshared FuncDeclaration* reverseFd = [null, null];
-            warning(e.loc, WarnCat.advice, "use std.algorithm.reverse instead of .reverse property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.reverse instead of .reverse property");
             int i = n.ty == Twchar;
             if (!reverseFd[i])
             {
@@ -4344,7 +4344,7 @@ public:
         {
             static __gshared const(char)** sortName = ["_adSortChar", "_adSortWchar"];
             static __gshared FuncDeclaration* sortFd = [null, null];
-            warning(e.loc, WarnCat.advice, "use std.algorithm.sort instead of .sort property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.sort instead of .sort property");
             int i = n.ty == Twchar;
             if (!sortFd[i])
             {
@@ -4367,7 +4367,7 @@ public:
             FuncDeclaration fd;
             Expressions* arguments;
             dinteger_t size = next.size(e.loc);
-            warning(e.loc, WarnCat.advice, "use std.algorithm.reverse instead of .reverse property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.reverse instead of .reverse property");
             assert(size);
             static __gshared FuncDeclaration adReverse_fd = null;
             if (!adReverse_fd)
@@ -4391,7 +4391,7 @@ public:
             static __gshared FuncDeclaration fd = null;
             Expression ec;
             Expressions* arguments;
-            warning(e.loc, WarnCat.advice, "use std.algorithm.sort instead of .sort property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.sort instead of .sort property");
             if (!fd)
             {
                 auto params = new Parameters();

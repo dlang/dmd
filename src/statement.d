@@ -359,14 +359,14 @@ public:
                                 else
                                 {
                                     const(char)* gototype = s.isCaseStatement() ? "case" : "default";
-                                    s.warning(WarnCat.uncat, "switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                    s.warning(WarnCat.fallthrough, "switch case fallthrough - use 'goto %s;' if intended", gototype);
                                 }
                             }
                         }
                         if (!(result & BEfallthru) && !s.comeFrom())
                         {
                             if (s.blockExit(func, mustNotThrow) != BEhalt && s.hasCode())
-                                s.warning(WarnCat.notreachable, "statement is not reachable");
+                                s.warning(WarnCat.notReachable, "statement is not reachable");
                         }
                         else
                         {
@@ -673,7 +673,7 @@ public:
                     // destructor call, exit of synchronized statement, etc.
                     if (result == BEhalt && finalresult != BEhalt && s.finalbody && s.finalbody.hasCode())
                     {
-                        s.finalbody.warning(WarnCat.notreachable, "statement is not reachable");
+                        s.finalbody.warning(WarnCat.notReachable, "statement is not reachable");
                     }
                 }
                 if (!(finalresult & BEfallthru))
@@ -2543,7 +2543,7 @@ public:
             }
         case Taarray:
             if (op == TOKforeach_reverse)
-                warning(WarnCat.uncat, "cannot use foreach_reverse with an associative array");
+                warning(WarnCat.soonDeprecated, "cannot use foreach_reverse with an associative array");
             if (checkForArgTypes())
                 return this;
 

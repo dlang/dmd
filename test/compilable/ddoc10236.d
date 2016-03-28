@@ -4,10 +4,10 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/ddoc10236.d(33): Warning: Ddoc: parameter count mismatch
-compilable/ddoc10236.d(45): Warning: Ddoc: function declaration has no parameter 'y'
-compilable/ddoc10236.d(57): Warning: Ddoc: function declaration has no parameter 'y'
-compilable/ddoc10236.d(57): Warning: Ddoc: parameter count mismatch
+compilable/ddoc10236.d(33): Warning: Ddoc: parameter count mismatch (-Wddoc)
+compilable/ddoc10236.d(45): Warning: Ddoc: function declaration has no parameter 'y' (-Wddoc)
+compilable/ddoc10236.d(57): Warning: Ddoc: function declaration has no parameter 'y' (-Wddoc)
+compilable/ddoc10236.d(57): Warning: Ddoc: parameter count mismatch (-Wddoc)
 ---
 */
 

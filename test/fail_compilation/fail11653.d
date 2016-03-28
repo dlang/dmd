@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11653.d(18): Warning: switch case fallthrough - use 'goto case;' if intended
+fail_compilation/fail11653.d(18): Warning: switch case fallthrough - use 'goto case;' if intended (-Wfallthrough)
 ---
 */
 
