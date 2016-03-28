@@ -2664,6 +2664,46 @@ void test15422b()
 }
 
 /***************************************************/
+// 15757
+
+template map15757(fun...)
+{
+    auto map15757(R)(R r)
+    {
+        return MapResult15757!(fun, R)(r);
+    }
+}
+
+struct MapResult15757(alias fun, R)
+{
+    R _input;
+
+    this(R input)
+    {
+        _input = input;
+    }
+}
+
+void wrap15757(R)(R r)
+{
+    struct M(R)
+    {
+        this(R r)
+        {
+            payload = r;
+        }
+        R payload;
+    }
+
+    M!R m = M!R(r);
+}
+
+void test15757() @safe
+{
+    [1,2,3].map15757!(x => x*x).wrap15757;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2758,6 +2798,7 @@ int main()
     test14846();
     test15422a();
     test15422b();
+    test15757();
 
     printf("Success\n");
     return 0;

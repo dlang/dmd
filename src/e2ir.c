@@ -53,7 +53,7 @@ unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 elem *toElemDtor(Expression *e, IRState *irs);
-elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fillHoles);
+elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 Symbol *toStringSymbol(StringExp *se);
@@ -1640,7 +1640,7 @@ elem *toElem(Expression *e, IRState *irs)
                 else
                 {
                     StructLiteralExp *sle = StructLiteralExp::create(ne->loc, sd, ne->arguments, t);
-                    ez = toElemStructLit(sle, irs, ev->EV.sp.Vsym, false);
+                    ez = toElemStructLit(sle, irs, TOKconstruct, ev->EV.sp.Vsym, false);
                 }
                 //elem_print(ex);
                 //elem_print(ey);
@@ -2821,10 +2821,10 @@ elem *toElem(Expression *e, IRState *irs)
                     ex = e1->E1;
                 if (ae->e2->op == TOKstructliteral &&
                     ex->Eoper == OPvar && ex->EV.sp.Voffset == 0 &&
-                    ae->op == TOKconstruct)
+                    (ae->op == TOKconstruct || ae->op == TOKblit))
                 {
                     StructLiteralExp *sle = (StructLiteralExp *)ae->e2;
-                    e = toElemStructLit(sle, irs, ex->EV.sp.Vsym, true);
+                    e = toElemStructLit(sle, irs, ae->op, ex->EV.sp.Vsym, true);
                     el_free(e1);
                     goto Lret;
                 }
@@ -5258,7 +5258,7 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(StructLiteralExp *sle)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
-            result = toElemStructLit(sle, irs, sle->sym, true);
+            result = toElemStructLit(sle, irs, TOKconstruct, sle->sym, true);
         }
 
         /*****************************************************/
@@ -5326,10 +5326,10 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
     return e;
 }
 
-elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fillHoles)
+elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
 {
     //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
-    //printf("\tsym = %p fillHoles = %d\n", sym, fillHoles);
+    //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOKblit, sym, fillHoles);
 
     if (sle->useStaticInit)
     {
@@ -5485,7 +5485,7 @@ elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fil
                 else
                 {
                     elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
-                    e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
+                    e1 = setArray(e1, edim, t2b, ep, irs, op);
                 }
             }
             else
