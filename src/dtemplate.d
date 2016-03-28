@@ -1514,6 +1514,8 @@ public:
                     // Check invalid arguments to detect errors early.
                     if (farg.op == TOKerror || farg.type.ty == Terror)
                         goto Lnomatch;
+
+                    Type att = null;
                 Lretry:
                     version (none)
                     {
@@ -1525,7 +1527,7 @@ public:
                         goto Lnomatch;
                     // Bugzilla 12876: optimize arugument to allow CT-known length matching
                     farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
-                    //printf("farg = %s %s\n", farg->type->toChars(), farg->toChars());
+                    //printf("farg = %s %s\n", farg.type.toChars(), fargtoChars());
                     RootObject oarg = farg;
                     if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
                     {
@@ -1587,14 +1589,14 @@ public:
                     if (m == MATCHnomatch)
                     {
                         AggregateDeclaration ad = isAggregate(farg.type);
-                        if (ad && ad.aliasthis)
+                        if (ad && ad.aliasthis && argtype != att)
                         {
+                            if (!att && argtype.checkAliasThisRec())   // Bugzilla 12537
+                                att = argtype;
                             /* If a semantic error occurs while doing alias this,
                              * eg purity(bug 7295), just regard it as not a match.
                              */
-                            uint olderrors = global.startGagging();
-                            Expression e = resolveAliasThis(sc, farg);
-                            if (!global.endGagging(olderrors))
+                            if (auto e = resolveAliasThis(sc, farg, true))
                             {
                                 farg = e;
                                 goto Lretry;
