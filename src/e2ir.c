@@ -5650,9 +5650,12 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
     {
         Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
         si->Salignment = 1;
-        si->Sdt = NULL;
-        dt_t **pdt = dtnbytes(&si->Sdt, len * sz, str);
-        dtnzeros(pdt, sz);
+
+        DtBuilder dtb;
+        dtb.nbytes(len * sz, str);
+        dtb.nzeros(sz);
+        si->Sdt = dtb.finish();
+
         si->Sfl = FLdata;
         out_readonly(si);
         outdata(si);
