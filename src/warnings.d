@@ -99,8 +99,11 @@ extern (C++) void vwarning(Loc loc, const WarningCategory cat, const(char)* form
     {
         vwarningPrint(loc, COLOR_YELLOW, "Warning: ", format, ap, warnCatToString(filtered_cat));
         //halt();
+
+        // warnings don't count if gagged
+        global.warnings++;
         if (global.params.warnings == 1)
-            global.warnings++; // warnings don't count if gagged
+            global.errors++; // counting warnings as errors
     }
 }
 

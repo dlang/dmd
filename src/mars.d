@@ -1503,8 +1503,8 @@ Language changes listed by -transition=id:
             inlineScanModule(m);
         }
     }
-    // Do not attempt to generate output files if errors or warnings occurred
-    if (global.errors || global.warnings)
+    // Do not attempt to generate output files if errors occurred
+    if (global.errors)
         fatal();
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlinig stage.
