@@ -1291,7 +1291,7 @@ public:
              * So I'm leaving this here as an experiment for the moment.
              */
             if (!tf->isnothrow || tf->trust == TRUSTsystem /*|| tf->purity == PUREimpure*/)
-                warning(fd->loc, WarnCat::uncat, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf->toChars());
+                warning(fd->loc, WarnCat::advice, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf->toChars());
         }
         else
             pdt = dtsize_t(pdt, 0);

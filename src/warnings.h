@@ -34,9 +34,9 @@ struct WarnCat
         braces         = Type(1 << 5),
         Cstyle         = Type(1 << 6),
         hiding         = Type(1 << 7),
-        soonDeprecated = Type(1 << 8);
-        unusedValue    = Type(1 << 9);
-        conversion     = Type(1 << 10);
+        soonDeprecated = Type(1 << 8),
+        unusedValue    = Type(1 << 9),
+        conversion     = Type(1 << 10),
     };
 };
 
