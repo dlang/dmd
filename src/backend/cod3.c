@@ -762,8 +762,8 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
     {
         case BCiftrue:
             jcond = TRUE;
-            bs1 = list_block(bl->Bsucc);
-            bs2 = list_block(list_next(bl->Bsucc));
+            bs1 = bl->nthSucc(0);
+            bs2 = bl->nthSucc(1);
             if (bs1 == bl->Bnext)
             {   // Swap bs1 and bs2
                 block *btmp;
@@ -820,7 +820,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             goto case_goto;
 #endif
         case BCgoto:
-            nextb = list_block(bl->Bsucc);
+            nextb = bl->nthSucc(0);
             if ((MARS ||
                  funcsym_p->Sfunc->Fflags3 & Fnteh) &&
                 config.ehmethod != EH_DWARF &&
@@ -837,7 +837,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl->Btry &&
-                        list_block(list_next(bl->Btry->Bsucc))->BC == BCjcatch)
+                        bl->Btry->nthSucc(1)->BC == BCjcatch)
                     {
                         goto L2;        // it's a try-catch, not a try-finally
                     }
@@ -861,7 +861,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     {   block *bf;
 
                         //printf("\tbt->Bscope_index = %d, bt->Blast_index = %d\n", bt->Bscope_index, bt->Blast_index);
-                        bf = list_block(list_next(bt->Bsucc));
+                        bf = bt->nthSucc(1);
                         // Only look at try-finally blocks
                         if (bf->BC == BCjcatch)
                             continue;
@@ -871,7 +871,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         //printf("\tbf = B%d, nextb = B%d\n", bf->Bdfoidx, nextb->Bdfoidx);
                         if (nextb->BC == BCgoto &&
                             !nextb->Belem &&
-                            bf == list_block(nextb->Bsucc))
+                            bf == nextb->nthSucc(0))
                             continue;
 
                         // call __finally
@@ -904,7 +904,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
         L3:
             bl->Bcode = NULL;
-            nextb = list_block(bl->Bsucc);
+            nextb = bl->nthSucc(0);
             goto L2;
 
         case BC_try:
@@ -1094,14 +1094,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             assert(!c);
             c = cat(c,getregs(iasm_regs(bl)));
             if (bl->Bsucc)
-            {   nextb = list_block(bl->Bsucc);
+            {   nextb = bl->nthSucc(0);
                 if (!bl->Bnext)
                     goto L2;
                 if (nextb != bl->Bnext &&
                     bl->Bnext &&
                     !(bl->Bnext->BC == BCgoto &&
                      !bl->Bnext->Belem &&
-                     nextb == list_block(bl->Bnext->Bsucc)))
+                     nextb == bl->Bnext->nthSucc(0)))
                 {   code *cl;
 
                     // See if already have JMP at end of block
@@ -1317,7 +1317,7 @@ void doswitch(block *b)
             reg2 = NOREG;
         }
         list_t bl = b->Bsucc;
-        block *bdefault = list_block(bl);
+        block *bdefault = b->nthSucc(0);
         if (dword && mswsame)
         {
             c = genc2(c,0x81,modregrm(3,7,reg2),msw);   // CMP reg2,MSW
@@ -1398,19 +1398,19 @@ void doswitch(block *b)
             c = genc2(c,0x81,modregrm(3,5,reg),vmin); /* SUB reg,vmin   */
             if (dword)
             {   genc2(c,0x81,modregrm(3,3,reg2),MSREG(vmin)); // SBB reg2,vmin
-                genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+                genjmp(c,JNE,FLblock,b->nthSucc(0)); /* JNE default  */
             }
         }
         else if (dword)
         {   c = gentstreg(c,reg2);              // TEST reg2,reg2
-            genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+            genjmp(c,JNE,FLblock,b->nthSucc(0)); /* JNE default  */
         }
         if (vmax - vmin != REGMASK)     /* if there is a maximum        */
         {                               /* CMP reg,vmax-vmin            */
             c = genc2(c,0x81,modregrm(3,7,reg),vmax-vmin);
             if (I64)
                 code_orrex(c, REX_W);
-            genjmp(c,JA,FLblock,list_block(b->Bsucc));  /* JA default   */
+            genjmp(c,JA,FLblock,b->nthSucc(0));  /* JA default   */
         }
         if (I64)
         {
@@ -1460,14 +1460,14 @@ void doswitch(block *b)
                ...
              */
             code *ctable = CNIL;
-            block *bdef = list_block(b->Bsucc);
+            block *bdef = b->nthSucc(0);
             targ_llong u;
             for (u = vmin; ; u++)
             {   block *targ = bdef;
                 for (n = 0; n < ncases; n++)
                 {
                     if (p[n] == u)
-                    {   targ = list_block(list_nth(b->Bsucc, n + 1));
+                    {   targ = b->nthSucc(n + 1);
                         break;
                     }
                 }
@@ -1569,7 +1569,7 @@ void doswitch(block *b)
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             c = genc2(c,0x81,modregrm(3,7,DX),msw);
-            genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+            genjmp(c,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         ce = getregs(mCX|mDI);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -1648,7 +1648,7 @@ void doswitch(block *b)
             ce = gen1(ce,0xF2);         /* REPNE                        */
             gen1(ce,0xAF);              /* SCASW                        */
         }
-        genjmp(ce,JNE,FLblock,list_block(b->Bsucc)); /* JNE default     */
+        genjmp(ce,JNE,FLblock,b->nthSucc(0)); // JNE default
         mod = (disp > 127) ? 2 : 1;     /* 1 or 2 byte displacement     */
         if (csseg)
             gen1(ce,SEGCS);             // table is in code segment
@@ -1716,12 +1716,12 @@ void outjmptab(block *b)
     assert(*poffset == b->Btableoffset);        // should match precomputed value
 
     symbol *gotsym = NULL;
-    targ_size_t def = list_block(b->Bsucc)->Boffset;  // default address
+    targ_size_t def = b->nthSucc(0)->Boffset;  // default address
     for (targ_llong u = vmin; ; u++)
     {   targ_size_t targ = def;                     // default
         for (size_t n = 0; n < ncases; n++)
         {       if (p[n] == u)
-                {       targ = list_block(list_nth(b->Bsucc,n + 1))->Boffset;
+                {       targ = b->nthSucc(n + 1)->Boffset;
                         break;
                 }
         }

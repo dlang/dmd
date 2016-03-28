@@ -950,7 +950,7 @@ STATIC void writefunc2(symbol *sfunc)
             pb = &b->Bnext;
 
             *b = *bf;
-            assert(!b->Bsucc);
+            assert(b->numSucc() == 0);
             assert(!b->Bpred);
             b->Belem = el_copytree(b->Belem);
         }
