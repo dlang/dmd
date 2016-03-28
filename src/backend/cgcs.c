@@ -101,8 +101,8 @@ void comsubs()
         blc = bl;
         while (bln && list_nitems(bln->Bpred) == 1 &&
                 ((blc->BC == BCiftrue &&
-                  list_block(list_next(blc->Bsucc)) == bln) ||
-                 (blc->BC == BCgoto && list_block(blc->Bsucc) == bln)
+                  blc->nthSucc(1) == bln) ||
+                 (blc->BC == BCgoto && blc->nthSucc(0) == bln)
                 ) &&
                bln->BC != BCasm         // no CSE's extending across ASM blocks
               )

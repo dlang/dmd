@@ -129,20 +129,20 @@ void nteh_gentables()
             pdt = dtdword(pdt,b->Blast_index);  // parent index
 
             // If try-finally
-            if (list_nitems(b->Bsucc) == 2)
+            if (b->numSucc() == 2)
             {
                 pdt = dtdword(pdt,0);           // filter address
-                bhandler = list_block(list_next(b->Bsucc));
+                bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
-                bhandler = list_block(bhandler->Bsucc);
+                bhandler = bhandler->nthSucc(0);
             }
             else // try-except
             {
-                bhandler = list_block(list_next(b->Bsucc));
+                bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_filter);
                 pdt = dtcoff(pdt,bhandler->Boffset);    // filter address
-                bhandler = list_block(list_next(list_next(b->Bsucc)));
+                bhandler = b->nthSucc(2);
                 assert(bhandler->BC == BC_except);
             }
             pdt = dtcoff(pdt,bhandler->Boffset);        // handler address

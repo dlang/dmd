@@ -396,7 +396,7 @@ STATIC void flowaecp()
 
                 assert(bl);     // it must have predecessors
                 bp = list_block(bl);
-                if (bp->BC == BCiftrue && list_block(bp->Bsucc) != b)
+                if (bp->BC == BCiftrue && bp->nthSucc(0) != b)
                     vec_copy(b->Bin,bp->Bout2);
                 else
                     vec_copy(b->Bin,bp->Bout);
@@ -405,7 +405,7 @@ STATIC void flowaecp()
                     if (!bl)
                         break;
                     bp = list_block(bl);
-                    if (bp->BC == BCiftrue && list_block(bp->Bsucc) != b)
+                    if (bp->BC == BCiftrue && bp->nthSucc(0) != b)
                         vec_andass(b->Bin,bp->Bout2);
                     else
                         vec_andass(b->Bin,bp->Bout);
