@@ -87,7 +87,7 @@ void genModuleInfo(Module *m)
     m->csym->Sclass = SCglobal;
     m->csym->Sfl = FLdata;
 
-    dt_t *dt = NULL;
+    DtBuilder dtb;
     ClassDeclarations aclasses;
 
     //printf("members->dim = %d\n", members->dim);
@@ -146,26 +146,26 @@ void genModuleInfo(Module *m)
         flags |= MIlocalClasses;
     flags |= MIname;
 
-    dtdword(&dt, flags);        // _flags
-    dtdword(&dt, 0);            // _index
+    dtb.dword(flags);        // _flags
+    dtb.dword(0);            // _index
 
     if (flags & MItlsctor)
-        dtxoff(&dt, m->sctor, 0, TYnptr);
+        dtb.xoff(m->sctor, 0, TYnptr);
     if (flags & MItlsdtor)
-        dtxoff(&dt, m->sdtor, 0, TYnptr);
+        dtb.xoff(m->sdtor, 0, TYnptr);
     if (flags & MIctor)
-        dtxoff(&dt, m->ssharedctor, 0, TYnptr);
+        dtb.xoff(m->ssharedctor, 0, TYnptr);
     if (flags & MIdtor)
-        dtxoff(&dt, m->sshareddtor, 0, TYnptr);
+        dtb.xoff(m->sshareddtor, 0, TYnptr);
     if (flags & MIxgetMembers)
-        dtxoff(&dt, toSymbol(sgetmembers), 0, TYnptr);
+        dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
-        dtxoff(&dt, m->sictor, 0, TYnptr);
+        dtb.xoff(m->sictor, 0, TYnptr);
     if (flags & MIunitTest)
-        dtxoff(&dt, m->stest, 0, TYnptr);
+        dtb.xoff(m->stest, 0, TYnptr);
     if (flags & MIimportedModules)
     {
-        dtsize_t(&dt, aimports_dim);
+        dtb.size(aimports_dim);
         for (size_t i = 0; i < m->aimports.dim; i++)
         {
             Module *mod = m->aimports[i];
@@ -180,30 +180,30 @@ void genModuleInfo(Module *m)
              * Don't pull in a module just because it was imported.
              */
             s->Sflags |= SFLweak;
-            dtxoff(&dt, s, 0, TYnptr);
+            dtb.xoff(s, 0, TYnptr);
         }
     }
     if (flags & MIlocalClasses)
     {
-        dtsize_t(&dt, aclasses.dim);
+        dtb.size(aclasses.dim);
         for (size_t i = 0; i < aclasses.dim; i++)
         {
             ClassDeclaration *cd = aclasses[i];
-            dtxoff(&dt, toSymbol(cd), 0, TYnptr);
+            dtb.xoff(toSymbol(cd), 0, TYnptr);
         }
     }
     if (flags & MIname)
     {
         // Put out module name as a 0-terminated string, to save bytes
-        m->nameoffset = dt_size(dt);
+        m->nameoffset = dt_size(dtb.head);
         const char *name = m->toPrettyChars();
         m->namelen = strlen(name);
-        dtnbytes(&dt, m->namelen + 1, name);
+        dtb.nbytes(m->namelen + 1, name);
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
     objc_Module_genmoduleinfo_classes();
-    m->csym->Sdt = dt;
+    m->csym->Sdt = dtb.finish();
     out_readonly(m->csym);
     outdata(m->csym);
 
@@ -606,9 +606,9 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // Put out the vtbl[]
             //printf("putting out %s.vtbl[]\n", toChars());
-            dt = NULL;
+            DtBuilder dtbv;
             if (cd->vtblOffset())
-                dtxoff(&dt, cd->csym, 0, TYnptr);           // first entry is ClassInfo reference
+                dtbv.xoff(cd->csym, 0, TYnptr);           // first entry is ClassInfo reference
             for (size_t i = cd->vtblOffset(); i < cd->vtbl.dim; i++)
             {
                 FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
@@ -653,20 +653,20 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         }
                     }
 
-                    dtxoff(&dt, s, 0, TYnptr);
+                    dtbv.xoff(s, 0, TYnptr);
                 }
                 else
-                    dtsize_t(&dt, 0);
+                    dtbv.size(0);
             }
-            if (!dt)
+            if (!dtbv.head)
             {
                 /* Someone made an 'extern (C++) class C { }' with no virtual functions.
                  * But making an empty vtbl[] causes linking problems, so make a dummy
                  * entry.
                  */
-                dtsize_t(&dt, 0);
+                dtbv.size(0);
             }
-            cd->vtblsym->Sdt = dt;
+            cd->vtblsym->Sdt = dtbv.finish();
             cd->vtblsym->Sclass = scclass;
             cd->vtblsym->Sfl = FLdata;
             out_readonly(cd->vtblsym);
