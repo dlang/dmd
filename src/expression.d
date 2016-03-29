@@ -10791,7 +10791,11 @@ public:
         {
             // Disallow unsafe casts
 
-            // Implicit conversions are always safe
+            // This must come before checking implicitConvTo else T[] -> void[]
+            // will pass, even when T has indirections.
+            if (t1b.ty == Tarray && tob.ty == Tarray && !isSafeArrayConversion(t1b, tob))
+                goto Lunsafe;
+
             if (t1b.implicitConvTo(tob))
                 goto Lsafe;
 
@@ -10813,6 +10817,15 @@ public:
                 if (!MODimplicitConv(t1b.mod, tob.mod))
                     goto Lunsafe;
                 goto Lsafe;
+            }
+
+            version(none) // BABABLACKSHEEP
+            if (t1b.ty == Tarray && tob.ty == Tarray)
+            {
+                /* Issue 15702: @safe code should not allow casting of T[] to
+                 * U[] if T has indirections and U is mutable. */
+                if (!isSafeArrayConversion(t1b, tob) && tn.isMutable())
+                    goto Lunsafe;
             }
 
             if (tob.ty == Tarray && t1b.ty == Tsarray) // Bugzilla 12502

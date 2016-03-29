@@ -41,6 +41,26 @@ import ddmd.visitor;
 enum LOG = false;
 
 /**************************************
+ * Checks if an array conversion is @safe
+ */
+extern (C++) bool isSafeArrayConversion(Type from, Type to)
+{
+    //printf("isSafeArrayConversion(%s -> %s)\n", from.toChars(), to.toChars());
+    assert(from.ty == Tarray && to.ty == Tarray);
+    auto fn = from.nextOf();
+    auto tn = to.nextOf();
+    if (fn.ty == Tarray && tn.ty == Tarray)
+        return isSafeArrayConversion(fn, tn);
+    if (fn.ty != Tarray && tn.ty != Tarray)
+    {
+        if (!fn.equals(tn) && fn.hasPointers() && tn.isMutable())
+            return false;
+        return true;
+    }
+    return false;   // array -> non-array or non-array -> array
+}
+
+/**************************************
  * Do an implicit cast.
  * Issue error if it can't be done.
  */
@@ -62,7 +82,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
         override void visit(Expression e)
         {
-            //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
             MATCH match = e.implicitConvTo(t);
             if (match)
             {
@@ -74,6 +94,19 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     result = e.copy();
                     result.type = t;
                     return;
+                }
+                if (match == MATCHconvert && e.type.ty == Tarray && t.ty == Tarray && sc.func && !sc.intypeof)
+                {
+                    /* Issue 15702: @safe code should not allow implicit
+                     * conversion of T[] to U[] if T has indirections and U is
+                     * mutable. */
+                    if (!isSafeArrayConversion(e.type, t) && sc.func.setUnsafe())
+                    {
+                        e.error("cannot implicitly convert expression (%s) of type %s to %s in @safe code because %s has indirections",
+                                e.toChars(), e.type.toChars(), t.toChars(), e.type.toChars());
+                        result = new ErrorExp();
+                        return;
+                    }
                 }
                 result = e.castTo(sc, t);
                 return;
@@ -204,7 +237,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             if (ex != e)
             {
-                //printf("\toptimized to %s of type %s\n", e->toChars(), e->type->toChars());
+                //printf("\toptimized to %s of type %s\n", e.toChars(), e.type.toChars());
                 result = ex.implicitConvTo(t);
                 return;
             }
