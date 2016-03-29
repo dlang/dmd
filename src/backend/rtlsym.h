@@ -142,11 +142,11 @@ SYMBOL_SCPP(CPP_HANDLER,  FLfunc,FREGSAVED,"_cpp_framehandler", 0, tsclib) \
 SYMBOL_MARS(D_HANDLER,  FLfunc,FREGSAVED,"_d_framehandler", 0, tsclib) \
 SYMBOL_MARS(D_LOCAL_UNWIND2, FLfunc,FREGSAVED,"_d_local_unwind2", 0, tsclib) \
 SYMBOL_SCPP(LOCAL_UNWIND2, FLfunc,FREGSAVED,"_local_unwind2", 0, tsclib) \
-SYMBOL_Z(UNWIND_RESUME, FLfunc,FREGSAVED,"_Unwind_Resume", SFLexit, tsclib) \
-SYMBOL_Z(PERSONALITY, FLfunc,FREGSAVED,"__dmd_personality_v0", 0, tsclib) \
-SYMBOL_Z(BEGIN_CATCH, FLfunc,FREGSAVED,"__dmd_begin_catch", 0, tsclib) \
-SYMBOL_Z(CXA_BEGIN_CATCH, FLfunc,FREGSAVED,"__cxa_begin_catch", 0, tsclib) \
-SYMBOL_Z(CXA_END_CATCH, FLfunc,FREGSAVED,"__cxa_end_catch", 0, tsclib) \
+SYMBOL_Z(UNWIND_RESUME, FLfunc,FREGSAVED,"_Unwind_Resume", SFLexit, t) \
+SYMBOL_Z(PERSONALITY, FLfunc,FREGSAVED,"__dmd_personality_v0", 0, t) \
+SYMBOL_Z(BEGIN_CATCH, FLfunc,FREGSAVED,"__dmd_begin_catch", 0, t) \
+SYMBOL_Z(CXA_BEGIN_CATCH, FLfunc,FREGSAVED,"__cxa_begin_catch", 0, t) \
+SYMBOL_Z(CXA_END_CATCH, FLfunc,FREGSAVED,"__cxa_end_catch", 0, t) \
 \
 SYMBOL_Z(TLS_INDEX, FLextern,0,"_tls_index",0,tsint) \
 SYMBOL_Z(TLS_ARRAY, FLextern,0,"_tls_array",0,tspvoid) \

@@ -460,6 +460,7 @@ void cod3_align()
 
 code* cod3_stackadj(code* c, int nbytes)
 {
+    //printf("cod3_stackadj(%d)\n", nbytes);
     unsigned grex = I64 ? REX_W << 16 : 0;
     unsigned rm;
     if (nbytes > 0)
@@ -803,6 +804,17 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             c = cat(c,getregs(lpadregs()));
+
+            if (config.ehmethod == EH_DWARF)
+            {
+                /* Each block must have ESP set to the same value it was at the end
+                 * of the prolog. But the unwinder calls catch blocks with ESP set
+                 * at the value it was when the throwing function was called, which
+                 * may have arguments pushed on the stack.
+                 * This instruction will reset ESP to the correct offset from EBP.
+                 */
+                c = gen1(c, ESCAPE | ESCfixesp);
+            }
             goto case_goto;
         }
 #endif
@@ -4621,11 +4633,26 @@ void assignaddrc(code *c)
         {
             if (c->Iop == (ESCAPE | ESCadjesp))
             {
-                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,c->IEV2.Vint);
+                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,(long)c->IEV1.Vint);
                 EBPtoESP += c->IEV1.Vint;
                 c->Iop = NOP;
             }
-            if (c->Iop == (ESCAPE | ESCframeptr))
+            else if (c->Iop == (ESCAPE | ESCfixesp))
+            {
+                //printf("fix ESP\n");
+                if (hasframe)
+                {
+                    // LEA ESP,-EBPtoESP-REGSIZE[EBP]
+                    c->Iop = LEA;
+                    if (c->Irm & 8)
+                        c->Irex |= REX_R;
+                    c->Irm = modregrm(2,SP,BP);
+                    c->Iflags = CFoff;
+                    c->IFL1 = FLconst;
+                    c->IEV1.Vuns = -EBPtoESP - REGSIZE;
+                }
+            }
+            else if (c->Iop == (ESCAPE | ESCframeptr))
             {   // Convert to load of frame pointer
                 // c->Irm is the register to use
                 if (hasframe)
@@ -6089,6 +6116,9 @@ unsigned codout(code *c)
                         break;
 #endif
 #endif
+                    case ESCadjesp:
+                        //printf("adjust ESP %ld\n", (long)c->IEV1.Vint);
+                        break;
                 }
 #ifdef DEBUG
                 assert(calccodsize(c) == 0);

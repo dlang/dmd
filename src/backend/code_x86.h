@@ -250,6 +250,7 @@ extern regm_t BYTEREGS;
     #define ESCdctor    (11 << 8)      // D object is constructed
     #define ESCddtor    (12 << 8)      // D object is destructed
     #define ESCadjfpu   (13 << 8)      // adjust fpustackused by IEV2.Vint
+    #define ESCfixesp   (14 << 8)      // reset ESP to end of local frame
 
 #define ASM     0x36    // string of asm bytes, actually an SS: opcode
 

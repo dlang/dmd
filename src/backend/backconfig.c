@@ -122,7 +122,7 @@ void out_config_init(
     else
     {
         config.exe = EX_OSX;
-        config.ehmethod = EH_DM;
+        config.ehmethod = EH_DWARF;
     }
     config.flags |= CFGnoebp;
     if (!exe)
