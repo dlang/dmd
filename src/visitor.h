@@ -219,7 +219,6 @@ class NegExp;
 class UAddExp;
 class ComExp;
 class NotExp;
-class BoolExp;
 class DeleteExp;
 class CastExp;
 class VectorExp;
@@ -505,7 +504,6 @@ public:
     virtual void visit(UAddExp *e) { visit((UnaExp *)e); }
     virtual void visit(ComExp *e) { visit((UnaExp *)e); }
     virtual void visit(NotExp *e) { visit((UnaExp *)e); }
-    virtual void visit(BoolExp *e) { visit((UnaExp *)e); }
     virtual void visit(DeleteExp *e) { visit((UnaExp *)e); }
     virtual void visit(CastExp *e) { visit((UnaExp *)e); }
     virtual void visit(VectorExp *e) { visit((UnaExp *)e); }

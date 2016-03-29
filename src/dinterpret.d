@@ -3053,9 +3053,6 @@ public:
         case TOKnot:
             ue = Not(e.type, e1);
             break;
-        case TOKtobool:
-            ue = Bool(e.type, e1);
-            break;
         case TOKvector:
             result = e;
             return; // do nothing
