@@ -72,18 +72,6 @@ public:
         return value.sd.isClassDeclaration();
     }
 
-    VarDeclaration getFieldAt(uint index)
-    {
-        ClassDeclaration cd = originalClass();
-        uint fieldsSoFar = 0;
-        while (index - fieldsSoFar >= cd.fields.dim)
-        {
-            fieldsSoFar += cd.fields.dim;
-            cd = cd.baseClass;
-        }
-        return cd.fields[index - fieldsSoFar];
-    }
-
     // Return index of the field, or -1 if not found
     int getFieldIndex(Type fieldtype, uint fieldoffset)
     {
