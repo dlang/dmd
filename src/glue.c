@@ -354,7 +354,9 @@ void genObjFile(Module *m, bool multiobj)
 #else
                 Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
                 sref->Sfl = FLdata;
-                dtxoff(&sref->Sdt, s, 0, TYnptr);
+                DtBuilder dtb;
+                dtb.xoff(s, 0, TYnptr);
+                sref->Sdt = dtb.finish();
                 outdata(sref);
 #endif
             }
@@ -372,7 +374,11 @@ void genObjFile(Module *m, bool multiobj)
         m->cov->Stype->Tcount++;
         m->cov->Sclass = SCstatic;
         m->cov->Sfl = FLdata;
-        dtnzeros(&m->cov->Sdt, 4 * m->numlines);
+
+        DtBuilder dtb;
+        dtb.nzeros(4 * m->numlines);
+        m->cov->Sdt = dtb.finish();
+
         outdata(m->cov);
 
         m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
@@ -395,7 +401,11 @@ void genObjFile(Module *m, bool multiobj)
         bcov->Stype->Tcount++;
         bcov->Sclass = SCstatic;
         bcov->Sfl = FLdata;
-        dtnbytes(&bcov->Sdt, (m->numlines + 32) / 32 * sizeof(*m->covb), (char *)m->covb);
+
+        DtBuilder dtb;
+        dtb.nbytes((m->numlines + 32) / 32 * sizeof(*m->covb), (char *)m->covb);
+        bcov->Sdt = dtb.finish();
+
         outdata(bcov);
 
         free(m->covb);
