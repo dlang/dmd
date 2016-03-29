@@ -576,7 +576,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
 
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s->Sident);
     //assert(b->BC == BCgoto);
-    if (!cgreg_gotoepilog(list_block(b->Bsucc),s))
+    if (!cgreg_gotoepilog(b->nthSucc(0), s))
         return;
 
     int inoutp;
