@@ -45,8 +45,10 @@ dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
 dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
 static dt_t **membersToDt(AggregateDeclaration *ad, dt_t **pdt, Expressions *elements, size_t, ClassDeclaration *, BaseClass ***ppb = NULL);
 dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off);
+void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder& dtb);
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt);
 Symbol *toSymbol(Dsymbol *s);
+void Expression_toDt(Expression *e, DtBuilder& dtb);
 dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 unsigned baseVtblOffset(ClassDeclaration *cd, BaseClass *bc);
 void toObjFile(Dsymbol *ds, bool multiobj);
@@ -210,6 +212,11 @@ dt_t **Initializer_toDt(Initializer *init, dt_t **pdt)
 }
 
 /* ================================================================ */
+
+void Expression_toDt(Expression *e, DtBuilder& dtb)
+{
+    dtb.pTail = Expression_toDt(e, dtb.pTail);
+}
 
 dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 {
@@ -611,23 +618,22 @@ dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt)
  * Params:
  *      cd = C++ class
  */
-dt_t **cpp_type_info_ptr_toDt(ClassDeclaration *cd, dt_t **pdt)
+void cpp_type_info_ptr_toDt(ClassDeclaration *cd, DtBuilder& dtb)
 {
     //printf("cpp_type_info_ptr_toDt(this = '%s')\n", cd->toChars());
     assert(cd->isCPPclass());
 
     // Put in first two members, the vtbl[] and the monitor
-    pdt = dtxoff(pdt, toVtblSymbol(ClassDeclaration::cpp_type_info_ptr), 0);
-    pdt = dtsize_t(pdt, 0);             // monitor
+    dtb.xoff(toVtblSymbol(ClassDeclaration::cpp_type_info_ptr), 0);
+    dtb.size(0);             // monitor
 
     // Create symbol for C++ type info
     Symbol *s = toSymbolCppTypeInfo(cd);
 
     // Put in address of cd's C++ type info
-    pdt = dtxoff(pdt, s, 0);
+    dtb.xoff(s, 0);
 
     //printf("-cpp_type_info_ptr_toDt(this = '%s')\n", cd.toChars());
-    return pdt;
 }
 
 /****************************************************
@@ -917,6 +923,11 @@ dt_t **ClassReferenceExp_toDt(ClassReferenceExp *e, dt_t **pdt, int off)
     //printf("ClassReferenceExp::toDt() %d\n", e->op);
     pdt = dtxoff(pdt, toSymbol(e), off);
     return pdt;
+}
+
+void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder& dtb)
+{
+    dtb.pTail = ClassReferenceExp_toInstanceDt(ce, dtb.pTail);
 }
 
 dt_t **ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, dt_t **pdt)
