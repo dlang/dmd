@@ -682,7 +682,7 @@ public:
                 {
                     goto Ldistinct;
                 }
-                const(StorageClass) sc = STCref | STCin | STCout | STClazy;
+                const(StorageClass) sc = STCref | STCin | STCout | STClazy | STCconst | STCimmutable | STCshared;
                 if ((fparam1.storageClass & sc) != (fparam2.storageClass & sc))
                     inoutmismatch = 1;
                 // We can add scope, but not subtract it
