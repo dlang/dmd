@@ -55,7 +55,6 @@ Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 elem *toElemDtor(Expression *e, IRState *irs);
 elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, Symbol *sym, bool fillHoles);
-dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 Symbol *toStringSymbol(StringExp *se);
 void toObjFile(Dsymbol *ds, bool multiobj);
