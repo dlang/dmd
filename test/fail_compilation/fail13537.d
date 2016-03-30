@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13537.d(16): Error: field u.y cannot be modified in @safe code because it overlaps mutable and immutable
-fail_compilation/fail13537.d(18): Error: field u.y cannot be modified in @safe code because it overlaps mutable and immutable
+fail_compilation/fail13537.d(21): Error: field u.y cannot be modified in @safe code because it overlaps mutable and immutable
+fail_compilation/fail13537.d(23): Error: field u.y cannot be modified in @safe code because it overlaps mutable and immutable
 ---
 */
 union U
@@ -10,6 +10,11 @@ union U
     immutable int x;
     int y;
 } 
+union V
+{
+    immutable int x;
+    const int y;
+}
 void fun() @safe
 {
     U u;
@@ -20,6 +25,10 @@ void fun() @safe
 
     // read-only access should be allowed
     int a = u.x;
+
+    // Overlapping const/immutable should be allowed
+    auto v = V(1);
+    assert(v.y == 1);
 }
 void gun() @system
 {
