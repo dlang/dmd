@@ -75,7 +75,7 @@ struct FileName
      * Determine if path is absolute.
      * Params:
      *  name = path
-     * Return:
+     * Returns:
      *  true if absolute path name.
      */
     extern (C++) static bool absolute(const(char)* name)
