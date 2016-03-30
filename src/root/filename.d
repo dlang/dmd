@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2016 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the D programming language
+ * http://dlang.org
+ *
+ * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:   Walter Bright, http://www.digitalmars.com
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(DMDSRC root/_filename.d)
+ */
 
 module ddmd.root.filename;
 
@@ -31,6 +33,7 @@ alias Strings = Array!(const(char)*);
 alias Files = Array!(File*);
 
 /***********************************************************
+ * Encapsulate path and file names.
  */
 struct FileName
 {
@@ -69,7 +72,11 @@ struct FileName
     }
 
     /************************************
-     * Return !=0 if absolute path name.
+     * Determine if path is absolute.
+     * Params:
+     *  name = path
+     * Return:
+     *  true if absolute path name.
      */
     extern (C++) static bool absolute(const(char)* name)
     {
@@ -88,9 +95,13 @@ struct FileName
     }
 
     /********************************
-     * Return filename extension (read-only).
-     * Points past '.' of extension.
-     * If there isn't one, return NULL.
+     * Determine file name extension as slice of input.
+     * Params:
+     *  str = file name
+     * Returns:
+     *  filename extension (read-only).
+     *  Points past '.' of extension.
+     *  If there isn't one, return null.
      */
     extern (C++) static const(char)* ext(const(char)* str)
     {
@@ -130,7 +141,11 @@ struct FileName
     }
 
     /********************************
-     * Return mem.xmalloc'd filename with extension removed.
+     * Return file name without extension.
+     * Params:
+     *  str = file name
+     * Returns:
+     *  mem.xmalloc'd filename with extension removed.
      */
     extern (C++) static const(char)* removeExt(const(char)* str)
     {
@@ -689,6 +704,6 @@ struct FileName
 
     extern (C++) const(char)* toChars() const
     {
-        return cast(char*)str; // toChars() should really be const
+        return str;
     }
 }
