@@ -28,6 +28,7 @@ trace.def
 trace.log
 Makefile
 src/magicport/magicport
+src/SYSCONFDIR.imp
 
 # Visual Studio files
 *.exe
