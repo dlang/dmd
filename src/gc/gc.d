@@ -3302,6 +3302,19 @@ unittest // bugzilla 15822
     GC.collect();
 }
 
+unittest // bugzilla 1180
+{
+    import core.exception;
+    try
+    {
+        size_t x = size_t.max - 100;
+        byte[] big_buf = new byte[x];
+    }
+    catch(OutOfMemoryError)
+    {
+    }
+}
+
 /* ============================ SENTINEL =============================== */
 
 
