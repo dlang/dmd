@@ -1007,7 +1007,9 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
                     // Put it in BSS
                     s->Sclass = SCstatic;
                     s->Sfl = FLunde;
-                    dtnzeros(&s->Sdt,type_size(s->Stype));
+                    DtBuilder dtb;
+                    dtb.nzeros(type_size(s->Stype));
+                    s->Sdt = dtb.finish();
                     outdata(s);
                     searchfixlist(s);
                     continue;
