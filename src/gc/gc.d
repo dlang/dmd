@@ -1788,6 +1788,8 @@ struct Gcx
         LargeObjectPool* pool;
         size_t pn;
         immutable npages = (size + PAGESIZE - 1) / PAGESIZE;
+        if (npages == 0)
+            onOutOfMemoryErrorNoGC(); // size just below size_t.max requested
 
         bool tryAlloc() nothrow
         {
