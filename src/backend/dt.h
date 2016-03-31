@@ -34,7 +34,7 @@ void dt2common(dt_t **pdt);
 
 struct DtBuilder
 {
-  private:
+//  private:
 
     dt_t *head;
     dt_t **pTail;
