@@ -356,7 +356,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)e.e1;
-                if (!ve.var.isOut() && !ve.var.isRef() && !ve.var.isImportedSymbol())
+                if (!ve.var.isOut() && !ve.var.isRef())
                 {
                     ret = new SymOffExp(e.loc, ve.var, 0, ve.hasOverloads);
                     ret.type = e.type;
@@ -371,7 +371,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 {
                     sinteger_t index = ae.e2.toInteger();
                     VarExp ve = cast(VarExp)ae.e1;
-                    if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
+                    if (ve.type.ty == Tsarray)
                     {
                         TypeSArray ts = cast(TypeSArray)ve.type;
                         sinteger_t dim = ts.dim.toInteger();
