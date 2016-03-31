@@ -428,7 +428,9 @@ void outcommon(symbol *s,targ_size_t n)
             /* COMDEFs not supported in code segment
              * so put them out as initialized 0s
              */
-            dtnzeros(&s->Sdt,n);
+            DtBuilder dtb;
+            dtb.nzeros(n);
+            s->Sdt = dtb.finish();
             outdata(s);
 #if SCPP
             out_extdef(s);
@@ -447,7 +449,9 @@ void outcommon(symbol *s,targ_size_t n)
                  * so put them out as COMDATs with initialized 0s
                  */
                 s->Sclass = SCcomdat;
-                dtnzeros(&s->Sdt,n);
+                DtBuilder dtb;
+                dtb.nzeros(n);
+                s->Sdt = dtb.finish();
                 outdata(s);
 #if SCPP
                 if (config.objfmt == OBJ_OMF)
