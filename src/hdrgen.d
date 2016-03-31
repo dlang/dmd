@@ -235,7 +235,8 @@ public:
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
-        s._body.accept(this);
+        if (s._body)
+            s._body.accept(this);
         buf.level--;
         buf.writeByte('}');
         buf.writenl();
