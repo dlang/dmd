@@ -2500,6 +2500,10 @@ public:
             {
                 if (v.isField())
                 {
+                    auto ad = v.toParent().isAggregateDeclaration();
+                    ad.size(e.loc);
+                    if (ad.sizeok != SIZEOKdone)
+                        return new ErrorExp();
                     e = new IntegerExp(e.loc, v.offset, Type.tsize_t);
                     return e;
                 }
@@ -8020,7 +8024,7 @@ public:
     override structalign_t alignment()
     {
         if (sym.alignment == 0)
-            sym.size(Loc());
+            sym.size(sym.loc);
         return sym.alignment;
     }
 

@@ -419,7 +419,6 @@ public:
 
         if (semanticRun >= PASSsemanticdone)
             return;
-        uint dprogress_save = Module.dprogress;
         int errors = global.errors;
 
         //printf("+ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -443,7 +442,7 @@ public:
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeClass)type).sym.isInstantiated();
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
@@ -730,7 +729,7 @@ public:
              */
             for (size_t i = 0; i < members.dim; i++)
             {
-                Dsymbol s = (*members)[i];
+                auto s = (*members)[i];
                 s.addMember(sc, this);
             }
 
@@ -755,13 +754,14 @@ public:
              */
             for (size_t i = 0; i < members.dim; i++)
             {
-                Dsymbol s = (*members)[i];
+                auto s = (*members)[i];
                 //printf("[%d] setScope %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
                 s.setScope(sc2);
             }
 
             sc2.pop();
         }
+
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
             BaseClass* b = (*baseclasses)[i];
@@ -840,13 +840,7 @@ public:
                 makeNested();
         }
 
-        // it might be determined already, by AggregateDeclaration.size().
-        if (sizeok != SIZEOKdone)
-            sizeok = SIZEOKnone;
-
         Scope* sc2 = sc.push(this);
-        //sc2.stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
-        //sc2.stc |= storage_class & STC_TYPECTOR;
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
         sc2.inunion = 0;
@@ -867,8 +861,9 @@ public:
         sc2.structalign = STRUCTALIGN_DEFAULT;
         sc2.userAttribDecl = null;
 
-        foreach (s; *members)
+        for (size_t i = 0; i < members.dim; ++i)
         {
+            auto s = (*members)[i];
             s.importAll(sc2);
         }
 
@@ -879,48 +874,21 @@ public:
             s.semantic(sc2);
         }
 
-        finalizeSize();
-
-        if (sizeok == SIZEOKfwd)
+        if (!determineFields())
         {
-            // semantic() failed due to forward references
-            // Unwind what we did, and defer it for later
-            foreach (v; fields)
-            {
-                v.offset = 0;
-            }
-            fields.setDim(0);
-            structsize = 0;
-            alignsize = 0;
-
+            assert(type == Type.terror);
             sc2.pop();
-
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
-            Module.dprogress = dprogress_save;
-            //printf("\tsemantic('%s') failed due to forward references\n", toChars());
             return;
         }
-
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
-        //printf("-ClassDeclaration.semantic(%s), type = %p\n", toChars(), type);
-        //members.print();
-
-    version (none)  // FIXME
-    {
-    LafterSizeok:
-        // The additions of special member functions should have its own
-        // sub-semantic analysis pass, and have to be deferred sometimes.
-        // See the case in compilable/test14838.d
-        for (size_t i = 0; i < fields.dim; i++)
+        /* Following special member functions creation needs semantic analysis
+         * completion of sub-structs in each field types.
+         */
+        foreach (v; fields)
         {
-            VarDeclaration v = fields[i];
             Type tb = v.type.baseElemOf();
             if (tb.ty != Tstruct)
                 continue;
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
 
@@ -929,11 +897,9 @@ public:
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
             _scope._module.addDeferredSemantic(this);
-
             //printf("\tdeferring %s\n", toChars());
             return;
         }
-    }
 
         /* Look for special member functions.
          * They must be in this class, not in a base class.
@@ -942,14 +908,14 @@ public:
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
 
-        // this.ctor is already set
+        // Look for the constructor
+        ctor = searchCtor();
 
         if (!ctor && noDefaultCtor)
         {
             // A class object is always created by constructor, so this check is legitimate.
-            for (size_t i = 0; i < fields.dim; i++)
+            foreach (v; fields)
             {
-                VarDeclaration v = fields[i];
                 if (v.storage_class & STCnodefaultctor)
                     .error(v.loc, "field %s must be initialized in constructor", v.toChars());
             }
@@ -960,21 +926,24 @@ public:
         //    this() { }
         if (!ctor && baseClass && baseClass.ctor)
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
+            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
-                TypeFunction btf = cast(TypeFunction)fd.type;
+                auto btf = cast(TypeFunction)fd.type;
                 auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
-                tf.purity = btf.purity;
+                tf.purity    = btf.purity;
                 tf.isnothrow = btf.isnothrow;
-                tf.isnogc = btf.isnogc;
-                tf.trust = btf.trust;
+                tf.isnogc    = btf.isnogc;
+                tf.trust     = btf.trust;
+
                 auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
                 ctor.fbody = new CompoundStatement(Loc(), new Statements());
+
                 members.push(ctor);
                 ctor.addMember(sc, this);
                 ctor.semantic(sc2);
+
                 this.ctor = ctor;
                 defaultCtor = ctor;
             }
@@ -987,13 +956,18 @@ public:
 
         dtor = buildDtor(this, sc2);
 
-        if (FuncDeclaration f = hasIdentityOpAssign(this, sc2))
+        if (auto f = hasIdentityOpAssign(this, sc2))
         {
             if (!(f.storage_class & STCdisable))
                 error(f.loc, "identity assignment operator overload is illegal");
         }
 
         inv = buildInv(this, sc2);
+
+        Module.dprogress++;
+        semanticRun = PASSsemanticdone;
+        //printf("-ClassDeclaration.semantic(%s), type = %p\n", toChars(), type);
+        //members.print();
 
         sc2.pop();
 
@@ -1008,13 +982,15 @@ public:
 
         // Verify fields of a synchronized class are not public
         if (storage_class & STCsynchronized)
-        foreach (vd; this.fields)
         {
-            if (!vd.isThisDeclaration() &&
-                !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+            foreach (vd; this.fields)
             {
-                vd.error("Field members of a synchronized class cannot be %s",
-                    protectionToChars(vd.prot().kind));
+                if (!vd.isThisDeclaration() &&
+                    !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+                {
+                    vd.error("Field members of a synchronized class cannot be %s",
+                        protectionToChars(vd.prot().kind));
+                }
             }
         }
 
@@ -1172,8 +1148,7 @@ public:
 
     final override void finalizeSize()
     {
-        if (sizeok != SIZEOKnone)
-            return;
+        assert(sizeok != SIZEOKdone);
 
         // Set the offsets of the fields and determine the size of the class
         if (baseClass)
@@ -1201,7 +1176,7 @@ public:
                 structsize += Target.ptrsize; // allow room for __monitor
         }
 
-        //printf("finalizeSize() %s\n", toChars());
+        //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
         size_t bi = 0;                  // index into vtblInterfaces[]
 
         /****
@@ -1221,10 +1196,15 @@ public:
 
             foreach (BaseClass* b; cd.interfaces)
             {
+                if (b.sym.sizeok != SIZEOKdone)
+                    b.sym.finalizeSize();
+                assert(b.sym.sizeok == SIZEOKdone);
+
                 if (!b.sym.alignsize)
                     b.sym.alignsize = Target.ptrsize;
                 alignmember(b.sym.alignsize, b.sym.alignsize, &offset);
                 assert(bi < vtblInterfaces.dim);
+
                 BaseClass* bv = (*vtblInterfaces)[bi];
                 if (b.sym.interfaces.length == 0)
                 {
@@ -1256,43 +1236,20 @@ public:
             return;
         }
 
+        // FIXME: Currently setFieldOffset functions need to increase fields
+        // to calculate each variable offsets. It can be improved later.
+        fields.setDim(0);
+
         uint offset = structsize;
         foreach (s; *members)
         {
             s.setFieldOffset(this, &offset, false);
         }
 
-        if (sizeok == SIZEOKfwd)
-            return;
-
         sizeok = SIZEOKdone;
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
-
-        // Look for the constructor
-        ctor = searchCtor();
-        if (ctor && ctor.toParent() != this)
-            ctor = null; // search() looks through ancestor classes
-        if (ctor)
-        {
-            // Finish all constructors semantics to determine this.noDefaultCtor.
-            struct SearchCtor
-            {
-                extern (C++) static int fp(Dsymbol s, void* ctxt)
-                {
-                    CtorDeclaration f = s.isCtorDeclaration();
-                    if (f && f.semanticRun == PASSinit)
-                        f.semantic(null);
-                    return 0;
-                }
-            }
-
-            foreach (s; *members)
-            {
-                s.apply(&SearchCtor.fp, null);
-            }
-        }
     }
 
     final bool isFuncHidden(FuncDeclaration fd)
@@ -1543,6 +1500,8 @@ public:
             return;
         int errors = global.errors;
 
+        //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+
         Scope* scx = null;
         if (_scope)
         {
@@ -1563,7 +1522,7 @@ public:
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeClass)type).sym.isInstantiated();
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
@@ -1839,20 +1798,18 @@ public:
             s.semantic(sc2);
         }
 
-        finalizeSize();
-
+        Module.dprogress++;
         semanticRun = PASSsemanticdone;
+        //printf("-InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+        //members.print();
+
+        sc2.pop();
 
         if (global.errors != errors)
         {
             // The type is no good.
             type = Type.terror;
         }
-
-        //members.print();
-        sc2.pop();
-
-        //printf("-InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
 
         version (none)
         {
@@ -1864,7 +1821,6 @@ public:
         }
         assert(type.ty != Tclass || (cast(TypeClass)type).sym == this);
     }
-
 
     /*******************************************
      * Determine if 'this' is a base class of cd.

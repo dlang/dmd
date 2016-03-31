@@ -27,6 +27,7 @@ import ddmd.declaration;
 import ddmd.denum;
 import ddmd.dimport;
 import ddmd.dinterpret;
+import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
@@ -5948,7 +5949,7 @@ public:
                 s.aliasdecls.push(ad);
             }
             s.semantic(sc);
-            //s->semantic2(sc);     // Bugzilla 14666
+            Module.addDeferredSemantic2(s);     // Bugzilla 14666
             sc.insert(s);
             foreach (aliasdecl; s.aliasdecls)
             {

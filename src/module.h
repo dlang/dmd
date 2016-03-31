@@ -63,6 +63,7 @@ public:
     static DsymbolTable *modules;       // symbol table of all modules
     static Modules amodules;            // array of all modules
     static Dsymbols deferred;   // deferred Dsymbol's needing semantic() run on them
+    static Dsymbols deferred2;  // deferred Dsymbol's needing semantic2() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
     static void init();
@@ -135,8 +136,10 @@ public:
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void addDeferredSemantic(Dsymbol *s);
-    static void runDeferredSemantic();
+    static void addDeferredSemantic2(Dsymbol *s);
     static void addDeferredSemantic3(Dsymbol *s);
+    static void runDeferredSemantic();
+    static void runDeferredSemantic2();
     static void runDeferredSemantic3();
     static void clearCache();
     int imports(Module *m);

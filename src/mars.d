@@ -1394,6 +1394,7 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+
     if (global.params.doHdrGeneration)
     {
         /* Generate 'header' import files.
@@ -1411,6 +1412,7 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+
     // load all unconditional imports for better symbol resolving
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1421,7 +1423,9 @@ Language changes listed by -transition=id:
     }
     if (global.errors)
         fatal();
+
     backend_init();
+
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1430,8 +1434,8 @@ Language changes listed by -transition=id:
             fprintf(global.stdmsg, "semantic  %s\n", m.toChars());
         m.semantic();
     }
-    if (global.errors)
-        fatal();
+    //if (global.errors)
+    //    fatal();
     Module.dprogress = 1;
     Module.runDeferredSemantic();
     if (Module.deferred.dim)
@@ -1441,8 +1445,9 @@ Language changes listed by -transition=id:
             Dsymbol sd = Module.deferred[i];
             sd.error("unable to resolve forward reference in definition");
         }
-        fatal();
+        //fatal();
     }
+
     // Do pass 2 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1451,8 +1456,10 @@ Language changes listed by -transition=id:
             fprintf(global.stdmsg, "semantic2 %s\n", m.toChars());
         m.semantic2();
     }
+    Module.runDeferredSemantic2();
     if (global.errors)
         fatal();
+
     // Do pass 3 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
@@ -1464,6 +1471,7 @@ Language changes listed by -transition=id:
     Module.runDeferredSemantic3();
     if (global.errors)
         fatal();
+
     // Scan for functions to inline
     if (global.params.useInline)
     {
@@ -1478,6 +1486,7 @@ Language changes listed by -transition=id:
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         fatal();
+
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlinig stage.
     if (global.params.moduleDeps)
@@ -1492,7 +1501,9 @@ Language changes listed by -transition=id:
         else
             printf("%.*s", cast(int)ob.offset, ob.data);
     }
+
     printCtfePerformanceStats();
+
     Library library = null;
     if (global.params.lib)
     {

@@ -38,9 +38,9 @@ class VarDeclaration;
 
 enum Sizeok
 {
-    SIZEOKnone,         // size of aggregate is not computed yet
+    SIZEOKnone,         // size of aggregate is not yet able to compute
+    SIZEOKfwd,          // size of aggregate is ready to compute
     SIZEOKdone,         // size of aggregate is set correctly
-    SIZEOKfwd,          // error in computing size of aggregate
 };
 
 enum Baseok
@@ -115,6 +115,8 @@ public:
     void setScope(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
+    bool determineFields();
+    bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
     unsigned size(Loc loc);
     bool checkOverlappedFields();
