@@ -1855,7 +1855,7 @@ L1:
                         // The visual studio debugger gets confused with pointers to arrays, emit a reference instead.
                         // This especially happens when passing arrays as function arguments because 64bit ABI demands
                         // passing structs > 8 byte as pointers.
-                        if((config.flags2 & CFG2gms) && t->Tnext && t->Tnext->Tty == TYdarray)
+                        if((config.flags2 & CFG2gms) && t->Tnext && tybasic(t->Tnext->Tty) == TYdarray)
                             TOLONG(d->data + 6,attribute | 0x20);
                         else
                         {
@@ -2113,7 +2113,7 @@ L1:
                 typidx = cv4_enum(t->Ttag);
             else
 #endif
-                typidx = dttab4[t->Tnext->Tty];
+                typidx = dttab4[tybasic(t->Tnext->Tty)];
             break;
 
 #if SCPP
