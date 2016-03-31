@@ -15,6 +15,7 @@
 
 module ddmd.mars;
 
+// This is an additive change.
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.limits;
@@ -24,6 +25,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import ddmd.arraytypes;
 import ddmd.gluelayer;
+// This is another additive change.
 import ddmd.builtin;
 import ddmd.cond;
 import ddmd.dinifile;
