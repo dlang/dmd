@@ -629,6 +629,13 @@ version( CRuntime_Glibc )
         extern bool S_TYPEISSEM( stat_t* buf ) { return false; }
         extern bool S_TYPEISSHM( stat_t* buf ) { return false; }
     }
+
+    enum UTIME_NOW = 0x3fffffff;
+    enum UTIME_OMIT = 0x3ffffffe;
+
+    int utimensat(int dirfd, const char *pathname,
+        ref const(timespec)[2] times, int flags);
+    int futimens(int fd, ref const(timespec)[2] times);
 }
 else version( OSX )
 {
@@ -775,6 +782,17 @@ else version( FreeBSD )
     extern (D) bool S_ISREG( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
+
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+
+    // Since FreeBSD 11:
+    version (none)
+    {
+        int utimensat(int dirfd, const char *pathname,
+            ref const(timespec)[2] times, int flags);
+        int futimens(int fd, ref const(timespec)[2] times);
+    }
 }
 else version (Solaris)
 {

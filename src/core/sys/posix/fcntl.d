@@ -258,6 +258,9 @@ version( CRuntime_Glibc )
         int   creat(in char*, mode_t);
         int   open(in char*, int, ...);
     }
+
+    enum AT_SYMLINK_NOFOLLOW = 0x100;
+    enum AT_FDCWD = -100;
 }
 else version( OSX )
 {
@@ -366,6 +369,9 @@ else version( FreeBSD )
 
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
+
+    enum AT_SYMLINK_NOFOLLOW = 0x200;
+    enum AT_FDCWD = -100;
 }
 else version (Solaris)
 {
