@@ -1,3 +1,5 @@
+# Use `R --vanilla < plot.R` to run this script.
+# It will read all *.csv files from the current folder and create a comparison plot for them.
 library(ggplot2)
 library(dplyr)
 library(tidyr)
