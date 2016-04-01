@@ -1438,7 +1438,7 @@ public:
      * Parse template parameter list.
      * Input:
      *      flag    0: parsing "( list )"
-     *              1: parsing non-empty "list )"
+     *              1: parsing non-empty "list $(RPAREN)"
      */
     TemplateParameters* parseTemplateParameterList(int flag = 0)
     {
@@ -1692,7 +1692,7 @@ public:
      * Input:
      *      current token is opening '!'
      * Output:
-     *      current token is one after closing ')'
+     *      current token is one after closing '$(RPAREN)'
      */
     Objects* parseTemplateArguments()
     {
@@ -1730,10 +1730,10 @@ public:
     /******************************************
      * Parse template argument list.
      * Input:
-     *      current token is opening '(',
+     *      current token is opening '$(LPAREN)',
      *          or ',' for __traits
      * Output:
-     *      current token is one after closing ')'
+     *      current token is one after closing '$(RPAREN)'
      */
     Objects* parseTemplateArgumentList()
     {
@@ -6296,9 +6296,9 @@ public:
     /*******************************************
      * Skip parens, brackets.
      * Input:
-     *      t is on opening (
+     *      t is on opening $(LPAREN)
      * Output:
-     *      *pt is set to closing token, which is ')' on success
+     *      *pt is set to closing token, which is '$(RPAREN)' on success
      * Returns:
      *      true    successful
      *      false   some parsing error
@@ -7649,7 +7649,7 @@ public:
 
     /*************************
      * Collect argument list.
-     * Assume current token is ',', '(' or '['.
+     * Assume current token is ',', '$(LPAREN)' or '['.
      */
     Expressions* parseArguments()
     {
