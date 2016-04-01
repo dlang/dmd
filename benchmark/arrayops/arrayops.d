@@ -12,9 +12,9 @@ float[6] getLatencies(T, string op)()
 {
     enum N = 256;
     auto a = new T[](N), b = new T[](N), c = new T[](N);
-    a[] = 3;
-    b[] = 2;
-    c[] = 1;
+    a[] = 19;
+    b[] = 11;
+    c[] = 7;
     float[6] latencies = float.max;
     foreach (i, ref latency; latencies)
     {
@@ -25,7 +25,7 @@ float[6] getLatencies(T, string op)()
             foreach (off; 0 .. 1_024)
             {
                 off &= 127;
-                enum op = op.replace("const", "1").replace("a",
+                enum op = op.replace("const", "7").replace("a",
                         "a[off .. off + len]").replace("b",
                         "b[off .. off + len]").replace("c", "c[off .. off + len]");
                 mixin(op ~ ";");
@@ -41,9 +41,9 @@ float[4] getThroughput(T, string op)()
 {
     enum N = (40 * 1024 * 1024 + 64) / T.sizeof;
     auto a = new T[](N), b = new T[](N), c = new T[](N);
-    a[] = 3;
-    b[] = 2;
-    c[] = 1;
+    a[] = 19;
+    b[] = 11;
+    c[] = 7;
     float[4] latencies = float.max;
     size_t[4] lengths = [
         8 * 1024 / T.sizeof, 32 * 1024 / T.sizeof, 512 * 1024 / T.sizeof, 32 * 1024 * 1024 / T
@@ -58,7 +58,7 @@ float[4] getThroughput(T, string op)()
             foreach (off; size_t(0) .. size_t(64))
             {
                 off = off * len + (off % (64 / T.sizeof));
-                enum op = op.replace("const", "1").replace("a",
+                enum op = op.replace("const", "7").replace("a",
                         "a[off .. off + len]").replace("b",
                         "b[off .. off + len]").replace("c", "c[off .. off + len]");
                 mixin(op ~ ";");
