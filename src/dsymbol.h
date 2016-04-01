@@ -214,15 +214,14 @@ public:
     virtual unsigned size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
-    AggregateDeclaration *isAggregateMember();  // are we a member of an aggregate?
     AggregateDeclaration *isAggregateMember2(); // are we a member of an aggregate?
-    ClassDeclaration *isClassMember();          // are we a member of a class?
     virtual bool isExport();                    // is Dsymbol exported?
     virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
     virtual bool isOverloadable();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     AggregateDeclaration *isMember();           // is this a member of an AggregateDeclaration?
+    ClassDeclaration *isClassMember();          // is this a member of a ClassDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
     virtual Prot prot();

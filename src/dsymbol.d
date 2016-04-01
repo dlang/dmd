@@ -773,28 +773,12 @@ public:
     }
 
     // are we a member of an aggregate?
-    final AggregateDeclaration isAggregateMember()
-    {
-        Dsymbol parent = toParent();
-        if (parent && parent.isAggregateDeclaration())
-            return cast(AggregateDeclaration)parent;
-        return null;
-    }
-
-    // are we a member of an aggregate?
     final AggregateDeclaration isAggregateMember2()
     {
         Dsymbol parent = toParent2();
         if (parent && parent.isAggregateDeclaration())
             return cast(AggregateDeclaration)parent;
         return null;
-    }
-
-    // are we a member of a class?
-    final ClassDeclaration isClassMember()
-    {
-        AggregateDeclaration ad = isAggregateMember();
-        return ad ? ad.isClassDeclaration() : null;
     }
 
     // is Dsymbol exported?
@@ -833,6 +817,13 @@ public:
         auto p = toParent();
         //printf("parent is %s %s\n", p.kind(), p.toChars());
         return p ? p.isAggregateDeclaration() : null;
+    }
+
+    // is this a member of a ClassDeclaration?
+    final ClassDeclaration isClassMember()
+    {
+        auto ad = isMember();
+        return ad ? ad.isClassDeclaration() : null;
     }
 
     // is this a type?
