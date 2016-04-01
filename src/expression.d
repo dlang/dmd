@@ -3609,7 +3609,6 @@ extern (C++) class IdentifierExp : Expression
 {
 public:
     Identifier ident;
-    Declaration var;
 
     final extern (D) this(Loc loc, Identifier ident)
     {
