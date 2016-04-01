@@ -403,7 +403,7 @@ struct Scope
             FuncDeclaration f = func;
             if (fes)
                 f = fes.func;
-            AggregateDeclaration ad = f.isAggregateMember2();
+            auto ad = f.isMember2();
             assert(ad);
             for (size_t i = 0; i < ad.fields.dim; i++)
             {

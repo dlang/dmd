@@ -772,15 +772,6 @@ public:
         return null;
     }
 
-    // are we a member of an aggregate?
-    final AggregateDeclaration isAggregateMember2()
-    {
-        Dsymbol parent = toParent2();
-        if (parent && parent.isAggregateDeclaration())
-            return cast(AggregateDeclaration)parent;
-        return null;
-    }
-
     // is Dsymbol exported?
     bool isExport()
     {
@@ -815,6 +806,15 @@ public:
     {
         //printf("Dsymbol::isMember() %s\n", toChars());
         auto p = toParent();
+        //printf("parent is %s %s\n", p.kind(), p.toChars());
+        return p ? p.isAggregateDeclaration() : null;
+    }
+
+    // is this a member of an AggregateDeclaration?
+    final AggregateDeclaration isMember2()
+    {
+        //printf("Dsymbol::isMember2() '%s'\n", toChars());
+        auto p = toParent2();
         //printf("parent is %s %s\n", p.kind(), p.toChars());
         return p ? p.isAggregateDeclaration() : null;
     }

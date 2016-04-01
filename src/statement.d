@@ -4551,7 +4551,7 @@ public:
         sc.callSuper |= CSXreturn;
         if (sc.fieldinit)
         {
-            AggregateDeclaration ad = fd.isAggregateMember2();
+            auto ad = fd.isMember2();
             assert(ad);
             size_t dim = sc.fieldinit_dim;
             foreach (i; 0 .. dim)

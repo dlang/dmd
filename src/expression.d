@@ -2072,7 +2072,7 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
                 assert(e1);
                 bool mustInit = (var.storage_class & STCnodefaultctor || var.type.needsNested());
                 size_t dim = sc.fieldinit_dim;
-                AggregateDeclaration ad = fd.isAggregateMember2();
+                auto ad = fd.isMember2();
                 assert(ad);
                 size_t i;
                 for (i = 0; i < dim; i++) // same as findFieldIndexByName in ctfeexp.c ?
