@@ -827,12 +827,12 @@ public:
     }
 
     // is this a member of an AggregateDeclaration?
-    AggregateDeclaration isMember()
+    final AggregateDeclaration isMember()
     {
         //printf("Dsymbol::isMember() %s\n", toChars());
-        Dsymbol parent = toParent();
-        //printf("parent is %s %s\n", parent->kind(), parent->toChars());
-        return parent ? parent.isAggregateDeclaration() : null;
+        auto p = toParent();
+        //printf("parent is %s %s\n", p.kind(), p.toChars());
+        return p ? p.isAggregateDeclaration() : null;
     }
 
     // is this a type?

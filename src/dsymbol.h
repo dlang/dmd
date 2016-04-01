@@ -222,7 +222,7 @@ public:
     virtual bool isDeprecated();                // is Dsymbol deprecated?
     virtual bool isOverloadable();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
-    virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
+    AggregateDeclaration *isMember();           // is this a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
     virtual Prot prot();
