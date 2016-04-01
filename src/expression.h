@@ -288,7 +288,6 @@ class IdentifierExp : public Expression
 {
 public:
     Identifier *ident;
-    Declaration *var;
 
     IdentifierExp(Loc loc, Identifier *ident);
     static IdentifierExp *create(Loc loc, Identifier *ident);
