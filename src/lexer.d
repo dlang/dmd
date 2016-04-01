@@ -1360,7 +1360,7 @@ public:
     /**************************************
      * Lex delimited strings:
      *      q"(foo(xxx))"   // "foo(xxx)"
-     *      q"[foo(]"       // "foo("
+     *      q"[foo$(LPAREN)]"       // "foo$(LPAREN)"
      *      q"/foo]/"       // "foo]"
      *      q"HERE
      *      foo
@@ -1517,7 +1517,7 @@ public:
     /**************************************
      * Lex delimited strings:
      *      q{ foo(xxx) } // " foo(xxx) "
-     *      q{foo(}       // "foo("
+     *      q{foo$(LPAREN)}       // "foo$(LPAREN)"
      *      q{{foo}"}"}   // "{foo}"}""
      * Input:
      *      p is on the q
