@@ -1424,24 +1424,47 @@ public:
                 sc2.intypeof = 2;
             sc2.fieldinit = null;
             sc2.fieldinit_dim = 0;
-            if (isMember2())
+
+            /* Note: When a lambda is defined immediately under aggregate member
+             * scope, it should be contextless due to prevent interior pointers.
+             * e.g.
+             *      // dg points 'this' - it's interior pointer
+             *      class C { int x; void delegate() dg = (){ this.x = 1; }; }
+             *
+             * However, lambdas could be used inside typeof, in order to check
+             * some expressions varidity at compile time. For such case the lambda
+             * body can access aggregate instance members.
+             * e.g.
+             *      class C { int x; static assert(is(typeof({ this.x = 1; }))); }
+             *
+             * To properly accept it, mark these lambdas as member functions -
+             * isThis() returns true and isNested() returns false.
+             */
+            if (auto fld = isFuncLiteralDeclaration())
             {
-                FuncLiteralDeclaration fld = isFuncLiteralDeclaration();
-                if (fld && !sc.intypeof)
+                if (auto ad = isMember2())
                 {
-                    if (fld.tok == TOKreserved)
-                        fld.tok = TOKfunction;
-                    if (isNested())
+                    if (!sc.intypeof)
                     {
-                        error("cannot be class members");
-                        return;
+                        if (fld.tok == TOKdelegate)
+                            error("cannot be %s members", ad.kind());
+                        else
+                            fld.tok = TOKfunction;
                     }
+                    else
+                    {
+                        if (fld.tok != TOKfunction)
+                            fld.tok = TOKdelegate;
+                    }
+                    assert(!isNested());
                 }
-                assert(!isNested() || sc.intypeof); // can't be both member and nested
             }
             // Declare 'this'
-            AggregateDeclaration ad = isThis();
+            auto ad = isThis();
             vthis = declareThis(sc2, ad);
+            //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
+            //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
+
             // Declare hidden variable _arguments[] and _argptr
             if (f.varargs == 1)
             {
@@ -2349,7 +2372,7 @@ public:
     // called from semantic3
     final VarDeclaration declareThis(Scope* sc, AggregateDeclaration ad)
     {
-        if (ad && !isFuncLiteralDeclaration())
+        if (ad)
         {
             Type thandle = ad.handleType();
             assert(thandle);
@@ -2872,23 +2895,6 @@ public:
         return cast(LabelDsymbol)s;
     }
 
-    /****************************************
-     * If non-static member function that has a 'this' pointer,
-     * return the aggregate it is a member of.
-     * Otherwise, return NULL.
-     */
-    override AggregateDeclaration isThis()
-    {
-        //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-        AggregateDeclaration ad = null;
-        if ((storage_class & STCstatic) == 0 && !isFuncLiteralDeclaration())
-        {
-            ad = isMember2();
-        }
-        //printf("-FuncDeclaration::isThis() %p\n", ad);
-        return ad;
-    }
-
     /*****************************************
      * Determine lexical level difference from 'this' to nested function 'fd'.
      * Error if this cannot call fd.
@@ -3214,13 +3220,36 @@ public:
         return true;
     }
 
-    // Determine if function needs
-    // a static frame pointer to its lexically enclosing function
+    /****************************************
+     * Determine if function needs a static frame pointer.
+     * Returns:
+     *  `true` if function is really nested within other function.
+     * Contracts:
+     *  If isNested() returns true, isThis() should return false.
+     */
     bool isNested()
     {
-        FuncDeclaration f = toAliasFunc();
-        //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
-        return ((f.storage_class & STCstatic) == 0) && (f.linkage == LINKd) && (f.toParent2().isFuncDeclaration() !is null);
+        auto f = toAliasFunc();
+        //printf("\ttoParent2() = '%s'\n", f.toParent2().toChars());
+        return ((f.storage_class & STCstatic) == 0) &&
+                (f.linkage == LINKd) &&
+                (f.toParent2().isFuncDeclaration() !is null);
+    }
+
+    /****************************************
+     * Determine if function is a non-static member function
+     * that has an implicit 'this' expression.
+     * Returns:
+     *  The aggregate it is a member of, or null.
+     * Contracts:
+     *  If isThis() returns true, isNested() should return false.
+     */
+    override AggregateDeclaration isThis()
+    {
+        //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
+        auto ad = (storage_class & STCstatic) ? null : isMember2();
+        //printf("-FuncDeclaration::isThis() %p\n", ad);
+        return ad;
     }
 
     override final bool needThis()
@@ -4439,7 +4468,12 @@ public:
     override bool isNested()
     {
         //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
-        return (tok != TOKfunction);
+        return (tok != TOKfunction) && !isThis();
+    }
+
+    override AggregateDeclaration isThis()
+    {
+        return tok == TOKdelegate ? super.isThis() : null;
     }
 
     override bool isVirtual()
