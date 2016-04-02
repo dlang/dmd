@@ -1078,7 +1078,7 @@ public:
                          * an interface function?
                          */
                         //if (!isOverride())
-                        //    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+                        //    warning(loc, WarnCat.override, "overrides base class function %s, but is not marked with 'override'", fdv.toPrettyChars());
                         if (fdv.tintro)
                             ti = fdv.tintro;
                         else if (!type.equals(fdv.type))

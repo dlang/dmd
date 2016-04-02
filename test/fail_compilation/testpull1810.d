@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testpull1810.d(19): Warning: statement is not reachable
+fail_compilation/testpull1810.d(19): Warning: statement is not reachable (-Wnot-reachable)
 ---
 */
 

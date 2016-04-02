@@ -32,6 +32,7 @@ enum BOUNDSCHECK
     BOUNDSCHECKsafeonly // do bounds checking only in @safe functions
 };
 
+typedef uint32_t WarningCategory;
 
 // Put command line switches in here
 struct Param
@@ -78,10 +79,14 @@ struct Param
     bool useDIP25;      // implement http://wiki.dlang.org/DIP25
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
+
     // 0: disable warnings
     // 1: warnings as errors
     // 2: informational warnings (no errors)
     char warnings;
+    // Flags which warning categories are enabled
+    WarningCategory enabledWarnings;
+
     bool pic;           // generate position-independent-code for shared libs
     bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data

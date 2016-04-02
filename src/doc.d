@@ -43,6 +43,7 @@ import ddmd.root.rmem;
 import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
+import ddmd.warnings;
 
 struct Escape
 {
@@ -239,7 +240,7 @@ public:
                             }
                             else if (!fparam)
                             {
-                                warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
+                                warning(s.loc, WarnCat.ddoc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
                             }
                             buf.write(namestart, namelen);
                         }
@@ -289,7 +290,7 @@ public:
             size_t pcount = (tf.parameters ? tf.parameters.dim : 0) + cast(int)(tf.varargs == 1);
             if (pcount != paramcount)
             {
-                warning(s.loc, "Ddoc: parameter count mismatch");
+                warning(s.loc, WarnCat.ddoc, "Ddoc: parameter count mismatch");
             }
         }
     }
@@ -673,7 +674,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                 if (par_open == 0)
                 {
                     //stray ')'
-                    warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
+                    warning(loc, WarnCat.ddoc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
                     buf.remove(u, 1); //remove the )
                     buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
                     u += 8; //skip over newly inserted macro
@@ -723,7 +724,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                 if (par_open == 0)
                 {
                     //stray '('
-                    warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
+                    warning(loc, WarnCat.ddoc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
                     buf.remove(u, 1); //remove the (
                     buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
                 }

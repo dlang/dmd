@@ -70,6 +70,7 @@ import ddmd.traits;
 import ddmd.typinf;
 import ddmd.utf;
 import ddmd.visitor;
+import ddmd.warnings;
 
 enum LOGSEMANTIC = false;
 void emplaceExp(T : Expression, Args...)(void* p, Args args)
@@ -2468,13 +2469,13 @@ public:
         }
     }
 
-    final void warning(const(char)* format, ...) const
+    final void warning(const WarningCategory cat, const(char)* format, ...) const
     {
         if (type != Type.terror)
         {
             va_list ap;
             va_start(ap, format);
-            .vwarning(loc, format, ap);
+            .vwarning(loc, cat, format, ap);
             va_end(ap);
         }
     }
@@ -7592,7 +7593,7 @@ public:
         {
             if ((type.isintegral() && t2.isfloating()))
             {
-                warning("%s %s %s is performing truncating conversion", type.toChars(), Token.toChars(op), t2.toChars());
+                warning(WarnCat.conversion, "%s %s %s is performing truncating conversion", type.toChars(), Token.toChars(op), t2.toChars());
             }
         }
         // generate an error if this is a nonsensical *=,/=, or %=, eg real *= imaginary
@@ -12828,7 +12829,7 @@ public:
             {
                 const(char)* e1str = e1.toChars();
                 const(char)* e2str = e2x.toChars();
-                warning("explicit element-wise assignment %s = (%s)[] is better than %s = %s", e1str, e2str, e1str, e2str);
+                warning(WarnCat.advice, "explicit element-wise assignment %s = (%s)[] is better than %s = %s", e1str, e2str, e1str, e2str);
             }
 
             Type t2n = t2.nextOf();
@@ -12881,7 +12882,7 @@ public:
                 const(char)* e1str = e1.toChars();
                 const(char)* e2str = e2x.toChars();
                 const(char)* atypestr = e1.op == TOKslice ? "element-wise" : "slice";
-                warning("explicit %s assignment %s = (%s)[] is better than %s = %s", atypestr, e1str, e2str, e1str, e2str);
+                warning(WarnCat.advice, "explicit %s assignment %s = (%s)[] is better than %s = %s", atypestr, e1str, e2str, e1str, e2str);
             }
             if (op == TOKblit)
                 e2x = e2x.castTo(sc, e1.type);

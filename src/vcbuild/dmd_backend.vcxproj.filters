@@ -335,6 +335,9 @@
     <ClInclude Include="..\version.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\warnings.h">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="..\backend\aa.h">
       <Filter>src\backend</Filter>
     </ClInclude>

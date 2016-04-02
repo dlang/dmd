@@ -57,6 +57,7 @@ import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+import ddmd.warnings;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
@@ -2914,11 +2915,11 @@ public:
         va_end(ap);
     }
 
-    final static void warning(Loc loc, const(char)* format, ...)
+    final static void warning(Loc loc, const WarningCategory cat, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        .vwarning(loc, format, ap);
+        .vwarning(loc, cat, format, ap);
         va_end(ap);
     }
 
@@ -4326,7 +4327,7 @@ public:
         {
             static __gshared const(char)** reverseName = ["_adReverseChar", "_adReverseWchar"];
             static __gshared FuncDeclaration* reverseFd = [null, null];
-            warning(e.loc, "use std.algorithm.reverse instead of .reverse property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.reverse instead of .reverse property");
             int i = n.ty == Twchar;
             if (!reverseFd[i])
             {
@@ -4347,7 +4348,7 @@ public:
         {
             static __gshared const(char)** sortName = ["_adSortChar", "_adSortWchar"];
             static __gshared FuncDeclaration* sortFd = [null, null];
-            warning(e.loc, "use std.algorithm.sort instead of .sort property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.sort instead of .sort property");
             int i = n.ty == Twchar;
             if (!sortFd[i])
             {
@@ -4370,7 +4371,7 @@ public:
             FuncDeclaration fd;
             Expressions* arguments;
             dinteger_t size = next.size(e.loc);
-            warning(e.loc, "use std.algorithm.reverse instead of .reverse property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.reverse instead of .reverse property");
             assert(size);
             static __gshared FuncDeclaration adReverse_fd = null;
             if (!adReverse_fd)
@@ -4394,7 +4395,7 @@ public:
             static __gshared FuncDeclaration fd = null;
             Expression ec;
             Expressions* arguments;
-            warning(e.loc, "use std.algorithm.sort instead of .sort property");
+            warning(e.loc, WarnCat.soonDeprecated, "use std.algorithm.sort instead of .sort property");
             if (!fd)
             {
                 auto params = new Parameters();

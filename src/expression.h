@@ -142,7 +142,7 @@ public:
     char *toChars();
     virtual void printAST(int ident = 0);
     void error(const char *format, ...) const;
-    void warning(const char *format, ...) const;
+    void warning(const WarningCategory cat, const char *format, ...) const;
     void deprecation(const char *format, ...) const;
 
     // creates a single expression which is effectively (e1, e2)

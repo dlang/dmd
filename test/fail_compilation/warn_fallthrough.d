@@ -1,8 +1,8 @@
-// REQUIRED_ARGS: -w
+// REQUIRED_ARGS: -Wno-fallthrough -w
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11653.d(18): Warning: switch case fallthrough - use 'goto case;' if intended (-Wfallthrough)
+fail_compilation/warn_fallthrough.d(21): Warning: switch case fallthrough - use 'goto default;' if intended (-Wfallthrough)
 ---
 */
 
@@ -14,10 +14,10 @@ void main()
     {
         case 1:
             output = 1;
-            //break; //Oops..
+            break;
         case 2: .. case 3:
             output = 2;
-            break;
+            //break; //Oops..
         default:
             output = 3;
     }

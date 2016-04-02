@@ -42,6 +42,7 @@ import ddmd.root.rootobject;
 import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.tokens;
+import ddmd.warnings;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -4401,7 +4402,7 @@ public:
     {
         if (token.value != TOKelse && token.value != TOKcatch && token.value != TOKfinally && lookingForElse.linnum != 0)
         {
-            warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
+            warning(elseloc, WarnCat.braces, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
         }
     }
 
@@ -4414,7 +4415,7 @@ public:
         if (alt & 1) // contains C-style function pointer syntax
             error(loc, "instead of C-style syntax, use D-style '%s%s%s'", t.toChars(), sp, s);
         else
-            .warning(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
+            .warning(loc, WarnCat.Cstyle, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
     }
 
     /*****************************************
@@ -4726,7 +4727,7 @@ public:
             if (!(flags & PSsemi_ok))
             {
                 if (flags & PSsemi)
-                    warning(loc, "use '{ }' for an empty statement, not a ';'");
+                    warning(loc, WarnCat.braces, "use '{ }' for an empty statement, not a ';'");
                 else
                     error("use '{ }' for an empty statement, not a ';'");
             }

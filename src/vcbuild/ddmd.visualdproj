@@ -530,6 +530,7 @@
    <File path="..\typinf.d" />
    <File path="..\utf.d" />
    <File path="..\visitor.d" />
+   <File path="..\warnings.d" />
    <File path="..\win32.mak" />
   </Folder>
  </Folder>

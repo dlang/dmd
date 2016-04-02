@@ -16,6 +16,7 @@ import ddmd.globals;
 import ddmd.mtype;
 import ddmd.tokens;
 import ddmd.visitor;
+import ddmd.warnings;
 
 /**************************************************
  * Front-end expression rewriting should create temporary variables for
@@ -265,7 +266,7 @@ extern (C++) void discardValue(Expression e)
                     }
                     else
                         s = ce.e1.toChars();
-                    e.warning("calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
+                    e.warning(WarnCat.unusedValue, "calling %s without side effects discards return value of type %s, prepend a cast(void) if intentional", s, e.type.toChars());
                 }
             }
         }

@@ -31,6 +31,7 @@ import ddmd.root.rmem;
 import ddmd.root.speller;
 import ddmd.root.stringtable;
 import ddmd.statement;
+import ddmd.warnings;
 
 //version=LOGSEARCH;
 
@@ -498,7 +499,7 @@ struct Scope
                         ident == Id.length && sc.scopesym.isArrayScopeSymbol() &&
                         sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
                     {
-                        warning(s.loc, "array 'length' hides other 'length' name in outer scope");
+                        warning(s.loc, WarnCat.hiding, "array 'length' hides other 'length' name in outer scope");
                     }
                     //printMsg("\tfound local", s);
                     if (pscopesym)

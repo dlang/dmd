@@ -217,6 +217,7 @@ popd</Command>
     <ClInclude Include="..\toir.h" />
     <ClInclude Include="..\tokens.h" />
     <ClInclude Include="..\version.h" />
+    <ClInclude Include="..\warnings.h" />
     <ClInclude Include="..\backend\aa.h" />
     <ClInclude Include="..\backend\bcomplex.h" />
     <ClInclude Include="..\backend\cc.h" />

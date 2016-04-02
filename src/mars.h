@@ -82,6 +82,7 @@ struct OutBuffer;
 #include "complex_t.h"
 
 #include "errors.h"
+#include "warnings.h"
 
 class Dsymbol;
 class Library;

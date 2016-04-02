@@ -55,6 +55,7 @@ import ddmd.staticassert;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+import ddmd.warnings;
 
 extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
 {
@@ -169,11 +170,11 @@ public:
         va_end(ap);
     }
 
-    final void warning(const(char)* format, ...)
+    final void warning(const WarningCategory cat, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        .vwarning(loc, format, ap);
+        .vwarning(loc, cat, format, ap);
         va_end(ap);
     }
 
@@ -359,14 +360,14 @@ public:
                                 else
                                 {
                                     const(char)* gototype = s.isCaseStatement() ? "case" : "default";
-                                    s.warning("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                    s.warning(WarnCat.fallthrough, "switch case fallthrough - use 'goto %s;' if intended", gototype);
                                 }
                             }
                         }
                         if (!(result & BEfallthru) && !s.comeFrom())
                         {
                             if (s.blockExit(func, mustNotThrow) != BEhalt && s.hasCode())
-                                s.warning("statement is not reachable");
+                                s.warning(WarnCat.notReachable, "statement is not reachable");
                         }
                         else
                         {
@@ -673,7 +674,7 @@ public:
                     // destructor call, exit of synchronized statement, etc.
                     if (result == BEhalt && finalresult != BEhalt && s.finalbody && s.finalbody.hasCode())
                     {
-                        s.finalbody.warning("statement is not reachable");
+                        s.finalbody.warning(WarnCat.notReachable, "statement is not reachable");
                     }
                 }
                 if (!(finalresult & BEfallthru))
@@ -2543,7 +2544,7 @@ public:
             }
         case Taarray:
             if (op == TOKforeach_reverse)
-                warning("cannot use foreach_reverse with an associative array");
+                warning(WarnCat.soonDeprecated, "cannot use foreach_reverse with an associative array");
             if (checkForArgTypes())
                 return this;
 

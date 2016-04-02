@@ -3,8 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn12809.d(25): Warning: statement is not reachable
-fail_compilation/warn12809.d(33): Warning: statement is not reachable
+fail_compilation/warn12809.d(25): Warning: statement is not reachable (-Wnot-reachable)
+fail_compilation/warn12809.d(33): Warning: statement is not reachable (-Wnot-reachable)
 ---
 */
 
