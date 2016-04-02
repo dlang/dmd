@@ -140,7 +140,7 @@ public:
      * Returns:
      *      0       invalid
      */
-    final static bool isValidIdentifier(const(char)* p)
+    static bool isValidIdentifier(const(char)* p)
     {
         size_t len;
         size_t idx;

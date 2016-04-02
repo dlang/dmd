@@ -163,7 +163,7 @@ alias Semantic2Done = Semantic.Semantic2Done;
 
 /***********************************************************
  */
-extern (C++) class Declaration : Dsymbol
+extern (C++) abstract class Declaration : Dsymbol
 {
 public:
     Type type;
@@ -2278,7 +2278,7 @@ public:
         linkage = LINKc;
     }
 
-    final static TypeInfoDeclaration create(Type tinfo, int internal)
+    static TypeInfoDeclaration create(Type tinfo, int internal)
     {
         return new TypeInfoDeclaration(tinfo, internal);
     }

@@ -5969,7 +5969,7 @@ public:
         assert(tempdecl._scope);
     }
 
-    final static Objects* arraySyntaxCopy(Objects* objs)
+    static Objects* arraySyntaxCopy(Objects* objs)
     {
         Objects* a = null;
         if (objs)
@@ -7268,7 +7268,7 @@ public:
      * Returns:
      *      false if one or more arguments have errors.
      */
-    final static bool semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags)
+    static bool semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags)
     {
         // Run semantic on each argument, place results in tiargs[]
         //printf("+TemplateInstance::semanticTiargs()\n");

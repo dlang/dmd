@@ -139,7 +139,7 @@ public:
      *      *pparent        the rightmost package, i.e. pkg2, or NULL if no packages
      *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
      */
-    final static DsymbolTable resolve(Identifiers* packages, Dsymbol* pparent, Package* ppkg)
+    static DsymbolTable resolve(Identifiers* packages, Dsymbol* pparent, Package* ppkg)
     {
         DsymbolTable dst = Module.modules;
         Dsymbol parent = null;

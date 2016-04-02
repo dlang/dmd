@@ -60,7 +60,7 @@ alias BASEOKsemanticdone = Baseok.BASEOKsemanticdone;
 
 /***********************************************************
  */
-extern (C++) class AggregateDeclaration : ScopeDsymbol
+extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 {
 public:
     Type type;
@@ -570,7 +570,7 @@ public:
      * alignment: struct alignment that is in effect
      * size: alignment requirement of field
      */
-    final static void alignmember(structalign_t alignment, uint size, uint* poffset)
+    static void alignmember(structalign_t alignment, uint size, uint* poffset)
     {
         //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
         switch (alignment)
@@ -607,7 +607,7 @@ public:
      * paggalignsize: size of aggregate for alignment purposes (updated)
      * isunion:       the aggregate is a union
      */
-    final static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
+    static uint placeField(uint* nextoffset, uint memsize, uint memalignsize,
         structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
     {
         uint ofs = *nextoffset;

@@ -2460,7 +2460,7 @@ public:
      * Combine two document comments into one,
      * separated by a newline.
      */
-    final static const(char)* combineComments(const(char)* c1, const(char)* c2)
+    static const(char)* combineComments(const(char)* c1, const(char)* c2)
     {
         //printf("Lexer::combineComments('%s', '%s')\n", c1, c2);
         auto c = c2;
