@@ -468,7 +468,7 @@ alias MOD = ubyte;
 
 /***********************************************************
  */
-extern (C++) class Type : RootObject
+extern (C++) abstract class Type : RootObject
 {
 public:
     TY ty;
@@ -2983,7 +2983,7 @@ public:
 
 /***********************************************************
  */
-extern (C++) class TypeNext : Type
+extern (C++) abstract class TypeNext : Type
 {
 public:
     Type next;
@@ -6806,7 +6806,7 @@ public:
 
 /***********************************************************
  */
-extern (C++) class TypeQualified : Type
+extern (C++) abstract class TypeQualified : Type
 {
 public:
     Loc loc;

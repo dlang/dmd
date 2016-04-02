@@ -60,7 +60,7 @@ alias BASEOKsemanticdone = Baseok.BASEOKsemanticdone;
 
 /***********************************************************
  */
-extern (C++) class AggregateDeclaration : ScopeDsymbol
+extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 {
 public:
     Type type;

@@ -2337,7 +2337,7 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
 
 /***********************************************************
  */
-extern (C++) class Expression : RootObject
+extern (C++) abstract class Expression : RootObject
 {
 public:
     Loc loc;        // file location
@@ -7497,7 +7497,7 @@ extern (C++) alias fp2_t = int function(Loc loc, TOK, Expression, Expression);
 
 /***********************************************************
  */
-extern (C++) class BinExp : Expression
+extern (C++) abstract class BinExp : Expression
 {
 public:
     Expression e1;

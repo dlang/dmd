@@ -130,7 +130,7 @@ alias BEany = BE.BEany;
 
 /***********************************************************
  */
-extern (C++) class Statement : RootObject
+extern (C++) abstract class Statement : RootObject
 {
 public:
     Loc loc;

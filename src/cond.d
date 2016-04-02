@@ -41,7 +41,7 @@ static this()
 
 /***********************************************************
  */
-extern (C++) class Condition
+extern (C++) abstract class Condition
 {
 public:
     Loc loc;

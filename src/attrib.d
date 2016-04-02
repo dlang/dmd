@@ -39,7 +39,7 @@ import ddmd.visitor;
 
 /***********************************************************
  */
-extern (C++) class AttribDeclaration : Dsymbol
+extern (C++) abstract class AttribDeclaration : Dsymbol
 {
 public:
     Dsymbols* decl;     // array of Dsymbol's

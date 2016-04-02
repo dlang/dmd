@@ -163,7 +163,7 @@ alias Semantic2Done = Semantic.Semantic2Done;
 
 /***********************************************************
  */
-extern (C++) class Declaration : Dsymbol
+extern (C++) abstract class Declaration : Dsymbol
 {
 public:
     Type type;
