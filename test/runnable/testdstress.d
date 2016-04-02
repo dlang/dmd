@@ -34,9 +34,9 @@ void test1()
 
 void foo2()
 in{
-	assert(0);
 }
 body{
+	assert(0);
 }
 
 void test2()

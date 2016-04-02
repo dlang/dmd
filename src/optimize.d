@@ -509,6 +509,141 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
             }
+
+            checkInContract(e);
+        }
+
+        void checkInContract(CallExp e)
+        {
+            if (!e.arguments || !e.f)
+                return;
+
+            if (!e.f.frequire)
+                return;
+
+            auto tf = cast(TypeFunction)e.f.type;
+            if (tf.varargs)
+                return;
+
+            // All arguments must be value types or immutable
+            // All parameters must be compile-time constants
+            foreach (i, arg; *e.arguments)
+            {
+                auto p = Parameter.getNth(tf.parameters, i);
+                if (!p || !p.type.implicitConvTo(p.type.immutableOf()))
+                    return;
+                if (!arg.isConst())
+                    return;
+            }
+
+            // printf("%s\n", e.f.toChars());
+            // printf("%s\n", e.f.frequire.toChars());
+
+            auto ss = e.f.frequire.isScopeStatement();
+            if (!ss)
+                return;
+
+            auto es = ss.statement.isExpStatement();
+            if (!es)
+                return;
+
+            if (es.exp.op != TOKassert)
+                return;
+
+            auto ae = (cast(AssertExp)es.exp).e1;
+
+            extern (C++) final class ArgSubstituter : Visitor
+            {
+            public:
+                CallExp ce;
+                Expression result;
+
+                this(CallExp ce)
+                {
+                    this.ce = ce;
+                    result = null;
+                }
+
+                alias visit = super.visit;
+
+                override void visit(Expression e)
+                {
+                    result = null;
+                }
+
+                override void visit(IntegerExp e)
+                {
+                    result = e;
+                }
+
+                override void visit(VarExp e)
+                {
+                    if (ce.f.parameters)
+                    {
+                        foreach (i, p; *ce.f.parameters)
+                        {
+                            auto vd = cast(VarDeclaration)p;
+                            if (e.var == vd)
+                            {
+                                result = (*ce.arguments)[i].copy();
+                                return;
+                            }
+                        }
+                    }
+                    visit(cast(Expression)e);
+                }
+
+                override void visit(CmpExp e)
+                {
+                    auto e1 = trySubstitute(e.e1);
+                    if (!e1)
+                        return;
+
+                    auto e2 = trySubstitute(e.e2);
+                    if (!e2)
+                        return;
+
+                    auto ce = cast(CmpExp)e.copy();
+                    ce.e1 = e1;
+                    ce.e2 = e2;
+                    result = ce.optimize(0);
+                }
+
+                override void visit(EqualExp e)
+                {
+                    auto e1 = trySubstitute(e.e1);
+                    if (!e1)
+                        return;
+
+                    auto e2 = trySubstitute(e.e2);
+                    if (!e2)
+                        return;
+
+                    auto ce = cast(EqualExp)e.copy();
+                    ce.e1 = e1;
+                    ce.e2 = e2;
+                    result = ce.optimize(0);
+                }
+
+                Expression trySubstitute(Expression e)
+                {
+                    auto save = result;
+                    result = null;
+                    e.accept(this);
+                    auto r = result;
+                    result = save;
+                    return r;
+                }
+            }
+
+            scope v = new ArgSubstituter(e);
+            ae.accept(v);
+            auto result = v.result;
+            if (result && result.isBool(false))
+            {
+                e.error("function '%s' called with '%s' does not pass precondition assert(%s)", e.f.toPrettyChars(), e.toChars(), ae.toChars());
+                ret = new ErrorExp();
+            }
         }
 
         override void visit(CastExp e)
