@@ -819,12 +819,12 @@ public:
         return buf.extractString();
     }
 
-    final static char needThisPrefix()
+    static char needThisPrefix()
     {
         return 'M'; // name mangling prefix for functions needing 'this'
     }
 
-    final static void _init()
+    static void _init()
     {
         stringtable._init(14000);
         // Set basic types
@@ -2906,7 +2906,7 @@ public:
         }
     }
 
-    final static void error(Loc loc, const(char)* format, ...)
+    static void error(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -2914,7 +2914,7 @@ public:
         va_end(ap);
     }
 
-    final static void warning(Loc loc, const(char)* format, ...)
+    static void warning(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);

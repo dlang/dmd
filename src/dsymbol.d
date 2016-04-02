@@ -225,7 +225,7 @@ public:
         this.semanticRun = PASSinit;
     }
 
-    final static Dsymbol create(Identifier ident)
+    static Dsymbol create(Identifier ident)
     {
         return new Dsymbol(ident);
     }
@@ -470,7 +470,7 @@ public:
     /*************************************
      * Do syntax copy of an array of Dsymbol's.
      */
-    final static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+    static Dsymbols* arraySyntaxCopy(Dsymbols* a)
     {
         Dsymbols* b = null;
         if (a)
@@ -883,7 +883,7 @@ public:
     /*****************************************
      * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
      */
-    final static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+    static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
     {
         //printf("Dsymbol::oneMembers() %d\n", members ? members.dim : 0);
         Dsymbol s = null;
@@ -1506,7 +1506,7 @@ public:
         return (members is null);
     }
 
-    final static void multiplyDefined(Loc loc, Dsymbol s1, Dsymbol s2)
+    static void multiplyDefined(Loc loc, Dsymbol s1, Dsymbol s2)
     {
         version (none)
         {

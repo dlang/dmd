@@ -53,7 +53,7 @@ public:
 
     abstract Initializer syntaxCopy();
 
-    final static Initializers* arraySyntaxCopy(Initializers* ai)
+    static Initializers* arraySyntaxCopy(Initializers* ai)
     {
         Initializers* a = null;
         if (ai)

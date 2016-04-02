@@ -2354,7 +2354,7 @@ public:
         this.size = cast(ubyte)size;
     }
 
-    final static void _init()
+    static void _init()
     {
         CTFEExp.cantexp = new CTFEExp(TOKcantexp);
         CTFEExp.voidexp = new CTFEExp(TOKvoidexp);
@@ -2493,7 +2493,7 @@ public:
     /**********************************
      * Combine e1 and e2 by CommaExp if both are not NULL.
      */
-    final static Expression combine(Expression e1, Expression e2)
+    static Expression combine(Expression e1, Expression e2)
     {
         if (e1)
         {
@@ -2514,7 +2514,7 @@ public:
      * is returned via *pe0.
      * Otherwise 'e' is directly returned and *pe0 is set to NULL.
      */
-    final static Expression extractLast(Expression e, Expression* pe0)
+    static Expression extractLast(Expression e, Expression* pe0)
     {
         if (e.op != TOKcomma)
         {
@@ -2542,7 +2542,7 @@ public:
         }
     }
 
-    final static Expressions* arraySyntaxCopy(Expressions* exps)
+    static Expressions* arraySyntaxCopy(Expressions* exps)
     {
         Expressions* a = null;
         if (exps)
@@ -3616,7 +3616,7 @@ public:
         this.ident = ident;
     }
 
-    final static IdentifierExp create(Loc loc, Identifier ident)
+    static IdentifierExp create(Loc loc, Identifier ident)
     {
         return new IdentifierExp(loc, ident);
     }

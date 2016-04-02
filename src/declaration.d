@@ -2278,7 +2278,7 @@ public:
         linkage = LINKc;
     }
 
-    final static TypeInfoDeclaration create(Type tinfo, int internal)
+    static TypeInfoDeclaration create(Type tinfo, int internal)
     {
         return new TypeInfoDeclaration(tinfo, internal);
     }

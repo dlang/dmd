@@ -31,7 +31,7 @@ else
 extern (C++) class Library
 {
 public:
-    final static Library factory()
+    static Library factory()
     {
         static if (TARGET_WINDOS)
         {

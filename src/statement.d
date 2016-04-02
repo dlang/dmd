@@ -1131,7 +1131,7 @@ public:
         this.exp = new DeclarationExp(loc, declaration);
     }
 
-    final static ExpStatement create(Loc loc, Expression exp)
+    static ExpStatement create(Loc loc, Expression exp)
     {
         return new ExpStatement(loc, exp);
     }
@@ -1368,7 +1368,7 @@ public:
         statements.push(s2);
     }
 
-    final static CompoundStatement create(Loc loc, Statement s1, Statement s2)
+    static CompoundStatement create(Loc loc, Statement s1, Statement s2)
     {
         return new CompoundStatement(loc, s1, s2);
     }
