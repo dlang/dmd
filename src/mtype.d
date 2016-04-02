@@ -4,7 +4,7 @@
  * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:    $(DMDSRC mtype.d)
+ * Source:    $(DMDSRC _mtype.d)
  */
 
 module ddmd.mtype;
