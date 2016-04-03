@@ -11,7 +11,7 @@ import core.cpuid, std.algorithm, std.datetime, std.meta, std.stdio, std.string,
 float[6] getLatencies(T, string op)()
 {
     enum N = 256;
-    auto a = new T[](N), b = new T[](N), c = new T[](N);
+    auto a = Array!T(N), b = Array!T(N), c = Array!T(N);
     a[] = 19;
     b[] = 11;
     c[] = 7;
@@ -40,7 +40,7 @@ float[6] getLatencies(T, string op)()
 float[4] getThroughput(T, string op)()
 {
     enum N = (40 * 1024 * 1024 + 64) / T.sizeof;
-    auto a = new T[](N), b = new T[](N), c = new T[](N);
+    auto a = Array!T(N), b = Array!T(N), c = Array!T(N);
     a[] = 19;
     b[] = 11;
     c[] = 7;
@@ -92,6 +92,24 @@ void runOp(string op)()
             double))
         writefln("%s, %s, %(%.2f, %), %(%s, %)", T.stringof, op,
             getLatencies!(T, op), getThroughput!(T, op));
+}
+
+struct Array(T)
+{
+    import core.stdc.stdlib : free, malloc;
+
+    this(size_t n)
+    {
+        ary = (cast(T*) malloc(T.sizeof * n))[0 .. n];
+    }
+
+    ~this()
+    {
+        free(ary.ptr);
+    }
+
+    T[] ary;
+    alias ary this;
 }
 
 version (X86)
