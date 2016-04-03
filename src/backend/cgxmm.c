@@ -37,8 +37,14 @@ unsigned xmmoperator(tym_t tym, unsigned oper);
 
 bool isXMMstore(unsigned op)
 {
-    // Not very efficient
-    return op == STOSS || op == STOSD || op == STOAPS || op == STOAPD || op == STODQA || op == STOQ;
+    switch (op)
+    {
+    case STOSS: case STOAPS: case STOUPS:
+    case STOSD: case STOAPD: case STOUPD:
+    case STOD: case STOQ: case STODQA: case STODQU:
+    case STOHPD: case STOHPS: case STOLPD: case STOLPS: return true;
+    default: return false;
+    }
 }
 
 /*******************************************
