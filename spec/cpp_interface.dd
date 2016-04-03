@@ -462,9 +462,6 @@ B
 C
 )
 
-$(P $(B Note:) the above does not currently link correctly due to
-$(BUGZILLA 15372).)
-
 $(H2 $(LNAME2 function-overloading, Function Overloading))
 
     $(P C++ and D follow different rules for function overloading.
