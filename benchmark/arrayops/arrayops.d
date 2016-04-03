@@ -94,8 +94,34 @@ void runOp(string op)()
             getLatencies!(T, op), getThroughput!(T, op));
 }
 
+version (X86)
+    version = SSE;
+else version (X86_64)
+    version = SSE;
+else
+    static assert(0, "unimplemented");
+
+void ignoreDenormals()
+{
+    version (SSE)
+    {
+        uint mxcsr = void;
+        asm
+        {
+            stmxcsr mxcsr;
+        }
+        mxcsr |= 0x8000 | 0x0040; // FTZ and DAZ
+        asm
+        {
+            ldmxcsr mxcsr;
+        }
+    }
+}
+
 void main()
 {
+    ignoreDenormals();
+
     writefln("type, op, %(latency%s, %), %-(throughput%s, %)", iota(6)
         .map!(i => 1 << i), ["8KB", "32KB", "512KB", "32MB"]);
     foreach (op; mixin("AliasSeq!(%(%s, %))".format(genOps)))
