@@ -64,12 +64,12 @@ extern (C++) final class InlineCostVisitor : Visitor
 {
     alias visit = super.visit;
 public:
-    int nested;
     bool hasthis;
     bool hdrscan;       // if inline scan for 'header' content
     bool allowAlloca;
     FuncDeclaration fd;
     int cost;           // zero start for subsequent AST
+    bool foundReturn;
 
     extern (D) this()
     {
@@ -77,7 +77,6 @@ public:
 
     extern (D) this(InlineCostVisitor icv)
     {
-        nested = icv.nested;
         hasthis = icv.hasthis;
         hdrscan = icv.hdrscan;
         allowAlloca = icv.allowAlloca;
@@ -100,43 +99,43 @@ public:
     override void visit(CompoundStatement s)
     {
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        foreach (i; 0 .. s.statements.dim)
-        {
-            Statement s2 = (*s.statements)[i];
-            if (s2)
-            {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = s2.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.dim &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
-                   )
-                {
-                    if (ifs.prm)       // if variables are declared
-                    {
-                        cost = COST_MAX;
-                        return;
-                    }
-                    expressionInlineCost(ifs.condition);
-                    ifs.ifbody.accept(this);
-                    s3.accept(this);
-                }
-                else
-                    s2.accept(icv);
-                if (tooCostly(icv.cost))
-                    break;
-            }
-        }
+
+        icv.visitCompoundStatement(s, 0);
+
         cost += icv.cost;
+        foundReturn = icv.foundReturn;
+    }
+
+    void visitCompoundStatement(CompoundStatement s, size_t n)
+    {
+        foreach (i; n .. s.statements.dim)
+        {
+            auto sx = (*s.statements)[i];
+            if (!sx)
+                continue;
+
+            if (auto ifs = sx.isIfStatement())
+            {
+                scope InlineCostVisitor icv = new InlineCostVisitor(this);
+                bool subseqIsVisited = false;
+
+                icv.visitIfStatement(ifs, (v)
+                {
+                    subseqIsVisited = true;
+                    v.visitCompoundStatement(s, i + 1);
+                });
+                cost += icv.cost;
+                foundReturn = icv.foundReturn;
+
+                if (subseqIsVisited || icv.foundReturn)
+                    break;  // no need to visit statements[i+1 .. $].
+                continue;
+            }
+
+            sx.accept(this);
+            if (tooCostly(cost) || foundReturn)
+                break;
+        }
     }
 
     override void visit(UnrolledLoopStatement s)
@@ -163,6 +162,11 @@ public:
 
     override void visit(IfStatement s)
     {
+        visitIfStatement(s, null);
+    }
+
+    extern (D) void visitIfStatement(IfStatement s, void delegate(InlineCostVisitor) visitSubseq)
+    {
         /* Can't declare variables inside ?: expressions, so
          * we cannot inline if a variable is declared.
          */
@@ -171,43 +175,49 @@ public:
             cost = COST_MAX;
             return;
         }
+
         expressionInlineCost(s.condition);
-        /* Specifically allow:
-         *  if (condition)
-         *      return exp1;
-         *  else
-         *      return exp2;
-         * Otherwise, we can't handle return statements nested in if's.
-         */
-        if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
+
+        if (s.ifbody) s.ifbody.accept(this);
+        bool thenReturn = foundReturn;
+        foundReturn = false;
+
+        if (s.elsebody) s.elsebody.accept(this);
+        bool elseReturn = foundReturn;
+        foundReturn = false;
+
+        if (thenReturn != elseReturn && visitSubseq)
         {
-            s.ifbody.accept(this);
-            s.elsebody.accept(this);
-            //printf("cost = %d\n", cost);
+            /* Recognize:
+             *  if (condition) { ...; } else { ...; return exp2; }
+             *  ...; return exp1;   // subsequent of 'then'.
+             *
+             * and:
+             *  if (condition) { ...; return exp1; } else { ...; }
+             *  ...; return exp2;   // subsequent of 'else'.
+             */
+            scope InlineCostVisitor v = new InlineCostVisitor();
+            visitSubseq(v);
+            cost += v.cost;
+            if (!thenReturn)
+                thenReturn = v.foundReturn;
+            else
+                elseReturn = v.foundReturn;
         }
-        else
+        foundReturn = thenReturn && elseReturn;
+
+        if (thenReturn != elseReturn)
         {
-            nested += 1;
-            if (s.ifbody)
-                s.ifbody.accept(this);
-            if (s.elsebody)
-                s.elsebody.accept(this);
-            nested -= 1;
+            // If ReturnStatement exists in one or other branch,
+            // ifs cannot be inlined as Expression.
+            cost = COST_MAX;
         }
-        //printf("IfStatement.inlineCost = %d\n", cost);
     }
 
     override void visit(ReturnStatement s)
     {
-        // Can't handle return statements nested in if's
-        if (nested)
-        {
-            cost = COST_MAX;
-        }
-        else
-        {
-            expressionInlineCost(s.exp);
-        }
+        foundReturn = true;
+        expressionInlineCost(s.exp);
     }
 
     override void visit(ImportStatement s)
@@ -462,7 +472,7 @@ public:
 
     override void visit(Statement s)
     {
-        printf("Statement.doInlineAs!%s()\n%s\n", Result.stringof.ptr, s.toChars());
+        printf("[%s] Statement.doInlineAs!%s()\n%s\n", s.loc.toChars(), Result.stringof.ptr, s.toChars());
         fflush(stdout);
         assert(0); // default is we can't inline it
     }
@@ -485,69 +495,59 @@ public:
     override void visit(CompoundStatement s)
     {
         //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.dim);
+        visitCompoundStatement(s, 0);
+    }
+
+    void visitCompoundStatement(CompoundStatement s, size_t n)
+    {
         static if (asStatements)
         {
             auto as = new Statements();
             as.reserve(s.statements.dim);
         }
 
-        foreach (i, sx; *s.statements)
+        foreach (i; n .. s.statements.dim)
         {
+            auto sx = (*s.statements)[i];
             if (!sx)
                 continue;
+
             static if (asStatements)
             {
                 as.push(doInlineAs!Statement(sx, ids));
+                if (ids.foundReturn)
+                    break;
             }
             else
             {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = sx.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.dim &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
-                   )
+                if (auto ifs = sx.isIfStatement())
                 {
-                    /* Rewrite as ?:
-                     */
-                    auto econd = doInlineAs!Expression(ifs.condition, ids);
-                    assert(econd);
-                    auto e1 = doInlineAs!Expression(ifs.ifbody, ids);
-                    assert(ids.foundReturn);
-                    auto e2 = doInlineAs!Expression(s3, ids);
+                    scope DoInlineAs!Result isv = new DoInlineAs!Result(ids);
+                    bool subseqIsVisited = false;
 
-                    Expression e = new CondExp(econd.loc, econd, e1, e2);
-                    e.type = e1.type;
-                    if (e.type.ty == Ttuple)
+                    isv.visitIfStatement(ifs, (v)
                     {
-                        e1.type = Type.tvoid;
-                        e2.type = Type.tvoid;
-                        e.type = Type.tvoid;
-                    }
-                    result = Expression.combine(result, e);
-                }
-                else
-                {
-                    auto e = doInlineAs!Expression(sx, ids);
-                    result = Expression.combine(result, e);
-                }
-            }
+                        subseqIsVisited = true;
+                        v.visitCompoundStatement(s, i + 1);
+                    });
+                    result = Expression.combine(result, isv.result);
 
-            if (ids.foundReturn)
-                break;
+                    if (subseqIsVisited || ids.foundReturn)
+                        break;  // no need to visit statements[i+1 .. $].
+                    continue;
+                }
+
+                auto e = doInlineAs!Expression(sx, ids);
+                result = Expression.combine(result, e);
+                if (ids.foundReturn)
+                    break;
+            }
         }
 
         static if (asStatements)
+        {
             result = new CompoundStatement(s.loc, as);
+        }
     }
 
     override void visit(UnrolledLoopStatement s)
@@ -589,24 +589,53 @@ public:
 
     override void visit(IfStatement s)
     {
+        visitIfStatement(s, null);
+    }
+
+    extern (D) void visitIfStatement(IfStatement s, void delegate(DoInlineAs!Result) visitSubseq)
+    {
         assert(!s.prm);
         auto econd = doInlineAs!Expression(s.condition, ids);
         assert(econd);
 
         auto ifbody = doInlineAs!Result(s.ifbody, ids);
-        bool bodyReturn = ids.foundReturn;
-
+        bool thenReturn = ids.foundReturn;
         ids.foundReturn = false;
+
         auto elsebody = doInlineAs!Result(s.elsebody, ids);
+        bool elseReturn = ids.foundReturn;
+        ids.foundReturn = false;
 
         static if (asStatements)
         {
+            ids.foundReturn = thenReturn && elseReturn;
             result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody, s.endloc);
         }
         else
         {
             alias e1 = ifbody;
             alias e2 = elsebody;
+
+            if (thenReturn != elseReturn && visitSubseq)
+            {
+                scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
+                visitSubseq(v);
+                if (!thenReturn)
+                {
+                    e1 = Expression.combine(e1, v.result);
+                    thenReturn = v.ids.foundReturn;
+                }
+                else
+                {
+                    e2 = Expression.combine(e2, v.result);
+                    elseReturn = v.ids.foundReturn;
+                }
+                assert(thenReturn == elseReturn);
+            }
+            ids.foundReturn = thenReturn && elseReturn;
+
+            /* Rewrite as ?:
+             */
             if (e1 && e2)
             {
                 result = new CondExp(econd.loc, econd, e1, e2);
@@ -633,7 +662,6 @@ public:
                 result = econd;
             }
         }
-        ids.foundReturn = ids.foundReturn && bodyReturn;
     }
 
     override void visit(ReturnStatement s)
