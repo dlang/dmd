@@ -40,11 +40,6 @@ enum LOG = false;
 enum CANINLINE_LOG = false;
 enum EXPANDINLINE_LOG = false;
 
-/* ========== Compute cost of inlining =============== */
-
-/* Walk trees to determine if inlining can be done, and if so,
- * if it is too complex to be worth inlining or not.
- */
 enum COST_MAX = 250;
 enum STATEMENT_COST = 0x1000;
 enum STATEMENT_COST_MAX = 250 * STATEMENT_COST;
@@ -58,6 +53,12 @@ bool tooCostly(int cost)
     return ((cost & (STATEMENT_COST - 1)) >= COST_MAX);
 }
 
+/***********************************************************
+ * Compute cost of inlining.
+ *
+ * Walk trees to determine if inlining can be done, and if so,
+ * if it is too complex to be worth inlining or not.
+ */
 extern (C++) final class InlineCostVisitor : Visitor
 {
     alias visit = super.visit;
@@ -406,13 +407,14 @@ public:
     }
 }
 
-/* ======================== Perform the inlining ============================== */
-
 /***********************************************************
- * Inlining is done by:
- * o    Converting to an Expression
- * o    Copying the trees of the function to be inlined
- * o    Renaming the variables
+ * Represent a context to inline statements and expressions.
+ *
+ * Todo:
+ *  It would be better to make foundReturn an instance field of DoInlineAs visitor class,
+ *  like as DoInlineAs!Result.result field, because it's one another result of inlining.
+ *  The best would be to return a pair of result Expression and a bool value as foundReturn
+ *  from doInlineAs function.
  */
 final class InlineDoState
 {
@@ -432,6 +434,14 @@ final class InlineDoState
     }
 }
 
+/***********************************************************
+ * Perform the inlining from (Statement or Expression) to (Statement or Expression).
+ *
+ * Inlining is done by:
+ *  - Converting to an Expression
+ *  - Copying the trees of the function to be inlined
+ *  - Renaming the variables
+ */
 extern (C++) final class DoInlineAs(Result) : Visitor
 if (is(Result == Statement) || is(Result == Expression))
 {
@@ -1139,8 +1149,6 @@ Result doInlineAs(Result)(Expression e, InlineDoState ids)
     return v.result;
 }
 
-/* ========== Walk the parse trees, and inline expand functions ============= */
-
 /***********************************************************
  * Walk the trees, looking for functions to inline.
  * Inline any that can be.
@@ -1786,6 +1794,24 @@ public:
     }
 }
 
+/***********************************************************
+ * Test that `fd` can be inlined.
+ *
+ * Params:
+ *  hasthis = `true` if the function call has explicit 'this' expression.
+ *  hdrscan = `true` if the inline scan is for 'D header' content.
+ *  statementsToo = `true` if the function call is placed on ExpStatement.
+ *      It means more code-block dependent statements in fd body - ForStatement,
+ *      ThrowStatement, etc. can be inlined.
+ *
+ * Returns:
+ *  true if the function body can be expanded.
+ *
+ * Todo:
+ *  - Would be able to eliminate `hasthis` parameter, because semantic analysis
+ *    no longer accepts calls of contextful function without valid 'this'.
+ *  - Would be able to eliminate `hdrscan` parameter, because it's always false.
+ */
 bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
 {
     int cost;
@@ -1977,7 +2003,7 @@ Lno:
     return false;
 }
 
-/**************************
+/***********************************************************
  * Scan function implementations in Module m looking for functions that can be inlined,
  * and inline them in situ.
  *
@@ -2007,7 +2033,7 @@ public void inlineScanModule(Module m)
     m.semanticRun = PASSinlinedone;
 }
 
-/********************************************
+/***********************************************************
  * Expand a function call inline,
  *      ethis.fd(arguments)
  *
@@ -2321,8 +2347,12 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
     parent.inlineStatusExp = ILSuninitialized;
 }
 
-/****************************************************
+/***********************************************************
  * Perform the "inline copying" of a default argument for a function parameter.
+ *
+ * Todo:
+ *  The hack for bugzilla 4820 case is still questionable. Perhaps would have to
+ *  handle a delegate expression with 'null' context properly in front-end.
  */
 public Expression inlineCopy(Expression e, Scope* sc)
 {
@@ -2354,7 +2384,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
     return doInlineAs!Expression(e, ids);
 }
 
-/*************************************
+/***********************************************************
  * Determine if v is 'head const', meaning
  * that once it is initialized it is not changed
  * again.
@@ -2378,11 +2408,9 @@ public Expression inlineCopy(Expression e, Scope* sc)
  * Returns:
  *      true if v's initializer is the only value assigned to v
  */
-
 bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
 {
     if (!v.type.isMutable())
         return true;            // currently the only case handled atm
     return false;
 }
-
