@@ -21,6 +21,7 @@ import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
 import ddmd.tokens;
 import ddmd.utils;
 import ddmd.visitor;
@@ -29,7 +30,7 @@ import ddmd.id;
 
 /***********************************************************
  */
-extern (C++) abstract class Condition
+extern (C++) abstract class Condition : RootObject
 {
     Loc loc;
     // 0: not computed yet
@@ -144,6 +145,11 @@ extern (C++) final class DebugCondition : DVCondition
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override const(char)* toChars()
+    {
+        return ident ? ident.toChars() : "debug".ptr;
     }
 }
 
@@ -330,6 +336,11 @@ extern (C++) final class VersionCondition : DVCondition
     {
         v.visit(this);
     }
+
+    override const(char)* toChars()
+    {
+        return ident ? ident.toChars() : "version".ptr;
+    }
 }
 
 /***********************************************************
@@ -419,6 +430,11 @@ extern (C++) final class StaticIfCondition : Condition
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override const(char)* toChars()
+    {
+        return exp ? exp.toChars() : "static if".ptr;
     }
 }
 
