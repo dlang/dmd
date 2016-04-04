@@ -10,7 +10,7 @@
  * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC mars.d)
+ * Source:      $(DMDSRC _mars.d)
  */
 
 module ddmd.mars;
