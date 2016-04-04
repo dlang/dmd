@@ -9614,4 +9614,9 @@ public:
             *pn = n; // update index
         return result;
     }
+
+    override const(char)* toChars() const
+    {
+        return ident ? ident.toChars() : "__anonymous_param";
+    }
 }
