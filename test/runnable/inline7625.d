@@ -131,9 +131,67 @@ void test7625b()
 /*
 TEST_INLINED:
 ---
+inlined   inline7625.inlineMe15483a =>
+          inline7625.foo15483
+inlined   inline7625.inlineMe15483b =>
+          inline7625.foo15483
+---
+*/
+
+@safe pragma(inline, true)
+{
+    bool inlineMe15483a(bool left)
+    {
+        if (left)
+            return true;
+
+        return false;
+    }
+
+    bool inlineMe15483b(bool left)
+    {
+        if (left)
+            return true;
+
+        static if (false)
+        {
+            /*
+                Even though it does absolutely nothing,
+                the mere presence of this block prevents inlining
+                of this function.
+            */
+        }
+
+        return false;
+    }
+}
+
+int foo15483()
+{
+    //import std.stdio;
+
+    auto r1 = inlineMe15483a(true);
+    auto r2 = inlineMe15483b(true); // OK <- NG
+
+    return 128;
+}
+
+void test15483()
+{
+    // Prevent inlining of test function call.
+    auto fp = &foo15483;
+    assert(fp() == 128);
+}
+
+/***************************************************/
+/*
+TEST_INLINED:
+---
 inlined   inline7625.test7625a =>
           D main
 inlined   inline7625.test7625b =>
+          D main
+inlined   inline7625.test15483 =>
           D main
 ---
 */
@@ -142,4 +200,5 @@ void main()
 {
     test7625a();
     test7625b();
+    test15483();
 }
