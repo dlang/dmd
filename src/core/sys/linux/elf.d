@@ -823,6 +823,8 @@ enum AT_BASE_PLATFORM = 24;
 
 enum AT_RANDOM =       25;
 
+enum AT_HWCAP2 =       26;
+
 enum AT_EXECFN =       31;
 enum AT_SYSINFO =      32;
 enum AT_SYSINFO_EHDR = 33;

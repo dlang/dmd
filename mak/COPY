@@ -92,6 +92,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\tipc.d \
 	$(IMPDIR)\core\sys\linux\unistd.d \
 	\
+	$(IMPDIR)\core\sys\linux\sys\auxv.d \
 	$(IMPDIR)\core\sys\linux\sys\inotify.d \
 	$(IMPDIR)\core\sys\linux\sys\mman.d \
 	$(IMPDIR)\core\sys\linux\sys\signalfd.d \
