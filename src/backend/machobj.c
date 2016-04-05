@@ -971,7 +971,6 @@ void Obj::term(const char *objfilename)
                             int targ_address = SecHdrTab[SegData[s->Sseg]->SDshtidx].addr + s->Soffset;
                             int fixup_address = psechdr->addr + r->offset;
 
-                            int32_t *p = patchAddr(seg, r->offset);
                             srel.r_scattered = 1;
                             srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
                             srel.r_address = r->offset;
@@ -989,6 +988,7 @@ void Obj::term(const char *objfilename)
                             foffset += sizeof(srel);
                             ++nreloc;
 
+                            int32_t *p = patchAddr(seg, r->offset);
                             *p += targ_address - fixup_address;
                             continue;
                         }
@@ -1113,24 +1113,20 @@ void Obj::term(const char *objfilename)
                 }
                 else if (r->rtype == RELaddr && pseg->isCode())
                 {
-                    int32_t *p = NULL;
-                    int32_t *p64 = NULL;
-                    if (I64)
-                        p64 = patchAddr64(seg, r->offset);
-                    else
-                        p = patchAddr(seg, r->offset);
                     srel.r_scattered = 1;
 
                     srel.r_address = r->offset;
                     srel.r_length = 2;
                     if (I64)
                     {
+                        int32_t *p64 = patchAddr64(seg, r->offset);
                         srel.r_type = X86_64_RELOC_GOT;
                         srel.r_value = SecHdrTab64[SegData[r->targseg]->SDshtidx].addr + *p64;
                         //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].addr, *p, srel.r_value);
                     }
                     else
                     {
+                        int32_t *p = patchAddr(seg, r->offset);
                         srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
                         srel.r_value = SecHdrTab[SegData[r->targseg]->SDshtidx].addr + *p;
                         //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].addr, *p, srel.r_value);
@@ -1167,14 +1163,14 @@ void Obj::term(const char *objfilename)
                     // Recalc due to possible realloc of fobjbuf->buf
                     if (I64)
                     {
-                        p64 = patchAddr64(seg, r->offset);
+                        int32_t *p64 = patchAddr64(seg, r->offset);
                         //printf("address = x%x, p64 = %p *p64 = x%llx\n", r->offset, p64, *p64);
                         *p64 += SecHdrTab64[SegData[r->targseg]->SDshtidx].addr -
                               (SecHdrTab64[pseg->SDshtidx].addr + r->funcsym->Slocalgotoffset + NPTRSIZE);
                     }
                     else
                     {
-                        p = patchAddr(seg, r->offset);
+                        int32_t *p = patchAddr(seg, r->offset);
                         //printf("address = x%x, p = %p *p = x%x\n", r->offset, p, *p);
                         if (r->funcsym)
                             *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -

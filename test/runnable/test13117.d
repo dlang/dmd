@@ -8,6 +8,6 @@ int main()
     version (D_LP64)
         enum limit = 1_906_432;
     else
-        enum limit = 1_380_000;
+        enum limit = 1_900_000;
     return size > limit * 11 / 10;
 }
