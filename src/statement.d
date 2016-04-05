@@ -1203,6 +1203,25 @@ public:
                 }
             }
         }
+        else if (exp && exp.op == TOKcall)
+        {
+            auto ce = cast(CallExp)exp;
+            DotVarExp dve = void;
+            CommaExp coe = void;
+            if (ce.f &&
+                ce.f.isCtorDeclaration() &&
+                ce.e1.op == TOKdotvar &&
+                (dve = cast(DotVarExp)ce.e1).e1.op == TOKcomma &&
+                (coe = cast(CommaExp)dve.e1).e2.op == TOKvar)
+            {
+                auto v = (cast(VarExp)coe.e2).var.isVarDeclaration();
+                if (v && (v.storage_class & STCtemp) && v.needsScopeDtor())
+                {
+                    *sfinally = new DtorExpStatement(loc, v.edtor, v);
+                    v.noscope = true; // don't add in dtor again
+                }
+            }
+        }
         return this;
     }
 
