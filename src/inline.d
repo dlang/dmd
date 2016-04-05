@@ -424,6 +424,8 @@ final class InlineDoState
     Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol parent;     // new parent
     FuncDeclaration fd; // function being inlined (old parent)
+    bool discardReturn; // return value is unused
+
     // inline result
     bool foundReturn;
 
@@ -644,7 +646,16 @@ public:
         if (!exp) // Bugzilla 14560: 'return' must not leave in the expand result
             return;
         static if (asStatements)
-            result = new ReturnStatement(s.loc, exp);
+        {
+            if(ids.discardReturn)
+            {
+                exp = new CastExp(exp.loc, exp, Type.tvoid);
+                exp.type = Type.tvoid;
+                result = new ExpStatement(s.loc, exp);
+            }
+            else
+                result = new ReturnStatement(s.loc, exp);
+        }
         else
             result = exp;
     }
@@ -1881,7 +1892,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     if (fd.type)
     {
         assert(fd.type.ty == Tfunction);
-        TypeFunction tf = cast(TypeFunction)fd.type;
+        auto tf = cast(TypeFunction)fd.type;
 
         // no variadic parameter lists
         if (tf.varargs == 1)
@@ -1889,14 +1900,17 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
 
         /* Don't inline a function that returns non-void, but has
          * no return expression.
-         * No statement inlining for non-voids.
          */
         if (tf.next && tf.next.ty != Tvoid &&
-            (!(fd.hasReturnExp & 1) || statementsToo) &&
+            !(fd.hasReturnExp & 1) &&
             !hdrscan)
         {
             goto Lno;
         }
+
+        /* Inlining non-void return function and discarding return value
+         * is allowed. See: DoInlineState.discardReturn
+         */
 
         /* Bugzilla 14560: If fd returns void, all explicit `return;`s
          * must not appear in the expanded result.
@@ -2054,7 +2068,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
         Expression ethis, Expressions* arguments, bool asStatements,
         out Expression eresult, out Statement sresult, out bool again)
 {
-    TypeFunction tf = cast(TypeFunction)fd.type;
+    auto tf = cast(TypeFunction)fd.type;
     static if (LOG || CANINLINE_LOG || EXPANDINLINE_LOG)
         printf("FuncDeclaration.expandInline('%s')\n", fd.toChars());
     static if (EXPANDINLINE_LOG)
@@ -2123,6 +2137,11 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
 
             ids.from.push(fd.nrvo_var);
             ids.to.push(vret);
+        }
+
+        if (asStatements && tf.next && tf.next.ty != Tvoid)
+        {
+            ids.discardReturn = true;
         }
     }
 

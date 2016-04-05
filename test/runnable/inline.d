@@ -1065,6 +1065,18 @@ void test15296c()
 }
 
 /**********************************/
+// 15878
+
+pragma(inline, true)
+int foo15878() { return 0; }
+
+void test15878()
+{
+    int r = foo15878(); // OK
+    foo15878();         // OK <- NG
+}
+
+/**********************************/
 
 int main()
 {
@@ -1100,6 +1112,7 @@ int main()
     test15296();
     test15296b();
     test15296c();
+    test15878();
 
     printf("Success\n");
     return 0;
