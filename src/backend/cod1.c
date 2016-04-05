@@ -3492,9 +3492,17 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
     if (!usefuncarg)
     {
         // If stack needs cleanup
-        if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
-            (!typfunc(tym1) || config.exe == EX_WIN64) &&
-          !(s && s->Sflags & SFLexit))
+        if  (s && s->Sflags & SFLexit)
+        {
+            /* Function never returns, so don't need to generate stack
+             * cleanup code. But still need to log the stack cleanup
+             * as if it did return.
+             */
+            c = genadjesp(c,-(numpara + numalign));
+            stackpush -= numpara + numalign;
+        }
+        else if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
+            (!typfunc(tym1) || config.exe == EX_WIN64))
         {
             if (tym1 == TYhfunc)
             {   // Hidden parameter is popped off by the callee
@@ -3508,9 +3516,9 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         }
         else
         {
-            c = genadjesp(c,-numpara);
+            c = genadjesp(c,-numpara);  // popped off by the callee's 'RET numpara'
             stackpush -= numpara;
-            if (numalign)
+            if (numalign)               // callee doesn't know about alignment adjustment
                 c = genstackclean(c,numalign,retregs);
         }
     }
