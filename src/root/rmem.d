@@ -165,7 +165,22 @@ else
         goto L1;
     }
 
-    version(DigitalMars)
+    version (DigitalMars)
+    {
+        enum OVERRIDE_MEMALLOC = true;
+    }
+    else version (LDC)
+    {
+        // Memory allocation functions gained weak linkage when the @weak attribute was introduced.
+        import ldc.attributes;
+        enum OVERRIDE_MEMALLOC = is(typeof(ldc.attributes.weak));
+    }
+    else
+    {
+        enum OVERRIDE_MEMALLOC = false;
+    }
+
+    static if (OVERRIDE_MEMALLOC)
     {
         extern (C) void* _d_allocmemory(size_t m_size) nothrow
         {
