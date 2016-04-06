@@ -34,7 +34,7 @@ void dt2common(dt_t **pdt);
 
 struct DtBuilder
 {
-//  private:
+  private:
 
     dt_t *head;
     dt_t **pTail;
@@ -90,6 +90,16 @@ struct DtBuilder
         pTail = dtxoff(pTail, s, offset, ty);
     }
 
+    /****
+     * Like xoff(), but returns handle with which to patch 'offset' value.
+     */
+    dt_t *xoffpatch(Symbol *s, unsigned offset, tym_t ty)
+    {
+        dt_t **pxoff = pTail;
+        pTail = dtxoff(pTail, s, offset, ty);
+        return *pxoff;
+    }
+
     void xoff(Symbol *s, unsigned offset)
     {
         pTail = dtxoff(pTail, s, offset);
@@ -113,6 +123,16 @@ struct DtBuilder
     void repeat(dt_t *dt, size_t count)
     {
         pTail = dtrepeat(pTail, dt, count);
+    }
+
+    unsigned length()
+    {
+        return dt_size(head);
+    }
+
+    bool isZeroLength()
+    {
+        return head == NULL;
     }
 };
 

@@ -46,13 +46,13 @@ extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
-dt_t **TypeInfo_toDt(dt_t **pdt, TypeInfoDeclaration *d);
-dt_t **Initializer_toDt(Initializer *init, dt_t **pdt);
-dt_t **Type_toDt(Type *t, dt_t **pdt);
-dt_t **ClassDeclaration_toDt(ClassDeclaration *cd, dt_t **pdt);
-dt_t **StructDeclaration_toDt(StructDeclaration *sd, dt_t **pdt);
+void TypeInfo_toDt(DtBuilder& dtb, TypeInfoDeclaration *d);
+void Initializer_toDt(Initializer *init, DtBuilder& dtb);
+void Type_toDt(Type *t, DtBuilder& dtb);
+void ClassDeclaration_toDt(ClassDeclaration *cd, DtBuilder& dtb);
+void StructDeclaration_toDt(StructDeclaration *sd, DtBuilder& dtb);
 Symbol *toSymbol(Dsymbol *s);
-dt_t **Expression_toDt(Expression *e, dt_t **pdt);
+void Expression_toDt(Expression *e, DtBuilder& dtb);
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj);
 Symbol *toThunkSymbol(FuncDeclaration *fd, int offset);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
@@ -195,7 +195,7 @@ void genModuleInfo(Module *m)
     if (flags & MIname)
     {
         // Put out module name as a 0-terminated string, to save bytes
-        m->nameoffset = dt_size(dtb.head);
+        m->nameoffset = dtb.length();
         const char *name = m->toPrettyChars();
         m->namelen = strlen(name);
         dtb.nbytes(m->namelen + 1, name);
@@ -290,11 +290,15 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Generate static initializer
-            sinit->Sclass = scclass;
-            sinit->Sfl = FLdata;
-            ClassDeclaration_toDt(cd, &sinit->Sdt);
-            out_readonly(sinit);
-            outdata(sinit);
+            {
+                sinit->Sclass = scclass;
+                sinit->Sfl = FLdata;
+                DtBuilder dtb;
+                ClassDeclaration_toDt(cd, dtb);
+                sinit->Sdt = dtb.finish();
+                out_readonly(sinit);
+                outdata(sinit);
+            }
 
             //////////////////////////////////////////////
 
@@ -328,7 +332,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     //TypeInfo typeinfo;
                }
              */
-            dt_t *dt = NULL;
             unsigned offset = Target::classinfosize;    // must be ClassInfo.size
             if (Type::typeinfoclass)
             {
@@ -342,16 +345,18 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 }
             }
 
+            DtBuilder dtb;
+
             if (Type::typeinfoclass)
-                dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
+                dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
             else
-                dtsize_t(&dt, 0);                // BUG: should be an assert()
-            dtsize_t(&dt, 0);                    // monitor
+                dtb.size(0);                // BUG: should be an assert()
+            dtb.size(0);                    // monitor
 
             // initializer[]
             assert(cd->structsize >= 8 || (cd->cpp && cd->structsize >= 4));
-            dtsize_t(&dt, cd->structsize);           // size
-            dtxoff(&dt, sinit, 0, TYnptr);      // initializer
+            dtb.size(cd->structsize);           // size
+            dtb.xoff(sinit, 0, TYnptr);      // initializer
 
             // name[]
             const char *name = cd->ident->toChars();
@@ -361,40 +366,40 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 name = cd->toPrettyChars();
                 namelen = strlen(name);
             }
-            dt_t **pdtname = dtsize_t(&dt, namelen);
-            dtxoff(&dt, cd->csym, 0, TYnptr);
+            dtb.size(namelen);
+            dt_t *pdtname = dtb.xoffpatch(cd->csym, 0, TYnptr);
 
             // vtbl[]
-            dtsize_t(&dt, cd->vtbl.dim);
+            dtb.size(cd->vtbl.dim);
             if (cd->vtbl.dim)
-                dtxoff(&dt, cd->vtblsym, 0, TYnptr);
+                dtb.xoff(cd->vtblsym, 0, TYnptr);
             else
-                dtsize_t(&dt, 0);
+                dtb.size(0);
 
             // interfaces[]
-            dtsize_t(&dt, cd->vtblInterfaces->dim);
+            dtb.size(cd->vtblInterfaces->dim);
             if (cd->vtblInterfaces->dim)
-                dtxoff(&dt, cd->csym, offset, TYnptr);      // (*)
+                dtb.xoff(cd->csym, offset, TYnptr);      // (*)
             else
-                dtsize_t(&dt, 0);
+                dtb.size(0);
 
             // base
             if (cd->baseClass)
-                dtxoff(&dt, toSymbol(cd->baseClass), 0, TYnptr);
+                dtb.xoff(toSymbol(cd->baseClass), 0, TYnptr);
             else
-                dtsize_t(&dt, 0);
+                dtb.size(0);
 
             // destructor
             if (cd->dtor)
-                dtxoff(&dt, toSymbol(cd->dtor), 0, TYnptr);
+                dtb.xoff(toSymbol(cd->dtor), 0, TYnptr);
             else
-                dtsize_t(&dt, 0);
+                dtb.size(0);
 
             // invariant
             if (cd->inv)
-                dtxoff(&dt, toSymbol(cd->inv), 0, TYnptr);
+                dtb.xoff(toSymbol(cd->inv), 0, TYnptr);
             else
-                dtsize_t(&dt, 0);
+                dtb.size(0);
 
             // flags
             ClassFlags::Type flags = ClassFlags::hasOffTi;
@@ -429,34 +434,34 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
             flags |= ClassFlags::noPointers;
           L2:
-            dtsize_t(&dt, flags);
+            dtb.size(flags);
 
 
             // deallocator
             if (cd->aggDelete)
-                dtxoff(&dt, toSymbol(cd->aggDelete), 0, TYnptr);
+                dtb.xoff(toSymbol(cd->aggDelete), 0, TYnptr);
             else
-                dtsize_t(&dt, 0);
+                dtb.size(0);
 
             // offTi[]
-            dtsize_t(&dt, 0);
-            dtsize_t(&dt, 0);            // null for now, fix later
+            dtb.size(0);
+            dtb.size(0);            // null for now, fix later
 
             // defaultConstructor
             if (cd->defaultCtor && !(cd->defaultCtor->storage_class & STCdisable))
-                dtxoff(&dt, toSymbol(cd->defaultCtor), 0, TYnptr);
+                dtb.xoff(toSymbol(cd->defaultCtor), 0, TYnptr);
             else
-                dtsize_t(&dt, 0);
+                dtb.size(0);
 
             // xgetRTInfo
             if (cd->getRTInfo)
-                Expression_toDt(cd->getRTInfo, &dt);
+                Expression_toDt(cd->getRTInfo, dtb);
             else if (flags & ClassFlags::noPointers)
-                dtsize_t(&dt, 0);
+                dtb.size(0);
             else
-                dtsize_t(&dt, 1);
+                dtb.size(1);
 
-            //dtxoff(&dt, toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
+            //dtb.xoff(toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
 
             //////////////////////////////////////////////
 
@@ -481,13 +486,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 // Fill in vtbl[]
                 b->fillVtbl(cd, &b->vtbl, 1);
 
-                dtxoff(&dt, toSymbol(id), 0, TYnptr);         // ClassInfo
+                dtb.xoff(toSymbol(id), 0, TYnptr);         // ClassInfo
 
                 // vtbl[]
-                dtsize_t(&dt, id->vtbl.dim);
-                dtxoff(&dt, cd->csym, offset, TYnptr);
+                dtb.size(id->vtbl.dim);
+                dtb.xoff(cd->csym, offset, TYnptr);
 
-                dtsize_t(&dt, b->offset);                        // this offset
+                dtb.size(b->offset);                        // this offset
 
                 offset += id->vtbl.dim * Target::ptrsize;
             }
@@ -505,10 +510,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 if (id->vtblOffset())
                 {
                     // First entry is ClassInfo reference
-                    //dtxoff(&dt, toSymbol(id), 0, TYnptr);
+                    //dtb.xoff(toSymbol(id), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtxoff(&dt, cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
+                    dtb.xoff(cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
                     j = 1;
                 }
                 assert(id->vtbl.dim == b->vtbl.dim);
@@ -533,10 +538,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         {
                             offset -= fd->interfaceVirtual->offset;
                         }
-                        dtxoff(&dt, toThunkSymbol(fd, offset), 0, TYnptr);
+                        dtb.xoff(toThunkSymbol(fd, offset), 0, TYnptr);
                     }
                     else
-                        dtsize_t(&dt, 0);
+                        dtb.size(0);
                 }
             }
 
@@ -559,10 +564,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         if (id->vtblOffset())
                         {
                             // First entry is ClassInfo reference
-                            //dtxoff(&dt, toSymbol(id), 0, TYnptr);
+                            //dtb.xoff(toSymbol(id), 0, TYnptr);
 
                             // First entry is struct Interface reference
-                            dtxoff(&dt, toSymbol(pc), Target::classinfosize + k * (4 * Target::ptrsize), TYnptr);
+                            dtb.xoff(toSymbol(pc), Target::classinfosize + k * (4 * Target::ptrsize), TYnptr);
                             offset += Target::ptrsize;
                             j = 1;
                         }
@@ -578,10 +583,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                                 {
                                     offset -= fd->interfaceVirtual->offset;
                                 }
-                                dtxoff(&dt, toThunkSymbol(fd, offset), 0, TYnptr);
+                                dtb.xoff(toThunkSymbol(fd, offset), 0, TYnptr);
                             }
                             else
-                                dtsize_t(&dt, 0);
+                                dtb.size(0);
                             offset += Target::ptrsize;
                         }
                     }
@@ -590,13 +595,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             //////////////////////////////////////////////
 
-            dtpatchoffset(*pdtname, offset);
+            dtpatchoffset(pdtname, offset);
 
-            dtnbytes(&dt, namelen + 1, name);
+            dtb.nbytes(namelen + 1, name);
             const size_t namepad = -(namelen + 1) & (Target::ptrsize - 1); // align
-            dtnzeros(&dt, namepad);
+            dtb.nzeros(namepad);
 
-            cd->csym->Sdt = dt;
+            cd->csym->Sdt = dtb.finish();
             // ClassInfo cannot be const data, because we use the monitor on it
             outdata(cd->csym);
             if (cd->isExport())
@@ -658,7 +663,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 else
                     dtbv.size(0);
             }
-            if (!dtbv.head)
+            if (dtbv.isZeroLength())
             {
                 /* Someone made an 'extern (C++) class C { }' with no virtual functions.
                  * But making an empty vtbl[] causes linking problems, so make a dummy
@@ -735,31 +740,31 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     //TypeInfo typeinfo;
                }
              */
-            dt_t *dt = NULL;
+            DtBuilder dtb;
 
             if (Type::typeinfoclass)
-                dtxoff(&dt, toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
+                dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
             else
-                dtsize_t(&dt, 0);                // BUG: should be an assert()
-            dtsize_t(&dt, 0);                    // monitor
+                dtb.size(0);                // BUG: should be an assert()
+            dtb.size(0);                    // monitor
 
             // initializer[]
-            dtsize_t(&dt, 0);                    // size
-            dtsize_t(&dt, 0);                    // initializer
+            dtb.size(0);                    // size
+            dtb.size(0);                    // initializer
 
             // name[]
             const char *name = id->toPrettyChars();
             size_t namelen = strlen(name);
-            dt_t **pdtname = dtsize_t(&dt, namelen);
-            dtxoff(&dt, id->csym, 0, TYnptr);
+            dtb.size(namelen);
+            dt_t *pdtname = dtb.xoffpatch(id->csym, 0, TYnptr);
 
             // vtbl[]
-            dtsize_t(&dt, 0);
-            dtsize_t(&dt, 0);
+            dtb.size(0);
+            dtb.size(0);
 
             // (*vtblInterfaces)[]
             unsigned offset = Target::classinfosize;
-            dtsize_t(&dt, id->vtblInterfaces->dim);
+            dtb.size(id->vtblInterfaces->dim);
             if (id->vtblInterfaces->dim)
             {
                 if (Type::typeinfoclass)
@@ -770,49 +775,49 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         fatal();
                     }
                 }
-                dtxoff(&dt, id->csym, offset, TYnptr);      // (*)
+                dtb.xoff(id->csym, offset, TYnptr);      // (*)
             }
             else
             {
-                dtsize_t(&dt, 0);
+                dtb.size(0);
             }
 
             // base
             assert(!id->baseClass);
-            dtsize_t(&dt, 0);
+            dtb.size(0);
 
             // dtor
-            dtsize_t(&dt, 0);
+            dtb.size(0);
 
             // invariant
-            dtsize_t(&dt, 0);
+            dtb.size(0);
 
             // flags
             ClassFlags::Type flags = ClassFlags::hasOffTi | ClassFlags::hasTypeInfo;
             if (id->isCOMinterface()) flags |= ClassFlags::isCOMclass;
-            dtsize_t(&dt, flags);
+            dtb.size(flags);
 
             // deallocator
-            dtsize_t(&dt, 0);
+            dtb.size(0);
 
             // offTi[]
-            dtsize_t(&dt, 0);
-            dtsize_t(&dt, 0);            // null for now, fix later
+            dtb.size(0);
+            dtb.size(0);            // null for now, fix later
 
             // defaultConstructor
-            dtsize_t(&dt, 0);
+            dtb.size(0);
 
             // xgetMembers
-            //dtsize_t(&dt, 0);
+            //dtb.size(0);
 
             // xgetRTInfo
             // xgetRTInfo
             if (id->getRTInfo)
-                Expression_toDt(id->getRTInfo, &dt);
+                Expression_toDt(id->getRTInfo, dtb);
             else
-                dtsize_t(&dt, 0);       // no pointers
+                dtb.size(0);       // no pointers
 
-            //dtxoff(&dt, toSymbol(id->type->vtinfo), 0, TYnptr); // typeinfo
+            //dtb.xoff(toSymbol(id->type->vtinfo), 0, TYnptr); // typeinfo
 
             //////////////////////////////////////////////
 
@@ -826,25 +831,25 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 ClassDeclaration *base = b->sym;
 
                 // ClassInfo
-                dtxoff(&dt, toSymbol(base), 0, TYnptr);
+                dtb.xoff(toSymbol(base), 0, TYnptr);
 
                 // vtbl[]
-                dtsize_t(&dt, 0);
-                dtsize_t(&dt, 0);
+                dtb.size(0);
+                dtb.size(0);
 
                 // this offset
-                dtsize_t(&dt, b->offset);
+                dtb.size(b->offset);
             }
 
             //////////////////////////////////////////////
 
-            dtpatchoffset(*pdtname, offset);
+            dtpatchoffset(pdtname, offset);
 
-            dtnbytes(&dt, namelen + 1, name);
+            dtb.nbytes(namelen + 1, name);
             const size_t namepad =  -(namelen + 1) & (Target::ptrsize - 1); // align
-            dtnzeros(&dt, namepad);
+            dtb.nzeros(namepad);
 
-            id->csym->Sdt = dt;
+            id->csym->Sdt = dtb.finish();
             out_readonly(id->csym);
             outdata(id->csym);
             if (id->isExport())
@@ -888,7 +893,9 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 }
 
                 sd->sinit->Sfl = FLdata;
-                StructDeclaration_toDt(sd, &sd->sinit->Sdt);
+                DtBuilder dtb;
+                StructDeclaration_toDt(sd, dtb);
+                sd->sinit->Sdt = dtb.finish();
                 dt_optimize(sd->sinit->Sdt);
                 out_readonly(sd->sinit);    // put in read-only segment
                 outdata(sd->sinit);
@@ -962,7 +969,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             if (vd->_init)
             {
-                Initializer_toDt(vd->_init, &s->Sdt);
+                DtBuilder dtb;
+                Initializer_toDt(vd->_init, dtb);
 
                 // Look for static array that is block initialized
                 ExpInitializer *ie = vd->_init->isExpInitializer();
@@ -976,16 +984,18 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     size_t dim = ((TypeSArray *)tb)->dim->toInteger();
 
                     // Duplicate Sdt 'dim-1' times, as we already have the first one
-                    dt_t **pdt = &s->Sdt;
                     while (--dim > 0)
                     {
-                        pdt = Expression_toDt(ie->exp, pdt);
+                        Expression_toDt(ie->exp, dtb);
                     }
                 }
+                s->Sdt = dtb.finish();
             }
             else
             {
-                Type_toDt(vd->type, &s->Sdt);
+                DtBuilder dtb;
+                Type_toDt(vd->type, dtb);
+                s->Sdt = dtb.finish();
             }
             dt_optimize(s->Sdt);
 
@@ -1044,7 +1054,9 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 toInitializer(ed);
                 ed->sinit->Sclass = scclass;
                 ed->sinit->Sfl = FLdata;
-                Expression_toDt(tc->sym->defaultval, &ed->sinit->Sdt);
+                DtBuilder dtb;
+                Expression_toDt(tc->sym->defaultval, dtb);
+                ed->sinit->Sdt = dtb.finish();
                 outdata(ed->sinit);
             }
             ed->semanticRun = PASSobj;
@@ -1069,7 +1081,9 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             s->Sclass = SCcomdat;
             s->Sfl = FLdata;
 
-            TypeInfo_toDt(&s->Sdt, tid);
+            DtBuilder dtb;
+            TypeInfo_toDt(dtb, tid);
+            s->Sdt = dtb.finish();
 
             dt_optimize(s->Sdt);
 
