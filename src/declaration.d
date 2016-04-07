@@ -1198,7 +1198,7 @@ public:
                         Identifier id = Identifier.generateId("__tup");
                         auto ei = new ExpInitializer(e.loc, e);
                         auto v = new VarDeclaration(loc, null, id, ei);
-                        v.storage_class = STCtemp | STCctfe | STCref | STCforeach;
+                        v.storage_class = STCtemp | STCctfe | STCref;
                         auto ve = new VarExp(loc, v);
                         ve.type = e.type;
                         exps.setDim(1);
@@ -1379,7 +1379,7 @@ public:
                 }
             }
         }
-        if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref && ident != Id.This)
+        if ((storage_class & (STCref | STCparameter | STCforeach | STCtemp | STCresult)) == STCref && ident != Id.This)
         {
             error("only parameters or foreach declarations can be ref");
         }

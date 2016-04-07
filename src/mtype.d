@@ -7829,7 +7829,7 @@ public:
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e.loc, ev);
                 auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
+                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref : STCrvalue);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }
@@ -8610,7 +8610,7 @@ public:
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e.loc, ev);
                 auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref | STCforeach : STCrvalue);
+                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref : STCrvalue);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }

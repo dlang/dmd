@@ -2197,7 +2197,7 @@ extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
         Identifier id = Identifier.generateId("__dop");
         auto ei = new ExpInitializer(ue.loc, e1);
         auto v = new VarDeclaration(ue.loc, e1.type, id, ei);
-        v.storage_class |= STCtemp | STCctfe | (e1.isLvalue() ? STCforeach | STCref : STCrvalue);
+        v.storage_class |= STCtemp | STCctfe | (e1.isLvalue() ? STCref : STCrvalue);
         Expression de = new DeclarationExp(ue.loc, v);
         de = de.semantic(sc);
         e0 = Expression.combine(e0, de);
@@ -7754,7 +7754,7 @@ public:
             {
                 Identifier id = Identifier.generateId("__aakey");
                 auto vd = new VarDeclaration(ie.e2.loc, ie.e2.type, id, new ExpInitializer(ie.e2.loc, ie.e2));
-                vd.storage_class |= STCtemp | (ie.e2.isLvalue() ? STCref | STCforeach : STCrvalue);
+                vd.storage_class |= STCtemp | (ie.e2.isLvalue() ? STCref : STCrvalue);
                 de = Expression.combine(new DeclarationExp(ie.e2.loc, vd), de);
                 ie.e2 = new VarExp(ie.e2.loc, vd);
                 ie.e2.type = vd.type;
@@ -7771,7 +7771,7 @@ public:
         {
             Identifier id = Identifier.generateId("__aatmp");
             auto vd = new VarDeclaration(ie.e1.loc, ie.e1.type, id, new ExpInitializer(ie.e1.loc, ie.e1));
-            vd.storage_class |= STCtemp | (ie.e1.isLvalue() ? STCref | STCforeach : STCrvalue);
+            vd.storage_class |= STCtemp | (ie.e1.isLvalue() ? STCref : STCrvalue);
             de = Expression.combine(new DeclarationExp(ie.e1.loc, vd), de);
             ie.e1 = new VarExp(ie.e1.loc, vd);
             ie.e1.type = vd.type;
@@ -7779,7 +7779,7 @@ public:
         {
             Identifier id = Identifier.generateId("__aaval");
             auto vd = new VarDeclaration(be.loc, be.e2.type, id, new ExpInitializer(be.e2.loc, be.e2));
-            vd.storage_class |= STCtemp | (be.e2.isLvalue() ? STCref | STCforeach : STCrvalue);
+            vd.storage_class |= STCtemp | (be.e2.isLvalue() ? STCref : STCrvalue);
             de = Expression.combine(de, new DeclarationExp(be.e2.loc, vd));
             be.e2 = new VarExp(be.e2.loc, vd);
             be.e2.type = vd.type;
@@ -8606,7 +8606,7 @@ public:
                 Identifier id = Identifier.generateId("__tup");
                 auto ei = new ExpInitializer(e1.loc, e1);
                 auto v = new VarDeclaration(e1.loc, null, id, ei);
-                v.storage_class |= STCtemp | STCctfe | (e1.isLvalue() ? STCref | STCforeach : STCrvalue);
+                v.storage_class |= STCtemp | STCctfe | (e1.isLvalue() ? STCref : STCrvalue);
                 e0 = new DeclarationExp(e1.loc, v);
                 ev = new VarExp(e1.loc, v);
                 e0 = e0.semantic(sc);
@@ -11888,7 +11888,7 @@ public:
                 Identifier id = Identifier.generateId("__postref");
                 auto ei = new ExpInitializer(loc, e1);
                 auto v = new VarDeclaration(loc, e1.type, id, ei);
-                v.storage_class |= STCtemp | STCref | STCforeach;
+                v.storage_class |= STCtemp | STCref;
                 de = new DeclarationExp(loc, v);
                 e1 = new VarExp(e1.loc, v);
             }
@@ -12243,7 +12243,7 @@ public:
                 auto v = new VarDeclaration(e2x.loc, null, id, ei);
                 v.storage_class |= STCtemp | STCctfe;
                 if (e2x.isLvalue())
-                    v.storage_class = STCref | STCforeach;
+                    v.storage_class = STCref;
                 Expression e0 = new DeclarationExp(e2x.loc, v);
                 Expression ev = new VarExp(e2x.loc, v);
                 ev.type = e2x.type;
@@ -12524,7 +12524,7 @@ public:
                             Identifier.generateId("__aatmp"),
                             new ExpInitializer(loc, ie.e1));
                         v.storage_class |= STCtemp | STCctfe
-                                        | (ea.isLvalue() ? STCforeach | STCref : STCrvalue);
+                                        | (ea.isLvalue() ? STCref : STCrvalue);
                         v.semantic(sc);
                         e0 = combine(e0, new DeclarationExp(loc, v));
                         ea = new VarExp(loc, v);
@@ -12535,7 +12535,7 @@ public:
                             Identifier.generateId("__aakey"),
                             new ExpInitializer(loc, ie.e2));
                         v.storage_class |= STCtemp | STCctfe
-                                        | (ek.isLvalue() ? STCforeach | STCref : STCrvalue);
+                                        | (ek.isLvalue() ? STCref : STCrvalue);
                         v.semantic(sc);
                         e0 = combine(e0, new DeclarationExp(loc, v));
                         ek = new VarExp(loc, v);
@@ -12546,7 +12546,7 @@ public:
                             Identifier.generateId("__aaval"),
                             new ExpInitializer(loc, e2x));
                         v.storage_class |= STCtemp | STCctfe
-                                        | (ev.isLvalue() ? STCforeach | STCref : STCrvalue);
+                                        | (ev.isLvalue() ? STCref : STCrvalue);
                         v.semantic(sc);
                         e0 = combine(e0, new DeclarationExp(loc, v));
                         ev = new VarExp(loc, v);
@@ -13223,7 +13223,7 @@ public:
                 // Rewrite: ref tmp = e1; tmp = tmp ^^ e2
                 Identifier id = Identifier.generateId("__powtmp");
                 auto v = new VarDeclaration(e1.loc, e1.type, id, new ExpInitializer(loc, e1));
-                v.storage_class |= STCtemp | STCref | STCforeach;
+                v.storage_class |= STCtemp | STCref;
                 Expression de = new DeclarationExp(e1.loc, v);
                 auto ve = new VarExp(e1.loc, v);
                 e = new PowExp(loc, ve, e2);

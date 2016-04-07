@@ -2638,7 +2638,7 @@ public:
                     auto id = Identifier.generateId("__front");
                     auto ei = new ExpInitializer(loc, einit);
                     auto vd = new VarDeclaration(loc, null, id, ei);
-                    vd.storage_class |= STCtemp | STCctfe | STCref | STCforeach;
+                    vd.storage_class |= STCtemp | STCctfe | STCref;
 
                     makeargs = new ExpStatement(loc, vd);
 
