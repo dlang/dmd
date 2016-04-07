@@ -4828,7 +4828,11 @@ elem *toElem(Expression *e, IRState *irs)
                         // Construct: (n2x || ModuleArray(line))
                         Symbol *sassert = toModuleArray(irs->blx->module);
                         elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                            el_long(TYint, ie->loc.linnum));
+                            el_params(
+                                el_same(&elength),
+                                el_same(&n2),
+                                el_long(TYint, ie->loc.linnum),
+                                NULL));
                         eb = el_bin(OPoror,TYvoid,n2x,ea);
                     }
                 }

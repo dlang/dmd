@@ -543,7 +543,49 @@ static void genhelpers(Module *m)
             efilename = addressElem(efilename, Type::tstring, true);
 
         elem *e = el_var(getRtlsym(rt));
-        e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
+
+        if (i == 0)
+        {
+            // The range error gives additional information which we want
+            // to forward to druntime
+
+            Symbol *spi = symbol_calloc("idx");
+            spi->Stype = type_fake(TYsize_t);
+            spi->Stype->Tcount++;
+            spi->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+
+            fpr.alloc(spi->Stype, spi->Stype->Tty, &spi->Spreg, &spi->Spreg2);
+
+            spi->Sflags &= ~SFLspill;
+            spi->Sfl = (spi->Sclass == SCshadowreg) ? FLpara : FLfast;
+            cstate.CSpsymtab = &ma->Sfunc->Flocsym;
+            symbol_add(spi);
+
+            elem *eidx = el_var(spi);
+
+            Symbol *spl = symbol_calloc("len");
+            spl->Stype = type_fake(TYsize_t);
+            spl->Stype->Tcount++;
+            spl->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+
+            fpr.alloc(spl->Stype, spl->Stype->Tty, &spl->Spreg, &spl->Spreg2);
+
+            spl->Sflags &= ~SFLspill;
+            spl->Sfl = (spl->Sclass == SCshadowreg) ? FLpara : FLfast;
+            cstate.CSpsymtab = &ma->Sfunc->Flocsym;
+            symbol_add(spl);
+
+            elem *elen = el_var(spl);
+
+
+
+            e = el_bin(OPcall, TYvoid, e,
+                el_params(elen, eidx, elinnum, efilename, NULL));
+        }
+        else
+        {
+            e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
+        }
 
         block *b = block_calloc();
         b->BC = bc;
