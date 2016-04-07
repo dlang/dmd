@@ -2190,12 +2190,7 @@ extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
          *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
          *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
          */
-        auto v = copyToTemp(STCautoref, "__dop", e1);
-        Expression de = new DeclarationExp(ue.loc, v);
-        de = de.semantic(sc);
-        e0 = Expression.combine(e0, de);
-        e1 = new VarExp(ue.loc, v);
-        e1 = e1.semantic(sc);
+        e1 = extractSideEffect(sc, "__dop", e0, e1);
     }
     ue.e1 = e1;
     return e0;
@@ -7740,16 +7735,13 @@ public:
          *     auto ref __aaval = val;
          *     __aatmp[__aakey3][__aakey2][__aakey1] op= __aaval;  // assignment
          */
-        Expression de;
+        Expression e0;
         while (1)
         {
-            if (!isTrivialExp(ie.e2))
-            {
-                auto vd = copyToTemp(STCautoref, "__aakey", ie.e2);
-                de = Expression.combine(new DeclarationExp(ie.e2.loc, vd), de);
-                ie.e2 = new VarExp(ie.e2.loc, vd);
-                ie.e2.type = vd.type;
-            }
+            Expression de;
+            ie.e2 = extractSideEffect(sc, "__aakey", de, ie.e2);
+            e0 = Expression.combine(de, e0);
+
             Expression ie1 = ie.e1;
             if (ie1.op != TOKindex ||
                 (cast(IndexExp)ie1).e1.type.toBasetype().ty != Taarray)
@@ -7759,23 +7751,15 @@ public:
             ie = cast(IndexExp)ie1;
         }
         assert(ie.e1.type.toBasetype().ty == Taarray);
-        if (!isTrivialExp(ie.e1))
-        {
-            auto vd = copyToTemp(STCautoref, "__aatmp", ie.e1);
-            de = Expression.combine(new DeclarationExp(ie.e1.loc, vd), de);
-            ie.e1 = new VarExp(ie.e1.loc, vd);
-            ie.e1.type = vd.type;
-        }
-        {
-            auto vd = copyToTemp(STCautoref, "__aaval", be.e2);
-            de = Expression.combine(de, new DeclarationExp(be.e2.loc, vd));
-            be.e2 = new VarExp(be.e2.loc, vd);
-            be.e2.type = vd.type;
-        }
-        de = de.semantic(sc);
 
-        //printf("-de = %s, be = %s\n", de.toChars(), be.toChars());
-        return Expression.combine(de, be);
+        Expression de;
+        ie.e1 = extractSideEffect(sc, "__aatmp", de, ie.e1);
+        e0 = Expression.combine(de, e0);
+
+        be.e2 = extractSideEffect(sc, "__aaval", e0, be.e2, true);
+
+        //printf("-e0 = %s, be = %s\n", e0.toChars(), be.toChars());
+        return Expression.combine(e0, be);
     }
 
     override void accept(Visitor v)
@@ -8588,16 +8572,8 @@ public:
              * with:
              *  tuple(e1.a, e1.b, e1.c)
              */
-            Expression e0 = null;
-            Expression ev = e1;
-            if (sc.func && !isTrivialExp(e1))
-            {
-                auto v = copyToTemp(STCautoref, "__tup", e1);
-                e0 = new DeclarationExp(e1.loc, v);
-                ev = new VarExp(e1.loc, v);
-                e0 = e0.semantic(sc);
-                ev = ev.semantic(sc);
-            }
+            Expression e0;
+            Expression ev = extractSideEffect(sc, "__tup", e0, e1);
 
             auto exps = new Expressions();
             exps.reserve(tup.objects.dim);
@@ -12216,10 +12192,8 @@ public:
                 assert(e1.type.ty == Ttuple);
                 TypeTuple tt = cast(TypeTuple)e1.type;
 
-                auto v = copyToTemp(STCautoref, "__tup", e2x);
-                Expression e0 = new DeclarationExp(e2x.loc, v);
-                Expression ev = new VarExp(e2x.loc, v);
-                ev.type = e2x.type;
+                Expression e0;
+                Expression ev = extractSideEffect(sc, "__tup", e0, e2x);
 
                 auto iexps = new Expressions();
                 iexps.push(ev);
@@ -12486,34 +12460,11 @@ public:
                      */
                     IndexExp ie = cast(IndexExp)e1x;
                     Type t2 = e2x.type.toBasetype();
-                    Expression e0 = null;
 
-                    Expression ea = ie.e1;
-                    Expression ek = ie.e2;
-                    Expression ev = e2x;
-                    if (!isTrivialExp(ea))
-                    {
-                        auto v = copyToTemp(STCautoref, "__aatmp", ea);
-                        v.semantic(sc);
-                        e0 = combine(e0, new DeclarationExp(loc, v));
-                        ea = new VarExp(loc, v);
-                    }
-                    if (!isTrivialExp(ek))
-                    {
-                        auto v = copyToTemp(STCautoref, "__aakey", ek);
-                        v.semantic(sc);
-                        e0 = combine(e0, new DeclarationExp(loc, v));
-                        ek = new VarExp(loc, v);
-                    }
-                    if (!isTrivialExp(ev))
-                    {
-                        auto v = copyToTemp(STCautoref, "__aaval", ev);
-                        v.semantic(sc);
-                        e0 = combine(e0, new DeclarationExp(loc, v));
-                        ev = new VarExp(loc, v);
-                    }
-                    if (e0)
-                        e0 = e0.semantic(sc);
+                    Expression e0 = null;
+                    Expression ea = extractSideEffect(sc, "__aatmp", e0, ie.e1);
+                    Expression ek = extractSideEffect(sc, "__aakey", e0, ie.e2);
+                    Expression ev = extractSideEffect(sc, "__aaval", e0, e2x);
 
                     AssignExp ae = cast(AssignExp)copy();
                     ae.e1 = new IndexExp(loc, ea, ek);

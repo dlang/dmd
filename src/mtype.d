@@ -7823,12 +7823,8 @@ public:
 
             Expression e0;
             Expression ev = e.op == TOKtype ? null : e;
-            if (sc.func && ev && !isTrivialExp(ev))
-            {
-                auto vd = copyToTemp(STCautoref, "__tup", ev);
-                e0 = new DeclarationExp(e.loc, vd);
-                ev = new VarExp(e.loc, vd);
-            }
+            if (ev)
+                ev = extractSideEffect(sc, "__tup", e0, ev);
 
             auto exps = new Expressions();
             exps.reserve(sym.fields.dim);
@@ -8604,12 +8600,8 @@ public:
 
             Expression e0;
             Expression ev = e.op == TOKtype ? null : e;
-            if (sc.func && ev && !isTrivialExp(ev))
-            {
-                auto vd = copyToTemp(STCautoref, "__tup", ev);
-                e0 = new DeclarationExp(e.loc, vd);
-                ev = new VarExp(e.loc, vd);
-            }
+            if (ev)
+                ev = extractSideEffect(sc, "__tup", e0, ev);
 
             auto exps = new Expressions();
             exps.reserve(sym.fields.dim);
