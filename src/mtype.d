@@ -7820,19 +7820,18 @@ public:
              */
             e = e.semantic(sc); // do this before turning on noaccesscheck
             e.type.size(); // do semantic of type
-            auto exps = new Expressions();
-            exps.reserve(sym.fields.dim);
-            Expression e0 = null;
+
+            Expression e0;
             Expression ev = e.op == TOKtype ? null : e;
             if (sc.func && ev && !isTrivialExp(ev))
             {
-                Identifier id = Identifier.generateId("__tup");
-                auto ei = new ExpInitializer(e.loc, ev);
-                auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref : STCrvalue);
+                auto vd = copyToTemp(STCautoref, "__tup", ev);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }
+
+            auto exps = new Expressions();
+            exps.reserve(sym.fields.dim);
             for (size_t i = 0; i < sym.fields.dim; i++)
             {
                 VarDeclaration v = sym.fields[i];
@@ -7846,6 +7845,7 @@ public:
                 }
                 exps.push(ex);
             }
+
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
             sc2.flags = sc.flags | SCOPEnoaccesscheck;
@@ -8601,19 +8601,18 @@ public:
              */
             // Detect that error, and at least try to run semantic() on it if we can
             sym.size(e.loc);
-            auto exps = new Expressions();
-            exps.reserve(sym.fields.dim);
-            Expression e0 = null;
+
+            Expression e0;
             Expression ev = e.op == TOKtype ? null : e;
             if (sc.func && ev && !isTrivialExp(ev))
             {
-                Identifier id = Identifier.generateId("__tup");
-                auto ei = new ExpInitializer(e.loc, ev);
-                auto vd = new VarDeclaration(e.loc, null, id, ei);
-                vd.storage_class |= STCtemp | STCctfe | (ev.isLvalue() ? STCref : STCrvalue);
+                auto vd = copyToTemp(STCautoref, "__tup", ev);
                 e0 = new DeclarationExp(e.loc, vd);
                 ev = new VarExp(e.loc, vd);
             }
+
+            auto exps = new Expressions();
+            exps.reserve(sym.fields.dim);
             for (size_t i = 0; i < sym.fields.dim; i++)
             {
                 VarDeclaration v = sym.fields[i];
@@ -8630,6 +8629,7 @@ public:
                 }
                 exps.push(ex);
             }
+
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
             sc2.flags = sc.flags | SCOPEnoaccesscheck;

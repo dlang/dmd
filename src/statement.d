@@ -2083,8 +2083,7 @@ public:
             aggr.op != TOKtype && !aggr.isLvalue())
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
-            vinit = new VarDeclaration(loc, aggr.type, Identifier.generateId("__aggr"), new ExpInitializer(loc, aggr));
-            vinit.storage_class |= STCtemp;
+            vinit = copyToTemp(STCrvalue, "__aggr", aggr);
             vinit.semantic(sc);
             aggr = new VarExp(aggr.loc, vinit);
         }
@@ -2601,9 +2600,7 @@ public:
                 }
                 else
                 {
-                    auto rid = Identifier.generateId("__r");
-                    r = new VarDeclaration(loc, null, rid, new ExpInitializer(loc, aggr));
-                    r.storage_class |= STCtemp;
+                    r = copyToTemp(0, "__r", aggr);
                     _init = new ExpStatement(loc, r);
                     if (vinit)
                         _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
@@ -2635,11 +2632,7 @@ public:
                 }
                 else
                 {
-                    auto id = Identifier.generateId("__front");
-                    auto ei = new ExpInitializer(loc, einit);
-                    auto vd = new VarDeclaration(loc, null, id, ei);
-                    vd.storage_class |= STCtemp | STCctfe | STCref;
-
+                    auto vd = copyToTemp(STCref, "__front", einit);
                     makeargs = new ExpStatement(loc, vd);
 
                     Type tfront;
@@ -4869,10 +4862,7 @@ public:
                  *  _d_monitorenter(tmp);
                  *  try { body } finally { _d_monitorexit(tmp); }
                  */
-                Identifier id = Identifier.generateId("__sync");
-                auto ie = new ExpInitializer(loc, exp);
-                auto tmp = new VarDeclaration(loc, exp.type, id, ie);
-                tmp.storage_class |= STCtemp;
+                auto tmp = copyToTemp(0, "__sync", exp);
 
                 auto cs = new Statements();
                 cs.push(new ExpStatement(loc, tmp));
@@ -4903,8 +4893,8 @@ public:
              *  _d_criticalenter(critsec.ptr);
              *  try { body } finally { _d_criticalexit(critsec.ptr); }
              */
-            Identifier id = Identifier.generateId("__critsec");
-            Type t = new TypeSArray(Type.tint8, new IntegerExp(Target.ptrsize + Target.critsecsize()));
+            auto id = Identifier.generateId("__critsec");
+            auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
             auto tmp = new VarDeclaration(loc, t, id, null);
             tmp.storage_class |= STCtemp | STCgshared | STCstatic;
 
@@ -5045,11 +5035,9 @@ public:
                      *   }
                      * }
                      */
-                    _init = new ExpInitializer(loc, exp);
-                    wthis = new VarDeclaration(loc, exp.type, Identifier.generateId("__withtmp"), _init);
-                    wthis.storage_class |= STCtemp;
-                    auto es = new ExpStatement(loc, wthis);
-                    exp = new VarExp(loc, wthis);
+                    auto tmp = copyToTemp(0, "__withtmp", exp);
+                    auto es = new ExpStatement(loc, tmp);
+                    this.exp = new VarExp(loc, tmp);
                     Statement ss = new ScopeStatement(loc, new CompoundStatement(loc, es, this));
                     return ss.semantic(sc);
                 }
@@ -5456,10 +5444,7 @@ public:
                  *  sexception:    x = true;
                  *  sfinally: if (!x) statement;
                  */
-                Identifier id = Identifier.generateId("__os");
-                auto ie = new ExpInitializer(loc, new IntegerExp(Loc(), 0, Type.tbool));
-                auto v = new VarDeclaration(loc, Type.tbool, id, ie);
-                v.storage_class |= STCtemp;
+                auto v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type.tbool));
                 *sentry = new ExpStatement(loc, v);
                 Expression e = new IntegerExp(Loc(), 1, Type.tbool);
                 e = new AssignExp(Loc(), new VarExp(Loc(), v), e);

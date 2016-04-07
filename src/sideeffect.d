@@ -13,6 +13,8 @@ import ddmd.declaration;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.identifier;
+import ddmd.init;
 import ddmd.mtype;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -345,4 +347,36 @@ extern (C++) void discardValue(Expression e)
         break;
     }
     e.error("%s has no effect in expression (%s)", Token.toChars(e.op), e.toChars());
+}
+
+/**************************************************
+ * Build a temporary variable to copy the value of e into.
+ * Params:
+ *  stc = storage classes will be added to the made temporary variable
+ *  name = name for temporary variable
+ *  e = original expression
+ * Returns:
+ *  Newly created temporary variable.
+ *
+ * If `STCautoref` is in stc, it's replaced with `STCref` or `STCrvalue`,
+ * depending on the e's lvalue-ness.
+ */
+VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
+{
+    assert(name && name[0] == '_' && name[1] == '_');
+    auto id = Identifier.generateId(name);
+    auto ez = new ExpInitializer(e.loc, e);
+    auto vd = new VarDeclaration(e.loc, e.type, id, ez);
+    vd.storage_class = stc;
+    vd.storage_class |= STCtemp;
+    vd.storage_class |= STCctfe; // temporary is always CTFEable
+    if (stc & STCautoref)
+    {
+        vd.storage_class &= ~STCautoref;
+        if (e.isLvalue())
+            vd.storage_class |= STCref;
+        else
+            vd.storage_class |= STCrvalue;
+    }
+    return vd;
 }
