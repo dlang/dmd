@@ -300,7 +300,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 case Tfloat32:
                 case Timaginary32:
                 {
-                    d_float32 fvalue = e->value;
+                    float fvalue = e->value;
                     pdt = dtnbytes(pdt,4,(char *)&fvalue);
                     break;
                 }
@@ -308,7 +308,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 case Tfloat64:
                 case Timaginary64:
                 {
-                    d_float64 dvalue = e->value;
+                    double dvalue = e->value;
                     pdt = dtnbytes(pdt,8,(char *)&dvalue);
                     break;
                 }
@@ -316,7 +316,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
                 case Tfloat80:
                 case Timaginary80:
                 {
-                    d_float80 evalue = e->value;
+                    longdouble evalue = e->value;
                     pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
                     pdt = dtnbytes(pdt,Target::realpad,zeropad);
                     assert(Target::realpad <= sizeof(zeropad));
@@ -339,7 +339,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
             {
                 case Tcomplex32:
                 {
-                    d_float32 fvalue = creall(e->value);
+                    float fvalue = creall(e->value);
                     pdt = dtnbytes(pdt,4,(char *)&fvalue);
                     fvalue = cimagl(e->value);
                     pdt = dtnbytes(pdt,4,(char *)&fvalue);
@@ -348,7 +348,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
                 case Tcomplex64:
                 {
-                    d_float64 dvalue = creall(e->value);
+                    double dvalue = creall(e->value);
                     pdt = dtnbytes(pdt,8,(char *)&dvalue);
                     dvalue = cimagl(e->value);
                     pdt = dtnbytes(pdt,8,(char *)&dvalue);
@@ -357,7 +357,7 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt)
 
                 case Tcomplex80:
                 {
-                    d_float80 evalue = creall(e->value);
+                    longdouble evalue = creall(e->value);
                     pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
                     pdt = dtnbytes(pdt,Target::realpad,zeropad);
                     evalue = cimagl(e->value);

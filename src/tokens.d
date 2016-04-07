@@ -559,7 +559,7 @@ extern (C++) struct Token
         d_int64 int64value;
         d_uns64 uns64value;
         // Floats
-        d_float80 float80value;
+        longdouble float80value;
 
         struct
         {

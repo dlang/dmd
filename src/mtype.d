@@ -3477,7 +3477,7 @@ public:
     {
         Expression e;
         dinteger_t ivalue;
-        d_float80 fvalue;
+        longdouble fvalue;
         //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
         if (ident == Id.max)
         {

@@ -798,7 +798,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     // https://issues.dlang.org/show_bug.cgi?id=14952
                     // This can be removed once compiling with DMD 2.068 or
                     // older is no longer supported.
-                    d_float80 r = e.e2.toReal();
+                    longdouble r = e.e2.toReal();
                     if (r == cast(sinteger_t)r)
                         e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
                 }
