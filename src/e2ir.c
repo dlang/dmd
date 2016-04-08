@@ -115,10 +115,11 @@ elem *useOPstrpar(elem *e)
     return e;
 }
 
+void extractLast2(Expressions* exps, Expression **pe0);
+
 /************************************
  * Call a function.
  */
-
 elem *callfunc(Loc loc,
         IRState *irs,
         int directcall,         // 1: don't do virtual call
@@ -181,19 +182,10 @@ elem *callfunc(Loc loc,
     op = fd ? intrinsic_op(fd) : -1;
     if (arguments)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {
-        Lagain:
-            Expression *arg = (*arguments)[i];
-            assert(arg->op != TOKtuple);
-            if (arg->op == TOKcomma)
-            {
-                CommaExp *ce = (CommaExp *)arg;
-                eside = el_combine(eside, toElem(ce->e1, irs));
-                (*arguments)[i] = ce->e2;
-                goto Lagain;
-            }
-        }
+        Expression *e0 = NULL;
+        extractLast2(arguments, &e0);
+        if (e0)
+            eside = el_combine(eside, toElem(e0, irs));
 
         // j=1 if _arguments[] is first argument
         int j = (tf->linkage == LINKd && tf->varargs == 1);

@@ -1177,6 +1177,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         localgot = NULL;
 
         Statement *sbody = fd->fbody;
+        //printf("toObjFile('%s') sbody = %s\n", fd->toPrettyChars(), sbody->toChars());
 
         Blockx bx;
         memset(&bx,0,sizeof(bx));

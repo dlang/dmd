@@ -9,6 +9,7 @@
 module ddmd.sideeffect;
 
 import ddmd.apply;
+import ddmd.arraytypes;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.expression;
@@ -404,4 +405,155 @@ Expression extractSideEffect(Scope* sc, const char* name,
 
     e0 = Expression.combine(e0, de);
     return ve;
+}
+
+/**************************************************
+ * This is similar to Expression.extractLast, but does more drastic rewriting.
+ * It's not good to use this in front-end, because some specific AST forms
+ * within CommaExp are assumed.
+ */
+extern (C++) void extractLast2(Expressions* exps, Expression* pe0)
+{
+    if (!exps)
+        return;
+    for (size_t i = 0; i < exps.dim; i++)
+    {
+        (*exps)[i] = extractLast2((*exps)[i], pe0);
+    }
+}
+
+/// ditto
+extern (C++) Expression extractLast2(Expression e, Expression* pe0)
+{
+    extern (C++) final class CommaVisitor : Visitor
+    {
+        alias visit = super.visit;
+    public:
+        Expression e0;
+        Expression result;      // the result that comma part are stripped
+
+        this(Expression e0)
+        {
+            this.e0 = e0;
+            result = null;
+        }
+
+        override void visit(Expression e)
+        {
+            result = e;
+        }
+
+        override void visit(NewExp e)
+        {
+            e.thisexp = extractLast2(e.thisexp, &e0);
+            extractLast2(e.newargs, &e0);
+            extractLast2(e.arguments, &e0);
+            result = e;
+        }
+
+        override void visit(NewAnonClassExp e)
+        {
+            assert(0);
+        }
+
+        override void visit(UnaExp e)
+        {
+            e.e1 = extractLast2(e.e1, &e0);
+            result = e;
+        }
+
+        override void visit(BinExp e)
+        {
+            e.e1 = extractLast2(e.e1, &e0);
+            e.e2 = extractLast2(e.e2, &e0);
+            result = e;
+        }
+
+        override void visit(AssertExp e)
+        {
+            e.e1 = extractLast2(e.e1, &e0);
+            e.msg = extractLast2(e.msg, &e0);
+            result = e;
+        }
+
+        override void visit(CallExp e)
+        {
+            e.e1 = extractLast2(e.e1, &e0);
+            extractLast2(e.arguments, &e0);
+            result = e;
+        }
+
+        override void visit(ArrayExp e)
+        {
+            e.e1 = extractLast2(e.e1, &e0);
+            extractLast2(e.arguments, &e0);
+            result = e;
+        }
+
+        override void visit(SliceExp e)
+        {
+            e.e1 = extractLast2(e.e1, &e0);
+            e.lwr = extractLast2(e.lwr, &e0);
+            e.upr = extractLast2(e.upr, &e0);
+            result = e;
+        }
+
+        override void visit(ArrayLiteralExp e)
+        {
+            extractLast2(e.elements, &e0);
+            result = e;
+        }
+
+        override void visit(AssocArrayLiteralExp e)
+        {
+            extractLast2(e.keys, &e0);
+            extractLast2(e.values, &e0);
+            result = e;
+        }
+
+        override void visit(StructLiteralExp e)
+        {
+            if (!(e.stageflags & stageApply))
+            {
+                int old = e.stageflags;
+                e.stageflags |= stageApply;
+                extractLast2(e.elements, &e0);
+                e.stageflags = old;
+            }
+            result = e;
+        }
+
+        override void visit(TupleExp e)
+        {
+            e0 = Expression.combine(e0, e.e0);
+            e.e0 = null;
+            extractLast2(e.exps, &e0);
+            result = e;
+        }
+
+        override void visit(CondExp e)
+        {
+            e.econd = extractLast2(e.econd, &e0);
+            // Either e.e1 or e.e2 is conditionally evaluated,
+            // so don't extract comma lefts from them.
+            result = e;
+        }
+
+        override void visit(CommaExp e)
+        {
+            e0 = Expression.combine(e0, e.e1);
+            result = extractLast2(e.e2, &e0);
+        }
+    }
+
+    assert(pe0);
+
+    if (!e)
+        return e;
+
+    scope v = new CommaVisitor(*pe0);
+    e.accept(v);
+    *pe0 = v.e0;
+    assert(v.result);
+    return v.result;
 }
