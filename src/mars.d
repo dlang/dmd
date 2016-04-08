@@ -327,11 +327,6 @@ private int tryMain(size_t argc, const(char)** argv)
 {
     Strings files;
     Strings libmodules;
-    bool setdebuglib = false;
-    static if (TARGET_WINDOS)
-    {
-        bool setdefaultlib = false;
-    }
     global._init();
     debug
     {
