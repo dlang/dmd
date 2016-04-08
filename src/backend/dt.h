@@ -10,18 +10,6 @@ typedef unsigned        tym_t;          // data type big enough for type masks
 void dt_free(dt_t *);
 void dt_term();
 
-dt_t **dtnbytes(dt_t **,unsigned,const char *);
-dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
-dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
-dt_t **dtdword(dt_t **, int value);
-dt_t **dtsize_t(dt_t **, unsigned long long value);
-dt_t **dtnzeros(dt_t **pdtend,unsigned size);
-dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset,tym_t ty);
-dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset);
-dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset);
-dt_t **dtcoff(dt_t **pdtend,unsigned offset);
-dt_t ** dtcat(dt_t **pdtend,dt_t *dt);
-dt_t ** dtrepeat(dt_t **pdtend, dt_t *dt, size_t count);
 void dtpatchoffset(dt_t *dt, unsigned offset);
 void dt_optimize(dt_t *dt);
 void dtsymsize(Symbol *);
@@ -41,99 +29,23 @@ struct DtBuilder
 
   public:
 
-    DtBuilder()
-    {
-        head = NULL;
-        pTail = &head;
-    }
-
-    /*************************
-     * Finish and return completed data structure.
-     */
-    dt_t *finish()
-    {
-        return head;
-    }
-
-    void nbytes(unsigned size, const char *ptr)
-    {
-        pTail = dtnbytes(pTail, size, ptr);
-    }
-
-    void abytes(tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
-    {
-        pTail = dtabytes(pTail, ty, offset, size, ptr, nzeros);
-    }
-
-    void abytes(unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
-    {
-        pTail = dtabytes(pTail, offset, size, ptr, nzeros);
-    }
-
-    void dword(int value)
-    {
-        pTail = dtdword(pTail, value);
-    }
-
-    void size(unsigned long long value)
-    {
-        pTail = dtsize_t(pTail, value);
-    }
-
-    void nzeros(unsigned size)
-    {
-        pTail = dtnzeros(pTail, size);
-    }
-
-    void xoff(Symbol *s, unsigned offset, tym_t ty)
-    {
-        pTail = dtxoff(pTail, s, offset, ty);
-    }
-
-    /****
-     * Like xoff(), but returns handle with which to patch 'offset' value.
-     */
-    dt_t *xoffpatch(Symbol *s, unsigned offset, tym_t ty)
-    {
-        dt_t **pxoff = pTail;
-        pTail = dtxoff(pTail, s, offset, ty);
-        return *pxoff;
-    }
-
-    void xoff(Symbol *s, unsigned offset)
-    {
-        pTail = dtxoff(pTail, s, offset);
-    }
-
-    void dtoff(dt_t *dt, unsigned offset)
-    {
-        pTail = dtdtoff(pTail, dt, offset);
-    }
-
-    void coff(unsigned offset)
-    {
-        pTail = dtcoff(pTail, offset);
-    }
-
-    void cat(dt_t *dt)
-    {
-        pTail = dtcat(pTail, dt);
-    }
-
-    void repeat(dt_t *dt, size_t count)
-    {
-        pTail = dtrepeat(pTail, dt, count);
-    }
-
-    unsigned length()
-    {
-        return dt_size(head);
-    }
-
-    bool isZeroLength()
-    {
-        return head == NULL;
-    }
+    DtBuilder();
+    dt_t *finish();
+    void nbytes(unsigned size, const char *ptr);
+    void abytes(tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
+    void abytes(unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
+    void dword(int value);
+    void size(unsigned long long value);
+    void nzeros(unsigned size);
+    void xoff(Symbol *s, unsigned offset, tym_t ty);
+    dt_t *xoffpatch(Symbol *s, unsigned offset, tym_t ty);
+    void xoff(Symbol *s, unsigned offset);
+    void dtoff(dt_t *dt, unsigned offset);
+    void coff(unsigned offset);
+    void cat(dt_t *dt);
+    void repeat(dt_t *dt, size_t count);
+    unsigned length();
+    bool isZeroLength();
 };
 
 #endif /* DT_H */
