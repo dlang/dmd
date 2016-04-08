@@ -27,19 +27,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 static dt_t *dt_freelist;
 
-static dt_t **dtnbytes(dt_t **,unsigned,const char *);
-static dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
-static dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
-static dt_t **dtdword(dt_t **, int value);
-static dt_t **dtsize_t(dt_t **, unsigned long long value);
-static dt_t **dtnzeros(dt_t **pdtend,unsigned size);
-static dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset,tym_t ty);
-static dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset);
-static dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset);
-static dt_t **dtcoff(dt_t **pdtend,unsigned offset);
-static dt_t ** dtcat(dt_t **pdtend,dt_t *dt);
-static dt_t ** dtrepeat(dt_t **pdtend, dt_t *dt, size_t count);
-
 /**********************************************
  * Allocate a data definition struct.
  */
@@ -121,29 +108,6 @@ dt_t **dtend(dt_t **pdtend)
     return pdtend;
 }
 
-/**********************
- * Construct a DT_azeros record, and return it.
- * Increment dsout.
- */
-
-dt_t **dtnzeros(dt_t **pdtend,unsigned size)
-{   dt_t *dt;
-
-    //printf("dtnzeros(x%x)\n",size);
-    assert((long) size >= 0);
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-    if (size)
-    {   dt = dt_calloc(DT_azeros);
-        dt->DTazeros = size;
-        *pdtend = dt;
-        pdtend = &dt->DTnext;
-#if SCPP
-        dsout += size;
-#endif
-    }
-    return pdtend;
-}
 
 /**********************
  * Construct a DTsymsize record.
@@ -155,274 +119,12 @@ void dtsymsize(symbol *s)
     s->Sdt = dt_calloc(DT_symsize);
 }
 
-/**********************
- * Construct a DTnbytes record, and return it.
- */
-
-dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
-{   dt_t *dt;
-
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-    if (size)
-    {
-        if (size < DTibytesMax)
-        {   dt = dt_calloc(DT_ibytes);
-            dt->DTn = size;
-            memcpy(dt->DTdata,ptr,size);
-        }
-        else
-        {
-            dt = dt_calloc(DT_nbytes);
-            dt->DTnbytes = size;
-            dt->DTpbytes = (char *) MEM_PH_MALLOC(size);
-            memcpy(dt->DTpbytes,ptr,size);
-        }
-        *pdtend = dt;
-        pdtend = &dt->DTnext;
-    }
-    return pdtend;
-}
-
-/**********************
- * Construct a DTabytes record, and return it.
- */
-
-dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
-{
-    return dtabytes(pdtend, TYnptr, offset, size, ptr, nzeros);
-}
-
-dt_t **dtabytes(dt_t **pdtend, tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
-{   dt_t *dt;
-
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-
-    dt = dt_calloc(DT_abytes);
-    dt->DTnbytes = size + nzeros;
-    dt->DTpbytes = (char *) MEM_PH_MALLOC(size + nzeros);
-    dt->Dty = ty;
-    dt->DTabytes = offset;
-    memcpy(dt->DTpbytes,ptr,size);
-    if (nzeros)
-        memset(dt->DTpbytes + size, 0, nzeros);
-
-    *pdtend = dt;
-    pdtend = &dt->DTnext;
-    return pdtend;
-}
-
-/**********************
- * Construct a DTibytes record, and return it.
- */
-
-dt_t ** dtdword(dt_t **pdtend, int value)
-{   dt_t *dt;
-
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-    dt = dt_calloc(DT_ibytes);
-    dt->DTn = 4;
-
-    union { char* cp; int* lp; } u;
-    u.cp = dt->DTdata;
-    *u.lp = value;
-
-    *pdtend = dt;
-    pdtend = &dt->DTnext;
-    return pdtend;
-}
-
-dt_t ** dtsize_t(dt_t **pdtend, unsigned long long value)
-{   dt_t *dt;
-
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-    dt = dt_calloc(DT_ibytes);
-    dt->DTn = NPTRSIZE;
-
-    union { char* cp; int* lp; } u;
-    u.cp = dt->DTdata;
-    *u.lp = value;
-    if (NPTRSIZE == 8)
-        u.lp[1] = value >> 32;
-
-    *pdtend = dt;
-    pdtend = &dt->DTnext;
-    return pdtend;
-}
-
-/**********************
- * Concatenate two dt_t's.
- */
-
-dt_t ** dtcat(dt_t **pdtend,dt_t *dt)
-{
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-    *pdtend = dt;
-    pdtend = &dt->DTnext;
-    return pdtend;
-}
-
-/**********************
- * Construct a DTcoff record, and return it.
- */
-
-dt_t ** dtcoff(dt_t **pdtend,unsigned offset)
-{   dt_t *dt;
-
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-    dt = dt_calloc(DT_coff);
-#if TARGET_SEGMENTED
-    dt->Dty = TYcptr;
-#else
-    dt->Dty = TYnptr;
-#endif
-    dt->DToffset = offset;
-    *pdtend = dt;
-    pdtend = &dt->DTnext;
-    return pdtend;
-}
-
-/**********************
- * Construct a DTxoff record, and return it.
- */
-
-dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset)
-{
-    return dtxoff(pdtend, s, offset, TYnptr);
-}
-
-dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset,tym_t ty)
-{   dt_t *dt;
-
-    symbol_debug(s);
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-    dt = dt_calloc(DT_xoff);
-    dt->DTsym = s;
-    dt->DToffset = offset;
-    dt->Dty = ty;
-    *pdtend = dt;
-    pdtend = &dt->DTnext;
-    return pdtend;
-}
 
 /*********************************
  */
 void dtpatchoffset(dt_t *dt, unsigned offset)
 {
     dt->DToffset = offset;
-}
-
-/*************************************
- * Create a reference to another dt.
- */
-dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset)
-{
-    type *t = type_alloc(TYint);
-    t->Tcount++;
-    Symbol *s = symbol_calloc("internal");
-    s->Sclass = SCstatic;
-    s->Sfl = FLextern;
-    s->Sflags |= SFLnodebug;
-    s->Stype = t;
-    s->Sdt = dt;
-    outdata(s);
-    return dtxoff(pdtend, s, offset);
-}
-
-/**************************************
- * Repeat a list of dt_t's count times.
- */
-dt_t **dtrepeat(dt_t **pdtend, dt_t *dt, size_t count)
-{
-    unsigned size = dt_size(dt);
-
-    if (dtallzeros(dt))
-        return dtnzeros(pdtend, size * count);
-
-    while (*pdtend)
-        pdtend = &((*pdtend)->DTnext);
-
-    if (count == 0)
-        return pdtend;
-
-    if (dtpointers(dt))
-    {
-        dt_t *dtp = NULL;
-        dt_t **pdt = &dtp;
-        for (size_t i = 0; i < count; ++i)
-        {
-            for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
-            {
-                dt_t *dtx = dt_calloc(dtn->dt);
-                *dtx = *dtn;
-                dtx->DTnext = NULL;
-                switch (dtx->dt)
-                {
-                    case DT_abytes:
-                    case DT_nbytes:
-                        dtx->DTpbytes = (char *) MEM_PH_MALLOC(dtx->DTnbytes);
-                        memcpy(dtx->DTpbytes, dtn->DTpbytes, dtx->DTnbytes);
-                        break;
-                }
-
-                *pdt = dtx;
-                pdt = &dtx->DTnext;
-            }
-        }
-        *pdtend = dtp;
-        return pdt;
-    }
-
-    char *p = (char *)MEM_PH_MALLOC(size * count);
-    size_t offset = 0;
-
-    if (count)
-    {
-        for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
-        {
-            switch (dtn->dt)
-            {
-                case DT_nbytes:
-                    memcpy(p + offset, dtn->DTpbytes, dtn->DTnbytes);
-                    offset += dtn->DTnbytes;
-                    break;
-                case DT_ibytes:
-                    memcpy(p + offset, dtn->DTdata, dtn->DTn);
-                    offset += dtn->DTn;
-                    break;
-                case DT_symsize:
-                case DT_azeros:
-                    memset(p + offset, 0, dtn->DTazeros);
-                    offset += dtn->DTazeros;
-                    break;
-                default:
-#ifdef DEBUG
-                    dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
-#endif
-                    assert(0);
-            }
-        }
-        assert(offset == size);
-    }
-
-    for (size_t i = 1; i < count; ++i)
-    {
-        memcpy(p + offset, p, size);
-        offset += size;
-    }
-
-    dt_t *dtx = dt_calloc(DT_nbytes);
-    dtx->DTnbytes = size * count;
-    dtx->DTpbytes = p;
-    *pdtend = dtx;
-    pdtend = &dtx->DTnext;
-    return pdtend;
 }
 
 /**************************
@@ -462,9 +164,17 @@ void dt_optimize(dt_t *dt)
 void init_common(symbol *s)
 {
     //printf("init_common('%s')\n", s->Sident);
-    dtnzeros(&s->Sdt,type_size(s->Stype));
-    if (s->Sdt)
-        s->Sdt->dt = DT_common;
+
+    unsigned size = type_size(s->Stype);
+    if (size)
+    {
+        dt_t *dt = dt_calloc(DT_common);
+        dt->DTazeros = size;
+#if SCPP
+        dsout += size;
+#endif
+        s->Sdt = dt;
+    }
 }
 
 /**********************************
@@ -560,81 +270,320 @@ dt_t *DtBuilder::finish()
     return head;
 }
 
+/***********************9
+ * Append data represented by ptr[0..size]
+ */
 void DtBuilder::nbytes(unsigned size, const char *ptr)
 {
-    pTail = dtnbytes(pTail, size, ptr);
+    if (!size)
+        return;
+
+    dt_t *dt;
+
+    if (size < DTibytesMax)
+    {   dt = dt_calloc(DT_ibytes);
+        dt->DTn = size;
+        memcpy(dt->DTdata,ptr,size);
+    }
+    else
+    {
+        dt = dt_calloc(DT_nbytes);
+        dt->DTnbytes = size;
+        dt->DTpbytes = (char *) MEM_PH_MALLOC(size);
+        memcpy(dt->DTpbytes,ptr,size);
+    }
+
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
 }
 
+/*****************************************
+ * Write a reference to the data ptr[0..size+nzeros]
+ */
 void DtBuilder::abytes(tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
 {
-    pTail = dtabytes(pTail, ty, offset, size, ptr, nzeros);
+    dt_t *dt = dt_calloc(DT_abytes);
+    dt->DTnbytes = size + nzeros;
+    dt->DTpbytes = (char *) MEM_PH_MALLOC(size + nzeros);
+    dt->Dty = ty;
+    dt->DTabytes = offset;
+    memcpy(dt->DTpbytes,ptr,size);
+    if (nzeros)
+        memset(dt->DTpbytes + size, 0, nzeros);
+
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
 }
 
 void DtBuilder::abytes(unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
 {
-    pTail = dtabytes(pTail, offset, size, ptr, nzeros);
+    abytes(TYnptr, offset, size, ptr, nzeros);
 }
 
+/**************************************
+ * Write 4 bytes of value.
+ */
 void DtBuilder::dword(int value)
 {
-    pTail = dtdword(pTail, value);
+    assert(!*pTail);
+    dt_t *dt = dt_calloc(DT_ibytes);
+    dt->DTn = 4;
+
+    union { char* cp; int* lp; } u;
+    u.cp = dt->DTdata;
+    *u.lp = value;
+
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
 }
 
+/***********************
+ * Write a size_t value.
+ */
 void DtBuilder::size(unsigned long long value)
 {
-    pTail = dtsize_t(pTail, value);
+    dt_t *dt = dt_calloc(DT_ibytes);
+    dt->DTn = NPTRSIZE;
+
+    union { char* cp; int* lp; } u;
+    u.cp = dt->DTdata;
+    *u.lp = value;
+    if (NPTRSIZE == 8)
+        u.lp[1] = value >> 32;
+
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
 }
 
+/***********************
+ * Write a bunch of zeros
+ */
 void DtBuilder::nzeros(unsigned size)
 {
-    pTail = dtnzeros(pTail, size);
+    if (!size)
+        return;
+    assert((long) size > 0);
+
+    dt_t *dt = dt_calloc(DT_azeros);
+    dt->DTazeros = size;
+#if SCPP
+    dsout += size;
+#endif
+
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
 }
 
+/*************************
+ * Write a reference to s+offset
+ */
 void DtBuilder::xoff(Symbol *s, unsigned offset, tym_t ty)
 {
-    pTail = dtxoff(pTail, s, offset, ty);
+    dt_t *dt = dt_calloc(DT_xoff);
+    dt->DTsym = s;
+    dt->DToffset = offset;
+    dt->Dty = ty;
+
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
 }
 
-/****
+/******************************
+ * Create reference to s+offset
+ */
+void DtBuilder::xoff(Symbol *s, unsigned offset)
+{
+    xoff(s, offset, TYnptr);
+}
+
+/*******************************
  * Like xoff(), but returns handle with which to patch 'offset' value.
  */
 dt_t *DtBuilder::xoffpatch(Symbol *s, unsigned offset, tym_t ty)
 {
+    dt_t *dt = dt_calloc(DT_xoff);
+    dt->DTsym = s;
+    dt->DToffset = offset;
+    dt->Dty = ty;
+
     dt_t **pxoff = pTail;
-    pTail = dtxoff(pTail, s, offset, ty);
+
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
+
     return *pxoff;
 }
 
-void DtBuilder::xoff(Symbol *s, unsigned offset)
-{
-    pTail = dtxoff(pTail, s, offset);
-}
-
+/*************************************
+ * Create a reference to another dt.
+ */
 void DtBuilder::dtoff(dt_t *dt, unsigned offset)
 {
-    pTail = dtdtoff(pTail, dt, offset);
+    type *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    s->Sdt = dt;
+    outdata(s);
+
+    xoff(s, offset);
 }
 
+/********************************
+ * Write reference to offset in code segment.
+ */
 void DtBuilder::coff(unsigned offset)
 {
-    pTail = dtcoff(pTail, offset);
+    dt_t *dt = dt_calloc(DT_coff);
+#if TARGET_SEGMENTED
+    dt->Dty = TYcptr;
+#else
+    dt->Dty = TYnptr;
+#endif
+    dt->DToffset = offset;
+
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    assert(!*pTail);
 }
 
+
+/**********************
+ * Append dt to data.
+ */
 void DtBuilder::cat(dt_t *dt)
 {
-    pTail = dtcat(pTail, dt);
+    assert(!*pTail);
+    *pTail = dt;
+    pTail = &dt->DTnext;
+    while (*pTail)
+        pTail = &((*pTail)->DTnext);
+    assert(!*pTail);
 }
 
+/**************************************
+ * Repeat a list of dt_t's count times.
+ */
 void DtBuilder::repeat(dt_t *dt, size_t count)
 {
-    pTail = dtrepeat(pTail, dt, count);
+    if (!count)
+        return;
+
+    unsigned size = dt_size(dt);
+    if (!size)
+        return;
+
+    if (dtallzeros(dt))
+    {
+        nzeros(size * count);
+        return;
+    }
+
+    if (dtpointers(dt))
+    {
+        dt_t *dtp = NULL;
+        dt_t **pdt = &dtp;
+        for (size_t i = 0; i < count; ++i)
+        {
+            for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
+            {
+                dt_t *dtx = dt_calloc(dtn->dt);
+                *dtx = *dtn;
+                dtx->DTnext = NULL;
+                switch (dtx->dt)
+                {
+                    case DT_abytes:
+                    case DT_nbytes:
+                        dtx->DTpbytes = (char *) MEM_PH_MALLOC(dtx->DTnbytes);
+                        memcpy(dtx->DTpbytes, dtn->DTpbytes, dtx->DTnbytes);
+                        break;
+                }
+
+                *pdt = dtx;
+                pdt = &dtx->DTnext;
+            }
+        }
+        assert(!*pTail);
+        *pTail = dtp;
+        assert(*pdt == NULL);
+        pTail = pdt;
+        return;
+    }
+
+    char *p = (char *)MEM_PH_MALLOC(size * count);
+    size_t offset = 0;
+
+    for (dt_t *dtn = dt; dtn; dtn = dtn->DTnext)
+    {
+        switch (dtn->dt)
+        {
+            case DT_nbytes:
+                memcpy(p + offset, dtn->DTpbytes, dtn->DTnbytes);
+                offset += dtn->DTnbytes;
+                break;
+            case DT_ibytes:
+                memcpy(p + offset, dtn->DTdata, dtn->DTn);
+                offset += dtn->DTn;
+                break;
+            case DT_symsize:
+            case DT_azeros:
+                memset(p + offset, 0, dtn->DTazeros);
+                offset += dtn->DTazeros;
+                break;
+            default:
+#ifdef DEBUG
+                printf("dt = %p, dt = %d\n",dt,dt->dt);
+#endif
+                assert(0);
+        }
+    }
+    assert(offset == size);
+
+    for (size_t i = 1; i < count; ++i)
+    {
+        memcpy(p + offset, p, size);
+        offset += size;
+    }
+
+    dt_t *dtx = dt_calloc(DT_nbytes);
+    dtx->DTnbytes = size * count;
+    dtx->DTpbytes = p;
+
+
+    assert(!*pTail);
+    *pTail = dtx;
+    pTail = &dtx->DTnext;
+    assert(!*pTail);
 }
 
+/***************************
+ * Return size of data.
+ */
 unsigned DtBuilder::length()
 {
     return dt_size(head);
 }
 
+/************************
+ * Return true if size of data is 0.
+ */
 bool DtBuilder::isZeroLength()
 {
     return head == NULL;
