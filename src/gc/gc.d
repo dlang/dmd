@@ -1788,6 +1788,8 @@ struct Gcx
         LargeObjectPool* pool;
         size_t pn;
         immutable npages = (size + PAGESIZE - 1) / PAGESIZE;
+        if (npages == 0)
+            onOutOfMemoryErrorNoGC(); // size just below size_t.max requested
 
         bool tryAlloc() nothrow
         {
@@ -3298,6 +3300,19 @@ unittest // bugzilla 15822
     GC.addRange(buf.ptr, buf.length);
     new Foo(buf.ptr);
     GC.collect();
+}
+
+unittest // bugzilla 1180
+{
+    import core.exception;
+    try
+    {
+        size_t x = size_t.max - 100;
+        byte[] big_buf = new byte[x];
+    }
+    catch(OutOfMemoryError)
+    {
+    }
 }
 
 /* ============================ SENTINEL =============================== */
