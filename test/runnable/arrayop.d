@@ -47,28 +47,28 @@ template Floating(T)
 
         abc = null;
         A()[] = B()[] + C()[];
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         assert(a[0] == 5);
         assert(a[1] == 7);
         assert(a[2] == 9);
 
         abc = null;
         A()[] = B()[] + 4;
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 5);
         assert(a[1] == 6);
         assert(a[2] == 7);
 
         abc = null;
         A()[] = 4 + B()[];
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 5);
         assert(a[1] == 6);
         assert(a[2] == 7);
 
         abc = null;
         A()[] = D() + B()[];
-        assert(abc == "ADB");
+        assert(abc == "DBA");
         assert(a[0] == 5);
         assert(a[1] == 6);
         assert(a[2] == 7);
@@ -76,7 +76,7 @@ template Floating(T)
         a = [11, 22, 33];
         abc = null;
         A()[] += B()[];
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 12);
         assert(a[1] == 24);
         assert(a[2] == 36);
@@ -114,14 +114,14 @@ template Floating(T)
         a = [11, 22, 33];
         abc = null;
         A()[] += 4 + B()[];
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 16);
         assert(a[1] == 28);
         assert(a[2] == 40);
 
         abc = null;
         A()[] = B()[] - C()[];
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
         assert(a[0] == -3);
         assert(a[1] == -3);
@@ -129,7 +129,7 @@ template Floating(T)
 
         abc = null;
         A()[] = -B()[] - C()[];
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
         assert(a[0] == -5);
         assert(a[1] == -7);
@@ -137,7 +137,7 @@ template Floating(T)
 
         abc = null;
         A()[] = B()[] + C()[] * 4;
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
         assert(a[0] == 17);
         assert(a[1] == 22);
@@ -145,7 +145,7 @@ template Floating(T)
 
         abc = null;
         A()[] = B()[] + C()[] * B()[];
-        assert(abc == "ABCB");
+        assert(abc == "BCBA");
         printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
         assert(a[0] == 5);
         assert(a[1] == 12);
@@ -153,7 +153,7 @@ template Floating(T)
 
         abc = null;
         A()[] = B()[] + C()[] / 2;
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
         assert(a[0] == 3);
         assert(a[1] == 4.5);
@@ -161,7 +161,7 @@ template Floating(T)
 
         abc = null;
         A()[] = B()[] + C()[] % 2;
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
         assert(a[0] == 1);
         assert(a[1] == 3);
@@ -225,28 +225,28 @@ template Integral(T)
 
         abc = null;
         A()[] = B()[] + C()[];
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         assert(a[0] == 5);
         assert(a[1] == 7);
         assert(a[2] == 9);
 
         abc = null;
         A()[] = B()[] + 4;
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 5);
         assert(a[1] == 6);
         assert(a[2] == 7);
 
         abc = null;
         A()[] = 4 + B()[];
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 5);
         assert(a[1] == 6);
         assert(a[2] == 7);
 
         abc = null;
         A()[] = D() + B()[];
-        assert(abc == "ADB");
+        assert(abc == "DBA");
         assert(a[0] == 5);
         assert(a[1] == 6);
         assert(a[2] == 7);
@@ -254,7 +254,7 @@ template Integral(T)
         a = [11, 22, 33];
         abc = null;
         A()[] += B()[];
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 12);
         assert(a[1] == 24);
         assert(a[2] == 36);
@@ -310,14 +310,14 @@ template Integral(T)
         a = [11, 22, 33];
         abc = null;
         A()[] += 4 + B()[];
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 16);
         assert(a[1] == 28);
         assert(a[2] == 40);
 
         abc = null;
         A()[] = B()[] - C()[];
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
         assert(a[0] == -3);
         assert(a[1] == -3);
@@ -325,7 +325,7 @@ template Integral(T)
 
         abc = null;
         A()[] = -B()[] - C()[];
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
         assert(a[0] == -5);
         assert(a[1] == -7);
@@ -333,7 +333,7 @@ template Integral(T)
 
         abc = null;
         A()[] = B()[] + C()[] * 4;
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
         assert(a[0] == 17);
         assert(a[1] == 22);
@@ -341,7 +341,7 @@ template Integral(T)
 
         abc = null;
         A()[] = B()[] + C()[] * B()[];
-        assert(abc == "ABCB");
+        assert(abc == "BCBA");
         printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
         assert(a[0] == 5);
         assert(a[1] == 12);
@@ -349,7 +349,7 @@ template Integral(T)
 
         abc = null;
         A()[] = B()[] + C()[] / 2;
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
         assert(a[0] == 3);
         assert(a[1] == 4);
@@ -357,7 +357,7 @@ template Integral(T)
 
         abc = null;
         A()[] = B()[] + C()[] % 2;
-        assert(abc == "ABC");
+        assert(abc == "BCA");
         printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
         assert(a[0] == 1);
         assert(a[1] == 3);
@@ -365,28 +365,28 @@ template Integral(T)
 
         abc = null;
         A()[] = ~B()[];
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == ~cast(T)1);
         assert(a[1] == ~cast(T)2);
         assert(a[2] == ~cast(T)3);
 
         abc = null;
         A()[] = B()[] & 2;
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 0);
         assert(a[1] == 2);
         assert(a[2] == 2);
 
         abc = null;
         A()[] = B()[] | 2;
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 3);
         assert(a[1] == 2);
         assert(a[2] == 3);
 
         abc = null;
         A()[] = B()[] ^ 2;
-        assert(abc == "AB");
+        assert(abc == "BA");
         assert(a[0] == 3);
         assert(a[1] == 0);
         assert(a[2] == 1);
