@@ -27,6 +27,19 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 static dt_t *dt_freelist;
 
+static dt_t **dtnbytes(dt_t **,unsigned,const char *);
+static dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
+static dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
+static dt_t **dtdword(dt_t **, int value);
+static dt_t **dtsize_t(dt_t **, unsigned long long value);
+static dt_t **dtnzeros(dt_t **pdtend,unsigned size);
+static dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset,tym_t ty);
+static dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset);
+static dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset);
+static dt_t **dtcoff(dt_t **pdtend,unsigned offset);
+static dt_t ** dtcat(dt_t **pdtend,dt_t *dt);
+static dt_t ** dtrepeat(dt_t **pdtend, dt_t *dt, size_t count);
+
 /**********************************************
  * Allocate a data definition struct.
  */
@@ -531,5 +544,100 @@ void dt2common(dt_t **pdt)
     (*pdt)->dt = DT_common;
 }
 
+/**************************** DtBuilder implementation ************************/
+
+DtBuilder::DtBuilder()
+{
+    head = NULL;
+    pTail = &head;
+}
+
+/*************************
+ * Finish and return completed data structure.
+ */
+dt_t *DtBuilder::finish()
+{
+    return head;
+}
+
+void DtBuilder::nbytes(unsigned size, const char *ptr)
+{
+    pTail = dtnbytes(pTail, size, ptr);
+}
+
+void DtBuilder::abytes(tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
+{
+    pTail = dtabytes(pTail, ty, offset, size, ptr, nzeros);
+}
+
+void DtBuilder::abytes(unsigned offset, unsigned size, const char *ptr, unsigned nzeros)
+{
+    pTail = dtabytes(pTail, offset, size, ptr, nzeros);
+}
+
+void DtBuilder::dword(int value)
+{
+    pTail = dtdword(pTail, value);
+}
+
+void DtBuilder::size(unsigned long long value)
+{
+    pTail = dtsize_t(pTail, value);
+}
+
+void DtBuilder::nzeros(unsigned size)
+{
+    pTail = dtnzeros(pTail, size);
+}
+
+void DtBuilder::xoff(Symbol *s, unsigned offset, tym_t ty)
+{
+    pTail = dtxoff(pTail, s, offset, ty);
+}
+
+/****
+ * Like xoff(), but returns handle with which to patch 'offset' value.
+ */
+dt_t *DtBuilder::xoffpatch(Symbol *s, unsigned offset, tym_t ty)
+{
+    dt_t **pxoff = pTail;
+    pTail = dtxoff(pTail, s, offset, ty);
+    return *pxoff;
+}
+
+void DtBuilder::xoff(Symbol *s, unsigned offset)
+{
+    pTail = dtxoff(pTail, s, offset);
+}
+
+void DtBuilder::dtoff(dt_t *dt, unsigned offset)
+{
+    pTail = dtdtoff(pTail, dt, offset);
+}
+
+void DtBuilder::coff(unsigned offset)
+{
+    pTail = dtcoff(pTail, offset);
+}
+
+void DtBuilder::cat(dt_t *dt)
+{
+    pTail = dtcat(pTail, dt);
+}
+
+void DtBuilder::repeat(dt_t *dt, size_t count)
+{
+    pTail = dtrepeat(pTail, dt, count);
+}
+
+unsigned DtBuilder::length()
+{
+    return dt_size(head);
+}
+
+bool DtBuilder::isZeroLength()
+{
+    return head == NULL;
+}
 
 #endif /* !SPP */
