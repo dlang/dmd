@@ -40,6 +40,7 @@ import ddmd.opover;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.statement;
+import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -1195,10 +1196,7 @@ public:
                     }
                     else if (isAliasThisTuple(e))
                     {
-                        Identifier id = Identifier.generateId("__tup");
-                        auto ei = new ExpInitializer(e.loc, e);
-                        auto v = new VarDeclaration(loc, null, id, ei);
-                        v.storage_class = STCtemp | STCctfe | STCref | STCforeach;
+                        auto v = copyToTemp(0, "__tup", e);
                         auto ve = new VarExp(loc, v);
                         ve.type = e.type;
                         exps.setDim(1);
@@ -1379,7 +1377,7 @@ public:
                 }
             }
         }
-        if ((storage_class & (STCref | STCparameter | STCforeach)) == STCref && ident != Id.This)
+        if ((storage_class & (STCref | STCparameter | STCforeach | STCtemp | STCresult)) == STCref && ident != Id.This)
         {
             error("only parameters or foreach declarations can be ref");
         }

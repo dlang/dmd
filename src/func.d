@@ -3636,7 +3636,7 @@ public:
             assert(type.ty == Tfunction);
             TypeFunction tf = cast(TypeFunction)type;
             if (tf.isref)
-                vresult.storage_class |= STCref | STCforeach;
+                vresult.storage_class |= STCref;
             vresult.type = tret;
             vresult.semantic(sc);
             if (!sc.insert(vresult))

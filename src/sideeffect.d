@@ -10,9 +10,12 @@ module ddmd.sideeffect;
 
 import ddmd.apply;
 import ddmd.declaration;
+import ddmd.dscope;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.identifier;
+import ddmd.init;
 import ddmd.mtype;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -345,4 +348,60 @@ extern (C++) void discardValue(Expression e)
         break;
     }
     e.error("%s has no effect in expression (%s)", Token.toChars(e.op), e.toChars());
+}
+
+/**************************************************
+ * Build a temporary variable to copy the value of e into.
+ * Params:
+ *  stc = storage classes will be added to the made temporary variable
+ *  name = name for temporary variable
+ *  e = original expression
+ * Returns:
+ *  Newly created temporary variable.
+ */
+VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
+{
+    assert(name && name[0] == '_' && name[1] == '_');
+    auto id = Identifier.generateId(name);
+    auto ez = new ExpInitializer(e.loc, e);
+    auto vd = new VarDeclaration(e.loc, e.type, id, ez);
+    vd.storage_class = stc;
+    vd.storage_class |= STCtemp;
+    vd.storage_class |= STCctfe; // temporary is always CTFEable
+    return vd;
+}
+
+/**************************************************
+ * Build a temporary variable to extract e's evaluation, if e is not trivial.
+ * Params:
+ *  sc = scope
+ *  name = name for temporary variable
+ *  e0 = a new side effect part will be appended to it.
+ *  e = original expression
+ *  alwaysCopy = if true, build new temporary variable even if e is trivial.
+ * Returns:
+ *  When e is trivial and alwaysCopy == false, e itself is returned.
+ *  Otherwise, a new VarExp is returned.
+ * Note:
+ *  e's lvalue-ness will be handled well by STCref or STCrvalue.
+ */
+Expression extractSideEffect(Scope* sc, const char* name,
+    ref Expression e0, Expression e, bool alwaysCopy = false)
+{
+    if (!alwaysCopy && isTrivialExp(e))
+        return e;
+
+    auto vd = copyToTemp(0, name, e);
+    if (e.isLvalue())
+        vd.storage_class |= STCref;
+    else
+        vd.storage_class |= STCrvalue;
+
+    Expression de = new DeclarationExp(vd.loc, vd);
+    Expression ve = new VarExp(vd.loc, vd);
+    de = de.semantic(sc);
+    ve = ve.semantic(sc);
+
+    e0 = Expression.combine(e0, de);
+    return ve;
 }

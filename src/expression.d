@@ -1321,9 +1321,7 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
              * This is not the most efficent, ideally tmp would be constructed
              * directly onto the stack.
              */
-            auto idtmp = Identifier.generateId("__copytmp");
-            auto tmp = new VarDeclaration(e.loc, e.type, idtmp, new ExpInitializer(e.loc, e));
-            tmp.storage_class |= STCtemp | STCctfe;
+            auto tmp = copyToTemp(STCrvalue, "__copytmp", e);
             tmp.noscope = true;
             tmp.semantic(sc);
             Expression de = new DeclarationExp(e.loc, tmp);
@@ -1837,11 +1835,9 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
 
                 /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
                  */
-                Identifier idtmp = Identifier.generateId(needsDtor ? "__pfx" : "__pfy");
-                VarDeclaration tmp = (!isRef
-                    ? new VarDeclaration(loc, arg.type, idtmp, new ExpInitializer(loc, arg))
-                    : new VarDeclaration(loc, arg.type.pointerTo(), idtmp, new ExpInitializer(loc, arg.addressOf())));
-                tmp.storage_class |= STCtemp | STCctfe;
+                auto tmp = copyToTemp(0,
+                    needsDtor ? "__pfx" : "__pfy",
+                    !isRef ? arg : arg.addressOf());
                 tmp.semantic(sc);
 
                 /* Modify the destructor so it only runs if gate==false, i.e.,
@@ -2194,15 +2190,7 @@ extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
          *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
          *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
          */
-        Identifier id = Identifier.generateId("__dop");
-        auto ei = new ExpInitializer(ue.loc, e1);
-        auto v = new VarDeclaration(ue.loc, e1.type, id, ei);
-        v.storage_class |= STCtemp | STCctfe | (e1.isLvalue() ? STCforeach | STCref : STCrvalue);
-        Expression de = new DeclarationExp(ue.loc, v);
-        de = de.semantic(sc);
-        e0 = Expression.combine(e0, de);
-        e1 = new VarExp(ue.loc, v);
-        e1 = e1.semantic(sc);
+        e1 = extractSideEffect(sc, "__dop", e0, e1);
     }
     ue.e1 = e1;
     return e0;
@@ -5331,9 +5319,8 @@ public:
             strcpy(buf.ptr, "__sl");
             strncat(buf.ptr, sd.ident.toChars(), len - 4 - 1);
             assert(buf[len] == 0);
-            Identifier idtmp = Identifier.generateId(buf.ptr);
-            auto tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
-            tmp.storage_class |= STCtemp | STCctfe;
+
+            auto tmp = copyToTemp(0, buf.ptr, this);
             Expression ae = new DeclarationExp(loc, tmp);
             Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
             e = e.semantic(sc);
@@ -7735,9 +7722,10 @@ public:
         BinExp be = this;
         if (be.e1.op != TOKindex)
             return be;
-        IndexExp ie = cast(IndexExp)be.e1;
+        auto ie = cast(IndexExp)be.e1;
         if (ie.e1.type.toBasetype().ty != Taarray)
             return be;
+
         /* Fix evaluation order of setting AA element. (Bugzilla 3825)
          * Rewrite:
          *     aa[k1][k2][k3] op= val;
@@ -7747,46 +7735,31 @@ public:
          *     auto ref __aaval = val;
          *     __aatmp[__aakey3][__aakey2][__aakey1] op= __aaval;  // assignment
          */
-        Expression de = null;
+        Expression e0;
         while (1)
         {
-            if (!isTrivialExp(ie.e2))
-            {
-                Identifier id = Identifier.generateId("__aakey");
-                auto vd = new VarDeclaration(ie.e2.loc, ie.e2.type, id, new ExpInitializer(ie.e2.loc, ie.e2));
-                vd.storage_class |= STCtemp | (ie.e2.isLvalue() ? STCref | STCforeach : STCrvalue);
-                de = Expression.combine(new DeclarationExp(ie.e2.loc, vd), de);
-                ie.e2 = new VarExp(ie.e2.loc, vd);
-                ie.e2.type = vd.type;
-            }
+            Expression de;
+            ie.e2 = extractSideEffect(sc, "__aakey", de, ie.e2);
+            e0 = Expression.combine(de, e0);
+
             Expression ie1 = ie.e1;
-            if (ie1.op != TOKindex || (cast(IndexExp)ie1).e1.type.toBasetype().ty != Taarray)
+            if (ie1.op != TOKindex ||
+                (cast(IndexExp)ie1).e1.type.toBasetype().ty != Taarray)
             {
                 break;
             }
             ie = cast(IndexExp)ie1;
         }
         assert(ie.e1.type.toBasetype().ty == Taarray);
-        if (!isTrivialExp(ie.e1))
-        {
-            Identifier id = Identifier.generateId("__aatmp");
-            auto vd = new VarDeclaration(ie.e1.loc, ie.e1.type, id, new ExpInitializer(ie.e1.loc, ie.e1));
-            vd.storage_class |= STCtemp | (ie.e1.isLvalue() ? STCref | STCforeach : STCrvalue);
-            de = Expression.combine(new DeclarationExp(ie.e1.loc, vd), de);
-            ie.e1 = new VarExp(ie.e1.loc, vd);
-            ie.e1.type = vd.type;
-        }
-        {
-            Identifier id = Identifier.generateId("__aaval");
-            auto vd = new VarDeclaration(be.loc, be.e2.type, id, new ExpInitializer(be.e2.loc, be.e2));
-            vd.storage_class |= STCtemp | (be.e2.isLvalue() ? STCref | STCforeach : STCrvalue);
-            de = Expression.combine(de, new DeclarationExp(be.e2.loc, vd));
-            be.e2 = new VarExp(be.e2.loc, vd);
-            be.e2.type = vd.type;
-        }
-        de = de.semantic(sc);
-        //printf("-de = %s, be = %s\n", de->toChars(), be->toChars());
-        return Expression.combine(de, be);
+
+        Expression de;
+        ie.e1 = extractSideEffect(sc, "__aatmp", de, ie.e1);
+        e0 = Expression.combine(de, e0);
+
+        be.e2 = extractSideEffect(sc, "__aaval", e0, be.e2, true);
+
+        //printf("-e0 = %s, be = %s\n", e0.toChars(), be.toChars());
+        return Expression.combine(e0, be);
     }
 
     override void accept(Visitor v)
@@ -8589,29 +8562,20 @@ public:
         if (type)
             return this;
         var = var.toAlias().isDeclaration();
-        TupleDeclaration tup = var.isTupleDeclaration();
-        if (tup)
+
+        e1 = e1.semantic(sc);
+
+        if (auto tup = var.isTupleDeclaration())
         {
             /* Replace:
              *  e1.tuple(a, b, c)
              * with:
              *  tuple(e1.a, e1.b, e1.c)
              */
-            e1 = e1.semantic(sc);
+            Expression e0;
+            Expression ev = extractSideEffect(sc, "__tup", e0, e1);
+
             auto exps = new Expressions();
-            Expression e0 = null;
-            Expression ev = e1;
-            if (sc.func && !isTrivialExp(e1))
-            {
-                Identifier id = Identifier.generateId("__tup");
-                auto ei = new ExpInitializer(e1.loc, e1);
-                auto v = new VarDeclaration(e1.loc, null, id, ei);
-                v.storage_class |= STCtemp | STCctfe | (e1.isLvalue() ? STCref | STCforeach : STCrvalue);
-                e0 = new DeclarationExp(e1.loc, v);
-                ev = new VarExp(e1.loc, v);
-                e0 = e0.semantic(sc);
-                ev = ev.semantic(sc);
-            }
             exps.reserve(tup.objects.dim);
             for (size_t i = 0; i < tup.objects.dim; i++)
             {
@@ -8641,13 +8605,15 @@ public:
                 }
                 exps.push(e);
             }
+
             Expression e = new TupleExp(loc, e0, exps);
             e = e.semantic(sc);
             return e;
         }
-        e1 = e1.semantic(sc);
         e1 = e1.addDtorHook(sc);
+
         Type t1 = e1.type;
+
         if (FuncDeclaration fd = var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
@@ -10023,11 +9989,10 @@ public:
                 /* Type needs destruction, so declare a tmp
                  * which the back end will recognize and call dtor on
                  */
-                Identifier idtmp = Identifier.generateId("__tmpfordtor");
-                auto tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
-                tmp.storage_class |= STCtemp | STCctfe;
-                Expression ae = new DeclarationExp(loc, tmp);
-                Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+                auto tmp = copyToTemp(0, "__tmpfordtor", this);
+                auto de = new DeclarationExp(loc, tmp);
+                auto ve = new VarExp(loc, tmp);
+                Expression e = new CommaExp(loc, de, new VarExp(loc, tmp));
                 e = e.semantic(sc);
                 return e;
             }
@@ -10578,11 +10543,8 @@ public:
                 VarDeclaration v = null;
                 if (fd && f)
                 {
-                    Identifier id = Identifier.idPool("__tmpea");
-                    v = new VarDeclaration(loc, e1.type, id, new ExpInitializer(loc, e1));
-                    v.storage_class |= STCtemp;
+                    v = copyToTemp(0, "__tmpea", e1);
                     v.semantic(sc);
-                    v.parent = sc.parent;
                     ea = new DeclarationExp(loc, v);
                     ea.type = v.type;
                 }
@@ -11242,10 +11204,7 @@ public:
             /*    auto tmp = &array;
              *    (*tmp).length = (*tmp).length op e2
              */
-            Identifier id = Identifier.generateId("__arraylength");
-            auto ei = new ExpInitializer(ale.loc, new AddrExp(ale.loc, ale.e1));
-            auto tmp = new VarDeclaration(ale.loc, ale.e1.type.pointerTo(), id, ei);
-            tmp.storage_class |= STCtemp;
+            auto tmp = copyToTemp(0, "__arraylength", new AddrExp(ale.loc, ale.e1));
             Expression e1 = new ArrayLengthExp(ale.loc, new PtrExp(ale.loc, new VarExp(ale.loc, tmp)));
             Expression elvalue = e1.syntaxCopy();
             e = opAssignToOp(exp.loc, exp.op, e1, exp.e2);
@@ -11885,20 +11844,15 @@ public:
             if (e1.op != TOKvar && e1.op != TOKarraylength)
             {
                 // ref v = e1;
-                Identifier id = Identifier.generateId("__postref");
-                auto ei = new ExpInitializer(loc, e1);
-                auto v = new VarDeclaration(loc, e1.type, id, ei);
-                v.storage_class |= STCtemp | STCref | STCforeach;
+                auto v = copyToTemp(STCref, "__postref", e1);
                 de = new DeclarationExp(loc, v);
                 e1 = new VarExp(e1.loc, v);
             }
+
             /* Rewrite as:
              * auto tmp = e1; ++e1; tmp
              */
-            Identifier id = Identifier.generateId("__pitmp");
-            auto ei = new ExpInitializer(loc, e1);
-            auto tmp = new VarDeclaration(loc, e1.type, id, ei);
-            tmp.storage_class |= STCtemp;
+            auto tmp = copyToTemp(0, "__pitmp", e1);
             Expression ea = new DeclarationExp(loc, tmp);
             Expression eb = e1.syntaxCopy();
             eb = new PreExp(op == TOKplusplus ? TOKpreplusplus : TOKpreminusminus, loc, eb);
@@ -12238,15 +12192,8 @@ public:
                 assert(e1.type.ty == Ttuple);
                 TypeTuple tt = cast(TypeTuple)e1.type;
 
-                Identifier id = Identifier.generateId("__tup");
-                auto ei = new ExpInitializer(e2x.loc, e2x);
-                auto v = new VarDeclaration(e2x.loc, null, id, ei);
-                v.storage_class |= STCtemp | STCctfe;
-                if (e2x.isLvalue())
-                    v.storage_class = STCref | STCforeach;
-                Expression e0 = new DeclarationExp(e2x.loc, v);
-                Expression ev = new VarExp(e2x.loc, v);
-                ev.type = e2x.type;
+                Expression e0;
+                Expression ev = extractSideEffect(sc, "__tup", e0, e2x);
 
                 auto iexps = new Expressions();
                 iexps.push(ev);
@@ -12513,46 +12460,11 @@ public:
                      */
                     IndexExp ie = cast(IndexExp)e1x;
                     Type t2 = e2x.type.toBasetype();
-                    Expression e0 = null;
 
-                    Expression ea = ie.e1;
-                    Expression ek = ie.e2;
-                    Expression ev = e2x;
-                    if (!isTrivialExp(ea))
-                    {
-                        auto v = new VarDeclaration(loc, ie.e1.type,
-                            Identifier.generateId("__aatmp"),
-                            new ExpInitializer(loc, ie.e1));
-                        v.storage_class |= STCtemp | STCctfe
-                                        | (ea.isLvalue() ? STCforeach | STCref : STCrvalue);
-                        v.semantic(sc);
-                        e0 = combine(e0, new DeclarationExp(loc, v));
-                        ea = new VarExp(loc, v);
-                    }
-                    if (!isTrivialExp(ek))
-                    {
-                        auto v = new VarDeclaration(loc, ie.e2.type,
-                            Identifier.generateId("__aakey"),
-                            new ExpInitializer(loc, ie.e2));
-                        v.storage_class |= STCtemp | STCctfe
-                                        | (ek.isLvalue() ? STCforeach | STCref : STCrvalue);
-                        v.semantic(sc);
-                        e0 = combine(e0, new DeclarationExp(loc, v));
-                        ek = new VarExp(loc, v);
-                    }
-                    if (!isTrivialExp(ev))
-                    {
-                        auto v = new VarDeclaration(loc, e2x.type,
-                            Identifier.generateId("__aaval"),
-                            new ExpInitializer(loc, e2x));
-                        v.storage_class |= STCtemp | STCctfe
-                                        | (ev.isLvalue() ? STCforeach | STCref : STCrvalue);
-                        v.semantic(sc);
-                        e0 = combine(e0, new DeclarationExp(loc, v));
-                        ev = new VarExp(loc, v);
-                    }
-                    if (e0)
-                        e0 = e0.semantic(sc);
+                    Expression e0 = null;
+                    Expression ea = extractSideEffect(sc, "__aatmp", e0, ie.e1);
+                    Expression ek = extractSideEffect(sc, "__aakey", e0, ie.e2);
+                    Expression ev = extractSideEffect(sc, "__aaval", e0, e2x);
 
                     AssignExp ae = cast(AssignExp)copy();
                     ae.e1 = new IndexExp(loc, ea, ek);
@@ -13221,10 +13133,8 @@ public:
             else
             {
                 // Rewrite: ref tmp = e1; tmp = tmp ^^ e2
-                Identifier id = Identifier.generateId("__powtmp");
-                auto v = new VarDeclaration(e1.loc, e1.type, id, new ExpInitializer(loc, e1));
-                v.storage_class |= STCtemp | STCref | STCforeach;
-                Expression de = new DeclarationExp(e1.loc, v);
+                auto v = copyToTemp(STCref, "__powtmp", e1);
+                auto de = new DeclarationExp(e1.loc, v);
                 auto ve = new VarExp(e1.loc, v);
                 e = new PowExp(loc, ve, e2);
                 e = new AssignExp(loc, new VarExp(e1.loc, v), e);
@@ -14085,17 +13995,16 @@ public:
         {
             // Replace x^^2 with (tmp = x, tmp*tmp)
             // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
-            Identifier idtmp = Identifier.generateId("__powtmp");
-            auto tmp = new VarDeclaration(loc, e1.type.toBasetype(), idtmp, new ExpInitializer(Loc(), e1));
-            tmp.storage_class |= STCtemp | STCctfe;
+            auto tmp = copyToTemp(0, "__powtmp", e1);
+            Expression de = new DeclarationExp(loc, tmp);
             Expression ve = new VarExp(loc, tmp);
-            Expression ae = new DeclarationExp(loc, tmp);
+
             /* Note that we're reusing ve. This should be ok.
              */
             Expression me = new MulExp(loc, ve, ve);
             if (intpow == 3)
                 me = new MulExp(loc, me, ve);
-            e = new CommaExp(loc, ae, me);
+            e = new CommaExp(loc, de, me);
             e = e.semantic(sc);
             return e;
         }
@@ -15133,10 +15042,7 @@ public:
                     {
                         if (!vcond)
                         {
-                            auto ei = new ExpInitializer(ce.econd.loc, ce.econd);
-                            auto id = Identifier.generateId("__cond");
-                            vcond = new VarDeclaration(ce.econd.loc, ce.econd.type, id, ei);
-                            vcond.storage_class |= STCtemp | STCctfe | STCvolatile;
+                            vcond = copyToTemp(STCvolatile, "__cond", ce.econd);
                             vcond.semantic(sc);
 
                             Expression de = new DeclarationExp(ce.econd.loc, vcond);
