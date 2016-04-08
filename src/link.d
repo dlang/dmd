@@ -738,17 +738,6 @@ extern (C++) int runLINK()
     }
 }
 
-/**********************************
- * Delete generated EXE file.
- */
-extern (C++) void deleteExeFile()
-{
-    if (global.params.exefile)
-    {
-        //printf("deleteExeFile() %s\n", global.params.exefile);
-        remove(global.params.exefile);
-    }
-}
 
 /******************************
  * Execute a rule.  Return the status.

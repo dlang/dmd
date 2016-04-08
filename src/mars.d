@@ -1623,7 +1623,7 @@ Language changes listed by -transition=id:
                     if (global.params.oneobj)
                         break;
                 }
-                deleteExeFile();
+                remove(global.params.exefile);
             }
         }
     }
