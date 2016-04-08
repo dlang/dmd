@@ -76,7 +76,18 @@ char *obj_mangle2(Symbol *s,char *dest);
  * If set the compiler requires full druntime support of the new
  * section registration.
  */
-#define REQUIRE_DSO_REGISTRY (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD))
+bool requireDSOregistry()
+{
+    return config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64) &&
+           !(config.flags3 & CFG3android);
+}
+
+// remove SHF_TLS flag for Android TLS data sections
+int tls_section_flags()
+{
+    return (config.flags3 & CFG3android) ? SHF_ALLOC|SHF_WRITE :
+                                           SHF_ALLOC|SHF_WRITE|SHF_TLS;
+}
 
 /***************************************************
  * Correspondence of relocation types
@@ -1645,17 +1656,18 @@ STATIC void obj_tlssections()
     IDXSTR namidx;
     int align = I64 ? 16 : 4;
 
-    int sec = ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+    int sec = ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, tls_section_flags(), align);
     Obj::bytes(sec, 0, align, NULL);
 
     namidx = Obj::addstr(symtab_strings,"_tlsstart");
-    elf_addsym(namidx, 0, align, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    const int tls_symbol = (config.flags3 & CFG3android) ? STT_OBJECT : STT_TLS;
+    elf_addsym(namidx, 0, align, tls_symbol, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
-    ElfObj::getsegment(".tdata.", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+    ElfObj::getsegment(".tdata.", NULL, SHT_PROGBITS, tls_section_flags(), align);
 
-    sec = ElfObj::getsegment(".tcommon", NULL, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+    sec = ElfObj::getsegment(".tcommon", NULL, SHT_NOBITS, tls_section_flags(), align);
     namidx = Obj::addstr(symtab_strings,"_tlsend");
-    elf_addsym(namidx, 0, align, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    elf_addsym(namidx, 0, align, tls_symbol, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 }
 
 /*********************************
@@ -1692,12 +1704,12 @@ STATIC void setup_comdat(Symbol *s)
          */
         if (I64)
             align = 16;
-        ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+        ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, tls_section_flags(), align);
 
         s->Sfl = FLtlsdata;
         prefix = ".tdata.";
         type = SHT_PROGBITS;
-        flags = SHF_ALLOC|SHF_WRITE|SHF_TLS;
+        flags = tls_section_flags();
     }
     else
     {
@@ -1920,7 +1932,7 @@ seg_data *Obj::tlsseg()
     /* Ensure that ".tdata" precedes any other .tdata. section, as the ld
      * linker script fails to work right.
      */
-    ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, 4);
+    ElfObj::getsegment(".tdata", NULL, SHT_PROGBITS, tls_section_flags(), 4);
 
     static const char tlssegname[] = ".tdata.";
     //dbg_printf("Obj::tlsseg(\n");
@@ -1928,7 +1940,7 @@ seg_data *Obj::tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         seg_tlsseg = ElfObj::getsegment(tlssegname, NULL, SHT_PROGBITS,
-            SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
+            tls_section_flags(), I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg];
 }
@@ -1950,7 +1962,7 @@ seg_data *Obj::tlsseg_bss()
     if (seg_tlsseg_bss == UNKNOWN)
     {
         seg_tlsseg_bss = ElfObj::getsegment(tlssegname, NULL, SHT_NOBITS,
-            SHF_ALLOC|SHF_WRITE|SHF_TLS, I64 ? 16 : 4);
+            tls_section_flags(), I64 ? 16 : 4);
     }
     return SegData[seg_tlsseg_bss];
 }
@@ -2209,7 +2221,9 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
     }
     else
     {
-        const unsigned typ = (s->ty() & mTYthread) ? STT_TLS : STT_OBJECT;
+        const unsigned typ =
+            (s->ty() & mTYthread && !(config.flags3 & CFG3android)) ? STT_TLS : STT_OBJECT;
+
         s->Sxtrnnum = elf_addsym(namidx, offset, symsize,
             typ, bind, MAP_SEG2SECIDX(seg));
     }
@@ -2272,7 +2286,7 @@ int Obj::external(Symbol *s)
     if (s->ty() & mTYthread)
     {
         //printf("Obj::external('%s') %x TLS\n",s->Sident,s->Svalue);
-        symtype = STT_TLS;
+        symtype = (config.flags3 & CFG3android) ? STT_OBJECT : STT_TLS;
     }
 
     s->Sxtrnnum = elf_addsym(namidx, size, size, symtype,
@@ -2300,7 +2314,7 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
     if (s->ty() & mTYthread)
     {
         s->Sseg = ElfObj::getsegment(".tbss.", cpp_mangle(s),
-                SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
+                SHT_NOBITS, tls_section_flags(), align);
         s->Sfl = FLtlsdata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
@@ -2997,7 +3011,12 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
                                     relinfo = R_386_TLS_GD;
                                 else
-                                    relinfo = R_386_TLS_GD;
+                                {
+                                    if (config.flags3 & CFG3android)
+                                        relinfo = R_386_GOT32;
+                                    else
+                                        relinfo = R_386_TLS_GD;
+                                }
                             }
                             else
                             {
@@ -3357,78 +3376,77 @@ static void obj_rtinit()
             off += 1;
         }
 
-#if REQUIRE_DSO_REGISTRY
-
-        const IDXSYM symidx = Obj::external_def("_d_dso_registry");
-
-        // call _d_dso_registry@PLT
-        buf->writeByte(0xE8);
-        off += 1;
-        off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
-
-#else
-
-        // use a weak reference for _d_dso_registry
-        namidx = ElfObj::addstr(symtab_strings, "_d_dso_registry");
-        const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
-
-        if (config.flags3 & CFG3pic)
+        if (requireDSOregistry())
         {
-            if (I64)
-            {
-                // cmp foo@GOT[RIP], 0
-                buf->writeByte(REX | REX_W);
-                buf->writeByte(0x83);
-                buf->writeByte(modregrm(0,7,5));
-                off += 3;
-                off += ElfObj::writerel(codseg, off, R_X86_64_GOTPCREL, symidx, -5);
-                buf->writeByte(0);
-                off += 1;
-            }
-            else
-            {
-                // cmp foo[GOT], 0
-                buf->writeByte(0x81);
-                buf->writeByte(modregrm(2,7,BX));
-                off += 2;
-                off += ElfObj::writerel(codseg, off, R_386_GOT32, symidx, 0);
-                buf->write32(0);
-                off += 4;
-            }
-            // jz +5
-            buf->writeByte(0x74);
-            buf->writeByte(0x05);
-            off += 2;
+            const IDXSYM symidx = Obj::external_def("_d_dso_registry");
 
-            // call foo@PLT[RIP]
+            // call _d_dso_registry@PLT
             buf->writeByte(0xE8);
             off += 1;
             off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
         }
         else
         {
-            // mov ECX, offset foo
-            buf->writeByte(0xB8 + CX);
-            off += 1;
-            reltype = I64 ? R_X86_64_32 : R_386_32;
-            off += ElfObj::writerel(codseg, off, reltype, symidx, 0);
+            // use a weak reference for _d_dso_registry
+            namidx = ElfObj::addstr(symtab_strings, "_d_dso_registry");
+            const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
 
-            // test ECX, ECX
-            buf->writeByte(0x85);
-            buf->writeByte(modregrm(3,CX,CX));
+            if (config.flags3 & CFG3pic)
+            {
+                if (I64)
+                {
+                    // cmp foo@GOT[RIP], 0
+                    buf->writeByte(REX | REX_W);
+                    buf->writeByte(0x83);
+                    buf->writeByte(modregrm(0,7,5));
+                    off += 3;
+                    off += ElfObj::writerel(codseg, off, R_X86_64_GOTPCREL, symidx, -5);
+                    buf->writeByte(0);
+                    off += 1;
+                }
+                else
+                {
+                    // cmp foo[GOT], 0
+                    buf->writeByte(0x81);
+                    buf->writeByte(modregrm(2,7,BX));
+                    off += 2;
+                    off += ElfObj::writerel(codseg, off, R_386_GOT32, symidx, 0);
+                    buf->write32(0);
+                    off += 4;
+                }
+                // jz +5
+                buf->writeByte(0x74);
+                buf->writeByte(0x05);
+                off += 2;
 
-            // jz +5 (skip call)
-            buf->writeByte(0x74);
-            buf->writeByte(0x05);
-            off += 4;
+                // call foo@PLT[RIP]
+                buf->writeByte(0xE8);
+                off += 1;
+                off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PLT32 : R_386_PLT32, symidx, -4);
+            }
+            else
+            {
+                // mov ECX, offset foo
+                buf->writeByte(0xB8 + CX);
+                off += 1;
+                reltype = I64 ? R_X86_64_32 : R_386_32;
+                off += ElfObj::writerel(codseg, off, reltype, symidx, 0);
 
-            // call _d_dso_registry[RIP]
-            buf->writeByte(0xE8);
-            off += 1;
-            off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PC32 : R_386_PC32, symidx, -4);
+                // test ECX, ECX
+                buf->writeByte(0x85);
+                buf->writeByte(modregrm(3,CX,CX));
+
+                // jz +5 (skip call)
+                buf->writeByte(0x74);
+                buf->writeByte(0x05);
+                off += 4;
+
+                // call _d_dso_registry[RIP]
+                buf->writeByte(0xE8);
+                off += 1;
+                off += ElfObj::writerel(codseg, off, I64 ? R_X86_64_PC32 : R_386_PC32, symidx, -4);
+            }
         }
-
-#endif // REQUIRE_DSO_REGISTRY
 
         if (config.flags3 & CFG3pic && I32)
         {   // mov EBX,[EBP-4-align]

@@ -795,6 +795,7 @@ struct Config
 #endif
 #define CFG3pic         0x80000 // position independent code
 #define CFGX3   (CFG3strcod | CFG3ptrchk)
+#define CFG3android     0x100000 // make TLS adjustments for Android
 
     unsigned flags4;
 #define CFG4speed       1       // optimized for speed

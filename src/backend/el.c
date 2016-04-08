@@ -1408,7 +1408,7 @@ elem *el_picvar(symbol *s)
         case SCcomdef:
         case SCglobal:
         case SCextern:
-            if (s->Stype->Tty & mTYthread)
+            if (s->Stype->Tty & mTYthread && !(config.flags3 & CFG3android))
                 x = 0;
             else
                 x = 1;
@@ -1418,6 +1418,8 @@ elem *el_picvar(symbol *s)
             tym_t tym = e->Ety;
             e->Eoper = OPrelconst;
             e->Ety = TYnptr;
+            if (config.flags3 & CFG3android)
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
 
             if (s->Stype->Tty & mTYthread)
             {
@@ -1438,28 +1440,35 @@ elem *el_picvar(symbol *s)
                     tls_get_addr_sym = symbol_name("___tls_get_addr",SCglobal,type_fake(TYjfunc));
                     symbol_keep(tls_get_addr_sym);
                 }
+                if (config.flags3 & CFG3android && x == 1)
+                    e = el_una(OPind, TYnptr, e);
                 e = el_bin(OPcall, TYnptr, el_var(tls_get_addr_sym), e);
+                if (config.flags3 & CFG3android && op == OPvar)
+                    e = el_una(OPind, TYnptr, e);
             }
-            else
+            else if (!(config.flags3 & CFG3android))
             {
                 e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
             }
 
-            switch (op * 2 + x)
+            if (!(config.flags3 & CFG3android) || !(s->Stype->Tty & mTYthread))
             {
-                case OPvar * 2 + 1:
-                    e = el_una(OPind, TYnptr, e);
-                    e = el_una(OPind, TYnptr, e);
-                    break;
-                case OPvar * 2 + 0:
-                case OPrelconst * 2 + 1:
-                    e = el_una(OPind, TYnptr, e);
-                    break;
-                case OPrelconst * 2 + 0:
-                    break;
-                default:
-                    assert(0);
-                    break;
+                switch (op * 2 + x)
+                {
+                    case OPvar * 2 + 1:
+                        e = el_una(OPind, TYnptr, e);
+                        e = el_una(OPind, TYnptr, e);
+                        break;
+                    case OPvar * 2 + 0:
+                    case OPrelconst * 2 + 1:
+                        e = el_una(OPind, TYnptr, e);
+                        break;
+                    case OPrelconst * 2 + 0:
+                        break;
+                    default:
+                        assert(0);
+                        break;
+                }
             }
             e->Ety = tym;
             break;
