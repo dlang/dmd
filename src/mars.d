@@ -624,7 +624,7 @@ Language changes listed by -transition=id:
   =import,10378  revert to single phase name lookup
   =tls           list all variables going into thread local storage
 ");
-                        return EXIT_FAILURE;
+                        exit(EXIT_SUCCESS);
                     }
                     if (isdigit(cast(char)p[12]))
                     {
