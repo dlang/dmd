@@ -299,7 +299,7 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
 
         override void visit(AssignExp e)
         {
-            /* Evaluate assign expressions right to left
+            /* Arguments are inserted in the head, so see e2 first, then see e1.
              */
             e.e2.accept(this);
             e.e1.accept(this);
@@ -308,7 +308,7 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
 
         override void visit(BinAssignExp e)
         {
-            /* Evaluate assign expressions right to left
+            /* Arguments are inserted in the head, so see e2 first, then see e1.
              */
             e.e2.accept(this);
             e.e1.accept(this);
@@ -344,8 +344,6 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
 
         override void visit(BinExp e)
         {
-            /* Evaluate assign expressions left to right
-             */
             const(char)* s = null;
             switch (e.op)
             {
@@ -363,20 +361,11 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             }
             if (s)
             {
+                /* Arguments are inserted in the head, so see e2 first, then see e1.
+                 */
                 Type tb = e.type.toBasetype();
                 Type t1 = e.e1.type.toBasetype();
                 Type t2 = e.e2.type.toBasetype();
-                e.e1.accept(this);
-                if (t1.ty == Tarray &&
-                    (t2.ty == Tarray && !t1.equivalent(tb) ||
-                     t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
-                {
-                    // Bugzilla 12780: if A is narrower than B
-                    //  A[] op B[]
-                    //  A[] op B
-                    buf.writestring("Of");
-                    buf.writestring(t1.nextOf().mutableOf().deco);
-                }
                 e.e2.accept(this);
                 if (t2.ty == Tarray &&
                     (t1.ty == Tarray && !t2.equivalent(tb) ||
@@ -387,6 +376,15 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     //  A op B[]
                     buf.writestring("Of");
                     buf.writestring(t2.nextOf().mutableOf().deco);
+                }
+                e.e1.accept(this);
+                if (t1.ty == Tarray && (t2.ty == Tarray && !t1.equivalent(tb) || t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
+                {
+                    // Bugzilla 12780: if A is narrower than B
+                    //  A[] op B[]
+                    //  A[] op B
+                    buf.writestring("Of");
+                    buf.writestring(t1.nextOf().mutableOf().deco);
                 }
                 buf.writestring(s);
             }
@@ -458,16 +456,17 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
 
         override void visit(AssignExp e)
         {
-            /* Evaluate assign expressions right to left
+            /* Parameters are inserted in the head, so see e2 first, then see e1.
              */
             Expression ex2 = buildArrayLoop(e.e2);
+            Expression ex1 = buildArrayLoop(e.e1);
+
             /* Need the cast because:
              *   b = c + p[i];
              * where b is a byte fails because (c + p[i]) is an int
              * which cannot be implicitly cast to byte.
              */
             ex2 = new CastExp(Loc(), ex2, e.e1.type.nextOf());
-            Expression ex1 = buildArrayLoop(e.e1);
             Parameter param = (*fparams)[0];
             param.storageClass = 0;
             result = new AssignExp(Loc(), ex1, ex2);
@@ -475,7 +474,7 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
 
         override void visit(BinAssignExp e)
         {
-            /* Evaluate assign expressions right to left
+            /* Parameters are inserted in the head, so see e2 first, then see e1.
              */
             Expression ex2 = buildArrayLoop(e.e2);
             Expression ex1 = buildArrayLoop(e.e1);
@@ -513,11 +512,11 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
         {
             if (isBinArrayOp(e.op))
             {
-                /* Evaluate assign expressions left to right
+                /* Parameters are inserted in the head, so see e2 first, then see e1.
                  */
                 BinExp be = cast(BinExp)e.copy();
-                be.e1 = buildArrayLoop(be.e1);
                 be.e2 = buildArrayLoop(be.e2);
+                be.e1 = buildArrayLoop(be.e1);
                 be.type = null;
                 result = be;
                 return;
