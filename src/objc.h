@@ -32,7 +32,7 @@ struct ObjcSelector
     size_t stringlen;
     size_t paramCount;
 
-    static void init();
+    static void _init();
 
     ObjcSelector(const char *sv, size_t len, size_t pcount);
 
