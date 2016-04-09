@@ -8721,10 +8721,40 @@ public:
             {
                 if (sym.vthis._scope)
                     sym.vthis.semantic(null);
-                ClassDeclaration cdp = sym.toParent2().isClassDeclaration();
-                auto de = new DotVarExp(e.loc, e, sym.vthis);
-                de.type = (cdp ? cdp.type : sym.vthis.type).addMod(e.type.mod);
-                return de;
+
+                if (auto cdp = sym.toParent2().isClassDeclaration())
+                {
+                    auto dve = new DotVarExp(e.loc, e, sym.vthis);
+                    dve.type = cdp.type.addMod(e.type.mod);
+                    return dve;
+                }
+
+                /* Bugzilla 15839: Find closest parent class through nested functions.
+                 */
+                for (auto p = sym.toParent2(); p; p = p.toParent2())
+                {
+                    auto fd = p.isFuncDeclaration();
+                    if (!fd)
+                        break;
+                    if (fd.isNested())
+                        continue;
+                    auto ad = fd.isThis();
+                    if (!ad)
+                        break;
+                    if (auto cdp = ad.isClassDeclaration())
+                    {
+                        auto ve = new ThisExp(e.loc);
+                        ve.var = fd.vthis;
+                        ve.type = fd.vthis.type.addMod(e.type.mod);
+                        return ve;
+                    }
+                    break;
+                }
+
+                // Continue to show enclosing function's frame (stack or closure).
+                auto dve = new DotVarExp(e.loc, e, sym.vthis);
+                dve.type = sym.vthis.type.addMod(e.type.mod);
+                return dve;
             }
             else
             {
