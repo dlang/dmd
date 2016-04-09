@@ -697,7 +697,7 @@ void main()
     // variables, because the 'ref' only applies to the return value itself,
     // not to any subsequent variable created from it:
     auto x = func2();
-    static assert(typeof(x) == int); // N.B.: *not* ref(int);
+    static assert(is(typeof(x) == int)); // N.B.: *not* ref(int);
                                      // there is no such type as ref(int).
     x++;
     assert(x == 3);
