@@ -34,7 +34,7 @@ version (CRuntime_Microsoft) extern (Windows) uint GetShortPathNameA(const char*
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
+private void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
 {
     /* Loop and see if we need to quote
      */
@@ -55,7 +55,7 @@ extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename, size_t le
     buf.write(filename, len);
 }
 
-extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename)
+private void writeFilename(OutBuffer* buf, const(char)* filename)
 {
     writeFilename(buf, filename, strlen(filename));
 }
@@ -71,7 +71,7 @@ version (Posix)
      *     -1 if there is an IO error
      *      0 otherwise
      */
-    extern (C++) int findNoMainError(int fd)
+    private int findNoMainError(int fd)
     {
         version (OSX)
         {
@@ -117,7 +117,7 @@ version (Posix)
 /*****************************
  * Run the linker.  Return status of execution.
  */
-extern (C++) int runLINK()
+public int runLINK()
 {
     version (Windows)
     {
@@ -738,17 +738,6 @@ extern (C++) int runLINK()
     }
 }
 
-/**********************************
- * Delete generated EXE file.
- */
-extern (C++) void deleteExeFile()
-{
-    if (global.params.exefile)
-    {
-        //printf("deleteExeFile() %s\n", global.params.exefile);
-        remove(global.params.exefile);
-    }
-}
 
 /******************************
  * Execute a rule.  Return the status.
@@ -757,7 +746,7 @@ extern (C++) void deleteExeFile()
  */
 version (Windows)
 {
-    extern (C++) int executecmd(const(char)* cmd, const(char)* args)
+    private int executecmd(const(char)* cmd, const(char)* args)
     {
         int status;
         size_t len;
@@ -822,7 +811,7 @@ version (Windows)
  */
 version (Windows)
 {
-    extern (C++) int executearg0(const(char)* cmd, const(char)* args)
+    private int executearg0(const(char)* cmd, const(char)* args)
     {
         const(char)* file;
         const(char)* argv0 = global.params.argv0;
@@ -841,7 +830,7 @@ version (Windows)
  * Run the compiled program.
  * Return exit status.
  */
-extern (C++) int runProgram()
+public int runProgram()
 {
     //printf("runProgram()\n");
     if (global.params.verbose)
@@ -921,7 +910,7 @@ version (Windows)
     /*****************************
      * Detect whether the link will grab libraries from VS 2015 or later
      */
-    extern (C++) bool detectVS14(const(char)* cmdline)
+    private bool detectVS14(const(char)* cmdline)
     {
         auto libpaths = new Strings();
         // grab library folders passed on the command line

@@ -327,11 +327,6 @@ private int tryMain(size_t argc, const(char)** argv)
 {
     Strings files;
     Strings libmodules;
-    bool setdebuglib = false;
-    static if (TARGET_WINDOS)
-    {
-        bool setdefaultlib = false;
-    }
     global._init();
     debug
     {
@@ -622,7 +617,7 @@ Language changes listed by -transition=id:
   =import,10378  revert to single phase name lookup
   =tls           list all variables going into thread local storage
 ");
-                        return EXIT_FAILURE;
+                        exit(EXIT_SUCCESS);
                     }
                     if (isdigit(cast(char)p[12]))
                     {
@@ -1626,7 +1621,7 @@ Language changes listed by -transition=id:
                     if (global.params.oneobj)
                         break;
                 }
-                deleteExeFile();
+                remove(global.params.exefile);
             }
         }
     }
