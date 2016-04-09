@@ -48,8 +48,7 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp,        // add stack stomping code
-        bool dwarfeh            // use Dwarf exception handling
+        bool stackstomp         // add stack stomping code
         );
 
 void out_config_debug(
@@ -99,8 +98,7 @@ void backend_init()
         params->optimize,
         params->symdebug,
         params->alwaysframe,
-        params->stackstomp,
-        params->dwarfeh
+        params->stackstomp
     );
 
 #ifdef DEBUG

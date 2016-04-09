@@ -454,8 +454,6 @@ private int tryMain(size_t argc, const(char)** argv)
                 global.params.useDeprecated = 1;
             else if (strcmp(p + 1, "dw") == 0)
                 global.params.useDeprecated = 2;
-            else if (strcmp(p + 1, "dwarfeh") == 0)
-                global.params.dwarfeh = true;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = false;
             else if (memcmp(p + 1, cast(char*)"color", 5) == 0)
