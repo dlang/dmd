@@ -93,9 +93,6 @@ mangle_t varmangletab[LINK_MAXDIM] =
 };
 #endif
 
-targ_size_t     dsout = 0;      /* # of bytes actually output to data   */
-                                /* segment, used to pad for alignment   */
-
 /* File variables: */
 
 char *argv0;                    // argv[0] (program name)
