@@ -159,7 +159,8 @@ void outdata(symbol *s)
                 //printf("DT_azeros %d\n", dt->DTazeros);
             case_azeros:
                 datasize += dt->DTazeros;
-                if (dt == dtstart && !dt->DTnext && s->Sclass != SCcomdat)
+                if (dt == dtstart && !dt->DTnext && s->Sclass != SCcomdat &&
+                    (s->Sseg == UNKNOWN || s->Sseg <= UDATA))
                 {   /* first and only, so put in BSS segment
                      */
                     switch (ty & mTYLINK)
