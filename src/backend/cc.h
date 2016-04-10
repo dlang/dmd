@@ -1621,9 +1621,8 @@ enum
     DT_xoff,
     DT_nbytes,
     DT_common,
-    DT_symsize,
     DT_coff,
-    DT_ibytes, // 7
+    DT_ibytes, // 6
 };
 
 // An efficient way to clear aligned memory

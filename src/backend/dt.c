@@ -109,17 +109,6 @@ dt_t **dtend(dt_t **pdtend)
 }
 
 
-/**********************
- * Construct a DTsymsize record.
- */
-
-void dtsymsize(symbol *s)
-{
-    symbol_debug(s);
-    s->Sdt = dt_calloc(DT_symsize);
-}
-
-
 /*********************************
  */
 void dtpatchoffset(dt_t *dt, unsigned offset)
@@ -193,7 +182,6 @@ unsigned dt_size(const dt_t *dtstart)
             case DT_nbytes:
                 datasize += dt->DTnbytes;
                 break;
-            case DT_symsize:
             case DT_azeros:
                 datasize += dt->DTazeros;
                 break;
@@ -536,7 +524,6 @@ void DtBuilder::repeat(dt_t *dt, size_t count)
                 memcpy(p + offset, dtn->DTdata, dtn->DTn);
                 offset += dtn->DTn;
                 break;
-            case DT_symsize:
             case DT_azeros:
                 memset(p + offset, 0, dtn->DTazeros);
                 offset += dtn->DTazeros;

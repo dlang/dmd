@@ -1080,7 +1080,11 @@ symbol * symbol_copy(symbol *s)
     scopy->Sl = scopy->Sr = scopy->Snext = NULL;
     scopy->Ssymnum = -1;
     if (scopy->Sdt)
-        dtsymsize(scopy);
+    {
+        DtBuilder dtb;
+        dtb.nzeros(type_size(scopy->Stype));
+        scopy->Sdt = dtb.finish();
+    }
     if (scopy->Sflags & (SFLvalue | SFLdtorexp))
         scopy->Svalue = el_copytree(s->Svalue);
     t = scopy->Stype;
