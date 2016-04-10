@@ -432,7 +432,7 @@ $(H4 $(LNAME2 optional-parenthesis, Optional Parentheses))
         {
             foo();      // OK
             foo;        // also OK
-        fun;    // OK
+            fun;        // OK
 
             int[] arr;
             arr.bar();  // OK
