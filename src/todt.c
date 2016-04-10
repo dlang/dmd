@@ -289,7 +289,6 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
         void visit(RealExp *e)
         {
             //printf("RealExp::toDt(%Lg)\n", e->value);
-            static char zeropad[6];
             switch (e->type->toBasetype()->ty)
             {
                 case Tfloat32:
@@ -313,8 +312,7 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
                 {
                     d_float80 evalue = e->value;
                     dtb.nbytes(Target::realsize - Target::realpad,(char *)&evalue);
-                    dtb.nbytes(Target::realpad,zeropad);
-                    assert(Target::realpad <= sizeof(zeropad));
+                    dtb.nzeros(Target::realpad);
                     break;
                 }
 
@@ -329,7 +327,6 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
         void visit(ComplexExp *e)
         {
             //printf("ComplexExp::toDt() '%s'\n", e->toChars());
-            static char zeropad[6];
             switch (e->type->toBasetype()->ty)
             {
                 case Tcomplex32:
@@ -354,10 +351,10 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
                 {
                     d_float80 evalue = creall(e->value);
                     dtb.nbytes(Target::realsize - Target::realpad,(char *)&evalue);
-                    dtb.nbytes(Target::realpad,zeropad);
+                    dtb.nzeros(Target::realpad);
                     evalue = cimagl(e->value);
                     dtb.nbytes(Target::realsize - Target::realpad,(char *)&evalue);
-                    dtb.nbytes(Target::realpad,zeropad);
+                    dtb.nzeros(Target::realpad);
                     break;
                 }
 
