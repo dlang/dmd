@@ -152,13 +152,7 @@ void outdata(symbol *s)
                 //printf("DT_nbytes %d\n", dt->DTnbytes);
                 datasize += dt->DTnbytes;
                 break;
-            case DT_symsize:
-#if MARS
-                assert(0);
-#else
-                dt->DTazeros = type_size(s->Stype);
-#endif
-                goto case_azeros;
+
             case DT_azeros:
                 /* A block of zeros
                  */

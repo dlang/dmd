@@ -12,7 +12,6 @@ void dt_term();
 
 void dtpatchoffset(dt_t *dt, unsigned offset);
 void dt_optimize(dt_t *dt);
-void dtsymsize(Symbol *);
 void init_common(Symbol *);
 unsigned dt_size(const dt_t *dtstart);
 dt_t **dtend(dt_t** pdt);
