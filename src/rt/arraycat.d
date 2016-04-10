@@ -1,16 +1,13 @@
 /**
  * Implementation of array copy support routines.
  *
- * Copyright: Copyright Digital Mars 2004 - 2010.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Copyright: Copyright Digital Mars 2004 - 2016.
+ * License:   Distributed under the
+ *            $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  * Authors:   Walter Bright, Sean Kelly
+ * Source:    $(DRUNTIMESRC src/rt/_arraycat.d)
  */
 
-/*          Copyright Digital Mars 2004 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.arraycat;
 
 private

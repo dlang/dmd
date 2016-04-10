@@ -2,16 +2,13 @@
  * Contains SSE2 and MMX versions of certain operations for wchar, short,
  * and ushort ('u', 's' and 't' suffixes).
  *
- * Copyright: Copyright Digital Mars 2008 - 2010.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Copyright: Copyright Digital Mars 2008 - 2016.
+ * License:   Distributed under the
+ *            $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  * Authors:   Walter Bright, based on code originally written by Burton Radons
+ * Source:    $(DRUNTIMESRC src/rt/_arrayshort.d)
  */
 
-/*          Copyright Digital Mars 2008 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.arrayshort;
 
 // debug=PRINTF
