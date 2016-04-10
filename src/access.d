@@ -492,7 +492,7 @@ extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
     case PROTundefined: return true;
     case PROTnone: return false; // no access
     case PROTprivate: return s.getAccessModule() == mod;
-    case PROTpackage: return hasPackageAccess(mod, s);
+    case PROTpackage: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
     case PROTprotected: return s.getAccessModule() == mod;
     case PROTpublic, PROTexport: return true;
     }
@@ -533,7 +533,7 @@ extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
     case PROTundefined: return true;
     case PROTnone: return false; // no access
     case PROTprivate: return sc._module == s.getAccessModule();
-    case PROTpackage: return hasPackageAccess(sc._module, s);
+    case PROTpackage: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
     case PROTprotected: return hasProtectedAccess(sc, s);
     case PROTpublic, PROTexport: return true;
     }
