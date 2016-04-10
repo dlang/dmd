@@ -11,7 +11,6 @@ void dt_free(dt_t *);
 void dt_term();
 
 void dtpatchoffset(dt_t *dt, unsigned offset);
-void dt_optimize(dt_t *dt);
 void init_common(Symbol *);
 unsigned dt_size(const dt_t *dtstart);
 dt_t **dtend(dt_t** pdt);
@@ -42,6 +41,7 @@ struct DtBuilder
     void dtoff(dt_t *dt, unsigned offset);
     void coff(unsigned offset);
     void cat(dt_t *dt);
+    void cat(DtBuilder& dtb);
     void repeat(dt_t *dt, size_t count);
     unsigned length();
     bool isZeroLength();

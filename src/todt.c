@@ -181,7 +181,7 @@ void Initializer_toDt(Initializer *init, DtBuilder& dtb)
                     {
                         error(ai->loc, "too many initializers, %d, for array[%lu]", ai->dim, tadim);
                     }
-                    dtb.cat(dtbarray.finish());
+                    dtb.cat(dtbarray);
                     break;
                 }
 
@@ -429,25 +429,27 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
             {
                 Expression_toDt(e->getElement(i), dtbarray);
             }
-            dt_t *d = dtbarray.finish();
 
             Type *t = e->type->toBasetype();
             switch (t->ty)
             {
                 case Tsarray:
-                    dtb.cat(d);
+                    dtb.cat(dtbarray);
                     break;
 
                 case Tpointer:
                 case Tarray:
+                {
                     if (t->ty == Tarray)
                         dtb.size(e->elements->dim);
+                    dt_t *d = dtbarray.finish();
                     if (d)
                         dtb.dtoff(d, 0);
                     else
                         dtb.size(0);
 
                     break;
+                }
 
                 default:
                     assert(0);
@@ -765,17 +767,15 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
         if (offset < vd->offset)
             dtb.nzeros(vd->offset - offset);
 
-        dt_t *dt = NULL;
+        DtBuilder dtbx;
         if (elements)
         {
             Expression *e = (*elements)[firstFieldIndex + k];
             Type *tb = vd->type->toBasetype();
-            DtBuilder dtb;
             if (tb->ty == Tsarray)
-                toDtElem(((TypeSArray *)tb), dtb, e);
+                toDtElem(((TypeSArray *)tb), dtbx, e);
             else
-                Expression_toDt(e, dtb);    // convert e to an initializer dt
-            dt = dtb.finish();
+                Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
         else
         {
@@ -796,25 +796,21 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
 
                 ExpInitializer *ei = init->isExpInitializer();
                 Type *tb = vd->type->toBasetype();
-                DtBuilder dtb;
                 if (ei && tb->ty == Tsarray)
-                    toDtElem(((TypeSArray *)tb), dtb, ei->exp);
+                    toDtElem(((TypeSArray *)tb), dtbx, ei->exp);
                 else
-                    Initializer_toDt(init, dtb);
-                dt = dtb.finish();
+                    Initializer_toDt(init, dtbx);
             }
             else if (offset <= vd->offset)
             {
                 //printf("\t\tdefault initializer\n");
-                DtBuilder dtb;
-                Type_toDt(vd->type, dtb);
-                dt = dtb.finish();
+                Type_toDt(vd->type, dtbx);
             }
-            if (!dt)
+            if (dtbx.isZeroLength())
                 continue;
         }
 
-        dtb.cat(dt);
+        dtb.cat(dtbx);
         offset = vd->offset + vd->type->size();
     }
 
@@ -899,7 +895,6 @@ void toDtElem(TypeSArray *tsa, DtBuilder& dtb, Expression *e)
         DtBuilder dtb2;
         Expression_toDt(e, dtb2);
         dt_t *dt2 = dtb2.finish();
-        dt_optimize(dt2);
         dtb.repeat(dt2, len);
     }
 }
