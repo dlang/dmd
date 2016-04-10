@@ -3945,19 +3945,19 @@ alias DRAWPATRECT* PDRAWPATRECT;
 
 // ---------
 // Callbacks
-
-alias BOOL function (HDC, int) ABORTPROC;
-alias int function (HDC, HANDLETABLE*, METARECORD*, int, LPARAM) MFENUMPROC;
-alias int function (HDC, HANDLETABLE*, const(ENHMETARECORD)*, int, LPARAM) ENHMFENUMPROC;
-alias int function (const(LOGFONTA)*, const(TEXTMETRICA)*, DWORD, LPARAM) FONTENUMPROCA, OLDFONTENUMPROCA;
-alias int function (const(LOGFONTW)*, const(TEXTMETRICW)*, DWORD, LPARAM) FONTENUMPROCW, OLDFONTENUMPROCW;
-alias int function (LPSTR, LPARAM) ICMENUMPROCA;
-alias int function (LPWSTR, LPARAM) ICMENUMPROCW;
-alias void function (LPVOID, LPARAM) GOBJENUMPROC;
-alias void function (int, int, LPARAM) LINEDDAPROC;
-alias UINT function (HWND, HMODULE, LPDEVMODEA, LPSTR, LPSTR, LPDEVMODEA, LPSTR, UINT) LPFNDEVMODE;
-alias DWORD function (LPSTR, LPSTR, UINT, LPSTR, LPDEVMODEA) LPFNDEVCAPS;
-
+extern (Windows) {
+    alias BOOL function (HDC, int) ABORTPROC;
+    alias int function (HDC, HANDLETABLE*, METARECORD*, int, LPARAM) MFENUMPROC;
+    alias int function (HDC, HANDLETABLE*, const(ENHMETARECORD)*, int, LPARAM) ENHMFENUMPROC;
+    alias int function (const(LOGFONTA)*, const(TEXTMETRICA)*, DWORD, LPARAM) FONTENUMPROCA, OLDFONTENUMPROCA;
+    alias int function (const(LOGFONTW)*, const(TEXTMETRICW)*, DWORD, LPARAM) FONTENUMPROCW, OLDFONTENUMPROCW;
+    alias int function (LPSTR, LPARAM) ICMENUMPROCA;
+    alias int function (LPWSTR, LPARAM) ICMENUMPROCW;
+    alias void function (LPVOID, LPARAM) GOBJENUMPROC;
+    alias void function (int, int, LPARAM) LINEDDAPROC;
+    alias UINT function (HWND, HMODULE, LPDEVMODEA, LPSTR, LPSTR, LPDEVMODEA, LPSTR, UINT) LPFNDEVMODE;
+    alias DWORD function (LPSTR, LPSTR, UINT, LPSTR, LPDEVMODEA) LPFNDEVCAPS;
+}
 
 // ---------
 // C Macros.
