@@ -170,9 +170,6 @@ void init_common(symbol *s)
     {
         dt_t *dt = dt_calloc(DT_common);
         dt->DTazeros = size;
-#if SCPP
-        dsout += size;
-#endif
         s->Sdt = dt;
     }
 }
@@ -373,9 +370,6 @@ void DtBuilder::nzeros(unsigned size)
 
     dt_t *dt = dt_calloc(DT_azeros);
     dt->DTazeros = size;
-#if SCPP
-    dsout += size;
-#endif
 
     assert(!*pTail);
     *pTail = dt;
