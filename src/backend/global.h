@@ -79,9 +79,6 @@ extern block *block_last;
 extern int errcnt;
 extern regm_t fregsaved;
 
-#if SCPP
-extern targ_size_t dsout;              /* # of bytes actually output to data */
-#endif
 extern tym_t pointertype;              /* default data pointer type */
 
 // cg.c
