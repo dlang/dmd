@@ -1443,7 +1443,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 }
                 arg = p.defaultArg;
                 arg = inlineCopy(arg, sc);
-                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
+                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, and __GENSYM__
                 arg = arg.resolveLoc(loc, sc);
                 arguments.push(arg);
                 nargs++;
@@ -2656,7 +2656,7 @@ public:
     }
 
     /****************************************
-     * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ to loc.
+     * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __GENSYM__ to loc.
      */
     Expression resolveLoc(Loc loc, Scope* sc)
     {
@@ -15332,7 +15332,7 @@ public:
 }
 
 /***********************************************************
- */
+*/
 extern (C++) final class PrettyFuncInitExp : DefaultInitExp
 {
 public:
@@ -15372,6 +15372,75 @@ public:
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.semantic(sc);
         e = e.castTo(sc, type);
+        return e;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/*****************************************
+ * Generate a unique string, mostly to be used for 'cookies' to distinguish
+ * two instantiations of the same template.
+ */
+extern (C++) final class GensymInitExp : DefaultInitExp
+{
+    struct Counter
+    {
+        const(char)* name;
+        int counter = 1;
+        bool opEquals(const(char)* s)
+        {
+            return strlen(s) == strlen(name) && strcmp(s, name) == 0;
+        }
+    }
+    static __gshared Counter* counters = null;
+    static __gshared int countNum = 0;
+
+    static size_t register(const(char)* name)
+    {
+        for (int i = 0; i < countNum; ++i)
+            if (counters[i] == name)
+                return ++counters[i].counter;
+
+        counters = cast(Counter*)Mem.xrealloc(counters, (countNum+1)*Counter.sizeof);
+        counters[countNum] = Counter(name, 1);
+        countNum++;
+        return 1;
+    }
+
+    size_t idx = -1;
+public:
+    extern (D) this(Loc loc)
+    {
+        super(loc, TOKgensym, __traits(classInstanceSize, GensymInitExp));
+    }
+
+    override Expression semantic(Scope* sc)
+    {
+        type = Type.tstring;
+        if (sc.func || (sc.flags & SCOPEctfe))
+            return this.resolveLoc(Loc(), sc);
+        return this;
+    }
+
+    override Expression resolveLoc(Loc loc, Scope* sc)
+    {
+        OutBuffer buf;
+        Scope* sp = sc;
+        if (sp.callsc)
+            sp = sp.callsc;
+
+        const(char)* scopeName = mangle(sp.parent);
+        if (idx == -1)
+            idx = register(scopeName);
+
+        buf.printf("G%s%d", scopeName, idx);
+
+        Expression e = new StringExp(loc, buf.extractString);
+        e = e.semantic(sc);
         return e;
     }
 

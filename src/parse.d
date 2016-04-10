@@ -88,6 +88,7 @@ __gshared PREC[TOKMAX] precedence =
     TOKmodulestring : PREC_primary,
     TOKfuncstring : PREC_primary,
     TOKprettyfunc : PREC_primary,
+    TOKgensym : PREC_primary,
     TOKtypeid : PREC_primary,
     TOKis : PREC_primary,
     TOKassert : PREC_primary,
@@ -1886,6 +1887,7 @@ public:
         case TOKmodulestring:
         case TOKfuncstring:
         case TOKprettyfunc:
+        case TOKgensym:
         case TOKthis:
             {
                 // Template argument is an expression
@@ -4524,6 +4526,7 @@ public:
         case TOKmodulestring:
         case TOKfuncstring:
         case TOKprettyfunc:
+        case TOKgensym:
         Lexp:
             {
                 Expression exp = parseExpression();
@@ -5661,11 +5664,11 @@ public:
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
+     * with special handling for __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, and __GENSYM__.
      */
     Expression parseDefaultInitExp()
     {
-        if (token.value == TOKfile || token.value == TOKline || token.value == TOKmodulestring || token.value == TOKfuncstring || token.value == TOKprettyfunc)
+        if (token.value == TOKfile || token.value == TOKline || token.value == TOKmodulestring || token.value == TOKfuncstring || token.value == TOKprettyfunc || token.value == TOKgensym)
         {
             Token* t = peek(&token);
             if (t.value == TOKcomma || t.value == TOKrparen)
@@ -5681,6 +5684,8 @@ public:
                     e = new FuncInitExp(token.loc);
                 else if (token.value == TOKprettyfunc)
                     e = new PrettyFuncInitExp(token.loc);
+                else if (token.value == TOKgensym)
+                    e = new GensymInitExp(token.loc);
                 else
                     assert(0);
                 nextToken();
@@ -5892,6 +5897,7 @@ public:
                     case TOKmodulestring:
                     case TOKfuncstring:
                     case TOKprettyfunc:
+                    case TOKgensym:
                         goto L2;
                     default:
                         goto Lfalse;
@@ -6605,6 +6611,10 @@ public:
             e = new PrettyFuncInitExp(loc);
             nextToken();
             break;
+        case TOKgensym:
+            e = new GensymInitExp(loc);
+            nextToken();
+            break;
         case TOKtrue:
             e = new IntegerExp(loc, 1, Type.tbool);
             nextToken();
@@ -7162,6 +7172,7 @@ public:
                         case TOKmodulestring:
                         case TOKfuncstring:
                         case TOKprettyfunc:
+                        case TOKgensym:
                         case TOKwchar:
                         case TOKdchar:
                         case TOKbool:

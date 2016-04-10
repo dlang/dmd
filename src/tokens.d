@@ -283,6 +283,7 @@ enum TOK : int
     TOKmodulestring,
     TOKfuncstring,
     TOKprettyfunc,
+    TOKgensym,
     TOKshared,
     TOKat,
     TOKpow,
@@ -528,6 +529,7 @@ alias TOKfile = TOK.TOKfile;
 alias TOKmodulestring = TOK.TOKmodulestring;
 alias TOKfuncstring = TOK.TOKfuncstring;
 alias TOKprettyfunc = TOK.TOKprettyfunc;
+alias TOKgensym = TOK.TOKgensym;
 alias TOKshared = TOK.TOKshared;
 alias TOKat = TOK.TOKat;
 alias TOKpow = TOK.TOKpow;
@@ -1035,6 +1037,7 @@ immutable Keyword[] keywords =
     Keyword("__MODULE__", TOKmodulestring),
     Keyword("__FUNCTION__", TOKfuncstring),
     Keyword("__PRETTY_FUNCTION__", TOKprettyfunc),
+    Keyword("__GENSYM__", TOKgensym),
     Keyword("shared", TOKshared),
     Keyword("immutable", TOKimmutable),
 ];
