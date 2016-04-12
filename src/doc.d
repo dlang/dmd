@@ -228,35 +228,21 @@ public:
             L1:
                 //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
                 ++paramcount;
-                HdrGenState hgs;
                 buf.writestring(this.params_row);
                 {
                     buf.writestring(this.params_id);
                     {
                         size_t o = buf.offset;
-                        Parameter fparam = isFunctionParameter(a, namestart, namelen);
                         bool isCVariadic = isCVariadicParameter(a, namestart, namelen);
                         if (isCVariadic)
                         {
                             buf.writestring("...");
                         }
-                        else if (fparam && fparam.type && fparam.ident)
-                        {
-                            .toCBuffer(fparam.type, buf, fparam.ident, &hgs);
-                        }
                         else
                         {
-                            if (isTemplateParameter(a, namestart, namelen))
-                            {
-                                // 10236: Don't count template parameters for params check
-                                --paramcount;
-                            }
-                            else if (!fparam)
-                            {
-                                warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
-                            }
-                            buf.write(namestart, namelen);
+                            this.outputParamDoc(buf, a, namestart, namelen, paramcount);
                         }
+
                         escapeStrayParenthesis(loc, buf, o);
                         highlightCode(sc, a, buf, o);
                     }
@@ -297,6 +283,32 @@ public:
             goto L1;
         // write out last one
         buf.writestring(")\n");
+        this.checkParamsCount(s, a, namestart, namelen, paramcount);
+    }
+
+    protected void outputParamDoc(OutBuffer* buf, Dsymbols* a, const(char)* namestart, size_t namelen, ref size_t paramcount)
+    {
+        HdrGenState hgs;
+        auto fparam = isFunctionParameter(a, namestart, namelen);
+        if (fparam && fparam.type && fparam.ident)
+        {
+            .toCBuffer(fparam.type, buf, fparam.ident, &hgs);
+        }
+        else if (isTemplateParameter(a, namestart, namelen))
+        {
+            // 10236: Don't count template parameters for params check
+            paramcount--;
+        }
+        else if (!fparam)
+        {
+            Dsymbol s = (*a)[0];
+            warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
+            buf.write(namestart, namelen);
+        }
+    }
+
+    protected void checkParamsCount(ref Dsymbol s, Dsymbols* a, const(char*) namestart, size_t name_len, size_t paramcount)
+    {
         TypeFunction tf = a.dim == 1 ? isTypeFunction(s) : null;
         if (tf)
         {
@@ -320,6 +332,43 @@ public:
         this.params_row = "$(DDOC_TEMPL_PARAM_ROW ";
         this.params_id = "$(DDOC_TEMPL_PARAM_ID ";
         this.params_desc = "$(DDOC_TEMPL_PARAM_DESC ";
+    }
+
+    protected override void outputParamDoc(OutBuffer* buf, Dsymbols* a, const(char)* namestart, size_t namelen, ref size_t paramcount)
+    {
+        HdrGenState hgs;
+        auto fparam = isTemplateParameter(a, namestart, namelen);
+        if (fparam && fparam.ident)
+        {
+            .toCBuffer(fparam, buf, &hgs);
+        }
+        else if (isFunctionParameter(a, namestart, namelen))
+        {
+            paramcount--;
+        }
+        else if (!fparam)
+        {
+            Dsymbol s = (*a)[0];
+            warning(s.loc, "Ddoc: function declaration has no template parameter '%.*s'", namelen, namestart);
+            buf.write(namestart, namelen);
+        }
+    }
+
+    protected override void checkParamsCount(ref Dsymbol s, Dsymbols* a, const(char*) namestart, size_t name_len, size_t paramcount)
+    {
+        TypeFunction tf = a.dim == 1 ? isTypeFunction(s) : null;
+        if (tf)
+        {
+            TemplateDeclaration td = .getEponymousParent(s);
+            if (td)
+            {
+                size_t pcount = (td.parameters ? td.parameters.dim : 0);
+                if (pcount != paramcount)
+                {
+                    warning(s.loc, "Ddoc: parameter count mismatch");
+                }
+            }
+        }
     }
 }
 
