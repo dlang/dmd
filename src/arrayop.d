@@ -64,7 +64,7 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
 
     /* Construct the function
      */
-    auto ftype = new TypeFunction(fparams, exp.type, 0, LINKc, stc);
+    auto ftype = new TypeFunction(fparams, exp.e1.type, 0, LINKc, stc);
     //printf("fd: %s %s\n", ident.toChars(), ftype.toChars());
     //printf("fbody: %s\n", fbody.toChars());
     auto fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
