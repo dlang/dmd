@@ -3498,12 +3498,11 @@ STATIC elem * eleq(elem *e, goal_t goal)
         if (tysize(e1->Ety) == 2 * REGSIZE &&
             e1->Eoper == OPvar &&
             e2->Eoper == OPvar &&
-            goal == GOALnone
+            goal == GOALnone &&
+            !tyfloating(e1->Ety)
            )
         {
             tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
-            if (tyfloating(e1->Ety) && REGSIZE >= 4)
-                ty = (REGSIZE == 8) ? TYdouble : TYfloat;
             ty |= e1->Ety & ~mTYbasic;
             e2->Ety = ty;
             e->Ety = ty;
