@@ -150,9 +150,23 @@ public:
 
 /***********************************************************
  */
-extern (C++) final class ParamSection : Section
+extern (C++) class ParamSection : Section
 {
 public:
+    const(char)* params_name;
+    const(char)* params_row;
+    const(char)* params_id;
+    const(char)* params_desc;
+
+    this()
+    {
+        this.params_name = "$(DDOC_PARAMS ";
+        this.params_row = "$(DDOC_PARAM_ROW ";
+        this.params_id = "$(DDOC_PARAM_ID ";
+        this.params_desc = "$(DDOC_PARAM_DESC ";
+    }
+
+
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
@@ -167,7 +181,7 @@ public:
         const(char)* textstart = null;
         size_t textlen = 0;
         size_t paramcount = 0;
-        buf.writestring("$(DDOC_PARAMS ");
+        buf.writestring(this.params_name);
         while (p < pend)
         {
             // Skip to start of macro
@@ -215,9 +229,9 @@ public:
                 //printf("param '%.*s' = '%.*s'\n", namelen, namestart, textlen, textstart);
                 ++paramcount;
                 HdrGenState hgs;
-                buf.writestring("$(DDOC_PARAM_ROW ");
+                buf.writestring(this.params_row);
                 {
-                    buf.writestring("$(DDOC_PARAM_ID ");
+                    buf.writestring(this.params_id);
                     {
                         size_t o = buf.offset;
                         Parameter fparam = isFunctionParameter(a, namestart, namelen);
@@ -247,7 +261,7 @@ public:
                         highlightCode(sc, a, buf, o);
                     }
                     buf.writestring(")\n");
-                    buf.writestring("$(DDOC_PARAM_DESC ");
+                    buf.writestring(this.params_desc);
                     {
                         size_t o = buf.offset;
                         buf.write(textstart, textlen);
@@ -292,6 +306,20 @@ public:
                 warning(s.loc, "Ddoc: parameter count mismatch");
             }
         }
+    }
+}
+
+/***********************************************************
+  */
+extern (C++) class TemplateParamSection : ParamSection
+{
+public:
+    this()
+    {
+        this.params_name = "$(DDOC_TEMPL_PARAMS ";
+        this.params_row = "$(DDOC_TEMPL_PARAM_ROW ";
+        this.params_id = "$(DDOC_TEMPL_PARAM_ID ";
+        this.params_desc = "$(DDOC_TEMPL_PARAM_DESC ";
     }
 }
 
@@ -442,6 +470,11 @@ $(TABLE $0)$(BR)
 DDOC_PARAM_ROW = $(TR $0)
 DDOC_PARAM_ID  = $(TD $0)
 DDOC_PARAM_DESC = $(TD $0)
+DDOC_TEMPL_PARAMS    = $(B Template Params:)$(BR)
+$(TABLE $0)$(BR)
+DDOC_TEMPL_PARAM_ROW = $(TR $0)
+DDOC_TEMPL_PARAM_ID  = $(TD $0)
+DDOC_TEMPL_PARAM_DESC = $(TD $0)
 DDOC_BLANKLINE  = $(BR)$(BR)
 
 DDOC_ANCHOR     = <a name=\"$1\"></a>
@@ -1755,6 +1788,8 @@ struct DocComment
                 Section s;
                 if (icmp("Params", name, namelen) == 0)
                     s = new ParamSection();
+                else if (icmp("Template_Params", name, namelen) == 0)
+                    s = new TemplateParamSection();
                 else if (icmp("Macros", name, namelen) == 0)
                     s = new MacroSection();
                 else
