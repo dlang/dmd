@@ -407,16 +407,42 @@ public:
         return s;
     }
 
+    /**********************************
+     * `parent` field returns a lexically enclosing scope symbol this is a member of.
+     *
+     * `toParent()` returns a logically enclosing scope symbol this is a member of.
+     * It skips over TemplateMixin's.
+     *
+     * `toParent2()` returns an enclosing scope symbol this is living at runtime.
+     * It skips over both TemplateInstance's and TemplateMixin's.
+     * It's used when looking for the 'this' pointer of the enclosing function/class.
+     *
+     * Examples:
+     *  module mod;
+     *  template Foo(alias a) { mixin Bar!(); }
+     *  mixin template Bar() {
+     *    public {  // ProtDeclaration
+     *      void baz() { a = 2; }
+     *    }
+     *  }
+     *  void test() {
+     *    int v = 1;
+     *    alias foo = Foo!(v);
+     *    foo.baz();
+     *    assert(v == 2);
+     *  }
+     *
+     *  // s == FuncDeclaration('mod.test.Foo!().Bar!().baz()')
+     *  // s.parent == TemplateMixin('mod.test.Foo!().Bar!()')
+     *  // s.toParent() == TemplateInstance('mod.test.Foo!()')
+     *  // s.toParent2() == FuncDeclaration('mod.test')
+     */
     final Dsymbol toParent()
     {
         return parent ? parent.pastMixin() : null;
     }
 
-    /**********************************
-     * Use this instead of toParent() when looking for the
-     * 'this' pointer of the enclosing function/class.
-     * This skips over both TemplateInstance's and TemplateMixin's.
-     */
+    /// ditto
     final Dsymbol toParent2()
     {
         Dsymbol s = parent;
@@ -772,31 +798,6 @@ public:
         return null;
     }
 
-    // are we a member of an aggregate?
-    final AggregateDeclaration isAggregateMember()
-    {
-        Dsymbol parent = toParent();
-        if (parent && parent.isAggregateDeclaration())
-            return cast(AggregateDeclaration)parent;
-        return null;
-    }
-
-    // are we a member of an aggregate?
-    final AggregateDeclaration isAggregateMember2()
-    {
-        Dsymbol parent = toParent2();
-        if (parent && parent.isAggregateDeclaration())
-            return cast(AggregateDeclaration)parent;
-        return null;
-    }
-
-    // are we a member of a class?
-    final ClassDeclaration isClassMember()
-    {
-        AggregateDeclaration ad = isAggregateMember();
-        return ad ? ad.isClassDeclaration() : null;
-    }
-
     // is Dsymbol exported?
     bool isExport()
     {
@@ -826,13 +827,29 @@ public:
         return null;
     }
 
-    // is this a member of an AggregateDeclaration?
-    AggregateDeclaration isMember()
+    /// Returns an AggregateDeclaration when toParent() is that.
+    final AggregateDeclaration isMember()
     {
         //printf("Dsymbol::isMember() %s\n", toChars());
-        Dsymbol parent = toParent();
-        //printf("parent is %s %s\n", parent->kind(), parent->toChars());
-        return parent ? parent.isAggregateDeclaration() : null;
+        auto p = toParent();
+        //printf("parent is %s %s\n", p.kind(), p.toChars());
+        return p ? p.isAggregateDeclaration() : null;
+    }
+
+    /// Returns an AggregateDeclaration when toParent2() is that.
+    final AggregateDeclaration isMember2()
+    {
+        //printf("Dsymbol::isMember2() '%s'\n", toChars());
+        auto p = toParent2();
+        //printf("parent is %s %s\n", p.kind(), p.toChars());
+        return p ? p.isAggregateDeclaration() : null;
+    }
+
+    // is this a member of a ClassDeclaration?
+    final ClassDeclaration isClassMember()
+    {
+        auto ad = isMember();
+        return ad ? ad.isClassDeclaration() : null;
     }
 
     // is this a type?

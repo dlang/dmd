@@ -1603,7 +1603,7 @@ public:
                 auto sym = new ScopeDsymbol();
                 sym.parent = sc2.scopesym;
                 sc2 = sc2.push(sym);
-                AggregateDeclaration ad2 = isAggregateMember2();
+                auto ad2 = isMember2();
                 /* If this is a class constructor
                  */
                 if (ad2 && isCtorDeclaration())
@@ -2886,27 +2886,6 @@ public:
             ad = isMember2();
         }
         //printf("-FuncDeclaration::isThis() %p\n", ad);
-        return ad;
-    }
-
-    final AggregateDeclaration isMember2()
-    {
-        //printf("+FuncDeclaration::isMember2() '%s'\n", toChars());
-        AggregateDeclaration ad = null;
-        for (Dsymbol s = this; s; s = s.parent)
-        {
-            //printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
-            ad = s.isMember();
-            if (ad)
-            {
-                break;
-            }
-            if (!s.parent || (!s.parent.isTemplateInstance()))
-            {
-                break;
-            }
-        }
-        //printf("-FuncDeclaration::isMember2() %p\n", ad);
         return ad;
     }
 
