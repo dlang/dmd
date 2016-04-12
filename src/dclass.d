@@ -1120,7 +1120,17 @@ public:
             return null;
         }
 
-        Dsymbol s = ScopeDsymbol.search(loc, ident, (flags & SearchImportsOnly) ? flags : flags | SearchLocalsOnly);
+        auto s = ScopeDsymbol.search(loc, ident, flags);
+
+        if ((flags & (SearchLocalsOnly | SearchImportsOnly)) == 0)
+        {
+            // keep old way search
+        }
+        else
+        {
+            flags |= SearchLocalsOnly;
+        }
+
         if (!s)
         {
             // Search bases classes in depth-first, left to right order
@@ -1135,7 +1145,7 @@ public:
                     {
                         import ddmd.access : symbolIsVisible;
 
-                        s = b.sym.search(loc, ident, flags | SearchLocalsOnly);
+                        s = b.sym.search(loc, ident, flags);
                         if (!s)
                             continue;
                         else if (s == this) // happens if s is nested in this and derives from this

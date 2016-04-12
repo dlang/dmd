@@ -523,7 +523,6 @@ struct Scope
                 return sold;
 
             // Search both ways
-            flags |= SearchCheck10378;
         }
 
         // First look in local scopes

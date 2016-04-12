@@ -681,7 +681,6 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
         }
 
         // Search both ways
-        flags |= SearchCheck10378;
     }
 
     // First look in local scopes

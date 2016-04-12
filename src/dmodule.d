@@ -1093,10 +1093,13 @@ public:
             //        toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
             return searchCacheSymbol;
         }
+
         uint errors = global.errors;
+
         insearch = 1;
         Dsymbol s = ScopeDsymbol.search(loc, ident, flags);
         insearch = 0;
+
         if (errors == global.errors)
         {
             // Bugzilla 10752: We can cache the result only when it does not cause
