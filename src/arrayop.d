@@ -10,6 +10,7 @@
 
 module ddmd.arrayop;
 
+import core.stdc.stdio;
 import ddmd.arraytypes;
 import ddmd.declaration;
 import ddmd.dscope;
@@ -53,9 +54,9 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
         new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)),
         new ExpStatement(Loc(), loopbody),
         Loc());
-    //printf("%s\n", s1->toChars());
+    //printf("%s\n", s1.toChars());
     Statement s2 = new ReturnStatement(Loc(), new IdentifierExp(Loc(), p.ident));
-    //printf("s2: %s\n", s2->toChars());
+    //printf("s2: %s\n", s2.toChars());
     Statement fbody = new CompoundStatement(Loc(), s1, s2);
 
     // Built-in array ops should be @trusted, pure, nothrow and nogc
@@ -64,7 +65,8 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
     /* Construct the function
      */
     auto ftype = new TypeFunction(fparams, exp.type, 0, LINKc, stc);
-    //printf("fd: %s %s\n", ident->toChars(), ftype->toChars());
+    //printf("fd: %s %s\n", ident.toChars(), ftype.toChars());
+    //printf("fbody: %s\n", fbody.toChars());
     auto fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd.fbody = fbody;
     fd.protection = Prot(PROTpublic);
@@ -166,7 +168,7 @@ extern (C++) bool checkNonAssignmentArrayOp(Expression e, bool suggestion = fals
  */
 extern (C++) Expression arrayOp(BinExp e, Scope* sc)
 {
-    //printf("BinExp::arrayOp() %s\n", toChars());
+    //printf("BinExp.arrayOp() %s\n", toChars());
     Type tb = e.type.toBasetype();
     assert(tb.ty == Tarray || tb.ty == Tsarray);
     Type tbn = tb.nextOf().toBasetype();
@@ -228,7 +230,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
 
 extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
 {
-    //printf("BinAssignExp::arrayOp() %s\n", toChars());
+    //printf("BinAssignExp.arrayOp() %s\n", toChars());
 
     /* Check that the elements of e1 can be assigned to
      */
@@ -605,7 +607,7 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
  */
 extern (C++) bool isArrayOpOperand(Expression e)
 {
-    //printf("Expression::isArrayOpOperand() %s\n", e->toChars());
+    //printf("Expression.isArrayOpOperand() %s\n", e->toChars());
     if (e.op == TOKslice)
         return true;
     if (e.op == TOKarrayliteral)
