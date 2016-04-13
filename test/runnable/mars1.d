@@ -1422,6 +1422,19 @@ void test15272()
     *buckets = calloc15272(count)[0 .. count];
 }
 
+/*****************************************
+ * https://issues.dlang.org/show_bug.cgi?id=15861
+ */
+
+void test15861()
+{
+    double val = 4286853117.;
+
+    (){
+        assert(val == 4286853117.);
+    }();
+}
+
 ////////////////////////////////////////////////////////////////////////
 
 int main()
@@ -1472,7 +1485,7 @@ int main()
     test14782();
     test14987();
     test15272();
-
+    test15861();
     printf("Success\n");
     return 0;
 }
