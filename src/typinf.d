@@ -8,7 +8,6 @@
 
 module ddmd.typinf;
 
-import core.stdc.stdio;
 import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;

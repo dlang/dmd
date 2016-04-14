@@ -1390,12 +1390,25 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     }
 
     // If inferring return type, and semantic3() needs to be run if not already run
-    if (fd)
+    if (!tf.next && fd.inferRetType)
     {
-        if (!fd.functionSemantic())
-            return true;
-        if (fd.inferRetType)
-            unSpeculative(sc, fd.type.nextOf().baseElemOf());
+        fd.functionSemantic();
+    }
+    else if (fd && fd.parent)
+    {
+        TemplateInstance ti = fd.parent.isTemplateInstance();
+        if (ti && ti.tempdecl)
+        {
+            fd.functionSemantic3();
+        }
+    }
+    if (fd && fd.inferRetType)
+    {
+        auto tn = fd.type.nextOf();
+        //if (!tn) printf("[%s] fd = %s\n", loc.toChars(), fd.toChars());
+        //assert(tn);
+        if (tn) // workaround
+            unSpeculative(sc, tn.baseElemOf());
     }
 
     bool isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
