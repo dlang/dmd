@@ -1329,8 +1329,11 @@ public:
             //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
             assert(0);
         }
-        if (isError(parent))
+        if (errors || isError(parent))
+        {
+            errors = true;
             return;
+        }
         //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent->toChars(), toChars(), this, sc, loc.toChars());
         //fflush(stdout);
         //printf("storage class = x%x %x\n", sc->stc, storage_class);
