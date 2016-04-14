@@ -1425,6 +1425,18 @@ public:
             if (inferRetType)
                 printf("[%s] %s.semantic3 sc2.tinst = %s, minst = %s\n", loc.toChars(), toChars(),
                     sc2.tinst ? sc2.tinst.toChars() : null, sc2.minst ? sc2.minst.toChars() : null);
+
+            // Bugzilla 10920: If the function is non-root symbol,
+            // all instantiated symbols in fbody needs to be speculative.
+            // Bugzilla xxxxx: If the function body will be inlined, the used
+            // speculative symbols will be unspeculative by semanticTypeInfo().
+            // Bugzilla 15906: If this auto function returns speculative instantiated type,
+            // it's unspeculative at the caller site.
+            if (!sc.tinst && inNonRoot())
+            {
+                sc2.minst = null;
+            }
+
             if (isMember2())
             {
                 FuncLiteralDeclaration fld = isFuncLiteralDeclaration();
