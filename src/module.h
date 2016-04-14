@@ -50,7 +50,7 @@ public:
     bool isAncestorPackageOf(const Package * const pkg) const;
 
     void semantic(Scope *sc) { }
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
@@ -131,7 +131,7 @@ public:
     void semantic2();   // pass 2 semantic analysis
     void semantic3();   // pass 3 semantic analysis
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void addDeferredSemantic(Dsymbol *s);
