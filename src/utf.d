@@ -12,18 +12,16 @@ nothrow pure @nogc:
 
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]
 /// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
-/// and non-characters (which end in 0xFFFE or 0xFFFF).
 bool utf_isValidDchar(dchar c)
 {
     // TODO: Whether non-char code points should be rejected is pending review
     // largest character code point
     if (c > 0x10FFFF)
         return false;
+    // 0xFFFE and 0xFFFF are valid for internal use, like Phobos std.utf.isValidDChar
+    // See also https://issues.dlang.org/show_bug.cgi?id=1357
     // surrogate pairs
     if (0xD800 <= c && c <= 0xDFFF)
-        return false;
-    // non-characters
-    if ((c & 0xFFFFFE) == 0x00FFFE)
         return false;
     return true;
 }
