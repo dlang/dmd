@@ -166,7 +166,6 @@ extern (C++) bool isSpeculativeType(Type t)
                     if (ti.minst || sd.requestTypeInfo)
                         return;
 
-printf("%s.minst = %p\n", ti.toChars(), ti.minst);
                     /* Bugzilla 14425: TypeInfo_Struct would refer the members of
                      * struct (e.g. opEquals via xopEquals field), so if it's instantiated
                      * in speculative context, TypeInfo creation should also be

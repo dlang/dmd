@@ -722,7 +722,6 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         "foreach (i, T; typeof(p.tupleof))" ~
         "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
-    printf("\ngenerate %s.toHash()\n\n", sd.toChars());
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
     Scope* sc2 = sc.push();
     sc2.stc = 0;

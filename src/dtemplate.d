@@ -2437,7 +2437,6 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             if (!tiargs)
                 tiargs = new Objects();
             auto ti = new TemplateInstance(loc, td, tiargs);
-            printf(">>> L%d new TemplateInstance [%s]\n", __LINE__, loc.toChars(), ti.toChars());
             Objects dedtypes;
             dedtypes.setDim(td.parameters.dim);
             assert(td.semanticRun != PASSinit);
@@ -2553,7 +2552,6 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             /* This is a 'dummy' instance to evaluate constraint properly.
              */
             auto ti = new TemplateInstance(loc, td, tiargs);
-            printf(">>> L%d new TemplateInstance [%s]\n", __LINE__, loc.toChars(), ti.toChars());
             ti.parent = td.parent;  // Maybe calculating valid 'enclosing' is unnecessary.
 
             auto fd = f;
@@ -2675,7 +2673,6 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             sc = td_best._scope; // workaround for Type::aliasthisOf
 
         auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
-        printf(">>> L%d new TemplateInstance [%s]\n", __LINE__, loc.toChars(), ti.toChars());
         ti.semantic(sc, fargs);
 
         m.lastf = ti.toAlias().isFuncDeclaration();
@@ -5840,28 +5837,16 @@ public:
             errors = true;
             return;
         }
-
         // Get the enclosing template instance from the scope tinst
         tinst = sc.tinst;
-
         // Get the instantiating module from the scope minst
         minst = sc.minst;
-
-        // Bugzilla 10920: If the enclosing function is non-root symbol,
-        // this instance should be speculative.
-        //if (!tinst && sc.func && sc.func.inNonRoot())
-        //{
-        //    minst = null;
-        //}
         gagged = (global.gag > 0);
         semanticRun = PASSsemantic;
         static if (LOG)
         {
             printf("\tdo semantic\n");
         }
-        printf("[%s] +TemplateInstance::semantic('%s', this=%p) tinst = %s, minst = %s\n",
-            loc.toChars(), toChars(), this, tinst ? tinst.toChars() : null, minst ? minst.toChars() : null);
-
         /* Find template declaration first,
          * then run semantic on each argument (place results in tiargs[]),
          * last find most specialized template from overload list/set.
@@ -7976,7 +7961,6 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
     Dsymbol s = getDsymbol(o);
     if (!s)
         return;
-    printf("\t---> s = %s %s unSpeculative\n", s.kind(), s.toPrettyChars());
     Declaration d = s.isDeclaration();
     if (d)
     {
@@ -7998,18 +7982,12 @@ extern (C++) void unSpeculative(Scope* sc, RootObject o)
     {
         // If the instance is already non-speculative,
         // or it is leaked to the speculative scope.
-        printf("\t---> ti('%s') unSpeculative? ti.tinst = %s, ti.minst = %s\n",
-            ti.toPrettyChars(),
-            ti.tinst ? ti.tinst.toChars() : null, ti.minst ? ti.minst.toChars() : null);
         if (ti.minst !is null || sc.minst is null)
             return;
         // Remark as non-speculative instance.
         ti.minst = sc.minst;
         if (!ti.tinst)
             ti.tinst = sc.tinst;
-        printf("\t---> ti('%s') unSpeculative! ti.tinst = %s, ti.minst = %s\n\n",
-            ti.toPrettyChars(),
-            ti.tinst ? ti.tinst.toChars() : null, ti.minst ? ti.minst.toChars() : null);
         unSpeculative(sc, ti.tempdecl);
     }
     if (TemplateInstance ti = s.isInstantiated())

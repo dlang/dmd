@@ -1395,11 +1395,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         if (!fd.functionSemantic())
             return true;
         if (fd.inferRetType)
-        {
-printf("$$$ [%s] fd = %s, type = %s\n", loc.toChars(), fd.toPrettyChars(), fd.type.toChars());
-            auto tn = fd.type.nextOf().baseElemOf();
-            unSpeculative(sc, tn);
-        }
+            unSpeculative(sc, fd.type.nextOf().baseElemOf());
     }
 
     bool isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
@@ -5510,7 +5506,6 @@ public:
                 type = Type.tvoid;
                 return this;
             }
-            printf("\tL%d [%s] ScopeExp('%s')\n", __LINE__, loc.toChars(), ti.toChars());
             ti.semantic(sc);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();
