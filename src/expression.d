@@ -5509,6 +5509,7 @@ public:
                 type = Type.tvoid;
                 return this;
             }
+            printf("\tL%d [%s] ScopeExp('%s')\n", __LINE__, loc.toChars(), ti.toChars());
             ti.semantic(sc);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();

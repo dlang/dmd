@@ -1052,7 +1052,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
         void visit(TypeInfoDeclaration *tid)
         {
-            if (!tid->tinfo->mod && isSpeculativeType(tid->tinfo))
+            if (isSpeculativeType(tid->tinfo))
             {
                 //printf("-speculative '%s'\n", tid->toPrettyChars());
                 return;

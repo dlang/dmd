@@ -1422,6 +1422,9 @@ public:
                 sc2.intypeof = 2;
             sc2.fieldinit = null;
             sc2.fieldinit_dim = 0;
+            if (inferRetType)
+                printf("[%s] %s.semantic3 sc2.tinst = %s, minst = %s\n", loc.toChars(), toChars(),
+                    sc2.tinst ? sc2.tinst.toChars() : null, sc2.minst ? sc2.minst.toChars() : null);
             if (isMember2())
             {
                 FuncLiteralDeclaration fld = isFuncLiteralDeclaration();
