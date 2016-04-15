@@ -316,19 +316,19 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                {
                     void **vptr;
                     monitor_t monitor;
-                    byte[] initializer;         // static initialization data
-                    char[] name;                // class name
-                    void *[] vtbl;
+                    byte[] m_init;              // static initialization data
+                    string name;                // class name
+                    void*[] vtbl;
                     Interface[] interfaces;
-                    ClassInfo *base;            // base class
-                    void *destructor;
-                    void *invariant;            // class invariant
-                    ClassFlags flags;
-                    void *deallocator;
+                    ClassInfo base;             // base class
+                    void* destructor;
+                    void function(Object) classInvariant;   // class invariant
+                    ClassFlags m_flags;
+                    void* deallocator;
                     OffsetTypeInfo[] offTi;
-                    void *defaultConstructor;
+                    void function(Object) defaultConstructor;
                     //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
-                    void *xgetRTInfo;
+                    immutable(void)* m_RTInfo;
                     //TypeInfo typeinfo;
                }
              */
@@ -347,16 +347,16 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             DtBuilder dtb;
 
-            if (Type::typeinfoclass)
-                dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
+            if (Type::typeinfoclass)            // vtbl for TypeInfo_Class : ClassInfo
+                dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr);
             else
-                dtb.size(0);                // BUG: should be an assert()
-            dtb.size(0);                    // monitor
+                dtb.size(0);                    // BUG: should be an assert()
+            dtb.size(0);                        // monitor
 
-            // initializer[]
+            // m_init[]
             assert(cd->structsize >= 8 || (cd->cpp && cd->structsize >= 4));
             dtb.size(cd->structsize);           // size
-            dtb.xoff(sinit, 0, TYnptr);      // initializer
+            dtb.xoff(sinit, 0, TYnptr);         // initializer
 
             // name[]
             const char *name = cd->ident->toChars();
@@ -395,7 +395,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             else
                 dtb.size(0);
 
-            // invariant
+            // classInvariant
             if (cd->inv)
                 dtb.xoff(toSymbol(cd->inv), 0, TYnptr);
             else
@@ -436,7 +436,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
           L2:
             dtb.size(flags);
 
-
             // deallocator
             if (cd->aggDelete)
                 dtb.xoff(toSymbol(cd->aggDelete), 0, TYnptr);
@@ -453,7 +452,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             else
                 dtb.size(0);
 
-            // xgetRTInfo
+            // m_RTInfo
             if (cd->getRTInfo)
                 Expression_toDt(cd->getRTInfo, dtb);
             else if (flags & ClassFlags::noPointers)
@@ -461,7 +460,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             else
                 dtb.size(1);
 
-            //dtb.xoff(toSymbol(type->vtinfo), 0, TYnptr); // typeinfo
+            //dtb.xoff(toSymbol(cd->type->vtinfo), 0, TYnptr); // typeinfo
 
             //////////////////////////////////////////////
 
@@ -477,8 +476,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 /* The layout is:
                  *  struct Interface
                  *  {
-                 *      ClassInfo *interface;
-                 *      void *[] vtbl;
+                 *      ClassInfo classinfo;
+                 *      void*[] vtbl;
                  *      size_t offset;
                  *  }
                  */
@@ -486,13 +485,15 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 // Fill in vtbl[]
                 b->fillVtbl(cd, &b->vtbl, 1);
 
-                dtb.xoff(toSymbol(id), 0, TYnptr);         // ClassInfo
+                // classinfo
+                dtb.xoff(toSymbol(id), 0, TYnptr);
 
                 // vtbl[]
                 dtb.size(id->vtbl.dim);
                 dtb.xoff(cd->csym, offset, TYnptr);
 
-                dtb.size(b->offset);                        // this offset
+                // offset
+                dtb.size(b->offset);
 
                 offset += id->vtbl.dim * Target::ptrsize;
             }
@@ -643,6 +644,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                             {
                                 TypeFunction *tf = (TypeFunction *)fd->type;
                                 if (tf->ty == Tfunction)
+                                {
                                     cd->error("use of %s%s is hidden by %s; use 'alias %s = %s.%s;' to introduce base class overload set",
                                         fd->toPrettyChars(),
                                         parametersTypeToChars(tf->parameters, tf->varargs),
@@ -651,6 +653,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                                         fd->toChars(),
                                         fd->parent->toChars(),
                                         fd->toChars());
+                                }
                                 else
                                     cd->error("use of %s is hidden by %s", fd->toPrettyChars(), cd->toChars());
                                 break;
@@ -724,19 +727,19 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                {
                     void **vptr;
                     monitor_t monitor;
-                    byte[] initializer;         // static initialization data
-                    char[] name;                // class name
-                    void *[] vtbl;
+                    byte[] m_init;              // static initialization data
+                    string name;                // class name
+                    void*[] vtbl;
                     Interface[] interfaces;
-                    Object *base;               // base class
-                    void *destructor;
-                    void *invariant;            // class invariant
-                    uint flags;
-                    void *deallocator;
+                    ClassInfo base;             // base class
+                    void* destructor;
+                    void function(Object) classInvariant;   // class invariant
+                    ClassFlags m_flags;
+                    void* deallocator;
                     OffsetTypeInfo[] offTi;
-                    void *defaultConstructor;
+                    void function(Object) defaultConstructor;
                     //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
-                    void* xgetRTInfo;
+                    immutable(void)* m_RTInfo;
                     //TypeInfo typeinfo;
                }
              */
@@ -745,12 +748,12 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (Type::typeinfoclass)
                 dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
             else
-                dtb.size(0);                // BUG: should be an assert()
-            dtb.size(0);                    // monitor
+                dtb.size(0);                    // BUG: should be an assert()
+            dtb.size(0);                        // monitor
 
-            // initializer[]
-            dtb.size(0);                    // size
-            dtb.size(0);                    // initializer
+            // m_init[]
+            dtb.size(0);                        // size
+            dtb.size(0);                        // initializer
 
             // name[]
             const char *name = id->toPrettyChars();
@@ -762,7 +765,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             dtb.size(0);
             dtb.size(0);
 
-            // (*vtblInterfaces)[]
+            // interfaces[]
             unsigned offset = Target::classinfosize;
             dtb.size(id->vtblInterfaces->dim);
             if (id->vtblInterfaces->dim)
@@ -786,10 +789,10 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             assert(!id->baseClass);
             dtb.size(0);
 
-            // dtor
+            // destructor
             dtb.size(0);
 
-            // invariant
+            // classInvariant
             dtb.size(0);
 
             // flags
@@ -810,8 +813,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             // xgetMembers
             //dtb.size(0);
 
-            // xgetRTInfo
-            // xgetRTInfo
+            // m_RTInfo
             if (id->getRTInfo)
                 Expression_toDt(id->getRTInfo, dtb);
             else
@@ -830,14 +832,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 BaseClass *b = (*id->vtblInterfaces)[i];
                 ClassDeclaration *base = b->sym;
 
-                // ClassInfo
+                // classinfo
                 dtb.xoff(toSymbol(base), 0, TYnptr);
 
                 // vtbl[]
                 dtb.size(0);
                 dtb.size(0);
 
-                // this offset
+                // offset
                 dtb.size(b->offset);
             }
 
