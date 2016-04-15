@@ -4526,7 +4526,7 @@ code *cdabs( elem *e, regm_t *pretregs)
         if (!I16 && sz == REGSIZE)
         {   regm_t scratch = allregs & ~retregs;
             reg = findreg(retregs);
-            cg = allocreg(&scratch,&r,TYint);
+            cg = cat(cg, allocreg(&scratch,&r,TYint));
             cg = cat(cg,getregs(retregs));
             cg = genmovreg(cg,r,reg);                                   // MOV r,reg
             cg = genc2(cg,0xC1,modregrmx(3,7,r),REGSIZE * 8 - 1);       // SAR r,31/63
