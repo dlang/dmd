@@ -62,6 +62,7 @@ struct Param
     bool isFreeBSD;     // generate code for FreeBSD
     bool isOpenBSD;     // generate code for OpenBSD
     bool isSolaris;     // generate code for Solaris
+    bool hasObjectiveC; // target supports Objective-C
     bool mscoff;        // for Win32: write COFF object files instead of OMF
     // 0: don't allow use of deprecated features
     // 1: silently allow use of deprecated features
