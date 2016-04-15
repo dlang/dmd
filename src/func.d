@@ -1422,6 +1422,18 @@ public:
                 sc2.intypeof = 2;
             sc2.fieldinit = null;
             sc2.fieldinit_dim = 0;
+
+            // Bugzilla 10920: If the function is non-root symbol,
+            // all instantiated symbols in fbody needs to be speculative.
+            // Bugzilla xxxxx: If the function body will be inlined, the used
+            // speculative symbols will be unspeculative by semanticTypeInfo().
+            // Bugzilla 15906: If this auto function returns speculative instantiated type,
+            // it's unspeculative at the caller site.
+            if (!sc.tinst && inNonRoot())
+            {
+                sc2.minst = null;
+            }
+
             if (isMember2())
             {
                 FuncLiteralDeclaration fld = isFuncLiteralDeclaration();

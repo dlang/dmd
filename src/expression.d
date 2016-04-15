@@ -1388,6 +1388,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         error(loc, "expected %llu arguments, not %llu for non-variadic function type %s", cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
         return true;
     }
+
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf.next && fd.inferRetType)
     {
@@ -1401,6 +1402,15 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             fd.functionSemantic3();
         }
     }
+    if (fd && fd.inferRetType)
+    {
+        auto tn = fd.type.nextOf();
+        //if (!tn) printf("[%s] fd = %s\n", loc.toChars(), fd.toChars());
+        //assert(tn);
+        if (tn) // workaround
+            unSpeculative(sc, tn.baseElemOf());
+    }
+
     bool isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
     size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
     /* If the function return type has wildcards in it, we'll need to figure out the actual type

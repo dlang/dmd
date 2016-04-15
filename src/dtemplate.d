@@ -5841,12 +5841,6 @@ public:
         tinst = sc.tinst;
         // Get the instantiating module from the scope minst
         minst = sc.minst;
-        // Bugzilla 10920: If the enclosing function is non-root symbol,
-        // this instance should be speculative.
-        if (!tinst && sc.func && sc.func.inNonRoot())
-        {
-            minst = null;
-        }
         gagged = (global.gag > 0);
         semanticRun = PASSsemantic;
         static if (LOG)
