@@ -47,7 +47,12 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
 
     Parameter p = (*fparams)[0];
     // foreach (i; 0 .. p.length)
-    Statement s1 = new ForeachRangeStatement(Loc(), TOKforeach, new Parameter(0, null, Id.p, null), new IntegerExp(Loc(), 0, Type.tsize_t), new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)), new ExpStatement(Loc(), loopbody), Loc());
+    Statement s1 = new ForeachRangeStatement(Loc(), TOKforeach,
+        new Parameter(0, null, Id.p, null),
+        new IntegerExp(Loc(), 0, Type.tsize_t),
+        new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p.ident)),
+        new ExpStatement(Loc(), loopbody),
+        Loc());
     //printf("%s\n", s1->toChars());
     Statement s2 = new ReturnStatement(Loc(), new IdentifierExp(Loc(), p.ident));
     //printf("s2: %s\n", s2->toChars());
@@ -308,33 +313,15 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             const(char)* s;
             switch (e.op)
             {
-            case TOKaddass:
-                s = "Addass";
-                break;
-            case TOKminass:
-                s = "Subass";
-                break;
-            case TOKmulass:
-                s = "Mulass";
-                break;
-            case TOKdivass:
-                s = "Divass";
-                break;
-            case TOKmodass:
-                s = "Modass";
-                break;
-            case TOKxorass:
-                s = "Xorass";
-                break;
-            case TOKandass:
-                s = "Andass";
-                break;
-            case TOKorass:
-                s = "Orass";
-                break;
-            case TOKpowass:
-                s = "Powass";
-                break;
+            case TOKaddass: s = "Addass";   break;
+            case TOKminass: s = "Subass";   break;
+            case TOKmulass: s = "Mulass";   break;
+            case TOKdivass: s = "Divass";   break;
+            case TOKmodass: s = "Modass";   break;
+            case TOKxorass: s = "Xorass";   break;
+            case TOKandass: s = "Andass";   break;
+            case TOKorass:  s =  "Orass";   break;
+            case TOKpowass: s = "Powass";   break;
             default:
                 assert(0);
             }
@@ -360,33 +347,15 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
             const(char)* s = null;
             switch (e.op)
             {
-            case TOKadd:
-                s = "Add";
-                break;
-            case TOKmin:
-                s = "Sub";
-                break;
-            case TOKmul:
-                s = "Mul";
-                break;
-            case TOKdiv:
-                s = "Div";
-                break;
-            case TOKmod:
-                s = "Mod";
-                break;
-            case TOKxor:
-                s = "Xor";
-                break;
-            case TOKand:
-                s = "And";
-                break;
-            case TOKor:
-                s = "Or";
-                break;
-            case TOKpow:
-                s = "Pow";
-                break;
+            case TOKadd:    s = "Add";  break;
+            case TOKmin:    s = "Sub";  break;
+            case TOKmul:    s = "Mul";  break;
+            case TOKdiv:    s = "Div";  break;
+            case TOKmod:    s = "Mod";  break;
+            case TOKxor:    s = "Xor";  break;
+            case TOKand:    s = "And";  break;
+            case TOKor:     s = "Or";   break;
+            case TOKpow:    s = "Pow";  break;
             default:
                 break;
             }
@@ -396,7 +365,9 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                 Type t1 = e.e1.type.toBasetype();
                 Type t2 = e.e2.type.toBasetype();
                 e.e1.accept(this);
-                if (t1.ty == Tarray && (t2.ty == Tarray && !t1.equivalent(tb) || t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
+                if (t1.ty == Tarray &&
+                    (t2.ty == Tarray && !t1.equivalent(tb) ||
+                     t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
                 {
                     // Bugzilla 12780: if A is narrower than B
                     //  A[] op B[]
@@ -405,7 +376,9 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     buf.writestring(t1.nextOf().mutableOf().deco);
                 }
                 e.e2.accept(this);
-                if (t2.ty == Tarray && (t1.ty == Tarray && !t2.equivalent(tb) || t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
+                if (t2.ty == Tarray &&
+                    (t1.ty == Tarray && !t2.equivalent(tb) ||
+                     t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
                 {
                     // Bugzilla 12780: if B is narrower than A:
                     //  A[] op B[]
@@ -508,33 +481,15 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             param.storageClass = 0;
             switch (e.op)
             {
-            case TOKaddass:
-                result = new AddAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKminass:
-                result = new MinAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKmulass:
-                result = new MulAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKdivass:
-                result = new DivAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKmodass:
-                result = new ModAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKxorass:
-                result = new XorAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKandass:
-                result = new AndAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKorass:
-                result = new OrAssignExp(e.loc, ex1, ex2);
-                return;
-            case TOKpowass:
-                result = new PowAssignExp(e.loc, ex1, ex2);
-                return;
+            case TOKaddass: result = new AddAssignExp(e.loc, ex1, ex2); return;
+            case TOKminass: result = new MinAssignExp(e.loc, ex1, ex2); return;
+            case TOKmulass: result = new MulAssignExp(e.loc, ex1, ex2); return;
+            case TOKdivass: result = new DivAssignExp(e.loc, ex1, ex2); return;
+            case TOKmodass: result = new ModAssignExp(e.loc, ex1, ex2); return;
+            case TOKxorass: result = new XorAssignExp(e.loc, ex1, ex2); return;
+            case TOKandass: result = new AndAssignExp(e.loc, ex1, ex2); return;
+            case TOKorass:  result = new  OrAssignExp(e.loc, ex1, ex2); return;
+            case TOKpowass: result = new PowAssignExp(e.loc, ex1, ex2); return;
             default:
                 assert(0);
             }
@@ -663,7 +618,10 @@ extern (C++) bool isArrayOpOperand(Expression e)
     Type tb = e.type.toBasetype();
     if (tb.ty == Tarray)
     {
-        return (isUnaArrayOp(e.op) || isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOKassign);
+        return (isUnaArrayOp(e.op) ||
+                isBinArrayOp(e.op) ||
+                isBinAssignArrayOp(e.op) ||
+                e.op == TOKassign);
     }
     return false;
 }
