@@ -1116,8 +1116,11 @@ void testTypeid()
     assert(typeid(o) is typeid(D));
     assert(o.classinfo is typeid(D));
     assert(typeid(typeof(i)) is typeid(I));
-    assert(typeid(i) !is typeid(J));
-    assert(i.classinfo !is typeid(J));
+    assert(typeid(i) is typeid(J));                             // Bugzilla 14612
+    assert(i.classinfo is typeid(J));                           // Bugzilla 14612
+
+    static assert(is(typeof(typeid(o)) == TypeInfo_Class));
+    static assert(is(typeof(typeid(i)) == TypeInfo_Interface)); // Bugzilla 14612
 }
 
 /*******************************************************/

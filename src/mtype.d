@@ -52,6 +52,7 @@ import ddmd.root.stringtable;
 import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typinf;
 import ddmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
@@ -9003,16 +9004,14 @@ public:
 
             if (ident == Id.classinfo)
             {
-                assert(Type.typeinfoclass);
-                Type t = Type.typeinfoclass.type;
+                Type t = getTypeInfoType(sym.type, sc); // TypeInfo_(Class|Interface)
                 if (e.op == TOKtype || e.op == TOKdottype)
                 {
                     /* For type.classinfo, we know the classinfo
                      * at compile time.
                      */
-                    if (!sym.vclassinfo)
-                        sym.vclassinfo = new TypeInfoClassDeclaration(sym.type);
-                    e = new VarExp(e.loc, sym.vclassinfo);
+                    assert(sym.type.vtinfo);
+                    e = new VarExp(e.loc, sym.type.vtinfo);
                     e = e.addressOf();
                     e.type = t; // do this so we don't get redundant dereference
                 }

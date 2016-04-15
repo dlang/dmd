@@ -1378,21 +1378,7 @@ extern (C++) class TypeInfoDtVisitor : Visitor
 
     override void visit(TypeInfoInterfaceDeclaration d)
     {
-        //printf("TypeInfoInterfaceDeclaration.toDt() %s\n", tinfo.toChars());
-        verifyStructSize(Type.typeinfointerface, 3 * Target.ptrsize);
-
-        dtb.xoff(toVtblSymbol(Type.typeinfointerface), 0);    // vtbl for TypeInfoInterface
-        dtb.size(0);                                           // monitor
-
-        assert(d.tinfo.ty == Tclass);
-
-        TypeClass tc = cast(TypeClass)d.tinfo;
-        Symbol *s;
-
-        if (!tc.sym.vclassinfo)
-            tc.sym.vclassinfo = TypeInfoClassDeclaration.create(tc);
-        s = toSymbol(tc.sym.vclassinfo);
-        dtb.xoff(s, 0);    // ClassInfo for tinfo
+        assert(0);
     }
 
     override void visit(TypeInfoTupleDeclaration d)

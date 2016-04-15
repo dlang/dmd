@@ -7263,9 +7263,10 @@ public:
         {
             /* Get the dynamic type, which is .classinfo
              */
+            auto tc = cast(TypeClass)ta.toBasetype();
             ea = ea.semantic(sc);
             e = new TypeidExp(ea.loc, ea);
-            e.type = Type.typeinfoclass.type;
+            e.type = getTypeInfoType(tc.sym.type, sc);  // TypeInfo_(Class|Interface)
         }
         else if (ta.ty == Terror)
         {
