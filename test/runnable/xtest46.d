@@ -6799,7 +6799,9 @@ void test9477()
             assert(order == 2);
         }
 
-    ubyte[64] a1, a2;
+    // need largest natural alignment to avoid unaligned access on
+    // some architectures, double in this case.
+    align(8) ubyte[64] a1, a2;
     foreach (T; Tuple9477!(void, ubyte, ushort, uint, ulong, char, wchar, dchar, float, double))
     {
         auto s1 = cast(T[])(a1[]);
