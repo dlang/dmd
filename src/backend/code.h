@@ -697,3 +697,38 @@ inline void regimmed_set(int reg, targ_size_t e)
 }
 #endif
 
+struct CodeBuilder
+{
+  private:
+
+    code *head;
+    code **pTail;
+
+  public:
+    CodeBuilder() { head = NULL; pTail = &head; }
+    CodeBuilder(code *c);
+    code *finish() { return head; }
+
+    void append(CodeBuilder& cdb);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4, CodeBuilder& cdb5);
+
+    void gen(code *cs);
+    void gen1(unsigned op);
+    void gen2(unsigned op, unsigned rm);
+    void gen2sib(unsigned op, unsigned rm, unsigned sib);
+    void genasm(char *s, unsigned slen);
+    void gencsi(unsigned op, unsigned rm, unsigned FL2, SYMIDX si);
+    void gencs(unsigned op, unsigned rm, unsigned FL2, symbol *s);
+    void genc2(unsigned op, unsigned rm, targ_size_t EV2);
+    void genc1(unsigned op, unsigned rm, unsigned FL1, targ_size_t EV1);
+    void genc(unsigned op, unsigned rm, unsigned FL1, targ_size_t EV1, unsigned FL2, targ_size_t EV2);
+    void genlinnum(Srcpos);
+    void genadjesp(int offset);
+    void genadjfpu(int offset);
+    void gennop();
+};
+
+

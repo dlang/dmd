@@ -27,6 +27,14 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+/*********************************
+ */
+CodeBuilder::CodeBuilder(code *c)
+{
+    head = c;
+    pTail = c ? &code_last(c)->next : &head;
+}
+
 /*************************************
  * Handy function to answer the question: who the heck is generating this piece of code?
  */
@@ -154,6 +162,50 @@ code * cat4(code *c1,code *c2,code *c3,code *c4)
 code * cat6(code *c1,code *c2,code *c3,code *c4,code *c5,code *c6)
 { return cat(cat4(c1,c2,c3,c4),cat(c5,c6)); }
 
+/************************************
+ * Concatenate code.
+ */
+void CodeBuilder::append(CodeBuilder& cdb)
+{
+    *pTail = cdb.head;
+    pTail = cdb.pTail;
+}
+
+void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2)
+{
+    *pTail = cdb1.head;
+    *cdb1.pTail = cdb2.head;
+    pTail = cdb2.pTail;
+}
+
+void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3)
+{
+    *pTail = cdb1.head;
+    *cdb1.pTail = cdb2.head;
+    *cdb2.pTail = cdb3.head;
+    pTail = cdb3.pTail;
+}
+
+void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4)
+{
+    *pTail = cdb1.head;
+    *cdb1.pTail = cdb2.head;
+    *cdb2.pTail = cdb3.head;
+    *cdb3.pTail = cdb4.head;
+    pTail = cdb4.pTail;
+}
+
+void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4, CodeBuilder& cdb5)
+{
+    *pTail = cdb1.head;
+    *cdb1.pTail = cdb2.head;
+    *cdb2.pTail = cdb3.head;
+    *cdb3.pTail = cdb4.head;
+    *cdb4.pTail = cdb5.head;
+    pTail = cdb5.pTail;
+}
+
+
 /*****************************
  * Add code to end of linked list.
  * Note that unused operands are garbage.
@@ -188,6 +240,25 @@ code *gen(code *c,code *cs)
     return ce;
 }
 
+void CodeBuilder::gen(code *cs)
+{
+#ifdef DEBUG                            /* this is a high usage routine */
+    assert(cs);
+#endif
+#if TX86
+    assert(I64 || cs->Irex == 0);
+#endif
+    code* ce = code_malloc();
+    *ce = *cs;
+    //printf("ce = %p %02x\n", ce, ce->Iop);
+    ccheck(ce);
+    simplify_code(ce);
+    code_next(ce) = CNIL;
+
+    *pTail = ce;
+    pTail = &ce->next;
+}
+
 code *gen1(code *c,unsigned op)
 { code *ce,*cstart;
 
@@ -206,6 +277,19 @@ code *gen1(code *c,unsigned op)
   return ce;
 }
 
+void CodeBuilder::gen1(unsigned op)
+{
+    code *ce = code_calloc();
+    ce->Iop = op;
+    ccheck(ce);
+#if TX86
+    assert(op != LEA);
+#endif
+
+    *pTail = ce;
+    pTail = &ce->next;
+}
+
 #if TX86
 code *gen2(code *c,unsigned op,unsigned rm)
 { code *ce,*cstart;
@@ -221,6 +305,17 @@ code *gen2(code *c,unsigned op,unsigned rm)
         code_next(c) = ce;                      /* link into list       */
   }
   return cstart;
+}
+
+void CodeBuilder::gen2(unsigned op, unsigned rm)
+{
+    code *ce = code_calloc();
+    ce->Iop = op;
+    ce->Iea = rm;
+    ccheck(ce);
+
+    *pTail = ce;
+    pTail = &ce->next;
 }
 
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
@@ -242,6 +337,21 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
   }
   return cstart;
 }
+
+void CodeBuilder::gen2sib(unsigned op, unsigned rm, unsigned sib)
+{
+    code *ce = code_calloc();
+    ce->Iop = op;
+    ce->Irm = rm;
+    ce->Isib = sib;
+    ce->Irex = (rm | (sib & (REX_B << 16))) >> 16;
+    if (sib & (REX_R << 16))
+        ce->Irex |= REX_X;
+    ccheck(ce);
+
+    *pTail = ce;
+    pTail = &ce->next;
+}
 #endif
 
 /********************************
@@ -260,6 +370,19 @@ code *genasm(code *c,char *s,unsigned slen)
     return cat(c,ce);
 }
 
+void CodeBuilder::genasm(char *s, unsigned slen)
+{
+    code *ce = code_calloc();
+    ce->Iop = ASM;
+    ce->IFL1 = FLasm;
+    ce->IEV1.as.len = slen;
+    ce->IEV1.as.bytes = (char *) mem_malloc(slen);
+    memcpy(ce->IEV1.as.bytes,s,slen);
+
+    *pTail = ce;
+    pTail = &ce->next;
+}
+
 #if TX86
 code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 {   code cs;
@@ -274,6 +397,19 @@ code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
     return gen(c,&cs);
 }
 
+void CodeBuilder::gencs(unsigned op, unsigned ea, unsigned FL2, symbol *s)
+{
+    code cs;
+    cs.Iop = op;
+    cs.Iea = ea;
+    ccheck(&cs);
+    cs.IFL2 = FL2;
+    cs.IEVsym2 = s;
+    cs.IEVoffset2 = 0;
+
+    gen(&cs);
+}
+
 code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
 {   code cs;
 
@@ -284,6 +420,19 @@ code *genc2(code *c,unsigned op,unsigned ea,targ_size_t EV2)
     cs.IFL2 = FLconst;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
+}
+
+void CodeBuilder::genc2(unsigned op, unsigned ea, targ_size_t EV2)
+{
+    code cs;
+    cs.Iop = op;
+    cs.Iea = ea;
+    ccheck(&cs);
+    cs.Iflags = CFoff;
+    cs.IFL2 = FLconst;
+    cs.IEV2.Vsize_t = EV2;
+
+    gen(&cs);
 }
 
 /*****************
@@ -301,6 +450,20 @@ code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
     cs.IFL1 = FL1;
     cs.IEV1.Vsize_t = EV1;
     return gen(c,&cs);
+}
+
+void CodeBuilder::genc1(unsigned op, unsigned ea, unsigned FL1, targ_size_t EV1)
+{
+    code cs;
+    assert(FL1 < FLMAX);
+    cs.Iop = op;
+    cs.Iflags = CFoff;
+    cs.Iea = ea;
+    ccheck(&cs);
+    cs.IFL1 = FL1;
+    cs.IEV1.Vsize_t = EV1;
+
+    gen(&cs);
 }
 
 /*****************
@@ -322,6 +485,23 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
     cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
 }
+
+void CodeBuilder::genc(unsigned op, unsigned ea, unsigned FL1, targ_size_t EV1, unsigned FL2, targ_size_t EV2)
+{
+    code cs;
+    assert(FL1 < FLMAX);
+    cs.Iop = op;
+    cs.Iea = ea;
+    ccheck(&cs);
+    cs.Iflags = CFoff;
+    cs.IFL1 = FL1;
+    cs.IEV1.Vsize_t = EV1;
+    assert(FL2 < FLMAX);
+    cs.IFL2 = FL2;
+    cs.IEV2.Vsize_t = EV2;
+
+    gen(&cs);
+}
 #endif
 
 /********************************
@@ -337,6 +517,15 @@ code *genlinnum(code *c,Srcpos srcpos)
     cs.Iop = ESCAPE | ESClinnum;
     cs.IEV1.Vsrcpos = srcpos;
     return gen(c,&cs);
+}
+
+void CodeBuilder::genlinnum(Srcpos srcpos)
+{
+    code cs;
+    //srcpos.print("genlinnum");
+    cs.Iop = ESCAPE | ESClinnum;
+    cs.IEV1.Vsrcpos = srcpos;
+    gen(&cs);
 }
 
 /******************************
@@ -375,6 +564,17 @@ code *genadjesp(code *c, int offset)
         return c;
 }
 
+void CodeBuilder::genadjesp(int offset)
+{
+    if (!I16 && offset)
+    {
+        code cs;
+        cs.Iop = ESCAPE | ESCadjesp;
+        cs.IEV1.Vint = offset;
+        gen(&cs);
+    }
+}
+
 #if TX86
 /********************************
  * Generate 'instruction' which tells the scheduler that the fpu stack has
@@ -393,6 +593,17 @@ code *genadjfpu(code *c, int offset)
     else
         return c;
 }
+
+void CodeBuilder::genadjfpu(int offset)
+{
+    if (!I16 && offset)
+    {
+        code cs;
+        cs.Iop = ESCAPE | ESCadjfpu;
+        cs.IEV1.Vint = offset;
+        gen(&cs);
+    }
+}
 #endif
 
 /********************************
@@ -402,6 +613,11 @@ code *genadjfpu(code *c, int offset)
 code *gennop(code *c)
 {
     return gen1(c,NOP);
+}
+
+void CodeBuilder::gennop()
+{
+    gen1(NOP);
 }
 
 
