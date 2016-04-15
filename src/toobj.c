@@ -716,7 +716,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // Put out the TypeInfo
             genTypeInfo(id->type, NULL);
-            //id->type->vtinfo->accept(this);
+            if (Type::cdClassInfo)
+            {
+                // TypeInfo_Interface is derived ClassInfo, so
+                // following ClassInfo generation will also make TypeInfo_Interface.
+            }
+            else
+                id->type->vtinfo->accept(this);
 
             //////////////////////////////////////////////
 
@@ -744,13 +750,18 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     //TypeInfo typeinfo;
                }
              */
+            ClassDeclaration *cdClassInfo;
+            if (Type::cdClassInfo)
+                cdClassInfo = Type::typeinfointerface;  // TypeInfo_Interface : ClassInfo
+            else
+                cdClassInfo = Type::typeinfoclass;      // TypeInfo_Class == ClassInfo
             unsigned offset = Target::classinfosize;    // must be ClassInfo.size
-            if (Type::typeinfointerface)
+            if (cdClassInfo)
             {
-                if (Type::typeinfointerface->structsize != Target::classinfosize)
+                if (cdClassInfo->structsize != Target::classinfosize)
                 {
         #ifdef DEBUG
-                    printf("Target::classinfosize = x%x, Type::typeinfointerface->structsize = x%x\n", offset, Type::typeinfointerface->structsize);
+                    printf("Target::classinfosize = x%x, cdClassInfo->structsize = x%x\n", offset, cdClassInfo->structsize);
         #endif
                     id->error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
                     fatal();
@@ -759,10 +770,20 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             DtBuilder dtb;
 
-            if (Type::typeinfointerface)        // vtbl for TypeInfo_Interface : ClassInfo
-                dtb.xoff(toVtblSymbol(Type::typeinfointerface), 0, TYnptr);
+            if (Type::cdClassInfo)
+            {
+                if (Type::typeinfointerface)        // vtbl for TypeInfo_Interface : ClassInfo
+                    dtb.xoff(toVtblSymbol(Type::typeinfointerface), 0, TYnptr);
+                else
+                    dtb.size(0);                    // BUG: should be an assert()
+            }
             else
-                dtb.size(0);                    // BUG: should be an assert()
+            {
+                if (Type::typeinfoclass)            // vtbl for TypeInfo_Class == ClassInfo
+                    dtb.xoff(toVtblSymbol(Type::typeinfoclass), 0, TYnptr);
+                else
+                    dtb.size(0);                    // BUG: should be an assert()
+            }
             dtb.size(0);                        // monitor
 
             // m_init[]

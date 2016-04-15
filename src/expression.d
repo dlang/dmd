@@ -7266,7 +7266,9 @@ public:
             auto tc = cast(TypeClass)ta.toBasetype();
             ea = ea.semantic(sc);
             e = new TypeidExp(ea.loc, ea);
-            e.type = getTypeInfoType(tc.sym.type, sc);  // TypeInfo_(Class|Interface)
+            e.type = Type.cdClassInfo
+                ? getTypeInfoType(tc.sym.type, sc)  // TypeInfo_(Class|Interface)
+                : Type.typeinfoclass.type;          // TypeInfo_Class
         }
         else if (ta.ty == Terror)
         {

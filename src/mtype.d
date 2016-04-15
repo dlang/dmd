@@ -563,6 +563,7 @@ public:
     extern (C++) static __gshared ClassDeclaration typeinfoinvariant;
     extern (C++) static __gshared ClassDeclaration typeinfoshared;
     extern (C++) static __gshared ClassDeclaration typeinfowild;
+    extern (C++) static __gshared ClassDeclaration cdClassInfo;
 
     extern (C++) static __gshared TemplateDeclaration rtinfo;
 
@@ -9004,14 +9005,25 @@ public:
 
             if (ident == Id.classinfo)
             {
-                Type t = getTypeInfoType(sym.type, sc); // TypeInfo_(Class|Interface)
+                Type t = Type.cdClassInfo
+                    ? getTypeInfoType(sym.type, sc) // TypeInfo_(Class|Interface)
+                    : Type.typeinfoclass.type;      // TypeInfo_Class
                 if (e.op == TOKtype || e.op == TOKdottype)
                 {
                     /* For type.classinfo, we know the classinfo
                      * at compile time.
                      */
-                    assert(sym.type.vtinfo);
-                    e = new VarExp(e.loc, sym.type.vtinfo);
+                    if (Type.cdClassInfo)
+                    {
+                        assert(sym.type.vtinfo);
+                        e = new VarExp(e.loc, sym.type.vtinfo);
+                    }
+                    else
+                    {
+                        if (!sym.vclassinfo)
+                            sym.vclassinfo = new TypeInfoClassDeclaration(sym.type);
+                        e = new VarExp(e.loc, sym.vclassinfo);
+                    }
                     e = e.addressOf();
                     e.type = t; // do this so we don't get redundant dereference
                 }

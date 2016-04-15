@@ -271,9 +271,16 @@ Symbol *toSymbol(Dsymbol *s)
         void visit(TypeInfoInterfaceDeclaration *ticd)
         {
             //printf("TypeInfoInterfaceDeclaration::toSymbol(%s), linkage = %d\n", ticd->toChars(), ticd->linkage);
-            assert(ticd->tinfo->ty == Tclass);
-            TypeClass *tc = (TypeClass *)ticd->tinfo;
-            tc->sym->accept(this);
+            if (Type::cdClassInfo)
+            {
+                assert(ticd->tinfo->ty == Tclass);
+                TypeClass *tc = (TypeClass *)ticd->tinfo;
+                tc->sym->accept(this);
+            }
+            else
+            {
+                visit((TypeInfoDeclaration *)ticd);
+            }
         }
 
         void visit(FuncAliasDeclaration *fad)
