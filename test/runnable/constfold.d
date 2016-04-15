@@ -318,6 +318,7 @@ const double d7 = 4;
 
 static assert(!is(typeof(bug7(cast(long)e7))));
 static assert(!is(typeof(bug7(cast(long)s7))));
+version (LDC) {} else // cast in LDC undefined result w/ x > long.max
 static assert(!is(typeof(bug7(cast(long)3.256679e30))));
 
 static assert(is(typeof(bug7(cast(long)d7))));
