@@ -140,10 +140,29 @@ void test13113()
 }
 
 /***************************************************/
+// 13147
+
+class C13147
+{
+    extern (C++) C13147 test()
+    {
+        asm { naked; ret; }
+        return this;
+    }
+}
+
+void test13147()
+{
+    auto c = new C13147();
+    c.test();
+}
+
+/***************************************************/
 
 void main()
 {
     testinvariant();
     test6453();
     test13113();
+    test13147();
 }
