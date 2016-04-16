@@ -4,7 +4,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/D-Programming-Language/dmd/blob/master/src/root/longdouble.c
+ * https://github.com/dlang/dmd/blob/master/src/root/longdouble.c
  */
 
 // 80 bit floating point value implementation for Microsoft compiler

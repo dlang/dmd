@@ -2,7 +2,7 @@
 Copyright: Digital Mars 2013 All Rights Reserved
 Authors: Walter Bright
 License: boost.org/LICENSE_1_0.txt, Boost License 1.0
-Source: https://github.com/D-Programming-Language/dmd/blob/master/src/backend/divcoeff.c
+Source: https://github.com/dlang/dmd/blob/master/src/backend/divcoeff.c
 */
 
 /***************************************************

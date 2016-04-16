@@ -6,7 +6,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/idgen.c
+ * https://github.com/dlang/dmd/blob/master/src/idgen.c
  */
 
 // Program to generate string files in d data structures.

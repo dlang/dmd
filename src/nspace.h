@@ -3,7 +3,7 @@
 // Copyright: Copyright (c) 2014 by Digital Mars, All Rights Reserved
 // Authors: Walter Bright, http://www.digitalmars.com
 // License: http://boost.org/LICENSE_1_0.txt
-// Source: https://github.com/D-Programming-Language/dmd/blob/master/src/nspace.h
+// Source: https://github.com/dlang/dmd/blob/master/src/nspace.h
 
 
 #ifndef DMD_NSPACE_H

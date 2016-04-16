@@ -138,7 +138,7 @@ Macros:
     CXREF = <a href="phobos/core_$1.html#$2">$2</a>
 
     BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
-    PULL_REQUEST = $(LINK2 https://github.com/D-Programming-Language/$1/pull/$2, $1#$2)
+    PULL_REQUEST = $(LINK2 https://github.com/dlang/$1/pull/$2, $1#$2)
     DMDPR = $(PULL_REQUEST dmd,$1)
 
     BOOKTABLE = <table><caption>$1</caption>$+</table>
