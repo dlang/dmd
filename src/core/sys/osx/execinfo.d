@@ -1,4 +1,7 @@
 /**
+ * $(RED Deprecated. Use $(D core.sys.darwin.execinfo) instead. This module
+ *       will be removed in June 2018.)
+ *
  * D header file for OSX.
  *
  * Copyright: Copyright Martin Nowak 2012.

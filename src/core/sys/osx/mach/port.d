@@ -1,4 +1,7 @@
 /**
+ * $(RED Deprecated. Use $(D core.sys.darwin.mach.port) instead. This module
+ *       will be removed in June 2018.)
+ *
  * D header file for OSX.
  *
  * Copyright: Copyright Sean Kelly 2008 - 2009.
