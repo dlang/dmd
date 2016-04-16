@@ -173,7 +173,7 @@ public:
     char *toChars();
     virtual char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc& getLoc();
-    char *locToChars();
+    const char *locToChars();
     bool equals(RootObject *o);
     bool isAnonymous();
     void error(Loc loc, const char *format, ...);
