@@ -43,6 +43,7 @@ struct Target
     static int checkVectorType(int sz, Type *type);
     // CTFE support for cross-compilation.
     static Expression *paintAsType(Expression *e, Type *type);
+    static Expression *discardExcessFloatPrecision(Expression *val);
     // ABI and backend.
     static void loadModule(Module *m);
     static void prefixName(OutBuffer *buf, LINK linkage);

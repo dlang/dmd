@@ -9,6 +9,7 @@
 module ddmd.target;
 
 import core.stdc.string;
+import ddmd.complex;
 import ddmd.dmodule;
 import ddmd.expression;
 import ddmd.globals;
@@ -268,6 +269,42 @@ struct Target
             return decodeReal(e.loc, type, buffer.ptr);
         default:
             assert(0);
+        }
+    }
+
+    /******************************
+     * Discard extra bits from a floating point number, that cannot be stored
+     * in a variable of that type. For example, float.max*2 cannot be stored
+     * int a float.
+     */
+    extern (C++) static Expression discardExcessFloatPrecision(Expression val)
+    {
+        switch (val.type.ty)
+        {
+        case Tfloat32:
+        case Timaginary32:
+            float f = val.type.isreal() ? val.toReal() : val.toImaginary();
+            return new RealExp(val.loc, ldouble(f), val.type);
+
+        case Tfloat64:
+        case Timaginary64:
+            double d = val.type.isreal() ? val.toReal() : val.toImaginary();
+            return new RealExp(val.loc, ldouble(d), val.type);
+
+        case Tcomplex32:
+            float re = val.toReal();
+            float im = val.toImaginary();
+            complex_t cvalue = complex_t(ldouble(re), ldouble(im));
+            return new ComplexExp(val.loc, cvalue, val.type);
+
+        case Tcomplex64:
+            double re = val.toReal();
+            double im = val.toImaginary();
+            complex_t cvalue = complex_t(ldouble(re), ldouble(im));
+            return new ComplexExp(val.loc, cvalue, val.type);
+
+        default:
+            return val;
         }
     }
 

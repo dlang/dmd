@@ -32,6 +32,7 @@ import ddmd.mtype;
 import ddmd.root.array;
 import ddmd.root.rootobject;
 import ddmd.statement;
+import ddmd.target;
 import ddmd.tokens;
 import ddmd.utf;
 import ddmd.visitor;
@@ -6132,6 +6133,11 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
         if (Expression ex = scrubArray(loc, aae.values))
             return ex;
         aae.type = toBuiltinAAType(aae.type);
+    }
+    if (e.type.isfloating())
+    {
+        if (!exceptionOrCantInterpret(e))
+            e = Target.discardExcessFloatPrecision(e);
     }
     return e;
 }
