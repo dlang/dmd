@@ -213,16 +213,17 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 {
     if (sc.intypeof == 1)
         return false;
+
     AggregateDeclaration ad = d.isThis();
     if (!ad)
         return false;
-    //printf("d = %s, ad = %s\n", d->toChars(), ad->toChars());
+    //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
+
     for (Dsymbol s = sc.parent; s; s = s.toParent2())
     {
-        //printf("\ts = %s %s, toParent2() = %p\n", s->kind(), s->toChars(), s->toParent2());
+        //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
         if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
         {
-            //printf("\t    ad2 = %s\n", ad2->toChars());
             if (ad2 == ad)
                 return false;
             else if (ad2.isNested())
@@ -232,8 +233,6 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
         }
         if (FuncDeclaration f = s.isFuncDeclaration())
         {
-            if (f.isFuncLiteralDeclaration() && f.isNested())
-                continue;
             if (f.isMember2())
                 break;
         }
