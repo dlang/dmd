@@ -167,44 +167,51 @@ code * cat6(code *c1,code *c2,code *c3,code *c4,code *c5,code *c6)
  */
 void CodeBuilder::append(CodeBuilder& cdb)
 {
-    *pTail = cdb.head;
-    pTail = cdb.pTail;
+    if (cdb.head)
+    {
+        *pTail = cdb.head;
+        pTail = cdb.pTail;
+    }
 }
 
 void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2)
 {
-    *pTail = cdb1.head;
-    *cdb1.pTail = cdb2.head;
-    pTail = cdb2.pTail;
+    append(cdb1);
+    append(cdb2);
 }
 
 void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3)
 {
-    *pTail = cdb1.head;
-    *cdb1.pTail = cdb2.head;
-    *cdb2.pTail = cdb3.head;
-    pTail = cdb3.pTail;
+    append(cdb1);
+    append(cdb2);
+    append(cdb3);
 }
 
 void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4)
 {
-    *pTail = cdb1.head;
-    *cdb1.pTail = cdb2.head;
-    *cdb2.pTail = cdb3.head;
-    *cdb3.pTail = cdb4.head;
-    pTail = cdb4.pTail;
+    append(cdb1);
+    append(cdb2);
+    append(cdb3);
+    append(cdb4);
 }
 
 void CodeBuilder::append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4, CodeBuilder& cdb5)
 {
-    *pTail = cdb1.head;
-    *cdb1.pTail = cdb2.head;
-    *cdb2.pTail = cdb3.head;
-    *cdb3.pTail = cdb4.head;
-    *cdb4.pTail = cdb5.head;
-    pTail = cdb5.pTail;
+    append(cdb1);
+    append(cdb2);
+    append(cdb3);
+    append(cdb4);
+    append(cdb5);
 }
 
+void CodeBuilder::append(code *c)
+{
+    if (c)
+    {
+        CodeBuilder cdb(c);
+        append(cdb);
+    }
+}
 
 /*****************************
  * Add code to end of linked list.
