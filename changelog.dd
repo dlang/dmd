@@ -64,7 +64,7 @@ Macros:
 
     BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
 
-    PULL_REQUEST = $(LINK2 https://github.com/D-Programming-Language/$1/pull/$2, $1#$2)
+    PULL_REQUEST = $(LINK2 https://github.com/dlang/$1/pull/$2, $1#$2)
     DRUNTIMEPR = $(PULL_REQUEST druntime,$1)
 
     BOOKTABLE = <table><caption>$1</caption>$+</table>
