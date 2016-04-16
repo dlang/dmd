@@ -6,7 +6,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/toir.h
+ * https://github.com/dlang/dmd/blob/master/src/toir.h
  */
 
 /* Code to help convert to the intermediate representation

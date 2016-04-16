@@ -3264,7 +3264,7 @@ extern (C++) IntRange getIntRange(Expression e)
 
         // The algorithms for &, |, ^ are not yet the best! Sometimes they will produce
         //  not the tightest bound. See
-        //      https://github.com/D-Programming-Language/dmd/pull/116
+        //      https://github.com/dlang/dmd/pull/116
         //  for detail.
         static IntRange unsignedBitwiseAnd(ref const(IntRange) a, ref const(IntRange) b)
         {

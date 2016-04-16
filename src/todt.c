@@ -6,7 +6,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/todt.c
+ * https://github.com/dlang/dmd/blob/master/src/todt.c
  */
 
 /* A dt_t is a simple structure representing data to be added

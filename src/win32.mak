@@ -6,7 +6,7 @@
 # http://www.digitalmars.com
 # Distributed under the Boost Software License, Version 1.0.
 # http://www.boost.org/LICENSE_1_0.txt
-# https://github.com/D-Programming-Language/dmd/blob/master/src/win32.mak
+# https://github.com/dlang/dmd/blob/master/src/win32.mak
 #
 # Dependencies:
 #
@@ -20,10 +20,10 @@
 #   http://www.digitalmars.com/ctg/sc.html
 #
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
-#   https://github.com/D-Programming-Language/tools.
+#   https://github.com/dlang/tools.
 #
 # install target - requires Phobos (.\phobos.lib)
-#   https://github.com/D-Programming-Language/phobos
+#   https://github.com/dlang/phobos
 #
 # zip target - requires Info-ZIP or equivalent (zip32.exe)
 #   http://www.info-zip.org/Zip.html#Downloads

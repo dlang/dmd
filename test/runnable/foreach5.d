@@ -97,7 +97,7 @@ void test2442()
     immutable S3 ms3;
     static assert(!__traits(compiles, { foreach (int x; ms3) {} }));    // ambiguous
 
-    // from https://github.com/D-Programming-Language/dmd/pull/120
+    // from https://github.com/dlang/dmd/pull/120
     static class C
     {
         int opApply(int delegate(ref              int v) dg)              { return 0; }
