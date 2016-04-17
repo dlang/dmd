@@ -6452,47 +6452,48 @@ public:
 
     void genIdent(Scope* sc)
     {
-        if (fd.ident == Id.empty)
+        if (fd.ident != Id.empty)
+            return;
+
+        const(char)* s;
+        if (fd.fes)
+            s = "__foreachbody";
+        else if (fd.tok == TOKreserved)
+            s = "__lambda";
+        else if (fd.tok == TOKdelegate)
+            s = "__dgliteral";
+        else
+            s = "__funcliteral";
+
+        DsymbolTable symtab;
+        if (auto func = sc.parent.isFuncDeclaration())
         {
-            const(char)* s;
-            if (fd.fes)
-                s = "__foreachbody";
-            else if (fd.tok == TOKreserved)
-                s = "__lambda";
-            else if (fd.tok == TOKdelegate)
-                s = "__dgliteral";
-            else
-                s = "__funcliteral";
-            DsymbolTable symtab;
-            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
+            if (func.localsymtab is null)
             {
-                if (func.localsymtab is null)
-                {
-                    // Inside template constraint, symtab is not set yet.
-                    // Initialize it lazily.
-                    func.localsymtab = new DsymbolTable();
-                }
-                symtab = func.localsymtab;
+                // Inside template constraint, symtab is not set yet.
+                // Initialize it lazily.
+                func.localsymtab = new DsymbolTable();
             }
-            else
-            {
-                ScopeDsymbol sds = sc.parent.isScopeDsymbol();
-                if (!sds.symtab)
-                {
-                    // Inside template constraint, symtab may not be set yet.
-                    // Initialize it lazily.
-                    assert(sds.isTemplateInstance());
-                    sds.symtab = new DsymbolTable();
-                }
-                symtab = sds.symtab;
-            }
-            assert(symtab);
-            Identifier id = Identifier.generateId(s, symtab.len() + 1);
-            fd.ident = id;
-            if (td)
-                td.ident = id;
-            symtab.insert(td ? cast(Dsymbol)td : cast(Dsymbol)fd);
+            symtab = func.localsymtab;
         }
+        else
+        {
+            auto sds = sc.parent.isScopeDsymbol();
+            if (!sds.symtab)
+            {
+                // Inside template constraint, symtab may not be set yet.
+                // Initialize it lazily.
+                assert(sds.isTemplateInstance());
+                sds.symtab = new DsymbolTable();
+            }
+            symtab = sds.symtab;
+        }
+        assert(symtab);
+        auto id = Identifier.generateId(s, symtab.len() + 1);
+        fd.ident = id;
+        if (td)
+            td.ident = id;
+        symtab.insert(td ? cast(Dsymbol)td : cast(Dsymbol)fd);
     }
 
     override Expression syntaxCopy()
