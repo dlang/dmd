@@ -3747,12 +3747,12 @@ code *cdpair(elem *e, regm_t *pretregs)
     retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    regs1 = retregs & (mLSW | mBP);
+    regs1 = retregs & mLSW;
     regs2 = retregs & mMSW;
     if (e->Eoper == OPrpair)
     {
         regs1 = regs2;
-        regs2 = retregs & (mLSW | mBP);
+        regs2 = retregs & mLSW;
     }
     //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     c1 = codelem(e->E1, &regs1, FALSE);

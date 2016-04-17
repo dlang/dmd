@@ -139,7 +139,7 @@ public:
     unsigned size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
 
     bool isStatic() { return (storage_class & STCstatic) != 0; }
     virtual bool isDelete();
