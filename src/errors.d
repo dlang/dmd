@@ -18,6 +18,8 @@ import ddmd.globals;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 
+//debug = printGaggedErrors;
+
 version (Windows) extern (C) int isatty(int);
 
 enum COLOR : int
@@ -220,8 +222,8 @@ extern (C++) void verror(Loc loc, const(char)* format, va_list ap, const(char)* 
     }
     else
     {
-        //fprintf(stderr, "(gag:%d) ", global.gag);
-        //verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
+        debug (printGaggedErrors) fprintf(stderr, "(gag:%d) ", global.gag);
+        debug (printGaggedErrors) verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
         global.gaggedErrors++;
     }
 }
