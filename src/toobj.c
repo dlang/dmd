@@ -898,7 +898,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 DtBuilder dtb;
                 StructDeclaration_toDt(sd, dtb);
                 sd->sinit->Sdt = dtb.finish();
-                dt_optimize(sd->sinit->Sdt);
                 out_readonly(sd->sinit);    // put in read-only segment
                 outdata(sd->sinit);
 
@@ -999,7 +998,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 Type_toDt(vd->type, dtb);
                 s->Sdt = dtb.finish();
             }
-            dt_optimize(s->Sdt);
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.
@@ -1086,8 +1084,6 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             DtBuilder dtb;
             TypeInfo_toDt(dtb, tid);
             s->Sdt = dtb.finish();
-
-            dt_optimize(s->Sdt);
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.

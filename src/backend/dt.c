@@ -117,36 +117,6 @@ void dtpatchoffset(dt_t *dt, unsigned offset)
 }
 
 /**************************
- * 'Optimize' a list of dt_t's.
- * (Try to collapse it into one DT_azeros object.)
- */
-
-void dt_optimize(dt_t *dt)
-{   dt_t *dtn;
-
-    if (dt)
-    {   for (; 1; dt = dtn)
-        {
-            dtn = dt->DTnext;
-            if (!dtn)
-                break;
-            if (dt->dt == DT_azeros)
-            {
-                if (dtn->dt == DT_azeros)
-                {
-                    dt->DTazeros += dtn->DTazeros;
-                    dt->dt = DT_azeros;
-                    dt->DTnext = dtn->DTnext;
-                    dtn->DTnext = NULL;
-                    dt_free(dtn);
-                    dtn = dt;
-                }
-            }
-        }
-    }
-}
-
-/**************************
  * Make a common block for s.
  */
 
@@ -252,6 +222,25 @@ DtBuilder::DtBuilder()
  */
 dt_t *DtBuilder::finish()
 {
+    /* Merge all the 0s at the start of the list
+     * so we can later check for dtallzeros()
+     */
+    if (head && head->dt == DT_azeros)
+    {
+        while (1)
+        {
+            dt_t *dtn = head->DTnext;
+            if (!(dtn && dtn->dt == DT_azeros))
+                break;
+
+            // combine head and dtn
+            head->DTazeros += dtn->DTazeros;
+            head->DTnext = dtn->DTnext;
+            dtn->DTnext = NULL;
+            dt_free(dtn);
+        }
+    }
+
     return head;
 }
 
@@ -471,6 +460,17 @@ void DtBuilder::cat(dt_t *dt)
     assert(!*pTail);
 }
 
+/**********************
+ * Append dtb to data.
+ */
+void DtBuilder::cat(DtBuilder& dtb)
+{
+    assert(!*pTail);
+    *pTail = dtb.head;
+    pTail = dtb.pTail;
+    assert(!*pTail);
+}
+
 /**************************************
  * Repeat a list of dt_t's count times.
  */
@@ -485,7 +485,10 @@ void DtBuilder::repeat(dt_t *dt, size_t count)
 
     if (dtallzeros(dt))
     {
-        nzeros(size * count);
+        if (head && dtallzeros(head))
+            head->DTazeros += size * count;
+        else
+            nzeros(size * count);
         return;
     }
 
