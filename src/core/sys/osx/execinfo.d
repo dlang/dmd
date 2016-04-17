@@ -1,4 +1,7 @@
 /**
+ * $(RED Deprecated. Use $(D core.sys.darwin.execinfo) instead. This module
+ *       will be removed in June 2018.)
+ *
  * D header file for OSX.
  *
  * Copyright: Copyright Martin Nowak 2012.
@@ -7,10 +10,4 @@
  */
 module core.sys.osx.execinfo;
 
-version (OSX):
-extern (C):
-nothrow:
-
-int backtrace(void** buffer, int size);
-char** backtrace_symbols(const(void*)* buffer, int size);
-void backtrace_symbols_fd(const(void*)* buffer, int size, int fd);
+public import core.sys.darwin.execinfo;

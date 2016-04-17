@@ -15,6 +15,15 @@
 
 module core.stdc.stdio;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 private
 {
     import core.stdc.config;
@@ -104,7 +113,7 @@ else version( CRuntime_Glibc )
         L_tmpnam     = 20
     }
 }
-else version( OSX )
+else version( Darwin )
 {
     enum
     {
@@ -306,7 +315,7 @@ else version( CRuntime_Glibc )
     ///
     alias shared(_IO_FILE) FILE;
 }
-else version( OSX )
+else version( Darwin )
 {
     ///
     alias long fpos_t;
@@ -591,7 +600,7 @@ else version( CRuntime_Glibc )
     ///
     extern shared FILE* stderr;
 }
-else version( OSX )
+else version( Darwin )
 {
     enum
     {
@@ -989,7 +998,7 @@ else version( CRuntime_Glibc )
     ///
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 }
-else version( OSX )
+else version( Darwin )
 {
   // No unsafe pointer manipulation.
   @trusted

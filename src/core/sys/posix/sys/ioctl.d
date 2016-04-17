@@ -16,6 +16,15 @@ module core.sys.posix.sys.ioctl;
 
 import core.stdc.config;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 
 extern (C) nothrow @nogc:
@@ -318,7 +327,7 @@ version (CRuntime_Glibc)
 
     int ioctl(int __fd, c_ulong __request, ...);
 }
-else version (OSX)
+else version (Darwin)
 {
     import core.sys.posix.termios; // termios
     import core.sys.posix.sys.time; // timeval
