@@ -4037,6 +4037,11 @@ extern (C++) final class DsymbolExp : Expression
      */
     static Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
     {
+        return resolve(loc, sc, null, s, hasOverloads);
+    }
+
+    static Expression resolve(Loc loc, Scope *sc, Expression e1, Dsymbol s, bool hasOverloads)
+    {
         static if (LOGSEMANTIC)
         {
             printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
@@ -4101,8 +4106,10 @@ extern (C++) final class DsymbolExp : Expression
             if (v.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
-            if (v.needThis() && hasThis(sc))
-                e = new DotVarExp(loc, new ThisExp(loc), v);
+            if (!e1 && v.needThis() && hasThis(sc))
+                e1 = new ThisExp(loc);
+            if (e1)
+                e = new DotVarExp(loc, e1, v);
             else
                 e = new VarExp(loc, v);
             e = e.semantic(sc);
@@ -4116,8 +4123,10 @@ extern (C++) final class DsymbolExp : Expression
             }
             else                    // expression tuple
             {
-                if (tup.needThis() && hasThis(sc))
-                    e = new DotVarExp(loc, new ThisExp(loc), tup);
+                if (!e1 && tup.needThis() && hasThis(sc))
+                    e1 = new ThisExp(loc);
+                if (e1)
+                    e = new DotVarExp(loc, e1, tup);
                 else
                     e = new TupleExp(loc, tup);
             }
@@ -4132,6 +4141,8 @@ extern (C++) final class DsymbolExp : Expression
                 //printf("'%s' is a function literal\n", fld.toChars());
                 e = new FuncExp(loc, fld);
                 e = e.semantic(sc);
+                if (e1)
+                    e = Expression.combine(e1, e);
                 return e;
             }
             f = f.toAliasFunc();
@@ -4142,21 +4153,34 @@ extern (C++) final class DsymbolExp : Expression
             if (!hasOverloads && f.checkForwardRef(loc))
                 return new ErrorExp();
 
+            if (f.needThis() && e1)
+            {
+                e = new DotVarExp(loc, e1, f);
+                e = e.semantic(sc);
+                return e;
+            }
+
             auto fd = s.isFuncDeclaration();
             fd.type = f.type;
             e = new VarExp(loc, fd, hasOverloads);
+            if (e1)
+                e = Expression.combine(e1, e);
             return e;
         }
         if (auto od = s.isOverDeclaration())
         {
             e = new VarExp(loc, od, true);
-            e.type = Type.tvoid;
+            e.type = Type.tvoid;    // ambiguous type?
+            if (e1)
+                e = Expression.combine(e1, e);
             return e;
         }
         if (auto os = s.isOverloadSet())
         {
             //printf("'%s' is an overload set\n", os.toChars());
             e = new OverExp(loc, os);
+            if (e1)
+                e = new DotExp(loc, e1, e);
             return e;
         }
 
@@ -4169,15 +4193,20 @@ extern (C++) final class DsymbolExp : Expression
 
         if (auto td = s.isTemplateDeclaration())
         {
-            auto p = td.toParent2();
-            auto fdthis = hasThis(sc);
-            auto ad = p ? p.isAggregateDeclaration() : null;
-            if (fdthis && ad &&
-                isAggregate(fdthis.vthis.type) == ad &&
-                (td._scope.stc & STCstatic) == 0)
+            if (!e1)
             {
-                e = new DotTemplateExp(loc, new ThisExp(loc), td);
+                auto p = td.toParent2();
+                auto fdthis = hasThis(sc);
+                auto ad = p ? p.isAggregateDeclaration() : null;
+                if (fdthis && ad &&
+                    isAggregate(fdthis.vthis.type) == ad &&
+                    (td._scope.stc & STCstatic) == 0)
+                {
+                    e1 = new ThisExp(loc);
+                }
             }
+            if (e1)
+                e = new DotTemplateExp(loc, e1, td);
             else
                 e = new TemplateExp(loc, td);
             e = e.semantic(sc);
@@ -4190,8 +4219,10 @@ extern (C++) final class DsymbolExp : Expression
                 return new ErrorExp();
             s = ti.toAlias();
             if (!s.isTemplateInstance())
-                return resolve(loc, sc, s, hasOverloads);
+                return resolve(loc, sc, e1, s, hasOverloads);
             e = new ScopeExp(loc, ti);
+            if (e1)
+                e = new DotExp(loc, e1, e);
             e = e.semantic(sc);
             return e;
         }
@@ -4204,6 +4235,8 @@ extern (C++) final class DsymbolExp : Expression
                 return new ErrorExp();
             }
             e = new ScopeExp(loc, imp.pkg);
+            if (e1)
+                e = new DotExp(loc, e1, e);
             e = e.semantic(sc);
             return e;
         }
@@ -4211,6 +4244,8 @@ extern (C++) final class DsymbolExp : Expression
         {
             // sds: Package, Module, or Nspace
             e = new ScopeExp(loc, sds);
+            if (e1)
+                e = new DotExp(loc, e1, e);
             e = e.semantic(sc);
             return e;
         }
