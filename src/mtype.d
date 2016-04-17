@@ -8638,16 +8638,19 @@ public:
             {
                 if (e.op == TOKtype)
                     return Type.getProperty(e.loc, ident, 0);
-                return new DotTypeExp(e.loc, e, sym);
+                e = new DotTypeExp(e.loc, e, sym);
+                e = e.semantic(sc);
+                return e;
             }
-            if (ClassDeclaration cbase = sym.searchBase(ident))
+            if (auto cbase = sym.searchBase(ident))
             {
                 if (e.op == TOKtype)
                     return Type.getProperty(e.loc, ident, 0);
-                if (InterfaceDeclaration ifbase = cbase.isInterfaceDeclaration())
+                if (auto ifbase = cbase.isInterfaceDeclaration())
                     e = new CastExp(e.loc, e, ifbase.type);
                 else
                     e = new DotTypeExp(e.loc, e, cbase);
+                e = e.semantic(sc);
                 return e;
             }
             if (ident == Id.classinfo)

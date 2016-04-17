@@ -629,6 +629,44 @@ void test11993()
 }
 
 /********************************************************/
+// 15934
+
+class B15934
+{
+    int foo()       { return 1; }
+    int foo() const { return 2; }
+}
+
+class C15934 : B15934
+{
+    override int foo()       { return 3; }
+    override int foo() const { return 4; }
+
+    void test1()
+    {
+        assert(this.foo() == 3);
+        assert(     foo() == 3);
+        assert(this.B15934.foo() == 1);
+        assert(     B15934.foo() == 1);
+    }
+
+    void test2() const
+    {
+        assert(this.foo() == 4);
+        assert(     foo() == 4);
+        assert(this.B15934.foo() == 2);  // OK <- wrongly returns 1
+        assert(     B15934.foo() == 2);  // OK <- wrongly returns 1
+    }
+}
+
+void test15934()
+{
+    auto c = new C15934();
+    c.test1();
+    c.test2();
+}
+
+/********************************************************/
 
 int main()
 {
@@ -642,6 +680,7 @@ int main()
     test4350();
     test9619();
     test9633();
+    test15934();
 
     printf("Success\n");
     return 0;
