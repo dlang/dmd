@@ -4042,13 +4042,9 @@ extern (C++) final class DsymbolExp : Expression
             printf("DsymbolExp::resolve(%s %s)\n", s.kind(), s.toChars());
         }
 
-    Lagain:
         Expression e;
 
-        //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
-        //printf("s = '%s', s.kind = '%s'\n", s.toChars(), s.kind());
-        Dsymbol olds = s;
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         if (d && (d.storage_class & STCtemplateparameter))
         {
             s = s.toAlias();
@@ -4057,6 +4053,8 @@ extern (C++) final class DsymbolExp : Expression
         {
             if (!s.isFuncDeclaration()) // functions are checked after overloading
                 s.checkDeprecated(loc, sc);
+
+            auto olds = s;
 
             // Bugzilla 12023: if 's' is a tuple variable, the tuple is returned.
             s = s.toAlias();
@@ -4110,15 +4108,34 @@ extern (C++) final class DsymbolExp : Expression
             e = e.semantic(sc);
             return e;
         }
-        if (auto fld = s.isFuncLiteralDeclaration())
+        if (auto tup = s.isTupleDeclaration())
         {
-            //printf("'%s' is a function literal\n", fld.toChars());
-            e = new FuncExp(loc, fld);
-            return e.semantic(sc);
+            if (auto t = tup.getType())   // type tuple
+            {
+                e = new TypeExp(loc, t);
+            }
+            else                    // expression tuple
+            {
+                if (tup.needThis() && hasThis(sc))
+                    e = new DotVarExp(loc, new ThisExp(loc), tup);
+                else
+                    e = new TupleExp(loc, tup);
+            }
+            e = e.semantic(sc);
+            return e;
         }
+
         if (auto f = s.isFuncDeclaration())
         {
+            if (auto fld = f.isFuncLiteralDeclaration())
+            {
+                //printf("'%s' is a function literal\n", fld.toChars());
+                e = new FuncExp(loc, fld);
+                e = e.semantic(sc);
+                return e;
+            }
             f = f.toAliasFunc();
+
             if (!f.functionSemantic())
                 return new ErrorExp();
 
@@ -4127,84 +4144,73 @@ extern (C++) final class DsymbolExp : Expression
 
             auto fd = s.isFuncDeclaration();
             fd.type = f.type;
-            return new VarExp(loc, fd, hasOverloads);
+            e = new VarExp(loc, fd, hasOverloads);
+            return e;
         }
-        if (OverDeclaration od = s.isOverDeclaration())
+        if (auto od = s.isOverDeclaration())
         {
             e = new VarExp(loc, od, true);
             e.type = Type.tvoid;
             return e;
         }
-        if (OverloadSet o = s.isOverloadSet())
+        if (auto os = s.isOverloadSet())
         {
-            //printf("'%s' is an overload set\n", o.toChars());
-            return new OverExp(loc, o);
+            //printf("'%s' is an overload set\n", os.toChars());
+            e = new OverExp(loc, os);
+            return e;
         }
 
-        if (Import imp = s.isImport())
+        if (auto t = s.getType())
         {
-            if (!imp.pkg)
-            {
-                .error(loc, "forward reference of import %s", imp.toChars());
-                return new ErrorExp();
-            }
-            auto ie = new ScopeExp(loc, imp.pkg);
-            return ie.semantic(sc);
-        }
-        if (Package pkg = s.isPackage())
-        {
-            auto ie = new ScopeExp(loc, pkg);
-            return ie.semantic(sc);
-        }
-        if (Module mod = s.isModule())
-        {
-            auto ie = new ScopeExp(loc, mod);
-            return ie.semantic(sc);
-        }
-        if (Nspace ns = s.isNspace())
-        {
-            auto ie = new ScopeExp(loc, ns);
-            return ie.semantic(sc);
-        }
-
-        if (Type t = s.getType())
-        {
-            return (new TypeExp(loc, t)).semantic(sc);
-        }
-
-        if (TupleDeclaration tup = s.isTupleDeclaration())
-        {
-            if (tup.needThis() && hasThis(sc))
-                e = new DotVarExp(loc, new ThisExp(loc), tup);
-            else
-                e = new TupleExp(loc, tup);
+            e = new TypeExp(loc, t);
             e = e.semantic(sc);
             return e;
         }
 
-        if (TemplateInstance ti = s.isTemplateInstance())
+        if (auto td = s.isTemplateDeclaration())
+        {
+            auto p = td.toParent2();
+            auto fdthis = hasThis(sc);
+            auto ad = p ? p.isAggregateDeclaration() : null;
+            if (fdthis && ad &&
+                isAggregate(fdthis.vthis.type) == ad &&
+                (td._scope.stc & STCstatic) == 0)
+            {
+                e = new DotTemplateExp(loc, new ThisExp(loc), td);
+            }
+            else
+                e = new TemplateExp(loc, td);
+            e = e.semantic(sc);
+            return e;
+        }
+        if (auto ti = s.isTemplateInstance())
         {
             ti.semantic(sc);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();
             s = ti.toAlias();
             if (!s.isTemplateInstance())
-                goto Lagain;
+                return resolve(loc, sc, s, hasOverloads);
             e = new ScopeExp(loc, ti);
             e = e.semantic(sc);
             return e;
         }
-        if (TemplateDeclaration td = s.isTemplateDeclaration())
+
+        if (auto imp = s.isImport())
         {
-            Dsymbol p = td.toParent2();
-            FuncDeclaration fdthis = hasThis(sc);
-            AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-            if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+            if (!imp.pkg)
             {
-                e = new DotTemplateExp(loc, new ThisExp(loc), td);
+                .error(loc, "forward reference of import %s", imp.toChars());
+                return new ErrorExp();
             }
-            else
-                e = new TemplateExp(loc, td);
+            e = new ScopeExp(loc, imp.pkg);
+            e = e.semantic(sc);
+            return e;
+        }
+        if (auto sds = s.isScopeDsymbol())
+        {
+            // sds: Package, Module, or Nspace
+            e = new ScopeExp(loc, sds);
             e = e.semantic(sc);
             return e;
         }
