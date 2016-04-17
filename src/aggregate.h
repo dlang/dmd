@@ -185,7 +185,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semanticTypeInfoMembers();
-    Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind();
     void finalizeSize();
     bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
@@ -288,7 +288,7 @@ public:
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
     bool isBaseInfoComplete();
-    Dsymbol *search(Loc, Identifier *ident, int flags = IgnoreNone);
+    Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
     ClassDeclaration *searchBase(Loc, Identifier *ident);
     void finalizeSize();
     bool isFuncHidden(FuncDeclaration *fd);
