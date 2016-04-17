@@ -8115,15 +8115,10 @@ public:
         {
             printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
+
         // Bugzilla 14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag);
-
-        if (!sym.members)
-        {
-            error(e.loc, "struct %s is forward referenced", sym.toChars());
-            return new ErrorExp();
-        }
 
         /* If e.tupleof
          */
@@ -8133,7 +8128,8 @@ public:
              * (e.field0, e.field1, e.field2, ...)
              */
             e = e.semantic(sc); // do this before turning on noaccesscheck
-            e.type.size(); // do semantic of type
+
+            sym.size(e.loc); // do semantic of type
 
             Expression e0;
             Expression ev = e.op == TOKtype ? null : e;
@@ -8164,20 +8160,6 @@ public:
             return e;
         }
 
-        if (e.op == TOKdot)
-        {
-            DotExp de = cast(DotExp)e;
-            if (de.e1.op == TOKscope)
-            {
-                assert(0); // cannot find a case where this happens; leave
-                // assert in until we do
-                // ScopeExp se = cast(ScopeExp)de.e1;
-                // s = se.sds.search(e.loc, ident);
-                // e = de.e1;
-                // goto L1;
-            }
-        }
-
         Dsymbol searchSym()
         {
             int flags = 0;
@@ -8205,13 +8187,7 @@ public:
     L1:
         if (!s)
         {
-            if (sym._scope) // it's a fwd ref, maybe we can resolve it
-            {
-                sym.semantic(null);
-                s = searchSym();
-            }
-            if (!s)
-                return noMember(sc, e, ident, flag);
+            return noMember(sc, e, ident, flag);
         }
         if (!symbolIsVisible(sc, s))
         {
@@ -8309,12 +8285,11 @@ public:
         }
 
         Declaration d = s.isDeclaration();
-        debug
+        if (!d)
         {
-            if (!d)
-                printf("d = %s '%s'\n", s.kind(), s.toChars());
+            e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
+            return new ErrorExp();
         }
-        assert(d);
 
         if (e.op == TOKtype)
         {
@@ -8930,18 +8905,7 @@ public:
         Dsymbol s;
         static if (LOGDOTEXP)
         {
-            printf("TypeClass::dotExp(e='%s', ident='%s')\n", e.toChars(), ident.toChars());
-        }
-        if (e.op == TOKdot)
-        {
-            DotExp de = cast(DotExp)e;
-            if (de.e1.op == TOKscope)
-            {
-                ScopeExp se = cast(ScopeExp)de.e1;
-                s = se.sds.search(e.loc, ident);
-                e = de.e1;
-                goto L1;
-            }
+            printf("TypeClass::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
 
         // Bugzilla 12543
@@ -8950,22 +8914,15 @@ public:
             return Type.getProperty(e.loc, ident, 0);
         }
 
+        /* If e.tupleof
+         */
         if (ident == Id._tupleof)
         {
             /* Create a TupleExp
              */
             e = e.semantic(sc); // do this before turning on noaccesscheck
 
-            /* If this is called in the middle of a class declaration,
-             *  class Inner {
-             *    int x;
-             *    alias typeof(Inner.tupleof) T;
-             *    int y;
-             *  }
-             * then Inner.y will be omitted from the tuple.
-             */
-            // Detect that error, and at least try to run semantic() on it if we can
-            sym.size(e.loc);
+            sym.size(e.loc); // do semantic of type
 
             Expression e0;
             Expression ev = e.op == TOKtype ? null : e;
@@ -9166,14 +9123,12 @@ public:
                 dve.type = sym.vthis.type.addMod(e.type.mod);
                 return dve;
             }
-            else
-            {
-                return noMember(sc, e, ident, flag);
-            }
+
+            return noMember(sc, e, ident, flag);
         }
         if (!symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
+            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
@@ -9278,11 +9233,6 @@ public:
             /* It's:
              *    Class.d
              */
-            // If Class is in a failed template, return an error
-            TemplateInstance tiparent = d.isInstantiated();
-            if (tiparent && tiparent.errors)
-                return new ErrorExp();
-
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
@@ -9370,15 +9320,6 @@ public:
             Expression ve = new VarExp(e.loc, d);
             e = unreal ? ve : new CommaExp(e.loc, e, ve);
             e = e.semantic(sc);
-            return e;
-        }
-
-        if (d.parent && d.toParent().isModule())
-        {
-            // (e, d)
-            auto ve = new VarExp(e.loc, d);
-            e = new CommaExp(e.loc, e, ve);
-            e.type = d.type;
             return e;
         }
 
