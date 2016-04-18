@@ -6555,21 +6555,16 @@ public:
                 }
                 goto Ldone;
             }
-            uint olderrors = global.errors;
+
             fd.semantic(sc);
-            if (olderrors == global.errors)
+            fd.semantic2(sc);
+            fd.semantic3(sc);
+            if (fd.errors || fd.semantic3Errors)
             {
-                fd.semantic2(sc);
-                if (olderrors == global.errors)
-                    fd.semantic3(sc);
-            }
-            if (olderrors != global.errors)
-            {
-                if (fd.type && fd.type.ty == Tfunction && !fd.type.nextOf())
-                    (cast(TypeFunction)fd.type).next = Type.terror;
                 e = new ErrorExp();
                 goto Ldone;
             }
+
             // Type is a "delegate to" or "pointer to" the function literal
             if ((fd.isNested() && fd.tok == TOKdelegate) || (tok == TOKreserved && fd.treq && fd.treq.ty == Tdelegate))
             {
