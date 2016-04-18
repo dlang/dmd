@@ -504,7 +504,7 @@ $(H4 $(LNAME2 property-functions, Property Functions))
     being the value it is set to.
     )
 
-    $(P Simple getter and setter properties can be written using $(LINK2 pseudo-member, UFCS).
+    $(P Simple getter and setter properties can be written using $(RELATIVE_LINK2 pseudo-member, UFCS).
     These can be enhanced with the additon of the $(D @property) attribute to the function, which
     adds the following behaviors:
     )
