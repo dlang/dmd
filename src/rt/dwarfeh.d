@@ -294,10 +294,21 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
 
     /* Get instruction pointer (ip) at start of instruction that threw
      */
-    int ip_before_insn = 0;
-    auto ip = _Unwind_GetIPInfo(context, &ip_before_insn);
-    if (!ip_before_insn)
+    version (CRuntime_Glibc)
+    {
+        int ip_before_insn;
+        // The instruction pointer must not be decremented when unwinding from a
+        // signal handler frame (asynchronous exception, also see
+        // etc.linux.memoryerror). So use _Unwind_GetIPInfo where available.
+        auto ip = _Unwind_GetIPInfo(context, &ip_before_insn);
+        if (!ip_before_insn)
+            --ip;
+    }
+    else
+    {
+        auto ip = _Unwind_GetIP(context);
         --ip;
+    }
     //printf("ip = x%x\n", cast(int)(ip - Start));
     //printf("\tStart = %p, ipoff = %p, lsda = %p\n", Start, ip - Start, language_specific_data);
 
