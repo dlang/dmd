@@ -401,6 +401,10 @@ public:
                     }
                 }
                 vd.overlapped = true;
+                if (v2 && (vd.storage_class & STCimmutable) != (v2.storage_class & STCimmutable))
+                {
+                    vd.overlapsImmutable = true;
+                }
 
                 if (!vx)
                     continue;
