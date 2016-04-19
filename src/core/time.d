@@ -2389,7 +2389,7 @@ auto before = MonoTime.currTime;
 // do stuff
 auto after = MonoTime.currTime;
 auto timeElapsed = after - before;
-assert(before + timeElapsed == after).
+assert(before + timeElapsed == after);
 --------------------
 
             This is generally fine, and by its very nature, converting from
