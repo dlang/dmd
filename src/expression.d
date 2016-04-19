@@ -10852,7 +10852,30 @@ public:
         TypeVector tv = cast(TypeVector)tb;
         Type te = tv.elementType();
         dim = cast(int)(tv.size(loc) / te.size(loc));
-        return this;
+
+        bool checkElem(Expression elem)
+        {
+            if (elem.isConst() == 1)
+                return false;
+
+             error("constant expression expected, not %s", elem.toChars());
+             return true;
+        }
+
+        e1 = e1.optimize(WANTvalue);
+        bool result;
+        if (e1.op == TOKarrayliteral)
+        {
+            foreach (i; 0 .. dim)
+            {
+                // Do not stop on first error - check all AST nodes even if error found
+                result |= checkElem((cast(ArrayLiteralExp)e1).getElement(i));
+            }
+        }
+        else
+            result = checkElem(e1);
+
+        return result ? new ErrorExp() : this;
     }
 
     override void accept(Visitor v)
