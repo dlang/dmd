@@ -976,7 +976,7 @@ STATIC elem * elmul(elem *e, goal_t goal)
             }
         }
 
-        if (tyintegral(tym))
+        if (tyintegral(tym) && !tyvector(tym))
         {   int i;
 
             i = ispow2(el_tolong(e2));          /* check for power of 2 */

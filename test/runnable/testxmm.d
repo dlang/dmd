@@ -239,6 +239,7 @@ void test2c()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+    v1 = v1 * 3;
 
     //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
     static assert(!__traits(compiles, cast(byte)v1));       // 1byte
@@ -1398,7 +1399,7 @@ void foo13988(double[] arr)
 {
     static ulong repr(double d) { return *cast(ulong*)&d; }
     foreach (x; arr)
-	assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
+        assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
 }
 
 
