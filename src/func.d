@@ -2567,6 +2567,7 @@ public:
     {
         //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
         assert(s != this);
+
         AliasDeclaration ad = s.isAliasDeclaration();
         if (ad)
         {
@@ -2594,25 +2595,18 @@ public:
         FuncDeclaration fd = s.isFuncDeclaration();
         if (!fd)
             return false;
-        version (none)
+
+        // fd->type can be NULL for overloaded constructors
+        if (type && fd.type &&
+            fbody && fd.fbody &&
+            fd.type.covariant(type) == 1 &&
+            fd.type.mod == type.mod &&
+            !isFuncAliasDeclaration())
         {
-            /* Disable this check because:
-             *  const void foo();
-             * semantic() isn't run yet on foo(), so the const hasn't been
-             * applied yet.
-             */
-            if (type)
-            {
-                printf("type = %s\n", type.toChars());
-                printf("fd->type = %s\n", fd.type.toChars());
-            }
-            // fd->type can be NULL for overloaded constructors
-            if (type && fd.type && fd.type.covariant(type) && fd.type.mod == type.mod && !isFuncAliasDeclaration())
-            {
-                //printf("\tfalse: conflict %s\n", kind());
-                return false;
-            }
+            //printf("\tfd = '%s'\n", fd.type.toChars());
+            return false;
         }
+
         if (overnext)
         {
             td = overnext.isTemplateDeclaration();
