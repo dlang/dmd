@@ -64,7 +64,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
 
         override void visit(Expression e)
         {
-            //printf("Expression::implicitCastTo(%s of type %s) => %s\n", e->toChars(), e->type->toChars(), t->toChars());
+            //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
             MATCH match = e.implicitConvTo(t);
             if (match)
             {
@@ -705,13 +705,22 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 TypeVector tv = cast(TypeVector)tb;
                 TypeSArray tbase = cast(TypeSArray)tv.basetype;
                 assert(tbase.ty == Tsarray);
-                if (e.elements.dim != tbase.dim.toInteger())
+                const edim = e.elements.dim;
+                const tbasedim = tbase.dim.toInteger();
+                if (edim > tbasedim)
                 {
                     result = MATCHnomatch;
                     return;
                 }
                 Type telement = tv.elementType();
-                for (size_t i = 0; i < e.elements.dim; i++)
+                if (edim < tbasedim)
+                {
+                    Expression el = typeb.nextOf.defaultInitLiteral(e.loc);
+                    MATCH m = el.implicitConvTo(telement);
+                    if (m < result)
+                        result = m; // remember worst match
+                }
+                foreach (i; 0 .. edim)
                 {
                     Expression el = (*e.elements)[i];
                     MATCH m = el.implicitConvTo(telement);
@@ -2018,15 +2027,25 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 TypeVector tv = cast(TypeVector)tb;
                 TypeSArray tbase = cast(TypeSArray)tv.basetype;
                 assert(tbase.ty == Tsarray);
-                if (e.elements.dim != tbase.dim.toInteger())
+                const edim = e.elements.dim;
+                const tbasedim = tbase.dim.toInteger();
+                if (edim > tbasedim)
                     goto L1;
                 ae = cast(ArrayLiteralExp)e.copy();
                 ae.type = tbase; // Bugzilla 12642
                 ae.elements = e.elements.copy();
                 Type telement = tv.elementType();
-                for (size_t i = 0; i < e.elements.dim; i++)
+                foreach (i; 0 .. edim)
                 {
                     Expression ex = (*e.elements)[i];
+                    ex = ex.castTo(sc, telement);
+                    (*ae.elements)[i] = ex;
+                }
+                // Fill in the rest with the default initializer
+                ae.elements.setDim(cast(size_t)tbasedim);
+                foreach (i; edim .. cast(size_t)tbasedim)
+                {
+                    Expression ex = typeb.nextOf.defaultInitLiteral(e.loc);
                     ex = ex.castTo(sc, telement);
                     (*ae.elements)[i] = ex;
                 }

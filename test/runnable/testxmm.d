@@ -1398,7 +1398,7 @@ void foo13988(double[] arr)
 {
     static ulong repr(double d) { return *cast(ulong*)&d; }
     foreach (x; arr)
-	assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
+        assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
 }
 
 
@@ -1420,6 +1420,28 @@ void test15123()
     {
         auto x = V.init;
     }
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15144
+
+void test15144()
+{
+        enum      ubyte16 csXMM1 = ['a','b','c',0,0,0,0,0];
+        __gshared ubyte16 csXMM2 = ['a','b','c',0,0,0,0,0];
+        immutable ubyte16 csXMM3 = ['a','b','c',0,0,0,0,0];
+        version (D_PIC)
+        {
+        }
+        else
+        {
+            asm @nogc nothrow
+            {
+                movdqa      XMM0, [csXMM1];
+                movdqa      XMM0, [csXMM2];
+                movdqa      XMM0, [csXMM3];
+            }
+        }
 }
 
 /*****************************************/
