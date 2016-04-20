@@ -578,7 +578,7 @@ $(GNAME CatExpression):
 )
 
     $(P A $(I CatExpression) concatenates arrays, producing
-        a dynmaic array with the result. The arrays must be
+        a dynamic array with the result. The arrays must be
         arrays of the same element type. If one operand is an array
         and the other is of that array's element type, that element
         is converted to an array of length 1 of that element,
