@@ -5,9 +5,22 @@ $(COMMENT Pending changelog for 2.072.0.
 
 $(BUGSTITLE Library Changes,
 
+$(LI $(RELATIVE_LINK2 TypeInfo.init-deprecated, `TypeInfo.init` has been
+deprecated.))
+
 )
 
 $(BUGSTITLE Library Changes,
+
+$(LI $(LNAME2 TypeInfo.init-deprecated, `TypeInfo.init` has been
+    deprecated.)
+
+    $(P This is a step towards removal of `TypeInfo.init`, which is necessary
+        to resolve a name clash with the type property $(GLINK2 property, init).
+    )
+
+    $(P Use $(NOXREF TypeInfo.initializer, TypeInfo.initializer) instead.)
+)
 
 )
 
