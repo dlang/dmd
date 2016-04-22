@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
+
 #if MARS
 class LabelDsymbol;
 class Declaration;
@@ -715,6 +717,8 @@ struct CodeBuilder
     void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4);
     void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4, CodeBuilder& cdb5);
 
+    void append(code *c);
+
     void gen(code *cs);
     void gen1(unsigned op);
     void gen2(unsigned op, unsigned rm);
@@ -729,6 +733,15 @@ struct CodeBuilder
     void genadjesp(int offset);
     void genadjfpu(int offset);
     void gennop();
+
+    /*****************
+     * Returns:
+     *  code that pTail points to
+     */
+    code *last()
+    {
+        return (code *)((char *)pTail - offsetof(code, next));
+    }
 };
 
 
