@@ -31,12 +31,12 @@ __gshared StringTable builtins;
 
 public extern (C++) void add_builtin(const(char)* mangle, builtin_fp fp)
 {
-    builtins.insert(mangle, strlen(mangle)).ptrvalue = cast(void*)fp;
+    builtins.insert(mangle, strlen(mangle), cast(void*)fp);
 }
 
 builtin_fp builtin_lookup(const(char)* mangle)
 {
-    if (StringValue* sv = builtins.lookup(mangle, strlen(mangle)))
+    if (const sv = builtins.lookup(mangle, strlen(mangle)))
         return cast(builtin_fp)sv.ptrvalue;
     return null;
 }

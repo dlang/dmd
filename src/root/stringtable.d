@@ -154,7 +154,7 @@ public:
         return getValue(table[i].vptr);
     }
 
-    extern (C++) StringValue* insert(const(char)* s, size_t length)
+    extern (C++) StringValue* insert(const(char)* s, size_t length, void* ptrvalue)
     {
         const(hash_t) hash = calcHash(s, length);
         size_t i = findSlot(hash, s, length);
@@ -166,7 +166,7 @@ public:
             i = findSlot(hash, s, length);
         }
         table[i].hash = hash;
-        table[i].vptr = allocValue(s, length);
+        table[i].vptr = allocValue(s, length, ptrvalue);
         // printf("insert %.*s %p\n", (int)length, s, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
@@ -183,7 +183,7 @@ public:
                 i = findSlot(hash, s, length);
             }
             table[i].hash = hash;
-            table[i].vptr = allocValue(s, length);
+            table[i].vptr = allocValue(s, length, null);
         }
         // printf("update %.*s %p\n", (int)length, s, table[i].value ?: NULL);
         return getValue(table[i].vptr);
@@ -197,14 +197,13 @@ public:
      * Returns:
      *      last return value of fp call
      */
-    extern (C++) int apply(int function(StringValue*) fp)
+    extern (C++) int apply(int function(const(StringValue)*) fp)
     {
-        for (size_t i = 0; i < tabledim; ++i)
+        foreach (const se; table[0 .. tabledim])
         {
-            StringEntry* se = &table[i];
             if (!se.vptr)
                 continue;
-            StringValue* sv = getValue(se.vptr);
+            const sv = getValue(se.vptr);
             int result = (*fp)(sv);
             if (result)
                 return result;
@@ -213,7 +212,7 @@ public:
     }
 
 private:
-    extern (C++) uint allocValue(const(char)* s, size_t length)
+    uint allocValue(const(char)* s, size_t length, void* ptrvalue)
     {
         const(size_t) nbytes = StringValue.sizeof + length + 1;
         if (!npools || nfill + nbytes > POOL_SIZE)
@@ -223,7 +222,7 @@ private:
             nfill = 0;
         }
         StringValue* sv = cast(StringValue*)&pools[npools - 1][nfill];
-        sv.ptrvalue = null;
+        sv.ptrvalue = ptrvalue;
         sv.length = length;
         .memcpy(sv.lstring(), s, length);
         sv.lstring()[length] = 0;
@@ -232,7 +231,7 @@ private:
         return vptr;
     }
 
-    extern (C++) StringValue* getValue(uint vptr)
+    StringValue* getValue(uint vptr)
     {
         if (!vptr)
             return null;
@@ -241,32 +240,31 @@ private:
         return cast(StringValue*)&pools[idx][off];
     }
 
-    extern (C++) size_t findSlot(hash_t hash, const(char)* s, size_t length)
+    size_t findSlot(hash_t hash, const(char)* s, size_t length)
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
         for (size_t i = hash & (tabledim - 1), j = 1;; ++j)
         {
-            StringValue* sv;
-            if (!table[i].vptr || table[i].hash == hash && (sv = getValue(table[i].vptr)).length == length && .memcmp(s, sv.lstring(), length) == 0)
+            const(StringValue)* sv;
+            if (!table[i].vptr || table[i].hash == hash && (sv = getValue(table[i].vptr)).length == length && .memcmp(s, sv.toDchars(), length) == 0)
                 return i;
             i = (i + j) & (tabledim - 1);
         }
     }
 
-    extern (C++) void grow()
+    void grow()
     {
-        const(size_t) odim = tabledim;
-        StringEntry* otab = table;
+        const odim = tabledim;
+        auto otab = table;
         tabledim *= 2;
         table = cast(StringEntry*)mem.xcalloc(tabledim, (table[0]).sizeof);
-        for (size_t i = 0; i < odim; ++i)
+        foreach (const se; otab[0 .. odim])
         {
-            StringEntry* se = &otab[i];
             if (!se.vptr)
                 continue;
-            StringValue* sv = getValue(se.vptr);
-            table[findSlot(se.hash, sv.lstring(), sv.length)] = *se;
+            const sv = getValue(se.vptr);
+            table[findSlot(se.hash, sv.toDchars(), sv.length)] = se;
         }
         mem.xfree(otab);
     }

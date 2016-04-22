@@ -51,15 +51,7 @@ public:
     ~StringTable();
 
     StringValue *lookup(const char *s, d_size_t len);
-    StringValue *insert(const char *s, d_size_t len);
     StringValue *update(const char *s, d_size_t len);
-    int apply(int (*fp)(StringValue *));
-
-private:
-    uint32_t allocValue(const char *p, d_size_t length);
-    StringValue *getValue(uint32_t validx);
-    size_t findSlot(hash_t hash, const char *s, d_size_t len);
-    void grow();
 };
 
 #endif

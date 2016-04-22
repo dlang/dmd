@@ -24,9 +24,9 @@ import ddmd.utf;
 extern (C++) final class Identifier : RootObject
 {
 public:
-    int value;
-    const(char)* string;
-    size_t len;
+    const int value;
+    const char* string;
+    const size_t len;
 
     extern (D) this(const(char)* string, int value)
     {
@@ -135,6 +135,15 @@ public:
         return id;
     }
 
+    extern (D) static Identifier idPool(const(char)* s, size_t len, int value)
+    {
+        auto sv = stringtable.insert(s, len, null);
+        assert(sv);
+        auto id = new Identifier(sv.toDchars(), value);
+        sv.ptrvalue = cast(char*)id;
+        return id;
+    }
+
     /**********************************
      * Determine if string is a valid Identifier.
      * Returns:
@@ -166,7 +175,7 @@ public:
 
     static Identifier lookup(const(char)* s, size_t len)
     {
-        StringValue* sv = stringtable.lookup(s, len);
+        auto sv = stringtable.lookup(s, len);
         if (!sv)
             return null;
         return cast(Identifier)sv.ptrvalue;
