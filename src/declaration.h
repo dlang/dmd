@@ -205,6 +205,7 @@ public:
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void aliasSmantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
     const char *kind();
     Type *getType();

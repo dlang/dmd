@@ -8,12 +8,41 @@ $(BUGSTITLE Language Changes,
 )
 
 $(BUGSTITLE Compiler Changes,
+    $(LI $(RELATIVE_LINK2 deferred_alias, Analysis for aliases in imported modules is deferred.))
 )
 
 $(BUGSTITLE Language Changes,
 )
 
 $(BUGSTITLE Compiler Changes,
+    $(LI $(LNAME2 deferred_alias, Analysis for aliases in imported modules is deferred.)
+
+    $(P Example:)
+
+        ---
+        module lib;
+        template ExpensiveApiImpl(int ver)
+        {
+            ...
+            void func() {}
+            pragma(msg, "instantiated ExpensiveApiImpl ", ver);
+        }
+        alias api1 = ExpensiveApiImpl!(1);
+        alias api2 = ExpensiveApiImpl!(2);
+        ---
+
+        ---
+        import lib;
+        void main()
+        {
+            // OK, prints "instantiated ExpensiveApiImpl 1"
+            api1.func();
+
+            // Don't print "instantiated ExpensiveApiImpl 2", because
+            // the alias name 'api2' is not used.
+        }
+        ---
+    )
 )
 
 Macros:
