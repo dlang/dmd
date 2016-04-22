@@ -7981,19 +7981,18 @@ public:
              *  - semantic3 pass will get called on the instance members.
              *  - codegen pass will get a selection chance to do/skip it.
              */
-            struct N
+            static Dsymbol getStrictEnclosing(TemplateInstance ti)
             {
-                extern (C++) static Dsymbol getStrictEnclosing(TemplateInstance ti)
+                do
                 {
                     if (ti.enclosing)
                         return ti.enclosing;
-                    if (TemplateInstance tix = ti.tempdecl.isInstantiated())
-                        return getStrictEnclosing(tix);
-                    return null;
-                }
+                    ti = ti.tempdecl.isInstantiated();
+                } while (ti);
+                return null;
             }
 
-            Dsymbol enc = N.getStrictEnclosing(this);
+            Dsymbol enc = getStrictEnclosing(this);
             // insert target is made stable by using the module
             // where tempdecl is declared.
             mi = (enc ? enc : tempdecl).getModule();
