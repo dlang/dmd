@@ -543,6 +543,22 @@ public:
 
     override void semantic(Scope* sc)
     {
+        if (semanticRun >= PASSsemanticdone)
+            return;
+        assert(semanticRun <= PASSsemantic);
+
+        storage_class |= sc.stc & STCdeprecated;
+        protection = sc.protection;
+        userAttribDecl = sc.userAttribDecl;
+
+        if (!sc.func && inNonRoot())
+            return;
+
+        aliasSemantic(sc);
+    }
+
+    final void aliasSemantic(Scope* sc)
+    {
         //printf("AliasDeclaration::semantic() %s\n", toChars());
         if (aliassym)
         {
@@ -573,10 +589,6 @@ public:
             return;
         }
         inuse = 1;
-
-        storage_class |= sc.stc & STCdeprecated;
-        protection = sc.protection;
-        userAttribDecl = sc.userAttribDecl;
 
         // Given:
         //  alias foo.bar.abc def;
@@ -799,24 +811,31 @@ public:
             type = Type.terror;
             return aliassym;
         }
-        if (aliassym)
+
+        if (semanticRun >= PASSsemanticdone)
         {
             // semantic is already done.
 
-            // Even if type.deco !is null, "alias T = const int;` needs semantic
-            // call to take the storage class `const` as type qualifier.
+            // Do not see aliassym !is null, because of lambda aliases.
+
+            // Do not see type.deco !is null, even so "alias T = const int;` needs
+            // semantic analysis to take the storage class `const` as type qualifier.
         }
-        else if (_import && _import._scope)
+        else
         {
-            /* If this is an internal alias for selective/renamed import,
-             * resolve it under the correct scope.
-             */
-            _import.semantic(null);
+            if (_import && _import._scope)
+            {
+                /* If this is an internal alias for selective/renamed import,
+                 * load the module first.
+                 */
+                _import.semantic(null);
+            }
+            if (_scope)
+            {
+                aliasSemantic(_scope);
+            }
         }
-        else if (_scope)
-        {
-            semantic(_scope);
-        }
+
         inuse = 1;
         Dsymbol s = aliassym ? aliassym.toAlias() : this;
         inuse = 0;

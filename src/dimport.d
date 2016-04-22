@@ -291,6 +291,7 @@ public:
                 //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
                 sc._module.needmoduleinfo = 1;
             }
+
             sc = sc.push(mod);
             sc.protection = protection;
             for (size_t i = 0; i < aliasdecls.dim; i++)
@@ -300,6 +301,9 @@ public:
                 if (mod.search(loc, names[i]))
                 {
                     ad.semantic(sc);
+                    // If the import declaration is in non-root module,
+                    // analysis of the aliased symbol is deferred.
+                    // Therefore, don't see the ad.aliassym or ad.type here.
                 }
                 else
                 {
@@ -313,6 +317,7 @@ public:
             }
             sc = sc.pop();
         }
+
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
         if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) && sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string, "__main") != 0)

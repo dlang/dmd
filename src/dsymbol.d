@@ -1016,11 +1016,11 @@ public:
         Dsymbol s = parent;
         for (; s; s = s.toParent())
         {
-            if (TemplateInstance ti = s.isTemplateInstance())
+            if (auto ti = s.isTemplateInstance())
             {
                 return false;
             }
-            if (Module m = s.isModule())
+            if (auto m = s.isModule())
             {
                 if (!m.isRoot())
                     return true;
