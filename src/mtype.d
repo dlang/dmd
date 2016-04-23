@@ -8115,6 +8115,7 @@ public:
         {
             printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
+        assert(e.op != TOKdot);
 
         // Bugzilla 14010
         if (ident == Id._mangleof)
@@ -8907,6 +8908,7 @@ public:
         {
             printf("TypeClass::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
+        assert(e.op != TOKdot);
 
         // Bugzilla 12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
