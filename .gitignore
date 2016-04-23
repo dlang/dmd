@@ -40,6 +40,7 @@ src/vcbuild/x64
 *.sdf
 *.opensdf
 *.user
+*.ilk
 ipch
 
 # Xcode files
