@@ -308,7 +308,7 @@ public:
         version (none)
         {
             // let linker sort out duplicates
-            StringValue* s = tab.insert(name, strlen(name));
+            StringValue* s = tab.insert(name, strlen(name), null);
             if (!s)
             {
                 // already in table

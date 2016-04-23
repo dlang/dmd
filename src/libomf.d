@@ -233,15 +233,16 @@ public:
         {
             printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
         }
-        StringValue* s = tab.insert(name, strlen(name));
+        const namelen = strlen(name);
+        StringValue* s = tab.insert(name, namelen, null);
         if (!s)
         {
             // already in table
             if (!pickAny)
             {
-                s = tab.lookup(name, strlen(name));
-                assert(s);
-                OmfObjSymbol* os = cast(OmfObjSymbol*)s.ptrvalue;
+                const s2 = tab.lookup(name, namelen);
+                assert(s2);
+                const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
                 error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
             }
         }

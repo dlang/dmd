@@ -361,7 +361,7 @@ public:
         {
             printf("LibElf::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
         }
-        StringValue* s = tab.insert(name, strlen(name));
+        StringValue* s = tab.insert(name, strlen(name), null);
         if (!s)
         {
             // already in table
