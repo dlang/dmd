@@ -5932,6 +5932,8 @@ public:
 
     TemplateInstances* deferred;
 
+    Module memberOf;            // if !null, then this TemplateInstance appears in memberOf.members[]
+
     // Used to determine the instance needs code generation.
     // Note that these are inaccurate until semantic analysis phase completed.
     TemplateInstance tinst;     // enclosing template instance
@@ -6501,6 +6503,7 @@ public:
                     // should be able to remove it without messing other indices up.
                     assert((*target_symbol_list)[target_symbol_list_idx] == this);
                     target_symbol_list.remove(target_symbol_list_idx);
+                    memberOf = null;                    // no longer a member
                 }
                 semanticRun = PASSinit;
                 inst = null;
@@ -8008,22 +8011,26 @@ public:
         }
         //printf("\t--> mi = %s\n", mi.toPrettyChars());
 
-        Dsymbols* a = mi.members;
-        for (size_t i = 0; 1; i++)
+        if (memberOf is mi)     // already a member
         {
-            if (i == a.dim)
+            debug               // make sure it really is a member
             {
-                a.push(this);
-                if (mi.semanticRun >= PASSsemantic3done && mi.isRoot())
-                    Module.addDeferredSemantic3(this);
-                break;
+                auto a = mi.members;
+                for (size_t i = 0; 1; ++i)
+                {
+                    assert(i != a.dim);
+                    if (this == (*a)[i])
+                        break;
+                }
             }
-            if (this == (*a)[i]) // if already in Array
-            {
-                a = null;
-                break;
-            }
+            return null;
         }
+
+        Dsymbols* a = mi.members;
+        a.push(this);
+        memberOf = mi;
+        if (mi.semanticRun >= PASSsemantic3done && mi.isRoot())
+            Module.addDeferredSemantic3(this);
         return a;
     }
 

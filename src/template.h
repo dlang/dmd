@@ -317,6 +317,8 @@ public:
 
     TemplateInstances* deferred;
 
+    Module *memberOf;                   // if !null, then this TemplateInstance appears in memberOf.members[]
+
     // Used to determine the instance needs code generation.
     // Note that these are inaccurate until semantic analysis phase completed.
     TemplateInstance *tinst;            // enclosing template instance
