@@ -595,6 +595,17 @@ public:
         return toAlias();
     }
 
+    /*********************************
+     * Iterate this dsymbol or members of this scoped dsymbol, then
+     * call `fp` with the found symbol and `param`.
+     * Params:
+     *  fp = function pointer to process the iterated symbol.
+     *       If it returns nonzero, the iteration will be aborted.
+     *  param = a parameter passed to fp.
+     * Returns:
+     *  nonzero if the iteration is aborted by the return value of fp,
+     *  or 0 if it's completed.
+     */
     int apply(Dsymbol_apply_ft_t fp, void* param)
     {
         return (*fp)(this, param);

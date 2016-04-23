@@ -558,14 +558,14 @@ public:
         assert(semanticRun <= PASSsemantic);
         semanticRun = PASSsemantic;
 
-        parent = sc.parent;
-        Dsymbol parent = toParent();
-
         if (_scope)
         {
             sc = _scope;
             _scope = null;
         }
+
+        parent = sc.parent;
+        Dsymbol parent = toParent();
 
         foverrides.setDim(0); // reset in case semantic() is being retried for this function
 
@@ -884,7 +884,7 @@ public:
             }
 
             if (storage_class & STCabstract)
-                cd.isabstract = true;
+                cd.isabstract = ABSyes;
 
             // if static function, do not put in vtbl[]
             if (!isVirtual())

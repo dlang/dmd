@@ -38,6 +38,17 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.visitor;
 
+enum Abstract : int
+{
+    ABSfwdref = 0,      // whether an abstract class is not yet computed
+    ABSyes,             // is abstract class
+    ABSno,              // is not abstract class
+}
+
+alias ABSfwdref = Abstract.ABSfwdref;
+alias ABSyes = Abstract.ABSyes;
+alias ABSno = Abstract.ABSno;
+
 /***********************************************************
  */
 struct BaseClass
@@ -212,7 +223,7 @@ public:
     bool com;           // true if this is a COM class (meaning it derives from IUnknown)
     bool cpp;           // true if this is a C++ interface
     bool isscope;       // true if this is a scope class
-    bool isabstract;    // true if abstract class
+    Abstract isabstract;
     int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
 
@@ -464,7 +475,7 @@ public:
             if (storage_class & STCscope)
                 isscope = true;
             if (storage_class & STCabstract)
-                isabstract = true;
+                isabstract = ABSyes;
 
             userAttribDecl = sc.userAttribDecl;
 
@@ -1415,18 +1426,52 @@ public:
      */
     final bool isAbstract()
     {
-        if (isabstract)
-            return true;
-        for (size_t i = 1; i < vtbl.dim; i++)
+        if (isabstract != ABSfwdref)
+            return isabstract == ABSyes;
+
+        /* Bugzilla 11169: Resolve forward references to all class member functions,
+         * and determine whether this class is abstract.
+         */
+        extern (C++) static int func(Dsymbol s, void* param)
         {
-            FuncDeclaration fd = vtbl[i].isFuncDeclaration();
-            //printf("\tvtbl[%d] = %p\n", i, fd);
-            if (!fd || fd.isAbstract())
+            auto fd = s.isFuncDeclaration();
+            if (!fd)
+                return 0;
+            if (fd.storage_class & STCstatic)
+                return 0;
+
+            if (fd._scope)
+                fd.semantic(null);
+
+            if (fd.isAbstract())
+                return 1;
+            return 0;
+        }
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            auto s = (*members)[i];
+            if (s.apply(&func, cast(void*)this))
             {
-                isabstract = true;
+                isabstract = ABSyes;
                 return true;
             }
         }
+
+        /* Iterate inherited member functions and check their abstract attribute.
+         */
+        for (size_t i = 1; i < vtbl.dim; i++)
+        {
+            auto fd = vtbl[i].isFuncDeclaration();
+            //if (fd) printf("\tvtbl[%d] = [%s] %s\n", i, fd.loc.toChars(), fd.toChars());
+            if (!fd || fd.isAbstract())
+            {
+                isabstract = ABSyes;
+                return true;
+            }
+        }
+
+        isabstract = ABSno;
         return false;
     }
 
