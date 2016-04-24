@@ -394,25 +394,13 @@ private:
         {
             printf("LibElf::scanObjModule(%s)\n", om.name);
         }
-        struct Context
+
+        void addSymbol(char* name, int pickAny)
         {
-            LibElf lib;
-            ElfObjModule* om;
-
-            extern (D) this(LibElf lib, ElfObjModule* om)
-            {
-                this.lib = lib;
-                this.om = om;
-            }
-
-            extern (C++) static void addSymbol(void* pctx, char* name, int pickAny)
-            {
-                (cast(Context*)pctx).lib.addSymbol((cast(Context*)pctx).om, name, pickAny);
-            }
+            this.addSymbol(om, name, pickAny);
         }
 
-        auto ctx = Context(this, om);
-        scanElfObjModule(&ctx, &Context.addSymbol, om.base, om.length, om.name, loc);
+        scanElfObjModule(&addSymbol, om.base, om.length, om.name, loc);
     }
 
     /*****************************************************************************/
