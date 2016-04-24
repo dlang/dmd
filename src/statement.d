@@ -59,7 +59,8 @@ import ddmd.visitor;
 extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
 {
     uint flags = (sc.flags & SCOPEcontract);
-    if (flags && flags != SCOPEinvariant && !(ident.string[0] == '_' && ident.string[1] == '_'))
+    const id = ident.toChars();
+    if (flags && flags != SCOPEinvariant && !(id[0] == '_' && id[1] == '_'))
     {
         /* CTFE requires FuncDeclaration::labtab for the interpretation.
          * So fixing the label name inside in/out contracts is necessary

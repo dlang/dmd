@@ -6659,19 +6659,20 @@ extern (C++) Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDecla
         if (firstarg && firstarg.type.toBasetype().ty == Taarray)
         {
             TypeAArray firstAAtype = cast(TypeAArray)firstarg.type;
+            const id = fd.ident.toChars();
             if (nargs == 1 && fd.ident == Id.aaLen)
                 return interpret_length(istate, firstarg);
-            if (nargs == 3 && !strcmp(fd.ident.string, "_aaApply"))
+            if (nargs == 3 && !strcmp(id, "_aaApply"))
                 return interpret_aaApply(istate, firstarg, arguments.data[2]);
-            if (nargs == 3 && !strcmp(fd.ident.string, "_aaApply2"))
+            if (nargs == 3 && !strcmp(id, "_aaApply2"))
                 return interpret_aaApply(istate, firstarg, arguments.data[2]);
-            if (nargs == 1 && !strcmp(fd.ident.string, "keys") && !strcmp(fd.toParent2().ident.string, "object"))
+            if (nargs == 1 && !strcmp(id, "keys") && !strcmp(fd.toParent2().ident.toChars(), "object"))
                 return interpret_keys(istate, firstarg, firstAAtype.index.arrayOf());
-            if (nargs == 1 && !strcmp(fd.ident.string, "values") && !strcmp(fd.toParent2().ident.string, "object"))
+            if (nargs == 1 && !strcmp(id, "values") && !strcmp(fd.toParent2().ident.toChars(), "object"))
                 return interpret_values(istate, firstarg, firstAAtype.nextOf().arrayOf());
-            if (nargs == 1 && !strcmp(fd.ident.string, "rehash") && !strcmp(fd.toParent2().ident.string, "object"))
+            if (nargs == 1 && !strcmp(id, "rehash") && !strcmp(fd.toParent2().ident.toChars(), "object"))
                 return interpret(firstarg, istate);
-            if (nargs == 1 && !strcmp(fd.ident.string, "dup") && !strcmp(fd.toParent2().ident.string, "object"))
+            if (nargs == 1 && !strcmp(id, "dup") && !strcmp(fd.toParent2().ident.toChars(), "object"))
                 return interpret_dup(istate, firstarg);
         }
     }
@@ -6700,14 +6701,15 @@ extern (C++) Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDecla
     }
     if (!pthis)
     {
-        size_t idlen = strlen(fd.ident.string);
-        if (nargs == 2 && (idlen == 10 || idlen == 11) && !strncmp(fd.ident.string, "_aApply", 7))
+        const idlen = fd.ident.toString().length;
+        const id = fd.ident.toChars();
+        if (nargs == 2 && (idlen == 10 || idlen == 11) && !strncmp(id, "_aApply", 7))
         {
             // Functions from aApply.d and aApplyR.d in the runtime
             bool rvs = (idlen == 11); // true if foreach_reverse
-            char c = fd.ident.string[idlen - 3]; // char width: 'c', 'w', or 'd'
-            char s = fd.ident.string[idlen - 2]; // string width: 'c', 'w', or 'd'
-            char n = fd.ident.string[idlen - 1]; // numParams: 1 or 2.
+            char c = id[idlen - 3]; // char width: 'c', 'w', or 'd'
+            char s = id[idlen - 2]; // string width: 'c', 'w', or 'd'
+            char n = id[idlen - 1]; // numParams: 1 or 2.
             // There are 12 combinations
             if ((n == '1' || n == '2') && (c == 'c' || c == 'w' || c == 'd') && (s == 'c' || s == 'w' || s == 'd') && c != s)
             {

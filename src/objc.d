@@ -79,21 +79,22 @@ struct ObjcSelector
         OutBuffer buf;
         size_t pcount = 0;
         TypeFunction ftype = cast(TypeFunction)fdecl.type;
+        const id = fdecl.ident.toString();
         // Special case: property setter
         if (ftype.isproperty && ftype.parameters && ftype.parameters.dim == 1)
         {
             // rewrite "identifier" as "setIdentifier"
-            char firstChar = fdecl.ident.string[0];
+            char firstChar = id[0];
             if (firstChar >= 'a' && firstChar <= 'z')
                 firstChar = cast(char)(firstChar - 'a' + 'A');
             buf.writestring("set");
             buf.writeByte(firstChar);
-            buf.write(fdecl.ident.string + 1, fdecl.ident.len - 1);
+            buf.write(id.ptr + 1, id.length - 1);
             buf.writeByte(':');
             goto Lcomplete;
         }
         // write identifier in selector
-        buf.write(fdecl.ident.string, fdecl.ident.len);
+        buf.write(id.ptr, id.length);
         // add mangled type and colon for each parameter
         if (ftype.parameters && ftype.parameters.dim)
         {

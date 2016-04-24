@@ -423,7 +423,7 @@ public:
                     }
                     Identifier id = Identifier.idPool(cast(char*)t.ptr, p - t.ptr);
                     t.ident = id;
-                    t.value = cast(TOK)id.value;
+                    t.value = cast(TOK)id.getValue();
                     anyToken = 1;
                     if (*t.ptr == '_') // if special identifier token
                     {

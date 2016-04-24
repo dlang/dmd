@@ -145,7 +145,8 @@ Symbol *objc_getMethVarName(const char *s, size_t len)
 
 Symbol *objc_getMethVarName(Identifier *ident)
 {
-    return objc_getMethVarName(ident->string, ident->len);
+    const char* id = ident->toChars();
+    return objc_getMethVarName(id, strlen(id));
 }
 
 Symbol *objc_getMsgSend(Type *ret, bool hasHiddenArg)
@@ -257,7 +258,8 @@ Symbol *objc_getMethVarRef(const char *s, size_t len)
 
 Symbol *objc_getMethVarRef(Identifier *ident)
 {
-    return objc_getMethVarRef(ident->string, ident->len);
+    const char* id = ident->toChars();
+    return objc_getMethVarRef(id, strlen(id));
 }
 
 // MARK: callfunc
