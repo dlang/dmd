@@ -23,11 +23,12 @@ import ddmd.utf;
  */
 extern (C++) final class Identifier : RootObject
 {
-public:
+private:
     const int value;
     const char* string;
     const size_t len;
 
+public:
     extern (D) this(const(char)* string, int value)
     {
         //printf("Identifier('%s', %d)\n", string, value);
@@ -59,6 +60,16 @@ public:
     override const(char)* toChars() const
     {
         return string;
+    }
+
+    extern (D) final const(char)[] toString() const
+    {
+        return string[0 .. len];
+    }
+
+    final int getValue() const
+    {
+        return value;
     }
 
     const(char)* toHChars2() const

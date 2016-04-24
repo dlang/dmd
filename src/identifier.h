@@ -22,10 +22,6 @@
 class Identifier : public RootObject
 {
 public:
-    int value;
-    const char *string;
-    size_t len;
-
     Identifier(const char *string, int value);
     static Identifier* create(const char *string, int value);
     bool equals(RootObject *o);

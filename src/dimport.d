@@ -320,7 +320,9 @@ public:
 
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
-        if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) && sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string, "__main") != 0)
+        if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) &&
+            sc._module.ident != Id.entrypoint &&
+            strcmp(sc._module.ident.toChars(), "__main") != 0)
         {
             /* The grammar of the file is:
              *      ImportDeclaration

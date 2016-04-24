@@ -918,8 +918,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
             if (sm.ident)
             {
-                if (sm.ident.string[0] == '_' &&
-                    sm.ident.string[1] == '_' &&
+                const idx = sm.ident.toChars();
+                if (idx[0] == '_' &&
+                    idx[1] == '_' &&
                     sm.ident != Id.ctor &&
                     sm.ident != Id.dtor &&
                     sm.ident != Id.__xdtor &&

@@ -1434,7 +1434,7 @@ public:
         buf.writestring("mixin ");
         typeToBuffer(tm.tqual, null);
         tiargsToBuffer(tm);
-        if (tm.ident && memcmp(tm.ident.string, cast(char*)"__mixin", 7) != 0)
+        if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
         {
             buf.writeByte(' ');
             buf.writestring(tm.ident.toChars());
@@ -1579,7 +1579,7 @@ public:
     override void visit(Nspace d)
     {
         buf.writestring("extern (C++, ");
-        buf.writestring(d.ident.string);
+        buf.writestring(d.ident.toChars());
         buf.writeByte(')');
         buf.writenl();
         buf.writeByte('{');
@@ -2884,7 +2884,9 @@ public:
             if (p.ident)
                 buf.writestring(p.ident.toChars());
         }
-        else if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident.len > 3 && strncmp((cast(TypeIdentifier)p.type).ident.string, "__T", 3) == 0)
+        else if (p.type.ty == Tident &&
+                 (cast(TypeIdentifier)p.type).ident.toString().length > 3 &&
+                 strncmp((cast(TypeIdentifier)p.type).ident.toChars(), "__T", 3) == 0)
         {
             // print parameter name, instead of undetermined type parameter
             buf.writestring(p.ident.toChars());
