@@ -65,9 +65,9 @@ enum LLNAMES = 0xCA;
 enum LIBIDMAX = (512 - 0x25 - 3 - 4);
 
 // max size that will fit in dictionary
-extern (C++) void parseName(ubyte** pp, char* name)
+extern (C++) void parseName(const(ubyte)** pp, char* name)
 {
-    ubyte* p = *pp;
+    auto p = *pp;
     uint len = *p++;
     if (len == 0xFF && *p == 0) // if long name
     {
@@ -81,20 +81,20 @@ extern (C++) void parseName(ubyte** pp, char* name)
     *pp = p + len;
 }
 
-extern (C++) static ushort parseIdx(ubyte** pp)
+extern (C++) static ushort parseIdx(const(ubyte)** pp)
 {
-    ubyte* p = *pp;
-    ubyte c = *p++;
+    auto p = *pp;
+    const c = *p++;
     ushort idx = (0x80 & c) ? ((0x7F & c) << 8) + *p++ : c;
     *pp = p;
     return idx;
 }
 
 // skip numeric field of a data type of a COMDEF record
-extern (C++) static void skipNumericField(ubyte** pp)
+extern (C++) static void skipNumericField(const(ubyte)** pp)
 {
-    ubyte* p = *pp;
-    ubyte c = *p++;
+    const(ubyte)* p = *pp;
+    const c = *p++;
     if (c == 0x81)
         p += 2;
     else if (c == 0x84)
@@ -107,10 +107,10 @@ extern (C++) static void skipNumericField(ubyte** pp)
 }
 
 // skip data type of a COMDEF record
-extern (C++) static void skipDataType(ubyte** pp)
+extern (C++) static void skipDataType(const(ubyte)** pp)
 {
-    ubyte* p = *pp;
-    ubyte c = *p++;
+    auto p = *pp;
+    const c = *p++;
     if (c == 0x61)
     {
         // FAR data
@@ -139,7 +139,7 @@ extern (C++) static void skipDataType(ubyte** pp)
  *      module_name     name of the object module (used for error messages)
  *      loc             location to use for error printing
  */
-extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
@@ -151,9 +151,9 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
     Strings names;
     names.push(null); // don't use index 0
     easyomf = 0; // assume not EASY-OMF
-    ubyte* pend = cast(ubyte*)base + buflen;
-    ubyte* pnext;
-    for (ubyte* p = cast(ubyte*)base; 1; p = pnext)
+    auto pend = cast(const(ubyte)*)base + buflen;
+    const(ubyte)* pnext;
+    for (auto p = cast(const(ubyte)*)base; 1; p = pnext)
     {
         assert(p < pend);
         ubyte recTyp = *p++;
@@ -183,7 +183,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                 parseName(&p, name.ptr);
                 p += (recTyp == PUBDEF) ? 2 : 4; // skip offset
                 parseIdx(&p); // skip type index
-                (*pAddSymbol)(pctx, name.ptr, 0);
+                pAddSymbol(name.ptr, 0);
             }
             break;
         case COMDAT:
@@ -216,7 +216,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                     return;
                 }
                 //printf("[s] name='%s'\n",name);
-                (*pAddSymbol)(pctx, names[idx], pickAny);
+                pAddSymbol(names[idx], pickAny);
                 break;
             }
         case COMDEF:
@@ -226,7 +226,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                     parseName(&p, name.ptr);
                     parseIdx(&p); // type index
                     skipDataType(&p); // data type
-                    (*pAddSymbol)(pctx, name.ptr, 1);
+                    pAddSymbol(name.ptr, 1);
                 }
                 break;
             }
@@ -234,7 +234,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
             while (p + 1 < pnext)
             {
                 parseName(&p, name.ptr);
-                (*pAddSymbol)(pctx, name.ptr, 0);
+                pAddSymbol(name.ptr, 0);
                 parseName(&p, name.ptr);
             }
             break;
@@ -267,7 +267,7 @@ extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(c
                             goto L2;
                     p++; // skip OrdFlag field
                     parseName(&p, name.ptr);
-                    (*pAddSymbol)(pctx, name.ptr, 0);
+                    pAddSymbol(name.ptr, 0);
                     break;
                 L2:
                 }
@@ -288,23 +288,23 @@ Ret:
  * Returns:
  *      true for corrupt OMF data
  */
-extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize)
+bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize)
 {
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.
      */
     bool first_module = true;
-    ubyte* base = null;
+    const(ubyte)* base = null;
     char[LIBIDMAX + 1] name;
-    ubyte* p = cast(ubyte*)buf;
-    ubyte* pend = p + buflen;
-    ubyte* pnext;
+    auto p = cast(const(ubyte)*)buf;
+    auto pend = p + buflen;
+    const(ubyte)* pnext;
     for (; p < pend; p = pnext) // for each OMF record
     {
         if (p + 3 >= pend)
             return true; // corrupt
         ubyte recTyp = *p;
-        ushort recLen = *cast(ushort*)(p + 1);
+        ushort recLen = *cast(const(ushort)*)(p + 1);
         pnext = p + 3 + recLen;
         if (pnext > pend)
             return true; // corrupt
@@ -327,13 +327,13 @@ extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, v
             {
                 if (base)
                 {
-                    (*pAddObjModule)(pctx, name.ptr, base, pnext - base);
+                    pAddObjModule(name.ptr, cast(ubyte*)base, pnext - base);
                     base = null;
                 }
                 // Round up to next page
-                uint t = cast(uint)(pnext - cast(ubyte*)buf);
+                uint t = cast(uint)(pnext - cast(const(ubyte)*)buf);
                 t = (t + pagesize - 1) & ~cast(uint)(pagesize - 1);
-                pnext = cast(ubyte*)buf + t;
+                pnext = cast(const(ubyte)*)buf + t;
                 break;
             }
         default:
@@ -343,7 +343,7 @@ extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, v
     return (base !is null); // missing MODEND record
 }
 
-extern (C++) uint OMFObjSize(const(void)* base, uint length, const(char)* name)
+uint OMFObjSize(const(void)* base, uint length, const(char)* name)
 {
     ubyte c = *cast(const(ubyte)*)base;
     if (c != THEADR && c != LHEADR)
@@ -355,12 +355,12 @@ extern (C++) uint OMFObjSize(const(void)* base, uint length, const(char)* name)
     return length;
 }
 
-extern (C++) void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* name)
+void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* name)
 {
     ubyte c = *cast(const(ubyte)*)base;
     if (c != THEADR && c != LHEADR)
     {
-        size_t len = strlen(name);
+        const len = strlen(name);
         assert(len <= LIBIDMAX);
         ubyte[4 + LIBIDMAX + 1] header;
         header[0] = THEADR;
