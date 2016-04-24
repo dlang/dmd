@@ -1574,7 +1574,7 @@ public:
                     if (!tp_ident)
                     {
                         error("identifier expected for template value parameter");
-                        tp_ident = new Identifier("error", TOKidentifier);
+                        tp_ident = Identifier.idPool("error");
                     }
                     if (token.value == TOKcolon) // : CondExpression
                     {

@@ -29,17 +29,24 @@ private:
     const size_t len;
 
 public:
-    extern (D) this(const(char)* string, int value)
+
+    extern (D) this(const(char)* string, size_t length, int value)
     {
         //printf("Identifier('%s', %d)\n", string, value);
         this.string = string;
         this.value = value;
-        this.len = strlen(string);
+        this.len = length;
     }
 
-    static Identifier create(const(char)* string, int value)
+    extern (D) this(const(char)* string)
     {
-        return new Identifier(string, value);
+        //printf("Identifier('%s', %d)\n", string, value);
+        this(string, strlen(string), TOKidentifier);
+    }
+
+    static Identifier create(const(char)* string)
+    {
+        return new Identifier(string);
     }
 
     override bool equals(RootObject o) const
@@ -140,7 +147,7 @@ public:
         Identifier id = cast(Identifier)sv.ptrvalue;
         if (!id)
         {
-            id = new Identifier(sv.toDchars(), TOKidentifier);
+            id = new Identifier(sv.toDchars(), len, TOKidentifier);
             sv.ptrvalue = cast(char*)id;
         }
         return id;
@@ -150,7 +157,7 @@ public:
     {
         auto sv = stringtable.insert(s, len, null);
         assert(sv);
-        auto id = new Identifier(sv.toDchars(), value);
+        auto id = new Identifier(sv.toDchars(), len, value);
         sv.ptrvalue = cast(char*)id;
         return id;
     }
