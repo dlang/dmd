@@ -15,6 +15,7 @@ int main(string[] args)
         environment.get("VCINSTALLDIR", `\Program Files (x86)\Microsoft Visual Studio 10.0\VC\`)
             .buildPath("bin", "amd64", "cl.exe"));
     string[] newArgs = [cl];
+    newArgs ~= "/nologo";
     newArgs ~= `/Ivcbuild`;
     newArgs ~= `/Iroot`;
     newArgs ~= `/FIwarnings.h`;
@@ -24,20 +25,24 @@ int main(string[] args)
     {
         switch (arg)
         {
+            case "-Ae": // "enable exception handling"
+                newArgs ~= "/EHa";
+                break;
+            case "-c": // "skip the link, do compile only"
+                newArgs ~= "/c";
+                compilingOnly = true;
+                break;
             case "-cpp": // "source files are C++"
                 newArgs ~= "/TP";
                 break;
             case "-e": // "show results of preprocessor"
                 break;
+            case "-g": // "generate debug info"
             case "-gl": // "debug line numbers only"
                 newArgs ~= "/Zi";
                 break;
             case "-wx": // "treat warnings as errors"
                 newArgs ~= "/WX";
-                break;
-            case "-c": // "skip the link, do compile only"
-                newArgs ~= "/c";
-                compilingOnly = true;
                 break;
             default:
                 if (arg.startsWith("-I")) // "#include file search path"

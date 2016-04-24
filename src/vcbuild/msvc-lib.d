@@ -15,6 +15,8 @@ int main(string[] args)
         environment.get("VCINSTALLDIR", `\Program Files (x86)\Microsoft Visual Studio 10.0\VC\`)
             .buildPath("bin", "amd64", "lib.exe"));
     string[] newArgs = [lib];
+    newArgs ~= "/NOLOGO";
+
     foreach (arg; args[1..$])
     {
         switch (arg)
