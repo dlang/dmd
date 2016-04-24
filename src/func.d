@@ -3642,7 +3642,7 @@ public:
             // set before the semantic() for checkNestedReference()
             vresult.parent = this;
         }
-        if (sc && vresult.sem == SemanticStart)
+        if (sc && vresult.semanticRun == PASSinit)
         {
             assert(type.ty == Tfunction);
             TypeFunction tf = cast(TypeFunction)type;

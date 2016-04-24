@@ -151,19 +151,6 @@ struct Match
     FuncDeclaration anyf;   // pick a func, any func, to use for error recovery
 }
 
-enum Semantic : int
-{
-    SemanticStart,          // semantic has not been run
-    SemanticIn,             // semantic() is in progress
-    SemanticDone,           // semantic() has been run
-    Semantic2Done,          // semantic2() has been run
-}
-
-alias SemanticStart = Semantic.SemanticStart;
-alias SemanticIn = Semantic.SemanticIn;
-alias SemanticDone = Semantic.SemanticDone;
-alias Semantic2Done = Semantic.Semantic2Done;
-
 /***********************************************************
  */
 extern (C++) abstract class Declaration : Dsymbol
@@ -179,15 +166,12 @@ public:
     // overridden symbol with pragma(mangle, "...")
     const(char)* mangleOverride;
 
-    Semantic sem;
-
     final extern (D) this(Identifier id)
     {
         super(id);
         storage_class = STCundefined;
         protection = Prot(PROTundefined);
         linkage = LINKdefault;
-        sem = SemanticStart;
     }
 
     override void semantic(Scope* sc)
@@ -1052,11 +1036,12 @@ public:
             printf("linkage = %d\n", sc.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
-        //if (sem > SemanticStart)
+        //if (semanticRun > PASSinit)
         //    return;
-        //sem = SemanticIn;
-        if (sem >= SemanticDone)
+        //semanticRun = PSSsemantic;
+        if (semanticRun >= PASSsemanticdone)
             return;
+
         Scope* scx = null;
         if (_scope)
         {
@@ -1064,6 +1049,7 @@ public:
             scx = sc;
             _scope = null;
         }
+
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
          */
@@ -1315,7 +1301,7 @@ public:
             v2.parent = this.parent;
             v2.isexp = true;
             aliassym = v2;
-            sem = SemanticDone;
+            semanticRun = PASSsemanticdone;
             return;
         }
         /* Storage class can modify the type
@@ -1701,7 +1687,7 @@ public:
                     error("static storage variables cannot have destructors");
             }
         }
-        sem = SemanticDone;
+        semanticRun = PASSsemanticdone;
         if (type.toBasetype().ty == Terror)
             errors = true;
     }
@@ -1790,7 +1776,7 @@ public:
 
     override final void semantic2(Scope* sc)
     {
-        if (sem < SemanticDone && inuse)
+        if (semanticRun < PASSsemanticdone && inuse)
             return;
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
         // Inside unions, default to void initializers
@@ -1885,7 +1871,7 @@ public:
                 }
             }
         }
-        sem = Semantic2Done;
+        semanticRun = PASSsemantic2done;
     }
 
     override const(char)* kind() const

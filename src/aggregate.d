@@ -243,7 +243,7 @@ public:
 
             if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
                 return 0;
-            if (!v.isField() || v.sem < SemanticDone)
+            if (!v.isField() || v.semanticRun < PASSsemanticdone)
                 return 1;   // unresolvable forward reference
 
             auto ad = cast(AggregateDeclaration)param;
@@ -722,7 +722,7 @@ public:
             vthis.parent = this;
             vthis.protection = Prot(PROTpublic);
             vthis.alignment = t.alignment();
-            vthis.sem = SemanticDone;
+            vthis.semanticRun = PASSsemanticdone;
 
             if (sizeok == SIZEOKfwd)
                 fields.push(vthis);

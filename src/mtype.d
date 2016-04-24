@@ -7141,7 +7141,7 @@ public:
                         *pe = new ErrorExp();
                         return;
                     }
-                    if (v.sem < SemanticDone && v._scope)
+                    if (v.semanticRun < PASSsemanticdone && v._scope)
                         v.semantic(null);
                 }
                 assert(v.type); // Bugzilla 14642
