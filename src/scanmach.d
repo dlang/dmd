@@ -20,13 +20,12 @@ enum LOG = false;
  * Reads an object module from base[0..buflen] and passes the names
  * of any exported symbols to (*pAddSymbol)().
  * Input:
- *      pctx            context pointer, pass to *pAddSymbol
  *      pAddSymbol      function to pass the names to
  *      base[0..buflen] contains contents of object module
  *      module_name     name of the object module (used for error messages)
  *      loc             location to use for error printing
  */
-extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
@@ -164,13 +163,13 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                     {
                     case N_UNDF:
                         if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name, 1);
                         break;
                     case N_ABS:
                         break;
                     case N_SECT:
                         if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name, 1);
                         break;
                     case N_PBUD:
                         break;
@@ -216,13 +215,13 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                     {
                     case N_UNDF:
                         if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name, 1);
                         break;
                     case N_ABS:
                         break;
                     case N_SECT:
                         if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name, 1);
                         break;
                     case N_PBUD:
                         break;
