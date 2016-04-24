@@ -1779,30 +1779,7 @@ public:
         if (semanticRun < PASSsemanticdone && inuse)
             return;
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
-        // Inside unions, default to void initializers
-        if (!_init && sc.inunion && !toParent().isFuncDeclaration())
-        {
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
-            if (aad)
-            {
-                if (aad.fields[0] == this)
-                {
-                    int hasinit = 0;
-                    for (size_t i = 1; i < aad.fields.dim; i++)
-                    {
-                        if (aad.fields[i]._init && !aad.fields[i]._init.isVoidInitializer())
-                        {
-                            hasinit = 1;
-                            break;
-                        }
-                    }
-                    if (!hasinit)
-                        _init = new ExpInitializer(loc, type.defaultInitLiteral(loc));
-                }
-                else
-                    _init = new VoidInitializer(loc);
-            }
-        }
+
         if (_init && !toParent().isFuncDeclaration())
         {
             inuse++;

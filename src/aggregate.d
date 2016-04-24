@@ -130,8 +130,8 @@ public:
         Scope* sc2 = sc.push(this);
         sc2.stc &= STCsafe | STCtrusted | STCsystem;
         sc2.parent = this;
-        //if (isUnionDeclaration())     // TODO
-        //    sc2.inunion = 1;
+        if (isUnionDeclaration())
+            sc2.inunion = 1;
         sc2.protection = Prot(PROTpublic);
         sc2.explicitProtection = 0;
         sc2.structalign = STRUCTALIGN_DEFAULT;
