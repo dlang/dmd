@@ -28,13 +28,12 @@ extern (C++) __gshared char* elf = [0x7F, 'E', 'L', 'F']; // ELF file signature
  * Reads an object module from base[0..buflen] and passes the names
  * of any exported symbols to (*pAddSymbol)().
  * Input:
- *      pctx            context pointer, pass to *pAddSymbol
  *      pAddSymbol      function to pass the names to
  *      base[0..buflen] contains contents of object module
  *      module_name     name of the object module (used for error messages)
  *      loc             location to use for error printing
  */
-extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+void scanElfObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
@@ -98,7 +97,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                     {
                         char* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
-                        (*pAddSymbol)(pctx, name, 1);
+                        pAddSymbol(name, 1);
                     }
                 }
             }
@@ -143,7 +142,7 @@ extern (C++) void scanElfObjModule(void* pctx, void function(void* pctx, char* n
                     {
                         char* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
-                        (*pAddSymbol)(pctx, name, 1);
+                        pAddSymbol(name, 1);
                     }
                 }
             }
