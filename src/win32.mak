@@ -101,6 +101,8 @@ ZIP=zip32
 SCP=$(CP)
 # PVS-Studio command line executable
 PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
+# 64-bit MS assembler
+ML=ml64
 
 ##### User configuration switches
 
@@ -119,6 +121,8 @@ LFLAGS=
 BFLAGS=
 # D Optimizer flags
 DOPT=
+# D Model flags
+DMODEL=
 # D Debug flags
 DDEBUG=-debug -g
 
@@ -129,10 +133,10 @@ CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
-DFLAGS=$(DOPT) $(DDEBUG) -wi
+DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) HOST_DC="$(HOST_DC)"
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" DMODEL=$(DMODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
 
 ############################### Rule Variables ###############################
 
@@ -170,7 +174,6 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
 	divcoeff.obj dwarf.obj \
 	ph2.obj util2.obj eh.obj tk.obj \
-
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/file.d $(ROOT)/filename.d	\
@@ -277,8 +280,8 @@ unittest:
 glue.lib : $(GLUEOBJ)
 	$(LIB) -p512 -n -c glue.lib $(GLUEOBJ)
 
-backend.lib : $(BACKOBJ)
-	$(LIB) -p512 -n -c backend.lib $(BACKOBJ)
+backend.lib : $(BACKOBJ) $(OBJ_MSVC)
+	$(LIB) -p512 -n -c backend.lib $(BACKOBJ) $(OBJ_MSVC)
 
 LIBS= glue.lib backend.lib
 
@@ -538,6 +541,9 @@ ptrntab.obj : $C\iasm.h $C\ptrntab.c
 rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
 	$(CC) -c $(MFLAGS) $C\rtlsym
 
+strtold.obj : $C\strtold.c
+	$(CC) -c -cpp $C\strtold
+
 ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_achar
 
@@ -581,6 +587,13 @@ tk.obj : tk.c
 # Root
 newdelete.obj : $(ROOT)\newdelete.c
 	$(CC) -c $(CFLAGS) $(ROOT)\newdelete.c
+
+# Win64
+longdouble.obj : $(ROOT)\longdouble.c
+	$(CC) -c $(CFLAGS) $(ROOT)\longdouble.c
+
+ldfpu.obj : vcbuild\ldfpu.asm
+	$(ML) -c -Zi -Foldfpu.obj vcbuild\ldfpu.asm
 
 ############################## Generated Rules ###############################
 
