@@ -111,14 +111,6 @@ int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *));
 
 void ObjectNotFound(Identifier *id);
 
-enum Semantic
-{
-    SemanticStart,      // semantic has not been run
-    SemanticIn,         // semantic() is in progress
-    SemanticDone,       // semantic() has been run
-    Semantic2Done,      // semantic2() has been run
-};
-
 /**************************************************************/
 
 class Declaration : public Dsymbol
@@ -131,7 +123,6 @@ public:
     LINK linkage;
     int inuse;                  // used to detect cycles
     const char *mangleOverride;      // overridden symbol with pragma(mangle, "...")
-    Semantic sem;
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);

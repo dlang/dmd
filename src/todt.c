@@ -790,7 +790,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
                  * As a workaround for the issue 9057, have to resolve forward reference
                  * in `init` before its use.
                  */
-                if (vd->sem < Semantic2Done && vd->_scope)
+                if (vd->semanticRun < PASSsemantic2done && vd->_scope)
                     vd->semantic2(vd->_scope);
 
                 ExpInitializer *ei = init->isExpInitializer();
