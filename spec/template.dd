@@ -25,7 +25,7 @@ $(GNAME TemplateParameter):
     $(GLINK TemplateTypeParameter)
     $(GLINK TemplateValueParameter)
     $(GLINK TemplateAliasParameter)
-    $(GLINK TemplateTupleParameter)
+    $(GLINK TemplateSequenceParameter)
     $(GLINK TemplateThisParameter)
 )
 
@@ -36,14 +36,14 @@ $(GNAME TemplateParameter):
         functions, and other templates.
     )
 
-    $(P Template parameters can be types, values, symbols, or tuples.
+    $(P Template parameters can be types, values, symbols, or sequences.
         Types can be any type.
         Value parameters must be of an integral type, floating point
         type, or string type and
         specializations for them must resolve to an integral constant,
         floating point constant, null, or a string literal.
         Symbols can be any non-local symbol.
-        Tuples are a sequence of 0 or more types, values or symbols.
+        Sequences can contain zero or more types, values or symbols.
     )
 
     $(P Template parameter specializations
@@ -528,33 +528,12 @@ $(GNAME TemplateAliasParameterDefault):
 )
 
     $(P Alias parameters enable templates to be parameterized with
-        any type of D symbol, including global names, local names,
+        any type of D symbol, including type names, global names, local names,
         module names, template names, and template instance names.
         Literals can also be used as arguments to alias parameters.
     )
 
     $(UL
-        $(LI Global names
-
-        ------
-        int x;
-
-        template Foo(alias X)
-        {
-            static int* p = &X;
-        }
-
-        void test()
-        {
-            alias bar = Foo!(x);
-            *bar.p = 3;       // set x to 3
-            static int y;
-            alias abc = Foo!(y);
-            *abc.p = 3;       // set y to 3
-        }
-        ------
-        )
-
         $(LI Type names
 
         ------
@@ -572,6 +551,27 @@ $(GNAME TemplateAliasParameterDefault):
         {
             alias bar = Bar!(Foo);
             bar.q = 3;  // sets Foo.p to 3
+        }
+        ------
+        )
+
+        $(LI Global names
+
+        ------
+        int x;
+
+        template Foo(alias X)
+        {
+            static int* p = &X;
+        }
+
+        void test()
+        {
+            alias bar = Foo!(x);
+            *bar.p = 3;       // set x to 3
+            static int y;
+            alias abc = Foo!(y);
+            *abc.p = 3;       // set y to 3
         }
         ------
         )
@@ -617,7 +617,7 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         )
 
-        $(LI Template alias names
+        $(LI Template instance names
 
         ------
         int x;
@@ -703,43 +703,45 @@ $(H3 $(LNAME2 alias_parameter_specialization, Specialization))
         ------
     )
 
-$(H2 $(LNAME2 variadic-templates, Template Tuple Parameters))
+$(H2 $(LNAME2 variadic-templates, Template Sequence Parameters))
 
 $(GRAMMAR
-$(GNAME TemplateTupleParameter):
+$(GNAME TemplateSequenceParameter):
     $(I Identifier) $(D ...)
 )
 
     $(P If the last template parameter in the $(I TemplateParameterList)
-        is declared as a $(I TemplateTupleParameter),
+        is declared as a $(I TemplateSequenceParameter),
         it is a match with any trailing template arguments.
-        The sequence of arguments form a $(I Tuple).
-        A $(I Tuple) is not a type, an expression, or a symbol.
-        It is a sequence of any mix of types, expressions or symbols.
+        Such a sequence of arguments can be defined using the template
+        $(I AliasSeq) in the Phobos std.traits module and will thus henceforth
+        be referred to by that name for clarity.
+        An $(I AliasSeq) is not itself a type, value, or symbol.
+        It is a compile-time sequence of any mix of types, values or symbols.
     )
 
-    $(P A $(I Tuple) whose elements consist entirely of types is
-        called a $(I TypeTuple).
-        A $(I Tuple) whose elements consist entirely of expressions is
-        called an $(I ExpressionTuple).
+    $(P An $(I AliasSeq) whose elements consist entirely of types is
+        called a type sequence or $(I TypeSeq).
+        An $(I AliasSeq) whose elements consist entirely of values is
+        called a value sequence or $(I ValueSeq).
     )
 
-    $(P A $(I Tuple) can be used as an argument list to instantiate
+    $(P An $(I AliasSeq) can be used as an argument list to instantiate
         another template, or as the list of parameters for a function.
 
         ---
-        template Print(args...)
+        template print(args...)
         {
             void print()
             {
-                writeln("args are ", args); // args is an ExpressionTuple
+                writeln("args are ", args); // args is a ValueSeq
             }
         }
 
-        template Write(Args...)
+        template write(Args...)
         {
-            void write(Args args) // Args is a TypeTuple
-                                  // args is an ExpressionTuple
+            void write(Args args) // Args is a TypeSeq
+                                  // args is a ValueSeq
             {
                 writeln("args are ", args);
             }
@@ -753,19 +755,17 @@ $(GNAME TemplateTupleParameter):
         ---
     )
 
-    $(P The number of elements in a $(I Tuple) can be retrieved with
+    $(P The number of elements in an $(I AliasSeq) can be retrieved with
         the $(D .length) property. The $(I n)th element can be retrieved
-        by indexing the $(I Tuple) with [$(I n)],
-        and sub tuples can be created
-        with the slicing syntax.
+        by indexing the $(I AliasSeq) with [$(I n)],
+        and sub-sequences are denoted by the slicing syntax.
     )
 
-    $(P $(I Tuple)s are static compile time entities, there is no way
-        to dynamically change, add, or remove elements.
+    $(P $(I AliasSeq)-s are static compile-time entities, there is no way
+        to dynamically change, add, or remove elements either at compile-time or run-time.
     )
 
-    $(P Template tuples can be deduced from the types of
-        the trailing parameters
+    $(P Type sequences can be deduced from the trailing parameters
         of an implicitly instantiated function template:
 
         ---
@@ -795,7 +795,7 @@ a
 )
     )
 
-    $(P Template tuples can also be deduced from the type of a delegate
+    $(P Type sequences can also be deduced from the type of a delegate
         or function parameter list passed as a function argument:
 
         ----
@@ -804,7 +804,7 @@ a
         /* Partially applies a delegate by tying its first argument to a particular value.
          * R = return type
          * T = first argument type
-         * Args = TypeTuple of remaining argument types
+         * Args = TypeSeq of remaining argument types
          */
         R delegate(Args) partial(R, T, Args...)(R delegate(T, Args) dg, T first)
         {
@@ -828,9 +828,9 @@ a
 
 $(H3 $(LNAME2 variadic_template_specialization, Specialization))
 
-    $(P If both a template with a tuple parameter and a template
-        without a tuple parameter exactly match a template instantiation,
-        the template without a $(I TemplateTupleParameter) is selected.
+    $(P If both a template with a sequence parameter and a template
+        without a sequence parameter exactly match a template instantiation,
+        the template without a $(I TemplateSequenceParameter) is selected.
 
         ----
         template Foo(T)         { pragma(msg, "1"); }   // #1
