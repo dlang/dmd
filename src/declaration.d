@@ -419,8 +419,9 @@ public:
                 version (none)
                 {
                     buf.printf("_%s_%d", ident.toChars(), i);
-                    char* name = cast(char*)buf.extractData();
-                    auto id = new Identifier(name, TOKidentifier);
+                    const len = buf.offset;
+                    const name = cast(const(char)*)buf.extractData();
+                    auto id = Identifier.idPool(name, len);
                     auto arg = new Parameter(STCin, t, id, null);
                 }
                 else

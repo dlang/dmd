@@ -7203,7 +7203,7 @@ public:
                 error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
             else
             {
-                auto id = new Identifier(p, TOKidentifier);
+                auto id = new Identifier(p);
                 s = sc.search_correct(id);
                 if (s)
                     error(loc, "undefined identifier '%s', did you mean %s '%s'?", p, s.kind(), s.toChars());
