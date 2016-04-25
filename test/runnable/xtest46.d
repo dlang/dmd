@@ -4898,17 +4898,17 @@ void test5696()
 /***************************************************/
 // 5933
 
-int dummyfunc5933();
+int dummyfunc5933() pure nothrow @nogc @safe;
 alias typeof(dummyfunc5933) FuncType5933;
 
 struct S5933a { auto x() { return 0; } }
 static assert(is(typeof(&S5933a.init.x) == int delegate() pure nothrow @nogc @safe));
 
 struct S5933b { auto x() { return 0; } }
-//static assert(is(typeof(S5933b.init.x) == FuncType5933));
+static assert(is(typeof(S5933b.init.x) == FuncType5933));
 
 struct S5933c { auto x() { return 0; } }
-static assert(is(typeof(&S5933c.x) == int function()));
+static assert(is(typeof(&S5933c.x) == int function() pure nothrow @nogc @safe));
 
 struct S5933d { auto x() { return 0; } }
 static assert(is(typeof(S5933d.x) == FuncType5933));
@@ -4918,10 +4918,10 @@ class C5933a { auto x() { return 0; } }
 static assert(is(typeof(&(new C5933b()).x) == int delegate() pure nothrow @nogc @safe));
 
 class C5933b { auto x() { return 0; } }
-//static assert(is(typeof((new C5933b()).x) == FuncType5933));
+static assert(is(typeof((new C5933b()).x) == FuncType5933));
 
 class C5933c { auto x() { return 0; } }
-static assert(is(typeof(&C5933c.x) == int function()));
+static assert(is(typeof(&C5933c.x) == int function() pure nothrow @nogc @safe));
 
 class C5933d { auto x() { return 0; } }
 static assert(is(typeof(C5933d.x) == FuncType5933));

@@ -52,13 +52,18 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/depmsg.d(94): Deprecation: function depmsg.test12954.Foo.bar1 is deprecated - [C] Use Foo.bar42 instead
-fail_compilation/depmsg.d(95): Deprecation: function depmsg.test12954.Foo.bar2 is deprecated - [E] Use Foo.bar42 instead
-fail_compilation/depmsg.d(96): Deprecation: function depmsg.test12954.Foo.bar3 is deprecated - [S] Use Foo.bar42 instead
-fail_compilation/depmsg.d(97): Deprecation: function depmsg.test12954.Foo.bar4 is deprecated - [F] Use Foo.bar42 instead
-fail_compilation/depmsg.d(98): Deprecation: variable depmsg.test12954.Foo.v2 is deprecated - Forward reference
-fail_compilation/depmsg.d(105): Deprecation: class depmsg.test12954.Obsolete is deprecated
-fail_compilation/depmsg.d(105): Deprecation: function depmsg.test12954.Obsolete.obs is deprecated - Function is obsolete
+fail_compilation/depmsg.d(99): Deprecation: function depmsg.test12954.Foo.bar1 is deprecated - [C] Use Foo.bar42 instead
+fail_compilation/depmsg.d(99): Deprecation: function depmsg.test12954.Foo.bar1 is deprecated - [C] Use Foo.bar42 instead
+fail_compilation/depmsg.d(100): Deprecation: function depmsg.test12954.Foo.bar2 is deprecated - [E] Use Foo.bar42 instead
+fail_compilation/depmsg.d(100): Deprecation: function depmsg.test12954.Foo.bar2 is deprecated - [E] Use Foo.bar42 instead
+fail_compilation/depmsg.d(101): Deprecation: function depmsg.test12954.Foo.bar3 is deprecated - [S] Use Foo.bar42 instead
+fail_compilation/depmsg.d(101): Deprecation: function depmsg.test12954.Foo.bar3 is deprecated - [S] Use Foo.bar42 instead
+fail_compilation/depmsg.d(102): Deprecation: function depmsg.test12954.Foo.bar4 is deprecated - [F] Use Foo.bar42 instead
+fail_compilation/depmsg.d(102): Deprecation: function depmsg.test12954.Foo.bar4 is deprecated - [F] Use Foo.bar42 instead
+fail_compilation/depmsg.d(103): Deprecation: variable depmsg.test12954.Foo.v2 is deprecated - Forward reference
+fail_compilation/depmsg.d(110): Deprecation: class depmsg.test12954.Obsolete is deprecated
+fail_compilation/depmsg.d(110): Deprecation: function depmsg.test12954.Obsolete.obs is deprecated - Function is obsolete
+fail_compilation/depmsg.d(110): Deprecation: function depmsg.test12954.Obsolete.obs is deprecated - Function is obsolete
 ---
 */
 void test12954()

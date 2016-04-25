@@ -4426,7 +4426,13 @@ public:
             {
                 if (!tret)
                 {
-                    tf.next = exp.type;
+                    if (exp.type.isAmbiguous())
+                    {
+                        error("cannot infer return type from ambiguous expression %s", exp.toChars());
+                        tf.next = Type.terror;
+                    }
+                    else
+                        tf.next = exp.type;
                 }
                 else if (tret.ty != Terror && !exp.type.equals(tret))
                 {

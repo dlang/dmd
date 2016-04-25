@@ -638,6 +638,13 @@ public:
                         error("cannot alias an expression %s", e.toChars());
                     t = Type.terror;
                 }
+                else if (e.op == TOKvar)
+                {
+                    auto ve = cast(VarExp)e;
+                    auto f = s.isFuncDeclaration();
+                    if (!ve.hasOverloads && f && !f.isFuncAliasDeclaration())
+                        s = new FuncAliasDeclaration(ident, f, false);
+                }
             }
             type = t;
         }
@@ -1076,6 +1083,13 @@ public:
             type = _init.toExpression().type;
             if (needctfe)
                 sc = sc.endCTFE();
+
+            if (type.isAmbiguous())
+            {
+                type = Type.terror;
+                return;
+            }
+
             inuse--;
             inferred = 1;
             /* This is a kludge to support the existing syntax for RAII

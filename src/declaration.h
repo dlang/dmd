@@ -593,6 +593,7 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     bool functionSemantic();
+    bool functionSemantic(Loc loc);
     bool functionSemantic3();
     // called from semantic3
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);

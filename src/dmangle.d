@@ -197,6 +197,12 @@ public:
 
     override void visit(TypeFunction t)
     {
+        if (t.isAmbiguous())
+        {
+            buf.writestring("_ambiguous_");
+            return;
+        }
+
         //printf("TypeFunction.toDecoBuffer() t = %p %s\n", t, t.toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
         mangleFuncType(t, t, t.mod, t.next);
@@ -829,14 +835,17 @@ extern (C++) const(char)* mangle(Dsymbol s)
  */
 extern (C++) const(char)* mangleExact(FuncDeclaration fd)
 {
-    if (!fd.mangleString)
+    const(char)* s = fd.mangleString;
+    if (!s)
     {
         OutBuffer buf;
         scope Mangler v = new Mangler(&buf);
         v.mangleExact(fd);
-        fd.mangleString = buf.extractString();
+        s = buf.extractString();
+        if (!fd.flags)
+            fd.mangleString = s;
     }
-    return fd.mangleString;
+    return s;
 }
 
 extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
