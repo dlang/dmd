@@ -3871,8 +3871,10 @@ enum MM_MAX_AXES_NAMELEN = 16;
     }
     alias ENUMLOGFONTEXDVW* PENUMLOGFONTEXDVW, LPENUMLOGFONTEXDVW;
 
+extern(Windows) nothrow @nogc {
     HFONT CreateFontIndirectExA(const(ENUMLOGFONTEXDVA)*);
     HFONT CreateFontIndirectExW(const(ENUMLOGFONTEXDVW)*);
+}
     version (Unicode)
         alias CreateFontIndirectExW CreateFontIndirectEx;
     else

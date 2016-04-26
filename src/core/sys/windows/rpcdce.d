@@ -349,65 +349,66 @@ version (Unicode) {
     alias DceErrorInqTextA DceErrorInqText;
 } //#endif // UNICODE
 
+extern (Windows) {
+    RPC_STATUS RpcBindingCopy(RPC_BINDING_HANDLE, RPC_BINDING_HANDLE*);
+    RPC_STATUS RpcBindingFree(RPC_BINDING_HANDLE*);
+    RPC_STATUS RpcBindingInqObject(RPC_BINDING_HANDLE, UUID*);
+    RPC_STATUS RpcBindingReset(RPC_BINDING_HANDLE);
+    RPC_STATUS RpcBindingSetObject(RPC_BINDING_HANDLE, UUID*);
+    RPC_STATUS RpcMgmtInqDefaultProtectLevel(uint, uint*);
+    RPC_STATUS RpcBindingVectorFree(RPC_BINDING_VECTOR**);
+    RPC_STATUS RpcIfInqId(RPC_IF_HANDLE, RPC_IF_ID*);
+    RPC_STATUS RpcMgmtInqComTimeout(RPC_BINDING_HANDLE, uint*);
+    RPC_STATUS RpcMgmtSetComTimeout(RPC_BINDING_HANDLE, uint);
+    RPC_STATUS RpcMgmtSetCancelTimeout(int Timeout);
+    RPC_STATUS RpcObjectInqType(UUID*, UUID*);
+    RPC_STATUS RpcObjectSetInqFn(RPC_OBJECT_INQ_FN*);
+    RPC_STATUS RpcObjectSetType(UUID*, UUID*);
+    RPC_STATUS RpcProtseqVectorFree(RPC_PROTSEQ_VECTOR**);
+    RPC_STATUS RpcServerInqIf(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV**);
+    RPC_STATUS RpcServerListen(uint, uint, uint);
+    RPC_STATUS RpcServerRegisterIf(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV*);
+    RPC_STATUS RpcServerRegisterIfEx(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV*, uint, uint, RPC_IF_CALLBACK_FN*);
+    RPC_STATUS RpcServerRegisterIf2(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV*, uint, uint, uint, RPC_IF_CALLBACK_FN*);
+    RPC_STATUS RpcServerUnregisterIf(RPC_IF_HANDLE, UUID*, uint);
+    RPC_STATUS RpcServerUseAllProtseqs(uint, void*);
+    RPC_STATUS RpcServerUseAllProtseqsEx(uint, void*, PRPC_POLICY);
+    RPC_STATUS RpcServerUseAllProtseqsIf(uint, RPC_IF_HANDLE, void*);
+    RPC_STATUS RpcServerUseAllProtseqsIfEx(uint, RPC_IF_HANDLE, void*, PRPC_POLICY);
+    RPC_STATUS RpcMgmtStatsVectorFree(RPC_STATS_VECTOR**);
+    RPC_STATUS RpcMgmtInqStats(RPC_BINDING_HANDLE, RPC_STATS_VECTOR**);
+    RPC_STATUS RpcMgmtIsServerListening(RPC_BINDING_HANDLE);
+    RPC_STATUS RpcMgmtStopServerListening(RPC_BINDING_HANDLE);
+    RPC_STATUS RpcMgmtWaitServerListen();
+    RPC_STATUS RpcMgmtSetServerStackSize(uint);
+    void RpcSsDontSerializeContext();
+    RPC_STATUS RpcMgmtEnableIdleCleanup();
+    RPC_STATUS RpcMgmtInqIfIds(RPC_BINDING_HANDLE, RPC_IF_ID_VECTOR**);
+    RPC_STATUS RpcIfIdVectorFree(RPC_IF_ID_VECTOR**);
+    RPC_STATUS RpcEpResolveBinding(RPC_BINDING_HANDLE, RPC_IF_HANDLE);
+    RPC_STATUS RpcBindingServerFromClient(RPC_BINDING_HANDLE, RPC_BINDING_HANDLE*);
 
-RPC_STATUS RpcBindingCopy(RPC_BINDING_HANDLE, RPC_BINDING_HANDLE*);
-RPC_STATUS RpcBindingFree(RPC_BINDING_HANDLE*);
-RPC_STATUS RpcBindingInqObject(RPC_BINDING_HANDLE, UUID*);
-RPC_STATUS RpcBindingReset(RPC_BINDING_HANDLE);
-RPC_STATUS RpcBindingSetObject(RPC_BINDING_HANDLE, UUID*);
-RPC_STATUS RpcMgmtInqDefaultProtectLevel(uint, uint*);
-RPC_STATUS RpcBindingVectorFree(RPC_BINDING_VECTOR**);
-RPC_STATUS RpcIfInqId(RPC_IF_HANDLE, RPC_IF_ID*);
-RPC_STATUS RpcMgmtInqComTimeout(RPC_BINDING_HANDLE, uint*);
-RPC_STATUS RpcMgmtSetComTimeout(RPC_BINDING_HANDLE, uint);
-RPC_STATUS RpcMgmtSetCancelTimeout(int Timeout);
-RPC_STATUS RpcObjectInqType(UUID*, UUID*);
-RPC_STATUS RpcObjectSetInqFn(RPC_OBJECT_INQ_FN*);
-RPC_STATUS RpcObjectSetType(UUID*, UUID*);
-RPC_STATUS RpcProtseqVectorFree(RPC_PROTSEQ_VECTOR**);
-RPC_STATUS RpcServerInqIf(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV**);
-RPC_STATUS RpcServerListen(uint, uint, uint);
-RPC_STATUS RpcServerRegisterIf(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV*);
-RPC_STATUS RpcServerRegisterIfEx(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV*, uint, uint, RPC_IF_CALLBACK_FN*);
-RPC_STATUS RpcServerRegisterIf2(RPC_IF_HANDLE, UUID*, RPC_MGR_EPV*, uint, uint, uint, RPC_IF_CALLBACK_FN*);
-RPC_STATUS RpcServerUnregisterIf(RPC_IF_HANDLE, UUID*, uint);
-RPC_STATUS RpcServerUseAllProtseqs(uint, void*);
-RPC_STATUS RpcServerUseAllProtseqsEx(uint, void*, PRPC_POLICY);
-RPC_STATUS RpcServerUseAllProtseqsIf(uint, RPC_IF_HANDLE, void*);
-RPC_STATUS RpcServerUseAllProtseqsIfEx(uint, RPC_IF_HANDLE, void*, PRPC_POLICY);
-RPC_STATUS RpcMgmtStatsVectorFree(RPC_STATS_VECTOR**);
-RPC_STATUS RpcMgmtInqStats(RPC_BINDING_HANDLE, RPC_STATS_VECTOR**);
-RPC_STATUS RpcMgmtIsServerListening(RPC_BINDING_HANDLE);
-RPC_STATUS RpcMgmtStopServerListening(RPC_BINDING_HANDLE);
-RPC_STATUS RpcMgmtWaitServerListen();
-RPC_STATUS RpcMgmtSetServerStackSize(uint);
-void RpcSsDontSerializeContext();
-RPC_STATUS RpcMgmtEnableIdleCleanup();
-RPC_STATUS RpcMgmtInqIfIds(RPC_BINDING_HANDLE, RPC_IF_ID_VECTOR**);
-RPC_STATUS RpcIfIdVectorFree(RPC_IF_ID_VECTOR**);
-RPC_STATUS RpcEpResolveBinding(RPC_BINDING_HANDLE, RPC_IF_HANDLE);
-RPC_STATUS RpcBindingServerFromClient(RPC_BINDING_HANDLE, RPC_BINDING_HANDLE*);
-
-// never returns
-void RpcRaiseException(RPC_STATUS);
-RPC_STATUS RpcTestCancel();
-RPC_STATUS RpcCancelThread(void*);
-RPC_STATUS UuidCreate(UUID*);
-int UuidCompare(UUID*, UUID*, RPC_STATUS*);
-RPC_STATUS UuidCreateNil(UUID*);
-int UuidEqual(UUID*, UUID*, RPC_STATUS*);
-ushort UuidHash(UUID*, RPC_STATUS*);
-int UuidIsNil(UUID*, RPC_STATUS*);
-RPC_STATUS RpcEpUnregister(RPC_IF_HANDLE, RPC_BINDING_VECTOR*, UUID_VECTOR*);
-RPC_STATUS RpcMgmtEpEltInqBegin(RPC_BINDING_HANDLE, uint, RPC_IF_ID*, uint, UUID*, RPC_EP_INQ_HANDLE*);
-RPC_STATUS RpcMgmtEpEltInqDone(RPC_EP_INQ_HANDLE*);
-RPC_STATUS RpcMgmtEpUnregister(RPC_BINDING_HANDLE, RPC_IF_ID*, RPC_BINDING_HANDLE, UUID*);
-RPC_STATUS RpcMgmtSetAuthorizationFn(RPC_MGMT_AUTHORIZATION_FN);
-RPC_STATUS RpcMgmtInqParameter(uint, uint*);
-RPC_STATUS RpcMgmtSetParameter(uint, uint);
-RPC_STATUS RpcMgmtBindingInqParameter(RPC_BINDING_HANDLE, uint, uint*);
-RPC_STATUS RpcMgmtBindingSetParameter(RPC_BINDING_HANDLE, uint, uint);
+    // never returns
+    void RpcRaiseException(RPC_STATUS);
+    RPC_STATUS RpcTestCancel();
+    RPC_STATUS RpcCancelThread(void*);
+    RPC_STATUS UuidCreate(UUID*);
+    int UuidCompare(UUID*, UUID*, RPC_STATUS*);
+    RPC_STATUS UuidCreateNil(UUID*);
+    int UuidEqual(UUID*, UUID*, RPC_STATUS*);
+    ushort UuidHash(UUID*, RPC_STATUS*);
+    int UuidIsNil(UUID*, RPC_STATUS*);
+    RPC_STATUS RpcEpUnregister(RPC_IF_HANDLE, RPC_BINDING_VECTOR*, UUID_VECTOR*);
+    RPC_STATUS RpcMgmtEpEltInqBegin(RPC_BINDING_HANDLE, uint, RPC_IF_ID*, uint, UUID*, RPC_EP_INQ_HANDLE*);
+    RPC_STATUS RpcMgmtEpEltInqDone(RPC_EP_INQ_HANDLE*);
+    RPC_STATUS RpcMgmtEpUnregister(RPC_BINDING_HANDLE, RPC_IF_ID*, RPC_BINDING_HANDLE, UUID*);
+    RPC_STATUS RpcMgmtSetAuthorizationFn(RPC_MGMT_AUTHORIZATION_FN);
+    RPC_STATUS RpcMgmtInqParameter(uint, uint*);
+    RPC_STATUS RpcMgmtSetParameter(uint, uint);
+    RPC_STATUS RpcMgmtBindingInqParameter(RPC_BINDING_HANDLE, uint, uint*);
+    RPC_STATUS RpcMgmtBindingSetParameter(RPC_BINDING_HANDLE, uint, uint);
 
 //static if (_WIN32_WINNT >= 0x500) {
     RPC_STATUS UuidCreateSequential(UUID*);
 //}
+}

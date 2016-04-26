@@ -67,8 +67,6 @@ extern (Windows) {
     RPC_STATUS RpcNsBindingImportNext(RPC_NS_HANDLE, RPC_BINDING_HANDLE*);
     RPC_STATUS RpcNsBindingImportDone(RPC_NS_HANDLE*);
     RPC_STATUS RpcNsBindingSelect(RPC_BINDING_VECTOR*, RPC_BINDING_HANDLE*);
-}
-
 
 version (Unicode) {
 } else {
@@ -77,35 +75,36 @@ version (Unicode) {
       RPC_NS_HANDLE*);
 }
 
-RPC_STATUS RpcNsBindingExportW(uint, ushort*, RPC_IF_HANDLE,
-  RPC_BINDING_VECTOR*, UUID_VECTOR*);
-RPC_STATUS RpcNsBindingUnexportW(uint, ushort*, RPC_IF_HANDLE,
-  UUID_VECTOR*);
-RPC_STATUS RpcNsBindingLookupBeginW(uint, ushort*, RPC_IF_HANDLE, UUID*,
-  uint, RPC_NS_HANDLE*);
-RPC_STATUS RpcNsGroupDeleteW(uint, ushort*);
-RPC_STATUS RpcNsGroupMbrAddW(uint, ushort*, uint, ushort*);
-RPC_STATUS RpcNsGroupMbrRemoveW(uint, ushort*, uint, ushort*);
-RPC_STATUS RpcNsGroupMbrInqBeginW(uint, ushort*, uint, RPC_NS_HANDLE*);
-RPC_STATUS RpcNsGroupMbrInqNextW(RPC_NS_HANDLE, ushort**);
-RPC_STATUS RpcNsProfileDeleteW(uint, ushort*);
-RPC_STATUS RpcNsProfileEltAddW(uint, ushort*, RPC_IF_ID*, uint, ushort*,
-  uint, ushort*);
-RPC_STATUS RpcNsProfileEltRemoveW(uint, ushort*, RPC_IF_ID*, uint,
-  ushort*);
-RPC_STATUS RpcNsProfileEltInqBeginW(uint, ushort*, uint, RPC_IF_ID*,
-  uint, uint, ushort*, RPC_NS_HANDLE*);
-RPC_STATUS RpcNsProfileEltInqNextW(RPC_NS_HANDLE, RPC_IF_ID*, ushort**,
-  uint*, ushort**);
-RPC_STATUS RpcNsEntryObjectInqBeginW(uint, ushort*, RPC_NS_HANDLE*);
-RPC_STATUS RpcNsEntryExpandNameW(uint, ushort*, ushort**);
-RPC_STATUS RpcNsMgmtBindingUnexportW(uint, ushort*, RPC_IF_ID*, uint,
-  UUID_VECTOR*);
-RPC_STATUS RpcNsMgmtEntryCreateW(uint, ushort*);
-RPC_STATUS RpcNsMgmtEntryDeleteW(uint, ushort*);
-RPC_STATUS RpcNsMgmtEntryInqIfIdsW(uint, ushort , RPC_IF_ID_VECTOR**);
-RPC_STATUS RpcNsBindingImportBeginW(uint, ushort*, RPC_IF_HANDLE, UUID*,
-  RPC_NS_HANDLE*);
+    RPC_STATUS RpcNsBindingExportW(uint, ushort*, RPC_IF_HANDLE,
+      RPC_BINDING_VECTOR*, UUID_VECTOR*);
+    RPC_STATUS RpcNsBindingUnexportW(uint, ushort*, RPC_IF_HANDLE,
+      UUID_VECTOR*);
+    RPC_STATUS RpcNsBindingLookupBeginW(uint, ushort*, RPC_IF_HANDLE, UUID*,
+      uint, RPC_NS_HANDLE*);
+    RPC_STATUS RpcNsGroupDeleteW(uint, ushort*);
+    RPC_STATUS RpcNsGroupMbrAddW(uint, ushort*, uint, ushort*);
+    RPC_STATUS RpcNsGroupMbrRemoveW(uint, ushort*, uint, ushort*);
+    RPC_STATUS RpcNsGroupMbrInqBeginW(uint, ushort*, uint, RPC_NS_HANDLE*);
+    RPC_STATUS RpcNsGroupMbrInqNextW(RPC_NS_HANDLE, ushort**);
+    RPC_STATUS RpcNsProfileDeleteW(uint, ushort*);
+    RPC_STATUS RpcNsProfileEltAddW(uint, ushort*, RPC_IF_ID*, uint, ushort*,
+      uint, ushort*);
+    RPC_STATUS RpcNsProfileEltRemoveW(uint, ushort*, RPC_IF_ID*, uint,
+      ushort*);
+    RPC_STATUS RpcNsProfileEltInqBeginW(uint, ushort*, uint, RPC_IF_ID*,
+      uint, uint, ushort*, RPC_NS_HANDLE*);
+    RPC_STATUS RpcNsProfileEltInqNextW(RPC_NS_HANDLE, RPC_IF_ID*, ushort**,
+      uint*, ushort**);
+    RPC_STATUS RpcNsEntryObjectInqBeginW(uint, ushort*, RPC_NS_HANDLE*);
+    RPC_STATUS RpcNsEntryExpandNameW(uint, ushort*, ushort**);
+    RPC_STATUS RpcNsMgmtBindingUnexportW(uint, ushort*, RPC_IF_ID*, uint,
+      UUID_VECTOR*);
+    RPC_STATUS RpcNsMgmtEntryCreateW(uint, ushort*);
+    RPC_STATUS RpcNsMgmtEntryDeleteW(uint, ushort*);
+    RPC_STATUS RpcNsMgmtEntryInqIfIdsW(uint, ushort , RPC_IF_ID_VECTOR**);
+    RPC_STATUS RpcNsBindingImportBeginW(uint, ushort*, RPC_IF_HANDLE, UUID*,
+      RPC_NS_HANDLE*);
+}
 
 version (Unicode) {
     alias RpcNsBindingLookupBeginW RpcNsBindingLookupBegin;
