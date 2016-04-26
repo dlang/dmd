@@ -188,7 +188,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
 	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h $(DMD_SRCS)
+	version.h visitor.h objc.d $(DMD_SRCS)
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
