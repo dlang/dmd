@@ -66,6 +66,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
             return true;
         }
     }
+
     bool result = false;
     for (size_t i = iStart; i < ad.fields.dim; i++)
     {
@@ -198,6 +199,7 @@ public:
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
             return 2;
+
         if (isParameter() || isResult())
         {
             for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -211,6 +213,7 @@ public:
                 }
             }
         }
+
         if (v && (isCtorinit() || isField()))
         {
             // It's only modifiable if inside the right constructor
@@ -389,6 +392,7 @@ public:
     {
         /* If this tuple represents a type, return that type
          */
+
         //printf("TupleDeclaration::getType() %s\n", toChars());
         if (isexp)
             return null;
@@ -405,6 +409,7 @@ public:
                     return null;
                 }
             }
+
             /* We know it's a type tuple, so build the TypeTuple
              */
             Types* types = cast(Types*)objects;
@@ -432,6 +437,7 @@ public:
                 if (!t.deco)
                     hasdeco = 0;
             }
+
             tupletype = new TypeTuple(args);
             if (hasdeco)
                 return tupletype.semantic(Loc(), null);
@@ -788,6 +794,7 @@ public:
         if (inuse)
         {
             error("recursive alias declaration");
+
         Lerr:
             // Avoid breaking "recursive alias" state during errors gagged
             if (global.gag)
@@ -890,9 +897,11 @@ public:
     {
         if (this == o)
             return true;
+
         Dsymbol s = isDsymbol(o);
         if (!s)
             return false;
+
         OverDeclaration od1 = this;
         if (OverDeclaration od2 = s.isOverDeclaration())
         {
@@ -1040,6 +1049,7 @@ public:
         //if (semanticRun > PASSinit)
         //    return;
         //semanticRun = PSSsemantic;
+
         if (semanticRun >= PASSsemanticdone)
             return;
 
@@ -1057,28 +1067,35 @@ public:
         storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
         if (storage_class & STCextern && _init)
             error("extern symbols cannot have initializers");
+
         userAttribDecl = sc.userAttribDecl;
+
         AggregateDeclaration ad = isThis();
         if (ad)
             storage_class |= ad.storage_class & STC_TYPECTOR;
+
         /* If auto type inference, do the inference
          */
         int inferred = 0;
         if (!type)
         {
             inuse++;
+
             // Infering the type requires running semantic,
             // so mark the scope as ctfe if required
             bool needctfe = (storage_class & (STCmanifest | STCstatic)) != 0;
             if (needctfe)
                 sc = sc.startCTFE();
+
             //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
             _init = _init.inferType(sc);
             type = _init.toExpression().type;
             if (needctfe)
                 sc = sc.endCTFE();
+
             inuse--;
             inferred = 1;
+
             /* This is a kludge to support the existing syntax for RAII
              * declarations.
              */
@@ -1089,6 +1106,7 @@ public:
         {
             if (!originalType)
                 originalType = type.syntaxCopy();
+
             /* Prefix function attributes of variable declaration can affect
              * its type:
              *      pure nothrow void function() fp;
@@ -1102,21 +1120,26 @@ public:
             sc2.pop();
         }
         //printf(" semantic type = %s\n", type ? type->toChars() : "null");
+
         type.checkDeprecated(loc, sc);
         linkage = sc.linkage;
         this.parent = sc.parent;
         //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
         protection = sc.protection;
+
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
         alignment = sc.structalign;
         if (alignment == STRUCTALIGN_DEFAULT)
             alignment = type.alignment(); // use type's alignment
+
         //printf("sc->stc = %x\n", sc->stc);
         //printf("storage_class = x%x\n", storage_class);
+
         if (global.params.vcomplex)
             type.checkComplexTransition(loc);
+
         // Calculate type size + safety checks
         if (sc.func && !sc.intypeof && !isMember())
         {
@@ -1131,7 +1154,9 @@ public:
                     error("void initializers for pointers not allowed in safe functions");
             }
         }
+
         Dsymbol parent = toParent();
+
         Type tb = type.toBasetype();
         Type tbn = tb.baseElemOf();
         if (tb.ty == Tvoid && !(storage_class & STClazy))
@@ -1161,6 +1186,7 @@ public:
         }
         if ((storage_class & STCauto) && !inferred)
             error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+
         if (tb.ty == Ttuple)
         {
             /* Instead, declare variables for each of the tuple elements
@@ -1185,6 +1211,7 @@ public:
                     //printf("[%d] iexps->dim = %d, ", pos, iexps->dim);
                     //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
                     //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+
                     if (e != ie)
                     {
                         if (iexps.dim > nelems)
@@ -1192,11 +1219,13 @@ public:
                         if (e.type.implicitConvTo(arg.type))
                             continue;
                     }
+
                     if (e.op == TOKtuple)
                     {
                         TupleExp te = cast(TupleExp)e;
                         if (iexps.dim - 1 + te.exps.dim > nelems)
                             goto Lnomatch;
+
                         iexps.remove(pos);
                         iexps.insert(pos, te.exps);
                         (*iexps)[pos] = Expression.combine(te.e0, (*iexps)[pos]);
@@ -1207,9 +1236,11 @@ public:
                         auto v = copyToTemp(0, "__tup", e);
                         auto ve = new VarExp(loc, v);
                         ve.type = e.type;
+
                         exps.setDim(1);
                         (*exps)[0] = ve;
                         expandAliasThisTuples(exps, 0);
+
                         for (size_t u = 0; u < exps.dim; u++)
                         {
                         Lexpand2:
@@ -1219,19 +1250,23 @@ public:
                             //printf("[%d+%d] exps->dim = %d, ", pos, u, exps->dim);
                             //printf("ee = (%s %s, %s), ", Token::tochars[ee->op], ee->toChars(), ee->type->toChars());
                             //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+
                             size_t iexps_dim = iexps.dim - 1 + exps.dim;
                             if (iexps_dim > nelems)
                                 goto Lnomatch;
                             if (ee.type.implicitConvTo(arg.type))
                                 continue;
+
                             if (expandAliasThisTuples(exps, u) != -1)
                                 goto Lexpand2;
                         }
+
                         if ((*exps)[0] != ve)
                         {
                             Expression e0 = (*exps)[0];
                             (*exps)[0] = new CommaExp(loc, new DeclarationExp(loc, v), e0);
                             (*exps)[0].type = e0.type;
+
                             iexps.remove(pos);
                             iexps.insert(pos, exps);
                             goto Lexpand1;
@@ -1240,9 +1275,11 @@ public:
                 }
                 if (iexps.dim < nelems)
                     goto Lnomatch;
+
                 ie = new TupleExp(_init.loc, iexps);
             }
         Lnomatch:
+
             if (ie && ie.op == TOKtuple)
             {
                 TupleExp te = cast(TupleExp)ie;
@@ -1260,6 +1297,7 @@ public:
             for (size_t i = 0; i < nelems; i++)
             {
                 Parameter arg = Parameter.getNth(tt.arguments, i);
+
                 OutBuffer buf;
                 buf.printf("__%s_field_%llu", ident.toChars(), cast(ulong)i);
                 auto id = Identifier.idPool(buf.peekSlice());
@@ -1305,9 +1343,11 @@ public:
             semanticRun = PASSsemanticdone;
             return;
         }
+
         /* Storage class can modify the type
          */
         type = type.addStorageClass(storage_class);
+
         /* Adjust storage class to reflect type
          */
         if (type.isConst())
@@ -1322,6 +1362,7 @@ public:
             storage_class |= STCshared;
         else if (type.isWild())
             storage_class |= STCwild;
+
         if (StorageClass stc = storage_class & (STCsynchronized | STCoverride | STCabstract | STCfinal))
         {
             if (stc == STCfinal)
@@ -1334,6 +1375,7 @@ public:
             }
             storage_class &= ~stc; // strip off
         }
+
         if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
         {
         }
@@ -1355,6 +1397,7 @@ public:
                         aad.noDefaultCtor = true;
                 }
             }
+
             InterfaceDeclaration id = parent.isInterfaceDeclaration();
             if (id)
             {
@@ -1364,6 +1407,7 @@ public:
             {
                 error("cannot be further field because it will change the determined %s size", aad.toChars());
             }
+
             /* Templates cannot add fields to aggregates
              */
             TemplateInstance ti = parent.isTemplateInstance();
@@ -1385,10 +1429,12 @@ public:
                 }
             }
         }
+
         if ((storage_class & (STCref | STCparameter | STCforeach | STCtemp | STCresult)) == STCref && ident != Id.This)
         {
             error("only parameters or foreach declarations can be ref");
         }
+
         if (type.hasWild())
         {
             if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) || isDataseg())
@@ -1415,6 +1461,7 @@ public:
                 }
             }
         }
+
         if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
             if (!_init)
@@ -1432,6 +1479,7 @@ public:
                     error("default construction is disabled for type %s", type.toChars());
             }
         }
+
         FuncDeclaration fd = parent.isFuncDeclaration();
         if (type.isscope() && !noscope)
         {
@@ -1451,6 +1499,7 @@ public:
             // If not mutable, initializable by constructor only
             storage_class |= STCctorinit;
         }
+
         if (_init)
             storage_class |= STCinit; // remember we had an explicit initializer
         else if (storage_class & STCmanifest)
@@ -1516,9 +1565,11 @@ public:
         {
             sc = sc.push();
             sc.stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
+
             ExpInitializer ei = _init.isExpInitializer();
             if (ei) // Bugzilla 13424: Preset the required type to fail in FuncLiteralDeclaration::semantic3
                 ei.exp = inferType(ei.exp, type);
+
             // If inside function, there is no semantic3() call
             if (sc.func || sc.intypeof == 1)
             {
@@ -1549,6 +1600,7 @@ public:
                         ei = new ExpInitializer(_init.loc, e);
                         _init = ei;
                     }
+
                     Expression exp = ei.exp;
                     Expression e1 = new VarExp(loc, this);
                     if (isBlit)
@@ -1566,6 +1618,7 @@ public:
                     }
                     else
                         ei.exp = exp;
+
                     if (ei && isScope())
                     {
                         Expression ex = ei.exp;
@@ -1618,6 +1671,7 @@ public:
                     if (ei)
                     {
                         Expression exp = ei.exp.syntaxCopy();
+
                         bool needctfe = isDataseg() || (storage_class & STCmanifest);
                         if (needctfe)
                             sc = sc.startCTFE();
@@ -1625,8 +1679,10 @@ public:
                         exp = resolveProperties(sc, exp);
                         if (needctfe)
                             sc = sc.endCTFE();
+
                         Type tb2 = type.toBasetype();
                         Type ti = exp.type.toBasetype();
+
                         /* The problem is the following code:
                          *  struct CopyTest {
                          *     double x;
@@ -1671,6 +1727,7 @@ public:
             }
             sc = sc.pop();
         }
+
     Ldtor:
         /* Build code to execute destruction, if necessary
          */
@@ -1681,6 +1738,7 @@ public:
                 edtor = edtor.semantic(sc._module._scope);
             else
                 edtor = edtor.semantic(sc);
+
             version (none)
             {
                 // currently disabled because of std.stdio.stdin, stdout and stderr
@@ -1688,7 +1746,9 @@ public:
                     error("static storage variables cannot have destructors");
             }
         }
+
         semanticRun = PASSsemanticdone;
+
         if (type.toBasetype().ty == Terror)
             errors = true;
     }
@@ -1696,6 +1756,7 @@ public:
     override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
         //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
+
         if (aliassym)
         {
             // If this variable was really a tuple, set the offsets for the tuple fields
@@ -1712,6 +1773,7 @@ public:
             }
             return;
         }
+
         if (!isField())
             return;
         assert(!(storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
@@ -1771,6 +1833,7 @@ public:
             memsize, memalignsize, alignment,
             &ad.structsize, &ad.alignsize,
             isunion);
+
         //printf("\t%s: memalignsize = %d\n", toChars(), memalignsize);
         //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad.toChars(), offset, memsize);
     }
@@ -1779,6 +1842,7 @@ public:
     {
         if (semanticRun < PASSsemanticdone && inuse)
             return;
+
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
 
         if (_init && !toParent().isFuncDeclaration())
@@ -1974,11 +2038,13 @@ public:
     final Expression callScopeDtor(Scope* sc)
     {
         //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
+
         // Destruction of STCfield's is handled by buildDtor()
         if (noscope || storage_class & (STCnodtor | STCref | STCout | STCfield))
         {
             return null;
         }
+
         Expression e = null;
         // Destructors for structs and arrays of structs
         Type tv = type.baseElemOf();
@@ -1987,15 +2053,18 @@ public:
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
             if (!sd.dtor || !type.size())
                 return null;
+
             if (type.toBasetype().ty == Tstruct)
             {
                 // v.__xdtor()
                 e = new VarExp(loc, this);
+
                 /* This is a hack so we can call destructors on const/immutable objects.
                  * Need to add things like "const ~this()" and "immutable ~this()" to
                  * fix properly.
                  */
                 e.type = e.type.mutableOf();
+
                 e = new DotVarExp(loc, e, sd.dtor, false);
                 e = new CallExp(loc, e);
             }
@@ -2003,13 +2072,17 @@ public:
             {
                 // _ArrayDtor(v[0 .. n])
                 e = new VarExp(loc, this);
+
                 uinteger_t n = type.size() / sd.type.size();
                 e = new SliceExp(loc, e, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
+
                 // Prevent redundant bounds check
                 (cast(SliceExp)e).upperIsInBounds = true;
                 (cast(SliceExp)e).lowerIsLessThanUpper = true;
+
                 // This is a hack so we can call destructors on const/immutable objects.
                 e.type = sd.type.arrayOf();
+
                 e = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), e);
             }
             return e;
@@ -2025,6 +2098,7 @@ public:
                  */
                 //if (cd->isInterfaceDeclaration())
                 //    error("interface %s cannot be scope", cd->toChars());
+
                 if (cd.cpp)
                 {
                     // Destructors are not supported on extern(C++) classes
