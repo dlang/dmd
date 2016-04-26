@@ -37,7 +37,9 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 }
 
 //dynamic array hash
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T))
+size_t hashOf(T)(auto ref T val, size_t seed = 0)
+if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
+    && !is(T == struct) && !is(T == class) && !is(T == union))
 {
     alias ElementType = typeof(val[0]);
     static if (is(ElementType == interface) || is(ElementType == class) ||
@@ -91,7 +93,9 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T : t
 
 //Pointers hash. CTFE unsupported if not null
 @trusted nothrow pure
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null)))
+size_t hashOf(T)(auto ref T val, size_t seed = 0)
+if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
+    && !is(T == struct) && !is(T == class) && !is(T == union))
 {
     if(__ctfe)
     {
@@ -387,6 +391,27 @@ unittest
 }
 
 
+unittest // issue 15111
+{
+    void testAlias(T)()
+    {
+        static struct Foo
+        {
+            T t;
+            alias t this;
+        }
+        Foo foo;
+        static assert(is(typeof(hashOf(foo))));
+    }
+    // was fixed
+    testAlias!(int[]);
+    testAlias!(int*);
+    // was not affected
+    testAlias!int;
+    testAlias!(void delegate());
+    testAlias!(string[string]);
+    testAlias!(int[8]);
+}
 
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
