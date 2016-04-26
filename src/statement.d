@@ -69,6 +69,7 @@ extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
         const(char)* prefix = flags == SCOPErequire ? "__in_" : "__out_";
         OutBuffer buf;
         buf.printf("%s%s", prefix, ident.toChars());
+
         ident = Identifier.idPool(buf.peekSlice());
     }
     return ident;
@@ -364,6 +365,7 @@ public:
                                 }
                             }
                         }
+
                         if (!(result & BEfallthru) && !s.comeFrom())
                         {
                             if (s.blockExit(func, mustNotThrow) != BEhalt && s.hasCode())
@@ -610,16 +612,19 @@ public:
             {
                 assert(s._body);
                 result = s._body.blockExit(func, false);
+
                 int catchresult = 0;
                 foreach (c; *s.catches)
                 {
                     if (c.type == Type.terror)
                         continue;
+
                     int cresult;
                     if (c.handler)
                         cresult = c.handler.blockExit(func, mustNotThrow);
                     else
                         cresult = BEfallthru;
+
                     /* If we're catching Object, then there is no throwing
                      */
                     Identifier id = c.type.toBasetype().isClassHandle().ident;
@@ -651,15 +656,18 @@ public:
                 result = BEfallthru;
                 if (s._body)
                     result = s._body.blockExit(func, false);
+
                 // check finally body as well, it may throw (bug #4082)
                 int finalresult = BEfallthru;
                 if (s.finalbody)
                     finalresult = s.finalbody.blockExit(func, false);
+
                 // If either body or finalbody halts
                 if (result == BEhalt)
                     finalresult = BEnone;
                 if (finalresult == BEhalt)
                     result = BEnone;
+
                 if (mustNotThrow)
                 {
                     // now explain why this is nothrow
@@ -668,6 +676,7 @@ public:
                     if (s.finalbody && (finalresult & BEthrow))
                         s.finalbody.blockExit(func, mustNotThrow);
                 }
+
                 version (none)
                 {
                     // Bugzilla 13201: Mask to prevent spurious warnings for
@@ -677,6 +686,7 @@ public:
                         s.finalbody.warning("statement is not reachable");
                     }
                 }
+
                 if (!(finalresult & BEfallthru))
                     result &= ~BEfallthru;
                 result |= finalresult & ~BEfallthru;
@@ -696,9 +706,11 @@ public:
                     result = BEfallthru;
                     return;
                 }
+
                 Type t = s.exp.type.toBasetype();
                 ClassDeclaration cd = t.isClassHandle();
                 assert(cd);
+
                 if (cd == ClassDeclaration.errorException || ClassDeclaration.errorException.isBaseOf(cd, null))
                 {
                     result = BEerrthrow;
@@ -706,6 +718,7 @@ public:
                 }
                 if (mustNotThrow)
                     s.error("%s is thrown but not caught", s.exp.type.toChars());
+
                 result = BEthrow;
             }
 
@@ -727,6 +740,7 @@ public:
             {
                 if (mustNotThrow && !(s.stc & STCnothrow))
                     s.deprecation("asm statement is assumed to throw - mark it with 'nothrow' if it does not");
+
                 // Assume the worst
                 result = BEfallthru | BEreturn | BEgoto | BEhalt;
                 if (!(s.stc & STCnothrow))
@@ -983,6 +997,7 @@ extern (C++) Statement toStatement(Dsymbol s)
         {
             if (!a)
                 return null;
+
             auto statements = new Statements();
             foreach (s; *a)
             {
@@ -1108,6 +1123,7 @@ extern (C++) Statement toStatement(Dsymbol s)
 
     if (!s)
         return null;
+
     scope ToStmt v = new ToStmt();
     s.accept(v);
     return v.result;
@@ -1171,9 +1187,11 @@ public:
     {
         //printf("ExpStatement::scopeCode()\n");
         //print();
+
         *sentry = null;
         *sexception = null;
         *sfinally = null;
+
         if (exp && exp.op == TOKdeclaration)
         {
             auto de = cast(DeclarationExp)exp;
@@ -1209,6 +1227,7 @@ public:
                     return a;
                 }
                 assert(tm.members);
+
                 Statement s = toStatement(tm);
                 version (none)
                 {
@@ -1293,6 +1312,7 @@ public:
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
         sc = sc.endCTFE();
+
         auto a = new Statements();
         if (exp.op != TOKerror)
         {
@@ -1306,6 +1326,7 @@ public:
                 uint errors = global.errors;
                 scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
                 p.nextToken();
+
                 while (p.token.value != TOKeof)
                 {
                     Statement s = p.parseStatement(PSsemi | PScurlyscope);
@@ -1396,6 +1417,7 @@ public:
                     printf("[%d]: %s", i, s.toChars());
             }
         }
+
         for (size_t i = 0; i < statements.dim;)
         {
             Statement s = (*statements)[i];
@@ -1415,6 +1437,7 @@ public:
                     Statement sentry;
                     Statement sexception;
                     Statement sfinally;
+
                     (*statements)[i] = s.scopeCode(sc, &sentry, &sexception, &sfinally);
                     if (sentry)
                     {
@@ -1446,7 +1469,9 @@ public:
                             }
                             Statement _body = new CompoundStatement(Loc(), a);
                             _body = new ScopeStatement(Loc(), _body);
+
                             Identifier id = Identifier.generateId("__o");
+
                             Statement handler = new PeelStatement(sexception);
                             if (sexception.blockExit(sc.func, false) & BEfallthru)
                             {
@@ -1454,14 +1479,17 @@ public:
                                 ts.internalThrow = true;
                                 handler = new CompoundStatement(Loc(), handler, ts);
                             }
+
                             auto catches = new Catches();
                             auto ctch = new Catch(Loc(), null, id, handler);
                             ctch.internalCatch = true;
                             catches.push(ctch);
+
                             s = new TryCatchStatement(Loc(), _body, catches);
                             if (sfinally)
                                 s = new TryFinallyStatement(Loc(), s, sfinally);
                             s = s.semantic(sc);
+
                             statements.setDim(i + 1);
                             statements.push(s);
                             break;
@@ -1510,9 +1538,11 @@ public:
             Statement s = (*statements)[i];
             if (!s)
                 continue;
+
             Statement se = s.isErrorStatement();
             if (se)
                 return se;
+
             /* Bugzilla 11653: 'semantic' may return another CompoundStatement
              * (eg. CaseRangeStatement), so flatten it here.
              */
@@ -1640,6 +1670,7 @@ public:
         Scope* scd = sc.push();
         scd.sbreak = this;
         scd.scontinue = this;
+
         Statement serror = null;
         foreach (i, ref s; *statements)
         {
@@ -1651,6 +1682,7 @@ public:
                     serror = s.isErrorStatement();
             }
         }
+
         scd.pop();
         return serror ? serror : this;
     }
@@ -1710,11 +1742,13 @@ public:
             sym = new ScopeDsymbol();
             sym.parent = sc.scopesym;
             sc = sc.push(sym);
+
             Statements* a = statement.flatten(sc);
             if (a)
             {
                 statement = new CompoundStatement(loc, a);
             }
+
             statement = statement.semantic(sc);
             if (statement)
             {
@@ -1723,9 +1757,11 @@ public:
                     sc.pop();
                     return statement;
                 }
+
                 Statement sentry;
                 Statement sexception;
                 Statement sfinally;
+
                 statement = statement.scopeCode(sc, &sentry, &sexception, &sfinally);
                 assert(!sentry);
                 assert(!sexception);
@@ -1736,6 +1772,7 @@ public:
                     statement = new CompoundStatement(loc, statement, sfinally);
                 }
             }
+
             sc.pop();
         }
         return this;
@@ -2329,7 +2366,9 @@ public:
         sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         auto sc2 = sc.push(sym);
+
         sc2.noctor++;
+
         switch (tab.ty)
         {
         case Tarray:
@@ -2662,6 +2701,7 @@ public:
                         error("%s.front is void and has no value", oaggr.toChars());
                         goto Lerror2;
                     }
+
                     // Resolve inout qualifier of front type
                     tfront = tfront.substWildTo(tab.mod);
 
@@ -2936,17 +2976,17 @@ public:
 
                     switch (tn.ty)
                     {
-                        case Tchar:     flag = 0;   break;
-                        case Twchar:    flag = 3;   break;
-                        case Tdchar:    flag = 6;   break;
+                    case Tchar:     flag = 0;   break;
+                    case Twchar:    flag = 3;   break;
+                    case Tdchar:    flag = 6;   break;
                     default:
                         assert(0);
                     }
                     switch (tnv.ty)
                     {
-                        case Tchar:     flag += 0;  break;
-                        case Twchar:    flag += 1;  break;
-                        case Tdchar:    flag += 2;  break;
+                    case Tchar:     flag += 0;  break;
+                    case Twchar:    flag += 1;  break;
+                    case Tdchar:    flag += 2;  break;
                     default:
                         assert(0);
                     }
@@ -3135,6 +3175,7 @@ public:
         Lerror:
             return new ErrorStatement();
         }
+
         upr = upr.semantic(sc);
         upr = resolveProperties(sc, upr);
         upr = upr.optimize(WANTvalue);
@@ -3143,11 +3184,13 @@ public:
             error("invalid range upper bound %s", upr.toChars());
             goto Lerror;
         }
+
         if (prm.type)
         {
             prm.type = prm.type.semantic(loc, sc);
             prm.type = prm.type.addStorageClass(prm.storageClass);
             lwr = lwr.implicitCastTo(sc, prm.type);
+
             if (upr.implicitConvTo(prm.type) || (prm.storageClass & STCref))
             {
                 upr = upr.implicitCastTo(sc, prm.type);
@@ -3196,6 +3239,7 @@ public:
         {
             return new ErrorStatement();
         }
+
         /* Convert to a for loop:
          *  foreach (key; lwr .. upr) =>
          *  for (auto key = lwr, auto tmp = upr; key < tmp; ++key)
@@ -3212,10 +3256,12 @@ public:
         {
             key.range = new IntRange(lower, upper);
         }
+
         Identifier id = Identifier.generateId("__limit");
         ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
         auto tmp = new VarDeclaration(loc, upr.type, id, ie);
         tmp.storage_class |= STCtemp;
+
         auto cs = new Statements();
         // Keep order of evaluation as lwr, then upr
         if (op == TOKforeach)
@@ -3229,6 +3275,7 @@ public:
             cs.push(new ExpStatement(loc, key));
         }
         Statement forinit = new CompoundDeclarationStatement(loc, cs);
+
         Expression cond;
         if (op == TOKforeach_reverse)
         {
@@ -3257,6 +3304,7 @@ public:
                 cond = new EqualExp(TOKnotequal, loc, new VarExp(loc, key), new VarExp(loc, tmp));
             }
         }
+
         Expression increment = null;
         if (op == TOKforeach)
         {
@@ -3291,6 +3339,7 @@ public:
                 goto Lerror;
             }
         }
+
         auto s = new ForStatement(loc, forinit, cond, increment, _body, endloc);
         if (LabelStatement ls = checkLabeledLoop(sc, this))
             ls.gotoTarget = s;
@@ -3457,6 +3506,7 @@ public:
     override Statement semantic(Scope* sc)
     {
         //printf("ConditionalStatement::semantic()\n");
+
         // If we can short-circuit evaluate the if statement, don't do the
         // semantic analysis of the skipped code.
         // This feature allows a limited form of conditional compilation.
@@ -3485,6 +3535,7 @@ public:
     override Statements* flatten(Scope* sc)
     {
         Statement s;
+
         //printf("ConditionalStatement::flatten()\n");
         if (condition.include(sc, null))
         {
@@ -3496,6 +3547,7 @@ public:
         }
         else
             s = elsebody;
+
         auto a = new Statements();
         a.push(s);
         return a;
@@ -3532,6 +3584,7 @@ public:
     override Statement semantic(Scope* sc)
     {
         // Should be merged with PragmaDeclaration
+
         //printf("PragmaStatement::semantic() %s\n", toChars());
         //printf("body = %p\n", body);
         if (ident == Id.msg)
@@ -3544,6 +3597,7 @@ public:
                     auto e = arg.semantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
+
                     // pragma(msg) is allowed to contain types as well as expressions
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
@@ -3586,6 +3640,7 @@ public:
                     e = e.semantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
+
                     e = e.ctfeInterpret();
                     (*args)[0] = e;
                     StringExp se = e.toStringExp();
@@ -3612,6 +3667,7 @@ public:
                 e = e.semantic(sc);
                 e = resolveProperties(sc, e);
                 sc = sc.endCTFE();
+
                 e = e.ctfeInterpret();
                 (*args)[0] = e;
                 Dsymbol sa = getDsymbol(e);
@@ -3647,10 +3703,12 @@ public:
                     error("pragma(inline, true or false) expected, not %s", e.toChars());
                     goto Lerror;
                 }
+
                 if (e.isBool(true))
                     inlining = PINLINEalways;
                 else if (e.isBool(false))
                     inlining = PINLINEnever;
+
                 FuncDeclaration fd = sc.func;
                 if (!fd)
                 {
@@ -3665,11 +3723,13 @@ public:
             error("unrecognized pragma(%s)", ident.toChars());
             goto Lerror;
         }
+
         if (_body)
         {
             _body = _body.semantic(sc);
         }
         return _body;
+
     Lerror:
         return new ErrorStatement();
     }
@@ -3799,15 +3859,19 @@ public:
             conditionError = true;
 
         bool needswitcherror = false;
+
         sc = sc.push();
         sc.sbreak = this;
         sc.sw = this;
+
         cases = new CaseStatements();
         sc.noctor++; // BUG: should use Scope::mergeCallSuper() for each case instead
         _body = _body.semantic(sc);
         sc.noctor--;
+
         if (conditionError || _body.isErrorStatement())
             goto Lerror;
+
         // Resolve any goto case's with exp
         foreach (gcs; gotoCases)
         {
@@ -3816,6 +3880,7 @@ public:
                 gcs.error("no case statement following goto case;");
                 goto Lerror;
             }
+
             for (Scope* scx = sc; scx; scx = scx.enclosing)
             {
                 if (!scx.sw)
@@ -3831,8 +3896,10 @@ public:
             }
             gcs.error("case %s not found", gcs.exp.toChars());
             goto Lerror;
+
         Lfoundcase:
         }
+
         if (isFinal)
         {
             Type t = condition.type;
@@ -3863,19 +3930,24 @@ public:
             else
                 needswitcherror = true;
         }
+
         if (!sc.sw.sdefault && (!isFinal || needswitcherror || global.params.useAssert))
         {
             hasNoDefault = 1;
+
             if (!isFinal && !_body.isErrorStatement())
                 error("switch statement without a default; use 'final switch' or add 'default: assert(0);' or add 'default: break;'");
+
             // Generate runtime error if the default is hit
             auto a = new Statements();
             CompoundStatement cs;
             Statement s;
+
             if (global.params.useSwitchError)
                 s = new SwitchErrorStatement(loc);
             else
                 s = new ExpStatement(loc, new HaltExp(loc));
+
             a.reserve(2);
             sc.sw.sdefault = new DefaultStatement(loc, s);
             a.push(_body);
@@ -3885,8 +3957,10 @@ public:
             cs = new CompoundStatement(loc, a);
             _body = cs;
         }
+
         sc.pop();
         return this;
+
     Lerror:
         sc.pop();
         return new ErrorStatement();
@@ -3928,15 +4002,18 @@ public:
     {
         SwitchStatement sw = sc.sw;
         bool errors = false;
+
         //printf("CaseStatement::semantic() %s\n", toChars());
         sc = sc.startCTFE();
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
         sc = sc.endCTFE();
+
         if (sw)
         {
             exp = exp.implicitCastTo(sc, sw.condition.type);
             exp = exp.optimize(WANTvalue | WANTexpand);
+
             /* This is where variables are allowed as case expressions.
              */
             if (exp.op == TOKvar)
@@ -3960,6 +4037,7 @@ public:
             }
             else
                 exp = exp.ctfeInterpret();
+
             if (StringExp se = exp.toStringExp())
                 exp = se;
             else if (exp.op != TOKint64 && exp.op != TOKerror)
@@ -3967,6 +4045,7 @@ public:
                 error("case must be a string or an integral constant, not %s", exp.toChars());
                 errors = true;
             }
+
         L1:
             foreach (cs; *sw.cases)
             {
@@ -3978,7 +4057,9 @@ public:
                     break;
                 }
             }
+
             sw.cases.push(this);
+
             // Resolve any goto case's with no exp to this case statement
             for (size_t i = 0; i < sw.gotoCases.dim;)
             {
@@ -3991,6 +4072,7 @@ public:
                 }
                 i++;
             }
+
             if (sc.sw.tf != sc.tf)
             {
                 error("switch and case are in different finally blocks");
@@ -4002,11 +4084,13 @@ public:
             error("case not in switch statement");
             errors = true;
         }
+
         statement = statement.semantic(sc);
         if (statement.isErrorStatement())
             return statement;
         if (errors || exp.op == TOKerror)
             return new ErrorStatement();
+
         return this;
     }
 
@@ -4058,6 +4142,7 @@ public:
             error("case range not in switch statement");
             return new ErrorStatement();
         }
+
         //printf("CaseRangeStatement::semantic() %s\n", toChars());
         bool errors = false;
         if (sw.isFinal)
@@ -4065,24 +4150,28 @@ public:
             error("case ranges not allowed in final switch");
             errors = true;
         }
+
         sc = sc.startCTFE();
         first = first.semantic(sc);
         first = resolveProperties(sc, first);
         sc = sc.endCTFE();
         first = first.implicitCastTo(sc, sw.condition.type);
         first = first.ctfeInterpret();
+
         sc = sc.startCTFE();
         last = last.semantic(sc);
         last = resolveProperties(sc, last);
         sc = sc.endCTFE();
         last = last.implicitCastTo(sc, sw.condition.type);
         last = last.ctfeInterpret();
+
         if (first.op == TOKerror || last.op == TOKerror || errors)
         {
             if (statement)
                 statement.semantic(sc);
             return new ErrorStatement();
         }
+
         uinteger_t fval = first.toInteger();
         uinteger_t lval = last.toInteger();
         if ((first.type.isunsigned() && fval > lval) || (!first.type.isunsigned() && cast(sinteger_t)fval > cast(sinteger_t)lval))
@@ -4091,14 +4180,17 @@ public:
             errors = true;
             lval = fval;
         }
+
         if (lval - fval > 256)
         {
             error("had %llu cases which is more than 256 cases in case range", lval - fval);
             errors = true;
             lval = fval + 256;
         }
+
         if (errors)
             return new ErrorStatement();
+
         /* This works by replacing the CaseRange with an array of Case's.
          *
          * case a: .. case b: s;
@@ -4108,6 +4200,7 @@ public:
          * case b:
          *   s;
          */
+
         auto statements = new Statements();
         for (uinteger_t i = fval; i != lval + 1; i++)
         {
@@ -4159,6 +4252,7 @@ public:
                 errors = true;
             }
             sc.sw.sdefault = this;
+
             if (sc.sw.tf != sc.tf)
             {
                 error("switch and default are in different finally blocks");
@@ -4175,9 +4269,11 @@ public:
             error("default not in switch statement");
             errors = true;
         }
+
         statement = statement.semantic(sc);
         if (errors || statement.isErrorStatement())
             return new ErrorStatement();
+
         return this;
     }
 
@@ -4257,6 +4353,7 @@ public:
             error("goto case not in switch statement");
             return new ErrorStatement();
         }
+
         if (exp)
         {
             exp = exp.semantic(sc);
@@ -4265,6 +4362,7 @@ public:
             if (exp.op == TOKerror)
                 return new ErrorStatement();
         }
+
         sc.sw.gotoCases.push(this);
         return this;
     }
@@ -4313,11 +4411,14 @@ public:
     override Statement semantic(Scope* sc)
     {
         //printf("ReturnStatement::semantic() %s\n", toChars());
+
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         if (fd.fes)
             fd = fd.fes.func; // fd is now function enclosing foreach
+
         TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
+
         if (exp && exp.op == TOKvar && (cast(VarExp)exp).var == fd.vresult)
         {
             // return vresult;
@@ -4333,15 +4434,19 @@ public:
                 gs.label = fd.returnLabel;
                 return gs;
             }
+
             if (!fd.returns)
                 fd.returns = new ReturnStatements();
             fd.returns.push(this);
             return this;
         }
+
         Type tret = tf.next;
         Type tbret = tret ? tret.toBasetype() : null;
+
         bool inferRef = (tf.isref && (fd.storage_class & STCauto));
         Expression e0 = null;
+
         bool errors = false;
         if (sc.flags & SCOPEcontract)
         {
@@ -4358,6 +4463,7 @@ public:
             error("return statements cannot be in finally bodies");
             errors = true;
         }
+
         if (fd.isCtorDeclaration())
         {
             if (exp)
@@ -4365,6 +4471,7 @@ public:
                 error("cannot return expression from constructor");
                 errors = true;
             }
+
             // Constructors implicitly do:
             //      return this;
             exp = new ThisExp(Loc());
@@ -4373,6 +4480,7 @@ public:
         else if (exp)
         {
             fd.hasReturnExp |= 1;
+
             FuncLiteralDeclaration fld = fd.isFuncLiteralDeclaration();
             if (tret)
                 exp = inferType(exp, tret);
@@ -4420,6 +4528,7 @@ public:
             if (e0)
                 e0 = checkGC(sc, e0);
         }
+
         if (exp)
         {
             if (fd.inferRetType) // infer return type
@@ -4434,6 +4543,7 @@ public:
                     int m2 = tret.implicitConvTo(exp.type);
                     //printf("exp->type = %s m2<-->m1 tret %s\n", exp->type->toChars(), tret->toChars());
                     //printf("m1 = %d, m2 = %d\n", m1, m2);
+
                     if (m1 && m2)
                     {
                     }
@@ -4449,9 +4559,11 @@ public:
                         tf.next = Type.terror;
                     }
                 }
+
                 tret = tf.next;
                 tbret = tret.toBasetype();
             }
+
             if (inferRef) // deduce 'auto ref'
             {
                 /* Determine "refness" of function return:
@@ -4466,12 +4578,14 @@ public:
                 }
                 else
                     tf.isref = false; // return by value
+
                 /* The "refness" is determined by all of return statements.
                  * This means:
                  *    return 3; return x;  // ok, x can be a value
                  *    return x; return 3;  // ok, x can be a value
                  */
             }
+
             // handle NRVO
             if (fd.nrvo_can && exp.op == TOKvar)
             {
@@ -4505,6 +4619,7 @@ public:
         {
             // handle NRVO
             fd.nrvo_can = 0;
+
             // infer return type
             if (fd.inferRetType)
             {
@@ -4519,11 +4634,14 @@ public:
                 }
                 else
                     tf.next = Type.tvoid;
+
                 tret = tf.next;
                 tbret = tret.toBasetype();
             }
+
             if (inferRef) // deduce 'auto ref'
                 tf.isref = false;
+
             if (tbret.ty != Tvoid) // if non-void return
             {
                 if (tbret.ty != Terror)
@@ -4536,6 +4654,7 @@ public:
                 exp = new IntegerExp(0);
             }
         }
+
         // If any branches have called a ctor, but this branch hasn't, it's an error
         if (sc.callSuper & CSXany_ctor && !(sc.callSuper & (CSXthis_ctor | CSXsuper_ctor)))
         {
@@ -4560,8 +4679,10 @@ public:
                 sc.fieldinit[i] |= CSXreturn;
             }
         }
+
         if (errors)
             return new ErrorStatement();
+
         if (sc.fes)
         {
             if (!exp)
@@ -4570,6 +4691,7 @@ public:
                 //  return exp;
                 Statement s = new ReturnStatement(Loc(), exp);
                 sc.fes.cases.push(s);
+
                 // Immediately rewrite "this" return statement as:
                 //  return cases->dim+1;
                 this.exp = new IntegerExp(sc.fes.cases.dim + 1);
@@ -4582,10 +4704,12 @@ public:
                 fd.buildResultVar(null, exp.type);
                 bool r = fd.vresult.checkNestedReference(sc, Loc());
                 assert(!r); // vresult should be always accessible
+
                 // Send out "case receiver" statement to the foreach.
                 //  return vresult;
                 Statement s = new ReturnStatement(Loc(), new VarExp(Loc(), fd.vresult));
                 sc.fes.cases.push(s);
+
                 // Save receiver index for the later rewriting from:
                 //  return exp;
                 // to:
@@ -4636,12 +4760,15 @@ public:
     override Statement semantic(Scope* sc)
     {
         //printf("BreakStatement::semantic()\n");
+
         // If:
         //  break Identifier;
         if (ident)
         {
             ident = fixupLabelName(sc, ident);
+
             FuncDeclaration thisfunc = sc.func;
+
             for (Scope* scx = sc; scx; scx = scx.enclosing)
             {
                 if (scx.func != thisfunc) // if in enclosing function
@@ -4661,6 +4788,7 @@ public:
                     }
                     break; // can't break to it
                 }
+
                 LabelStatement ls = scx.slabel;
                 if (ls && ls.ident == ident)
                 {
@@ -4729,8 +4857,10 @@ public:
         if (ident)
         {
             ident = fixupLabelName(sc, ident);
+
             Scope* scx;
             FuncDeclaration thisfunc = sc.func;
+
             for (scx = sc; scx; scx = scx.enclosing)
             {
                 LabelStatement ls;
@@ -4747,6 +4877,7 @@ public:
                                 return new ReturnStatement(Loc(), new IntegerExp(0));
                             }
                         }
+
                         /* Post this statement to the fes, and replace
                          * it with a return value that caller will put into
                          * a switch. Caller will figure out where the break
@@ -4760,6 +4891,7 @@ public:
                     }
                     break; // can't continue to it
                 }
+
                 ls = scx.slabel;
                 if (ls && ls.ident == ident)
                 {
@@ -4980,6 +5112,7 @@ public:
     {
         ScopeDsymbol sym;
         Initializer _init;
+
         //printf("WithStatement::semantic()\n");
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
@@ -5006,6 +5139,7 @@ public:
         else
         {
             Type t = exp.type.toBasetype();
+
             Expression olde = exp;
             if (t.ty == Tpointer)
             {
@@ -5013,6 +5147,7 @@ public:
                 exp = exp.semantic(sc);
                 t = exp.type.toBasetype();
             }
+
             assert(t);
             t = t.toBasetype();
             if (t.isClassHandle())
@@ -5020,6 +5155,7 @@ public:
                 _init = new ExpInitializer(loc, exp);
                 wthis = new VarDeclaration(loc, exp.type, Id.withSym, _init);
                 wthis.semantic(sc);
+
                 sym = new WithScopeSymbol(this);
                 sym.parent = sc.scopesym;
             }
@@ -5057,6 +5193,7 @@ public:
                 return new ErrorStatement();
             }
         }
+
         if (_body)
         {
             sym._scope = sc;
@@ -5067,6 +5204,7 @@ public:
             if (_body && _body.isErrorStatement())
                 return _body;
         }
+
         return this;
     }
 
@@ -5110,6 +5248,7 @@ public:
 
         _body = _body.semanticScope(sc, null, null);
         assert(_body);
+
         /* Even if body is empty, still do semantic analysis on catches
          */
         bool catchErrors = false;
@@ -5149,8 +5288,10 @@ public:
 
         if (catchErrors)
             return new ErrorStatement();
+
         if (_body.isErrorStatement())
             return _body;
+
         /* If the try body never throws, we can eliminate any catches
          * of recoverable exceptions.
          */
@@ -5159,6 +5300,7 @@ public:
             foreach_reverse (i; 0 .. catches.dim)
             {
                 Catch c = (*catches)[i];
+
                 /* If catch exception type is derived from Exception
                  */
                 if (c.type.toBasetype().implicitConvTo(ClassDeclaration.exception.type) && (!c.handler || !c.handler.comeFrom()))
@@ -5168,8 +5310,10 @@ public:
                 }
             }
         }
+
         if (catches.dim == 0)
             return _body.hasCode() ? _body : null;
+
         return this;
     }
 
@@ -5219,6 +5363,7 @@ public:
     void semantic(Scope* sc)
     {
         //printf("Catch::semantic(%s)\n", ident->toChars());
+
         static if (!IN_GCC)
         {
             if (sc.os && sc.os.tok != TOKon_scope_failure)
@@ -5239,9 +5384,11 @@ public:
                 errors = true;
             }
         }
+
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
+
         if (!type)
         {
             // reference .object.Throwable
@@ -5297,6 +5444,7 @@ public:
             if (handler && handler.isErrorStatement())
                 errors = true;
         }
+
         sc.pop();
     }
 }
@@ -5330,16 +5478,19 @@ public:
     {
         //printf("TryFinallyStatement::semantic()\n");
         _body = _body.semantic(sc);
+
         sc = sc.push();
         sc.tf = this;
         sc.sbreak = null;
         sc.scontinue = null; // no break or continue out of finally block
         finalbody = finalbody.semanticNoScope(sc);
         sc.pop();
+
         if (!_body)
             return finalbody;
         if (!finalbody)
             return _body;
+
         if (_body.blockExit(sc.func, false) == BEfallthru)
         {
             Statement s = new CompoundStatement(loc, _body, finalbody);
@@ -5406,6 +5557,7 @@ public:
                 }
             }
         }
+
         sc = sc.push();
         sc.tf = null;
         sc.os = this;
@@ -5417,6 +5569,7 @@ public:
         }
         statement = statement.semanticNoScope(sc);
         sc.pop();
+
         if (!statement || statement.isErrorStatement())
             return statement;
         return this;
@@ -5429,15 +5582,19 @@ public:
         *sentry = null;
         *sexception = null;
         *sfinally = null;
+
         Statement s = new PeelStatement(statement);
+
         switch (tok)
         {
         case TOKon_scope_exit:
             *sfinally = s;
             break;
+
         case TOKon_scope_failure:
             *sexception = s;
             break;
+
         case TOKon_scope_success:
             {
                 /* Create:
@@ -5447,12 +5604,15 @@ public:
                  */
                 auto v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type.tbool));
                 *sentry = new ExpStatement(loc, v);
+
                 Expression e = new IntegerExp(Loc(), 1, Type.tbool);
                 e = new AssignExp(Loc(), new VarExp(Loc(), v), e);
                 *sexception = new ExpStatement(Loc(), e);
+
                 e = new VarExp(Loc(), v);
                 e = new NotExp(Loc(), e);
                 *sfinally = new IfStatement(Loc(), null, e, s, null);
+
                 break;
             }
         default:
@@ -5495,17 +5655,20 @@ public:
         //printf("ThrowStatement::semantic()\n");
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         fd.hasReturnExp |= 2;
+
         exp = exp.semantic(sc);
         exp = resolveProperties(sc, exp);
         exp = checkGC(sc, exp);
         if (exp.op == TOKerror)
             return new ErrorStatement();
+
         ClassDeclaration cd = exp.type.toBasetype().isClassHandle();
         if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
         {
             error("can only throw class objects derived from Throwable, not type %s", exp.type.toChars());
             return new ErrorStatement();
         }
+
         return this;
     }
 
@@ -5590,11 +5753,13 @@ public:
     {
         //printf("GotoStatement::semantic()\n");
         FuncDeclaration fd = sc.func;
+
         ident = fixupLabelName(sc, ident);
         label = fd.searchLabel(ident);
         tf = sc.tf;
         os = sc.os;
         lastVar = sc.lastVar;
+
         if (!label.statement && sc.fes)
         {
             /* Either the goto label is forward referenced or it
@@ -5607,6 +5772,7 @@ public:
             sc.fes.gotos.push(ss); // 'look at this later' list
             return ss;
         }
+
         // Add to fwdref list to check later
         if (!label.statement)
         {
@@ -5616,6 +5782,7 @@ public:
         }
         else if (checkLabel())
             return new ErrorStatement();
+
         return this;
     }
 
@@ -5626,6 +5793,7 @@ public:
             error("label '%s' is undefined", label.toChars());
             return true;
         }
+
         if (label.statement.os != os)
         {
             if (os && os.tok == TOKon_scope_failure && !label.statement.os)
@@ -5641,14 +5809,17 @@ public:
                 return true;
             }
         }
+
         if (label.statement.tf != tf)
         {
             error("cannot goto in or out of finally block");
             return true;
         }
+
         VarDeclaration vd = label.statement.lastVar;
         if (!vd || vd.isDataseg() || (vd.storage_class & STCmanifest))
             return false;
+
         VarDeclaration last = lastVar;
         while (last && last != vd)
             last = last.lastVar;
@@ -5666,6 +5837,7 @@ public:
             error("goto skips declaration of variable %s at %s", vd.toPrettyChars(), vd.loc.toChars());
             return true;
         }
+
         return false;
     }
 
@@ -5704,10 +5876,12 @@ public:
     {
         //printf("LabelStatement::semantic()\n");
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
+
         ident = fixupLabelName(sc, ident);
         tf = sc.tf;
         os = sc.os;
         lastVar = sc.lastVar;
+
         LabelDsymbol ls = fd.searchLabel(ident);
         if (ls.statement)
         {
@@ -5716,6 +5890,7 @@ public:
         }
         else
             ls.statement = this;
+
         sc = sc.push();
         sc.scopesym = sc.enclosing.scopesym;
         sc.callSuper |= CSXlabel;
@@ -5729,6 +5904,7 @@ public:
         if (statement)
             statement = statement.semantic(sc);
         sc.pop();
+
         return this;
     }
 
@@ -5744,6 +5920,7 @@ public:
                 {
                     a.push(new ExpStatement(loc, cast(Expression)null));
                 }
+
                 // reuse 'this' LabelStatement
                 this.statement = (*a)[0];
                 (*a)[0] = this;
@@ -5871,6 +6048,7 @@ public:
         {
             s = s ? s.semantic(sc) : null;
         }
+
         assert(sc.func);
         // use setImpure/setGC when the deprecation cycle is over
         PURE purity;
@@ -5880,6 +6058,7 @@ public:
             deprecation("asm statement is assumed to use the GC - mark it with '@nogc' if it does not");
         if (!(stc & (STCtrusted | STCsafe)) && sc.func.setUnsafe())
             error("asm statement is assumed to be @system - mark it with '@trusted' if it is not");
+
         return this;
     }
 
@@ -5929,14 +6108,17 @@ public:
                 Identifier _alias = s.aliases[j];
                 if (!_alias)
                     _alias = name;
+
                 auto tname = new TypeIdentifier(s.loc, name);
                 auto ad = new AliasDeclaration(s.loc, _alias, tname);
                 ad._import = s;
                 s.aliasdecls.push(ad);
             }
+
             s.semantic(sc);
             Module.addDeferredSemantic2(s);     // Bugzilla 14666
             sc.insert(s);
+
             foreach (aliasdecl; s.aliasdecls)
             {
                 sc.insert(aliasdecl);
