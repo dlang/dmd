@@ -784,14 +784,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
                 if (init->isVoidInitializer())
                     continue;
 
-                /* Because of issue 14666, function local import does not invoke
-                 * semantic2 pass for the imported module, and surprisingly there's
-                 * no opportunity to do it today.
-                 * As a workaround for the issue 9057, have to resolve forward reference
-                 * in `init` before its use.
-                 */
-                if (vd->semanticRun < PASSsemantic2done && vd->_scope)
-                    vd->semantic2(vd->_scope);
+                assert(vd->semanticRun >= PASSsemantic2done);
 
                 ExpInitializer *ei = init->isExpInitializer();
                 Type *tb = vd->type->toBasetype();
