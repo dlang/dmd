@@ -33,6 +33,7 @@ enum PS = 0x2029;       // UTF paragraph separator
  * Do our own char maps
  */
 immutable ubyte[256] cmtable;
+
 enum CMoctal  = 0x1;
 enum CMhex    = 0x2;
 enum CMidchar = 0x4;
@@ -180,6 +181,7 @@ public:
         this.doDocComment = doDocComment;
         this.commentToken = commentToken;
         //initKeywords();
+
         /* If first line starts with '#!', ignore the line
          */
         if (p[0] == '#' && p[1] == '!')
@@ -193,14 +195,17 @@ public:
                 case '\n':
                     p++;
                     break;
+
                 case '\r':
                     p++;
                     if (*p == '\n')
                         p++;
                     break;
+
                 case 0:
                 case 0x1A:
                     break;
+
                 default:
                     if (c & 0x80)
                     {
@@ -270,21 +275,25 @@ public:
             case 0x1A:
                 t.value = TOKeof; // end of file
                 return;
+
             case ' ':
             case '\t':
             case '\v':
             case '\f':
                 p++;
                 continue; // skip white space
+
             case '\r':
                 p++;
                 if (*p != '\n') // if CR stands by itself
                     endOfLine();
                 continue; // skip white space
+
             case '\n':
                 p++;
                 endOfLine();
                 continue; // skip white space
+
             case '0':
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
                 {
@@ -317,6 +326,7 @@ public:
                 else
                     t.value = charConstant(t);
                 return;
+
             case 'r':
                 if (p[1] != '"')
                     goto case_ident;
@@ -325,12 +335,14 @@ public:
             case '`':
                 t.value = wysiwygStringConstant(t, *p);
                 return;
+
             case 'x':
                 if (p[1] != '"')
                     goto case_ident;
                 p++;
                 t.value = hexStringConstant(t);
                 return;
+
             case 'q':
                 if (p[1] == '"')
                 {
@@ -346,9 +358,11 @@ public:
                 }
                 else
                     goto case_ident;
+
             case '"':
                 t.value = escapeStringConstant(t, 0);
                 return;
+
             case 'a':
             case 'b':
             case 'c':
@@ -419,6 +433,7 @@ public:
                         }
                         break;
                     }
+
                     Identifier id = Identifier.idPool(cast(char*)t.ptr, p - t.ptr);
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
@@ -429,6 +444,7 @@ public:
                         __gshared char[11 + 1] date;
                         __gshared char[8 + 1] time;
                         __gshared char[24 + 1] timestamp;
+
                         if (!initdone) // lazy evaluation
                         {
                             initdone = true;
@@ -440,6 +456,7 @@ public:
                             sprintf(&time[0], "%.8s", p + 11);
                             sprintf(&timestamp[0], "%.24s", p);
                         }
+
                         if (id == Id.DATE)
                         {
                             t.ustring = date.ptr;
@@ -468,6 +485,7 @@ public:
                             uint major = 0;
                             uint minor = 0;
                             bool point = false;
+
                             for (const(char)* p = global._version + 1; 1; p++)
                             {
                                 const c = *p;
@@ -498,6 +516,7 @@ public:
                     //printf("t->value = %d\n",t->value);
                     return;
                 }
+
             case '/':
                 p++;
                 switch (*p)
@@ -506,6 +525,7 @@ public:
                     p++;
                     t.value = TOKdivass;
                     return;
+
                 case '*':
                     p++;
                     startLoc = loc();
@@ -518,15 +538,18 @@ public:
                             {
                             case '/':
                                 break;
+
                             case '\n':
                                 endOfLine();
                                 p++;
                                 continue;
+
                             case '\r':
                                 p++;
                                 if (*p != '\n')
                                     endOfLine();
                                 continue;
+
                             case 0:
                             case 0x1A:
                                 error("unterminated /* */ comment");
@@ -534,6 +557,7 @@ public:
                                 t.loc = loc();
                                 t.value = TOKeof;
                                 return;
+
                             default:
                                 if (c & 0x80)
                                 {
@@ -562,6 +586,7 @@ public:
                         getDocComment(t, lastLine == startLoc.linnum);
                     }
                     continue;
+
                 case '/': // do // style comments
                     startLoc = loc();
                     while (1)
@@ -571,10 +596,12 @@ public:
                         {
                         case '\n':
                             break;
+
                         case '\r':
                             if (p[1] == '\n')
                                 p++;
                             break;
+
                         case 0:
                         case 0x1A:
                             if (commentToken)
@@ -590,6 +617,7 @@ public:
                             t.loc = loc();
                             t.value = TOKeof;
                             return;
+
                         default:
                             if (c & 0x80)
                             {
@@ -601,6 +629,7 @@ public:
                         }
                         break;
                     }
+
                     if (commentToken)
                     {
                         p++;
@@ -611,9 +640,11 @@ public:
                     }
                     if (doDocComment && t.ptr[2] == '/')
                         getDocComment(t, lastLine == startLoc.linnum);
+
                     p++;
                     endOfLine();
                     continue;
+
                 case '+':
                     {
                         int nest;
@@ -633,6 +664,7 @@ public:
                                     nest++;
                                 }
                                 continue;
+
                             case '+':
                                 p++;
                                 if (*p == '/')
@@ -642,15 +674,18 @@ public:
                                         break;
                                 }
                                 continue;
+
                             case '\r':
                                 p++;
                                 if (*p != '\n')
                                     endOfLine();
                                 continue;
+
                             case '\n':
                                 endOfLine();
                                 p++;
                                 continue;
+
                             case 0:
                             case 0x1A:
                                 error("unterminated /+ +/ comment");
@@ -658,6 +693,7 @@ public:
                                 t.loc = loc();
                                 t.value = TOKeof;
                                 return;
+
                             default:
                                 if (c & 0x80)
                                 {
@@ -688,6 +724,7 @@ public:
                 }
                 t.value = TOKdiv;
                 return;
+
             case '.':
                 p++;
                 if (isdigit(*p))
@@ -714,6 +751,7 @@ public:
                 else
                     t.value = TOKdot;
                 return;
+
             case '&':
                 p++;
                 if (*p == '=')
@@ -729,6 +767,7 @@ public:
                 else
                     t.value = TOKand;
                 return;
+
             case '|':
                 p++;
                 if (*p == '=')
@@ -744,6 +783,7 @@ public:
                 else
                     t.value = TOKor;
                 return;
+
             case '-':
                 p++;
                 if (*p == '=')
@@ -759,6 +799,7 @@ public:
                 else
                     t.value = TOKmin;
                 return;
+
             case '+':
                 p++;
                 if (*p == '=')
@@ -774,6 +815,7 @@ public:
                 else
                     t.value = TOKadd;
                 return;
+
             case '<':
                 p++;
                 if (*p == '=')
@@ -806,6 +848,7 @@ public:
                 else
                     t.value = TOKlt; // <
                 return;
+
             case '>':
                 p++;
                 if (*p == '=')
@@ -838,6 +881,7 @@ public:
                 else
                     t.value = TOKgt; // >
                 return;
+
             case '!':
                 p++;
                 if (*p == '=')
@@ -881,6 +925,7 @@ public:
                 else
                     t.value = TOKnot; // !
                 return;
+
             case '=':
                 p++;
                 if (*p == '=')
@@ -896,6 +941,7 @@ public:
                 else
                     t.value = TOKassign; // =
                 return;
+
             case '~':
                 p++;
                 if (*p == '=')
@@ -906,6 +952,7 @@ public:
                 else
                     t.value = TOKtilde; // ~
                 return;
+
             case '^':
                 p++;
                 if (*p == '^')
@@ -927,54 +974,67 @@ public:
                 else
                     t.value = TOKxor; // ^
                 return;
+
             case '(':
                 p++;
                 t.value = TOKlparen;
                 return;
+
             case ')':
                 p++;
                 t.value = TOKrparen;
                 return;
+
             case '[':
                 p++;
                 t.value = TOKlbracket;
                 return;
+
             case ']':
                 p++;
                 t.value = TOKrbracket;
                 return;
+
             case '{':
                 p++;
                 t.value = TOKlcurly;
                 return;
+
             case '}':
                 p++;
                 t.value = TOKrcurly;
                 return;
+
             case '?':
                 p++;
                 t.value = TOKquestion;
                 return;
+
             case ',':
                 p++;
                 t.value = TOKcomma;
                 return;
+
             case ';':
                 p++;
                 t.value = TOKsemicolon;
                 return;
+
             case ':':
                 p++;
                 t.value = TOKcolon;
                 return;
+
             case '$':
                 p++;
                 t.value = TOKdollar;
                 return;
+
             case '@':
                 p++;
                 t.value = TOKat;
                 return;
+
             case '*':
                 p++;
                 if (*p == '=')
@@ -985,6 +1045,7 @@ public:
                 else
                     t.value = TOKmul;
                 return;
+
             case '%':
                 p++;
                 if (*p == '=')
@@ -995,6 +1056,7 @@ public:
                 else
                     t.value = TOKmod;
                 return;
+
             case '#':
                 {
                     p++;
@@ -1070,25 +1132,31 @@ public:
             case TOKlparen:
                 parens++;
                 continue;
+
             case TOKrparen:
                 --parens;
                 if (parens)
                     continue;
                 tk = peek(tk);
                 break;
+
             case TOKlcurly:
                 curlynest++;
                 continue;
+
             case TOKrcurly:
                 if (--curlynest >= 0)
                     continue;
                 break;
+
             case TOKsemicolon:
                 if (curlynest)
                     continue;
                 break;
+
             case TOKeof:
                 break;
+
             default:
                 continue;
             }
@@ -1103,6 +1171,7 @@ public:
     {
         uint c = *p;
         int ndigits;
+
         switch (c)
         {
         case '\'':
@@ -1112,33 +1181,43 @@ public:
         Lconsume:
             p++;
             break;
+
         case 'a':
             c = 7;
             goto Lconsume;
+
         case 'b':
             c = 8;
             goto Lconsume;
+
         case 'f':
             c = 12;
             goto Lconsume;
+
         case 'n':
             c = 10;
             goto Lconsume;
+
         case 'r':
             c = 13;
             goto Lconsume;
+
         case 't':
             c = 9;
             goto Lconsume;
+
         case 'v':
             c = 11;
             goto Lconsume;
+
         case 'u':
             ndigits = 4;
             goto Lhex;
+
         case 'U':
             ndigits = 8;
             goto Lhex;
+
         case 'x':
             ndigits = 2;
         Lhex:
@@ -1176,6 +1255,7 @@ public:
             else
                 error("undefined escape hex sequence \\%c", c);
             break;
+
         case '&':
             // named character entity
             for (const idstart = ++p; 1; p++)
@@ -1191,6 +1271,7 @@ public:
                     }
                     p++;
                     break;
+
                 default:
                     if (isalpha(*p) || (p != idstart && isdigit(*p)))
                         continue;
@@ -1200,11 +1281,13 @@ public:
                 break;
             }
             break;
+
         case 0:
         case 0x1A:
             // end of file
             c = '\\';
             break;
+
         default:
             if (isoctal(cast(char)c))
             {
@@ -1242,17 +1325,20 @@ public:
             case '\n':
                 endOfLine();
                 break;
+
             case '\r':
                 if (*p == '\n')
                     continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
                 break;
+
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
                 return TOKstring;
+
             case '"':
             case '`':
                 if (c == tc)
@@ -1262,6 +1348,7 @@ public:
                     return TOKstring;
                 }
                 break;
+
             default:
                 if (c & 0x80)
                 {
@@ -1288,6 +1375,7 @@ public:
         Loc start = loc();
         uint n = 0;
         uint v = ~0; // dead assignment, needed to suppress warning
+
         p++;
         stringbuffer.reset();
         while (1)
@@ -1300,6 +1388,7 @@ public:
             case '\v':
             case '\f':
                 continue; // skip white space
+
             case '\r':
                 if (*p == '\n')
                     continue; // ignore '\r' if followed by '\n'
@@ -1308,11 +1397,13 @@ public:
             case '\n':
                 endOfLine();
                 continue;
+
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
                 return TOKxstring;
+
             case '"':
                 if (n & 1)
                 {
@@ -1322,6 +1413,7 @@ public:
                 t.setString(stringbuffer);
                 stringPostfix(t);
                 return TOKxstring;
+
             default:
                 if (c >= '0' && c <= '9')
                     c -= '0';
@@ -1376,6 +1468,7 @@ public:
         Identifier hereid = null;
         uint blankrol = 0;
         uint startline = 0;
+
         p++;
         stringbuffer.reset();
         while (1)
@@ -1399,16 +1492,19 @@ public:
                     continue;
                 }
                 break;
+
             case '\r':
                 if (*p == '\n')
                     continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 goto Lnextline;
+
             case 0:
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
                 t.setString();
                 return TOKstring;
+
             default:
                 if (c & 0x80)
                 {
@@ -1500,6 +1596,7 @@ public:
                 startline = 0;
             }
         }
+
     Ldone:
         if (*p == '"')
             p++;
@@ -1525,6 +1622,7 @@ public:
         uint nest = 1;
         const start = loc();
         const pstart = ++p;
+
         while (1)
         {
             Token tok;
@@ -1534,6 +1632,7 @@ public:
             case TOKlcurly:
                 nest++;
                 continue;
+
             case TOKrcurly:
                 if (--nest == 0)
                 {
@@ -1542,10 +1641,12 @@ public:
                     return TOKstring;
                 }
                 continue;
+
             case TOKeof:
                 error("unterminated token string constant starting at %s", start.toChars());
                 t.setString();
                 return TOKstring;
+
             default:
                 continue;
             }
@@ -1557,6 +1658,7 @@ public:
     final TOK escapeStringConstant(Token* t, int wide)
     {
         const start = loc();
+
         p++;
         stringbuffer.reset();
         while (1)
@@ -1573,30 +1675,36 @@ public:
                     c = escapeSequence();
                     stringbuffer.writeUTF8(c);
                     continue;
+
                 default:
                     c = escapeSequence();
                     break;
                 }
                 break;
+
             case '\n':
                 endOfLine();
                 break;
+
             case '\r':
                 if (*p == '\n')
                     continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
                 break;
+
             case '"':
                 t.setString(stringbuffer);
                 stringPostfix(t);
                 return TOKstring;
+
             case 0:
             case 0x1A:
                 p--;
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
                 return TOKstring;
+
             default:
                 if (c & 0x80)
                 {
@@ -1622,6 +1730,7 @@ public:
     final TOK charConstant(Token* t)
     {
         auto tk = TOKcharv;
+
         //printf("Lexer::charConstant\n");
         p++;
         dchar c = *p++;
@@ -1634,16 +1743,19 @@ public:
                 t.uns64value = escapeSequence();
                 tk = TOKwcharv;
                 break;
+
             case 'U':
             case '&':
                 t.uns64value = escapeSequence();
                 tk = TOKdcharv;
                 break;
+
             default:
                 t.uns64value = escapeSequence();
                 break;
             }
             break;
+
         case '\n':
         L1:
             endOfLine();
@@ -1655,6 +1767,7 @@ public:
             error("unterminated character constant");
             t.uns64value = '?';
             return tk;
+
         default:
             if (c & 0x80)
             {
@@ -1671,6 +1784,7 @@ public:
             t.uns64value = c;
             break;
         }
+
         if (*p != '\'')
         {
             error("unterminated character constant");
@@ -1694,6 +1808,7 @@ public:
             t.postfix = *p;
             p++;
             break;
+
         default:
             t.postfix = 0;
             break;
@@ -1719,6 +1834,7 @@ public:
         bool err = false;
         bool overflow = false;
         dchar c = *p;
+
         if (c == '0')
         {
             ++p;
@@ -1737,38 +1853,46 @@ public:
                 ++p;
                 base = 8;
                 break;
+
             case 'x':
             case 'X':
                 ++p;
                 base = 16;
                 break;
+
             case 'b':
             case 'B':
                 ++p;
                 base = 2;
                 break;
+
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
                 if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
                     goto Ldone; // if ".identifier" or ".unicode"
                 goto Lreal; // '.' is part of current token
+
             case 'i':
             case 'f':
             case 'F':
                 goto Lreal;
+
             case '_':
                 ++p;
                 base = 8;
                 break;
+
             case 'L':
                 if (p[1] == 'i')
                     goto Lreal;
                 break;
+
             default:
                 break;
             }
         }
+
         while (1)
         {
             c = *p;
@@ -1779,6 +1903,7 @@ public:
                 ++p;
                 d = c - '0';
                 break;
+
             case '2':
             case '3':
             case '4':
@@ -1793,6 +1918,7 @@ public:
                 ++p;
                 d = c - '0';
                 break;
+
             case '8':
             case '9':
                 ++p;
@@ -1803,6 +1929,7 @@ public:
                 }
                 d = c - '0';
                 break;
+
             case 'a':
             case 'b':
             case 'c':
@@ -1831,28 +1958,34 @@ public:
                 else
                     d = c + 10 - 'A';
                 break;
+
             case 'L':
                 if (p[1] == 'i')
                     goto Lreal;
                 goto Ldone;
+
             case '.':
                 if (p[1] == '.')
                     goto Ldone; // if ".."
                 if (base == 10 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
                     goto Ldone; // if ".identifier" or ".unicode"
                 goto Lreal; // otherwise as part of a floating point literal
+
             case 'p':
             case 'P':
             case 'i':
             Lreal:
                 p = start;
                 return inreal(t);
+
             case '_':
                 ++p;
                 continue;
+
             default:
                 goto Ldone;
             }
+
             // Avoid expensive overflow check if we aren't at risk of overflow
             if (n <= 0x0FFF_FFFF_FFFF_FFFFUL)
                 n = n * base + d;
@@ -1864,12 +1997,14 @@ public:
                 n = addu(n, d, overflow);
             }
         }
+
     Ldone:
         if (overflow && !err)
         {
             error("integer overflow");
             err = true;
         }
+
         enum FLAGS : int
         {
             FLAGS_none = 0,
@@ -1884,6 +2019,7 @@ public:
         alias FLAGS_long = FLAGS.FLAGS_long;
 
         FLAGS flags = (base == 10) ? FLAGS_decimal : FLAGS_none;
+
         // Parse trailing 'u', 'U', 'l' or 'L' in any combination
         const psuffix = p;
         while (1)
@@ -1895,10 +2031,12 @@ public:
             case 'u':
                 f = FLAGS_unsigned;
                 goto L1;
+
             case 'l':
                 f = FLAGS_long;
                 error("lower case integer suffix 'l' is not allowed. Please use 'L' instead");
                 goto L1;
+
             case 'L':
                 f = FLAGS_long;
             L1:
@@ -1910,13 +2048,16 @@ public:
                 }
                 flags = cast(FLAGS)(flags | f);
                 continue;
+
             default:
                 break;
             }
             break;
         }
+
         if (base == 8 && n >= 8)
             error("octal literals 0%llo%.*s are no longer supported, use std.conv.octal!%llo%.*s instead", n, p - psuffix, psuffix, n, p - psuffix, psuffix);
+
         TOK result;
         switch (flags)
         {
@@ -1933,6 +2074,7 @@ public:
             else
                 result = TOKint32v;
             break;
+
         case FLAGS_decimal:
             /* First that fits: int, long, long long
              */
@@ -1950,6 +2092,7 @@ public:
             else
                 result = TOKint32v;
             break;
+
         case FLAGS_unsigned:
         case FLAGS_decimal | FLAGS_unsigned:
             /* First that fits: uint, ulong
@@ -1959,6 +2102,7 @@ public:
             else
                 result = TOKuns32v;
             break;
+
         case FLAGS_decimal | FLAGS_long:
             if (n & 0x8000000000000000L)
             {
@@ -1972,16 +2116,19 @@ public:
             else
                 result = TOKint64v;
             break;
+
         case FLAGS_long:
             if (n & 0x8000000000000000L)
                 result = TOKuns64v;
             else
                 result = TOKint64v;
             break;
+
         case FLAGS_unsigned | FLAGS_long:
         case FLAGS_decimal | FLAGS_unsigned | FLAGS_long:
             result = TOKuns64v;
             break;
+
         default:
             debug
             {
@@ -2010,6 +2157,7 @@ public:
         auto pstart = p;
         bool hex = false;
         dchar c = *p++;
+
         // Leading '0x'
         if (c == '0')
         {
@@ -2020,6 +2168,7 @@ public:
                 c = *p++;
             }
         }
+
         // Digits to left of '.'
         while (1)
         {
@@ -2045,6 +2194,7 @@ public:
             }
             break;
         }
+
         if (c == 'e' || c == 'E' || (hex && (c == 'p' || c == 'P')))
         {
             c = *p++;
@@ -2080,6 +2230,7 @@ public:
                 stringbuffer.writeByte(*pstart);
             ++pstart;
         }
+
         stringbuffer.writeByte(0);
         auto sbufptr = cast(const(char)*)stringbuffer.data;
         TOK result;
@@ -2094,6 +2245,7 @@ public:
             result = TOKfloat32v;
             p++;
             break;
+
         default:
             /* Should do our own strtod(), since dmc and linux gcc
              * accept 2.22507e-308, while apple gcc will only take
@@ -2103,6 +2255,7 @@ public:
             cast(void)Port.strtod(sbufptr, null);
             result = TOKfloat64v;
             break;
+
         case 'l':
             error("use 'L' suffix instead of 'l'");
             goto case 'L';
@@ -2147,6 +2300,7 @@ public:
             case TOKimaginary64v:
             case TOKimaginary80v:
                 break;
+
             default:
                 assert(0);
             }
@@ -2199,6 +2353,7 @@ public:
         const(char)* filespec = null;
         const loc = this.loc();
         Token tok;
+
         scan(&tok);
         if (tok.value == TOKint32v || tok.value == TOKint64v)
         {
@@ -2213,6 +2368,7 @@ public:
         }
         else
             goto Lerr;
+
         while (1)
         {
             switch (*p)
@@ -2225,6 +2381,7 @@ public:
                 if (filespec)
                     this.scanloc.filename = filespec;
                 return;
+
             case '\r':
                 p++;
                 if (*p != '\n')
@@ -2233,12 +2390,14 @@ public:
                     goto Lnewline;
                 }
                 continue;
+
             case ' ':
             case '\t':
             case '\v':
             case '\f':
                 p++;
                 continue; // skip white space
+
             case '_':
                 if (memcmp(p, "__FILE__".ptr, 8) == 0)
                 {
@@ -2247,6 +2406,7 @@ public:
                     continue;
                 }
                 goto Lerr;
+
             case '"':
                 if (filespec)
                     goto Lerr;
@@ -2263,11 +2423,13 @@ public:
                     case 0:
                     case 0x1A:
                         goto Lerr;
+
                     case '"':
                         stringbuffer.writeByte(0);
                         filespec = mem.xstrdup(cast(const(char)*)stringbuffer.data);
                         p++;
                         break;
+
                     default:
                         if (c & 0x80)
                         {
@@ -2282,6 +2444,7 @@ public:
                     break;
                 }
                 continue;
+
             default:
                 if (*p & 0x80)
                 {
@@ -2292,6 +2455,7 @@ public:
                 goto Lerr;
             }
         }
+
     Lerr:
         error(loc, "#line integer [\"filespec\"]\\n expected");
     }
@@ -2305,11 +2469,13 @@ public:
     {
         const s = p;
         assert(*s & 0x80);
+
         // Check length of remaining string up to 6 UTF-8 characters
         size_t len;
         for (len = 1; len < 6 && s[len]; len++)
         {
         }
+
         size_t idx = 0;
         dchar u;
         const msg = utf_decodeChar(s, len, idx, u);
@@ -2334,12 +2500,15 @@ public:
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
         const ct = t.ptr[2];
+
         /* Start of comment text skips over / * *, / + +, or / / /
          */
         const(char)* q = t.ptr + 3; // start of comment text
+
         const(char)* qend = p;
         if (ct == '*' || ct == '+')
             qend -= 2;
+
         /* Scan over initial row of ****'s or ++++'s or ////'s
          */
         for (; q < qend; q++)
@@ -2347,6 +2516,7 @@ public:
             if (*q != ct)
                 break;
         }
+
         /* Remove leading spaces until start of the comment
          */
         int linestart = 0;
@@ -2370,6 +2540,7 @@ public:
                 linestart = 1;
             }
         }
+
         /* Remove trailing row of ****'s or ++++'s
          */
         if (ct != '/')
@@ -2380,6 +2551,7 @@ public:
                     break;
             }
         }
+
         /* Comment is now [q .. qend].
          * Canonicalize it into buf[].
          */
@@ -2410,13 +2582,16 @@ public:
                     continue;
                 }
                 break;
+
             case ' ':
             case '\t':
                 break;
+
             case '\r':
                 if (q[1] == '\n')
                     continue; // skip the \r
                 goto Lnewline;
+
             default:
                 if (c == 226)
                 {
@@ -2429,11 +2604,13 @@ public:
                 }
                 linestart = 0;
                 break;
+
             Lnewline:
                 c = '\n'; // replace all newlines with \n
                 goto case;
             case '\n':
                 linestart = 1;
+
                 /* Trim trailing whitespace
                  */
                 trimTrailingWhitespace();
@@ -2441,6 +2618,7 @@ public:
             }
             buf.writeByte(c);
         }
+
         /* Trim trailing whitespace (if the last line does not have newline)
          */
         trimTrailingWhitespace();
@@ -2453,6 +2631,7 @@ public:
         // It's a line comment if the start of the doc comment comes
         // after other non-whitespace on the same line.
         auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
+
         // Combine with previous doc comment, if any
         if (*dc)
             *dc = combineComments(*dc, buf.peekString());
@@ -2475,17 +2654,21 @@ public:
             {
                 size_t len1 = strlen(c1);
                 size_t len2 = strlen(c2);
+
                 int insertNewLine = 0;
                 if (len1 && c1[len1 - 1] != '\n')
                 {
                     ++len1;
                     insertNewLine = 1;
                 }
+
                 auto p = cast(char*)mem.xmalloc(len1 + 1 + len2 + 1);
                 memcpy(p, c1, len1 - insertNewLine);
                 if (insertNewLine)
                     p[len1 - 1] = '\n';
+
                 p[len1] = '\n';
+
                 memcpy(p + len1 + 1, c2, len2);
                 p[len1 + 1 + len2] = 0;
                 c = p;
