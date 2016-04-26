@@ -71,6 +71,7 @@ extern (C++) bool MODimplicitConv(MOD modfrom, MOD modto)
 {
     if (modfrom == modto)
         return true;
+
     //printf("MODimplicitConv(from = %x, to = %x)\n", modfrom, modto);
     auto X(T, U)(T m, U n)
     {
@@ -84,6 +85,7 @@ extern (C++) bool MODimplicitConv(MOD modfrom, MOD modto)
     case X(MODwild, MODwildconst):
     case X(MODwildconst, MODconst):
         return (modfrom & MODshared) == (modto & MODshared);
+
     case X(MODimmutable, MODconst):
     case X(MODimmutable, MODwildconst):
         return true;
@@ -101,6 +103,7 @@ extern (C++) MATCH MODmethodConv(MOD modfrom, MOD modto)
         return MATCHexact;
     if (MODimplicitConv(modfrom, modto))
         return MATCHconst;
+
     auto X(T, U)(T m, U n)
     {
         return ((m << 4) | n);
@@ -117,6 +120,7 @@ extern (C++) MATCH MODmethodConv(MOD modfrom, MOD modto)
     case X(MODshared | MODconst, MODshared | MODwild):
     case X(MODshared | MODwildconst, MODshared | MODwild):
         return MATCHconst;
+
     default:
         return MATCHnomatch;
     }
@@ -129,6 +133,7 @@ extern (C++) MOD MODmerge(MOD mod1, MOD mod2)
 {
     if (mod1 == mod2)
         return mod1;
+
     //printf("MODmerge(1 = %x, 2 = %x)\n", mod1, mod2);
     MOD result = 0;
     if ((mod1 | mod2) & MODshared)
@@ -163,12 +168,15 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
     {
     case 0:
         break;
+
     case MODimmutable:
         buf.writestring(Token.tochars[TOKimmutable]);
         break;
+
     case MODshared:
         buf.writestring(Token.tochars[TOKshared]);
         break;
+
     case MODshared | MODconst:
         buf.writestring(Token.tochars[TOKshared]);
         buf.writeByte(' ');
@@ -176,6 +184,7 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
     case MODconst:
         buf.writestring(Token.tochars[TOKconst]);
         break;
+
     case MODshared | MODwild:
         buf.writestring(Token.tochars[TOKshared]);
         buf.writeByte(' ');
@@ -183,6 +192,7 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
     case MODwild:
         buf.writestring(Token.tochars[TOKwild]);
         break;
+
     case MODshared | MODwildconst:
         buf.writestring(Token.tochars[TOKshared]);
         buf.writeByte(' ');
@@ -192,6 +202,7 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
         buf.writeByte(' ');
         buf.writestring(Token.tochars[TOKconst]);
         break;
+
     default:
         assert(0);
     }
@@ -259,6 +270,7 @@ extern (C++) Type stripDefaultArgs(Type t)
 
     if (t is null)
         return t;
+
     if (t.ty == Tfunction)
     {
         TypeFunction tf = cast(TypeFunction)t;
@@ -658,26 +670,35 @@ public:
         if (pstc)
             *pstc = 0;
         StorageClass stc = 0;
+
         int inoutmismatch = 0;
+
         TypeFunction t1;
         TypeFunction t2;
+
         if (equals(t))
             return 1; // covariant
+
         if (ty != Tfunction || t.ty != Tfunction)
             goto Ldistinct;
+
         t1 = cast(TypeFunction)this;
         t2 = cast(TypeFunction)t;
+
         if (t1.varargs != t2.varargs)
             goto Ldistinct;
+
         if (t1.parameters && t2.parameters)
         {
             size_t dim = Parameter.dim(t1.parameters);
             if (dim != Parameter.dim(t2.parameters))
                 goto Ldistinct;
+
             for (size_t i = 0; i < dim; i++)
             {
                 Parameter fparam1 = Parameter.getNth(t1.parameters, i);
                 Parameter fparam2 = Parameter.getNth(t2.parameters, i);
+
                 if (!fparam1.type.equals(fparam2.type))
                 {
                     goto Ldistinct;
@@ -700,17 +721,21 @@ public:
             if (dim1 || dim2)
                 goto Ldistinct;
         }
+
         // The argument lists match
         if (inoutmismatch)
             goto Lnotcovariant;
         if (t1.linkage != t2.linkage)
             goto Lnotcovariant;
+
         {
             // Return types
             Type t1n = t1.next;
             Type t2n = t2.next;
+
             if (!t1n || !t2n) // happens with return type inference
                 goto Lnotcovariant;
+
             if (t1n.equals(t2n))
                 goto Lcovariant;
             if (t1n.ty == Tclass && t2n.ty == Tclass)
@@ -721,6 +746,7 @@ public:
                  */
                 if ((cast(TypeClass)t1n).sym == (cast(TypeClass)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
                     goto Lcovariant;
+
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
                 if (cd._scope)
@@ -741,12 +767,15 @@ public:
                 goto Lcovariant;
         }
         goto Lnotcovariant;
+
     Lcovariant:
         if (t1.isref != t2.isref)
             goto Lnotcovariant;
+
         // We can subtract 'return' from 'this', but cannot add it
         if (t1.isreturn && !t2.isreturn)
             goto Lnotcovariant;
+
         /* Can convert mutable to const
          */
         if (!MODimplicitConv(t2.mod, t1.mod))
@@ -765,14 +794,18 @@ public:
                 goto Ldistinct;
             }
         }
+
         /* Can convert pure to impure, nothrow to throw, and nogc to gc
          */
         if (!t1.purity && t2.purity)
             stc |= STCpure;
+
         if (!t1.isnothrow && t2.isnothrow)
             stc |= STCnothrow;
+
         if (!t1.isnogc && t2.isnogc)
             stc |= STCnogc;
+
         /* Can convert safe/trusted to system
          */
         if (t1.trust <= TRUSTsystem && t2.trust >= TRUSTtrusted)
@@ -780,17 +813,21 @@ public:
             // Should we infer trusted or safe? Go with safe.
             stc |= STCsafe;
         }
+
         if (stc)
         {
             if (pstc)
                 *pstc = stc;
             goto Lnotcovariant;
         }
+
         //printf("\tcovaraint: 1\n");
         return 1;
+
     Ldistinct:
         //printf("\tcovaraint: 0\n");
         return 0;
+
     Lnotcovariant:
         //printf("\tcovaraint: 2\n");
         return 2;
@@ -805,6 +842,7 @@ public:
         buf.reserve(16);
         HdrGenState hgs;
         hgs.fullQual = (ty == Tclass && !mod);
+
         .toCBuffer(this, &buf, null, &hgs);
         return buf.extractString();
     }
@@ -815,6 +853,7 @@ public:
         buf.reserve(16);
         HdrGenState hgs;
         hgs.fullQual = QualifyTypes;
+
         .toCBuffer(this, &buf, null, &hgs);
         return buf.extractString();
     }
@@ -827,6 +866,7 @@ public:
     static void _init()
     {
         stringtable._init(14000);
+
         // Set basic types
         static __gshared TY* basetab =
         [
@@ -856,6 +896,7 @@ public:
             Tdchar,
             Terror
         ];
+
         for (size_t i = 0; basetab[i] != Terror; i++)
         {
             Type t = new TypeBasic(basetab[i]);
@@ -863,6 +904,7 @@ public:
             basic[basetab[i]] = t;
         }
         basic[Terror] = new TypeError();
+
         tvoid = basic[Tvoid];
         tint8 = basic[Tint8];
         tuns8 = basic[Tuns8];
@@ -877,26 +919,32 @@ public:
         tfloat32 = basic[Tfloat32];
         tfloat64 = basic[Tfloat64];
         tfloat80 = basic[Tfloat80];
+
         timaginary32 = basic[Timaginary32];
         timaginary64 = basic[Timaginary64];
         timaginary80 = basic[Timaginary80];
+
         tcomplex32 = basic[Tcomplex32];
         tcomplex64 = basic[Tcomplex64];
         tcomplex80 = basic[Tcomplex80];
+
         tbool = basic[Tbool];
         tchar = basic[Tchar];
         twchar = basic[Twchar];
         tdchar = basic[Tdchar];
+
         tshiftcnt = tint32;
         terror = basic[Terror];
         tnull = basic[Tnull];
         tnull = new TypeNull();
         tnull.deco = tnull.merge().deco;
+
         tvoidptr = tvoid.pointerTo();
         tstring = tchar.immutableOf().arrayOf();
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
         tvalist = Target.va_listType();
+
         if (global.params.isLP64)
         {
             Tsize_t = Tuns64;
@@ -907,6 +955,7 @@ public:
             Tsize_t = Tuns32;
             Tptrdiff_t = Tint32;
         }
+
         tsize_t = basic[Tsize_t];
         tptrdiff_t = basic[Tptrdiff_t];
         thash_t = tsize_t;
@@ -937,6 +986,7 @@ public:
             error(loc, "cent and ucent types not implemented");
             return terror;
         }
+
         return merge();
     }
 
@@ -969,6 +1019,7 @@ public:
             return this;
         if (ty != Tenum && nextOf() && !nextOf().deco)
             return this;
+
         //printf("merge(%s)\n", toChars());
         Type t = this;
         assert(t);
@@ -976,7 +1027,9 @@ public:
         {
             OutBuffer buf;
             buf.reserve(32);
+
             mangleToBuffer(this, &buf);
+
             StringValue* sv = stringtable.update(cast(char*)buf.data, buf.offset);
             if (sv.ptrvalue)
             {
@@ -1010,6 +1063,7 @@ public:
         assert(t);
         if (!t.deco)
             return t.merge();
+
         StringValue* sv = stringtable.lookup(t.deco, strlen(t.deco));
         if (sv && sv.ptrvalue)
         {
@@ -1355,6 +1409,7 @@ public:
     {
         //printf("Type::unSharedOf() %p, %s\n", this, toChars());
         Type t = this;
+
         if (isShared())
         {
             if (isWild())
@@ -1373,6 +1428,7 @@ public:
             }
             assert(!t || !t.isShared());
         }
+
         if (!t)
         {
             t = this.nullAttributes();
@@ -1475,35 +1531,45 @@ public:
             case 0:
                 mto = t;
                 break;
+
             case MODconst:
                 cto = t;
                 break;
+
             case MODwild:
                 wto = t;
                 break;
+
             case MODwildconst:
                 wcto = t;
                 break;
+
             case MODshared:
                 sto = t;
                 break;
+
             case MODshared | MODconst:
                 scto = t;
                 break;
+
             case MODshared | MODwild:
                 swto = t;
                 break;
+
             case MODshared | MODwildconst:
                 swcto = t;
                 break;
+
             case MODimmutable:
                 ito = t;
                 break;
+
             default:
                 break;
             }
         }
         assert(mod != t.mod);
+
         auto X(T, U)(T m, U n)
         {
             return ((m << 4) | n);
@@ -1513,34 +1579,42 @@ public:
         {
         case 0:
             break;
+
         case MODconst:
             cto = mto;
             t.cto = this;
             break;
+
         case MODwild:
             wto = mto;
             t.wto = this;
             break;
+
         case MODwildconst:
             wcto = mto;
             t.wcto = this;
             break;
+
         case MODshared:
             sto = mto;
             t.sto = this;
             break;
+
         case MODshared | MODconst:
             scto = mto;
             t.scto = this;
             break;
+
         case MODshared | MODwild:
             swto = mto;
             t.swto = this;
             break;
+
         case MODshared | MODwildconst:
             swcto = mto;
             t.swcto = this;
             break;
+
         case MODimmutable:
             t.ito = this;
             if (t.cto)
@@ -1558,9 +1632,11 @@ public:
             if (t.swcto)
                 t.swcto.ito = this;
             break;
+
         default:
             assert(0);
         }
+
         check();
         t.check();
         //printf("fixTo: %s, %s\n", toChars(), t->toChars());
@@ -1591,6 +1667,7 @@ public:
             if (swcto)
                 assert(swcto.mod == (MODshared | MODwildconst));
             break;
+
         case MODconst:
             if (cto)
                 assert(cto.mod == 0);
@@ -1609,6 +1686,7 @@ public:
             if (swcto)
                 assert(swcto.mod == (MODshared | MODwildconst));
             break;
+
         case MODwild:
             if (cto)
                 assert(cto.mod == MODconst);
@@ -1627,6 +1705,7 @@ public:
             if (swcto)
                 assert(swcto.mod == (MODshared | MODwildconst));
             break;
+
         case MODwildconst:
             assert(!cto || cto.mod == MODconst);
             assert(!ito || ito.mod == MODimmutable);
@@ -1637,6 +1716,7 @@ public:
             assert(!swto || swto.mod == (MODshared | MODwild));
             assert(!swcto || swcto.mod == (MODshared | MODwildconst));
             break;
+
         case MODshared:
             if (cto)
                 assert(cto.mod == MODconst);
@@ -1655,6 +1735,7 @@ public:
             if (swcto)
                 assert(swcto.mod == (MODshared | MODwildconst));
             break;
+
         case MODshared | MODconst:
             if (cto)
                 assert(cto.mod == MODconst);
@@ -1673,6 +1754,7 @@ public:
             if (swcto)
                 assert(swcto.mod == (MODshared | MODwildconst));
             break;
+
         case MODshared | MODwild:
             if (cto)
                 assert(cto.mod == MODconst);
@@ -1691,6 +1773,7 @@ public:
             if (swcto)
                 assert(swcto.mod == (MODshared | MODwildconst));
             break;
+
         case MODshared | MODwildconst:
             assert(!cto || cto.mod == MODconst);
             assert(!ito || ito.mod == MODimmutable);
@@ -1701,6 +1784,7 @@ public:
             assert(!swto || swto.mod == (MODshared | MODwild));
             assert(!swcto || swcto.mod == 0);
             break;
+
         case MODimmutable:
             if (cto)
                 assert(cto.mod == MODconst);
@@ -1719,9 +1803,11 @@ public:
             if (swcto)
                 assert(swcto.mod == (MODshared | MODwildconst));
             break;
+
         default:
             assert(0);
         }
+
         Type tn = nextOf();
         if (tn && ty != Tfunction && tn.ty != Tfunction && ty != Tenum)
         {
@@ -1739,6 +1825,7 @@ public:
             case MODimmutable:
                 assert(tn.mod == MODimmutable || (tn.mod & mod) == mod);
                 break;
+
             default:
                 assert(0);
             }
@@ -1828,30 +1915,39 @@ public:
         case 0:
             t = unSharedOf().mutableOf();
             break;
+
         case MODconst:
             t = unSharedOf().constOf();
             break;
+
         case MODwild:
             t = unSharedOf().wildOf();
             break;
+
         case MODwildconst:
             t = unSharedOf().wildConstOf();
             break;
+
         case MODshared:
             t = mutableOf().sharedOf();
             break;
+
         case MODshared | MODconst:
             t = sharedConstOf();
             break;
+
         case MODshared | MODwild:
             t = sharedWildOf();
             break;
+
         case MODshared | MODwildconst:
             t = sharedWildConstOf();
             break;
+
         case MODimmutable:
             t = immutableOf();
             break;
+
         default:
             assert(0);
         }
@@ -1875,6 +1971,7 @@ public:
             {
             case 0:
                 break;
+
             case MODconst:
                 if (isShared())
                 {
@@ -1891,6 +1988,7 @@ public:
                         t = constOf();
                 }
                 break;
+
             case MODwild:
                 if (isShared())
                 {
@@ -1907,12 +2005,14 @@ public:
                         t = wildOf();
                 }
                 break;
+
             case MODwildconst:
                 if (isShared())
                     t = sharedWildConstOf();
                 else
                     t = wildConstOf();
                 break;
+
             case MODshared:
                 if (isWild())
                 {
@@ -1929,24 +2029,29 @@ public:
                         t = sharedOf();
                 }
                 break;
+
             case MODshared | MODconst:
                 if (isWild())
                     t = sharedWildConstOf();
                 else
                     t = sharedConstOf();
                 break;
+
             case MODshared | MODwild:
                 if (isConst())
                     t = sharedWildConstOf();
                 else
                     t = sharedWildOf();
                 break;
+
             case MODshared | MODwildconst:
                 t = sharedWildConstOf();
                 break;
+
             case MODimmutable:
                 t = immutableOf();
                 break;
+
             default:
                 assert(0);
             }
@@ -2098,6 +2203,7 @@ public:
             pflag = &(cast(TypeClass)tb).att;
         else
             return false;
+
         AliasThisRec flag = cast(AliasThisRec)(*pflag & RECtypeMask);
         if (flag == RECfwdref)
         {
@@ -2275,6 +2381,7 @@ public:
     {
         //printf("+Type::substWildTo this = %s, mod = x%x\n", toChars(), mod);
         Type t;
+
         if (Type tn = nextOf())
         {
             // substitution has no effect on function pointer type.
@@ -2283,6 +2390,7 @@ public:
                 t = this;
                 goto L1;
             }
+
             t = tn.substWildTo(mod);
             if (t == tn)
                 t = this;
@@ -2305,11 +2413,13 @@ public:
                 }
                 else
                     assert(0);
+
                 t = t.merge();
             }
         }
         else
             t = this;
+
     L1:
         if (isWild())
         {
@@ -2344,6 +2454,7 @@ public:
             t = t.addMod(MODconst);
         if (isShared())
             t = t.addMod(MODshared);
+
         //printf("-Type::substWildTo t = %s\n", t->toChars());
         return t;
     }
@@ -2351,6 +2462,7 @@ public:
     final Type unqualify(uint m)
     {
         Type t = mutableOf().unSharedOf();
+
         Type tn = ty == Tenum ? null : nextOf();
         if (tn && tn.ty != Tfunction)
         {
@@ -2370,6 +2482,7 @@ public:
                 }
                 else
                     assert(0);
+
                 t = t.merge();
             }
         }
@@ -2530,6 +2643,7 @@ public:
         }
         else
             e = getProperty(e.loc, ident, flag);
+
     Lreturn:
         if (!flag || e)
             e = e.semantic(sc);
@@ -2874,6 +2988,7 @@ public:
         Type t = baseElemOf();
         while (t.ty == Tpointer || t.ty == Tarray)
             t = t.nextOf().baseElemOf();
+
         if (t.isimaginary() || t.iscomplex())
         {
             const(char)* p = loc.toChars();
@@ -2884,14 +2999,17 @@ public:
             case Timaginary32:
                 rt = Type.tfloat32;
                 break;
+
             case Tcomplex64:
             case Timaginary64:
                 rt = Type.tfloat64;
                 break;
+
             case Tcomplex80:
             case Timaginary80:
                 rt = Type.tfloat80;
                 break;
+
             default:
                 assert(0);
             }
@@ -3220,11 +3338,14 @@ public:
         //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to->toChars());
         if (equals(to))
             return MATCHexact;
+
         if (!(ty == to.ty && MODimplicitConv(mod, to.mod)))
             return MATCHnomatch;
+
         Type tn = to.nextOf();
         if (!(tn && next.ty == tn.ty))
             return MATCHnomatch;
+
         MATCH m;
         if (to.isConst()) // whole tail const conversion
         {
@@ -3245,7 +3366,9 @@ public:
     {
         if (ty == Tfunction)
             return 0;
+
         ubyte wm;
+
         Type tn = t.nextOf();
         if (!isRef && (ty == Tarray || ty == Tpointer) && tn)
         {
@@ -3259,6 +3382,7 @@ public:
             if (!wm && tn)
                 wm = next.deduceWild(tn, true);
         }
+
         return wm;
     }
 
@@ -3293,98 +3417,122 @@ public:
         case Tvoid:
             d = Token.toChars(TOKvoid);
             break;
+
         case Tint8:
             d = Token.toChars(TOKint8);
             flags |= TFLAGSintegral;
             break;
+
         case Tuns8:
             d = Token.toChars(TOKuns8);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Tint16:
             d = Token.toChars(TOKint16);
             flags |= TFLAGSintegral;
             break;
+
         case Tuns16:
             d = Token.toChars(TOKuns16);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Tint32:
             d = Token.toChars(TOKint32);
             flags |= TFLAGSintegral;
             break;
+
         case Tuns32:
             d = Token.toChars(TOKuns32);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Tfloat32:
             d = Token.toChars(TOKfloat32);
             flags |= TFLAGSfloating | TFLAGSreal;
             break;
+
         case Tint64:
             d = Token.toChars(TOKint64);
             flags |= TFLAGSintegral;
             break;
+
         case Tuns64:
             d = Token.toChars(TOKuns64);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Tint128:
             d = Token.toChars(TOKint128);
             flags |= TFLAGSintegral;
             break;
+
         case Tuns128:
             d = Token.toChars(TOKuns128);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Tfloat64:
             d = Token.toChars(TOKfloat64);
             flags |= TFLAGSfloating | TFLAGSreal;
             break;
+
         case Tfloat80:
             d = Token.toChars(TOKfloat80);
             flags |= TFLAGSfloating | TFLAGSreal;
             break;
+
         case Timaginary32:
             d = Token.toChars(TOKimaginary32);
             flags |= TFLAGSfloating | TFLAGSimaginary;
             break;
+
         case Timaginary64:
             d = Token.toChars(TOKimaginary64);
             flags |= TFLAGSfloating | TFLAGSimaginary;
             break;
+
         case Timaginary80:
             d = Token.toChars(TOKimaginary80);
             flags |= TFLAGSfloating | TFLAGSimaginary;
             break;
+
         case Tcomplex32:
             d = Token.toChars(TOKcomplex32);
             flags |= TFLAGSfloating | TFLAGScomplex;
             break;
+
         case Tcomplex64:
             d = Token.toChars(TOKcomplex64);
             flags |= TFLAGSfloating | TFLAGScomplex;
             break;
+
         case Tcomplex80:
             d = Token.toChars(TOKcomplex80);
             flags |= TFLAGSfloating | TFLAGScomplex;
             break;
+
         case Tbool:
             d = "bool";
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Tchar:
             d = Token.toChars(TOKchar);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Twchar:
             d = Token.toChars(TOKwchar);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         case Tdchar:
             d = Token.toChars(TOKdchar);
             flags |= TFLAGSintegral | TFLAGSunsigned;
             break;
+
         default:
             assert(0);
         }
@@ -3414,53 +3562,66 @@ public:
         case Tuns8:
             size = 1;
             break;
+
         case Tint16:
         case Tuns16:
             size = 2;
             break;
+
         case Tint32:
         case Tuns32:
         case Tfloat32:
         case Timaginary32:
             size = 4;
             break;
+
         case Tint64:
         case Tuns64:
         case Tfloat64:
         case Timaginary64:
             size = 8;
             break;
+
         case Tfloat80:
         case Timaginary80:
             size = Target.realsize;
             break;
+
         case Tcomplex32:
             size = 8;
             break;
+
         case Tcomplex64:
         case Tint128:
         case Tuns128:
             size = 16;
             break;
+
         case Tcomplex80:
             size = Target.realsize * 2;
             break;
+
         case Tvoid:
             //size = Type::size();      // error message
             size = 1;
             break;
+
         case Tbool:
             size = 1;
             break;
+
         case Tchar:
             size = 1;
             break;
+
         case Twchar:
             size = 2;
             break;
+
         case Tdchar:
             size = 4;
             break;
+
         default:
             assert(0);
         }
@@ -3808,9 +3969,11 @@ public:
             }
         }
         return Type.getProperty(loc, ident, flag);
+
     Livalue:
         e = new IntegerExp(loc, ivalue, this);
         return e;
+
     Lfvalue:
         if (isreal() || isimaginary())
             e = new RealExp(loc, fvalue, this);
@@ -3819,12 +3982,14 @@ public:
             complex_t cvalue;
             cvalue.re = fvalue;
             cvalue.im = fvalue;
+
             //for (int i = 0; i < 20; i++)
             //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
             //printf("\n");
             e = new ComplexExp(loc, cvalue, this);
         }
         return e;
+
     Lint:
         e = new IntegerExp(loc, ivalue, Type.tint32);
         return e;
@@ -3844,31 +4009,38 @@ public:
             case Tcomplex32:
                 t = tfloat32;
                 goto L1;
+
             case Tcomplex64:
                 t = tfloat64;
                 goto L1;
+
             case Tcomplex80:
                 t = tfloat80;
                 goto L1;
             L1:
                 e = e.castTo(sc, t);
                 break;
+
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
                 break;
+
             case Timaginary32:
                 t = tfloat32;
                 goto L2;
+
             case Timaginary64:
                 t = tfloat64;
                 goto L2;
+
             case Timaginary80:
                 t = tfloat80;
                 goto L2;
             L2:
                 e = new RealExp(e.loc, ldouble(0.0), t);
                 break;
+
             default:
                 e = Type.getProperty(e.loc, ident, flag);
                 break;
@@ -3883,10 +4055,12 @@ public:
                 t = timaginary32;
                 t2 = tfloat32;
                 goto L3;
+
             case Tcomplex64:
                 t = timaginary64;
                 t2 = tfloat64;
                 goto L3;
+
             case Tcomplex80:
                 t = timaginary80;
                 t2 = tfloat80;
@@ -3895,12 +4069,15 @@ public:
                 e = e.castTo(sc, t);
                 e.type = t2;
                 break;
+
             case Timaginary32:
                 t = tfloat32;
                 goto L4;
+
             case Timaginary64:
                 t = tfloat64;
                 goto L4;
+
             case Timaginary80:
                 t = tfloat80;
                 goto L4;
@@ -3908,11 +4085,13 @@ public:
                 e = e.copy();
                 e.type = t;
                 break;
+
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
                 e = new RealExp(e.loc, ldouble(0.0), this);
                 break;
+
             default:
                 e = Type.getProperty(e.loc, ident, flag);
                 break;
@@ -3968,6 +4147,7 @@ public:
         //printf("TypeBasic::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
         if (this == to)
             return MATCHexact;
+
         if (ty == to.ty)
         {
             if (mod == to.mod)
@@ -3979,10 +4159,12 @@ public:
             else
                 return MATCHconvert;
         }
+
         if (ty == Tvoid || to.ty == Tvoid)
             return MATCHnomatch;
         if (to.ty == Tbool)
             return MATCHnomatch;
+
         TypeBasic tob;
         if (to.ty == Tvector && to.deco)
         {
@@ -3993,16 +4175,19 @@ public:
             tob = to.isTypeBasic();
         if (!tob)
             return MATCHnomatch;
+
         if (flags & TFLAGSintegral)
         {
             // Disallow implicit conversion of integers to imaginary or complex
             if (tob.flags & (TFLAGSimaginary | TFLAGScomplex))
                 return MATCHnomatch;
+
             // If converting from integral to integral
             if (tob.flags & TFLAGSintegral)
             {
                 d_uns64 sz = size(Loc());
                 d_uns64 tosz = tob.size(Loc());
+
                 /* Can't convert to smaller size
                  */
                 if (sz > tosz)
@@ -4018,13 +4203,17 @@ public:
             // Disallow implicit conversion of floating point to integer
             if (tob.flags & TFLAGSintegral)
                 return MATCHnomatch;
+
             assert(tob.flags & TFLAGSfloating || to.ty == Tvector);
+
             // Disallow implicit conversion from complex to non-complex
             if (flags & TFLAGScomplex && !(tob.flags & TFLAGScomplex))
                 return MATCHnomatch;
+
             // Disallow implicit conversion of real or imaginary to complex
             if (flags & (TFLAGSreal | TFLAGSimaginary) && tob.flags & TFLAGScomplex)
                 return MATCHnomatch;
+
             // Disallow implicit conversion to-from real and imaginary
             if ((flags & (TFLAGSreal | TFLAGSimaginary)) != (tob.flags & (TFLAGSreal | TFLAGSimaginary)))
                 return MATCHnomatch;
@@ -4039,15 +4228,18 @@ public:
             printf("TypeBasic::defaultInit() '%s'\n", toChars());
         }
         dinteger_t value = 0;
+
         switch (ty)
         {
         case Tchar:
             value = 0xFF;
             break;
+
         case Twchar:
         case Tdchar:
             value = 0xFFFF;
             break;
+
         case Timaginary32:
         case Timaginary64:
         case Timaginary80:
@@ -4055,6 +4247,7 @@ public:
         case Tfloat64:
         case Tfloat80:
             return new RealExp(loc, Port.snan, this);
+
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
@@ -4065,9 +4258,11 @@ public:
                 (cast(real_t*)&cvalue)[1] = Port.snan;
                 return new ComplexExp(loc, cvalue, this);
             }
+
         case Tvoid:
             error(loc, "void does not have a default initializer");
             return new ErrorExp();
+
         default:
             break;
         }
@@ -4326,6 +4521,7 @@ public:
         {
             static __gshared const(char)** reverseName = ["_adReverseChar", "_adReverseWchar"];
             static __gshared FuncDeclaration* reverseFd = [null, null];
+
             warning(e.loc, "use std.algorithm.reverse instead of .reverse property");
             int i = n.ty == Twchar;
             if (!reverseFd[i])
@@ -4336,6 +4532,7 @@ public:
                 params.push(new Parameter(0, arrty, null, null));
                 reverseFd[i] = FuncDeclaration.genCfunc(params, arrty, reverseName[i]);
             }
+
             Expression ec = new VarExp(Loc(), reverseFd[i], false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             auto arguments = new Expressions();
@@ -4347,6 +4544,7 @@ public:
         {
             static __gshared const(char)** sortName = ["_adSortChar", "_adSortWchar"];
             static __gshared FuncDeclaration* sortFd = [null, null];
+
             warning(e.loc, "use std.algorithm.sort instead of .sort property");
             int i = n.ty == Twchar;
             if (!sortFd[i])
@@ -4357,6 +4555,7 @@ public:
                 params.push(new Parameter(0, arrty, null, null));
                 sortFd[i] = FuncDeclaration.genCfunc(params, arrty, sortName[i]);
             }
+
             Expression ec = new VarExp(Loc(), sortFd[i], false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             auto arguments = new Expressions();
@@ -4370,8 +4569,10 @@ public:
             FuncDeclaration fd;
             Expressions* arguments;
             dinteger_t size = next.size(e.loc);
+
             warning(e.loc, "use std.algorithm.reverse instead of .reverse property");
             assert(size);
+
             static __gshared FuncDeclaration adReverse_fd = null;
             if (!adReverse_fd)
             {
@@ -4381,6 +4582,7 @@ public:
                 adReverse_fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), Id.adReverse);
             }
             fd = adReverse_fd;
+
             ec = new VarExp(Loc(), fd, false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             arguments = new Expressions();
@@ -4394,6 +4596,7 @@ public:
             static __gshared FuncDeclaration fd = null;
             Expression ec;
             Expressions* arguments;
+
             warning(e.loc, "use std.algorithm.sort instead of .sort property");
             if (!fd)
             {
@@ -4402,6 +4605,7 @@ public:
                 params.push(new Parameter(0, Type.dtypeinfo.type, null, null));
                 fd = FuncDeclaration.genCfunc(params, Type.tvoid.arrayOf(), "_adSort");
             }
+
             ec = new VarExp(Loc(), fd, false);
             e = e.castTo(sc, n.arrayOf()); // convert to dynamic array
             arguments = new Expressions();
@@ -4420,6 +4624,7 @@ public:
         if (!flag || e)
             e = e.semantic(sc);
         return e;
+
     Lerror:
         return new ErrorExp();
     }
@@ -4472,6 +4677,7 @@ public:
                 goto Loverflow;
         }
         return sz;
+
     Loverflow:
         error(loc, "index %lld overflow for static array", cast(long)sz);
         return SIZE_INVALID;
@@ -4512,9 +4718,11 @@ public:
             t = (cast(Type)o).addMod(this.mod);
             return t;
         }
+
         Type tn = next.semantic(loc, sc);
         if (tn.ty == Terror)
             return terror;
+
         Type tbn = tn.toBasetype();
         if (dim)
         {
@@ -4522,6 +4730,7 @@ public:
             dim = semanticLength(sc, tbn, dim);
             if (errors != global.errors)
                 goto Lerror;
+
             dim = dim.optimize(WANTvalue);
             dim = dim.ctfeInterpret();
             if (dim.op == TOKerror)
@@ -4530,6 +4739,7 @@ public:
             dinteger_t d1 = dim.toInteger();
             if (errors != global.errors)
                 goto Lerror;
+
             dim = dim.implicitCastTo(sc, tsize_t);
             dim = dim.optimize(WANTvalue);
             if (dim.op == TOKerror)
@@ -4538,8 +4748,10 @@ public:
             dinteger_t d2 = dim.toInteger();
             if (errors != global.errors)
                 goto Lerror;
+
             if (dim.op == TOKerror)
                 goto Lerror;
+
             if (d1 != d2)
             {
             Loverflow:
@@ -4591,13 +4803,16 @@ public:
             error(loc, "cannot have array of scope %s", tbn.toChars());
             goto Lerror;
         }
+
         /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
          * and const(T)[3] become const(T[3])
          */
         next = tn;
         transitive();
         t = addMod(tn.mod);
+
         return t.merge();
+
     Lerror:
         return Type.terror;
     }
@@ -4751,12 +4966,14 @@ public:
             TypeDArray ta = cast(TypeDArray)to;
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCHnomatch;
+
             /* Allow conversion to void[]
              */
             if (ta.next.ty == Tvoid)
             {
                 return MATCHconvert;
             }
+
             MATCH m = next.constConv(ta.next);
             if (m > MATCHnomatch)
             {
@@ -4768,6 +4985,7 @@ public:
         {
             if (this == to)
                 return MATCHexact;
+
             TypeSArray tsa = cast(TypeSArray)to;
             if (dim.equals(tsa.dim))
             {
@@ -4837,6 +5055,7 @@ public:
          */
         //if (dim->toInteger() == 0)
         //    return false;
+
         if (next.ty == Tvoid)
         {
             // Arrays of void contain arbitrary data, which may include pointers
@@ -5024,17 +5243,21 @@ public:
         //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (equals(to))
             return MATCHexact;
+
         if (to.ty == Tarray)
         {
             TypeDArray ta = cast(TypeDArray)to;
+
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCHnomatch; // not const-compatible
+
             /* Allow conversion to void[]
              */
             if (next.ty != Tvoid && ta.next.ty == Tvoid)
             {
                 return MATCHconvert;
             }
+
             MATCH m = next.constConv(ta.next);
             if (m > MATCHnomatch)
             {
@@ -5115,10 +5338,12 @@ public:
         //printf("TypeAArray::semantic() %s index->ty = %d\n", toChars(), index->ty);
         if (deco)
             return this;
+
         this.loc = loc;
         this.sc = sc;
         if (sc)
             sc.setNoFree();
+
         // Deal with the case where we thought the index was a type, but
         // in reality it was an expression.
         if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray || index.ty == Ttypeof || index.ty == Treturn)
@@ -5145,6 +5370,7 @@ public:
         else
             index = index.semantic(loc, sc);
         index = index.merge2();
+
         if (index.nextOf() && !index.nextOf().isImmutable())
         {
             index = index.constOf().mutableOf();
@@ -5161,6 +5387,7 @@ public:
                 }
             }
         }
+
         switch (index.toBasetype().ty)
         {
         case Tfunction:
@@ -5184,6 +5411,7 @@ public:
             StructDeclaration sd = (cast(TypeStruct)tbase).sym;
             if (sd._scope)
                 sd.semantic(null);
+
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
             if (sd.xeq && sd.xeq._scope && sd.xeq.semanticRun < PASSsemantic3done)
             {
@@ -5192,6 +5420,7 @@ public:
                 if (global.endGagging(errors))
                     sd.xeq = sd.xerreq;
             }
+
             //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd->xeq, sd->xhash);
             const(char)* s = (index.toBasetype().ty != Tstruct) ? "bottom of " : "";
             if (!sd.xeq)
@@ -5230,6 +5459,7 @@ public:
             {
                 // defined equality & hashing
                 assert(sd.xeq && sd.xhash);
+
                 /* xeq and xhash may be implicitly defined by compiler. For example:
                  *   struct S { int[] arr; }
                  * With 'arr' field equality and hashing, compiler will implicitly
@@ -5242,11 +5472,13 @@ public:
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
             if (cd._scope)
                 cd.semantic(null);
+
             if (!ClassDeclaration.object)
             {
                 error(Loc(), "missing or corrupt object.d");
                 fatal();
             }
+
             static __gshared FuncDeclaration feq = null;
             static __gshared FuncDeclaration fcmp = null;
             static __gshared FuncDeclaration fhash = null;
@@ -5257,6 +5489,7 @@ public:
             if (!fhash)
                 fhash = search_function(ClassDeclaration.object, Id.tohash).isFuncDeclaration();
             assert(fcmp && feq && fhash);
+
             if (feq.vtblIndex < cd.vtbl.dim && cd.vtbl[feq.vtblIndex] == feq)
             {
                 version (all)
@@ -5272,6 +5505,7 @@ public:
         }
         next = next.semantic(loc, sc).merge2();
         transitive();
+
         switch (next.toBasetype().ty)
         {
         case Tfunction:
@@ -5389,13 +5623,17 @@ public:
         //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (equals(to))
             return MATCHexact;
+
         if (to.ty == Taarray)
         {
             TypeAArray ta = cast(TypeAArray)to;
+
             if (!MODimplicitConv(next.mod, ta.next.mod))
                 return MATCHnomatch; // not const-compatible
+
             if (!MODimplicitConv(index.mod, ta.index.mod))
                 return MATCHnomatch; // not const-compatible
+
             MATCH m = next.constConv(ta.next);
             MATCH mi = index.constConv(ta.index);
             if (m > MATCHnomatch && mi > MATCHnomatch)
@@ -5504,6 +5742,7 @@ public:
         //printf("TypePointer::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
         if (equals(to))
             return MATCHexact;
+
         if (next.ty == Tfunction)
         {
             if (to.ty == Tpointer)
@@ -5513,6 +5752,7 @@ public:
                 {
                     if (next.equals(tp.next))
                         return MATCHconst;
+
                     if (next.covariant(tp.next) == 1)
                     {
                         Type tret = this.next.nextOf();
@@ -5543,14 +5783,17 @@ public:
         {
             TypePointer tp = cast(TypePointer)to;
             assert(tp.next);
+
             if (!MODimplicitConv(next.mod, tp.next.mod))
                 return MATCHnomatch; // not const-compatible
+
             /* Alloc conversion to void*
              */
             if (next.ty != Tvoid && tp.next.ty == Tvoid)
             {
                 return MATCHconvert;
             }
+
             MATCH m = next.constConv(tp.next);
             if (m > MATCHnomatch)
             {
@@ -5756,6 +5999,7 @@ public:
         this.parameters = parameters;
         this.varargs = varargs;
         this.linkage = linkage;
+
         if (stc & STCpure)
             this.purity = PUREfwdref;
         if (stc & STCnothrow)
@@ -5764,10 +6008,12 @@ public:
             this.isnogc = true;
         if (stc & STCproperty)
             this.isproperty = true;
+
         if (stc & STCref)
             this.isref = true;
         if (stc & STCreturn)
             this.isreturn = true;
+
         this.trust = TRUSTdefault;
         if (stc & STCsafe)
             this.trust = TRUSTsafe;
@@ -5814,7 +6060,9 @@ public:
         }
         //printf("TypeFunction::semantic() this = %p\n", this);
         //printf("TypeFunction::semantic() %s, sc->stc = %llx, fargs = %p\n", toChars(), sc->stc, fargs);
+
         bool errors = false;
+
         /* Copy in order to not mess up original.
          * This can produce redundant copies if inferring return type,
          * as semantic() will get called again on this.
@@ -5830,6 +6078,7 @@ public:
                 (*tf.parameters)[i] = p;
             }
         }
+
         if (sc.stc & STCpure)
             tf.purity = PUREfwdref;
         if (sc.stc & STCnothrow)
@@ -5840,14 +6089,17 @@ public:
             tf.isref = true;
         if (sc.stc & STCreturn)
             tf.isreturn = true;
+
         if (sc.stc & STCsafe)
             tf.trust = TRUSTsafe;
         if (sc.stc & STCsystem)
             tf.trust = TRUSTsystem;
         if (sc.stc & STCtrusted)
             tf.trust = TRUSTtrusted;
+
         if (sc.stc & STCproperty)
             tf.isproperty = true;
+
         tf.linkage = sc.linkage;
         version (none)
         {
@@ -5868,6 +6120,7 @@ public:
                     }
                 }
         }
+
         bool wildreturn = false;
         if (tf.next)
         {
@@ -5884,6 +6137,7 @@ public:
             if (tf.next.hasWild())
                 wildreturn = true;
         }
+
         ubyte wildparams = 0;
         if (tf.parameters)
         {
@@ -5893,6 +6147,7 @@ public:
             argsc.stc = 0; // don't inherit storage class
             argsc.protection = Prot(PROTpublic);
             argsc.func = null;
+
             size_t dim = Parameter.dim(tf.parameters);
             for (size_t i = 0; i < dim; i++)
             {
@@ -5906,13 +6161,17 @@ public:
                     errors = true;
                     continue;
                 }
+
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
+
                 if (fparam.storageClass & (STCauto | STCalias | STCstatic))
                 {
                     if (!fparam.type)
                         continue;
                 }
+
                 Type t = fparam.type.toBasetype();
+
                 if (t.ty == Tfunction)
                 {
                     error(loc, "cannot have parameter of function type %s", fparam.type.toChars());
@@ -5934,16 +6193,19 @@ public:
                     error(loc, "cannot have parameter of type %s", fparam.type.toChars());
                     errors = true;
                 }
+
                 if ((fparam.storageClass & (STCref | STCwild)) == (STCref | STCwild))
                 {
                     // 'ref inout' implies 'return'
                     fparam.storageClass |= STCreturn;
                 }
+
                 if (fparam.storageClass & STCreturn && !(fparam.storageClass & (STCref | STCout)))
                 {
                     error(loc, "'return' can only be used with 'ref' or 'out'");
                     errors = true;
                 }
+
                 if (fparam.storageClass & (STCref | STClazy))
                 {
                 }
@@ -5966,12 +6228,14 @@ public:
                         }
                     }
                 }
+
                 if (t.hasWild())
                 {
                     wildparams |= 1;
                     //if (tf->next && !wildreturn)
                     //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
                 }
+
                 if (fparam.defaultArg)
                 {
                     Expression e = fparam.defaultArg;
@@ -5998,13 +6262,16 @@ public:
                         e = e.semantic(argsc);
                     }
                     e = e.implicitCastTo(argsc, fparam.type);
+
                     // default arg must be an lvalue
                     if (fparam.storageClass & (STCout | STCref))
                         e = e.toLvalue(argsc, e);
+
                     fparam.defaultArg = e;
                     if (e.op == TOKerror)
                         errors = true;
                 }
+
                 /* If fparam after semantic() turns out to be a tuple, the number of parameters may
                  * change.
                  */
@@ -6051,6 +6318,7 @@ public:
                         fparam.type = new TypeTuple(newparams);
                     }
                     fparam.storageClass = 0;
+
                     /* Reset number of parameters, and back up one to do this fparam again,
                      * now that it is a tuple
                      */
@@ -6058,6 +6326,7 @@ public:
                     i--;
                     continue;
                 }
+
                 /* Resolve "auto ref" storage class to be either ref or value,
                  * based on the argument matching the parameter
                  */
@@ -6081,6 +6350,7 @@ public:
                         errors = true;
                     }
                 }
+
                 // Remove redundant storage classes for type, they are already applied
                 fparam.storageClass &= ~(STC_TYPECTOR | STCin);
             }
@@ -6088,32 +6358,39 @@ public:
         }
         if (tf.isWild())
             wildparams |= 2;
+
         if (wildreturn && !wildparams)
         {
             error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
             errors = true;
         }
         tf.iswild = wildparams;
+
         if (tf.inuse)
         {
             error(loc, "recursive type");
             tf.inuse = 0;
             errors = true;
         }
+
         if (tf.isproperty && (tf.varargs || Parameter.dim(tf.parameters) > 2))
         {
             error(loc, "properties can only have zero, one, or two parameter");
             errors = true;
         }
+
         if (tf.varargs == 1 && tf.linkage != LINKd && Parameter.dim(tf.parameters) == 0)
         {
             error(loc, "variadic functions with non-D linkage must have at least one parameter");
             errors = true;
         }
+
         if (errors)
             return terror;
+
         if (tf.next)
             tf.deco = tf.merge().deco;
+
         /* Don't return merge(), because arg identifiers and default args
          * can be different
          * even though the types match
@@ -6129,9 +6406,11 @@ public:
         TypeFunction tf = this;
         if (tf.purity != PUREfwdref)
             return;
+
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
         tf.purity = PUREstrong; // assume strong until something weakens it
+
         size_t dim = Parameter.dim(tf.parameters);
         if (!dim)
             return;
@@ -6141,6 +6420,7 @@ public:
             Type t = fparam.type;
             if (!t)
                 continue;
+
             if (fparam.storageClass & (STClazy | STCout))
             {
                 tf.purity = PUREweak;
@@ -6158,11 +6438,13 @@ public:
                 tf.purity = PUREweak;
                 break;
             }
+
             t = t.baseElemOf();
             if (!t.hasPointers())
                 continue;
             if (t.mod & MODimmutable)
                 continue;
+
             /* Accept immutable(T)[] and immutable(T)* as being strongly pure
              */
             if (t.ty == Tarray || t.ty == Tpointer)
@@ -6176,6 +6458,7 @@ public:
                     continue;
                 }
             }
+
             /* The rest of this is too strict; fix later.
              * For example, the only pointer members of a struct may be immutable,
              * which would maintain strong purity.
@@ -6185,6 +6468,7 @@ public:
                 tf.purity = PUREconst;
                 continue;
             }
+
             /* Should catch delegates and function pointers, and fold in their purity
              */
             tf.purity = PUREweak; // err on the side of too strict
@@ -6214,6 +6498,7 @@ public:
     bool parameterEscapes(Parameter p)
     {
         purityLevel();
+
         /* Scope parameters do not escape.
          * Allow 'lazy' to imply 'scope' -
          * lazy parameters can be passed along
@@ -6224,10 +6509,12 @@ public:
             return false;
         if (p.storageClass & STCreturn)
             return true;
+
         /* If haven't inferred the return type yet, assume it escapes
          */
         if (!nextOf())
             return true;
+
         if (purity > PUREweak)
         {
             /* With pure functions, we need only be concerned if p escapes
@@ -6242,6 +6529,7 @@ public:
                 return false;
             }
         }
+
         /* Assume it escapes in the absence of better information.
          */
         return true;
@@ -6264,6 +6552,7 @@ public:
             tf.isreturn = t.isreturn;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
+
             if (stc & STCpure)
                 tf.purity = PUREfwdref;
             if (stc & STCnothrow)
@@ -6272,6 +6561,7 @@ public:
                 tf.isnogc = true;
             if (stc & STCsafe)
                 tf.trust = TRUSTsafe;
+
             tf.deco = tf.merge().deco;
             t = tf;
         }
@@ -6287,27 +6577,34 @@ public:
             res = fp(param, "pure");
         if (res)
             return res;
+
         if (isnothrow)
             res = fp(param, "nothrow");
         if (res)
             return res;
+
         if (isnogc)
             res = fp(param, "@nogc");
         if (res)
             return res;
+
         if (isproperty)
             res = fp(param, "@property");
         if (res)
             return res;
+
         if (isref)
             res = fp(param, "ref");
         if (res)
             return res;
+
         if (isreturn)
             res = fp(param, "return");
         if (res)
             return res;
+
         TRUST trustAttrib = trust;
+
         if (trustAttrib == TRUSTdefault)
         {
             // Print out "@system" when trust equals TRUSTdefault (if desired).
@@ -6316,6 +6613,7 @@ public:
             else
                 return res; // avoid calling with an empty string
         }
+
         return fp(param, trustToChars(trustAttrib));
     }
 
@@ -6323,10 +6621,12 @@ public:
     {
         if (!iswild && !(mod & MODwild))
             return this;
+
         // Substitude inout qualifier of function type to mutable or immutable
         // would break type system. Instead substitude inout to the most weak
         // qualifer - const.
         uint m = MODconst;
+
         assert(next);
         Type tret = next.substWildTo(m);
         Parameters* params = parameters;
@@ -6344,6 +6644,7 @@ public:
         }
         if (next == tret && params == parameters)
             return this;
+
         // Similar to TypeFunction::syntaxCopy;
         auto t = new TypeFunction(params, tret, varargs, linkage);
         t.mod = ((mod & MODwild) ? (mod & ~MODwild) | MODconst : mod);
@@ -6372,6 +6673,7 @@ public:
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCHexact; // assume exact match
         ubyte wildmatch = 0;
+
         if (tthis)
         {
             Type t = tthis;
@@ -6400,6 +6702,7 @@ public:
                     wildmatch |= MODmutable;
             }
         }
+
         size_t nparams = Parameter.dim(parameters);
         size_t nargs = args ? args.dim : 0;
         if (nparams == nargs)
@@ -6412,6 +6715,7 @@ public:
             // too many args; no match
             match = MATCHconvert; // match ... with a "conversion" match level
         }
+
         for (size_t u = 0; u < nargs; u++)
         {
             if (u >= nparams)
@@ -6421,6 +6725,7 @@ public:
             assert(arg);
             Type tprm = p.type;
             Type targ = arg.type;
+
             if (!(p.storageClass & STClazy && tprm.ty == Tvoid && targ.ty != Tvoid))
             {
                 bool isRef = (p.storageClass & (STCref | STCout)) != 0;
@@ -6443,9 +6748,11 @@ public:
                 wildmatch = MODmutable;
             }
         }
+
         for (size_t u = 0; u < nparams; u++)
         {
             MATCH m;
+
             Parameter p = Parameter.getNth(parameters, u);
             assert(p);
             if (u >= nargs)
@@ -6540,6 +6847,7 @@ public:
              */
             if (varargs == 2 && u + 1 == nparams && nargs > nparams)
                 goto L1;
+
             //printf("\tm = %d\n", m);
             if (m == MATCHnomatch) // if no match
             {
@@ -6549,6 +6857,7 @@ public:
                     Type tb = p.type.toBasetype();
                     TypeSArray tsa;
                     dinteger_t sz;
+
                     switch (tb.ty)
                     {
                     case Tsarray:
@@ -6564,6 +6873,7 @@ public:
                             {
                                 Expression arg = (*args)[u];
                                 assert(arg);
+
                                 /* If lazy array of delegates,
                                  * convert arg(s) to delegate(s)
                                  */
@@ -6583,6 +6893,7 @@ public:
                                 }
                                 else
                                     m = arg.implicitConvTo(ta.next);
+
                                 if (m == MATCHnomatch)
                                     goto Nomatch;
                                 if (m < match)
@@ -6594,6 +6905,7 @@ public:
                         // Should see if there's a constructor match?
                         // Or just leave it ambiguous?
                         goto Ldone;
+
                     default:
                         goto Nomatch;
                     }
@@ -6603,9 +6915,11 @@ public:
             if (m < match)
                 match = m; // pick worst match
         }
+
     Ldone:
         //printf("match = %d\n", match);
         return match;
+
     Nomatch:
         //printf("no match\n");
         return MATCHnomatch;
@@ -6692,6 +7006,7 @@ public:
         next = next.semantic(loc, sc);
         if (next.ty != Tfunction)
             return terror;
+
         /* In order to deal with Bugzilla 4028, perhaps default arguments should
          * be removed from next before the merge.
          */
@@ -6727,6 +7042,7 @@ public:
         //printf("to  : %s\n", to->toChars());
         if (this == to)
             return MATCHexact;
+
         version (all)
         {
             // not allowing covariant conversions because it interferes with overriding
@@ -6748,6 +7064,7 @@ public:
                 return MATCHconvert;
             }
         }
+
         return MATCHnomatch;
     }
 
@@ -6879,10 +7196,13 @@ public:
         *pt = null;
         *ps = null;
         *pe = null;
+
         auto tup = s.isTupleDeclaration();
+
         auto eindex = isExpression(oindex);
         auto tindex = isType(oindex);
         auto sindex = isDsymbol(oindex);
+
         if (!tup)
         {
             // It's really an index expression
@@ -7288,6 +7608,7 @@ public:
             *pt = Type.terror;
             return;
         }
+
         Dsymbol scopesym;
         Dsymbol s = sc.search(loc, ident, &scopesym);
         resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
@@ -7304,6 +7625,7 @@ public:
         //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
         if (!sc)
             return null;
+
         Type t;
         Expression e;
         Dsymbol s;
@@ -7312,6 +7634,7 @@ public:
             s = t.toDsymbol(sc);
         if (e)
             s = getDsymbol(e);
+
         return s;
     }
 
@@ -7407,6 +7730,7 @@ public:
         Type t;
         Expression e;
         Dsymbol s;
+
         //printf("TypeInstance::semantic(%p, %s)\n", this, toChars());
         {
             uint errors = global.errors;
@@ -7415,6 +7739,7 @@ public:
             if (!t && errors != global.errors)
                 return terror;
         }
+
         if (!t)
         {
             if (!e && s && s.errors)
@@ -7496,6 +7821,7 @@ public:
         *pe = null;
         *pt = null;
         *ps = null;
+
         //printf("TypeTypeof::resolve(sc = %p, idents = '%s')\n", sc, toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
         if (inuse)
@@ -7649,6 +7975,7 @@ public:
         *pe = null;
         *pt = null;
         *ps = null;
+
         //printf("TypeReturn::resolve(sc = %p, idents = '%s')\n", sc, toChars());
         Type t;
         {
@@ -7768,11 +8095,13 @@ public:
     override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeStruct::semantic('%s')\n", sym->toChars());
+
         /* Don't semantic for sym because it should be deferred until
          * sizeof needed or its members accessed.
          */
         // instead, parent should be set correctly
         assert(sym.parent);
+
         if (sym.type.ty == Terror)
             return Type.terror;
         return merge();
@@ -7793,11 +8122,13 @@ public:
         // Bugzilla 14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag);
+
         if (!sym.members)
         {
             error(e.loc, "struct %s is forward referenced", sym.toChars());
             return new ErrorExp();
         }
+
         /* If e.tupleof
          */
         if (ident == Id._tupleof)
@@ -7836,6 +8167,7 @@ public:
             sc2.pop();
             return e;
         }
+
         if (e.op == TOKdot)
         {
             DotExp de = cast(DotExp)e;
@@ -7849,6 +8181,7 @@ public:
                 // goto L1;
             }
         }
+
         s = sym.search(e.loc, ident);
     L1:
         if (!s)
@@ -7897,6 +8230,7 @@ public:
             ve = ve.semantic(sc);
             return ve;
         }
+
         if (auto t = s.getType())
         {
             return (new TypeExp(e.loc, t)).semantic(sc);
@@ -7909,6 +8243,7 @@ public:
             de.type = e.type;
             return de;
         }
+
         TemplateDeclaration td = s.isTemplateDeclaration();
         if (td)
         {
@@ -7919,6 +8254,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
+
         TemplateInstance ti = s.isTemplateInstance();
         if (ti)
         {
@@ -7937,11 +8273,13 @@ public:
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
             return e.semantic(sc);
         }
+
         if (s.isImport() || s.isModule() || s.isPackage())
         {
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
+
         OverloadSet o = s.isOverloadSet();
         if (o)
         {
@@ -7950,6 +8288,7 @@ public:
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
+
         Declaration d = s.isDeclaration();
         debug
         {
@@ -7957,6 +8296,7 @@ public:
                 printf("d = %s '%s'\n", s.kind(), s.toChars());
         }
         assert(d);
+
         if (e.op == TOKtype)
         {
             /* It's:
@@ -7988,6 +8328,7 @@ public:
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -8037,6 +8378,7 @@ public:
         sym.size(loc);
         if (sym.sizeok != SIZEOKdone)
             return new ErrorExp();
+
         auto structelems = new Expressions();
         structelems.setDim(sym.fields.dim - sym.isNested());
         uint offset = 0;
@@ -8067,11 +8409,13 @@ public:
             (*structelems)[j] = e;
         }
         auto structinit = new StructLiteralExp(loc, sym, structelems);
+
         /* Copy from the initializer symbol for larger symbols,
          * otherwise the literals expressed as code get excessively large.
          */
         if (size(loc) > Target.ptrsize * 4 && !needsNested())
             structinit.useStaticInit = true;
+
         structinit.type = this;
         return structinit;
     }
@@ -8085,6 +8429,7 @@ public:
     {
         bool assignable = true;
         uint offset = ~0; // dead-store initialize to prevent spurious warning
+
         /* If any of the fields are const or immutable,
          * then one cannot assign this struct.
          */
@@ -8113,6 +8458,7 @@ public:
             offset = v.offset;
             //printf(" -> assignable = %d\n", assignable);
         }
+
         return assignable;
     }
 
@@ -8130,6 +8476,7 @@ public:
     {
         if (sym.isNested())
             return true;
+
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
             VarDeclaration v = sym.fields[i];
@@ -8143,6 +8490,7 @@ public:
     {
         // Probably should cache this information in sym rather than recompute
         StructDeclaration s = sym;
+
         sym.size(Loc()); // give error for forward references
         for (size_t i = 0; i < s.fields.dim; i++)
         {
@@ -8156,6 +8504,7 @@ public:
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
+
         //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym)
         {
@@ -8188,13 +8537,17 @@ public:
                             if (m <= MATCHnomatch)
                                 return m;
                         }
+
                         // 'from' type
                         Type tvf = v.type.addMod(mod);
+
                         // 'to' type
                         Type tv = v.type.addMod(to.mod);
+
                         // field match
                         MATCH mf = tvf.implicitConvTo(tv);
                         //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
+
                         if (mf <= MATCHnomatch)
                             return mf;
                         if (mf < m) // if field match is worse
@@ -8228,13 +8581,16 @@ public:
     {
         if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
             return Type.deduceWild(t, isRef);
+
         ubyte wm = 0;
+
         if (t.hasWild() && sym.aliasthis && !(att & RECtracing))
         {
             att = cast(AliasThisRec)(att | RECtracing);
             wm = aliasthisOf().deduceWild(t, isRef);
             att = cast(AliasThisRec)(att & ~RECtracing);
         }
+
         return wm;
     }
 
@@ -8307,6 +8663,7 @@ public:
         // Bugzilla 14010
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag);
+
         if (sym._scope)
             sym.semantic(sym._scope);
         if (!sym.members)
@@ -8320,6 +8677,7 @@ public:
                 e = null;
             return e;
         }
+
         Dsymbol s = sym.search(e.loc, ident);
         if (!s)
         {
@@ -8531,11 +8889,13 @@ public:
     override Type semantic(Loc loc, Scope* sc)
     {
         //printf("TypeClass::semantic(%s)\n", sym->toChars());
+
         /* Don't semantic for sym because it should be deferred until
          * sizeof needed or its members accessed.
          */
         // instead, parent should be set correctly
         assert(sym.parent);
+
         if (sym.type.ty == Terror)
             return Type.terror;
         return merge();
@@ -8564,16 +8924,19 @@ public:
                 goto L1;
             }
         }
+
         // Bugzilla 12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
         {
             return Type.getProperty(e.loc, ident, 0);
         }
+
         if (ident == Id._tupleof)
         {
             /* Create a TupleExp
              */
             e = e.semantic(sc); // do this before turning on noaccesscheck
+
             /* If this is called in the middle of a class declaration,
              *  class Inner {
              *    int x;
@@ -8616,6 +8979,7 @@ public:
             sc2.pop();
             return e;
         }
+
         s = sym.search(e.loc, ident);
     L1:
         if (!s)
@@ -8637,6 +9001,7 @@ public:
                     e = new DotTypeExp(e.loc, e, cbase);
                 return e;
             }
+
             if (ident == Id.classinfo)
             {
                 assert(Type.typeinfoclass);
@@ -8683,6 +9048,7 @@ public:
                 }
                 return e;
             }
+
             if (ident == Id.__vptr)
             {
                 /* The pointer to the vtbl[]
@@ -8693,6 +9059,7 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
+
             if (ident == Id.__monitor)
             {
                 /* The handle to the monitor (call it a void*)
@@ -8704,6 +9071,7 @@ public:
                 e = e.semantic(sc);
                 return e;
             }
+
             if (ident == Id.outer && sym.vthis)
             {
                 if (sym.vthis._scope)
@@ -8784,6 +9152,7 @@ public:
             ve = ve.semantic(sc);
             return ve;
         }
+
         if (auto t = s.getType())
         {
             return (new TypeExp(e.loc, t)).semantic(sc);
@@ -8796,6 +9165,7 @@ public:
             de.type = e.type;
             return de;
         }
+
         TemplateDeclaration td = s.isTemplateDeclaration();
         if (td)
         {
@@ -8806,6 +9176,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
+
         TemplateInstance ti = s.isTemplateInstance();
         if (ti)
         {
@@ -8824,11 +9195,13 @@ public:
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
             return e.semantic(sc);
         }
+
         if (s.isImport() || s.isModule() || s.isPackage())
         {
             e = DsymbolExp.resolve(e.loc, sc, s, false);
             return e;
         }
+
         OverloadSet o = s.isOverloadSet();
         if (o)
         {
@@ -8837,12 +9210,14 @@ public:
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
+
         Declaration d = s.isDeclaration();
         if (!d)
         {
             e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
             return new ErrorExp();
         }
+
         if (e.op == TOKtype)
         {
             /* It's:
@@ -8852,6 +9227,7 @@ public:
             TemplateInstance tiparent = d.isInstantiated();
             if (tiparent && tiparent.errors)
                 return new ErrorExp();
+
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
@@ -8889,6 +9265,7 @@ public:
                         e1.type = e1.type.addMod(t.mod);
                         // Do not call checkNestedRef()
                         //e1 = e1->semantic(sc);
+
                         // Skip up over nested functions, and get the enclosing
                         // class type.
                         int n = 0;
@@ -8929,6 +9306,7 @@ public:
                 ve.type = d.type.addMod(e.type.mod);
             return ve;
         }
+
         bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
@@ -8939,6 +9317,7 @@ public:
             e = e.semantic(sc);
             return e;
         }
+
         if (d.parent && d.toParent().isModule())
         {
             // (e, d)
@@ -8975,6 +9354,7 @@ public:
         MATCH m = constConv(to);
         if (m > MATCHnomatch)
             return m;
+
         ClassDeclaration cdto = to.isClassHandle();
         if (cdto)
         {
@@ -8989,6 +9369,7 @@ public:
                 return MATCHconvert;
             }
         }
+
         m = MATCHnomatch;
         if (sym.aliasthis && !(att & RECtracing))
         {
@@ -8996,6 +9377,7 @@ public:
             m = aliasthisOf().implicitConvTo(to);
             att = cast(AliasThisRec)(att & ~RECtracing);
         }
+
         return m;
     }
 
@@ -9005,6 +9387,7 @@ public:
             return MATCHexact;
         if (ty == to.ty && sym == (cast(TypeClass)to).sym && MODimplicitConv(mod, to.mod))
             return MATCHconst;
+
         /* Conversion derived to const(base)
          */
         int offset = 0;
@@ -9016,6 +9399,7 @@ public:
             if (!to.isMutable() && !to.isWild())
                 return MATCHconvert;
         }
+
         return MATCHnomatch;
     }
 
@@ -9024,13 +9408,16 @@ public:
         ClassDeclaration cd = t.isClassHandle();
         if (cd && (sym == cd || cd.isBaseOf(sym, null)))
             return Type.deduceWild(t, isRef);
+
         ubyte wm = 0;
+
         if (t.hasWild() && sym.aliasthis && !(att & RECtracing))
         {
             att = cast(AliasThisRec)(att | RECtracing);
             wm = aliasthisOf().deduceWild(t, isRef);
             att = cast(AliasThisRec)(att & ~RECtracing);
         }
+
         return wm;
     }
 
@@ -9172,6 +9559,7 @@ public:
         //printf("TypeTuple::semantic() %p, %s\n", this, toChars());
         if (!deco)
             deco = merge().deco;
+
         /* Don't return merge(), because a tuple with one type has the
          * same deco as that type.
          */
@@ -9285,6 +9673,7 @@ public:
         //printf("TypeSlice::semantic() %s\n", toChars());
         Type tn = next.semantic(loc, sc);
         //printf("next: %s\n", tn->toChars());
+
         Type tbn = tn.toBasetype();
         if (tbn.ty != Ttuple)
         {
@@ -9292,12 +9681,14 @@ public:
             return Type.terror;
         }
         TypeTuple tt = cast(TypeTuple)tbn;
+
         lwr = semanticLength(sc, tbn, lwr);
         upr = semanticLength(sc, tbn, upr);
         lwr = lwr.ctfeInterpret();
         upr = upr.ctfeInterpret();
         if (lwr.op == TOKerror || upr.op == TOKerror)
             return Type.terror;
+
         uinteger_t i1 = lwr.toUInteger();
         uinteger_t i2 = upr.toUInteger();
         if (!(i1 <= i2 && i2 <= tt.arguments.dim))
@@ -9308,6 +9699,7 @@ public:
 
         next = tn;
         transitive();
+
         auto args = new Parameters();
         args.reserve(cast(size_t)(i2 - i1));
         for (size_t i = cast(size_t)i1; i < cast(size_t)i2; i++)
@@ -9345,6 +9737,7 @@ public:
                 upr = upr.semantic(sc);
                 sc = sc.endCTFE();
                 sc = sc.pop();
+
                 lwr = lwr.ctfeInterpret();
                 upr = upr.ctfeInterpret();
                 uinteger_t i1 = lwr.toUInteger();
@@ -9354,11 +9747,13 @@ public:
                     error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td.objects.dim);
                     goto Ldefault;
                 }
+
                 if (i1 == 0 && i2 == td.objects.dim)
                 {
                     *ps = td;
                     return;
                 }
+
                 /* Create a new TupleDeclaration which
                  * is a slice [i1..i2] out of the old one.
                  */
@@ -9368,6 +9763,7 @@ public:
                 {
                     (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
                 }
+
                 auto tds = new TupleDeclaration(loc, td.ident, objects);
                 *ps = tds;
             }
@@ -9418,6 +9814,7 @@ public:
         MATCH m = Type.implicitConvTo(to);
         if (m != MATCHnomatch)
             return m;
+
         // NULL implicitly converts to any pointer type or dynamic array
         //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
         {
@@ -9425,6 +9822,7 @@ public:
             if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)
                 return MATCHconst;
         }
+
         return MATCHnomatch;
     }
 
@@ -9603,12 +10001,14 @@ public:
         assert(dg);
         if (!parameters)
             return 0;
+
         size_t n = pn ? *pn : 0; // take over index
         int result = 0;
         foreach (i; 0 .. parameters.dim)
         {
             Parameter p = (*parameters)[i];
             Type t = p.type.toBasetype();
+
             if (t.ty == Ttuple)
             {
                 TypeTuple tu = cast(TypeTuple)t;
@@ -9616,9 +10016,11 @@ public:
             }
             else
                 result = dg(n++, p);
+
             if (result)
                 break;
         }
+
         if (pn)
             *pn = n; // update index
         return result;
