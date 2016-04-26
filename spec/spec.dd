@@ -1,7 +1,6 @@
 Ddoc
 
 $(TOC Table of Contents,
-
 	$(P This is the specification for the D Programming Language.
 	For more information see $(AHTTP dlang.org, dlang.org).)
 
