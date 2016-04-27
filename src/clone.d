@@ -130,16 +130,21 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
 
 /*******************************************
  * We need an opAssign for the struct if
- * it has a destructor or a postblit.
+ * it has a destructor or a non-disabled postblit.
  * We need to generate one if a user-specified one does not exist.
+ * Params:
+ *      sd = struct to investigate
+ * Returns:
+ *      true means need an opAssign
  */
-extern (C++) bool needOpAssign(StructDeclaration sd)
+bool needOpAssign(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
     if (sd.hasIdentityAssign)
         goto Lneed; // because has identity==elaborate opAssign
 
-    if (sd.dtor || sd.postblit)
+    if (sd.dtor ||
+        sd.postblit && !(sd.postblit.storage_class & STCdisable))
         goto Lneed;
     /* If any of the fields need an opAssign, then we
      * need it too.
@@ -196,7 +201,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     if (!needOpAssign(sd))
         return null;
 
-    //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
+    //printf("StructDeclaration.buildOpAssign() %s\n", sd.toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
