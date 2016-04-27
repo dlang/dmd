@@ -661,6 +661,12 @@ public:
         return new AnonDeclaration(loc, isunion, Dsymbol.arraySyntaxCopy(decl));
     }
 
+    override void setScope(Scope* sc)
+    {
+        super.setScope(sc);
+        alignment = sc.structalign;
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
