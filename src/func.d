@@ -711,7 +711,7 @@ public:
             /* Apply const, immutable, wild and shared storage class
              * to the function type. Do this before type semantic.
              */
-            StorageClass stc = storage_class;
+            auto stc = storage_class;
             if (type.isImmutable())
                 stc |= STCimmutable;
             if (type.isConst())
@@ -720,54 +720,7 @@ public:
                 stc |= STCshared;
             if (type.isWild())
                 stc |= STCwild;
-            switch (stc & STC_TYPECTOR)
-            {
-            case STCimmutable:
-            case STCimmutable | STCconst:
-            case STCimmutable | STCwild:
-            case STCimmutable | STCwild | STCconst:
-            case STCimmutable | STCshared:
-            case STCimmutable | STCshared | STCconst:
-            case STCimmutable | STCshared | STCwild:
-            case STCimmutable | STCshared | STCwild | STCconst:
-                // Don't use immutableOf(), as that will do a merge()
-                type = type.makeImmutable();
-                break;
-
-            case STCconst:
-                type = type.makeConst();
-                break;
-
-            case STCwild:
-                type = type.makeWild();
-                break;
-
-            case STCwild | STCconst:
-                type = type.makeWildConst();
-                break;
-
-            case STCshared:
-                type = type.makeShared();
-                break;
-
-            case STCshared | STCconst:
-                type = type.makeSharedConst();
-                break;
-
-            case STCshared | STCwild:
-                type = type.makeSharedWild();
-                break;
-
-            case STCshared | STCwild | STCconst:
-                type = type.makeSharedWildConst();
-                break;
-
-            case 0:
-                break;
-
-            default:
-                assert(0);
-            }
+            type = type.addSTC(stc);
 
             type = type.semantic(loc, sc);
             sc = sc.pop();
