@@ -1,14 +1,13 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8894.d(6): Error: no property 'x' for type 'Foo'
-fail_compilation/diag8894.d(7): Error: no property 'y' for type 'Foo'
-fail_compilation/diag8894.d(8): Error: no property 'x' for type 'Foo'
-fail_compilation/diag8894.d(9): Error: no property 'x' for type 'Foo'
+fail_compilation/diag8894.d(16): Error: no property 'x' for type 'Foo'
+fail_compilation/diag8894.d(17): Error: no property 'y' for type 'Foo'
+fail_compilation/diag8894.d(18): Error: no property 'x' for type 'Foo'
+fail_compilation/diag8894.d(19): Error: no property 'x' for type 'Foo'
 ---
 */
 
-#line 1
 struct Foo { }
 
 void main()
