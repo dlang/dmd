@@ -180,10 +180,10 @@ public:
     bool checkIntegral();
     bool checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
-    bool checkPurity(Scope *sc, FuncDeclaration *f);
-    bool checkPurity(Scope *sc, VarDeclaration *v);
-    bool checkSafety(Scope *sc, FuncDeclaration *f);
-    bool checkNogc(Scope *sc, FuncDeclaration *f);
+    static bool checkPurity(Loc loc, Scope *sc, FuncDeclaration *f);
+    static bool checkPurity(Loc loc, Scope *sc, VarDeclaration *v);
+    static bool checkSafety(Loc loc, Scope *sc, FuncDeclaration *f);
+    static bool checkNogc(Loc loc, Scope *sc, FuncDeclaration *f);
     bool checkPostblit(Scope *sc, Type *t);
     bool checkRightThis(Scope *sc);
     bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);

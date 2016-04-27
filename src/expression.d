@@ -510,7 +510,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
-        if (v && ve.checkPurity(sc, v))
+        if (v && Expression.checkPurity(ve.loc, sc, v))
             return new ErrorExp();
     }
     if (e2)
@@ -2039,6 +2039,17 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         arguments.insert(0, e);
     }
 
+    err |= (olderrors != global.errors);
+
+    if (fd)
+    {
+        // TODO: Converting errors in these checks to an ErrorExp will hide
+        // nothrow errors.
+        Expression.checkPurity(loc, sc, fd);
+        Expression.checkSafety(loc, sc, fd);
+        Expression.checkNogc(loc, sc, fd);
+    }
+
     Type tret = tf.next;
     if (isCtorCall)
     {
@@ -2073,7 +2084,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     }
     *prettype = tret;
     *peprefix = eprefix;
-    return (err || olderrors != global.errors);
+    return err;
 }
 
 /****************************************************************/
@@ -2964,7 +2975,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other pure functions.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, FuncDeclaration f)
+    static bool checkPurity(Loc loc, Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -3042,7 +3053,7 @@ extern (C++) abstract class Expression : RootObject
             FuncDeclaration ff = outerfunc;
             if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
             {
-                error("pure %s '%s' cannot call impure %s '%s'",
+                .error(loc, "pure %s '%s' cannot call impure %s '%s'",
                     ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
@@ -3055,7 +3066,7 @@ extern (C++) abstract class Expression : RootObject
      * Check for purity and safety violations.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, VarDeclaration v)
+    static bool checkPurity(Loc loc, Scope* sc, VarDeclaration v)
     {
         //printf("v = %s %s\n", v->type->toChars(), v->toChars());
         /* Look for purity and safety violations when accessing variable v
@@ -3105,7 +3116,7 @@ extern (C++) abstract class Expression : RootObject
                     break;
                 if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
                 {
-                    error("pure %s '%s' cannot access mutable static data '%s'",
+                    .error(loc, "pure %s '%s' cannot access mutable static data '%s'",
                         ff.kind(), ff.toPrettyChars(), v.toChars());
                     err = true;
                     break;
@@ -3155,7 +3166,7 @@ extern (C++) abstract class Expression : RootObject
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                        .error(loc, "pure immutable %s '%s' cannot access mutable data '%s'",
                             ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
@@ -3166,7 +3177,7 @@ extern (C++) abstract class Expression : RootObject
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                        .error(loc, "pure immutable %s '%s' cannot access mutable data '%s'",
                             ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
@@ -3183,7 +3194,7 @@ extern (C++) abstract class Expression : RootObject
         {
             if (sc.func.setUnsafe())
             {
-                error("safe %s '%s' cannot access __gshared data '%s'",
+                .error(loc, "safe %s '%s' cannot access __gshared data '%s'",
                     sc.func.kind(), sc.func.toChars(), v.toChars());
                 err = true;
             }
@@ -3198,7 +3209,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call @safe or @trusted functions.
      * Returns true if error occurs.
      */
-    final bool checkSafety(Scope* sc, FuncDeclaration f)
+    static bool checkSafety(Loc loc, Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -3215,7 +3226,7 @@ extern (C++) abstract class Expression : RootObject
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("@safe %s '%s' cannot call @system %s '%s'",
+                .error(loc, "@safe %s '%s' cannot call @system %s '%s'",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
@@ -3229,7 +3240,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other @nogc functions.
      * Returns true if error occurs.
      */
-    final bool checkNogc(Scope* sc, FuncDeclaration f)
+    static bool checkNogc(Loc loc, Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -3246,7 +3257,7 @@ extern (C++) abstract class Expression : RootObject
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                .error(loc, "@nogc %s '%s' cannot call non-@nogc %s '%s'",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
@@ -3275,10 +3286,10 @@ extern (C++) abstract class Expression : RootObject
                     return true;
                 }
                 //checkDeprecated(sc, sd->postblit);        // necessary?
-                checkPurity(sc, sd.postblit);
-                checkSafety(sc, sd.postblit);
-                checkNogc(sc, sd.postblit);
                 //checkAccess(sd, loc, sc, sd->postblit);   // necessary?
+                checkPurity(loc, sc, sd.postblit);
+                checkSafety(loc, sc, sd.postblit);
+                checkNogc(loc, sc, sd.postblit);
                 return false;
             }
         }
@@ -6180,10 +6191,8 @@ extern (C++) final class NewExp : Expression
                 FuncDeclaration f = resolveFuncCall(loc, sc, cd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
                     return new ErrorExp();
+
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -6208,10 +6217,8 @@ extern (C++) final class NewExp : Expression
                 FuncDeclaration f = resolveFuncCall(loc, sc, cd.ctor, null, tb, arguments, 0);
                 if (!f || f.errors)
                     return new ErrorExp();
+
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -6258,10 +6265,8 @@ extern (C++) final class NewExp : Expression
                 FuncDeclaration f = resolveFuncCall(loc, sc, sd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
                     return new ErrorExp();
+
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -6287,9 +6292,6 @@ extern (C++) final class NewExp : Expression
                 if (!f || f.errors)
                     return new ErrorExp();
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -9755,7 +9757,7 @@ extern (C++) final class CallExp : UnaExp
                     ve.type = t.semantic(loc, sc);
                 }
                 VarDeclaration v = ve.var.isVarDeclaration();
-                if (v && ve.checkPurity(sc, v))
+                if (v && checkPurity(ve.loc, sc, v))
                     return new ErrorExp();
             }
 
@@ -9998,10 +10000,8 @@ extern (C++) final class CallExp : UnaExp
             }
 
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             checkAccess(loc, sc, ue.e1, f);
+
             if (!f.needThis())
             {
                 e1 = Expression.combine(ue.e1, new VarExp(loc, f, false));
@@ -10090,10 +10090,8 @@ extern (C++) final class CallExp : UnaExp
                 f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
+
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             checkAccess(loc, sc, null, f);
 
             e1 = new DotVarExp(e1.loc, e1, f, false);
@@ -10128,10 +10126,8 @@ extern (C++) final class CallExp : UnaExp
                 f = resolveFuncCall(loc, sc, ad.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
+
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             //checkAccess(loc, sc, NULL, f);    // necessary?
 
             e1 = new DotVarExp(e1.loc, e1, f, false);
@@ -10263,9 +10259,6 @@ extern (C++) final class CallExp : UnaExp
             // Purity and safety check should run after testing arguments matching
             if (f)
             {
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 if (f.checkNestedReference(sc, loc))
                     return new ErrorExp();
             }
@@ -10356,10 +10349,8 @@ extern (C++) final class CallExp : UnaExp
             }
 
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             checkAccess(loc, sc, null, f);
+
             if (f.checkNestedReference(sc, loc))
                 return new ErrorExp();
 
@@ -10647,7 +10638,7 @@ extern (C++) final class AddrExp : UnaExp
                     }
                 }
 
-                ve.checkPurity(sc, v);
+                checkPurity(ve.loc, sc, v);
             }
             FuncDeclaration f = ve.var.isFuncDeclaration();
             if (f)
@@ -11093,15 +11084,15 @@ extern (C++) final class DeleteExp : UnaExp
         {
             if (ad.dtor)
             {
-                err |= checkPurity(sc, ad.dtor);
-                err |= checkSafety(sc, ad.dtor);
-                err |= checkNogc(sc, ad.dtor);
+                err |= checkPurity(loc, sc, ad.dtor);
+                err |= checkSafety(loc, sc, ad.dtor);
+                err |= checkNogc(loc, sc, ad.dtor);
             }
             if (ad.aggDelete && tb.ty != Tarray)
             {
-                err |= checkPurity(sc, ad.aggDelete);
-                err |= checkSafety(sc, ad.aggDelete);
-                err |= checkNogc(sc, ad.aggDelete);
+                err |= checkPurity(loc, sc, ad.aggDelete);
+                err |= checkSafety(loc, sc, ad.aggDelete);
+                err |= checkNogc(loc, sc, ad.aggDelete);
             }
             if (err)
                 return new ErrorExp();
