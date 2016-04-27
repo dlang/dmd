@@ -2598,15 +2598,15 @@ struct COMPAREITEMSTRUCT {
     UINT  CtlID;
     HWND  hwndItem;
     UINT  itemID1;
-    DWORD itemData1;
+    ULONG_PTR itemData1;
     UINT  itemID2;
-    DWORD itemData2;
+    ULONG_PTR itemData2;
     DWORD dwLocaleId;
 }
 alias COMPAREITEMSTRUCT* LPCOMPAREITEMSTRUCT;
 
 struct COPYDATASTRUCT {
-    DWORD dwData;
+    ULONG_PTR dwData;
     DWORD cbData;
     PVOID lpData;
 }
@@ -2653,7 +2653,7 @@ struct DELETEITEMSTRUCT {
     UINT CtlID;
     UINT itemID;
     HWND hwndItem;
-    UINT itemData;
+    ULONG_PTR itemData;
 }
 alias DELETEITEMSTRUCT* PDELETEITEMSTRUCT, LPDELETEITEMSTRUCT;
 
@@ -2692,7 +2692,7 @@ struct DRAWITEMSTRUCT {
     HWND  hwndItem;
     HDC   hDC;
     RECT  rcItem;
-    DWORD itemData;
+    ULONG_PTR itemData;
 }
 alias DRAWITEMSTRUCT* LPDRAWITEMSTRUCT, PDRAWITEMSTRUCT;
 
@@ -2890,7 +2890,7 @@ struct MSGBOXPARAMSA {
     LPCSTR lpszCaption;
     DWORD dwStyle;
     LPCSTR lpszIcon;
-    DWORD dwContextHelpId;
+    DWORD_PTR dwContextHelpId;
     MSGBOXCALLBACK lpfnMsgBoxCallback;
     DWORD dwLanguageId;
 }
@@ -2904,7 +2904,7 @@ struct MSGBOXPARAMSW {
     LPCWSTR lpszCaption;
     DWORD dwStyle;
     LPCWSTR lpszIcon;
-    DWORD dwContextHelpId;
+    DWORD_PTR dwContextHelpId;
     MSGBOXCALLBACK lpfnMsgBoxCallback;
     DWORD dwLanguageId;
 }
@@ -3084,7 +3084,7 @@ struct MOUSEHOOKSTRUCT {
     POINT pt;
     HWND hwnd;
     UINT wHitTestCode;
-    DWORD dwExtraInfo;
+    ULONG_PTR dwExtraInfo;
 }
 alias MOUSEHOOKSTRUCT* LPMOUSEHOOKSTRUCT, PMOUSEHOOKSTRUCT;
 
@@ -3176,7 +3176,7 @@ struct MEASUREITEMSTRUCT {
     UINT itemID;
     UINT itemWidth;
     UINT itemHeight;
-    DWORD itemData;
+    ULONG_PTR itemData;
 }
 alias MEASUREITEMSTRUCT* PMEASUREITEMSTRUCT, LPMEASUREITEMSTRUCT;
 
@@ -3362,7 +3362,7 @@ struct KBDLLHOOKSTRUCT {
     DWORD scanCode;
     DWORD flags;
     DWORD time;
-    DWORD dwExtraInfo;
+    ULONG_PTR dwExtraInfo;
 }
 alias KBDLLHOOKSTRUCT* LPKBDLLHOOKSTRUCT, PKBDLLHOOKSTRUCT;
 
@@ -3943,7 +3943,7 @@ BOOL IsWindowEnabled(HWND);
 BOOL IsWindowUnicode(HWND);
 BOOL IsWindowVisible(HWND);
 BOOL IsZoomed(HWND);
-void keybd_event(BYTE, BYTE, DWORD, DWORD);
+void keybd_event(BYTE, BYTE, DWORD, ULONG_PTR);
 BOOL KillTimer(HWND, UINT_PTR);
 HACCEL LoadAcceleratorsA(HINSTANCE, LPCSTR);
 HACCEL LoadAcceleratorsW(HINSTANCE, LPCWSTR);
@@ -4036,8 +4036,8 @@ int ScrollWindowEx(HWND, int, int, LPCRECT, LPCRECT, HRGN, LPRECT, UINT);
 LONG SendDlgItemMessageA(HWND, int, UINT, WPARAM, LPARAM);
 LONG SendDlgItemMessageW(HWND, int, UINT, WPARAM, LPARAM);
 LRESULT SendMessageA(HWND, UINT, WPARAM, LPARAM);
-BOOL SendMessageCallbackA(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, DWORD);
-BOOL SendMessageCallbackW(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, DWORD);
+BOOL SendMessageCallbackA(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, ULONG_PTR);
+BOOL SendMessageCallbackW(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, ULONG_PTR);
 LRESULT SendMessageTimeoutA(HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD);
 LRESULT SendMessageTimeoutW(HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD);
 LRESULT SendMessageW(HWND, UINT, WPARAM, LPARAM);

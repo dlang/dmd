@@ -43,14 +43,14 @@ alias PSAPI_WS_WATCH_INFORMATION_EX* PPSAPI_WS_WATCH_INFORMATION_EX;
 struct PROCESS_MEMORY_COUNTERS {
     DWORD cb;
     DWORD PageFaultCount;
-    DWORD PeakWorkingSetSize;
-    DWORD WorkingSetSize;
-    DWORD QuotaPeakPagedPoolUsage;
-    DWORD QuotaPagedPoolUsage;
-    DWORD QuotaPeakNonPagedPoolUsage;
-    DWORD QuotaNonPagedPoolUsage;
-    DWORD PagefileUsage;
-    DWORD PeakPagefileUsage;
+    SIZE_T PeakWorkingSetSize;
+    SIZE_T WorkingSetSize;
+    SIZE_T QuotaPeakPagedPoolUsage;
+    SIZE_T QuotaPagedPoolUsage;
+    SIZE_T QuotaPeakNonPagedPoolUsage;
+    SIZE_T QuotaNonPagedPoolUsage;
+    SIZE_T PagefileUsage;
+    SIZE_T PeakPagefileUsage;
 }
 alias PROCESS_MEMORY_COUNTERS* PPROCESS_MEMORY_COUNTERS;
 

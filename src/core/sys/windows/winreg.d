@@ -65,7 +65,7 @@ alias ACCESS_MASK REGSAM;
 struct VALENTA {
     LPSTR ve_valuename;
     DWORD ve_valuelen;
-    DWORD ve_valueptr;
+    DWORD_PTR ve_valueptr;
     DWORD ve_type;
 }
 alias VALENTA* PVALENTA;
@@ -73,7 +73,7 @@ alias VALENTA* PVALENTA;
 struct VALENTW {
     LPWSTR ve_valuename;
     DWORD  ve_valuelen;
-    DWORD  ve_valueptr;
+    DWORD_PTR ve_valueptr;
     DWORD  ve_type;
 }
 alias VALENTW* PVALENTW;

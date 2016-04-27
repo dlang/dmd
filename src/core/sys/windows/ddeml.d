@@ -197,7 +197,7 @@ mixin DECLARE_HANDLE!("HSZ");
 mixin DECLARE_HANDLE!("HDDEDATA");
 
 extern (Windows) alias HDDEDATA
-  function(UINT, UINT, HCONV, HSZ, HSZ, HDDEDATA, DWORD, DWORD) PFNCALLBACK;
+  function(UINT, UINT, HCONV, HSZ, HSZ, HDDEDATA, ULONG_PTR, ULONG_PTR) PFNCALLBACK;
 
 struct HSZPAIR {
     HSZ hszSvc;
@@ -218,7 +218,7 @@ alias CONVCONTEXT* PCONVCONTEXT;
 
 struct CONVINFO {
     DWORD       cb = CONVINFO.sizeof;
-    DWORD       hUser;
+    DWORD_PTR   hUser;
     HCONV       hConvPartner;
     HSZ         hszSvcPartner;
     HSZ         hszServiceReq;
@@ -353,7 +353,7 @@ extern (Windows) {
     DWORD DdeQueryStringA(DWORD, HSZ, LPSTR, DWORD, int);
     DWORD DdeQueryStringW(DWORD, HSZ, LPWSTR, DWORD, int);
     HCONV DdeReconnect(HCONV);
-    BOOL DdeSetUserHandle(HCONV, DWORD, DWORD);
+    BOOL DdeSetUserHandle(HCONV, DWORD, DWORD_PTR);
     BOOL DdeUnaccessData(HDDEDATA);
     BOOL DdeUninitialize(DWORD);
 }
