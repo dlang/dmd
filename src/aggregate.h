@@ -58,6 +58,13 @@ enum StructPOD
     ISPODfwd,           // POD not yet computed
 };
 
+enum Abstract
+{
+    ABSfwdref = 0,      // whether an abstract class is not yet computed
+    ABSyes,             // is abstract class
+    ABSno,              // is not abstract class
+};
+
 FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc);
 bool needOpEquals(StructDeclaration *sd);
@@ -273,7 +280,7 @@ public:
     bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
     bool cpp;                           // true if this is a C++ interface
     bool isscope;                       // true if this is a scope class
-    bool isabstract;                    // true if abstract class
+    Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
     int inuse;                          // to prevent recursive attempts
     Baseok baseok;                      // set the progress of base classes resolving
     Objc_ClassDeclaration objc;
