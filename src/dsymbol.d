@@ -1420,7 +1420,11 @@ public:
                 if (a)
                 {
                     if (!s.isOverloadSet())
+                    {
                         a = mergeOverloadSet(ident, a, s);
+                        if (symtab)
+                            symtabInsert(a);    // Bugzilla 15857
+                    }
                     s = a;
                 }
                 // TODO: remove once private symbol visibility has been deprecated

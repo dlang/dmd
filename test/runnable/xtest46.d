@@ -7818,6 +7818,27 @@ void test15638()
 }
 
 /***************************************************/
+// 15961
+
+struct SliceOverIndexed15961(T)
+{
+    enum assignableIndex = T.init;
+}
+
+struct Grapheme15961
+{
+    SliceOverIndexed15961!Grapheme15961 opSlice()
+    {
+        assert(0);
+    }
+
+    struct
+    {
+        ubyte* ptr_;
+    }
+}
+
+/***************************************************/
 
 int main()
 {
