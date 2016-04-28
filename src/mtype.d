@@ -7384,35 +7384,22 @@ public:
     override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         // Note close similarity to TypeIdentifier::resolve()
-        Dsymbol s;
         *pe = null;
         *pt = null;
         *ps = null;
-        version (none)
+
+        //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst.toChars());
+        tempinst.semantic(sc);
+        if (!global.gag && tempinst.errors)
         {
-            if (!idents.dim)
-            {
-                error(loc, "template instance '%s' has no identifier", toChars());
-                return;
-            }
+            *pt = terror;
+            return;
         }
-        //id = (Identifier *)idents.data[0];
-        //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
-        s = tempinst;
-        if (s)
-        {
-            //printf("s = %s\n", s->toChars());
-            s.semantic(sc);
-            if (!global.gag && tempinst.errors)
-            {
-                *pt = terror;
-                return;
-            }
-        }
-        resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
+
+        resolveHelper(loc, sc, tempinst, null, pe, pt, ps, intypeid);
         if (*pt)
             *pt = (*pt).addMod(mod);
-        //printf("pt = '%s'\n", (*pt)->toChars());
+        //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
     }
 
     override Type semantic(Loc loc, Scope* sc)
