@@ -35,7 +35,7 @@ $(GNAME QualifiedIdentifierList):
         $(P Unlike a template instantiation, a template mixin's body is evaluated
         within the scope where the mixin appears, not where the template declaration
         is defined. It is analogous to cutting and pasting the body of
-        the template into the location of the mixin. It is useful for injecting
+        the template into the location of the mixin into a $(LINK2 #mixin_scope, nested scope). It is useful for injecting
         parameterized $(SINGLEQUOTE boilerplate) code, as well as for creating
         templated nested functions, which is not possible with
         template instantiations.
@@ -193,7 +193,8 @@ void test()
 
 $(H2 $(LNAME2 mixin_scope, Mixin Scope))
 
-        The declarations in a mixin are $(SINGLEQUOTE imported) into the surrounding
+        The declarations in a mixin are placed in a nested scope and then
+	$(SINGLEQUOTE imported) into the surrounding
         scope. If the name of a declaration in a mixin is the same
         as a declaration in the surrounding scope, the surrounding declaration
         overrides the mixin one:
@@ -332,7 +333,7 @@ void test()
 )
 
 Macros:
-        TITLE=Mixins
+        TITLE=Template Mixins
         WIKI=Mixin
         TEMPLATEPARAMETERS=$(GLINK2 template, TemplateParameters)
         TEMPLATEARGUMENTS=$(GLINK2 template, TemplateArguments)
