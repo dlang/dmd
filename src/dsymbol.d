@@ -1349,7 +1349,7 @@ public:
                         continue;
                     }
                 }
-                else
+                else if (!ss.isTemplateMixin)
                 {
                     if (flags & SearchImportsOnly)
                         continue;
