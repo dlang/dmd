@@ -86,6 +86,8 @@ struct StringValue
     void* ptrvalue;
     size_t length;
 
+nothrow:
+pure:
     extern (C++) char* lstring()
     {
         return cast(char*)(&this + 1);
@@ -113,7 +115,7 @@ private:
     size_t count;
 
 public:
-    extern (C++) void _init(size_t size = 0)
+    extern (C++) void _init(size_t size = 0) nothrow
     {
         size = nextpow2(cast(size_t)(size / loadFactor));
         if (size < 32)
@@ -125,7 +127,7 @@ public:
         count = 0;
     }
 
-    extern (C++) void reset(size_t size = 0)
+    extern (C++) void reset(size_t size = 0) nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -136,7 +138,7 @@ public:
         _init(size);
     }
 
-    extern (C++) ~this()
+    extern (C++) ~this() nothrow
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -146,7 +148,7 @@ public:
         pools = null;
     }
 
-    extern (C++) StringValue* lookup(const(char)* s, size_t length)
+    extern (C++) StringValue* lookup(const(char)* s, size_t length) nothrow pure
     {
         const(hash_t) hash = calcHash(s, length);
         const(size_t) i = findSlot(hash, s, length);
@@ -154,7 +156,7 @@ public:
         return getValue(table[i].vptr);
     }
 
-    extern (C++) StringValue* insert(const(char)* s, size_t length, void* ptrvalue)
+    extern (C++) StringValue* insert(const(char)* s, size_t length, void* ptrvalue) nothrow
     {
         const(hash_t) hash = calcHash(s, length);
         size_t i = findSlot(hash, s, length);
@@ -171,7 +173,7 @@ public:
         return getValue(table[i].vptr);
     }
 
-    extern (C++) StringValue* update(const(char)* s, size_t length)
+    extern (C++) StringValue* update(const(char)* s, size_t length) nothrow
     {
         const(hash_t) hash = calcHash(s, length);
         size_t i = findSlot(hash, s, length);
@@ -212,6 +214,7 @@ public:
     }
 
 private:
+nothrow:
     uint allocValue(const(char)* s, size_t length, void* ptrvalue)
     {
         const(size_t) nbytes = StringValue.sizeof + length + 1;
@@ -231,7 +234,7 @@ private:
         return vptr;
     }
 
-    StringValue* getValue(uint vptr)
+    StringValue* getValue(uint vptr) pure
     {
         if (!vptr)
             return null;
@@ -240,7 +243,7 @@ private:
         return cast(StringValue*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)* s, size_t length)
+    size_t findSlot(hash_t hash, const(char)* s, size_t length) pure
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774

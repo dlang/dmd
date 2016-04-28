@@ -34,6 +34,7 @@ struct File
     size_t len; // amount of data in buffer[]
     const(FileName)* name; // name of our file
 
+nothrow:
     extern (D) this(const(char)* n)
     {
         _ref = 0;
@@ -69,7 +70,7 @@ struct File
         }
     }
 
-    extern (C++) const(char)* toChars()
+    extern (C++) const(char)* toChars() pure
     {
         return name.toChars();
     }
