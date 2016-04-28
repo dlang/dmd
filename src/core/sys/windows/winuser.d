@@ -4476,11 +4476,19 @@ static if (_WIN32_WINNT >= 0x501) {
 }
 
 version (Win64) {
+    ULONG_PTR GetClassLongPtrA(HWND, int);
+    ULONG_PTR GetClassLongPtrW(HWND, int);
+    ULONG_PTR SetClassLongPtrA(HWND, int, LONG_PTR);
+    ULONG_PTR SetClassLongPtrW(HWND, int, LONG_PTR);
     LONG_PTR GetWindowLongPtrA(HWND, int);
     LONG_PTR GetWindowLongPtrW(HWND, int);
     LONG_PTR SetWindowLongPtrA(HWND, int, LONG_PTR);
     LONG_PTR SetWindowLongPtrW(HWND, int, LONG_PTR);
 } else {
+    alias GetClassLongA GetClassLongPtrA;
+    alias GetClassLongW GetClassLongPtrW;
+    alias SetClassLongA SetClassLongPtrA;
+    alias SetClassLongW SetClassLongPtrW;
     alias GetWindowLongA GetWindowLongPtrA;
     alias GetWindowLongW GetWindowLongPtrW;
     alias SetWindowLongA SetWindowLongPtrA;
@@ -4567,6 +4575,7 @@ version(Unicode) {
     alias GetClassInfoW GetClassInfo;
     alias GetClassInfoExW GetClassInfoEx;
     alias GetClassLongW GetClassLong;
+    alias GetClassLongPtrW GetClassLongPtr;
     alias GetClassNameW GetClassName;
     alias GetClipboardFormatNameW GetClipboardFormatName;
     alias GetDlgItemTextW GetDlgItemText;
@@ -4632,6 +4641,7 @@ version(Unicode) {
     alias SendMessageTimeoutW SendMessageTimeout;
     alias SendNotifyMessageW SendNotifyMessage;
     alias SetClassLongW SetClassLong;
+    alias SetClassLongPtrW SetClassLongPtr;
     alias SetDlgItemTextW SetDlgItemText;
     alias SetMenuItemInfoW SetMenuItemInfo;
     alias SetPropW SetProp;
@@ -4736,6 +4746,7 @@ version(Unicode) {
     alias GetClassInfoA GetClassInfo;
     alias GetClassInfoExA GetClassInfoEx;
     alias GetClassLongA GetClassLong;
+    alias GetClassLongPtrA GetClassLongPtr;
     alias GetClassNameA GetClassName;
     alias GetClipboardFormatNameA GetClipboardFormatName;
     alias GetDlgItemTextA GetDlgItemText;
@@ -4801,6 +4812,7 @@ version(Unicode) {
     alias SendMessageTimeoutA SendMessageTimeout;
     alias SendNotifyMessageA SendNotifyMessage;
     alias SetClassLongA SetClassLong;
+    alias SetClassLongPtrA SetClassLongPtr;
     alias SetDlgItemTextA SetDlgItemText;
     alias SetMenuItemInfoA SetMenuItemInfo;
     alias SetPropA SetProp;
