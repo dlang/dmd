@@ -227,7 +227,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINKd, stc | STCref);
     auto fop = new FuncDeclaration(declLoc, Loc(), Id.assign, stc, tf);
     fop.storage_class |= STCinference;
-
+    fop.generated = true;
     Expression e = null;
     if (stc & STCdisable)
     {
@@ -493,6 +493,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     auto tf = new TypeFunction(parameters, Type.tbool, 0, LINKd);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+    fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
     Expression e = new EqualExp(TOKequal, loc, e1, e2);
@@ -612,6 +613,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     auto tf = new TypeFunction(parameters, Type.tint32, 0, LINKd);
     Identifier id = Id.xopCmp;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+    fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
     Expression e = new CallExp(loc, new DotIdExp(loc, e2, Id.cmp), e1);
@@ -713,6 +715,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINKd, STCnothrow | STCtrusted);
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+    fop.generated = true;
 
     /* Do memberwise hashing.
      *
@@ -928,6 +931,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             e = Expression.combine(e, ex);
         }
         auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__aggrPostblit);
+        dd.generated = true;
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         sd.members.push(dd);
