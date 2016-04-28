@@ -141,9 +141,9 @@ struct S;
 union U;
 ---
 
-	$(P The members are completely hidden to the user, and so the only operations
-	on those types are ones that do not require any knowledge of the contents
-	of those types. For example:)
+        $(P The members are completely hidden to the user, and so the only operations
+        on those types are ones that do not require any knowledge of the contents
+        of those types. For example:)
 
 ---
 struct S;
@@ -152,8 +152,8 @@ S s;      // error, cannot initialize unknown contents
 S* p;     // ok, knowledge of members is not necessary
 ---
 
-	$(P They can be used to implement the
-	$(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
+        $(P They can be used to implement the
+        $(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
 $(H3 $(LNAME2 static_struct_init, Static Initialization of Structs))
@@ -512,7 +512,7 @@ $(SECTION3 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment 
         $(P where $(CODE opAssign) is a member function of S:)
 
         ---
-        ref S opAssign(S s)
+        ref S opAssign(ref S s)
         {
             S tmp = this;   // bitcopy this into tmp
             this = s;       // bitcopy s into this
@@ -521,9 +521,20 @@ $(SECTION3 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment 
         }
         ---
 
-        $(P While the compiler will generate a default $(CODE opAssign)
-        as needed, a user-defined one can be supplied. The user-defined
-        one must still implement the equivalent semantics, but can
+        $(P An identity assignment overload is required for a struct if one or more of
+        these conditions hold:)
+
+        $(UL
+        $(LI it has a $(LINK2 #struct-destructor, destructor))
+        $(LI it has a $(LINK2 #struct-postblit, postblit))
+        $(LI it has a field with an identity assignment overload)
+        )
+
+        $(P If an identity assignment overload is required and does not
+        exist, an identity assignment overload function of the type
+        $(CODE ref S opAssign(ref S))  will be automatically generated.)
+
+        $(P A user-defined one can implement the equivalent semantics, but can
         be more efficient.
         )
 
