@@ -4790,7 +4790,7 @@ public:
         if (alt & 1) // contains C-style function pointer syntax
             error(loc, "instead of C-style syntax, use D-style '%s%s%s'", t.toChars(), sp, s);
         else
-            .warning(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
+            .deprecation(loc, "instead of C-style syntax, use D-style syntax '%s%s%s'", t.toChars(), sp, s);
     }
 
     /*****************************************
