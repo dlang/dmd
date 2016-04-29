@@ -2171,7 +2171,7 @@ bool cssave(elem *e,regm_t regm,unsigned opsflag)
             return false;
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
-        regm &= mBP | ALLREGS | mES;    /* just to be sure              */
+        regm &= mBP | ALLREGS | mES | XMMREGS;    /* just to be sure              */
 
 #if 0
         /* Do not register CSEs if they are register variables and      */
@@ -2595,7 +2595,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
         if (e->Ecount)                          /* if common subexp     */
         {
             /* if no return value       */
-            if ((*pretregs & (mSTACK | mES | ALLREGS | mBP)) == 0)
+            if ((*pretregs & (mSTACK | mES | ALLREGS | mBP | XMMREGS)) == 0)
             {   if (tysize(e->Ety) == 1)
                     *pretregs |= BYTEREGS;
                 else if (tybasic(e->Ety) == TYdouble || tybasic(e->Ety) == TYdouble_alias)

@@ -1446,6 +1446,17 @@ void test15144()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=11585
+
+ubyte16 test11585(ubyte16* d)
+{
+    ubyte16 a;
+    if (d is null) return a;
+
+    return __simd(XMM.PCMPEQB, *d, *d);
+}
+
+/*****************************************/
 
 int main()
 {

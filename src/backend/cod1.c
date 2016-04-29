@@ -572,6 +572,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
   {
         assert(!EOP(e));                /* can't handle this            */
         regm_t rm = regcon.cse.mval & ~regcon.cse.mops & ~regcon.mvar; // possible regs
+        if (op == 0xFF && reg == 6)
+            rm &= ~XMMREGS;             // can't PUSH an XMM register
         if (sz > REGSIZE)               // value is in 2 or 4 registers
         {
                 if (I16 && sz == 8)     // value is in 4 registers
