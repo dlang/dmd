@@ -43,7 +43,7 @@ version (GC)
         }
     }
 
-    extern (C++) __gshared Mem mem;
+    extern (C++) const __gshared Mem mem;
 }
 else
 {
@@ -122,7 +122,7 @@ else
         }
     }
 
-    extern (C++) __gshared Mem mem;
+    extern (C++) const __gshared Mem mem;
 
     enum CHUNK_SIZE = (256 * 4096 - 64);
 

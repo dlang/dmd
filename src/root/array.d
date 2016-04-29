@@ -24,7 +24,7 @@ private:
     T[SMALLARRAYCAP] smallarray; // inline storage for small arrays
 
 public:
-    ~this()
+    ~this() nothrow
     {
         if (data != &smallarray[0])
             mem.xfree(data);
@@ -64,18 +64,18 @@ public:
         }
     }
 
-    void push(T ptr)
+    void push(T ptr) nothrow
     {
         reserve(1);
         data[dim++] = ptr;
     }
 
-    void append(typeof(this)* a)
+    void append(typeof(this)* a) nothrow
     {
         insert(dim, a);
     }
 
-    void reserve(size_t nentries)
+    void reserve(size_t nentries) nothrow
     {
         //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", (int)dim, (int)allocdim, (int)nentries);
         if (allocdim - dim < nentries)
@@ -108,14 +108,14 @@ public:
         }
     }
 
-    void remove(size_t i)
+    void remove(size_t i) nothrow
     {
         if (dim - i - 1)
             memmove(data + i, data + i + 1, (dim - i - 1) * (data[0]).sizeof);
         dim--;
     }
 
-    void insert(size_t index, typeof(this)* a)
+    void insert(size_t index, typeof(this)* a) nothrow
     {
         if (a)
         {
@@ -128,7 +128,7 @@ public:
         }
     }
 
-    void insert(size_t index, T ptr)
+    void insert(size_t index, T ptr) nothrow
     {
         reserve(1);
         memmove(data + index + 1, data + index, (dim - index) * (*data).sizeof);
@@ -136,7 +136,7 @@ public:
         dim++;
     }
 
-    void setDim(size_t newdim)
+    void setDim(size_t newdim) nothrow
     {
         if (dim < newdim)
         {
@@ -145,17 +145,17 @@ public:
         dim = newdim;
     }
 
-    ref inout(T) opIndex(size_t i) inout
+    ref inout(T) opIndex(size_t i) inout nothrow pure
     {
         return data[i];
     }
 
-    inout(T)* tdata() inout
+    inout(T)* tdata() inout nothrow
     {
         return data;
     }
 
-    Array!T* copy() const
+    Array!T* copy() const nothrow
     {
         auto a = new Array!T();
         a.setDim(dim);
@@ -163,7 +163,7 @@ public:
         return a;
     }
 
-    void shift(T ptr)
+    void shift(T ptr) nothrow
     {
         reserve(1);
         memmove(data + 1, data, dim * (*data).sizeof);
@@ -171,12 +171,12 @@ public:
         dim++;
     }
 
-    void zero()
+    void zero() nothrow pure
     {
         data[0 .. dim] = T.init;
     }
 
-    T pop()
+    T pop() nothrow pure
     {
         return data[--dim];
     }
@@ -200,12 +200,12 @@ public:
             assert(0);
     }
 
-    extern (D) inout(T)[] opSlice() inout
+    extern (D) inout(T)[] opSlice() inout nothrow pure
     {
         return data[0 .. dim];
     }
 
-    extern (D) inout(T)[] opSlice(size_t a, size_t b) inout
+    extern (D) inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure
     {
         assert(a <= b && b <= dim);
         return data[a .. b];
@@ -214,7 +214,8 @@ public:
 
 struct BitArray
 {
-    size_t length() const
+nothrow:
+    size_t length() const pure
     {
         return len;
     }
@@ -229,7 +230,7 @@ struct BitArray
         len = nlen;
     }
 
-    bool opIndex(size_t idx) const
+    bool opIndex(size_t idx) const pure
     {
         import core.bitop : bt;
 
@@ -237,7 +238,7 @@ struct BitArray
         return !!bt(ptr, idx);
     }
 
-    void opIndexAssign(bool val, size_t idx)
+    void opIndexAssign(bool val, size_t idx) pure
     {
         import core.bitop : btc, bts;
 
