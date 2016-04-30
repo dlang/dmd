@@ -6879,7 +6879,7 @@ extern (C++) final class FuncExp : Expression
             }
 
             // Type is a "delegate to" or "pointer to" the function literal
-            if ((fd.isNested() && fd.tok == TOKdelegate) || (tok == TOKreserved && fd.treq && fd.treq.ty == Tdelegate))
+            if (fd.tok == TOKdelegate)
             {
                 type = new TypeDelegate(fd.type);
                 type = type.semantic(loc, sc);
@@ -6891,21 +6891,6 @@ extern (C++) final class FuncExp : Expression
                 type = new TypePointer(fd.type);
                 type = type.semantic(loc, sc);
                 //type = fd->type->pointerTo();
-
-                /* A lambda expression deduced to function pointer might become
-                 * to a delegate literal implicitly.
-                 *
-                 *   auto foo(void function() fp) { return 1; }
-                 *   assert(foo({}) == 1);
-                 *
-                 * So, should keep fd->tok == TOKreserve if fd->treq == NULL.
-                 */
-                if (fd.treq && fd.treq.ty == Tpointer)
-                {
-                    // change to non-nested
-                    fd.tok = TOKfunction;
-                    fd.vthis = null;
-                }
             }
             fd.tookAddressOf++;
         }
@@ -7116,6 +7101,18 @@ extern (C++) final class FuncExp : Expression
             {
                 (*presult) = cast(FuncExp)copy();
                 (*presult).type = to;
+
+                if (to.ty == Tdelegate)
+                {
+                    (*presult).tok = TOKdelegate;
+                    (*presult).fd.tok = TOKdelegate;
+                }
+                else
+                {
+                    (*presult).tok = TOKfunction;
+                    (*presult).fd.tok = TOKfunction;
+                    (*presult).fd.vthis = null;
+                }
 
                 // Bugzilla 12508: Tweak function body for covariant returns.
                 (*presult).fd.modifyReturns(sc, tof.next);

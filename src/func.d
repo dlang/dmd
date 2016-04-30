@@ -3428,25 +3428,22 @@ extern (C++) class FuncDeclaration : Declaration
     final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
-
-        if (auto fld = this.isFuncLiteralDeclaration())
-        {
-            if (fld.tok == TOKreserved)
-            {
-                fld.tok = TOKfunction;
-                fld.vthis = null;
-            }
-        }
-
+        if (sc.intypeof == 1 || (sc.flags & SCOPEctfe))
+            return false;
         if (!parent || parent == sc.parent)
             return false;
         if (ident == Id.require || ident == Id.ensure)
             return false;
-        if (!isThis() && !isNested())
+        if (!isNested())
             return false;
+        if (auto fld = isFuncLiteralDeclaration())
+        {
+            if (fld.tok == TOKreserved)
+                return false;
+        }
 
         // The current function
-        FuncDeclaration fdthis = sc.parent.isFuncDeclaration();
+        auto fdthis = sc.parent.isFuncDeclaration();
         if (!fdthis)
             return false; // out of function scope
 
@@ -3455,46 +3452,43 @@ extern (C++) class FuncDeclaration : Declaration
         // Function literals from fdthis to p must be delegates
         checkNestedRef(fdthis, p);
 
-        if (isNested())
+        // The function that this function is in
+        auto fdv = p.isFuncDeclaration();
+        if (!fdv)
+            return false;
+        if (fdv == fdthis)
+            return false;
+
+        //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
+        //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
+        //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
+
+        // Add this function to the list of those which called us
+        if (fdthis != this)
         {
-            // The function that this function is in
-            FuncDeclaration fdv = p.isFuncDeclaration();
-            if (!fdv)
-                return false;
-            if (fdv == fdthis)
-                return false;
-
-            //printf("this = %s in [%s]\n", this.toChars(), this.loc.toChars());
-            //printf("fdv  = %s in [%s]\n", fdv .toChars(), fdv .loc.toChars());
-            //printf("fdthis = %s in [%s]\n", fdthis.toChars(), fdthis.loc.toChars());
-
-            // Add this function to the list of those which called us
-            if (fdthis != this)
+            bool found = false;
+            for (size_t i = 0; i < siblingCallers.dim; ++i)
             {
-                bool found = false;
-                for (size_t i = 0; i < siblingCallers.dim; ++i)
-                {
-                    if (siblingCallers[i] == fdthis)
-                        found = true;
-                }
-                if (!found)
-                {
-                    //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
-                    if (!sc.intypeof && !(sc.flags & SCOPEcompile))
-                        siblingCallers.push(fdthis);
-                }
+                if (siblingCallers[i] == fdthis)
+                    found = true;
             }
-
-            int lv = fdthis.getLevel(loc, sc, fdv);
-            if (lv == -2)
-                return true; // error
-            if (lv == -1)
-                return false; // downlevel call
-            if (lv == 0)
-                return false; // same level call
-
-            // Uplevel call
+            if (!found)
+            {
+                //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
+                if (!sc.intypeof && !(sc.flags & SCOPEcompile))
+                    siblingCallers.push(fdthis);
+            }
         }
+
+        int lv = fdthis.getLevel(loc, sc, fdv);
+        if (lv == -2)
+            return true; // error
+        if (lv == -1)
+            return false; // downlevel call
+        if (lv == 0)
+            return false; // same level call
+
+        // Uplevel call
         return false;
     }
 

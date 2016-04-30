@@ -823,6 +823,19 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     assert(fd->semanticRun == PASSsemantic3done);
     assert(fd->ident != Id::empty);
 
+    if (FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration())
+    {
+        /* If fld was a template lambda, toObjFile call may happen before the
+         * toElem of FuncExp(fld) or VarExp(fld).
+         */
+        if (fld->tok == TOKreserved)
+        {
+            // change to non-nested
+            fld->tok = TOKfunction;
+            fld->vthis = NULL;
+        }
+    }
+
     for (FuncDeclaration *fd2 = fd; fd2; )
     {
         if (fd2->inNonRoot())
