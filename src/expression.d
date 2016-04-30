@@ -1447,21 +1447,26 @@ extern (C++) Expression doCopyOrMove(Scope *sc, Expression e)
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
- *      1. implicitly convert argument to the corresponding parameter type
- *      2. add default arguments for any missing arguments
- *      3. do default promotions on arguments corresponding to ...
- *      4. add hidden _arguments[] argument
- *      5. call copy constructor for struct value arguments
- * Input:
- *      tf      type of the function
- *      fd      the function being called, NULL if called indirectly
- * Output:
- *      *prettype return type of function
- *      *peprefix expression to execute before arguments[] are evaluated, NULL if none
+ *  1. implicitly convert argument to the corresponding parameter type
+ *  2. add default arguments for any missing arguments
+ *  3. do default promotions on arguments corresponding to ...
+ *  4. add hidden _arguments[] argument
+ *  5. call copy constructor for struct value arguments
+ * Params:
+ *  sc        = scope
+ *  tf        = type of the function
+ *  tthis     = type of this expression
+ *  arguments = function arguments
+ *  fd        = the function being called, null if called indirectly
+ *  prettype  = pointer to variable where the determined return type will be set
+ *  peprefix  = pointer to variable where the expression to execute
+ *              before arguments[] are evaluated, null if none
  * Returns:
- *      true    errors happened
+ *  `true` errors happened. Otherwise *prettype and *peprefix will also be set.
  */
-extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
+extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf,
+    Type tthis, Expressions* arguments, FuncDeclaration fd,
+    Type* prettype, Expression* peprefix)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -1476,23 +1481,11 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
 
     if (nargs > nparams && tf.varargs == 0)
     {
-        error(loc, "expected %llu arguments, not %llu for non-variadic function type %s", cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
+        error(loc, "expected %llu arguments, not %llu for non-variadic function type %s",
+            cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
         return true;
     }
 
-    // If inferring return type, and semantic3() needs to be run if not already run
-    if (!tf.next && fd.inferRetType)
-    {
-        fd.functionSemantic();
-    }
-    else if (fd && fd.parent)
-    {
-        TemplateInstance ti = fd.parent.isTemplateInstance();
-        if (ti && ti.tempdecl)
-        {
-            fd.functionSemantic3();
-        }
-    }
     bool isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
 
     size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
@@ -1650,50 +1643,6 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         }
         if (done)
             break;
-    }
-    if ((wildmatch == MODmutable || wildmatch == MODimmutable) && tf.next.hasWild() && (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
-    {
-        if (fd)
-        {
-            /* If the called function may return the reference to
-             * outer inout data, it should be rejected.
-             *
-             * void foo(ref inout(int) x) {
-             *   ref inout(int) bar(inout(int)) { return x; }
-             *   struct S { ref inout(int) bar() inout { return x; } }
-             *   bar(int.init) = 1;  // bad!
-             *   S().bar() = 1;      // bad!
-             * }
-             */
-            Dsymbol s = null;
-            if (fd.isThis() || fd.isNested())
-                s = fd.toParent2();
-            for (; s; s = s.toParent2())
-            {
-                if (auto ad = s.isAggregateDeclaration())
-                {
-                    if (ad.isNested())
-                        continue;
-                    break;
-                }
-                if (auto ff = s.isFuncDeclaration())
-                {
-                    if ((cast(TypeFunction)ff.type).iswild)
-                        goto Linouterr;
-
-                    if (ff.isNested() || ff.isThis())
-                        continue;
-                }
-                break;
-            }
-        }
-        else if (tf.isWild())
-        {
-        Linouterr:
-            const(char)* s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
-            error(loc, "modify inout to %s is not allowed inside inout function", s);
-            return true;
-        }
     }
 
     assert(nargs >= nparams);
@@ -2041,8 +1990,45 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
 
     err |= (olderrors != global.errors);
 
+    // If inferring return type, and semantic3() needs to be run if not already run.
     if (fd)
     {
+        auto ti = fd.toParent().isTemplateInstance();
+        if (ti && ti.semanticRun >= PASSsemanticdone)
+        {
+            ti.semantic3(null);
+            if (ti.errors)
+                return true;
+
+            if (fd.type.nextOf())
+            {
+                // Workaround for compilable/test9209.d
+            }
+            else if (fd.checkForwardRef(loc))
+                return true;
+        }
+        else
+        {
+            if (!fd.functionSemantic())
+                return true;
+            if (fd.checkForwardRef(loc))
+                return true;
+        }
+
+        if (fd.ident == Id.assign &&
+            (fd.storage_class & STCinference) &&
+            (fd.storage_class & STCdisable))
+        {
+            fd.checkDeprecated(loc, sc);
+            return true;
+        }
+
+        if (fd.checkNestedReference(sc, loc))
+            return true;
+
+        assert(fd.type.ty == Tfunction);
+        tf = cast(TypeFunction)fd.type;
+
         // TODO: Converting errors in these checks to an ErrorExp will hide
         // nothrow errors.
         Expression.checkPurity(loc, sc, fd);
@@ -2051,6 +2037,55 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     }
 
     Type tret = tf.next;
+    assert(tret);
+
+    if ((wildmatch == MODmutable || wildmatch == MODimmutable) &&
+        tret.hasWild() &&
+        (tf.isref || !tret.implicitConvTo(tret.immutableOf())))
+    {
+        if (fd)
+        {
+            /* If the called function may return the reference to
+             * outer inout data, it should be rejected.
+             *
+             * void foo(ref inout(int) x) {
+             *   ref inout(int) bar(inout(int)) { return x; }
+             *   struct S { ref inout(int) bar() inout { return x; } }
+             *   bar(int.init) = 1;  // bad!
+             *   S().bar() = 1;      // bad!
+             * }
+             */
+            Dsymbol s = null;
+            if (fd.isThis() || fd.isNested())
+                s = fd.toParent2();
+            for (; s; s = s.toParent2())
+            {
+                if (auto ad = s.isAggregateDeclaration())
+                {
+                    if (ad.isNested())
+                        continue;
+                    break;
+                }
+                if (auto ff = s.isFuncDeclaration())
+                {
+                    if ((cast(TypeFunction)ff.type).iswild)
+                        goto Linouterr;
+
+                    if (ff.isNested() || ff.isThis())
+                        continue;
+                }
+                break;
+            }
+        }
+        else if (tf.isWild())
+        {
+        Linouterr:
+            const(char)* s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
+            error(loc, "modify inout to %s is not allowed inside inout function", s);
+            return true;
+        }
+    }
+
     if (isCtorCall)
     {
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
@@ -2075,7 +2110,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         }
         tret = tthis;
     }
-    else if (wildmatch && tret)
+    else if (wildmatch)
     {
         /* Adjust function return type based on wildmatch
          */
@@ -3311,6 +3346,19 @@ extern (C++) abstract class Expression : RootObject
                 return true;
             }
         }
+
+        bool hasOverloads;
+        if (auto fd = isFuncAddress(this, &hasOverloads))
+        {
+            /* TODO: Today an ambiguity of overloaded function address is not error.
+             * Instead, lexically first found function is used.
+             * See bugzilla 1983.
+             */
+            //assert(!hasOverloads);
+            if (fd.checkNestedReference(sc, loc))
+                return true;
+        }
+
         return false;
     }
 
@@ -6518,8 +6566,6 @@ extern (C++) final class SymOffExp : SymbolExp
         }
         else if (auto f = var.isFuncDeclaration())
         {
-            if (f.checkNestedReference(sc, loc))
-                return new ErrorExp();
         }
 
         return this;
@@ -6580,9 +6626,13 @@ extern (C++) final class VarExp : SymbolExp
         }
         if (auto fd = var.isFuncDeclaration())
         {
-            //printf("L%d fd = %s\n", __LINE__, f->toChars());
-            if (!fd.functionSemantic())
-                return new ErrorExp();
+            //printf("L%d [%s] fd = %s\n", __LINE__, loc.toChars(), fd.toChars());
+            if (fd.semanticRun == PASSinit && fd._scope)
+            {
+                fd.semantic(fd._scope);
+                if (fd.errors)
+                    return new ErrorExp();
+            }
         }
 
         if (!type)
@@ -6607,11 +6657,6 @@ extern (C++) final class VarExp : SymbolExp
         }
         else if (auto fd = var.isFuncDeclaration())
         {
-            // TODO: If fd isn't yet resolved its overload, the checkNestedReference
-            // call would cause incorrect validation.
-            // Maybe here should be moved in CallExp, or AddrExp for functions.
-            if (fd.checkNestedReference(sc, loc))
-                return new ErrorExp();
         }
         else if (auto od = var.isOverDeclaration())
         {
@@ -9025,8 +9070,12 @@ extern (C++) final class DotVarExp : UnaExp
         if (FuncDeclaration fd = var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
-            if (!fd.functionSemantic())
-                return new ErrorExp();
+            if (fd.semanticRun == PASSinit && fd._scope)
+            {
+                fd.semantic(fd._scope);
+                if (fd.errors)
+                    return new ErrorExp();
+            }
 
             /* Bugzilla 13843: If fd obviously has no overloads, we should
              * normalize AST, and it will give a chance to wrap fd with FuncExp.
@@ -10226,7 +10275,8 @@ extern (C++) final class CallExp : UnaExp
                     }
                     else if (isNeedThisScope(sc, f))
                     {
-                        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+                        if (f.functionSemantic()) // get exact attributes to show them in message
+                            error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
                         return new ErrorExp();
                     }
                 }
@@ -10254,12 +10304,7 @@ extern (C++) final class CallExp : UnaExp
                 return new ErrorExp();
             }
             // Purity and safety check should run after testing arguments matching
-            if (f)
-            {
-                if (f.checkNestedReference(sc, loc))
-                    return new ErrorExp();
-            }
-            else if (sc.func && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
+            if (!f && sc.func && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
             {
                 bool err = false;
                 if (!tf.purity && !(sc.flags & SCOPEdebug) && sc.func.setImpure())
@@ -10325,10 +10370,6 @@ extern (C++) final class CallExp : UnaExp
 
             if (f.needThis())
             {
-                // Change the ancestor lambdas to delegate before hasThis(sc) call.
-                if (f.checkNestedReference(sc, loc))
-                    return new ErrorExp();
-
                 if (hasThis(sc))
                 {
                     // Supply an implicit 'this', as in
@@ -10340,16 +10381,14 @@ extern (C++) final class CallExp : UnaExp
                 }
                 else if (isNeedThisScope(sc, f))
                 {
-                    error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+                    if (f.functionSemantic()) // get exact attributes to show them in message
+                        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
                     return new ErrorExp();
                 }
             }
 
             checkDeprecated(sc, f);
             checkAccess(loc, sc, null, f);
-
-            if (f.checkNestedReference(sc, loc))
-                return new ErrorExp();
 
             ethis = null;
             tthis = null;
@@ -10362,6 +10401,7 @@ extern (C++) final class CallExp : UnaExp
             t1 = f.type;
         }
         assert(t1.ty == Tfunction);
+        assert(!f || f.type.equals(t1));
 
         Expression argprefix;
         if (!arguments)
@@ -10369,11 +10409,12 @@ extern (C++) final class CallExp : UnaExp
         if (functionParameters(loc, sc, cast(TypeFunction)t1, tthis, arguments, f, &type, &argprefix))
             return new ErrorExp();
 
-        if (!type)
+        if (f)
         {
-            e1 = e1org; // Bugzilla 10922, avoid recursive expression printing
-            error("forward reference to inferred return type of function call '%s'", toChars());
-            return new ErrorExp();
+            t1 = e1.type.toBasetype();
+            if (t1.ty == Tfunction)
+                e1.type = f.type;   // feedback
+                // todo: e1 may be CommaExp, it should be handled for healthy AST.
         }
 
         if (f && f.tintro)

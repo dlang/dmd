@@ -2769,7 +2769,10 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             sc = td_best._scope; // workaround for Type.aliasthisOf
 
         auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
-        ti.semantic(sc, fargs);
+        auto sc2 = sc.push();
+        sc2.func = null;    // Doesn't instantiate function body yet.
+        ti.semantic(sc2, fargs);
+        sc2.pop();
 
         m.lastf = ti.toAlias().isFuncDeclaration();
         if (!m.lastf)

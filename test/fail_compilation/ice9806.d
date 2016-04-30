@@ -25,12 +25,15 @@ void test1() {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9806.d(36): Error: undefined identifier 'undefined_expr'
-fail_compilation/ice9806.d(44): Error: template instance ice9806.S2!() error instantiating
-fail_compilation/ice9806.d(37): Error: undefined identifier 'undefined_expr'
-fail_compilation/ice9806.d(46): Error: template instance ice9806.C2!() error instantiating
-fail_compilation/ice9806.d(38): Error: undefined identifier 'undefined_expr'
-fail_compilation/ice9806.d(48): Error: template instance ice9806.I2!() error instantiating
+fail_compilation/ice9806.d(39): Error: undefined identifier 'undefined_expr'
+fail_compilation/ice9806.d(42): Error: template instance ice9806.foo2!() error instantiating
+fail_compilation/ice9806.d(47):        instantiated from here: S2!()
+fail_compilation/ice9806.d(40): Error: undefined identifier 'undefined_expr'
+fail_compilation/ice9806.d(43): Error: template instance ice9806.bar2!() error instantiating
+fail_compilation/ice9806.d(49):        instantiated from here: C2!()
+fail_compilation/ice9806.d(41): Error: undefined identifier 'undefined_expr'
+fail_compilation/ice9806.d(44): Error: template instance ice9806.baz2!() error instantiating
+fail_compilation/ice9806.d(51):        instantiated from here: I2!()
 ---
 */
 int foo2()() { return undefined_expr; }

@@ -4184,8 +4184,6 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     {
         if (m.count == 1) // exactly one match
         {
-            if (!(flags & 1))
-                m.lastf.functionSemantic();
             return m.lastf;
         }
         if ((flags & 2) && !tthis && m.lastf.needThis())
