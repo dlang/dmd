@@ -243,7 +243,7 @@ assert(&s);               // check that struct S invariant holds
 	any class invariant is implicitly anded with the invariants of its base
 	classes.)
 
-	$(P There can be only one $(I Invariant) per class or struct.)
+	$(P There can be more than one $(D invariant) per class or struct.)
 
 	$(P When compiling for release, the invariant code is not generated, and the compiled program runs at maximum speed.
 	The compiler is free to assume the invariant holds true, regardless of whether code is generated for it or not, and
