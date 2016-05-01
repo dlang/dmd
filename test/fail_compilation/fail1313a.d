@@ -9,6 +9,6 @@ int[] test()
 //out{}
 body
 {
-    int a[2];
+    int[2] a;
     return a;
 }
