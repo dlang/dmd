@@ -679,8 +679,6 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
             s = sold;
             goto Lsearchdone;
         }
-
-        // Search both ways
     }
 
     // First look in local scopes

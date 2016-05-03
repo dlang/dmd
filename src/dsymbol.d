@@ -1307,18 +1307,7 @@ public:
                 if (ss.isModule())
                 {
                     if (flags & SearchLocalsOnly)
-                    {
-                        /* This supplemental message is not good because the message loc
-                         * cannot point to where the import is declared.
-                         */
-                        //if (global.params.check10378 && !(flags & SearchCheck10378))
-                        //{
-                        //    auto s3 = ss.search(loc, ident, sflags | IgnorePrivateImports);
-                        //    if (s3)
-                        //        deprecation("%s %s found in local import", s3.kind(), s3.toPrettyChars());
-                        //}
                         continue;
-                    }
                 }
                 else
                 {

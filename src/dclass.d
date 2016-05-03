@@ -1122,14 +1122,8 @@ public:
 
         auto s = ScopeDsymbol.search(loc, ident, flags);
 
-        if ((flags & (SearchLocalsOnly | SearchImportsOnly)) == 0)
-        {
-            // keep old way search
-        }
-        else
-        {
+        if ((flags & (SearchLocalsOnly | SearchImportsOnly)) != 0)
             flags |= SearchLocalsOnly;
-        }
 
         if (!s)
         {
