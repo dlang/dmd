@@ -388,11 +388,11 @@ struct COMPCOLOR {
 }
 
 extern (Windows) {
-    alias DWORD function(DWORD,PBYTE,LONG,LONG*) EDITSTREAMCALLBACK;
+    alias DWORD function(DWORD_PTR,PBYTE,LONG,LONG*) EDITSTREAMCALLBACK;
 }
 
 struct EDITSTREAM {
-    DWORD dwCookie;
+    DWORD_PTR dwCookie;
     DWORD dwError;
     EDITSTREAMCALLBACK pfnCallback;
 }
@@ -540,7 +540,7 @@ struct REQRESIZE {
 
 struct REPASTESPECIAL {
     DWORD dwAspect;
-    DWORD dwParam;
+    DWORD_PTR dwParam;
 }
 
 struct PUNCTUATION {

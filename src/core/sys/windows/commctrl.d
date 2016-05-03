@@ -3249,7 +3249,7 @@ struct NMCUSTOMDRAW {
     DWORD  dwDrawStage;
     HDC    hdc;
     RECT   rc;
-    DWORD  dwItemSpec;
+    DWORD_PTR dwItemSpec;
     UINT   uItemState;
     LPARAM lItemlParam;
 }

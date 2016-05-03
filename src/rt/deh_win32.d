@@ -162,7 +162,7 @@ struct EXCEPTION_RECORD {
         EXCEPTION_RECORD* ExceptionRecord;
         PVOID ExceptionAddress;
         DWORD NumberParameters;
-        DWORD[EXCEPTION_MAXIMUM_PARAMETERS] ExceptionInformation;
+        ULONG_PTR[EXCEPTION_MAXIMUM_PARAMETERS] ExceptionInformation;
 }
 alias EXCEPTION_RECORD* PEXCEPTION_RECORD, LPEXCEPTION_RECORD;
 
