@@ -1482,11 +1482,6 @@ $(H3 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
         but since it is always a bug, it should be an error.
         )
 
-        $(P It is an error to declare a local variable that is never referred to.
-        Dead variables, like anachronistic dead code, are just a source of
-        confusion for maintenance programmers.
-        )
-
         $(P It is an error to declare a local variable that hides another local
         variable in the same function:
         )
