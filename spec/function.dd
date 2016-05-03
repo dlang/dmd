@@ -1558,7 +1558,7 @@ void main()
 }
 ---
 
-$(H3 $(LNAME2 variadicnested, Nested Functions))
+$(H3 $(LNAME2 nested, Nested Functions))
 
         $(P Functions may be nested within other functions:)
 
