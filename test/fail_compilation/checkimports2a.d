@@ -2,15 +2,13 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/checkimports2a.d(23): Deprecation: class checkimports2a.B variable imports.imp2.Y found in local import
-fail_compilation/checkimports2a.d(27): Deprecation: local import search method found variable imports.imp1.Y instead of variable imports.imp2.Y
-fail_compilation/checkimports2a.d(23): Deprecation: class checkimports2a.B variable imports.imp2.X found in local import
-fail_compilation/checkimports2a.d(23): Deprecation: class checkimports2a.B variable imports.imp2.X found in local import
-fail_compilation/checkimports2a.d(32): Error: no property 'X' for type 'checkimports2a.B'
-fail_compilation/checkimports2a.d(23): Deprecation: class checkimports2a.B variable imports.imp2.Y found in local import
-fail_compilation/checkimports2a.d(33): Error: no property 'Y' for type 'checkimports2a.B'
-fail_compilation/checkimports2a.d(23): Deprecation: class checkimports2a.B variable imports.imp2.X found in local import
-fail_compilation/checkimports2a.d(23): Deprecation: class checkimports2a.B variable imports.imp2.Y found in local import
+fail_compilation/checkimports2a.d(24): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2a.X
+fail_compilation/checkimports2a.d(30): Deprecation: local import search method found variable imports.imp2.X instead of nothing
+fail_compilation/checkimports2a.d(30): Error: no property 'X' for type 'checkimports2a.B'
+fail_compilation/checkimports2a.d(31): Deprecation: local import search method found variable imports.imp2.Y instead of nothing
+fail_compilation/checkimports2a.d(31): Error: no property 'Y' for type 'checkimports2a.B'
+fail_compilation/checkimports2a.d(33): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2a.X
+fail_compilation/checkimports2a.d(34): Deprecation: local import search method found variable imports.imp2.Y instead of variable imports.imp1.Y
 ---
 */
 
