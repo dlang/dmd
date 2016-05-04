@@ -278,7 +278,7 @@ public:
     File* objfile;              // output .obj file
     File* hdrfile;              // 'header' file
     File* docfile;              // output documentation file
-    File* cppfile;              // output documentation file
+    File* cppfile;              // output C++ file
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     int isDocFile;              // if it is a documentation input file, not D source

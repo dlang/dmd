@@ -10,6 +10,7 @@ module ddmd.cpp;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
+import core.stdc.string;
 
 import ddmd.root.outbuffer;
 
@@ -31,6 +32,7 @@ import ddmd.identifier;
 import ddmd.init;
 import ddmd.mars;
 import ddmd.mtype;
+import ddmd.tokens;
 import ddmd.visitor;
 
 /****************************************************
@@ -133,6 +135,10 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
             buf.printf(";\n\n");
         }
 
+        override void visit(UnitTestDeclaration fd)
+        {
+        }
+
         override void visit(VarDeclaration vd)
         {
             if (cast(void*)vd in visited)
@@ -164,7 +170,8 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
                     buf.writestring("    ");
                 if (vd.linkage == LINKc)
                     buf.writestring("extern \"C\" ");
-                buf.writestring("extern ");
+                if (!ad)
+                    buf.writestring("extern ");
                 if (ad && vd.isDataseg())
                     buf.writestring("static ");
                 typeToBuffer(vd.type, vd.ident);
@@ -424,7 +431,9 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
         {
             buf.writestring(em.ident.toChars());
             buf.writestring(" = ");
-            em.value.accept(this);
+            assert(em.value.op == TOKint64);
+            auto ie = cast(IntegerExp)em.value;
+            visitInteger(ie.toInteger(), em.ed.memtype);
         }
 
         void typeToBuffer(Type t, Identifier ident)
@@ -476,6 +485,12 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
 
         override void visit(TypePointer t)
         {
+            if (t.next.ty == Tstruct &&
+                !strcmp((cast(TypeStruct)t.next).sym.ident.toChars(), "__va_list_tag"))
+            {
+                buf.writestring("va_list");
+                return;
+            }
             t.next.accept(this);
             if (t.next.ty != Tfunction)
                 buf.writeByte('*');
@@ -522,9 +537,13 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
             if (cast(void*)t.sym !in forwarded)
             {
                 forwarded[cast(void*)t.sym] = true;
-                fwdbuf.writestring("enum ");
-                fwdbuf.writestring(t.sym.toChars());
-                fwdbuf.writestring(";\n");
+                auto save = buf;
+                buf = fwdbuf;
+                t.sym.accept(this);
+                buf = save;
+                // fwdbuf.writestring("enum ");
+                // fwdbuf.writestring(t.sym.toChars());
+                // fwdbuf.writestring(";\n");
             }
 
             buf.writestring(t.sym.toChars());
@@ -768,8 +787,16 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
     buf.writestring("#define _d_ushort unsigned short\n");
     buf.writestring("#define _d_int int\n");
     buf.writestring("#define _d_uint unsigned\n");
-    buf.writestring("#define _d_long long long\n");
-    buf.writestring("#define _d_ulong unsigned long long\n");
+    if (global.params.isLP64)
+    {
+        buf.writestring("#define _d_long long\n");
+        buf.writestring("#define _d_ulong unsigned long\n");
+    }
+    else
+    {
+        buf.writestring("#define _d_long long long\n");
+        buf.writestring("#define _d_ulong unsigned long long\n");
+    }
     buf.writestring("#define _d_float float\n");
     buf.writestring("#define _d_double double\n");
     buf.writestring("#define _d_real long double\n");

@@ -29,6 +29,7 @@ trace.log
 Makefile
 src/magicport/magicport
 src/SYSCONFDIR.imp
+src/frontend.h
 
 # Visual Studio files
 *.exe

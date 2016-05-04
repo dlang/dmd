@@ -300,7 +300,7 @@ clean:
 	$(DEL) id.h id.d
 	$(DEL) verstr.h
 	$(DEL) optabgen.exe
-	$(DEL) $(HEADERS)
+	$(DEL) frontend.h
 
 install: detab install-copy
 

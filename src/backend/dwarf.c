@@ -51,9 +51,9 @@
 
 #if ELFOBJ || MACHOBJ
 
-#if MARS
-#include        "mars.h"
-#endif
+// #if MARS
+// #include        "mars.h"
+// #endif
 
 #include        "dwarf.h"
 #include        "dwarf2.h"
@@ -1088,8 +1088,8 @@ void dwarf_initfile(const char *filename)
 
     infobuf->writeuLEB128(1);                   // abbreviation code
 #if MARS
-    infobuf->write("Digital Mars D ");
-    infobuf->writeString(global.version);       // DW_AT_producer
+    infobuf->write("Digital Mars D 2.0xx");
+    // infobuf->writeString(global.version);       // DW_AT_producer
     // DW_AT_language
     infobuf->writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
 #elif SCPP
