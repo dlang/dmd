@@ -30,6 +30,7 @@
 #include        "irstate.h"
 #include        "type.h"
 #include        "toir.h"
+#include        "ty.h"
 
 typedef Array<elem *> Elems;
 RET retStyle(TypeFunction *tf);

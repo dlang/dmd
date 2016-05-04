@@ -6711,7 +6711,7 @@ public:
         return buf.extractString();
     }
 
-    override final char* toPrettyCharsHelper()
+    override final const(char)* toPrettyCharsHelper()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf, true);

@@ -145,7 +145,7 @@ void obj_write_deferred(Library *library)
         const char *fname = FileName::removeExt(mname);
         OutBuffer namebuf;
         unsigned hash = 0;
-        for (char *p = s->toChars(); *p; p++)
+        for (const char *p = s->toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
         FileName::free((char *)fname);
@@ -718,7 +718,7 @@ bool isDruntimeArrayOp(Identifier *ident)
         "_arraySliceSliceMulass_u",
         "_arraySliceSliceMulass_w",
     };
-    char *name = ident->toChars();
+    const char *name = ident->toChars();
     int i = binary(name, libArrayopFuncs, sizeof(libArrayopFuncs) / sizeof(char *));
     if (i != -1)
         return true;

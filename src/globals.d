@@ -384,41 +384,41 @@ struct Loc
 
 enum LINK : int
 {
-    def,        // default
-    d,
-    c,
-    cpp,
-    windows,
-    pascal,
-    objc,
+    LINKdef,        // default
+    LINKd,
+    LINKc,
+    LINKcpp,
+    LINKwindows,
+    LINKpascal,
+    LINKobjc,
 }
 
-alias LINKdefault = LINK.def;
-alias LINKd = LINK.d;
-alias LINKc = LINK.c;
-alias LINKcpp = LINK.cpp;
-alias LINKwindows = LINK.windows;
-alias LINKpascal = LINK.pascal;
-alias LINKobjc = LINK.objc;
+alias LINKdefault = LINK.LINKdef;
+alias LINKd = LINK.LINKd;
+alias LINKc = LINK.LINKc;
+alias LINKcpp = LINK.LINKcpp;
+alias LINKwindows = LINK.LINKwindows;
+alias LINKpascal = LINK.LINKpascal;
+alias LINKobjc = LINK.LINKobjc;
 
 enum DYNCAST : int
 {
-    object,
-    expression,
-    dsymbol,
-    type,
-    identifier,
-    tuple,
-    parameter,
+    DYNCAST_OBJECT,
+    DYNCAST_EXPRESSION,
+    DYNCAST_DSYMBOL,
+    DYNCAST_TYPE,
+    DYNCAST_IDENTIFIER,
+    DYNCAST_TUPLE,
+    DYNCAST_PARAMETER,
 }
 
-alias DYNCAST_OBJECT = DYNCAST.object;
-alias DYNCAST_EXPRESSION = DYNCAST.expression;
-alias DYNCAST_DSYMBOL = DYNCAST.dsymbol;
-alias DYNCAST_TYPE = DYNCAST.type;
-alias DYNCAST_IDENTIFIER = DYNCAST.identifier;
-alias DYNCAST_TUPLE = DYNCAST.tuple;
-alias DYNCAST_PARAMETER = DYNCAST.parameter;
+alias DYNCAST_OBJECT = DYNCAST.DYNCAST_OBJECT;
+alias DYNCAST_EXPRESSION = DYNCAST.DYNCAST_EXPRESSION;
+alias DYNCAST_DSYMBOL = DYNCAST.DYNCAST_DSYMBOL;
+alias DYNCAST_TYPE = DYNCAST.DYNCAST_TYPE;
+alias DYNCAST_IDENTIFIER = DYNCAST.DYNCAST_IDENTIFIER;
+alias DYNCAST_TUPLE = DYNCAST.DYNCAST_TUPLE;
+alias DYNCAST_PARAMETER = DYNCAST.DYNCAST_PARAMETER;
 
 enum MATCH : int
 {
@@ -435,14 +435,14 @@ alias MATCHexact = MATCH.exact;
 
 enum PINLINE : int
 {
-    def,     // as specified on the command line
-    never,   // never inline
-    always,  // always inline
+    PINLINEdef,     // as specified on the command line
+    PINLINEnever,   // never inline
+    PINLINEalways,  // always inline
 }
 
-alias PINLINEdefault = PINLINE.def;
-alias PINLINEnever = PINLINE.never;
-alias PINLINEalways = PINLINE.always;
+alias PINLINEdefault = PINLINE.PINLINEdef;
+alias PINLINEnever = PINLINE.PINLINEnever;
+alias PINLINEalways = PINLINE.PINLINEalways;
 
 alias StorageClass = uinteger_t;
 

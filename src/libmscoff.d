@@ -41,7 +41,7 @@ struct MSCoffObjSymbol
 /*********
  * Do lexical comparison of MSCoffObjSymbol's for qsort()
  */
-extern (C) int MSCoffObjSymbol_cmp(const(void*) p, const(void*) q)
+private extern (C) int MSCoffObjSymbol_cmp(const(void*) p, const(void*) q)
 {
     MSCoffObjSymbol* s1 = *cast(MSCoffObjSymbol**)p;
     MSCoffObjSymbol* s2 = *cast(MSCoffObjSymbol**)q;
@@ -703,7 +703,7 @@ struct MSCoffObjModule
 /*********
  * Do module offset comparison of MSCoffObjSymbol's for qsort()
  */
-extern (C) int MSCoffObjSymbol_offset_cmp(const(void*) p, const(void*) q)
+private extern (C) int MSCoffObjSymbol_offset_cmp(const(void*) p, const(void*) q)
 {
     MSCoffObjSymbol* s1 = *cast(MSCoffObjSymbol**)p;
     MSCoffObjSymbol* s2 = *cast(MSCoffObjSymbol**)q;

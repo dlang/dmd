@@ -26,10 +26,6 @@
 #include        "global.h"
 #include        "dt.h"
 
-#include        "rmem.h"
-#include        "target.h"
-#include        "visitor.h"
-
 Symbol *toStringSymbol(StringExp *se);
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);

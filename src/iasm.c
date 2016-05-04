@@ -2079,7 +2079,7 @@ static bool asm_isNonZeroInt(OPND *o)
 /*******************************
  */
 
-static bool asm_is_fpreg(char *szReg)
+static bool asm_is_fpreg(const char *szReg)
 {
 #if 1
     return(szReg[0] == 'S' &&
@@ -3291,7 +3291,7 @@ static void asm_output_popnd(OPND *popnd)
 /*******************************
  */
 
-static REG *asm_reg_lookup(char *s)
+static REG *asm_reg_lookup(const char *s)
 {
     int i;
 
@@ -3339,11 +3339,8 @@ static void asm_token_trans(Token *tok)
         tok_value = tok->value;
         if (tok_value == TOKidentifier)
         {
-            size_t len;
-            char *id;
-
-            id = tok->ident->toChars();
-            len = strlen(id);
+            const char *id = tok->ident->toChars();
+            size_t len = strlen(id);
             if (len < 20)
             {
                 ASMTK asmtk = (ASMTK) binary(id, apszAsmtk, ASMTKmax);

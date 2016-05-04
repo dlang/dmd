@@ -12,22 +12,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "aggregate.h"
-#include "declaration.h"
+#include "root.h"
+#include "stringtable.h"
+#include "frontend.h"
+
 #include "dt.h"
 #include "cc.h"
 #include "el.h"
 #include "global.h"
-#include "mars.h"
-#include "module.h"
-#include "mtype.h"
-#include "objc.h"
 #include "oper.h"
 #include "outbuf.h"
 #include "type.h"
 
 #include "mach.h"
-#include "obj.h"
 
 enum ObjcSegment
 {

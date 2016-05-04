@@ -2028,7 +2028,7 @@ public:
     AA* tab;
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
-    Dsymbol lookup(const Identifier ident)
+    Dsymbol lookup(Identifier ident)
     {
         //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
         return cast(Dsymbol)dmd_aaGetRvalue(tab, cast(void*)ident);
@@ -2056,7 +2056,7 @@ public:
     }
 
     // when ident and s are not the same
-    Dsymbol insert(const Identifier ident, Dsymbol s)
+    Dsymbol insert(Identifier ident, Dsymbol s)
     {
         //printf("DsymbolTable::insert()\n");
         Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);

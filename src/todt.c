@@ -35,7 +35,7 @@ void Type_toDt(Type *t, DtBuilder& dtb);
 static void toDtElem(TypeSArray *tsa, DtBuilder& dtb, Expression *e);
 void ClassDeclaration_toDt(ClassDeclaration *cd, DtBuilder& dtb);
 void StructDeclaration_toDt(StructDeclaration *sd, DtBuilder& dtb);
-static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb, Expressions *elements, size_t, ClassDeclaration *, BaseClass ***ppb = NULL);
+static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb, Array<Expression *> *elements, size_t, ClassDeclaration *, BaseClass ***ppb = NULL);
 static void ClassReferenceExp_toDt(ClassReferenceExp *e, DtBuilder& dtb, int off);
 void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder& dtb);
 Symbol *toSymbol(Dsymbol *s);
@@ -632,7 +632,7 @@ void cpp_type_info_ptr_toDt(ClassDeclaration *cd, DtBuilder& dtb)
  *      updated tail of dt_t list
  */
 static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
-        Expressions *elements, size_t firstFieldIndex,
+        Array<Expression *> *elements, size_t firstFieldIndex,
         ClassDeclaration *concreteType,
         BaseClass ***ppb)
 {

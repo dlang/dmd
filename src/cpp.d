@@ -126,6 +126,8 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
             if (ad && fd.vtblIndex != -1)
                 buf.writestring("virtual ");
             funcToBuffer(tf, fd.ident);
+            if (ad && tf.isConst())
+                buf.writestring(" const");
             if (ad && fd.storage_class & STCabstract)
                 buf.writestring(" = 0");
             buf.printf(";\n\n");
@@ -452,6 +454,8 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
 
         override void visit(TypeBasic t)
         {
+            if (t.mod & MODconst)
+                buf.writestring("const ");
             switch (t.ty)
             {
             case Tbool, Tvoid:
@@ -468,8 +472,6 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
                 t.print();
                 assert(0);
             }
-            if (t.mod & MODconst)
-                buf.writestring(" const");
         }
 
         override void visit(TypePointer t)
@@ -482,6 +484,11 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
         override void visit(TypeSArray t)
         {
             t.next.accept(this);
+        }
+
+        override void visit(TypeAArray t)
+        {
+            Type.tvoidptr.accept(this);
         }
 
         override void visit(TypeFunction tf)
@@ -614,6 +621,8 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
         override void visit(Parameter p)
         {
             ident = p.ident;
+            if (p.type.mod & MODconst)
+                buf.writestring("const ");
             p.type.accept(this);
             assert(!(p.storageClass & ~(STCref)));
             if (p.storageClass & STCref)
@@ -662,6 +671,7 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
                 case '"':
                 case '\\':
                     buf.writeByte('\\');
+                    goto default;
                 default:
                     if (c <= 0xFF)
                     {
