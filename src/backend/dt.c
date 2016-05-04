@@ -325,7 +325,7 @@ void DtBuilder::dword(int value)
 /***********************
  * Write a size_t value.
  */
-void DtBuilder::size(unsigned long long value)
+void DtBuilder::size(d_ulong value)
 {
     if (value == 0)
     {
@@ -463,11 +463,11 @@ void DtBuilder::cat(dt_t *dt)
 /**********************
  * Append dtb to data.
  */
-void DtBuilder::cat(DtBuilder& dtb)
+void DtBuilder::cat(DtBuilder *dtb)
 {
     assert(!*pTail);
-    *pTail = dtb.head;
-    pTail = dtb.pTail;
+    *pTail = dtb->head;
+    pTail = dtb->pTail;
     assert(!*pTail);
 }
 

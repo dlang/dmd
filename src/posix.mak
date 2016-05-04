@@ -217,7 +217,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array file filename	\
 	longdouble man outbuffer port response rmem rootobject speller	\
 	stringtable))
 
-GLUE_OBJS = glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o toobj.o \
+GLUE_OBJS = glue.o msc.o s2ir.o e2ir.o tocsym.o toobj.o \
 	toir.o iasm.o
 
 
@@ -233,7 +233,7 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d,backend irstate toelfdebug toctype gluelayer)
+GLUE_SRCS=$(addsuffix .d,backend irstate toelfdebug toctype gluelayer todt)
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS)
 
@@ -268,7 +268,7 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h file.h filename.h		\
 	longdouble.h newdelete.c object.h outbuffer.h port.h rmem.h	\
 	root.h stringtable.h)
 
-GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
+GLUE_SRC = glue.c msc.c s2ir.c e2ir.c tocsym.c \
 	toobj.c tocvdebug.c toir.h toir.c \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \

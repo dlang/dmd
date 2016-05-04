@@ -154,12 +154,12 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	traits.d utf.d visitor.d libomf.d scanomf.d typinf.d \
 	libmscoff.d scanmscoff.d
 
-GLUE_SRCS=irstate.d toctype.d backend.d gluelayer.d
+GLUE_SRCS=irstate.d toctype.d backend.d gluelayer.d todt.d
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS)
 
 # Glue layer
-GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
+GLUEOBJ=glue.obj msc.obj s2ir.obj e2ir.obj tocsym.obj \
 	toobj.obj tocvdebug.obj toir.obj \
 	iasm.obj objc_glue_stubs.obj
 
@@ -191,7 +191,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	version.h visitor.h objc.d $(DMD_SRCS)
 
 # Glue layer
-GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
+GLUESRC= glue.c msc.c s2ir.c e2ir.c tocsym.c \
 	toobj.c tocvdebug.c toir.h toir.c \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
@@ -558,9 +558,6 @@ toobj.obj : $(CH) mars.h module.h toobj.c
 
 type.obj : $C\type.c
 	$(CC) -c $(MFLAGS) $C\type
-
-todt.obj : mtype.h expression.h $C\dt.h todt.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) todt
 
 s2ir.obj : $C\rtlsym.h statement.h s2ir.c visitor.h
 	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir
