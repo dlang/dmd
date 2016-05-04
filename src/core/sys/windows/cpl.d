@@ -40,7 +40,7 @@ struct CPLINFO {
     int  idIcon;
     int  idName;
     int  idInfo;
-    LONG lData;
+    LONG_PTR  lData;
 }
 alias CPLINFO* LPCPLINFO;
 
@@ -48,7 +48,7 @@ struct NEWCPLINFOA {
     DWORD     dwSize = NEWCPLINFOA.sizeof;
     DWORD     dwFlags;
     DWORD     dwHelpContext;
-    LONG      lData;
+    LONG_PTR  lData;
     HICON     hIcon;
     CHAR[32]  szName;
     CHAR[64]  szInfo;
@@ -60,7 +60,7 @@ struct NEWCPLINFOW {
     DWORD      dwSize = NEWCPLINFOW.sizeof;
     DWORD      dwFlags;
     DWORD      dwHelpContext;
-    LONG       lData;
+    LONG_PTR   lData;
     HICON      hIcon;
     WCHAR[32]  szName;
     WCHAR[64]  szInfo;

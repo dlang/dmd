@@ -24,7 +24,7 @@ enum JOB_OUTPUT_FLAGS     = JOB_RUN_PERIODICALLY | JOB_EXEC_ERROR
 
 struct AT_ENUM {
     DWORD JobId;
-    DWORD JobTime;
+    DWORD_PTR JobTime;
     DWORD DaysOfMonth;
     UCHAR DaysOfWeek;
     UCHAR Flags;
@@ -33,7 +33,7 @@ struct AT_ENUM {
 alias AT_ENUM* PAT_ENUM, LPAT_ENUM;
 
 struct AT_INFO {
-    DWORD JobTime;
+    DWORD_PTR JobTime;
     DWORD DaysOfMonth;
     UCHAR DaysOfWeek;
     UCHAR Flags;

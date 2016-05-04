@@ -2465,7 +2465,7 @@ alias EMRBITBLT* PEMRBITBLT;
 struct LOGBRUSH {
     UINT     lbStyle;
     COLORREF lbColor;
-    LONG     lbHatch;
+    ULONG_PTR lbHatch;
 }
 alias TypeDef!(LOGBRUSH) PATTERN;
 alias LOGBRUSH* PLOGBRUSH, NPLOGBRUSH, LPLOGBRUSH;
