@@ -42,10 +42,6 @@
 
 #if MACHOBJ
 
-#if MARS
-#include        "mars.h"
-#endif
-
 #include        "mach.h"
 #include        "dwarf.h"
 
@@ -2353,13 +2349,7 @@ unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
 #endif
     assert(seg >= 0 && seg <= seg_count);
     Outbuffer *buf = SegData[seg]->SDbuf;
-    if (buf == NULL)
-    {
-        //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
-        //raise(SIGSEGV);
-if (!buf) halt();
-        assert(buf != NULL);
-    }
+    assert(buf != NULL);
     int save = buf->size();
     //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
