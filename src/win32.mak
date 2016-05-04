@@ -182,13 +182,8 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/file.d $(ROOT)/filename.d	\
 	$(ROOT)/speller.d $(ROOT)/stringtable.d
 
 # D front end
-SRCS = aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h	\
-	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
-	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
-	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h objc.d idgen.d $(DMD_SRCS)
+SRCS = arraytypes.h	\
+	objc.d idgen.d $(DMD_SRCS)
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -294,7 +289,7 @@ dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj verstr.h
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) verstr.h
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) -m64
 
 ############################ Maintenance Targets #############################
 
