@@ -310,6 +310,11 @@ enum LC_SYMTAB     = 2;
 enum LC_DYSYMTAB   = 11;
 enum LC_SEGMENT_64 = 0x19;
 
+enum S_REGULAR = 0;
+enum S_CSTRING_LITERALS = 2;
+enum S_LITERAL_POINTERS = 5;
+enum S_ATTR_NO_DEAD_STRIP = 0x10000000;
+
 struct load_command
 {
     uint32_t cmd;

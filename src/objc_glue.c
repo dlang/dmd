@@ -24,8 +24,6 @@
 #include "outbuf.h"
 #include "type.h"
 
-#include "mach.h"
-
 enum ObjcSegment
 {
     SEGcstring,
