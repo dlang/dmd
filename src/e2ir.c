@@ -32,6 +32,8 @@
 #include        "toir.h"
 #include        "ty.h"
 
+void Visitor::cppVtblEmissionHackDummy() {}
+
 typedef Array<elem *> Elems;
 RET retStyle(TypeFunction *tf);
 
