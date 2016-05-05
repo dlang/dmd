@@ -142,12 +142,29 @@ void test13113()
 /***************************************************/
 // 13147
 
+version (D_InlineAsm_X86)
+    enum x86iasm = true;
+else version (D_InlineAsm_X86_64)
+    enum x86iasm = true;
+else
+    enum x86iasm = false;
+
 class C13147
 {
     extern (C++) C13147 test()
     {
-        asm { naked; ret; }
+        static if (x86iasm)
+            asm { naked; ret; }
         return this;
+    }
+}
+
+struct S13147
+{
+    void test()
+    {
+        static if (x86iasm)
+            asm { naked; ret; }
     }
 }
 
@@ -155,7 +172,10 @@ void test13147()
 {
     auto c = new C13147();
     c.test();
+    S13147 s;
+    s.test();
 }
+
 
 /***************************************************/
 
