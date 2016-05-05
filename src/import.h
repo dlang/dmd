@@ -35,7 +35,7 @@ public:
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import
-    PROTKIND protection;
+    Prot protection;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;

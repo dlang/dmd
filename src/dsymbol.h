@@ -163,9 +163,13 @@ public:
     const utf8_t *prettystring;
     bool errors;                // this symbol failed to pass semantic()
     PASS semanticRun;
-    char *depmsg;               // customized deprecation message
-    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
-    UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
+
+    DeprecatedDeclaration *depdecl;           // customized deprecation message
+    UserAttributeDeclaration *userAttribDecl;    // user defined attributes
+
+    // !=null means there's a ddoc unittest associated with this symbol
+    // (only use this with ddoc)
+    UnitTestDeclaration *ddocUnittest;
 
     Dsymbol();
     Dsymbol(Identifier *);
@@ -292,7 +296,7 @@ public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
 
-private:
+public:
     Dsymbols *importedScopes;   // imported Dsymbol's
     PROTKIND *prots;            // array of PROTKIND, one for each import
 

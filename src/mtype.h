@@ -50,7 +50,7 @@ void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
 StorageClass ModToStc(unsigned mod);
 
-enum ENUMTY
+enum TY
 {
     Tarray,             // slice array, aka T[]
     Tsarray,            // static array, aka T[dimension]
@@ -100,9 +100,9 @@ enum ENUMTY
     Tvector,
     Tint128,
     Tuns128,
-    TMAX
+    TMAX,
+    TDUMMY=0x7FFFFFFF
 };
-typedef unsigned char TY;       // ENUMTY
 
 extern int Tsize_t;
 extern int Tptrdiff_t;

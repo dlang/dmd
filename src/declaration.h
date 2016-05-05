@@ -190,7 +190,7 @@ class AliasDeclaration : public Declaration
 public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
-    Dsymbol *import;            // !=NULL if unresolved internal alias for selective import
+    Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);

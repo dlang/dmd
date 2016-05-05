@@ -140,6 +140,7 @@ public:
      * to respect the match level of the corresponding precedent parameter.
      */
     bool dependent;
+    int dontask;
 
     TemplateParameter(Loc loc, Identifier *ident);
 

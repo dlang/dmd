@@ -75,6 +75,7 @@ class DeprecatedDeclaration : public StorageClassDeclaration
 {
 public:
     Expression *msg;
+    const char *msgstr;
 
     DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);

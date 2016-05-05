@@ -22,7 +22,6 @@
 
 struct Macro
 {
-  private:
     Macro *next;                // next in list
 
     const utf8_t *name;        // macro name

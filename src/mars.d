@@ -309,6 +309,7 @@ extern (C++) void genCmain(Scope* sc)
     rootHasMain = sc._module;
 }
 
+        extern(C++) void testOffsets();
 
 /**
  * DMD's real entry point
@@ -325,7 +326,9 @@ extern (C++) void genCmain(Scope* sc)
  */
 private int tryMain(size_t argc, const(char)** argv)
 {
-    Strings files;
+        testOffsets();
+
+        Strings files;
     Strings libmodules;
     global._init();
     debug
