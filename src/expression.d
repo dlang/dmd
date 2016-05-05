@@ -2021,6 +2021,27 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
  * to serve essentially as a Variant that will sit on the stack
  * during CTFE to reduce memory consumption.
  */
+union __AnonStruct__u
+{
+    char[__traits(classInstanceSize, Expression)] exp;
+    char[__traits(classInstanceSize, IntegerExp)] integerexp;
+    char[__traits(classInstanceSize, ErrorExp)] errorexp;
+    char[__traits(classInstanceSize, RealExp)] realexp;
+    char[__traits(classInstanceSize, ComplexExp)] complexexp;
+    char[__traits(classInstanceSize, SymOffExp)] symoffexp;
+    char[__traits(classInstanceSize, StringExp)] stringexp;
+    char[__traits(classInstanceSize, ArrayLiteralExp)] arrayliteralexp;
+    char[__traits(classInstanceSize, AssocArrayLiteralExp)] assocarrayliteralexp;
+    char[__traits(classInstanceSize, StructLiteralExp)] structliteralexp;
+    char[__traits(classInstanceSize, NullExp)] nullexp;
+    char[__traits(classInstanceSize, DotVarExp)] dotvarexp;
+    char[__traits(classInstanceSize, AddrExp)] addrexp;
+    char[__traits(classInstanceSize, IndexExp)] indexexp;
+    char[__traits(classInstanceSize, SliceExp)] sliceexp;
+    // Ensure that the union is suitably aligned.
+    real for_alignment_only;
+}
+
 struct UnionExp
 {
     // yes, default constructor does nothing
@@ -2057,27 +2078,6 @@ struct UnionExp
     }
 
 private:
-    union __AnonStruct__u
-    {
-        char[__traits(classInstanceSize, Expression)] exp;
-        char[__traits(classInstanceSize, IntegerExp)] integerexp;
-        char[__traits(classInstanceSize, ErrorExp)] errorexp;
-        char[__traits(classInstanceSize, RealExp)] realexp;
-        char[__traits(classInstanceSize, ComplexExp)] complexexp;
-        char[__traits(classInstanceSize, SymOffExp)] symoffexp;
-        char[__traits(classInstanceSize, StringExp)] stringexp;
-        char[__traits(classInstanceSize, ArrayLiteralExp)] arrayliteralexp;
-        char[__traits(classInstanceSize, AssocArrayLiteralExp)] assocarrayliteralexp;
-        char[__traits(classInstanceSize, StructLiteralExp)] structliteralexp;
-        char[__traits(classInstanceSize, NullExp)] nullexp;
-        char[__traits(classInstanceSize, DotVarExp)] dotvarexp;
-        char[__traits(classInstanceSize, AddrExp)] addrexp;
-        char[__traits(classInstanceSize, IndexExp)] indexexp;
-        char[__traits(classInstanceSize, SliceExp)] sliceexp;
-        // Ensure that the union is suitably aligned.
-        real for_alignment_only;
-    }
-
     __AnonStruct__u u;
 }
 

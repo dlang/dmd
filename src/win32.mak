@@ -289,7 +289,7 @@ dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj verstr.h
 	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) verstr.h
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) -m64
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)
 
 ############################ Maintenance Targets #############################
 

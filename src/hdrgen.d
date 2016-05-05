@@ -77,7 +77,7 @@ extern (C++) void genhdrfile(Module m)
     writeFile(m.loc, m.hdrfile);
 }
 
-extern (C++) final class PrettyPrintVisitor : Visitor
+private extern (C++) final class PrettyPrintVisitor : Visitor
 {
     alias visit = super.visit;
 public:

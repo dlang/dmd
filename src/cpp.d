@@ -46,13 +46,15 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
         bool[void*] visited;
         bool[void*] forwarded;
         OutBuffer *fwdbuf;
+        OutBuffer *checkbuf;
         OutBuffer *donebuf;
         OutBuffer *buf;
         AggregateDeclaration ad;
         Identifier ident;
 
-        this(OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
+        this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
         {
+            this.checkbuf = checkbuf;
             this.fwdbuf = fwdbuf;
             this.donebuf = donebuf;
             this.buf = buf;
@@ -189,6 +191,14 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
                     auto t = cast(TypeStruct)vd.type;
                     includeSymbol(t.sym);
                 }
+                auto save = buf;
+                buf = checkbuf;
+                buf.writestring("    assert(offsetof(");
+                buf.writestring(ad.ident.toChars());
+                buf.writestring(", ");
+                buf.writestring(vd.ident.toChars());
+                buf.printf(") == %d);\n", vd.offset);
+                buf = save;
                 return;
             }
 
@@ -258,7 +268,9 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
             if (!sd.type || !sd.type.deco)
                 return;
             visited[cast(void*)sd] = true;
-            buf.writestring("struct ");
+            if (sd.alignment == 1)
+                buf.writestring("#pragma pack(push, 1)\n");
+            buf.writestring(sd.isUnionDeclaration() ? "union " : "struct ");
             buf.writestring(sd.ident.toChars());
             if (sd.members)
             {
@@ -334,6 +346,16 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
                 }
 
                 buf.writestring("};\n\n");
+
+                if (sd.alignment == 1)
+                    buf.writestring("#pragma pack(pop)\n");
+
+                auto savex = buf;
+                buf = checkbuf;
+                buf.writestring("    assert(sizeof(");
+                buf.writestring(sd.ident.toChars());
+                buf.printf(") == %d);\n", sd.size(Loc()));
+                buf = savex;
             }
             else
                 buf.writestring(";\n\n");
@@ -555,7 +577,7 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
                 !t.sym.parent.isTemplateInstance())
             {
                 forwarded[cast(void*)t.sym] = true;
-                fwdbuf.writestring("struct ");
+                fwdbuf.writestring(t.sym.isUnionDeclaration() ? "union " : "struct ");
                 fwdbuf.writestring(t.sym.toChars());
                 fwdbuf.writestring(";\n");
             }
@@ -814,11 +836,24 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
     buf.writestring("};\n");
     buf.writestring("\n");
 
+    OutBuffer check;
+    check.writestring(`
+        #if OFFSETS
+        void testOffsets()
+        {
+    `);
+
     OutBuffer done;
     OutBuffer decl;
-    scope v = new ToCppBuffer(buf, &done, &decl);
+    scope v = new ToCppBuffer(&check, buf, &done, &decl);
     foreach (m; *ms)
         m.accept(v);
     buf.write(&done);
     buf.write(&decl);
+
+    check.writestring(`
+        }
+        #endif
+    `);
+    buf.write(&check);
 }

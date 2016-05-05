@@ -30,6 +30,7 @@ version (NoBackend)
 
     extern (C++)
     {
+    extern(C++) void testOffsets() {}
         // glue
         void obj_write_deferred(Library library)        {}
         void obj_start(char* srcfile)                   {}

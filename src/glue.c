@@ -16,6 +16,7 @@
 
 #include "root.h"
 #include "stringtable.h"
+#define OFFSETS 1
 #include "frontend.h"
 
 #include "cc.h"
