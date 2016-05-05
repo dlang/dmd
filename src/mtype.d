@@ -703,6 +703,8 @@ public:
             goto Lnotcovariant;
         if (t1.linkage != t2.linkage)
             goto Lnotcovariant;
+        if (t1.mod != t2.mod && t1.linkage == LINKcpp)
+            goto Lnotcovariant;
         {
             // Return types
             Type t1n = t1.next;
@@ -3402,7 +3404,7 @@ public:
         return this;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         uint size;
         //printf("TypeBasic::size()\n");
@@ -3931,32 +3933,32 @@ public:
         return (flags & TFLAGSintegral) != 0;
     }
 
-    override bool isfloating() const
+    override bool isfloating()
     {
         return (flags & TFLAGSfloating) != 0;
     }
 
-    override bool isreal() const
+    override bool isreal()
     {
         return (flags & TFLAGSreal) != 0;
     }
 
-    override bool isimaginary() const
+    override bool isimaginary()
     {
         return (flags & TFLAGSimaginary) != 0;
     }
 
-    override bool iscomplex() const
+    override bool iscomplex()
     {
         return (flags & TFLAGScomplex) != 0;
     }
 
-    override bool isscalar() const
+    override bool isscalar()
     {
         return (flags & (TFLAGSintegral | TFLAGSfloating)) != 0;
     }
 
-    override bool isunsigned() const
+    override bool isunsigned()
     {
         return (flags & TFLAGSunsigned) != 0;
     }
@@ -4072,7 +4074,7 @@ public:
         return new IntegerExp(loc, value, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         switch (ty)
         {
@@ -4230,7 +4232,7 @@ public:
         return basetype.nextOf().isunsigned();
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return false;
     }
@@ -4893,13 +4895,13 @@ public:
         return t;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         //printf("TypeDArray::size()\n");
         return Target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
@@ -5007,12 +5009,12 @@ public:
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
@@ -5053,7 +5055,7 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -5355,12 +5357,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
@@ -5377,7 +5379,7 @@ public:
         return null;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -5492,7 +5494,7 @@ public:
         }
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
@@ -5572,7 +5574,7 @@ public:
         return TypeNext.constConv(to);
     }
 
-    override bool isscalar() const
+    override bool isscalar()
     {
         return true;
     }
@@ -5586,12 +5588,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -5642,7 +5644,7 @@ public:
         return merge();
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
@@ -5666,7 +5668,7 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
@@ -6636,7 +6638,7 @@ public:
         return false;
     }
 
-    override Expression defaultInit(Loc loc) const
+    override Expression defaultInit(Loc loc)
     {
         error(loc, "function does not have a default initializer");
         return new ErrorExp();
@@ -6708,12 +6710,12 @@ public:
         }
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()
     {
         return Target.ptrsize;
     }
@@ -6758,12 +6760,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
@@ -6791,7 +6793,7 @@ public:
         return e;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -8074,7 +8076,7 @@ public:
         return structinit;
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return sym.zeroInit != 0;
     }
@@ -8114,12 +8116,12 @@ public:
         return assignable;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return false;
     }
 
-    override bool needsDestruction() const
+    override bool needsDestruction()
     {
         return sym.dtor !is null;
     }
@@ -8516,7 +8518,7 @@ public:
         return "class";
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
@@ -9046,22 +9048,22 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isscope() const
+    override bool isscope()
     {
         return sym.isscope;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -9426,17 +9428,17 @@ public:
         return MATCHnomatch;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return tvoidptr.size(loc);
     }
 
-    override Expression defaultInit(Loc loc) const
+    override Expression defaultInit(Loc loc)
     {
         return new NullExp(Loc(), Type.tnull);
     }
@@ -9622,7 +9624,7 @@ public:
         return result;
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars()
     {
         return ident ? ident.toChars() : "__anonymous_param";
     }

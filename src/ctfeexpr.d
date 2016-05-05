@@ -150,7 +150,7 @@ public:
         this.type = var.type;
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars()
     {
         return "void";
     }
@@ -189,7 +189,7 @@ public:
         this.type = victim.type;
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars()
     {
         return "CTFE ThrownException";
     }
@@ -226,7 +226,7 @@ public:
         type = Type.tvoid;
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars()
     {
         switch (op)
         {

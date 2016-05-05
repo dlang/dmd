@@ -128,7 +128,26 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
             if (ad && fd.storage_class & STCstatic)
                 buf.writestring("static ");
             if (ad && fd.vtblIndex != -1)
+            {
                 buf.writestring("virtual ");
+
+                auto s = ad.search(Loc(), fd.ident);
+                if (!(ad.storage_class & STCabstract) &&
+                    !(cast(ClassDeclaration)ad).isAbstract() &&
+                    s is fd && !fd.overnext)
+                {
+                    auto save = buf;
+                    buf = checkbuf;
+                    buf.writestring("    assert(getSlotNumber<");
+                    buf.writestring(ad.ident.toChars());
+                    buf.writestring(">(0, &");
+                    buf.writestring(ad.ident.toChars());
+                    buf.writestring("::");
+                    buf.writestring(fd.ident.toChars());
+                    buf.printf(") == %d);\n", fd.vtblIndex);
+                    buf = save;
+                }
+            }
             funcToBuffer(tf, fd.ident);
             if (ad && tf.isConst())
                 buf.writestring(" const");
@@ -839,6 +858,22 @@ void genCppFiles(OutBuffer* buf, Modules* ms)
     OutBuffer check;
     check.writestring(`
         #if OFFSETS
+
+template <class T>
+size_t getSlotNumber(int dummy, ...)
+{
+    T c;
+    va_list ap;
+    va_start(ap, dummy);
+    void *f = va_arg(ap, void*);
+    for (size_t i = 0; ; i++)
+    {
+        if ( (*(void***)&c)[i] == f)
+            return i;
+    }
+    va_end(ap);
+}
+
         void testOffsets()
         {
     `);

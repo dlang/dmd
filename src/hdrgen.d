@@ -1082,7 +1082,7 @@ public:
         }
         if (imp.packages && imp.packages.dim)
         {
-            foreach (const pid; *imp.packages)
+            foreach (pid; *imp.packages)
             {
                 buf.printf("%s.", pid.toChars());
             }
@@ -1091,11 +1091,11 @@ public:
         if (imp.names.dim)
         {
             buf.writestring(" : ");
-            foreach (const i, const name; imp.names)
+            foreach (const i, name; imp.names)
             {
                 if (i)
                     buf.writestring(", ");
-                const _alias = imp.aliases[i];
+                auto _alias = imp.aliases[i];
                 if (_alias)
                     buf.printf("%s = %s", _alias.toChars(), name.toChars());
                 else
@@ -1924,7 +1924,7 @@ public:
     {
         //printf("StructInitializer::toCBuffer()\n");
         buf.writeByte('{');
-        foreach (i, const id; si.field)
+        foreach (i, id; si.field)
         {
             if (i)
                 buf.writestring(", ");

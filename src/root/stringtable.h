@@ -48,7 +48,6 @@ private:
 public:
     void _init(d_size_t size = 0);
     void reset(d_size_t size = 0);
-    ~StringTable();
 
     StringValue *lookup(const char *s, d_size_t len);
     StringValue *update(const char *s, d_size_t len);

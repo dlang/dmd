@@ -4848,7 +4848,7 @@ public:
         return "constructor";
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars()
     {
         return "this";
     }
@@ -5028,7 +5028,7 @@ public:
         return "destructor";
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars()
     {
         return "~this";
     }

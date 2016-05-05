@@ -174,7 +174,7 @@ public:
     Dsymbol();
     Dsymbol(Identifier *);
     static Dsymbol *create(Identifier *);
-    char *toChars();
+    const char *toChars();
     virtual char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc& getLoc();
     const char *locToChars();
