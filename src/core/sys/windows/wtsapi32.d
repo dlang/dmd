@@ -331,6 +331,8 @@ static if (_WIN32_WINNT >= 0x600) {
         DWORD                        SessionId;
         DWORD                        IncomingBytes;
         DWORD                        OutgoingBytes;
+        DWORD                        IncomingFrames;
+        DWORD                        OutgoingFrames;
         DWORD                        IncomingCompressedBytes;
         DWORD                        OutgoingCompressedBytes;
         WCHAR[WINSTATIONNAME_LENGTH] WinStationName;
@@ -349,6 +351,8 @@ static if (_WIN32_WINNT >= 0x600) {
         DWORD                       SessionId;
         DWORD                       IncomingBytes;
         DWORD                       OutgoingBytes;
+        DWORD                       IncomingFrames;
+        DWORD                       OutgoingFrames;
         DWORD                       IncomingCompressedBytes;
         DWORD                       OutgoingCompressedBytes;
         CHAR[WINSTATIONNAME_LENGTH] WinStationName;
