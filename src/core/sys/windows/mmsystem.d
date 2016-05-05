@@ -1031,7 +1031,7 @@ struct MMTIME {
         DWORD sample;
         DWORD cb;
         DWORD ticks;
-        struct smpte {
+        struct _smpte {
             BYTE hour;
             BYTE min;
             BYTE sec;
@@ -1040,9 +1040,11 @@ struct MMTIME {
             BYTE dummy;
             BYTE[2] pad;
         };
-        struct midi {
+        _smpte smpte;
+        struct _midi {
             DWORD songptrpos;
         }
+        _midi midi;
     }
 }
 alias MMTIME* PMMTIME, LPMMTIME;
@@ -1329,7 +1331,7 @@ struct MIXERLINEA {
     DWORD cControls;
     CHAR[MIXER_SHORT_NAME_CHARS] szShortName;
     CHAR[MIXER_LONG_NAME_CHARS] szName;
-    struct Target {
+    struct _Target {
         DWORD dwType;
         DWORD dwDeviceID;
         WORD wMid;
@@ -1337,6 +1339,7 @@ struct MIXERLINEA {
         MMVERSION vDriverVersion;
         CHAR[MAXPNAMELEN] szPname;
     }
+    _Target Target;
 }
 alias MIXERLINEA* PMIXERLINEA, LPMIXERLINEA;
 
@@ -1353,7 +1356,7 @@ struct MIXERLINEW {
     DWORD cControls;
     WCHAR[MIXER_SHORT_NAME_CHARS] szShortName;
     WCHAR[MIXER_LONG_NAME_CHARS] szName;
-    struct Target {
+    struct _Target {
         DWORD dwType;
         DWORD dwDeviceID;
         WORD wMid;
@@ -1361,6 +1364,7 @@ struct MIXERLINEW {
         MMVERSION vDriverVersion;
         WCHAR[MAXPNAMELEN] szPname;
     }
+    _Target Target;
 }
 alias MIXERLINEW* PMIXERLINEW, LPMIXERLINEW;
 
