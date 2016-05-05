@@ -353,16 +353,19 @@ struct FULL_PTR_TO_REFID_ELEMENT {
 alias FULL_PTR_TO_REFID_ELEMENT * PFULL_PTR_TO_REFID_ELEMENT;
 
 struct FULL_PTR_XLAT_TABLES {
-    struct RefIdToPointer {
+    struct _RefIdToPointer {
         void **XlatTable;
         ubyte *StateTable;
         uint NumberOfEntries;
     }
-    struct PointerToRefId {
+    void* RefIdToPointer;
+    struct _PointerToRefId {
         PFULL_PTR_TO_REFID_ELEMENT *XlatTable;
         uint NumberOfBuckets;
         uint HashMask;
     }
+    void* PointerToRefId;
+    
     uint NextRefId;
     XLAT_SIDE XlatSide;
 }
