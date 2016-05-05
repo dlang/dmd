@@ -179,6 +179,8 @@ void outdata(symbol *s)
                             s->Sfl = FLcsdata;
                             break;
 #endif
+                        case mTYthreadData:
+                            assert(config.objfmt == OBJ_MACH && I64);
                         case mTYthread:
                         {   seg_data *pseg = objmod->tlsseg_bss();
                             s->Sseg = pseg->SDseg;
@@ -282,6 +284,17 @@ void outdata(symbol *s)
             s->Sfl = FLcsdata;
             break;
 #endif
+        case mTYthreadData:
+        {
+            assert(config.objfmt == OBJ_MACH && I64);
+
+            seg_data *pseg = objmod->tlsseg_data();
+            s->Sseg = pseg->SDseg;
+            objmod->data_start(s, datasize, s->Sseg);
+            seg = pseg->SDseg;
+            s->Sfl = FLtlsdata;
+            break;
+        }
         case mTYthread:
         {
             seg_data *pseg = objmod->tlsseg();
