@@ -26,7 +26,14 @@ else version (FreeBSD)
 else version (Solaris)
     public import rt.sections_solaris;
 else version (Darwin)
-    public import rt.sections_osx;
+{
+    version (X86_64)
+        public import rt.sections_osx_x86_64;
+    else version (X86)
+        public import rt.sections_osx_x86;
+    else
+        static assert(0, "unimplemented");
+}
 else version (CRuntime_DigitalMars)
     public import rt.sections_win32;
 else version (CRuntime_Microsoft)

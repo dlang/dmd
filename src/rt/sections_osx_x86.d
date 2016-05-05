@@ -1,16 +1,15 @@
 /**
  * Written in the D programming language.
- * This module provides OSX-specific support for sections.
+ * This module provides OS X x86 specific support for sections.
  *
- * Copyright: Copyright Digital Mars 2008 - 2012.
+ * Copyright: Copyright Digital Mars 2008 - 2016.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
- * Authors:   Walter Bright, Sean Kelly, Martin Nowak
- * Source: $(DRUNTIMESRC src/rt/_sections_osx.d)
+ * Authors: Walter Bright, Sean Kelly, Martin Nowak, Jacob Carlborg
+ * Source: $(DRUNTIMESRC src/rt/_sections_osx_x86.d)
  */
-
-module rt.sections_osx;
+module rt.sections_osx_x86;
 
 version (OSX)
     version = Darwin;
@@ -22,6 +21,7 @@ else version (WatchOS)
     version = Darwin;
 
 version(Darwin):
+version(X86):
 
 // debug = PRINTF;
 import core.stdc.stdio;
@@ -189,7 +189,6 @@ ref void[] getTLSBlockAlloc()
     return *pary;
 }
 
-
 __gshared SectionGroup _sections;
 
 extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
@@ -263,22 +262,8 @@ static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
 {
-    version (X86)
-    {
-        assert(header.magic == MH_MAGIC);
-        auto sect = getsectbynamefromheader(header,
-                                            segmentName,
-                                            sectionName);
-    }
-    else version (X86_64)
-    {
-        assert(header.magic == MH_MAGIC_64);
-        auto sect = getsectbynamefromheader_64(cast(mach_header_64*)header,
-                                            segmentName,
-                                            sectionName);
-    }
-    else
-        static assert(0, "unimplemented");
+    assert(header.magic == MH_MAGIC);
+    auto sect = getsectbynamefromheader(header, segmentName, sectionName);
 
     if (sect !is null && sect.size > 0)
         return (cast(ubyte*)sect.addr + slide)[0 .. cast(size_t)sect.size];
