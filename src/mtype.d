@@ -346,7 +346,7 @@ extern (C++) Expression semanticLength(Scope* sc, Type t, Expression exp)
     return exp;
 }
 
-enum ENUMTY : int
+enum TY : int
 {
     Tarray,     // slice array, aka T[]
     Tsarray,    // static array, aka T[dimension]
@@ -399,53 +399,51 @@ enum ENUMTY : int
     TMAX,
 }
 
-alias Tarray = ENUMTY.Tarray;
-alias Tsarray = ENUMTY.Tsarray;
-alias Taarray = ENUMTY.Taarray;
-alias Tpointer = ENUMTY.Tpointer;
-alias Treference = ENUMTY.Treference;
-alias Tfunction = ENUMTY.Tfunction;
-alias Tident = ENUMTY.Tident;
-alias Tclass = ENUMTY.Tclass;
-alias Tstruct = ENUMTY.Tstruct;
-alias Tenum = ENUMTY.Tenum;
-alias Tdelegate = ENUMTY.Tdelegate;
-alias Tnone = ENUMTY.Tnone;
-alias Tvoid = ENUMTY.Tvoid;
-alias Tint8 = ENUMTY.Tint8;
-alias Tuns8 = ENUMTY.Tuns8;
-alias Tint16 = ENUMTY.Tint16;
-alias Tuns16 = ENUMTY.Tuns16;
-alias Tint32 = ENUMTY.Tint32;
-alias Tuns32 = ENUMTY.Tuns32;
-alias Tint64 = ENUMTY.Tint64;
-alias Tuns64 = ENUMTY.Tuns64;
-alias Tfloat32 = ENUMTY.Tfloat32;
-alias Tfloat64 = ENUMTY.Tfloat64;
-alias Tfloat80 = ENUMTY.Tfloat80;
-alias Timaginary32 = ENUMTY.Timaginary32;
-alias Timaginary64 = ENUMTY.Timaginary64;
-alias Timaginary80 = ENUMTY.Timaginary80;
-alias Tcomplex32 = ENUMTY.Tcomplex32;
-alias Tcomplex64 = ENUMTY.Tcomplex64;
-alias Tcomplex80 = ENUMTY.Tcomplex80;
-alias Tbool = ENUMTY.Tbool;
-alias Tchar = ENUMTY.Tchar;
-alias Twchar = ENUMTY.Twchar;
-alias Tdchar = ENUMTY.Tdchar;
-alias Terror = ENUMTY.Terror;
-alias Tinstance = ENUMTY.Tinstance;
-alias Ttypeof = ENUMTY.Ttypeof;
-alias Ttuple = ENUMTY.Ttuple;
-alias Tslice = ENUMTY.Tslice;
-alias Treturn = ENUMTY.Treturn;
-alias Tnull = ENUMTY.Tnull;
-alias Tvector = ENUMTY.Tvector;
-alias Tint128 = ENUMTY.Tint128;
-alias Tuns128 = ENUMTY.Tuns128;
-alias TMAX = ENUMTY.TMAX;
-
-alias TY = ubyte;
+alias Tarray = TY.Tarray;
+alias Tsarray = TY.Tsarray;
+alias Taarray = TY.Taarray;
+alias Tpointer = TY.Tpointer;
+alias Treference = TY.Treference;
+alias Tfunction = TY.Tfunction;
+alias Tident = TY.Tident;
+alias Tclass = TY.Tclass;
+alias Tstruct = TY.Tstruct;
+alias Tenum = TY.Tenum;
+alias Tdelegate = TY.Tdelegate;
+alias Tnone = TY.Tnone;
+alias Tvoid = TY.Tvoid;
+alias Tint8 = TY.Tint8;
+alias Tuns8 = TY.Tuns8;
+alias Tint16 = TY.Tint16;
+alias Tuns16 = TY.Tuns16;
+alias Tint32 = TY.Tint32;
+alias Tuns32 = TY.Tuns32;
+alias Tint64 = TY.Tint64;
+alias Tuns64 = TY.Tuns64;
+alias Tfloat32 = TY.Tfloat32;
+alias Tfloat64 = TY.Tfloat64;
+alias Tfloat80 = TY.Tfloat80;
+alias Timaginary32 = TY.Timaginary32;
+alias Timaginary64 = TY.Timaginary64;
+alias Timaginary80 = TY.Timaginary80;
+alias Tcomplex32 = TY.Tcomplex32;
+alias Tcomplex64 = TY.Tcomplex64;
+alias Tcomplex80 = TY.Tcomplex80;
+alias Tbool = TY.Tbool;
+alias Tchar = TY.Tchar;
+alias Twchar = TY.Twchar;
+alias Tdchar = TY.Tdchar;
+alias Terror = TY.Terror;
+alias Tinstance = TY.Tinstance;
+alias Ttypeof = TY.Ttypeof;
+alias Ttuple = TY.Ttuple;
+alias Tslice = TY.Tslice;
+alias Treturn = TY.Treturn;
+alias Tnull = TY.Tnull;
+alias Tvector = TY.Tvector;
+alias Tint128 = TY.Tint128;
+alias Tuns128 = TY.Tuns128;
+alias TMAX = TY.TMAX;
 
 enum MODFlags : int
 {
@@ -704,6 +702,8 @@ public:
         if (inoutmismatch)
             goto Lnotcovariant;
         if (t1.linkage != t2.linkage)
+            goto Lnotcovariant;
+        if (t1.mod != t2.mod && t1.linkage == LINKcpp)
             goto Lnotcovariant;
         {
             // Return types
@@ -3404,7 +3404,7 @@ public:
         return this;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         uint size;
         //printf("TypeBasic::size()\n");
@@ -3933,32 +3933,32 @@ public:
         return (flags & TFLAGSintegral) != 0;
     }
 
-    override bool isfloating() const
+    override bool isfloating()
     {
         return (flags & TFLAGSfloating) != 0;
     }
 
-    override bool isreal() const
+    override bool isreal()
     {
         return (flags & TFLAGSreal) != 0;
     }
 
-    override bool isimaginary() const
+    override bool isimaginary()
     {
         return (flags & TFLAGSimaginary) != 0;
     }
 
-    override bool iscomplex() const
+    override bool iscomplex()
     {
         return (flags & TFLAGScomplex) != 0;
     }
 
-    override bool isscalar() const
+    override bool isscalar()
     {
         return (flags & (TFLAGSintegral | TFLAGSfloating)) != 0;
     }
 
-    override bool isunsigned() const
+    override bool isunsigned()
     {
         return (flags & TFLAGSunsigned) != 0;
     }
@@ -4074,7 +4074,7 @@ public:
         return new IntegerExp(loc, value, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         switch (ty)
         {
@@ -4232,7 +4232,7 @@ public:
         return basetype.nextOf().isunsigned();
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return false;
     }
@@ -4895,13 +4895,13 @@ public:
         return t;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         //printf("TypeDArray::size()\n");
         return Target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
@@ -5009,12 +5009,12 @@ public:
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
@@ -5055,7 +5055,7 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -5357,12 +5357,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
@@ -5379,7 +5379,7 @@ public:
         return null;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -5494,7 +5494,7 @@ public:
         }
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
@@ -5574,7 +5574,7 @@ public:
         return TypeNext.constConv(to);
     }
 
-    override bool isscalar() const
+    override bool isscalar()
     {
         return true;
     }
@@ -5588,12 +5588,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -5644,7 +5644,7 @@ public:
         return merge();
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
@@ -5668,7 +5668,7 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
@@ -6638,7 +6638,7 @@ public:
         return false;
     }
 
-    override Expression defaultInit(Loc loc) const
+    override Expression defaultInit(Loc loc)
     {
         error(loc, "function does not have a default initializer");
         return new ErrorExp();
@@ -6710,12 +6710,12 @@ public:
         }
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()
     {
         return Target.ptrsize;
     }
@@ -6760,12 +6760,12 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
@@ -6793,7 +6793,7 @@ public:
         return e;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -8076,7 +8076,7 @@ public:
         return structinit;
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return sym.zeroInit != 0;
     }
@@ -8116,12 +8116,12 @@ public:
         return assignable;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return false;
     }
 
-    override bool needsDestruction() const
+    override bool needsDestruction()
     {
         return sym.dtor !is null;
     }
@@ -8518,7 +8518,7 @@ public:
         return "class";
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return Target.ptrsize;
     }
@@ -9048,22 +9048,22 @@ public:
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(Loc loc)
     {
         return true;
     }
 
-    override bool isscope() const
+    override bool isscope()
     {
         return sym.isscope;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()
     {
         return true;
     }
@@ -9428,17 +9428,17 @@ public:
         return MATCHnomatch;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()
     {
         return true;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(Loc loc)
     {
         return tvoidptr.size(loc);
     }
 
-    override Expression defaultInit(Loc loc) const
+    override Expression defaultInit(Loc loc)
     {
         return new NullExp(Loc(), Type.tnull);
     }
@@ -9624,7 +9624,7 @@ public:
         return result;
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars()
     {
         return ident ? ident.toChars() : "__anonymous_param";
     }

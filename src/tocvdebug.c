@@ -14,21 +14,10 @@
 #include <time.h>
 #include <assert.h>
 
-#include "mars.h"
-#include "module.h"
-#include "mtype.h"
-#include "declaration.h"
-#include "statement.h"
-#include "enum.h"
-#include "aggregate.h"
-#include "init.h"
-#include "attrib.h"
-#include "id.h"
-#include "import.h"
-#include "template.h"
+#include "root.h"
+#include "stringtable.h"
+#include "frontend.h"
 
-#include "rmem.h"
-#include "target.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"
@@ -777,7 +766,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
         {
         }
 
-        void cvMemberCommon(Dsymbol *s, char *id, idx_t typidx)
+        void cvMemberCommon(Dsymbol *s, const char *id, idx_t typidx)
         {
             if (!p)
                 result = cv_stringbytes(id);
@@ -841,7 +830,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             if (!fd->type)                  // if not compiled in,
                 return;               // skip it
 
-            char *id = fd->toChars();
+            const char *id = fd->toChars();
 
             if (!p)
             {
@@ -953,7 +942,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             if (vd->type->toBasetype()->ty == Ttuple)
                 return;
 
-            char *id = vd->toChars();
+            const char *id = vd->toChars();
 
             if (!p)
             {

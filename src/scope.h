@@ -73,7 +73,7 @@ struct Scope
 {
     Scope *enclosing;           // enclosing Scope
 
-    Module *module;             // Root module
+    Module *_module;             // Root module
     ScopeDsymbol *scopesym;     // current symbol
     ScopeDsymbol *sds;          // if in static if, and declaring new symbols,
                                 // sds gets the addMember()
@@ -113,7 +113,7 @@ struct Scope
     int explicitProtection;     // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class
-    char *depmsg;               // customized deprecation message
+    DeprecatedDeclaration *depdecl; // customized deprecation message
 
     unsigned flags;
 

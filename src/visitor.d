@@ -33,6 +33,9 @@ import ddmd.staticassert;
 extern (C++) class Visitor
 {
 public:
+    version (NoBackend) void cppVtblEmissionHackDummy() {}
+    else void cppVtblEmissionHackDummy();
+
     void visit(Statement)
     {
         assert(0);

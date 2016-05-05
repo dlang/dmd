@@ -14,23 +14,10 @@
 #include <time.h>
 #include <assert.h>
 
-#include "mars.h"
-#include "module.h"
-#include "mtype.h"
-#include "declaration.h"
-#include "statement.h"
-#include "enum.h"
-#include "aggregate.h"
-#include "init.h"
-#include "attrib.h"
-#include "id.h"
-#include "import.h"
-#include "template.h"
-#include "nspace.h"
-#include "hdrgen.h"
+#include "root.h"
+#include "stringtable.h"
+#include "frontend.h"
 
-#include "rmem.h"
-#include "target.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"
@@ -40,11 +27,11 @@
 #include "cgcv.h"
 #include "outbuf.h"
 #include "irstate.h"
-#include "objc.h"
 
 extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
+void obj_append(Dsymbol *s);
 
 void TypeInfo_toDt(DtBuilder& dtb, TypeInfoDeclaration *d);
 void Initializer_toDt(Initializer *init, DtBuilder& dtb);

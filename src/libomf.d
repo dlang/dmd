@@ -559,7 +559,7 @@ struct OmfObjModule
 /*****************************************************************************/
 extern (C)
 {
-    int NameCompare(const(void*) p1, const(void*) p2)
+    private int NameCompare(const(void*) p1, const(void*) p2)
     {
         return strcmp((*cast(OmfObjSymbol**)p1).name, (*cast(OmfObjSymbol**)p2).name);
     }

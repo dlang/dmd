@@ -14,22 +14,11 @@
 #include <time.h>
 #include <assert.h>
 
-#include "mars.h"
-#include "module.h"
-#include "mtype.h"
-#include "declaration.h"
-#include "statement.h"
-#include "enum.h"
-#include "aggregate.h"
-#include "init.h"
-#include "attrib.h"
-#include "id.h"
-#include "import.h"
-#include "template.h"
-#include "lib.h"
-#include "target.h"
+#include "root.h"
+#include "stringtable.h"
+// #define OFFSETS 1
+#include "frontend.h"
 
-#include "rmem.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"
@@ -42,6 +31,8 @@
 
 void clearStringTab();
 RET retStyle(TypeFunction *tf);
+void obj_start(char *srcfile);
+void obj_end(Library *library, File *objfile);
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 void Statement_toIR(Statement *s, IRState *irs);
@@ -155,7 +146,7 @@ void obj_write_deferred(Library *library)
         const char *fname = FileName::removeExt(mname);
         OutBuffer namebuf;
         unsigned hash = 0;
-        for (char *p = s->toChars(); *p; p++)
+        for (const char *p = s->toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
         FileName::free((char *)fname);
@@ -728,7 +719,7 @@ bool isDruntimeArrayOp(Identifier *ident)
         "_arraySliceSliceMulass_u",
         "_arraySliceSliceMulass_w",
     };
-    char *name = ident->toChars();
+    const char *name = ident->toChars();
     int i = binary(name, libArrayopFuncs, sizeof(libArrayopFuncs) / sizeof(char *));
     if (i != -1)
         return true;

@@ -22,17 +22,9 @@
 #undef va_start // mapped to _crt_va_start
 #endif
 
-#include        "expression.h"
-#include        "mtype.h"
-#include        "dsymbol.h"
-#include        "declaration.h"
-#include        "enum.h"
-#include        "aggregate.h"
-#include        "attrib.h"
-#include        "module.h"
-#include        "init.h"
-#include        "template.h"
-#include        "target.h"
+#include        "root.h"
+#include        "stringtable.h"
+#include        "frontend.h"
 
 #include        "mem.h" // for mem_malloc
 
@@ -44,7 +36,6 @@
 #include        "type.h"
 #include        "dt.h"
 #include        "irstate.h"
-#include        "id.h"
 #include        "type.h"
 #include        "toir.h"
 

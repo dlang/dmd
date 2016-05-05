@@ -765,7 +765,7 @@ extern (C++) struct Token
         postfix = 0;
     }
 
-    extern (C++) const(char)* toChars() const
+    extern (C++) const(char)* toChars()
     {
         __gshared char[3 + 3 * float80value.sizeof + 1] buffer;
         const(char)* p = &buffer[0];

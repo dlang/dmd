@@ -43,7 +43,7 @@ public:
      */
     virtual void print();
 
-    virtual char *toChars();
+    virtual const char *toChars();
     virtual void toBuffer(OutBuffer *buf);
 
     /**

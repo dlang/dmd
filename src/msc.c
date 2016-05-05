@@ -13,7 +13,9 @@
 #include        <string.h>
 #include        <stddef.h>
 
-#include        "mars.h"
+#include        "root.h"
+#include        "stringtable.h"
+#include        "frontend.h"
 
 #include        "cc.h"
 #include        "global.h"

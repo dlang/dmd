@@ -15,6 +15,8 @@
  * as a guide to hooking up to other back ends.
  */
 
+struct IRState;
+
 elem *incUsageElem(IRState *irs, Loc loc);
 elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd);
 elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad);

@@ -26,16 +26,9 @@
 
 
 // D compiler
-#include        "mars.h"
-#include        "mtype.h"
-#include        "statement.h"
-#include        "id.h"
-#include        "declaration.h"
-#include        "scope.h"
-#include        "init.h"
-#include        "enum.h"
-#include        "module.h"
-#include        "target.h"
+#include "root.h"
+#include "stringtable.h"
+#include "frontend.h"
 
 // C/C++ compiler
 #define SCOPE_H 1               // avoid conflicts with D's Scope
@@ -2086,7 +2079,7 @@ static bool asm_isNonZeroInt(OPND *o)
 /*******************************
  */
 
-static bool asm_is_fpreg(char *szReg)
+static bool asm_is_fpreg(const char *szReg)
 {
 #if 1
     return(szReg[0] == 'S' &&
@@ -3298,7 +3291,7 @@ static void asm_output_popnd(OPND *popnd)
 /*******************************
  */
 
-static REG *asm_reg_lookup(char *s)
+static REG *asm_reg_lookup(const char *s)
 {
     int i;
 
@@ -3346,11 +3339,8 @@ static void asm_token_trans(Token *tok)
         tok_value = tok->value;
         if (tok_value == TOKidentifier)
         {
-            size_t len;
-            char *id;
-
-            id = tok->ident->toChars();
-            len = strlen(id);
+            const char *id = tok->ident->toChars();
+            size_t len = strlen(id);
             if (len < 20)
             {
                 ASMTK asmtk = (ASMTK) binary(id, apszAsmtk, ASMTKmax);
@@ -3530,7 +3520,7 @@ static code *asm_db_parse(OP *pop)
 
             case TOKstring:
                 len = asmtok->len;
-                q = asmtok->ustring;
+                q = (unsigned char *)asmtok->ustring;
             L3:
                 if (len)
                 {

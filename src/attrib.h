@@ -75,6 +75,7 @@ class DeprecatedDeclaration : public StorageClassDeclaration
 {
 public:
     Expression *msg;
+    const char *msgstr;
 
     DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -90,7 +91,7 @@ public:
     LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    char *toChars();
+    const char *toChars();
     void accept(Visitor *v) { v->visit(this); }
 };
 

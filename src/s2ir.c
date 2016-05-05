@@ -13,19 +13,10 @@
 #include        <string.h>
 #include        <time.h>
 
-#include        "mars.h"
-#include        "statement.h"
-#include        "expression.h"
-#include        "mtype.h"
-#include        "dsymbol.h"
-#include        "declaration.h"
+#include        "root.h"
+#include        "stringtable.h"
+#include        "frontend.h"
 #include        "irstate.h"
-#include        "init.h"
-#include        "module.h"
-#include        "enum.h"
-#include        "aggregate.h"
-#include        "template.h"
-#include        "id.h"
 
 // Back end
 #include        "cc.h"
@@ -34,10 +25,6 @@
 #include        "oper.h"
 #include        "global.h"
 #include        "dt.h"
-
-#include        "rmem.h"
-#include        "target.h"
-#include        "visitor.h"
 
 Symbol *toStringSymbol(StringExp *se);
 elem *exp2_copytotemp(elem *e);

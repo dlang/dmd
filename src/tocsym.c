@@ -18,19 +18,9 @@
 #include <alloca.h>
 #endif
 
-#include "mars.h"
-#include "module.h"
-#include "mtype.h"
-#include "declaration.h"
-#include "statement.h"
-#include "enum.h"
-#include "aggregate.h"
-#include "init.h"
-#include "attrib.h"
-#include "dsymbol.h"
-#include "id.h"
-#include "ctfe.h"
-#include "rmem.h"
+#include "root.h"
+#include "stringtable.h"
+#include "frontend.h"
 
 // Back end
 #include "cc.h"

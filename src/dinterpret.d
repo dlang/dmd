@@ -58,7 +58,7 @@ enum CTFE_RECURSION_LIMIT = 1000;
 /**
  The values of all CTFE variables
  */
-struct CtfeStack
+private struct CtfeStack
 {
 private:
     /* The stack. Every declaration we encounter is pushed here,
@@ -202,7 +202,7 @@ public:
     }
 }
 
-struct InterState
+private struct InterState
 {
     InterState* caller;     // calling function's InterState
     FuncDeclaration fd;     // function being interpreted
@@ -1039,7 +1039,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     return e;
 }
 
-extern (C++) final class Interpreter : Visitor
+private extern (C++) final class Interpreter : Visitor
 {
     alias visit = super.visit;
 public:

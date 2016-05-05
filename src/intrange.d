@@ -15,8 +15,6 @@ import ddmd.mtype;
 import ddmd.expression;
 import ddmd.globals;
 
-enum UINT64_MAX = 0xFFFFFFFFFFFFFFFFUL;
-
 static uinteger_t copySign(uinteger_t x, bool sign)
 {
     // return sign ? -x : x;
@@ -39,7 +37,7 @@ struct SignExtendedNumber
 
     static SignExtendedNumber max()
     {
-        return SignExtendedNumber(UINT64_MAX, false);
+        return SignExtendedNumber(ulong.max, false);
     }
 
     static SignExtendedNumber min()
@@ -91,7 +89,7 @@ struct SignExtendedNumber
         else if (negative)
             return SignExtendedNumber(carry ? sum : 0, true);
         else
-            return SignExtendedNumber(carry ? UINT64_MAX : sum, false);
+            return SignExtendedNumber(carry ? ulong.max : sum, false);
     }
 
     SignExtendedNumber opSub(const SignExtendedNumber a) const
@@ -130,7 +128,7 @@ struct SignExtendedNumber
         uinteger_t tAbs = copySign(value, negative);
         uinteger_t aAbs = copySign(a.value, a.negative);
         rv.negative = negative != a.negative;
-        if (UINT64_MAX / tAbs < aAbs)
+        if (ulong.max / tAbs < aAbs)
             rv.value = rv.negative - 1;
         else
             rv.value = copySign(tAbs * aAbs, rv.negative);
@@ -159,9 +157,9 @@ struct SignExtendedNumber
         if (!isMinimum())
             rvVal = copySign(value, negative) / aAbs;
         // Special handling for INT65_MIN
-        //  if the denominator is not a power of 2, it is same as UINT64_MAX / x.
+        //  if the denominator is not a power of 2, it is same as ulong.max / x.
         else if (aAbs & (aAbs - 1))
-            rvVal = UINT64_MAX / aAbs;
+            rvVal = ulong.max / aAbs;
         // otherwise, it's the same as reversing the bits of x.
         else
         {
@@ -194,9 +192,9 @@ struct SignExtendedNumber
         if (!isMinimum())
             rvVal = copySign(value, negative) % aAbs;
         // Special handling for INT65_MIN
-        //  if the denominator is not a power of 2, it is same as UINT64_MAX%x + 1.
+        //  if the denominator is not a power of 2, it is same as ulong.max%x + 1.
         else if (aAbs & (aAbs - 1))
-            rvVal = UINT64_MAX % aAbs + 1;
+            rvVal = ulong.max % aAbs + 1;
         //  otherwise, the modulus is trivially zero.
         else
             rvVal = 0;
@@ -208,7 +206,7 @@ struct SignExtendedNumber
     ref SignExtendedNumber opAddAssign(int a)
     {
         assert(a == 1);
-        if (value != UINT64_MAX)
+        if (value != ulong.max)
             ++value;
         else if (negative)
         {
@@ -420,7 +418,7 @@ struct IntRange
     IntRange castUnsigned(Type type)
     {
         if (!type.isintegral())
-            return castUnsigned(UINT64_MAX);
+            return castUnsigned(ulong.max);
         else if (type.toBasetype().ty == Tdchar)
             return castDchar();
         else
