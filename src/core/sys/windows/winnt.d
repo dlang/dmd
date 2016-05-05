@@ -2306,7 +2306,7 @@ align(4) struct LUID_AND_ATTRIBUTES {
 }
 alias LUID_AND_ATTRIBUTES* PLUID_AND_ATTRIBUTES;
 
-struct PRIVILEGE_SET {
+align(4) struct PRIVILEGE_SET {
     DWORD PrivilegeCount;
     DWORD Control;
     LUID_AND_ATTRIBUTES _Privilege;
@@ -4020,7 +4020,7 @@ static if (_WIN32_WINNT >= 0x501) {
         FileInformationInAssemblyOfAssemblyInActivationContext
     }
 
-    struct ACTIVATION_CONTEXT_ASSEMBLY_DETAILED_INFORMATION {
+    align struct ACTIVATION_CONTEXT_ASSEMBLY_DETAILED_INFORMATION {
         DWORD         ulFlags;
         DWORD         ulEncodedAssemblyIdentityLength;
         DWORD         ulManifestPathType;
