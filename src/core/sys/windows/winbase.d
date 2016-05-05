@@ -1470,16 +1470,18 @@ struct PROCESS_HEAP_ENTRY {
     BYTE  iRegionIndex;
     WORD  wFlags;
     union {
-        struct Block {
+        struct _Block {
             HANDLE   hMem;
             DWORD[3] dwReserved;
         }
-        struct Region {
+        _Block Block;
+        struct _Region {
             DWORD    dwCommittedSize;
             DWORD    dwUnCommittedSize;
             LPVOID   lpFirstBlock;
             LPVOID   lpLastBlock;
         }
+        _Region Region;
     }
 }
 alias PROCESS_HEAP_ENTRY* LPPROCESS_HEAP_ENTRY;
