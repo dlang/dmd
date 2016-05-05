@@ -2965,14 +2965,14 @@ alias IMAGE_OS2_HEADER* PIMAGE_OS2_HEADER;
 align(4) struct IMAGE_NT_HEADERS32 {
     DWORD                 Signature;
     IMAGE_FILE_HEADER     FileHeader;
-    IMAGE_OPTIONAL_HEADER OptionalHeader;
+    IMAGE_OPTIONAL_HEADER32 OptionalHeader;
 }
 alias IMAGE_NT_HEADERS32* PIMAGE_NT_HEADERS32;
 
 align(4) struct IMAGE_NT_HEADERS64 {
     DWORD                 Signature;
     IMAGE_FILE_HEADER     FileHeader;
-    IMAGE_OPTIONAL_HEADER OptionalHeader;
+    IMAGE_OPTIONAL_HEADER64 OptionalHeader;
 }
 alias IMAGE_NT_HEADERS64* PIMAGE_NT_HEADERS64;
 
@@ -3003,10 +3003,11 @@ alias IMAGE_SECTION_HEADER* PIMAGE_SECTION_HEADER;
 struct IMAGE_SYMBOL {
     union _N {
         BYTE[8]   ShortName;
-        struct Name {
+        struct _Name {
             DWORD Short;
             DWORD Long;
         }
+        _Name Name;
         PBYTE[2]  LongName;
     }
     _N    N;
