@@ -323,10 +323,10 @@ extern (C++) void genCmain(Scope* sc)
  * Returns:
  *   Application return code
  */
- extern extern(C++) void testOffsets();
+ // extern extern(C++) void testOffsets();
 private int tryMain(size_t argc, const(char)** argv)
 {
-testOffsets();
+// testOffsets();
     Strings files;
     Strings libmodules;
     global._init();
