@@ -273,7 +273,7 @@ unittest:
 ############################## Header gen ###############################
 
 frontend.h : $(FRONT_SRCS) $(ROOT_SRCS) gluelayer.d dmd_frontend.exe
-	dmd_frontend.exe -vtls -J. -d -C -Cffrontend.h -o- $(FRONT_SRCS) $(ROOT_SRCS) gluelayer.d -unittest -debug -c -version=NoBackend
+	dmd_frontend.exe -vtls -J. -d -C -Cffrontend.h -o- $(FRONT_SRCS) $(ROOT_SRCS) gluelayer.d -unittest -debug -c -version=NoBackend -I../../druntime/src -I../../phobos
 
 ################################ Libraries ##################################
 
