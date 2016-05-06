@@ -366,6 +366,7 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
+    global.params.hdrStripPlainFunctions = true;
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
     global.params.dllfiles = new Strings();
@@ -787,7 +788,10 @@ Language changes listed by -transition=id:
             else if (strcmp(p + 1, "property") == 0)
                 global.params.enforcePropertySyntax = true;
             else if (strcmp(p + 1, "inline") == 0)
+            {
                 global.params.useInline = true;
+                global.params.hdrStripPlainFunctions = false;
+            }
             else if (strcmp(p + 1, "dip25") == 0)
                 global.params.useDIP25 = true;
             else if (strcmp(p + 1, "lib") == 0)
