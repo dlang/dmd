@@ -10,6 +10,7 @@ module ddmd.traits;
 
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.stdlib;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.attrib;
@@ -1190,6 +1191,208 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
+    }
+    else if (e.ident == Id.getTemplateParamCount)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        RootObject o = (*e.args)[0];
+        Dsymbol s = getDsymbol(o);
+        TemplateDeclaration td;
+        if (!s || (td = s.isTemplateDeclaration()) is null)
+        {
+            e.error("first argument must be a template");
+            goto Lfalse;
+        }
+
+        size_t paramCount = td.parameters ? td.parameters.dim : 0;
+        return new IntegerExp(e.loc, paramCount, Type.tsize_t);
+    }
+    else if (e.ident == Id.isTemplateTypeParam
+             || e.ident == Id.isTemplateValueParam
+             || e.ident == Id.isTemplateAliasParam
+             || e.ident == Id.isTemplateThisParam
+             || e.ident == Id.isTemplateVariadicParam
+             || e.ident == Id.getTemplateParamIdent
+             || e.ident == Id.getTemplateParamType
+             || e.ident == Id.getTemplateParamSpec
+             || e.ident == Id.getTemplateParamDefault)
+    {
+        if (dim != 2)
+            goto Ldimerror;
+        RootObject o = (*e.args)[0];
+        Dsymbol s = getDsymbol(o);
+        TemplateDeclaration td;
+        if (!s || (td = s.isTemplateDeclaration()) is null)
+        {
+            e.error("first argument must be a template");
+            goto Lfalse;
+        }
+
+        Expression ex = isExpression((*e.args)[1]);
+        if (!ex)
+        {
+            e.error("parameter index expected as second argument");
+            goto Lfalse;
+        }
+        ex = ex.ctfeInterpret();
+
+        uinteger_t paramIdx = ex.toInteger();
+        size_t paramCount = td.parameters ? td.parameters.dim : 0;
+        if (paramIdx >= paramCount)
+        {
+            e.error("parameter index '%u' exceeds length '%u'", paramCount, paramIdx);
+            goto Lfalse;
+        }
+
+        TemplateParameter tp = (*td.parameters)[cast(uint)paramIdx];
+
+        if (e.ident == Id.isTemplateTypeParam)
+        {
+            // note: TemplateThisParameter inherits TemplateTypeParameter
+            if (!tp.isTemplateThisParameter() && tp.isTemplateTypeParameter())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        else if (e.ident == Id.isTemplateValueParam)
+        {
+            if (tp.isTemplateValueParameter())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        else if (e.ident == Id.isTemplateAliasParam)
+        {
+            if (tp.isTemplateAliasParameter())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        else if (e.ident == Id.isTemplateThisParam)
+        {
+            if (tp.isTemplateThisParameter())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        else if (e.ident == Id.isTemplateVariadicParam)
+        {
+            if (tp.isTemplateTupleParameter())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        else if (e.ident == Id.getTemplateParamIdent)
+        {
+            const(char)* tpIdent = tp.ident.toChars();
+            char* tpIdentM = cast(char*)malloc(char.sizeof * (strlen(tpIdent) + 1));
+            strcpy(tpIdentM, tpIdent);
+            StringExp se = new StringExp(e.loc, tpIdentM);
+            return se.semantic(sc);
+        }
+        else if (e.ident == Id.getTemplateParamType)
+        {
+            if (TemplateValueParameter tvp = tp.isTemplateValueParameter())
+            {
+                return (new TypeExp(e.loc, tvp.valType)).semantic(sc);
+            }
+            else if (TemplateAliasParameter tap = tp.isTemplateAliasParameter())
+            {
+                if (tap.specType)
+                    return (new TypeExp(e.loc, tap.specType)).semantic(sc);
+            }
+            else if (TemplateThisParameter ttp = tp.isTemplateThisParameter())
+            {
+                if (ttp.specType)
+                    return (new TypeExp(e.loc, ttp.specType)).semantic(sc);
+            }
+
+            e.error("Template parameter '%s' at index '%u' does not have a type.", tp.toChars(), paramIdx);
+            goto Lfalse;
+        }
+        else if (e.ident == Id.getTemplateParamSpec)
+        {
+            if (auto tvp = tp.isTemplateValueParameter())
+            {
+                if (tvp.specValue)
+                    return tvp.specValue.semantic(sc);
+            }
+            else if (auto tap = tp.isTemplateAliasParameter())
+            {
+                if (tap.specAlias)
+                {
+                    if (Type t = isType(tap.specAlias))
+                        return (new TypeExp(e.loc, t)).semantic(sc);
+                    else if (Dsymbol sym = getDsymbol(tap.specAlias))
+                        return (new DsymbolExp(e.loc, sym)).semantic(sc);
+                    else if (Expression tex = isExpression(tap.specAlias))
+                        return tex.semantic(sc);
+                    else
+                        assert(0);  // unhandled case
+                }
+            }
+            else if (auto ttp = tp.isTemplateThisParameter())
+            {
+                if (ttp.specType)
+                    return (new TypeExp(e.loc, ttp.specType)).semantic(sc);
+            }
+            else if (auto ttp = tp.isTemplateTypeParameter())
+            {
+                // note: TemplateThisParameter inherits TemplateTypeParameter
+                assert(!tp.isTemplateThisParameter());
+
+                if (ttp.specType)
+                    return (new TypeExp(e.loc, ttp.specType)).semantic(sc);
+            }
+
+            e.error("Template parameter '%s' at index '%u' does not have a specialization.", tp.toChars(), paramIdx);
+            goto Lfalse;
+        }
+        else if (e.ident == Id.getTemplateParamDefault)
+        {
+            if (auto tvp = tp.isTemplateValueParameter())
+            {
+                if (tvp.defaultValue)
+                    return tvp.defaultValue.semantic(sc);
+            }
+            else if (auto tap = tp.isTemplateAliasParameter())
+            {
+                if (tap.defaultAlias)
+                {
+                    if (Type t = isType(tap.defaultAlias))
+                        return (new TypeExp(e.loc, t)).semantic(sc);
+                    else if (Dsymbol sym = getDsymbol(tap.defaultAlias))
+                        return (new DsymbolExp(e.loc, sym)).semantic(sc);
+                    else if (Expression tex = isExpression(tap.defaultAlias))
+                        return tex.semantic(sc);
+                    else
+                        assert(0);  // unhandled case
+                }
+            }
+            else if (auto ttp = tp.isTemplateThisParameter())
+            {
+                if (ttp.defaultType)
+                    return new TypeExp(e.loc, ttp.defaultType);
+            }
+            else if (auto ttp = tp.isTemplateTypeParameter())
+            {
+                // note: TemplateThisParameter inherits TemplateTypeParameter
+                assert(!tp.isTemplateThisParameter());
+
+                if (ttp.defaultType)
+                    return (new TypeExp(e.loc, ttp.defaultType)).semantic(sc);
+            }
+
+            e.error("Template parameter '%s' at index '%u' does not have a default.", tp.toChars(), paramIdx);
+            goto Lfalse;
+        }
+        else
+        {
+            assert(0);  // unhandled case
+        }
+
+        goto Lfalse;
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)
