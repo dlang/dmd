@@ -1115,16 +1115,19 @@ public:
 
             if (!doesoverride && isOverride() && (type.nextOf() || !may_override))
             {
+                BaseClass* bc = null;
                 Dsymbol s = null;
                 for (size_t i = 0; i < cd.baseclasses.dim; i++)
                 {
-                    s = (*cd.baseclasses)[i].sym.search_correct(ident);
+                    bc = (*cd.baseclasses)[i];
+                    s = bc.sym.search_correct(ident);
                     if (s)
                         break;
                 }
 
                 if (s)
-                    error("does not override any function, did you mean to override '%s'?", s.toPrettyChars());
+                    error("does not override any function, did you mean to override '%s%s'?",
+                        bc.sym.isCPPclass() ? "extern (C++) ".ptr : "".ptr, s.toPrettyChars());
                 else
                     error("does not override any function");
             }
