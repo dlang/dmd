@@ -2129,6 +2129,7 @@ extern (C++) bool isReservedName(char* str, size_t len)
         "__MODULE__",
         "__FUNCTION__",
         "__PRETTY_FUNCTION__",
+        "__GENSYM__",
         "__DATE__",
         "__TIME__",
         "__TIMESTAMP__",

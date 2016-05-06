@@ -120,6 +120,7 @@ Msgtable[] msgtable =
     { "MODULE", "__MODULE__" },
     { "FUNCTION", "__FUNCTION__" },
     { "PRETTY_FUNCTION", "__PRETTY_FUNCTION__" },
+    { "GENSYM", "__GENSYM__" },
     { "DATE", "__DATE__" },
     { "TIME", "__TIME__" },
     { "TIMESTAMP", "__TIMESTAMP__" },
