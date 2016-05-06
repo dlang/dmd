@@ -2867,16 +2867,17 @@ public:
 
     /*************************************
      * Bugzilla 14488: Check if the inner most base type is complex or imaginary.
-     * Should only give alerts when set to emit transitional messages.
+     * Should only give alerts when deprecations are enabled.
      */
     final void checkComplexTransition(Loc loc)
     {
         Type t = baseElemOf();
+        static __gshared bool warned = false;
+
         while (t.ty == Tpointer || t.ty == Tarray)
             t = t.nextOf().baseElemOf();
         if (t.isimaginary() || t.iscomplex())
         {
-            const(char)* p = loc.toChars();
             Type rt;
             switch (t.ty)
             {
@@ -2895,13 +2896,15 @@ public:
             default:
                 assert(0);
             }
-            if (t.iscomplex())
+
+            if (!warned)
             {
-                fprintf(global.stdmsg, "%s: use of complex type '%s' is scheduled for deprecation, use 'std.complex.Complex!(%s)' instead\n", p ? p : "", toChars(), rt.toChars());
-            }
-            else
-            {
-                fprintf(global.stdmsg, "%s: use of imaginary type '%s' is scheduled for deprecation, use '%s' instead\n", p ? p : "", toChars(), rt.toChars());
+                if (t.iscomplex())
+                    .deprecation(loc, "use of complex type '%s' is scheduled for deprecation, use 'std.complex.Complex!(%s)' instead\n", toChars(), rt.toChars());
+                else
+                    .deprecation(loc, "use of imaginary type '%s' is scheduled for deprecation, use '%s' instead\n", toChars(), rt.toChars());
+
+                warned = true;
             }
         }
     }

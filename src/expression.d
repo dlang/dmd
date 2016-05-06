@@ -5566,8 +5566,7 @@ public:
         else
             assert(0);
 
-        if (global.params.vcomplex)
-            type.checkComplexTransition(loc);
+        type.checkComplexTransition(loc);
 
         return e;
     }
@@ -7238,8 +7237,7 @@ public:
             return new ErrorExp();
         }
 
-        if (global.params.vcomplex)
-            ta.checkComplexTransition(loc);
+        ta.checkComplexTransition(loc);
 
         Expression e;
         if (ea && ta.toBasetype().ty == Tclass)
