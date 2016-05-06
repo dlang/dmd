@@ -6990,7 +6990,7 @@ final class Parser : Lexer
         {
             nextToken();
             auto e2 = parseAssignExp();
-            e = new CommaExp(loc, e, e2);
+            e = new CommaExp(loc, e, e2, false);
             loc = token.loc;
         }
         return e;

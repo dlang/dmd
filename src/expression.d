@@ -11754,15 +11754,34 @@ extern (C++) final class DotExp : BinExp
  */
 extern (C++) final class CommaExp : BinExp
 {
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    /// This is needed because AssignExp rewrites CommaExp, hence it needs
+    /// to trigger the deprecation.
+    const bool isGenerated;
+
+    /// Temporary variable to enable / disable deprecation of comma expression
+    /// depending on the context.
+    /// Since most constructor calls are rewritting, the only place where
+    /// false will be passed will be from the parser.
+    bool allowCommaExp;
+
+
+    extern (D) this(Loc loc, Expression e1, Expression e2, bool generated = true)
     {
         super(loc, TOKcomma, __traits(classInstanceSize, CommaExp), e1, e2);
+        allowCommaExp = isGenerated = generated;
     }
 
     override Expression semantic(Scope* sc)
     {
         if (type)
             return this;
+
+        // Allow `((a,b),(x,y))`
+        if (allowCommaExp)
+        {
+            CommaExp.allow(e1);
+            CommaExp.allow(e2);
+        }
 
         if (Expression ex = binSemanticProp(sc))
             return ex;
@@ -11772,6 +11791,8 @@ extern (C++) final class CommaExp : BinExp
             return new ErrorExp();
 
         type = e2.type;
+        if (type !is Type.tvoid && !allowCommaExp && !isGenerated)
+            deprecation("Using the result of a comma expression is deprecated");
         return this;
     }
 
@@ -11820,6 +11841,26 @@ extern (C++) final class CommaExp : BinExp
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    /**
+     * If the argument is a CommaExp, set a flag to prevent deprecation messages
+     *
+     * It's impossible to know from CommaExp.semantic if the result will
+     * be used, hence when there is a result (type != void), a deprecation
+     * message is always emitted.
+     * However, some construct can produce a result but won't use it
+     * (ExpStatement and for loop increment).  Those should call this function
+     * to prevent unwanted deprecations to be emitted.
+     *
+     * Params:
+     *   exp = An expression that discards its result.
+     *         If the argument is null or not a CommaExp, nothing happens.
+     */
+    static void allow(Expression exp)
+    {
+        if (exp && exp.op == TOK.TOKcomma)
+            (cast(CommaExp)exp).allowCommaExp = true;
     }
 }
 
@@ -12398,6 +12439,8 @@ extern (C++) class AssignExp : BinExp
         {
             /* Rewrite to get rid of the comma from rvalue
              */
+            if (!(cast(CommaExp)e2).isGenerated)
+                deprecation("Using the result of a comma expression is deprecated");
             Expression e0;
             e2 = Expression.extractLast(e2, &e0);
             Expression e = Expression.combine(e0, this);

@@ -85,6 +85,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (s.exp)
         {
             //printf("ExpStatement::semantic() %s\n", exp.toChars());
+
+            // Allow CommaExp in ExpStatement because return isn't used
+            CommaExp.allow(s.exp);
+
             s.exp = s.exp.semantic(sc);
             s.exp = resolveProperties(sc, s.exp);
             s.exp = s.exp.addDtorHook(sc);
@@ -444,6 +448,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
         if (fs.increment)
         {
+            CommaExp.allow(fs.increment);
             fs.increment = fs.increment.semantic(sc);
             fs.increment = resolveProperties(sc, fs.increment);
             if (checkNonAssignmentArrayOp(fs.increment))
