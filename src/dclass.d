@@ -1351,7 +1351,8 @@ public:
                     continue;
 
                 Lfd:
-                    fdmatch = fd, fdambig = null;
+                    fdmatch = fd;
+                    fdambig = null;
                     //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
                     continue;
 
