@@ -8,7 +8,6 @@
 
 module ddmd.target;
 
-import core.stdc.string;
 import ddmd.dmodule;
 import ddmd.expression;
 import ddmd.globals;

@@ -23,7 +23,6 @@ import ddmd.dmodule;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
-import ddmd.dtemplate;
 import ddmd.dversion;
 import ddmd.errors;
 import ddmd.expression;

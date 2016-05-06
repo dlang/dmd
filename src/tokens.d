@@ -12,7 +12,6 @@ import core.stdc.ctype;
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.globals;
-import ddmd.id;
 import ddmd.identifier;
 import ddmd.root.port;
 import ddmd.root.outbuffer;

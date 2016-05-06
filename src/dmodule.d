@@ -22,16 +22,13 @@ import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.lexer;
 import ddmd.parse;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
-import ddmd.root.rmem;
 import ddmd.target;
 import ddmd.visitor;
 

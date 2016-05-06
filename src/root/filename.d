@@ -12,7 +12,6 @@ module ddmd.root.filename;
 
 import core.stdc.ctype;
 import core.stdc.errno;
-import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.stdlib;
 import core.sys.posix.sys.stat;

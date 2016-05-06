@@ -13,7 +13,6 @@ module ddmd.root.port;
 import core.stdc.ctype;
 import core.stdc.string;
 import core.stdc.stdio;
-import core.stdc.errno;
 import core.math;
 
 version(CRuntime_DigitalMars) __gshared extern (C) extern const(char)* __locale_decpoint;

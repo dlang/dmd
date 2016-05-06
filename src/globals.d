@@ -10,7 +10,6 @@ module ddmd.globals;
 
 import core.stdc.stdint;
 import core.stdc.stdio;
-import core.stdc.string;
 import ddmd.root.array;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;

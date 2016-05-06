@@ -17,7 +17,6 @@
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.stdc.string;
 
 struct Msgtable
 {

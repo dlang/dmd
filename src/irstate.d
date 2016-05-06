@@ -17,7 +17,6 @@ import ddmd.identifier;
 import ddmd.statement;
 import ddmd.globals;
 import ddmd.mtype;
-import ddmd.errors;
 
 extern (C++) struct Label;
 

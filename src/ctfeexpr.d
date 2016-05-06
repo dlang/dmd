@@ -12,7 +12,6 @@ module ddmd.ctfeexpr;
 
 import core.stdc.stdio;
 import core.stdc.string;
-import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.complex;
 import ddmd.constfold;
@@ -25,16 +24,11 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
-import ddmd.hdrgen;
-import ddmd.id;
 import ddmd.mtype;
-import ddmd.root.longdouble;
-import ddmd.root.outbuffer;
 import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.target;
 import ddmd.tokens;
-import ddmd.utf;
 import ddmd.visitor;
 
 /***********************************************************

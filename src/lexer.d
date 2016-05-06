@@ -20,11 +20,9 @@ import ddmd.errors;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.root.longdouble;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
 import ddmd.root.rmem;
-import ddmd.root.stringtable;
 import ddmd.tokens;
 import ddmd.utf;
 
