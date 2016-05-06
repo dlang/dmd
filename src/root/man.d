@@ -13,8 +13,6 @@ module ddmd.root.man;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-import core.sys.posix.sys.types;
-import core.sys.posix.sys.wait;
 import core.sys.posix.unistd;
 import core.sys.windows.windows;
 

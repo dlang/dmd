@@ -15,12 +15,8 @@ import ddmd.dscope;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.sapply;
-import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 

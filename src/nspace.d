@@ -13,9 +13,7 @@ import ddmd.arraytypes;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.identifier;
-import ddmd.root.outbuffer;
 import ddmd.visitor;
 import core.stdc.stdio;
 

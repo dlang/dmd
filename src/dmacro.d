@@ -15,7 +15,6 @@ import ddmd.errors;
 import ddmd.globals;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
-import ddmd.utf;
 
 struct Macro
 {

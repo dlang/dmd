@@ -17,13 +17,10 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.func;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.opover;
-import ddmd.root.outbuffer;
 import ddmd.tokens;
 import ddmd.visitor;
 

@@ -9,19 +9,16 @@
 module ddmd.dtemplate;
 
 import core.stdc.stdio;
-import core.stdc.stdlib;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
 import ddmd.attrib;
-import ddmd.gluelayer;
 import ddmd.dcast;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dmangle;
 import ddmd.dmodule;
-import ddmd.doc;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
@@ -35,7 +32,6 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.opover;
 import ddmd.root.aav;
-import ddmd.root.array;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.tokens;

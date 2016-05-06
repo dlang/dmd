@@ -12,7 +12,6 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
-import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.globals;
 import ddmd.gluelayer;

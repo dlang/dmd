@@ -14,7 +14,6 @@ import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.func;
 import ddmd.globals;
-import ddmd.id;
 import ddmd.root.stringtable;
 
 struct ObjcSelector

@@ -18,7 +18,6 @@ module ddmd.mars;
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.limits;
-import core.stdc.stdint;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -40,7 +39,6 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.inline;
 import ddmd.json;
-import ddmd.lexer;
 import ddmd.lib;
 import ddmd.link;
 import ddmd.mtype;
@@ -55,7 +53,6 @@ import ddmd.root.rmem;
 import ddmd.root.stringtable;
 import ddmd.target;
 import ddmd.tokens;
-import ddmd.traits;
 
 
 /**

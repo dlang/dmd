@@ -8,11 +8,9 @@
 
 module ddmd.gluelayer;
 
-import ddmd.aggregate;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.expression;
 import ddmd.lib;
 import ddmd.mtype;
 import ddmd.statement;

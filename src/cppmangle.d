@@ -14,7 +14,6 @@ import core.stdc.stdio;
 
 import ddmd.arraytypes;
 import ddmd.declaration;
-import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
@@ -22,7 +21,6 @@ import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
-import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;

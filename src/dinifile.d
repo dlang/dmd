@@ -13,14 +13,12 @@
 module ddmd.dinifile;
 
 import core.stdc.ctype;
-import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.stdlib;
 import core.sys.windows.windows;
 
 import ddmd.errors;
 import ddmd.globals;
-import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;

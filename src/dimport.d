@@ -14,7 +14,6 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import ddmd.arraytypes;
-import ddmd.attrib;
 import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;

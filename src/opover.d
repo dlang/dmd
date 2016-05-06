@@ -9,7 +9,6 @@
 module ddmd.opover;
 
 import core.stdc.stdio;
-import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;

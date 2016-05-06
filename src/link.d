@@ -10,11 +10,9 @@ module ddmd.link;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
-import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.stdio;
 import core.sys.posix.stdlib;
-import core.sys.posix.sys.wait;
 import core.sys.posix.unistd;
 import ddmd.errors;
 import ddmd.globals;
