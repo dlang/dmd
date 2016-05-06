@@ -3725,6 +3725,7 @@ public:
     CaseStatements* cases;          // array of CaseStatement's
     int hasNoDefault;               // !=0 if no default statement
     int hasVars;                    // !=0 if has variable case values
+    bool hasGotoDefault;            // true iff there is a `goto default` statement for this switch
 
     extern (D) this(Loc loc, Expression c, Statement b, bool isFinal)
     {
@@ -3825,6 +3826,7 @@ public:
                     if (cs.exp.equals(gcs.exp))
                     {
                         gcs.cs = cs;
+                        cs.gototarget = true;
                         goto Lfoundcase;
                     }
                 }
@@ -3863,7 +3865,7 @@ public:
             else
                 needswitcherror = true;
         }
-        if (!sc.sw.sdefault && (!isFinal || needswitcherror || global.params.useAssert))
+        if (!sdefault && (!isFinal || needswitcherror || global.params.useAssert))
         {
             hasNoDefault = 1;
             if (!isFinal && !_body.isErrorStatement())
@@ -3877,14 +3879,25 @@ public:
             else
                 s = new ExpStatement(loc, new HaltExp(loc));
             a.reserve(2);
-            sc.sw.sdefault = new DefaultStatement(loc, s);
+            sdefault = new DefaultStatement(loc, s);
             a.push(_body);
             if (_body.blockExit(sc.func, false) & BEfallthru)
                 a.push(new BreakStatement(Loc(), null));
-            a.push(sc.sw.sdefault);
+            a.push(sdefault);
             cs = new CompoundStatement(loc, a);
             _body = cs;
         }
+
+        /+ hasGotoDefault is set by GotoDefaultStatement.semantic
+         + at which point sdefault may still be null, therefore
+         + set sdefault.gototarget here.
+         +/
+        if (hasGotoDefault)
+        {
+            assert(sdefault);
+            sdefault.gototarget = true;
+        }
+
         sc.pop();
         return this;
     Lerror:
@@ -3911,6 +3924,7 @@ public:
     Expression exp;
     Statement statement;
     int index;              // which case it is (since we sort this)
+    bool gototarget;        // true iff this is the target of a `goto case`
 
     extern (D) this(Loc loc, Expression exp, Statement s)
     {
@@ -4136,6 +4150,8 @@ extern (C++) final class DefaultStatement : Statement
 public:
     Statement statement;
 
+    bool gototarget;        // true iff this is the target of a `goto default`
+
     extern (D) this(Loc loc, Statement s)
     {
         super(loc);
@@ -4222,6 +4238,7 @@ public:
             error("goto default not allowed in final switch statement");
             return new ErrorStatement();
         }
+        sw.hasGotoDefault = true;
         return this;
     }
 

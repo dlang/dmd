@@ -418,6 +418,7 @@ public:
     CaseStatements *cases;         // array of CaseStatement's
     int hasNoDefault;           // !=0 if no default statement
     int hasVars;                // !=0 if has variable case values
+    bool hasGotoDefault;        // true iff there is a `goto default` statement for this switch
 
     SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFinal);
     Statement *syntaxCopy();
@@ -434,6 +435,8 @@ public:
     Statement *statement;
 
     int index;          // which case it is (since we sort this)
+    bool gototarget;    // true iff this is the target of a `goto case`
+
 
     CaseStatement(Loc loc, Expression *exp, Statement *s);
     Statement *syntaxCopy();
@@ -463,6 +466,8 @@ class DefaultStatement : public Statement
 {
 public:
     Statement *statement;
+
+    bool gototarget;        // true iff this is the target of a `goto default`
 
     DefaultStatement(Loc loc, Statement *s);
     Statement *syntaxCopy();
