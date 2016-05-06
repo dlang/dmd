@@ -323,6 +323,7 @@ class ThisExp : public Expression
 {
 public:
     VarDeclaration *var;
+    Expression *eoffset;
 
     ThisExp(Loc loc);
     Expression *semantic(Scope *sc);

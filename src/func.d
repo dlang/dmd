@@ -1211,15 +1211,25 @@ public:
                  *   __require();
                  */
                 Loc loc = frequire.loc;
-                auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
+                auto fparams = new Parameters();
+                Expression eoffset = null;
+                if (parent.isInterfaceDeclaration())
+                {
+                    fparams.push(new Parameter(0, Type.tsize_t, null, null));
+                    eoffset = new IntegerExp(loc, 0, Type.tsize_t);
+                }
+                auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
                 tf.isnothrow = f.isnothrow;
                 tf.isnogc = f.isnogc;
                 tf.purity = f.purity;
                 tf.trust = f.trust;
+
                 auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
                 fd.fbody = frequire;
+
                 Statement s1 = new ExpStatement(loc, fd);
-                Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
+                Expression e = new CallExp(loc,
+                    new VarExp(loc, fd, false), eoffset);
                 Statement s2 = new ExpStatement(loc, e);
                 frequire = new CompoundStatement(loc, s1, s2);
                 fdrequire = fd;
@@ -1235,24 +1245,30 @@ public:
                  */
                 Loc loc = fensure.loc;
                 auto fparams = new Parameters();
-                Parameter p = null;
+                Expression eresult;
+                Expression eoffset;
                 if (outId)
                 {
-                    p = new Parameter(STCref | STCconst, f.nextOf(), outId, null);
-                    fparams.push(p);
+                    fparams.push(new Parameter(STCref | STCconst, f.nextOf(), outId, null));
+                    eresult = new IdentifierExp(loc, outId);
+                }
+                if (parent.isInterfaceDeclaration())
+                {
+                    fparams.push(new Parameter(0, Type.tsize_t, null, null));
+                    eoffset = new IntegerExp(loc, 0, Type.tsize_t);
                 }
                 auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
                 tf.isnothrow = f.isnothrow;
                 tf.isnogc = f.isnogc;
                 tf.purity = f.purity;
                 tf.trust = f.trust;
+
                 auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
                 fd.fbody = fensure;
+
                 Statement s1 = new ExpStatement(loc, fd);
-                Expression eresult = null;
-                if (outId)
-                    eresult = new IdentifierExp(loc, outId);
-                Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+                Expression e = new CallExp(loc,
+                    new VarExp(loc, fd, false), eresult, eoffset);
                 Statement s2 = new ExpStatement(loc, e);
                 fensure = new CompoundStatement(loc, s1, s2);
                 fdensure = fd;
@@ -3278,7 +3294,12 @@ public:
             printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
             printf("result is %d\n", isMember() && !(isStatic() || protection == PROTprivate || protection == PROTpackage) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc()));
         }
-        return isMember() && !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
+        return isMember() &&
+               !(isStatic() ||
+                 protection.kind == PROTprivate ||
+                 protection.kind == PROTpackage) &&
+               p.isClassDeclaration() &&
+               !(p.isInterfaceDeclaration() && isFinalFunc());
     }
 
     bool isFinalFunc()
@@ -3294,7 +3315,10 @@ public:
             if (cd)
                 printf("\tmember of %s\n", cd.toChars());
         }
-        return isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal));
+        return isMember() &&
+               (Declaration.isFinal() ||
+                ((cd = toParent().isClassDeclaration()) !is null &&
+                 cd.storage_class & STCfinal));
     }
 
     bool addPreInvariant()
@@ -3704,8 +3728,18 @@ public:
                  *   try { __require(); }
                  *   catch { frequire; }
                  */
-                Expression eresult = null;
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), eresult);
+                Expression eoffset;
+                if (auto id = fdv.isThis().isInterfaceDeclaration())
+                {
+                    auto cd = this.isThis().isClassDeclaration();
+                    int offset;
+                    id.isBaseOf(cd, &offset);
+                    assert(offset != ClassDeclaration.OFFSET_RUNTIME);
+                    eoffset = new IntegerExp(loc, offset, Type.tsize_t);
+                }
+
+                Expression e = new CallExp(loc,
+                    new VarExp(loc, fdv.fdrequire, false), eoffset);
                 Statement s2 = new ExpStatement(loc, e);
                 auto c = new Catch(loc, null, null, sf);
                 c.internalCatch = true;
@@ -3753,7 +3787,8 @@ public:
             {
                 //printf("fdv->fensure: %s\n", fdv->fensure->toChars());
                 // Make the call: __ensure(result)
-                Expression eresult = null;
+                Expression eresult;
+                Expression eoffset;
                 if (outId)
                 {
                     eresult = new IdentifierExp(loc, oid);
@@ -3773,7 +3808,17 @@ public:
                         eresult = new CommaExp(Loc(), de, ve);
                     }
                 }
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), eresult);
+                if (auto id = fdv.isThis().isInterfaceDeclaration())
+                {
+                    auto cd = this.isThis().isClassDeclaration();
+                    int offset;
+                    id.isBaseOf(cd, &offset);
+                    assert(offset != ClassDeclaration.OFFSET_RUNTIME);
+                    eoffset = new IntegerExp(loc, offset, Type.tsize_t);
+                }
+
+                Expression e = new CallExp(loc,
+                    new VarExp(loc, fdv.fdensure, false), eresult, eoffset);
                 Statement s2 = new ExpStatement(loc, e);
                 if (sf)
                 {

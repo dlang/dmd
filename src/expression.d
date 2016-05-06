@@ -3991,6 +3991,9 @@ extern (C++) class ThisExp : Expression
 public:
     VarDeclaration var;
 
+    // Bugzilla 15984: It's used when ThisExp appears in interface contracts.
+    Expression eoffset;     // backend
+
     final extern (D) this(Loc loc)
     {
         super(loc, TOKthis, __traits(classInstanceSize, ThisExp));
@@ -4044,6 +4047,35 @@ public:
         type = var.type;
         if (var.checkNestedReference(sc, loc))
             return new ErrorExp();
+
+        // Bugzilla 15984
+        if (fd.isThis().isInterfaceDeclaration() &&
+            fd.isVirtual())
+        {
+            assert(fd.fdrequire || fd.fdensure);
+
+            FuncDeclaration fdc;
+            for (auto scx = sc; scx; scx = scx.enclosing)
+            {
+                if (scx.func.parent !is fd)
+                    continue;
+                fdc = (scx.func.ident == Id.require) ? fd.fdrequire : fd.fdensure;
+                break;
+            }
+            assert(fdc && fdc.parameters && fdc.parameters.dim);
+
+            /* When fdc is called from a derived instance class C, the last
+             * parameter voffset is set to the offset from C to interface 'id'.
+             * See also:
+             *  FuncDeclaration.mergeFrequire, mergeFensure.
+             */
+            auto voffset = (*fdc.parameters)[fdc.parameters.dim - 1];
+            eoffset = new VarExp(Loc(), voffset);
+            eoffset = eoffset.semantic(sc);
+            assert(eoffset.op != TOKerror);
+            //printf("[%s] ThisExp eoffset = %s\n", loc.toChars(), eoffset.toChars());
+        }
+
         if (!sc.intypeof)
             sc.callSuper |= CSXthis;
         return this;
@@ -4165,6 +4197,8 @@ public:
 
         if (var.checkNestedReference(sc, loc))
             return new ErrorExp();
+
+        // Bugzilla 15984: 'super' is always invalid inside interface contract.
 
         if (!sc.intypeof)
             sc.callSuper |= CSXsuper;
@@ -9111,23 +9145,16 @@ public:
     extern (D) this(Loc loc, Expression e, Expression earg1)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
-        auto arguments = new Expressions();
-        if (earg1)
-        {
-            arguments.setDim(1);
-            (*arguments)[0] = earg1;
-        }
-        this.arguments = arguments;
+        this.arguments = new Expressions();
+        if (earg1) this.arguments.push(earg1);
     }
 
     extern (D) this(Loc loc, Expression e, Expression earg1, Expression earg2)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
-        auto arguments = new Expressions();
-        arguments.setDim(2);
-        (*arguments)[0] = earg1;
-        (*arguments)[1] = earg2;
-        this.arguments = arguments;
+        this.arguments = new Expressions();
+        if (earg1) this.arguments.push(earg1);
+        if (earg2) this.arguments.push(earg2);
     }
 
     static CallExp create(Loc loc, Expression e, Expressions* exps)
