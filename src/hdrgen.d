@@ -1731,7 +1731,7 @@ public:
                 bodyToBuffer(f);
                 hgs.autoMember--;
             }
-            else if (hgs.tpltMember == 0 && !global.params.useInline)
+            else if (hgs.tpltMember == 0 && global.params.hdrStripPlainFunctions)
             {
                 buf.writeByte(';');
                 buf.writenl();
@@ -1745,7 +1745,7 @@ public:
 
     void bodyToBuffer(FuncDeclaration f)
     {
-        if (!f.fbody || (hgs.hdrgen && !global.params.useInline && !hgs.autoMember && !hgs.tpltMember))
+        if (!f.fbody || (hgs.hdrgen && global.params.hdrStripPlainFunctions && !hgs.autoMember && !hgs.tpltMember))
         {
             buf.writeByte(';');
             buf.writenl();
