@@ -1692,6 +1692,12 @@ public:
                 if (!fbody)
                     fbody = new CompoundStatement(Loc(), new Statements());
 
+                if (naked)
+                {
+                    fpreinv = null;         // can't accommodate with no stack frame
+                    fpostinv = null;
+                }
+
                 assert(type == f || (type.ty == Tfunction && f.purity == PUREimpure && (cast(TypeFunction)type).purity >= PUREfwdref));
                 f = cast(TypeFunction)type;
 
