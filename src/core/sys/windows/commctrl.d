@@ -5306,8 +5306,9 @@ int ListView_FindItem(HWND w, int i, const(LV_FINDINFO)* p) {
 }
 
 BOOL ListView_GetItemRect(HWND w, int i, LPRECT p, int c) {
-    return cast(BOOL) SendMessage(w, LVM_GETITEMRECT, i, p ?
-      (p.left = c, cast(LPARAM) p) : 0);
+    if (p)
+        p.left = c;
+    return cast(BOOL) SendMessage(w, LVM_GETITEMRECT, i, cast(LPARAM) p);
 }
 
 BOOL ListView_SetItemPosition(HWND w, int i, int x, int y) {
@@ -6028,8 +6029,11 @@ static if (_WIN32_IE >= 0x300) {
     }
 
     BOOL ListView_GetSubItemRect(HWND w, int i, int isi, int c, LPRECT p) {
-        return cast(BOOL) SendMessage(w, LVM_GETSUBITEMRECT, i,
-          p ? (p.left = c, p.top = isi, cast(LPARAM) p) : 0);
+        if (p) {
+            p.left = c;
+            p.top = isi;
+        }
+        return cast(BOOL) SendMessage(w, LVM_GETSUBITEMRECT, i, cast(LPARAM) p);
     }
 
     HCURSOR ListView_SetHotCursor(HWND w, HCURSOR c) {
