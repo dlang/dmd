@@ -47,9 +47,9 @@ typedef Array<struct Symbol *> Symbols;
 
 Classsym *fake_classsym(Identifier *id);
 type *Type_toCtype(Type *t);
-void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder& dtb);
-void Expression_toDt(Expression *e, DtBuilder& dtb);
-void cpp_type_info_ptr_toDt(ClassDeclaration *cd, DtBuilder& dtb);
+void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder* dtb);
+void Expression_toDt(Expression *e, DtBuilder* dtb);
+void cpp_type_info_ptr_toDt(ClassDeclaration *cd, DtBuilder* dtb);
 Symbol *toInitializer(AggregateDeclaration *ad);
 const char *cppTypeInfoMangle(Dsymbol *cd);
 
@@ -677,7 +677,7 @@ Symbol* toSymbol(StructLiteralExp *sle)
     s->Stype = t;
     sle->sym = s;
     DtBuilder dtb;
-    Expression_toDt(sle, dtb);
+    Expression_toDt(sle, &dtb);
     s->Sdt = dtb.finish();
     outdata(s);
     return sle->sym;
@@ -695,7 +695,7 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     s->Stype = t;
     cre->value->sym = s;
     DtBuilder dtb;
-    ClassReferenceExp_toInstanceDt(cre, dtb);
+    ClassReferenceExp_toInstanceDt(cre, &dtb);
     s->Sdt = dtb.finish();
     outdata(s);
     return cre->value->sym;
@@ -724,7 +724,7 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
         s->Sfl = FLdata;
         s->Sflags |= SFLnodebug;
         DtBuilder dtb;
-        cpp_type_info_ptr_toDt(cd, dtb);
+        cpp_type_info_ptr_toDt(cd, &dtb);
         s->Sdt = dtb.finish();
         outdata(s);
         cd->cpp_type_info_ptr_sym = s;

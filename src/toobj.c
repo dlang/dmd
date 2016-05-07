@@ -47,13 +47,13 @@ extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
-void TypeInfo_toDt(DtBuilder& dtb, TypeInfoDeclaration *d);
-void Initializer_toDt(Initializer *init, DtBuilder& dtb);
-void Type_toDt(Type *t, DtBuilder& dtb);
-void ClassDeclaration_toDt(ClassDeclaration *cd, DtBuilder& dtb);
-void StructDeclaration_toDt(StructDeclaration *sd, DtBuilder& dtb);
+void TypeInfo_toDt(DtBuilder *dtb, TypeInfoDeclaration *d);
+void Initializer_toDt(Initializer *init, DtBuilder *dtb);
+void Type_toDt(Type *t, DtBuilder *dtb);
+void ClassDeclaration_toDt(ClassDeclaration *cd, DtBuilder *dtb);
+void StructDeclaration_toDt(StructDeclaration *sd, DtBuilder *dtb);
 Symbol *toSymbol(Dsymbol *s);
-void Expression_toDt(Expression *e, DtBuilder& dtb);
+void Expression_toDt(Expression *e, DtBuilder *dtb);
 void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj);
 Symbol *toThunkSymbol(FuncDeclaration *fd, int offset);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
@@ -295,7 +295,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 sinit->Sclass = scclass;
                 sinit->Sfl = FLdata;
                 DtBuilder dtb;
-                ClassDeclaration_toDt(cd, dtb);
+                ClassDeclaration_toDt(cd, &dtb);
                 sinit->Sdt = dtb.finish();
                 out_readonly(sinit);
                 outdata(sinit);
@@ -455,7 +455,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // m_RTInfo
             if (cd->getRTInfo)
-                Expression_toDt(cd->getRTInfo, dtb);
+                Expression_toDt(cd->getRTInfo, &dtb);
             else if (flags & ClassFlags::noPointers)
                 dtb.size(0);
             else
@@ -816,7 +816,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
             // m_RTInfo
             if (id->getRTInfo)
-                Expression_toDt(id->getRTInfo, dtb);
+                Expression_toDt(id->getRTInfo, &dtb);
             else
                 dtb.size(0);       // no pointers
 
@@ -897,7 +897,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
                 sd->sinit->Sfl = FLdata;
                 DtBuilder dtb;
-                StructDeclaration_toDt(sd, dtb);
+                StructDeclaration_toDt(sd, &dtb);
                 sd->sinit->Sdt = dtb.finish();
                 out_readonly(sd->sinit);    // put in read-only segment
                 outdata(sd->sinit);
@@ -985,7 +985,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             else
             {
                 DtBuilder dtb;
-                Type_toDt(vd->type, dtb);
+                Type_toDt(vd->type, &dtb);
                 s->Sdt = dtb.finish();
             }
 
@@ -1045,7 +1045,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 ed->sinit->Sclass = scclass;
                 ed->sinit->Sfl = FLdata;
                 DtBuilder dtb;
-                Expression_toDt(tc->sym->defaultval, dtb);
+                Expression_toDt(tc->sym->defaultval, &dtb);
                 ed->sinit->Sdt = dtb.finish();
                 outdata(ed->sinit);
             }
@@ -1072,7 +1072,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             s->Sfl = FLdata;
 
             DtBuilder dtb;
-            TypeInfo_toDt(dtb, tid);
+            TypeInfo_toDt(&dtb, tid);
             s->Sdt = dtb.finish();
 
             // See if we can convert a comdat to a comdef,
@@ -1216,7 +1216,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
     private:
         void initializerToDt(VarDeclaration *vd, DtBuilder& dtb)
         {
-            Initializer_toDt(vd->_init, dtb);
+            Initializer_toDt(vd->_init, &dtb);
 
             // Look for static array that is block initialized
             ExpInitializer *ie = vd->_init->isExpInitializer();
@@ -1232,7 +1232,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 // Duplicate Sdt 'dim-1' times, as we already have the first one
                 while (--dim > 0)
                 {
-                    Expression_toDt(ie->exp, dtb);
+                    Expression_toDt(ie->exp, &dtb);
                 }
             }
         }
@@ -1273,7 +1273,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             if (vd->_init)
                 initializerToDt(vd, tlvInitDtb);
             else
-                Type_toDt(vd->type, tlvInitDtb);
+                Type_toDt(vd->type, &tlvInitDtb);
 
             tlvInit->Sdt = tlvInitDtb.finish();
             outdata(tlvInit);

@@ -18,22 +18,28 @@ bool dtallzeros(const dt_t *dt);
 bool dtpointers(const dt_t *dt);
 void dt2common(dt_t **pdt);
 
-struct DtBuilder
+#if __LP64__
+#define d_ulong unsigned long
+#else
+#define d_ulong unsigned long long
+#endif
+
+class DtBuilder
 {
-  private:
+private:
 
     dt_t *head;
     dt_t **pTail;
 
-  public:
+public:
 
     DtBuilder();
-    dt_t *finish();
+    virtual dt_t *finish();
     void nbytes(unsigned size, const char *ptr);
     void abytes(tym_t ty, unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
     void abytes(unsigned offset, unsigned size, const char *ptr, unsigned nzeros);
     void dword(int value);
-    void size(unsigned long long value);
+    void size(d_ulong value);
     void nzeros(unsigned size);
     void xoff(Symbol *s, unsigned offset, tym_t ty);
     dt_t *xoffpatch(Symbol *s, unsigned offset, tym_t ty);
@@ -41,7 +47,7 @@ struct DtBuilder
     void dtoff(dt_t *dt, unsigned offset);
     void coff(unsigned offset);
     void cat(dt_t *dt);
-    void cat(DtBuilder& dtb);
+    void cat(DtBuilder *dtb);
     void repeat(dt_t *dt, size_t count);
     unsigned length();
     bool isZeroLength();
