@@ -62,6 +62,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
         override void visit(Expression e)
         {
             //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
+
             MATCH match = e.implicitConvTo(t);
             if (match)
             {
@@ -77,12 +78,14 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 result = e.castTo(sc, t);
                 return;
             }
+
             result = e.optimize(WANTvalue);
             if (result != e)
             {
                 result.accept(this);
                 return;
             }
+
             if (t.ty != Terror && e.type.ty != Terror)
             {
                 if (!t.deco)
@@ -132,6 +135,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
         override void visit(ArrayLiteralExp e)
         {
             visit(cast(Expression)e);
+
             Type tb = result.type.toBasetype();
             if (tb.ty == Tarray)
                 semanticTypeInfo(sc, (cast(TypeDArray)tb).next);
@@ -142,6 +146,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
             if (result.op != TOKslice)
                 return;
+
             e = cast(SliceExp)result;
             if (e.e1.op == TOKarrayliteral)
             {
@@ -195,6 +200,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 e.error("%s is not an expression", e.toChars());
                 e.type = Type.terror;
             }
+
             Expression ex = e.optimize(WANTvalue);
             if (ex.type.equals(t))
             {
@@ -207,12 +213,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 result = ex.implicitConvTo(t);
                 return;
             }
+
             MATCH match = e.type.implicitConvTo(t);
             if (match != MATCHnomatch)
             {
                 result = match;
                 return;
             }
+
             /* See if we can do integral narrowing conversions
              */
             if (e.type.isintegral() && t.isintegral() && e.type.isTypeBasic() && t.isTypeBasic())
@@ -244,6 +252,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 tprime = t.nextOf().castMod(mod).sarrayOf(t.size() / t.nextOf().size());
             else
                 tprime = t.castMod(mod);
+
             return e.implicitConvTo(tprime);
         }
 
@@ -260,6 +269,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             if (typeb.ty != Tpointer || tb.ty != Tpointer)
                 return MATCHnomatch;
+
             Type t1b = e.e1.type.toBasetype();
             Type t2b = e.e2.type.toBasetype();
             if (t1b.ty == Tpointer && t2b.isintegral() && t1b.equivalent(tb))
@@ -275,6 +285,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 MATCH m = e.e2.implicitConvTo(t);
                 return (m > MATCHconst) ? MATCHconst : m;
             }
+
             return MATCHnomatch;
         }
 
@@ -312,11 +323,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 result = m;
                 return;
             }
+
             TY ty = e.type.toBasetype().ty;
             TY toty = t.toBasetype().ty;
             TY oldty = ty;
+
             if (m == MATCHnomatch && t.ty == Tenum)
                 return;
+
             if (t.ty == Tvector)
             {
                 TypeVector tv = cast(TypeVector)t;
@@ -325,6 +339,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     return;
                 toty = tb.ty;
             }
+
             switch (ty)
             {
             case Tbool:
@@ -336,12 +351,15 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             case Twchar:
                 ty = Tint32;
                 break;
+
             case Tdchar:
                 ty = Tuns32;
                 break;
+
             default:
                 break;
             }
+
             // Only allow conversion if no change in value
             dinteger_t value = e.toInteger();
             switch (toty)
@@ -350,12 +368,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if ((value & 1) != value)
                     return;
                 break;
+
             case Tint8:
                 if (ty == Tuns64 && value & ~0x7FU)
                     return;
                 else if (cast(byte)value != value)
                     return;
                 break;
+
             case Tchar:
                 if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
                     return;
@@ -365,12 +385,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (cast(ubyte)value != value)
                     return;
                 break;
+
             case Tint16:
                 if (ty == Tuns64 && value & ~0x7FFFU)
                     return;
                 else if (cast(short)value != value)
                     return;
                 break;
+
             case Twchar:
                 if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
                     return;
@@ -379,6 +401,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (cast(ushort)value != value)
                     return;
                 break;
+
             case Tint32:
                 if (ty == Tuns32)
                 {
@@ -388,6 +411,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 else if (cast(int)value != value)
                     return;
                 break;
+
             case Tuns32:
                 if (ty == Tint32)
                 {
@@ -395,10 +419,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 else if (cast(uint)value != value)
                     return;
                 break;
+
             case Tdchar:
                 if (value > 0x10FFFFU)
                     return;
                 break;
+
             case Tfloat32:
                 {
                     float f;
@@ -416,6 +442,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     }
                     break;
                 }
+
             case Tfloat64:
                 {
                     double f;
@@ -433,6 +460,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     }
                     break;
                 }
+
             case Tfloat80:
                 {
                     real f;
@@ -450,6 +478,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     }
                     break;
                 }
+
             case Tpointer:
                 //printf("type = %s\n", type->toBasetype()->toChars());
                 //printf("t = %s\n", t->toBasetype()->toChars());
@@ -462,10 +491,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
                 goto default;
+
             default:
                 visit(cast(Expression)e);
                 return;
             }
+
             //printf("MATCHconvert\n");
             result = MATCHconvert;
         }
@@ -486,6 +517,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 result = MATCHexact;
                 return;
             }
+
             /* Allow implicit conversions from immutable to mutable|const,
              * and mutable to immutable. It works because, after all, a null
              * doesn't actually point to anything.
@@ -495,6 +527,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 result = MATCHconst;
                 return;
             }
+
             visit(cast(Expression)e);
         }
 
@@ -533,6 +566,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
                 return;
+
             if (e.type.ty == Tsarray || e.type.ty == Tarray || e.type.ty == Tpointer)
             {
                 TY tyn = e.type.nextOf().ty;
@@ -637,11 +671,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                             }
                         }
                         break;
+
                     default:
                         break;
                     }
                 }
             }
+
             visit(cast(Expression)e);
         }
 
@@ -659,12 +695,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 result = MATCHexact;
                 Type typen = typeb.nextOf().toBasetype();
+
                 if (tb.ty == Tsarray)
                 {
                     TypeSArray tsa = cast(TypeSArray)tb;
                     if (e.elements.dim != tsa.dim.toInteger())
                         result = MATCHnomatch;
                 }
+
                 Type telement = tb.nextOf();
                 if (!e.elements.dim)
                 {
@@ -691,8 +729,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                             result = m; // remember worst match
                     }
                 }
+
                 if (!result)
                     result = e.type.implicitConvTo(t);
+
                 return;
             }
             else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
@@ -709,6 +749,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     result = MATCHnomatch;
                     return;
                 }
+
                 Type telement = tv.elementType();
                 if (edim < tbasedim)
                 {
@@ -728,6 +769,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 }
                 return;
             }
+
             visit(cast(Expression)e);
         }
 
@@ -767,9 +809,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("CallExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
+
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
                 return;
+
             /* Allow the result of strongly pure functions to
              * convert to immutable
              */
@@ -780,6 +824,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     result = MATCHconst;
                 return;
             }
+
             /* Conversion is 'const' conversion if:
              * 1. function is pure (weakly pure is ok)
              * 2. implicit conversion only fails because of mod bits
@@ -790,10 +835,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if (tx.ty != Tfunction)
                 return;
             TypeFunction tf = cast(TypeFunction)tx;
+
             if (tf.purity == PUREimpure)
                 return;
             if (e.f && e.f.isNested())
                 return;
+
             /* See if fail only because of mod bits.
              *
              * Bugzilla 14155: All pure functions can access global immutable data.
@@ -816,6 +863,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             // Allow a conversion to immutable type, or
             // conversions of mutable types between thread-local and shared.
+
             /* Get mod bits of what we're converting to
              */
             Type tb = t.toBasetype();
@@ -835,9 +883,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             if (mod & MODwild)
                 return; // not sure what to do with this
+
             /* Apply mod bits to each function parameter,
              * and see if we can convert the function argument to the modded type
              */
+
             size_t nparams = Parameter.dim(tf.parameters);
             size_t j = (tf.linkage == LINKd && tf.varargs == 1); // if TypeInfoArray was prepended
             if (e.e1.op == TOKdotvar)
@@ -879,6 +929,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (implicitMod(earg, targ, mod) == MATCHnomatch)
                     return;
             }
+
             /* Success
              */
             result = MATCHconst;
@@ -892,6 +943,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             result = e.type.implicitConvTo(t);
             //printf("\tresult = %d\n", result);
+
             if (result != MATCHnomatch)
                 return;
 
@@ -935,6 +987,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                  */
                 assert(0);
             }
+
             //printf("\tresult = %d\n", result);
         }
 
@@ -1010,8 +1063,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
                 return;
+
             MATCH m1 = e.e1.implicitConvTo(t);
             MATCH m2 = e.e2.implicitConvTo(t);
+
             // Pick the worst match
             result = (m1 < m2) ? m1 : m2;
         }
@@ -1021,8 +1076,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
                 return;
+
             MATCH m1 = e.e1.implicitConvTo(t);
             MATCH m2 = e.e2.implicitConvTo(t);
+
             // Pick the worst match
             result = (m1 < m2) ? m1 : m2;
         }
@@ -1032,6 +1089,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             MATCH m1 = e.e1.implicitConvTo(t);
             MATCH m2 = e.e2.implicitConvTo(t);
             //printf("CondExp: m1 %d m2 %d\n", m1, m2);
+
             // Pick the worst match
             result = (m1 < m2) ? m1 : m2;
         }
@@ -1050,6 +1108,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = e.type.implicitConvTo(t);
             if (result != MATCHnomatch)
                 return;
+
             if (t.isintegral() && e.e1.type.isintegral() && e.e1.implicitConvTo(t) != MATCHnomatch)
                 result = MATCHconvert;
             else
@@ -1065,6 +1124,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
                 return;
+
             /* Calling new() is like calling a pure function. We can implicitly convert the
              * return from new() to t using the same algorithm as in CallExp, with the function
              * 'arguments' being:
@@ -1074,10 +1134,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              *    .init
              * 'member' and 'allocator' need to be pure.
              */
+
             /* See if fail only because of mod bits
              */
             if (e.type.immutableOf().implicitConvTo(t.immutableOf()) == MATCHnomatch)
                 return;
+
             /* Get mod bits of what we're converting to
              */
             Type tb = t.toBasetype();
@@ -1090,9 +1152,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             if (mod & MODwild)
                 return; // not sure what to do with this
+
             /* Apply mod bits to each argument,
              * and see if we can convert the argument to the modded type
              */
+
             if (e.thisexp)
             {
                 /* Treat 'this' as just another function argument
@@ -1101,6 +1165,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (targ.constConv(targ.castMod(mod)) == MATCHnomatch)
                     return;
             }
+
             /* Check call to 'allocator', then 'member'
              */
             FuncDeclaration fd = e.allocator;
@@ -1113,6 +1178,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 if (tf.purity == PUREimpure)
                     return; // impure
+
                 if (fd == e.member)
                 {
                     if (e.type.immutableOf().implicitConvTo(t) < MATCHconst && e.type.addMod(MODshared).implicitConvTo(t) < MATCHconst && e.type.implicitConvTo(t.addMod(MODshared)) < MATCHconst)
@@ -1122,7 +1188,9 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     // Allow a conversion to immutable type, or
                     // conversions of mutable types between thread-local and shared.
                 }
+
                 Expressions* args = (fd == e.allocator) ? e.newargs : e.arguments;
+
                 size_t nparams = Parameter.dim(tf.parameters);
                 size_t j = (tf.linkage == LINKd && tf.varargs == 1); // if TypeInfoArray was prepended
                 for (size_t i = j; i < e.arguments.dim; ++i)
@@ -1156,6 +1224,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         return;
                 }
             }
+
             /* If no 'member', then construction is by simple assignment,
              * and just straight check 'arguments'
              */
@@ -1176,6 +1245,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         return;
                 }
             }
+
             /* Consider the .init expression as an argument
              */
             Type ntb = e.newtype.toBasetype();
@@ -1198,10 +1268,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     /* With new() must look at the class instance initializer.
                      */
                     ClassDeclaration cd = (cast(TypeClass)ntb).sym;
+
                     cd.size(e.loc); // resolve any forward references
+
                     if (cd.isNested())
                         return; // uplevel reference may not be convertible
+
                     assert(!cd.isInterfaceDeclaration());
+
                     struct ClassCheck
                     {
                         extern (C++) static bool convertible(Loc loc, ClassDeclaration cd, MOD mod)
@@ -1243,9 +1317,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 Expression earg = e.newtype.defaultInitLiteral(e.loc);
                 Type targ = e.newtype.toBasetype();
+
                 if (implicitMod(earg, targ, mod) == MATCHnomatch)
                     return;
             }
+
             /* Success
              */
             result = MATCHconst;
@@ -1257,8 +1333,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
             if (result != MATCHnomatch)
                 return;
+
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
+
             if (tb.ty == Tsarray && typeb.ty == Tarray)
             {
                 typeb = toStaticArrayType(e);
@@ -1266,6 +1344,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     result = typeb.implicitConvTo(t);
                 return;
             }
+
             /* If the only reason it won't convert is because of the mod bits,
              * then test for conversion by seeing if e1 can be converted with those
              * same mod bits.
@@ -1275,6 +1354,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 Type tbn = tb.nextOf();
                 Type tx = null;
+
                 /* If e->e1 is dynamic array or pointer, the uniqueness of e->e1
                  * is equivalent with the uniqueness of the referred data. And in here
                  * we can have arbitrary typed reference for that.
@@ -1283,12 +1363,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     tx = tbn.arrayOf();
                 if (t1b.ty == Tpointer)
                     tx = tbn.pointerTo();
+
                 /* If e->e1 is static array, at least it should be an rvalue.
                  * If not, e->e1 is a reference, and its uniqueness does not link
                  * to the uniqueness of the referred data.
                  */
                 if (t1b.ty == Tsarray && !e.e1.isLvalue())
                     tx = tbn.sarrayOf(t1b.size() / tbn.size());
+
                 if (tx)
                 {
                     result = e.e1.implicitConvTo(tx);
@@ -1296,6 +1378,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         result = MATCHconst;
                 }
             }
+
             // Enhancement 10724
             if (tb.ty == Tpointer && e.e1.op == TOKstring)
                 e.e1.accept(this);
@@ -1372,6 +1455,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
+
             Type tob = t.toBasetype();
             Type t1b = e.type.toBasetype();
             if (tob.equals(t1b))
@@ -1380,22 +1464,28 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result.type = t;
                 return;
             }
+
             /* Make semantic error against invalid cast between concrete types.
              * Assume that 'e' is never be any placeholder expressions.
              * The result of these checks should be consistent with CastExp::toElem().
              */
+
             // Fat Value types
             const(bool) tob_isFV = (tob.ty == Tstruct || tob.ty == Tsarray);
             const(bool) t1b_isFV = (t1b.ty == Tstruct || t1b.ty == Tsarray);
+
             // Fat Reference types
             const(bool) tob_isFR = (tob.ty == Tarray || tob.ty == Tdelegate);
             const(bool) t1b_isFR = (t1b.ty == Tarray || t1b.ty == Tdelegate);
+
             // Reference types
             const(bool) tob_isR = (tob_isFR || tob.ty == Tpointer || tob.ty == Taarray || tob.ty == Tclass);
             const(bool) t1b_isR = (t1b_isFR || t1b.ty == Tpointer || t1b.ty == Taarray || t1b.ty == Tclass);
+
             // Arithmetic types (== valueable basic types)
             const(bool) tob_isA = (tob.isintegral() || tob.isfloating());
             const(bool) t1b_isA = (t1b.isintegral() || t1b.isfloating());
+
             if (AggregateDeclaration t1ad = isAggregate(t1b))
             {
                 AggregateDeclaration toad = isAggregate(tob);
@@ -1409,6 +1499,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                         if (tocd.isBaseOf(t1cd, &offset))
                             goto Lok;
                     }
+
                     /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
@@ -1442,17 +1533,20 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result.type = t;
                 return;
             }
+
             // arithmetic values vs. other arithmetic values
             // arithmetic values vs. T*
             if (tob_isA && (t1b_isA || t1b.ty == Tpointer) || t1b_isA && (tob_isA || tob.ty == Tpointer))
             {
                 goto Lok;
             }
+
             // arithmetic values vs. references or fat values
             if (tob_isA && (t1b_isR || t1b_isFV) || t1b_isA && (tob_isR || tob_isFV))
             {
                 goto Lfail;
             }
+
             // Bugzlla 3133: A cast between fat values is possible only when the sizes match.
             if (tob_isFV && t1b_isFV)
             {
@@ -1462,6 +1556,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = new ErrorExp();
                 return;
             }
+
             // Fat values vs. null or references
             if (tob_isFV && (t1b.ty == Tnull || t1b_isR) || t1b_isFV && (tob.ty == Tnull || tob_isR))
             {
@@ -1490,6 +1585,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
                 goto Lfail;
             }
+
             /* For references, any reinterpret casts are allowed to same 'ty' type.
              *      T* to U*
              *      R1 function(P1) to R2 function(P2)
@@ -1500,12 +1596,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
              */
             if (tob.ty == t1b.ty && tob_isR && t1b_isR)
                 goto Lok;
+
             // typeof(null) <-- non-null references or values
             if (tob.ty == Tnull && t1b.ty != Tnull)
                 goto Lfail; // Bugzilla 14629
             // typeof(null) --> non-null references or arithmetic values
             if (t1b.ty == Tnull && tob.ty != Tnull)
                 goto Lok;
+
             // Check size mismatch of references.
             // Tarray and Tdelegate are (void*).sizeof*2, but others have (void*).sizeof.
             if (tob_isFR && t1b_isR || t1b_isFR && tob_isR)
@@ -1526,6 +1624,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
                 goto Lfail;
             }
+
             if (t1b.ty == Tvoid && tob.ty != Tvoid)
             {
             Lfail:
@@ -1533,6 +1632,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = new ErrorExp();
                 return;
             }
+
         Lok:
             result = new CastExp(e.loc, e, tob);
             result.type = t; // Don't call semantic()
@@ -1602,13 +1702,16 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
              * The this->string member is considered immutable.
              */
             int copied = 0;
+
             //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), e->toChars(), e->committed);
+
             if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
             {
                 e.error("cannot convert string literal to void*");
                 result = new ErrorExp();
                 return;
             }
+
             StringExp se = e;
             if (!e.committed)
             {
@@ -1616,6 +1719,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 se.committed = 1;
                 copied = 1;
             }
+
             if (e.type.equals(t))
             {
                 result = se;
@@ -1643,6 +1747,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = se;
                 return;
             }
+
             /* Handle reinterpret casts:
              *  cast(wchar[3])"abcd"c --> [\u6261, \u6463, \u0000]
              *  cast(wchar[2])"abcd"c --> [\u6261, \u6463]
@@ -1657,6 +1762,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 se.len = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
                 se.committed = 1;
                 se.type = t;
+
                 /* Assure space for terminating 0
                  */
                 if ((se.len + 1) * se.sz > (e.len + 1) * e.sz)
@@ -1669,6 +1775,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = se;
                 return;
             }
+
             if (tb.ty != Tsarray && tb.ty != Tarray && tb.ty != Tpointer)
             {
                 if (!copied)
@@ -1687,6 +1794,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
                 goto Lcast;
             }
+
             if (typeb.nextOf().size() == tb.nextOf().size())
             {
                 if (!copied)
@@ -1700,8 +1808,10 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = se;
                 return;
             }
+
             if (e.committed)
                 goto Lcast;
+
             auto X(T, U)(T tf, U tt)
             {
                 return (cast(int)tf * 256 + cast(int)tt);
@@ -1718,6 +1828,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Twchar, Twchar):
                 case X(Tdchar, Tdchar):
                     break;
+
                 case X(Tchar, Twchar):
                     for (size_t u = 0; u < e.len;)
                     {
@@ -1731,6 +1842,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     newlen = buffer.offset / 2;
                     buffer.writeUTF16(0);
                     goto L1;
+
                 case X(Tchar, Tdchar):
                     for (size_t u = 0; u < e.len;)
                     {
@@ -1743,6 +1855,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     }
                     buffer.write4(0);
                     goto L1;
+
                 case X(Twchar, Tchar):
                     for (size_t u = 0; u < e.len;)
                     {
@@ -1756,6 +1869,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     newlen = buffer.offset;
                     buffer.writeUTF8(0);
                     goto L1;
+
                 case X(Twchar, Tdchar):
                     for (size_t u = 0; u < e.len;)
                     {
@@ -1768,6 +1882,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     }
                     buffer.write4(0);
                     goto L1;
+
                 case X(Tdchar, Tchar):
                     for (size_t u = 0; u < e.len; u++)
                     {
@@ -1781,6 +1896,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     newlen = buffer.offset;
                     buffer.writeUTF8(0);
                     goto L1;
+
                 case X(Tdchar, Twchar):
                     for (size_t u = 0; u < e.len; u++)
                     {
@@ -1794,6 +1910,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     newlen = buffer.offset / 2;
                     buffer.writeUTF16(0);
                     goto L1;
+
                 L1:
                     if (!copied)
                     {
@@ -1802,12 +1919,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     }
                     se.string = buffer.extractData();
                     se.len = newlen;
+
                     {
                         d_uns64 szx = tb.nextOf().size();
                         assert(szx <= 255);
                         se.sz = cast(ubyte)szx;
                     }
                     break;
+
                 default:
                     assert(typeb.nextOf().size() != tb.nextOf().size());
                     goto Lcast;
@@ -1815,11 +1934,13 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
         L2:
             assert(copied);
+
             // See if need to truncate or extend the literal
             if (tb.ty == Tsarray)
             {
                 size_t dim2 = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
                 //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
+
                 // Changing dimensions
                 if (dim2 != se.len)
                 {
@@ -1837,6 +1958,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             se.type = t;
             result = se;
             return;
+
         Lcast:
             result = new CastExp(e.loc, se, t);
             result.type = t; // so semantic() won't be run on e
@@ -1935,6 +2057,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = e;
                 return;
             }
+
             TupleExp te = cast(TupleExp)e.copy();
             te.e0 = e.e0 ? e.e0.copy() : null;
             te.exps = e.exps.copy();
@@ -1945,6 +2068,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 (*te.exps)[i] = ex;
             }
             result = te;
+
             /* Questionable behavior: In here, result->type is not set to t.
              * Therefoe:
              *  TypeTuple!(int, int) values;
@@ -1992,6 +2116,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                         if (e.elements.dim != tsa.dim.toInteger())
                             goto L1;
                     }
+
                     ae = cast(ArrayLiteralExp)e.copy();
                     if (e.basis)
                         ae.basis = e.basis.castTo(sc, tb.nextOf());
@@ -2028,6 +2153,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 const tbasedim = tbase.dim.toInteger();
                 if (edim > tbasedim)
                     goto L1;
+
                 ae = cast(ArrayLiteralExp)e.copy();
                 ae.type = tbase; // Bugzilla 12642
                 ae.elements = e.elements.copy();
@@ -2078,6 +2204,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     Expression ex = (*e.values)[i];
                     ex = ex.castTo(sc, tb.nextOf());
                     (*ae.values)[i] = ex;
+
                     ex = (*e.keys)[i];
                     ex = ex.castTo(sc, (cast(TypeAArray)tb).index);
                     (*ae.keys)[i] = ex;
@@ -2175,6 +2302,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             static __gshared const(char)* msg = "cannot form delegate due to covariant return type";
+
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
@@ -2249,6 +2377,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         override void visit(CommaExp e)
         {
             Expression e2c = e.e2.castTo(sc, t);
+
             if (e2c != e.e2)
             {
                 result = new CommaExp(e.loc, e.e1, e2c);
@@ -2274,6 +2403,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 visit(cast(Expression)e);
                 return;
             }
+
             if (tb.ty == Tarray)
             {
                 if (typeb.nextOf().equivalent(tb.nextOf()))
@@ -2288,7 +2418,9 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
                 return;
             }
+
             // Handle the cast from Tarray to Tsarray with CT-known slicing
+
             TypeSArray tsa = cast(TypeSArray)toStaticArrayType(e);
             if (tsa && tsa.size(e.loc) == tb.size(e.loc))
             {
@@ -2437,6 +2569,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 
     if (!t)
         return e;
+
     scope InferType v = new InferType(t, flag);
     e.accept(v);
     return v.result;
@@ -2450,11 +2583,13 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
     Type t1b = be.e1.type.toBasetype();
     Type t2b = be.e2.type.toBasetype();
     Expression eoff;
+
     if (t1b.ty == Tpointer && t2b.isintegral())
     {
         // Need to adjust operator by the stride
         // Replace (ptr + int) with (ptr + (int * stride))
         Type t = Type.tptrdiff_t;
+
         d_uns64 stride = t1b.nextOf().size(be.loc);
         if (!t.equals(t2b))
             be.e2 = be.e2.castTo(sc, t);
@@ -2469,6 +2604,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
         // Replace (int + ptr) with (ptr + (int * stride))
         Type t = Type.tptrdiff_t;
         Expression e;
+
         d_uns64 stride = t2b.nextOf().size(be.loc);
         if (!t.equals(t1b))
             e = be.e1.castTo(sc, t);
@@ -2483,6 +2619,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
     }
     else
         assert(0);
+
     if (sc.func && !sc.intypeof)
     {
         eoff = eoff.optimize(WANTvalue);
@@ -2495,6 +2632,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
             return new ErrorExp();
         }
     }
+
     return be;
 }
 
@@ -2557,20 +2695,24 @@ extern (C++) Type rawTypeMerge(Type t1, Type t2)
 extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 {
     //printf("typeMerge() %s op %s\n", pe1.toChars(), pe2.toChars());
+
     MATCH m;
     Expression e1 = *pe1;
     Expression e2 = *pe2;
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
+
     if (op != TOKquestion || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
         e1 = integralPromotions(e1, sc);
         e2 = integralPromotions(e2, sc);
     }
+
     Type t1 = e1.type;
     Type t2 = e2.type;
     assert(t1);
     Type t = t1;
+
     /* The start type of alias this type recursion.
      * In following case, we should save A, and stop recursion
      * if it appears again.
@@ -2578,6 +2720,7 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
      */
     Type att1 = null;
     Type att2 = null;
+
     //if (t1) printf("\tt1 = %s\n", t1->toChars());
     //if (t2) printf("\tt2 = %s\n", t2->toChars());
     debug
@@ -2586,14 +2729,17 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
             printf("\te2 = '%s'\n", e2.toChars());
     }
     assert(t2);
+
 Lagain:
     t1b = t1.toBasetype();
     t2b = t2.toBasetype();
+
     TY ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
     if (ty != Terror)
     {
         TY ty1 = cast(TY)impcnvType1[t1b.ty][t2b.ty];
         TY ty2 = cast(TY)impcnvType2[t1b.ty][t2b.ty];
+
         if (t1b.ty == ty1) // if no promotions
         {
             if (t1.equals(t2))
@@ -2601,13 +2747,16 @@ Lagain:
                 t = t1;
                 goto Lret;
             }
+
             if (t1b.equals(t2b))
             {
                 t = t1b;
                 goto Lret;
             }
         }
+
         t = Type.basic[ty];
+
         t1 = Type.basic[ty1];
         t2 = Type.basic[ty2];
         e1 = e1.castTo(sc, t1);
@@ -2617,10 +2766,13 @@ Lagain:
         //printf("ty = %d, ty1 = %d, ty2 = %d\n", ty, ty1, ty2);
         goto Lret;
     }
+
     t1 = t1b;
     t2 = t2b;
+
     if (t1.ty == Ttuple || t2.ty == Ttuple)
         goto Lincompatible;
+
     if (t1.equals(t2))
     {
         // merging can not result in new enum type
@@ -2632,6 +2784,7 @@ Lagain:
         // Bring pointers to compatible type
         Type t1n = t1.nextOf();
         Type t2n = t2.nextOf();
+
         if (t1n.equals(t2n))
         {
         }
@@ -2654,18 +2807,23 @@ Lagain:
             TypeFunction tf2 = cast(TypeFunction)t2n;
             tf1.purityLevel();
             tf2.purityLevel();
+
             TypeFunction d = cast(TypeFunction)tf1.syntaxCopy();
+
             if (tf1.purity != tf2.purity)
                 d.purity = PUREimpure;
             assert(d.purity != PUREfwdref);
+
             d.isnothrow = (tf1.isnothrow && tf2.isnothrow);
             d.isnogc = (tf1.isnogc && tf2.isnogc);
+
             if (tf1.trust == tf2.trust)
                 d.trust = tf1.trust;
             else if (tf1.trust <= TRUSTsystem || tf2.trust <= TRUSTsystem)
                 d.trust = TRUSTsystem;
             else
                 d.trust = TRUSTtrusted;
+
             Type tx = null;
             if (t1.ty == Tdelegate)
             {
@@ -2673,7 +2831,9 @@ Lagain:
             }
             else
                 tx = d.pointerTo();
+
             tx = tx.semantic(e1.loc, sc);
+
             if (t1.implicitConvTo(tx) && t2.implicitConvTo(tx))
             {
                 t = tx;
@@ -2786,10 +2946,12 @@ Lagain:
             goto Lincompatible;
         else
             mod = MODmerge(t1n.mod, t2n.mod);
+
         if (t1.ty == Tpointer)
             t1 = t1n.castMod(mod).pointerTo();
         else
             t1 = t1n.castMod(mod).arrayOf();
+
         if (t2.ty == Tpointer)
             t2 = t2n.castMod(mod).pointerTo();
         else
@@ -2824,6 +2986,7 @@ Lagain:
         {
             MATCH i1 = e2.implicitConvTo(t1);
             MATCH i2 = e1.implicitConvTo(t2);
+
             if (i1 && i2)
             {
                 // We have the case of class vs. void*, so pick class
@@ -2832,6 +2995,7 @@ Lagain:
                 else if (t2.ty == Tpointer)
                     i2 = MATCHnomatch;
             }
+
             if (i2)
             {
                 e2 = e2.castTo(sc, t2);
@@ -2846,6 +3010,7 @@ Lagain:
             {
                 TypeClass tc1 = cast(TypeClass)t1;
                 TypeClass tc2 = cast(TypeClass)t2;
+
                 /* Pick 'tightest' type
                  */
                 ClassDeclaration cd1 = tc1.sym.baseClass;
@@ -2900,14 +3065,17 @@ Lagain:
             t = t1;
             goto Lagain;
         }
+
         TypeStruct ts1 = cast(TypeStruct)t1;
         TypeStruct ts2 = cast(TypeStruct)t2;
         if (ts1.sym != ts2.sym)
         {
             if (!ts1.sym.aliasthis && !ts2.sym.aliasthis)
                 goto Lincompatible;
+
             MATCH i1 = MATCHnomatch;
             MATCH i2 = MATCHnomatch;
+
             Expression e1b = null;
             Expression e2b = null;
             if (ts2.sym.aliasthis)
@@ -2932,10 +3100,12 @@ Lagain:
             }
             if (i1 && i2)
                 goto Lincompatible;
+
             if (i1)
                 goto Lt1;
             else if (i2)
                 goto Lt2;
+
             if (e1b)
             {
                 e1 = e1b;
@@ -3034,6 +3204,7 @@ Lagain:
         if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
             goto Lincompatible;
         ubyte mod = MODmerge(t1.mod, t2.mod);
+
         t1 = t1.castMod(mod);
         t2 = t2.castMod(mod);
         t = t1;
@@ -3044,6 +3215,7 @@ Lagain:
     else if (t1.ty == Tnull && t2.ty == Tnull)
     {
         ubyte mod = MODmerge(t1.mod, t2.mod);
+
         t = t1.castMod(mod);
         e1 = e1.castTo(sc, t);
         e2 = e2.castTo(sc, t);
@@ -3109,6 +3281,7 @@ Lagain:
         }
         else
             goto Lincompatible;
+
         //printf("test %s\n", Token::toChars(op));
         e1 = e1.optimize(WANTvalue);
         if (isCommutative(op) && e1.isConst())
@@ -3131,6 +3304,7 @@ Lret:
         *pt = t;
     *pe1 = e1;
     *pe2 = e2;
+
     version (none)
     {
         printf("-typeMerge() %s op %s\n", e1.toChars(), e2.toChars());
@@ -3142,10 +3316,12 @@ Lret:
     }
     //print();
     return true;
+
 Lt1:
     e2 = e2.castTo(sc, t1);
     t = t1;
     goto Lret;
+
 Lt2:
     e1 = e1.castTo(sc, t2);
     t = t2;
@@ -3160,6 +3336,7 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
 {
     Type t1 = be.e1.type.toBasetype();
     Type t2 = be.e2.type.toBasetype();
+
     if (be.op == TOKmin || be.op == TOKadd)
     {
         // struct+struct, and class+class are errors
@@ -3170,14 +3347,17 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
         else if (t1.ty == Taarray && t2.ty == Taarray)
             goto Lerror;
     }
+
     if (!typeMerge(sc, be.op, &be.type, &be.e1, &be.e2))
         goto Lerror;
+
     // If the types have no value, return an error
     if (be.e1.op == TOKerror)
         return be.e1;
     if (be.e2.op == TOKerror)
         return be.e2;
     return null;
+
 Lerror:
     Expression ex = be.incompatibleTypes();
     if (ex.op == TOKerror)
@@ -3197,6 +3377,7 @@ extern (C++) Expression integralPromotions(Expression e, Scope* sc)
     case Tvoid:
         e.error("void has no value");
         return new ErrorExp();
+
     case Tint8:
     case Tuns8:
     case Tint16:
@@ -3206,9 +3387,11 @@ extern (C++) Expression integralPromotions(Expression e, Scope* sc)
     case Twchar:
         e = e.castTo(sc, Type.tint32);
         break;
+
     case Tdchar:
         e = e.castTo(sc, Type.tuns32);
         break;
+
     default:
         break;
     }
@@ -3226,6 +3409,7 @@ extern (C++) bool arrayTypeCompatible(Loc loc, Type t1, Type t2)
 {
     t1 = t1.toBasetype().merge2();
     t2 = t2.toBasetype().merge2();
+
     if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
     {
         if (t1.nextOf().implicitConvTo(t2.nextOf()) < MATCHconst && t2.nextOf().implicitConvTo(t1.nextOf()) < MATCHconst && (t1.nextOf().ty != Tvoid && t2.nextOf().ty != Tvoid))
@@ -3247,6 +3431,7 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Loc loc, Type t1, Type t2)
 {
     t1 = t1.toBasetype();
     t2 = t2.toBasetype();
+
     if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && t2.ty == t1.ty)
     {
         if (t1.nextOf().implicitConvTo(t2.nextOf()) >= MATCHconst || t2.nextOf().implicitConvTo(t1.nextOf()) >= MATCHconst)
@@ -3287,18 +3472,21 @@ extern (C++) IntRange getIntRange(Expression e)
             // the DiffMasks stores the mask of bits which are variable in the range.
             uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
             uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+
             // Since '&' computes the digitwise-minimum, the we could set all varying
             //  digits to 0 to get a lower bound, and set all varying digits to 1 to get
             //  an upper bound.
             IntRange result;
             result.imin.value = (a.imin.value & ~aDiffMask) & (b.imin.value & ~bDiffMask);
             result.imax.value = (a.imax.value | aDiffMask) & (b.imax.value | bDiffMask);
+
             // Sometimes the upper bound is overestimated. The upper bound will never
             //  exceed the input.
             if (result.imax.value > a.imax.value)
                 result.imax.value = a.imax.value;
             if (result.imax.value > b.imax.value)
                 result.imax.value = b.imax.value;
+
             result.imin.negative = result.imax.negative = a.imin.negative && b.imin.negative;
             return result;
         }
@@ -3308,17 +3496,20 @@ extern (C++) IntRange getIntRange(Expression e)
             // the DiffMasks stores the mask of bits which are variable in the range.
             uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
             uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+
             // The imax algorithm by Adam D. Ruppe.
             // http://www.digitalmars.com/pnews/read.php?server=news.digitalmars.com&group=digitalmars.D&artnum=108796
             IntRange result;
             result.imin.value = (a.imin.value & ~aDiffMask) | (b.imin.value & ~bDiffMask);
             result.imax.value = a.imax.value | b.imax.value | getMask(a.imax.value & b.imax.value);
+
             // Sometimes the lower bound is underestimated. The lower bound will never
             //  less than the input.
             if (result.imin.value < a.imin.value)
                 result.imin.value = a.imin.value;
             if (result.imin.value < b.imin.value)
                 result.imin.value = b.imin.value;
+
             result.imin.negative = result.imax.negative = a.imin.negative || b.imin.negative;
             return result;
         }
@@ -3371,12 +3562,14 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
+
             // Should we ignore the possibility of div-by-0???
             if (ir2.containsZero())
             {
                 visit(cast(Expression)e);
                 return;
             }
+
             // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
             SignExtendedNumber[4] bdy;
             bdy[0] = ir1.imin / ir2.imin;
@@ -3390,6 +3583,7 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
+
             // [a,b] * [c,d] = [min (ac, ad, bc, bd), max (ac, ad, bc, bd)]
             SignExtendedNumber[4] bdy;
             bdy[0] = ir1.imin * ir2.imin;
@@ -3403,6 +3597,7 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange irNum = getIntRange(e.e1);
             IntRange irDen = getIntRange(e.e2).absNeg();
+
             /*
              due to the rules of D (C)'s % operator, we need to consider the cases
              separately in different range of signs.
@@ -3417,18 +3612,22 @@ extern (C++) IntRange getIntRange(Expression e)
              the number 22 is the maximum absolute value in the denomator's range. We
              don't care about divide by zero.
              */
+
             // Modding on 0 is invalid anyway.
             if (!irDen.imin.negative)
             {
                 visit(cast(Expression)e);
                 return;
             }
+
             ++irDen.imin;
             irDen.imax = -irDen.imin;
+
             if (!irNum.imin.negative)
                 irNum.imin.value = 0;
             else if (irNum.imin < irDen.imin)
                 irNum.imin = irDen.imin;
+
             if (irNum.imax.negative)
             {
                 irNum.imax.negative = false;
@@ -3436,6 +3635,7 @@ extern (C++) IntRange getIntRange(Expression e)
             }
             else if (irNum.imax > irDen.imax)
                 irNum.imax = irDen.imax;
+
             range = irNum._cast(e.type);
         }
 
@@ -3443,10 +3643,13 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
+
             IntRange ir1neg, ir1pos, ir2neg, ir2pos;
             bool has1neg, has1pos, has2neg, has2pos;
+
             ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
             ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
+
             IntRange result;
             bool hasResult = false;
             if (has1pos && has2pos)
@@ -3457,6 +3660,7 @@ extern (C++) IntRange getIntRange(Expression e)
                 result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), hasResult);
             if (has1neg && has2neg)
                 result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), hasResult);
+
             assert(hasResult);
             range = result._cast(e.type);
         }
@@ -3465,10 +3669,13 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
+
             IntRange ir1neg, ir1pos, ir2neg, ir2pos;
             bool has1neg, has1pos, has2neg, has2pos;
+
             ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
             ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
+
             IntRange result;
             bool hasResult = false;
             if (has1pos && has2pos)
@@ -3479,6 +3686,7 @@ extern (C++) IntRange getIntRange(Expression e)
                 result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), hasResult);
             if (has1neg && has2neg)
                 result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), hasResult);
+
             assert(hasResult);
             range = result._cast(e.type);
         }
@@ -3487,10 +3695,13 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
+
             IntRange ir1neg, ir1pos, ir2neg, ir2pos;
             bool has1neg, has1pos, has2neg, has2pos;
+
             ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
             ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
+
             IntRange result;
             bool hasResult = false;
             if (has1pos && has2pos)
@@ -3501,6 +3712,7 @@ extern (C++) IntRange getIntRange(Expression e)
                 result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), hasResult);
             if (has1neg && has2neg)
                 result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), hasResult);
+
             assert(hasResult);
             range = result._cast(e.type);
         }
@@ -3509,10 +3721,13 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
+
             if (ir2.imin.negative)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
+
             SignExtendedNumber lower = ir1.imin << (ir1.imin.negative ? ir2.imax : ir2.imin);
             SignExtendedNumber upper = ir1.imax << (ir1.imax.negative ? ir2.imin : ir2.imax);
+
             range = IntRange(lower, upper)._cast(e.type);
         }
 
@@ -3520,10 +3735,13 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1);
             IntRange ir2 = getIntRange(e.e2);
+
             if (ir2.imin.negative)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
+
             SignExtendedNumber lower = ir1.imin >> (ir1.imin.negative ? ir2.imin : ir2.imax);
             SignExtendedNumber upper = ir1.imax >> (ir1.imax.negative ? ir2.imax : ir2.imin);
+
             range = IntRange(lower, upper)._cast(e.type);
         }
 
@@ -3531,8 +3749,10 @@ extern (C++) IntRange getIntRange(Expression e)
         {
             IntRange ir1 = getIntRange(e.e1).castUnsigned(e.e1.type);
             IntRange ir2 = getIntRange(e.e2);
+
             if (ir2.imin.negative)
                 ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
+
             range = IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin)._cast(e.type);
         }
 
