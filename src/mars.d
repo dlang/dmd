@@ -1941,7 +1941,7 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isFreeBSD = true;
+        global.params.isOpenBSD = true;
     }
     else static if (TARGET_SOLARIS)
     {
