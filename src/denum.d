@@ -629,7 +629,7 @@ public:
                 origValue = e;
 
                 if (!ed.isAnonymous())
-                    e = e.castTo(sc, ed.type);
+                    e = e.castTo(sc, ed.type.addMod(e.type.mod));
             }
             else if (origType)
             {
