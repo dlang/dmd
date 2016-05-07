@@ -2867,9 +2867,11 @@ static if (_WIN32_IE >= 0x400) {
     }
     alias NMPGCALCSIZE* LPNMPGCALCSIZE;
 
+    align (1)
     struct NMPGSCROLL {
+    align (1):
         NMHDR hdr;
-        BOOL  fwKeys;
+        WORD  fwKeys;   // Note: this should be WORD if MSDN document says wrong
         RECT  rcParent;
         int   iDir;
         int   iXpos;
