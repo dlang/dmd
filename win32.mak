@@ -569,6 +569,12 @@ $(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
 $(IMPDIR)\core\sys\posix\syslog.d : src\core\sys\posix\syslog.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\sys\filio.d : src\core\sys\posix\sys\filio.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\ioccom.d : src\core\sys\posix\sys\ioccom.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\sys\ioctl.d : src\core\sys\posix\sys\ioctl.d
 	copy $** $@
 
@@ -597,6 +603,9 @@ $(IMPDIR)\core\sys\posix\sys\statvfs.d : src\core\sys\posix\sys\statvfs.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\time.d : src\core\sys\posix\sys\time.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\ttycom.d : src\core\sys\posix\sys\ttycom.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\types.d : src\core\sys\posix\sys\types.d
