@@ -2112,17 +2112,24 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
         FuncDeclaration fd = null;
         if (s)
             fd = s.isFuncDeclaration();
-        if (fd && ((fd.isCtorDeclaration() && var.isField()) || (fd.isStaticCtorDeclaration() && !var.isField())) && fd.toParent2() == var.toParent2() && (!e1 || e1.op == TOKthis))
+        if (fd &&
+            ((fd.isCtorDeclaration() && var.isField()) ||
+             (fd.isStaticCtorDeclaration() && !var.isField())) &&
+            fd.toParent2() == var.toParent2() &&
+            (!e1 || e1.op == TOKthis))
         {
-            var.ctorinit = 1;
+            bool result = true;
+
+            var.ctorinit = true;
             //printf("setting ctorinit\n");
-            int result = true;
+
             if (var.isField() && sc.fieldinit && !sc.intypeof)
             {
                 assert(e1);
-                bool mustInit = (var.storage_class & STCnodefaultctor || var.type.needsNested());
+                auto mustInit = ((var.storage_class & STCnodefaultctor) != 0 ||
+                                 var.type.needsNested());
 
-                size_t dim = sc.fieldinit_dim;
+                auto dim = sc.fieldinit_dim;
                 auto ad = fd.isMember2();
                 assert(ad);
                 size_t i;
@@ -2133,6 +2140,7 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
                 }
                 assert(i < dim);
                 uint fi = sc.fieldinit[i];
+
                 if (fi & CSXthis_ctor)
                 {
                     if (var.type.isMutable() && e1.type.isMutable())
@@ -2143,7 +2151,7 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
                         .error(loc, "%s field '%s' initialized multiple times", modStr, var.toChars());
                     }
                 }
-                else if (sc.noctor || fi & CSXlabel)
+                else if (sc.noctor || (fi & CSXlabel))
                 {
                     if (!mustInit && var.type.isMutable() && e1.type.isMutable())
                         result = false;
@@ -2153,7 +2161,18 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
                         .error(loc, "%s field '%s' initialization is not allowed in loops or after labels", modStr, var.toChars());
                     }
                 }
+
                 sc.fieldinit[i] |= CSXthis_ctor;
+                if (var.overlapped) // Bugzilla 15258
+                {
+                    foreach (j, v; ad.fields)
+                    {
+                        if (v is var || !var.isOverlappedWith(v))
+                            continue;
+                        v.ctorinit = true;
+                        sc.fieldinit[j] = CSXthis_ctor;
+                    }
+                }
             }
             else if (fd != sc.func)
             {
@@ -2162,12 +2181,14 @@ extern (C++) int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expressi
                 else if (sc.func.fes)
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s '%s' initialization is not allowed in foreach loop", MODtoChars(var.type.mod), p, var.toChars());
+                    .error(loc, "%s %s '%s' initialization is not allowed in foreach loop",
+                        MODtoChars(var.type.mod), p, var.toChars());
                 }
                 else
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'", MODtoChars(var.type.mod), p, var.toChars(), sc.func.toChars());
+                    .error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'",
+                        MODtoChars(var.type.mod), p, var.toChars(), sc.func.toChars());
                 }
             }
             return result;
