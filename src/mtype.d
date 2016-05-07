@@ -8670,18 +8670,12 @@ public:
             Dsymbol sold = void;
             if (global.params.bug10378 || global.params.check10378)
             {
-                sold = sym.search(e.loc, ident, flags | IgnoreSymbolVisibility);
+                sold = sym.search(e.loc, ident, flags);
                 if (!global.params.check10378)
                     return sold;
             }
 
             auto s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
-            if (!s)
-            {
-                s = sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-                if (s && !(flags & IgnoreErrors))
-                    .deprecation(e.loc, "%s is not visible from class %s", s.toPrettyChars(), sym.toChars());
-            }
             if (global.params.check10378)
             {
                 alias snew = s;
