@@ -9390,7 +9390,6 @@ public:
     {
         super(loc, TOKdottype, __traits(classInstanceSize, DotTypeExp), e);
         this.sym = s;
-        this.type = s.getType();
     }
 
     override Expression semantic(Scope* sc)
@@ -9399,8 +9398,13 @@ public:
         {
             printf("DotTypeExp::semantic('%s')\n", toChars());
         }
-        if (Expression ex = unaSemantic(sc))
-            return ex;
+        if (type)
+            return this;
+
+        if (auto e = unaSemantic(sc))
+            return e;
+
+        type = sym.getType().addMod(e1.type.mod);
         return this;
     }
 
