@@ -11,14 +11,7 @@ module core.sys.windows.iptypes;
 version (Windows):
 
 import core.sys.windows.windef;
-version(Tango){
-    private import tango.stdc.time;
-}else{
-    version (D_Version2)
-        import core.stdc.time;
-    else
-        import std.c.time;
-}
+import core.stdc.time;
 //#include <sys/types.h>
 
 enum size_t
