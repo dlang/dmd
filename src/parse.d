@@ -4739,9 +4739,10 @@ public:
         case TOKsemicolon:
             if (!literal)
             {
-                if (f.frequire || f.fensure)
-                    error("missing body { ... } after in or out");
-                nextToken();
+                // Bugzilla 15799: Semicolon becomes a part of function declaration
+                // only when neither of contracts exists.
+                if (!f.frequire && !f.fensure)
+                    nextToken();
                 break;
             }
             goto default;
