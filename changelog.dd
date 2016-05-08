@@ -9,6 +9,7 @@ $(BUGSTITLE Language Changes,
 
 $(BUGSTITLE Compiler Changes,
     $(LI $(RELATIVE_LINK2 deferred_alias, Analysis for aliases in imported modules is deferred.))
+    $(LI $(RELATIVE_LINK2 native_tls_osx, Native TLS on OS X 64 bit.))
 )
 
 $(BUGSTITLE Language Changes,
@@ -42,6 +43,27 @@ $(BUGSTITLE Compiler Changes,
             // the alias name 'api2' is not used.
         }
         ---
+    )
+
+    $(LI
+        $(LNAME2 native_tls_osx, Native TLS on OS X 64 bit.)
+
+        $(P
+            The compiler has been updated to use native thread local storage
+            (TLS) on OS X when compiling for 64 bit. This means that it's
+            possible to to link with C/C++ TLS variables. This change is an ABI
+            breaking change and requires recompiling libraries.
+        )
+
+        $(P
+            The minimum required version of running the compiler and any
+            produced binary is now Mac OS X Lion (10.7).
+        )
+
+        $(P
+            Xcode 7.3 has a bug causing linker errors for some TLS variables.
+            Xcode 7.3.1 fixes this bug. Any version older than 7.3 works as well.
+        )
     )
 )
 
