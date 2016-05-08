@@ -9098,7 +9098,11 @@ public:
                     if (auto cdp = ad.isClassDeclaration())
                     {
                         auto ve = new ThisExp(e.loc);
+
                         ve.var = fd.vthis;
+                        const nestedError = fd.vthis.checkNestedReference(sc, e.loc);
+                        assert(!nestedError);
+
                         ve.type = fd.vthis.type.addMod(e.type.mod);
                         return ve;
                     }
