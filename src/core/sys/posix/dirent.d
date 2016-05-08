@@ -180,14 +180,22 @@ else version (Solaris)
         char* dd_buf;
     }
 
-    static if (__USE_LARGEFILE64)
+    version (D_LP64)
     {
-        dirent* readdir64(DIR*);
-        alias readdir64 readdir;
+        dirent* readdir(DIR*);
+        alias readdir64 = readdir;
     }
     else
     {
-        dirent* readdir(DIR*);
+        static if (__USE_LARGEFILE64)
+        {
+            dirent* readdir64(DIR*);
+            alias readdir64 readdir;
+        }
+        else
+        {
+            dirent* readdir(DIR*);
+        }
     }
 }
 else version( CRuntime_Bionic )
