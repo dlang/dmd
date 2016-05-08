@@ -27,7 +27,7 @@ void ld_section(in char*, Elf32_Shdr*, Elf32_Word, Elf_Data*, Elf*);
 
 version(D_LP64)
 {
-void ld_start64(inchar*, in Elf64_Half, in char*);
+void ld_start64(in char*, in Elf64_Half, in char*);
 void ld_atexit64(int);
 void ld_open64(in char**, in char**, int*, int, Elf**, Elf*, size_t, in Elf_Kind);
 void ld_file64(in char*, in Elf_Kind, int, Elf*);
