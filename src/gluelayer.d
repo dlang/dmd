@@ -44,11 +44,7 @@ version (NoBackend)
         // toir
         RET retStyle(TypeFunction tf)               { return RETregs; }
         void toObjFile(Dsymbol ds, bool multiobj)   {}
-
-        version (OSX)
-        {
-            void objc_initSymbols() {}
-        }
+        void objc_initSymbols() {}
     }
 }
 else
@@ -76,10 +72,6 @@ else
 
         RET retStyle(TypeFunction tf);
         void toObjFile(Dsymbol ds, bool multiobj);
-
-        version (OSX)
-        {
-            void objc_initSymbols();
-        }
+        void objc_initSymbols();
     }
 }

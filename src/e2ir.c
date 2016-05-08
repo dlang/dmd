@@ -73,9 +73,8 @@ void setClosureVarOffset(FuncDeclaration *fd);
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
 
-void objc_callfunc_setupMethodSelector(Type *tret, FuncDeclaration *fd, Type *t, elem *ehidden, elem **esel);
-void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction *tf);
-void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
+Symbol *objc_getMsgSend(Type *ret, bool hasHiddenArg);
+Symbol *objc_getMethVarRef(const char *s, size_t len);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum, \
@@ -243,8 +242,21 @@ elem *callfunc(Loc loc,
         }
     }
 
-    objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, &esel);
-    objc_callfunc_setupEp(esel, &ep, reverse);
+    if (global.params.hasObjectiveC)
+    {
+        if (fd && fd->selector && !esel)
+            esel = el_var(objc_getMethVarRef(fd->selector->stringvalue, fd->selector->stringlen));
+
+        if (esel)
+        {
+            // using objc-style "virtual" call
+            // add hidden argument (second to 'this') for selector used by dispatch function
+            if (reverse)
+                ep = el_param(esel,ep);
+            else
+                ep = el_param(ep,esel);
+        }
+    }
 
     if (retmethod == RETstack)
     {
@@ -305,9 +317,12 @@ elem *callfunc(Loc loc,
         }
         Symbol *sfunc = toSymbol(fd);
 
-        if (esel)
+        if (global.params.hasObjectiveC && esel)
         {
-            objc_callfunc_setupMethodCall(&ec, ehidden, ethis, tf);
+            // make objc-style "virtual" call using dispatch function
+            assert(ethis);
+            Type *tret = tf->next;
+            ec = el_var(objc_getMsgSend(tret, ehidden != 0));
         }
         else if (!fd->isVirtual() ||
             directcall ||               // BUG: fix

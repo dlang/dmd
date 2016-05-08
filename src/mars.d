@@ -33,6 +33,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;
@@ -42,7 +43,6 @@ import ddmd.json;
 import ddmd.lib;
 import ddmd.link;
 import ddmd.mtype;
-import ddmd.objc;
 import ddmd.parse;
 import ddmd.root.file;
 import ddmd.root.filename;
@@ -1129,7 +1129,6 @@ Language changes listed by -transition=id:
 
     // Predefined version identifiers
     addDefaultVersionIdentifiers();
-    objc_tryMain_dObjc();
 
     setDefaultLibrary();
 
@@ -1139,7 +1138,13 @@ Language changes listed by -transition=id:
     Module._init();
     Target._init();
     Expression._init();
-    objc_tryMain_init();
+
+    if (global.params.hasObjectiveC)
+    {
+        objc_initSymbols();
+        ObjcSelector._init();
+    }
+
     builtin_init();
 
     if (global.params.verbose)
@@ -1928,6 +1933,12 @@ private void addDefaultVersionIdentifiers()
         global.params.isOSX = true;
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
+
+        if (global.params.is64bit)
+        {
+            global.params.hasObjectiveC = true;
+            VersionCondition.addPredefinedGlobalIdent("D_ObjectiveC");
+        }
     }
     else static if (TARGET_FREEBSD)
     {

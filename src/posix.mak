@@ -207,25 +207,12 @@ FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
 	typinf)
 
-ifeq ($(D_OBJC),1)
-	FRONT_SRCS += objc.d
-else
-	FRONT_SRCS += objc_stubs.d
-endif
-
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array file filename	\
 	longdouble man outbuffer port response rmem rootobject speller	\
 	stringtable))
 
 GLUE_OBJS = glue.o msc.o s2ir.o e2ir.o tocsym.o toobj.o \
-	toir.o iasm.o
-
-
-ifeq ($(D_OBJC),1)
-	GLUE_OBJS += objc_glue.o
-else
-	GLUE_OBJS += objc_glue_stubs.o
-endif
+	toir.o iasm.o objc_glue.o
 
 ifeq (osx,$(OS))
     FRONT_SRCS += libmach.d scanmach.d
@@ -259,7 +246,7 @@ SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
 	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
-	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
+	mars.h module.h mtype.h nspace.h parse.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d         \
 	$(DMD_SRCS)
@@ -272,7 +259,7 @@ GLUE_SRC = glue.c msc.c s2ir.c e2ir.c tocsym.c \
 	toobj.c tocvdebug.c toir.h toir.c \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
+	tk.c eh.c gluestub.d objc_glue.c
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \

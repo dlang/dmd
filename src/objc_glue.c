@@ -21,7 +21,6 @@
 #include "mars.h"
 #include "module.h"
 #include "mtype.h"
-#include "objc.h"
 #include "oper.h"
 #include "outbuf.h"
 #include "type.h"
@@ -52,11 +51,15 @@ int objc_getSegment(ObjcSegment segid)
     // initialize
     int align = 3;
 
+#if MACHOBJ
     seg[SEGcstring] = MachObj::getsegment("__cstring", "__TEXT", align, S_CSTRING_LITERALS);
     seg[SEGimage_info] = MachObj::getsegment("__objc_imageinfo", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
     seg[SEGmethname] = MachObj::getsegment("__objc_methname", "__TEXT", align, S_CSTRING_LITERALS);
     seg[SEGmodule_info] = MachObj::getsegment("__objc_classlist", "__DATA", align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
     seg[SEGselrefs] = MachObj::getsegment("__objc_selrefs", "__DATA", align, S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS);
+#else
+    assert(0);
+#endif
 
     return seg[segid];
 }
@@ -105,6 +108,14 @@ void objc_initSymbols()
     // also wipe out segment numbers
     for (int s = 0; s < SEG_MAX; ++s)
         objc_segList[s] = 0;
+}
+
+bool hasObjcSymbols()
+{
+    if (!global.params.hasObjectiveC)
+        assert(!objc_hasSymbols);
+
+    return objc_hasSymbols;
 }
 
 Symbol *objc_getCString(const char *str, size_t len, const char *symbolName, ObjcSegment segment)
@@ -214,14 +225,6 @@ Symbol *objc_getModuleInfo()
     return objc_smoduleInfo;
 }
 
-// MARK: Module::genmoduleinfo
-
-void objc_Module_genmoduleinfo_classes()
-{
-    if (objc_hasSymbols)
-        objc_getModuleInfo();
-}
-
 // MARK: ObjcSelector
 
 Symbol *objc_getMethVarRef(const char *s, size_t len)
@@ -260,35 +263,4 @@ Symbol *objc_getMethVarRef(Identifier *ident)
 {
     const char* id = ident->toChars();
     return objc_getMethVarRef(id, strlen(id));
-}
-
-// MARK: callfunc
-
-void objc_callfunc_setupMethodSelector(Type *tret, FuncDeclaration *fd, Type *t, elem *ehidden, elem **esel)
-{
-    if (fd && fd->objc.selector && !*esel)
-    {
-        *esel = el_var(objc_getMethVarRef(fd->objc.selector->stringvalue, fd->objc.selector->stringlen));
-    }
-}
-
-void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction *tf)
-{
-    // make objc-style "virtual" call using dispatch function
-    assert(ethis);
-    Type *tret = tf->next;
-    *ec = el_var(objc_getMsgSend(tret, ehidden != 0));
-}
-
-void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse)
-{
-    if (esel)
-    {
-        // using objc-style "virtual" call
-        // add hidden argument (second to 'this') for selector used by dispatch function
-        if (reverse)
-            *ep = el_param(esel,*ep);
-        else
-            *ep = el_param(*ep,esel);
-    }
 }

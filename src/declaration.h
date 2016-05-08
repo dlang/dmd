@@ -18,7 +18,6 @@
 
 #include "dsymbol.h"
 #include "mtype.h"
-#include "objc.h"
 
 class Expression;
 class Statement;
@@ -27,6 +26,7 @@ class Initializer;
 class Module;
 class ForeachStatement;
 class FuncDeclaration;
+class ObjcSelector;
 class ExpInitializer;
 class StructDeclaration;
 struct InterState;
@@ -523,7 +523,7 @@ public:
     DsymbolTable *localsymtab;
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
-    Objc_FuncDeclaration objc;
+    ObjcSelector *selector;             // Objective-C method selector (member function only)
 #ifdef IN_GCC
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
@@ -883,6 +883,26 @@ public:
 
     DeleteDeclaration *isDeleteDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
+};
+
+struct ObjcSelector
+{
+    static StringTable stringtable;
+    static StringTable vTableDispatchSelectors;
+    static int incnum;
+
+    const char *stringvalue;
+    size_t stringlen;
+    size_t paramCount;
+
+    static void _init();
+
+    ObjcSelector(const char *sv, size_t len, size_t pcount);
+
+    static ObjcSelector *lookup(const char *s);
+    static ObjcSelector *lookup(const char *s, size_t len, size_t pcount);
+
+    static ObjcSelector *create(FuncDeclaration *fdecl);
 };
 
 #endif /* DMD_DECLARATION_H */

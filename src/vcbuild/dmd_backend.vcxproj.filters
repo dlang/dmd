@@ -243,9 +243,6 @@
     <ClCompile Include="..\backend\pdata.c">
       <Filter>src\backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\objc_glue_stubs.c">
-      <Filter>src</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\aggregate.h">
@@ -465,9 +462,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\nspace.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\objc.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\tokens.h">

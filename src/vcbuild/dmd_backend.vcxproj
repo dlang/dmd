@@ -83,7 +83,6 @@
     <ClCompile Include="..\glue.c" />
     <ClCompile Include="..\iasm.c" />
     <ClCompile Include="..\msc.c" />
-    <ClCompile Include="..\objc_glue_stubs.c" />
     <ClCompile Include="..\s2ir.c" />
     <ClCompile Include="..\tk.c" />
     <ClCompile Include="..\tocsym.c" />
@@ -208,7 +207,6 @@ popd</Command>
     <ClInclude Include="..\module.h" />
     <ClInclude Include="..\mtype.h" />
     <ClInclude Include="..\nspace.h" />
-    <ClInclude Include="..\objc.h" />
     <ClInclude Include="..\scope.h" />
     <ClInclude Include="..\statement.h" />
     <ClInclude Include="..\staticassert.h" />

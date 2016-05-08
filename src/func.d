@@ -33,7 +33,6 @@ import ddmd.init;
 import ddmd.mars;
 import ddmd.mtype;
 import ddmd.nogc;
-import ddmd.objc;
 import ddmd.opover;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
@@ -419,7 +418,7 @@ public:
     DsymbolTable localsymtab;
     VarDeclaration vthis;               // 'this' parameter (member and nested)
     VarDeclaration v_arguments;         // '_arguments' parameter
-    Objc_FuncDeclaration objc;
+    ObjcSelector* selector;             // Objective-C method selector (member function only)
 
     version (IN_GCC)
     {
@@ -492,7 +491,6 @@ public:
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         super(id);
-        objc = Objc_FuncDeclaration(this);
         //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
         //printf("storage_class = x%x\n", storage_class);
         this.storage_class = storage_class;
@@ -1335,12 +1333,104 @@ public:
 
         semanticRun = PASSsemantic2;
 
-        objc_FuncDeclaration_semantic_setSelector(this, sc);
-        objc_FuncDeclaration_semantic_validateSelector(this);
+        if (!global.params.hasObjectiveC)
+            return;
+
+        setSelector(sc);
+        validateSelector();
+
         if (ClassDeclaration cd = parent.isClassDeclaration())
         {
-            objc_FuncDeclaration_semantic_checkLinkage(this);
+            if (linkage != LINKobjc && selector)
+                error("must have Objective-C linkage to attach a selector");
         }
+    }
+
+    /**
+     * Sets the Objective-C selector of the receiver, if present.
+     *
+     * The Objective-C selector is extracted from the `@selector` UDA.
+     *
+     * Params:
+     *  sc = the current scope
+     */
+    private void setSelector(Scope* sc)
+    {
+        if (!userAttribDecl)
+            return;
+        Expressions* udas = userAttribDecl.getAttributes();
+        arrayExpressionSemantic(udas, sc, true);
+        for (size_t i = 0; i < udas.dim; i++)
+        {
+            Expression uda = (*udas)[i];
+            assert(uda);
+            if (uda.op != TOKtuple)
+                continue;
+            Expressions* exps = (cast(TupleExp)uda).exps;
+            for (size_t j = 0; j < exps.dim; j++)
+            {
+                Expression e = (*exps)[j];
+                assert(e);
+                if (e.op != TOKstructliteral)
+                    continue;
+                StructLiteralExp literal = cast(StructLiteralExp)e;
+                assert(literal.sd);
+                if (!isUdaSelector(literal.sd))
+                    continue;
+                if (selector)
+                {
+                    error("can only have one Objective-C selector per method");
+                    return;
+                }
+                assert(literal.elements.dim == 1);
+                StringExp se = (*literal.elements)[0].toStringExp();
+                assert(se);
+                selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).string);
+            }
+        }
+    }
+
+    /**
+     * Returns `true` if the given struct declaration is the
+     * `core.attribute.selector` struct declaration.
+     *
+     * The `core.attribute.selector` struct is used as a compiler recognized
+     * UDA, used for setting the selector of a method with
+     * `extern(Objective-C)` linkage.
+     *
+     * Params:
+     *  sd = the struct declaration to check
+     */
+    private bool isUdaSelector(StructDeclaration sd)
+    {
+        if (sd.ident != Id.udaSelector || !sd.parent)
+            return false;
+        Module _module = sd.parent.isModule();
+        return _module && _module.isCoreModule(Id.attribute);
+    }
+
+    /**
+     * Validates the selector of the receiver, if present.
+     *
+     * The following needs to be fulfilled for a valid selector:
+     *
+     * $(UL
+     *  $(LI
+     *      The number of colons in the selector needs to match the number of
+     *      parameters
+     *  )
+     * $(LI The receiver cannot be a template)
+     * )
+     */
+    private void validateSelector()
+    {
+        if (!selector)
+            return;
+        TypeFunction tf = cast(TypeFunction)type;
+        if (selector.paramCount != tf.parameters.dim)
+            error("number of colons in Objective-C selector must match number of parameters");
+        if (parent && parent.isTemplateInstance())
+            error("template cannot have an Objective-C selector attached");
     }
 
     // Do the semantic analysis on the internals of the function.
@@ -5764,5 +5854,102 @@ public:
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/***********************************************************
+ * This class represents an Objective-C selector
+ */
+struct ObjcSelector
+{
+    import ddmd.root.stringtable;
+
+    // MARK: Selector
+    extern (C++) static __gshared StringTable stringtable;
+    extern (C++) static __gshared StringTable vTableDispatchSelectors;
+    extern (C++) static __gshared int incnum = 0;
+    const(char)* stringvalue;
+    size_t stringlen;
+    size_t paramCount;
+
+    extern (C++) static void _init()
+    {
+        stringtable._init();
+    }
+
+    extern (D) this(const(char)* sv, size_t len, size_t pcount)
+    {
+        stringvalue = sv;
+        stringlen = len;
+        paramCount = pcount;
+    }
+
+    extern (C++) static ObjcSelector* lookup(const(char)* s)
+    {
+        size_t len = 0;
+        size_t pcount = 0;
+        const(char)* i = s;
+        while (*i != 0)
+        {
+            ++len;
+            if (*i == ':')
+                ++pcount;
+            ++i;
+        }
+        return lookup(s, len, pcount);
+    }
+
+    extern (C++) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
+    {
+        StringValue* sv = stringtable.update(s, len);
+        ObjcSelector* sel = cast(ObjcSelector*)sv.ptrvalue;
+        if (!sel)
+        {
+            sel = new ObjcSelector(sv.toDchars(), len, pcount);
+            sv.ptrvalue = cast(char*)sel;
+        }
+        return sel;
+    }
+
+    extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
+    {
+        import ddmd.dmangle;
+
+        OutBuffer buf;
+        size_t pcount = 0;
+        TypeFunction ftype = cast(TypeFunction)fdecl.type;
+        const id = fdecl.ident.toString();
+        // Special case: property setter
+        if (ftype.isproperty && ftype.parameters && ftype.parameters.dim == 1)
+        {
+            // rewrite "identifier" as "setIdentifier"
+            char firstChar = id[0];
+            if (firstChar >= 'a' && firstChar <= 'z')
+                firstChar = cast(char)(firstChar - 'a' + 'A');
+            buf.writestring("set");
+            buf.writeByte(firstChar);
+            buf.write(id.ptr + 1, id.length - 1);
+            buf.writeByte(':');
+            goto Lcomplete;
+        }
+        // write identifier in selector
+        buf.write(id.ptr, id.length);
+        // add mangled type and colon for each parameter
+        if (ftype.parameters && ftype.parameters.dim)
+        {
+            buf.writeByte('_');
+            Parameters* arguments = ftype.parameters;
+            size_t dim = Parameter.dim(arguments);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter arg = Parameter.getNth(arguments, i);
+                mangleToBuffer(arg.type, &buf);
+                buf.writeByte(':');
+            }
+            pcount = dim;
+        }
+    Lcomplete:
+        buf.writeByte('\0');
+        return lookup(cast(const(char)*)buf.data, buf.size, pcount);
     }
 }
