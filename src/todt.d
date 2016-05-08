@@ -54,6 +54,7 @@ extern (C++) void toObjFile(Dsymbol ds, bool multiobj);
 extern (C++) Symbol* toVtblSymbol(ClassDeclaration cd);
 extern (C++) Symbol* toSymbol(StructLiteralExp sle);
 extern (C++) Symbol* toSymbol(ClassReferenceExp cre);
+extern (C++) Symbol* toSymbol(AssocArrayLiteralExp aale);
 extern (C++) Symbol* toInitializer(AggregateDeclaration ad);
 extern (C++) Symbol* toInitializer(EnumDeclaration ed);
 extern (C++) FuncDeclaration search_toString(StructDeclaration sd);
@@ -568,6 +569,30 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 ClassReferenceExp_toDt(e, dtb, 0);
         }
 
+        override void visit(AssocArrayLiteralExp aale)
+        {
+            assert(e.type.ty == Taarray);
+            TypeAArray taa = cast(TypeAArray)e.type;
+
+            switch (taa.index.ty)
+            {
+            case Tchar:
+            case Twchar:
+            case Tdchar:
+            case Tint8:
+            case Tuns8:
+            case Tint16:
+            case Tuns16:
+            case Tint32:
+            case Tuns32:
+                dtb.xoff(toSymbol(aale), 0);
+                return;
+            default:
+                visit(cast(Expression)aale);
+                return;
+            }
+        }
+
         override void visit(TypeidExp e)
         {
             if (Type t = isType(e.obj))
@@ -818,6 +843,173 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
         dtb.nzeros(ad.structsize - offset);
 }
 
+private dinteger_t talign(dinteger_t tsize, dinteger_t algn)
+{
+    immutable mask = algn - 1;
+    assert(!(mask & algn));
+    return (tsize + mask) & ~mask;
+}
+
+private void aligntsizeExp(DtBuilder dtb, Expression e)
+{
+    Expression_toDt(e, dtb);
+    uint diff = cast(uint)e.type.size() & (Target.ptrsize - 1);
+    if (diff)
+        dtb.nzeros(Target.ptrsize - diff);
+}
+
+private uinteger_t mix(uinteger_t v)
+{
+    enum m = 0x5bd1e995;
+    if (Target.ptrsize == 4)
+    {
+        // final mix function of MurmurHash2
+        uint h = cast(uint)v;
+        h ^= h >> 13;
+        h *= m;
+        h ^= h >> 15;
+        return h;
+    }
+    else if (Target.ptrsize == 8)
+    {
+        // final mix function of MurmurHash2
+        ulong h = v;
+        h ^= h >> 13;
+        h *= m;
+        h ^= h >> 15;
+        return h;
+    }
+    else
+    {
+        assert(0);
+    }
+}
+
+private uinteger_t calcHash(Expression e)
+{
+    auto HASH_FILLED_MARK = uinteger_t(1) << 8 * Target.ptrsize - 1;
+    uinteger_t hash = e.toUInteger();
+    return mix(hash) | HASH_FILLED_MARK;
+}
+
+extern (C++) void AssocArrayLiteralExp_toDt(AssocArrayLiteralExp aale, DtBuilder dtb)
+{
+    //printf("AssocArrayLiteralExp::toDt(), this='%s'\n", aale.toChars());
+
+    assert(aale.type.ty == Taarray);
+    TypeAArray taa = cast(TypeAArray)aale.type;
+
+    enum GROW_NUM = 4;
+    enum GROW_DEN = 5;
+    enum GROW_FAC = 4;
+    enum INIT_NUM_BUCKETS = 8;
+
+    uint size = INIT_NUM_BUCKETS;
+    while (aale.keys.dim * GROW_DEN > size * GROW_NUM)
+        size *= GROW_FAC;
+
+    uint firstUsedBucket = size;
+    auto mask = size - 1;
+    auto keysz = taa.index.size();
+    auto valsz = taa.next.size();
+    auto valoff = talign(taa.index.size(), taa.next.alignsize());
+    auto esize = talign(valoff + keysz, Target.ptrsize);
+
+    Array!size_t buckets;
+    buckets.setDim(size);
+    buckets.zero();
+
+    Dts entries;
+    entries.setDim(size);
+    entries.zero();
+
+    // Assign buckets and emit entries
+    for (size_t i = 0; i < aale.keys.dim; i++)
+    {
+        Expression ekey = (*aale.keys)[i];
+        Expression evalue = (*aale.values)[i];
+
+        /*
+        struct Entry
+        {
+            Key key;
+            Value value;
+        }
+        */
+        scope dtbe = new DtBuilder();
+        dtbe.aligntsizeExp(ekey);
+        dtbe.aligntsizeExp(evalue);
+
+        uinteger_t key_hash = calcHash(ekey);
+        for (size_t j = 0; j < size; j++)
+        {
+            size_t bucket = cast(size_t)((key_hash + j) & mask);
+            if (!entries[bucket])
+            {
+                buckets[bucket] = cast(size_t)i;
+                entries[bucket] = dtbe.finish();
+                break;
+            }
+        }
+    }
+
+    scope dtbb = new DtBuilder();
+
+    // Generate buckets
+    for (size_t i = 0; i < size; i++)
+    {
+        /*
+        struct Bucket
+        {
+            size_t hash;
+            Entry* ptr;
+        }
+        */
+
+        if (entries[i])
+        {
+            Expression ekey = (*aale.keys)[buckets[i]];
+            uinteger_t key_hash = calcHash(ekey);
+
+            dtbb.size(key_hash);
+            dtbb.dtoff(entries[i], 0);
+
+            if (firstUsedBucket == size)
+                firstUsedBucket = i;
+        }
+        else
+        {
+            dtbb.size(0);
+            dtbb.size(0);
+        }
+    }
+
+    /*
+    struct Impl
+    {
+        Bucket[] buckets;
+        uint used;
+        uint deleted;
+        TypeInfo_Struct entryTI;
+        uint firstUsed;
+        immutable uint keysz;
+        immutable uint valsz;
+        immutable uint valoff;
+        Flags flags;
+    }
+    */
+
+    dtb.size(size); // buckets.length
+    dtb.dtoff(dtbb.finish(), 0); // buckets.ptr
+    dtb.dword(aale.keys.dim); // used
+    dtb.dword(0); // deleted
+    dtb.size(0); // entryTI
+    dtb.dword(firstUsedBucket);
+    dtb.dword(cast(uint)keysz);
+    dtb.dword(cast(uint)valsz);
+    dtb.dword(cast(uint)valoff);
+    dtb.dword(0); // flags
+}
 
 /* ================================================================= */
 

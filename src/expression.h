@@ -440,6 +440,7 @@ public:
     Expressions *keys;
     Expressions *values;
     OwnedBy ownedByCtfe;
+    Symbol *sym;
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
     bool equals(RootObject *o);
