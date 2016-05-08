@@ -40,7 +40,7 @@ version( CRuntime_Glibc )
         ___value __value;
     }
 }
-else version( Solaris )
+else version (Solaris)
 {
     ///
     struct __mbstate_t
