@@ -173,7 +173,7 @@ class StaticIfDeclaration : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol *scopesym;
-    int addisdone;
+    bool addisdone;
 
     StaticIfDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
