@@ -166,6 +166,7 @@ public:
     Expression *exp;
 
     Statement *syntaxCopy();
+    Statements *compileIt(Scope *sc);
     Statements *flatten(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
