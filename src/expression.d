@@ -2415,6 +2415,43 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
     return ae;
 }
 
+/***********************************************************
+ * Resolve `exp` as a compile-time known string.
+ * Params:
+ *  sc  = scope
+ *  exp = Expression which expected as a string
+ *  s   = What the string is expected for, will be used in error diagnostic.
+ * Returns:
+ *  String literal, or `null` if error happens.
+ */
+StringExp semanticString(Scope *sc, Expression exp, const char* s)
+{
+    sc = sc.startCTFE();
+    exp = exp.semantic(sc);
+    exp = resolveProperties(sc, exp);
+    sc = sc.endCTFE();
+
+    if (exp.op == TOKerror)
+        return null;
+
+    auto e = exp;
+    if (exp.type.isString())
+    {
+        e = e.ctfeInterpret();
+        if (e.op == TOKerror)
+            return null;
+    }
+
+    auto se = e.toStringExp();
+    if (!se)
+    {
+        exp.error("string expected for %s, not (%s) of type %s",
+            s, exp.toChars(), exp.type.toChars());
+        return null;
+    }
+    return se;
+}
+
 enum OwnedBy : int
 {
     OWNEDcode,          // normal code expression in AST
@@ -8207,26 +8244,10 @@ public:
         {
             printf("CompileExp::semantic('%s')\n", toChars());
         }
-        sc = sc.startCTFE();
-        e1 = e1.semantic(sc);
-        e1 = resolveProperties(sc, e1);
-        sc = sc.endCTFE();
 
-        if (e1.op == TOKerror)
-            return e1;
-        if (!e1.type.isString())
-        {
-            error("argument to mixin must be a string type, not %s", e1.type.toChars());
-            return new ErrorExp();
-        }
-        e1 = e1.ctfeInterpret();
-
-        StringExp se = e1.toStringExp();
+        auto se = semanticString(sc, e1, "argument to mixin");
         if (!se)
-        {
-            error("argument to mixin must be a string, not (%s)", e1.toChars());
             return new ErrorExp();
-        }
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
@@ -8271,29 +8292,17 @@ public:
         {
             printf("ImportExp::semantic('%s')\n", toChars());
         }
-        const(char)* name;
-        const(char)* namez;
-        StringExp se;
 
-        sc = sc.startCTFE();
-        e1 = e1.semantic(sc);
-        e1 = resolveProperties(sc, e1);
-        sc = sc.endCTFE();
-
-        e1 = e1.ctfeInterpret();
-        if (e1.op != TOKstring)
-        {
-            error("file name argument must be a string, not (%s)", e1.toChars());
-            goto Lerror;
-        }
-
-        se = cast(StringExp)e1;
+        auto se = semanticString(sc, e1, "file name argument");
+        if (!se)
+            return new ErrorExp();
         se = se.toUTF8(sc);
-        namez = se.toStringz();
+
+        auto namez = se.toStringz();
         if (!global.params.fileImppath)
         {
             error("need -Jpath switch to import text file %s", namez);
-            goto Lerror;
+            return new ErrorExp();
         }
 
         /* Be wary of CWE-22: Improper Limitation of a Pathname to a Restricted Directory
@@ -8301,11 +8310,11 @@ public:
          * http://cwe.mitre.org/data/definitions/22.html
          */
 
-        name = FileName.safeSearchPath(global.filePath, namez);
+        auto name = FileName.safeSearchPath(global.filePath, namez);
         if (!name)
         {
             error("file %s cannot be found or not in a path specified with -J", se.toChars());
-            goto Lerror;
+            return new ErrorExp();
         }
 
         if (global.params.verbose)
@@ -8335,7 +8344,7 @@ public:
             if (f.read())
             {
                 error("cannot read file %s", f.toChars());
-                goto Lerror;
+                return new ErrorExp();
             }
             else
             {
@@ -8344,9 +8353,6 @@ public:
             }
         }
         return se.semantic(sc);
-
-    Lerror:
-        return new ErrorExp();
     }
 
     override void accept(Visitor v)
