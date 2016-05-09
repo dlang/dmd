@@ -198,7 +198,7 @@ public:
     Expression *exp;
 
     ScopeDsymbol *scopesym;
-    int compiled;
+    bool compiled;
 
     CompileDeclaration(Loc loc, Expression *exp);
     Dsymbol *syntaxCopy(Dsymbol *s);
