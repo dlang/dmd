@@ -32,7 +32,7 @@ version (ANSI) {} else version = Unicode;
 import core.sys.windows.schannel, core.sys.windows.winber;
 private import core.sys.windows.wincrypt, core.sys.windows.windef;
 
-align(4):
+//align(4):
 
 enum {
     LDAP_VERSION1    = 1,
