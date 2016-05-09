@@ -427,12 +427,11 @@ public:
         mangleDecl(d);
         debug
         {
-            assert(buf.data);
-            size_t len = buf.offset;
-            assert(len > 0);
-            for (size_t i = 0; i < len; i++)
+            const slice = buf.peekSlice();
+            assert(slice.length);
+            foreach (const char c; slice)
             {
-                assert(buf.data[i] == '_' || buf.data[i] == '@' || buf.data[i] == '?' || buf.data[i] == '$' || isalnum(buf.data[i]) || buf.data[i] & 0x80);
+                assert(c == '_' || c == '@' || c == '?' || c == '$' || isalnum(c) || c & 0x80);
             }
         }
     }
@@ -679,16 +678,14 @@ public:
     {
         char m;
         OutBuffer tmp;
-        char* q;
-        size_t qlen;
+        const(char)[] q;
         /* Write string in UTF-8 format
          */
         switch (e.sz)
         {
         case 1:
             m = 'a';
-            q = e.string;
-            qlen = e.len;
+            q = e.string[0 .. e.len];
             break;
         case 2:
             m = 'w';
@@ -701,8 +698,7 @@ public:
                 else
                     tmp.writeUTF8(c);
             }
-            q = cast(char*)tmp.data;
-            qlen = tmp.offset;
+            q = tmp.peekSlice();
             break;
         case 4:
             m = 'd';
@@ -714,23 +710,23 @@ public:
                 else
                     tmp.writeUTF8(c);
             }
-            q = cast(char*)tmp.data;
-            qlen = tmp.offset;
+            q = tmp.peekSlice();
             break;
         default:
             assert(0);
         }
-        buf.reserve(1 + 11 + 2 * qlen);
+        buf.reserve(1 + 11 + 2 * q.length);
         buf.writeByte(m);
-        buf.printf("%d_", cast(int)qlen); // nbytes <= 11
-        for (char* p = cast(char*)buf.data + buf.offset, pend = p + 2 * qlen; p < pend; p += 2, ++q)
+        buf.printf("%d_", cast(int)q.length); // nbytes <= 11
+        size_t qi = 0;
+        for (char* p = cast(char*)buf.data + buf.offset, pend = p + 2 * q.length; p < pend; p += 2, ++qi)
         {
-            char hi = *q >> 4 & 0xF;
+            char hi = (q[qi] >> 4) & 0xF;
             p[0] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
-            char lo = *q & 0xF;
+            char lo = q[qi] & 0xF;
             p[1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
         }
-        buf.offset += 2 * qlen;
+        buf.offset += 2 * q.length;
     }
 
     override void visit(ArrayLiteralExp e)
