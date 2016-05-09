@@ -1283,7 +1283,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
 public:
     Expression exp;
     ScopeDsymbol scopesym;
-    int compiled;
+    bool compiled;
 
     extern (D) this(Loc loc, Expression exp)
     {
@@ -1349,7 +1349,8 @@ public:
         {
             compileIt(sc);
             AttribDeclaration.addMember(sc, scopesym);
-            compiled = 1;
+            compiled = true;
+
             if (_scope && decl)
             {
                 for (size_t i = 0; i < decl.dim; i++)
