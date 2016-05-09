@@ -2562,15 +2562,15 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 parametersBuf.writeByte(')');
 
-                const(char*) templateParams = parametersBuf.extractString();
-                size_t templateParamsLen = strlen(templateParams);
+                const templateParams = parametersBuf.peekString();
+                const templateParamsLen = strlen(templateParams);
 
                 //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
 
                 if (cmp(templateParams, start, templateParamsLen) == 0)
                 {
-                    static immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
-                    size_t paramListEnd = buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")") - 1;
+                    immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
+                    buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")");
 
                     // We have the parameter list. While we're here we might
                     // as well wrap the parameters themselves as well
@@ -2579,7 +2579,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // template param list
                     i += templateParamListMacro.length + 1;
 
-                    foreach (size_t len; paramLens)
+                    foreach (const len; paramLens)
                     {
                         i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM ", i + len, ")");
                         // increment two here for space + comma
