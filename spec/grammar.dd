@@ -1631,7 +1631,7 @@ $(GNAME LinkageType):
 $(GRAMMAR
 $(GNAME AlignAttribute):
     $(D align)
-    $(D align) $(D $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
+    $(D align) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
 )
 
 $(GRAMMAR

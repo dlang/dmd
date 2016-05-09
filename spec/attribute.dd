@@ -185,7 +185,7 @@ $(H3 $(LNAME2 align, $(D align) Attribute))
 $(GRAMMAR
 $(GNAME AlignAttribute):
     $(D align)
-    $(D align) $(D $(LPAREN)) $(GLINK2 lex, IntegerLiteral) $(D $(RPAREN))
+    $(D align) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
 )
 
 
@@ -215,7 +215,7 @@ struct S
 auto sz = S.sizeof;  // 16
 --------
 
-        $(P $(I IntegerLiteral) specifies the alignment
+        $(P $(I AssignExpression) specifies the alignment
         which matches the behavior of the companion C compiler when non-default
         alignments are used. It must be a positive power of 2.
         )
