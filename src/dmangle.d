@@ -309,8 +309,9 @@ public:
         buf2.reserve(32);
         scope Mangler v = new Mangler(&buf2);
         v.paramsToDecoBuffer(t.arguments);
-        int len = cast(int)buf2.offset;
-        buf.printf("%d%.*s", len, len, buf2.extractString());
+        auto s = buf2.peekSlice();
+        int len = cast(int)s.length;
+        buf.printf("%d%.*s", len, len, s.ptr);
     }
 
     override void visit(TypeNull t)
