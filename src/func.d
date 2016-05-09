@@ -1442,7 +1442,7 @@ public:
             sc2.stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STCoverride | STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref | STCreturn | STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
             sc2.protection = Prot(PROTpublic);
             sc2.explicitProtection = 0;
-            sc2.structalign = STRUCTALIGN_DEFAULT;
+            sc2.aligndecl = null;
             if (this.ident != Id.require && this.ident != Id.ensure)
                 sc2.flags = sc.flags & ~SCOPEcontract;
             sc2.flags &= ~SCOPEcompile;

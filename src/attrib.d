@@ -78,10 +78,17 @@ public:
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage, Prot protection, int explicitProtection, structalign_t structalign, PINLINE inlining)
+    static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+        Prot protection, int explicitProtection, AlignDeclaration aligndecl,
+        PINLINE inlining)
     {
         Scope* sc2 = sc;
-        if (stc != sc.stc || linkage != sc.linkage || !protection.isSubsetOf(sc.protection) || explicitProtection != sc.explicitProtection || structalign != sc.structalign || inlining != sc.inlining)
+        if (stc != sc.stc ||
+            linkage != sc.linkage ||
+            !protection.isSubsetOf(sc.protection) ||
+            explicitProtection != sc.explicitProtection ||
+            aligndecl !is sc.aligndecl ||
+            inlining != sc.inlining)
         {
             // create new one for changes
             sc2 = sc.copy();
@@ -89,7 +96,7 @@ public:
             sc2.linkage = linkage;
             sc2.protection = protection;
             sc2.explicitProtection = explicitProtection;
-            sc2.structalign = structalign;
+            sc2.aligndecl = aligndecl;
             sc2.inlining = inlining;
         }
         return sc2;
@@ -352,7 +359,9 @@ public:
             scstc &= ~(STCsafe | STCtrusted | STCsystem);
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
-        return createNewScope(sc, scstc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
+        return createNewScope(sc, scstc, sc.linkage,
+            sc.protection, sc.explicitProtection, sc.aligndecl,
+            sc.inlining);
     }
 
     override final bool oneMember(Dsymbol* ps, Identifier ident)
@@ -499,7 +508,9 @@ public:
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, this.linkage, sc.protection, sc.explicitProtection, sc.structalign, sc.inlining);
+        return createNewScope(sc, sc.stc, this.linkage,
+            sc.protection, sc.explicitProtection, sc.aligndecl,
+            sc.inlining);
     }
 
     override const(char)* toChars() const
@@ -563,7 +574,9 @@ public:
     {
         if (pkg_identifiers)
             semantic(sc);
-        return createNewScope(sc, sc.stc, sc.linkage, this.protection, 1, sc.structalign, sc.inlining);
+        return createNewScope(sc, sc.stc, sc.linkage,
+            this.protection, 1, sc.aligndecl,
+            sc.inlining);
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -611,23 +624,91 @@ public:
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
 public:
-    uint salign;
+    Expression ealign;
+    structalign_t salign = STRUCTALIGN_DEFAULT;
 
-    extern (D) this(uint sa, Dsymbols* decl)
+    extern (D) this(Loc loc, Expression ealign, Dsymbols* decl)
     {
         super(decl);
-        salign = sa;
+        this.loc = loc;
+        this.ealign = ealign;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new AlignDeclaration(salign, Dsymbol.arraySyntaxCopy(decl));
+        return new AlignDeclaration(loc,
+            ealign.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, this.salign, sc.inlining);
+        return createNewScope(sc, sc.stc, sc.linkage,
+            sc.protection, sc.explicitProtection, this,
+            sc.inlining);
+    }
+
+    override void setScope(Scope* sc)
+    {
+        //printf("AlignDeclaration::setScope() %p\n", this);
+        if (ealign && decl)
+            Dsymbol.setScope(sc); // for forward reference
+        return AttribDeclaration.setScope(sc);
+    }
+
+    override void semantic2(Scope* sc)
+    {
+        getAlignment();
+        super.semantic2(sc);
+    }
+
+    structalign_t getAlignment()
+    {
+        if (!ealign)
+            return STRUCTALIGN_DEFAULT;
+
+        if (auto sc = _scope)
+        {
+            _scope = null;
+
+            sc = sc.startCTFE();
+            ealign = ealign.semantic(sc);
+            ealign = resolveProperties(sc, ealign);
+            sc = sc.endCTFE();
+
+            auto errorPositiveInteger()
+            {
+                .error(loc, "positive integer expected, not %s", ealign.toChars());
+                return STRUCTALIGN_DEFAULT;
+            }
+
+            if (ealign.op == TOKerror)
+                return STRUCTALIGN_DEFAULT;
+            if (!ealign.type)
+                return errorPositiveInteger();
+            Type tb = ealign.type.toBasetype();
+            if (!tb.isintegral())
+                return errorPositiveInteger();
+            if (tb.ty == Tchar || tb.ty == Twchar || tb.ty == Tdchar || tb.ty == Tbool)
+                return errorPositiveInteger();
+
+            ealign = ealign.ctfeInterpret();
+            if (ealign.op == TOKerror)
+                return STRUCTALIGN_DEFAULT;
+
+            auto n = ealign.toInteger();
+            if (n < 1 || structalign_t.max < n)
+                return errorPositiveInteger();
+
+            if (n & (n - 1))
+            {
+                .error(loc, "alignment must be a power of 2, not %u", cast(structalign_t)n);
+                return STRUCTALIGN_DEFAULT;
+            }
+
+            salign = cast(structalign_t)n;
+        }
+        return salign;
     }
 
     override void accept(Visitor v)
@@ -642,7 +723,6 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 {
 public:
     bool isunion;
-    structalign_t alignment;
     int sem;                // 1 if successful semantic()
     uint anonoffset;        // offset of anonymous struct
     uint anonstructsize;    // size of anonymous struct
@@ -663,22 +743,23 @@ public:
 
     override void setScope(Scope* sc)
     {
-        super.setScope(sc);
-        alignment = sc.structalign;
+        if (decl)
+            Dsymbol.setScope(sc);
+        return AttribDeclaration.setScope(sc);
     }
 
     override void semantic(Scope* sc)
     {
         //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
         assert(sc.parent);
-        Dsymbol p = sc.parent.pastMixin();
-        AggregateDeclaration ad = p.isAggregateDeclaration();
+        auto p = sc.parent.pastMixin();
+        auto ad = p.isAggregateDeclaration();
         if (!ad)
         {
             .error(loc, "%s can only be a part of an aggregate, not %s %s", kind(), p.kind(), p.toChars());
             return;
         }
-        alignment = sc.structalign;
+
         if (decl)
         {
             sc = sc.push();
@@ -745,6 +826,9 @@ public:
                 anonstructsize = 1;
                 anonalignsize = 1;
             }
+
+            assert(_scope);
+            auto alignment = _scope.alignment();
 
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
@@ -833,7 +917,9 @@ public:
                 else if (e.isBool(false))
                     inlining = PINLINEnever;
             }
-            return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, inlining);
+            return createNewScope(sc, sc.stc, sc.linkage,
+                sc.protection, sc.explicitProtection, sc.aligndecl,
+                inlining);
         }
         return sc;
     }
