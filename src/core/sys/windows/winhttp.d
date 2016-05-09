@@ -141,8 +141,12 @@ struct WINHTTP_CERTIFICATE_INFO {
 }
 
 // This structure is only defined #if _WS2DEF_ defined (from <ws2def.h>) - per Windows SDK
+align(4)
 struct WINHTTP_CONNECTION_INFO {
+align(4):
     DWORD cbSize;
+    version (Win64)
+        DWORD _padding; // cheap trick without the alignment switch over this file
     SOCKADDR_STORAGE LocalAddress;
     SOCKADDR_STORAGE RemoteAddress;
 }

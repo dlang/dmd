@@ -211,7 +211,10 @@ struct NCB {
     extern (Windows) void function(NCB*) ncb_post;
     UCHAR           ncb_lana_num;
     UCHAR           ncb_cmd_cplt;
-    UCHAR[10]       ncb_reserve;
+    version (Win64)
+        UCHAR[18]   ncb_reserve;
+    else
+        UCHAR[10]   ncb_reserve;
     HANDLE          ncb_event;
 }
 alias NCB* PNCB;
