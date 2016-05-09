@@ -643,7 +643,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 public:
     bool isunion;
     structalign_t alignment;
-    int sem;        // 1 if successful semantic()
+    int sem;                // 1 if successful semantic()
     uint anonoffset;        // offset of anonymous struct
     uint anonstructsize;    // size of anonymous struct
     uint anonalignsize;     // size of anonymous struct for alignment purposes
@@ -796,6 +796,40 @@ public:
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
+    }
+
+    override Scope* newScope(Scope* sc)
+    {
+        if (ident == Id.Pinline)
+        {
+            PINLINE inlining = PINLINEdefault;
+            if (!args || args.dim == 0)
+                inlining = PINLINEdefault;
+            else if (args.dim != 1)
+            {
+                error("one boolean expression expected for pragma(inline), not %d", args.dim);
+                args.setDim(1);
+                (*args)[0] = new ErrorExp();
+            }
+            else
+            {
+                Expression e = (*args)[0];
+                if (e.op != TOKint64 || !e.type.equals(Type.tbool))
+                {
+                    if (e.op != TOKerror)
+                    {
+                        error("pragma(inline, true or false) expected, not %s", e.toChars());
+                        (*args)[0] = new ErrorExp();
+                    }
+                }
+                else if (e.isBool(true))
+                    inlining = PINLINEalways;
+                else if (e.isBool(false))
+                    inlining = PINLINEnever;
+            }
+            return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, inlining);
+        }
+        return sc;
     }
 
     override void semantic(Scope* sc)
@@ -1036,40 +1070,6 @@ public:
         }
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        if (ident == Id.Pinline)
-        {
-            PINLINE inlining = PINLINEdefault;
-            if (!args || args.dim == 0)
-                inlining = PINLINEdefault;
-            else if (args.dim != 1)
-            {
-                error("one boolean expression expected for pragma(inline), not %d", args.dim);
-                args.setDim(1);
-                (*args)[0] = new ErrorExp();
-            }
-            else
-            {
-                Expression e = (*args)[0];
-                if (e.op != TOKint64 || !e.type.equals(Type.tbool))
-                {
-                    if (e.op != TOKerror)
-                    {
-                        error("pragma(inline, true or false) expected, not %s", e.toChars());
-                        (*args)[0] = new ErrorExp();
-                    }
-                }
-                else if (e.isBool(true))
-                    inlining = PINLINEalways;
-                else if (e.isBool(false))
-                    inlining = PINLINEnever;
-            }
-            return createNewScope(sc, sc.stc, sc.linkage, sc.protection, sc.explicitProtection, sc.structalign, inlining);
-        }
-        return sc;
-    }
-
     override const(char)* kind() const
     {
         return "pragma";
@@ -1246,9 +1246,11 @@ public:
         this.scopesym = sds;
     }
 
-    override void semantic(Scope* sc)
+    override void setScope(Scope* sc)
     {
-        AttribDeclaration.semantic(sc);
+        // do not evaluate condition before semantic pass
+        // But do set the scope, in case we need it for forward referencing
+        Dsymbol.setScope(sc);
     }
 
     override void importAll(Scope* sc)
@@ -1256,11 +1258,9 @@ public:
         // do not evaluate condition before semantic pass
     }
 
-    override void setScope(Scope* sc)
+    override void semantic(Scope* sc)
     {
-        // do not evaluate condition before semantic pass
-        // But do set the scope, in case we need it for forward referencing
-        Dsymbol.setScope(sc);
+        AttribDeclaration.semantic(sc);
     }
 
     override const(char)* kind() const
@@ -1409,6 +1409,14 @@ public:
         return sc2;
     }
 
+    override void setScope(Scope* sc)
+    {
+        //printf("UserAttributeDeclaration::setScope() %p\n", this);
+        if (decl)
+            Dsymbol.setScope(sc); // for forward reference of UDAs
+        return AttribDeclaration.setScope(sc);
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("UserAttributeDeclaration::semantic() %p\n", this);
@@ -1428,14 +1436,6 @@ public:
             }
         }
         AttribDeclaration.semantic2(sc);
-    }
-
-    override void setScope(Scope* sc)
-    {
-        //printf("UserAttributeDeclaration::setScope() %p\n", this);
-        if (decl)
-            Dsymbol.setScope(sc); // for forward reference of UDAs
-        return AttribDeclaration.setScope(sc);
     }
 
     static Expressions* concat(Expressions* udas1, Expressions* udas2)
