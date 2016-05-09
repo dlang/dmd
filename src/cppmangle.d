@@ -331,7 +331,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                         if (buf.offset - off >= 26 && memcmp(buf.data + off, "IcSt11char_traitsIcESaIcEE".ptr, 26) == 0)
                         {
                             buf.remove(off - 2, 28);
-                            buf.insert(off - 2, "Ss".ptr, 2);
+                            buf.insert(off - 2, "Ss");
                             return;
                         }
                         buf.setsize(off);
@@ -359,7 +359,7 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                                 mbuf[1] = 'o';
                             else if (s.ident == Id.basic_iostream)
                                 mbuf[1] = 'd';
-                            buf.insert(off, mbuf.ptr, 2);
+                            buf.insert(off, mbuf[]);
                             return;
                         }
                         buf.setsize(off);
@@ -440,24 +440,24 @@ static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TAR
                 if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator".ptr, 17) == 0)
                 {
                     buf.remove(3, 14);
-                    buf.insert(3, "Sa".ptr, 2);
+                    buf.insert(3, "Sa");
                 }
                 // Replace ::std::basic_string with Sb
                 if (buf.offset >= 21 && memcmp(buf.data, "_ZN3std12basic_string".ptr, 21) == 0)
                 {
                     buf.remove(3, 18);
-                    buf.insert(3, "Sb".ptr, 2);
+                    buf.insert(3, "Sb");
                 }
                 // Replace ::std with St
                 if (buf.offset >= 7 && memcmp(buf.data, "_ZN3std".ptr, 7) == 0)
                 {
                     buf.remove(3, 4);
-                    buf.insert(3, "St".ptr, 2);
+                    buf.insert(3, "St");
                 }
                 if (buf.offset >= 8 && memcmp(buf.data, "_ZNK3std".ptr, 8) == 0)
                 {
                     buf.remove(4, 4);
-                    buf.insert(4, "St".ptr, 2);
+                    buf.insert(4, "St");
                 }
                 if (d.isDtorDeclaration())
                 {

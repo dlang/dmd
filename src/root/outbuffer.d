@@ -91,6 +91,16 @@ struct OutBuffer
         write(string, strlen(string));
     }
 
+    void writestring(const(char)[] s) nothrow
+    {
+        write(s.ptr, s.length);
+    }
+
+    void writestring(string s) nothrow
+    {
+        write(s.ptr, s.length);
+    }
+
     extern (C++) void prependstring(const(char)* string) nothrow
     {
         size_t len = strlen(string);
@@ -398,6 +408,11 @@ struct OutBuffer
         spread(offset, nbytes);
         memmove(data + offset, p, nbytes);
         return offset + nbytes;
+    }
+
+    size_t insert(size_t offset, const(char)[] s) nothrow
+    {
+        return insert(offset, s.ptr, s.length);
     }
 
     extern (C++) void remove(size_t offset, size_t nbytes) nothrow
