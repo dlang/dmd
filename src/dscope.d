@@ -156,6 +156,7 @@ struct Scope
     int explicitProtection;         // set if in an explicit protection attribute
 
     StorageClass stc;               // storage class
+
     DeprecatedDeclaration depdecl;  // customized deprecation message
 
     uint flags;
