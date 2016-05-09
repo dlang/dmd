@@ -1122,12 +1122,10 @@ public:
 
         auto s = ScopeDsymbol.search(loc, ident, flags);
 
-        if ((flags & (SearchLocalsOnly | SearchImportsOnly)) != 0)
-            flags |= SearchLocalsOnly;
-
         if (!s)
         {
             // Search bases classes in depth-first, left to right order
+            const accessModule = getAccessModule();
             for (size_t i = 0; i < baseclasses.dim; i++)
             {
                 BaseClass* b = (*baseclasses)[i];
@@ -1139,7 +1137,10 @@ public:
                     {
                         import ddmd.access : symbolIsVisible;
 
-                        s = b.sym.search(loc, ident, flags);
+                        if (!(flags & IgnoreSymbolVisibility) && accessModule != b.sym.getAccessModule())
+                            s = b.sym.search(loc, ident, flags | IgnorePrivateImports);
+                        else
+                            s = b.sym.search(loc, ident, flags);
                         if (!s)
                             continue;
                         else if (s == this) // happens if s is nested in this and derives from this
