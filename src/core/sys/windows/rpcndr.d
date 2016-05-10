@@ -365,7 +365,7 @@ struct FULL_PTR_XLAT_TABLES {
         uint HashMask;
     }
     void* PointerToRefId;
-    
+
     uint NextRefId;
     XLAT_SIDE XlatSide;
 }
