@@ -22,7 +22,7 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-nothrow extern(C):
+nothrow @nogc extern(C):
 
 //
 // XOpen (XSI)
