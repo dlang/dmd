@@ -873,39 +873,29 @@ public:
                 error("string expected for library name");
             else
             {
-                Expression e = (*args)[0];
-                sc = sc.startCTFE();
-                e = e.semantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-                e = e.ctfeInterpret();
-                (*args)[0] = e;
-                if (e.op == TOKerror)
-                    goto Lnodecl;
-                StringExp se = e.toStringExp();
+                auto se = semanticString(sc, (*args)[0], "library name");
                 if (!se)
-                    error("string expected for library name, not '%s'", e.toChars());
-                else
+                    goto Lnodecl;
+                (*args)[0] = se;
+
+                auto name = cast(char*)mem.xmalloc(se.len + 1);
+                memcpy(name, se.string, se.len);
+                name[se.len] = 0;
+                if (global.params.verbose)
+                    fprintf(global.stdmsg, "library   %s\n", name);
+                if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
-                    char* name = cast(char*)mem.xmalloc(se.len + 1);
-                    memcpy(name, se.string, se.len);
-                    name[se.len] = 0;
-                    if (global.params.verbose)
-                        fprintf(global.stdmsg, "library   %s\n", name);
-                    if (global.params.moduleDeps && !global.params.moduleDepsFile)
-                    {
-                        OutBuffer* ob = global.params.moduleDeps;
-                        Module imod = sc.instantiatingModule();
-                        ob.writestring("depsLib ");
-                        ob.writestring(imod.toPrettyChars());
-                        ob.writestring(" (");
-                        escapePath(ob, imod.srcfile.toChars());
-                        ob.writestring(") : ");
-                        ob.writestring(name);
-                        ob.writenl();
-                    }
-                    mem.xfree(name);
+                    OutBuffer* ob = global.params.moduleDeps;
+                    Module imod = sc.instantiatingModule();
+                    ob.writestring("depsLib ");
+                    ob.writestring(imod.toPrettyChars());
+                    ob.writestring(" (");
+                    escapePath(ob, imod.srcfile.toChars());
+                    ob.writestring(") : ");
+                    ob.writestring(name);
+                    ob.writenl();
                 }
+                mem.xfree(name);
             }
             goto Lnodecl;
         }
@@ -944,18 +934,12 @@ public:
                 (*args)[0] = new ErrorExp(); // error recovery
                 goto Ldecl;
             }
-            Expression e = (*args)[0];
-            e = e.semantic(sc);
-            e = e.ctfeInterpret();
-            (*args)[0] = e;
-            if (e.op == TOKerror)
-                goto Ldecl;
-            StringExp se = e.toStringExp();
+
+            auto se = semanticString(sc, (*args)[0], "mangled name");
             if (!se)
-            {
-                error("string expected for mangled name, not '%s'", e.toChars());
                 goto Ldecl;
-            }
+            (*args)[0] = se; // Will be used later
+
             if (!se.len)
             {
                 error("zero-length string not allowed for mangled name");
@@ -1046,7 +1030,7 @@ public:
                 if (ident == Id.mangle)
                 {
                     assert(args && args.dim == 1);
-                    if (StringExp se = (*args)[0].toStringExp())
+                    if (auto se = (*args)[0].toStringExp())
                     {
                         char* name = cast(char*)mem.xmalloc(se.len + 1);
                         memcpy(name, se.string, se.len);
@@ -1313,34 +1297,22 @@ public:
     void compileIt(Scope* sc)
     {
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-        sc = sc.startCTFE();
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
-        sc = sc.endCTFE();
-        if (exp.op != TOKerror)
+        auto se = semanticString(sc, exp, "argument to mixin");
+        if (!se)
+            return;
+        se = se.toUTF8(sc);
+
+        uint errors = global.errors;
+        scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
+        p.nextToken();
+
+        decl = p.parseDeclDefs(0);
+        if (p.token.value != TOKeof)
+            exp.error("incomplete mixin declaration (%s)", se.toChars());
+        if (p.errors)
         {
-            Expression e = exp.ctfeInterpret();
-            if (e.op == TOKerror) // Bugzilla 15974
-                return;
-            StringExp se = e.toStringExp();
-            if (!se)
-                exp.error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
-            else
-            {
-                se = se.toUTF8(sc);
-                uint errors = global.errors;
-                auto cstr = se.toStringz();
-                scope Parser p = new Parser(loc, sc._module, cstr, se.len, 0);
-                p.nextToken();
-                decl = p.parseDeclDefs(0);
-                if (p.token.value != TOKeof)
-                    exp.error("incomplete mixin declaration (%s)", se.toChars());
-                if (p.errors)
-                {
-                    assert(global.errors != errors);
-                    decl = null;
-                }
-            }
+            assert(global.errors != errors);
+            decl = null;
         }
     }
 

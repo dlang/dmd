@@ -1305,42 +1305,34 @@ public:
     override Statements* flatten(Scope* sc)
     {
         //printf("CompileStatement::flatten() %s\n", exp->toChars());
-        sc = sc.startCTFE();
-        exp = exp.semantic(sc);
-        exp = resolveProperties(sc, exp);
-        sc = sc.endCTFE();
+
+        auto errorStatements()
+        {
+            auto a = new Statements();
+            a.push(new ErrorStatement());
+            return a;
+        }
+
+        auto se = semanticString(sc, exp, "argument to mixin");
+        if (!se)
+            return errorStatements();
+        se = se.toUTF8(sc);
+
+        uint errors = global.errors;
+        scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
+        p.nextToken();
 
         auto a = new Statements();
-        if (exp.op != TOKerror)
+        while (p.token.value != TOKeof)
         {
-            Expression e = exp.ctfeInterpret();
-            if (e.op == TOKerror) // Bugzilla 15974
-                goto Lerror;
-            StringExp se = e.toStringExp();
-            if (!se)
-                error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
-            else
+            Statement s = p.parseStatement(PSsemi | PScurlyscope);
+            if (!s || p.errors)
             {
-                se = se.toUTF8(sc);
-                uint errors = global.errors;
-                scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
-                p.nextToken();
-
-                while (p.token.value != TOKeof)
-                {
-                    Statement s = p.parseStatement(PSsemi | PScurlyscope);
-                    if (!s || p.errors)
-                    {
-                        assert(!p.errors || global.errors != errors); // make sure we caught all the cases
-                        goto Lerror;
-                    }
-                    a.push(s);
-                }
-                return a;
+                assert(!p.errors || global.errors != errors); // make sure we caught all the cases
+                return errorStatements();
             }
+            a.push(s);
         }
-    Lerror:
-        a.push(new ErrorStatement());
         return a;
     }
 
@@ -3634,21 +3626,11 @@ public:
                 }
                 else
                 {
-                    Expression e = (*args)[0];
-                    sc = sc.startCTFE();
-                    e = e.semantic(sc);
-                    e = resolveProperties(sc, e);
-                    sc = sc.endCTFE();
-
-                    e = e.ctfeInterpret();
-                    (*args)[0] = e;
-                    StringExp se = e.toStringExp();
+                    auto se = semanticString(sc, (*args)[0], "library name");
                     if (!se)
-                    {
-                        error("string expected for library name, not '%s'", e.toChars());
                         goto Lerror;
-                    }
-                    else if (global.params.verbose)
+
+                    if (global.params.verbose)
                     {
                         fprintf(global.stdmsg, "library   %.*s\n", cast(int)se.len, se.string);
                     }
