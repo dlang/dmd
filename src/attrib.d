@@ -1320,6 +1320,8 @@ public:
         if (exp.op != TOKerror)
         {
             Expression e = exp.ctfeInterpret();
+            if (e.op == TOKerror) // Bugzilla 15974
+                return;
             StringExp se = e.toStringExp();
             if (!se)
                 exp.error("argument to mixin must be a string, not (%s) of type %s", exp.toChars(), exp.type.toChars());
