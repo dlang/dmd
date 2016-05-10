@@ -7693,3 +7693,20 @@ int test15251()
     return 1;
 }
 static assert(test15251());
+
+/**************************************************
+    15998 - Sagfault caused by memory corruption
+**************************************************/
+
+immutable string[2] foo15998 = ["",""];
+immutable string[2][] bar15998a = foo15998 ~ baz15998;
+immutable string[2][] bar15998b = baz15998 ~ foo15998;
+
+auto baz15998()
+{
+    immutable(string[2])[] r;
+    return r;
+}
+
+static assert(bar15998a == [["", ""]]);
+static assert(bar15998b == [["", ""]]);
