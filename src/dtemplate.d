@@ -8149,7 +8149,10 @@ public:
                     error("forward reference of %s %s", d.kind(), d.toChars());
                     continue;
                 }
-                const(char)* p = mangle(sa);
+
+                OutBuffer bufsa;
+                mangleToBuffer(sa, &bufsa);
+                auto s = bufsa.peekSlice();
 
                 /* Bugzilla 3043: if the first character of p is a digit this
                  * causes ambiguity issues because the digits of the two numbers are adjacent.
@@ -8158,7 +8161,7 @@ public:
                  * Unfortunately, fixing this ambiguity will break existing binary
                  * compatibility and the demanglers, so we'll leave it as is.
                  */
-                buf.printf("%llu%s", cast(ulong)strlen(p), p);
+                buf.printf("%u%.*s", cast(uint)s.length, cast(int)s.length, s.ptr);
             }
             else if (va)
             {

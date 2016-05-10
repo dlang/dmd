@@ -814,13 +814,6 @@ public:
     }
 }
 
-extern (C++) const(char)* mangle(Dsymbol s)
-{
-    OutBuffer buf;
-    scope Mangler v = new Mangler(&buf);
-    s.accept(v);
-    return buf.extractString();
-}
 
 /******************************************************************************
  * Returns exact mangled name of function.
@@ -862,3 +855,10 @@ extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
     scope Mangler v = new Mangler(buf);
     e.accept(v);
 }
+
+extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
+{
+    scope Mangler v = new Mangler(buf);
+    s.accept(v);
+}
+
