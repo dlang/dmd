@@ -3839,19 +3839,18 @@ public:
         if (condition.op == TOKerror)
             conditionError = true;
 
-        bool needswitcherror = false;
+        cases = new CaseStatements();
 
         sc = sc.push();
         sc.sbreak = this;
         sc.sw = this;
-
-        cases = new CaseStatements();
         sc.noctor++; // BUG: should use Scope::mergeCallSuper() for each case instead
         _body = _body.semantic(sc);
         sc.noctor--;
+        sc = sc.pop();
 
         if (conditionError || _body.isErrorStatement())
-            goto Lerror;
+            return new ErrorStatement();
 
         // Resolve any goto case's with exp
         foreach (gcs; gotoCases)
@@ -3859,27 +3858,44 @@ public:
             if (!gcs.exp)
             {
                 gcs.error("no case statement following goto case;");
-                goto Lerror;
+                return new ErrorStatement();
             }
 
-            for (Scope* scx = sc; scx; scx = scx.enclosing)
+            bool checkCases(SwitchStatement sw)
             {
-                if (!scx.sw)
-                    continue;
-                foreach (cs; *scx.sw.cases)
+                foreach (cs; *sw.cases)
                 {
                     if (cs.exp.equals(gcs.exp))
                     {
                         gcs.cs = cs;
-                        goto Lfoundcase;
+                        return true;
                     }
                 }
+                return false;
             }
-            gcs.error("case %s not found", gcs.exp.toChars());
-            goto Lerror;
 
-        Lfoundcase:
+            bool findGotoCase()
+            {
+                if (checkCases(this))
+                    return true;
+                for (Scope* scx = sc; scx; scx = scx.enclosing)
+                {
+                    if (!scx.sw)
+                        continue;
+                    if (checkCases(scx.sw))
+                        return true;
+                }
+                return false;
+            }
+
+            if (!findGotoCase())
+            {
+                gcs.error("case %s not found", gcs.exp.toChars());
+                return new ErrorStatement();
+            }
         }
+
+        bool needswitcherror = false;
 
         if (isFinal)
         {
@@ -3892,27 +3908,36 @@ public:
                 ed = ds.isEnumDeclaration();
             if (ed)
             {
+                bool findExpCase(Expression e)
+                {
+                    foreach (cs; *cases)
+                    {
+                        if (cs.exp.equals(e))
+                            return true;
+
+                        if (cs.exp.type.isString() || e.type.isString())
+                            continue;
+                        if (cs.exp.toInteger() == e.toInteger())
+                            return true;
+                    }
+                    return false;
+                }
+
                 foreach (es; *ed.members)
                 {
-                    EnumMember em = es.isEnumMember();
-                    if (em)
+                    auto em = es.isEnumMember();
+                    if (em && !findExpCase(em.value))
                     {
-                        foreach (cs; *cases)
-                        {
-                            if (cs.exp.equals(em.value) || (!cs.exp.type.isString() && !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
-                                goto L1;
-                        }
                         error("enum member %s not represented in final switch", em.toChars());
-                        goto Lerror;
+                        return new ErrorStatement();
                     }
-                L1:
                 }
             }
             else
                 needswitcherror = true;
         }
 
-        if (!sc.sw.sdefault && (!isFinal || needswitcherror || global.params.useAssert))
+        if (!sdefault && (!isFinal || needswitcherror || global.params.useAssert))
         {
             hasNoDefault = 1;
 
@@ -3930,21 +3955,16 @@ public:
                 s = new ExpStatement(loc, new HaltExp(loc));
 
             a.reserve(2);
-            sc.sw.sdefault = new DefaultStatement(loc, s);
+            sdefault = new DefaultStatement(loc, s);
             a.push(_body);
             if (_body.blockExit(sc.func, false) & BEfallthru)
                 a.push(new BreakStatement(Loc(), null));
-            a.push(sc.sw.sdefault);
+            a.push(sdefault);
             cs = new CompoundStatement(loc, a);
             _body = cs;
         }
 
-        sc.pop();
         return this;
-
-    Lerror:
-        sc.pop();
-        return new ErrorStatement();
     }
 
     override bool hasBreak()
