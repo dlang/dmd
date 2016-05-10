@@ -629,17 +629,17 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
         {
         case '$':
             buf.remove(u, 1);
-            buf.insert(u, cast(const(char)*)"$(DOLLAR)", 9);
+            buf.insert(u, "$(DOLLAR)");
             u += 8;
             break;
         case '(':
             buf.remove(u, 1); //remove the (
-            buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
+            buf.insert(u, "$(LPAREN)"); //insert this instead
             u += 8; //skip over newly inserted macro
             break;
         case ')':
             buf.remove(u, 1); //remove the )
-            buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
+            buf.insert(u, "$(RPAREN)"); //insert this instead
             u += 8; //skip over newly inserted macro
             break;
         default:
@@ -675,7 +675,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                     //stray ')'
                     warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
                     buf.remove(u, 1); //remove the )
-                    buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
+                    buf.insert(u, "$(RPAREN)"); //insert this instead
                     u += 8; //skip over newly inserted macro
                 }
                 else
@@ -725,7 +725,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                     //stray '('
                     warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
                     buf.remove(u, 1); //remove the (
-                    buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
+                    buf.insert(u, "$(LPAREN)"); //insert this instead
                 }
                 else
                     par_open--;
@@ -2189,8 +2189,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline, strlen(blankline));
+                immutable blankline = "$(DDOC_BLANKLINE)\n";
+                i = buf.insert(i, blankline);
             }
             leadingBlank = 1;
             iLineStart = i + 1;
@@ -2302,10 +2302,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
-                    static __gshared const(char)* pre = "$(DDOC_BACKQUOTED ";
-                    i = buf.insert(iCodeStart, pre, strlen(pre));
-                    i = buf.insert(i, cast(char*)codebuf.data, codebuf.offset);
-                    i = buf.insert(i, cast(char*)")", 1);
+                    immutable pre = "$(DDOC_BACKQUOTED ";
+                    i = buf.insert(iCodeStart, pre);
+                    i = buf.insert(i, codebuf.peekSlice());
+                    i = buf.insert(i, ")");
                     i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
                 }
@@ -2399,8 +2399,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                     highlightCode2(sc, a, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart);
-                    i = buf.insert(iCodeStart, codebuf.data, codebuf.offset);
-                    i = buf.insert(i, cast(const(char)*)")\n", 2);
+                    i = buf.insert(iCodeStart, codebuf.peekSlice());
+                    i = buf.insert(i, ")\n");
                     i -= 2; // in next loop, c should be '\n'
                 }
                 else
@@ -2475,7 +2475,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
     //printf("highlightCode(s = %s '%s')\n", s->kind(), s->toChars());
     OutBuffer ancbuf;
     emitAnchor(&ancbuf, s, sc);
-    buf.insert(offset, cast(char*)ancbuf.data, ancbuf.offset);
+    buf.insert(offset, ancbuf.peekSlice());
     offset += ancbuf.offset;
     Dsymbols a;
     a.push(s);

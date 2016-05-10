@@ -149,7 +149,7 @@ public:
                     buf.data[u] = 0xFF;
                     buf.data[u + 1] = '{';
                     buf.insert(u + 2, marg, marglen);
-                    buf.insert(u + 2 + marglen, cast(const(char)*)"\xFF}", 2);
+                    buf.insert(u + 2 + marglen, "\xFF}");
                     end += -2 + 2 + marglen + 2;
                     // Scan replaced text for further expansion
                     size_t mend = u + 2 + marglen;
