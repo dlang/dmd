@@ -2384,6 +2384,16 @@ public:
          * Canonicalize it into buf[].
          */
         OutBuffer buf;
+
+        void trimTrailingWhitespace()
+        {
+            const s = buf.peekSlice();
+            auto len = s.length;
+            while (len && (s[len - 1] == ' ' || s[len - 1] == '\t'))
+                --len;
+            buf.setsize(len);
+        }
+
         for (; q < qend; q++)
         {
             char c = *q;
@@ -2396,8 +2406,7 @@ public:
                     linestart = 0;
                     /* Trim preceding whitespace up to preceding \n
                      */
-                    while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-                        buf.offset--;
+                    trimTrailingWhitespace();
                     continue;
                 }
                 break;
@@ -2427,31 +2436,28 @@ public:
                 linestart = 1;
                 /* Trim trailing whitespace
                  */
-                while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-                    buf.offset--;
+                trimTrailingWhitespace();
                 break;
             }
             buf.writeByte(c);
         }
         /* Trim trailing whitespace (if the last line does not have newline)
          */
-        if (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-        {
-            while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-                buf.offset--;
-        }
+        trimTrailingWhitespace();
+
         // Always end with a newline
-        if (!buf.offset || buf.data[buf.offset - 1] != '\n')
+        const s = buf.peekSlice();
+        if (s.length == 0 || s[$ - 1] != '\n')
             buf.writeByte('\n');
-        buf.writeByte(0);
+
         // It's a line comment if the start of the doc comment comes
         // after other non-whitespace on the same line.
-        const(char)** dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
+        auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, cast(const(char)*)buf.data);
+            *dc = combineComments(*dc, buf.peekString());
         else
-            *dc = cast(const(char)*)buf.extractData();
+            *dc = buf.extractString();
     }
 
     /********************************************
