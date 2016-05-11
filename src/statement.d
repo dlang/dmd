@@ -4984,12 +4984,12 @@ public:
                 auto args = new Parameters();
                 args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
 
-                FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
+                FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter, STCnothrow);
                 Expression e = new CallExp(loc, new VarExp(loc, fdenter, false), new VarExp(loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
 
                 cs.push(new ExpStatement(loc, e));
-                FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit);
+                FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit, STCnothrow);
                 e = new CallExp(loc, new VarExp(loc, fdexit, false), new VarExp(loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
                 Statement s = new ExpStatement(loc, e);
