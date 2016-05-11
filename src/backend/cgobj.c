@@ -381,7 +381,7 @@ void too_many_symbols()
 }
 
 #if !DEBUG && TX86 && !defined(_MSC_VER)
-__declspec(naked) int __pascal insidx(char *p,unsigned index)
+__declspec(naked) int insidx(char *p,unsigned index)
 {
 #undef AL
 #undef AH

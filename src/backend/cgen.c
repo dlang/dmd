@@ -101,7 +101,7 @@ code *setOpcode(code *c, code *cs, unsigned op)
  */
 
 #if TX86 && __INTSIZE == 4 && __DMC__
-__declspec(naked) code * __pascal cat(code *c1,code *c2)
+__declspec(naked) code *cat(code *c1,code *c2)
 {
     _asm
     {
@@ -123,7 +123,7 @@ L7B:    mov     [EDX],ECX
     }
 }
 #else
-code * __pascal cat(code *c1,code *c2)
+code *cat(code *c1,code *c2)
 {   code **pc;
 
     if (!c1)
