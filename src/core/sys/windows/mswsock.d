@@ -157,7 +157,7 @@ static if (_WIN32_WINNT > 0x501) {
     /* DK: Confirmed.  So I suppose these should get the same version as
        WSAMSG... */
     struct WSACMSGHDR {
-        UINT cmsg_len;
+        SIZE_T cmsg_len;
         INT  cmsg_level;
         INT  cmsg_type;
         // followed by UCHAR cmsg_data[];
