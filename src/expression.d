@@ -2084,7 +2084,7 @@ private:
  */
 extern (C++) int RealEquals(real_t x1, real_t x2)
 {
-    return (Port.isNan(x1) && Port.isNan(x2)) || Port.fequal(x1, x2);
+    return (Port.isNan(x1) && Port.isNan(x2)) || x1 == x2;
 }
 
 /************************ TypeDotIdExp ************************************/

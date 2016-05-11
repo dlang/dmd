@@ -450,12 +450,12 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         if (e2.type.isreal())
         {
             real_t r2 = e2.toReal();
-            c = complex_t(Port.fmodl(e1.toReal(), r2), Port.fmodl(e1.toImaginary(), r2));
+            c = complex_t(e1.toReal() % r2, e1.toImaginary() % r2);
         }
         else if (e2.type.isimaginary())
         {
             real_t i2 = e2.toImaginary();
-            c = complex_t(Port.fmodl(e1.toReal(), i2), Port.fmodl(e1.toImaginary(), i2));
+            c = complex_t(e1.toReal() % i2, e1.toImaginary() % i2);
         }
         else
             assert(0);
@@ -572,7 +572,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
         if (e1.toReal() < 0.0)
         {
-            emplaceExp!(RealExp)(&ue, loc, Port.ldbl_nan, type);
+            emplaceExp!(RealExp)(&ue, loc, real.nan, type);
         }
         else
             emplaceExp!(CTFEExp)(&ue, TOKcantexp);

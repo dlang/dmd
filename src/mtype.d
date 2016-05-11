@@ -3777,7 +3777,7 @@ public:
             case Tfloat64:
             case Tfloat80:
                 {
-                    fvalue = Port.ldbl_nan;
+                    fvalue = real.nan;
                     goto Lfvalue;
                 }
             default:
@@ -3797,7 +3797,7 @@ public:
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                fvalue = Port.ldbl_infinity;
+                fvalue = real.infinity;
                 goto Lfvalue;
             default:
                 break;
