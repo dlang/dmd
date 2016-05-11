@@ -1,8 +1,8 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2015 by Digital Mars
+ * Copyright (c) 2015-2016 by Digital Mars
  * All Rights Reserved
- * written by Michel Fortin
+ * written by Michel Fortin, Jacob Carlborg
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -28,6 +28,7 @@
 #include "mach.h"
 #include "obj.h"
 
+/// A all the Objective-C segment ID's.
 enum ObjcSegment
 {
     SEGcstring,
@@ -40,8 +41,17 @@ enum ObjcSegment
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 
+/// A list of Objective-C segments.
 int objc_segList[SEG_MAX] = {0};
 
+/**
+ * Returns an Objective-C segment matching the given ID.
+ *
+ * Params:
+ *  segid = the id of the segment to return
+ *
+ * Returns: the segment matching the given id
+ */
 int objc_getSegment(ObjcSegment segid)
 {
     int *seg = objc_segList;
@@ -64,21 +74,42 @@ int objc_getSegment(ObjcSegment segid)
     return seg[segid];
 }
 
-// MARK: ObjcSymbols
-
+/**
+ * Indicates if the compiler have seen any Objective-C symbols. This is used to
+ * decides if Objective-C module info should be generated.
+ *
+ * See_Also: hasObjcSymbols
+ */
 bool objc_hasSymbols = false;
 
+/// The _objc_msgSend symbol
 Symbol *objc_smsgSend = NULL;
+
+/// The _objc_msgSend_stret symbol
 Symbol *objc_smsgSend_stret = NULL;
+
+/// The _objc_msgSend_fp2ret symbol
 Symbol *objc_smsgSend_fpret = NULL;
+
+/// The _objc_msgSend_fpret symbol
 Symbol *objc_smsgSend_fp2ret = NULL;
 
+/// The L_OBJC_IMAGE_INFO symbol
 Symbol *objc_simageInfo = NULL;
+
+/// The L_OBJC_LABEL_CLASS_$ symbol
 Symbol *objc_smoduleInfo = NULL;
 
+/// String table with all the L_OBJC_METH_VAR_NAME_<n> symbols
 StringTable *objc_smethVarNameTable = NULL;
+
+/**
+ * String table with symbols for all the selector references,
+ * L_OBJC_SELECTOR_REFERENCES_<n>
+ */
 StringTable *objc_smethVarRefTable = NULL;
 
+/// Initializes and returns the given string table
 static StringTable *initStringTable(StringTable *stringtable)
 {
     stringtable = new StringTable();
@@ -89,6 +120,7 @@ static StringTable *initStringTable(StringTable *stringtable)
 
 extern int objc_segList[SEG_MAX];
 
+/// Initializes all the global symbol variables an string tables.
 void objc_initSymbols()
 {
     objc_hasSymbols = false;
@@ -110,6 +142,10 @@ void objc_initSymbols()
         objc_segList[s] = 0;
 }
 
+/**
+ * Returns `true` if the compiler has seen any Objective-C symbols.
+ * This is used to decide if Objective-C module info should be generated.
+ */
 bool hasObjcSymbols()
 {
     if (!global.params.hasObjectiveC)
@@ -118,6 +154,17 @@ bool hasObjcSymbols()
     return objc_hasSymbols;
 }
 
+/**
+ * Creates a symbol with the given C string.
+ *
+ * Params:
+ *  str = the C string, the data of the symbol
+ *  len = the length of the string
+ *  symbolName = the name of the symbol
+ *  segment = the segment of the symbol
+ *
+ * Returns: the newly create symbol
+ */
 Symbol *objc_getCString(const char *str, size_t len, const char *symbolName, ObjcSegment segment)
 {
     objc_hasSymbols = true;
@@ -137,6 +184,16 @@ Symbol *objc_getCString(const char *str, size_t len, const char *symbolName, Obj
     return s;
 }
 
+/**
+ * Creates a symbol (`L_OBJC_METH_VAR_NAME_<n>`) containing the string of a
+ * selector.
+ *
+ * Params:
+ *  str = the selector, the data of the symbol
+ *  len = the length of the selector
+ *
+ * Returns: the newly create symbol
+ */
 Symbol *objc_getMethVarName(const char *s, size_t len)
 {
     objc_hasSymbols = true;
@@ -154,12 +211,41 @@ Symbol *objc_getMethVarName(const char *s, size_t len)
     return sy;
 }
 
+/**
+ * Creates a symbol containing the string of a selector.
+ *
+ * Params:
+ *  ident = the selector, the data of the symbol
+ *
+ * Returns: the newly create symbol
+ */
 Symbol *objc_getMethVarName(Identifier *ident)
 {
     const char* id = ident->toChars();
     return objc_getMethVarName(id, strlen(id));
 }
 
+/**
+ * Returns a symbol for one of the objc_msgSend* functions matching the given
+ * return type.
+ *
+ * $(UL
+ *  $(LI
+ *      `objc_msgSend_stret` is returned for methods returning a struct which is
+ *      too large to fit in registers
+ *  )
+ *
+ * $(LI `objc_msgSend_fp2ret` is returned for methods returning `complex real`)
+ * $(LI `objc_msgSend_fpret` is returned for methods returning `real`)
+ * $(LI `objc_msgSend` is returned for all other methods)
+ * )
+ *
+ * Params:
+ *  ret = the return type of the method
+ *  hasHiddenArg = indicates if a hidden argument is used to return the value
+ *
+ * Returns: a symbol for the objc_getMsgSend* function
+ */
 Symbol *objc_getMsgSend(Type *ret, bool hasHiddenArg)
 {
     if (hasHiddenArg)
@@ -191,6 +277,11 @@ Symbol *objc_getMsgSend(Type *ret, bool hasHiddenArg)
     return NULL;
 }
 
+/**
+ * Returns a symbol (`L_OBJC_IMAGE_INFO`) containing the Objective-C image info.
+ *
+ * Note: This function is only allowed to be called once per object file.
+ */
 Symbol *objc_getImageInfo()
 {
     assert(!objc_simageInfo); // only allow once per object file
@@ -208,6 +299,15 @@ Symbol *objc_getImageInfo()
     return objc_simageInfo;
 }
 
+/**
+ * Returns a symbol (`L_OBJC_LABEL_CLASS_$`) containing the Objective-C module
+ * info.
+ *
+ * This symbol contains references to all symbols matching all Objective-C
+ * classes defined in the object file.
+ *
+ * Note: This function is only allowed to be called once per object file.
+ */
 Symbol *objc_getModuleInfo()
 {
     assert(!objc_smoduleInfo); // only allow once per object file
@@ -225,8 +325,18 @@ Symbol *objc_getModuleInfo()
     return objc_smoduleInfo;
 }
 
-// MARK: ObjcSelector
-
+/**
+ * Returns a selector reference symbol (`L_OBJC_SELECTOR_REFERENCES_<n>`).
+ *
+ * This symbol contains a reference to a symbol returned by
+ * `objc_getMethVarName`.
+ *
+ * Params:
+ *  s = the selector
+ *  len = the length of the selector
+ *
+ * Returns: the symbol
+ */
 Symbol *objc_getMethVarRef(const char *s, size_t len)
 {
     objc_hasSymbols = true;
@@ -259,6 +369,17 @@ Symbol *objc_getMethVarRef(const char *s, size_t len)
     return refsymbol;
 }
 
+/**
+ * Returns a selector reference symbol.
+ *
+ * This symbol contains a reference to a symbol returned by
+ * `objc_getMethVarName`.
+ *
+ * Params:
+ *  ident = the selector
+ *
+ * Returns: the symbol
+ */
 Symbol *objc_getMethVarRef(Identifier *ident)
 {
     const char* id = ident->toChars();

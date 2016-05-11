@@ -5858,25 +5858,49 @@ public:
 }
 
 /***********************************************************
- * This class represents an Objective-C selector
+ * This class represents an Objective-C selector.
+ *
+ * It also contains functionality to build a selector based on a string value
+ * or a function declaration.
  */
 struct ObjcSelector
 {
     import ddmd.root.stringtable;
 
-    // MARK: Selector
+    /// A shared string table used for all selectors.
     extern (C++) static __gshared StringTable stringtable;
+
+    /**
+     * A shared string table used for all selectors that where the method uses
+     * a vtable to dispatch instead of the standard Objective-C dispatch system.
+     */
     extern (C++) static __gshared StringTable vTableDispatchSelectors;
     extern (C++) static __gshared int incnum = 0;
+
+    /// The string value of the selector.
     const(char)* stringvalue;
+
+    /// The length of the string value.
     size_t stringlen;
+
+    /// The number of parameters in the selector (the number of colons).
     size_t paramCount;
 
+    /// Initializes the string table shared among all selectors.
     extern (C++) static void _init()
     {
         stringtable._init();
     }
 
+    /**
+     * Initializes the receiver with the given parameters.
+     *
+     * Params:
+     *  sv = the string value of the selector
+     *  len = the length of the string `sv`
+     *  pcount = the number of parameters the selector expects. Basically the
+     *      the number of colons in the string.
+     */
     extern (D) this(const(char)* sv, size_t len, size_t pcount)
     {
         stringvalue = sv;
@@ -5884,6 +5908,14 @@ struct ObjcSelector
         paramCount = pcount;
     }
 
+    /**
+     * Returns an existing or creates a new selector matching the given string.
+     *
+     * Params:
+     *  s = the string of the selector
+     *
+     * Returns: the existing or newly created selector
+     */
     extern (C++) static ObjcSelector* lookup(const(char)* s)
     {
         size_t len = 0;
@@ -5899,6 +5931,17 @@ struct ObjcSelector
         return lookup(s, len, pcount);
     }
 
+    /**
+     * Returns an existing or creates a new selector matching the given string.
+     *
+     * Params:
+     *  s = the string of the selector
+     *  len = the length of the string `sv`
+     *  pcount = the number of parameters the selector expects. Basically the
+     *      the number of colons in the string `sv`.
+     *
+     * Returns: the existing or newly created selector
+     */
     extern (C++) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
         StringValue* sv = stringtable.update(s, len);
@@ -5911,6 +5954,19 @@ struct ObjcSelector
         return sel;
     }
 
+    /**
+     * Returns an existing or creates a new selector based on the given function
+     * declaration.
+     *
+     * The identifier of the function declaration will be used as the first
+     * part, up to the first colon, of the selector. Then for each parameter the
+     * mangled type name and a colon is added.
+     *
+     * Params:
+     *  fdecl = the function declaration to create the selector from.
+     *
+     * Returns: the newly created selector
+     */
     extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
     {
         import ddmd.dmangle;
