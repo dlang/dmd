@@ -930,9 +930,12 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
 
 /*********************************************
  * Give error on redundant/conflicting storage class.
+ * 
+ * TODO: remove deprecation in 2.068 and keep only error
  */
 
-StorageClass Parser::appendStorageClass(StorageClass storageClass, StorageClass stc)
+StorageClass Parser::appendStorageClass(StorageClass storageClass, StorageClass stc,
+    bool deprec)
 {
     if ((storageClass & stc) ||
         (storageClass & STCin && stc & (STCconst | STCscope)) ||
@@ -942,7 +945,10 @@ StorageClass Parser::appendStorageClass(StorageClass storageClass, StorageClass 
         StorageClassDeclaration::stcToCBuffer(&buf, stc);
         if (buf.data[buf.offset - 1] == ' ')
             buf.data[buf.offset - 1] = '\0';
-        error("redundant attribute '%s'", buf.peekString());
+        if (deprec)
+            deprecation("redundant attribute '%s'", buf.peekString(), deprec);
+        else
+            error("redundant attribute '%s'", buf.peekString(), deprec);
         return storageClass | stc;
     }
 
@@ -952,19 +958,19 @@ StorageClass Parser::appendStorageClass(StorageClass storageClass, StorageClass 
     {
         StorageClass u = storageClass & (STCconst | STCimmutable | STCmanifest);
         if (u & (u - 1))
-            error("conflicting attribute '%s'", Token::toChars(token.value));
+            error("conflicting attribute '%s'", Token::toChars(token.value), deprec);
     }
     if (stc & (STCgshared | STCshared | STCtls))
     {
         StorageClass u = storageClass & (STCgshared | STCshared | STCtls);
         if (u & (u - 1))
-            error("conflicting attribute '%s'", Token::toChars(token.value));
+            error("conflicting attribute '%s'", Token::toChars(token.value), deprec);
     }
     if (stc & (STCsafe | STCsystem | STCtrusted))
     {
         StorageClass u = storageClass & (STCsafe | STCsystem | STCtrusted);
         if (u & (u - 1))
-            error("conflicting attribute '@%s'", token.toChars());
+            error("conflicting attribute '@%s'", token.toChars(), deprec);
     }
 
     return storageClass;
@@ -1080,7 +1086,7 @@ StorageClass Parser::parsePostfix(StorageClass storageClass, Expressions **pudas
             default:
                 return storageClass;
         }
-        storageClass = appendStorageClass(storageClass, stc);
+        storageClass = appendStorageClass(storageClass, stc, true);
         nextToken();
     }
 }
