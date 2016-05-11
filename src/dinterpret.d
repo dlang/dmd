@@ -47,11 +47,11 @@ alias ctfeNeedRvalue = CtfeGoal.ctfeNeedRvalue;
 alias ctfeNeedLvalue = CtfeGoal.ctfeNeedLvalue;
 alias ctfeNeedNothing = CtfeGoal.ctfeNeedNothing;
 
-private enum LOG = false;
+//debug = LOG;
+//debug = LOGASSIGN;
+//debug = LOGCOMPILE;
+//debug = SHOWPERFORMANCE;
 
-enum LOGASSIGN = 0;
-enum LOGCOMPILE = 0;
-enum SHOWPERFORMANCE = 0;
 // Maximum allowable recursive function calls in CTFE
 enum CTFE_RECURSION_LIMIT = 1000;
 
@@ -220,7 +220,7 @@ extern (C++) __gshared CtfeStack ctfeStack;
 // CTFE diagnostic information
 extern (C++) void printCtfePerformanceStats()
 {
-    static if (SHOWPERFORMANCE)
+    debug (SHOWPERFORMANCE)
     {
         printf("        ---- CTFE Performance ----\n");
         printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeStack.maxStackUsage());
@@ -345,7 +345,7 @@ public:
 
     override void visit(Statement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s Statement::ctfeCompile %s\n", s.loc.toChars(), s.toChars());
         }
@@ -354,7 +354,7 @@ public:
 
     override void visit(ExpStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ExpStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -364,7 +364,7 @@ public:
 
     override void visit(CompoundStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s CompoundStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -378,7 +378,7 @@ public:
 
     override void visit(UnrolledLoopStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s UnrolledLoopStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -392,7 +392,7 @@ public:
 
     override void visit(IfStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s IfStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -405,7 +405,7 @@ public:
 
     override void visit(ScopeStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ScopeStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -415,7 +415,7 @@ public:
 
     override void visit(OnScopeStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s OnScopeStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -425,7 +425,7 @@ public:
 
     override void visit(DoStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s DoStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -436,7 +436,7 @@ public:
 
     override void visit(WhileStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s WhileStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -446,7 +446,7 @@ public:
 
     override void visit(ForStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ForStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -462,7 +462,7 @@ public:
 
     override void visit(ForeachStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ForeachStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -472,7 +472,7 @@ public:
 
     override void visit(SwitchStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s SwitchStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -489,7 +489,7 @@ public:
 
     override void visit(CaseStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s CaseStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -499,7 +499,7 @@ public:
 
     override void visit(DefaultStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s DefaultStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -509,7 +509,7 @@ public:
 
     override void visit(GotoDefaultStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s GotoDefaultStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -517,7 +517,7 @@ public:
 
     override void visit(GotoCaseStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s GotoCaseStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -525,7 +525,7 @@ public:
 
     override void visit(SwitchErrorStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s SwitchErrorStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -533,7 +533,7 @@ public:
 
     override void visit(ReturnStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ReturnStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -543,7 +543,7 @@ public:
 
     override void visit(BreakStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s BreakStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -551,7 +551,7 @@ public:
 
     override void visit(ContinueStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ContinueStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -559,7 +559,7 @@ public:
 
     override void visit(WithStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s WithStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -578,7 +578,7 @@ public:
 
     override void visit(TryCatchStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s TryCatchStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -596,7 +596,7 @@ public:
 
     override void visit(TryFinallyStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s TryFinallyStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -608,7 +608,7 @@ public:
 
     override void visit(ThrowStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ThrowStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -617,7 +617,7 @@ public:
 
     override void visit(GotoStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s GotoStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -625,7 +625,7 @@ public:
 
     override void visit(LabelStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s LabelStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -635,7 +635,7 @@ public:
 
     override void visit(ImportStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ImportStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -644,7 +644,7 @@ public:
 
     override void visit(ForeachRangeStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s ForeachRangeStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -654,7 +654,7 @@ public:
 
     override void visit(AsmStatement s)
     {
-        static if (LOGCOMPILE)
+        debug (LOGCOMPILE)
         {
             printf("%s AsmStatement::ctfeCompile\n", s.loc.toChars());
         }
@@ -673,7 +673,7 @@ public:
  */
 extern (C++) void ctfeCompile(FuncDeclaration fd)
 {
-    static if (LOGCOMPILE)
+    debug (LOGCOMPILE)
     {
         printf("\n%s FuncDeclaration::ctfeCompile %s\n", fd.loc.toChars(), fd.toChars());
     }
@@ -795,7 +795,7 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
  */
 extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
 {
-    static if (LOG)
+    debug (LOG)
     {
         printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd.loc.toChars(), istate, fd.toChars());
     }
@@ -917,7 +917,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         Expression earg = eargs[i];
         Parameter fparam = Parameter.getNth(tf.parameters, i);
         VarDeclaration v = (*fd.parameters)[i];
-        static if (LOG)
+        debug (LOG)
         {
             printf("arg[%d] = %s\n", i, earg.toChars());
         }
@@ -959,7 +959,12 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
             // Value parameters and non-trivial references
             setValueWithoutChecking(v, earg);
         }
-        static if (LOG || LOGASSIGN)
+        debug (LOG)
+        {
+            printf("interpreted arg[%d] = %s\n", i, earg.toChars());
+            showCtfeExpr(earg);
+        }
+        debug (LOGASSIGN)
         {
             printf("interpreted arg[%d] = %s\n", i, earg.toChars());
             showCtfeExpr(earg);
@@ -988,7 +993,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
         e = interpret(fd.fbody, &istatex);
         if (CTFEExp.isCantExp(e))
         {
-            static if (LOG)
+            debug (LOG)
             {
                 printf("function body failed to interpret\n");
             }
@@ -1082,7 +1087,7 @@ public:
 
     override void visit(Statement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s Statement::interpret()\n", s.loc.toChars());
         }
@@ -1099,7 +1104,7 @@ public:
 
     override void visit(ExpStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ExpStatement::interpret(%s)\n", s.loc.toChars(), s.exp ? s.exp.toChars() : "");
         }
@@ -1117,7 +1122,7 @@ public:
 
     override void visit(CompoundStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s CompoundStatement::interpret()\n", s.loc.toChars());
         }
@@ -1132,7 +1137,7 @@ public:
             if (result)
                 break;
         }
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s -CompoundStatement::interpret() %p\n", s.loc.toChars(), result);
         }
@@ -1140,7 +1145,7 @@ public:
 
     override void visit(UnrolledLoopStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s UnrolledLoopStatement::interpret()\n", s.loc.toChars());
         }
@@ -1186,7 +1191,7 @@ public:
 
     override void visit(IfStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s IfStatement::interpret(%s)\n", s.loc.toChars(), s.condition.toChars());
         }
@@ -1220,7 +1225,7 @@ public:
 
     override void visit(ScopeStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ScopeStatement::interpret()\n", s.loc.toChars());
         }
@@ -1304,7 +1309,7 @@ public:
 
     override void visit(ReturnStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ReturnStatement::interpret(%s)\n", s.loc.toChars(), s.exp ? s.exp.toChars() : "");
         }
@@ -1356,7 +1361,7 @@ public:
 
         if (needToCopyLiteral(e))
             e = copyLiteral(e).copy();
-        static if (LOGASSIGN)
+        debug (LOGASSIGN)
         {
             printf("RETURN %s\n", s.loc.toChars());
             showCtfeExpr(e);
@@ -1379,7 +1384,7 @@ public:
 
     override void visit(BreakStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s BreakStatement::interpret()\n", s.loc.toChars());
         }
@@ -1396,7 +1401,7 @@ public:
 
     override void visit(ContinueStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ContinueStatement::interpret()\n", s.loc.toChars());
         }
@@ -1413,7 +1418,7 @@ public:
 
     override void visit(WhileStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("WhileStatement::interpret()\n");
         }
@@ -1422,7 +1427,7 @@ public:
 
     override void visit(DoStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DoStatement::interpret()\n", s.loc.toChars());
         }
@@ -1481,7 +1486,7 @@ public:
 
     override void visit(ForStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ForStatement::interpret()\n", s.loc.toChars());
         }
@@ -1557,7 +1562,7 @@ public:
 
     override void visit(SwitchStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s SwitchStatement::interpret()\n", s.loc.toChars());
         }
@@ -1631,7 +1636,7 @@ public:
 
     override void visit(CaseStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s CaseStatement::interpret(%s) this = %p\n", s.loc.toChars(), s.exp.toChars(), s);
         }
@@ -1643,7 +1648,7 @@ public:
 
     override void visit(DefaultStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DefaultStatement::interpret()\n", s.loc.toChars());
         }
@@ -1655,7 +1660,7 @@ public:
 
     override void visit(GotoStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s GotoStatement::interpret()\n", s.loc.toChars());
         }
@@ -1673,7 +1678,7 @@ public:
 
     override void visit(GotoCaseStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s GotoCaseStatement::interpret()\n", s.loc.toChars());
         }
@@ -1691,7 +1696,7 @@ public:
 
     override void visit(GotoDefaultStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s GotoDefaultStatement::interpret()\n", s.loc.toChars());
         }
@@ -1709,7 +1714,7 @@ public:
 
     override void visit(LabelStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s LabelStatement::interpret()\n", s.loc.toChars());
         }
@@ -1721,7 +1726,7 @@ public:
 
     override void visit(TryCatchStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s TryCatchStatement::interpret()\n", s.loc.toChars());
         }
@@ -1796,7 +1801,7 @@ public:
 
     static ThrownExceptionExp chainExceptions(ThrownExceptionExp oldest, ThrownExceptionExp newest)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("Collided exceptions %s %s\n", oldest.thrown.toChars(), newest.thrown.toChars());
         }
@@ -1821,7 +1826,7 @@ public:
 
     override void visit(TryFinallyStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s TryFinallyStatement::interpret()\n", s.loc.toChars());
         }
@@ -1885,7 +1890,7 @@ public:
 
     override void visit(ThrowStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ThrowStatement::interpret()\n", s.loc.toChars());
         }
@@ -1911,7 +1916,7 @@ public:
 
     override void visit(WithStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s WithStatement::interpret()\n", s.loc.toChars());
         }
@@ -1966,7 +1971,7 @@ public:
 
     override void visit(AsmStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s AsmStatement::interpret()\n", s.loc.toChars());
         }
@@ -1982,7 +1987,7 @@ public:
 
     override void visit(ImportStatement s)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("ImportStatement::interpret()\n");
         }
@@ -1998,7 +2003,7 @@ public:
 
     override void visit(Expression e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s Expression::interpret() '%s' %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
             printf("type = %s\n", e.type.toChars());
@@ -2010,7 +2015,7 @@ public:
 
     override void visit(ThisExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ThisExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2043,7 +2048,7 @@ public:
 
     override void visit(IntegerExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s IntegerExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2052,7 +2057,7 @@ public:
 
     override void visit(RealExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s RealExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2066,7 +2071,7 @@ public:
 
     override void visit(StringExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s StringExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2078,7 +2083,7 @@ public:
 
     override void visit(FuncExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s FuncExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2087,7 +2092,7 @@ public:
 
     override void visit(SymOffExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s SymOffExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2218,7 +2223,7 @@ public:
 
     override void visit(AddrExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s AddrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2243,7 +2248,7 @@ public:
 
     override void visit(DelegateExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DelegateExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2406,7 +2411,7 @@ public:
 
     override void visit(VarExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s VarExp::interpret() %s, goal = %d\n", e.loc.toChars(), e.toChars(), goal);
         }
@@ -2467,7 +2472,7 @@ public:
 
     override void visit(DeclarationExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DeclarationExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2577,7 +2582,7 @@ public:
 
         // Others should not contain executable code, so are trivial to evaluate
         result = null;
-        static if (LOG)
+        debug (LOG)
         {
             printf("-DeclarationExp::interpret(%s): %p\n", e.toChars(), result);
         }
@@ -2585,7 +2590,7 @@ public:
 
     override void visit(TypeidExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s TypeidExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2625,7 +2630,7 @@ public:
 
     override void visit(TupleExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s TupleExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2671,7 +2676,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ArrayLiteralExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2750,7 +2755,7 @@ public:
 
     override void visit(AssocArrayLiteralExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s AssocArrayLiteralExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -2834,7 +2839,7 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e.loc.toChars(), e.toChars(), e.ownedByCtfe);
         }
@@ -2954,7 +2959,7 @@ public:
 
     override void visit(NewExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s NewExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -3119,7 +3124,7 @@ public:
 
     override void visit(UnaExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s UnaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -3153,7 +3158,7 @@ public:
 
     override void visit(DotTypeExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DotTypeExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -3171,7 +3176,7 @@ public:
 
     void interpretCommon(BinExp e, fp_t fp)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s BinExp::interpretCommon() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -3259,7 +3264,7 @@ public:
 
     void interpretCompareCommon(BinExp e, fp2_t fp)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s BinExp::interpretCompareCommon() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -3412,7 +3417,7 @@ public:
 
     void interpretAssignCommon(BinExp e, fp_t fp, int post = 0)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s BinExp::interpretAssignCommon() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -3824,7 +3829,7 @@ public:
         if (exceptionOrCant(newval))
             return;
 
-        static if (LOGASSIGN)
+        debug (LOGASSIGN)
         {
             printf("ASSIGN: %s=%s\n", e1.toChars(), newval.toChars());
             showCtfeExpr(newval);
@@ -4515,7 +4520,7 @@ public:
 
     override void visit(PostExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s PostExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -4523,7 +4528,7 @@ public:
             interpretAssignCommon(e, &Add, 1);
         else
             interpretAssignCommon(e, &Min, 1);
-        static if (LOG)
+        debug (LOG)
         {
             if (CTFEExp.isCantExp(result))
                 printf("PostExp::interpret() CANT\n");
@@ -4718,7 +4723,7 @@ public:
 
     override void visit(AndAndExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s AndAndExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -4768,7 +4773,7 @@ public:
 
     override void visit(OrOrExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s OrOrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -4867,7 +4872,7 @@ public:
 
     override void visit(CallExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s CallExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5035,7 +5040,7 @@ public:
 
     override void visit(CommaExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s CommaExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5100,7 +5105,7 @@ public:
 
     override void visit(CondExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s CondExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5129,7 +5134,7 @@ public:
 
     override void visit(ArrayLengthExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s ArrayLengthExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5148,7 +5153,7 @@ public:
 
     override void visit(DelegatePtrExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DelegatePtrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5162,7 +5167,7 @@ public:
 
     override void visit(DelegateFuncptrExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DelegateFuncptrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5298,7 +5303,7 @@ public:
 
     override void visit(IndexExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s IndexExp::interpret() %s, goal = %d\n", e.loc.toChars(), e.toChars(), goal);
         }
@@ -5409,7 +5414,7 @@ public:
 
     override void visit(SliceExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s SliceExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5576,7 +5581,7 @@ public:
 
     override void visit(InExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s InExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5618,7 +5623,7 @@ public:
 
     override void visit(CatExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s CatExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5657,7 +5662,7 @@ public:
 
     override void visit(DeleteExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DeleteExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5769,7 +5774,7 @@ public:
 
     override void visit(CastExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s CastExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -5984,7 +5989,7 @@ public:
 
     override void visit(AssertExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s AssertExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -6020,7 +6025,7 @@ public:
 
     override void visit(PtrExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s PtrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -6106,7 +6111,7 @@ public:
         if (exceptionOrCant(result))
             return;
 
-        static if (LOG)
+        debug (LOG)
         {
             if (CTFEExp.isCantExp(result))
                 printf("PtrExp::interpret() %s = CTFEExp::cantexp\n", e.toChars());
@@ -6115,7 +6120,7 @@ public:
 
     override void visit(DotVarExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s DotVarExp::interpret() %s, goal = %d\n", e.loc.toChars(), e.toChars(), goal);
         }
@@ -6226,7 +6231,7 @@ public:
             result = createBlockDuplicatedArrayLiteral(ex.loc, v.type, ex, len);
             (*se.elements)[i] = result;
         }
-        static if (LOG)
+        debug (LOG)
         {
             if (CTFEExp.isCantExp(result))
                 printf("DotVarExp::interpret() %s = CTFEExp::cantexp\n", e.toChars());
@@ -6235,7 +6240,7 @@ public:
 
     override void visit(RemoveExp e)
     {
-        static if (LOG)
+        debug (LOG)
         {
             printf("%s RemoveExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
@@ -6508,7 +6513,7 @@ extern (C++) Expression interpret_length(InterState* istate, Expression earg)
 
 extern (C++) Expression interpret_keys(InterState* istate, Expression earg, Type returnType)
 {
-    static if (LOG)
+    debug (LOG)
     {
         printf("interpret_keys()\n");
     }
@@ -6529,7 +6534,7 @@ extern (C++) Expression interpret_keys(InterState* istate, Expression earg, Type
 
 extern (C++) Expression interpret_values(InterState* istate, Expression earg, Type returnType)
 {
-    static if (LOG)
+    debug (LOG)
     {
         printf("interpret_values()\n");
     }
@@ -6551,7 +6556,7 @@ extern (C++) Expression interpret_values(InterState* istate, Expression earg, Ty
 
 extern (C++) Expression interpret_dup(InterState* istate, Expression earg)
 {
-    static if (LOG)
+    debug (LOG)
     {
         printf("interpret_dup()\n");
     }
@@ -6650,7 +6655,7 @@ extern (C++) Type returnedArrayType(FuncDeclaration fd)
  */
 extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expression deleg, bool rvs)
 {
-    static if (LOG)
+    debug (LOG)
     {
         printf("foreachApplyUtf(%s, %s)\n", str.toChars(), deleg.toChars());
     }
