@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2013 by Digital Mars
+// Copyright (C) 2000-2015 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1208,6 +1208,7 @@ code *cdmul(elem *e,regm_t *pretregs)
                 {   cg = cat(cg, getregs(mAX));
                     cg = genc2(cg,0xC1,grex | modregrm(3,5,AX),shpre);  // SHR EAX,shpre
                 }
+                cg = cat(cg, getregs(mDX));
                 cg = movregconst(cg, DX, m, (sz == 8) ? 0x40 : 0);      // MOV EDX,m
                 cg = cat(cg, getregs(mDX | mAX));
                 cg = gen2(cg,0xF7,grex | modregrmx(3,4,DX));            // MUL EDX
