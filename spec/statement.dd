@@ -491,6 +491,21 @@ foreach (int i, char c; a)
         order.
         )
 
+        $(P $(B Note:) The $(I ForeachTypeAttribute) is implicit, and when a
+        type is not specified, it is inferred. In that case, $(D auto) is
+        implied, and it is not necessary (and actually forbidden) to use it.
+        )
+
+--------------
+int[] arr;
+...
+foreach (n; arr) // ok, n is an int
+    writeln(n);
+
+foreach (auto n; arr) // error, auto is redundant
+    writeln(n);
+--------------
+
 $(H4 Foreach over Arrays of Characters)
 
         $(P If the aggregate expression is a static or dynamic array of
