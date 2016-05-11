@@ -443,6 +443,7 @@ DDOC_PARAM_ROW = $(TR $0)
 DDOC_PARAM_ID  = $(TD $0)
 DDOC_PARAM_DESC = $(TD $0)
 DDOC_BLANKLINE  = $(BR)$(BR)
+DDOC_PARAGRAPH = $0
 
 DDOC_ANCHOR     = <a name=\"$1\"></a>
 DDOC_PSYMBOL    = $(U $0)
@@ -2150,11 +2151,371 @@ extern (C++) bool isReservedName(char* str, size_t len)
     return false;
 }
 
+/**
+    Highlights paragraphs within a text section.
+
+    A Ddoc paragraph is any non-empty block of text terminated by \n\n, the end of
+    he containing macro or section, or a code example block, except if:
+
+        * the whole paragraph candidate would be a single macro, starting with
+     and ending on or before the corresponding ) after stripping the terminating whitespace
+        * the entire paragraph candidate is contained in a single macro and would be the only paragraph in that macro.
+        * you are generating HTML and the paragraph candidate starts with <
+
+    You should not write paragraphs that contain macros that contain other paragraphs,
+    but Ddoc will not prevent you from doing this.
+
+    ---
+        My paragraph begins here but then goes into a $(MACRO
+        macro that itself contains
+
+        paragraph breaks.)
+    ---
+
+    Just don't do that, it is ridiculous. If that macro is supposed
+    to be a new block, start it on its own line.
+
+    This function returns true if it actually found any paragraphs to highlight
+    in the bounds of buf.data[offset .. terminatingOffset]. If it did find something,
+    buf will be modified to contain the highlighting. offset is unchanged, but your
+    terminating offset has surely changed.
+*/
+bool highlightParagraphs(Scope* sc, OutBuffer* buf, size_t offset, ref size_t terminatingOffset, bool inMacro)
+{
+    // This function assumes all parens in buf are already balanced!
+    size_t lineStart = offset;
+    size_t lineEnd = offset;
+    size_t previousLineEnd = 0;
+    bool atStartOfLine = true;
+    bool inParagraph = false;
+    bool inCode = false;
+
+    bool foundParagraph;
+
+    // this test is the same one as used below in highlightText
+    // to see if we are generating html
+    const(char)* se = sc._module.escapetable.escapeChar('<');
+    bool generatingHtml = (se && strcmp(se, "&lt;") == 0);
+
+    static struct MacroInformation
+    {
+        size_t textBeginningOffset;
+        size_t terminatingOffset;
+        int linesSpanned;
+    }
+
+    // Scans the current macro
+    MacroInformation macroInformation(in char[] line) {
+        assert(line[0] == '$');
+
+        MacroInformation info;
+        info.terminatingOffset = line.length;
+
+        if (line.length < 2 || line[1] != '(')
+            return info;
+
+        bool readingMacroName = true;
+        bool readingLeadingWhitespace;
+        int parensCount = 0;
+        foreach (idx, char ch; line)
+        {
+            if (readingMacroName && (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n'))
+            {
+                readingMacroName = false;
+                readingLeadingWhitespace = true;
+            }
+
+            if (readingLeadingWhitespace && !(ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n'))
+            {
+                readingLeadingWhitespace = false;
+                // This is looking past the macro name
+                // so the offset of $(FOO bar) ought to be
+                // the index of "bar"
+                info.textBeginningOffset = idx;
+            }
+
+            if (ch == '\n')
+                info.linesSpanned++;
+            if (ch == '(')
+                parensCount++;
+            if (ch == ')')
+            {
+                parensCount--;
+                if (parensCount == 0)
+                {
+                    info.linesSpanned++; // counts the first line it is on
+                    info.terminatingOffset = idx + 1;
+                    if (info.textBeginningOffset == 0)
+                        info.textBeginningOffset = info.terminatingOffset;
+                    break;
+                }
+            }
+        }
+
+        return info;
+    }
+
+    // Returns the number of bytes inserted
+    size_t addParagraphCloser(size_t where)
+    {
+         immutable ps = ")";
+         return buf.insert(where, ps.ptr, ps.length) - where;
+    }
+
+    // Returns the number of bytes inserted
+    size_t addParagraphOpener(size_t where)
+    {
+         immutable ps = "$(DDOC_PARAGRAPH ";
+         return buf.insert(where, ps.ptr, ps.length) - where;
+    }
+
+    // If this returns true, the whole function ought to return
+    // since it need not do anything more.
+    bool processLine(in char[] line, size_t lineStart, out size_t bytesInserted)
+    {
+        if (line.length == 0)
+        {
+            if (inParagraph)
+            {
+                if (!inMacro)
+                {
+                    bytesInserted += addParagraphCloser(lineStart);
+                }
+                inParagraph = false;
+            }
+            return false;
+        }
+
+        if (line.length >= 3 && line[0 .. 3] == "---")
+        {
+            inCode = !inCode;
+            if (inCode)
+            {
+                if (inParagraph)
+                {
+                    if (!inMacro)
+                    {
+                        // The closer here needs to go at the end of the previous
+                        // line because whitespace is relevant to highlightText's
+                        // search for code sections and a macro closer on the same
+                        // line as the --- would mess all that up.
+                        bytesInserted += addParagraphCloser(previousLineEnd);
+                    }
+                    inParagraph = false;
+                }
+            }
+
+            return false;
+        }
+
+        if (inCode)
+            return false;
+
+        if (!inParagraph)
+        {
+            if (generatingHtml && line[0] == '<')
+            {
+                /*
+                    If generating HTML and the line begins with what
+                    appears to be an HTML tag, do not wrap it as a
+                    paragraph. Trust that the user knows what they're
+                    doing and are writing their own tags.
+                */
+                return false;
+            }
+
+            if (line[0] == '$')
+            {
+                auto info = macroInformation(line);
+                if (info.terminatingOffset == line.length)
+                {
+                    /*
+                        The macro spans the entire line. Good chance it is a header
+                        or some other kind of custom block. We should not try to
+                        decorate it as a paragraph because code like
+
+                        <p><h1>Some text</h1></p>
+
+                        makes no sense to generate.
+                    */
+                    return false;
+                }
+            }
+
+            /* We need to restart the analysis, this time knowing that there will
+               be more than one paragraph in there, so without the special in macro
+               flag.
+
+               We know that the highlightParagraphs will return true, since we just
+               found paragraphs in this dry run.
+            */
+            if (inMacro && foundParagraph)
+            {
+                auto got = highlightParagraphs(sc, buf, offset, terminatingOffset, false);
+
+                assert(got == true);
+
+                // we need to immediately terminate and tell the caller that this
+                // is no longer a dry run; changes were actually made.
+                inMacro = false;
+                return true;
+            }
+            inParagraph = true;
+            foundParagraph = true;
+            if (!inMacro)
+            {
+                bytesInserted += addParagraphOpener(lineStart);
+            }
+        }
+
+        return false;
+    }
+
+    for (size_t i = offset; i < terminatingOffset; i++)
+    {
+        char c = buf.data[i];
+        switch (c)
+        {
+            case ' ':
+            case '\t':
+            case '\r':
+                break;
+            case '\n':
+                size_t inserted;
+                bool shouldTerminate = processLine(cast(char[]) buf.data[lineStart .. lineEnd], lineStart, inserted);
+                terminatingOffset += inserted;
+                i += inserted;
+
+                if (shouldTerminate)
+                    return !inMacro && foundParagraph;
+                atStartOfLine = true;
+                lineStart = i;
+                lineEnd = i;
+                previousLineEnd = i;
+                break;
+            case '$':
+                if (inCode)
+                    break; // we need do nothing in code
+
+                if (atStartOfLine)
+                {
+                    lineStart = i;
+                    atStartOfLine = false;
+                }
+                else
+                {
+                    // we need to process the beginning of this line now
+                    size_t inserted;
+                    bool shouldTerminate = processLine(cast(char[]) buf.data[lineStart .. lineEnd], lineStart, inserted);
+                    if (shouldTerminate)
+                        return !inMacro && foundParagraph;
+                    terminatingOffset += inserted;
+                    i += inserted;
+                }
+
+                lineEnd = i + 1;
+
+                auto info = macroInformation(cast(char[]) buf.data[i .. buf.offset]);
+                auto scanning = cast(char[]) buf.data[i .. i + info.terminatingOffset];
+                // If it spans only one line, we can handle it easily in the by line
+                // processor. If it spans more, we will do something special with it.
+                if (info.linesSpanned > 1)
+                {
+                    auto term = info.terminatingOffset + i - 1; // the -1 trims off the final )
+                    auto oldTerm = term;
+                    auto wasBlock = highlightParagraphs(sc, buf, i + info.textBeginningOffset, term, true);
+                    // advance these indexes in the event that highlightParagraphs inserted some text
+                    // note that term is taken by ref to highlightParagraphs
+                    lineStart += term - oldTerm;
+                    lineEnd += term - oldTerm;
+                    terminatingOffset += term - oldTerm;
+
+                    if (wasBlock && inParagraph)
+                    {
+                        // If this macro was a block (meaning it contains paragraphs)
+                        // we need to close any existing paragraph right now
+                        auto bytesAdded = addParagraphCloser(i);
+                        term += bytesAdded;
+                        if (lineStart <= i)
+                            lineStart += bytesAdded;
+                        lineEnd += bytesAdded;
+                        inParagraph = false;
+                    }
+
+                    i = term + 1; // move us to the final ) so the next trip through the loop finishes it
+
+                    // If the macro contained paragraphs, we need to terminate any existing
+                    // paragraph and then skip past the marco. If it didn't, we can continue
+                    // processing the lines normally.
+                    if (wasBlock)
+                    {
+                        //import std.stdio; writeln("PARTIAL LINE ", cast(char[]) buf.data[lineStart .. lineEnd]);
+                        atStartOfLine = true;
+                        lineStart = i;
+                        lineEnd = i;
+                        foundParagraph = true;
+                        //import std.stdio;
+                        //writeln("THIS STUFF ", scanning, " WAS A BLOCK LOL");
+                    }
+                    else
+                    {
+                        // nothing needed, processLine did all the work
+                    }
+                }
+                /* If it spans just one line (or zero, in which case it was a $ but not a macro), we handle it in processLine */
+
+                break;
+            default:
+                if (atStartOfLine)
+                {
+                    lineStart = i;
+                    atStartOfLine = false;
+                }
+
+                lineEnd = i + 1;
+        }
+    }
+
+    if (!atStartOfLine)
+    {
+        // process the final line
+        size_t inserted;
+        bool shouldTerminate = processLine(cast(char[]) buf.data[lineStart .. lineEnd], lineStart, inserted);
+        terminatingOffset += inserted;
+        if (shouldTerminate)
+            return !inMacro && foundParagraph;
+    }
+
+
+    if (inParagraph)
+    {
+        if (!inMacro)
+        {
+            terminatingOffset += addParagraphCloser(terminatingOffset);
+            inParagraph = false;
+        }
+    }
+
+    return !inMacro && foundParagraph;
+}
+
+/// Non-ref overload of the above function
+void highlightParagraphs(Scope* sc, OutBuffer* buf, size_t offset, size_t terminatingOffset)
+{
+    size_t tmp = terminatingOffset;
+    highlightParagraphs(sc, buf, offset, tmp, true);
+}
+
+
+
 /**************************************************
  * Highlight text section.
  */
 extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
+
+    highlightParagraphs(sc, buf, offset, buf.offset);
+
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
     int leadingBlank = 1;
