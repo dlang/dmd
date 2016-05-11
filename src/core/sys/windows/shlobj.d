@@ -683,7 +683,7 @@ interface IObjMgr : IUnknown {
 interface IContextMenu : IUnknown {
     HRESULT QueryContextMenu(HMENU, UINT, UINT, UINT, UINT);
     HRESULT InvokeCommand(LPCMINVOKECOMMANDINFO);
-    HRESULT GetCommandString(UINT, UINT, PUINT, LPSTR, UINT);
+    HRESULT GetCommandString(UINT_PTR, UINT, PUINT, LPSTR, UINT);
 }
 alias IContextMenu LPCONTEXTMENU;
 

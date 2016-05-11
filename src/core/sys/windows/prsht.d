@@ -335,8 +335,8 @@ extern (Windows) {
     HPROPSHEETPAGE CreatePropertySheetPageA(LPCPROPSHEETPAGEA);
     HPROPSHEETPAGE CreatePropertySheetPageW(LPCPROPSHEETPAGEW);
     BOOL DestroyPropertySheetPage(HPROPSHEETPAGE);
-    int PropertySheetA(LPCPROPSHEETHEADERA);
-    int PropertySheetW(LPCPROPSHEETHEADERW);
+    INT_PTR PropertySheetA(LPCPROPSHEETHEADERA);
+    INT_PTR PropertySheetW(LPCPROPSHEETHEADERW);
 }
 
 version (Unicode) {

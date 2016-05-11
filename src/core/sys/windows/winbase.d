@@ -1863,7 +1863,7 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
     BOOL GetPrivateProfileStructA(LPCSTR, LPCSTR, LPVOID, UINT, LPCSTR);
     BOOL GetPrivateProfileStructW(LPCWSTR, LPCWSTR, LPVOID, UINT, LPCWSTR);
     FARPROC GetProcAddress(HMODULE, LPCSTR); // 1st param wrongly HINSTANCE in MinGW
-    BOOL GetProcessAffinityMask(HANDLE, PDWORD, PDWORD);
+    BOOL GetProcessAffinityMask(HANDLE, PDWORD_PTR, PDWORD_PTR);
     DWORD GetProcessVersion(DWORD);
     UINT GetProfileIntA(LPCSTR, LPCSTR, INT);
     UINT GetProfileIntW(LPCWSTR, LPCWSTR, INT);
