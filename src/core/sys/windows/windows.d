@@ -44,15 +44,7 @@ public import core.sys.windows.ole2;
 
 public import core.sys.windows.winreg;
 
-
-// Select correct version of winsock.  Importing the incorrect
-// module will cause a static assert to prevent problems later on.
-version (Win32_Winsock1) {
-    public import core.sys.windows.winsock;
-} else {
-    public import core.sys.windows.winsock2;
-    //public import core.sys.windows.ws2tcpip;
-}
+public import core.sys.windows.winsock2;
 
 /+
 #if (_WIN32_WINNT >= 0x400)
