@@ -8525,8 +8525,10 @@ public:
                         if (f.checkForwardRef(loc))
                             return new ErrorExp();
                     }
-                    const(char)* s = mangle(ds);
-                    Expression e = new StringExp(loc, cast(void*)s, strlen(s));
+                    OutBuffer buf;
+                    mangleToBuffer(ds, &buf);
+                    const s = buf.peekSlice();
+                    Expression e = new StringExp(loc, buf.extractString(), s.length);
                     e = e.semantic(sc);
                     return e;
                 }

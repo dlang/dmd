@@ -614,10 +614,15 @@ int intrinsic_op(FuncDeclaration *fd)
 
         if (global.params.is64bit &&
             fd->toParent()->isTemplateInstance() &&
-            !strcmp(mangle(fd->getModule()), "4core4stdc6stdarg") &&
             fd->ident == Id::va_start)
         {
-            return OPva_start;
+            OutBuffer buf;
+            mangleToBuffer(fd->getModule(), &buf);
+            const char *s = buf.peekString();
+            if (!strcmp(s, "4core4stdc6stdarg"))
+            {
+                return OPva_start;
+            }
         }
 
         return -1;

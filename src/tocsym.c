@@ -60,9 +60,13 @@ const char *cppTypeInfoMangle(Dsymbol *cd);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    const char *n = mangle(ds);
+
+    OutBuffer buf;
+    mangleToBuffer(ds, &buf);
+    const char *n = buf.peekString();
     assert(n);
     size_t nlen = strlen(n);
+
     size_t prefixlen = strlen(prefix);
 
     size_t idlen = 2 + nlen + sizeof(size_t) * 3 + prefixlen + strlen(suffix) + 1;
@@ -120,12 +124,19 @@ Symbol *toSymbol(Dsymbol *s)
             //printf("VarDeclaration::toSymbol(%s)\n", vd->toChars());
             assert(!vd->needThis());
 
-            const char *id;
+            Symbol *s;
             if (vd->isDataseg())
-                id = mangle(vd);
+            {
+                OutBuffer buf;
+                mangleToBuffer(vd, &buf);
+                const char *id = buf.peekString();
+                s = symbol_calloc(id);
+            }
             else
-                id = vd->ident->toChars();
-            Symbol *s = symbol_calloc(id);
+            {
+                const char *id = vd->ident->toChars();
+                s = symbol_calloc(id);
+            }
             s->Salignment = vd->alignment;
             if (vd->storage_class & STCtemp)
                 s->Sflags |= SFLartifical;
