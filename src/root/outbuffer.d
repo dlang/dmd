@@ -21,9 +21,9 @@ struct OutBuffer
     ubyte* data;
     size_t offset;
     size_t size;
-    int doindent;
     int level;
-    int notlinehead;
+    bool doindent;
+    private bool notlinehead;
 
     extern (C++) ~this() nothrow
     {
@@ -61,21 +61,21 @@ struct OutBuffer
         offset = 0;
     }
 
+    private void indent() nothrow
+    {
+        if (level)
+        {
+            reserve(level);
+            data[offset .. offset + level] = '\t';
+            offset += level;
+        }
+        notlinehead = true;
+    }
+
     extern (C++) void write(const(void)* data, size_t nbytes) nothrow
     {
         if (doindent && !notlinehead)
-        {
-            if (level)
-            {
-                reserve(level);
-                for (size_t i = 0; i < level; i++)
-                {
-                    this.data[offset] = '\t';
-                    offset++;
-                }
-            }
-            notlinehead = 1;
-        }
+            indent();
         reserve(nbytes);
         memcpy(this.data + offset, data, nbytes);
         offset += nbytes;
@@ -122,24 +122,13 @@ struct OutBuffer
             writeByte('\n');
         }
         if (doindent)
-            notlinehead = 0;
+            notlinehead = false;
     }
 
     extern (C++) void writeByte(uint b) nothrow
     {
         if (doindent && !notlinehead && b != '\n')
-        {
-            if (level)
-            {
-                reserve(level);
-                for (size_t i = 0; i < level; i++)
-                {
-                    this.data[offset] = '\t';
-                    offset++;
-                }
-            }
-            notlinehead = 1;
-        }
+            indent();
         reserve(1);
         this.data[offset] = cast(ubyte)b;
         offset++;
@@ -228,18 +217,8 @@ struct OutBuffer
             uint newline = '\n';
         }
         if (doindent && !notlinehead && w != newline)
-        {
-            if (level)
-            {
-                reserve(level);
-                for (size_t i = 0; i < level; i++)
-                {
-                    this.data[offset] = '\t';
-                    offset++;
-                }
-            }
-            notlinehead = 1;
-        }
+            indent();
+
         reserve(2);
         *cast(ushort*)(this.data + offset) = cast(ushort)w;
         offset += 2;
@@ -274,18 +253,7 @@ struct OutBuffer
             bool notnewline = true;
         }
         if (doindent && !notlinehead && notnewline)
-        {
-            if (level)
-            {
-                reserve(level);
-                for (size_t i = 0; i < level; i++)
-                {
-                    this.data[offset] = '\t';
-                    offset++;
-                }
-            }
-            notlinehead = 1;
-        }
+            indent();
         reserve(4);
         *cast(uint*)(this.data + offset) = w;
         offset += 4;
