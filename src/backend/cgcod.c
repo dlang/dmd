@@ -1106,7 +1106,7 @@ void stackoffsets(int flags)
     }
     size_t autosi = 0;  // number used in autos[]
 
-    for (int si = 0; si < globsym.top; si++)
+    for (size_t si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
 
         if (s->Sisdead(anyiasm))
@@ -1117,11 +1117,11 @@ void stackoffsets(int flags)
             switch (s->Sclass)
             {
                 case SCfastpar:
+                case SCshadowreg:
                     if (!(funcsym_p->Sfunc->Fflags3 & Ffakeeh))
                         continue;   // don't need consistent stack frame
                     break;
 
-                case SCshadowreg:
                 case SCparameter:
                     break;          // have to allocate space for parameters
 
