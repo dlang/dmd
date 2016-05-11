@@ -361,21 +361,25 @@ struct PICTDESC
     UINT cbSizeofstruct;
     UINT picType;
     union {
-        struct bmp {
+        struct _bmp {
             HBITMAP hbitmap;
             HPALETTE hpal;
         }
-        struct wmf {
+        _bmp bmp;
+        struct _wmf {
             HMETAFILE hmeta;
             int xExt;
             int yExt;
         }
-        struct icon {
+        _wmf wmf;
+        struct _icon {
             HICON hicon;
         }
-        struct emf {
+        _icon icon;
+        struct _emf {
             HENHMETAFILE hemf;
         }
+        _emf emf;
     }
 }
 alias PICTDESC* LPPICTDESC;

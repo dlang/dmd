@@ -131,6 +131,13 @@ static if (_WIN32_WINNT > 0x501) {
         }
     }
 
+    struct WSABUF {
+        ULONG len;
+        CHAR* buf;
+    }
+
+    alias WSABUF* LPWSABUF;
+
     /*  WinXP+, Server2003+:
      *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsamsg_2.htm
      */

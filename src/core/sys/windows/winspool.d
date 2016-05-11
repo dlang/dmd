@@ -638,10 +638,11 @@ struct PRINTER_NOTIFY_INFO_DATA {
     DWORD Id;
     union _NotifyData {
         DWORD[2] adwData;
-        struct Data {
+        struct _Data {
             DWORD cbBuf;
             PVOID pBuf;
         }
+        _Data Data;
     }
     _NotifyData NotifyData;
 }

@@ -2637,7 +2637,15 @@ alias LIST_ENTRY _LIST_ENTRY;
 struct SINGLE_LIST_ENTRY {
     SINGLE_LIST_ENTRY* Next;
 }
-alias SINGLE_LIST_ENTRY SLIST_ENTRY;
+
+version (Win64) {
+    align (16)
+    struct SLIST_ENTRY {
+        SLIST_ENTRY* Next;
+    }
+} else {
+    alias SINGLE_LIST_ENTRY SLIST_ENTRY;
+}
 alias SINGLE_LIST_ENTRY* PSINGLE_LIST_ENTRY, PSLIST_ENTRY;
 
 union SLIST_HEADER {
@@ -2965,14 +2973,14 @@ alias IMAGE_OS2_HEADER* PIMAGE_OS2_HEADER;
 align(4) struct IMAGE_NT_HEADERS32 {
     DWORD                 Signature;
     IMAGE_FILE_HEADER     FileHeader;
-    IMAGE_OPTIONAL_HEADER OptionalHeader;
+    IMAGE_OPTIONAL_HEADER32 OptionalHeader;
 }
 alias IMAGE_NT_HEADERS32* PIMAGE_NT_HEADERS32;
 
 align(4) struct IMAGE_NT_HEADERS64 {
     DWORD                 Signature;
     IMAGE_FILE_HEADER     FileHeader;
-    IMAGE_OPTIONAL_HEADER OptionalHeader;
+    IMAGE_OPTIONAL_HEADER64 OptionalHeader;
 }
 alias IMAGE_NT_HEADERS64* PIMAGE_NT_HEADERS64;
 
@@ -3003,11 +3011,12 @@ alias IMAGE_SECTION_HEADER* PIMAGE_SECTION_HEADER;
 struct IMAGE_SYMBOL {
     union _N {
         BYTE[8]   ShortName;
-        struct Name {
+        struct _Name {
             DWORD Short;
             DWORD Long;
         }
-        PBYTE[2]  LongName;
+        _Name Name;
+        DWORD[2]  LongName; // PBYTE[2]
     }
     _N    N;
     DWORD Value;
@@ -3276,7 +3285,7 @@ struct IMAGE_RESOURCE_DATA_ENTRY {
 }
 alias IMAGE_RESOURCE_DATA_ENTRY* PIMAGE_RESOURCE_DATA_ENTRY;
 
-struct IMAGE_LOAD_CONFIG_DIRECTORY {
+struct IMAGE_LOAD_CONFIG_DIRECTORY32 {
     DWORD    Characteristics;
     DWORD    TimeDateStamp;
     WORD     MajorVersion;
@@ -3292,7 +3301,7 @@ struct IMAGE_LOAD_CONFIG_DIRECTORY {
     DWORD    ProcessHeapFlags;
     DWORD[4] Reserved;
 }
-alias IMAGE_LOAD_CONFIG_DIRECTORY* PIMAGE_LOAD_CONFIG_DIRECTORY;
+alias IMAGE_LOAD_CONFIG_DIRECTORY32* PIMAGE_LOAD_CONFIG_DIRECTORY32;
 
 struct IMAGE_LOAD_CONFIG_DIRECTORY64 {
     DWORD     Characteristics;
@@ -3316,12 +3325,21 @@ struct IMAGE_LOAD_CONFIG_DIRECTORY64 {
 }
 alias IMAGE_LOAD_CONFIG_DIRECTORY64* PIMAGE_LOAD_CONFIG_DIRECTORY64;
 
+version (Win64) {
+    alias IMAGE_LOAD_CONFIG_DIRECTORY64 IMAGE_LOAD_CONFIG_DIRECTORY;
+} else {
+    alias IMAGE_LOAD_CONFIG_DIRECTORY32 IMAGE_LOAD_CONFIG_DIRECTORY;
+}
+alias IMAGE_LOAD_CONFIG_DIRECTORY* PIMAGE_LOAD_CONFIG_DIRECTORY;
+
+// Note versions for Alpha, Alpha64, ARM removed.
 struct IMAGE_RUNTIME_FUNCTION_ENTRY {
     DWORD BeginAddress;
     DWORD EndAddress;
-    PVOID ExceptionHandler;
-    PVOID HandlerData;
-    DWORD PrologEndAddress;
+    union {
+        DWORD UnwindInfoAddress;
+        DWORD UnwindData;
+    }
 }
 alias IMAGE_RUNTIME_FUNCTION_ENTRY* PIMAGE_RUNTIME_FUNCTION_ENTRY;
 
