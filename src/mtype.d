@@ -2772,26 +2772,26 @@ public:
         buf.reserve(32);
         mangleToBuffer(this, &buf, internal != 0);
 
-        size_t len = buf.offset;
-        buf.writeByte(0);
+        const slice = buf.peekSlice();
 
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;
-        size_t namelen = 19 + len.sizeof * 3 + len + 1;
+        const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
         auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
         assert(name);
 
-        sprintf(name, "_D%lluTypeInfo_%s6__initZ", cast(ulong)9 + len, buf.data);
+        const length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
+                cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);
         //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
-        assert(strlen(name) < namelen); // don't overflow the buffer
+        assert(0 < length && length < namelen); // don't overflow the buffer
 
-        size_t off = 0;
+        int off = 0;
         static if (!IN_GCC)
         {
             if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
                 ++off; // C mangling will add '_' back in
         }
-        auto id = Identifier.idPool(name + off, strlen(name + off));
+        auto id = Identifier.idPool(name + off, length - off);
 
         if (name != namebuf.ptr)
             free(name);
