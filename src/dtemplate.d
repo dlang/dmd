@@ -8062,14 +8062,12 @@ public:
 
         //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
         OutBuffer buf;
-        const id = tempdecl.ident.toChars();
-        if (!members)
-        {
-            // Use "__U" for the symbols declared inside template constraint.
-            buf.printf("__U%llu%s", cast(ulong)strlen(id), id);
-        }
-        else
-            buf.printf("__T%llu%s", cast(ulong)strlen(id), id);
+
+        const id = tempdecl.ident.toString();
+        // Use "__U" for the symbols declared inside template constraint.
+        const char T = members ? 'T' : 'U';
+        buf.printf("__%c%u%.*s", T, cast(int)id.length, cast(int)id.length, id.ptr);
+
         size_t nparams = tempdecl.parameters.dim - (tempdecl.isVariadic() ? 1 : 0);
         for (size_t i = 0; i < args.dim; i++)
         {
