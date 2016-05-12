@@ -1503,7 +1503,8 @@ public:
             // Declare hidden variable _arguments[] and _argptr
             if (f.varargs == 1)
             {
-                static if (!IN_GCC)
+                version (IN_GCC) {}
+                else
                 {
                     if (global.params.is64bit && !global.params.isWindows)
                     {

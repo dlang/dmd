@@ -14,11 +14,6 @@ import ddmd.root.array;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 
-template xversion(string s)
-{
-    enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
-}
-
 private string stripRight(string s)
 {
     while (s.length && (s[$ - 1] == ' ' || s[$ - 1] == '\n' || s[$ - 1] == '\r'))
@@ -26,14 +21,48 @@ private string stripRight(string s)
     return s;
 }
 
-enum IN_GCC     = xversion!`IN_GCC`;
+immutable bool TARGET_LINUX;
+immutable bool TARGET_OSX;
+immutable bool TARGET_FREEBSD;
+immutable bool TARGET_OPENBSD;
+immutable bool TARGET_SOLARIS;
+immutable bool TARGET_WINDOS;
+immutable bool TARGET_POSIX;
 
-enum TARGET_LINUX   = xversion!`linux`;
-enum TARGET_OSX     = xversion!`OSX`;
-enum TARGET_FREEBSD = xversion!`FreeBSD`;
-enum TARGET_OPENBSD = xversion!`OpenBSD`;
-enum TARGET_SOLARIS = xversion!`Solaris`;
-enum TARGET_WINDOS  = xversion!`Windows`;
+shared static this()
+{
+    version (linux)
+    {
+        TARGET_LINUX   = true;
+        TARGET_POSIX   = true;
+    }
+    else version (OSX)
+    {
+        TARGET_OSX     = true;
+        TARGET_POSIX   = true;
+    }
+    else version (FreeBSD)
+    {
+        TARGET_FREEBSD = true;
+        TARGET_POSIX   = true;
+    }
+    else version (OpenBSD)
+    {
+        TARGET_OPENBSD = true;
+        TARGET_POSIX   = true;
+    }
+    else version (Solaris)
+    {
+        TARGET_SOLARIS = true;
+        TARGET_POSIX   = true;
+    }
+    else version (Windows)
+    {
+        TARGET_WINDOS  = true;
+    }
+    else
+        static assert(0, "OS not supported.");
+}
 
 enum BOUNDSCHECK : int
 {
@@ -252,58 +281,58 @@ struct Global
         ddoc_ext = "ddoc";
         json_ext = "json";
         map_ext = "map";
-        static if (TARGET_WINDOS)
+        if (TARGET_WINDOS)
         {
             obj_ext = "obj";
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else if (TARGET_POSIX)
         {
             obj_ext = "o";
         }
         else
         {
-            static assert(0, "fix this");
+            assert(0, "OS not supported.");
         }
-        static if (TARGET_WINDOS)
+        if (TARGET_WINDOS)
         {
             lib_ext = "lib";
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else if (TARGET_POSIX)
         {
             lib_ext = "a";
         }
         else
         {
-            static assert(0, "fix this");
+            assert(0, "OS not supported.");
         }
-        static if (TARGET_WINDOS)
+        if (TARGET_WINDOS)
         {
             dll_ext = "dll";
         }
-        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-        {
-            dll_ext = "so";
-        }
-        else static if (TARGET_OSX)
+        else if (TARGET_OSX)
         {
             dll_ext = "dylib";
         }
+        else if (TARGET_POSIX)
+        {
+            dll_ext = "so";
+        }
         else
         {
-            static assert(0, "fix this");
+            assert(0, "OS not supported.");
         }
-        static if (TARGET_WINDOS)
+        if (TARGET_WINDOS)
         {
             run_noext = false;
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else if (TARGET_POSIX)
         {
             // Allow 'script' D source files to have no extension.
             run_noext = true;
         }
         else
         {
-            static assert(0, "fix this");
+            assert(0, "OS not supported.");
         }
         copyright = "Copyright (c) 1999-2016 by Digital Mars";
         written = "written by Walter Bright";
