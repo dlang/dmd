@@ -491,7 +491,7 @@ extern (C++) void gendocfile(Module m)
             mbuf.write(file.buffer, file.len);
         }
     }
-    DocComment.parseMacros(&m.escapetable, &m.macrotable, cast(char*)mbuf.data, mbuf.offset);
+    DocComment.parseMacros(&m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(sc, m, m.comment);
     dc.pmacrotable = &m.macrotable;
@@ -543,7 +543,7 @@ extern (C++) void gendocfile(Module m)
         emitMemberComments(m, &buf, sc);
     }
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
-    Macro.define(&m.macrotable, cast(char*)"BODY", 4, cast(char*)buf.data, buf.offset);
+    Macro.define(&m.macrotable, cast(char*)"BODY", 4, buf.peekSlice().ptr, buf.peekSlice().length);
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
     size_t end = buf2.offset;
@@ -554,13 +554,14 @@ extern (C++) void gendocfile(Module m)
          * and make CR-LF the newline.
          */
         {
+            const slice = buf2.peekSlice();
             buf.setsize(0);
-            buf.reserve(buf2.offset);
-            char* p = cast(char*)buf2.data;
-            for (size_t j = 0; j < buf2.offset; j++)
+            buf.reserve(slice.length);
+            auto p = slice.ptr;
+            for (size_t j = 0; j < slice.length; j++)
             {
                 char c = p[j];
-                if (c == 0xFF && j + 1 < buf2.offset)
+                if (c == 0xFF && j + 1 < slice.length)
                 {
                     j++;
                     continue;
@@ -570,7 +571,7 @@ extern (C++) void gendocfile(Module m)
                 else if (c == '\r')
                 {
                     buf.writestring("\r\n");
-                    if (j + 1 < buf2.offset && p[j + 1] == '\n')
+                    if (j + 1 < slice.length && p[j + 1] == '\n')
                     {
                         j++;
                     }
@@ -581,7 +582,7 @@ extern (C++) void gendocfile(Module m)
         }
         // Transfer image to file
         assert(m.docfile);
-        m.docfile.setbuffer(buf.data, buf.offset);
+        m.docfile.setbuffer(cast(void*)buf.peekSlice().ptr, buf.peekSlice().length);
         m.docfile._ref = 1;
         ensurePathToNameExists(Loc(), m.docfile.toChars());
         writeFile(m.loc, m.docfile);
@@ -1919,11 +1920,12 @@ extern (C++) const(char)* skipwhitespace(const(char)* p)
  */
 extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
 {
-    while (i < buf.offset)
+    const slice = buf.peekSlice();
+    while (i < slice.length)
     {
         dchar c;
         size_t oi = i;
-        if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
+        if (utf_decodeChar(slice.ptr, slice.length, i, c))
         {
             /* Ignore UTF errors, but still consume input
              */
@@ -1947,11 +1949,12 @@ extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
  */
 extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
 {
-    while (i < buf.offset)
+    const slice = buf.peekSlice();
+    while (i < slice.length)
     {
         dchar c;
         size_t oi = i;
-        if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
+        if (utf_decodeChar(slice.ptr, slice.length, i, c))
         {
             /* Ignore UTF errors, but still consume input
              */
@@ -1979,30 +1982,30 @@ extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
  */
 extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
 {
-    size_t length = buf.offset - i;
-    char* p = cast(char*)&buf.data[i];
+    const slice = buf.peekSlice()[i .. $];
     size_t j;
-    uint sawdot = 0;
-    if (length > 7 && Port.memicmp(p, "http://", 7) == 0)
+    bool sawdot = false;
+    if (slice.length > 7 && Port.memicmp(slice.ptr, "http://", 7) == 0)
     {
         j = 7;
     }
-    else if (length > 8 && Port.memicmp(p, "https://", 8) == 0)
+    else if (slice.length > 8 && Port.memicmp(slice.ptr, "https://", 8) == 0)
     {
         j = 8;
     }
     else
         goto Lno;
-    for (; j < length; j++)
+    for (; j < slice.length; j++)
     {
-        char c = p[j];
+        const c = slice[j];
         if (isalnum(c))
             continue;
-        if (c == '-' || c == '_' || c == '?' || c == '=' || c == '%' || c == '&' || c == '/' || c == '+' || c == '#' || c == '~')
+        if (c == '-' || c == '_' || c == '?' || c == '=' || c == '%' ||
+            c == '&' || c == '/' || c == '+' || c == '#' || c == '~')
             continue;
         if (c == '.')
         {
-            sawdot = 1;
+            sawdot = true;
             continue;
         }
         break;
@@ -2028,12 +2031,12 @@ extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) bool isKeyword(char* p, size_t len)
+extern (C++) bool isKeyword(const(char)* p, size_t len)
 {
-    static __gshared const(char)** table = ["true", "false", "null", null];
-    for (int i = 0; table[i]; i++)
+    immutable string[3] table = ["true", "false", "null"];
+    foreach (s; table)
     {
-        if (cmp(table[i], p, len) == 0)
+        if (cmp(s.ptr, p, len) == 0)
             return true;
     }
     return false;
@@ -2103,9 +2106,9 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
  * Return true if str is a reserved symbol name
  * that starts with a double underscore.
  */
-extern (C++) bool isReservedName(char* str, size_t len)
+extern (C++) bool isReservedName(const(char)* str, size_t len)
 {
-    static __gshared const(char)** table =
+    immutable string[] table =
     [
         "__ctor",
         "__dtor",
@@ -2139,12 +2142,11 @@ extern (C++) bool isReservedName(char* str, size_t len)
         "___tls_get_addr",
         "__entrypoint",
         "__va_argsave_t",
-        "__va_argsave",
-        null
+        "__va_argsave"
     ];
-    for (int i = 0; table[i]; i++)
+    foreach (s; table)
     {
-        if (cmp(table[i], str, len) == 0)
+        if (cmp(s.ptr, str, len) == 0)
             return true;
     }
     return false;
@@ -2200,8 +2202,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                char* p = cast(char*)&buf.data[i];
-                const(char)* se = sc._module.escapetable.escapeChar('<');
+                const slice = buf.peekSlice();
+                auto p = &slice[i];
+                const se = sc._module.escapetable.escapeChar('<');
                 if (se && strcmp(se, "&lt;") == 0)
                 {
                     // Generating HTML
@@ -2212,7 +2215,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         p += 4;
                         while (1)
                         {
-                            if (j == buf.offset)
+                            if (j == slice.length)
                                 goto L1;
                             if (p[0] == '-' && p[1] == '-' && p[2] == '>')
                             {
@@ -2231,7 +2234,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         p += 2;
                         while (1)
                         {
-                            if (j == buf.offset)
+                            if (j == slice.length)
                                 break;
                             if (p[0] == '>')
                             {
@@ -2248,7 +2251,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // Replace '<' with '&lt;' character entity
                 if (se)
                 {
-                    size_t len = strlen(se);
+                    const len = strlen(se);
                     buf.remove(i, 1);
                     i = buf.insert(i, se, len);
                     i--; // point to ';'
@@ -2298,7 +2301,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     inBacktick = 0;
                     inCode = 0;
                     OutBuffer codebuf;
-                    codebuf.write(buf.data + iCodeStart + 1, i - (iCodeStart + 1));
+                    codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
@@ -2419,7 +2422,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             leadingBlank = 0;
             if (sc._module.isDocFile || inCode)
                 break;
-            char* start = cast(char*)buf.data + i;
+            const start = cast(char*)buf.data + i;
             if (isIdStart(start))
             {
                 size_t j = skippastident(buf, i);
@@ -2563,7 +2566,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 parametersBuf.writeByte(')');
 
                 const templateParams = parametersBuf.peekString();
-                const templateParamsLen = strlen(templateParams);
+                const templateParamsLen = parametersBuf.peekSlice().length;
 
                 //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
 

@@ -257,8 +257,12 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         }
 
         // Remove trailing spaces
-        while (buf.offset && isspace(buf.data[buf.offset - 1]))
-            buf.offset--;
+        const slice = buf.peekSlice();
+        auto slicelen = slice.length;
+        while (slicelen && isspace(slice[slicelen - 1]))
+            --slicelen;
+        buf.setsize(slicelen);
+
         auto p = buf.peekString();
         // The expanded line is in p.
         // Now parse it for meaning.
