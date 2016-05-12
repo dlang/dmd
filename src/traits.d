@@ -12,6 +12,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.appl;
 import ddmd.canthrow;
 import ddmd.dclass;
 import ddmd.declaration;
@@ -1185,6 +1186,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
+    }
+    if (Expression ret = semanticTraitsHook(e, sc))
+    {
+        return ret;
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)

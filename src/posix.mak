@@ -197,7 +197,7 @@ endif
 endif
 
 
-FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
+FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis appl apply argtypes arrayop	\
 	arraytypes attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\

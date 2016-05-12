@@ -141,7 +141,7 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 ############################### Rule Variables ###############################
 
 # D front end
-FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
+FRONT_SRCS=access.d aggregate.d aliasthis.d appl.d apply.d argtypes.d arrayop.d	\
 	arraytypes.d attrib.d builtin.d canthrow.d clone.d complex.d		\
 	cond.d constfold.d cppmangle.d ctfeexpr.d dcast.d dclass.d		\
 	declaration.d delegatize.d denum.d dimport.d dinifile.d dinterpret.d	\
