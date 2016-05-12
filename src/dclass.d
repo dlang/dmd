@@ -419,6 +419,24 @@ public:
         return ScopeDsymbol.syntaxCopy(cd);
     }
 
+    override Scope* newScope(Scope* sc)
+    {
+        auto sc2 = super.newScope(sc);
+        if (isCOMclass())
+        {
+            if (global.params.isWindows)
+                sc2.linkage = LINKwindows;
+            else
+            {
+                /* This enables us to use COM objects under Linux and
+                 * work with things like XPCOM
+                 */
+                sc2.linkage = LINKc;
+            }
+        }
+        return sc2;
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -743,21 +761,7 @@ public:
                 s.addMember(sc, this);
             }
 
-            Scope* sc2 = sc.push(this);
-            sc2.stc &= STCsafe | STCtrusted | STCsystem;
-            sc2.parent = this;
-            sc2.inunion = 0;
-            if (isCOMclass())
-            {
-                if (global.params.isWindows)
-                    sc2.linkage = LINKwindows;
-                else
-                    sc2.linkage = LINKc;
-            }
-            sc2.protection = Prot(PROTpublic);
-            sc2.explicitProtection = 0;
-            sc2.structalign = STRUCTALIGN_DEFAULT;
-            sc2.userAttribDecl = null;
+            auto sc2 = newScope(sc);
 
             /* Set scope so if there are forward references, we still might be able to
              * resolve individual members like enums.
@@ -850,26 +854,7 @@ public:
                 makeNested();
         }
 
-        Scope* sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        sc2.inunion = 0;
-        if (isCOMclass())
-        {
-            if (global.params.isWindows)
-                sc2.linkage = LINKwindows;
-            else
-            {
-                /* This enables us to use COM objects under Linux and
-                 * work with things like XPCOM
-                 */
-                sc2.linkage = LINKc;
-            }
-        }
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
+        auto sc2 = newScope(sc);
 
         for (size_t i = 0; i < members.dim; ++i)
         {
@@ -1537,6 +1522,19 @@ public:
         return ClassDeclaration.syntaxCopy(id);
     }
 
+
+    override Scope* newScope(Scope* sc)
+    {
+        auto sc2 = super.newScope(sc);
+        if (com)
+            sc2.linkage = LINKwindows;
+        else if (cpp)
+            sc2.linkage = LINKcpp;
+        else if (objc.isInterface())
+            sc2.linkage = LINKobjc;
+        return sc2;
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
@@ -1805,20 +1803,7 @@ public:
             s.addMember(sc, this);
         }
 
-        Scope* sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        sc2.inunion = 0;
-        if (com)
-            sc2.linkage = LINKwindows;
-        else if (cpp)
-            sc2.linkage = LINKcpp;
-        else if (this.objc.isInterface())
-            sc2.linkage = LINKobjc;
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
+        auto sc2 = newScope(sc);
 
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
