@@ -335,15 +335,7 @@ public:
             }
         }
 
-        Scope* sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        if (isUnionDeclaration())
-            sc2.inunion = 1;
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
+        auto sc2 = newScope(sc);
 
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.

@@ -107,6 +107,24 @@ public:
         sizeok = SIZEOKnone; // size not determined yet
     }
 
+    /***************************************
+     * Create a new scope from sc.
+     * semantic, semantic2 and semantic3 will use this for aggregate members.
+     */
+    Scope* newScope(Scope* sc)
+    {
+        auto sc2 = sc.push(this);
+        sc2.stc &= STCsafe | STCtrusted | STCsystem;
+        sc2.parent = this;
+        if (isUnionDeclaration())
+            sc2.inunion = 1;
+        sc2.protection = Prot(PROTpublic);
+        sc2.explicitProtection = 0;
+        sc2.structalign = STRUCTALIGN_DEFAULT;
+        sc2.userAttribDecl = null;
+        return sc2;
+    }
+
     override final void semantic2(Scope* sc)
     {
         //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
@@ -119,15 +137,7 @@ public:
             return;
         }
 
-        Scope* sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        if (isUnionDeclaration())
-            sc2.inunion = 1;
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
+        auto sc2 = newScope(sc);
 
         determineSize(loc);
 
@@ -155,15 +165,7 @@ public:
             return;
         }
 
-        Scope* sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        if (isUnionDeclaration())
-            sc2.inunion = 1;
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
+        auto sc2 = newScope(sc);
 
         for (size_t i = 0; i < members.dim; i++)
         {
