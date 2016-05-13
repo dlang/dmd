@@ -1033,10 +1033,6 @@ extern (C++) class VarDeclaration : Declaration
             printf("linkage = %d\n", sc.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
-        //if (semanticRun > PASSinit)
-        //    return;
-        //semanticRun = PSSsemantic;
-
         if (semanticRun >= PASSsemanticdone)
             return;
 
@@ -1047,19 +1043,50 @@ extern (C++) class VarDeclaration : Declaration
             scx = sc;
             _scope = null;
         }
+        //printf("+VarDeclaration::semantic('%s', parent = '%s') semanticRun = %d\n",
+        //    toChars(), sc.parent ? sc.parent.toChars() : null, semanticRun);
 
-        /* Pick up storage classes from context, but except synchronized,
-         * override, abstract, and final.
-         */
-        storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
-        if (storage_class & STCextern && _init)
-            error("extern symbols cannot have initializers");
+        if (semanticRun == PASSinit)
+        {
+            parent = sc.parent;
+            //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
 
-        userAttribDecl = sc.userAttribDecl;
+            protection = sc.protection;
+            alignment = sc.alignment();
 
-        AggregateDeclaration ad = isThis();
-        if (ad)
-            storage_class |= ad.storage_class & STC_TYPECTOR;
+            linkage = sc.linkage;
+
+            /* Pick up storage classes from context, but except synchronized,
+             * override, abstract, and final.
+             */
+            storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
+            if (storage_class & STCextern && _init)
+                error("extern symbols cannot have initializers");
+
+            if (storage_class & (STCstatic | STCextern | STCmanifest |
+                                 STCtemplateparameter | STCtls | STCgshared | STCctfe))
+            {
+            }
+            else if (auto ad = toParent().isAggregateDeclaration())
+            {
+                storage_class |= ad.storage_class & STC_TYPECTOR;
+                storage_class |= STCfield;
+
+                if (auto id = ad.isInterfaceDeclaration())
+                {
+                    error("field not allowed in interface");
+                }
+                else if (ad.sizeok == SIZEOKdone)
+                {
+                    error("cannot be further field because it will change the determined %s size", ad.toChars());
+                }
+            }
+            //printf("sc.stc = %llx\n", sc.stc);
+            //printf("storage_class = x%llx\n", storage_class);
+
+            userAttribDecl = sc.userAttribDecl;
+        }
+        semanticRun = PASSsemantic;
 
         /* If auto type inference, do the inference
          */
@@ -1074,7 +1101,7 @@ extern (C++) class VarDeclaration : Declaration
             if (needctfe)
                 sc = sc.startCTFE();
 
-            //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
+            //printf("inferring type for %s with init %s\n", toChars(), init.toChars());
             _init = _init.inferType(sc);
             type = _init.toExpression().type;
             if (needctfe)
@@ -1088,6 +1115,10 @@ extern (C++) class VarDeclaration : Declaration
              */
             storage_class &= ~STCauto;
             originalType = type.syntaxCopy();
+
+            /* Storage class can modify the type
+             */
+            type = type.addStorageClass(storage_class);
         }
         else
         {
@@ -1105,24 +1136,19 @@ extern (C++) class VarDeclaration : Declaration
             type = type.semantic(loc, sc2);
             inuse--;
             sc2.pop();
-        }
-        //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
+            /* Storage class can modify the type
+             */
+            type = type.addStorageClass(storage_class);
+        }
         type.checkDeprecated(loc, sc);
-        linkage = sc.linkage;
-        this.parent = sc.parent;
-        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
-        protection = sc.protection;
+        //printf(" semantic type = %s\n", type.toChars());
 
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
-        alignment = sc.alignment();
         if (alignment == STRUCTALIGN_DEFAULT)
-            alignment = type.alignment(); // use type's alignment
-
-        //printf("sc->stc = %x\n", sc->stc);
-        //printf("storage_class = x%x\n", storage_class);
+            alignment = type.alignment();
 
         if (global.params.vcomplex)
             type.checkComplexTransition(loc);
@@ -1136,8 +1162,6 @@ extern (C++) class VarDeclaration : Declaration
                     error("__gshared not allowed in safe functions; use shared");
             }
         }
-
-        Dsymbol parent = toParent();
 
         Type tb = type.toBasetype();
         Type tbn = tb.baseElemOf();
@@ -1322,13 +1346,16 @@ extern (C++) class VarDeclaration : Declaration
             v2.parent = this.parent;
             v2.isexp = true;
             aliassym = v2;
+
+            // Continue to reject fail_compilation/fail7851.d.
+            storage_class &= ~STCfield;
+
             semanticRun = PASSsemanticdone;
             return;
         }
 
-        /* Storage class can modify the type
-         */
-        type = type.addStorageClass(storage_class);
+        Dsymbol parent = toParent();
+        assert(parent);
 
         /* Adjust storage class to reflect type
          */
@@ -1377,53 +1404,39 @@ extern (C++) class VarDeclaration : Declaration
             }
         }
 
-        if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+        if (isField())
         {
-        }
-        else
-        {
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
-            if (aad)
+            if (auto ad = parent.isAggregateDeclaration())
             {
-                if (global.params.vfield && storage_class & (STCconst | STCimmutable) && _init && !_init.isVoidInitializer())
+                if (global.params.vfield &&
+                    storage_class & (STCconst | STCimmutable) &&
+                    _init && !_init.isVoidInitializer())
                 {
                     const(char)* p = loc.toChars();
                     const(char)* s = (storage_class & STCimmutable) ? "immutable" : "const";
                     fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), toChars(), s);
                 }
-                storage_class |= STCfield;
                 if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
                 {
                     if (!isThisDeclaration() && !_init)
-                        aad.noDefaultCtor = true;
+                        ad.noDefaultCtor = true;
                 }
-            }
-
-            InterfaceDeclaration id = parent.isInterfaceDeclaration();
-            if (id)
-            {
-                error("field not allowed in interface");
-            }
-            else if (aad && aad.sizeok == SIZEOKdone)
-            {
-                error("cannot be further field because it will change the determined %s size", aad.toChars());
             }
 
             /* Templates cannot add fields to aggregates
              */
-            TemplateInstance ti = parent.isTemplateInstance();
-            if (ti)
+            if (auto ti = parent.isTemplateInstance())
             {
                 // Take care of nested templates
                 while (1)
                 {
-                    TemplateInstance ti2 = ti.tempdecl.parent.isTemplateInstance();
+                    auto ti2 = ti.tempdecl.parent.isTemplateInstance();
                     if (!ti2)
                         break;
                     ti = ti2;
                 }
                 // If it's a member template
-                AggregateDeclaration ad2 = ti.tempdecl.isMember();
+                auto ad2 = ti.tempdecl.isMember();
                 if (ad2 && storage_class != STCundefined)
                 {
                     error("cannot use template to add field to aggregate '%s'", ad2.toChars());
