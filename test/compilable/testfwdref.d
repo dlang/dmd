@@ -763,3 +763,49 @@ struct S16013b
 {
     RC16013b s;
 }
+
+/***************************************************/
+// 16012
+
+void emplace16012(S16012* chunk) { *chunk = S16012.init; }
+
+struct RC16012()
+{
+    struct RCStore
+    {
+        struct Impl { S16012 _payload; }
+
+        Impl* _impl;
+
+        void initialize()
+        {
+            _impl = new Impl;
+            emplace16012(&_impl._payload);
+        }
+    }
+
+    RCStore _store;
+
+    void opAssign(typeof(this) rhs) {}
+    void opAssign(S16012 rhs) {}
+
+    ref S16012 rcPayload()
+    {
+        if (_store._impl is null)
+            _store.initialize();
+        return _store._impl._payload;
+    }
+
+    alias rcPayload this;
+}
+
+struct S16012
+{
+    size_t x;
+    RC16012!() s;
+}
+
+static assert(S16012.sizeof == size_t.sizeof + (void*).sizeof);
+static assert(RC16012!().sizeof == (void*).sizeof);
+static assert(RC16012!().RCStore.sizeof == (void*).sizeof);
+static assert(RC16012!().RCStore.Impl.sizeof == S16012.sizeof);
