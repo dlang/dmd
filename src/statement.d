@@ -5345,7 +5345,8 @@ public:
     {
         //printf("Catch::semantic(%s)\n", ident->toChars());
 
-        static if (!IN_GCC)
+        version (IN_GCC) {}
+        else
         {
             if (sc.os && sc.os.tok != TOKon_scope_failure)
             {
@@ -5518,7 +5519,8 @@ public:
 
     override Statement semantic(Scope* sc)
     {
-        static if (!IN_GCC)
+        version (IN_GCC) {}
+        else
         {
             if (tok != TOKon_scope_exit)
             {

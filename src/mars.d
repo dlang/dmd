@@ -151,22 +151,29 @@ private void logo()
  */
 private  void usage()
 {
-    static if (TARGET_LINUX)
+    string fpic, m32mscoff;
+    if (TARGET_LINUX)
     {
-        const(char)* fpic = "  -fPIC          generate position independent code\n";
+        fpic = "  -fPIC          generate position independent code\n";
+    }
+    else if (TARGET_WINDOS || TARGET_POSIX)
+    {
+        fpic = "";
     }
     else
+        assert(0, "OS not supported.");
+
+    if (TARGET_WINDOS)
     {
-        const(char)* fpic = "";
+        m32mscoff = "  -m32mscoff     generate 32 bit code and write MS-COFF object files\n";
     }
-    static if (TARGET_WINDOS)
+    else if (TARGET_POSIX)
     {
-        const(char)* m32mscoff = "  -m32mscoff     generate 32 bit code and write MS-COFF object files\n";
+        m32mscoff = "";
     }
     else
-    {
-        const(char)* m32mscoff = "";
-    }
+        assert(0, "OS not supported.");
+
     logo();
     printf("
 Documentation: http://dlang.org/
@@ -243,7 +250,7 @@ Usage:
   -wi            warnings as messages (compilation will continue)
   -X             generate JSON file
   -Xffilename    write JSON file to filename
-", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
+", FileName.canonicalName(global.inifilename), fpic.ptr, m32mscoff.ptr);
 }
 
 /// DMD-generated module `__entrypoint` where the C main resides
@@ -374,7 +381,7 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.mscoff = false;
 
     // Temporary: Use 32 bits as the default on Windows, for config parsing
-    static if (TARGET_WINDOS)
+    if (TARGET_WINDOS)
         global.params.is64bit = false;
 
     global.inifilename = parse_conf_arg(&arguments);
@@ -396,7 +403,7 @@ private int tryMain(size_t argc, const(char)** argv)
         }
         else
         {
-            static assert(0, "fix this");
+            static assert(0, "OS not supported.");
         }
     }
     // Read the configurarion file
@@ -496,27 +503,31 @@ private int tryMain(size_t argc, const(char)** argv)
                 global.params.dll = true;
             else if (strcmp(p + 1, "dylib") == 0)
             {
-                static if (TARGET_OSX)
+                if (TARGET_OSX)
                 {
                     Loc loc;
                     deprecation(loc, "use -shared instead of -dylib");
                     global.params.dll = true;
                 }
-                else
+                else if (TARGET_WINDOS || TARGET_POSIX)
                 {
                     goto Lerror;
                 }
+                else
+                    assert(0, "OS not supported.");
             }
             else if (strcmp(p + 1, "fPIC") == 0)
             {
-                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+                if (TARGET_POSIX)
                 {
                     global.params.pic = 1;
                 }
-                else
+                else if (TARGET_WINDOS)
                 {
                     goto Lerror;
                 }
+                else
+                    assert(0, "OS not supported.");
             }
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = true;
@@ -543,22 +554,24 @@ private int tryMain(size_t argc, const(char)** argv)
             else if (strcmp(p + 1, "m64") == 0)
             {
                 global.params.is64bit = true;
-                static if (TARGET_WINDOS)
+                if (TARGET_WINDOS)
                 {
                     global.params.mscoff = true;
                 }
             }
             else if (strcmp(p + 1, "m32mscoff") == 0)
             {
-                static if (TARGET_WINDOS)
+                if (TARGET_WINDOS)
                 {
                     global.params.is64bit = 0;
                     global.params.mscoff = true;
                 }
-                else
+                else if (TARGET_POSIX)
                 {
                     error(Loc(), "-m32mscoff can only be used on windows");
                 }
+                else
+                    assert(0, "OS not supported.");
             }
             else if (memcmp(p + 1, cast(char*)"profile", 7) == 0)
             {
@@ -1016,7 +1029,7 @@ Language changes listed by -transition=id:
         }
         else
         {
-            static if (TARGET_WINDOS)
+            if (TARGET_WINDOS)
             {
                 const(char)* ext = FileName.ext(p);
                 if (ext && FileName.compare(ext, "exe") == 0)
@@ -1058,11 +1071,11 @@ Language changes listed by -transition=id:
         usage();
         return EXIT_FAILURE;
     }
-    static if (TARGET_OSX)
+    if (TARGET_OSX)
     {
         global.params.pic = 1;
     }
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+    if (TARGET_POSIX)
     {
         if (global.params.lib && global.params.dll)
             error(Loc(), "cannot mix -lib and -shared");
@@ -1214,7 +1227,7 @@ Language changes listed by -transition=id:
                 libmodules.push(files[i]);
                 continue;
             }
-            static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+            if (TARGET_POSIX)
             {
                 if (FileName.equals(ext, global.dll_ext))
                 {
@@ -1239,7 +1252,7 @@ Language changes listed by -transition=id:
                 global.params.mapfile = files[i];
                 continue;
             }
-            static if (TARGET_WINDOS)
+            if (TARGET_WINDOS)
             {
                 if (FileName.equals(ext, "res"))
                 {
@@ -1871,7 +1884,7 @@ private void setDefaultLibrary()
 {
     if (global.params.defaultlibname is null)
     {
-        static if (TARGET_WINDOS)
+        if (TARGET_WINDOS)
         {
             if (global.params.is64bit)
                 global.params.defaultlibname = "phobos64";
@@ -1880,17 +1893,17 @@ private void setDefaultLibrary()
             else
                 global.params.defaultlibname = "phobos";
         }
-        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-        {
-            global.params.defaultlibname = "libphobos2.a";
-        }
-        else static if (TARGET_OSX)
+        else if (TARGET_OSX)
         {
             global.params.defaultlibname = "phobos2";
         }
+        else if (TARGET_POSIX)
+        {
+            global.params.defaultlibname = "libphobos2.a";
+        }
         else
         {
-            static assert(0, "fix this");
+            assert(0, "OS not supported.");
         }
     }
     if (global.params.debuglibname is null)
@@ -1909,19 +1922,19 @@ private void setDefaultLibrary()
 private void addDefaultVersionIdentifiers()
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    static if (TARGET_WINDOS)
+    if (TARGET_WINDOS)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
         global.params.isWindows = true;
     }
-    else static if (TARGET_LINUX)
+    else if (TARGET_LINUX)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isLinux = true;
     }
-    else static if (TARGET_OSX)
+    else if (TARGET_OSX)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
@@ -1929,21 +1942,21 @@ private void addDefaultVersionIdentifiers()
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
     }
-    else static if (TARGET_FREEBSD)
+    else if (TARGET_FREEBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isFreeBSD = true;
     }
-    else static if (TARGET_OPENBSD)
+    else if (TARGET_OPENBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isOpenBSD = true;
     }
-    else static if (TARGET_SOLARIS)
+    else if (TARGET_SOLARIS)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("Solaris");
@@ -1952,7 +1965,7 @@ private void addDefaultVersionIdentifiers()
     }
     else
     {
-        static assert(0, "fix this");
+        assert(0, "OS not supported.");
     }
     VersionCondition.addPredefinedGlobalIdent("LittleEndian");
     VersionCondition.addPredefinedGlobalIdent("D_Version2");
@@ -1963,7 +1976,7 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
         VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        static if (TARGET_WINDOS)
+        if (TARGET_WINDOS)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
         }
@@ -1973,23 +1986,23 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET_OSX)
+        if (TARGET_OSX)
         {
             VersionCondition.addPredefinedGlobalIdent("D_SIMD");
         }
-        static if (TARGET_WINDOS)
+        if (TARGET_WINDOS)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
         }
     }
-    static if (TARGET_WINDOS)
+    if (TARGET_WINDOS)
     {
         if (global.params.mscoff)
             VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
         else
             VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
     }
-    else static if (TARGET_LINUX)
+    else if (TARGET_LINUX)
     {
         VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
     }

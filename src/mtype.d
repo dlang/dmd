@@ -2786,7 +2786,8 @@ public:
         assert(0 < length && length < namelen); // don't overflow the buffer
 
         int off = 0;
-        static if (!IN_GCC)
+        version (IN_GCC) {}
+        else
         {
             if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
                 ++off; // C mangling will add '_' back in

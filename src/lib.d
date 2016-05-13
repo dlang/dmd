@@ -10,22 +10,23 @@ module ddmd.lib;
 
 import ddmd.globals;
 
-static if (TARGET_WINDOS)
+// Include all of these once these modules have been ported to all platforms.
+version (Windows)
 {
     import ddmd.libomf;
     import ddmd.libmscoff;
 }
-else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-{
-    import ddmd.libelf;
-}
-else static if (TARGET_OSX)
+else version (OSX)
 {
     import ddmd.libmach;
 }
+else version (Posix)
+{
+    import ddmd.libelf;
+}
 else
 {
-    static assert(0, "unsupported system");
+    static assert(0, "OS not supported.");
 }
 
 extern (C++) class Library
@@ -33,21 +34,23 @@ extern (C++) class Library
 public:
     static Library factory()
     {
-        static if (TARGET_WINDOS)
+        // This should be turned into runtime logic based on TARGET_* once
+        // these library generation modules are made cross-platform.
+        version (Windows)
         {
             return (global.params.mscoff || global.params.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
         }
-        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-        {
-            return LibElf_factory();
-        }
-        else static if (TARGET_OSX)
+        else version (OSX)
         {
             return LibMach_factory();
         }
+        else version (Posix)
+        {
+            return LibElf_factory();
+        }
         else
         {
-            assert(0); // unsupported system
+            static assert(0, "OS not supported.");
         }
     }
 
