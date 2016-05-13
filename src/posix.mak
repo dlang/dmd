@@ -163,7 +163,7 @@ DFLAGS += -g -debug -unittest
 endif
 ifdef ENABLE_RELEASE
 CXXFLAGS += -O2
-DFLAGS += -O -inline
+DFLAGS += -O -inline -boundscheck=safeonly
 endif
 ifdef ENABLE_PROFILING
 CXXFLAGS  += -pg -fprofile-arcs -ftest-coverage
