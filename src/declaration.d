@@ -1076,7 +1076,7 @@ extern (C++) class VarDeclaration : Declaration
                 {
                     error("field not allowed in interface");
                 }
-                else if (ad.sizeok == SIZEOKdone)
+                else if (ad.sizeok != SIZEOKnone)
                 {
                     error("cannot be further field because it will change the determined %s size", ad.toChars());
                 }
@@ -1132,10 +1132,23 @@ extern (C++) class VarDeclaration : Declaration
              */
             Scope* sc2 = sc.push();
             sc2.stc |= (storage_class & STC_FUNCATTR);
-            inuse++;
+
+            /* If template instantiations occur during type.semantic(),
+             * v.semantic(v._scope) might be invoked to get correct v.type.
+             * To make it possible, set _scope only once.
+             */
+            _scope = !inuse ? scx : null;
+
+            inuse = 1;
             type = type.semantic(loc, sc2);
-            inuse--;
+            inuse = 0;  // reset immediately after type analysis completion
+
+            _scope = null;
+
             sc2.pop();
+
+            if (semanticRun >= PASSsemanticdone)
+                return;
 
             /* Storage class can modify the type
              */
