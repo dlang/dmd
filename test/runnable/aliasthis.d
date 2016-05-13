@@ -1971,6 +1971,72 @@ struct S15292
 }
 
 /***************************************************/
+// 16011
+
+struct RC16011(T)
+{
+    struct RCStore
+    {
+        struct Impl
+        {
+            T _payload;
+
+            /* Recursive tupleof expantion on member-wise struct euqality:
+             *  Impl
+             *  Impl.tupleof[0]       (Impl._payload == S16011)
+             *  Impl.tupleof[0].tupleof[1]  (S16011.s == RC16011)
+             *  Impl.tupleof[0].tupleof[1].rcPayload()  (== S16011)
+             * had not been detected. Fixed the bug.
+             */
+            //static bool __xopEquals(ref const Impl p, ref const Impl q)
+            //{
+            //    return p == q;
+            //}
+        }
+
+        Impl* _impl;
+
+        void initialize(A...)(auto ref A args)
+        {
+            _impl = new Impl();
+            _impl._payload = T.init;
+        }
+    }
+    RCStore _store;
+
+    ref T rcPayload()
+    {
+        if (!_store._impl) _store.initialize();
+        return _store._impl._payload;
+    }
+
+    ref inout(T) rcPayload() inout
+    {
+        return _store._impl._payload;
+    }
+
+    alias rcPayload this;
+}
+
+struct S16011
+{
+    int x;
+    RC16011!S16011 s;
+}
+
+void test16011()
+{
+    S16011 s;
+    s.x = 1;
+    s.s.x = 2;
+    s.s.s.x = 3;
+
+    assert(s.x == 1);
+    assert(s.s.x == 2);
+    assert(s.s.s.x == 3);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2028,6 +2094,7 @@ int main()
     test13490();
     test11355();
     test14806();
+    test16011();
 
     printf("Success\n");
     return 0;

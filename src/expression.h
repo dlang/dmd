@@ -1331,6 +1331,8 @@ public:
 class EqualExp : public BinExp
 {
 public:
+    EqualExp *ate;
+
     Expression *semantic(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
