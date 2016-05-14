@@ -34,7 +34,6 @@ import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.nspace;
 import ddmd.parse;
@@ -45,6 +44,7 @@ import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.utils;
 import ddmd.visitor;
 
 struct HdrGenState

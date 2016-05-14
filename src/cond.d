@@ -19,10 +19,10 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
 import ddmd.identifier;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.tokens;
+import ddmd.utils;
 import ddmd.visitor;
 
 private __gshared Identifier idUnitTest;

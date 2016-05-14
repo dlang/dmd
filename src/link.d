@@ -16,11 +16,11 @@ import core.sys.posix.stdlib;
 import core.sys.posix.unistd;
 import ddmd.errors;
 import ddmd.globals;
-import ddmd.mars;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
+import ddmd.utils;
 
 version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int putenv(const char*);

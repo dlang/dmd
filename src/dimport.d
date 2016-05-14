@@ -24,9 +24,9 @@ import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
+import ddmd.utils;
 import ddmd.visitor;
 
 /***********************************************************

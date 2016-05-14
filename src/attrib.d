@@ -28,13 +28,13 @@ import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.parse;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.tokens;
 import ddmd.utf;
+import ddmd.utils;
 import ddmd.visitor;
 
 /***********************************************************

@@ -24,9 +24,9 @@ import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
 import ddmd.root.filename;
 import ddmd.root.port;
-import ddmd.mars;
 import ddmd.scanmach;
 import ddmd.errors;
+import ddmd.utils;
 
 enum LOG = false;
 

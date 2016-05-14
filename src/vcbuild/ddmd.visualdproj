@@ -529,6 +529,7 @@
    <File path="..\traits.d" />
    <File path="..\typinf.d" />
    <File path="..\utf.d" />
+   <File path="..\utils.d" />
    <File path="..\visitor.d" />
    <File path="..\win32.mak" />
   </Folder>

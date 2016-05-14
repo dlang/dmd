@@ -32,7 +32,6 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.lexer;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.root.array;
 import ddmd.root.file;
@@ -42,6 +41,7 @@ import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.tokens;
 import ddmd.utf;
+import ddmd.utils;
 import ddmd.visitor;
 
 struct Escape
