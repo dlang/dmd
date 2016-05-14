@@ -704,6 +704,7 @@ public:
              * size and alignment.
              */
             size_t fieldstart = ad.fields.dim;
+
             /* Hackishly hijack ad's structsize and alignsize fields
              * for use in our fake anon aggregate member.
              */
@@ -711,6 +712,7 @@ public:
             uint savealignsize = ad.alignsize;
             ad.structsize = 0;
             ad.alignsize = 0;
+
             uint offset = 0;
             for (size_t i = 0; i < decl.dim; i++)
             {
@@ -719,21 +721,25 @@ public:
                 if (this.isunion)
                     offset = 0;
             }
+
+            /* Bugzilla 13613: If the fields in this->members had been already
+             * added in ad->fields, just update *poffset for the subsequent
+             * field offset calculation.
+             */
+            if (fieldstart == ad.fields.dim)
+            {
+                ad.structsize = savestructsize;
+                ad.alignsize = savealignsize;
+                *poffset = ad.structsize;
+                return;
+            }
+
             anonstructsize = ad.structsize;
             anonalignsize = ad.alignsize;
             ad.structsize = savestructsize;
             ad.alignsize = savealignsize;
-            if (fieldstart == ad.fields.dim)
-            {
-                /* Bugzilla 13613: If the fields in this->members had been already
-                 * added in ad->fields, just update *poffset for the subsequent
-                 * field offset calculation.
-                 */
-                *poffset = ad.structsize;
-                return;
-            }
+
             // 0 sized structs are set to 1 byte
-            // TODO: is this corect hebavior?
             if (anonstructsize == 0)
             {
                 anonstructsize = 1;
