@@ -239,7 +239,8 @@ Symbol *toSymbol(Dsymbol *s)
                     m = mTYman_d;
                     break;
                 default:
-                    printf("linkage = %d\n", vd->linkage);
+                    printf("linkage = %d, vd = %s %s @ [%s]\n",
+                        vd->linkage, vd->kind(), vd->toChars(), vd->loc.toChars());
                     assert(0);
             }
 
