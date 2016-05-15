@@ -397,8 +397,9 @@ r"ab\n" // string is 4 characters,
 ---------------
 `hello`
 `c:\root\foo.exe`
-`ab\n`  // string is 4 characters,
-        // 'a', 'b', '\', 'n'
+`The "lazy" dog`
+`a"b\n`  // string is 5 characters,
+        // 'a', '"', 'b', '\', 'n'
 ---------------
 
 $(H4 Double Quoted Strings)
