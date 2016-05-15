@@ -8027,6 +8027,8 @@ public:
         Dsymbols* a = mi.members;
         a.push(this);
         memberOf = mi;
+        if (mi.semanticRun >= PASSsemantic2done && mi.isRoot())
+            Module.addDeferredSemantic2(this);
         if (mi.semanticRun >= PASSsemantic3done && mi.isRoot())
             Module.addDeferredSemantic3(this);
         return a;

@@ -1049,6 +1049,8 @@ public:
             Dsymbol s = (*members)[i];
             //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
             s.semantic3(sc);
+
+            runDeferredSemantic2();
         }
         if (userAttribDecl)
         {
