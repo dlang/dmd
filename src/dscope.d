@@ -23,6 +23,7 @@ import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
+import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.speller;
 import ddmd.statement;
@@ -518,7 +519,6 @@ struct Scope
                 return sold;
 
             // Search both ways
-            flags |= SearchCheck10378;
         }
 
         // First look in local scopes
@@ -549,15 +549,30 @@ struct Scope
         {
             alias snew = s;
             if (sold !is snew)
-            {
-                deprecation(loc, "local import search method found %s %s instead of %s %s",
-                    sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
-                    snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
-            }
+                deprecation10378(loc, sold, snew);
             if (global.params.bug10378)
                 s = sold;
         }
         return s;
+    }
+
+    /* A helper function to show deprecation message for new name lookup rule.
+     */
+    extern (C++) static void deprecation10378(Loc loc, Dsymbol sold, Dsymbol snew)
+    {
+        OutBuffer buf;
+        buf.writestring("local import search method found ");
+        if (sold)
+            buf.printf("%s %s", sold.kind(), sold.toPrettyChars());
+        else
+            buf.writestring("nothing");
+        buf.writestring(" instead of ");
+        if (snew)
+            buf.printf("%s %s", snew.kind(), snew.toPrettyChars());
+        else
+            buf.writestring("nothing");
+
+        deprecation(loc, buf.peekString());
     }
 
     extern (C++) Dsymbol search_correct(Identifier ident)

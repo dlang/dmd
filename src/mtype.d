@@ -8178,14 +8178,37 @@ public:
             }
         }
 
-        s = sym.search(e.loc, ident);
+        Dsymbol searchSym()
+        {
+            int flags = 0;
+            Dsymbol sold = void;
+            if (global.params.bug10378 || global.params.check10378)
+            {
+                sold = sym.search(e.loc, ident, flags);
+                if (!global.params.check10378)
+                    return sold;
+            }
+
+            auto s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
+            if (global.params.check10378)
+            {
+                alias snew = s;
+                if (sold !is snew)
+                    Scope.deprecation10378(e.loc, sold, snew);
+                if (global.params.bug10378)
+                    s = sold;
+            }
+            return s;
+        }
+
+        s = searchSym();
     L1:
         if (!s)
         {
             if (sym._scope) // it's a fwd ref, maybe we can resolve it
             {
                 sym.semantic(null);
-                s = sym.search(e.loc, ident);
+                s = searchSym();
             }
             if (!s)
                 return noMember(sc, e, ident, flag);
@@ -8976,7 +8999,36 @@ public:
             return e;
         }
 
-        s = sym.search(e.loc, ident);
+        Dsymbol searchSym()
+        {
+            int flags = 0;
+            Dsymbol sold = void;
+            if (global.params.bug10378 || global.params.check10378)
+            {
+                sold = sym.search(e.loc, ident, flags | IgnoreSymbolVisibility);
+                if (!global.params.check10378)
+                    return sold;
+            }
+
+            auto s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
+            if (!s)
+            {
+                s = sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
+                if (s && !(flags & IgnoreErrors))
+                    .deprecation(e.loc, "%s is not visible from class %s", s.toPrettyChars(), sym.toChars());
+            }
+            if (global.params.check10378)
+            {
+                alias snew = s;
+                if (sold !is snew)
+                    Scope.deprecation10378(e.loc, sold, snew);
+                if (global.params.bug10378)
+                    s = sold;
+            }
+            return s;
+        }
+
+        s = searchSym();
     L1:
         if (!s)
         {

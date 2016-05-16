@@ -559,6 +559,7 @@ public:
             sc = _scope;
 
         protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
+        linkage = LINKd;
         storage_class = STCmanifest;
         userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
 

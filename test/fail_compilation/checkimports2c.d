@@ -2,9 +2,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/checkimports2c.d(20): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2c.X
-fail_compilation/checkimports2c.d(29): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2c.X
-fail_compilation/checkimports2c.d(30): Deprecation: local import search method found variable imports.imp2.Y instead of variable imports.imp1.Y
+fail_compilation/checkimports2c.d(22): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2c.X
+fail_compilation/checkimports2c.d(28): Deprecation: local import search method found variable imports.imp2.X instead of nothing
+fail_compilation/checkimports2c.d(29): Deprecation: local import search method found variable imports.imp2.Y instead of nothing
+fail_compilation/checkimports2c.d(31): Deprecation: local import search method found variable imports.imp2.X instead of variable checkimports2c.X
+fail_compilation/checkimports2c.d(32): Deprecation: local import search method found variable imports.imp2.Y instead of variable imports.imp1.Y
 ---
 */
 
