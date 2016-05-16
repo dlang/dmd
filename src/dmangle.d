@@ -145,6 +145,11 @@ public:
      */
     void visitWithMask(Type t, ubyte modMask)
     {
+        if (t.deco && modMask == 0)
+        {
+            buf.writestring(t.deco);    // don't need to recreate it
+            return;
+        }
         if (modMask != t.mod)
         {
             MODtoDecoBuffer(buf, t.mod);
