@@ -144,7 +144,6 @@ enum
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
-    SearchCheck10378        = 0x40, // unqualified search with transition=checkimports switch
     IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
 };
 

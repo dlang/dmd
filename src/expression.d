@@ -694,9 +694,6 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
             s = sold;
             goto Lsearchdone;
         }
-
-        // Search both ways
-        flags |= SearchCheck10378;
     }
 
     // First look in local scopes
@@ -724,11 +721,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     {
         alias snew = s;
         if (sold !is snew)
-        {
-            deprecation(loc, "local import search method found %s %s instead of %s %s",
-                sold ? sold.kind() : "nothing", sold ? sold.toPrettyChars() : null,
-                snew ? snew.kind() : "nothing", snew ? snew.toPrettyChars() : null);
-        }
+            Scope.deprecation10378(loc, sold, snew);
         if (global.params.bug10378)
             s = sold;
     }

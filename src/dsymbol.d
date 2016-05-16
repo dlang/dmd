@@ -179,7 +179,6 @@ enum : int
                                     // meaning don't search imports in that scope,
                                     // because qualified module searches search
                                     // their imports
-    SearchCheck10378        = 0x40, // unqualified search with transition=checkimports switch
     IgnoreSymbolVisibility  = 0x80, // also find private and package protected symbols
 }
 
@@ -1300,9 +1299,6 @@ public:
         //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
-        if (global.params.bug10378 && !(flags & SearchCheck10378))
-            flags &= ~(SearchImportsOnly | SearchLocalsOnly);
-
         // Look in symbols declared in this module
         if (symtab && !(flags & SearchImportsOnly))
         {
@@ -1335,17 +1331,9 @@ public:
                 if (ss.isModule())
                 {
                     if (flags & SearchLocalsOnly)
-                    {
-                        if (global.params.check10378 && !(flags & SearchCheck10378))
-                        {
-                            auto s3 = ss.search(loc, ident, sflags | IgnorePrivateImports);
-                            if (s3)
-                                deprecation("%s %s found in local import", s3.kind(), s3.toPrettyChars());
-                        }
                         continue;
-                    }
                 }
-                else
+                else if (!ss.isTemplateMixin)
                 {
                     if (flags & SearchImportsOnly)
                         continue;
