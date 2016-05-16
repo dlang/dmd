@@ -44,7 +44,6 @@ public:
     StructLiteralExp *value;
     ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type);
     ClassDeclaration *originalClass();
-    VarDeclaration *getFieldAt(unsigned index);
 
     /// Return index of the field, or -1 if not found
     int getFieldIndex(Type *fieldtype, unsigned fieldoffset);
