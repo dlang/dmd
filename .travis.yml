@@ -15,3 +15,9 @@ addons:
 env:
   - SELF_COMPILE=0
   - SELF_COMPILE=2
+
+matrix:
+  include:
+    - os: osx
+      d: dmd-beta
+      env: SELF_COMPILE=0
