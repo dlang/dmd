@@ -2141,8 +2141,6 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
         "__LOCAL_SIZE",
         "___tls_get_addr",
         "__entrypoint",
-        "__va_argsave_t",
-        "__va_argsave"
     ];
     foreach (s; table)
     {
