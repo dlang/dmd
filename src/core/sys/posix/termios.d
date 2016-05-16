@@ -468,6 +468,133 @@ else version ( FreeBSD )
     int     tcsetattr(int, int, in termios*);
 
 }
+else version (Solaris)
+{
+    alias tcflag_t = uint;
+    alias cc_t = ubyte;
+    alias speed_t = uint;
+
+    enum NCCS   = 19;
+
+    struct termios
+    {
+        tcflag_t   c_iflag;    /* input modes */
+        tcflag_t   c_oflag;    /* output modes */
+        tcflag_t   c_cflag;    /* control modes */
+        tcflag_t   c_lflag;    /* line discipline modes */
+        cc_t[NCCS] c_cc;       /* control chars */
+    }
+
+    /* control characters */
+    enum VINTR  = 0;
+    enum VQUIT  = 1;
+    enum VERASE = 2;
+    enum VKILL  = 3;
+    enum VEOF   = 4;
+    enum VEOL   = 5;
+    enum VMIN   = 4;
+    enum VTIME  = 5;
+    enum VSTART = 8;
+    enum VSTOP  = 9;
+    enum VSUSP  = 10;
+
+    /* input modes */
+    enum IGNBRK = 0x000001;
+    enum BRKINT = 0x000002;
+    enum IGNPAR = 0x000004;
+    enum PARMRK = 0x000008;
+    enum INPCK  = 0x000010;
+    enum ISTRIP = 0x000020;
+    enum INLCR  = 0x000040;
+    enum IGNCR  = 0x000080;
+    enum ICRNL  = 0x000100;
+    enum IXON   = 0x000400;
+    enum IXOFF  = 0x001000;
+
+    /* output modes */
+    enum OPOST  = 0x000001;
+
+    /* control modes */
+    enum CSIZE  = 0x000030;
+    enum CS5    = 0x000000;
+    enum CS6    = 0x000010;
+    enum CS7    = 0x000020;
+    enum CS8    = 0x000030;
+    enum CSTOPB = 0x000040;
+    enum CREAD  = 0x000080;
+    enum PARENB = 0x000100;
+    enum PARODD = 0x000200;
+    enum HUPCL  = 0x000400;
+    enum CLOCAL = 0x000800;
+
+    /* line discipline 0 modes */
+    enum ISIG   = 0x000001;
+    enum ICANON = 0x000002;
+    enum ECHO   = 0x000008;
+    enum ECHOE  = 0x000010;
+    enum ECHOK  = 0x000020;
+    enum ECHONL = 0x000040;
+    enum NOFLSH = 0x000080;
+    enum TOSTOP = 0x000100;
+
+    enum IEXTEN = 0x008000;  /* POSIX flag - enable POSIX extensions */
+
+    enum _TIOC      = ('T'<<8);
+    enum TCSANOW    = (_TIOC|14);
+    enum TCSADRAIN  = (_TIOC|15);
+    enum TCSAFLUSH  = (_TIOC|16);
+
+    /* termios option flags */
+    enum TCIFLUSH   = 0;  /* flush data received but not read */
+    enum TCOFLUSH   = 1;  /* flush data written but not transmitted */
+    enum TCIOFLUSH  = 2;  /* flush both data both input and output queues */
+
+    enum TCOOFF     = 0;  /* suspend output */
+    enum TCOON      = 1;  /* restart suspended output */
+    enum TCIOFF     = 2;  /* suspend input */
+    enum TCION      = 3;  /* restart suspended input */
+
+    /* Speeds */
+    enum B0      = 0;
+    enum B50     = 1;
+    enum B75     = 2;
+    enum B110    = 3;
+    enum B134    = 4;
+    enum B150    = 5;
+    enum B200    = 6;
+    enum B300    = 7;
+    enum B600    = 8;
+    enum B1200   = 9;
+    enum B1800   = 10;
+    enum B2400   = 11;
+    enum B4800   = 12;
+    enum B9600   = 13;
+    enum B19200  = 14;
+    enum B38400  = 15;
+    enum B57600  = 16;
+    enum B76800  = 17;
+    enum B115200 = 18;
+    enum B153600 = 19;
+    enum B230400 = 20;
+    enum B307200 = 21;
+    enum B460800 = 22;
+    enum B921600 = 23;
+
+    /*
+     * POSIX termios functions
+     * These functions get mapped into ioctls.
+     */
+    speed_t cfgetospeed(in termios*);
+    int     cfsetospeed(termios*, speed_t);
+    speed_t cfgetispeed(in termios*);
+    int     cfsetispeed(termios*, speed_t);
+    int     tcgetattr(int, termios*);
+    int     tcsetattr(int, int, in termios*);
+    int     tcsendbreak(int, int);
+    int     tcdrain(int);
+    int     tcflush(int, int);
+    int     tcflow(int, int);
+}
 
 //
 // XOpen (XSI)
@@ -610,4 +737,39 @@ else version( FreeBSD )
 
     pid_t   tcgetsid(int);
 }
+else version (Solaris)
+{
+    enum IXANY      = 0x0000800;
 
+    enum ONLCR      = 0x0000004;
+    enum OCRNL      = 0x0000008;
+    enum ONOCR      = 0x0000010;
+    enum ONLRET     = 0x0000020;
+    enum OFILL      = 0x0000040;
+    enum OFDEL      = 0x0000080;
+    enum NLDLY      = 0x0000100;
+    enum NL0        = 0x0000000;
+    enum NL1        = 0x0000100;
+    enum CRDLY      = 0x0000600;
+    enum CR0        = 0x0000000;
+    enum CR1        = 0x0000200;
+    enum CR2        = 0x0000400;
+    enum CR3        = 0x0000600;
+    enum TABDLY     = 0x0001800;
+    enum TAB0       = 0x0000000;
+    enum TAB1       = 0x0000800;
+    enum TAB2       = 0x0001000;
+    enum TAB3       = 0x0001800;
+    enum BSDLY      = 0x0002000;
+    enum BS0        = 0x0000000;
+    enum BS1        = 0x0002000;
+    enum VTDLY      = 0x0004000;
+    enum VT0        = 0x0000000;
+    enum VT1        = 0x0004000;
+    enum FFDLY      = 0x0008000;
+    enum FF0        = 0x0000000;
+    enum FF1        = 0x0008000;
+    enum XCASE      = 0x0000004;
+
+    pid_t   tcgetsid(int);
+}
