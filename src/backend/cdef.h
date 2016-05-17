@@ -1,8 +1,9 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
+// https://github.com/dlang/dmd/blob/master/src/backend/cdef.h
 /*
  * This source file is made available for personal use
  * only. The license is in backendlicense.txt
@@ -584,15 +585,15 @@ typedef int bool;
 #define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001 Digital Mars"
 #else
 #ifdef DEBUG
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
 #if __linux__
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
 Written by Walter Bright"
 #endif
 #endif
