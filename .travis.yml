@@ -13,11 +13,16 @@ addons:
     - gdb
 
 env:
-  - SELF_COMPILE=0
-  - SELF_COMPILE=2
+  - MODEL=32 SELF_COMPILE=0
+  - MODEL=32 SELF_COMPILE=2
+  - MODEL=64 SELF_COMPILE=0
+  - MODEL=64 SELF_COMPILE=2
 
 matrix:
   include:
     - os: osx
       d: dmd-beta
-      env: SELF_COMPILE=0
+      env: MODEL=32 SELF_COMPILE=0
+    - os: osx
+      d: dmd-beta
+      env: MODEL=64 SELF_COMPILE=0
