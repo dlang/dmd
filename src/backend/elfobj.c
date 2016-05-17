@@ -65,7 +65,7 @@ static char __file__[] = __FILE__;      // for tassert.h
 #define MATCH_SECTION 1
 
 #define DEST_LEN (IDMAX + IDOHD + 1)
-char *obj_mangle2(Symbol *s,char *dest);
+char *obj_mangle2(Symbol *s,char *dest, size_t *destlen);
 
 #if MARS
 // C++ name mangling is handled by front end
@@ -407,18 +407,18 @@ static IDXSTR elf_addmangled(Symbol *s)
 {
     //printf("elf_addmangled(%s)\n", s->Sident);
     char dest[DEST_LEN];
-    char *destr;
-    const char *name;
-    int len;
-    IDXSTR namidx;
 
-    namidx = symtab_strings->size();
-    destr = obj_mangle2(s, dest);
-    name = destr;
+    IDXSTR namidx = symtab_strings->size();
+    size_t len;
+    char *destr = obj_mangle2(s, dest, &len);
+    const char *name = destr;
     if (CPP && name[0] == '_' && name[1] == '_')
     {
         if (strncmp(name,"__ct__",6) == 0)
+        {
             name += 4;
+            len -= 4;
+        }
 #if 0
         switch(name[2])
         {
@@ -445,10 +445,12 @@ static IDXSTR elf_addmangled(Symbol *s)
 #endif
     }
     else if (tyfunc(s->ty()) && s->Sfunc && s->Sfunc->Fredirect)
+    {
         name = s->Sfunc->Fredirect;
-    len = strlen(name);
+        len = strlen(name);
+    }
     symtab_strings->reserve(len+1);
-    strcpy((char *)symtab_strings->p,name);
+    memcpy((char *)symtab_strings->p, name, len + 1);
     symtab_strings->setsize(namidx+len+1);
     if (destr != dest)                  // if we resized result
         mem_free(destr);
@@ -1993,7 +1995,7 @@ char *unsstr(unsigned value)
  *      mangled name
  */
 
-char *obj_mangle2(Symbol *s,char *dest)
+char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
 {
     char *name;
 
@@ -2035,13 +2037,14 @@ char *obj_mangle2(Symbol *s,char *dest)
             {
                 char *pstr = unsstr(type_paramsize(s->Stype));
                 size_t pstrlen = strlen(pstr);
-                size_t destlen = len + 1 + pstrlen + 1;
+                size_t dlen = len + 1 + pstrlen;
 
-                if (destlen > DEST_LEN)
-                    dest = (char *)mem_malloc(destlen);
+                if (dlen >= DEST_LEN)
+                    dest = (char *)mem_malloc(dlen + 1);
                 memcpy(dest,name,len);
                 dest[len] = '@';
                 memcpy(dest + 1 + len, pstr, pstrlen + 1);
+                len = dlen;
                 break;
             }
         case mTYman_cpp:
@@ -2063,6 +2066,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             assert(0);
     }
     //dbg_printf("\t %s\n",dest);
+    *destlen = len;
     return dest;
 }
 
