@@ -3,6 +3,18 @@
 #ifndef DT_H
 #define DT_H    1
 
+#include <stddef.h>     // for size_t
+
+#if __APPLE__ && __i386__
+    /* size_t is 'unsigned long', which makes it mangle differently
+     * than D's 'uint'
+     */
+    typedef unsigned d_size_t;
+#else
+    typedef size_t d_size_t;
+#endif
+
+
 struct dt_t;
 struct Symbol;
 typedef unsigned        tym_t;          // data type big enough for type masks
@@ -48,7 +60,7 @@ public:
     void coff(unsigned offset);
     void cat(dt_t *dt);
     void cat(DtBuilder *dtb);
-    void repeat(dt_t *dt, size_t count);
+    void repeat(dt_t *dt, d_size_t count);
     unsigned length();
     bool isZeroLength();
 };
