@@ -336,7 +336,6 @@ STATIC void outextdata();
 STATIC void outpubdata();
 STATIC Ledatarec *ledata_new(int seg,targ_size_t offset);
 
-char *id_compress(char *id, int idlen, size_t *plen);
 
 /*******************************
  * Output an object file data record.
@@ -3683,107 +3682,6 @@ symbol *Obj::tlv_bootstrap()
     // specific for Mach-O
     assert(0);
     return NULL;
-}
-
-/****************************************
- * Find longest match of pattern[] in dict[].
- */
-
-static int longest_match(char *dict, int dlen, char *pattern, int plen,
-        int *pmatchoff, int *pmatchlen)
-{
-    int matchlen = 0;
-    int matchoff;
-
-    int i;
-    int j;
-
-    for (i = 0; i < dlen; i++)
-    {
-        if (dict[i] == pattern[0])
-        {
-            for (j = 1; 1; j++)
-            {
-                if (i + j == dlen || j == plen)
-                    break;
-                if (dict[i + j] != pattern[j])
-                    break;
-            }
-            if (j >= matchlen)
-            {
-                matchlen = j;
-                matchoff = i;
-            }
-        }
-    }
-
-    if (matchlen > 1)
-    {
-        *pmatchlen = matchlen;
-        *pmatchoff = matchoff;
-        return 1;                       // found a match
-    }
-    return 0;                           // no match
-}
-
-/******************************************
- * Compress an identifier.
- * Format: if ASCII, then it's just the char
- *      if high bit set, then it's a length/offset pair
- * Returns:
- *      malloc'd compressed identifier
- */
-
-char *id_compress(char *id, int idlen, size_t *plen)
-{
-    int i;
-    int count = 0;
-    char *p;
-
-    p = (char *)malloc(idlen + 1);
-    for (i = 0; i < idlen; i++)
-    {
-        int matchoff;
-        int matchlen;
-
-        int j = 0;
-        if (i > 1023)
-            j = i - 1023;
-
-        if (longest_match(id + j, i - j, id + i, idlen - i, &matchoff, &matchlen))
-        {   int off;
-
-            matchoff += j;
-            off = i - matchoff;
-            //printf("matchoff = %3d, matchlen = %2d, off = %d\n", matchoff, matchlen, off);
-            assert(off >= matchlen);
-
-            if (off <= 8 && matchlen <= 8)
-            {
-                p[count] = 0xC0 | ((off - 1) << 3) | (matchlen - 1);
-                count++;
-                i += matchlen - 1;
-                continue;
-            }
-            else if (matchlen > 2 && off < 1024)
-            {
-                if (matchlen >= 1024)
-                    matchlen = 1023;    // longest representable match
-                p[count + 0] = 0x80 | ((matchlen >> 4) & 0x38) | ((off >> 7) & 7);
-                p[count + 1] = 0x80 | matchlen;
-                p[count + 2] = 0x80 | off;
-                count += 3;
-                i += matchlen - 1;
-                continue;
-            }
-        }
-        p[count] = id[i];
-        count++;
-    }
-    p[count] = 0;
-    //printf("old size = %d, new size = %d\n", idlen, count);
-    *plen = count;
-    return p;
 }
 
 #endif
