@@ -527,6 +527,8 @@ else version (Solaris)
     enum HUPCL  = 0x000400;
     enum CLOCAL = 0x000800;
 
+    enum CRTSCTS = 0x10000000;
+
     /* line discipline 0 modes */
     enum ISIG   = 0x000001;
     enum ICANON = 0x000002;
@@ -536,6 +538,10 @@ else version (Solaris)
     enum ECHONL = 0x000040;
     enum NOFLSH = 0x000080;
     enum TOSTOP = 0x000100;
+
+    enum ECHOCTL = 0x000200;
+    enum ECHOPRT = 0x000400;
+    enum ECHOKE  = 0x000800;
 
     enum IEXTEN = 0x008000;  /* POSIX flag - enable POSIX extensions */
 
