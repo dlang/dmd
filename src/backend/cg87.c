@@ -2811,6 +2811,8 @@ code *cdnegass87(elem *e,regm_t *pretregs)
             cs.IEVoffset1 += 10 - 1;
         else if (tyml == TYcldouble)
             cs.IEVoffset1 += tysize[TYldouble] + 10 - 1;
+        else
+            cs.IEVoffset1 += sz - 1;
     }
     else
         cs.IEVoffset1 += sz - 1;
