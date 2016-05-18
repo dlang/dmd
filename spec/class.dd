@@ -1241,33 +1241,69 @@ int bar()
         )
 
         $(P The property $(D .outer) used in a nested class gives the
-        $(D this) pointer to its enclosing class. If the enclosing
-        context is not a class, the $(D .outer) will give the pointer
-        to it as a $(D void*) type.
+        $(D this) pointer to its enclosing class. If there is no enclosing
+        class context, $(D .outer) would return a pointer to enclosing
+        function frame with $(D void*).
         )
 
 ----
 class Outer
 {
-    class Inner
+    class Inner1
     {
-        Outer foo()
+        Outer getOuter()
         {
             return this.$(CODE_HIGHLIGHT outer);
         }
     }
 
+    void foo()
+    {
+        Inner1 i = new Inner1;
+        assert(i.getOuter() is this);
+    }
+
     void bar()
     {
-        Inner i = new Inner;
-        assert(this == i.foo());
-    }
-}
+        // x is referenced from nested scope, so
+        // bar makes a closure envronment.
+        int x = 1;
 
-void test()
-{
-    Outer o = new Outer;
-    o.bar();
+        class Inner2
+        {
+            Outer getOuter()
+            {
+                x = 2;
+                // The Inner2 instance owns function frame of bar
+                // as static frame pointer, but .outer yet returns
+                // the enclosing Outer class instance property.
+                return this.$(CODE_HIGHLIGHT outer);
+            }
+        }
+
+        Inner2 i = new Inner2;
+        assert(i.getOuter() is this);
+    }
+
+    static void baz()
+    {
+        // make a closure envronment
+        int x = 1;
+
+        class Inner3
+        {
+            void* getOuter()
+            {
+                x = 2;
+                // There's no accessible enclosing class instance, so
+                // .outer property returns the function frame of bar.
+                return this.$(CODE_HIGHLIGHT outer);
+            }
+        }
+
+        Inner3 i = new Inner3;
+        assert(i.getOuter() !is null);
+    }
 }
 ----
 
