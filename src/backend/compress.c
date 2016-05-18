@@ -120,6 +120,7 @@ char *id_compress(char *id, int idlen, size_t *plen)
     }
     p[count] = 0;
     //printf("old size = %d, new size = %d\n", idlen, count);
+    assert(count <= idlen);
     *plen = count;
     return p;
 }

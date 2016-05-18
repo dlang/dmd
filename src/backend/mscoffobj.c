@@ -1663,6 +1663,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             memcpy(dest,name,len + 1);  // copy in name and ending 0
             strupr(dest);               // to upper case
             break;
+
         case mTYman_std:
             if (!(config.flags4 & CFG4oldstdmangle) &&
                 config.exe == EX_WIN32 && tyfunc(s->ty()) &&
@@ -1681,16 +1682,30 @@ char *obj_mangle2(Symbol *s,char *dest)
                 memcpy(dest + prelen + 1 + len, pstr, pstrlen + 1);
                 break;
             }
-            // fall through
+            goto L1;
+
         case mTYman_cpp:
-        case mTYman_d:
         case mTYman_sys:
         case_mTYman_c64:
         case 0:
+        L1:
             if (len >= DEST_LEN)
                 dest = (char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
+
+        case mTYman_d:
+            if (len >= 64 && name[0] == '_' && name[1] == 'D')
+            {
+                size_t len2;
+                char *name2 = id_compress(name, len, &len2);
+                if (len2 >= DEST_LEN)
+                    dest = (char *)mem_malloc(len2 + 1);
+                memcpy(dest, name2 , len2 + 1); // copy in name2 and trailing 0
+                free(name2);
+                break;
+            }
+            goto L1;
 
         case mTYman_c:
             if(I64)
