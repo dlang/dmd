@@ -24,6 +24,8 @@ private:
     T[SMALLARRAYCAP] smallarray; // inline storage for small arrays
 
 public:
+    @disable this(this);
+
     ~this() nothrow
     {
         if (data != &smallarray[0])
@@ -179,25 +181,6 @@ public:
     T pop() nothrow pure
     {
         return data[--dim];
-    }
-
-    int apply(int function(T, void*) fp, void* param)
-    {
-        static if (is(typeof(T.init.apply(fp, null))))
-        {
-            for (size_t i = 0; i < dim; i++)
-            {
-                T e = data[i];
-                if (e)
-                {
-                    if (e.apply(fp, param))
-                        return 1;
-                }
-            }
-            return 0;
-        }
-        else
-            assert(0);
     }
 
     extern (D) inout(T)[] opSlice() inout nothrow pure
