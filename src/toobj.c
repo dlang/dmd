@@ -40,7 +40,6 @@
 #include "cgcv.h"
 #include "outbuf.h"
 #include "irstate.h"
-#include "objc.h"
 #include "mach.h"
 
 extern bool obj_includelib(const char *name);
@@ -66,7 +65,8 @@ void toDebug(EnumDeclaration *ed);
 void toDebug(StructDeclaration *sd);
 void toDebug(ClassDeclaration *cd);
 
-void objc_Module_genmoduleinfo_classes();
+Symbol *objc_getModuleInfo();
+bool hasObjcSymbols();
 
 /* ================================================================== */
 
@@ -203,7 +203,9 @@ void genModuleInfo(Module *m)
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-    objc_Module_genmoduleinfo_classes();
+    if (hasObjcSymbols())
+        objc_getModuleInfo();
+
     m->csym->Sdt = dtb.finish();
     out_readonly(m->csym);
     outdata(m->csym);

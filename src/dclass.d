@@ -29,7 +29,6 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
-import ddmd.objc;
 import ddmd.root.rmem;
 import ddmd.statement;
 import ddmd.target;
@@ -219,12 +218,11 @@ public:
 
     bool com;           // true if this is a COM class (meaning it derives from IUnknown)
     bool cpp;           // true if this is a C++ interface
+    bool objc;          // true if this is an Objective-C class/interface
     bool isscope;       // true if this is a scope class
     Abstract isabstract;
     int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
-
-    Objc_ClassDeclaration objc;
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
@@ -497,7 +495,12 @@ public:
             if (sc.linkage == LINKcpp)
                 cpp = true;
             if (sc.linkage == LINKobjc)
-                objc_ClassDeclaration_semantic_PASSinit_LINKobjc(this);
+            {
+                if (global.params.hasObjectiveC)
+                    objc = true;
+                else
+                    error("Objective-C classes are not supported for this target");
+            }
         }
         else if (symtab && !scx)
         {
@@ -1534,7 +1537,7 @@ public:
             sc2.linkage = LINKwindows;
         else if (cpp)
             sc2.linkage = LINKcpp;
-        else if (objc.isInterface())
+        else if (objc)
             sc2.linkage = LINKobjc;
         return sc2;
     }
@@ -1656,7 +1659,13 @@ public:
             if (!baseclasses.dim && sc.linkage == LINKcpp)
                 cpp = true;
 
-            objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
+            if (sc.linkage == LINKobjc)
+            {
+                if (global.params.hasObjectiveC)
+                    objc = true;
+                else
+                    error("Objective-C interfaces are not supported for this target");
+            }
 
             // Check for errors, handle forward references
             for (size_t i = 0; i < baseclasses.dim;)

@@ -510,8 +510,6 @@
    <File path="..\mtype.d" />
    <File path="..\nogc.d" />
    <File path="..\nspace.d" />
-   <File tool="None" path="..\objc.d" />
-   <File path="..\objc_stubs.d" />
    <File path="..\opover.d" />
    <File path="..\optimize.d" />
    <File path="..\osmodel.mak" />

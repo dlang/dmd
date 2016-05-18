@@ -20,7 +20,6 @@
 
 #include "dsymbol.h"
 #include "declaration.h"
-#include "objc.h"
 
 class Identifier;
 class Type;
@@ -279,11 +278,11 @@ public:
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
     bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
     bool cpp;                           // true if this is a C++ interface
+    bool objc;                          // true if this is an Objective-C class/interface
     bool isscope;                       // true if this is a scope class
     Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
     int inuse;                          // to prevent recursive attempts
     Baseok baseok;                      // set the progress of base classes resolving
-    Objc_ClassDeclaration objc;
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
