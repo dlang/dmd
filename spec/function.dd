@@ -1200,16 +1200,7 @@ void foo(int x, int y, ...)
 {
     va_list args;
 
-    version (X86)
-        va_start(args, y);  // y is the last named parameter
-    else
-    version (Win64)
-        va_start(args, y);  // ditto
-    else
-    version (X86_64)
-        va_start(args, __va_argsave);
-    else
-    static assert(0, "Platform not supported.");
+    va_start(args, y);  // y is the last named parameter
 
     int z;
     va_arg(args, z);  // z is set to 5
