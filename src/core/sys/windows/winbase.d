@@ -1778,7 +1778,7 @@ extern (Windows) nothrow @nogc {
     HRSRC FindResourceExA(HINSTANCE, LPCSTR, LPCSTR, WORD);
     HRSRC FindResourceExW(HINSTANCE, LPCWSTR, LPCWSTR, WORD);
     BOOL FlushFileBuffers(HANDLE);
-    BOOL FlushInstructionCache(HANDLE, PCVOID, DWORD);
+    BOOL FlushInstructionCache(HANDLE, PCVOID, SIZE_T);
     DWORD FormatMessageA(DWORD, PCVOID, DWORD, DWORD, LPSTR, DWORD, va_list*);
     DWORD FormatMessageW(DWORD, PCVOID, DWORD, DWORD, LPWSTR, DWORD, va_list*);
     BOOL FreeEnvironmentStringsA(LPSTR);
@@ -2104,7 +2104,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     HLOCAL LocalHandle(LPCVOID);
     PVOID LocalLock(HLOCAL);
     HLOCAL LocalReAlloc(HLOCAL, SIZE_T, UINT);
-    UINT LocalSize(HLOCAL);
+    SIZE_T LocalSize(HLOCAL);
     BOOL LocalUnlock(HLOCAL);
     PVOID VirtualAlloc(PVOID, SIZE_T, DWORD, DWORD);
     PVOID VirtualAllocEx(HANDLE, PVOID, SIZE_T, DWORD, DWORD);
