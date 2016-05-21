@@ -1121,8 +1121,8 @@ struct V54
 class Foo54
 {
     static int y;
-    static V54 prop() { V54 val; return val; }
-    static void prop(V54 val) { y = val.x * 2; }
+    @property static V54 prop() { V54 val; return val; }
+    @property static void prop(V54 val) { y = val.x * 2; }
 }
 
 void test54()

@@ -294,13 +294,11 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                     if (f.errors)
                         return new ErrorExp();
                     fd = f;
-                    assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
                 }
             }
             if (fd)
             {
-                Expression e = new CallExp(loc, e1, e2);
+                Expression e = new CallExp(loc, e1, e2, PROPmemset);
                 return e.semantic(sc);
             }
         }
@@ -313,15 +311,11 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                     if (f.errors)
                         return new ErrorExp();
                     fd = f;
-                    assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
-                    if (!tf.isref && e2)
-                        goto Leproplvalue;
                 }
             }
             if (fd)
             {
-                Expression e = new CallExp(loc, e1);
+                Expression e = new CallExp(loc, e1, PROPmemget);
                 if (e2)
                     e = new AssignExp(loc, e, e2);
                 return e.semantic(sc);
@@ -406,9 +400,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             {
                 if (fd.errors)
                     return new ErrorExp();
-                assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type;
-                Expression e = new CallExp(loc, e1, e2);
+                Expression e = new CallExp(loc, e1, e2, PROPmemset);
                 return e.semantic(sc);
             }
         }
@@ -422,7 +414,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 if (!e2 || tf.isref)
                 {
-                    Expression e = new CallExp(loc, e1);
+                    Expression e = new CallExp(loc, e1, PROPmemget);
                     if (e2)
                         e = new AssignExp(loc, e, e2);
                     return e.semantic(sc);
@@ -431,10 +423,8 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         }
         if (FuncDeclaration fd = s.isFuncDeclaration())
         {
-            // Keep better diagnostic message for invalid property usage of functions
-            assert(fd.type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            Expression e = new CallExp(loc, e1, e2);
+            // Don't keep function as an expression in AST
+            Expression e = new CallExp(loc, e1, e2, e2 ? PROPmemset : PROPmemget);
             return e.semantic(sc);
         }
         if (e2)
@@ -491,12 +481,8 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     }
     return e1;
 
-Leprop:
+Leprop: // necessary?
     error(loc, "not a property %s", e1.toChars());
-    return new ErrorExp();
-
-Leproplvalue:
-    error(loc, "%s is not an lvalue", e1.toChars());
     return new ErrorExp();
 }
 
@@ -507,41 +493,6 @@ extern (C++) Expression resolveProperties(Scope* sc, Expression e)
     if (e.checkRightThis(sc))
         return new ErrorExp();
     return e;
-}
-
-/******************************
- * Check the tail CallExp is really property function call.
- */
-extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
-{
-    while (e.op == TOKcomma)
-        e = (cast(CommaExp)e).e2;
-
-    if (e.op == TOKcall)
-    {
-        CallExp ce = cast(CallExp)e;
-        TypeFunction tf;
-        if (ce.f)
-        {
-            tf = cast(TypeFunction)ce.f.type;
-            /* If a forward reference to ce->f, try to resolve it
-             */
-            if (!tf.deco && ce.f._scope)
-            {
-                ce.f.semantic(ce.f._scope);
-                tf = cast(TypeFunction)ce.f.type;
-            }
-        }
-        else if (ce.e1.type.ty == Tfunction)
-            tf = cast(TypeFunction)ce.e1.type;
-        else if (ce.e1.type.ty == Tdelegate)
-            tf = cast(TypeFunction)ce.e1.type.nextOf();
-        else if (ce.e1.type.ty == Tpointer && ce.e1.type.nextOf().ty == Tfunction)
-            tf = cast(TypeFunction)ce.e1.type.nextOf();
-        else
-            assert(0);
-    }
-    return false;
 }
 
 /******************************
@@ -764,7 +715,8 @@ Lsearchdone:
  */
 extern (C++) bool isDotOpDispatch(Expression e)
 {
-    return e.op == TOKdotti && (cast(DotTemplateInstanceExp)e).ti.name == Id.opDispatch;
+    return e.op == TOKdotti &&
+           (cast(DotTemplateInstanceExp)e).isOpDispatch;
 }
 
 /******************************
@@ -906,26 +858,18 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
         /* f(e1) = e2
          */
         Expression ex = e.copy();
-        auto a1 = new Expressions();
-        a1.setDim(1);
-        (*a1)[0] = eleft;
-        ex = new CallExp(loc, ex, a1);
+        ex = new CallExp(loc, ex, eleft, PROPufcget);
         ex = ex.trySemantic(sc);
 
         /* f(e1, e2)
          */
-        auto a2 = new Expressions();
-        a2.setDim(2);
-        (*a2)[0] = eleft;
-        (*a2)[1] = e2;
-        e = new CallExp(loc, e, a2);
+        e = new CallExp(loc, e, eleft, e2, PROPufcset);
         if (ex)
         {
             // if fallback setter exists, gag errors
             e = e.trySemantic(sc);
             if (!e)
             {
-                checkPropertyCall(ex, e1);
                 ex = new AssignExp(loc, ex, e2);
                 return ex.semantic(sc);
             }
@@ -935,19 +879,14 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             // strict setter prints errors if fails
             e = e.semantic(sc);
         }
-        checkPropertyCall(e, e1);
         return e;
     }
     else
     {
         /* f(e1)
          */
-        auto arguments = new Expressions();
-        arguments.setDim(1);
-        (*arguments)[0] = eleft;
-        e = new CallExp(loc, e, arguments);
+        e = new CallExp(loc, e, eleft, PROPufcget);
         e = e.semantic(sc);
-        checkPropertyCall(e, e1);
         return e.semantic(sc);
     }
 }
@@ -9083,6 +9022,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
 {
 public:
     TemplateInstance ti;
+    bool isOpDispatch;
 
     extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
     {
@@ -9436,6 +9376,21 @@ public:
     }
 }
 
+enum PROP
+{
+    PROPnone,       // func(...) or e1.func(...)
+    PROPmemget,     // e1.func       -> e1.func()
+    PROPmemset,     // e1.func = e2; -> e1.func(e2);
+    PROPufcget,     // e1.func;      -> .func(e1);
+    PROPufcset,     // e1.func = e2; -> .func(e1, e2);
+}
+
+alias PROPnone = PROP.PROPnone;
+alias PROPmemget = PROP.PROPmemget;
+alias PROPmemset = PROP.PROPmemset;
+alias PROPufcget = PROP.PROPufcget;
+alias PROPufcset = PROP.PROPufcset;
+
 /***********************************************************
  */
 extern (C++) final class CallExp : UnaExp
@@ -9443,20 +9398,23 @@ extern (C++) final class CallExp : UnaExp
 public:
     Expressions* arguments; // function arguments
     FuncDeclaration f;      // symbol to call
+    PROP prop;
     bool directcall;        // true if a virtual call is devirtualized
 
-    extern (D) this(Loc loc, Expression e, Expressions* exps)
+    extern (D) this(Loc loc, Expression e, Expressions* exps, PROP prop = PROPnone)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
         this.arguments = exps;
+        this.prop = prop;
     }
 
-    extern (D) this(Loc loc, Expression e)
+    extern (D) this(Loc loc, Expression e, PROP prop = PROPnone)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
+        this.prop = prop;
     }
 
-    extern (D) this(Loc loc, Expression e, Expression earg1)
+    extern (D) this(Loc loc, Expression e, Expression earg1, PROP prop = PROPnone)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
         auto arguments = new Expressions();
@@ -9466,16 +9424,19 @@ public:
             (*arguments)[0] = earg1;
         }
         this.arguments = arguments;
+        this.prop = prop;
     }
 
-    extern (D) this(Loc loc, Expression e, Expression earg1, Expression earg2)
+    extern (D) this(Loc loc, Expression e, Expression earg1, Expression earg2, PROP prop = PROPnone)
     {
         super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
         auto arguments = new Expressions();
         arguments.setDim(2);
         (*arguments)[0] = earg1;
         (*arguments)[1] = earg2;
+
         this.arguments = arguments;
+        this.prop = prop;
     }
 
     static CallExp create(Loc loc, Expression e, Expressions* exps)
@@ -9495,7 +9456,7 @@ public:
 
     override Expression syntaxCopy()
     {
-        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
+        return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments), prop);
     }
 
     override Expression semantic(Scope* sc)
@@ -9554,6 +9515,8 @@ public:
 
         if (Expression ex = resolveUFCS(sc, this))
             return ex;
+
+        bool isOpDispatch = isDotOpDispatch(e1);
 
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
@@ -9839,6 +9802,17 @@ public:
             }
         }
 
+        // Transform prop(...) to prop()(...)
+        if (prop == PROPnone)
+        {
+            auto e = resolvePropertiesOnly(sc, e1);
+            if (e != e1 && e.op == TOKerror)
+                return e;
+            e1 = e;
+            if (e1.type)
+                t1 = e1.type.toBasetype();
+        }
+
         static FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
             OverloadSet os, Objects* tiargs, Type tthis, Expressions* arguments)
         {
@@ -9869,7 +9843,8 @@ public:
             return f;
         }
 
-        if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
+        if (e1.op == TOKdotvar && t1.ty == Tfunction ||
+            e1.op == TOKdottd)
         {
             UnaExp ue = cast(UnaExp)e1;
 
@@ -10314,6 +10289,55 @@ public:
             t1 = f.type;
         }
         assert(t1.ty == Tfunction);
+
+        if (f)  // && global.params.enforcePropertySyntax
+        {
+            auto tf = cast(TypeFunction)t1;
+            if (!tf.isproperty)
+            {
+                switch (prop)
+                {
+                    case PROPnone:
+                    case PROPmemget:    // e1.func;      -> e1.func();
+                    case PROPufcget:    // e1.func;      -> func(e1);
+                        break;
+
+                    case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                        if (isOpDispatch)
+                        {
+                            auto ti = f.parent.isTemplateInstance();
+                            if (ti && ti.parent.pastMixin().isAggregateDeclaration())
+                                break;
+                        }
+                        goto case;
+
+                    case PROPufcset:    // e1.func = e2; -> func(e1, e2);
+                        e1.error("not a property %s", e1.toChars());
+                        break;
+
+                    default:
+                        assert(0);
+                }
+            }
+            else
+            {
+                switch (prop)
+                {
+                    case PROPnone:
+                        e1.error("is a property %s", e1.toChars());
+                        break;
+
+                    case PROPmemget:    // e1.func;      -> e1.func;
+                    case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                    case PROPufcget:    // e1.func;      -> func(e1);
+                    case PROPufcset:    // e1.func = e2; -> func(e1, e2);
+                        break;
+
+                    default:
+                        assert(0);
+                }
+            }
+        }
 
         Expression argprefix;
         if (!arguments)

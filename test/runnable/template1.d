@@ -2027,8 +2027,8 @@ void test82()
 
 struct A83
 {
-    void foo(int) {}
-    void bar(T)(T) {}
+    @property void foo(int) {}
+    @property void bar(T)(T) {}
 }
 
 void test83()

@@ -36,21 +36,21 @@ void test1()
     assert( 4.foo       == 1);      assert( 4.baz       == 1);
     assert(   foo(4, 2) == 2);      assert(   baz(4, 2) == 2);
     assert( 4.foo(2)    == 2);      assert( 4.baz(2)    == 2);
-    assert((4.foo = 2)  == 2);      assert((4.baz = 2)  == 2);
+//  assert((4.foo = 2)  == 2);      assert((4.baz = 2)  == 2);
 
     assert(   goo(a)    == 1);      assert(   baz(a)    == 1);
     assert( a.goo()     == 1);      assert( a.baz()     == 1);
     assert( a.goo       == 1);      assert( a.baz       == 1);
     assert(   goo(a, 2) == 2);      assert(   baz(a, 2) == 2);
     assert( a.goo(2)    == 2);      assert( a.baz(2)    == 2);
-    assert((a.goo = 2)  == 2);      assert((a.baz = 2)  == 2);
+//  assert((a.goo = 2)  == 2);      assert((a.baz = 2)  == 2);
 
     assert(   bar(s)    == 1);      assert(   baz(s)    == 1);
     assert( s.bar()     == 1);      assert( s.baz()     == 1);
     assert( s.bar       == 1);      assert( s.baz       == 1);
     assert(   bar(s, 2) == 2);      assert(   baz(s, 2) == 2);
     assert( s.bar(2)    == 2);      assert( s.baz(2)    == 2);
-    assert((s.bar = 2)  == 2);      assert((s.baz = 2)  == 2);
+//  assert((s.bar = 2)  == 2);      assert((s.baz = 2)  == 2);
 
     assert((  boo(4) = 2) == 2);    assert((  maz(4) = 2) == 2);
     assert((4.boo    = 2) == 2);    assert((4.maz    = 2) == 2);
@@ -88,21 +88,21 @@ void test2()
     assert( 4.hoo!int       == 1);  assert( 4.vaz!int       == 1);
     assert(   hoo!int(4, 2) == 2);  assert(   vaz!int(4, 2) == 2);
     assert( 4.hoo!int(2)    == 2);  assert( 4.vaz!int(2)    == 2);
-    assert((4.hoo!int = 2)  == 2);  assert((4.vaz!int = 2)  == 2);
+//  assert((4.hoo!int = 2)  == 2);  assert((4.vaz!int = 2)  == 2);
 
     assert(   koo!int(a)    == 1);  assert(   vaz!int(a)    == 1);
     assert( a.koo!int()     == 1);  assert( a.vaz!int()     == 1);
     assert( a.koo!int       == 1);  assert( a.vaz!int       == 1);
     assert(   koo!int(a, 2) == 2);  assert(   vaz!int(a, 2) == 2);
     assert( a.koo!int(2)    == 2);  assert( a.vaz!int(2)    == 2);
-    assert((a.koo!int = 2)  == 2);  assert((a.vaz!int = 2)  == 2);
+//  assert((a.koo!int = 2)  == 2);  assert((a.vaz!int = 2)  == 2);
 
     assert(   var!int(s)    == 1);  assert(   vaz!int(s)    == 1);
     assert( s.var!int()     == 1);  assert( s.vaz!int()     == 1);
     assert( s.var!int       == 1);  assert( s.vaz!int       == 1);
     assert(   var!int(s, 2) == 2);  assert(   vaz!int(s, 2) == 2);
     assert( s.var!int(2)    == 2);  assert( s.vaz!int(2)    == 2);
-    assert((s.var!int = 2)  == 2);  assert((s.vaz!int = 2)  == 2);
+//  assert((s.var!int = 2)  == 2);  assert((s.vaz!int = 2)  == 2);
 
     assert((  voo!int(4) = 2) == 2);    assert((  naz!int(4) = 2) == 2);
     assert((4.voo!int    = 2) == 2);    assert((4.naz!int    = 2) == 2);
@@ -524,7 +524,7 @@ struct A7670
 void test7670()
 {
     A7670 a1;
-    a1.y7670() = 2.0; // OK
+//  a1.y7670() = 2.0; // OK
     a1.y7670 = 2.0; // Error
 }
 
@@ -619,7 +619,7 @@ T[] sort8453(T)(T[] a) { return a; }
 void test8453()
 {
     int[int] foo;
-    auto bar1 = foo.keys().sort8453(); // OK
+//  auto bar1 = foo.keys().sort8453(); // OK
     auto bar2 = foo.keys.sort8453();   // Error
 }
 

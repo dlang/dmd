@@ -348,7 +348,7 @@ void test15()
 
 class Parent16
 {
-	void test(int i){
+	@property void test(int i){
 	}
 }
 

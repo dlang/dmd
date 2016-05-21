@@ -177,7 +177,7 @@ void test4()
 {
     S4f s4f;
     assert(s4f.func == 0);          // getter
-    assert((s4f.func = 1) == 1);    // setter
+    assert((s4f.func = 1) == 1);    // setter (ignore @property check)
 
     S4p s4p;
     assert(s4p.prop == 0);          // getter
@@ -214,7 +214,8 @@ void test5()
 {
     S5f s5f;
     assert(s5f.prop == 0);          // getter   ng -> ok
-    assert((s5f.prop = 1) == 1);    // setter
+    static assert(!__traits(compiles, (s5f.prop = 1)));
+                                    // setter (cannot ignore @property check)
 
     S5p s5p;
     assert(s5p.prop == 0);          // getter   ng -> ok
@@ -257,11 +258,48 @@ void test6()
 {
     S6f s6f;
     assert(s6f.prop!int == 0);          // getter   ng -> ok
-    assert((s6f.prop!int = 1) == 1);    // setter
+    static assert(!__traits(compiles, (s6f.prop!int = 1)));
+                                        // setter (cannot ignore @property check)
 
     S6p s6p;
     assert(s6p.prop!int == 0);          // getter   ng -> ok
     assert((s6p.prop!int = 1) == 1);    // setter
+}
+
+/**********************************************/
+
+struct S7
+{
+    void opDispatch(string name, A...)(A args) {}
+
+    version(none)
+    void test()
+    {
+        foo;
+        foo();
+        foo(1);
+        foo = 1;
+
+        opDispatch!"foo";
+        opDispatch!"foo"();
+        opDispatch!"foo"(1);
+        opDispatch!"foo" = 1;
+    }
+}
+
+void test7()
+{
+    S7 s;
+
+    s.foo;
+    s.foo();
+    s.foo(1);
+    s.foo = 1;  // bypass @property check
+
+    s.opDispatch!"foo";
+    s.opDispatch!"foo"();
+    s.opDispatch!"foo"(1);
+    static assert(!__traits(compiles, s.opDispatch!"foo" = 1));
 }
 
 /**********************************************/
@@ -290,6 +328,7 @@ int main()
     test4();
     test5();
     test6();
+    test7();
     test7578();
 
     printf("Success\n");

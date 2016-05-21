@@ -9,7 +9,7 @@ void main()
 {
     auto a = new A();
 
-    foreach(key; a.foobar.byKey())
+    foreach(key; a.foobar.byKey)
     {
     }
 }

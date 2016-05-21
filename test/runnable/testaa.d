@@ -690,12 +690,12 @@ void test29()
     auto gammaFunc = [-1.5:2.363, -0.5:-3.545, 0.5:1.772];
 
     // write all keys
-    foreach (k; gammaFunc.byKey()) {
+    foreach (k; gammaFunc.byKey) {
        printf("%f\n", k);
     }
 
     // write all values
-    foreach (v; gammaFunc.byValue()) {
+    foreach (v; gammaFunc.byValue) {
        printf("%f\n", v);
     }
 }

@@ -5190,7 +5190,7 @@ void test6837()
     assert(r2.front6837 == 1);      // ok
     r2.popFront6837();              // ng
     r2.get.popFront6837();          // ng
-    r2.get().popFront6837();        // ok
+//  r2.get().popFront6837();        // ok
 }
 
 /***************************************************/

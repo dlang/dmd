@@ -6,8 +6,8 @@ struct Foo
 {
     int v;
 
-    int bar(int value) { return v = value + 2; }
-    int bar() { return 73; }
+    @property int bar(int value) { return v = value + 2; }
+    @property int bar() { return 73; }
 }
 
 int test1()
@@ -31,8 +31,8 @@ int test1()
 struct S6259
 {
     private int m_prop;
-    ref const(int) prop() { return m_prop; }
-    void prop(int v) { m_prop = v; }
+    @property ref const(int) prop() { return m_prop; }
+    @property void prop(int v) { m_prop = v; }
 }
 
 void test6259()

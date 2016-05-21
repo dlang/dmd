@@ -1928,8 +1928,6 @@ public:
                     if (!e.type)
                         exp.error("%s has no value", e.toChars());
                     t = e.type.toBasetype();
-                    if (t && t.ty == Tfunction)
-                        e = new CallExp(e.loc, e);
                     v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
                     v.storage_class |= STCtemp | STCctfe | STCrvalue;
                 }

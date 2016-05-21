@@ -2710,7 +2710,8 @@ public:
                 tiargs.push(se);
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
                 dti.ti.tempdecl = td;
-                /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
+
+                /* opDispatch, which doesn't need IFTI, may occur instantiate error.
                  * It should be gagged if flag != 0.
                  * e.g.
                  *  tempalte opDispatch(name) if (isValid!name) { ... }
@@ -2719,6 +2720,8 @@ public:
                 e = dti.semanticY(sc, 0);
                 if (flag && global.endGagging(errors))
                     e = null;
+                if (e && e.op == TOKdotti)
+                    (cast(DotTemplateInstanceExp)e).isOpDispatch = true;
                 return e;
             }
 

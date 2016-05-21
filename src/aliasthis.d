@@ -137,7 +137,7 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
                             fd = f;     // use exact match
                         e = new VarExp(loc, fd, hasOverloads);
                         e.type = f.type;
-                        e = new CallExp(loc, e);
+                        e = new CallExp(loc, e, PROPmemget);
                         goto L1;
                     }
                 }
