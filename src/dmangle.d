@@ -31,69 +31,101 @@ import ddmd.root.port;
 import ddmd.utf;
 import ddmd.visitor;
 
-extern (C++) __gshared const(char)*[TMAX] mangleChar =
+private immutable char[TMAX] mangleChar =
 [
-    Tarray : "A",
-    Tsarray : "G",
-    Taarray : "H",
-    Tpointer : "P",
-    Treference : "R",
-    Tfunction : "F",
-    Tident : "I",
-    Tclass : "C",
-    Tstruct : "S",
-    Tenum : "E",
-    Tdelegate : "D",
-    Tnone : "n",
-    Tvoid : "v",
-    Tint8 : "g",
-    Tuns8 : "h",
-    Tint16 : "s",
-    Tuns16 : "t",
-    Tint32 : "i",
-    Tuns32 : "k",
-    Tint64 : "l",
-    Tuns64 : "m",
-    Tint128 : "zi",
-    Tuns128 : "zk",
-    Tfloat32 : "f",
-    Tfloat64 : "d",
-    Tfloat80 : "e",
-    Timaginary32 : "o",
-    Timaginary64 : "p",
-    Timaginary80 : "j",
-    Tcomplex32 : "q",
-    Tcomplex64 : "r",
-    Tcomplex80 : "c",
-    Tbool : "b",
-    Tchar : "a",
-    Twchar : "u",
-    Tdchar : "w",
+    Tchar        : 'a',
+    Tbool        : 'b',
+    Tcomplex80   : 'c',
+    Tfloat64     : 'd',
+    Tfloat80     : 'e',
+    Tfloat32     : 'f',
+    Tint8        : 'g',
+    Tuns8        : 'h',
+    Tint32       : 'i',
+    Timaginary80 : 'j',
+    Tuns32       : 'k',
+    Tint64       : 'l',
+    Tuns64       : 'm',
+    Tnone        : 'n',
+    Tnull        : 'n', // yes, same as TypeNone
+    Timaginary32 : 'o',
+    Timaginary64 : 'p',
+    Tcomplex32   : 'q',
+    Tcomplex64   : 'r',
+    Tint16       : 's',
+    Tuns16       : 't',
+    Twchar       : 'u',
+    Tvoid        : 'v',
+    Tdchar       : 'w',
+    //              x   // const
+    //              y   // immutable
+    Tint128      : 'z', // zi
+    Tuns128      : 'z', // zk
+
+    Tarray       : 'A',
+    Ttuple       : 'B',
+    Tclass       : 'C',
+    Tdelegate    : 'D',
+    Tenum        : 'E',
+    Tfunction    : 'F', // D function
+    Tsarray      : 'G',
+    Taarray      : 'H',
+    Tident       : 'I',
+    //              J   // out
+    //              K   // ref
+    //              L   // lazy
+    //              M   // has this, or scope
+    //              N   // Nh:vector Ng:wild
+    //              O   // shared
+    Tpointer     : 'P',
+    //              Q
+    Treference   : 'R',
+    Tstruct      : 'S',
+    //              T   // Ttypedef
+    //              U   // C function
+    //              V   // Pascal function
+    //              W   // Windows function
+    //              X   // variadic T t...)
+    //              Y   // variadic T t,...)
+    //              Z   // not variadic, end of parameters
+
     // '@' shouldn't appear anywhere in the deco'd names
-    Tinstance : "@",
-    Terror : "@",
-    Ttypeof : "@",
-    Ttuple : "B",
-    Tslice : "@",
-    Treturn : "@",
-    Tvector : "@",
-    Tnull : "n", // same as TypeNone
+    Tinstance    : '@',
+    Terror       : '@',
+    Ttypeof      : '@',
+    Tslice       : '@',
+    Treturn      : '@',
+    Tvector      : '@',
 ];
 
 unittest
 {
     foreach (i, mangle; mangleChar)
     {
-        if (!mangle)
-            fprintf(stderr, "ty = %llu\n", cast(ulong)i);
-        assert(mangle);
+        if (mangle == char.init)
+        {
+            fprintf(stderr, "ty = %u\n", cast(uint)i);
+            assert(0);
+        }
     }
+}
+
+/***********************
+ * Mangle basic type ty to buf.
+ */
+
+private void tyToDecoBuffer(OutBuffer* buf, int ty)
+{
+    const c = mangleChar[ty];
+    buf.writeByte(c);
+    if (c == 'z')
+        buf.writeByte(ty == Tint128 ? 'i' : 'k');
 }
 
 /*********************************
  * Mangling for mod.
  */
-extern (C++) void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
+private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
 {
     switch (mod)
     {
@@ -159,7 +191,7 @@ public:
 
     override void visit(Type t)
     {
-        buf.writestring(mangleChar[t.ty]);
+        tyToDecoBuffer(buf, t.ty);
     }
 
     override void visit(TypeNext t)
@@ -841,9 +873,9 @@ extern (C++) void mangleToBuffer(Type t, OutBuffer* buf, bool internal)
 {
     if (internal)
     {
-        buf.writestring(mangleChar[t.ty]);
+        tyToDecoBuffer(buf, t.ty);
         if (t.ty == Tarray)
-            buf.writestring(mangleChar[(cast(TypeArray)t).next.ty]);
+            tyToDecoBuffer(buf, (cast(TypeArray)t).next.ty);
     }
     else if (t.deco)
         buf.writestring(t.deco);
