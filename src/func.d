@@ -1518,7 +1518,8 @@ public:
                 {
                     // Declare _argptr
                     Type t = Type.tvalist;
-                    v_argptr = new VarDeclaration(Loc(), t, Id._argptr, null);
+                    // Init is handled in FuncDeclaration_toObjFile
+                    v_argptr = new VarDeclaration(Loc(), t, Id._argptr, new VoidInitializer(loc));
                     v_argptr.storage_class |= STCtemp;
                     v_argptr.semantic(sc2);
                     sc2.insert(v_argptr);
@@ -2019,12 +2020,6 @@ public:
                             a.push(new ExpStatement(Loc(), ie.exp));
                         }
                     }
-                }
-
-                if (v_argptr)
-                {
-                    // Handled in FuncDeclaration::toObjFile
-                    v_argptr._init = new VoidInitializer(loc);
                 }
 
                 if (_arguments)
