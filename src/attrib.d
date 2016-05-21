@@ -1480,6 +1480,25 @@ extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
         s.isDeclaration().mangleOverride = sym;
         return 1;
     }
+    else if (s.isStructDeclaration() || s.isClassDeclaration())
+    {
+        bool asClass = !strcmp(sym, "class");
+        bool asStruct = !strcmp(sym, "struct");
+        if (!(asClass || asStruct))
+            return 0;
+        if (auto sd = s.isStructDeclaration())
+            sd.cppmangleAsClass = asClass;
+        else if (auto cd = s.isClassDeclaration())
+            cd.cppmangleAsStruct = asStruct;
+        return 1;
+    }
+    else if (s.isTemplateDeclaration() && s.isTemplateDeclaration().onemember)
+    {
+        Dsymbol ds = s.isTemplateDeclaration().onemember;
+        if (ds.isStructDeclaration() || ds.isClassDeclaration())
+            return setMangleOverride(ds, sym);
+        return 0;
+    }
     else
         return 0;
 }

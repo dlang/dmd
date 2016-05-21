@@ -220,6 +220,7 @@ public:
     bool com;           // true if this is a COM class (meaning it derives from IUnknown)
     bool cpp;           // true if this is a C++ interface
     bool isscope;       // true if this is a scope class
+    bool cppmangleAsStruct; // true if this class should be mangled as struct (VS only)
     Abstract isabstract;
     int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
@@ -407,6 +408,7 @@ public:
               : new ClassDeclaration(loc, ident, null);
 
         cd.storage_class |= storage_class;
+        cd.cppmangleAsStruct = cppmangleAsStruct;
 
         cd.baseclasses.setDim(this.baseclasses.dim);
         for (size_t i = 0; i < cd.baseclasses.dim; i++)

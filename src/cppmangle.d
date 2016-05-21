@@ -1283,7 +1283,7 @@ else static if (TARGET_WINDOS)
                 if (type.sym.isUnionDeclaration())
                     buf.writeByte('T');
                 else
-                    buf.writeByte('U');
+                    buf.writeByte(type.sym.cppmangleAsClass ? 'V' : 'U');
                 mangleIdent(type.sym);
             }
             flags &= ~IS_NOT_TOP_TYPE;
@@ -1350,7 +1350,7 @@ else static if (TARGET_WINDOS)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             mangleModifier(type);
-            buf.writeByte('V');
+            buf.writeByte(type.sym.cppmangleAsStruct ? 'U' : 'V');
             mangleIdent(type.sym);
             flags &= ~IS_NOT_TOP_TYPE;
             flags &= ~IGNORE_CONST;
@@ -1630,13 +1630,13 @@ else static if (TARGET_WINDOS)
                                 {
                                     tmp.buf.writeByte('T');
                                 }
-                                else if (ds.isStructDeclaration())
+                                else if (auto sd = ds.isStructDeclaration())
                                 {
-                                    tmp.buf.writeByte('U');
+                                    tmp.buf.writeByte(sd.cppmangleAsClass ? 'V' : 'U');
                                 }
-                                else if (ds.isClassDeclaration())
+                                else if (auto cd = ds.isClassDeclaration())
                                 {
-                                    tmp.buf.writeByte('V');
+                                    tmp.buf.writeByte(cd.cppmangleAsStruct ? 'U' : 'V');
                                 }
                                 else
                                 {
