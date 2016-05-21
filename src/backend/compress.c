@@ -22,26 +22,28 @@ static char __file__[] = __FILE__;      // for tassert.h
 #endif
 
 /****************************************
- * Find longest match of pattern[] in dict[].
+ * Find longest match of pattern[0..plen] in dict[0..dlen].
+ * Returns:
+ *      true if match found
  */
 
-static int longest_match(char *dict, int dlen, char *pattern, int plen,
+static bool longest_match(char *dict, int dlen, char *pattern, int plen,
         int *pmatchoff, int *pmatchlen)
 {
     int matchlen = 0;
     int matchoff;
 
-    int i;
-    int j;
-
-    for (i = 0; i < dlen; i++)
+    char c = pattern[0];
+    for (int i = 0; i < dlen; i++)
     {
-        if (dict[i] == pattern[0])
+        if (dict[i] == c)
         {
-            for (j = 1; 1; j++)
+            int len = dlen - i;
+            if (plen < len)
+                len = plen;
+            int j;
+            for (j = 1; j < len; j++)
             {
-                if (i + j == dlen || j == plen)
-                    break;
                 if (dict[i + j] != pattern[j])
                     break;
             }
@@ -57,9 +59,9 @@ static int longest_match(char *dict, int dlen, char *pattern, int plen,
     {
         *pmatchlen = matchlen;
         *pmatchoff = matchoff;
-        return 1;                       // found a match
+        return true;                    // found a match
     }
-    return 0;                           // no match
+    return false;                       // no match
 }
 
 /******************************************
@@ -120,6 +122,7 @@ char *id_compress(char *id, int idlen, size_t *plen)
     }
     p[count] = 0;
     //printf("old size = %d, new size = %d\n", idlen, count);
+    assert(count <= idlen);
     *plen = count;
     return p;
 }
