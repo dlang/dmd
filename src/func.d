@@ -421,12 +421,7 @@ public:
     VarDeclaration v_arguments;         // '_arguments' parameter
     Objc_FuncDeclaration objc;
 
-    version (IN_GCC)
-    {
-        VarDeclaration v_argptr;        // '_argptr' variable
-    }
-
-    VarDeclaration v_argsave;           // save area for args passed in registers for variadic functions
+    VarDeclaration v_argptr;            // '_argptr' variable
     VarDeclarations* parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable labtab;                // statement label symbol table
     Dsymbol overnext;                   // next in overload list
@@ -1346,7 +1341,6 @@ public:
     // Do the semantic analysis on the internals of the function.
     override final void semantic3(Scope* sc)
     {
-        VarDeclaration argptr = null;
         VarDeclaration _arguments = null;
 
         if (!parent)
@@ -1503,28 +1497,6 @@ public:
             // Declare hidden variable _arguments[] and _argptr
             if (f.varargs == 1)
             {
-                static if (!IN_GCC)
-                {
-                    if (global.params.is64bit && !global.params.isWindows)
-                    {
-                        // Declare save area for varargs registers
-                        Type t = new TypeIdentifier(loc, Id.va_argsave_t);
-                        t = t.semantic(loc, sc);
-                        if (t == Type.terror)
-                        {
-                            error("must import core.vararg to use variadic functions");
-                            return;
-                        }
-                        else
-                        {
-                            v_argsave = new VarDeclaration(loc, t, Id.va_argsave, null);
-                            v_argsave.storage_class |= STCtemp;
-                            v_argsave.semantic(sc2);
-                            sc2.insert(v_argsave);
-                            v_argsave.parent = this;
-                        }
-                    }
-                }
                 if (f.linkage == LINKd)
                 {
                     // Declare _arguments[]
@@ -1546,11 +1518,11 @@ public:
                 {
                     // Declare _argptr
                     Type t = Type.tvalist;
-                    argptr = new VarDeclaration(Loc(), t, Id._argptr, null);
-                    argptr.storage_class |= STCtemp;
-                    argptr.semantic(sc2);
-                    sc2.insert(argptr);
-                    argptr.parent = this;
+                    v_argptr = new VarDeclaration(Loc(), t, Id._argptr, null);
+                    v_argptr.storage_class |= STCtemp;
+                    v_argptr.semantic(sc2);
+                    sc2.insert(v_argptr);
+                    v_argptr.parent = this;
                 }
             }
 
@@ -2049,94 +2021,10 @@ public:
                     }
                 }
 
-                if (argptr)
+                if (v_argptr)
                 {
-                    // Initialize _argptr
-                    version (IN_GCC)
-                    {
-                        // Handled in FuncDeclaration::toObjFile
-                        v_argptr = argptr;
-                        v_argptr._init = new VoidInitializer(loc);
-                    }
-                    else
-                    {
-                        Type t = argptr.type;
-                        if (global.params.is64bit && !global.params.isWindows)
-                        {
-                            // Initialize _argptr to point to v_argsave
-                            Expression e1 = new VarExp(Loc(), argptr);
-                            Expression e = new SymOffExp(Loc(), v_argsave, 6 * 8 + 8 * 16);
-                            e.type = argptr.type;
-                            e = new AssignExp(Loc(), e1, e);
-                            e = e.semantic(sc2);
-                            a.push(new ExpStatement(Loc(), e));
-                        }
-                        else
-                        {
-                            // Initialize _argptr to point past non-variadic arg
-                            VarDeclaration p;
-                            uint offset = 0;
-                            Expression e;
-
-                            Expression e1 = new VarExp(Loc(), argptr);
-                            // Find the last non-ref parameter
-                            if (parameters && parameters.dim)
-                            {
-                                size_t lastNonref = parameters.dim - 1;
-                                p = (*parameters)[lastNonref];
-
-                                /* The trouble with out and ref parameters is that taking
-                                 * the address of it doesn't work, because later processing
-                                 * adds in an extra level of indirection. So we skip over them.
-                                 */
-                                while (p.storage_class & (STCout | STCref))
-                                {
-                                    offset += Target.ptrsize;
-                                    if (lastNonref-- == 0)
-                                    {
-                                        p = v_arguments;
-                                        break;
-                                    }
-                                    p = (*parameters)[lastNonref];
-                                }
-                            }
-                            else
-                                p = v_arguments; // last parameter is _arguments[]
-                            if (global.params.is64bit && global.params.isWindows)
-                            {
-                                offset += Target.ptrsize;
-                                if ((p.storage_class & STClazy) || p.type.size() > Target.ptrsize)
-                                {
-                                    /* Necessary to offset the extra level of indirection the Win64
-                                     * ABI demands
-                                     */
-                                    e = new SymOffExp(Loc(), p, 0);
-                                    e.type = Type.tvoidptr;
-                                    e = new AddrExp(Loc(), e);
-                                    e.type = Type.tvoidptr;
-                                    e = new AddExp(Loc(), e, new IntegerExp(offset));
-                                    e.type = Type.tvoidptr;
-                                    goto L1;
-                                }
-                            }
-                            else if (p.storage_class & STClazy)
-                            {
-                                // If the last parameter is lazy, it's the size of a delegate
-                                offset += Target.ptrsize * 2;
-                            }
-                            else
-                                offset += p.type.size();
-                            offset = (offset + Target.ptrsize - 1) & ~(Target.ptrsize - 1); // assume stack aligns on pointer size
-                            e = new SymOffExp(Loc(), p, offset);
-                            e.type = Type.tvoidptr;
-                            //e = e->semantic(sc);
-                        L1:
-                            e = new AssignExp(Loc(), e1, e);
-                            e.type = t;
-                            a.push(new ExpStatement(Loc(), e));
-                            p.isargptr = true;
-                        }
-                    }
+                    // Handled in FuncDeclaration::toObjFile
+                    v_argptr._init = new VoidInitializer(loc);
                 }
 
                 if (_arguments)

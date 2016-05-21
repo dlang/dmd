@@ -1189,6 +1189,26 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         bx.module = fd->getModule();
         irs.blx = &bx;
 
+        // Initialize argptr
+        if (fd->v_argptr)
+        {
+            // Declare va_argsave
+            if (global.params.is64bit &&
+                !global.params.isWindows)
+            {
+                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, NULL, NULL, false, false, true);
+                // The backend will pick this up by name
+                Symbol *s = symbol_name("__va_argsave", SCauto, t);
+                s->Stype->Tty |= mTYvolatile;
+                symbol_add(s);
+            }
+
+            Symbol *s = toSymbol(fd->v_argptr);
+            symbol_add(s);
+            elem *e = el_una(OPva_start, TYnptr, el_ptr(s));
+            block_appendexp(irs.blx->curblock, e);
+        }
+
         /* Doing this in semantic3() caused all kinds of problems:
          * 1. couldn't reliably get the final mangling of the function name due to fwd refs
          * 2. impact on function inlining
