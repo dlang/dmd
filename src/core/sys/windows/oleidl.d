@@ -230,11 +230,11 @@ interface IDropTarget : IUnknown {
 alias IDropTarget LPDROPTARGET;
 
 extern (Windows) {
-    alias BOOL function(DWORD) __IView_pfncont;
+    alias BOOL function(ULONG_PTR) __IView_pfncont;
 }
 
 interface IViewObject : IUnknown {
-    HRESULT Draw(DWORD,LONG,PVOID,DVTARGETDEVICE*,HDC,HDC,LPCRECTL,LPCRECTL,__IView_pfncont pfnContinue,DWORD);
+    HRESULT Draw(DWORD,LONG,PVOID,DVTARGETDEVICE*,HDC,HDC,LPCRECTL,LPCRECTL,__IView_pfncont pfnContinue,ULONG_PTR);
     HRESULT GetColorSet(DWORD,LONG,PVOID,DVTARGETDEVICE*,HDC,LPLOGPALETTE*);
     HRESULT Freeze(DWORD,LONG,PVOID,PDWORD);
     HRESULT Unfreeze(DWORD);

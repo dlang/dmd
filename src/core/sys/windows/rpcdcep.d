@@ -63,7 +63,7 @@ alias void function (PRPC_MESSAGE Message) RPC_DISPATCH_FUNCTION;
 struct RPC_DISPATCH_TABLE {
     uint DispatchTableCount;
     RPC_DISPATCH_FUNCTION* DispatchTable;
-    int  Reserved;
+    LONG_PTR Reserved;
 }
 alias RPC_DISPATCH_TABLE* PRPC_DISPATCH_TABLE;
 
@@ -92,7 +92,7 @@ struct RPC_CLIENT_INTERFACE {
     PRPC_DISPATCH_TABLE   DispatchTable;
     uint                  RpcProtseqEndpointCount;
     PRPC_PROTSEQ_ENDPOINT RpcProtseqEndpoint;
-    uint                  Reserved;
+    ULONG_PTR             Reserved;
 const(void)*          InterpreterInfo;
 }
 alias RPC_CLIENT_INTERFACE* PRPC_CLIENT_INTERFACE;

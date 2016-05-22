@@ -78,8 +78,8 @@ alias RASDIALDLG* LPRASDIALDLG;
 
 // Application-defined callback functions
 extern (Windows) {
-    alias VOID function(DWORD, DWORD, LPWSTR, LPVOID) RASPBDLGFUNCW;
-    alias VOID function(DWORD, DWORD, LPSTR, LPVOID) RASPBDLGFUNCA;
+    alias VOID function(ULONG_PTR, DWORD, LPWSTR, LPVOID) RASPBDLGFUNCW;
+    alias VOID function(ULONG_PTR, DWORD, LPSTR, LPVOID) RASPBDLGFUNCA;
 }
 
 struct RASPBDLGA {

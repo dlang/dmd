@@ -4938,8 +4938,8 @@ template HANDLE_WM_NOTIFY(R) {
     }
 }
 private alias _prm_FORWARD_WM_NOTIFY = extern (Windows)
-    int function(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam); // to inject linkage type
-int FORWARD_WM_NOTIFY(HWND hwnd, int idFrom, NMHDR* pnmhdr, _prm_FORWARD_WM_NOTIFY fn) {
+    LRESULT function(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam); // to inject linkage type
+LRESULT FORWARD_WM_NOTIFY(HWND hwnd, int idFrom, NMHDR* pnmhdr, _prm_FORWARD_WM_NOTIFY fn) {
     return fn(hwnd, WM_NOTIFY, idFrom, cast(LPARAM) pnmhdr);
 }
 

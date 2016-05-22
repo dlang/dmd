@@ -104,9 +104,17 @@ struct PERF_OBJECT_TYPE {
     DWORD DefinitionLength;
     DWORD HeaderLength;
     DWORD ObjectNameTitleIndex;
+version (Win64) {
+    DWORD ObjectNameTitle;
+} else {
     LPWSTR ObjectNameTitle;
+}
     DWORD ObjectHelpTitleIndex;
+version (Win64) {
+    DWORD ObjectHelpTitle;
+} else {
     LPWSTR ObjectHelpTitle;
+}
     DWORD DetailLevel;
     DWORD NumCounters;
     LONG DefaultCounter;
@@ -120,9 +128,17 @@ alias PERF_OBJECT_TYPE * PPERF_OBJECT_TYPE;
 struct PERF_COUNTER_DEFINITION {
     DWORD ByteLength;
     DWORD CounterNameTitleIndex;
+version (Win64) {
+    DWORD CounterNameTitle;
+} else {
     LPWSTR CounterNameTitle;
+}
     DWORD CounterHelpTitleIndex;
+version (Win64) {
+    DWORD CounterHelpTitle;
+} else {
     LPWSTR CounterHelpTitle;
+}
     LONG DefaultScale;
     DWORD DetailLevel;
     DWORD CounterType;

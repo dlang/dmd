@@ -180,8 +180,8 @@ alias void function(ULONG_PTR, ULONG_PTR, PSecBuffer,
 
 /* misc typedefs used in the below prototypes */
 alias PVOID* PLSA_CLIENT_REQUEST;
-alias ULONG LSA_SEC_HANDLE;
-alias ULONG* PLSA_SEC_HANDLE;
+alias ULONG_PTR LSA_SEC_HANDLE;
+alias LSA_SEC_HANDLE* PLSA_SEC_HANDLE;
 alias LPTHREAD_START_ROUTINE SEC_THREAD_START;
 alias PSECURITY_ATTRIBUTES SEC_ATTRS;
 

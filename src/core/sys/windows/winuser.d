@@ -2877,7 +2877,7 @@ struct HELPINFO {
     int iContextType;
     int iCtrlId;
     HANDLE hItemHandle;
-    DWORD dwContextId;
+    DWORD_PTR dwContextId;
     POINT MousePos;
 }
 alias HELPINFO* LPHELPINFO;
@@ -3184,7 +3184,7 @@ struct DROPSTRUCT {
     HWND hwndSource;
     HWND hwndSink;
     DWORD wFmt;
-    DWORD dwData;
+    ULONG_PTR dwData;
     POINT ptDrop;
     DWORD dwControlData;
 }
@@ -3730,7 +3730,7 @@ BOOL DlgDirSelectComboBoxExW(HWND, LPWSTR, int, int);
 BOOL DlgDirSelectExA(HWND, LPSTR, int, int);
 BOOL DlgDirSelectExW(HWND, LPWSTR, int, int);
 BOOL DragDetect(HWND, POINT);
-DWORD DragObject(HWND, HWND, UINT, DWORD, HCURSOR);
+DWORD DragObject(HWND, HWND, UINT, ULONG_PTR, HCURSOR);
 BOOL DrawAnimatedRects(HWND, int, LPCRECT, LPCRECT);
 BOOL DrawCaption(HWND, HDC, LPCRECT, UINT);
 BOOL DrawEdge(HDC, LPRECT, UINT, UINT);
@@ -4144,8 +4144,8 @@ BOOL WaitMessage();
 HWND WindowFromDC(HDC hDC);
 HWND WindowFromPoint(POINT);
 UINT WinExec(LPCSTR, UINT);
-BOOL WinHelpA(HWND, LPCSTR, UINT, DWORD);
-BOOL WinHelpW(HWND, LPCWSTR, UINT, DWORD);
+BOOL WinHelpA(HWND, LPCSTR, UINT, ULONG_PTR);
+BOOL WinHelpW(HWND, LPCWSTR, UINT, ULONG_PTR);
 
 extern (C) {
     int wsprintfA(LPSTR, LPCSTR, ...);
