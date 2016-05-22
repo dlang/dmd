@@ -1309,7 +1309,7 @@ public:
                     if (flags & SearchLocalsOnly)
                         continue;
                 }
-                else if (!ss.isTemplateMixin)
+                else
                 {
                     if (flags & SearchImportsOnly)
                         continue;
