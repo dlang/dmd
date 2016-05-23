@@ -32,6 +32,7 @@ OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
 	DOTLIB:=.a
+	export MACOSX_DEPLOYMENT_TARGET=10.7
 else
 	DOTDLL:=.so
 	DOTLIB:=.a
