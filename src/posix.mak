@@ -27,7 +27,7 @@ TK=tk
 ROOT=root
 
 ifeq (osx,$(OS))
-    export MACOSX_DEPLOYMENT_TARGET=10.3
+    export MACOSX_DEPLOYMENT_TARGET=10.7
 endif
 
 HOST_CXX=c++
