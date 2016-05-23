@@ -1311,7 +1311,7 @@ public:
             if (type && mod)
             {
                 printedMain = true;
-                const(char)* name = FileName.searchPath(global.path, mod.srcfile.toChars(), true);
+                const(char)* name = FileName.searchPath(global.path, mod.srcfile.toChars(), !global.params.exclude_cwd_from_imports);
                 fprintf(global.stdmsg, "entry     %-10s\t%s\n", type, name);
             }
         }
