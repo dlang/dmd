@@ -91,9 +91,14 @@ private  void usage()
 Documentation: http://dlang.org/
 Config file: %s
 Usage:
-  dmd <file>... { -switch }
+  dmd [<option>...] <file>...
+  dmd [<option>...] -run <file> [<arg>...]
 
+Where:
   <file>           D source file
+  <arg>            Argument to pass when running the resulting program
+
+<option>:
   @<cmdfile>       read arguments from cmdfile
   -allinst         generate code for all template instantiations
   -betterC         omit generating some runtime information and helper functions
@@ -148,8 +153,6 @@ Usage:
   -profile         profile runtime performance of generated code
   -profile=gc      profile runtime allocations
   -release         compile release version
-  -run <srcfile> <arg>...
-                   run resulting program, passing args
   -shared          generate shared library (DLL)
   -transition=<id> help with language change identified by 'id'
   -transition=?    list all language changes
