@@ -132,7 +132,7 @@ Where:
   -H               generate 'header' file
   -Hd<directory>   write 'header' file to directory
   -Hf<filename>    write 'header' file to filename
-  --help           print help and exit
+  -help            print help and exit
   -I<directory>    look for imports also in directory
   -ignore          ignore unsupported pragmas
   -inline          do function inlining
@@ -829,7 +829,7 @@ Language changes listed by -transition=id:
                 global.params.debugc = true;
             else if (strcmp(p + 1, "-f") == 0)
                 global.params.debugf = true;
-            else if (strcmp(p + 1, "-help") == 0)
+            else if (strcmp(p + 1, "-help") == 0 || strcmp(p + 1, "help") == 0|| strcmp(p + 1, "h") == 0)
             {
                 usage();
                 exit(EXIT_SUCCESS);
