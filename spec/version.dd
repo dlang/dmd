@@ -582,5 +582,4 @@ void foo()
 
 Macros:
 	TITLE=Conditional Compilation
-	WIKI=Version
 

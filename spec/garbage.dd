@@ -446,4 +446,3 @@ $(H2 $(LNAME2 references, References))
 
 Macros:
 	TITLE=Garbage Collection
-	WIKI=Garbage

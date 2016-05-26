@@ -1044,6 +1044,5 @@ $(P
 
 Macros:
     TITLE=Documentation Generator
-    WIKI=Ddoc
     _= Remove the following line when 2.067.0 is used to compile the site.
     BACKTIP=`

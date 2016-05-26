@@ -2346,5 +2346,4 @@ $(H3 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
 Macros:
         TITLE=Functions
-        WIKI=Function
         ASSIGNEXPRESSION=$(GLINK2 expression, AssignExpression)

@@ -116,5 +116,4 @@ $(H2 $(LNAME2 os_specific_code, OS Specific Code))
 
 Macros:
 	TITLE=Portability
-	WIKI=Portability
 

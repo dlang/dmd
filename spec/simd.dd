@@ -251,7 +251,6 @@ $(H3 $(LNAME2 vector_op_intrinsics, Vector Operation Intrinsics))
 
 Macros:
 	TITLE=Vector Extensions
-	WIKI=Float
 	Y=$(TIMES)
 	N=$(NDASH)
 	CORE_SIMD=$(LINK2 $(ROOT_DIR)phobos/core_simd.html, $(D core.simd))

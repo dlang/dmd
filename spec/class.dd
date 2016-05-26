@@ -1347,6 +1347,5 @@ $(SECTION3 $(LEGACY_LNAME2 ConstClass, const-class, Const, Immutable and Shared 
 
 Macros:
         TITLE=Classes
-        WIKI=Class
         _=
 

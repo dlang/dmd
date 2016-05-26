@@ -183,4 +183,3 @@ $(COMMENT
 
 Macros:
 	TITLE=Floating Point
-	WIKI=Float

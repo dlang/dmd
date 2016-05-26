@@ -2145,7 +2145,6 @@ $(H3 $(LNAME2 associativity, Associativity and Commutativity))
 
 Macros:
         TITLE=Expressions
-        WIKI=Expression
         IDENTIFIER=$(GLINK2 lex, Identifier)
         _=
 

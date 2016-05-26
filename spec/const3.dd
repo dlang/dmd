@@ -475,7 +475,6 @@ Macros:
 	Y=$(TD $(GREEN Yes))
 	N=$(TD $(RED No))
 	TITLE=Type Qualifiers
-	WIKI=ConstInvariant
 	ERROR = $(RED $(B error))
     META_KEYWORDS=D Programming Language, const, immutable
     META_DESCRIPTION=Comparison of const between the D programming language, C++, and C++0x

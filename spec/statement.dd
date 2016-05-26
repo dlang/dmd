@@ -1828,7 +1828,6 @@ void main()
 
 Macros:
         TITLE=Statements
-        WIKI=Statement
         EXPRESSION=$(GLINK2 expression, Expression)
         PSSEMI_PSCURLYSCOPE=$(GLINK Statement)
         PSSEMI_PSCURLYSCOPE_LIST=$(GLINK ScopeStatementList)

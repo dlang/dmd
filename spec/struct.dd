@@ -624,7 +624,6 @@ $(H2 $(LNAME2 unions_and_special_memb_funct, Unions and Special Member Functions
 
 Macros:
         TITLE=Structs, Unions
-        WIKI=Struct
         UNCHECK=
         CHECK=$(CHECKMARK)
         _=

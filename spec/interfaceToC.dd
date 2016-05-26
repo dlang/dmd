@@ -363,4 +363,3 @@ Macros:
     TROW3PLUS=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3) $4))
 	TD2=$(MULTICOL_CELL 2, $0)
 	TITLE=Interfacing to C
-	WIKI=InterfaceToC

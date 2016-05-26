@@ -1453,5 +1453,4 @@ $(H2 $(LNAME2 limitations, Limitations))
 
 Macros:
         TITLE=Templates
-        WIKI=Template
         _=
