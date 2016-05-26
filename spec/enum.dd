@@ -265,6 +265,5 @@ enum size = __traits(classInstanceSize, Foo);  // evaluated at compile-time
 
 Macros:
 	TITLE=Enums
-	WIKI=Enum
 	CATEGORY_SPEC=$0
 

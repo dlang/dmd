@@ -248,4 +248,3 @@ $(SECTION3 $(LNAME2 classproperties, User Defined Properties),
 
 Macros:
 	TITLE=Properties
-	 WIKI=Property

@@ -639,6 +639,5 @@ $(H3 $(LEGACY_LNAME2 PackageModule, package-module, Package Module))
 
 Macros:
 	TITLE=Modules
-	WIKI=Module
 	_=
 

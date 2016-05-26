@@ -1163,5 +1163,4 @@ getsec
 
 Macros:
         TITLE=Inline Assembler
-        WIKI=IAsm
 

@@ -433,4 +433,3 @@ $(H3 $(LNAME2 aa_example, Associative Array Example: word count))
 
 Macros:
         TITLE=Associative Arrays
-        WIKI=AssociativeArrays

@@ -1822,7 +1822,6 @@ $(GNAME MixinDeclaration):
 
 Macros:
         TITLE=D Grammar
-        WIKI=Grammar
         IDENTIFIER=$(GLINK Identifier)
         EXPRESSION=$(GLINK Expression)
         ASSIGNEXPRESSION=$(GLINK AssignExpression)

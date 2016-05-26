@@ -878,6 +878,5 @@ foo(cast(immutable)&i, &i);
 
 Macros:
     TITLE=Interfacing to C++
-    WIKI=InterfaceToCPP
 
 

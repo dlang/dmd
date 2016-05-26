@@ -995,5 +995,4 @@ $(H2 $(LNAME2 implicit-conversions, Implicit Conversions))
 
 Macros:
         TITLE=Arrays
-        WIKI=Arrays
         _=

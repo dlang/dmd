@@ -935,4 +935,3 @@ $(H3 $(LNAME2 codeview, Codeview Debugger Extensions))
 
 Macros:
 	TITLE=Application Binary Interface
-	WIKI=ABI

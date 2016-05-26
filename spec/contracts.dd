@@ -260,5 +260,4 @@ $(H2 $(LNAME2 references, References))
 
 Macros:
 	TITLE=Contract Programming
-	WIKI=DBC
 

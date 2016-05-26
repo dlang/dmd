@@ -1077,7 +1077,6 @@ $(H2 $(LEGACY_LNAME2 Old-Style, old-style, D1 style operator overloading))
 
 Macros:
 	TITLE=Operator Overloading
-	WIKI=OperatorOverloading
 	ARGUMENTS=$(I b)$(SUBSCRIPT 1), $(I b)$(SUBSCRIPT 2), ... $(I b)$(SUBSCRIPT n)
 	ARGUMENTS2=$(I c)$(SUBSCRIPT 1), $(I c)$(SUBSCRIPT 2), ... $(I c)$(SUBSCRIPT n)
 	SLICE=$(I i)..$(I j)
