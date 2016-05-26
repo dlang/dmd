@@ -237,6 +237,9 @@
     <ClCompile Include="..\backend\pdata.c">
       <Filter>src\backend</Filter>
     </ClCompile>
+    <ClCompile Include="..\backend\varstats.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
     <ClCompile Include="..\objc_glue_stubs.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -411,6 +414,9 @@
       <Filter>src\backend</Filter>
     </ClInclude>
     <ClInclude Include="..\backend\type.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="..\backend\varstats.h">
       <Filter>src\backend</Filter>
     </ClInclude>
     <ClInclude Include="..\tk\filespec.h">

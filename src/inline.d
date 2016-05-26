@@ -581,7 +581,7 @@ public:
         //printf("ScopeStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statement.dim);
         auto r = doInlineAs!Result(s.statement, ids);
         static if (asStatements)
-            result = new ScopeStatement(s.loc, r);
+            result = new ScopeStatement(s.loc, r, s.endloc);
         else
             result = r;
     }
@@ -600,7 +600,7 @@ public:
 
         static if (asStatements)
         {
-            result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody);
+            result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody, s.endloc);
         }
         else
         {
@@ -1210,7 +1210,7 @@ public:
                     return null;
                 auto ifbody   = !s1 ? new ExpStatement(e.e1.loc, e.e1) : s1;
                 auto elsebody = !s2 ? new ExpStatement(e.e2.loc, e.e2) : s2;
-                return new IfStatement(exp.loc, null, e.econd, ifbody, elsebody);
+                return new IfStatement(exp.loc, null, e.econd, ifbody, elsebody, exp.loc);
             }
             if (exp.op == TOKcomma)
             {
@@ -2263,7 +2263,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
                         new DtorExpStatement(callLoc, vthis.edtor, vthis)));
         }
 
-        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as));
+        sresult = new ScopeStatement(callLoc, new CompoundStatement(callLoc, as), callLoc);
 
         static if (EXPANDINLINE_LOG)
             printf("\n[%s] %s expandInline sresult =\n%s\n",

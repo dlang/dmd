@@ -1290,6 +1290,9 @@ struct Symbol
     }_SXR;
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
+    unsigned lnoscopestart;     // life time of var
+    unsigned lnoscopeend;       // the line after the scope
+
     char Sident[1];             // identifier string (dynamic array)
 
     int needThis();             // !=0 if symbol needs a 'this' pointer

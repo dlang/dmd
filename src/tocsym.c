@@ -259,6 +259,8 @@ Symbol *toSymbol(Dsymbol *s)
             type_setmangle(&t, m);
             s->Stype = t;
 
+            s->lnoscopestart = vd->loc.linnum;
+            s->lnoscopeend = vd->endlinnum;
             result = s;
         }
 

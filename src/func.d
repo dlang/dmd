@@ -1430,6 +1430,8 @@ public:
             // Establish function scope
             auto ss = new ScopeDsymbol();
             ss.parent = sc.scopesym;
+            ss.loc = loc;
+            ss.endlinnum = endloc.linnum;
             Scope* sc2 = sc.push(ss);
             sc2.func = this;
             sc2.parent = this;
@@ -1636,6 +1638,8 @@ public:
                 // scope of out contract (need for vresult->semantic)
                 auto sym = new ScopeDsymbol();
                 sym.parent = sc2.scopesym;
+                sym.loc = loc;
+                sym.endlinnum = endloc.linnum;
                 scout = sc2.push(sym);
             }
 
@@ -1643,6 +1647,8 @@ public:
             {
                 auto sym = new ScopeDsymbol();
                 sym.parent = sc2.scopesym;
+                sym.loc = loc;
+                sym.endlinnum = endloc.linnum;
                 sc2 = sc2.push(sym);
 
                 auto ad2 = isMember2();
@@ -1958,6 +1964,8 @@ public:
                  */
                 auto sym = new ScopeDsymbol();
                 sym.parent = sc2.scopesym;
+                sym.loc = loc;
+                sym.endlinnum = endloc.linnum;
                 sc2 = sc2.push(sym);
                 sc2.flags = (sc2.flags & ~SCOPEcontract) | SCOPErequire;
 
@@ -5021,7 +5029,7 @@ public:
             Expression e = new IdentifierExp(Loc(), v.ident);
             e = new AddAssignExp(Loc(), e, new IntegerExp(1));
             e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(1));
-            s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null);
+            s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null, Loc());
 
             sa.push(s);
             if (fbody)
@@ -5177,7 +5185,7 @@ public:
             Expression e = new IdentifierExp(Loc(), v.ident);
             e = new AddAssignExp(Loc(), e, new IntegerExp(-1));
             e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(0));
-            s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null);
+            s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null, Loc());
 
             sa.push(s);
             if (fbody)

@@ -4935,7 +4935,7 @@ public:
                     Dsymbols* imports = parseImport();
                     s = new ImportStatement(loc, imports);
                     if (flags & PSscope)
-                        s = new ScopeStatement(loc, s);
+                        s = new ScopeStatement(loc, s, token.loc);
                     break;
                 }
                 goto Ldeclaration;
@@ -5022,7 +5022,7 @@ public:
                 else
                     s = new ExpStatement(loc, cast(Expression)null);
                 if (flags & PSscope)
-                    s = new ScopeStatement(loc, s);
+                    s = new ScopeStatement(loc, s, token.loc);
                 break;
             }
         case TOKenum:
@@ -5046,7 +5046,7 @@ public:
                 }
                 s = new ExpStatement(loc, d);
                 if (flags & PSscope)
-                    s = new ScopeStatement(loc, s);
+                    s = new ScopeStatement(loc, s, token.loc);
                 break;
             }
         case TOKmixin:
@@ -5071,7 +5071,7 @@ public:
                 Dsymbol d = parseMixin();
                 s = new ExpStatement(loc, d);
                 if (flags & PSscope)
-                    s = new ScopeStatement(loc, s);
+                    s = new ScopeStatement(loc, s, token.loc);
                 break;
             }
         case TOKlcurly:
@@ -5094,7 +5094,7 @@ public:
                     *pEndloc = token.loc;
                 s = new CompoundStatement(loc, statements);
                 if (flags & (PSscope | PScurlyscope))
-                    s = new ScopeStatement(loc, s);
+                    s = new ScopeStatement(loc, s, token.loc);
                 check(TOKrcurly, "compound statement");
                 lookingForElse = lookingForElseSave;
                 break;
@@ -5140,7 +5140,7 @@ public:
                     nextToken();
                 else
                     error("terminating ';' required after do-while statement");
-                s = new DoStatement(loc, _body, condition);
+                s = new DoStatement(loc, _body, condition, token.loc);
                 break;
             }
         case TOKfor:
@@ -5392,7 +5392,7 @@ public:
                 else
                     elsebody = null;
                 if (condition && ifbody)
-                    s = new IfStatement(loc, param, condition, ifbody, elsebody);
+                    s = new IfStatement(loc, param, condition, ifbody, elsebody, token.loc);
                 else
                     s = null; // don't propagate parsing errors
                 break;
@@ -5467,7 +5467,7 @@ public:
             }
             s = new ConditionalStatement(loc, cond, ifbody, elsebody);
             if (flags & PSscope)
-                s = new ScopeStatement(loc, s);
+                s = new ScopeStatement(loc, s, token.loc);
             break;
 
         case TOKpragma:
@@ -5552,7 +5552,7 @@ public:
                 }
                 else
                     s = parseStatement(PSsemi | PScurlyscope);
-                s = new ScopeStatement(loc, s);
+                s = new ScopeStatement(loc, s, token.loc);
 
                 if (last)
                 {
@@ -5585,7 +5585,7 @@ public:
                 }
                 else
                     s = parseStatement(PSsemi | PScurlyscope);
-                s = new ScopeStatement(loc, s);
+                s = new ScopeStatement(loc, s, token.loc);
                 s = new DefaultStatement(loc, s);
                 break;
             }
@@ -5691,13 +5691,14 @@ public:
             {
                 Expression exp;
                 Statement _body;
+                Loc endloc = loc;
 
                 nextToken();
                 check(TOKlparen);
                 exp = parseExpression();
                 check(TOKrparen);
-                _body = parseStatement(PSscope);
-                s = new WithStatement(loc, exp, _body);
+                _body = parseStatement(PSscope, null, &endloc);
+                s = new WithStatement(loc, exp, _body, endloc);
                 break;
             }
         case TOKtry:
@@ -5870,7 +5871,7 @@ public:
                 Dsymbols* imports = parseImport();
                 s = new ImportStatement(loc, imports);
                 if (flags & PSscope)
-                    s = new ScopeStatement(loc, s);
+                    s = new ScopeStatement(loc, s, token.loc);
                 break;
             }
         case TOKtemplate:

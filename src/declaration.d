@@ -984,6 +984,7 @@ public:
     bool overlapped;                // if it is a field and has overlapping
     Dsymbol aliassym;               // if redone as alias to another symbol
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
+    uint endlinnum;                 // line number of end of scope that this var lives in
 
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
@@ -1741,6 +1742,13 @@ public:
 
         if (type.toBasetype().ty == Terror)
             errors = true;
+
+        if(sc.scopesym && !sc.scopesym.isAggregateDeclaration())
+        {
+            for (ScopeDsymbol sym = sc.scopesym; sym && endlinnum == 0;
+                 sym = sym.parent ? sym.parent.isScopeDsymbol() : null)
+                endlinnum = sym.endlinnum;
+        }
     }
 
     override final void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)

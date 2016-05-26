@@ -21,6 +21,7 @@
 #include        "go.h"
 #include        "ty.h"
 #include        "code.h"
+#include        "varstats.h"
 #if SPP || SCPP
 #include        "parser.h"
 #endif
@@ -204,3 +205,5 @@ const char *regstring[32] = {"AX","CX","DX","BX","SP","BP","SI","DI",
 type *chartype;                 /* default 'char' type                  */
 
 Obj *objmod = NULL;
+
+VarStatistics varStats;
