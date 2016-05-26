@@ -2,8 +2,6 @@
  * Forms the symbols available to all D programs. Includes Object, which is
  * the root of the class object hierarchy.  This module is implicitly
  * imported.
- * Macros:
- *      WIKI = Object
  *
  * Copyright: Copyright Digital Mars 2000 - 2011.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
