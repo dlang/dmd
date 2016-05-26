@@ -74,6 +74,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\backend\backconfig.c" />
+    <ClCompile Include="..\backend\compress.c" />
     <ClCompile Include="..\backend\cv8.c" />
     <ClCompile Include="..\backend\pdata.c" />
     <ClCompile Include="..\backend\ph2.c" />
@@ -88,7 +89,6 @@
     <ClCompile Include="..\tk.c" />
     <ClCompile Include="..\tocsym.c" />
     <ClCompile Include="..\tocvdebug.c" />
-    <ClCompile Include="..\todt.c" />
     <ClCompile Include="..\toir.c" />
     <ClCompile Include="..\toobj.c" />
     <ClCompile Include="..\backend\aa.c" />
@@ -248,13 +248,11 @@ popd</Command>
     <ClInclude Include="..\tk\list.h" />
     <ClInclude Include="..\tk\mem.h" />
     <ClInclude Include="..\tk\vec.h" />
-    <ClInclude Include="..\root\aav.h" />
     <ClInclude Include="..\root\longdouble.h" />
     <ClInclude Include="..\root\port.h" />
     <ClInclude Include="..\root\rmem.h" />
     <ClInclude Include="..\root\root.h" />
     <ClInclude Include="..\root\stringtable.h" />
-    <ClInclude Include="..\id.h" />
     <ClInclude Include="..\vcbuild\alloca.h" />
     <ClInclude Include="..\vcbuild\fenv.h" />
     <ClInclude Include="..\vcbuild\stdint.h" />

@@ -142,6 +142,7 @@ extern (C++) struct Port
         }
         version (CRuntime_Microsoft)
         {
+            import core.stdc.errno;
             float r;
             if(endp)
             {
@@ -171,6 +172,7 @@ extern (C++) struct Port
         }
         version (CRuntime_Microsoft)
         {
+            import core.stdc.errno;
             double r;
             if(endp)
             {
