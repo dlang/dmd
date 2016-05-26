@@ -650,7 +650,7 @@ struct Config
 #define TARGET_PentiumMMX       6
 #define TARGET_PentiumPro       7
 #define TARGET_PentiumII        8
-#define TARGET_AMD64            9       (32 or 64 bit mode)
+#define TARGET_AMD64            9       // (32 or 64 bit mode)
 
     short versionint;           // intermediate file version (= VERSIONINT)
     int defstructalign;         // struct alignment specified by command line
