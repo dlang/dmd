@@ -126,41 +126,108 @@ else
 
     enum CHUNK_SIZE = (256 * 4096 - 64);
 
+
     __gshared size_t heapleft = 0;
     __gshared void* heapp;
+	
+    version(WithStack) {
+        __gshared size_t stackleft = 0;
+	    __gshared void* stacktop;
+        __gshared void* stackbottom;
+    }
+    __gshared size_t* memleft = &heapleft;
+    __gshared void** memp = &heapp;
 
-    extern (C) void* allocmemory(size_t m_size) nothrow
+    version (WithStack) {
+        /// returns the begin of the stack
+        /// this is needed by endStack
+        extern(C) void* beginStack(const size_t initialSize = CHUNK_SIZE) nothrow 
+        {
+            if (stackbottom) {
+                if (stackleft < initialSize)
+                {
+                     allocmemory(initialSize);
+                }
+            } else {
+                stackbottom = malloc(initialSize);
+                stacktop = stackbottom;
+            }
+
+            memp = &stacktop;
+            return stacktop;
+        }
+
+        extern(C) void endStack(const void* stackBegin) nothrow
+        {
+            ptrdiff_t stacksize = (stacktop - stackBegin);
+            assert(stacksize > 0);
+            stackleft += stacksize;
+            stacktop = stacktop - stacksize;
+
+            if (stacktop == stackbottom) 
+            {
+                // if we discarded the last nesting stack
+                // switch back to heap
+                memp = &heapp;
+            }
+        }
+    }
+    extern (C) void* allocmemory(const size_t _m_size) nothrow
     {
         // 16 byte alignment is better (and sometimes needed) for doubles
-        m_size = (m_size + 15) & ~15;
+        immutable m_size = (_m_size + 15) & ~15;
 
         // The layout of the code is selected so the most common case is straight through
-        if (m_size <= heapleft)
+
+		if (m_size <= *memleft)
         {
         L1:
-            heapleft -= m_size;
-            auto p = heapp;
-            heapp = cast(void*)(cast(char*)heapp + m_size);
+            *memleft -= m_size;
+            auto p = (*memp);
+            (*memp) = cast(void*)(cast(char*)p + m_size);
             return p;
         }
 
-        if (m_size > CHUNK_SIZE)
-        {
-            auto p = malloc(m_size);
-            if (p)
+        if (memp == &heapp) {
+            if (m_size > CHUNK_SIZE)
             {
-                return p;
+                auto p = malloc(m_size);
+                if (p)
+                {
+                    return p;
+                }
+                printf("Error: out of memory\n");
+                exit(EXIT_FAILURE);
             }
-            printf("Error: out of memory\n");
-            exit(EXIT_FAILURE);
-        }
 
-        heapleft = CHUNK_SIZE;
-        heapp = malloc(CHUNK_SIZE);
-        if (!heapp)
-        {
-            printf("Error: out of memory\n");
-            exit(EXIT_FAILURE);
+            heapleft = CHUNK_SIZE;
+            heapp = malloc(CHUNK_SIZE);
+            if (!heapp)
+            {
+                printf("Error: out of memory\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            version (WithStack) {
+                ptrdiff_t stacksize = stacktop - stackbottom;
+                immutable growBy = m_size;
+
+                assert(stacksize > 0);
+                debug (LOGMEM) {
+                    printf("Growing Stack by %d byte to %p", m_size);
+                }
+                stackbottom = realloc(stackbottom, stacksize + growBy);
+
+                if (!stackbottom) {
+                    printf("Error: out of memory\n");
+                    exit(EXIT_FAILURE);
+                }
+
+                stacktop = stackbottom + stacksize;
+                stackleft += growBy;
+            } else {
+                assert(0, "We should never modify our memPtr without the Stack");
+            }
         }
         goto L1;
     }
