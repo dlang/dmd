@@ -17,6 +17,7 @@ SRCS=\
 	src\core\vararg.d \
 	\
 	src\core\internal\abort.d \
+	src\core\internal\arrayop.d \
 	src\core\internal\convert.d \
 	src\core\internal\hash.d \
 	src\core\internal\spinlock.d \
