@@ -11,7 +11,7 @@
 module ddmd.root.rmem;
 
 import core.stdc.string;
-
+version = WithStack;
 version (GC)
 {
     import core.memory : GC;
@@ -139,10 +139,14 @@ else
     __gshared void** memp = &heapp;
 
     version (WithStack) {
+        static assert(OVERRIDE_MEMALLOC, "Stacks will not work without using the costum alloc functions");
+
         /// returns the begin of the stack
         /// this is needed by endStack
         extern(C) void* beginStack(const size_t initialSize = CHUNK_SIZE) nothrow 
         {
+            printf("BeginStackStart - in Stack: %d stackLeft: %d\n", memp != &heapp, stackleft);
+
             if (stackbottom) {
                 if (stackleft < initialSize)
                 {
@@ -151,13 +155,18 @@ else
             } else {
                 stackbottom = malloc(initialSize);
                 stacktop = stackbottom;
+                stackleft = initialSize;
             }
 
+
             memp = &stacktop;
+            memleft = &stackleft;
+            printf("BeginStackEnd - in Stack: %d - stackLeft: %d\n", memp != &heapp, stackleft);
+     //       assert(0);
             return stacktop;
         }
 
-        extern(C) void endStack(const void* stackBegin) nothrow
+        extern(C) void endStack(const void* stackBegin, ) nothrow
         {
             ptrdiff_t stacksize = (stacktop - stackBegin);
             assert(stacksize > 0);
@@ -169,6 +178,7 @@ else
                 // if we discarded the last nesting stack
                 // switch back to heap
                 memp = &heapp;
+                memleft = &heapleft;
             }
         }
     }
@@ -178,7 +188,7 @@ else
         immutable m_size = (_m_size + 15) & ~15;
 
         // The layout of the code is selected so the most common case is straight through
-
+        printf("StackMode : %d\n memLeft : %d\n", memp != &heapp, *memleft);
 		if (m_size <= *memleft)
         {
         L1:
@@ -213,9 +223,9 @@ else
                 immutable growBy = m_size;
 
                 assert(stacksize > 0);
-                debug (LOGMEM) {
+               // debug (LOGMEM) {
                     printf("Growing Stack by %d byte to %p", growBy, stacksize + growBy);
-                }
+                //}
                 stackbottom = realloc(stackbottom, stacksize + growBy);
 
                 if (!stackbottom) {
