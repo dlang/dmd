@@ -3784,8 +3784,10 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     RootObject o2 = (*tp.tempinst.tiargs)[i];
                     Type t2 = isType(o2);
 
-                    size_t j;
-                    if (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.dim - 1 && (j = templateParameterLookup(t2, parameters), j != IDX_NOTFOUND) && j == parameters.dim - 1 && (*parameters)[j].isTemplateTupleParameter())
+                    size_t j = (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.dim - 1)
+                        ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
+                    if (j != IDX_NOTFOUND && j == parameters.dim - 1 &&
+                        (*parameters)[j].isTemplateTupleParameter())
                     {
                         /* Given:
                          *  struct A(B...) {}
@@ -8875,5 +8877,3 @@ struct TemplateInstanceBox
             return (cast()s.ti).compare(cast()ti) == 0;
     }
 }
-
-

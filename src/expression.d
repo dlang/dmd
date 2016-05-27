@@ -12795,12 +12795,10 @@ public:
                     while (e2y.op == TOKcomma)
                         e2y = (cast(CommaExp)e2y).e2;
 
-                    CallExp ce;
-                    DotVarExp dve;
-                    if (sd.ctor &&
-                        e2y.op == TOKcall &&
-                        (ce = cast(CallExp)e2y, ce.e1.op == TOKdotvar) &&
-                        (dve = cast(DotVarExp)ce.e1, dve.var.isCtorDeclaration()) &&
+                    CallExp ce = (e2y.op == TOKcall) ? cast(CallExp)e2y : null;
+                    DotVarExp dve = (ce && ce.e1.op == TOKdotvar)
+                        ? cast(DotVarExp)ce.e1 : null;
+                    if (sd.ctor && ce && dve && dve.var.isCtorDeclaration() &&
                         e2y.type.implicitConvTo(t1))
                     {
                         /* Look for form of constructor call which is:

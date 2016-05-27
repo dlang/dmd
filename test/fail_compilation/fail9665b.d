@@ -30,10 +30,10 @@ struct S1
     this(int)
     {
         if (true) x2 = X(1);
-        auto n = true ? (x3 = X(1), 1) : 2;
+        auto n = true ? (x3 = X(1)) : X.init;
 
         if (true) x5 = X(1);
-        auto m = true ? (x6 = X(1), 1) : 2;
+        auto m = true ? (x6 = X(1)) : typeof(x6).init;
     }
 }
 
@@ -63,10 +63,10 @@ struct S2(X)
     this(X x)
     {
         if (true) x2 = x;
-        auto a = true ? (x3 = x, 1) : 2;
+        auto a = true ? (x3 = x) : X.init;
 
         if (true) x5 = x;
-        auto b = true ? (x6 = x, 1) : 2;
+        auto b = true ? (x6 = x) : typeof(x6).init;
     }
 }
 void test2()

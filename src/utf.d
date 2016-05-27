@@ -306,7 +306,15 @@ bool isUniAlpha(dchar c)
  */
 int utf_codeLengthChar(dchar c)
 {
-    return c <= 0x7F ? 1 : c <= 0x7FF ? 2 : c <= 0xFFFF ? 3 : c <= 0x10FFFF ? 4 : (assert(false), 6);
+    if (c <= 0x7F)
+        return 1;
+    if (c <= 0x7FF)
+        return 2;
+    if (c <= 0xFFFF)
+        return 3;
+    if (c <= 0x10FFFF)
+        return 4;
+    assert(false);
 }
 
 int utf_codeLengthWchar(dchar c)

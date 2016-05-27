@@ -1275,7 +1275,9 @@ public:
          * the function body.
          */
         TemplateInstance ti;
-        if (fbody && (isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) || isInstantiated() && !isVirtualMethod() && !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident)))
+        if (fbody &&
+            (isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) || isInstantiated() && !isVirtualMethod() &&
+             ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)))
         {
             if (f.purity == PUREimpure) // purity not specified
                 flags |= FUNCFLAGpurityInprocess;
@@ -2274,7 +2276,7 @@ public:
 
         TemplateInstance ti;
         if (isInstantiated() && !isVirtualMethod() &&
-            !(ti = parent.isTemplateInstance(), ti && !ti.isTemplateMixin() && ti.tempdecl.ident != ident))
+            ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident))
         {
             AggregateDeclaration ad = isMember2();
             if (ad && ad.sizeok != SIZEOKdone)

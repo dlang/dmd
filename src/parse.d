@@ -806,7 +806,10 @@ public:
                 if (pAttrs.udas)
                 {
                     if (s)
-                        a = new Dsymbols(), a.push(s);
+                    {
+                        a = new Dsymbols();
+                        a.push(s);
+                    }
                     s = new UserAttributeDeclaration(pAttrs.udas, a);
                     pAttrs.udas = null;
                 }
@@ -891,7 +894,10 @@ public:
                         {
                             Identifier id = (*idents)[--i];
                             if (s)
-                                a = new Dsymbols(), a.push(s);
+                            {
+                                a = new Dsymbols();
+                                a.push(s);
+                            }
                             s = new Nspace(linkLoc, id, a);
                         }
                         pAttrs.link = LINKdefault;

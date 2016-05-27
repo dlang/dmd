@@ -1957,7 +1957,8 @@ public:
              *  } finally { v1.~this(); }
              */
             auto ainit = new Statements();
-            ainit.push(_init), _init = null;
+            ainit.push(_init);
+            _init = null;
             ainit.push(this);
             Statement s = new CompoundStatement(loc, ainit);
             s = new ScopeStatement(loc, s);
