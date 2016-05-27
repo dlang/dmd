@@ -43,7 +43,7 @@ extern extern (C++) type* type_delegate(type* tnext);
 extern extern (C) type* type_function(tym_t tyf, type** ptypes, size_t nparams, bool variadic, type* tret);
 extern extern (C++) type* type_enum(const(char)* name, type* tbase);
 extern extern (C++) type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
-    type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD);
+    type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD, Symbol* init);
 
 extern extern (C++) void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
