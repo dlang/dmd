@@ -214,7 +214,7 @@ else
 
                 assert(stacksize > 0);
                 debug (LOGMEM) {
-                    printf("Growing Stack by %d byte to %p", m_size);
+                    printf("Growing Stack by %d byte to %p", growBy, stacksize + growBy);
                 }
                 stackbottom = realloc(stackbottom, stacksize + growBy);
 
