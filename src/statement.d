@@ -2121,6 +2121,7 @@ public:
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STCrvalue, "__aggr", aggr);
+            vinit.endlinnum = endloc.linnum;
             vinit.semantic(sc);
             aggr = new VarExp(aggr.loc, vinit);
         }

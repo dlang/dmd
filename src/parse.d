@@ -4803,7 +4803,7 @@ public:
      * Input:
      *      flags   PSxxxx
      * Output:
-     *      pEndloc if { ... statements ... }, store location of closing brace
+     *      pEndloc if { ... statements ... }, store location of closing brace, otherwise loc of first token of next statement
      */
     Statement parseStatement(int flags, const(char)** endPtr = null, Loc* pEndloc = null)
     {
@@ -5091,7 +5091,10 @@ public:
                     *endPtr = token.ptr;
                 endloc = token.loc;
                 if (pEndloc)
+                {
                     *pEndloc = token.loc;
+                    pEndloc = null; // don't set it again
+                }
                 s = new CompoundStatement(loc, statements);
                 if (flags & (PSscope | PScurlyscope))
                     s = new ScopeStatement(loc, s, token.loc);
@@ -5892,6 +5895,8 @@ public:
             s = null;
             break;
         }
+        if (pEndloc)
+            *pEndloc = token.loc;
         return s;
     }
 
