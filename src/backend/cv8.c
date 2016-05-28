@@ -187,6 +187,17 @@ void cv8_termfile(const char *objfilename)
     buf.writeWord(S_COMPILAND_V3);
     buf.write32(0);
     buf.write(objfilename, len + 1);
+
+    // write S_COMPILE record
+    buf.writeWord(2 + 1 + 1 + 2 + 1 + sizeof(VERSION));
+    buf.writeWord(S_COMPILE);
+    buf.writeByte(I64 ? 0xD0 : 6); // target machine AMD64 or x86 (Pentium II)
+    buf.writeByte(config.flags2 & CFG2gms ? (CPP != 0) : 'D'); // language index (C/C++/D)
+    buf.writeWord(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
+    buf.writeByte(sizeof(VERSION));
+    buf.writeByte('Z');
+    buf.write(VERSION, sizeof(VERSION) - 1);
+
     cv8_writesection(seg, 0xF1, &buf);
 
     // Write out "F2" sections
