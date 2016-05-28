@@ -199,8 +199,13 @@ struct Target
         }
     }
 
-    /*
-     * Return true if the given type is supported for this target
+    /**
+     * Checks whether the target supports a vector type with total size `sz`
+     * (in bytes) and element type `type`.
+     *
+     * Returns: 0 if the type is supported, or else: 1 if vector types are not
+     *     supported on the target at all, 2 if the given size isn't, or 3 if
+     *     the element type isn't.
      */
     extern (C++) static int checkVectorType(int sz, Type type)
     {
