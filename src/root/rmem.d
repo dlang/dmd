@@ -145,7 +145,7 @@ else
         /// this is needed by endStack
         extern(C) void* beginStack(const size_t initialSize = CHUNK_SIZE) nothrow 
         {
-            printf("BeginStackStart - in Stack: %d stackLeft: %d\n", memp != &heapp, stackleft);
+        //    printf("BeginStackStart - in Stack: %d stackLeft: %d\n", memp != &heapp, stackleft);
 
             if (stackbottom) {
                 if (stackleft < initialSize)
@@ -161,7 +161,7 @@ else
 
             memp = &stacktop;
             memleft = &stackleft;
-            printf("BeginStackEnd - in Stack: %d - stackLeft: %d\n", memp != &heapp, stackleft);
+      //      printf("BeginStackEnd - in Stack: %d - stackLeft: %d\n", memp != &heapp, stackleft);
      //       assert(0);
             return stacktop;
         }
@@ -188,7 +188,7 @@ else
         immutable m_size = (_m_size + 15) & ~15;
 
         // The layout of the code is selected so the most common case is straight through
-        printf("StackMode : %d\n memLeft : %d\n", memp != &heapp, *memleft);
+  //      printf("StackMode : %d\n memLeft : %d\n", memp != &heapp, *memleft);
 		if (m_size <= *memleft)
         {
         L1:
@@ -210,35 +210,29 @@ else
                 exit(EXIT_FAILURE);
             }
 
-            heapleft = CHUNK_SIZE;
-            heapp = malloc(CHUNK_SIZE);
-            if (!heapp)
+            *memleft = CHUNK_SIZE;
+           (*memp) = malloc(CHUNK_SIZE);
+            if (!(*memp))
             {
                 printf("Error: out of memory\n");
                 exit(EXIT_FAILURE);
             }
         } else {
             version (WithStack) {
-                ptrdiff_t stacksize = stacktop - stackbottom;
-                immutable growBy = m_size;
+              //  stackbottom = realloc(stackbottom, stacksize + growBy);
 
-                assert(stacksize > 0);
-               // debug (LOGMEM) {
-                    printf("Growing Stack by %d byte to %p", growBy, stacksize + growBy);
-                //}
-                stackbottom = realloc(stackbottom, stacksize + growBy);
-
-                if (!stackbottom) {
+   /*             if (!stackbottom) {
                     printf("Error: out of memory\n");
                     exit(EXIT_FAILURE);
-                }
+                } */
+                stacktop = stackbottom + (CHUNK_SIZE / 2);
 
-                stacktop = stackbottom + stacksize;
-                stackleft += growBy;
+//                stacktop = stackbottom + stacksize;
+               stackleft = CHUNK_SIZE / 2;
             } else {
                 assert(0, "We should never modify our memPtr without the Stack");
             }
-        }
+        } 
         goto L1;
     }
 
