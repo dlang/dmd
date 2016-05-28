@@ -16,9 +16,6 @@
     <Filter Include="src\gen">
       <UniqueIdentifier>{8f21dd4e-1670-48be-9a72-1dccf0c17166}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\generated">
-      <UniqueIdentifier>{6deaa83b-2b97-4159-a330-266507006483}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\vcbuild">
       <UniqueIdentifier>{5fa9d849-fc22-4664-bb36-8ed7e1bff041}</UniqueIdentifier>
     </Filter>
@@ -49,9 +46,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\tocvdebug.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\todt.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\toir.c">
@@ -246,6 +240,9 @@
     <ClCompile Include="..\objc_glue_stubs.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\backend\compress.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\aggregate.h">
@@ -428,9 +425,6 @@
     <ClInclude Include="..\tk\vec.h">
       <Filter>src\tk</Filter>
     </ClInclude>
-    <ClInclude Include="..\root\aav.h">
-      <Filter>src\root</Filter>
-    </ClInclude>
     <ClInclude Include="..\root\longdouble.h">
       <Filter>src\root</Filter>
     </ClInclude>
@@ -445,9 +439,6 @@
     </ClInclude>
     <ClInclude Include="..\root\stringtable.h">
       <Filter>src\root</Filter>
-    </ClInclude>
-    <ClInclude Include="..\id.h">
-      <Filter>src\generated</Filter>
     </ClInclude>
     <ClInclude Include="..\vcbuild\alloca.h">
       <Filter>src\vcbuild</Filter>

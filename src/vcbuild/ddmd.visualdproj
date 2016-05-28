@@ -525,6 +525,7 @@
    <File path="..\staticassert.d" />
    <File path="..\target.d" />
    <File path="..\toctype.d" />
+   <File path="..\todt.d" />
    <File path="..\tokens.d" />
    <File path="..\traits.d" />
    <File path="..\typinf.d" />
