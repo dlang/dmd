@@ -15,6 +15,7 @@ import ddmd.declaration;
 import ddmd.dstruct;
 import ddmd.globals;
 import ddmd.id;
+import ddmd.root.rmem;
 import ddmd.mtype;
 import ddmd.visitor;
 
@@ -62,7 +63,7 @@ public:
         type*[10] tmp;
         type** ptypes = tmp.ptr;
         if (nparams > 10)
-            ptypes = cast(type**)malloc((type*).sizeof * nparams);
+            ptypes = cast(type**)Mem.xmalloc((type*).sizeof * nparams);
         for (size_t i = 0; i < nparams; i++)
         {
             Parameter p = Parameter.getNth(t.parameters, i);
