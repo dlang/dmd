@@ -263,11 +263,14 @@ char *symbol_ident(symbol *s)
  */
 
 symbol * symbol_calloc(const char *id)
-{   symbol *s;
-    int len;
+{
+    return symbol_calloc(id, strlen(id));
+}
 
-    len = strlen(id);
-    //printf("sizeof(symbol)=%d, sizeof(s->Sident)=%d, len=%d\n",sizeof(symbol),sizeof(s->Sident),len);
+symbol * symbol_calloc(const char *id, size_t len)
+{   symbol *s;
+
+    //printf("sizeof(symbol)=%d, sizeof(s->Sident)=%d, len=%d\n",sizeof(symbol),sizeof(s->Sident),(int)len);
     s = (symbol *) mem_fmalloc(sizeof(symbol) - sizeof(s->Sident) + len + 1 + 5);
     memset(s,0,sizeof(symbol) - sizeof(s->Sident));
 #if SCPP
@@ -291,8 +294,13 @@ symbol * symbol_calloc(const char *id)
 
 symbol * symbol_name(const char *name,int sclass,type *t)
 {
+    return symbol_name(name, strlen(name), sclass, t);
+}
+
+symbol * symbol_name(const char *name, size_t len, int sclass, type *t)
+{
     type_debug(t);
-    symbol *s = symbol_calloc(name);
+    symbol *s = symbol_calloc(name, len);
     s->Sclass = (enum SC) sclass;
     s->Stype = t;
     s->Stype->Tcount++;
