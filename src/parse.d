@@ -379,9 +379,7 @@ public:
                     id = token.ident;
                 }
 
-                md = new ModuleDeclaration(loc, a, id);
-                md.isdeprecated = isdeprecated;
-                md.msg = msg;
+                md = new ModuleDeclaration(loc, a, id, msg, isdeprecated);
 
                 if (token.value != TOKsemicolon)
                     error("';' expected following module declaration instead of %s", token.toChars());

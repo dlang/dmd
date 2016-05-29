@@ -1318,11 +1318,13 @@ struct ModuleDeclaration
     bool isdeprecated;      // if it is a deprecated module
     Expression msg;
 
-    extern (D) this(Loc loc, Identifiers* packages, Identifier id)
+    extern (D) this(Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
     {
         this.loc = loc;
         this.packages = packages;
         this.id = id;
+        this.msg = msg;
+        this.isdeprecated = isdeprecated;
     }
 
     extern (C++) const(char)* toChars()
