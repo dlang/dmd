@@ -745,8 +745,7 @@ Lsearchdone:
     if (ue.op == TOKdotti)
     {
         DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)ue;
-        auto ti = new TemplateInstance(loc, s.ident);
-        ti.tiargs = dti.ti.tiargs; // for better diagnostic message
+        auto ti = new TemplateInstance(loc, s.ident, dti.ti.tiargs);
         if (!ti.updateTempDecl(sc, s))
             return new ErrorExp();
         return new ScopeExp(loc, ti);
@@ -9088,8 +9087,7 @@ public:
     {
         super(loc, TOKdotti, __traits(classInstanceSize, DotTemplateInstanceExp), e);
         //printf("DotTemplateInstanceExp()\n");
-        this.ti = new TemplateInstance(loc, name);
-        this.ti.tiargs = tiargs;
+        this.ti = new TemplateInstance(loc, name, tiargs);
     }
 
     extern (D) this(Loc loc, Expression e, TemplateInstance ti)

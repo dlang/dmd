@@ -1778,8 +1778,7 @@ public:
 
             if (tiargs && token.value == TOKdot)
             {
-                auto tempinst = new TemplateInstance(loc, id);
-                tempinst.tiargs = tiargs;
+                auto tempinst = new TemplateInstance(loc, id, tiargs);
                 if (!tqual)
                     tqual = new TypeInstance(loc, tempinst);
                 else
@@ -3484,8 +3483,7 @@ public:
             if (token.value == TOKnot)
             {
                 // ident!(template_arguments)
-                auto tempinst = new TemplateInstance(loc, id);
-                tempinst.tiargs = parseTemplateArguments();
+                auto tempinst = new TemplateInstance(loc, id, parseTemplateArguments());
                 t = parseBasicTypeStartingAt(new TypeInstance(loc, tempinst), dontLookDotIdents);
             }
             else
@@ -3612,8 +3610,7 @@ public:
                     nextToken();
                     if (token.value == TOKnot)
                     {
-                        auto tempinst = new TemplateInstance(loc, id);
-                        tempinst.tiargs = parseTemplateArguments();
+                        auto tempinst = new TemplateInstance(loc, id, parseTemplateArguments());
                         tid.addInst(tempinst);
                     }
                     else
@@ -7027,9 +7024,7 @@ public:
                 if (token.value == TOKnot && (save = peekNext()) != TOKis && save != TOKin)
                 {
                     // identifier!(template-argument-list)
-                    TemplateInstance tempinst;
-                    tempinst = new TemplateInstance(loc, id);
-                    tempinst.tiargs = parseTemplateArguments();
+                    auto tempinst = new TemplateInstance(loc, id, parseTemplateArguments());
                     e = new ScopeExp(loc, tempinst);
                 }
                 else

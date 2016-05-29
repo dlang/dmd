@@ -1050,11 +1050,10 @@ public:
          * as td2.
          */
 
-        scope TemplateInstance ti = new TemplateInstance(Loc(), ident); // create dummy template instance
         // Set type arguments to dummy template instance to be types
         // generated from the parameters to this template declaration
-        ti.tiargs = new Objects();
-        ti.tiargs.reserve(parameters.dim);
+        auto tiargs = new Objects();
+        tiargs.reserve(parameters.dim);
         for (size_t i = 0; i < parameters.dim; i++)
         {
             TemplateParameter tp = (*parameters)[i];
@@ -1064,8 +1063,9 @@ public:
             if (!p)
                 break;
 
-            ti.tiargs.push(p);
+            tiargs.push(p);
         }
+        scope TemplateInstance ti = new TemplateInstance(Loc(), ident, tiargs); // create dummy template instance
 
         // Temporary Array to hold deduced types
         Objects dedtypes;
@@ -5938,7 +5938,7 @@ public:
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
 
-    final extern (D) this(Loc loc, Identifier ident)
+    final extern (D) this(Loc loc, Identifier ident, Objects* tiargs)
     {
         super(null);
         static if (LOG)
@@ -5947,6 +5947,7 @@ public:
         }
         this.loc = loc;
         this.name = ident;
+        this.tiargs = tiargs;
     }
 
     /*****************
@@ -5984,7 +5985,7 @@ public:
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
-        TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name);
+        TemplateInstance ti = s ? cast(TemplateInstance)s : new TemplateInstance(loc, name, null);
         ti.tiargs = arraySyntaxCopy(tiargs);
         TemplateDeclaration td;
         if (inst && tempdecl && (td = tempdecl.isTemplateDeclaration()) !is null)
@@ -8376,11 +8377,12 @@ public:
 
     extern (D) this(Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
     {
-        super(loc, tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident);
+        super(loc,
+              tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident,
+              tiargs ? tiargs : new Objects());
         //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");
         this.ident = ident;
         this.tqual = tqual;
-        this.tiargs = tiargs ? tiargs : new Objects();
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
