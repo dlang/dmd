@@ -996,7 +996,7 @@ public:
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
-    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init)
+    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STCundefined)
     {
         super(id);
         //printf("VarDeclaration('%s')\n", id->toChars());
@@ -1014,14 +1014,14 @@ public:
         this._init = _init;
         this.loc = loc;
         ctfeAdrOnStack = -1;
+        this.storage_class = storage_class;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
-        auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null);
-        v.storage_class = storage_class;
+        auto v = new VarDeclaration(loc, type ? type.syntaxCopy() : null, ident, _init ? _init.syntaxCopy() : null, storage_class);
         return v;
     }
 
@@ -1308,10 +1308,10 @@ public:
                 else
                     ti = _init ? _init.syntaxCopy() : null;
 
-                auto v = new VarDeclaration(loc, arg.type, id, ti);
-                v.storage_class |= STCtemp | storage_class;
+                StorageClass storage_class = STCtemp | storage_class;
                 if (arg.storageClass & STCparameter)
-                    v.storage_class |= arg.storageClass;
+                    storage_class |= arg.storageClass;
+                auto v = new VarDeclaration(loc, arg.type, id, ti, storage_class);
                 //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
                 v.semantic(sc);
 
