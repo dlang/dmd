@@ -1288,43 +1288,48 @@ void toObjFile(Dsymbol *ds, bool multiobj)
         }
 
         /**
-         * Creates the data symbol for a TLS variable for Mach-O.
+         * Creates the data symbol used to initialize a TLS variable for Mach-O.
          *
-         * Input:
-         *      vd  the variable declaration for the symbol
-         *      s   the regular symbol for the variable
+         * Params:
+         *      vd = the variable declaration for the symbol
+         *      s = the back end symbol corresponding to vd
          *
-         * Returns: the newly create symbol
+         * Returns: the newly created symbol
          */
         Symbol *createTLVDataSymbol(VarDeclaration *vd, Symbol *s)
         {
             assert(config.objfmt == OBJ_MACH && I64 && (s->ty() & mTYLINK) == mTYthread);
 
+            // Compute identifier for tlv symbol
             OutBuffer buffer;
             buffer.writestring(s->Sident);
             buffer.write("$tlv$init", 9);
+            const char *tlvInitName = buffer.peekString();
 
-            const char *tlvInitName = buffer.extractString();
-            Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, type_fake(vd->type->ty));
+            // Compute type for tlv symbol
+            type *t = type_fake(vd->type->ty);
+            type_setty(&t, t->Tty | mTYthreadData);
+            type_setmangle(&t, mangle(vd));
+
+            Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, t);
             tlvInit->Sdt = NULL;
             tlvInit->Salignment = type_alignsize(s->Stype);
-
-            type_setty(&tlvInit->Stype, tlvInit->Stype->Tty | mTYthreadData);
-            type_setmangle(&tlvInit->Stype, mangle(vd, tlvInit));
+            if (vd->linkage == LINKcpp)
+                tlvInit->Sflags |= SFLpublic;
 
             return tlvInit;
         }
 
         /**
-         * Returns the mangling for the given variable.
+         * Returns the target mangling mangle_t for the given variable.
          *
-         * Input:
-         *      vd          the variable declaration for the symbol
-         *      tlvInit     the data symbol for the variable
+         * Params:
+         *      vd = the variable declaration
          *
-         * Returns: the mangling that should be used for variable
+         * Returns:
+         *      the mangling that should be used for variable
          */
-        mangle_t mangle(VarDeclaration *vd, Symbol *tlvInit)
+        mangle_t mangle(const VarDeclaration *vd)
         {
             switch (vd->linkage)
             {
@@ -1342,8 +1347,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     return mTYman_d;
 
                 case LINKcpp:
-                    tlvInit->Sflags |= SFLpublic;
                     return mTYman_d;
+
                 default:
                     printf("linkage = %d\n", vd->linkage);
                     assert(0);
