@@ -17,6 +17,9 @@
 #include "global.h"
 #include "code.h"
 
+static char __file__[] = __FILE__;      /* for tassert.h                */
+#include        "tassert.h"
+
 VarStatistics::VarStatistics()
 {
     memset (this, 0, sizeof (VarStatistics));
@@ -140,8 +143,44 @@ void VarStatistics::calcLexicalScope(Funcsym *s, symtab_t* symtab)
             src.Slinnum = firstVarStatsLine + i;
             varStats[i].offset = getLineOffset (src);
         }
+    sanitizeLineOffsets();
 
+    // initialize iteration in ..._writeLexicalScope
     nextVarStatsLine = firstVarStatsLine;
+}
+
+// sanitize offsets: blocks must nest correctly
+// lineOffsets must be ascending
+// invalid offsets are extended to the next outer scope boundary
+void VarStatistics::sanitizeLineOffsets()
+{
+    int lastoff = 0;
+    for (int idx = 0; idx < cntUsedVarStats; idx++)
+    {
+        if (varStats[idx].numNew > 0 || varStats[idx].numDel > 0)
+        {
+            if (varStats[idx].offset >= lastoff)
+                lastoff = varStats[idx].offset;
+
+            else if (varStats[idx].numDel == 0)
+                // introducing new variables extends to previous offset
+                varStats[idx].offset = lastoff;
+
+            else
+            {
+                // removing variables extends to the next sane offset
+                int nidx = idx + 1;
+                while (nidx < cntUsedVarStats && varStats[idx].offset < lastoff)
+                    nidx++; // varStats[idx].offset == 0 for entries without numDel/numNew
+
+                // store it to all entries with smaller offsets
+                lastoff = nidx < cntUsedVarStats ? varStats[nidx].offset : retoffset + retsize; // function length
+                for (; idx < nidx; idx++)
+                    if (varStats[idx].numNew > 0 || varStats[idx].numDel > 0)
+                        varStats[idx].offset = lastoff;
+            }
+        }
+    }
 }
 
 targ_size_t VarStatistics::getLineOffset(Srcpos src)

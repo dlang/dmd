@@ -56,6 +56,7 @@ struct VarStatistics
     void markVarStats(int startLine, int endLine);
     bool isLexicalScopeVar(symbol* sa);
     void calcLexicalScope(Funcsym *s, symtab_t* symtab);
+    void sanitizeLineOffsets();
 };
 
 extern VarStatistics varStats;
