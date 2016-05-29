@@ -1993,11 +1993,11 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         }
         tret = tthis;
     }
-    else if (wildmatch)
+    else if (wildmatch && tret)
     {
         /* Adjust function return type based on wildmatch
          */
-        //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
+        //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret.toChars());
         tret = tret.substWildTo(wildmatch);
     }
     *prettype = tret;
