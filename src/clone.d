@@ -1142,8 +1142,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
             }
             e = Expression.combine(e, new CallExp(loc, new VarExp(loc, ad.invs[i], false)));
         }
-        auto inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant);
-        inv.fbody = new ExpStatement(loc, e);
+        auto inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant, new ExpStatement(loc, e));
         ad.members.push(inv);
         inv.semantic(sc);
         return inv;

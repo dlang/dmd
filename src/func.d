@@ -5385,15 +5385,16 @@ public:
 extern (C++) final class InvariantDeclaration : FuncDeclaration
 {
 public:
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id = null)
+    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
     {
         super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
+        this.fbody = fbody;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto id = new InvariantDeclaration(loc, endloc, storage_class);
+        auto id = new InvariantDeclaration(loc, endloc, storage_class, null, null);
         return FuncDeclaration.syntaxCopy(id);
     }
 
