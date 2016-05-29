@@ -2650,6 +2650,8 @@ public:
     {
         const loc = token.loc;
         StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        if (pAttrs)
+            pAttrs.storageClass = STCundefined;
 
         nextToken();
         if (token.value == TOKlparen) // optional ()
@@ -2658,10 +2660,8 @@ public:
             check(TOKrparen);
         }
 
-        auto f = new InvariantDeclaration(loc, Loc(), stc);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
-        f.fbody = parseStatement(PScurly);
+        auto fbody = parseStatement(PScurly);
+        auto f = new InvariantDeclaration(loc, token.loc, stc, null, fbody);
         return f;
     }
 
