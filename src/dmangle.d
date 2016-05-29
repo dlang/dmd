@@ -833,8 +833,13 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
 
 extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
 {
-    scope Mangler v = new Mangler(buf);
-    v.visitWithMask(t, 0);
+    if (t.deco)
+        buf.writestring(t.deco);
+    else
+    {
+        scope Mangler v = new Mangler(buf);
+        v.visitWithMask(t, 0);
+    }
 }
 
 extern (C++) void mangleToBuffer(Type t, OutBuffer* buf, bool internal)
@@ -845,8 +850,6 @@ extern (C++) void mangleToBuffer(Type t, OutBuffer* buf, bool internal)
         if (t.ty == Tarray)
             buf.writestring(mangleChar[(cast(TypeArray)t).next.ty]);
     }
-    else if (t.deco)
-        buf.writestring(t.deco);
     else
         mangleToBuffer(t, buf);
 }
