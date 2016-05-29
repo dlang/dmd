@@ -1,11 +1,18 @@
-import imports.test15925;
+/* REQUIRED_ARGS: -transition=import -transition=checkimports
+PERMUTE_ARGS:
+TEST_OUTPUT:
+---
+compilable/test15925.d(17): Deprecation: local import search method found variable imp15925.X instead of nothing
+---
+*/
 
-public class Foo
+mixin template Import()
 {
-    mixin AddImports;
+    import imports.imp15925;
+}
 
-    // Alias from imports.test15925thread which is imported in AddImports
-    ThreadAlias fun2;
-    // Type from imports.test15925thread which is imported in AddImports
-    Thread th2;
+class Foo
+{
+    mixin Import!();
+    static assert(X == 1);
 }
