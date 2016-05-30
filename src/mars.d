@@ -1885,6 +1885,9 @@ private void addDefaultVersionIdentifiers()
 
     if (global.params.isLP64)
         VersionCondition.addPredefinedGlobalIdent("D_LP64");
+    else
+        VersionCondition.addPredefinedGlobalIdent("D_IP32");
+
     if (global.params.doDocComments)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
     if (global.params.cov)

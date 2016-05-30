@@ -258,6 +258,7 @@ public:
             "D_InlineAsm_X86",
             "D_InlineAsm_X86_64",
             "D_LP64",
+            "D_IP32",
             "D_X32",
             "D_HardFloat",
             "D_SoftFloat",
