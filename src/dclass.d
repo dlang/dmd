@@ -1087,8 +1087,9 @@ public:
 
         auto s = ScopeDsymbol.search(loc, ident, flags);
 
-        if ((flags & (SearchLocalsOnly | SearchImportsOnly)) != 0)
-            flags |= SearchLocalsOnly;
+        // don't search imports of base classes
+        if (flags & SearchImportsOnly)
+            return s;
 
         if (!s)
         {

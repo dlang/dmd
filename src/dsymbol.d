@@ -1333,11 +1333,13 @@ public:
                     if (flags & SearchLocalsOnly)
                         continue;
                 }
-                else if (!ss.isTemplateMixin)
+                else // mixin template
                 {
                     if (flags & SearchImportsOnly)
                         continue;
-                    sflags |= SearchLocalsOnly;
+                    // compatibility with -transition=import (Bugzilla 15925)
+                    // SearchLocalsOnly should always get set for new lookup rules
+                    sflags |= (flags & SearchLocalsOnly);
                 }
 
                 /* Don't find private members if ss is a module
