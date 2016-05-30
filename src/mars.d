@@ -104,7 +104,8 @@ Where:
   -betterC         omit generating some runtime information and helper functions
   -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off
   -c               do not link
-  -color[=on|off]  force colored console output on or off
+  -color           turn colored console output on
+  -color=[on|off]  force colored console output on or off
   -conf=<filename> use config file at filename
   -cov             do code coverage analysis
   -cov=<nnn>       require at least nnn%% code coverage
