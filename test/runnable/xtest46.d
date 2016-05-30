@@ -7853,6 +7853,19 @@ bool test16022()
     return type == Type.Colon, type == Type.Comma;
 }
 
+bool test16022_structs()
+{
+    struct A
+    {
+        int i;
+        string s;
+    }
+
+    enum Type { Colon = A(0, "zero"), Comma = A(1, "one") }
+    Type type;
+    return type == Type.Colon, type == Type.Comma;
+}
+
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=16233
 
