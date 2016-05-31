@@ -7665,7 +7665,6 @@ public:
                 Type t = parseBasicType();
                 t = t.addSTC(stc);
 
-                e = new TypeExp(loc, t);
                 if (stc == 0 && token.value == TOKdot)
                 {
                     nextToken();
@@ -7677,14 +7676,17 @@ public:
                     e = typeDotIdExp(loc, t, token.ident);
                     nextToken();
                     e = parsePostExp(e);
-                    break;
                 }
-                else if (token.value != TOKlparen)
+                else
                 {
-                    error("(arguments) expected following %s", t.toChars());
-                    return e;
+                    e = new TypeExp(loc, t);
+                    if (token.value != TOKlparen)
+                    {
+                        error("(arguments) expected following %s", t.toChars());
+                        return e;
+                    }
+                    e = new CallExp(loc, e, parseArguments());
                 }
-                e = new CallExp(loc, e, parseArguments());
                 break;
             }
         case TOKlparen:
