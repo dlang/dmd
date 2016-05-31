@@ -210,7 +210,7 @@ public:
     {
         visit(cast(Type)t);
         if (t.dim)
-            buf.printf("%llu", t.dim.toInteger());
+            buf.printf("%u", cast(uint)t.dim.toInteger());
         if (t.next)
             visitWithMask(t.next, t.mod);
     }
@@ -427,7 +427,7 @@ public:
             s.error("excessive length %llu for symbol, possible recursive expansion?", len);
         else
         {
-            buf.printf("%llu", cast(ulong)len);
+            buf.printf("%u", cast(uint)len);
             buf.write(id, len);
         }
     }
@@ -769,7 +769,7 @@ public:
     override void visit(ArrayLiteralExp e)
     {
         size_t dim = e.elements ? e.elements.dim : 0;
-        buf.printf("A%u", dim);
+        buf.printf("A%u", cast(uint)dim);
         for (size_t i = 0; i < dim; i++)
         {
             e.getElement(i).accept(this);
@@ -779,7 +779,7 @@ public:
     override void visit(AssocArrayLiteralExp e)
     {
         size_t dim = e.keys.dim;
-        buf.printf("A%u", dim);
+        buf.printf("A%u", cast(uint)dim);
         for (size_t i = 0; i < dim; i++)
         {
             (*e.keys)[i].accept(this);
@@ -790,7 +790,7 @@ public:
     override void visit(StructLiteralExp e)
     {
         size_t dim = e.elements ? e.elements.dim : 0;
-        buf.printf("S%u", dim);
+        buf.printf("S%u", cast(uint)dim);
         for (size_t i = 0; i < dim; i++)
         {
             Expression ex = (*e.elements)[i];
