@@ -63,15 +63,15 @@ Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const ch
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
+    size_t nlen = buf.offset;
     const char *n = buf.peekString();
     assert(n);
-    size_t nlen = strlen(n);
 
     size_t prefixlen = strlen(prefix);
+    size_t suffixlen = strlen(suffix);
+    size_t idlen = 2 + nlen + sizeof(size_t) * 3 + prefixlen + suffixlen + 1;
 
-    size_t idlen = 2 + nlen + sizeof(size_t) * 3 + prefixlen + strlen(suffix) + 1;
-
-    char idbuf[20];
+    char idbuf[64];
     char *id = idbuf;
     if (idlen > sizeof(idbuf))
     {
@@ -79,10 +79,13 @@ Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const ch
         assert(id);
     }
 
-    int nwritten = sprintf(id,"_D%s%llu%s%s", n, (unsigned long long)prefixlen, prefix, suffix);
+    int nwritten = sprintf(id,"_D%.*s%d%.*s%.*s",
+        (int)nlen, n,
+        (int)prefixlen, (int)prefixlen, prefix,
+        (int)suffixlen, suffix);
     assert((unsigned)nwritten < idlen);         // nwritten does not include the terminating 0 char
 
-    Symbol *s = symbol_name(id, sclass, t);
+    Symbol *s = symbol_name(id, nwritten, sclass, t);
 
     if (id != idbuf)
         free(id);
@@ -129,13 +132,14 @@ Symbol *toSymbol(Dsymbol *s)
             {
                 OutBuffer buf;
                 mangleToBuffer(vd, &buf);
+                size_t length = buf.offset;
                 const char *id = buf.peekString();
-                s = symbol_calloc(id);
+                s = symbol_calloc(id, length);
             }
             else
             {
                 const char *id = vd->ident->toChars();
-                s = symbol_calloc(id);
+                s = symbol_calloc(id, strlen(id));
             }
             s->Salignment = vd->alignment;
             if (vd->storage_class & STCtemp)
@@ -289,7 +293,7 @@ Symbol *toSymbol(Dsymbol *s)
             //printf("FuncDeclaration::toSymbol(%s %s)\n", fd->kind(), fd->toChars());
             //printf("\tid = '%s'\n", id);
             //printf("\ttype = %s\n", fd->type->toChars());
-            Symbol *s = symbol_calloc(id);
+            Symbol *s = symbol_calloc(id, strlen(id));
 
             s->prettyIdent = fd->toPrettyChars(true);
             s->Sclass = SCglobal;
@@ -437,27 +441,28 @@ static Symbol *toImport(Symbol *sym)
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
     char *n = sym->Sident;
     char *id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
+    int idlen;
     if (sym->Stype->Tmangle == mTYman_std && tyfunc(sym->Stype->Tty))
     {
         if (config.exe == EX_WIN64)
-            sprintf(id,"__imp_%s",n);
+            idlen = sprintf(id,"__imp_%s",n);
         else
-            sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
+            idlen = sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
     }
     else if (sym->Stype->Tmangle == mTYman_d)
     {
-        sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp_%s",n);
+        idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp_%s",n);
     }
     else
     {
-        sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
+        idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
     }
     type *t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
     t->Tnext->Tcount++;
     t->Tmangle = mTYman_c;
     t->Tcount++;
-    Symbol *s = symbol_calloc(id);
+    Symbol *s = symbol_calloc(id, idlen);
     s->Stype = t;
     s->Sclass = SCextern;
     s->Sfl = FLextern;
@@ -640,7 +645,7 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 
         //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
         char *id = (char *)alloca(3 + strlen(func) + 1);
-        sprintf(id, "_aa%s", func);
+        int idlen = sprintf(id, "_aa%s", func);
 
         // See if symbol is already in sarray
         for (size_t i = 0; i < sarray.dim; i++)
@@ -657,7 +662,7 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 
         // Create new Symbol
 
-        Symbol *s = symbol_calloc(id);
+        Symbol *s = symbol_calloc(id, idlen);
         s->Sclass = SCextern;
         s->Ssymnum = -1;
         symbol_func(s);
@@ -679,7 +684,7 @@ Symbol* toSymbol(StructLiteralExp *sle)
     if (sle->sym) return sle->sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
-    Symbol *s = symbol_calloc("internal");
+    Symbol *s = symbol_calloc("internal", 8);
     s->Sclass = SCstatic;
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
@@ -697,7 +702,7 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     if (cre->value->sym) return cre->value->sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
-    Symbol *s = symbol_calloc("internal");
+    Symbol *s = symbol_calloc("internal", 8);
     s->Sclass = SCstatic;
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
@@ -751,7 +756,7 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
 Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
 {
     const char *id = cppTypeInfoMangle(cd);
-    Symbol* s = symbol_calloc(id);
+    Symbol* s = symbol_calloc(id, strlen(id));
     s->Sclass = SCextern;
     s->Sfl = FLextern;          // C++ code will provide the definition
     s->Sflags |= SFLnodebug;
