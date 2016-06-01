@@ -2506,7 +2506,7 @@ int Obj::external_def(const char *name)
 {   unsigned len;
     char *e;
 
-    //dbg_printf("Obj::external_def('%s')\n",name);
+    //printf("Obj::external_def('%s', %d)\n",name,obj.extidx + 1);
     assert(name);
     len = strlen(name);                 // length of identifier
     if (obj.extdatai + len + ONS_OHD + 1 > sizeof(obj.extdata))
@@ -2530,7 +2530,7 @@ int Obj::external_def(const char *name)
 
 int Obj::external(Symbol *s)
 {
-    //dbg_printf("Obj::external('%s')\n",s->Sident);
+    //printf("Obj::external('%s', %d)\n",s->Sident, obj.extidx + 1);
     symbol_debug(s);
     obj.reset_symbuf->write(&s, sizeof(s));
     if (obj.extdatai + (IDMAX + IDOHD) + 3 > sizeof(obj.extdata))
@@ -2597,7 +2597,8 @@ int Obj::common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
   unsigned long length;
   unsigned ti;
 
-    //dbg_printf("Obj::common_block('%s',%d,%d,%d)\n",s->Sident,flag,size,count);
+    //printf("Obj::common_block('%s',%d,%d,%d, %d)\n",s->Sident,flag,size,count, obj.extidx + 1);
+    obj.reset_symbuf->write(&s, sizeof(s));
     outextdata();               // borrow the extdata[] storage
     i = Obj::mangle(s,obj.extdata);
 
@@ -3405,7 +3406,10 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
             {   external = s->Sxtrnnum;
 #ifdef DEBUG
                 if (external > obj.extidx)
+                {
+                    printf("obj.extidx = %d\n", obj.extidx);
                     symbol_print(s);
+                }
 #endif
                 assert(external <= obj.extidx);
             }
