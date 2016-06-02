@@ -4182,6 +4182,15 @@ extern (C++) final class DsymbolExp : Expression
             if (e1)
                 e = new DotExp(loc, e1, e);
             e = e.semantic(sc);
+
+            /* Hack for compatiblility with old Type(Struct|Class).dotExp.
+             * This is questionable type setting, because TemplateMixin is not an aggregate.
+             * But it's actually used in runnable/mixin1.d test33(), for opCall use via mixin name.
+             * Essentially, code for that case should go into CallExp.semantic.
+             */
+            //if (e1 && s.isTemplateMixin())
+            //    e.type = e1.type;
+
             return e;
         }
 
@@ -9793,6 +9802,22 @@ extern (C++) final class CallExp : UnaExp
                 }
                 e = e.semantic(sc);
                 return e;
+            }
+
+            /* In previous, a dot expression (struct or class).TemplateMixin has typed as
+             * the aggregate type. And in here, it's accepted to resolve opCall via the
+             * That's actually tested in runnable/mixin1.d test33().
+             * template mixin.
+             */
+            //version (none)
+            {
+                auto e1x = e1;
+                if (e1x.op == TOKdot)
+                    e1x = (cast(DotExp)e1x).e2;
+                auto tm = e1x.op == TOKscope ?
+                    (cast(ScopeExp)e1x).sds.isTemplateMixin() : null;
+                if (tm && search_function(tm, Id.call))
+                    goto L1;
             }
         }
 
