@@ -4181,6 +4181,7 @@ extern (C++) final class DsymbolExp : Expression
             e = new OverExp(loc, os);
             if (e1)
                 e = new DotExp(loc, e1, e);
+            e = e.semantic(sc);
             return e;
         }
 
@@ -4205,7 +4206,7 @@ extern (C++) final class DsymbolExp : Expression
                     e1 = new ThisExp(loc);
                 }
             }
-            if (e1)
+            if (e1 && e1.op != TOKtype)
                 e = new DotTemplateExp(loc, e1, td);
             else
                 e = new TemplateExp(loc, td);
@@ -4214,6 +4215,7 @@ extern (C++) final class DsymbolExp : Expression
         }
         if (auto ti = s.isTemplateInstance())
         {
+            // ti could be TemplateMixin
             ti.semantic(sc);
             if (!ti.inst || ti.errors)
                 return new ErrorExp();

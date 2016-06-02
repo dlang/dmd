@@ -8284,65 +8284,17 @@ extern (C++) final class TypeStruct : Type
             }
         }
 
-        if (auto t = s.getType())
+        if (s.getType() ||
+            s.isTemplateDeclaration() ||
+            s.isTemplateInstance() ||
+            s.isImport() || s.isModule() || s.isPackage() ||
+            s.isOverloadSet())
         {
-            return (new TypeExp(e.loc, t)).semantic(sc);
-        }
-
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
-        {
-            Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
-            de.type = e.type;
-            return de;
-        }
-
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
-        {
-            if (e.op == TOKtype)
-                e = new TemplateExp(e.loc, td);
-            else
-                e = new DotTemplateExp(e.loc, e, td);
-            e = e.semantic(sc);
+            e = DsymbolExp.resolve(e.loc, sc, e, s, true);
             return e;
         }
 
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
-        {
-            if (!ti.semanticRun)
-            {
-                ti.semantic(sc);
-                if (!ti.inst || ti.errors) // if template failed to expand
-                    return new ErrorExp();
-            }
-            s = ti.inst.toAlias();
-            if (!s.isTemplateInstance())
-                goto L1;
-            if (e.op == TOKtype)
-                e = new ScopeExp(e.loc, ti);
-            else
-                e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
-            return e.semantic(sc);
-        }
-
-        if (s.isImport() || s.isModule() || s.isPackage())
-        {
-            e = DsymbolExp.resolve(e.loc, sc, s, false);
-            return e;
-        }
-
-        OverloadSet o = s.isOverloadSet();
-        if (o)
-        {
-            auto oe = new OverExp(e.loc, o);
-            if (e.op == TOKtype)
-                return oe;
-            return new DotExp(e.loc, e, oe);
-        }
-
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         if (!d)
         {
             e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
@@ -8354,7 +8306,7 @@ extern (C++) final class TypeStruct : Type
             /* It's:
              *    Struct.d
              */
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
@@ -9258,65 +9210,17 @@ extern (C++) final class TypeClass : Type
             }
         }
 
-        if (auto t = s.getType())
+        if (s.getType() ||
+            s.isTemplateDeclaration() ||
+            s.isTemplateInstance() ||
+            s.isImport() || s.isModule() || s.isPackage() ||
+            s.isOverloadSet())
         {
-            return (new TypeExp(e.loc, t)).semantic(sc);
-        }
-
-        TemplateMixin tm = s.isTemplateMixin();
-        if (tm)
-        {
-            Expression de = new DotExp(e.loc, e, new ScopeExp(e.loc, tm));
-            de.type = e.type;
-            return de;
-        }
-
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
-        {
-            if (e.op == TOKtype)
-                e = new TemplateExp(e.loc, td);
-            else
-                e = new DotTemplateExp(e.loc, e, td);
-            e = e.semantic(sc);
+            e = DsymbolExp.resolve(e.loc, sc, e, s, true);
             return e;
         }
 
-        TemplateInstance ti = s.isTemplateInstance();
-        if (ti)
-        {
-            if (!ti.semanticRun)
-            {
-                ti.semantic(sc);
-                if (!ti.inst || ti.errors) // if template failed to expand
-                    return new ErrorExp();
-            }
-            s = ti.inst.toAlias();
-            if (!s.isTemplateInstance())
-                goto L1;
-            if (e.op == TOKtype)
-                e = new ScopeExp(e.loc, ti);
-            else
-                e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
-            return e.semantic(sc);
-        }
-
-        if (s.isImport() || s.isModule() || s.isPackage())
-        {
-            e = DsymbolExp.resolve(e.loc, sc, s, false);
-            return e;
-        }
-
-        OverloadSet o = s.isOverloadSet();
-        if (o)
-        {
-            auto oe = new OverExp(e.loc, o);
-            if (e.op == TOKtype)
-                return oe;
-            return new DotExp(e.loc, e, oe);
-        }
-
-        Declaration d = s.isDeclaration();
+        auto d = s.isDeclaration();
         if (!d)
         {
             e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
@@ -9328,7 +9232,7 @@ extern (C++) final class TypeClass : Type
             /* It's:
              *    Class.d
              */
-            if (TupleDeclaration tup = d.isTupleDeclaration())
+            if (auto tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
                 e = e.semantic(sc);
