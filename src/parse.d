@@ -3124,7 +3124,7 @@ public:
                 if (tok == TOKclass)
                 {
                     bool inObject = md && !md.packages && md.id == Id.object;
-                    a = new ClassDeclaration(loc, id, baseclasses, inObject);
+                    a = new ClassDeclaration(loc, id, baseclasses, null, inObject);
                 }
                 else
                     a = new InterfaceDeclaration(loc, id, baseclasses);
@@ -8340,23 +8340,22 @@ public:
                 baseclasses = parseBaseClasses();
 
             Identifier id = null;
-            auto cd = new ClassDeclaration(loc, id, baseclasses);
+            Dsymbols* members = null;
 
             if (token.value != TOKlcurly)
             {
                 error("{ members } expected for anonymous class");
-                cd.members = null;
             }
             else
             {
                 nextToken();
-                Dsymbols* decl = parseDeclDefs(0);
+                members = parseDeclDefs(0);
                 if (token.value != TOKrcurly)
                     error("class member expected");
                 nextToken();
-                cd.members = decl;
             }
 
+            auto cd = new ClassDeclaration(loc, id, baseclasses, members, false);
             auto e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
             return e;
         }
