@@ -329,7 +329,7 @@ public:
     virtual Expression *defaultInit(Loc loc = Loc());
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
-    Identifier *getTypeInfoIdent(int internal);
+    Identifier *getTypeInfoIdent();
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     virtual int hasWild() const;
     virtual Expression *toExpression();

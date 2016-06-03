@@ -2765,12 +2765,12 @@ public:
         return false; // assume not
     }
 
-    final Identifier getTypeInfoIdent(int internal)
+    final Identifier getTypeInfoIdent()
     {
         // _init_10TypeInfo_%s
         OutBuffer buf;
         buf.reserve(32);
-        mangleToBuffer(this, &buf, internal != 0);
+        mangleToBuffer(this, &buf);
 
         const slice = buf.peekSlice();
 

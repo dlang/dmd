@@ -107,7 +107,7 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
             return TypeInfoClassDeclaration.create(t);
 
     default:
-        return TypeInfoDeclaration.create(t, 0);
+        return TypeInfoDeclaration.create(t);
     }
 }
 

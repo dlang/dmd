@@ -2316,18 +2316,18 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
 public:
     Type tinfo;
 
-    final extern (D) this(Type tinfo, int internal)
+    final extern (D) this(Type tinfo)
     {
-        super(Loc(), Type.dtypeinfo.type, tinfo.getTypeInfoIdent(internal), null);
+        super(Loc(), Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
         this.tinfo = tinfo;
         storage_class = STCstatic | STCgshared;
         protection = Prot(PROTpublic);
         linkage = LINKc;
     }
 
-    static TypeInfoDeclaration create(Type tinfo, int internal)
+    static TypeInfoDeclaration create(Type tinfo)
     {
-        return new TypeInfoDeclaration(tinfo, internal);
+        return new TypeInfoDeclaration(tinfo);
     }
 
     override final Dsymbol syntaxCopy(Dsymbol s)
@@ -2368,7 +2368,7 @@ extern (C++) final class TypeInfoStructDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfostruct)
         {
             ObjectNotFound(Id.TypeInfo_Struct);
@@ -2394,7 +2394,7 @@ extern (C++) final class TypeInfoClassDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfoclass)
         {
             ObjectNotFound(Id.TypeInfo_Class);
@@ -2420,7 +2420,7 @@ extern (C++) final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfointerface)
         {
             ObjectNotFound(Id.TypeInfo_Interface);
@@ -2446,7 +2446,7 @@ extern (C++) final class TypeInfoPointerDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfopointer)
         {
             ObjectNotFound(Id.TypeInfo_Pointer);
@@ -2472,7 +2472,7 @@ extern (C++) final class TypeInfoArrayDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfoarray)
         {
             ObjectNotFound(Id.TypeInfo_Array);
@@ -2498,7 +2498,7 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfostaticarray)
         {
             ObjectNotFound(Id.TypeInfo_StaticArray);
@@ -2524,7 +2524,7 @@ extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclarati
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfoassociativearray)
         {
             ObjectNotFound(Id.TypeInfo_AssociativeArray);
@@ -2550,7 +2550,7 @@ extern (C++) final class TypeInfoEnumDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfoenum)
         {
             ObjectNotFound(Id.TypeInfo_Enum);
@@ -2576,7 +2576,7 @@ extern (C++) final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfofunction)
         {
             ObjectNotFound(Id.TypeInfo_Function);
@@ -2602,7 +2602,7 @@ extern (C++) final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfodelegate)
         {
             ObjectNotFound(Id.TypeInfo_Delegate);
@@ -2628,7 +2628,7 @@ extern (C++) final class TypeInfoTupleDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfotypelist)
         {
             ObjectNotFound(Id.TypeInfo_Tuple);
@@ -2654,7 +2654,7 @@ extern (C++) final class TypeInfoConstDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfoconst)
         {
             ObjectNotFound(Id.TypeInfo_Const);
@@ -2680,7 +2680,7 @@ extern (C++) final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfoinvariant)
         {
             ObjectNotFound(Id.TypeInfo_Invariant);
@@ -2706,7 +2706,7 @@ extern (C++) final class TypeInfoSharedDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfoshared)
         {
             ObjectNotFound(Id.TypeInfo_Shared);
@@ -2732,7 +2732,7 @@ extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfowild)
         {
             ObjectNotFound(Id.TypeInfo_Wild);
@@ -2758,7 +2758,7 @@ extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
 public:
     extern (D) this(Type tinfo)
     {
-        super(tinfo, 0);
+        super(tinfo);
         if (!Type.typeinfovector)
         {
             ObjectNotFound(Id.TypeInfo_Vector);
