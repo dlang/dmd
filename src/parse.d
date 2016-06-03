@@ -248,9 +248,9 @@ public:
      * Input:
      *      loc     location in source file of mixin
      */
-    extern (D) this(Loc loc, Module _module, const(char)* base, size_t length, bool doDocComment)
+    extern (D) this(Loc loc, Module _module, const(char)[] input, bool doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, base, 0, length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -270,9 +270,9 @@ public:
         //nextToken();              // start up the scanner
     }
 
-    extern (D) this(Module _module, const(char)* base, size_t length, bool doDocComment)
+    extern (D) this(Module _module, const(char)[] input, bool doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, base, 0, length, doDocComment, false);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
 
         //printf("Parser::Parser()\n");
         mod = _module;

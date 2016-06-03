@@ -379,7 +379,6 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     unsigned charAt(uinteger_t i) const;
     void accept(Visitor *v) { v->visit(this); }
-    const char *toStringz() const;
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
     char *toPtr();

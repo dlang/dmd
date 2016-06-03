@@ -464,7 +464,7 @@ public:
             msg = msg.ctfeInterpret();
 
             if (auto se = msg.toStringExp())
-                msgstr = se.toStringz();
+                msgstr = se.toStringz().ptr;
             else
                 msg.error("compile time constant expected, not '%s'", msg.toChars());
         }
@@ -1309,7 +1309,7 @@ public:
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
+        scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
         p.nextToken();
 
         decl = p.parseDeclDefs(0);

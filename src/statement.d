@@ -1319,7 +1319,7 @@ public:
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
+        scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
         p.nextToken();
 
         auto a = new Statements();
