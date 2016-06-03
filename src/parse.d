@@ -2263,27 +2263,23 @@ public:
      */
     Condition parseDebugCondition()
     {
-        Condition c;
+        uint level = 1;
+        Identifier id = null;
 
         if (token.value == TOKlparen)
         {
             nextToken();
-            uint level = 1;
-            Identifier id = null;
 
             if (token.value == TOKidentifier)
                 id = token.ident;
             else if (token.value == TOKint32v || token.value == TOKint64v)
                 level = cast(uint)token.uns64value;
             else
-                error("identifier or integer expected, not %s", token.toChars());
+                error("identifier or integer expected inside debug(...), not %s", token.toChars());
             nextToken();
             check(TOKrparen);
-            c = new DebugCondition(mod, level, id);
         }
-        else
-            c = new DebugCondition(mod, 1, null);
-        return c;
+        return new DebugCondition(mod, level, id);
     }
 
     /**************************************
@@ -2291,7 +2287,6 @@ public:
      */
     Condition parseVersionCondition()
     {
-        Condition c;
         uint level = 1;
         Identifier id = null;
 
@@ -2312,14 +2307,13 @@ public:
             else if (token.value == TOKassert)
                 id = Identifier.idPool(Token.toChars(TOKassert), strlen(Token.toChars(TOKassert)));
             else
-                error("identifier or integer expected, not %s", token.toChars());
+                error("identifier or integer expected inside version(...), not %s", token.toChars());
             nextToken();
             check(TOKrparen);
         }
         else
             error("(condition) expected following version");
-        c = new VersionCondition(mod, level, id);
-        return c;
+        return new VersionCondition(mod, level, id);
     }
 
     /***********************************************
