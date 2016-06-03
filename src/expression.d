@@ -4829,12 +4829,12 @@ public:
      * Convert string contents to a 0 terminated string,
      * allocated by mem.xmalloc().
      */
-    final const(char)* toStringz() const
+    extern (D) final const(char)[] toStringz() const
     {
         auto nbytes = len * sz;
         char* s = cast(char*)mem.xmalloc(nbytes + sz);
         writeTo(s, true);
-        return s;
+        return s[0 .. nbytes];
     }
 
     extern (D) const(char)[] peekSlice() const
@@ -8243,7 +8243,7 @@ public:
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
-        scope Parser p = new Parser(loc, sc._module, se.toStringz(), se.len, 0);
+        scope Parser p = new Parser(loc, sc._module, se.toStringz(), false);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
@@ -8290,7 +8290,7 @@ public:
             return new ErrorExp();
         se = se.toUTF8(sc);
 
-        auto namez = se.toStringz();
+        auto namez = se.toStringz().ptr;
         if (!global.params.fileImppath)
         {
             error("need -Jpath switch to import text file %s", namez);
