@@ -3049,16 +3049,14 @@ public:
      */
     Dsymbol parseAggregate()
     {
-        AggregateDeclaration a = null;
-        int anon = 0;
-        Identifier id;
         TemplateParameters* tpl = null;
-        Expression constraint = null;
+        Expression constraint;
         const loc = token.loc;
         TOK tok = token.value;
 
         //printf("Parser::parseAggregate()\n");
         nextToken();
+        Identifier id;
         if (token.value != TOKidentifier)
         {
             id = null;
@@ -3070,97 +3068,113 @@ public:
 
             if (token.value == TOKlparen)
             {
-                // Class template declaration.
-                // Gather template parameter list
+                // struct/class template declaration.
                 tpl = parseTemplateParameterList();
                 constraint = parseConstraint();
             }
         }
 
-        switch (tok)
+        // Collect base class(es)
+        BaseClasses* baseclasses = null;
+        if (token.value == TOKcolon)
         {
-        case TOKclass:
-        case TOKinterface:
-            {
-                if (!id)
-                    error(loc, "anonymous classes not allowed");
-
-                // Collect base class(es)
-                BaseClasses* baseclasses = null;
-                if (token.value == TOKcolon)
-                {
-                    nextToken();
-                    baseclasses = parseBaseClasses();
-                    if (tpl)
-                    {
-                        Expression tempCons = parseConstraint();
-                        if (tempCons)
-                        {
-                            if (constraint)
-                                error("members expected");
-                            else
-                                constraint = tempCons;
-                        }
-                    }
-                    if (token.value != TOKlcurly)
-                        error("members expected");
-                }
-
-                if (tok == TOKclass)
-                {
-                    bool inObject = md && !md.packages && md.id == Id.object;
-                    a = new ClassDeclaration(loc, id, baseclasses, null, inObject);
-                }
-                else
-                    a = new InterfaceDeclaration(loc, id, baseclasses);
-                break;
-            }
-        case TOKstruct:
-            if (id)
-                a = new StructDeclaration(loc, id);
-            else
-                anon = 1;
-            break;
-
-        case TOKunion:
-            if (id)
-                a = new UnionDeclaration(loc, id);
-            else
-                anon = 2;
-            break;
-
-        default:
-            assert(0);
-        }
-        if (a && token.value == TOKsemicolon)
-        {
+            if (tok != TOKinterface && tok != TOKclass)
+                error("base classes are not allowed for %s, did you mean ';'?", Token.toChars(tok));
             nextToken();
+            baseclasses = parseBaseClasses();
         }
-        else if (token.value == TOKlcurly)
+
+        if (token.value == TOKif)
         {
+            if (constraint)
+                error("template constraints appear both before and after BaseClassList, put them before");
+            constraint = parseConstraint();
+        }
+        if (constraint)
+        {
+            if (!id)
+                error("template constraints not allowed for anonymous %s", Token.toChars(tok));
+            if (!tpl)
+                error("template constraints only allowed for templates");
+        }
+
+        Dsymbols* members = null;
+        if (token.value == TOKlcurly)
+        {
+            //printf("aggregate definition\n");
             const lookingForElseSave = lookingForElse;
             lookingForElse = Loc();
-            //printf("aggregate definition\n");
             nextToken();
-            Dsymbols* decl = parseDeclDefs(0);
+            members = parseDeclDefs(0);
             lookingForElse = lookingForElseSave;
             if (token.value != TOKrcurly)
+            {
+                /* { */
                 error("} expected following members in %s declaration at %s",
                     Token.toChars(tok), loc.toChars());
-            nextToken();
-            if (anon)
-            {
-                /* Anonymous structs/unions are more like attributes.
-                 */
-                return new AnonDeclaration(loc, anon == 2, decl);
             }
-            else
-                a.members = decl;
+            nextToken();
+        }
+        else if (token.value == TOKsemicolon && id)
+        {
+            if (baseclasses || constraint)
+                error("members expected");
+            nextToken();
         }
         else
         {
             error("{ } expected following %s declaration", Token.toChars(tok));
-            a = new StructDeclaration(loc, null);
+        }
+
+        AggregateDeclaration a;
+        switch (tok)
+        {
+        case TOKinterface:
+            if (!id)
+                error(loc, "anonymous interfaces not allowed");
+            a = new InterfaceDeclaration(loc, id, baseclasses);
+            a.members = members;
+            break;
+
+        case TOKclass:
+            if (!id)
+                error(loc, "anonymous classes not allowed");
+            bool inObject = md && !md.packages && md.id == Id.object;
+            a = new ClassDeclaration(loc, id, baseclasses, members, inObject);
+            break;
+
+        case TOKstruct:
+            if (id)
+            {
+                a = new StructDeclaration(loc, id);
+                a.members = members;
+            }
+            else
+            {
+                /* Anonymous structs/unions are more like attributes.
+                 */
+                assert(!tpl);
+                return new AnonDeclaration(loc, false, members);
+            }
+            break;
+
+        case TOKunion:
+            if (id)
+            {
+                a = new UnionDeclaration(loc, id);
+                a.members = members;
+            }
+            else
+            {
+                /* Anonymous structs/unions are more like attributes.
+                 */
+                assert(!tpl);
+                return new AnonDeclaration(loc, true, members);
+            }
+            break;
+
+        default:
+            assert(0);
         }
 
         if (tpl)
