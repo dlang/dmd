@@ -87,6 +87,8 @@ Msgtable[] msgtable =
     { "__c_ulong" },
     { "__c_long_double" },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
+    { "_assert", "assert" },
+    { "_unittest", "unittest" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
