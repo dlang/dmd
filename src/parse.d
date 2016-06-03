@@ -231,6 +231,20 @@ struct PrefixAttributes
     const(char)* comment;
 }
 
+/*****************************
+ * Destructively extract storage class from pAttrs.
+ */
+private StorageClass getStorageClass(PrefixAttributes* pAttrs)
+{
+    StorageClass stc = STCundefined;
+    if (pAttrs)
+    {
+        stc = pAttrs.storageClass;
+        pAttrs.storageClass = STCundefined;
+    }
+    return stc;
+}
+
 /***********************************************************
  */
 final class Parser : Lexer
@@ -768,8 +782,7 @@ public:
                  */
                 if (token.value == TOKidentifier && skipParensIf(peek(&token), &tk) && tk.value == TOKassign)
                 {
-                    a = parseAutoDeclarations(pAttrs.storageClass, pAttrs.comment);
-                    pAttrs.storageClass = STCundefined;
+                    a = parseAutoDeclarations(getStorageClass(pAttrs), pAttrs.comment);
                     if (a && a.dim)
                         *pLastDecl = (*a)[a.dim - 1];
                     if (pAttrs.udas)
@@ -796,10 +809,10 @@ public:
                 }
 
                 a = parseBlock(pLastDecl, pAttrs);
-                if (pAttrs.storageClass != STCundefined)
+                auto stc2 = getStorageClass(pAttrs);
+                if (stc2 != STCundefined)
                 {
-                    s = new StorageClassDeclaration(pAttrs.storageClass, a);
-                    pAttrs.storageClass = STCundefined;
+                    s = new StorageClassDeclaration(stc2, a);
                 }
                 if (pAttrs.udas)
                 {
@@ -2365,7 +2378,7 @@ public:
     {
         Expressions* udas = null;
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
         if (token.value == TOKlparen && peekNext() == TOKthis && peekNext2() == TOKrparen)
@@ -2380,8 +2393,6 @@ public:
                 error(loc, "postblit cannot be static");
 
             auto f = new PostBlitDeclaration(loc, Loc(), stc, Id.postblit);
-            if (pAttrs)
-                pAttrs.storageClass = STCundefined;
             Dsymbol s = parseContracts(f);
             if (udas)
             {
@@ -2426,8 +2437,6 @@ public:
         tf = tf.addSTC(stc);
 
         auto f = new CtorDeclaration(loc, Loc(), stc, tf);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2456,7 +2465,7 @@ public:
     {
         Expressions* udas = null;
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
         check(TOKthis);
@@ -2473,8 +2482,6 @@ public:
         }
 
         auto f = new DtorDeclaration(loc, Loc(), stc, Id.dtor);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2494,7 +2501,7 @@ public:
     {
         //Expressions *udas = NULL;
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
         nextToken();
@@ -2515,8 +2522,6 @@ public:
         stc &= ~(STCstatic | STC_TYPECTOR);
 
         auto f = new StaticCtorDeclaration(loc, Loc(), stc);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         return s;
     }
@@ -2530,7 +2535,7 @@ public:
     {
         Expressions* udas = null;
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
         nextToken();
@@ -2552,8 +2557,6 @@ public:
         stc &= ~(STCstatic | STC_TYPECTOR);
 
         auto f = new StaticDtorDeclaration(loc, Loc(), stc);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2573,7 +2576,7 @@ public:
     {
         //Expressions *udas = NULL;
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
         nextToken();
@@ -2593,8 +2596,6 @@ public:
         stc &= ~(STCstatic | STC_TYPECTOR);
 
         auto f = new SharedStaticCtorDeclaration(loc, Loc(), stc);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         return s;
     }
@@ -2608,7 +2609,7 @@ public:
     {
         Expressions* udas = null;
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
         nextToken();
@@ -2629,8 +2630,6 @@ public:
         stc &= ~(STCstatic | STC_TYPECTOR);
 
         auto f = new SharedStaticDtorDeclaration(loc, Loc(), stc);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2649,9 +2648,7 @@ public:
     Dsymbol parseInvariant(PrefixAttributes* pAttrs)
     {
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
         if (token.value == TOKlparen) // optional ()
@@ -2673,7 +2670,7 @@ public:
     Dsymbol parseUnitTest(PrefixAttributes* pAttrs)
     {
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
 
@@ -2703,8 +2700,6 @@ public:
         }
 
         auto f = new UnitTestDeclaration(loc, token.loc, stc, docline);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         f.fbody = sbody;
         return f;
     }
@@ -2717,15 +2712,13 @@ public:
     Dsymbol parseNew(PrefixAttributes* pAttrs)
     {
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
 
         int varargs;
         Parameters* parameters = parseParameters(&varargs);
         auto f = new NewDeclaration(loc, Loc(), stc, parameters, varargs);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         return s;
     }
@@ -2738,7 +2731,7 @@ public:
     Dsymbol parseDelete(PrefixAttributes* pAttrs)
     {
         const loc = token.loc;
-        StorageClass stc = pAttrs ? pAttrs.storageClass : STCundefined;
+        StorageClass stc = getStorageClass(pAttrs);
 
         nextToken();
 
@@ -2747,8 +2740,6 @@ public:
         if (varargs)
             error("... not allowed in delete function parameter list");
         auto f = new DeleteDeclaration(loc, Loc(), stc, parameters);
-        if (pAttrs)
-            pAttrs.storageClass = STCundefined;
         Dsymbol s = parseContracts(f);
         return s;
     }
