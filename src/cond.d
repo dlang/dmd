@@ -153,18 +153,47 @@ extern (C++) final class DebugCondition : DVCondition
     }
 }
 
-/***********************************************************
+/**
+ * Node to represent a version condition
+ *
+ * A version condition is of the form:
+ * ---
+ * version (Identifier)
+ * ---
+ * In user code.
+ * This class also provides means to add version identifier
+ * to the list of global (cross module) identifiers.
  */
 extern (C++) final class VersionCondition : DVCondition
 {
+    /**
+     * Set the global version level
+     *
+     * Only called from the driver
+     *
+     * Params:
+     *   level = Integer literal to set the global version to
+     */
     static void setGlobalLevel(uint level)
     {
         global.params.versionlevel = level;
     }
 
-    static bool isPredefined(const(char)* ident)
+    /**
+     * Check if a given version identifier is reserved.
+     *
+     * Reserved identifier are the one documented below or
+     * those starting with 'D_'.
+     *
+     * Params:
+     *   ident = identifier being checked
+     *
+     * Returns:
+     *   `true` if it is reserved, `false` otherwise
+     */
+    extern(D) private static bool isReserved(const(char)[] ident)
     {
-        static __gshared const(char)** reserved =
+        static immutable string[] reserved =
         [
             "DigitalMars",
             "GNU",
@@ -260,38 +289,105 @@ extern (C++) final class VersionCondition : DVCondition
             "unittest",
             "assert",
             "all",
-            "none",
-            null
+            "none"
         ];
-        for (uint i = 0; reserved[i]; i++)
+        foreach (r; reserved)
         {
-            if (strcmp(ident, reserved[i]) == 0)
+            if (ident == r)
                 return true;
         }
-        if (ident[0] == 'D' && ident[1] == '_')
-            return true;
-        return false;
+        return (ident.length >= 2 && ident[0 .. 2] == "D_");
     }
 
-    static void checkPredefined(Loc loc, const(char)* ident)
+    /**
+     * Raises an error if a version identifier is reserved.
+     *
+     * Called when setting a version identifier, e.g. `-version=identifier`
+     * parameter to the compiler or `version = Foo` in user code.
+     *
+     * Params:
+     *   loc = Where the identifier is set
+     *   ident = identifier being checked (ident[$] must be '\0')
+     */
+    extern(D) static void checkReserved(Loc loc, const(char)[] ident)
     {
-        if (isPredefined(ident))
-            error(loc, "version identifier '%s' is reserved and cannot be set", ident);
+        if (isReserved(ident))
+            error(loc, "version identifier '%s' is reserved and cannot be set",
+                  ident.ptr);
     }
 
+    /**
+     * Add an user-supplied global identifier to the list
+     *
+     * Only called from the driver for `-version=Ident` parameters.
+     * Will raise an error if the identifier is reserved.
+     *
+     * Params:
+     *   ident = identifier to add
+     */
+    deprecated("Kept for C++ compat - Use the string overload instead")
     static void addGlobalIdent(const(char)* ident)
     {
-        checkPredefined(Loc(), ident);
+        addGlobalIdent(ident[0 .. ident.strlen]);
+    }
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(string ident)
+    {
+        // Overload necessary for string literals
+        addGlobalIdent(cast(const(char)[])ident);
+    }
+
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(const(char)[] ident)
+    {
+        checkReserved(Loc(), ident);
         addPredefinedGlobalIdent(ident);
     }
 
+    /**
+     * Add any global identifier to the list, without checking
+     * if it's predefined
+     *
+     * Only called from the driver after platform detection,
+     * and internally.
+     *
+     * Params:
+     *   ident = identifier to add (ident[$] must be '\0')
+     */
+    deprecated("Kept for C++ compat - Use the string overload instead")
     static void addPredefinedGlobalIdent(const(char)* ident)
+    {
+        addPredefinedGlobalIdent(ident[0 .. ident.strlen]);
+    }
+
+    /// Ditto
+    extern(D) static void addPredefinedGlobalIdent(string ident)
+    {
+        // Forward: Overload necessary for string literal
+        addPredefinedGlobalIdent(cast(const(char)[])ident);
+    }
+
+
+    /// Ditto
+    extern(D) static void addPredefinedGlobalIdent(const(char)[] ident)
     {
         if (!global.params.versionids)
             global.params.versionids = new Strings();
         global.params.versionids.push(cast(char*)ident);
     }
 
+    /**
+     * Instantiate a new `VersionCondition`
+     *
+     * Params:
+     *   mod = Module this node belongs to
+     *   level = Minimum global level this condition needs to pass.
+     *           Only used if `ident` is `null`.
+     *   ident = Identifier required for this condition to pass.
+     *           If `null`, this conditiion will use an integer level.
+     */
     extern (D) this(Module mod, uint level, Identifier ident)
     {
         super(mod, level, ident);
@@ -324,7 +420,7 @@ extern (C++) final class VersionCondition : DVCondition
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
                 inc = 1;
             if (!definedInModule &&
-                (!ident || (!isPredefined(ident.toChars()) && ident != Id._unittest && ident != Id._assert)))
+                (!ident || (!isReserved(ident.toString()) && ident != Id._unittest && ident != Id._assert)))
             {
                 printDepsConditional(sc, this, "depsVersion ");
             }
@@ -453,7 +549,7 @@ extern (C++) int findCondition(Strings* ids, Identifier ident)
 }
 
 // Helper for printing dependency information
-extern (C++) void printDepsConditional(Scope* sc, DVCondition condition, const(char)* depType)
+private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
 {
     if (!global.params.moduleDeps || global.params.moduleDepsFile)
         return;

@@ -163,7 +163,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         // just make sure subsequent debug declarations work.
         if (ident)
         {
-            VersionCondition.checkPredefined(loc, ident.toChars());
+            VersionCondition.checkReserved(loc, ident.toString());
             if (!m)
             {
                 error("declaration must be at module level");
