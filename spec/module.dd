@@ -219,26 +219,46 @@ $(GNAME ModuleAliasIdentifier):
 	with whatever packages they are in. They are not considered to
 	be relative to the module that imports them.)
 
-$(H3 $(LNAME2 basic_imports, Basic Imports))
+$(H3 $(LNAME2 name_lookup, Symbol Name Lookup))
 
 	$(P The simplest form of importing is to just list the
 	modules being imported:)
 
 ---------
-import std.stdio; // import module stdio from package std
-import foo, bar;  // import modules foo and bar
+module myapp.main;
 
-void main()
+import std.stdio; // import module stdio from package std
+
+class Foo : BaseClass
 {
-    writeln("hello!");  // calls std.stdio.writeln
+    import myapp.foo;  // import module myapp.foo in this class' scope
+    void bar ()
+    {
+        import myapp.bar;  // import module myapp.bar in this function' scope
+        writeln("hello!");  // calls std.stdio.writeln
+    }
 }
 ---------
 
-	$(P How basic imports work is that first a name is searched for in the
-	current namespace. If it is not found, then it is looked for in the
-	imports.
-	If it is found uniquely among the imports, then that is used. If it is
-	in more than one import, an error occurs.
+	$(P When a symbol name is used unqualified, a two-phase lookup will happen.
+    First, the module scope will be searched, starting from the innermost
+    scope.  For example, in the previous example, while looking for
+    $(SINGLEQUOTE writeln), the order will be:
+    $(UL
+    $(LI Declarations inside $(SINGLEQUOTE bar).)
+    $(LI Declarations inside $(SINGLEQUOTE Foo).)
+    $(LI Declarations inside $(SINGLEQUOTE BaseClass).)
+    $(LI Declarations at module scope.)
+    )
+    If the first lookup wasn't successful, a second one is performed on imports.
+    In the second lookup phase inherited scopes are ignored.  This includes scope
+    of base classes and interface (in this example, $(SINGLEQUOTE BaseClass)'s
+    imports would be ignored), as well as imports in mixed-in $(D template).
+    )
+
+    $(P Symbol lookup stops as soon as a symbol is found.
+    If two symbols with the same name are found at the same lookup phase,
+    this ambiguity will result in a compilation error.
 	)
 
 ---
