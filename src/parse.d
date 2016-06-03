@@ -3153,9 +3153,12 @@ public:
         }
         else if (token.value == TOKlcurly)
         {
+            const lookingForElseSave = lookingForElse;
+            lookingForElse = Loc();
             //printf("aggregate definition\n");
             nextToken();
             Dsymbols* decl = parseDeclDefs(0);
+            lookingForElse = lookingForElseSave;
             if (token.value != TOKrcurly)
                 error("} expected following members in %s declaration at %s",
                     Token.toChars(tok), loc.toChars());
