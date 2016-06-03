@@ -874,18 +874,6 @@ extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
     }
 }
 
-extern (C++) void mangleToBuffer(Type t, OutBuffer* buf, bool internal)
-{
-    if (internal)
-    {
-        tyToDecoBuffer(buf, t.ty);
-        if (t.ty == Tarray)
-            tyToDecoBuffer(buf, (cast(TypeArray)t).next.ty);
-    }
-    else
-        mangleToBuffer(t, buf);
-}
-
 extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
 {
     scope Mangler v = new Mangler(buf);

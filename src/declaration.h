@@ -306,8 +306,8 @@ class TypeInfoDeclaration : public VarDeclaration
 public:
     Type *tinfo;
 
-    TypeInfoDeclaration(Type *tinfo, int internal);
-    static TypeInfoDeclaration *create(Type *tinfo, int internal);
+    TypeInfoDeclaration(Type *tinfo);
+    static TypeInfoDeclaration *create(Type *tinfo);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     char *toChars();
