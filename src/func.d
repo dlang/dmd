@@ -5301,7 +5301,10 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
             errors = true;
             return;
         }
-        if (ident != Id.classInvariant && semanticRun < PASSsemantic)
+        if (ident != Id.classInvariant &&
+             semanticRun < PASSsemantic &&
+             !ad.isUnionDeclaration()           // users are on their own with union fields
+           )
             ad.invs.push(this);
         if (!type)
             type = new TypeFunction(null, Type.tvoid, false, LINKd, storage_class);

@@ -6,6 +6,14 @@ $(COMMENT Pending changelog for 2.072. This will get copied to dlang.org and
 
 $(BUGSTITLE Language Changes,
     $(LI $(RELATIVE_LINK2 deprecated_commaexp, Using the result of a comma expression is deprecated.))
+
+    $(LI $(LNAME2 unrestricted_unions, Add Unrestricted Unions.)
+
+        $(P
+             Unrestricted unions may have postblits, destructors, and invariants.
+             It is up to the programmer to call them appropriately.
+        )
+    )
 )
 
 $(BUGSTITLE Compiler Changes,
