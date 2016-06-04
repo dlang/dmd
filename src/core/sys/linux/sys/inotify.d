@@ -34,7 +34,7 @@ enum: uint
     IN_DELETE        = 0x00000200,
     IN_DELETE_SELF   = 0x00000400,
     IN_MOVE_SELF     = 0x00000800,
-    IN_UMOUNT        = 0x00002000,
+    IN_UNMOUNT       = 0x00002000,
     IN_Q_OVERFLOW    = 0x00004000,
     IN_IGNORED       = 0x00008000,
     IN_CLOSE         = 0x00000018,
@@ -47,6 +47,9 @@ enum: uint
     IN_ONESHOT       = 0x80000000,
     IN_ALL_EVENTS    = 0x80000FFF,
 }
+
+// Old typo, preserved for compatibility
+enum IN_UMOUNT = IN_UNMOUNT;
 
 version (X86)
 {
