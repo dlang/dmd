@@ -20,27 +20,23 @@ struct Macro
 {
 private:
     Macro* next;            // next in list
-    const(char)* name;      // macro name
-    size_t namelen;         // length of macro name
-    const(char)* text;      // macro replacement text
-    size_t textlen;         // length of replacement text
+    const(char)[] name;     // macro name
+    const(char)[] text;     // macro replacement text
     int inuse;              // macro is in use (don't expand)
 
-    extern (D) this(const(char)* name, size_t namelen, const(char)* text, size_t textlen)
+    this(const(char)[] name, const(char)[] text)
     {
         this.name = name;
-        this.namelen = namelen;
         this.text = text;
-        this.textlen = textlen;
     }
 
-    extern (C++) Macro* search(const(char)* name, size_t namelen)
+    Macro* search(const(char)[] name)
     {
         Macro* table;
-        //printf("Macro::search(%.*s)\n", namelen, name);
+        //printf("Macro::search(%.*s)\n", name.length, name.ptr);
         for (table = &this; table; table = table.next)
         {
-            if (table.namelen == namelen && memcmp(table.name, name, namelen) == 0)
+            if (table.name == name)
             {
                 //printf("\tfound %d\n", table->textlen);
                 break;
@@ -50,21 +46,20 @@ private:
     }
 
 public:
-    extern (C++) static Macro* define(Macro** ptable, const(char)* name, size_t namelen, const(char)* text, size_t textlen)
+    static Macro* define(Macro** ptable, const(char)[] name, const(char)[] text)
     {
-        //printf("Macro::define('%.*s' = '%.*s')\n", namelen, name, textlen, text);
+        //printf("Macro::define('%.*s' = '%.*s')\n", name.length, name.ptr, text.length, text.ptr);
         Macro* table;
         //assert(ptable);
         for (table = *ptable; table; table = table.next)
         {
-            if (table.namelen == namelen && memcmp(table.name, name, namelen) == 0)
+            if (table.name == name)
             {
                 table.text = text;
-                table.textlen = textlen;
                 return table;
             }
         }
-        table = new Macro(name, namelen, text, textlen);
+        table = new Macro(name, text);
         table.next = *ptable;
         *ptable = table;
         return table;
@@ -204,11 +199,11 @@ public:
                         u = v; // now u is one past the closing ')'
                         continue;
                     }
-                    Macro* m = search(name, namelen);
+                    Macro* m = search(name[0 .. namelen]);
                     if (!m)
                     {
-                        static __gshared const(char)* undef = "DDOC_UNDEFINED_MACRO";
-                        m = search(undef, strlen(undef));
+                        immutable undef = "DDOC_UNDEFINED_MACRO";
+                        m = search(undef);
                         if (m)
                         {
                             // Macro was not defined, so this is an expansion of
@@ -251,18 +246,18 @@ public:
                             //printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m->namelen, m->name, marglen, marg, m->textlen, m->text);
                             marg = memdup(marg, marglen);
                             // Insert replacement text
-                            buf.spread(v + 1, 2 + m.textlen + 2);
+                            buf.spread(v + 1, 2 + m.text.length + 2);
                             buf.data[v + 1] = 0xFF;
                             buf.data[v + 2] = '{';
-                            memcpy(buf.data + v + 3, m.text, m.textlen);
-                            buf.data[v + 3 + m.textlen] = 0xFF;
-                            buf.data[v + 3 + m.textlen + 1] = '}';
-                            end += 2 + m.textlen + 2;
+                            buf.data[v + 3 .. v + 3 + m.text.length] = cast(ubyte[])m.text[];
+                            buf.data[v + 3 + m.text.length] = 0xFF;
+                            buf.data[v + 3 + m.text.length + 1] = '}';
+                            end += 2 + m.text.length + 2;
                             // Scan replaced text for further expansion
                             m.inuse++;
-                            size_t mend = v + 1 + 2 + m.textlen + 2;
+                            size_t mend = v + 1 + 2 + m.text.length + 2;
                             expand(buf, v + 1, &mend, marg, marglen);
-                            end += mend - (v + 1 + 2 + m.textlen + 2);
+                            end += mend - (v + 1 + 2 + m.text.length + 2);
                             m.inuse--;
                             buf.remove(u, v + 1 - u);
                             end -= v + 1 - u;
@@ -302,7 +297,7 @@ extern (C++) char* memdup(const(char)* p, size_t len)
  *              1..9:   get nth argument
  *              -1:     get 2nd through end
  */
-extern (C++) size_t extractArgN(const(char)* p, size_t end, const(char)** pmarg, size_t* pmarglen, int n)
+private size_t extractArgN(const(char)* p, size_t end, const(char)** pmarg, size_t* pmarglen, int n)
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.

@@ -501,7 +501,7 @@ extern (C++) void gendocfile(Module m)
     // Set the title to be the name of the module
     {
         const(char)* p = m.toPrettyChars();
-        Macro.define(&m.macrotable, cast(char*)"TITLE", 5, cast(char*)p, strlen(p));
+        Macro.define(&m.macrotable, "TITLE", p[0 .. strlen(p)]);
     }
     // Set time macros
     {
@@ -509,17 +509,17 @@ extern (C++) void gendocfile(Module m)
         time(&t);
         char* p = ctime(&t);
         p = mem.xstrdup(p);
-        Macro.define(&m.macrotable, cast(char*)"DATETIME", 8, p, strlen(p));
-        Macro.define(&m.macrotable, cast(char*)"YEAR", 4, p + 20, 4);
+        Macro.define(&m.macrotable, "DATETIME", p[0 .. strlen(p)]);
+        Macro.define(&m.macrotable, "YEAR", p[20 .. 20 + 4]);
     }
     const srcfilename = m.srcfile.toChars();
-    Macro.define(&m.macrotable, "SRCFILENAME", 11, srcfilename, strlen(srcfilename));
+    Macro.define(&m.macrotable, "SRCFILENAME", srcfilename[0 .. strlen(srcfilename)]);
     const docfilename = m.docfile.toChars();
-    Macro.define(&m.macrotable, "DOCFILENAME", 11, docfilename, strlen(docfilename));
+    Macro.define(&m.macrotable, "DOCFILENAME", docfilename[0 .. strlen(docfilename)]);
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
-        Macro.define(&m.macrotable, cast(char*)"COPYRIGHT", 9, dc.copyright._body, dc.copyright.bodylen);
+        Macro.define(&m.macrotable, "COPYRIGHT", dc.copyright._body[0 .. dc.copyright.bodylen]);
     }
     if (m.isDocFile)
     {
@@ -543,7 +543,7 @@ extern (C++) void gendocfile(Module m)
         emitMemberComments(m, &buf, sc);
     }
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
-    Macro.define(&m.macrotable, cast(char*)"BODY", 4, buf.peekSlice().ptr, buf.peekSlice().length);
+    Macro.define(&m.macrotable, "BODY", buf.peekSlice());
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
     size_t end = buf2.offset;
@@ -1581,7 +1581,7 @@ struct DocComment
                 if (icmp("ESCAPES", namestart, namelen) == 0)
                     parseEscapes(pescapetable, textstart, textlen);
                 else
-                    Macro.define(pmacrotable, namestart, namelen, textstart, textlen);
+                    Macro.define(pmacrotable, namestart[0 ..namelen], textstart[0 .. textlen]);
                 namelen = 0;
                 if (p >= pend)
                     break;
