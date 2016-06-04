@@ -186,7 +186,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
 	import.h init.h intrange.h json.h lexer.h lib.h	\
-	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
+	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
 	version.h visitor.h objc.d $(DMD_SRCS)
 
