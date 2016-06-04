@@ -389,10 +389,19 @@ $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
 $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\freebsd\pthread_np.d : src\core\sys\freebsd\pthread_np.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\freebsd\time.d : src\core\sys\freebsd\time.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\cdefs.d : src\core\sys\freebsd\sys\cdefs.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\_bitset.d : src\core\sys\freebsd\sys\_bitset.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\_cpuset.d : src\core\sys\freebsd\sys\_cpuset.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\elf.d : src\core\sys\freebsd\sys\elf.d
