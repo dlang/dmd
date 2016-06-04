@@ -144,10 +144,6 @@ public:
     // 'this' type
     Type *handleType() { return type; }
 
-    // Back end
-    Symbol *stag;               // tag symbol for debug data
-    Symbol *sinit;
-
     AggregateDeclaration *isAggregateDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -284,7 +280,6 @@ public:
     int inuse;                          // to prevent recursive attempts
     Baseok baseok;                      // set the progress of base classes resolving
     Objc_ClassDeclaration objc;
-    Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -312,9 +307,6 @@ public:
     const char *kind();
 
     void addLocalClass(ClassDeclarations *);
-
-    // Back end
-    Symbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
     void accept(Visitor *v) { v->visit(this); }

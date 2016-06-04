@@ -1283,19 +1283,8 @@ public:
     }
 
     // Back end
-    int doppelganger; // sub-module
-    Symbol* cov; // private uint[] __coverage;
-    uint* covb; // bit array of valid code line numbers
-    Symbol* sictor; // module order independent constructor
-    Symbol* sctor; // module constructor
-    Symbol* sdtor; // module destructor
-    Symbol* ssharedctor; // module shared constructor
-    Symbol* sshareddtor; // module shared destructor
-    Symbol* stest; // module unit test
-    Symbol* sfilename; // symbol for filename
-    Symbol* massert; // module assert function
-    Symbol* munittest; // module unittest failure function
-    Symbol* marray; // module array bounds function
+    Module doppelganger; // sub-module
+    bool hasModuleInfo;
 
     override inout(Module) isModule() inout
     {

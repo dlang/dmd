@@ -461,7 +461,6 @@ public:
     // Support for NRVO (named return value optimization)
     bool nrvo_can = true;               // true means we can do it
     VarDeclaration nrvo_var;            // variable to replace with shidden
-    Symbol* shidden;                    // hidden pointer passed to function
 
     ReturnStatements* returns;
 

@@ -54,6 +54,16 @@
 #undef ADDFWAIT
 #define ADDFWAIT()      0
 
+struct AsmInfo
+{
+    code *asmcode;
+    unsigned asmalign;          // alignment of this statement
+    unsigned regs;              // mask of registers modified (must match regm_t in back end)
+    bool refparam;              // true if function parameter is referenced
+};
+
+AsmInfo *getAsmInfo(AsmStatement *s);
+
 // Additional tokens for the inline assembler
 enum ASMTK
 {
@@ -105,7 +115,8 @@ struct ASM_STATE
     Dsymbol *psLocalsize;
     jmp_buf env;
     bool bReturnax;
-    AsmStatement *statement;
+    unsigned regs;
+    bool refparam;
     Scope *sc;
 };
 
@@ -1252,7 +1263,7 @@ static code *asm_emit(Loc loc,
         aoptyTable3 = ASM_GET_aopty(ptb.pptb3->usOp3);
     }
 
-    asmstate.statement->regs |= asm_modify_regs(ptb, popnd1, popnd2);
+    asmstate.regs |= asm_modify_regs(ptb, popnd1, popnd2);
 
     if (ptb.pptb0->usFlags & _64_bit && !global.params.is64bit)
         error(asmstate.loc, "use -m64 to compile 64 bit instructions");
@@ -2303,7 +2314,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
     if (v)
     {
         if (v->isParameter())
-            asmstate.statement->refparam = true;
+            asmstate.refparam = true;
 
         v->checkNestedReference(asmstate.sc, asmstate.loc);
 #if 0
@@ -3431,7 +3442,7 @@ static code *asm_da_parse(OP *pop)
         asm_token();
     }
 
-    asmstate.statement->regs |= mES|ALLREGS;
+    asmstate.regs |= mES|ALLREGS;
     asmstate.bReturnax = true;
 
     return clst;
@@ -3640,7 +3651,7 @@ static code *asm_db_parse(OP *pop)
 
     c = asm_genloc(asmstate.loc, c);
 
-    asmstate.statement->regs |= /* mES| */ ALLREGS;
+    asmstate.regs |= /* mES| */ ALLREGS;
     asmstate.bReturnax = true;
 
     return c;
@@ -4533,7 +4544,6 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 
     memset(&asmstate, 0, sizeof(asmstate));
 
-    asmstate.statement = s;
     asmstate.sc = sc;
 
 #if 0 // don't use bReturnax anymore, and will fail anyway if we use return type inference
@@ -4563,6 +4573,8 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     asmtok = s->tokens;
     asm_token_trans(asmtok);
 
+    AsmInfo *ai = getAsmInfo(s);
+
     switch (tok_value)
     {
         case ASMTKnaked:
@@ -4573,7 +4585,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
 
         case ASMTKeven:
             asm_token();
-            s->asmalign = 2;
+            ai->asmalign = 2;
             break;
 
         case TOKalign:
@@ -4583,7 +4595,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
             if (ispow2(align) == -1)
                 asmerr("align %d must be a power of 2", align);
             else
-                s->asmalign = align;
+                ai->asmalign = align;
             break;
         }
 
@@ -4614,11 +4626,11 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
                 switch (asmstate.ucItype)
                 {
                     case ITdata:
-                        s->asmcode = asm_db_parse(o);
+                        ai->asmcode = asm_db_parse(o);
                         goto AFTER_EMIT;
 
                     case ITaddr:
-                        s->asmcode = asm_da_parse(o);
+                        ai->asmcode = asm_da_parse(o);
                         goto AFTER_EMIT;
                 }
             }
@@ -4674,7 +4686,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
                 usNumops = 1;
             }
 #endif
-            s->asmcode = asm_emit(s->loc, usNumops, ptb, o, o1, o2, o3, o4);
+            ai->asmcode = asm_emit(s->loc, usNumops, ptb, o, o1, o2, o3, o4);
             break;
 
         default:
@@ -4693,6 +4705,10 @@ AFTER_EMIT:
     {
         asmerr("end of instruction expected, not '%s'", asmtok->toChars());  // end of line expected
     }
+
+    ai->regs = asmstate.regs;
+    ai->refparam = asmstate.refparam;
+
     //return asmstate.bReturnax;
     return s;
 }

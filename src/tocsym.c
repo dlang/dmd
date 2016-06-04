@@ -31,6 +31,7 @@
 #include "id.h"
 #include "ctfe.h"
 #include "rmem.h"
+#include "aav.h"
 
 // Back end
 #include "cc.h"
@@ -98,6 +99,8 @@ static Classsym *scc;
 
 /*************************************
  */
+
+static AA *csymMap;
 
 Symbol *toSymbol(Dsymbol *s)
 {
@@ -424,20 +427,36 @@ Symbol *toSymbol(Dsymbol *s)
         }
     };
 
-    if (s->csym)
-        return s->csym;
+    Symbol **pcsym = (Symbol **)dmd_aaGet(&csymMap, s);
+    if (*pcsym)
+        return *pcsym;
 
     ToSymbol v;
     s->accept(&v);
-    s->csym = v.result;
+    *pcsym = v.result;
     return v.result;
 }
 
-/*************************************
+void setSymbol(Dsymbol *s, Symbol *csym)
+{
+    Symbol **pcsym = (Symbol **)dmd_aaGet(&csymMap, s);
+    assert(!*pcsym);
+    *pcsym = csym;
+}
+
+/*********************************
+ * Generate import symbol from symbol.
  */
 
-static Symbol *toImport(Symbol *sym)
+Symbol *toImport(Dsymbol *ds)
 {
+    static AA *isymMap;
+    Symbol **pisym = (Symbol **)dmd_aaGet(&isymMap, ds);
+    if (*pisym)
+        return *pisym;
+
+    Symbol *sym = toSymbol(ds);
+
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
     char *n = sym->Sident;
     char *id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
@@ -466,22 +485,9 @@ static Symbol *toImport(Symbol *sym)
     s->Stype = t;
     s->Sclass = SCextern;
     s->Sfl = FLextern;
+
+    *pisym = s;
     return s;
-}
-
-/*********************************
- * Generate import symbol from symbol.
- */
-
-Symbol *toImport(Dsymbol *ds)
-{
-    if (!ds->isym)
-    {
-        if (!ds->csym)
-            ds->csym = toSymbol(ds);
-        ds->isym = toImport(ds->csym);
-    }
-    return ds->isym;
 }
 
 /*************************************
@@ -494,9 +500,9 @@ Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
     if (!offset)
         return s;
 
-    Symbol *sthunk = symbol_generate(SCstatic, fd->csym->Stype);
+    Symbol *sthunk = symbol_generate(SCstatic, s->Stype);
     sthunk->Sflags |= SFLimplem;
-    cod3_thunk(sthunk, fd->csym, 0, TYnptr, -offset, -1, 0);
+    cod3_thunk(sthunk, s, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 
@@ -525,19 +531,21 @@ Classsym *fake_classsym(Identifier *id)
 
 Symbol *toVtblSymbol(ClassDeclaration *cd)
 {
-    if (!cd->vtblsym)
-    {
-        if (!cd->csym)
-            toSymbol(cd);
+    static AA *vtblMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&vtblMap, cd);
+    if (*psym)
+        return *psym;
 
-        TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
-        t->Tmangle = mTYman_d;
-        Symbol *s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
-        s->Sflags |= SFLnodebug;
-        s->Sfl = FLextern;
-        cd->vtblsym = s;
-    }
-    return cd->vtblsym;
+    toSymbol(cd);
+
+    TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
+    t->Tmangle = mTYman_d;
+    Symbol *s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
+    s->Sflags |= SFLnodebug;
+    s->Sfl = FLextern;
+
+    *psym = s;
+    return s;
 }
 
 /**********************************
@@ -546,35 +554,41 @@ Symbol *toVtblSymbol(ClassDeclaration *cd)
 
 Symbol *toInitializer(AggregateDeclaration *ad)
 {
-    if (!ad->sinit)
-    {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        StructDeclaration *sd = ad->isStructDeclaration();
-        if (sd)
-            s->Salignment = sd->alignment;
-        ad->sinit = s;
-    }
-    return ad->sinit;
+    static AA *initMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&initMap, ad);
+    if (*psym)
+        return *psym;
+
+    Classsym *stag = fake_classsym(Id::ClassInfo);
+    Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    StructDeclaration *sd = ad->isStructDeclaration();
+    if (sd)
+        s->Salignment = sd->alignment;
+
+    *psym = s;
+    return s;
 }
 
 Symbol *toInitializer(EnumDeclaration *ed)
 {
-    if (!ed->sinit)
-    {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Identifier *ident_save = ed->ident;
-        if (!ed->ident)
-            ed->ident = Identifier::generateId("__enum");
-        Symbol *s = toSymbolX(ed, "__init", SCextern, stag->Stype, "Z");
-        ed->ident = ident_save;
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        ed->sinit = s;
-    }
-    return ed->sinit;
+    static AA *initMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&initMap, ed);
+    if (*psym)
+        return *psym;
+
+    Classsym *stag = fake_classsym(Id::ClassInfo);
+    Identifier *ident_save = ed->ident;
+    if (!ed->ident)
+        ed->ident = Identifier::generateId("__enum");
+    Symbol *s = toSymbolX(ed, "__init", SCextern, stag->Stype, "Z");
+    ed->ident = ident_save;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+
+    *psym = s;
+    return s;
 }
 
 
@@ -583,30 +597,44 @@ Symbol *toInitializer(EnumDeclaration *ed)
 
 Symbol *toModuleAssert(Module *m)
 {
-    if (!m->massert)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
+    if (m->doppelganger)
+        m = m->doppelganger;
 
-        m->massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
-        m->massert->Sfl = FLextern;
-        m->massert->Sflags |= SFLnodebug | SFLexit;
-    }
-    return m->massert;
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (*psym)
+        return *psym;
+
+    type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
+    t->Tmangle = mTYman_d;
+
+    Symbol *xmassert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
+    xmassert->Sfl = FLextern;
+    xmassert->Sflags |= SFLnodebug | SFLexit;
+    *psym = xmassert;
+
+    return *psym;
 }
 
 Symbol *toModuleUnittest(Module *m)
 {
-    if (!m->munittest)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
+    if (m->doppelganger)
+        m = m->doppelganger;
 
-        m->munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
-        m->munittest->Sfl = FLextern;
-        m->munittest->Sflags |= SFLnodebug;
-    }
-    return m->munittest;
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (*psym)
+        return *psym;
+
+    type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
+    t->Tmangle = mTYman_d;
+
+    Symbol *xmunittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
+    xmunittest->Sfl = FLextern;
+    xmunittest->Sflags |= SFLnodebug;
+    *psym = xmunittest;
+
+    return *psym;
 }
 
 /******************************************
@@ -614,16 +642,23 @@ Symbol *toModuleUnittest(Module *m)
 
 Symbol *toModuleArray(Module *m)
 {
-    if (!m->marray)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
+    if (m->doppelganger)
+        m = m->doppelganger;
 
-        m->marray = toSymbolX(m, "__array", SCextern, t, "Z");
-        m->marray->Sfl = FLextern;
-        m->marray->Sflags |= SFLnodebug | SFLexit;
-    }
-    return m->marray;
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (*psym)
+        return *psym;
+
+    type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
+    t->Tmangle = mTYman_d;
+
+    Symbol *xmarray = toSymbolX(m, "__array", SCextern, t, "Z");
+    xmarray->Sfl = FLextern;
+    xmarray->Sflags |= SFLnodebug | SFLexit;
+    *psym = xmarray;
+
+    return *psym;
 }
 
 /********************************************
@@ -679,9 +714,28 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
 /*                   CTFE stuff                      */
 /*****************************************************/
 
+static AA *structLiteralSymMap;
+
+Symbol *getStructLiteralSym(StructLiteralExp *sle)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&structLiteralSymMap, sle);
+    if (!*psym)
+        *psym = NULL;
+    return *psym;
+}
+
+void setStructLiteralSym(StructLiteralExp *sle, Symbol *sym)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&structLiteralSymMap, sle);
+    *psym = sym;
+}
+
 Symbol* toSymbol(StructLiteralExp *sle)
 {
-    if (sle->sym) return sle->sym;
+    Symbol *csym = getStructLiteralSym(sle);
+    if (csym)
+        return csym;
+
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal", 8);
@@ -689,17 +743,21 @@ Symbol* toSymbol(StructLiteralExp *sle)
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    sle->sym = s;
+    setStructLiteralSym(sle, s);
     DtBuilder dtb;
     Expression_toDt(sle, &dtb);
     s->Sdt = dtb.finish();
     outdata(s);
-    return sle->sym;
+
+    return s;
 }
 
 Symbol* toSymbol(ClassReferenceExp *cre)
 {
-    if (cre->value->sym) return cre->value->sym;
+    Symbol *csym = getStructLiteralSym(cre->value);
+    if (csym)
+        return csym;
+
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal", 8);
@@ -707,12 +765,13 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-    cre->value->sym = s;
+    setStructLiteralSym(cre->value, s);
     DtBuilder dtb;
     ClassReferenceExp_toInstanceDt(cre, &dtb);
     s->Sdt = dtb.finish();
     outdata(s);
-    return cre->value->sym;
+
+    return s;
 }
 
 /**************************************
@@ -727,23 +786,26 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
 {
     assert(cd->isCPPclass());
 
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, cd);
+    if (*psym)
+        return *psym;
+
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (!cd->cpp_type_info_ptr_sym)
-    {
-        static Symbol *scpp;
-        if (!scpp)
-            scpp = fake_classsym(Id::cpp_type_info_ptr);
-        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp->Stype, "");
-        s->Sfl = FLdata;
-        s->Sflags |= SFLnodebug;
-        DtBuilder dtb;
-        cpp_type_info_ptr_toDt(cd, &dtb);
-        s->Sdt = dtb.finish();
-        outdata(s);
-        cd->cpp_type_info_ptr_sym = s;
-    }
-    return cd->cpp_type_info_ptr_sym;
+    static Symbol *scpp;
+    if (!scpp)
+        scpp = fake_classsym(Id::cpp_type_info_ptr);
+    Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp->Stype, "");
+    s->Sfl = FLdata;
+    s->Sflags |= SFLnodebug;
+    DtBuilder dtb;
+    cpp_type_info_ptr_toDt(cd, &dtb);
+    s->Sdt = dtb.finish();
+    outdata(s);
+
+    *psym = s;
+    return s;
 }
 
 /**********************************
@@ -764,4 +826,20 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
     t->Tcount++;
     s->Stype = t;
     return s;
+}
+
+static AA *shiddenMap;
+
+void setHiddenVar(FuncDeclaration *fd, Symbol *shidden)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&shiddenMap, fd);
+    assert(!*psym);
+    *psym = shidden;
+}
+
+Symbol *getHiddenVar(FuncDeclaration *fd)
+{
+    Symbol **psym = (Symbol **)dmd_aaGet(&shiddenMap, fd);
+    assert(*psym);
+    return *psym;
 }

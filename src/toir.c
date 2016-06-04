@@ -56,6 +56,9 @@ unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 void toTraceGC(IRState *irs, elem *e, Loc *loc);
 
+struct CovInfo { Symbol *sym; unsigned *covb; };
+CovInfo *getCoverageInfo(Module *m);
+
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
  * Used to implement -cov switch (coverage analysis).
@@ -64,7 +67,8 @@ elem *incUsageElem(IRState *irs, Loc loc)
 {
     unsigned linnum = loc.linnum;
 
-    if (!irs->blx->module->cov || !linnum ||
+    CovInfo *ci = getCoverageInfo(irs->blx->module);
+    if (!ci->sym || !linnum ||
         loc.filename != irs->blx->module->srcfile->toChars())
         return NULL;
 
@@ -74,7 +78,7 @@ elem *incUsageElem(IRState *irs, Loc loc)
 
     /* Set bit in covb[] indicating this is a valid code line number
      */
-    unsigned *p = irs->blx->module->covb;
+    unsigned *p = ci->covb;
     if (p)      // covb can be NULL if it has already been written out to its .obj file
     {
         assert(linnum < irs->blx->module->numlines);
@@ -83,7 +87,7 @@ elem *incUsageElem(IRState *irs, Loc loc)
     }
 
     elem *e;
-    e = el_ptr(irs->blx->module->cov);
+    e = el_ptr(ci->sym);
     e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
     e = el_una(OPind, TYuint, e);
     e = el_bin(OPaddass, TYuint, e, el_long(TYuint, 1));

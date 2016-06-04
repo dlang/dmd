@@ -69,6 +69,8 @@ elem *filelinefunction(IRState *irs, Expression *e);
 void toTraceGC(IRState *irs, elem *e, Loc *loc);
 void genTypeInfo(Type *t, Scope *sc);
 void setClosureVarOffset(FuncDeclaration *fd);
+Symbol *getHiddenVar(FuncDeclaration *fd);
+Symbol *getStructLiteralSym(StructLiteralExp *sle);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -993,7 +995,7 @@ elem *toElem(Expression *e, IRState *irs)
             int nrvo = 0;
             if (fd && fd->nrvo_can && fd->nrvo_var == se->var)
             {
-                s = fd->shidden;
+                s = getHiddenVar(fd);
                 nrvo = 1;
             }
 
@@ -5251,7 +5253,7 @@ elem *toElem(Expression *e, IRState *irs)
         void visit(StructLiteralExp *sle)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
-            result = toElemStructLit(sle, irs, TOKconstruct, sle->sym, true);
+            result = toElemStructLit(sle, irs, TOKconstruct, getStructLiteralSym(sle), true);
         }
 
         /*****************************************************/

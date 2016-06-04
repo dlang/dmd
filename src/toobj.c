@@ -72,7 +72,7 @@ void objc_Module_genmoduleinfo_classes();
 
 // Put out instance of ModuleInfo for this Module
 
-void genModuleInfo(Module *m)
+void genModuleInfo(Module *m, Symbol *sictor, Symbol *sctor, Symbol *sdtor, Symbol *ssharedctor, Symbol *sshareddtor, Symbol *stest)
 {
     //printf("Module::genmoduleinfo() %s\n", m->toChars());
 
@@ -85,8 +85,8 @@ void genModuleInfo(Module *m)
 
     //////////////////////////////////////////////
 
-    m->csym->Sclass = SCglobal;
-    m->csym->Sfl = FLdata;
+    msym->Sclass = SCglobal;
+    msym->Sfl = FLdata;
 
     DtBuilder dtb;
     ClassDeclarations aclasses;
@@ -127,19 +127,19 @@ void genModuleInfo(Module *m)
     unsigned flags = 0;
     if (!m->needmoduleinfo)
         flags |= MIstandalone;
-    if (m->sctor)
+    if (sctor)
         flags |= MItlsctor;
-    if (m->sdtor)
+    if (sdtor)
         flags |= MItlsdtor;
-    if (m->ssharedctor)
+    if (ssharedctor)
         flags |= MIctor;
-    if (m->sshareddtor)
+    if (sshareddtor)
         flags |= MIdtor;
     if (sgetmembers)
         flags |= MIxgetMembers;
-    if (m->sictor)
+    if (sictor)
         flags |= MIictor;
-    if (m->stest)
+    if (stest)
         flags |= MIunitTest;
     if (aimports_dim)
         flags |= MIimportedModules;
@@ -151,19 +151,19 @@ void genModuleInfo(Module *m)
     dtb.dword(0);            // _index
 
     if (flags & MItlsctor)
-        dtb.xoff(m->sctor, 0, TYnptr);
+        dtb.xoff(sctor, 0, TYnptr);
     if (flags & MItlsdtor)
-        dtb.xoff(m->sdtor, 0, TYnptr);
+        dtb.xoff(sdtor, 0, TYnptr);
     if (flags & MIctor)
-        dtb.xoff(m->ssharedctor, 0, TYnptr);
+        dtb.xoff(ssharedctor, 0, TYnptr);
     if (flags & MIdtor)
-        dtb.xoff(m->sshareddtor, 0, TYnptr);
+        dtb.xoff(sshareddtor, 0, TYnptr);
     if (flags & MIxgetMembers)
         dtb.xoff(toSymbol(sgetmembers), 0, TYnptr);
     if (flags & MIictor)
-        dtb.xoff(m->sictor, 0, TYnptr);
+        dtb.xoff(sictor, 0, TYnptr);
     if (flags & MIunitTest)
-        dtb.xoff(m->stest, 0, TYnptr);
+        dtb.xoff(stest, 0, TYnptr);
     if (flags & MIimportedModules)
     {
         dtb.size(aimports_dim);
@@ -204,9 +204,9 @@ void genModuleInfo(Module *m)
     }
 
     objc_Module_genmoduleinfo_classes();
-    m->csym->Sdt = dtb.finish();
-    out_readonly(m->csym);
-    outdata(m->csym);
+    msym->Sdt = dtb.finish();
+    out_readonly(msym);
+    outdata(msym);
 
     //////////////////////////////////////////////
 
@@ -284,7 +284,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
 
             // Generate C symbols
-            toSymbol(cd);
+            Symbol *csym = toSymbol(cd);
             toVtblSymbol(cd);
             Symbol *sinit = toInitializer(cd);
 
@@ -310,8 +310,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the ClassInfo
-            cd->csym->Sclass = scclass;
-            cd->csym->Sfl = FLdata;
+            csym->Sclass = scclass;
+            csym->Sfl = FLdata;
 
             /* The layout is:
                {
@@ -368,19 +368,19 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 namelen = strlen(name);
             }
             dtb.size(namelen);
-            dt_t *pdtname = dtb.xoffpatch(cd->csym, 0, TYnptr);
+            dt_t *pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
             // vtbl[]
             dtb.size(cd->vtbl.dim);
             if (cd->vtbl.dim)
-                dtb.xoff(cd->vtblsym, 0, TYnptr);
+                dtb.xoff(toVtblSymbol(cd), 0, TYnptr);
             else
                 dtb.size(0);
 
             // interfaces[]
             dtb.size(cd->vtblInterfaces->dim);
             if (cd->vtblInterfaces->dim)
-                dtb.xoff(cd->csym, offset, TYnptr);      // (*)
+                dtb.xoff(csym, offset, TYnptr);      // (*)
             else
                 dtb.size(0);
 
@@ -491,7 +491,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
 
                 // vtbl[]
                 dtb.size(id->vtbl.dim);
-                dtb.xoff(cd->csym, offset, TYnptr);
+                dtb.xoff(csym, offset, TYnptr);
 
                 // offset
                 dtb.size(b->offset);
@@ -515,7 +515,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     //dtb.xoff(toSymbol(id), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtb.xoff(cd->csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
+                    dtb.xoff(csym, Target::classinfosize + i * (4 * Target::ptrsize), TYnptr);
                     j = 1;
                 }
                 assert(id->vtbl.dim == b->vtbl.dim);
@@ -603,11 +603,11 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             const size_t namepad = -(namelen + 1) & (Target::ptrsize - 1); // align
             dtb.nzeros(namepad);
 
-            cd->csym->Sdt = dtb.finish();
+            csym->Sdt = dtb.finish();
             // ClassInfo cannot be const data, because we use the monitor on it
-            outdata(cd->csym);
+            outdata(csym);
             if (cd->isExport())
-                objmod->export_symbol(cd->csym, 0);
+                objmod->export_symbol(csym, 0);
 
             //////////////////////////////////////////////
 
@@ -615,7 +615,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //printf("putting out %s.vtbl[]\n", toChars());
             DtBuilder dtbv;
             if (cd->vtblOffset())
-                dtbv.xoff(cd->csym, 0, TYnptr);           // first entry is ClassInfo reference
+                dtbv.xoff(csym, 0, TYnptr);           // first entry is ClassInfo reference
             for (size_t i = cd->vtblOffset(); i < cd->vtbl.dim; i++)
             {
                 FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
@@ -675,13 +675,14 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                  */
                 dtbv.size(0);
             }
-            cd->vtblsym->Sdt = dtbv.finish();
-            cd->vtblsym->Sclass = scclass;
-            cd->vtblsym->Sfl = FLdata;
-            out_readonly(cd->vtblsym);
-            outdata(cd->vtblsym);
+            Symbol *vtblsym = toVtblSymbol(cd);
+            vtblsym->Sdt = dtbv.finish();
+            vtblsym->Sclass = scclass;
+            vtblsym->Sfl = FLdata;
+            out_readonly(vtblsym);
+            outdata(vtblsym);
             if (cd->isExport())
-                objmod->export_symbol(cd->vtblsym,0);
+                objmod->export_symbol(vtblsym,0);
         }
 
         void visit(InterfaceDeclaration *id)
@@ -710,7 +711,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             }
 
             // Generate C symbols
-            toSymbol(id);
+            Symbol *csym = toSymbol(id);
 
             //////////////////////////////////////////////
 
@@ -721,8 +722,8 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the ClassInfo
-            id->csym->Sclass = scclass;
-            id->csym->Sfl = FLdata;
+            csym->Sclass = scclass;
+            csym->Sfl = FLdata;
 
             /* The layout is:
                {
@@ -760,7 +761,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             const char *name = id->toPrettyChars();
             size_t namelen = strlen(name);
             dtb.size(namelen);
-            dt_t *pdtname = dtb.xoffpatch(id->csym, 0, TYnptr);
+            dt_t *pdtname = dtb.xoffpatch(csym, 0, TYnptr);
 
             // vtbl[]
             dtb.size(0);
@@ -779,7 +780,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                         fatal();
                     }
                 }
-                dtb.xoff(id->csym, offset, TYnptr);      // (*)
+                dtb.xoff(csym, offset, TYnptr);      // (*)
             }
             else
             {
@@ -852,11 +853,11 @@ void toObjFile(Dsymbol *ds, bool multiobj)
             const size_t namepad =  -(namelen + 1) & (Target::ptrsize - 1); // align
             dtb.nzeros(namepad);
 
-            id->csym->Sdt = dtb.finish();
-            out_readonly(id->csym);
-            outdata(id->csym);
+            csym->Sdt = dtb.finish();
+            out_readonly(csym);
+            outdata(csym);
             if (id->isExport())
-                objmod->export_symbol(id->csym, 0);
+                objmod->export_symbol(csym, 0);
         }
 
         void visit(StructDeclaration *sd)
@@ -885,22 +886,22 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 genTypeInfo(sd->type, NULL);
 
                 // Generate static initializer
-                toInitializer(sd);
+                Symbol *sinit = toInitializer(sd);
                 if (sd->isInstantiated())
                 {
-                    sd->sinit->Sclass = SCcomdat;
+                    sinit->Sclass = SCcomdat;
                 }
                 else
                 {
-                    sd->sinit->Sclass = SCglobal;
+                    sinit->Sclass = SCglobal;
                 }
 
-                sd->sinit->Sfl = FLdata;
+                sinit->Sfl = FLdata;
                 DtBuilder dtb;
                 StructDeclaration_toDt(sd, &dtb);
-                sd->sinit->Sdt = dtb.finish();
-                out_readonly(sd->sinit);    // put in read-only segment
-                outdata(sd->sinit);
+                sinit->Sdt = dtb.finish();
+                out_readonly(sinit);    // put in read-only segment
+                outdata(sinit);
 
                 // Put out the members
                 for (size_t i = 0; i < sd->members->dim; i++)
@@ -1041,13 +1042,13 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                     scclass = SCcomdat;
 
                 // Generate static initializer
-                toInitializer(ed);
-                ed->sinit->Sclass = scclass;
-                ed->sinit->Sfl = FLdata;
+                Symbol *sinit = toInitializer(ed);
+                sinit->Sclass = scclass;
+                sinit->Sfl = FLdata;
                 DtBuilder dtb;
                 Expression_toDt(tc->sym->defaultval, &dtb);
-                ed->sinit->Sdt = dtb.finish();
-                outdata(ed->sinit);
+                sinit->Sdt = dtb.finish();
+                outdata(sinit);
             }
             ed->semanticRun = PASSobj;
         }

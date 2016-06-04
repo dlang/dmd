@@ -53,7 +53,6 @@ class UnitTestDeclaration;
 class NewDeclaration;
 class VarDeclaration;
 class AttribDeclaration;
-struct Symbol;
 class Package;
 class Module;
 class Import;
@@ -154,8 +153,6 @@ class Dsymbol : public RootObject
 public:
     Identifier *ident;
     Dsymbol *parent;
-    Symbol *csym;               // symbol for code generator
-    Symbol *isym;               // import version of csym
     const utf8_t *comment;      // documentation comment for this Dsymbol
     Loc loc;                    // where defined
     Scope *_scope;               // !=NULL means context to use for semantic()

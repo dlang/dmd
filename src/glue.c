@@ -30,6 +30,7 @@
 #include "target.h"
 
 #include "rmem.h"
+#include "aav.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"
@@ -56,13 +57,14 @@ Dsymbols *Dsymbols_create();
 Expressions *Expressions_create();
 type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
-void genModuleInfo(Module *m);
+void genModuleInfo(Module *m, Symbol *sictor, Symbol *sctor, Symbol *sdtor, Symbol *ssharedctor, Symbol *sshareddtor, Symbol *stext);
 void genObjFile(Module *m, bool multiobj);
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
 static void genhelpers(Module *m);
+void setHiddenVar(FuncDeclaration *fd, Symbol *shidden);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -139,12 +141,8 @@ void obj_write_deferred(Library *library)
             Module *md = Module::create(mname, id, 0, 0);
             md->members = Dsymbols_create();
             md->members->push(s);   // its only 'member' is s
-            md->doppelganger = 1;       // identify this module as doppelganger
+            md->doppelganger = m;       // identify this module as doppelganger
             md->md = m->md;
-            md->aimports.push(m);       // it only 'imports' m
-            md->massert = m->massert;
-            md->munittest = m->munittest;
-            md->marray = m->marray;
 
             genObjFile(md, false);
         }
@@ -293,6 +291,21 @@ void obj_startaddress(Symbol *s)
     return objmod->startaddress(s);
 }
 
+struct CovInfo { Symbol *sym; unsigned *covb; };
+
+CovInfo *getCoverageInfo(Module *m)
+{
+    static AA *infoMap;
+
+    CovInfo **ci = (CovInfo **)dmd_aaGet(&infoMap, m);
+    if (!*ci)
+    {
+        *ci = new CovInfo;
+        (*ci)->sym = NULL;
+        (*ci)->covb = NULL;
+    }
+    return *ci;
+}
 
 /**************************************
  * Generate .obj file for Module.
@@ -334,14 +347,12 @@ void genObjFile(Module *m, bool multiobj)
     sshareddtors.setDim(0);
     stests.setDim(0);
 
-    if (m->doppelganger)
+    if (Module *mod = m->doppelganger)
     {
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *mod = m->aimports[0];
-        assert(mod);
-        if (mod->sictor || mod->sctor || mod->sdtor || mod->ssharedctor || mod->sshareddtor)
+        if (mod->hasModuleInfo)
         {
             Symbol *s = toSymbol(mod);
             //objextern(s);
@@ -363,25 +374,28 @@ void genObjFile(Module *m, bool multiobj)
         }
     }
 
+    CovInfo *ci = NULL;
     if (global.params.cov)
     {
         /* Create coverage identifier:
          *  private uint[numlines] __coverage;
          */
-        m->cov = symbol_calloc("__coverage");
-        m->cov->Stype = type_fake(TYint);
-        m->cov->Stype->Tmangle = mTYman_c;
-        m->cov->Stype->Tcount++;
-        m->cov->Sclass = SCstatic;
-        m->cov->Sfl = FLdata;
+        ci = getCoverageInfo(m);
+
+        ci->sym = symbol_calloc("__coverage");
+        ci->sym->Stype = type_fake(TYint);
+        ci->sym->Stype->Tmangle = mTYman_c;
+        ci->sym->Stype->Tcount++;
+        ci->sym->Sclass = SCstatic;
+        ci->sym->Sfl = FLdata;
 
         DtBuilder dtb;
         dtb.nzeros(4 * m->numlines);
-        m->cov->Sdt = dtb.finish();
+        ci->sym->Sdt = dtb.finish();
 
-        outdata(m->cov);
+        outdata(ci->sym);
 
-        m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
+        ci->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*ci->covb));
     }
 
     for (size_t i = 0; i < m->members->dim; i++)
@@ -391,6 +405,7 @@ void genObjFile(Module *m, bool multiobj)
         toObjFile(member, multiobj);
     }
 
+    Symbol *sictor = NULL;
     if (global.params.cov)
     {
         /* Generate
@@ -403,13 +418,13 @@ void genObjFile(Module *m, bool multiobj)
         bcov->Sfl = FLdata;
 
         DtBuilder dtb;
-        dtb.nbytes((m->numlines + 32) / 32 * sizeof(*m->covb), (char *)m->covb);
+        dtb.nbytes((m->numlines + 32) / 32 * sizeof(*ci->covb), (char *)ci->covb);
         bcov->Sdt = dtb.finish();
 
         outdata(bcov);
 
-        free(m->covb);
-        m->covb = NULL;
+        free(ci->covb);
+        ci->covb = NULL;
 
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
@@ -422,11 +437,12 @@ void genObjFile(Module *m, bool multiobj)
         type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_c;
 
-        m->sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
-        cstate.CSpsymtab = &m->sictor->Sfunc->Flocsym;
+        sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
+        m->hasModuleInfo = true;
+        cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
         localgot = ictorlocalgot;
 
-        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(m->cov));
+        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(ci->sym));
         elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(bcov));
 
         if (config.exe == EX_WIN64)
@@ -450,6 +466,11 @@ void genObjFile(Module *m, bool multiobj)
         ictorlocalgot = localgot;
     }
 
+    Symbol *sctor = NULL;
+    Symbol *sdtor = NULL;
+    Symbol *ssharedctor = NULL;
+    Symbol *sshareddtor = NULL;
+    Symbol *stest = NULL;
     // If coverage / static constructor / destructor / unittest calls
     if (eictor || sctors.dim || ectorgates.dim || sdtors.dim ||
         ssharedctors.dim || esharedctorgates.dim || sshareddtors.dim || stests.dim)
@@ -461,20 +482,21 @@ void genObjFile(Module *m, bool multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = eictor;
-            m->sictor->Sfunc->Fstartline.Sfilename = m->arg;
-            m->sictor->Sfunc->Fstartblock = b;
-            writefunc(m->sictor);
+            sictor->Sfunc->Fstartline.Sfilename = m->arg;
+            sictor->Sfunc->Fstartblock = b;
+            writefunc(sictor);
         }
 
-        m->sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
-        m->sdtor = callFuncsAndGates(m, &sdtors, NULL, "__moddtor");
+        sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
+        sdtor = callFuncsAndGates(m, &sdtors, NULL, "__moddtor");
+        m->hasModuleInfo = true;
 
-        m->ssharedctor = callFuncsAndGates(m, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
-        m->sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
-        m->stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
+        ssharedctor = callFuncsAndGates(m, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
+        sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
+        stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
 
         if (m->doppelganger)
-            genModuleInfo(m);
+            genModuleInfo(m, sictor, sctor, sdtor, ssharedctor, sshareddtor, stest);
     }
 
     if (m->doppelganger)
@@ -487,7 +509,7 @@ void genObjFile(Module *m, bool multiobj)
      * But module info needs the runtime library, so disable it for betterC.
      */
     if (!global.params.betterC /*|| needModuleInfo()*/)
-        genModuleInfo(m);
+        genModuleInfo(m, sictor, sctor, sdtor, ssharedctor, sshareddtor, stest);
 
     /* Always generate helper functions b/c of later templates instantiations
      * with different -release/-debug/-boundscheck/-unittest flags.
@@ -1041,8 +1063,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         shidden->Sflags |= SFLtrue | SFLfree;
         if (fd->nrvo_can && fd->nrvo_var && fd->nrvo_var->nestedrefs.dim)
             type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
+        setHiddenVar(fd, shidden);
         irs.shidden = shidden;
-        fd->shidden = shidden;
     }
     else
     {
@@ -1054,7 +1076,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     if (fd->vthis)
     {
-        assert(!fd->vthis->csym);
         sthis = toSymbol(fd->vthis);
         irs.sthis = sthis;
         if (!(f->Fflags3 & Fnested))
@@ -1088,7 +1109,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
         {
             VarDeclaration *v = (*fd->parameters)[i];
             //printf("param[%d] = %p, %s\n", i, v, v->toChars());
-            assert(!v->csym);
             params[pi + i] = toSymbol(v);
         }
         pi += fd->parameters->dim;
@@ -1590,12 +1610,14 @@ elem *toEfilename(Module *m)
     const char *id = m->srcfile->toChars();
     size_t len = strlen(id);
 
-    if (!m->sfilename)
+    static AA *symMap;
+    Symbol **psym = (Symbol **)dmd_aaGet(&symMap, m);
+    if (!*psym)
     {
         // Put out as a static array
-        m->sfilename = toStringSymbol(id, len, 1);
+        *psym = toStringSymbol(id, len, 1);
     }
 
     // Turn static array into dynamic array
-    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
+    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(*psym));
 }

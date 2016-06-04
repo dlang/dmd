@@ -717,10 +717,6 @@ class AsmStatement : public Statement
 {
 public:
     Token *tokens;
-    code *asmcode;
-    unsigned asmalign;          // alignment of this statement
-    unsigned regs;              // mask of registers modified (must match regm_t in back end)
-    bool refparam;              // true if function parameter is referenced
     bool naked;                 // true if function is to be naked
 
     AsmStatement(Loc loc, Token *tokens);

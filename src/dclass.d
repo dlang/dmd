@@ -226,8 +226,6 @@ public:
 
     Objc_ClassDeclaration objc;
 
-    Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
-
     final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, bool inObject = false)
     {
         if (!id)
@@ -1490,9 +1488,6 @@ public:
     {
         aclasses.push(this);
     }
-
-    // Back end
-    Symbol* vtblsym;
 
     override final inout(ClassDeclaration) isClassDeclaration() inout
     {
