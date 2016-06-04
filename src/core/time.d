@@ -149,7 +149,7 @@ version(unittest) T copy(T)(T t)
     $(D ClockType), whereas with $(D std.datetime.Clock.currTime), its a runtime
     argument, since in the case of the monotonic time, the type of the clock
     affects the resolution of a $(LREF MonoTimeImpl) object, whereas with
-    $(XREF datetime, SysTime), its resolution is always hecto-nanoseconds
+    $(REF SysTime, std,datetime), its resolution is always hecto-nanoseconds
     regardless of the source of the time.
 
     $(D ClockType.normal), $(D ClockType.coarse), and $(D ClockType.precise)
@@ -427,9 +427,9 @@ unittest
     between months or years and smaller units without a specific date. So,
     nothing uses $(D Duration)s when dealing with months or years. Rather,
     functions specific to months and years are defined. For instance,
-    $(XREF datetime, Date) has $(D add!"years") and $(D add!"months") for adding
+    $(REF Date, std,datetime) has $(D add!"years") and $(D add!"months") for adding
     years and months rather than creating a Duration of years or months and
-    adding that to a $(XREF datetime, Date). But Duration is used when dealing
+    adding that to a $(REF Date, std,datetime). But Duration is used when dealing
     with weeks or smaller.
 
     Examples:
@@ -1048,7 +1048,7 @@ public:
         Returns a $(LREF TickDuration) with the same number of hnsecs as this
         $(D Duration).
         Note that the conventional way to convert between $(D Duration) and
-        $(D TickDuration) is using $(XREF conv, to), e.g.:
+        $(D TickDuration) is using $(REF to, std,conv), e.g.:
         $(D duration.to!TickDuration())
       +/
     TickDuration opCast(T)() const nothrow @nogc
@@ -2148,7 +2148,7 @@ alias MonoTime = MonoTimeImpl!(ClockType.normal);
 
     A monotonic clock is one which always goes forward and never moves
     backwards, unlike the system's wall clock time (as represented by
-    $(XREF datetime, SysTime)). The system's wall clock time can be adjusted
+    $(REF SysTime, std,datetime)). The system's wall clock time can be adjusted
     by the user or by the system itself via services such as NTP, so it is
     unreliable to use the wall clock time for timing. Timers which use the wall
     clock time could easily end up never going off due to changes made to the
@@ -2159,7 +2159,7 @@ alias MonoTime = MonoTimeImpl!(ClockType.normal);
     high precision timing.
 
     So, MonoTime should be used for anything involving timers and timing,
-    whereas $(XREF datetime, SysTime) should be used when the wall clock time
+    whereas $(REF SysTime, std,datetime) should be used when the wall clock time
     is required.
 
     The monotonic clock has no relation to wall clock time. Rather, it holds
@@ -3093,7 +3093,7 @@ struct TickDuration
         Returns a $(LREF Duration) with the same number of hnsecs as this
         $(D TickDuration).
         Note that the conventional way to convert between $(D TickDuration)
-        and $(D Duration) is using $(XREF conv, to), e.g.:
+        and $(D Duration) is using $(REF to, std,conv), e.g.:
         $(D tickDuration.to!Duration())
       +/
     Duration opCast(T)() @safe const pure nothrow @nogc
@@ -3706,12 +3706,12 @@ unittest
     It holds hnsecs internally, but you can create it using either milliseconds,
     microseconds, or hnsecs. What it does is allow for a simple way to set or
     adjust the fractional seconds portion of a $(D Duration) or a
-    $(XREF datetime, SysTime) without having to worry about whether you're
+    $(REF SysTime, std,datetime) without having to worry about whether you're
     dealing with milliseconds, microseconds, or hnsecs.
 
     $(D FracSec)'s functions which take time unit strings do accept
     $(D "nsecs"), but because the resolution of $(D Duration) and
-    $(XREF datetime, SysTime) is hnsecs, you don't actually get precision higher
+    $(REF SysTime, std,datetime) is hnsecs, you don't actually get precision higher
     than hnsecs. $(D "nsecs") is accepted merely for convenience. Any values
     given as nsecs will be converted to hnsecs using $(D convert) (which uses
     truncating division when converting to smaller units).
