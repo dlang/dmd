@@ -30,6 +30,8 @@
 #include        "md5.h"
 
 #if MARS
+#include        "varstats.h"
+
 struct Loc
 {
     char *filename;
@@ -849,6 +851,10 @@ void Obj::term(const char *objfilename)
 
 void Obj::linnum(Srcpos srcpos,targ_size_t offset)
 {
+#if MARS
+    varStats.recordLineOffset(srcpos, offset);
+#endif
+
     unsigned linnum = srcpos.Slinnum;
 
 #if 0
@@ -2427,6 +2433,10 @@ void Obj::func_start(Symbol *sfunc)
     symbol_debug(sfunc);
     sfunc->Sseg = cseg;             // current code seg
     sfunc->Soffset = Coffset;       // offset of start of function
+
+#if MARS
+    varStats.startFunction();
+#endif
 }
 
 /*******************************

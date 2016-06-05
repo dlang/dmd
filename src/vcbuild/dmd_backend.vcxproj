@@ -79,6 +79,7 @@
     <ClCompile Include="..\backend\pdata.c" />
     <ClCompile Include="..\backend\ph2.c" />
     <ClCompile Include="..\backend\util2.c" />
+    <ClCompile Include="..\backend\varstats.c" />
     <ClCompile Include="..\e2ir.c" />
     <ClCompile Include="..\eh.c" />
     <ClCompile Include="..\glue.c" />
@@ -187,6 +188,7 @@ popd</Command>
     <ClInclude Include="..\aliasthis.h" />
     <ClInclude Include="..\arraytypes.h" />
     <ClInclude Include="..\attrib.h" />
+    <ClInclude Include="..\backend\varstats.h" />
     <ClInclude Include="..\complex_t.h" />
     <ClInclude Include="..\cond.h" />
     <ClInclude Include="..\declaration.h" />

@@ -290,6 +290,7 @@ class ScopeDsymbol : public Dsymbol
 public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
+    unsigned endlinnum;         // the linnumber of the statement after the scope (0 if unknown)
 
 private:
     Dsymbols *importedScopes;   // imported Dsymbol's

@@ -1459,7 +1459,7 @@ public:
                                 a.push((*statements)[j]);
                             }
                             Statement _body = new CompoundStatement(Loc(), a);
-                            _body = new ScopeStatement(Loc(), _body);
+                            _body = new ScopeStatement(Loc(), _body, Loc());
 
                             Identifier id = Identifier.generateId("__o");
 
@@ -1700,16 +1700,18 @@ extern (C++) final class ScopeStatement : Statement
 {
 public:
     Statement statement;
+    Loc endloc;                 // location of closing curly bracket
 
-    extern (D) this(Loc loc, Statement s)
+    extern (D) this(Loc loc, Statement s, Loc endloc)
     {
         super(loc);
         this.statement = s;
+        this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
     {
-        return new ScopeStatement(loc, statement ? statement.syntaxCopy() : null);
+        return new ScopeStatement(loc, statement ? statement.syntaxCopy() : null, endloc);
     }
 
     override ScopeStatement isScopeStatement()
@@ -1732,6 +1734,7 @@ public:
         {
             sym = new ScopeDsymbol();
             sym.parent = sc.scopesym;
+            sym.endlinnum = endloc.linnum;
             sc = sc.push(sym);
 
             Statements* a = statement.flatten(sc);
@@ -1843,19 +1846,22 @@ extern (C++) final class DoStatement : Statement
 public:
     Statement _body;
     Expression condition;
+    Loc endloc;                 // location of ';' after while
 
-    extern (D) this(Loc loc, Statement b, Expression c)
+    extern (D) this(Loc loc, Statement b, Expression c, Loc endloc)
     {
         super(loc);
         _body = b;
         condition = c;
+        this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
     {
         return new DoStatement(loc,
             _body ? _body.syntaxCopy() : null,
-            condition.syntaxCopy());
+            condition.syntaxCopy(),
+            endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -1961,7 +1967,7 @@ public:
             _init = null;
             ainit.push(this);
             Statement s = new CompoundStatement(loc, ainit);
-            s = new ScopeStatement(loc, s);
+            s = new ScopeStatement(loc, s, endloc);
             s = s.semantic(sc);
             if (!s.isErrorStatement())
             {
@@ -1975,6 +1981,7 @@ public:
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
+        sym.endlinnum = endloc.linnum;
         sc = sc.push(sym);
 
         sc.noctor++;
@@ -2114,6 +2121,7 @@ public:
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STCrvalue, "__aggr", aggr);
+            vinit.endlinnum = endloc.linnum;
             vinit.semantic(sc);
             aggr = new VarExp(aggr.loc, vinit);
         }
@@ -2340,7 +2348,7 @@ public:
 
                 st.push(_body.syntaxCopy());
                 s = new CompoundStatement(loc, st);
-                s = new ScopeStatement(loc, s);
+                s = new ScopeStatement(loc, s, endloc);
                 statements.push(s);
             }
 
@@ -2357,6 +2365,7 @@ public:
 
         sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
+        sym.endlinnum = endloc.linnum;
         auto sc2 = sc.push(sym);
 
         sc2.noctor++;
@@ -3364,14 +3373,16 @@ public:
     Statement ifbody;
     Statement elsebody;
     VarDeclaration match;   // for MatchExpression results
+    Loc endloc;                 // location of closing curly bracket
 
-    extern (D) this(Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody)
+    extern (D) this(Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
     {
         super(loc);
         this.prm = prm;
         this.condition = condition;
         this.ifbody = ifbody;
         this.elsebody = elsebody;
+        this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
@@ -3380,7 +3391,8 @@ public:
             prm ? prm.syntaxCopy() : null,
             condition.syntaxCopy(),
             ifbody ? ifbody.syntaxCopy() : null,
-            elsebody ? elsebody.syntaxCopy() : null);
+            elsebody ? elsebody.syntaxCopy() : null,
+            endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -3396,6 +3408,7 @@ public:
 
         auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
+        sym.endlinnum = endloc.linnum;
         Scope* scd = sc.push(sym);
         if (prm)
         {
@@ -5077,17 +5090,19 @@ public:
     Expression exp;
     Statement _body;
     VarDeclaration wthis;
+    Loc endloc;
 
-    extern (D) this(Loc loc, Expression exp, Statement _body)
+    extern (D) this(Loc loc, Expression exp, Statement _body, Loc endloc)
     {
         super(loc);
         this.exp = exp;
         this._body = _body;
+        this.endloc = endloc;
     }
 
     override Statement syntaxCopy()
     {
-        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null);
+        return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
     }
 
     override Statement semantic(Scope* sc)
@@ -5106,6 +5121,7 @@ public:
         {
             sym = new WithScopeSymbol(this);
             sym.parent = sc.scopesym;
+            sym.endlinnum = endloc.linnum;
         }
         else if (exp.op == TOKtype)
         {
@@ -5117,6 +5133,7 @@ public:
             }
             sym = new WithScopeSymbol(this);
             sym.parent = sc.scopesym;
+            sym.endlinnum = endloc.linnum;
         }
         else
         {
@@ -5140,6 +5157,7 @@ public:
 
                 sym = new WithScopeSymbol(this);
                 sym.parent = sc.scopesym;
+                sym.endlinnum = endloc.linnum;
             }
             else if (t.ty == Tstruct)
             {
@@ -5157,7 +5175,7 @@ public:
                     auto tmp = copyToTemp(0, "__withtmp", exp);
                     auto es = new ExpStatement(loc, tmp);
                     this.exp = new VarExp(loc, tmp);
-                    Statement ss = new ScopeStatement(loc, new CompoundStatement(loc, es, this));
+                    Statement ss = new ScopeStatement(loc, new CompoundStatement(loc, es, this), endloc);
                     return ss.semantic(sc);
                 }
                 Expression e = exp.addressOf();
@@ -5168,6 +5186,7 @@ public:
                 // Need to set the scope to make use of resolveAliasThis
                 sym.setScope(sc);
                 sym.parent = sc.scopesym;
+                sym.endlinnum = endloc.linnum;
             }
             else
             {
@@ -5593,7 +5612,7 @@ public:
 
                 e = new VarExp(Loc(), v);
                 e = new NotExp(Loc(), e);
-                *sfinally = new IfStatement(Loc(), null, e, s, null);
+                *sfinally = new IfStatement(Loc(), null, e, s, null, Loc());
 
                 break;
             }
@@ -5750,7 +5769,7 @@ public:
              * so we can patch it later, and add it to a 'look at this later'
              * list.
              */
-            auto ss = new ScopeStatement(loc, this);
+            auto ss = new ScopeStatement(loc, this, loc);
             sc.fes.gotos.push(ss); // 'look at this later' list
             return ss;
         }

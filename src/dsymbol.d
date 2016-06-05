@@ -1263,6 +1263,7 @@ extern (C++) class ScopeDsymbol : Dsymbol
 public:
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
+    uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
 
 private:
     /// symbols whose members have been imported, i.e. imported modules and template mixins
@@ -1287,6 +1288,7 @@ public:
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
         sds.members = arraySyntaxCopy(members);
+        sds.endlinnum = endlinnum;
         return sds;
     }
 

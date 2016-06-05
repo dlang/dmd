@@ -23,6 +23,9 @@
 #include        "cgcv.h"
 #include        "cv4.h"
 #include        "global.h"
+#if MARS
+#include        "varstats.h"
+#endif
 #if SCPP
 #include        "parser.h"
 #include        "cpp.h"
@@ -2530,6 +2533,63 @@ STATIC void cv_outlist()
         cv_outsym((Symbol *) list_pop(&cgcv.list));
 }
 
+#if MARS
+// record for CV record S_BLOCK32
+struct block32_data
+{
+    unsigned short len;
+    unsigned short id;
+    unsigned int pParent;
+    unsigned int pEnd;
+    unsigned int length;
+    unsigned int offset;
+    unsigned short seg;
+    unsigned char name[2];
+};
+
+/******************************************
+ * write lexical scope records up to the line where the symbol sa is created
+ * if sa == NULL, flush all remaining records
+ */
+void cv4_writeLexicalScope(Funcsym *s, symbol *sa, VarStatistics* vs)
+{
+    if (vs->cntUsedVarStats == 0)
+        return;
+
+    unsigned line;
+    if(sa)
+    {
+        line = sa->lnoscopestart + 1;
+    }
+    else
+    {
+        // flush all
+        line = vs->firstVarStatsLine + vs->cntUsedVarStats;
+    }
+    while (vs->nextVarStatsLine < line && vs->nextVarStatsLine < vs->firstVarStatsLine + vs->cntUsedVarStats)
+    {
+        unsigned idx = vs->nextVarStatsLine - vs->firstVarStatsLine;
+        for(int d = 0; d < vs->varStats[idx].numDel; d++)
+        {
+            static unsigned short s_end[] = { 2, S_END };
+            objmod->write_bytes(SegData[DEBSYM], sizeof(s_end), s_end);
+        }
+        for(int n = 0; n < vs->varStats[idx].numNew; n++)
+        {
+            unsigned offset = vs->varStats[idx].offset;
+            unsigned length = vs->varStats[vs->varStats[idx].endLine - vs->firstVarStatsLine].offset - offset;
+            unsigned soffset = Offset(DEBSYM);
+            // parent and end to be filled by linker
+            block32_data block32 = { sizeof(block32_data) - 2, S_BLOCK32, 0, 0, length, 0, 0, { 0, '\0' } };
+            objmod->write_bytes(SegData[DEBSYM], sizeof(block32), &block32);
+            size_t offOffset = (char*)&block32.offset - (char*)&block32;
+            objmod->reftoident(DEBSYM, soffset + offOffset, s, offset + s->Soffset, CFseg | CFoff);
+        }
+        vs->nextVarStatsLine++;
+    }
+}
+#endif
+
 /******************************************
  * Write out symbol table for current function.
  */
@@ -2540,6 +2600,9 @@ STATIC void cv4_func(Funcsym *s)
     int endarg;
 
     cv4_outsym(s);              // put out function symbol
+#if MARS
+    varStats.calcLexicalScope(s, &globsym);
+#endif
 
     // Put out local symbols
     endarg = 0;
@@ -2553,9 +2616,15 @@ STATIC void cv4_func(Funcsym *s)
             objmod->write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
             endarg = 1;
         }
+        if (varStats.isLexVar[si])
+            cv4_writeLexicalScope(s, sa, &varStats);
 #endif
         cv4_outsym(sa);
     }
+
+#if MARS
+    cv4_writeLexicalScope(s, 0, &varStats); // flush remaining entries
+#endif
 
     // Put out function return record
     if (1)
