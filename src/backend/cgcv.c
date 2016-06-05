@@ -23,7 +23,9 @@
 #include        "cgcv.h"
 #include        "cv4.h"
 #include        "global.h"
+#if MARS
 #include        "varstats.h"
+#endif
 #if SCPP
 #include        "parser.h"
 #include        "cpp.h"
@@ -2531,6 +2533,7 @@ STATIC void cv_outlist()
         cv_outsym((Symbol *) list_pop(&cgcv.list));
 }
 
+#if MARS
 // record for CV record S_BLOCK32
 struct block32_data
 {
@@ -2585,6 +2588,7 @@ void cv4_writeLexicalScope(Funcsym *s, symbol *sa, VarStatistics* vs)
         vs->nextVarStatsLine++;
     }
 }
+#endif
 
 /******************************************
  * Write out symbol table for current function.

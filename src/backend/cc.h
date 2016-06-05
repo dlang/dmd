@@ -1290,8 +1290,10 @@ struct Symbol
     }_SXR;
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
+#if MARS
     unsigned lnoscopestart;     // life time of var
     unsigned lnoscopeend;       // the line after the scope
+#endif
 
     char Sident[1];             // identifier string (dynamic array)
 
