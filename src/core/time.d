@@ -45,12 +45,12 @@
     )
     $(TR $(TD $(B To $(LREF Duration)))
      $(TD -)
-     $(TD $(D tickDuration.)$(SXREF conv, to)$(D !Duration()))
+     $(TD $(D tickDuration.)$(REF_SHORT to, std,conv)$(D !Duration()))
      $(TD -)
      $(TD $(D dur!"msecs"(5)) or $(D 5.msecs()))
     )
     $(TR $(TD $(B To $(LREF TickDuration)))
-     $(TD $(D duration.)$(SXREF conv, to)$(D !TickDuration()))
+     $(TD $(D duration.)$(REF_SHORT to, std,conv)$(D !TickDuration()))
      $(TD -)
      $(TD -)
      $(TD $(D TickDuration.from!"msecs"(msecs)))
@@ -74,7 +74,6 @@
     Source:    $(DRUNTIMESRC core/_time.d)
     Macros:
     NBSP=&nbsp;
-    SXREF=<a href="std_$1.html#$2">$(D $2)</a>
  +/
 module core.time;
 
@@ -414,7 +413,7 @@ unittest
     (e.g. 22 days or 700 seconds).
 
     It is used when representing a duration of time - such as how long to
-    sleep with $(CXREF thread, Thread.sleep).
+    sleep with $(REF Thread.sleep, core,thread).
 
     In std.datetime, it is also used as the result of various arithmetic
     operations on time points.
