@@ -982,6 +982,7 @@ public:
 
     int canassign;                  // it can be assigned to
     bool overlapped;                // if it is a field and has overlapping
+    ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
     Dsymbol aliassym;               // if redone as alias to another symbol
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
 
@@ -1958,18 +1959,31 @@ public:
             printf("%llx, isModule: %p, isTemplateInstance: %p\n", storage_class & (STCstatic | STCconst), parent.isModule(), parent.isTemplateInstance());
             printf("parent = '%s'\n", parent.toChars());
         }
-        if (!canTakeAddressOf())
-            return false;
-        Dsymbol parent = toParent();
-        if (!parent && !(storage_class & STCstatic))
-        {
-            error("forward referenced");
-            type = Type.terror;
-            return false;
-        }
-        return (storage_class & (STCstatic | STCextern | STCtls | STCgshared) || parent.isModule() || parent.isTemplateInstance());
-    }
 
+        if (isdataseg == 0) // the value is not cached
+        {
+            isdataseg = 2; // The Variables does not go into the datasegment
+
+            if (!canTakeAddressOf())
+            {
+                return false;
+            }
+
+            Dsymbol parent = toParent();
+            if (!parent && !(storage_class & STCstatic))
+            {
+                error("forward referenced");
+                type = Type.terror;
+            }
+            else if (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
+                parent.isModule() || parent.isTemplateInstance())
+            {
+                isdataseg = 1; // It is in the DataSegment
+            }
+        }
+
+        return (isdataseg == 1);
+    }
     /************************************
      * Does symbol go into thread local storage?
      */
