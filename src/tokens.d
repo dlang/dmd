@@ -570,7 +570,7 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    static __gshared const(char)*[TOKMAX] tochars =
+    extern (D) private __gshared string[TOKMAX] tochars =
     [
         TOKeof: "EOF",
         TOKlcurly: "{",
@@ -682,15 +682,16 @@ extern (C++) struct Token
         foreach (kw; keywords)
         {
             //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-            const(char)* s = kw.name;
+            immutable(char)* s = kw.name;
             TOK v = kw.value;
-            auto id = Identifier.idPool(s, strlen(s), v);
+            size_t len = strlen(s);
+            auto id = Identifier.idPool(s, len, v);
             //printf("tochars[%d] = '%s'\n",v, s);
-            Token.tochars[v] = s;
+            Token.tochars[v] = s[0 .. len];
         }
     }
 
-    static __gshared Token* freelist = null;
+    __gshared Token* freelist = null;
 
     static Token* alloc()
     {
@@ -903,14 +904,19 @@ extern (C++) struct Token
 
     static const(char)* toChars(TOK value)
     {
-        static __gshared char[3 + 3 * value.sizeof + 1] buffer;
-        const(char)* p = tochars[value];
-        if (!p)
+        return toString(value).ptr;
+    }
+
+    extern (D) static const(char)[] toString(TOK value)
+    {
+        __gshared char[3 + 3 * value.sizeof + 1] buffer;
+        auto s = tochars[value];
+        if (s.length == 0)
         {
-            sprintf(&buffer[0], "TOK%d", value);
-            p = &buffer[0];
+            int len =  sprintf(&buffer[0], "TOK%d", value);
+            return buffer[0 .. len];
         }
-        return p;
+        return s;
     }
 }
 

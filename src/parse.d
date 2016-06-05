@@ -2316,9 +2316,9 @@ public:
             else if (token.value == TOKint32v || token.value == TOKint64v)
                 level = cast(uint)token.uns64value;
             else if (token.value == TOKunittest)
-                id = Identifier.idPool(Token.toChars(TOKunittest), strlen(Token.toChars(TOKunittest)));
+                id = Identifier.idPool(Token.toString(TOKunittest));
             else if (token.value == TOKassert)
-                id = Identifier.idPool(Token.toChars(TOKassert), strlen(Token.toChars(TOKassert)));
+                id = Identifier.idPool(Token.toString(TOKassert));
             else
                 error("identifier or integer expected inside version(...), not %s", token.toChars());
             nextToken();

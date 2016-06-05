@@ -24,20 +24,8 @@ import ddmd.root.outbuffer;
 import ddmd.tokens;
 import ddmd.utils;
 import ddmd.visitor;
+import ddmd.id;
 
-private __gshared Identifier idUnitTest;
-private __gshared Identifier idAssert;
-
-static this()
-{
-    const(char)* s;
-
-    s = Token.toChars(TOKunittest);
-    idUnitTest = Identifier.idPool(s, strlen(s));
-
-    s = Token.toChars(TOKassert);
-    idAssert   = Identifier.idPool(s, strlen(s));
-}
 
 /***********************************************************
  */
@@ -332,7 +320,7 @@ public:
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
                 inc = 1;
             if (!definedInModule &&
-                (!ident || (!isPredefined(ident.toChars()) && ident != idUnitTest && ident != idAssert)))
+                (!ident || (!isPredefined(ident.toChars()) && ident != Id._unittest && ident != Id._assert)))
             {
                 printDepsConditional(sc, this, "depsVersion ");
             }

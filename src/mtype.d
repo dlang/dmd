@@ -166,37 +166,37 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
         break;
 
     case MODimmutable:
-        buf.writestring(Token.tochars[TOKimmutable]);
+        buf.writestring(Token.toString(TOKimmutable));
         break;
 
     case MODshared:
-        buf.writestring(Token.tochars[TOKshared]);
+        buf.writestring(Token.toString(TOKshared));
         break;
 
     case MODshared | MODconst:
-        buf.writestring(Token.tochars[TOKshared]);
+        buf.writestring(Token.toString(TOKshared));
         buf.writeByte(' ');
         goto case; /+ fall through +/
     case MODconst:
-        buf.writestring(Token.tochars[TOKconst]);
+        buf.writestring(Token.toString(TOKconst));
         break;
 
     case MODshared | MODwild:
-        buf.writestring(Token.tochars[TOKshared]);
+        buf.writestring(Token.toString(TOKshared));
         buf.writeByte(' ');
         goto case; /+ fall through +/
     case MODwild:
-        buf.writestring(Token.tochars[TOKwild]);
+        buf.writestring(Token.toString(TOKwild));
         break;
 
     case MODshared | MODwildconst:
-        buf.writestring(Token.tochars[TOKshared]);
+        buf.writestring(Token.toString(TOKshared));
         buf.writeByte(' ');
         goto case; /+ fall through +/
     case MODwildconst:
-        buf.writestring(Token.tochars[TOKwild]);
+        buf.writestring(Token.toString(TOKwild));
         buf.writeByte(' ');
-        buf.writestring(Token.tochars[TOKconst]);
+        buf.writestring(Token.toString(TOKconst));
         break;
 
     default:
