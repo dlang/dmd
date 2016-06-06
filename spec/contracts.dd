@@ -20,7 +20,7 @@ $(SPEC_S Contract Programming,
 	$(LI handling of contract inheritance)
 	)
 
-$(COMMENT <img src="../images/d4.gif" alt="Contracts make D bug resistant" border="0">)
+<img src="../images/d4.gif" alt="Contracts make D bug resistant" border="0">
 
 	$(P The idea of a contract is simple - it's just an expression that must evaluate to true.
 	If it does not, the contract is broken, and by definition, the program has a bug in it.
