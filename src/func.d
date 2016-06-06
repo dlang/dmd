@@ -38,6 +38,7 @@ import ddmd.opover;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
+import ddmd.statementsem;
 import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
