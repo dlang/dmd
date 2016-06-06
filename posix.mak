@@ -128,6 +128,9 @@ $(DOCDIR)/core_%.html : src/core/%.d
 $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOCDIR)/core_stdcpp_%.html : src/core/stdcpp/%.d
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
