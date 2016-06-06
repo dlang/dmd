@@ -332,7 +332,7 @@ else version( Posix )
             }
             Thread.add(&obj.m_main);
 
-            static extern (C) void thread_cleanupHandler( void* arg ) nothrow
+            static extern (C) void thread_cleanupHandler( void* arg ) nothrow @nogc
             {
                 Thread  obj = cast(Thread) arg;
                 assert( obj );
