@@ -19,7 +19,7 @@ $(LI $(LNAME2 TypeInfo.init-deprecated, `TypeInfo.init` has been
         to resolve a name clash with the type property $(GLINK2 property, init).
     )
 
-    $(P Use $(NOXREF TypeInfo.initializer, TypeInfo.initializer) instead.)
+    $(P Use $(REF_OBJECT_SHORT TypeInfo.initializer) instead.)
 )
 
 )
@@ -31,15 +31,6 @@ Macros:
 
     RELATIVE_LINK2=<a href="#$1">$+</a>
     LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
-
-    STDMODREF = <a href="phobos/std_$1.html">$2</a>
-    COREMODREF = <a href="phobos/core_$1.html">$2</a>
-    XREF = <a href="phobos/std_$1.html#$2">$2</a>
-    CXREF = <a href="phobos/core_$1.html#$2">$2</a>
-    OXREF = <a href="phobos/object.html#$2">$2</a>
-    NXREF = <a href="phobos/std_$1.html#.$2">$2</a>
-    NCXREF = <a href="phobos/core_$1.html#.$2">$2</a>
-    NOXREF = <a href="phobos/object.html#.$2">$2</a>
 
     BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
 
