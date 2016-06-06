@@ -226,7 +226,8 @@ struct PrefixAttributes
     Expression depmsg;
     LINK link;
     Prot protection;
-    uint alignment;
+    bool setAlignment;
+    Expression ealign;
     Expressions* udas;
     const(char)* comment;
 }
@@ -985,59 +986,38 @@ public:
                 }
             case TOKalign:
                 {
+                    const attrLoc = token.loc;
+
                     nextToken();
 
-                    uint n;
+                    Expression e = null; // default
                     if (token.value == TOKlparen)
                     {
                         nextToken();
-                        if (token.value == TOKint32v && token.uns64value > 0)
-                        {
-                            if (token.uns64value & (token.uns64value - 1))
-                                error("align(%s) must be a power of 2", token.toChars());
-                            n = cast(uint)token.uns64value;
-                        }
-                        else
-                        {
-                            error("positive integer expected, not %s", token.toChars());
-                            n = 1;
-                        }
-                        nextToken();
+                        e = parseAssignExp();
                         check(TOKrparen);
                     }
-                    else
-                        n = STRUCTALIGN_DEFAULT; // default
 
-                    if (pAttrs.alignment != 0)
+                    if (pAttrs.setAlignment)
                     {
                         const(char)* s1 = "";
                         OutBuffer buf1;
-                        if (n != STRUCTALIGN_DEFAULT)
+                        if (e)
                         {
-                            buf1.printf("(%d)", n);
+                            buf1.printf("(%s)", e.toChars());
                             s1 = buf1.peekString();
                         }
-                        if (pAttrs.alignment != n)
-                        {
-                            OutBuffer buf2;
-                            const(char)* s2 = "";
-                            if (pAttrs.alignment != STRUCTALIGN_DEFAULT)
-                            {
-                                buf2.printf("(%d)", pAttrs.alignment);
-                                s2 = buf2.peekString();
-                            }
-                            error("conflicting alignment attribute align%s and align%s", s2, s1);
-                        }
-                        else
-                            error("redundant alignment attribute align%s", s1);
+                        error("redundant alignment attribute align%s", s1);
                     }
 
-                    pAttrs.alignment = n;
+                    pAttrs.setAlignment = true;
+                    pAttrs.ealign = e;
                     a = parseBlock(pLastDecl, pAttrs);
-                    if (pAttrs.alignment != 0)
+                    if (pAttrs.setAlignment)
                     {
-                        s = new AlignDeclaration(pAttrs.alignment, a);
-                        pAttrs.alignment = 0;
+                        s = new AlignDeclaration(attrLoc, pAttrs.ealign, a);
+                        pAttrs.setAlignment = false;
+                        pAttrs.ealign = null;
                     }
                     break;
                 }
@@ -3932,7 +3912,8 @@ public:
         return ts;
     }
 
-    void parseStorageClasses(ref StorageClass storage_class, ref LINK link, ref uint structalign, ref Expressions* udas)
+    void parseStorageClasses(ref StorageClass storage_class, ref LINK link,
+        ref bool setAlignment, ref Expression ealign, ref Expressions* udas)
     {
         StorageClass stc;
         bool sawLinkage = false; // seen a linkage declaration
@@ -4051,21 +4032,13 @@ public:
             case TOKalign:
                 {
                     nextToken();
+                    setAlignment = true;
                     if (token.value == TOKlparen)
                     {
                         nextToken();
-                        if (token.value == TOKint32v && token.uns64value > 0)
-                            structalign = cast(uint)token.uns64value;
-                        else
-                        {
-                            error("positive integer expected, not %s", token.toChars());
-                            structalign = 1;
-                        }
-                        nextToken();
+                        ealign = parseExpression();
                         check(TOKrparen);
                     }
-                    else
-                        structalign = STRUCTALIGN_DEFAULT; // default
                     continue;
                 }
             default:
@@ -4091,7 +4064,8 @@ public:
         Identifier ident;
         TOK tok = TOKreserved;
         LINK link = linkage;
-        uint structalign = 0;
+        bool setAlignment = false;
+        Expression ealign;
         auto loc = token.loc;
         Expressions* udas = null;
         Token* tk;
@@ -4185,9 +4159,10 @@ public:
 
                         storage_class = STCundefined;
                         link = linkage;
-                        structalign = 0;
+                        setAlignment = false;
+                        ealign = null;
                         udas = null;
-                        parseStorageClasses(storage_class, link, structalign, udas);
+                        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
                         if (udas)
                             error("user defined attributes not allowed for %s declarations", Token.toChars(tok));
@@ -4248,9 +4223,12 @@ public:
             // alias StorageClasses type ident;
         }
 
-        parseStorageClasses(storage_class, link, structalign, udas);
+        parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
-        if (token.value == TOKstruct || token.value == TOKunion || token.value == TOKclass || token.value == TOKinterface)
+        if (token.value == TOKstruct ||
+            token.value == TOKunion ||
+            token.value == TOKclass ||
+            token.value == TOKinterface)
         {
             Dsymbol s = parseAggregate();
             auto a = new Dsymbols();
@@ -4262,9 +4240,9 @@ public:
                 a = new Dsymbols();
                 a.push(s);
             }
-            if (structalign != 0)
+            if (setAlignment)
             {
-                s = new AlignDeclaration(structalign, a);
+                s = new AlignDeclaration(s.loc, ealign, a);
                 a = new Dsymbols();
                 a.push(s);
             }
@@ -4490,11 +4468,11 @@ public:
                     auto tempdecl = new TemplateDeclaration(loc, ident, tpl, null, a2, 0);
                     s = tempdecl;
                 }
-                if (structalign != 0)
+                if (setAlignment)
                 {
                     auto ax = new Dsymbols();
                     ax.push(s);
-                    s = new AlignDeclaration(structalign, ax);
+                    s = new AlignDeclaration(v.loc, ealign, ax);
                 }
                 if (link != linkage)
                 {

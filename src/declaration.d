@@ -1121,7 +1121,7 @@ public:
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
-        alignment = sc.structalign;
+        alignment = sc.alignment();
         if (alignment == STRUCTALIGN_DEFAULT)
             alignment = type.alignment(); // use type's alignment
 
