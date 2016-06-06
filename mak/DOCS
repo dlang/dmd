@@ -36,6 +36,9 @@ DOCS=\
 	$(DOCDIR)\core_stdc_wchar_.html \
 	$(DOCDIR)\core_stdc_wctype.html \
 	\
+	$(DOCDIR)\core_stdcpp_exception.html \
+	$(DOCDIR)\core_stdcpp_typeinfo.html \
+	\
 	$(DOCDIR)\core_sync_barrier.html \
 	$(DOCDIR)\core_sync_condition.html \
 	$(DOCDIR)\core_sync_config.html \
