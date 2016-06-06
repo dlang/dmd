@@ -152,7 +152,7 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	mars.d mtype.d nogc.d nspace.d objc_stubs.d opover.d optimize.d parse.d	\
 	sapply.d sideeffect.d statement.d staticassert.d target.d tokens.d	\
 	traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d \
-	libmscoff.d scanmscoff.d
+	libmscoff.d scanmscoff.d statementsem.d
 
 GLUE_SRCS=irstate.d toctype.d backend.d gluelayer.d todt.d
 
