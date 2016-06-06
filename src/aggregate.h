@@ -286,7 +286,7 @@ public:
     Objc_ClassDeclaration objc;
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
-    ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
+    ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols* members, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void semantic(Scope *sc);
