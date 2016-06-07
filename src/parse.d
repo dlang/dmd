@@ -249,7 +249,6 @@ private StorageClass getStorageClass(PrefixAttributes* pAttrs)
  */
 final class Parser : Lexer
 {
-public:
     Module mod;
     ModuleDeclaration* md;
     LINK linkage;

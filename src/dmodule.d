@@ -109,7 +109,6 @@ alias PKGpackage = PKG.PKGpackage;
  */
 extern (C++) class Package : ScopeDsymbol
 {
-public:
     PKG isPkgMod;
     uint tag;        // auto incremented tag, used to mask package tree in scopes
     Module mod;     // !=null if isPkgMod == PKGmodule
@@ -253,7 +252,6 @@ public:
  */
 extern (C++) final class Module : Package
 {
-public:
     extern (C++) static __gshared Module rootModule;
     extern (C++) static __gshared DsymbolTable modules; // symbol table of all modules
     extern (C++) static __gshared Modules amodules;     // array of all modules

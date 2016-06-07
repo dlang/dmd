@@ -41,7 +41,6 @@ import ddmd.visitor;
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
 {
-public:
     Dsymbols* decl;     // array of Dsymbol's
 
     final extern (D) this(Dsymbols* decl)
@@ -319,7 +318,6 @@ public:
  */
 extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
-public:
     StorageClass stc;
 
     final extern (D) this(StorageClass stc, Dsymbols* decl)
@@ -392,7 +390,6 @@ public:
  */
 extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 {
-public:
     Expression msg;
     const(char)* msgstr;
 
@@ -481,7 +478,6 @@ public:
  */
 extern (C++) final class LinkDeclaration : AttribDeclaration
 {
-public:
     LINK linkage;
 
     extern (D) this(LINK p, Dsymbols* decl)
@@ -517,7 +513,6 @@ public:
  */
 extern (C++) final class ProtDeclaration : AttribDeclaration
 {
-public:
     Prot protection;
     Identifiers* pkg_identifiers;
 
@@ -610,7 +605,6 @@ public:
  */
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
-public:
     uint salign;
 
     extern (D) this(uint sa, Dsymbols* decl)
@@ -640,7 +634,6 @@ public:
  */
 extern (C++) final class AnonDeclaration : AttribDeclaration
 {
-public:
     bool isunion;
     structalign_t alignment;
     int sem;                // 1 if successful semantic()
@@ -786,7 +779,6 @@ public:
  */
 extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
-public:
     Expressions* args;      // array of Expression's
 
     extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
@@ -1075,7 +1067,6 @@ public:
  */
 extern (C++) class ConditionalDeclaration : AttribDeclaration
 {
-public:
     Condition condition;
     Dsymbols* elsedecl;     // array of Dsymbol's for else block
 
@@ -1167,7 +1158,6 @@ public:
  */
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
-public:
     ScopeDsymbol scopesym;
     bool addisdone;
 
@@ -1270,7 +1260,6 @@ public:
  */
 extern (C++) final class CompileDeclaration : AttribDeclaration
 {
-public:
     Expression exp;
     ScopeDsymbol scopesym;
     bool compiled;
@@ -1360,7 +1349,6 @@ public:
  */
 extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 {
-public:
     Expressions* atts;
 
     extern (D) this(Expressions* atts, Dsymbols* decl)

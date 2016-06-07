@@ -146,7 +146,6 @@ struct Match
  */
 extern (C++) abstract class Declaration : Dsymbol
 {
-public:
     Type type;
     Type originalType;  // before semantic analysis
     StorageClass storage_class;
@@ -356,7 +355,6 @@ public:
  */
 extern (C++) final class TupleDeclaration : Declaration
 {
-public:
     Objects* objects;
     bool isexp;             // true: expression tuple
     TypeTuple tupletype;    // !=null if this is a type tuple
@@ -488,7 +486,6 @@ public:
  */
 extern (C++) final class AliasDeclaration : Declaration
 {
-public:
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
@@ -852,7 +849,6 @@ public:
  */
 extern (C++) final class OverDeclaration : Declaration
 {
-public:
     Dsymbol overnext;   // next in overload list
     Dsymbol aliassym;
     bool hasOverloads;
@@ -967,7 +963,6 @@ public:
  */
 extern (C++) class VarDeclaration : Declaration
 {
-public:
     Initializer _init;
     uint offset;
     bool noscope;                   // if scope destruction is disabled
@@ -2294,7 +2289,6 @@ public:
  */
 extern (C++) final class SymbolDeclaration : Declaration
 {
-public:
     StructDeclaration dsym;
 
     extern (D) this(Loc loc, StructDeclaration dsym)
@@ -2321,7 +2315,6 @@ public:
  */
 extern (C++) class TypeInfoDeclaration : VarDeclaration
 {
-public:
     Type tinfo;
 
     final extern (D) this(Type tinfo)
@@ -2373,7 +2366,6 @@ public:
  */
 extern (C++) final class TypeInfoStructDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2399,7 +2391,6 @@ public:
  */
 extern (C++) final class TypeInfoClassDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2425,7 +2416,6 @@ public:
  */
 extern (C++) final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2451,7 +2441,6 @@ public:
  */
 extern (C++) final class TypeInfoPointerDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2477,7 +2466,6 @@ public:
  */
 extern (C++) final class TypeInfoArrayDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2503,7 +2491,6 @@ public:
  */
 extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2529,7 +2516,6 @@ public:
  */
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2555,7 +2541,6 @@ public:
  */
 extern (C++) final class TypeInfoEnumDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2581,7 +2566,6 @@ public:
  */
 extern (C++) final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2607,7 +2591,6 @@ public:
  */
 extern (C++) final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2633,7 +2616,6 @@ public:
  */
 extern (C++) final class TypeInfoTupleDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2659,7 +2641,6 @@ public:
  */
 extern (C++) final class TypeInfoConstDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2685,7 +2666,6 @@ public:
  */
 extern (C++) final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2711,7 +2691,6 @@ public:
  */
 extern (C++) final class TypeInfoSharedDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2737,7 +2716,6 @@ public:
  */
 extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2763,7 +2741,6 @@ public:
  */
 extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
 {
-public:
     extern (D) this(Type tinfo)
     {
         super(tinfo);
@@ -2790,7 +2767,6 @@ public:
  */
 extern (C++) final class ThisDeclaration : VarDeclaration
 {
-public:
     extern (D) this(Loc loc, Type t)
     {
         super(loc, t, Id.This, null);

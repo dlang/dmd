@@ -31,7 +31,6 @@ import ddmd.id;
  */
 extern (C++) abstract class Condition
 {
-public:
     Loc loc;
     // 0: not computed yet
     // 1: include
@@ -62,7 +61,6 @@ public:
  */
 extern (C++) class DVCondition : Condition
 {
-public:
     uint level;
     Identifier ident;
     Module mod;
@@ -90,7 +88,6 @@ public:
  */
 extern (C++) final class DebugCondition : DVCondition
 {
-public:
     static void setGlobalLevel(uint level)
     {
         global.params.debuglevel = level;
@@ -154,7 +151,6 @@ public:
  */
 extern (C++) final class VersionCondition : DVCondition
 {
-public:
     static void setGlobalLevel(uint level)
     {
         global.params.versionlevel = level;
@@ -338,7 +334,6 @@ public:
  */
 extern (C++) final class StaticIfCondition : Condition
 {
-public:
     Expression exp;
     int nest;           // limit circular dependencies
 

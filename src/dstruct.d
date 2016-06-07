@@ -214,7 +214,6 @@ alias ISPODfwd = StructPOD.ISPODfwd;
  */
 extern (C++) class StructDeclaration : AggregateDeclaration
 {
-public:
     int zeroInit;               // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasIdentityEquals;     // true if has identity opEquals
@@ -753,7 +752,6 @@ public:
  */
 extern (C++) final class UnionDeclaration : StructDeclaration
 {
-public:
     extern (D) this(Loc loc, Identifier id)
     {
         super(loc, id);

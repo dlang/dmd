@@ -25,7 +25,6 @@ private enum LOG = false;
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
-public:
     extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
     {
         super(ident);

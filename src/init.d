@@ -43,7 +43,6 @@ alias INITinterpret = NeedInterpret.INITinterpret;
  */
 extern (C++) class Initializer : RootObject
 {
-public:
     Loc loc;
 
     final extern (D) this(Loc loc)
@@ -119,7 +118,6 @@ public:
  */
 extern (C++) final class VoidInitializer : Initializer
 {
-public:
     Type type;      // type that this will initialize to
 
     extern (D) this(Loc loc)
@@ -165,7 +163,6 @@ public:
  */
 extern (C++) final class ErrorInitializer : Initializer
 {
-public:
     extern (D) this()
     {
         super(Loc());
@@ -207,7 +204,6 @@ public:
  */
 extern (C++) final class StructInitializer : Initializer
 {
-public:
     Identifiers field;      // of Identifier *'s
     Initializers value;     // parallel array of Initializer *'s
 
@@ -384,7 +380,6 @@ public:
  */
 extern (C++) final class ArrayInitializer : Initializer
 {
-public:
     Expressions index;      // indices
     Initializers value;     // of Initializer *'s
     size_t dim;             // length of array being initialized
@@ -754,7 +749,6 @@ public:
  */
 extern (C++) final class ExpInitializer : Initializer
 {
-public:
     Expression exp;
     bool expandTuples;
 

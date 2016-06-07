@@ -14,7 +14,6 @@ import ddmd.root.rmem;
 
 extern (C++) struct Array(T)
 {
-public:
     size_t dim;
     T* data;
 

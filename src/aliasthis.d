@@ -29,7 +29,6 @@ import ddmd.visitor;
  */
 extern (C++) final class AliasThis : Dsymbol
 {
-public:
     Identifier ident;
 
     extern (D) this(Loc loc, Identifier ident)

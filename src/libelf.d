@@ -40,7 +40,6 @@ alias ElfObjSymbols = Array!(ElfObjSymbol*);
 
 extern (C++) final class LibElf : Library
 {
-public:
     File* libfile;
     ElfObjModules objmodules; // ElfObjModule[]
     ElfObjSymbols objsymbols; // ElfObjSymbol[]

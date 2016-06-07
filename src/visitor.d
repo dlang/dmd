@@ -32,7 +32,6 @@ import ddmd.staticassert;
 
 extern (C++) class Visitor
 {
-public:
     void visit(Statement)
     {
         assert(0);

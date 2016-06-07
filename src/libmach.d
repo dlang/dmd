@@ -41,7 +41,6 @@ alias MachObjSymbols = Array!(MachObjSymbol*);
 
 extern (C++) final class LibMach : Library
 {
-public:
     File* libfile;
     MachObjModules objmodules; // MachObjModule[]
     MachObjSymbols objsymbols; // MachObjSymbol[]

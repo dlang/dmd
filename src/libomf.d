@@ -44,7 +44,6 @@ extern (C) uint _rotr(uint value, int shift);
 
 extern (C++) final class LibOMF : Library
 {
-public:
     File* libfile;
     OmfObjModules objmodules; // OmfObjModule[]
     OmfObjSymbols objsymbols; // OmfObjSymbol[]

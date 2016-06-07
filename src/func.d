@@ -399,7 +399,6 @@ enum FUNCFLAGinlineScanned    = 0x20;   // function has been scanned for inline 
  */
 extern (C++) class FuncDeclaration : Declaration
 {
-public:
     Types* fthrows;                     // Array of Type's of exceptions (not used)
     Statement frequire;
     Statement fensure;
@@ -4463,7 +4462,6 @@ extern (C++) bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outer
  */
 extern (C++) final class FuncAliasDeclaration : FuncDeclaration
 {
-public:
     FuncDeclaration funcalias;
     bool hasOverloads;
 
@@ -4513,7 +4511,6 @@ public:
  */
 extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 {
-public:
     TOK tok;        // TOKfunction or TOKdelegate
     Type treq;      // target of return type inference
 
@@ -4646,7 +4643,6 @@ public:
  */
 extern (C++) final class CtorDeclaration : FuncDeclaration
 {
-public:
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type)
     {
         super(loc, endloc, Id.ctor, stc, type);
@@ -4780,7 +4776,6 @@ public:
  */
 extern (C++) final class PostBlitDeclaration : FuncDeclaration
 {
-public:
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
@@ -4865,7 +4860,6 @@ public:
  */
 extern (C++) final class DtorDeclaration : FuncDeclaration
 {
-public:
     extern (D) this(Loc loc, Loc endloc)
     {
         super(loc, endloc, Id.dtor, STCundefined, null);
@@ -4966,7 +4960,6 @@ public:
  */
 extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
-public:
     final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId("_staticCtor"), STCstatic | stc, null);
@@ -5092,7 +5085,6 @@ public:
  */
 extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
 {
-public:
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticCtor", stc);
@@ -5120,7 +5112,6 @@ public:
  */
 extern (C++) class StaticDtorDeclaration : FuncDeclaration
 {
-public:
     VarDeclaration vgate; // 'gate' variable
 
     final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
@@ -5250,7 +5241,6 @@ public:
  */
 extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
 {
-public:
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticDtor", stc);
@@ -5278,7 +5268,6 @@ public:
  */
 extern (C++) final class InvariantDeclaration : FuncDeclaration
 {
-public:
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
     {
         super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
@@ -5369,7 +5358,6 @@ extern (C++) static Identifier unitTestId(Loc loc)
  */
 extern (C++) final class UnitTestDeclaration : FuncDeclaration
 {
-public:
     char* codedoc;      // for documented unittest
 
     // toObjFile() these nested functions after this one
@@ -5472,7 +5460,6 @@ public:
  */
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
-public:
     Parameters* parameters;
     int varargs;
 
@@ -5568,7 +5555,6 @@ public:
  */
 extern (C++) final class DeleteDeclaration : FuncDeclaration
 {
-public:
     Parameters* parameters;
 
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)

@@ -142,7 +142,6 @@ unittest
  */
 class Lexer
 {
-public:
     __gshared OutBuffer stringbuffer;
 
     Loc scanloc;            // for error messages

@@ -188,7 +188,6 @@ extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
  */
 extern (C++) class Dsymbol : RootObject
 {
-public:
     Identifier ident;
     Dsymbol parent;
     Symbol* csym;           // symbol for code generator
@@ -1260,7 +1259,6 @@ public:
  */
 extern (C++) class ScopeDsymbol : Dsymbol
 {
-public:
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
     uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
@@ -1702,7 +1700,6 @@ public:
  */
 extern (C++) final class WithScopeSymbol : ScopeDsymbol
 {
-public:
     WithStatement withstate;
 
     extern (D) this(WithStatement withstate)
@@ -1760,7 +1757,6 @@ public:
  */
 extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 {
-public:
     Expression exp;         // IndexExp or SliceExp
     TypeTuple type;         // for tuple[length]
     TupleDeclaration td;    // for tuples of objects
@@ -1973,7 +1969,6 @@ public:
  */
 extern (C++) final class OverloadSet : Dsymbol
 {
-public:
     Dsymbols a;     // array of Dsymbols
 
     extern (D) this(Identifier ident, OverloadSet os = null)
@@ -2012,7 +2007,6 @@ public:
  */
 extern (C++) final class DsymbolTable : RootObject
 {
-public:
     AA* tab;
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.

@@ -478,7 +478,6 @@ alias MOD = ubyte;
  */
 extern (C++) abstract class Type : RootObject
 {
-public:
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
@@ -3052,7 +3051,6 @@ public:
  */
 extern (C++) final class TypeError : Type
 {
-public:
     extern (D) this()
     {
         super(Terror);
@@ -3099,7 +3097,6 @@ public:
  */
 extern (C++) abstract class TypeNext : Type
 {
-public:
     Type next;
 
     final extern (D) this(TY ty, Type next)
@@ -3399,7 +3396,6 @@ public:
  */
 extern (C++) final class TypeBasic : Type
 {
-public:
     const(char)* dstring;
     uint flags;
 
@@ -4307,7 +4303,6 @@ public:
  */
 extern (C++) final class TypeVector : Type
 {
-public:
     Type basetype;
 
     extern (D) this(Loc loc, Type basetype)
@@ -4484,7 +4479,6 @@ public:
  */
 extern (C++) class TypeArray : TypeNext
 {
-public:
     final extern (D) this(TY ty, Type next)
     {
         super(ty, next);
@@ -4636,7 +4630,6 @@ public:
  */
 extern (C++) final class TypeSArray : TypeArray
 {
-public:
     Expression dim;
 
     extern (D) this(Type t, Expression dim)
@@ -5085,7 +5078,6 @@ public:
  */
 extern (C++) final class TypeDArray : TypeArray
 {
-public:
     extern (D) this(Type t)
     {
         super(Tarray, t);
@@ -5289,7 +5281,6 @@ public:
  */
 extern (C++) final class TypeAArray : TypeArray
 {
-public:
     Type index;     // key type
     Loc loc;
     Scope* sc;
@@ -5663,7 +5654,6 @@ public:
  */
 extern (C++) final class TypePointer : TypeNext
 {
-public:
     extern (D) this(Type t)
     {
         super(Tpointer, t);
@@ -5847,7 +5837,6 @@ public:
  */
 extern (C++) final class TypeReference : TypeNext
 {
-public:
     extern (D) this(Type t)
     {
         super(Treference, t);
@@ -5968,7 +5957,6 @@ alias PUREstrong = PURE.PUREstrong;
  */
 extern (C++) final class TypeFunction : TypeNext
 {
-public:
     // .next is the return type
 
     Parameters* parameters;     // function parameters
@@ -6964,7 +6952,6 @@ public:
  */
 extern (C++) final class TypeDelegate : TypeNext
 {
-public:
     // .next is a TypeFunction
 
     extern (D) this(Type t)
@@ -7121,7 +7108,6 @@ public:
  */
 extern (C++) abstract class TypeQualified : Type
 {
-public:
     Loc loc;
 
     // array of Identifier and TypeInstance,
@@ -7540,7 +7526,6 @@ public:
  */
 extern (C++) final class TypeIdentifier : TypeQualified
 {
-public:
     Identifier ident;
 
     // The symbol representing this identifier, before alias resolution
@@ -7677,7 +7662,6 @@ public:
  */
 extern (C++) final class TypeInstance : TypeQualified
 {
-public:
     TemplateInstance tempinst;
 
     extern (D) this(Loc loc, TemplateInstance tempinst)
@@ -7778,7 +7762,6 @@ public:
  */
 extern (C++) final class TypeTypeof : TypeQualified
 {
-public:
     Expression exp;
     int inuse;
 
@@ -7938,7 +7921,6 @@ public:
  */
 extern (C++) final class TypeReturn : TypeQualified
 {
-public:
     extern (D) this(Loc loc)
     {
         super(Treturn, loc);
@@ -8057,7 +8039,6 @@ alias RECtracingDT = AliasThisRec.RECtracingDT;
  */
 extern (C++) final class TypeStruct : Type
 {
-public:
     StructDeclaration sym;
     AliasThisRec att = RECfwdref;
 
@@ -8628,7 +8609,6 @@ public:
  */
 extern (C++) final class TypeEnum : Type
 {
-public:
     EnumDeclaration sym;
 
     extern (D) this(EnumDeclaration sym)
@@ -8880,7 +8860,6 @@ public:
  */
 extern (C++) final class TypeClass : Type
 {
-public:
     ClassDeclaration sym;
     AliasThisRec att = RECfwdref;
 
@@ -9520,7 +9499,6 @@ public:
  */
 extern (C++) final class TypeTuple : Type
 {
-public:
     Parameters* arguments;  // types making up the tuple
 
     extern (D) this(Parameters* arguments)
@@ -9699,7 +9677,6 @@ public:
  */
 extern (C++) final class TypeSlice : TypeNext
 {
-public:
     Expression lwr;
     Expression upr;
 
@@ -9844,7 +9821,6 @@ public:
  */
 extern (C++) final class TypeNull : Type
 {
-public:
     extern (D) this()
     {
         super(Tnull);
@@ -9906,7 +9882,6 @@ public:
  */
 extern (C++) final class Parameter : RootObject
 {
-public:
     StorageClass storageClass;
     Type type;
     Identifier ident;

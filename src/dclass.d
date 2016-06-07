@@ -187,7 +187,6 @@ struct ClassFlags
  */
 extern (C++) class ClassDeclaration : AggregateDeclaration
 {
-public:
     extern (C++) __gshared
     {
         // Names found by reading object.d in druntime
@@ -1511,7 +1510,6 @@ public:
  */
 extern (C++) final class InterfaceDeclaration : ClassDeclaration
 {
-public:
     extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
     {
         super(loc, id, baseclasses, null, false);
