@@ -409,6 +409,7 @@ alias const(ITEMIDLIST)* LPCITEMIDLIST;
 
 extern (Windows) alias int function(HWND, UINT, LPARAM, LPARAM) BFFCALLBACK;
 
+align (8) {
 struct BROWSEINFOA {
     HWND          hwndOwner;
     LPCITEMIDLIST pidlRoot;
@@ -432,6 +433,7 @@ struct BROWSEINFOW {
     int           iImage;
 }
 alias BROWSEINFOW* PBROWSEINFOW, LPBROWSEINFOW;
+} // align (8)
 
 struct CMINVOKECOMMANDINFO {
     DWORD cbSize = this.sizeof;
@@ -473,7 +475,7 @@ enum SHCONTF {
     SHCONTF_STORAGE            = 2048
 }
 
-struct STRRET {
+align(8) struct STRRET {
     UINT uType;
     union {
         LPWSTR pOleStr;
@@ -717,6 +719,7 @@ enum MAX_COLUMN_NAME_LEN = 80;
 enum MAX_COLUMN_DESC_LEN = 128;
 
     align(1) struct SHCOLUMNINFO {
+        align(1):
         SHCOLUMNID scid;
         VARTYPE vt;
         DWORD fmt;

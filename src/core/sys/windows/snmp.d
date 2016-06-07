@@ -151,6 +151,7 @@ alias ULARGE_INTEGER AsnCounter64;
 align (4):
 
 struct AsnOctetString {
+align (4):
     BYTE* stream;
     UINT  length;
     BOOL  dynamic;
@@ -159,12 +160,14 @@ alias AsnOctetString AsnBits, AsnSequence, AsnImplicitSequence,
   AsnIPAddress, AsnNetworkAddress, AsnDisplayString, AsnOpaque;
 
 struct AsnObjectIdentifier {
+align (4):
     UINT  idLength;
     UINT* ids;
 }
 alias AsnObjectIdentifier AsnObjectName;
 
 struct AsnAny {
+align (4):
     BYTE      asnType;
     union _asnValue {
         AsnInteger32        number;
@@ -185,11 +188,13 @@ struct AsnAny {
 alias AsnAny AsnObjectSyntax;
 
 struct SnmpVarBind {
+align (4):
     AsnObjectName   name;
     AsnObjectSyntax value;
 }
 
 struct SnmpVarBindList {
+align (4):
     SnmpVarBind* list;
     UINT         len;
 }

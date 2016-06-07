@@ -49,6 +49,20 @@ package template DECLARE_HANDLE(string name, base = HANDLE) {
 }
 alias HANDLE* PHANDLE, LPHANDLE;
 
+// helper for aligned structs
+// alignVal 0 means the default align.
+// _alignSpec as parameter does not pollute namespace.
+package mixin template AlignedStr(int alignVal, string name, string memberlist,
+                                    string _alignSpec = !alignVal ? "align" : "align("~alignVal.stringof~")" )
+{
+    mixin( _alignSpec ~ " struct " ~ name ~" { " ~ _alignSpec ~":"~ memberlist~" }" );
+}
+
+version (unittest) {
+    private mixin AlignedStr!(16, "_Test_Aligned_Str", q{char a; char b;});
+    private mixin AlignedStr!(0, "_Test_NoAligned_Str", q{char a; char b;});
+}
+
 version (Win64) {
     alias long __int3264;
 enum ulong ADDRESS_TAG_BIT = 0x40000000000;

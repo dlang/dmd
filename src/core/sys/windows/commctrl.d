@@ -2850,7 +2850,9 @@ static if (_WIN32_IE >= 0x400) {
     }
     alias NMIPADDRESS* LPNMIPADDRESS;
 
+    align (1)
     struct NMLVKEYDOWN {
+    align (1):
         NMHDR hdr;
         WORD  wVKey;
         UINT  flags;
@@ -2865,9 +2867,11 @@ static if (_WIN32_IE >= 0x400) {
     }
     alias NMPGCALCSIZE* LPNMPGCALCSIZE;
 
+    align (1)
     struct NMPGSCROLL {
+    align (1):
         NMHDR hdr;
-        BOOL  fwKeys;
+        WORD  fwKeys;   // Note: this should be WORD if MSDN document says wrong
         RECT  rcParent;
         int   iDir;
         int   iXpos;
@@ -3956,7 +3960,9 @@ struct NMLVDISPINFOW {
 alias NMLVDISPINFOW* LPNMLVDISPINFOW;
 alias NMLVDISPINFOW LV_DISPINFOW;
 
+align (1)
 struct LV_KEYDOWN {
+align (1):
     NMHDR hdr;
     WORD  wVKey;
     UINT  flags;
@@ -4147,7 +4153,9 @@ static if (_WIN32_IE >= 0x400) {
     alias NMTVGETINFOTIPW* LPNMTVGETINFOTIPW;
 }
 
+align (1)
 struct TV_KEYDOWN {
+align (1):
     NMHDR hdr;
     WORD  wVKey;
     UINT  flags;
@@ -4224,7 +4232,9 @@ struct TCHITTESTINFO {
 alias TCHITTESTINFO* LPTCHITTESTINFO, LPTC_HITTESTINFO;
 alias TCHITTESTINFO TC_HITTESTINFO;
 
+align (1)
 struct TC_KEYDOWN {
+align (1):
     NMHDR hdr;
     WORD wVKey;
     UINT flags;

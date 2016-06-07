@@ -871,7 +871,10 @@ enum SetupFileLogInfo {
     SetupFileLogMax
 }
 
-align(1):
+version (Win64)
+    private enum _alignVal = 0;
+else
+    private enum _alignVal = 1;
 
 struct INFCONTEXT {
     PVOID Inf;
@@ -881,12 +884,12 @@ struct INFCONTEXT {
 }
 alias INFCONTEXT* PINFCONTEXT;
 
-struct SP_INF_INFORMATION {
+mixin AlignedStr!(_alignVal, "SP_INF_INFORMATION", q{
     DWORD InfStyle;
     DWORD InfCount;
     BYTE[1] _VersionData;
     BYTE* VersionData() return { return _VersionData.ptr; }
-}
+});
 alias SP_INF_INFORMATION* PSP_INF_INFORMATION;
 
 struct SP_ALTPLATFORM_INFO {
@@ -967,7 +970,7 @@ struct CABINET_INFO_W {
 }
 alias CABINET_INFO_W* PCABINET_INFO_W;
 
-struct FILE_IN_CABINET_INFO_A {
+mixin AlignedStr!(_alignVal, "FILE_IN_CABINET_INFO_A", q{
     PCSTR NameInCabinet;
     DWORD FileSize;
     DWORD Win32Error;
@@ -975,10 +978,10 @@ struct FILE_IN_CABINET_INFO_A {
     WORD  DosTime;
     WORD  DosAttribs;
     CHAR[MAX_PATH] FullTargetName;
-}
+});
 alias FILE_IN_CABINET_INFO_A* PFILE_IN_CABINET_INFO_A;
 
-struct FILE_IN_CABINET_INFO_W {
+mixin AlignedStr!(_alignVal, "FILE_IN_CABINET_INFO_W", q{
     PCWSTR NameInCabinet;
     DWORD  FileSize;
     DWORD  Win32Error;
@@ -986,7 +989,7 @@ struct FILE_IN_CABINET_INFO_W {
     WORD   DosTime;
     WORD   DosAttribs;
     WCHAR[MAX_PATH] FullTargetName;
-}
+});
 alias FILE_IN_CABINET_INFO_W* PFILE_IN_CABINET_INFO_W;
 
 struct SP_FILE_COPY_PARAMS_A {
@@ -1029,28 +1032,28 @@ struct SP_DEVINFO_DATA {
 }
 alias SP_DEVINFO_DATA* PSP_DEVINFO_DATA;
 
-struct SP_DEVICE_INTERFACE_DATA {
+mixin AlignedStr!(_alignVal, "SP_DEVICE_INTERFACE_DATA", q{
     DWORD     cbSize = SP_DEVICE_INTERFACE_DATA.sizeof;
     GUID      InterfaceClassGuid;
     DWORD     Flags;
     ULONG_PTR Reserved;
-}
+});
 alias SP_DEVICE_INTERFACE_DATA* PSP_DEVICE_INTERFACE_DATA;
 deprecated alias SP_DEVICE_INTERFACE_DATA SP_INTERFACE_DEVICE_DATA;
 deprecated alias SP_DEVICE_INTERFACE_DATA* PSP_INTERFACE_DEVICE_DATA;
 
-struct SP_DEVICE_INTERFACE_DETAIL_DATA_A {
+mixin AlignedStr!(_alignVal, "SP_DEVICE_INTERFACE_DETAIL_DATA_A", q{
     DWORD cbSize = SP_DEVICE_INTERFACE_DETAIL_DATA_A.sizeof;
     CHAR[1] _DevicePath;
     CHAR* DevicePath() return { return _DevicePath.ptr; }
-}
+});
 alias SP_DEVICE_INTERFACE_DETAIL_DATA_A* PSP_DEVICE_INTERFACE_DETAIL_DATA_A;
 
-struct SP_DEVICE_INTERFACE_DETAIL_DATA_W {
+mixin AlignedStr!(_alignVal, "SP_DEVICE_INTERFACE_DETAIL_DATA_W", q{
     DWORD  cbSize = SP_DEVICE_INTERFACE_DETAIL_DATA_W.sizeof;
     WCHAR[1] _DevicePath;
     WCHAR* DevicePath() return { return _DevicePath.ptr; }
-}
+});
 alias SP_DEVICE_INTERFACE_DETAIL_DATA_W* PSP_DEVICE_INTERFACE_DETAIL_DATA_W;
 
 deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_A SP_INTERFACE_DEVICE_DETAIL_DATA_A;
@@ -1058,20 +1061,20 @@ deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_A* PSP_INTERFACE_DEVICE_DETAIL_
 deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_W SP_INTERFACE_DEVICE_DETAIL_DATA_W;
 deprecated alias SP_DEVICE_INTERFACE_DETAIL_DATA_W* PSP_INTERFACE_DEVICE_DETAIL_DATA_W;
 
-struct SP_DEVINFO_LIST_DETAIL_DATA_A {
+mixin AlignedStr!(_alignVal, "SP_DEVINFO_LIST_DETAIL_DATA_A", q{
     DWORD  cbSize = SP_DEVINFO_LIST_DETAIL_DATA_A.sizeof;
     GUID   ClassGuid;
     HANDLE RemoteMachineHandle;
     CHAR[SP_MAX_MACHINENAME_LENGTH] RemoteMachineName;
-}
+});
 alias SP_DEVINFO_LIST_DETAIL_DATA_A* PSP_DEVINFO_LIST_DETAIL_DATA_A;
 
-struct SP_DEVINFO_LIST_DETAIL_DATA_W {
+mixin AlignedStr!(_alignVal, "SP_DEVINFO_LIST_DETAIL_DATA_W", q{
     DWORD  cbSize = SP_DEVINFO_LIST_DETAIL_DATA_W.sizeof;
     GUID   ClassGuid;
     HANDLE RemoteMachineHandle;
     WCHAR[SP_MAX_MACHINENAME_LENGTH] RemoteMachineName;
-}
+});
 alias SP_DEVINFO_LIST_DETAIL_DATA_W* PSP_DEVINFO_LIST_DETAIL_DATA_W;
 
 extern(Windows) alias UINT function(PVOID, UINT, UINT_PTR, UINT_PTR) PSP_FILE_CALLBACK_A;
@@ -1223,7 +1226,7 @@ struct SP_POWERMESSAGEWAKE_PARAMS_W {
 }
 alias SP_POWERMESSAGEWAKE_PARAMS_W* PSP_POWERMESSAGEWAKE_PARAMS_W;
 
-struct SP_DRVINFO_DATA_V2_A {
+mixin AlignedStr!(_alignVal, "SP_DRVINFO_DATA_V2_A", q{
     DWORD          cbSize = SP_DRVINFO_DATA_V2_A.sizeof;
     DWORD          DriverType;
     ULONG_PTR      Reserved;
@@ -1232,10 +1235,10 @@ struct SP_DRVINFO_DATA_V2_A {
     CHAR[LINE_LEN] ProviderName;
     FILETIME       DriverDate;
     DWORDLONG      DriverVersion;
-}
+});
 alias SP_DRVINFO_DATA_V2_A* PSP_DRVINFO_DATA_V2_A;
 
-struct SP_DRVINFO_DATA_V2_W {
+mixin AlignedStr!(_alignVal, "SP_DRVINFO_DATA_V2_W", q{
     DWORD           cbSize = SP_DRVINFO_DATA_V2_A.sizeof;
     DWORD           DriverType;
     ULONG_PTR       Reserved;
@@ -1244,7 +1247,7 @@ struct SP_DRVINFO_DATA_V2_W {
     WCHAR[LINE_LEN] ProviderName;
     FILETIME        DriverDate;
     DWORDLONG       DriverVersion;
-}
+});
 alias SP_DRVINFO_DATA_V2_W* PSP_DRVINFO_DATA_V2_W;
 
 struct SP_DRVINFO_DATA_V1_A {
@@ -1295,7 +1298,7 @@ static if(USE_SP_DRVINFO_DATA_V1) {
 
 extern(Windows) alias DWORD function(HDEVINFO, PSP_DEVINFO_DATA, PSP_DEVINFO_DATA, PVOID) PSP_DETSIG_CMPPROC;
 
-struct SP_DRVINFO_DETAIL_DATA_A {
+mixin AlignedStr!(_alignVal, "SP_DRVINFO_DETAIL_DATA_A", q{
     DWORD          cbSize = SP_DRVINFO_DETAIL_DATA_A.sizeof;
     FILETIME       InfDate;
     DWORD          CompatIDsOffset;
@@ -1306,10 +1309,10 @@ struct SP_DRVINFO_DETAIL_DATA_A {
     CHAR[LINE_LEN] DrvDescription;
     CHAR[1]        _HardwareID;
     CHAR*          HardwareID() return { return _HardwareID.ptr; }
-}
+});
 alias SP_DRVINFO_DETAIL_DATA_A* PSP_DRVINFO_DETAIL_DATA_A;
 
-struct SP_DRVINFO_DETAIL_DATA_W {
+mixin AlignedStr!(_alignVal, "SP_DRVINFO_DETAIL_DATA_W", q{
     DWORD           cbSize = SP_DRVINFO_DETAIL_DATA_W.sizeof;
     FILETIME        InfDate;
     DWORD           CompatIDsOffset;
@@ -1320,7 +1323,7 @@ struct SP_DRVINFO_DETAIL_DATA_W {
     WCHAR[LINE_LEN] DrvDescription;
     WCHAR[1]        _HardwareID;
     WCHAR*          HardwareID() return { return _HardwareID.ptr; }
-}
+});
 alias SP_DRVINFO_DETAIL_DATA_W* PSP_DRVINFO_DETAIL_DATA_W;
 
 struct SP_DRVINSTALL_PARAMS {

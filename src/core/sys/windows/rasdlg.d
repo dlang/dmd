@@ -38,6 +38,7 @@ enum RASDDFLAG_PositionDlg = 1;
 align(4):
 
 struct RASENTRYDLGA {
+align(4):
     DWORD     dwSize = RASENTRYDLGA.sizeof;
     HWND      hwndOwner;
     DWORD     dwFlags;
@@ -51,6 +52,7 @@ struct RASENTRYDLGA {
 alias RASENTRYDLGA* LPRASENTRYDLGA;
 
 struct RASENTRYDLGW {
+align(4):
     DWORD     dwSize = RASENTRYDLGW.sizeof;
     HWND      hwndOwner;
     DWORD     dwFlags;
@@ -64,6 +66,7 @@ struct RASENTRYDLGW {
 alias RASENTRYDLGW* LPRASENTRYDLGW;
 
 struct RASDIALDLG {
+align(4):
     DWORD     dwSize;
     HWND      hwndOwner;
     DWORD     dwFlags;
@@ -83,6 +86,7 @@ extern (Windows) {
 }
 
 struct RASPBDLGA {
+align(4):
     DWORD         dwSize = RASPBDLGA.sizeof;
     HWND          hwndOwner;
     DWORD         dwFlags;
@@ -97,6 +101,7 @@ struct RASPBDLGA {
 alias RASPBDLGA* LPRASPBDLGA;
 
 struct RASPBDLGW {
+align(4):
     DWORD         dwSize = RASPBDLGW.sizeof;
     HWND          hwndOwner;
     DWORD         dwFlags;

@@ -29,6 +29,8 @@ enum size_t
     ACMFORMATDETAILS_FORMAT_CHARS       = 128,
     ACMFORMATTAGDETAILS_FORMATTAG_CHARS = 48;
 
+align(1):
+
 struct ACMFORMATDETAILSA {
     DWORD          cbStruct = ACMFORMATDETAILSA.sizeof;
     DWORD          dwFormatIndex;
@@ -74,6 +76,7 @@ struct ACMFORMATTAGDETAILSW {
 alias ACMFORMATTAGDETAILSW* LPACMFORMATTAGDETAILSW;
 
 struct ACMDRIVERDETAILSA {
+align(1):
     DWORD  cbStruct = ACMDRIVERDETAILSA.sizeof;
     FOURCC fccType;
     FOURCC fccComp;
@@ -94,6 +97,7 @@ struct ACMDRIVERDETAILSA {
 alias ACMDRIVERDETAILSA* LPACMDRIVERDETAILSA;
 
 struct ACMDRIVERDETAILSW {
+align(1):
     DWORD  cbStruct = ACMDRIVERDETAILSW.sizeof;
     FOURCC fccType;
     FOURCC fccComp;

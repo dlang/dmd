@@ -227,11 +227,14 @@ alias TypeDef!(HANDLE) HRASCONN;
 alias HRASCONN* LPHRASCONN;
 
 struct RASCONNW {
+align(4):
     DWORD dwSize;
     HRASCONN hrasconn;
+    align {
     WCHAR[RAS_MaxEntryName + 1] szEntryName;
     WCHAR[RAS_MaxDeviceType + 1] szDeviceType;
     WCHAR[RAS_MaxDeviceName + 1] szDeviceName;
+    }
     //static if (_WIN32_WINNT >= 0x401) {
         WCHAR[MAX_PATH] szPhonebook;
         DWORD dwSubEntry;
@@ -247,11 +250,14 @@ struct RASCONNW {
 alias RASCONNW* LPRASCONNW;
 
 struct RASCONNA {
+align(4):
     DWORD dwSize;
     HRASCONN hrasconn;
+    align {
     CHAR[RAS_MaxEntryName + 1] szEntryName;
     CHAR[RAS_MaxDeviceType + 1] szDeviceType;
     CHAR[RAS_MaxDeviceName + 1] szDeviceName;
+    }
     //static if (_WIN32_WINNT >= 0x401) {
         CHAR[MAX_PATH] szPhonebook;
         DWORD dwSubEntry;
@@ -291,13 +297,16 @@ struct RASCONNSTATUSA {
 alias RASCONNSTATUSA* LPRASCONNSTATUSA;
 
 struct RASDIALPARAMSW {
+align(4):
     DWORD dwSize;
+align {
     WCHAR[RAS_MaxEntryName + 1] szEntryName;
     WCHAR[RAS_MaxPhoneNumber + 1] szPhoneNumber;
     WCHAR[RAS_MaxCallbackNumber + 1] szCallbackNumber;
     WCHAR[UNLEN + 1] szUserName;
     WCHAR[PWLEN + 1] szPassword;
     WCHAR[DNLEN + 1] szDomain;
+}
     static if (_WIN32_WINNT >= 0x401) {
         DWORD dwSubEntry;
         ULONG_PTR dwCallbackId;
@@ -306,13 +315,16 @@ struct RASDIALPARAMSW {
 alias RASDIALPARAMSW* LPRASDIALPARAMSW;
 
 struct RASDIALPARAMSA{
+align(4):
     DWORD dwSize;
+align {
     CHAR[RAS_MaxEntryName + 1] szEntryName;
     CHAR[RAS_MaxPhoneNumber + 1] szPhoneNumber;
     CHAR[RAS_MaxCallbackNumber + 1] szCallbackNumber;
     CHAR[UNLEN + 1] szUserName;
     CHAR[PWLEN + 1] szPassword;
     CHAR[DNLEN + 1] szDomain;
+}
     static if (_WIN32_WINNT >= 0x401) {
         DWORD dwSubEntry;
         ULONG_PTR dwCallbackId;
@@ -322,12 +334,14 @@ alias RASDIALPARAMSA* LPRASDIALPARAMSA;
 
 //static if (_WIN32_WINNT >= 0x500) {
     struct RASEAPINFO {
+    align(4):
         DWORD dwSizeofEapInfo;
         BYTE *pbEapInfo;
     }
 //}
 
 struct RASDIALEXTENSIONS {
+align(4):
     DWORD dwSize;
     DWORD dwfOptions;
     HWND hwndParent;
@@ -625,6 +639,7 @@ alias RASENTRYA* LPRASENTRYA;
 
 //static if (_WIN32_WINNT >= 0x401) {
     struct RASADPARAMS {
+    align(4):
         DWORD dwSize;
         HWND hwndOwner;
         DWORD dwFlags;

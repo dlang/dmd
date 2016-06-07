@@ -3412,11 +3412,11 @@ struct INPUT {
 alias INPUT* PINPUT, LPINPUT;
 
 static if (_WIN32_WINNT >= 0x501) {
-    struct BSMINFO {
+    align(4) struct BSMINFO {
         UINT  cbSize = this.sizeof;
         HDESK hdesk;
         HWND  hwnd;
-        LUID  luid;
+align(4) LUID  luid;
     }
     alias BSMINFO* PBSMINFO;
 
