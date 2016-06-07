@@ -53,7 +53,6 @@ alias MSCoffObjSymbols = Array!(MSCoffObjSymbol*);
 
 extern (C++) final class LibMSCoff : Library
 {
-public:
     File* libfile;
     MSCoffObjModules objmodules; // MSCoffObjModule[]
     MSCoffObjSymbols objsymbols; // MSCoffObjSymbol[]

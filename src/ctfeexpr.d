@@ -52,7 +52,6 @@ struct CtfeStatus
  */
 extern (C++) final class ClassReferenceExp : Expression
 {
-public:
     StructLiteralExp value;
 
     extern (D) this(Loc loc, StructLiteralExp lit, Type type)
@@ -122,7 +121,6 @@ public:
  */
 extern (C++) final class VoidInitExp : Expression
 {
-public:
     VarDeclaration var;
 
     extern (D) this(VarDeclaration var, Type type)
@@ -161,7 +159,6 @@ extern (C++) int findFieldIndexByName(StructDeclaration sd, VarDeclaration v)
  */
 extern (C++) final class ThrownExceptionExp : Expression
 {
-public:
     ClassReferenceExp thrown;   // the thing being tossed
 
     extern (D) this(Loc loc, ClassReferenceExp victim)
@@ -201,7 +198,6 @@ public:
  */
 extern (C++) final class CTFEExp : Expression
 {
-public:
     extern (D) this(TOK tok)
     {
         super(Loc(), tok, __traits(classInstanceSize, CTFEExp));

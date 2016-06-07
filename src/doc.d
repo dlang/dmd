@@ -86,7 +86,6 @@ struct Escape
  */
 extern (C++) class Section
 {
-public:
     const(char)* name;
     size_t namelen;
     const(char)* _body;
@@ -152,7 +151,6 @@ public:
  */
 extern (C++) final class ParamSection : Section
 {
-public:
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
@@ -299,7 +297,6 @@ public:
  */
 extern (C++) final class MacroSection : Section
 {
-public:
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");

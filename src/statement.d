@@ -119,7 +119,6 @@ alias BEany = BE.BEany;
  */
 extern (C++) abstract class Statement : RootObject
 {
-public:
     Loc loc;
 
     final extern (D) this(Loc loc)
@@ -882,7 +881,6 @@ public:
  */
 extern (C++) final class ErrorStatement : Statement
 {
-public:
     extern (D) this()
     {
         super(Loc());
@@ -909,7 +907,6 @@ public:
  */
 extern (C++) final class PeelStatement : Statement
 {
-public:
     Statement s;
 
     extern (D) this(Statement s)
@@ -1075,7 +1072,6 @@ extern (C++) Statement toStatement(Dsymbol s)
  */
 extern (C++) class ExpStatement : Statement
 {
-public:
     Expression exp;
 
     final extern (D) this(Loc loc, Expression exp)
@@ -1178,7 +1174,6 @@ public:
  */
 extern (C++) final class DtorExpStatement : ExpStatement
 {
-public:
     // Wraps an expression that is the destruction of 'var'
     VarDeclaration var;
 
@@ -1208,7 +1203,6 @@ public:
  */
 extern (C++) final class CompileStatement : Statement
 {
-public:
     Expression exp;
 
     extern (D) this(Loc loc, Expression exp)
@@ -1266,7 +1260,6 @@ public:
  */
 extern (C++) class CompoundStatement : Statement
 {
-public:
     Statements* statements;
 
     final extern (D) this(Loc loc, Statements* s)
@@ -1358,7 +1351,6 @@ public:
  */
 extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
-public:
     extern (D) this(Loc loc, Statements* s)
     {
         super(loc, s);
@@ -1388,7 +1380,6 @@ public:
  */
 extern (C++) final class UnrolledLoopStatement : Statement
 {
-public:
     Statements* statements;
 
     extern (D) this(Loc loc, Statements* s)
@@ -1428,7 +1419,6 @@ public:
  */
 extern (C++) final class ScopeStatement : Statement
 {
-public:
     Statement statement;
     Loc endloc;                 // location of closing curly bracket
 
@@ -1477,7 +1467,6 @@ public:
  */
 extern (C++) final class WhileStatement : Statement
 {
-public:
     Expression condition;
     Statement _body;
     Loc endloc;             // location of closing curly bracket
@@ -1518,7 +1507,6 @@ public:
  */
 extern (C++) final class DoStatement : Statement
 {
-public:
     Statement _body;
     Expression condition;
     Loc endloc;                 // location of ';' after while
@@ -1559,7 +1547,6 @@ public:
  */
 extern (C++) final class ForStatement : Statement
 {
-public:
     Statement _init;
     Expression condition;
     Expression increment;
@@ -1624,7 +1611,6 @@ public:
  */
 extern (C++) final class ForeachStatement : Statement
 {
-public:
     TOK op;                     // TOKforeach or TOKforeach_reverse
     Parameters* parameters;     // array of Parameter*'s
     Expression aggr;
@@ -1693,7 +1679,6 @@ public:
  */
 extern (C++) final class ForeachRangeStatement : Statement
 {
-public:
     TOK op;                 // TOKforeach or TOKforeach_reverse
     Parameter prm;          // loop index variable
     Expression lwr;
@@ -1739,7 +1724,6 @@ public:
  */
 extern (C++) final class IfStatement : Statement
 {
-public:
     Parameter prm;
     Expression condition;
     Statement ifbody;
@@ -1782,7 +1766,6 @@ public:
  */
 extern (C++) final class ConditionalStatement : Statement
 {
-public:
     Condition condition;
     Statement ifbody;
     Statement elsebody;
@@ -1831,7 +1814,6 @@ public:
  */
 extern (C++) final class PragmaStatement : Statement
 {
-public:
     Identifier ident;
     Expressions* args;      // array of Expression's
     Statement _body;
@@ -1859,7 +1841,6 @@ public:
  */
 extern (C++) final class StaticAssertStatement : Statement
 {
-public:
     StaticAssert sa;
 
     extern (D) this(StaticAssert sa)
@@ -1883,7 +1864,6 @@ public:
  */
 extern (C++) final class SwitchStatement : Statement
 {
-public:
     Expression condition;
     Statement _body;
     bool isFinal;
@@ -1923,7 +1903,6 @@ public:
  */
 extern (C++) final class CaseStatement : Statement
 {
-public:
     Expression exp;
     Statement statement;
     int index;              // which case it is (since we sort this)
@@ -1962,7 +1941,6 @@ public:
  */
 extern (C++) final class CaseRangeStatement : Statement
 {
-public:
     Expression first;
     Expression last;
     Statement statement;
@@ -1990,7 +1968,6 @@ public:
  */
 extern (C++) final class DefaultStatement : Statement
 {
-public:
     Statement statement;
 
     extern (D) this(Loc loc, Statement s)
@@ -2019,7 +1996,6 @@ public:
  */
 extern (C++) final class GotoDefaultStatement : Statement
 {
-public:
     SwitchStatement sw;
 
     extern (D) this(Loc loc)
@@ -2042,7 +2018,6 @@ public:
  */
 extern (C++) final class GotoCaseStatement : Statement
 {
-public:
     Expression exp;     // null, or which case to goto
     CaseStatement cs;   // case statement it resolves to
 
@@ -2067,7 +2042,6 @@ public:
  */
 extern (C++) final class SwitchErrorStatement : Statement
 {
-public:
     extern (D) this(Loc loc)
     {
         super(loc);
@@ -2083,7 +2057,6 @@ public:
  */
 extern (C++) final class ReturnStatement : Statement
 {
-public:
     Expression exp;
     size_t caseDim;
 
@@ -2113,7 +2086,6 @@ public:
  */
 extern (C++) final class BreakStatement : Statement
 {
-public:
     Identifier ident;
 
     extern (D) this(Loc loc, Identifier ident)
@@ -2137,7 +2109,6 @@ public:
  */
 extern (C++) final class ContinueStatement : Statement
 {
-public:
     Identifier ident;
 
     extern (D) this(Loc loc, Identifier ident)
@@ -2161,7 +2132,6 @@ public:
  */
 extern (C++) final class SynchronizedStatement : Statement
 {
-public:
     Expression exp;
     Statement _body;
 
@@ -2197,7 +2167,6 @@ public:
  */
 extern (C++) final class WithStatement : Statement
 {
-public:
     Expression exp;
     Statement _body;
     VarDeclaration wthis;
@@ -2226,7 +2195,6 @@ public:
  */
 extern (C++) final class TryCatchStatement : Statement
 {
-public:
     Statement _body;
     Catches* catches;
 
@@ -2263,7 +2231,6 @@ public:
  */
 extern (C++) final class Catch : RootObject
 {
-public:
     Loc loc;
     Type type;
     Identifier ident;
@@ -2296,7 +2263,6 @@ public:
  */
 extern (C++) final class TryFinallyStatement : Statement
 {
-public:
     Statement _body;
     Statement finalbody;
 
@@ -2337,7 +2303,6 @@ public:
  */
 extern (C++) final class OnScopeStatement : Statement
 {
-public:
     TOK tok;
     Statement statement;
 
@@ -2409,7 +2374,6 @@ public:
  */
 extern (C++) final class ThrowStatement : Statement
 {
-public:
     Expression exp;
 
     // was generated by the compiler, wasn't present in source code
@@ -2438,7 +2402,6 @@ public:
  */
 extern (C++) final class DebugStatement : Statement
 {
-public:
     Statement statement;
 
     extern (D) this(Loc loc, Statement statement)
@@ -2475,7 +2438,6 @@ public:
  */
 extern (C++) final class GotoStatement : Statement
 {
-public:
     Identifier ident;
     LabelDsymbol label;
     TryFinallyStatement tf;
@@ -2558,7 +2520,6 @@ public:
  */
 extern (C++) final class LabelStatement : Statement
 {
-public:
     Identifier ident;
     Statement statement;
     TryFinallyStatement tf;
@@ -2629,7 +2590,6 @@ public:
  */
 extern (C++) final class LabelDsymbol : Dsymbol
 {
-public:
     LabelStatement statement;
 
     extern (D) this(Identifier ident)
@@ -2658,7 +2618,6 @@ public:
  */
 extern (C++) final class AsmStatement : Statement
 {
-public:
     Token* tokens;
     code* asmcode;
     uint asmalign;  // alignment of this statement
@@ -2688,7 +2647,6 @@ public:
  */
 extern (C++) final class CompoundAsmStatement : CompoundStatement
 {
-public:
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
 
     extern (D) this(Loc loc, Statements* s, StorageClass stc)
@@ -2723,7 +2681,6 @@ public:
  */
 extern (C++) final class ImportStatement : Statement
 {
-public:
     Dsymbols* imports;      // Array of Import's
 
     extern (D) this(Loc loc, Dsymbols* imports)

@@ -25,7 +25,6 @@ import ddmd.visitor;
  */
 extern (C++) final class DebugSymbol : Dsymbol
 {
-public:
     uint level;
 
     extern (D) this(Loc loc, Identifier ident)
@@ -120,7 +119,6 @@ public:
  */
 extern (C++) final class VersionSymbol : Dsymbol
 {
-public:
     uint level;
 
     extern (D) this(Loc loc, Identifier ident)

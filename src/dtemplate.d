@@ -378,7 +378,6 @@ extern (C++) RootObject objectSyntaxCopy(RootObject o)
 
 extern (C++) final class Tuple : RootObject
 {
-public:
     Objects objects;
 
     // kludge for template.isType()
@@ -404,7 +403,6 @@ struct TemplatePrevious
  */
 extern (C++) final class TemplateDeclaration : ScopeDsymbol
 {
-public:
     TemplateParameters* parameters;     // array of TemplateParameter's
     TemplateParameters* origParameters; // originals for Ddoc
 
@@ -2263,7 +2261,6 @@ public:
 
 extern (C++) final class TypeDeduced : Type
 {
-public:
     Type tded;
     Expressions argexps; // corresponding expressions
     Types tparams; // tparams[i]->mod
@@ -4918,7 +4915,6 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
  */
 extern (C++) class TemplateParameter
 {
-public:
     Loc loc;
     Identifier ident;
 
@@ -5033,7 +5029,6 @@ public:
  */
 extern (C++) class TemplateTypeParameter : TemplateParameter
 {
-public:
     Type specType;      // if !=null, this is the type specialization
     Type defaultType;
 
@@ -5220,7 +5215,6 @@ public:
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
-public:
     extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident, specType, defaultType);
@@ -5248,7 +5242,6 @@ public:
  */
 extern (C++) final class TemplateValueParameter : TemplateParameter
 {
-public:
     Type valType;
     Expression specValue;
     Expression defaultValue;
@@ -5527,7 +5520,6 @@ extern (C++) RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o,
  */
 extern (C++) final class TemplateAliasParameter : TemplateParameter
 {
-public:
     Type specType;
     RootObject specAlias;
     RootObject defaultAlias;
@@ -5761,7 +5753,6 @@ public:
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
-public:
     extern (D) this(Loc loc, Identifier ident)
     {
         super(loc, ident);
@@ -5903,7 +5894,6 @@ public:
  */
 extern (C++) class TemplateInstance : ScopeDsymbol
 {
-public:
     Identifier name;
 
     // Array of Types/Expressions of template
@@ -8372,7 +8362,6 @@ extern (C++) bool definitelyValueParameter(Expression e)
  */
 extern (C++) final class TemplateMixin : TemplateInstance
 {
-public:
     TypeQualified tqual;
 
     extern (D) this(Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)

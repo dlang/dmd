@@ -56,7 +56,6 @@ alias BASEOKsemanticdone = Baseok.BASEOKsemanticdone;
  */
 extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 {
-public:
     Type type;
     StorageClass storage_class;
     Prot protection;
