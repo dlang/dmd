@@ -186,6 +186,8 @@ extern (C++) final class VersionCondition : DVCondition
             "SysV4",
             "Hurd",
             "Android",
+            "PlayStation",
+            "PlayStation4",
             "Cygwin",
             "MinGW",
             "FreeStanding",
