@@ -1807,7 +1807,7 @@ public:
                     uint nothrowErrors = global.errors;
                     blockexit = fbody.blockExit(this, f.isnothrow);
                     if (f.isnothrow && (global.errors != nothrowErrors))
-                        .error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                        .error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
                     if (flags & FUNCFLAGnothrowInprocess)
                     {
                         if (type == f)
@@ -2111,11 +2111,10 @@ public:
 
                             s = s.semantic(sc2);
 
-                            uint nothrowErrors = global.errors;
                             bool isnothrow = f.isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                             int blockexit = s.blockExit(this, isnothrow);
-                            if (f.isnothrow && (global.errors != nothrowErrors))
-                                .error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                            if (f.isnothrow && isnothrow && blockexit & BEthrow)
+                                .error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
                             if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                                 f.isnothrow = false;
 

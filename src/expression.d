@@ -3141,7 +3141,7 @@ public:
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("safe %s '%s' cannot call system %s '%s'",
+                error("@safe %s '%s' cannot call @system %s '%s'",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
@@ -10224,7 +10224,7 @@ public:
                 }
                 if (tf.trust <= TRUSTsystem && sc.func.setUnsafe())
                 {
-                    error("safe %s '%s' cannot call system %s '%s'",
+                    error("@safe %s '%s' cannot call @system %s '%s'",
                         sc.func.kind(), sc.func.toPrettyChars(), p, e1.toChars());
                     err = true;
                 }
