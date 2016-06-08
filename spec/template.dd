@@ -717,7 +717,7 @@ $(GNAME TemplateSequenceParameter):
         is declared as a $(I TemplateSequenceParameter),
         it is a match with any trailing template arguments.
         Such a sequence of arguments can be defined using the template
-        $(XREF meta, AliasSeq) and will thus henceforth
+        $(REF AliasSeq, std,meta) and will thus henceforth
         be referred to by that name for clarity.
         An $(I AliasSeq) is not itself a type, value, or symbol.
         It is a compile-time sequence of any mix of types, values or symbols.
@@ -826,7 +826,7 @@ a
             writefln("%d", plus_two(6, 8)); // prints 16
         }
         ----
-        See also: $(FULL_XREF functional, partial)
+        See also: $(REF partial, std,functional)
     )
 
 $(H3 $(LNAME2 variadic_template_specialization, Specialization))

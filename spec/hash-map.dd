@@ -228,7 +228,7 @@ $(H3 $(LNAME2 construction_assignement_entries, Construction or Assignment on Se
         ---------
 
         This is designed for efficient memory reuse with some value-semantics
-        structs, eg. $(FULL_XREF bigint,BigInt).
+        structs, eg. $(REF BigInt, std,bigint).
 
         ---------
         import std.bigint;
