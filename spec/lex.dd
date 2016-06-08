@@ -748,7 +748,7 @@ $(GNAME HexLetter):
 
 	$(P C-style octal integer notation was deemed too easy to mix up with decimal notation;
 	it is only fully supported in string literals.
-	D still supports octal integer literals interpreted at compile time through the $(FULL_XREF conv, octal)
+	D still supports octal integer literals interpreted at compile time through the $(REF octal, std,conv)
 	template, as in $(D octal!167).)
 
 	$(P Hexadecimal integers are a sequence of hexadecimal digits preceded
