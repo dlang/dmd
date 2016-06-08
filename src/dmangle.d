@@ -166,8 +166,8 @@ extern (C++) final class Mangler : Visitor
 public:
     OutBuffer* buf;
 	uint[TypeIdentifier] ftpos; /// offset of the first mangle of this type
-	uint[DSymbol] fspos; /// offset of the first mangle of this symbol
-	uint[DSymbol] fppos; /// offset of the first mangle of this parent
+	uint[Dsymbol] fspos; /// offset of the first mangle of this symbol
+	uint[Dsymbol] fppos; /// offset of the first mangle of this parent
 	
     extern (D) this(OutBuffer* buf)
     {
@@ -314,7 +314,7 @@ public:
     {
 		if (auto n = t in ftpos)
 		{
-			buf.printf("Q%d", n);
+			buf.printf("Q%d", *n);
 		}
 		else
 		{
@@ -395,7 +395,7 @@ public:
 		
 			if (auto n = p in fppos) 
 			{
-				buf.printf("Q%d",n);
+				buf.printf("Q%d", *n);
 			}
 			else 
 			{
@@ -648,7 +648,7 @@ public:
         }
 		
 		if (auto n = s in fspos) {
-			buffer.printf("Q%d", n);
+			buffer.printf("Q%d", *n);
 		}
 		else
 		{
