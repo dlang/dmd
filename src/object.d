@@ -2941,12 +2941,12 @@ private
  *
  * Note: The capacity of a slice may be impacted by operations on other slices.
  */
-@property size_t capacity(T)(T[] arr) pure nothrow
+@property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
 }
 ///
-unittest
+@safe unittest
 {
     //Static array slice: no capacity
     int[4] sarray = [1, 2, 3, 4];
