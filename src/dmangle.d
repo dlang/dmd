@@ -165,10 +165,10 @@ extern (C++) final class Mangler : Visitor
     alias visit = super.visit;
 public:
     OutBuffer* buf;
-	uint[TypeIdentifier] ftpos; /// offset of the first mangle of this type
-	uint[Dsymbol] fspos; /// offset of the first mangle of this symbol
-	uint[Dsymbol] fppos; /// offset of the first mangle of this parent
-	
+        uint[TypeIdentifier] ftpos; /// offset of the first mangle of this type
+        uint[Dsymbol] fspos; /// offset of the first mangle of this symbol
+        uint[Dsymbol] fppos; /// offset of the first mangle of this parent
+
     extern (D) this(OutBuffer* buf)
     {
         this.buf = buf;
@@ -312,18 +312,18 @@ public:
 
     override void visit(TypeIdentifier t)
     {
-		if (auto n = t in ftpos)
-		{
-			buf.printf("Q%d", *n);
-		}
-		else
-		{
+                if (auto n = t in ftpos)
+                {
+                        buf.printf("Q%d", *n);
+                }
+                else
+                {
             ftpos[t] = buf.offset;
             visit(cast(Type)t);
             const(char)* name = t.ident.toChars();
             size_t len = strlen(name);
             buf.printf("%u%s", cast(uint)len, name);
-		}
+                }
     }
 
     override void visit(TypeEnum t)
@@ -392,25 +392,25 @@ public:
             p = s.parent;
         if (p)
         {
-		
-			if (auto n = p in fppos) 
-			{
-				buf.printf("Q%d", *n);
-			}
-			else 
-			{
-				fppos[p] = buf.offset;
-				mangleParent(p);
-				if (p.getIdent())
-				{
-					const(char)* id = p.ident.toChars();
-					toBuffer(id, s);
-					if (FuncDeclaration f = p.isFuncDeclaration())
-						mangleFunc(f, true);
-				}
-				else
-					buf.writeByte('0');
-			}
+
+                        if (auto n = p in fppos)
+                        {
+                                buf.printf("Q%d", *n);
+                        }
+                        else
+                        {
+                                fppos[p] = buf.offset;
+                                mangleParent(p);
+                                if (p.getIdent())
+                                {
+                                        const(char)* id = p.ident.toChars();
+                                        toBuffer(id, s);
+                                        if (FuncDeclaration f = p.isFuncDeclaration())
+                                                mangleFunc(f, true);
+                                }
+                                else
+                                        buf.writeByte('0');
+                        }
         }
     }
 
@@ -646,17 +646,17 @@ public:
                 printf("  parent = %s %s", s.parent.kind(), s.parent.toChars());
             printf("\n");
         }
-		
-		if (auto n = s in fspos) {
-			buffer.printf("Q%d", *n);
-		}
-		else
-		{
-			mangleParent(s);
-			auto id = s.ident ? s.ident.toChars() : s.toChars();
-			toBuffer(id, s);
-			//printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
-		}
+
+                if (auto n = s in fspos) {
+                        buffer.printf("Q%d", *n);
+                }
+                else
+                {
+                        mangleParent(s);
+                        auto id = s.ident ? s.ident.toChars() : s.toChars();
+                        toBuffer(id, s);
+                        //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
+                }
     }
 
     ////////////////////////////////////////////////////////////////////////////
