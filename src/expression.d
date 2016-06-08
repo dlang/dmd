@@ -11914,6 +11914,16 @@ extern (C++) final class DelegatePtrExp : UnaExp
         return this;
     }
 
+    override Expression modifiableLvalue(Scope* sc, Expression e)
+    {
+        if (sc.func.setUnsafe())
+        {
+            error("cannot modify delegate pointer in @safe code %s", toChars());
+            return new ErrorExp();
+        }
+        return Expression.modifiableLvalue(sc, e);
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -11955,6 +11965,16 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
     {
         e1 = e1.toLvalue(sc, e);
         return this;
+    }
+
+    override Expression modifiableLvalue(Scope* sc, Expression e)
+    {
+        if (sc.func.setUnsafe())
+        {
+            error("cannot modify delegate function pointer in @safe code %s", toChars());
+            return new ErrorExp();
+        }
+        return Expression.modifiableLvalue(sc, e);
     }
 
     override void accept(Visitor v)
