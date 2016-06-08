@@ -721,6 +721,11 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
              */
             if (fieldstart == ad.fields.dim)
             {
+                /* Bugzilla 12929: If there's no fields in this.members, this
+                 * anonymous struct/union should have no size.
+                 */
+                assert(anonstructsize == 0);
+
                 ad.structsize = savestructsize;
                 ad.alignsize = savealignsize;
                 *poffset = ad.structsize;
@@ -731,13 +736,6 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             anonalignsize = ad.alignsize;
             ad.structsize = savestructsize;
             ad.alignsize = savealignsize;
-
-            // 0 sized structs are set to 1 byte
-            if (anonstructsize == 0)
-            {
-                anonstructsize = 1;
-                anonalignsize = 1;
-            }
 
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
