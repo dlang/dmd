@@ -206,6 +206,25 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = sd.loc;
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
+
+    // One of our sub-field might have `@disable opAssign` so we need to
+    // check for it.
+    // In this event, it will be reflected by having `stc` (opAssign's
+    // storage class) include `STCdisabled`.
+    for (size_t i = 0; i < sd.fields.dim; i++)
+    {
+        VarDeclaration v = sd.fields[i];
+        if (v.storage_class & STCref)
+            continue;
+        if (v.overlapped)
+            continue;
+        Type tv = v.type.baseElemOf();
+        if (tv.ty != Tstruct)
+            continue;
+        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+        stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
+    }
+
     if (sd.dtor || sd.postblit)
     {
         if (!sd.type.isAssignable()) // Bugzilla 13044
@@ -214,22 +233,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         if (stc & STCsafe)
             stc = (stc & ~STCsafe) | STCtrusted;
     }
-    else
-    {
-        for (size_t i = 0; i < sd.fields.dim; i++)
-        {
-            VarDeclaration v = sd.fields[i];
-            if (v.storage_class & STCref)
-                continue;
-            if (v.overlapped)
-                continue;
-            Type tv = v.type.baseElemOf();
-            if (tv.ty != Tstruct)
-                continue;
-            StructDeclaration sdv = (cast(TypeStruct)tv).sym;
-            stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
-        }
-    }
+
     auto fparams = new Parameters();
     fparams.push(new Parameter(STCnodtor, sd.type, Id.p, null));
     auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINKd, stc | STCref);
