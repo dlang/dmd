@@ -83,8 +83,6 @@ public:
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
-    TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-        Expression *constraint, Dsymbols *decldefs, bool ismixin = false, bool literal = false);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
@@ -141,8 +139,6 @@ public:
      */
     bool dependent;
 
-    TemplateParameter(Loc loc, Identifier *ident);
-
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
@@ -179,8 +175,6 @@ public:
 
     static Type *tdummy;
 
-    TemplateTypeParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
-
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
@@ -200,8 +194,6 @@ public:
 class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
-    TemplateThisParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
-
     TemplateThisParameter *isTemplateThisParameter();
     TemplateParameter *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
@@ -218,8 +210,6 @@ public:
     Expression *defaultValue;
 
     static AA *edummies;
-
-    TemplateValueParameter(Loc loc, Identifier *ident, Type *valType, Expression *specValue, Expression *defaultValue);
 
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
@@ -246,8 +236,6 @@ public:
 
     static Dsymbol *sdummy;
 
-    TemplateAliasParameter(Loc loc, Identifier *ident, Type *specType, RootObject *specAlias, RootObject *defaultAlias);
-
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
@@ -267,8 +255,6 @@ public:
 class TemplateTupleParameter : public TemplateParameter
 {
 public:
-    TemplateTupleParameter(Loc loc, Identifier *ident);
-
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
@@ -325,8 +311,6 @@ public:
     TemplateInstance *tnext;            // non-first instantiated instances
     Module *minst;                      // the top module that instantiated this instance
 
-    TemplateInstance(Loc loc, Identifier *temp_id);
-    TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc, Expressions *fargs);
@@ -369,7 +353,6 @@ class TemplateMixin : public TemplateInstance
 public:
     TypeQualified *tqual;
 
-    TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

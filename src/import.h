@@ -46,8 +46,6 @@ public:
 
     AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
-    Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
-        int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
     const char *kind();
     Prot prot();
