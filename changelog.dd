@@ -76,10 +76,6 @@ Macros:
     RELATIVE_LINK2=<a href="#$1">$+</a>
     LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
 
-    STDMODREF = <a href="phobos/std_$1.html">$2</a>
-    XREF = <a href="phobos/std_$1.html#$2">$2</a>
-    CXREF = <a href="phobos/core_$1.html#$2">$2</a>
-
     BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
     PULL_REQUEST = $(LINK2 https://github.com/dlang/$1/pull/$2, $1#$2)
     DMDPR = $(PULL_REQUEST dmd,$1)
