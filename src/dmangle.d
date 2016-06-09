@@ -390,7 +390,7 @@ public:
             p = ti.isTemplateMixin() ? ti.parent : ti.tempdecl.parent;
         else
             p = s.parent;
-        if (p)
+        if (p && s)
         {
 
                         if (auto n = p in fppos)
