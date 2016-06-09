@@ -27,8 +27,6 @@ public:
    // alias Identifier this;
     Identifier *ident;
 
-    AliasThis(Loc loc, Identifier *ident);
-
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     const char *kind();

@@ -26,8 +26,6 @@ public:
     Expression *exp;
     Expression *msg;
 
-    StaticAssert(Loc loc, Expression *exp, Expression *msg);
-
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void semantic(Scope *sc);

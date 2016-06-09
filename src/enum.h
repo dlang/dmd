@@ -49,7 +49,6 @@ public:
     bool added;
     int inuse;
 
-    EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
@@ -89,7 +88,6 @@ public:
 
     EnumDeclaration *ed;
 
-    EnumMember(Loc loc, Identifier *id, Expression *value, Type *origType);
     Dsymbol *syntaxCopy(Dsymbol *s);
     const char *kind();
     void semantic(Scope *sc);

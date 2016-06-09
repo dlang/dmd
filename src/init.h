@@ -36,7 +36,6 @@ class Initializer : public RootObject
 public:
     Loc loc;
 
-    Initializer(Loc loc);
     virtual Initializer *syntaxCopy() = 0;
     static Initializers *arraySyntaxCopy(Initializers *ai);
 
@@ -63,7 +62,6 @@ class VoidInitializer : public Initializer
 public:
     Type *type;         // type that this will initialize to
 
-    VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
@@ -76,7 +74,6 @@ public:
 class ErrorInitializer : public Initializer
 {
 public:
-    ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
@@ -92,7 +89,6 @@ public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
 
-    StructInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
@@ -112,7 +108,6 @@ public:
     Type *type;         // type that array will be used to initialize
     bool sem;           // true if semantic() is run
 
-    ArrayInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
@@ -131,7 +126,6 @@ public:
     Expression *exp;
     bool expandTuples;
 
-    ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);

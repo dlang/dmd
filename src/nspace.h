@@ -20,8 +20,6 @@
 class Nspace : public ScopeDsymbol
 {
   public:
-    Nspace(Loc loc, Identifier *ident, Dsymbols *members);
-
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

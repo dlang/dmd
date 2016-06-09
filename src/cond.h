@@ -31,8 +31,6 @@ public:
     // 2: do not include
     int inc;
 
-    Condition(Loc loc);
-
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
@@ -46,8 +44,6 @@ public:
     Identifier *ident;
     Module *mod;
 
-    DVCondition(Module *mod, unsigned level, Identifier *ident);
-
     Condition *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -57,8 +53,6 @@ class DebugCondition : public DVCondition
 public:
     static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(const char *ident);
-
-    DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
     int include(Scope *sc, ScopeDsymbol *sds);
     DebugCondition *isDebugCondition() { return this; }
@@ -74,8 +68,6 @@ public:
     static void addGlobalIdent(const char *ident);
     static void addPredefinedGlobalIdent(const char *ident);
 
-    VersionCondition(Module *mod, unsigned level, Identifier *ident);
-
     int include(Scope *sc, ScopeDsymbol *sds);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -86,7 +78,6 @@ public:
     Expression *exp;
     int nest;         // limit circular dependencies
 
-    StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
     int include(Scope *sc, ScopeDsymbol *sds);
     void accept(Visitor *v) { v->visit(this); }

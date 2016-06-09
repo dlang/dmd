@@ -40,7 +40,6 @@ public:
     unsigned tag;       // auto incremented tag, used to mask package tree in scopes
     Module *mod;        // != NULL if isPkgMod == PKGmodule
 
-    Package(Identifier *ident);
     const char *kind();
 
     static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
@@ -117,7 +116,6 @@ public:
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
 
-    Module(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
 
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
@@ -180,8 +178,6 @@ struct ModuleDeclaration
     Identifiers *packages;            // array of Identifier's representing packages
     bool isdeprecated;  // if it is a deprecated module
     Expression *msg;
-
-    ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id);
 
     char *toChars();
 };
