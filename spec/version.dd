@@ -299,8 +299,6 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 		(command line switch $(DDSUBLINK dmd-windows, switch-cov, $(TT -cov))) is being generated))
 	$(TROW $(ARGS $(D D_Ddoc)) , $(ARGS $(DDLINK ddoc, Embedded Documentation, Ddoc) documentation
 		(command line switch $(DDSUBLINK dmd-windows, switch-D, $(TT -D))) is being generated))
-	$(TROW $(ARGS $(D D_Warnings)) , dmd warnings are activated
-		(command line switch $(DDSUBLINK dmd-windows, switch-w, $(TT -w)) or $(DDSUBLINK dmd-windows, switch-wi, $(TT -wi))))
 	$(TROW $(ARGS $(D D_InlineAsm_X86)) , $(ARGS $(DDLINK iasm, Inline Assembler, Inline assembler) for X86 is implemented))
 	$(TROW $(ARGS $(D D_InlineAsm_X86_64)) , $(ARGS $(DDLINK iasm, Inline Assembler, Inline assembler) for X86-64 is implemented))
 	$(TROW $(ARGS $(D D_LP64)) , $(ARGS $(B Pointers) are 64 bits
