@@ -395,21 +395,21 @@ public:
 
                         if (auto n = p in fppos)
                         {
-                                buf.printf("Q%d", *n);
+                                        buf.printf("Q%d", *n);
                         }
                         else
                         {
-                                fppos[p] = buf.offset;
-                                mangleParent(p);
-                                if (p.getIdent())
-                                {
-                                        const(char)* id = p.ident.toChars();
-                                        toBuffer(id, s);
-                                        if (FuncDeclaration f = p.isFuncDeclaration())
-                                                mangleFunc(f, true);
-                                }
-                                else
-                                        buf.writeByte('0');
+                        mangleParent(p);
+                                        fppos[p] = buf.offset;
+                                        if (p.getIdent())
+                                        {
+                                                        const(char)* id = p.ident.toChars();
+                                                        toBuffer(id, s);
+                                                        if (FuncDeclaration f = p.isFuncDeclaration())
+                                                                        mangleFunc(f, true);
+                                        }
+                                        else
+                                                        buf.writeByte('0');
                         }
         }
     }
@@ -646,7 +646,8 @@ public:
                 printf("  parent = %s %s", s.parent.kind(), s.parent.toChars());
             printf("\n");
         }
-
+                if (s)
+                {
              if (auto n = s in fspos) {
                      buf.printf("Q%d", *n);
              }
@@ -656,8 +657,9 @@ public:
                     auto id = s.ident ? s.ident.toChars() : s.toChars();
                     toBuffer(id, s);
                     //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
-					fspos[s] = buf.offset;
+                                        fspos[s] = buf.offset;
             }
+                }
     }
 
     ////////////////////////////////////////////////////////////////////////////
