@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -o-
+// REQUIRED_ARGS: -o- -d
 
 struct S1 { int v; }
 struct S2 { int* p; }

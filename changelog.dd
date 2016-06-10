@@ -5,6 +5,7 @@ $(COMMENT Pending changelog for 2.072. This will get copied to dlang.org and
 )
 
 $(BUGSTITLE Language Changes,
+    $(LI $(RELATIVE_LINK2 deprecated_commaexp, Using the result of a comma expression is deprecated.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -13,6 +14,35 @@ $(BUGSTITLE Compiler Changes,
 )
 
 $(BUGSTITLE Language Changes,
+    $(LI $(LNAME2 deprecated_commaexp, Using the result of a comma expression is deprecated.)
+
+    $(P Comma expressions expressions have proven to be a frequent source of confusion, and bug.
+        Using their result will now trigger a deprecation message.)
+
+    $(P Example:)
+
+        ---
+        module comma;
+
+        void main () {
+          size_t aggr;
+          MyContainerClass mc;
+          auto r1 = getRange!int, r2 = getRange!int;
+          // This is okay
+          for (; !r1.empty && r2.empty; r1.popFront, r2.popFront)
+            aggr += compute(r1.front, r2.front);
+          // This is not, as only the 3rd part (increment) allows commas
+          for (; !r1.empty, r2.empty; r1.popFront, r2.popFront)
+            aggr += compute(r1.front, r2.front);
+          // This is okay, the result is not used.
+          if (!mc)
+            mc = new MyContainerClass, mc.append(new Entry);
+          // But this is not
+          if (!mc)
+            mc = (aggr++, new MyContainerClass);
+        }
+        ---
+    )
 )
 
 $(BUGSTITLE Compiler Changes,
