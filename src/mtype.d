@@ -8492,10 +8492,9 @@ extern (C++) final class TypeStruct : Type
         StructDeclaration s = sym;
 
         sym.size(Loc()); // give error for forward references
-        for (size_t i = 0; i < s.fields.dim; i++)
+        foreach (VarDeclaration v; s.fields)
         {
-            Declaration d = s.fields[i];
-            if (d.storage_class & STCref || d.hasPointers())
+            if (v.storage_class & STCref || v.hasPointers())
                 return true;
         }
         return false;
