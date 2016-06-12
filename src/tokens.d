@@ -674,6 +674,7 @@ extern (C++) struct Token
         TOKon_scope_exit: "scope(exit)",
         TOKon_scope_success: "scope(success)",
         TOKon_scope_failure: "scope(failure)",
+        TOKdelegateptr: "delegateptr",
     ];
 
     static this()
