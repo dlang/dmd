@@ -58,6 +58,7 @@ type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
 void genModuleInfo(Module *m);
 void genObjFile(Module *m, bool multiobj);
+void objc_Module_genmoduleinfo_classes();
 Symbol *toModuleAssert(Module *m);
 Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
@@ -479,6 +480,7 @@ void genObjFile(Module *m, bool multiobj)
 
     if (m->doppelganger)
     {
+        objc_Module_genmoduleinfo_classes();
         objmod->termfile();
         return;
     }
