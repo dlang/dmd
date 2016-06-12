@@ -78,8 +78,8 @@ auto signedToTempString(long value, char[] buf, uint radix) @safe
     if(neg)
     {
         // about to do a slice without a bounds check
-        assert(r.ptr > buf.ptr);
-        r = (() @trusted => (r.ptr-1)[0..r.length+1])();
+        auto trustedSlice() @trusted { assert(r.ptr > buf.ptr); return (r.ptr-1)[0..r.length+1]; }
+        r = trustedSlice();
         r[0] = '-';
     }
     return r;
