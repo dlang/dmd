@@ -1,7 +1,8 @@
 /*
+TEST_OUTPUT:
 ---
-fail_compilation/test12822.d(11): Error: cannot modify delegate pointer in @safe code dg.ptr
-fail_compilation/test12822.d(12): Error: cannot modify delegate function pointer in @safe code dg.ptr
+fail_compilation/test12822.d(13): Error: cannot modify delegate pointer in @safe code dg.ptr
+fail_compilation/test12822.d(14): Error: cannot modify delegate function pointer in @safe code dg.funcptr
 ---
 */
 
