@@ -2,96 +2,108 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/reserved_version.d(96): Error: version identifier 'DigitalMars' is reserved and cannot be set
-fail_compilation/reserved_version.d(97): Error: version identifier 'GNU' is reserved and cannot be set
-fail_compilation/reserved_version.d(98): Error: version identifier 'LDC' is reserved and cannot be set
-fail_compilation/reserved_version.d(99): Error: version identifier 'SDC' is reserved and cannot be set
-fail_compilation/reserved_version.d(100): Error: version identifier 'Windows' is reserved and cannot be set
-fail_compilation/reserved_version.d(101): Error: version identifier 'Win32' is reserved and cannot be set
-fail_compilation/reserved_version.d(102): Error: version identifier 'Win64' is reserved and cannot be set
-fail_compilation/reserved_version.d(103): Error: version identifier 'linux' is reserved and cannot be set
-fail_compilation/reserved_version.d(104): Error: version identifier 'OSX' is reserved and cannot be set
-fail_compilation/reserved_version.d(105): Error: version identifier 'FreeBSD' is reserved and cannot be set
-fail_compilation/reserved_version.d(106): Error: version identifier 'OpenBSD' is reserved and cannot be set
-fail_compilation/reserved_version.d(107): Error: version identifier 'NetBSD' is reserved and cannot be set
-fail_compilation/reserved_version.d(108): Error: version identifier 'DragonFlyBSD' is reserved and cannot be set
-fail_compilation/reserved_version.d(109): Error: version identifier 'BSD' is reserved and cannot be set
-fail_compilation/reserved_version.d(110): Error: version identifier 'Solaris' is reserved and cannot be set
-fail_compilation/reserved_version.d(111): Error: version identifier 'Posix' is reserved and cannot be set
-fail_compilation/reserved_version.d(112): Error: version identifier 'AIX' is reserved and cannot be set
-fail_compilation/reserved_version.d(113): Error: version identifier 'Haiku' is reserved and cannot be set
-fail_compilation/reserved_version.d(114): Error: version identifier 'SkyOS' is reserved and cannot be set
-fail_compilation/reserved_version.d(115): Error: version identifier 'SysV3' is reserved and cannot be set
-fail_compilation/reserved_version.d(116): Error: version identifier 'SysV4' is reserved and cannot be set
-fail_compilation/reserved_version.d(117): Error: version identifier 'Hurd' is reserved and cannot be set
-fail_compilation/reserved_version.d(118): Error: version identifier 'Android' is reserved and cannot be set
-fail_compilation/reserved_version.d(119): Error: version identifier 'Cygwin' is reserved and cannot be set
-fail_compilation/reserved_version.d(120): Error: version identifier 'MinGW' is reserved and cannot be set
-fail_compilation/reserved_version.d(121): Error: version identifier 'FreeStanding' is reserved and cannot be set
-fail_compilation/reserved_version.d(122): Error: version identifier 'X86' is reserved and cannot be set
-fail_compilation/reserved_version.d(123): Error: version identifier 'X86_64' is reserved and cannot be set
-fail_compilation/reserved_version.d(124): Error: version identifier 'ARM' is reserved and cannot be set
-fail_compilation/reserved_version.d(125): Error: version identifier 'ARM_Thumb' is reserved and cannot be set
-fail_compilation/reserved_version.d(126): Error: version identifier 'ARM_SoftFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(127): Error: version identifier 'ARM_SoftFP' is reserved and cannot be set
-fail_compilation/reserved_version.d(128): Error: version identifier 'ARM_HardFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(129): Error: version identifier 'AArch64' is reserved and cannot be set
-fail_compilation/reserved_version.d(130): Error: version identifier 'Epiphany' is reserved and cannot be set
-fail_compilation/reserved_version.d(131): Error: version identifier 'PPC' is reserved and cannot be set
-fail_compilation/reserved_version.d(132): Error: version identifier 'PPC_SoftFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(133): Error: version identifier 'PPC_HardFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(134): Error: version identifier 'PPC64' is reserved and cannot be set
-fail_compilation/reserved_version.d(135): Error: version identifier 'IA64' is reserved and cannot be set
-fail_compilation/reserved_version.d(136): Error: version identifier 'MIPS32' is reserved and cannot be set
-fail_compilation/reserved_version.d(137): Error: version identifier 'MIPS64' is reserved and cannot be set
-fail_compilation/reserved_version.d(138): Error: version identifier 'MIPS_O32' is reserved and cannot be set
-fail_compilation/reserved_version.d(139): Error: version identifier 'MIPS_N32' is reserved and cannot be set
-fail_compilation/reserved_version.d(140): Error: version identifier 'MIPS_O64' is reserved and cannot be set
-fail_compilation/reserved_version.d(141): Error: version identifier 'MIPS_N64' is reserved and cannot be set
-fail_compilation/reserved_version.d(142): Error: version identifier 'MIPS_EABI' is reserved and cannot be set
-fail_compilation/reserved_version.d(143): Error: version identifier 'MIPS_SoftFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(144): Error: version identifier 'MIPS_HardFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(145): Error: version identifier 'NVPTX' is reserved and cannot be set
-fail_compilation/reserved_version.d(146): Error: version identifier 'NVPTX64' is reserved and cannot be set
-fail_compilation/reserved_version.d(147): Error: version identifier 'SPARC' is reserved and cannot be set
-fail_compilation/reserved_version.d(148): Error: version identifier 'SPARC_V8Plus' is reserved and cannot be set
-fail_compilation/reserved_version.d(149): Error: version identifier 'SPARC_SoftFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(150): Error: version identifier 'SPARC_HardFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(151): Error: version identifier 'SPARC64' is reserved and cannot be set
-fail_compilation/reserved_version.d(152): Error: version identifier 'S390' is reserved and cannot be set
-fail_compilation/reserved_version.d(153): Error: version identifier 'S390X' is reserved and cannot be set
-fail_compilation/reserved_version.d(154): Error: version identifier 'SystemZ' is reserved and cannot be set
-fail_compilation/reserved_version.d(155): Error: version identifier 'HPPA' is reserved and cannot be set
-fail_compilation/reserved_version.d(156): Error: version identifier 'HPPA64' is reserved and cannot be set
-fail_compilation/reserved_version.d(157): Error: version identifier 'SH' is reserved and cannot be set
-fail_compilation/reserved_version.d(158): Error: version identifier 'SH64' is reserved and cannot be set
-fail_compilation/reserved_version.d(159): Error: version identifier 'Alpha' is reserved and cannot be set
-fail_compilation/reserved_version.d(160): Error: version identifier 'Alpha_SoftFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(161): Error: version identifier 'Alpha_HardFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(162): Error: version identifier 'LittleEndian' is reserved and cannot be set
-fail_compilation/reserved_version.d(163): Error: version identifier 'BigEndian' is reserved and cannot be set
-fail_compilation/reserved_version.d(164): Error: version identifier 'ELFv1' is reserved and cannot be set
-fail_compilation/reserved_version.d(165): Error: version identifier 'ELFv2' is reserved and cannot be set
-fail_compilation/reserved_version.d(166): Error: version identifier 'CRuntime_Bionic' is reserved and cannot be set
-fail_compilation/reserved_version.d(167): Error: version identifier 'CRuntime_DigitalMars' is reserved and cannot be set
-fail_compilation/reserved_version.d(168): Error: version identifier 'CRuntime_Glibc' is reserved and cannot be set
-fail_compilation/reserved_version.d(169): Error: version identifier 'CRuntime_Microsoft' is reserved and cannot be set
-fail_compilation/reserved_version.d(170): Error: version identifier 'D_Coverage' is reserved and cannot be set
-fail_compilation/reserved_version.d(171): Error: version identifier 'D_Ddoc' is reserved and cannot be set
-fail_compilation/reserved_version.d(172): Error: version identifier 'D_InlineAsm_X86' is reserved and cannot be set
-fail_compilation/reserved_version.d(173): Error: version identifier 'D_InlineAsm_X86_64' is reserved and cannot be set
-fail_compilation/reserved_version.d(174): Error: version identifier 'D_LP64' is reserved and cannot be set
-fail_compilation/reserved_version.d(175): Error: version identifier 'D_X32' is reserved and cannot be set
-fail_compilation/reserved_version.d(176): Error: version identifier 'D_HardFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(177): Error: version identifier 'D_SoftFloat' is reserved and cannot be set
-fail_compilation/reserved_version.d(178): Error: version identifier 'D_PIC' is reserved and cannot be set
-fail_compilation/reserved_version.d(179): Error: version identifier 'D_SIMD' is reserved and cannot be set
-fail_compilation/reserved_version.d(180): Error: version identifier 'D_Version2' is reserved and cannot be set
-fail_compilation/reserved_version.d(181): Error: version identifier 'D_NoBoundsChecks' is reserved and cannot be set
-fail_compilation/reserved_version.d(184): Error: version identifier 'all' is reserved and cannot be set
-fail_compilation/reserved_version.d(185): Error: version identifier 'none' is reserved and cannot be set
+fail_compilation/reserved_version.d(108): Error: version identifier 'DigitalMars' is reserved and cannot be set
+fail_compilation/reserved_version.d(109): Error: version identifier 'GNU' is reserved and cannot be set
+fail_compilation/reserved_version.d(110): Error: version identifier 'LDC' is reserved and cannot be set
+fail_compilation/reserved_version.d(111): Error: version identifier 'SDC' is reserved and cannot be set
+fail_compilation/reserved_version.d(112): Error: version identifier 'Windows' is reserved and cannot be set
+fail_compilation/reserved_version.d(113): Error: version identifier 'Win32' is reserved and cannot be set
+fail_compilation/reserved_version.d(114): Error: version identifier 'Win64' is reserved and cannot be set
+fail_compilation/reserved_version.d(115): Error: version identifier 'linux' is reserved and cannot be set
+fail_compilation/reserved_version.d(116): Error: version identifier 'OSX' is reserved and cannot be set
+fail_compilation/reserved_version.d(117): Error: version identifier 'FreeBSD' is reserved and cannot be set
+fail_compilation/reserved_version.d(118): Error: version identifier 'OpenBSD' is reserved and cannot be set
+fail_compilation/reserved_version.d(119): Error: version identifier 'NetBSD' is reserved and cannot be set
+fail_compilation/reserved_version.d(120): Error: version identifier 'DragonFlyBSD' is reserved and cannot be set
+fail_compilation/reserved_version.d(121): Error: version identifier 'BSD' is reserved and cannot be set
+fail_compilation/reserved_version.d(122): Error: version identifier 'Solaris' is reserved and cannot be set
+fail_compilation/reserved_version.d(123): Error: version identifier 'Posix' is reserved and cannot be set
+fail_compilation/reserved_version.d(124): Error: version identifier 'AIX' is reserved and cannot be set
+fail_compilation/reserved_version.d(125): Error: version identifier 'Haiku' is reserved and cannot be set
+fail_compilation/reserved_version.d(126): Error: version identifier 'SkyOS' is reserved and cannot be set
+fail_compilation/reserved_version.d(127): Error: version identifier 'SysV3' is reserved and cannot be set
+fail_compilation/reserved_version.d(128): Error: version identifier 'SysV4' is reserved and cannot be set
+fail_compilation/reserved_version.d(129): Error: version identifier 'Hurd' is reserved and cannot be set
+fail_compilation/reserved_version.d(130): Error: version identifier 'Android' is reserved and cannot be set
+fail_compilation/reserved_version.d(131): Error: version identifier 'PlayStation' is reserved and cannot be set
+fail_compilation/reserved_version.d(132): Error: version identifier 'PlayStation4' is reserved and cannot be set
+fail_compilation/reserved_version.d(133): Error: version identifier 'Cygwin' is reserved and cannot be set
+fail_compilation/reserved_version.d(134): Error: version identifier 'MinGW' is reserved and cannot be set
+fail_compilation/reserved_version.d(135): Error: version identifier 'FreeStanding' is reserved and cannot be set
+fail_compilation/reserved_version.d(136): Error: version identifier 'X86' is reserved and cannot be set
+fail_compilation/reserved_version.d(137): Error: version identifier 'X86_64' is reserved and cannot be set
+fail_compilation/reserved_version.d(138): Error: version identifier 'ARM' is reserved and cannot be set
+fail_compilation/reserved_version.d(139): Error: version identifier 'ARM_Thumb' is reserved and cannot be set
+fail_compilation/reserved_version.d(140): Error: version identifier 'ARM_SoftFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(141): Error: version identifier 'ARM_SoftFP' is reserved and cannot be set
+fail_compilation/reserved_version.d(142): Error: version identifier 'ARM_HardFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(143): Error: version identifier 'AArch64' is reserved and cannot be set
+fail_compilation/reserved_version.d(144): Error: version identifier 'Epiphany' is reserved and cannot be set
+fail_compilation/reserved_version.d(145): Error: version identifier 'PPC' is reserved and cannot be set
+fail_compilation/reserved_version.d(146): Error: version identifier 'PPC_SoftFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(147): Error: version identifier 'PPC_HardFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(148): Error: version identifier 'PPC64' is reserved and cannot be set
+fail_compilation/reserved_version.d(149): Error: version identifier 'IA64' is reserved and cannot be set
+fail_compilation/reserved_version.d(150): Error: version identifier 'MIPS32' is reserved and cannot be set
+fail_compilation/reserved_version.d(151): Error: version identifier 'MIPS64' is reserved and cannot be set
+fail_compilation/reserved_version.d(152): Error: version identifier 'MIPS_O32' is reserved and cannot be set
+fail_compilation/reserved_version.d(153): Error: version identifier 'MIPS_N32' is reserved and cannot be set
+fail_compilation/reserved_version.d(154): Error: version identifier 'MIPS_O64' is reserved and cannot be set
+fail_compilation/reserved_version.d(155): Error: version identifier 'MIPS_N64' is reserved and cannot be set
+fail_compilation/reserved_version.d(156): Error: version identifier 'MIPS_EABI' is reserved and cannot be set
+fail_compilation/reserved_version.d(157): Error: version identifier 'MIPS_SoftFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(158): Error: version identifier 'MIPS_HardFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(159): Error: version identifier 'NVPTX' is reserved and cannot be set
+fail_compilation/reserved_version.d(160): Error: version identifier 'NVPTX64' is reserved and cannot be set
+fail_compilation/reserved_version.d(161): Error: version identifier 'SPARC' is reserved and cannot be set
+fail_compilation/reserved_version.d(162): Error: version identifier 'SPARC_V8Plus' is reserved and cannot be set
+fail_compilation/reserved_version.d(163): Error: version identifier 'SPARC_SoftFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(164): Error: version identifier 'SPARC_HardFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(165): Error: version identifier 'SPARC64' is reserved and cannot be set
+fail_compilation/reserved_version.d(166): Error: version identifier 'S390' is reserved and cannot be set
+fail_compilation/reserved_version.d(167): Error: version identifier 'S390X' is reserved and cannot be set
+fail_compilation/reserved_version.d(168): Error: version identifier 'SystemZ' is reserved and cannot be set
+fail_compilation/reserved_version.d(169): Error: version identifier 'HPPA' is reserved and cannot be set
+fail_compilation/reserved_version.d(170): Error: version identifier 'HPPA64' is reserved and cannot be set
+fail_compilation/reserved_version.d(171): Error: version identifier 'SH' is reserved and cannot be set
+fail_compilation/reserved_version.d(172): Error: version identifier 'SH64' is reserved and cannot be set
+fail_compilation/reserved_version.d(173): Error: version identifier 'Alpha' is reserved and cannot be set
+fail_compilation/reserved_version.d(174): Error: version identifier 'Alpha_SoftFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(175): Error: version identifier 'Alpha_HardFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(176): Error: version identifier 'LittleEndian' is reserved and cannot be set
+fail_compilation/reserved_version.d(177): Error: version identifier 'BigEndian' is reserved and cannot be set
+fail_compilation/reserved_version.d(178): Error: version identifier 'ELFv1' is reserved and cannot be set
+fail_compilation/reserved_version.d(179): Error: version identifier 'ELFv2' is reserved and cannot be set
+fail_compilation/reserved_version.d(180): Error: version identifier 'CRuntime_Bionic' is reserved and cannot be set
+fail_compilation/reserved_version.d(181): Error: version identifier 'CRuntime_DigitalMars' is reserved and cannot be set
+fail_compilation/reserved_version.d(182): Error: version identifier 'CRuntime_Glibc' is reserved and cannot be set
+fail_compilation/reserved_version.d(183): Error: version identifier 'CRuntime_Microsoft' is reserved and cannot be set
+fail_compilation/reserved_version.d(184): Error: version identifier 'D_Coverage' is reserved and cannot be set
+fail_compilation/reserved_version.d(185): Error: version identifier 'D_Ddoc' is reserved and cannot be set
+fail_compilation/reserved_version.d(186): Error: version identifier 'D_InlineAsm_X86' is reserved and cannot be set
+fail_compilation/reserved_version.d(187): Error: version identifier 'D_InlineAsm_X86_64' is reserved and cannot be set
+fail_compilation/reserved_version.d(188): Error: version identifier 'D_LP64' is reserved and cannot be set
+fail_compilation/reserved_version.d(189): Error: version identifier 'D_X32' is reserved and cannot be set
+fail_compilation/reserved_version.d(190): Error: version identifier 'D_HardFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(191): Error: version identifier 'D_SoftFloat' is reserved and cannot be set
+fail_compilation/reserved_version.d(192): Error: version identifier 'D_PIC' is reserved and cannot be set
+fail_compilation/reserved_version.d(193): Error: version identifier 'D_SIMD' is reserved and cannot be set
+fail_compilation/reserved_version.d(194): Error: version identifier 'D_Version2' is reserved and cannot be set
+fail_compilation/reserved_version.d(195): Error: version identifier 'D_NoBoundsChecks' is reserved and cannot be set
+fail_compilation/reserved_version.d(198): Error: version identifier 'all' is reserved and cannot be set
+fail_compilation/reserved_version.d(199): Error: version identifier 'none' is reserved and cannot be set
 ---
 */
+
+// Some extra empty lines to help fixup the manual line numbering after adding new version identifiers
+
+
+
+
+
+
+
+
 
 version = DigitalMars;
 version = GNU;
@@ -116,6 +128,8 @@ version = SysV3;
 version = SysV4;
 version = Hurd;
 version = Android;
+version = PlayStation;
+version = PlayStation4;
 version = Cygwin;
 version = MinGW;
 version = FreeStanding;
