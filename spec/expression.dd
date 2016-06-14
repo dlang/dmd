@@ -557,9 +557,14 @@ $(GNAME AddExpression):
     )
 
     $(P If both operands are pointers, and the operator is $(D +),
-        then it is illegal. For $(D -), the pointers are subtracted and the
+        then it is illegal.
+    )
+
+    $(P If both operands are pointers, and the operator is $(D -),
+        the pointers are subtracted and the
         result is divided by the size of the type pointed to by the
         operands. It is an error if the pointers point to different types.
+        The type of the result is $(D ptrdiff_t).
     )
 
     $(P If both operands are of integral types and an overflow or underflow
