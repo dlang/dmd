@@ -182,7 +182,9 @@ Symbol *objc_getMsgSend(Type *ret, bool hasHiddenArg)
 
 Symbol *objc_getImageInfo()
 {
-    assert(!objc_simageInfo); // only allow once per object file
+    if (objc_simageInfo)
+        return objc_simageInfo;
+
     objc_hasSymbols = true;
 
     DtBuilder dtb;
