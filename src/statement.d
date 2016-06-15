@@ -1115,7 +1115,7 @@ extern (C++) class ExpStatement : Statement
                 {
                     //printf("dtor is: "); v.edtor.print();
                     *sfinally = new DtorExpStatement(loc, v.edtor, v);
-                    v.noscope = true; // don't add in dtor again
+                    v.storage_class |= STCnodtor; // don't add in dtor again
                 }
             }
         }

@@ -965,7 +965,6 @@ extern (C++) class VarDeclaration : Declaration
 {
     Initializer _init;
     uint offset;
-    bool noscope;                   // if scope destruction is disabled
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
     bool isargptr;                  // if parameter that _argptr points to
     structalign_t alignment;
@@ -1468,7 +1467,7 @@ extern (C++) class VarDeclaration : Declaration
         }
 
         FuncDeclaration fd = parent.isFuncDeclaration();
-        if (type.isscope() && !noscope)
+        if (type.isscope() && !(storage_class & STCnodtor))
         {
             if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
             {
@@ -2035,7 +2034,7 @@ extern (C++) class VarDeclaration : Declaration
     final bool needsScopeDtor()
     {
         //printf("VarDeclaration::needsScopeDtor() %s\n", toChars());
-        return edtor && !noscope;
+        return edtor && !(storage_class & STCnodtor);
     }
 
     /******************************************
@@ -2047,7 +2046,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
         // Destruction of STCfield's is handled by buildDtor()
-        if (noscope || storage_class & (STCnodtor | STCref | STCout | STCfield))
+        if (storage_class & (STCnodtor | STCref | STCout | STCfield))
         {
             return null;
         }
@@ -2784,7 +2783,7 @@ extern (C++) final class ThisDeclaration : VarDeclaration
     extern (D) this(Loc loc, Type t)
     {
         super(loc, t, Id.This, null);
-        noscope = true;
+        storage_class |= STCnodtor;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

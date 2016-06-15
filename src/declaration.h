@@ -231,7 +231,6 @@ class VarDeclaration : public Declaration
 public:
     Initializer *_init;
     unsigned offset;
-    bool noscope;               // if scope destruction is disabled
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
     bool isargptr;              // if parameter that _argptr points to
     structalign_t alignment;
