@@ -323,7 +323,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         fop.fbody = null; // remove fbody which contains the error
     }
 
-    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd.toChars(), (fop.storage_class & STCdisable) != 0);
+    //printf("-StructDeclaration::buildOpAssign() %s, errors = %d, disabled = %d\n", sd.toChars(), errors, (fop.storage_class & STCdisable) != 0);
     return fop;
 }
 
