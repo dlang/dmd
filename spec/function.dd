@@ -2251,7 +2251,7 @@ $(H3 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
     $(P This provides a way to add functions to a class externally as if they were
     public final member functions, which enables
-    $(WEB www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
+    $(HTTP www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
     function chaining and component programming).
     )
 
