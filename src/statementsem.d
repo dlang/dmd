@@ -2001,6 +2001,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         bool needswitcherror = false;
 
+        ss.lastVar = sc.lastVar;
+
         sc = sc.push();
         sc.sbreak = ss;
         sc.sw = ss;
@@ -2098,6 +2100,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             cs = new CompoundStatement(ss.loc, a);
             ss._body = cs;
         }
+
+        if (ss.checkLabel())
+            goto Lerror;
 
         sc.pop();
         result = ss;
@@ -2204,6 +2209,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (errors || cs.exp.op == TOKerror)
             return setError();
 
+        cs.lastVar = sc.lastVar;
         result = cs;
     }
 
@@ -2323,6 +2329,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (errors || ds.statement.isErrorStatement())
             return setError();
 
+        ds.lastVar = sc.lastVar;
         result = ds;
     }
 

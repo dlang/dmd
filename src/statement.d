@@ -289,7 +289,7 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(CompoundStatement cs)
             {
-                //printf("CompoundStatement::blockExit(%p) %d\n", cs, cs->statements->dim);
+                //printf("CompoundStatement.blockExit(%p) %d result = x%X\n", cs, cs.statements.dim, result);
                 result = BEfallthru;
                 Statement slast = null;
                 foreach (s; *cs.statements)
@@ -297,7 +297,7 @@ extern (C++) abstract class Statement : RootObject
                     if (s)
                     {
                         //printf("result = x%x\n", result);
-                        //printf("s: %s\n", s->toChars());
+                        //printf("s: %s\n", s.toChars());
                         if (result & BEfallthru && slast)
                         {
                             slast = slast.last();
@@ -1874,6 +1874,7 @@ extern (C++) final class SwitchStatement : Statement
     CaseStatements* cases;          // array of CaseStatement's
     int hasNoDefault;               // !=0 if no default statement
     int hasVars;                    // !=0 if has variable case values
+    VarDeclaration lastVar;
 
     extern (D) this(Loc loc, Expression c, Statement b, bool isFinal)
     {
@@ -1893,6 +1894,45 @@ extern (C++) final class SwitchStatement : Statement
         return true;
     }
 
+    final bool checkLabel()
+    {
+        bool checkVar(VarDeclaration vd)
+        {
+            if (!vd || vd.isDataseg() || (vd.storage_class & STCmanifest))
+                return false;
+
+            VarDeclaration last = lastVar;
+            while (last && last != vd)
+                last = last.lastVar;
+            if (last == vd)
+            {
+                // All good, the label's scope has no variables
+            }
+            else if (vd.ident == Id.withSym)
+            {
+                error("'switch' skips declaration of 'with' temporary at %s", vd.loc.toChars());
+                return true;
+            }
+            else
+            {
+                error("'switch' skips declaration of variable %s at %s", vd.toPrettyChars(), vd.loc.toChars());
+                return true;
+            }
+
+            return false;
+        }
+
+        if (sdefault && checkVar(sdefault.lastVar))
+            return true;
+
+        foreach (scase; *cases)
+        {
+            if (scase && checkVar(scase.lastVar))
+                return true;
+        }
+        return false;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1906,6 +1946,7 @@ extern (C++) final class CaseStatement : Statement
     Expression exp;
     Statement statement;
     int index;              // which case it is (since we sort this)
+    VarDeclaration lastVar;
 
     extern (D) this(Loc loc, Expression exp, Statement s)
     {
@@ -1969,6 +2010,7 @@ extern (C++) final class CaseRangeStatement : Statement
 extern (C++) final class DefaultStatement : Statement
 {
     Statement statement;
+    VarDeclaration lastVar;
 
     extern (D) this(Loc loc, Statement s)
     {
@@ -2455,7 +2497,7 @@ extern (C++) final class GotoStatement : Statement
         return new GotoStatement(loc, ident);
     }
 
-    bool checkLabel()
+    final bool checkLabel()
     {
         if (!label.statement)
         {

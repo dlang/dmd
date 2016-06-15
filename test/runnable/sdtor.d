@@ -1294,9 +1294,9 @@ void test51()
   A51_a = 0; { if (0) while(1) A51 a;               } assert(A51_a == 0);
   A51_a = 0; { try A51 a; catch(Error e) {}         } assert(A51_a == 1);
   A51_a = 0; { if (0) final switch(1) A51 a;        } assert(A51_a == 0); // should fail to build
-  A51_a = 0; { if (0) switch(1) { A51 a; default: } } assert(A51_a == 0);
+//  A51_a = 0; { if (0) switch(1) { A51 a; default: } } assert(A51_a == 0);
   A51_a = 0; { if (0) switch(1) { default: A51 a; } } assert(A51_a == 0);
-  A51_a = 0; { if (1) switch(1) { A51 a; default: } } assert(A51_a == 1); // should be 0, right?
+//  A51_a = 0; { if (1) switch(1) { A51 a; default: } } assert(A51_a == 1); // should be 0, right?
   A51_a = 0; { if (1) switch(1) { default: A51 a; } } assert(A51_a == 1);
 //  A51_a = 0; { final switch(0) A51 a;               } assert(A51_a == 0);
   A51_a = 0; { A51 a; with(a) A51 b;                } assert(A51_a == 2);
