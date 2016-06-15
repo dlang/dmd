@@ -1,15 +1,10 @@
 /**
- * This module contains the default hash implementation.
+ * The default hash implementation.
  *
- * Copyright: Copyright Sean Kelly 2009 - 2009.
+ * Copyright: Copyright Sean Kelly 2009 - 2016.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
- */
-
-/*          Copyright Sean Kelly 2009 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
+ * Source: $(DRUNTIMESRC src/rt/util/_hash.d)
  */
 module rt.util.hash;
 
@@ -23,7 +18,13 @@ version( AnyX86 )
 
 
 @trusted pure nothrow
-size_t hashOf( const (void)* buf, size_t len, size_t seed = 0 )
+size_t hashOf( const(void)[] buf, size_t seed = 0 )
+{
+    return hashOf(buf.ptr, buf.length, seed);
+}
+
+@trusted pure nothrow
+size_t hashOf( const(void)* buf, size_t len, size_t seed = 0 )
 {
     /*
      * This is Paul Hsieh's SuperFastHash algorithm, described here:
@@ -48,12 +49,11 @@ size_t hashOf( const (void)* buf, size_t len, size_t seed = 0 )
     //       value was incorporated to allow chaining.
     auto data = cast(const (ubyte)*) buf;
     auto hash = seed;
-    int  rem;
 
-    if( len <= 0 || data is null )
+    if( len == 0 || data is null )
         return 0;
 
-    rem = len & 3;
+    int rem = len & 3;
     len >>= 2;
 
     for( ; len > 0; len-- )
