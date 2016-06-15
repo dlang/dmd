@@ -228,7 +228,7 @@ extern (C++) abstract class Statement : RootObject
     /* Only valid after semantic analysis
      * If 'mustNotThrow' is true, generate an error if it throws
      */
-    final int blockExit(FuncDeclaration func, bool mustNotThrow)
+    final int blockExit(FuncDeclaration func, bool mustNotThrow, int result = BEfallthru)
     {
         extern (C++) final class BlockExit : Visitor
         {
@@ -238,11 +238,11 @@ extern (C++) abstract class Statement : RootObject
             bool mustNotThrow;
             int result;
 
-            extern (D) this(FuncDeclaration func, bool mustNotThrow)
+            extern (D) this(FuncDeclaration func, bool mustNotThrow, int result)
             {
                 this.func = func;
                 this.mustNotThrow = mustNotThrow;
-                result = BEnone;
+                this.result = result;
             }
 
             override void visit(Statement s)
@@ -289,15 +289,14 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(CompoundStatement cs)
             {
-                //printf("CompoundStatement::blockExit(%p) %d\n", cs, cs->statements->dim);
-                result = BEfallthru;
+                //printf("CompoundStatement.blockExit(%p) %d result = x%X\n", cs, cs.statements.dim, result);
                 Statement slast = null;
                 foreach (s; *cs.statements)
                 {
                     if (s)
                     {
-                        //printf("result = x%x\n", result);
-                        //printf("s: %s\n", s->toChars());
+                        //printf("result = x%x, comeFrom() = %d, hasCode() = %d\n", result, s.comeFrom(), s.hasCode());
+                        //printf("s: %s\n", s.toChars());
                         if (result & BEfallthru && slast)
                         {
                             slast = slast.last();
@@ -342,7 +341,7 @@ extern (C++) abstract class Statement : RootObject
                 {
                     if (s)
                     {
-                        int r = s.blockExit(func, mustNotThrow);
+                        int r = s.blockExit(func, mustNotThrow, BEnone);
                         result |= r & ~(BEbreak | BEcontinue | BEfallthru);
                         if ((r & (BEfallthru | BEcontinue | BEbreak)) == 0)
                             result &= ~BEfallthru;
@@ -353,7 +352,7 @@ extern (C++) abstract class Statement : RootObject
             override void visit(ScopeStatement s)
             {
                 //printf("ScopeStatement::blockExit(%p)\n", s->statement);
-                result = s.statement ? s.statement.blockExit(func, mustNotThrow) : BEfallthru;
+                result = s.statement ? s.statement.blockExit(func, mustNotThrow, result) : BEfallthru;
             }
 
             override void visit(WhileStatement s)
@@ -486,12 +485,12 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(SwitchStatement s)
             {
-                result = BEnone;
+                result = BEgoto;
                 if (canThrow(s.condition, func, mustNotThrow))
                     result |= BEthrow;
                 if (s._body)
                 {
-                    result |= s._body.blockExit(func, mustNotThrow);
+                    result |= s._body.blockExit(func, mustNotThrow, result);
                     if (result & BEbreak)
                     {
                         result |= BEfallthru;
@@ -707,7 +706,7 @@ extern (C++) abstract class Statement : RootObject
             }
         }
 
-        scope BlockExit be = new BlockExit(func, mustNotThrow);
+        scope BlockExit be = new BlockExit(func, mustNotThrow, result);
         accept(be);
         return be.result;
     }
