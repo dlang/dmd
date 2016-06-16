@@ -1711,7 +1711,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Statement sdtor = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
                 sdtor = new OnScopeStatement(ifs.loc, TOKon_scope_exit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
-                ifs.match.noscope = true;
+                ifs.match.storage_class |= STCnodtor;
             }
         }
         else

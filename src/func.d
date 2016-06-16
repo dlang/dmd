@@ -2107,7 +2107,7 @@ extern (C++) class FuncDeclaration : Declaration
                         {
                             // same with ExpStatement.scopeCode()
                             Statement s = new DtorExpStatement(Loc(), v.edtor, v);
-                            v.noscope = true;
+                            v.storage_class |= STCnodtor;
 
                             s = s.semantic(sc2);
 
@@ -3668,7 +3668,7 @@ extern (C++) class FuncDeclaration : Declaration
              * fbody->semantic() running, vresult->type might be modified.
              */
             vresult = new VarDeclaration(loc, tret, outId ? outId : Id.result, null);
-            vresult.noscope = true;
+            vresult.storage_class |= STCnodtor;
 
             if (outId == Id.result)
                 vresult.storage_class |= STCtemp;

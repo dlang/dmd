@@ -1319,7 +1319,7 @@ extern (C++) Expression valueNoDtor(Expression e)
                         VarDeclaration ctmp = ve.var.isVarDeclaration();
                         if (ctmp)
                         {
-                            ctmp.noscope = true;
+                            ctmp.storage_class |= STCnodtor;
                             assert(!ce.isLvalue());
                         }
                     }
@@ -1332,7 +1332,7 @@ extern (C++) Expression valueNoDtor(Expression e)
         auto vtmp = (cast(VarExp)e).var.isVarDeclaration();
         if (vtmp && (vtmp.storage_class & STCrvalue))
         {
-            vtmp.noscope = true;
+            vtmp.storage_class |= STCnodtor;
         }
     }
     return e;
@@ -1381,7 +1381,7 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
              * directly onto the stack.
              */
             auto tmp = copyToTemp(STCrvalue, "__copytmp", e);
-            tmp.noscope = true;
+            tmp.storage_class |= STCnodtor;
             tmp.semantic(sc);
             Expression de = new DeclarationExp(e.loc, tmp);
             Expression ve = new VarExp(e.loc, tmp);

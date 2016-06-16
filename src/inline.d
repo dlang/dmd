@@ -2244,7 +2244,7 @@ void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expre
             {
                 // same with ExpStatement.scopeCode()
                 as2 = new Statements();
-                vthis.noscope = 1;
+                vthis.storage_class |= STCnodtor;
             }
         }
 
