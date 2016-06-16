@@ -1128,17 +1128,12 @@ extern (C++) class VarDeclaration : Declaration
             type.checkComplexTransition(loc);
 
         // Calculate type size + safety checks
-        if (sc.func && !sc.intypeof && !isMember())
+        if (sc.func && !sc.intypeof)
         {
-            if (storage_class & STCgshared)
+            if (storage_class & STCgshared && !isMember())
             {
                 if (sc.func.setUnsafe())
                     error("__gshared not allowed in safe functions; use shared");
-            }
-            if (_init && _init.isVoidInitializer() && type.hasPointers()) // get type size
-            {
-                if (sc.func.setUnsafe())
-                    error("void initializers for pointers not allowed in safe functions");
             }
         }
 
@@ -1478,6 +1473,23 @@ extern (C++) class VarDeclaration : Declaration
             {
                 if (!(storage_class & STCparameter) && ident != Id.withSym)
                     error("reference to scope class must be scope");
+            }
+        }
+
+        // Calculate type size + safety checks
+        if (sc.func && !sc.intypeof)
+        {
+            if (_init && _init.isVoidInitializer() && type.hasPointers()) // get type size
+            {
+                if (sc.func.setUnsafe())
+                    error("void initializers for pointers not allowed in safe functions");
+            }
+            else if (!_init &&
+                     !(storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield | STCparameter)) &&
+                     type.hasVoidInitPointers())
+            {
+                if (sc.func.setUnsafe())
+                    error("void initializers for pointers not allowed in safe functions");
             }
         }
 

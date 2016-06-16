@@ -333,6 +333,7 @@ public:
     virtual int hasWild() const;
     virtual Expression *toExpression();
     virtual bool hasPointers();
+    virtual bool hasVoidInitPointers();
     virtual Type *nextOf();
     Type *baseElemOf();
     uinteger_t sizemask();

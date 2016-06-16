@@ -2902,6 +2902,18 @@ extern (C++) abstract class Type : RootObject
     }
 
     /*************************************
+     * Detect if type has pointer fields that are initialized to void.
+     * Local stack variables with such void fields can remain uninitialized,
+     * leading to pointer bugs.
+     * Returns:
+     *  true if so
+     */
+    bool hasVoidInitPointers()
+    {
+        return false;
+    }
+
+    /*************************************
      * If this is a type of something, return that something.
      */
     Type nextOf()
@@ -8500,6 +8512,22 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
+    override bool hasVoidInitPointers()
+    {
+        // Probably should cache this information in sym rather than recompute
+        StructDeclaration s = sym;
+
+        sym.size(Loc()); // give error for forward references
+        foreach (VarDeclaration v; s.fields)
+        {
+            if (v._init && v._init.isVoidInitializer() && v.type.hasPointers())
+                return true;
+            if (!v._init && v.type.hasVoidInitPointers())
+                return true;
+        }
+        return false;
+    }
+
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
@@ -8842,6 +8870,11 @@ extern (C++) final class TypeEnum : Type
     override bool hasPointers()
     {
         return sym.getMemtype(Loc()).hasPointers();
+    }
+
+    override bool hasVoidInitPointers()
+    {
+        return sym.getMemtype(Loc()).hasVoidInitPointers();
     }
 
     override Type nextOf()
