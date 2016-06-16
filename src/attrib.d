@@ -1395,13 +1395,28 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
 
     override void semantic2(Scope* sc)
     {
-        if (decl && atts && atts.dim)
+        if (decl && atts && atts.dim && _scope)
         {
-            if (atts && atts.dim && _scope)
+            static void eval(Scope* sc, Expressions* exps)
             {
-                _scope = null;
-                arrayExpressionSemantic(atts, sc, true); // run semantic
+                foreach (ref Expression e; *exps)
+                {
+                    if (e)
+                    {
+                        e = e.semantic(sc);
+                        if (definitelyValueParameter(e))
+                            e = e.ctfeInterpret();
+                        if (e.op == TOKtuple)
+                        {
+                            TupleExp te = cast(TupleExp)e;
+                            eval(sc, te.exps);
+                        }
+                    }
+                }
             }
+
+            _scope = null;
+            eval(sc, atts);
         }
         AttribDeclaration.semantic2(sc);
     }
