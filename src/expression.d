@@ -80,6 +80,39 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
 }
 
 /*************************************************************
+ * Check if e is a DotVarExp representing an overlapped pointer.
+ * Print error if overlapped pointer and in @safe.
+ * Params:
+ *      sc = scope
+ *      e = expression to check
+ *      msg = error message string
+ * Returns:
+ *      true if error
+ */
+
+bool checkOverlappedPointer(Scope* sc, Expression e, string msg)
+{
+    if (e.op != TOKdotvar)
+        return false;
+    DotVarExp dve = cast(DotVarExp)e;
+    if (VarDeclaration v = dve.var.isVarDeclaration())
+    {
+        if (v.overlapped && !sc.intypeof && sc.func && v.type.hasPointers())
+        {
+            if (auto ad = v.toParent2().isAggregateDeclaration())
+            {
+                if (sc.func.setUnsafe())
+                {
+                    e.error(msg.ptr, ad.toChars(), v.toChars());
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/*************************************************************
  * Given var, we need to get the
  * right 'this' pointer if var is in an outer class, but our
  * existing 'this' pointer is in an inner class.
@@ -250,7 +283,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  */
 extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null)
 {
-    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token::toChars(e1->op), e1->toChars(), e2 ? e2->toChars() : NULL);
+    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token.toChars(e1.op), e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
 
     OverloadSet os;
@@ -466,21 +499,20 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         else if (e1.op == TOKdotvar)
         {
             // Check for reading overlapped pointer field in @safe code.
-            VarDeclaration v = (cast(DotVarExp)e1).var.isVarDeclaration();
-            if (v && v.overlapped && sc.func && !sc.intypeof)
-            {
-                AggregateDeclaration ad = v.toParent2().isAggregateDeclaration();
-                if (ad && e1.type.hasPointers() && sc.func.setUnsafe())
-                {
-                    e1.error("field %s.%s cannot be accessed in @safe code because it overlaps with a pointer", ad.toChars(), v.toChars());
-                    return new ErrorExp();
-                }
-            }
+            if (checkOverlappedPointer(sc, e1, "field %s.%s cannot be accessed in @safe code because it overlaps with a pointer"))
+                return new ErrorExp();
         }
         else if (e1.op == TOKdot)
         {
             e1.error("expression has no value");
             return new ErrorExp();
+        }
+        else if (e1.op == TOKcall)
+        {
+            CallExp ce = cast(CallExp)e1;
+            // Check for reading overlapped pointer field in @safe code.
+            if (checkOverlappedPointer(sc, ce.e1, "field %s.%s cannot be accessed in @safe code because it overlaps with a pointer"))
+                return new ErrorExp();
         }
     }
 
