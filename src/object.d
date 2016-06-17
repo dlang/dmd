@@ -214,11 +214,11 @@ class TypeInfo
     {
         import core.internal.traits : externDFunc;
         alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                    size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
+                                    size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
         try
         {
             auto data = this.toString();
-            return hashOf(data.ptr, data.length, 0);
+            return hashOf(data, 0);
         }
         catch (Throwable)
         {
@@ -255,7 +255,15 @@ class TypeInfo
         return ti && this.toString() == ti.toString();
     }
 
-    /// Returns a hash of the instance of a type.
+    /**
+     * Computes a hash of the instance of a type.
+     * Params:
+     *    p = pointer to start of instance of the type
+     * Returns:
+     *    the hash
+     * Bugs:
+     *    fix https://issues.dlang.org/show_bug.cgi?id=12516 e.g. by changing this to a truly safe interface.
+     */
     size_t getHash(in void* p) @trusted nothrow const { return cast(size_t)p; }
 
     /// Compares two instances for equality.
@@ -1101,7 +1109,7 @@ class TypeInfo_Struct : TypeInfo
                     this.initializer().length == s.initializer().length;
     }
 
-    override size_t getHash(in void* p) @safe pure nothrow const
+    override size_t getHash(in void* p) @trusted pure nothrow const
     {
         assert(p);
         if (xtoHash)
@@ -1112,8 +1120,8 @@ class TypeInfo_Struct : TypeInfo
         {
             import core.internal.traits : externDFunc;
             alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                        size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
-            return hashOf(p, initializer().length, 0);
+                                        size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
+            return hashOf(p[0 .. initializer().length], 0);
         }
     }
 
@@ -3167,7 +3175,7 @@ struct Test
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
-    return core.internal.hash.hashOf(arg, seed);
+    return core.internal.hash.hashOf((cast(void*)&arg)[0 .. T.sizeof], seed);
 }
 
 bool _xopEquals(in void*, in void*)
@@ -3238,9 +3246,9 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
 
     import core.internal.traits : externDFunc;
     alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
+                                size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
     if(!hasCustomToHash(element))
-        return hashOf(ptr, elementSize * count, 0);
+        return hashOf(ptr[0 .. elementSize * count], 0);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)
