@@ -289,11 +289,11 @@ TestVectors tvs[2] =
   {  pattern:"abc",	input:"abc",	result:"y",	format:"&",	replace:"abc" },
 ];
 
-TestVectors* tvp =
-[
-  {  pattern:"(a)\\1",	input:"abaab",	result:"y",	format:"&",	replace:"aa" },
-  {  pattern:"abc",	input:"abc",	result:"y",	format:"&",	replace:"abc" },
-];
+//TestVectors* tvp =
+//[
+//  {  pattern:"(a)\\1",	input:"abaab",	result:"y",	format:"&",	replace:"aa" },
+//  {  pattern:"abc",	input:"abc",	result:"y",	format:"&",	replace:"abc" },
+//];
 
 void test7()
 {
@@ -313,10 +313,10 @@ void test7()
     i = cmp(tvs[1].replace, "abc");
     assert(i == 0);
 
-    i = cmp(tvp[0].pattern, "(a)\\1");
-    assert(i == 0);
-    i = cmp(tvp[1].replace, "abc");
-    assert(i == 0);
+    //i = cmp(tvp[0].pattern, "(a)\\1");
+    //assert(i == 0);
+    //i = cmp(tvp[1].replace, "abc");
+    //assert(i == 0);
 
     //printf("finish\n");
 }

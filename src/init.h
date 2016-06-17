@@ -44,8 +44,12 @@ public:
      */
     virtual Initializer *inferType(Scope *sc) = 0;
 
+    Type *checkMultiDimInit(Scope *sc, Type *t);
+    virtual bool canMatch(Scope *sc, Type *t);
+
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
-    virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
+    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    virtual Initializer *semantic(Scope *sc, Type *t, bool top = false) = 0;
     virtual Expression *toExpression(Type *t = NULL) = 0;
     char *toChars();
 
@@ -64,7 +68,7 @@ public:
 
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
 
     virtual VoidInitializer *isVoidInitializer() { return this; }
@@ -76,7 +80,7 @@ class ErrorInitializer : public Initializer
 public:
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
 
     virtual ErrorInitializer *isErrorInitializer() { return this; }
@@ -92,7 +96,8 @@ public:
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    bool canMatch(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
 
     StructInitializer *isStructInitializer() { return this; }
@@ -104,17 +109,15 @@ class ArrayInitializer : public Initializer
 public:
     Expressions index;  // indices
     Initializers value; // of Initializer *'s
-    size_t dim;         // length of array being initialized
-    Type *type;         // type that array will be used to initialize
-    bool sem;           // true if semantic() is run
 
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    bool canMatch(Scope *sc, Type *tx);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
+    Initializer *semanticAA(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
-    Expression *toAssocArrayLiteral();
 
     ArrayInitializer *isArrayInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -128,7 +131,8 @@ public:
 
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
-    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    bool canMatch(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, bool top = false);
     Expression *toExpression(Type *t = NULL);
 
     virtual ExpInitializer *isExpInitializer() { return this; }

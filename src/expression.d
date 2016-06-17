@@ -7259,9 +7259,12 @@ extern (C++) final class TypeidExp : Expression
         {
             printf("TypeidExp::semantic() %s\n", toChars());
         }
-        Type ta = isType(obj);
-        Expression ea = isExpression(obj);
-        Dsymbol sa = isDsymbol(obj);
+        if (type)
+            return this;
+
+        auto ta = isType(obj);
+        auto ea = isExpression(obj);
+        auto sa = isDsymbol(obj);
         //printf("ta %p ea %p sa %p\n", ta, ea, sa);
 
         if (ta)
@@ -13087,10 +13090,14 @@ extern (C++) class AssignExp : BinExp
             assert(e1.op != TOKslice);
             Expression e1x = e1;
             Expression e2x = e2;
+            Type t2b = e2x.type.toBasetype();
 
             if (e2x.implicitConvTo(e1x.type))
             {
-                if (op != TOKblit && (e2x.op == TOKslice && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op == TOKcast && (cast(UnaExp)e2x).e1.isLvalue() || e2x.op != TOKslice && e2x.isLvalue()))
+                if (op != TOKblit &&
+                    (e2x.op == TOKslice && (cast(UnaExp)e2x).e1.isLvalue() ||
+                     e2x.op == TOKcast  && (cast(UnaExp)e2x).e1.isLvalue() ||
+                     e2x.op != TOKslice && e2x.isLvalue()))
                 {
                     if (e1x.checkPostblit(sc, t1))
                         return new ErrorExp();
@@ -13127,6 +13134,10 @@ extern (C++) class AssignExp : BinExp
                         if (tx)
                             dim2 = (cast(TypeSArray)tx).dim.toInteger();
                     }
+                    else if (t2b.ty == Tsarray)
+                    {
+                        dim2 = (cast(TypeSArray)t2b).dim.toInteger();
+                    }
                     if (dim1 != dim2)
                     {
                         error("mismatched array lengths, %d and %d", cast(int)dim1, cast(int)dim2);
@@ -13136,22 +13147,41 @@ extern (C++) class AssignExp : BinExp
 
                 // May be block or element-wise assignment, so
                 // convert e1 to e1[]
+                Type t1n = t1.nextOf().toBasetype();
+                size_t depth = 0;
                 if (op != TOKassign)
                 {
+                    while (t1n.ty == Tsarray)
+                    {
+                        if (e2x.implicitConvTo(t1n))
+                            break;
+                        ++depth;
+                        t1n = t1n.nextOf().toBasetype();
+                    }
+                }
+                if (e2x.implicitConvTo(t1n))
+                {
+                    // Block assignment
                     // If multidimensional static array, treat as one large array
                     dinteger_t dim = (cast(TypeSArray)t1).dim.toInteger();
                     Type t = t1;
-                    while (1)
+                    while (depth-- > 0)
                     {
+                        assert(t.ty == Tsarray);
                         t = t.nextOf().toBasetype();
-                        if (t.ty != Tsarray)
-                            break;
                         dim *= (cast(TypeSArray)t).dim.toInteger();
                         e1x.type = t.nextOf().sarrayOf(dim);
                     }
+                    e1x = new SliceExp(e1x.loc, e1x, null, null);
+                    e1x = e1x.semantic(sc);
                 }
-                e1x = new SliceExp(e1x.loc, e1x, null, null);
-                e1x = e1x.semantic(sc);
+                else if ((t2b.ty == Tarray || t2b.ty == Tsarray) &&
+                         t2b.nextOf().implicitConvTo(t1.nextOf()))
+                {
+                    // Element-wise assignment
+                    e1x = new SliceExp(e1x.loc, e1x, null, null);
+                    e1x = e1x.semantic(sc);
+                }
             }
             if (e1x.op == TOKerror)
                 return e1x;

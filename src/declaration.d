@@ -1564,10 +1564,6 @@ extern (C++) class VarDeclaration : Declaration
             sc = sc.push();
             sc.stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
 
-            ExpInitializer ei = _init.isExpInitializer();
-            if (ei) // Bugzilla 13424: Preset the required type to fail in FuncLiteralDeclaration::semantic3
-                ei.exp = inferType(ei.exp, type);
-
             // If inside function, there is no semantic3() call
             if (sc.func || sc.intypeof == 1)
             {
@@ -1576,27 +1572,16 @@ extern (C++) class VarDeclaration : Declaration
                 if (fd && !(storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) && !_init.isVoidInitializer())
                 {
                     //printf("fd = '%s', var = '%s'\n", fd->toChars(), toChars());
+                    if (!inferred)
+                    {
+                        // Run semantic, but don't need to interpret
+                        _init = _init.semantic(sc, type, INITnointerpret);
+                    }
+                    auto ei = _init.isExpInitializer();
                     if (!ei)
                     {
-                        ArrayInitializer ai = _init.isArrayInitializer();
-                        Expression e;
-                        if (ai && tb.ty == Taarray)
-                            e = ai.toAssocArrayLiteral();
-                        else
-                            e = _init.toExpression();
-                        if (!e)
-                        {
-                            // Run semantic, but don't need to interpret
-                            _init = _init.semantic(sc, type, INITnointerpret);
-                            e = _init.toExpression();
-                            if (!e)
-                            {
-                                error("is not a static and cannot have static initializer");
-                                return;
-                            }
-                        }
-                        ei = new ExpInitializer(_init.loc, e);
-                        _init = ei;
+                        //type = Type.terror;
+                        return;
                     }
 
                     Expression exp = ei.exp;
@@ -1666,7 +1651,7 @@ extern (C++) class VarDeclaration : Declaration
                 {
                     uint errors = global.errors;
                     inuse++;
-                    if (ei)
+                    if (auto ei = _init.isExpInitializer())
                     {
                         Expression exp = ei.exp.syntaxCopy();
 
@@ -1876,8 +1861,8 @@ extern (C++) class VarDeclaration : Declaration
                 }
                 else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable())
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+                    auto ei = _init.isExpInitializer();
+                    if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
                         error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type.toChars());
                     }
@@ -1887,13 +1872,13 @@ extern (C++) class VarDeclaration : Declaration
             {
                 if (type.ty == Tclass && _init)
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKclassreference)
+                    auto ei = _init.isExpInitializer();
+                    if (ei && ei.exp.op == TOKclassreference)
                         error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
                 }
                 else if (type.ty == Tpointer && type.nextOf().ty == Tstruct)
                 {
-                    ExpInitializer ei = _init.isExpInitializer();
+                    auto ei = _init.isExpInitializer();
                     if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
                     {
                         error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");

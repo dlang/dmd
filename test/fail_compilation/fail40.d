@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail40.d(11): Error: variable yuiop cannot be read at compile time
+fail_compilation/fail40.d(12): Error: need 'this' for address of yuiop
+fail_compilation/fail40.d(12): Error: variable yuiop cannot be read at compile time
 ---
 */
 
