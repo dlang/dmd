@@ -125,14 +125,11 @@ SYMBOL_MARS(ARRAYCTOR,     FLfunc,FREGSAVED,"_d_arrayctor", 0, t) \
 SYMBOL_MARS(ARRAYSETASSIGN, FLfunc,FREGSAVED,"_d_arraysetassign", 0, t) \
 SYMBOL_MARS(ARRAYSETCTOR,  FLfunc,FREGSAVED,"_d_arraysetctor", 0, t) \
 SYMBOL_MARS(ARRAYCAST,     FLfunc,FREGSAVED,"_d_arraycast", 0, t) \
-SYMBOL_MARS(ARRAYCAST_FROMBIT, FLfunc,FREGSAVED,"_d_arraycast_frombit", 0, t) \
 SYMBOL_MARS(ARRAYEQ,       FLfunc,FREGSAVED,"_adEq", 0, t) \
 SYMBOL_MARS(ARRAYEQ2,      FLfunc,FREGSAVED,"_adEq2", 0, t) \
-SYMBOL_MARS(ARRAYEQBIT,    FLfunc,FREGSAVED,"_adEqBit", 0, t) \
 SYMBOL_MARS(ARRAYCMP,      FLfunc,FREGSAVED,"_adCmp", 0, t) \
 SYMBOL_MARS(ARRAYCMP2,     FLfunc,FREGSAVED,"_adCmp2", 0, t) \
 SYMBOL_MARS(ARRAYCMPCHAR,  FLfunc,FREGSAVED,"_adCmpChar", 0, t) \
-SYMBOL_MARS(ARRAYCMPBIT,   FLfunc,FREGSAVED,"_adCmpBit", 0, t) \
 SYMBOL_MARS(OBJ_EQ,        FLfunc,FREGSAVED,"_d_obj_eq", 0, t) \
 SYMBOL_MARS(OBJ_CMP,       FLfunc,FREGSAVED,"_d_obj_cmp", 0, t) \
 \
