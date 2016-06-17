@@ -28,7 +28,7 @@ class TypeInfo_l : TypeInfo
 
     override size_t getHash(in void* p)
     {
-        return rt.util.hash.hashOf(p, long.sizeof);
+        return rt.util.hash.hashOf(p[0 .. long.sizeof], 0);
     }
 
     override bool equals(in void* p1, in void* p2)

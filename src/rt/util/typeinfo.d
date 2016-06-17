@@ -7,8 +7,6 @@
  */
 module rt.util.typeinfo;
 
-public import rt.util.hash;
-
 template Floating(T)
 if (is(T == float) || is(T == double) || is(T == real))
 {
@@ -42,7 +40,10 @@ if (is(T == float) || is(T == double) || is(T == real))
         static if (is(T == float))  // special case?
             return *cast(uint*)&value;
         else
-            return rt.util.hash.hashOf(&value, T.sizeof);
+        {
+            import rt.util.hash;
+            return rt.util.hash.hashOf((&value)[0 .. 1], 0);
+        }
     }
 }
 template Floating(T)
@@ -76,7 +77,8 @@ if (is(T == cfloat) || is(T == cdouble) || is(T == creal))
     {
         if (value == 0 + 0i)
             value = 0 + 0i;
-        return rt.util.hash.hashOf(&value, T.sizeof);
+        import rt.util.hash;
+        return rt.util.hash.hashOf((&value)[0 .. 1], 0);
     }
 }
 

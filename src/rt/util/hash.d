@@ -17,14 +17,14 @@ version( AnyX86 )
     version = HasUnalignedOps;
 
 
-@trusted pure nothrow
+@trusted pure nothrow @nogc
 size_t hashOf( const(void)[] buf, size_t seed = 0 )
 {
     return hashOf(buf.ptr, buf.length, seed);
 }
 
-@trusted pure nothrow
-size_t hashOf( const(void)* buf, size_t len, size_t seed = 0 )
+@system pure nothrow @nogc
+size_t hashOf( const(void)* buf, size_t len, size_t seed )
 {
     /*
      * This is Paul Hsieh's SuperFastHash algorithm, described here:
@@ -32,7 +32,7 @@ size_t hashOf( const(void)* buf, size_t len, size_t seed = 0 )
      * It is protected by the following open source license:
      *   http://www.azillionmonkeys.com/qed/weblicense.html
      */
-    static uint get16bits( const (ubyte)* x ) pure nothrow
+    static uint get16bits( const (ubyte)* x ) pure nothrow @nogc
     {
         // CTFE doesn't support casting ubyte* -> ushort*, so revert to
         // per-byte access when in CTFE.
@@ -96,14 +96,14 @@ size_t hashOf( const(void)* buf, size_t len, size_t seed = 0 )
 }
 
 // Check that hashOf works with CTFE
-unittest
+@nogc nothrow pure unittest
 {
     size_t ctfeHash(string x)
     {
-        return hashOf(x.ptr, x.length);
+        return hashOf(x.ptr, x.length, 0);
     }
 
     enum test_str = "Sample string";
     enum size_t hashVal = ctfeHash(test_str);
-    assert(hashVal == hashOf(test_str.ptr, test_str.length));
+    assert(hashVal == hashOf(test_str.ptr, test_str.length, 0));
 }
