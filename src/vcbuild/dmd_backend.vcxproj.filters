@@ -305,9 +305,6 @@
     <ClInclude Include="..\lib.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\macro.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\mars.h">
       <Filter>src</Filter>
     </ClInclude>

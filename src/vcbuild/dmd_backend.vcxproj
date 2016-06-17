@@ -205,7 +205,6 @@ popd</Command>
     <ClInclude Include="..\irstate.h" />
     <ClInclude Include="..\json.h" />
     <ClInclude Include="..\lib.h" />
-    <ClInclude Include="..\macro.h" />
     <ClInclude Include="..\mars.h" />
     <ClInclude Include="..\module.h" />
     <ClInclude Include="..\mtype.h" />

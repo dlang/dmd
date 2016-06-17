@@ -522,6 +522,7 @@
    <File path="..\scanomf.d" />
    <File path="..\sideeffect.d" />
    <File path="..\statement.d" />
+   <File path="..\statementsem.d" />
    <File path="..\staticassert.d" />
    <File path="..\target.d" />
    <File path="..\toctype.d" />
