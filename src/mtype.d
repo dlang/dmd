@@ -6086,12 +6086,15 @@ extern (C++) final class TypeFunction : TypeNext
         if (sc.stc & STCreturn)
             tf.isreturn = true;
 
-        if (sc.stc & STCsafe)
-            tf.trust = TRUSTsafe;
-        if (sc.stc & STCsystem)
-            tf.trust = TRUSTsystem;
-        if (sc.stc & STCtrusted)
-            tf.trust = TRUSTtrusted;
+        if (tf.trust == TRUSTdefault)
+        {
+            if (sc.stc & STCsafe)
+                tf.trust = TRUSTsafe;
+            else if (sc.stc & STCsystem)
+                tf.trust = TRUSTsystem;
+            else if (sc.stc & STCtrusted)
+                tf.trust = TRUSTtrusted;
+        }
 
         if (sc.stc & STCproperty)
             tf.isproperty = true;
