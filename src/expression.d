@@ -113,6 +113,42 @@ bool checkOverlappedPointer(Scope* sc, Expression e, string msg)
 }
 
 /*************************************************************
+ * Check if e is a DotVarExp representing a misaligned pointer.
+ * Print error if misaligned pointer and in @safe.
+ * Params:
+ *      sc = scope
+ *      e = expression to check
+ *      msg = error message string
+ * Returns:
+ *      true if error
+ */
+
+bool checkMisalignedPointer(Scope* sc, Expression e, string msg)
+{
+    if (e.op != TOKdotvar)
+        return false;
+    DotVarExp dve = cast(DotVarExp)e;
+    if (VarDeclaration v = dve.var.isVarDeclaration())
+    {
+        if (v.isField() && !sc.intypeof && sc.func &&
+            (v.type.hasPointers() && v.type.toBasetype().ty != Tstruct))
+        {
+            if (auto ad = v.toParent2().isAggregateDeclaration())
+            {
+                if ((ad.type.alignment() < Target.ptrsize ||
+                     (v.offset & (Target.ptrsize - 1))) &&
+                    sc.func.setUnsafe())
+                {
+                    e.error(msg.ptr, ad.toChars(), v.toChars());
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/*************************************************************
  * Given var, we need to get the
  * right 'this' pointer if var is in an outer class, but our
  * existing 'this' pointer is in an inner class.
@@ -1686,6 +1722,10 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             if (p.storageClass & STCref)
             {
                 arg = arg.toLvalue(sc, arg);
+
+                // Look for mutable misaligned pointer in @safe mode
+                if (arg.type.isMutable())
+                    err |= checkMisalignedPointer(sc, arg, "'ref' of misaligned pointer in field %s.%s is not @safe");
             }
             else if (p.storageClass & STCout)
             {
@@ -1696,7 +1736,11 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     err = true;
                 }
                 else
+                {
+                    // Look for misaligned pointer in @safe mode
+                    err |= checkMisalignedPointer(sc, arg, "'out' of misaligned pointer in field %s.%s is not @safe");
                     err |= checkDefCtor(arg.loc, t); // t must be default constructible
+                }
                 arg = arg.toLvalue(sc, arg);
             }
             else if (p.storageClass & STClazy)
@@ -9058,6 +9102,11 @@ extern (C++) final class DotVarExp : UnaExp
             printf("e1->type = %s\n", e1.type.toChars());
             printf("var->type = %s\n", var.type.toChars());
         }
+
+        // Look for misaligned pointer in @safe mode
+        if (checkMisalignedPointer(sc, this, "writing to misaligned pointer in field %s.%s is not @safe"))
+            return new ErrorExp();
+
         return Expression.modifiableLvalue(sc, e);
     }
 
@@ -10548,6 +10597,10 @@ extern (C++) final class AddrExp : UnaExp
                 e = e.semantic(sc);
                 return e;
             }
+
+            // Look for misaligned pointer in @safe mode
+            if (checkMisalignedPointer(sc, dve, "taking address of misaligned pointer in field %s.%s is not @safe"))
+                return new ErrorExp();
         }
         else if (e1.op == TOKvar)
         {
@@ -11943,6 +11996,16 @@ extern (C++) final class IntervalExp : Expression
 
         type = Type.tvoid;
         return this;
+    }
+
+    override Expression modifiableLvalue(Scope* sc, Expression e)
+    {
+        if (sc.func.setUnsafe())
+        {
+            error("cannot modify delegate pointer in @safe code %s", toChars());
+            return new ErrorExp();
+        }
+        return Expression.modifiableLvalue(sc, e);
     }
 
     override void accept(Visitor v)
