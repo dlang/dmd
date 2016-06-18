@@ -95,6 +95,7 @@ class AttribDeclaration;
 class StorageClassDeclaration;
 class DeprecatedDeclaration;
 class LinkDeclaration;
+class CPPMangleDeclaration;
 class ProtDeclaration;
 class AlignDeclaration;
 class AnonDeclaration;
@@ -380,6 +381,7 @@ public:
     virtual void visit(StorageClassDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(DeprecatedDeclaration *s) { visit((StorageClassDeclaration *)s); }
     virtual void visit(LinkDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(CPPMangleDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ProtDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(AlignDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(AnonDeclaration *s) { visit((AttribDeclaration *)s); }
