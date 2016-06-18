@@ -3968,10 +3968,25 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (fsize != tsize)
                 {   // Array element sizes do not match, so we must adjust the dimensions
-                    if (config.exe == EX_WIN64)
-                        e = addressElem(e, t, true);
-                    elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), NULL);
-                    e = el_bin(OPcall, totym(ce->type), el_var(getRtlsym(RTLSYM_ARRAYCAST)), ep);
+                    if (fsize % tsize == 0)
+                    {
+                        // Set array dimension to (length * (fsize / tsize))
+                        // Generate pair(e.length * (fsize/tsize), es.ptr)
+
+                        elem *es = el_same(&e);
+
+                        elem *eptr = el_una(OPmsw, TYnptr, es);
+                        elem *elen = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, e);
+                        elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
+                        e = el_pair(totym(ce->type), elen2, eptr);
+                    }
+                    else
+                    {   // Runtime check needed in case arrays don't line up
+                        if (config.exe == EX_WIN64)
+                            e = addressElem(e, t, true);
+                        elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), NULL);
+                        e = el_bin(OPcall, totym(ce->type), el_var(getRtlsym(RTLSYM_ARRAYCAST)), ep);
+                    }
                 }
                 goto Lret;
             }
