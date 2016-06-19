@@ -11244,6 +11244,17 @@ extern (C++) final class CastExp : UnaExp
             {
                 Type tobn = tob.nextOf().toBasetype();
                 Type t1bn = t1b.nextOf().toBasetype();
+
+                /* From void[] to anything mutable is unsafe because:
+                 *  int*[] api;
+                 *  void[] av = api;
+                 *  int[] ai = cast(int[]) av;
+                 *  ai[0] = 7;
+                 *  *api[0] crash!
+                 */
+                if (t1bn.ty == Tvoid && tobn.isMutable() && ex.op != TOKarrayliteral)
+                    goto Lunsafe;
+
                 if (!tobn.hasPointers() && MODimplicitConv(t1bn.mod, tobn.mod))
                     goto Lsafe;
             }
@@ -11251,6 +11262,17 @@ extern (C++) final class CastExp : UnaExp
             {
                 Type tobn = tob.nextOf().toBasetype();
                 Type t1bn = t1b.nextOf().toBasetype();
+
+                /* From void* to anything mutable is unsafe because:
+                 *  int** ppi;
+                 *  void* pv = ppi;
+                 *  int* pi = cast(int*) pv;
+                 *  *pi = 7;
+                 *  **ppi crash!
+                 */
+                if (t1bn.ty == Tvoid && tobn.isMutable())
+                    goto Lunsafe;
+
                 // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
                 bool sfwrd = tobn.ty == Tstruct && !(cast(TypeStruct)tobn).sym.members ||
                              t1bn.ty == Tstruct && !(cast(TypeStruct)t1bn).sym.members;
