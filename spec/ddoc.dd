@@ -502,7 +502,7 @@ $(P
 
 $(P
     A literal backtick character can be output either as a non-paired $(BACKTICK) on a single
-    line or by using the $(BACKTICK) macro.
+    line or by using the `$(DOLLAR)(BACKTICK)` macro.
 )
 
 ---
