@@ -8848,7 +8848,8 @@ extern (C++) final class TypeEnum : Type
     {
         if (!sym.members && !sym.memtype)
             return this;
-        return sym.getMemtype(Loc()).toBasetype();
+        auto tb = sym.getMemtype(Loc()).toBasetype();
+        return tb.castMod(mod);         // retain modifier bits from 'this'
     }
 
     override Expression defaultInit(Loc loc)
