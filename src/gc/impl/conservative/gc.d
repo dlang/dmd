@@ -1,17 +1,17 @@
 /**
  * Contains the garbage collector implementation.
  *
- * Copyright: Copyright Digital Mars 2001 - 2013.
+ * Copyright: Copyright Digital Mars 2001 - 2016.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, David Friedman, Sean Kelly
  */
 
-/*          Copyright Digital Mars 2005 - 2013.
+/*          Copyright Digital Mars 2005 - 2016.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module gc.gc;
+module gc.impl.conservative.gc;
 
 // D Programming Language Garbage Collector implementation
 
@@ -42,6 +42,7 @@ import gc.bits;
 import gc.stats;
 import gc.os;
 import gc.config;
+import gc.gcinterface;
 
 import rt.util.container.treap;
 
@@ -50,8 +51,15 @@ import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
 import core.thread;
 static import core.memory;
-private alias BlkAttr = core.memory.GC.BlkAttr;
-private alias BlkInfo = core.memory.GC.BlkInfo;
+
+private
+{
+    alias BlkAttr = core.memory.GC.BlkAttr;
+    alias BlkInfo = core.memory.GC.BlkInfo;
+
+    alias RootIterator = int delegate(scope int delegate(ref Root) nothrow dg);
+    alias RangeIterator = int delegate(scope int delegate(ref Range) nothrow dg);
+}
 
 version (GNU) import gcc.builtins;
 
@@ -251,11 +259,9 @@ debug (LOGGING)
 
 /* ============================ GC =============================== */
 
+__gshared ConservativeGC instance;
 
-const uint GCVERSION = 1;       // increment every time we change interface
-                                // to GC.
-
-struct GC
+class ConservativeGC : GC
 {
     // For passing to debug code (not thread safe)
     __gshared size_t line;
@@ -267,21 +273,50 @@ struct GC
 
     import core.internal.spinlock;
     static gcLock = shared(AlignedSpinLock)(SpinLock.Contention.lengthy);
-    static bool inFinalizer;
+    static bool _inFinalizer;
 
     // lock GC, throw InvalidMemoryOperationError on recursive locking during finalization
     static void lockNR() @nogc nothrow
     {
-        if (inFinalizer)
+        if (_inFinalizer)
             onInvalidMemoryOperationError();
         gcLock.lock();
     }
 
-    __gshared Config config;
 
-    void initialize()
+    static void initialize(ref GC gc)
     {
-        config.initialize();
+        import core.stdc.string: memcpy;
+
+        if(config.gc != "conservative")
+              return;
+
+        auto p = cstdlib.malloc(__traits(classInstanceSize,ConservativeGC));
+
+        if(!p)
+            onOutOfMemoryErrorNoGC();
+
+        instance = cast(ConservativeGC)memcpy(p, typeid(ConservativeGC).initializer.ptr, typeid(ConservativeGC).initializer.length);
+
+        instance.__ctor();
+
+        gc = instance;
+    }
+
+
+    static void finalize()
+    {
+        if(instance !is null)
+        {
+            instance.Dtor();
+            cstdlib.free(cast(void*)instance);
+        }
+    }
+
+
+    this()
+    {
+        //config is assumed to have already been initialized
 
         gcx = cast(Gcx*)cstdlib.calloc(1, Gcx.sizeof);
         if (!gcx)
@@ -312,9 +347,6 @@ struct GC
     }
 
 
-    /**
-     *
-     */
     void enable()
     {
         static void go(Gcx* gcx) nothrow
@@ -326,9 +358,6 @@ struct GC
     }
 
 
-    /**
-     *
-     */
     void disable()
     {
         static void go(Gcx* gcx) nothrow
@@ -338,19 +367,20 @@ struct GC
         runLocked!(go, otherTime, numOthers)(gcx);
     }
 
+
     auto runLocked(alias func, Args...)(auto ref Args args)
     {
-        debug(PROFILE_API) immutable tm = (GC.config.profile > 1 ? currTime.ticks : 0);
+        debug(PROFILE_API) immutable tm = (config.profile > 1 ? currTime.ticks : 0);
         lockNR();
         scope (failure) gcLock.unlock();
-        debug(PROFILE_API) immutable tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
+        debug(PROFILE_API) immutable tm2 = (config.profile > 1 ? currTime.ticks : 0);
 
         static if (is(typeof(func(args)) == void))
             func(args);
         else
             auto res = func(args);
 
-        debug(PROFILE_API) if (GC.config.profile > 1)
+        debug(PROFILE_API) if (config.profile > 1)
             lockTime += tm2 - tm;
         gcLock.unlock();
 
@@ -358,19 +388,20 @@ struct GC
             return res;
     }
 
+
     auto runLocked(alias func, alias time, alias count, Args...)(auto ref Args args)
     {
-        debug(PROFILE_API) immutable tm = (GC.config.profile > 1 ? currTime.ticks : 0);
+        debug(PROFILE_API) immutable tm = (config.profile > 1 ? currTime.ticks : 0);
         lockNR();
         scope (failure) gcLock.unlock();
-        debug(PROFILE_API) immutable tm2 = (GC.config.profile > 1 ? currTime.ticks : 0);
+        debug(PROFILE_API) immutable tm2 = (config.profile > 1 ? currTime.ticks : 0);
 
         static if (is(typeof(func(args)) == void))
             func(args);
         else
             auto res = func(args);
 
-        debug(PROFILE_API) if (GC.config.profile > 1)
+        debug(PROFILE_API) if (config.profile > 1)
         {
             count++;
             immutable now = currTime.ticks;
@@ -383,9 +414,7 @@ struct GC
             return res;
     }
 
-    /**
-     *
-     */
+
     uint getAttr(void* p) nothrow
     {
         if (!p)
@@ -412,9 +441,6 @@ struct GC
     }
 
 
-    /**
-     *
-     */
     uint setAttr(void* p, uint mask) nothrow
     {
         if (!p)
@@ -442,9 +468,6 @@ struct GC
     }
 
 
-    /**
-     *
-     */
     uint clrAttr(void* p, uint mask) nothrow
     {
         if (!p)
@@ -471,26 +494,21 @@ struct GC
         return runLocked!(go, otherTime, numOthers)(gcx, p, mask);
     }
 
-    /**
-     *
-     */
-    void *malloc(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
+
+    void *malloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
         if (!size)
         {
-            if(alloc_size)
-                *alloc_size = 0;
             return null;
         }
 
         size_t localAllocSize = void;
-        if(alloc_size is null) alloc_size = &localAllocSize;
 
-        auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, *alloc_size, ti);
+        auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, localAllocSize, ti);
 
         if (!(bits & BlkAttr.NO_SCAN))
         {
-            memset(p + size, 0, *alloc_size - size);
+            memset(p + size, 0, localAllocSize - size);
         }
 
         return p;
@@ -524,46 +542,59 @@ struct GC
     }
 
 
-    /**
-     *
-     */
-    void *calloc(size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
+    BlkInfo qalloc( size_t size, uint bits, const TypeInfo ti) nothrow
+    {
+
+        if (!size)
+        {
+            return BlkInfo.init;
+        }
+
+        BlkInfo retval;
+
+        retval.base = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, retval.size, ti);
+
+        if (!(bits & BlkAttr.NO_SCAN))
+        {
+            memset(retval.base + size, 0, retval.size - size);
+        }
+
+        retval.attr = bits;
+        return retval;
+    }
+
+
+    void *calloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
         if (!size)
         {
-            if(alloc_size)
-                *alloc_size = 0;
             return null;
         }
 
         size_t localAllocSize = void;
-        if(alloc_size is null) alloc_size = &localAllocSize;
 
-        auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, *alloc_size, ti);
+        auto p = runLocked!(mallocNoSync, mallocTime, numMallocs)(size, bits, localAllocSize, ti);
 
         memset(p, 0, size);
         if (!(bits & BlkAttr.NO_SCAN))
         {
-            memset(p + size, 0, *alloc_size - size);
+            memset(p + size, 0, localAllocSize - size);
         }
 
         return p;
     }
 
-    /**
-     *
-     */
-    void *realloc(void *p, size_t size, uint bits = 0, size_t *alloc_size = null, const TypeInfo ti = null) nothrow
+
+    void *realloc(void *p, size_t size, uint bits, const TypeInfo ti) nothrow
     {
         size_t localAllocSize = void;
         auto oldp = p;
-        if(alloc_size is null) alloc_size = &localAllocSize;
 
-        p = runLocked!(reallocNoSync, mallocTime, numMallocs)(p, size, bits, *alloc_size, ti);
+        p = runLocked!(reallocNoSync, mallocTime, numMallocs)(p, size, bits, localAllocSize, ti);
 
         if (p !is oldp && !(bits & BlkAttr.NO_SCAN))
         {
-            memset(p + size, 0, *alloc_size - size);
+            memset(p + size, 0, localAllocSize - size);
         }
 
         return p;
@@ -711,16 +742,7 @@ struct GC
     }
 
 
-    /**
-     * Attempt to in-place enlarge the memory block pointed to by p by at least
-     * minsize bytes, up to a maximum of maxsize additional bytes.
-     * This does not attempt to move the memory block (like realloc() does).
-     *
-     * Returns:
-     *  0 if could not extend p,
-     *  total size of entire memory block if successful.
-     */
-    size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti = null) nothrow
+    size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti) nothrow
     {
         return runLocked!(extendNoSync, extendTime, numExtends)(p, minsize, maxsize, ti);
     }
@@ -782,9 +804,6 @@ struct GC
     }
 
 
-    /**
-     *
-     */
     size_t reserve(size_t size) nothrow
     {
         if (!size)
@@ -808,12 +827,9 @@ struct GC
     }
 
 
-    /**
-     *
-     */
     void free(void *p) nothrow
     {
-        if (!p || inFinalizer)
+        if (!p || _inFinalizer)
         {
             return;
         }
@@ -885,10 +901,6 @@ struct GC
     }
 
 
-    /**
-     * Determine the base address of the block containing p.  If p is not a gc
-     * allocated pointer, return null.
-     */
     void* addrOf(void *p) nothrow
     {
         if (!p)
@@ -917,10 +929,6 @@ struct GC
     }
 
 
-    /**
-     * Determine the allocated size of pointer p.  If p is an interior pointer
-     * or not a gc allocated pointer, return 0.
-     */
     size_t sizeOf(void *p) nothrow
     {
         if (!p)
@@ -967,10 +975,6 @@ struct GC
     }
 
 
-    /**
-     * Determine the base address of the block containing p.  If p is not a gc
-     * allocated pointer, return null.
-     */
     BlkInfo query(void *p) nothrow
     {
         if (!p)
@@ -981,7 +985,6 @@ struct GC
 
         return runLocked!(queryNoSync, otherTime, numOthers)(p);
     }
-
 
     //
     //
@@ -1061,9 +1064,6 @@ struct GC
     }
 
 
-    /**
-     * add p to list of roots
-     */
     void addRoot(void *p) nothrow @nogc
     {
         if (!p)
@@ -1075,9 +1075,6 @@ struct GC
     }
 
 
-    /**
-     * remove p from list of roots
-     */
     void removeRoot(void *p) nothrow @nogc
     {
         if (!p)
@@ -1089,18 +1086,12 @@ struct GC
     }
 
 
-    /**
-     *
-     */
-    @property auto rootIter() @nogc
+    @property RootIterator rootIter() @nogc
     {
         return &gcx.rootsApply;
     }
 
 
-    /**
-     * add range to scan for roots
-     */
     void addRange(void *p, size_t sz, const TypeInfo ti = null) nothrow @nogc
     {
         if (!p || !sz)
@@ -1112,9 +1103,6 @@ struct GC
     }
 
 
-    /**
-     * remove range
-     */
     void removeRange(void *p) nothrow @nogc
     {
         if (!p)
@@ -1126,18 +1114,12 @@ struct GC
     }
 
 
-    /**
-     *
-     */
-    @property auto rangeIter() @nogc
+    @property RangeIterator rangeIter() @nogc
     {
         return &gcx.rangesApply;
     }
 
 
-    /**
-     * run finalizers
-     */
     void runFinalizers(in void[] segment) nothrow
     {
         static void go(Gcx* gcx, in void[] segment) nothrow
@@ -1145,6 +1127,24 @@ struct GC
             gcx.runFinalizers(segment);
         }
         return runLocked!(go, otherTime, numOthers)(gcx, segment);
+    }
+
+
+    bool inFinalizer() nothrow
+    {
+        return _inFinalizer;
+    }
+
+
+    void collect() nothrow
+    {
+        fullCollect();
+    }
+
+
+    void collectNoStack() nothrow
+    {
+        fullCollectNoStack();
     }
 
 
@@ -1193,9 +1193,6 @@ struct GC
     }
 
 
-    /**
-     * minimize free space usage
-     */
     void minimize() nothrow
     {
         static void go(Gcx* gcx) nothrow
@@ -1206,13 +1203,13 @@ struct GC
     }
 
 
-    /**
-     * Retrieve statistics about garbage collection.
-     * Useful for debugging and tuning.
-     */
-    void getStats(out GCStats stats) nothrow
+    GCStats stats() nothrow
     {
-        return runLocked!(getStatsNoSync, otherTime, numOthers)(stats);
+        GCStats ret;
+
+        runLocked!(getStatsNoSync, otherTime, numOthers)(ret);
+
+        return ret;
     }
 
 
@@ -1301,20 +1298,6 @@ struct List
 }
 
 
-struct Range
-{
-    void *pbot;
-    void *ptop;
-    alias pbot this; // only consider pbot for relative ordering (opCmp)
-}
-
-struct Root
-{
-    void *proot;
-    alias proot this;
-}
-
-
 immutable uint[B_MAX] binsize = [ 16,32,64,128,256,512,1024,2048,4096 ];
 immutable size_t[B_MAX] notbinsize = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1),
                                 ~(512-1),~(1024-1),~(2048-1),~(4096-1) ];
@@ -1370,7 +1353,7 @@ struct Gcx
 
     void Dtor()
     {
-        if (GC.config.profile)
+        if (config.profile)
         {
             printf("\tNumber of collections:  %llu\n", cast(ulong)numCollections);
             printf("\tTotal GC prep time:  %lld milliseconds\n",
@@ -1389,7 +1372,7 @@ struct Gcx
 
             char[30] apitxt;
             apitxt[0] = 0;
-            debug(PROFILE_API) if (GC.config.profile > 1)
+            debug(PROFILE_API) if (config.profile > 1)
             {
                 static Duration toDuration(long dur)
                 {
@@ -1549,8 +1532,8 @@ struct Gcx
      */
     void runFinalizers(in void[] segment) nothrow
     {
-        GC.inFinalizer = true;
-        scope (failure) GC.inFinalizer = false;
+        ConservativeGC._inFinalizer = true;
+        scope (failure) ConservativeGC._inFinalizer = false;
 
         foreach (pool; pooltable[0 .. npools])
         {
@@ -1567,7 +1550,7 @@ struct Gcx
                 spool.runFinalizers(segment);
             }
         }
-        GC.inFinalizer = false;
+        ConservativeGC._inFinalizer = false;
     }
 
     Pool* findPool(void* p) pure nothrow
@@ -1691,9 +1674,9 @@ struct Gcx
             return max(newVal, decay);
         }
 
-        immutable smTarget = usedSmallPages * GC.config.heapSizeFactor;
+        immutable smTarget = usedSmallPages * config.heapSizeFactor;
         smallCollectThreshold = smoothDecay(smallCollectThreshold, smTarget);
-        immutable lgTarget = usedLargePages * GC.config.heapSizeFactor;
+        immutable lgTarget = usedLargePages * config.heapSizeFactor;
         largeCollectThreshold = smoothDecay(largeCollectThreshold, lgTarget);
     }
 
@@ -1871,7 +1854,7 @@ struct Gcx
         //debug(PRINTF) printf("************Gcx::newPool(npages = %d)****************\n", npages);
 
         // Minimum of POOLSIZE
-        size_t minPages = (GC.config.minPoolSize << 20) / PAGESIZE;
+        size_t minPages = (config.minPoolSize << 20) / PAGESIZE;
         if (npages < minPages)
             npages = minPages;
         else if (npages > minPages)
@@ -1885,9 +1868,9 @@ struct Gcx
         if (npools)
         {   size_t n;
 
-            n = GC.config.minPoolSize + GC.config.incPoolSize * npools;
-            if (n > GC.config.maxPoolSize)
-                n = GC.config.maxPoolSize;                 // cap pool size
+            n = config.minPoolSize + config.incPoolSize * npools;
+            if (n > config.maxPoolSize)
+                n = config.maxPoolSize;                 // cap pool size
             n *= (1 << 20) / PAGESIZE;                     // convert MB to pages
             if (npages < n)
                 npages = n;
@@ -1909,7 +1892,7 @@ struct Gcx
 
         mappedPages += npages;
 
-        if (GC.config.profile)
+        if (config.profile)
         {
             if (mappedPages * PAGESIZE > maxPoolMemory)
                 maxPoolMemory = mappedPages * PAGESIZE;
@@ -2413,7 +2396,7 @@ struct Gcx
     {
         MonoTime start, stop, begin;
 
-        if (GC.config.profile)
+        if (config.profile)
         {
             begin = start = currTime;
         }
@@ -2434,7 +2417,7 @@ struct Gcx
 
             prepare();
 
-            if (GC.config.profile)
+            if (config.profile)
             {
                 stop = currTime;
                 prepTime += (stop - start);
@@ -2447,7 +2430,7 @@ struct Gcx
             thread_resumeAll();
         }
 
-        if (GC.config.profile)
+        if (config.profile)
         {
             stop = currTime;
             markTime += (stop - start);
@@ -2457,15 +2440,15 @@ struct Gcx
             start = stop;
         }
 
-        GC.inFinalizer = true;
+        ConservativeGC._inFinalizer = true;
         size_t freedLargePages=void;
         {
-            scope (failure) GC.inFinalizer = false;
+            scope (failure) ConservativeGC._inFinalizer = false;
             freedLargePages = sweep();
-            GC.inFinalizer = false;
+            ConservativeGC._inFinalizer = false;
         }
 
-        if (GC.config.profile)
+        if (config.profile)
         {
             stop = currTime;
             sweepTime += (stop - start);
@@ -2474,7 +2457,7 @@ struct Gcx
 
         immutable freedSmallPages = recover();
 
-        if (GC.config.profile)
+        if (config.profile)
         {
             stop = currTime;
             recoverTime += (stop - start);

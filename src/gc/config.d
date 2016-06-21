@@ -1,7 +1,7 @@
 /**
 * Contains the garbage collector configuration.
 *
-* Copyright: Copyright Digital Mars 2014
+* Copyright: Copyright Digital Mars 2016
 * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
 */
 
@@ -20,12 +20,13 @@ extern extern(C) __gshared bool rt_envvars_enabled;
 extern extern(C) __gshared bool rt_cmdline_enabled;
 extern extern(C) __gshared string[] rt_options;
 
+__gshared Config config;
+
 struct Config
 {
     bool disable;            // start disabled
     ubyte profile;           // enable profiling with summary when terminating program
-    bool precise;            // enable precise scanning
-    bool concurrent;         // enable concurrent collection
+    string gc = "conservative"; // select gc implementation conservative|manual
 
     size_t initReserve;      // initial reserve (MB)
     size_t minPoolSize = 1;  // initial and minimum pool size (MB)
@@ -61,8 +62,7 @@ struct Config
         string s = "GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
     profile:0|1|2  - enable profiling with summary when terminating program (%d)
-    precise:0|1    - enable precise scanning (not implemented yet)
-    concurrent:0|1 - enable concurrent collection (not implemented yet)
+    gc:conservative|manual - select gc implementation (default = conservative)
 
     initReserve:N  - initial memory to reserve in MB (%lld)
     minPoolSize:N  - initial and minimum pool size in MB (%lld)
@@ -183,6 +183,35 @@ body
     if (sscanf(str.ptr, fmt.ptr, &res, &nscanned) < 1)
         return parseError("a float", optname, str);
     str = str[nscanned .. $];
+    return true;
+}
+
+bool parse(T:const(char)[])(const(char)[] optname, ref const(char)[] str, ref T res)
+in { assert(str.length); }
+body
+{
+    bool findNext(string next)
+    {
+        if(next.length>str.length)
+            return false;
+
+        return (next.length == str.length)? (next == str):(isspace(str[next.length+1])&&(next == str[0..next.length]));
+    }
+
+    if(findNext("manual"))
+    {
+        res = "manual";
+    }
+    else if(findNext("conservative"))
+    {
+        res = "conservative";
+    }
+    else
+    {
+        return parseError("conservative or manual", optname, str);
+    }
+
+    str = str[res.length .. $];
     return true;
 }
 
