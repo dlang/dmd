@@ -13394,6 +13394,14 @@ extern (C++) class AssignExp : BinExp
                 else
                     e2x = e2x.implicitCastTo(sc, e1.type);
             }
+            if (t1n.toBasetype.ty == Tvoid && t2n.toBasetype.ty == Tvoid)
+            {
+                if (!sc.intypeof && sc.func && sc.func.setUnsafe())
+                {
+                    error("cannot copy void[] to void[] in @safe code");
+                    return new ErrorExp();
+                }
+            }
         }
         else
         {
