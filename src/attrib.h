@@ -93,6 +93,17 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class CPPMangleDeclaration : public AttribDeclaration
+{
+public:
+    CPPMANGLE cppmangle;
+
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
+    const char *toChars() const;
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class ProtDeclaration : public AttribDeclaration
 {
 public:

@@ -1283,7 +1283,7 @@ else static if (TARGET_WINDOS)
                 if (type.sym.isUnionDeclaration())
                     buf.writeByte('T');
                 else
-                    buf.writeByte('U');
+                    buf.writeByte(type.cppmangle == CPPMANGLE.asClass ? 'V' : 'U');
                 mangleIdent(type.sym);
             }
             flags &= ~IS_NOT_TOP_TYPE;
@@ -1350,7 +1350,7 @@ else static if (TARGET_WINDOS)
                 buf.writeByte('E');
             flags |= IS_NOT_TOP_TYPE;
             mangleModifier(type);
-            buf.writeByte('V');
+            buf.writeByte(type.cppmangle == CPPMANGLE.asStruct ? 'U' : 'V');
             mangleIdent(type.sym);
             flags &= ~IS_NOT_TOP_TYPE;
             flags &= ~IGNORE_CONST;
@@ -1665,7 +1665,12 @@ else static if (TARGET_WINDOS)
                 name = sym.ident.toChars();
             }
             assert(name);
-            if (!is_dmc_template)
+            if (is_dmc_template)
+            {
+                if (checkAndSaveIdent(name))
+                    return;
+            }
+            else
             {
                 if (dont_use_back_reference)
                 {
