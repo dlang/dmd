@@ -4915,7 +4915,7 @@ static assert(is(typeof(S5933d.x) == FuncType5933));
 
 
 class C5933a { auto x() { return 0; } }
-static assert(is(typeof(&(new C5933b()).x) == int delegate() pure nothrow @nogc @safe));
+static assert(is(typeof(&(new C5933b()).x) == int delegate()));
 
 class C5933b { auto x() { return 0; } }
 //static assert(is(typeof((new C5933b()).x) == FuncType5933));
@@ -5358,7 +5358,7 @@ void test6902()
     })));
 
     int f() pure nothrow { assert(0); }
-    alias int T() pure nothrow;
+    alias int T() pure nothrow @safe @nogc;
     static if(is(typeof(&f) DT == delegate))
     {
         static assert(is(DT* == T*));  // ok
