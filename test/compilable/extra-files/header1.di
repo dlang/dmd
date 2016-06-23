@@ -323,7 +323,7 @@ version (unittest)
 {
 	public {}
 	extern (C) {}
-	align{}
+	align {}
 }
 template Foo10334(T) if (Bar10334!())
 {

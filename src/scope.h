@@ -105,7 +105,8 @@ struct Scope
     unsigned *fieldinit;
     size_t fieldinit_dim;
 
-    structalign_t structalign;  // alignment for struct members
+    AlignDeclaration *aligndecl;    // alignment for struct members
+
     LINK linkage;               // linkage for external functions
     PINLINE inlining;            // inlining strategy for functions
 
@@ -153,6 +154,8 @@ struct Scope
     ClassDeclaration *getClassScope();
     AggregateDeclaration *getStructClassScope();
     void setNoFree();
+
+    structalign_t alignment();
 };
 
 #endif /* DMD_SCOPE_H */

@@ -14,6 +14,8 @@ $(BUGSTITLE Language Changes,
              It is up to the programmer to call them appropriately.
         )
     )
+
+    $(LI $(RELATIVE_LINK2 align_by_ctfe, Align attribute can be used with CTFEable expression.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -49,6 +51,28 @@ $(BUGSTITLE Language Changes,
           if (!mc)
             mc = (aggr++, new MyContainerClass);
         }
+        ---
+    )
+    $(LI $(LNAME2 align_by_ctfe, Align attribute can be used with CTFEable expression.)
+
+    $(P Example:)
+
+        ---
+        version (D_LP64)
+            enum n = 8;
+        else
+            enum n = 4;
+        align (n) struct Data
+        {
+        align (n == 8 ? 2 : 1):
+            ubyte[3] buffer;
+            int flags;
+        }
+
+        version (D_LP64)
+            static assert(Data.flags.offsetof == 4);
+        else
+            static assert(Data.flags.offsetof == 3);
         ---
     )
 )

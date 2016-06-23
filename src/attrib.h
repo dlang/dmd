@@ -120,11 +120,15 @@ public:
 
 class AlignDeclaration : public AttribDeclaration
 {
-public:
-    unsigned salign;
+    Expression *ealign;
+    structalign_t salign;
 
+    AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
+    void semantic2(Scope *sc);
+    structalign_t getAlignment();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -132,7 +136,6 @@ class AnonDeclaration : public AttribDeclaration
 {
 public:
     bool isunion;
-    structalign_t alignment;
     int sem;                    // 1 if successful semantic()
     unsigned anonoffset;        // offset of anonymous struct
     unsigned anonstructsize;    // size of anonymous struct
