@@ -7710,3 +7710,24 @@ auto baz15998()
 
 static assert(bar15998a == [["", ""]]);
 static assert(bar15998b == [["", ""]]);
+
+/**************************************************
+    16094 - Non-overlapped slice assignment on an aggregate
+**************************************************/
+
+char[] f16094a()
+{
+    char[] x = new char[](6);
+    x[3..6] = x[0..3];
+    return x;
+}
+
+int[] f16094b()
+{
+    int[] x = new int[](6);
+    x[3..6] = x[0..3];
+    return x;
+}
+
+enum copy16094a = f16094a();
+enum copy16094b = f16094b();
