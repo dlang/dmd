@@ -31,16 +31,6 @@ import gc.gcinterface;
 
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 
-static import core.memory;
-
-private
-{
-    alias BlkAttr = core.memory.GC.BlkAttr;
-    alias BlkInfo = core.memory.GC.BlkInfo;
-    alias RootIterator = int delegate(scope int delegate(ref Root) nothrow dg);
-    alias RangeIterator = int delegate(scope int delegate(ref Range) nothrow dg);
-}
-
 extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
 
 __gshared ManualGC instance;

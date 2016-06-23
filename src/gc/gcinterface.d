@@ -1,12 +1,12 @@
 /**
  * Contains the internal GC interface.
  *
- * Copyright: Copyright Digital Mars 2005 - 2016.
+ * Copyright: Copyright Digital Mars 2016.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Jeremy DeHaan
  */
 
- /*          Copyright Digital Mars 2005 - 2016.
+ /*          Copyright Digital Mars 2016.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -14,15 +14,13 @@
 module gc.gcinterface;
 import gc.stats;
 
-private
-{
-    static import core.memory;
+static import core.memory;
+alias BlkAttr = core.memory.GC.BlkAttr;
+alias BlkInfo = core.memory.GC.BlkInfo;
 
-    alias BlkInfo = core.memory.GC.BlkInfo;
+alias RootIterator = int delegate(scope int delegate(ref Root) nothrow dg);
+alias RangeIterator = int delegate(scope int delegate(ref Range) nothrow dg);
 
-    alias RootIterator = int delegate(scope int delegate(ref Root) nothrow dg);
-    alias RangeIterator = int delegate(scope int delegate(ref Range) nothrow dg);
-}
 
 struct Root
 {

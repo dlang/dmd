@@ -50,16 +50,6 @@ import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
 import core.thread;
-static import core.memory;
-
-private
-{
-    alias BlkAttr = core.memory.GC.BlkAttr;
-    alias BlkInfo = core.memory.GC.BlkInfo;
-
-    alias RootIterator = int delegate(scope int delegate(ref Root) nothrow dg);
-    alias RangeIterator = int delegate(scope int delegate(ref Range) nothrow dg);
-}
 
 version (GNU) import gcc.builtins;
 
