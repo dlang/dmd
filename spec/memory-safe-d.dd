@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Memory Safety,
 
+    $(HTMLTAG3 img, src="$(ROOT_DIR)images/dman-rain.jpg" align="right" alt="D-Man in rain" height="200")
+
 	$(P $(I Memory Safety) for a program is defined as it being
 	impossible for the program to corrupt memory.
 	Therefore, the safe subset of D consists only of programming 
