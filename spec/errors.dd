@@ -6,6 +6,8 @@ $(BLOCKQUOTE_BY Julius C'ster,
 I came, I coded, I crashed.
 )
 
+$(HTMLTAG3 img, src="$(ROOT_DIR)images/dman-error.jpg" border="0" align="right" alt="Erroneous D-Man" height="200")
+
 All programs have to deal with errors. Errors are unexpected conditions that
 are not part of the normal operation of a program. Examples of common errors
 are:
