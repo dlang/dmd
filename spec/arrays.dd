@@ -195,7 +195,7 @@ s[1..3] = s[0..2]; // error, overlapping copy
         parallel code optimizations than possible with the serial
         semantics of C.
         )
-        
+
         $(P If overlapping is required, use
         $(REF copy, std,algorithm,mutation):
         )
@@ -827,21 +827,21 @@ d = 'd';     // d is assigned the character 'd'
 
 $(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
         $(P Note that built-in comparison operators operate on a
-        $(HTTPS goo.gl/zRY1K, code unit) basis. 
-        The end result for valid strings is the same as that of 
-        $(HTTPS goo.gl/WR424, code point) 
+        $(HTTPS goo.gl/zRY1K, code unit) basis.
+        The end result for valid strings is the same as that of
+        $(HTTPS goo.gl/WR424, code point)
         for $(HTTPS goo.gl/WR424, code point)
         comparison as long as both strings are in the same
         $(HTTPS goo.gl/3DKfI, normalization form).
-        Since normalization is a costly operation not suitable for language 
+        Since normalization is a costly operation not suitable for language
         primitives it's assumed to be enforced by the user.
         )
         $(P The standard library lends a hand for comparing strings with mixed encodings
-        (by transparently decoding, see $(PHOBOS algorithm, cmp, std.algorithm.cmp)), 
+        (by transparently decoding, see $(PHOBOS algorithm, cmp, std.algorithm.cmp)),
         $(PHOBOS uni, icmp, case-insensitive comparison) and $(PHOBOS uni, normalize, normalization).
         )
-        $(P Last but not least, a desired string sorting order differs 
-        by culture and language and is usually nothing like code point 
+        $(P Last but not least, a desired string sorting order differs
+        by culture and language and is usually nothing like code point
         for code point comparison. The natural order of strings is obtained by applying
         $(HTTP www.unicode.org/reports/tr10/, the Unicode collation algorithm)
         that should be implemented in the standard library.

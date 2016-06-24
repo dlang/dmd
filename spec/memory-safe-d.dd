@@ -4,7 +4,7 @@ $(SPEC_S Memory Safety,
 
 	$(P $(I Memory Safety) for a program is defined as it being
 	impossible for the program to corrupt memory.
-	Therefore, the safe subset of D consists only of programming 
+	Therefore, the safe subset of D consists only of programming
 	language features that are guaranteed to never result in memory
 	corruption. See $(LINK2 $(ROOT_DIR)safed.html, this article) for a
 	rationale.
@@ -28,9 +28,9 @@ $(H3 Usage)
 	interface, but uses unsafe code internally. These functions can
 	be called from $(D @safe) code.
 	)
-	
-	$(P Array bounds checks are necessary to enforce memory safety, so 
-	these are enabled (by default) for $(D @safe) code even in $(B 
+
+	$(P Array bounds checks are necessary to enforce memory safety, so
+	these are enabled (by default) for $(D @safe) code even in $(B
 	-release) mode.
 	)
 

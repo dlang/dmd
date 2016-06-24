@@ -37,7 +37,7 @@ $(H3 $(LNAME2 removing_keys, Removing Keys))
         returns $(D false).  If the given $(I key) does exist, it removes it
         from the AA and returns $(D true).
         )
-        
+
         $(P All keys can be removed by using the method `clear`.)
 
 $(H3 $(LNAME2 testing_membership, Testing Membership))

@@ -722,7 +722,7 @@ $(GNAME HexDigit):
 $(GNAME HexDigitUS):
     $(GLINK HexDigit)
     $(D _)
-    
+
 $(GNAME HexLetter):
     $(B a)
     $(B b)
