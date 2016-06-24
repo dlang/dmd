@@ -7,7 +7,7 @@ $(SPEC_S Garbage Collection,
 	to free memory explicitly. Just allocate as needed, and the garbage collector will
 	periodically return all unused memory to the pool of available memory.
 	)
-	
+
 	$(P D also provides the mechanisms to write code where the garbage collector
 	is $(B not involved). More information is provided below.
 	)
@@ -107,10 +107,10 @@ $(SPEC_S Garbage Collection,
 	)
 
 	$(P These constraints are addressed by techniques outlined
-	in $(DPLLINK $(ROOT_DIR)memory.html, Memory Management), including the mechanisms provided by
+	in $(DPLLINK https://wiki.dlang.org/Memory_Management, Memory Management), including the mechanisms provided by
 	D to control allocations outside the GC heap.
 	)
-    
+
 	$(P There is currently work in progress to make the runtime library free of GC heap allocations,
 	to allow its use in scenarios where the use of GC infrastructure is not possible.
 	)
@@ -376,7 +376,7 @@ $(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Garbage Collector))
 		$(LI Taking the address of (i.e. making a delegate to) a nested function that
 	 accesses variables in an outer scope)
 	$(LI A function literal that accesses variables in an outer scope)
-	
+
 	$(LI An $(GLINK2 expression, AssertExpression) that fails its condition)
 	)
 
