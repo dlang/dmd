@@ -199,3 +199,11 @@ void test13275()
 	{
 	}
 }
+align (1) struct S9766
+{
+	align (true ? 2 : 3) 
+	{
+		int var1;
+		align int var2;
+	}
+}

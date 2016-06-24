@@ -300,7 +300,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             protection = sc.protection;
 
-            alignment = sc.structalign;
+            alignment = sc.alignment();
 
             storage_class |= sc.stc;
             if (storage_class & STCdeprecated)

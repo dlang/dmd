@@ -119,7 +119,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             sc2.inunion = 1;
         sc2.protection = Prot(PROTpublic);
         sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
+        sc2.aligndecl = null;
         sc2.userAttribDecl = null;
         return sc2;
     }

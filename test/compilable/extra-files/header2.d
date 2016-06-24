@@ -139,3 +139,13 @@ void test13275()
     foreach (shared      (int) e; [1,2]) {}
     foreach (shared const(int) e; [1,2]) {}
 }
+
+// 9766
+align (1) struct S9766
+{
+align (true ? 2 : 3):
+    int var1;
+
+align:
+    int var2;
+}

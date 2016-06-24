@@ -1221,10 +1221,10 @@ public:
 
     override void visit(AlignDeclaration d)
     {
-        if (d.salign == STRUCTALIGN_DEFAULT)
-            buf.printf("align");
+        if (!d.ealign)
+            buf.printf("align ");
         else
-            buf.printf("align (%d)", d.salign);
+            buf.printf("align (%s) ", d.ealign.toChars());
         visit(cast(AttribDeclaration)d);
     }
 
