@@ -28,8 +28,8 @@ private
     extern (C) void thread_init();
     extern (C) void thread_term();
 
-    __gshared GC instance;
-    __gshared GC ithis;
+    __gshared GC instance;  //used for making the GC calls
+    __gshared GC initialGC; //used to reset instance if gc_clrProxy was called
 
 }
 
@@ -40,10 +40,10 @@ extern (C)
     void gc_init()
     {
         config.initialize();
-        ManualGC.initialize(ithis);
-        ConservativeGC.initialize(ithis);
+        ManualGC.initialize(initialGC);
+        ConservativeGC.initialize(initialGC);
 
-        instance = ithis;
+        instance = initialGC;
 
         // NOTE: The GC must initialize the thread library
         //       before its first collection.
@@ -217,17 +217,17 @@ extern (C)
 
         void gc_clrProxy()
         {
-            foreach(root; ithis.rootIter)
+            foreach(root; initialGC.rootIter)
             {
                 instance.removeRoot(root);
             }
 
-            foreach(range; ithis.rangeIter)
+            foreach(range; initialGC.rangeIter)
             {
                 instance.removeRange(range);
             }
 
-            instance = ithis;
+            instance = initialGC;
         }
     }
 }
