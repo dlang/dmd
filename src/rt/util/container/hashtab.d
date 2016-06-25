@@ -144,13 +144,13 @@ private:
         return &p._value;
     }
 
-    static hash_t hashOf(in ref Key key)
+    static hash_t hashOf(in ref Key key) @trusted
     {
         import rt.util.hash : hashOf;
         static if (is(Key U : U[]))
-            return hashOf(cast(const ubyte*)key.ptr, key.length * key[0].sizeof);
+            return hashOf(key, 0);
         else
-            return hashOf(cast(const ubyte*)&key, Key.sizeof);
+            return hashOf((&key)[0 .. 1], 0);
     }
 
     @property hash_t mask() const
