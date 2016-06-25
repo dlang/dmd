@@ -252,9 +252,14 @@ void VarStatistics::writeSymbolTable(symtab_t* symtab,
                     openBlocks--;
                 }
             }
-            if(fnBeginBlock)
-                (*fnBeginBlock)(off, lifeTimes[si - uniquecnt].offDestroy - off);
-            openBlocks++;
+            int len = lifeTimes[si - uniquecnt].offDestroy - off;
+            // don't emit a block for length 0, it isn't captured by the close condition above
+            if (len > 0)
+            {
+                if(fnBeginBlock)
+                    (*fnBeginBlock)(off, len);
+                openBlocks++;
+            }
             lastOffset = off;
         }
         (*fnWriteVar)(sa);
