@@ -2545,7 +2545,9 @@ STATIC void cv4_func(Funcsym *s)
     cv4_outsym(s);              // put out function symbol
 #if MARS
     static Funcsym* sfunc;
+    static cntOpenBlocks;
     sfunc = s;
+    cntOpenBlocks = 0;
 
     struct cv4
     {
@@ -2569,6 +2571,9 @@ STATIC void cv4_func(Funcsym *s)
         }
         static void beginBlock(int offset, int length)
         {
+            if (++cntOpenBlocks >= 255)
+                return; // optlink does not like more than 255 scope blocks
+
             unsigned soffset = Offset(DEBSYM);
             // parent and end to be filled by linker
             block32_data block32 = { sizeof(block32_data) - 2, S_BLOCK32, 0, 0, length, 0, 0, { 0, '\0' } };
@@ -2578,6 +2583,9 @@ STATIC void cv4_func(Funcsym *s)
         }
         static void endBlock()
         {
+            if (cntOpenBlocks-- >= 255)
+                return; // optlink does not like more than 255 scope blocks
+
             static unsigned short endargs[] = { 2, S_END };
             objmod->write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
         }
