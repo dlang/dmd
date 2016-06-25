@@ -398,7 +398,7 @@ void cv8_func_term(Symbol *sfunc)
     buf->writen(id, len);
     buf->writeByte(0);
 
-    struct CV
+    struct cv8
     {
         // record for CV record S_BLOCK_V3
         struct block_v3_data
@@ -441,7 +441,7 @@ void cv8_func_term(Symbol *sfunc)
             buf->writeWord(S_END);
         }
     };
-    varStats.writeSymbolTable(&globsym, &cv8_outsym, &CV::endArgs, &CV::beginBlock, &CV::endBlock);
+    varStats.writeSymbolTable(&globsym, &cv8_outsym, &cv8::endArgs, &cv8::beginBlock, &cv8::endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)

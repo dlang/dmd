@@ -2546,7 +2546,8 @@ STATIC void cv4_func(Funcsym *s)
 #if MARS
     static Funcsym* sfunc;
     sfunc = s;
-    struct CV
+
+    struct cv4
     {
         // record for CV record S_BLOCK32
         struct block32_data
@@ -2582,7 +2583,7 @@ STATIC void cv4_func(Funcsym *s)
         }
     };
 
-    varStats.writeSymbolTable(&globsym, &cv4_outsym, &CV::endArgs, &CV::beginBlock, &CV::endBlock);
+    varStats.writeSymbolTable(&globsym, &cv4_outsym, &cv4::endArgs, &cv4::beginBlock, &cv4::endBlock);
 #else
     symtab_t* symtab = &globsym;
 
