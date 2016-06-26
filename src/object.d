@@ -8,11 +8,6 @@
  * Authors:   Walter Bright, Sean Kelly
  */
 
-/*          Copyright Digital Mars 2000 - 2011.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module object;
 
 private
@@ -2125,7 +2120,7 @@ pure nothrow unittest
     }
 }
 
-pure /*nothrow @@@BUG5555@@@*/ unittest
+pure /*nothrow */ unittest
 {
     auto a = [ 1:"one", 2:"two", 3:"three" ];
     auto b = a.dup;
@@ -2477,7 +2472,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
 
     struct InnerMiddle {}
 
-    version(none) // @@@BUG@@@ 14242
+    version(none) // https://issues.dlang.org/show_bug.cgi?id=14242
     struct InnerElement
     {
         static char counter = '1';
@@ -2511,7 +2506,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
         char[] s;
         InnerTop top;
         InnerMiddle middle;
-        version(none) InnerElement[3] array; // @@@BUG@@@ 14242
+        version(none) InnerElement[3] array; // https://issues.dlang.org/show_bug.cgi?id=14242
         int a;
         InnerBottom bottom;
         ~this() @safe nothrow pure { order ~= "destroy outer"; }
@@ -2587,7 +2582,7 @@ unittest
 }
 
 // Test handling of fixed-length arrays
-// Separate from first test because of @@@BUG@@@ 14242
+// Separate from first test because of https://issues.dlang.org/show_bug.cgi?id=14242
 unittest
 {
     string[] order;
@@ -2630,7 +2625,7 @@ unittest
 }
 
 // Test handling of failed postblit
-// Not nothrow or @safe because of @@@BUG@@@ 14242
+// Not nothrow or @safe because of https://issues.dlang.org/show_bug.cgi?id=14242
 /+ nothrow @safe +/ unittest
 {
     static class FailedPostblitException : Exception { this() nothrow @safe { super(null); } }
@@ -3084,7 +3079,7 @@ unittest
     arr = arr[0 .. 1].assumeSafeAppend(); //pass by value
 }
 
-//@@@10574@@@
+// https://issues.dlang.org/show_bug.cgi?id=10574
 unittest
 {
     int[] a;
@@ -3257,7 +3252,7 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
 }
 
 
-// @@@BUG5835@@@ tests:
+// Tests ensure TypeInfo_Array.getHash  uses element hash functions instead of hashing array data
 
 unittest
 {
@@ -3268,7 +3263,7 @@ unittest
         override hash_t toHash() { return 0; }
     }
     C[] a1 = [new C(11)], a2 = [new C(12)];
-    assert(typeid(C[]).getHash(&a1) == typeid(C[]).getHash(&a2)); // fails
+    assert(typeid(C[]).getHash(&a1) == typeid(C[]).getHash(&a2));
 }
 
 unittest
@@ -3279,7 +3274,7 @@ unittest
         hash_t toHash() const @safe nothrow { return 0; }
     }
     S[] a1 = [S(11)], a2 = [S(12)];
-    assert(typeid(S[]).getHash(&a1) == typeid(S[]).getHash(&a2)); // fails
+    assert(typeid(S[]).getHash(&a1) == typeid(S[]).getHash(&a2));
 }
 
 @safe unittest
@@ -3294,7 +3289,7 @@ unittest
     }
 
     int[S[]] aa = [[S(11)] : 13];
-    assert(aa[[S(12)]] == 13); // fails
+    assert(aa[[S(12)]] == 13);
 }
 
 /// Provide the .dup array property.
