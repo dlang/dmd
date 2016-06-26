@@ -1048,7 +1048,7 @@ $(GNAME Slice):
         -------------
 
         If both $(CODE a) and $(CODE b) are integers (may be constant-folded),
-        the slice expression can be convered to a static array type
+        the slice expression can be converted to a static array type
         $(D T[b - a]).
 
         -------------
@@ -1251,7 +1251,7 @@ $(GNAME StringLiterals):
 
     $(P By default, a string literal is typed as a dynamic array, but the element
         count is known at compile time. So all string literals can be
-        implicitly convered to static array types.
+        implicitly converted to static array types.
 
         -------------
         void foo(char[2] a)
@@ -1304,7 +1304,7 @@ $(GNAME ArrayLiteral):
 
     $(P By default, an array literal is typed as a dynamic array, but the element
         count is known at compile time. So all array literals can be
-        implicitly convered to static array types.
+        implicitly converted to static array types.
 
         -------------
         void foo(long[2] a)
