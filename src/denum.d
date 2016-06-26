@@ -628,7 +628,10 @@ extern (C++) final class EnumMember : VarDeclaration
                 origValue = e;
 
                 if (!ed.isAnonymous())
+                {
                     e = e.castTo(sc, ed.type);
+                    e = e.ctfeInterpret();
+                }
             }
             else if (origType)
             {
@@ -660,7 +663,10 @@ extern (C++) final class EnumMember : VarDeclaration
             origValue = e;
 
             if (!ed.isAnonymous())
+            {
                 e = e.castTo(sc, ed.type);
+                e = e.ctfeInterpret();
+            }
             value = e;
         }
         else

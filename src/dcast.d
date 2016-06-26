@@ -2730,6 +2730,15 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
     }
     assert(t2);
 
+    if (t1.mod != t2.mod &&
+        t1.ty == Tenum && t2.ty == Tenum &&
+        (cast(TypeEnum)t1).sym == (cast(TypeEnum)t2).sym)
+    {
+        ubyte mod = MODmerge(t1.mod, t2.mod);
+        t1 = t1.castMod(mod);
+        t2 = t2.castMod(mod);
+    }
+
 Lagain:
     t1b = t1.toBasetype();
     t2b = t2.toBasetype();
