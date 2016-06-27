@@ -205,12 +205,11 @@ class ManualGC : GC
 
     void removeRoot(void* p) nothrow @nogc
     {
-
-        for (size_t i = 0; i < roots.length; ++i)
+        foreach (ref r; roots)
         {
-            if (roots[i] is p)
+            if (r is p)
             {
-                roots[i] = roots.back;
+                r = roots.back;
                 roots.popBack();
                 return;
             }
@@ -226,9 +225,9 @@ class ManualGC : GC
     private int rootsApply(scope int delegate(ref Root) nothrow dg)
     {
         int result = 0;
-        for (int i = 0; i < roots.length; i++)
+        foreach (ref r; roots)
         {
-            result = dg(roots[i]);
+            result = dg(r);
 
             if (result)
                 break;
@@ -245,11 +244,11 @@ class ManualGC : GC
 
     void removeRange(void* p) nothrow @nogc
     {
-        for (size_t i = 0; i < ranges.length; ++i)
+        foreach (ref r; ranges)
         {
-            if (ranges[i].pbot is p)
+            if (r.pbot is p)
             {
-                ranges[i] = ranges.back;
+                r = ranges.back;
                 ranges.popBack();
                 return;
             }
@@ -265,9 +264,9 @@ class ManualGC : GC
     private int rangesApply(scope int delegate(ref Range) nothrow dg)
     {
         int result = 0;
-        for (int i = 0; i < ranges.length; i++)
+        foreach (ref r; ranges)
         {
-            result = dg(ranges[i]);
+            result = dg(r);
 
             if (result)
                 break;
