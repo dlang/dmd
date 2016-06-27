@@ -882,6 +882,11 @@ public:
         return null;
     }
 
+    ForStatement isForStatement()
+    {
+        return null;
+    }
+
     ReturnStatement isReturnStatement()
     {
         return null;
@@ -2040,6 +2045,11 @@ public:
     override bool hasContinue()
     {
         return true;
+    }
+
+    override final ForStatement isForStatement()
+    {
+        return this;
     }
 
     override void accept(Visitor v)
