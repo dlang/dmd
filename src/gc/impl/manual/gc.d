@@ -198,9 +198,7 @@ class ManualGC : GC
 
     void addRoot(void* p) nothrow @nogc
     {
-
-        Root r = {p};
-        roots.insertBack(r);
+        roots.insertBack(Root(p));
     }
 
     void removeRoot(void* p) nothrow @nogc
@@ -234,8 +232,7 @@ class ManualGC : GC
 
     void addRange(void* p, size_t sz, const TypeInfo ti = null) nothrow @nogc
     {
-        Range newRange = {p, p + sz, cast() ti};
-        ranges.insertBack(newRange);
+        ranges.insertBack(Range(p, p + sz, cast() ti));
     }
 
     void removeRange(void* p) nothrow @nogc
