@@ -4080,11 +4080,11 @@ public:
      */
     Expression interpretAssignToSlice(BinExp e, Expression e1, Expression newval, bool isBlockAssignment)
     {
-        int lowerbound;
-        size_t upperbound;
+        dinteger_t lowerbound;
+        dinteger_t upperbound;
+        dinteger_t firstIndex;
 
         Expression aggregate;
-        sinteger_t firstIndex;
 
         if (e1.op == TOKvector)
             e1 = (cast(VectorExp)e1).e1;
@@ -4124,13 +4124,14 @@ public:
                 if (se.lengthVar)
                     ctfeStack.pop(se.lengthVar); // $ is defined only in [L..U]
 
-                uint dim = cast(uint)dollar;
-                lowerbound = cast(int)(lwr ? lwr.toInteger() : 0);
-                upperbound = cast(size_t)(upr ? upr.toInteger() : dim);
+                const dim = dollar;
+                lowerbound = lwr ? lwr.toInteger() : 0;
+                upperbound = upr ? upr.toInteger() : dim;
 
                 if (lowerbound < 0 || dim < upperbound)
                 {
-                    e.error("array bounds [0..%d] exceeded in slice [%d..%d]", dim, lowerbound, upperbound);
+                    e.error("array bounds [0..%llu] exceeded in slice [%llu..%llu]",
+                        ulong(dim), ulong(lowerbound), ulong(upperbound));
                     return CTFEExp.cantexp;
                 }
             }
@@ -4143,7 +4144,8 @@ public:
                 SliceExp oldse = cast(SliceExp)aggregate;
                 if (oldse.upr.toInteger() < upperbound + oldse.lwr.toInteger())
                 {
-                    e.error("slice [%d..%d] exceeds array bounds [0..%lld]", lowerbound, upperbound, oldse.upr.toInteger() - oldse.lwr.toInteger());
+                    e.error("slice [%llu..%llu] exceeds array bounds [0..%llu]",
+                        ulong(lowerbound), ulong(upperbound), oldse.upr.toInteger() - oldse.lwr.toInteger());
                     return CTFEExp.cantexp;
                 }
                 aggregate = oldse.e1;
@@ -4179,10 +4181,11 @@ public:
         // For slice assignment, we check that the lengths match.
         if (!isBlockAssignment)
         {
-            size_t srclen = cast(size_t)resolveArrayLength(newval);
+            const srclen = resolveArrayLength(newval);
             if (srclen != (upperbound - lowerbound))
             {
-                e.error("array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
+                e.error("array length mismatch assigning [0..%llu] to [%llu..%llu]",
+                    ulong(srclen), ulong(lowerbound), ulong(upperbound));
                 return CTFEExp.cantexp;
             }
         }
@@ -4206,8 +4209,8 @@ public:
                 if (aggregate == aggr2 &&
                     lowerbound < srcupper && srclower < upperbound)
                 {
-                    e.error("overlapping slice assignment [%d..%d] = [%llu..%llu]",
-                        lowerbound, upperbound, srclower, srcupper);
+                    e.error("overlapping slice assignment [%llu..%llu] = [%llu..%llu]",
+                        ulong(lowerbound), ulong(upperbound), ulong(srclower), ulong(srcupper));
                     return CTFEExp.cantexp;
                 }
                 version (all) // todo: instead we can directly access to each elements of the slice
@@ -4283,7 +4286,7 @@ public:
                     if (aggregate == aggr2 && srclower < lowerbound && lowerbound < srcupper)
                     {
                         // reverse order
-                        for (size_t i = upperbound - lowerbound; 0 < i--;)
+                        for (auto i = upperbound - lowerbound; 0 < i--;)
                         {
                             Expression oldelem = (*oldelems)[cast(size_t)(i + firstIndex)];
                             Expression newelem = (*newelems)[cast(size_t)(i + srclower)];
@@ -4296,13 +4299,13 @@ public:
                             }
                             if (Expression x = evaluateDtor(istate, oldelem))
                                 return x;
-                            (*oldelems)[lowerbound + i] = newelem;
+                            (*oldelems)[cast(size_t)(lowerbound + i)] = newelem;
                         }
                     }
                     else
                     {
                         // normal order
-                        for (size_t i = 0; i < upperbound - lowerbound; i++)
+                        for (auto i = 0; i < upperbound - lowerbound; i++)
                         {
                             Expression oldelem = (*oldelems)[cast(size_t)(i + firstIndex)];
                             Expression newelem = (*newelems)[cast(size_t)(i + srclower)];
@@ -4315,7 +4318,7 @@ public:
                             }
                             if (Expression x = evaluateDtor(istate, oldelem))
                                 return x;
-                            (*oldelems)[lowerbound + i] = newelem;
+                            (*oldelems)[cast(size_t)(lowerbound + i)] = newelem;
                         }
                     }
 
@@ -4325,8 +4328,8 @@ public:
                 if (aggregate == aggr2 &&
                     lowerbound < srcupper && srclower < upperbound)
                 {
-                    e.error("overlapping slice assignment [%d..%d] = [%llu..%llu]",
-                        lowerbound, upperbound, srclower, srcupper);
+                    e.error("overlapping slice assignment [%llu..%llu] = [%llu..%llu]",
+                        ulong(lowerbound), ulong(upperbound), ulong(srclower), ulong(srcupper));
                     return CTFEExp.cantexp;
                 }
                 version (all) // todo: instead we can directly access to each elements of the slice
@@ -4445,7 +4448,7 @@ public:
             rb.refCopy = wantRef || cow;
             rb.needsPostblit = sd && sd.postblit && e.op != TOKblit && e.e2.isLvalue();
             rb.needsDtor = sd && sd.dtor && e.op == TOKassign;
-            if (Expression ex = rb.assignTo(existingAE, lowerbound, upperbound))
+            if (Expression ex = rb.assignTo(existingAE, cast(size_t)lowerbound, cast(size_t)upperbound))
                 return ex;
 
             if (goal == ctfeNeedNothing)
