@@ -53,9 +53,9 @@ class ManualGC : GC
         if (!p)
             onOutOfMemoryError();
 
-        instance = cast(ManualGC) memcpy(p, typeid(ManualGC).initializer.ptr,
-            typeid(ManualGC).initializer.length);
-
+        auto init = typeid(ManualGC).initializer();
+        assert(init.length == __traits(classInstanceSize, ManualGC));
+        instance = cast(ManualGC) memcpy(p, init.ptr, init.length);
         instance.__ctor();
 
         gc = instance;
