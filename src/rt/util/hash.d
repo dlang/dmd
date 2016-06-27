@@ -18,13 +18,7 @@ version( AnyX86 )
 
 
 @trusted pure nothrow @nogc
-size_t hashOf( const(void)[] buf, size_t seed = 0 )
-{
-    return hashOf(buf.ptr, buf.length, seed);
-}
-
-@system pure nothrow @nogc
-size_t hashOf( const(void)* buf, size_t len, size_t seed )
+size_t hashOf( const(void)[] buf, size_t seed )
 {
     /*
      * This is Paul Hsieh's SuperFastHash algorithm, described here:
@@ -47,7 +41,8 @@ size_t hashOf( const(void)* buf, size_t len, size_t seed )
 
     // NOTE: SuperFastHash normally starts with a zero hash value.  The seed
     //       value was incorporated to allow chaining.
-    auto data = cast(const (ubyte)*) buf;
+    auto data = cast(const(ubyte)*) buf.ptr;
+    auto len = buf.length;
     auto hash = seed;
 
     if( len == 0 || data is null )
@@ -95,15 +90,18 @@ size_t hashOf( const(void)* buf, size_t len, size_t seed )
     return hash;
 }
 
-// Check that hashOf works with CTFE
-@nogc nothrow pure unittest
+unittest
 {
-    size_t ctfeHash(string x)
-    {
-        return hashOf(x.ptr, x.length, 0);
-    }
-
     enum test_str = "Sample string";
-    enum size_t hashVal = ctfeHash(test_str);
-    assert(hashVal == hashOf(test_str.ptr, test_str.length, 0));
+    size_t hashval = hashOf(test_str, 5);
+
+    //import core.stdc.stdio;
+    //printf("hashval = %lld\n", cast(long)hashval);
+
+    if (hashval.sizeof == 4)
+        assert(hashval == 528740845);
+    else if (hashval.sizeof == 8)
+        assert(hashval == 8106800467257150594L);
+    else
+        assert(0);
 }
