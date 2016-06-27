@@ -224,16 +224,12 @@ class ManualGC : GC
 
     private int rootsApply(scope int delegate(ref Root) nothrow dg)
     {
-        int result = 0;
         foreach (ref r; roots)
         {
-            result = dg(r);
-
-            if (result)
-                break;
+            if (auto result = dg(r))
+                return result;
         }
-
-        return result;
+        return 0;
     }
 
     void addRange(void* p, size_t sz, const TypeInfo ti = null) nothrow @nogc
@@ -263,16 +259,12 @@ class ManualGC : GC
 
     private int rangesApply(scope int delegate(ref Range) nothrow dg)
     {
-        int result = 0;
         foreach (ref r; ranges)
         {
-            result = dg(r);
-
-            if (result)
-                break;
+            if (auto result = dg(r))
+                return result;
         }
-
-        return result;
+        return 0;
     }
 
     void runFinalizers(in void[] segment) nothrow
