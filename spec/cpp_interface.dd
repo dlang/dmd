@@ -186,6 +186,12 @@ $(H2 $(LNAME2 classes, Classes))
     $(P Unlike classes and interfaces with D linkage, $(CODE extern (C++))
     classes and interfaces are not rooted in $(CODE Object) and cannot be used
     with $(CODE typeid).)
+    
+    $(P When mapping a D $(CODE class) onto a C++ $(CODE struct),
+    use $(CODE extern(C++, struct)) to avoid linking problems with C++ compilers
+    (notably MSVC) that distinguish between C++'s $(CODE class) and $(CODE struct)
+    when mangling. Conversely, use $(CODE extern(C++, class)) to map a D
+    $(CODE struct) onto a C++ $(CODE class).)
 
 $(H3 Using C++ Classes From D)
 
