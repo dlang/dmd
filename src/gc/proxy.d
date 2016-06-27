@@ -28,8 +28,8 @@ private
     extern (C) void thread_init();
     extern (C) void thread_term();
 
-    __gshared GC instance;  //used for making the GC calls
-    __gshared GC initialGC; //used to reset instance if gc_clrProxy was called
+    __gshared GC currentGC;  //used for making the GC calls
+    __gshared GC initialGC; //used to reset currentGC if gc_clrProxy was called
 
 }
 
@@ -43,7 +43,7 @@ extern (C)
         ManualGC.initialize(initialGC);
         ConservativeGC.initialize(initialGC);
 
-        instance = initialGC;
+        currentGC = initialGC;
 
         // NOTE: The GC must initialize the thread library
         //       before its first collection.
@@ -62,8 +62,8 @@ extern (C)
         // NOTE: Due to popular demand, this has been re-enabled.  It still has
         //       the problems mentioned above though, so I guess we'll see.
 
-        instance.collectNoStack(); // not really a 'collect all' -- still scans
-                                   // static data area, roots, and ranges.
+        currentGC.collectNoStack(); // not really a 'collect all' -- still scans
+                                    // static data area, roots, and ranges.
 
         thread_term();
 
@@ -73,161 +73,161 @@ extern (C)
 
     void gc_enable()
     {
-        instance.enable();
+        currentGC.enable();
     }
 
     void gc_disable()
     {
-        instance.disable();
+        currentGC.disable();
     }
 
     void gc_collect() nothrow
     {
-        instance.collect();
+        currentGC.collect();
     }
 
     void gc_minimize() nothrow
     {
-        instance.minimize();
+        currentGC.minimize();
     }
 
     uint gc_getAttr( void* p ) nothrow
     {
-        return instance.getAttr(p);
+        return currentGC.getAttr(p);
     }
 
     uint gc_setAttr( void* p, uint a ) nothrow
     {
-        return instance.setAttr(p, a);
+        return currentGC.setAttr(p, a);
     }
 
     uint gc_clrAttr( void* p, uint a ) nothrow
     {
-        return instance.clrAttr(p, a);
+        return currentGC.clrAttr(p, a);
     }
 
     void* gc_malloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return instance.malloc(sz, ba, ti);
+        return currentGC.malloc(sz, ba, ti);
     }
 
     BlkInfo gc_qalloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return instance.qalloc( sz, ba, ti );
+        return currentGC.qalloc( sz, ba, ti );
     }
 
     void* gc_calloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return instance.calloc( sz, ba, ti );
+        return currentGC.calloc( sz, ba, ti );
     }
 
     void* gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return instance.realloc( p, sz, ba, ti );
+        return currentGC.realloc( p, sz, ba, ti );
     }
 
     size_t gc_extend( void* p, size_t mx, size_t sz, const TypeInfo ti = null ) nothrow
     {
-        return instance.extend( p, mx, sz,ti );
+        return currentGC.extend( p, mx, sz,ti );
     }
 
     size_t gc_reserve( size_t sz ) nothrow
     {
-        return instance.reserve( sz );
+        return currentGC.reserve( sz );
     }
 
     void gc_free( void* p ) nothrow
     {
-        return instance.free( p );
+        return currentGC.free( p );
     }
 
     void* gc_addrOf( void* p ) nothrow
     {
-        return instance.addrOf( p );
+        return currentGC.addrOf( p );
     }
 
     size_t gc_sizeOf( void* p ) nothrow
     {
-        return instance.sizeOf( p );
+        return currentGC.sizeOf( p );
     }
 
     BlkInfo gc_query( void* p ) nothrow
     {
-        return instance.query( p );
+        return currentGC.query( p );
     }
 
     // NOTE: This routine is experimental. The stats or function name may change
     //       before it is made officially available.
     GCStats gc_stats() nothrow
     {
-        return instance.stats();
+        return currentGC.stats();
     }
 
     void gc_addRoot( void* p ) nothrow
     {
-        return instance.addRoot( p );
+        return currentGC.addRoot( p );
     }
 
     void gc_addRange( void* p, size_t sz, const TypeInfo ti = null ) nothrow
     {
-        return instance.addRange( p, sz, ti );
+        return currentGC.addRange( p, sz, ti );
     }
 
     void gc_removeRoot( void* p ) nothrow
     {
-        return instance.removeRoot( p );
+        return currentGC.removeRoot( p );
     }
 
     void gc_removeRange( void* p ) nothrow
     {
-        return instance.removeRange( p );
+        return currentGC.removeRange( p );
     }
 
     void gc_runFinalizers( in void[] segment ) nothrow
     {
-        return instance.runFinalizers( segment );
+        return currentGC.runFinalizers( segment );
     }
 
     bool gc_inFinalizer() nothrow
     {
-        return instance.inFinalizer();
+        return currentGC.inFinalizer();
     }
 
     GC gc_getProxy() nothrow
     {
-        return instance;
+        return currentGC;
     }
 
     export
     {
-        void gc_setProxy( GC inst )
+        void gc_setProxy( GC newGC )
         {
-            foreach(root; instance.rootIter)
+            foreach(root; currentGC.rootIter)
             {
-                inst.addRoot(root);
+                newGC.addRoot(root);
             }
 
-            foreach(range; instance.rangeIter)
+            foreach(range; currentGC.rangeIter)
             {
-                inst.addRange(range.pbot, range.ptop - range.pbot, range.ti);
+                newGC.addRange(range.pbot, range.ptop - range.pbot, range.ti);
             }
 
-            instance = inst;
+            currentGC = newGC;
         }
 
         void gc_clrProxy()
         {
             foreach(root; initialGC.rootIter)
             {
-                instance.removeRoot(root);
+                currentGC.removeRoot(root);
             }
 
             foreach(range; initialGC.rangeIter)
             {
-                instance.removeRange(range);
+                currentGC.removeRange(range);
             }
 
-            instance = initialGC;
+            currentGC = initialGC;
         }
     }
 }
