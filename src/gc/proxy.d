@@ -67,8 +67,8 @@ extern (C)
 
         thread_term();
 
-        ManualGC.finalize();
-        ConservativeGC.finalize();
+        ManualGC.finalize(initialGC);
+        ConservativeGC.finalize(initialGC);
     }
 
     void gc_enable()

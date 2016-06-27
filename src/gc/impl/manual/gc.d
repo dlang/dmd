@@ -35,8 +35,6 @@ import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 
 extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
 
-__gshared ManualGC instance;
-
 class ManualGC : GC
 {
     __gshared Array!Root roots;
@@ -55,19 +53,20 @@ class ManualGC : GC
 
         auto init = typeid(ManualGC).initializer();
         assert(init.length == __traits(classInstanceSize, ManualGC));
-        instance = cast(ManualGC) memcpy(p, init.ptr, init.length);
+        auto instance = cast(ManualGC) memcpy(p, init.ptr, init.length);
         instance.__ctor();
 
         gc = instance;
     }
 
-    static void finalize()
+    static void finalize(ref GC gc)
     {
-        if (instance !is null)
-        {
-            instance.Dtor();
-            cstdlib.free(cast(void*) instance);
-        }
+        if (config.gc != "manual")
+            return;
+
+        auto instance = cast(ManualGC) gc;
+        instance.Dtor();
+        cstdlib.free(cast(void*) instance);
     }
 
     this()

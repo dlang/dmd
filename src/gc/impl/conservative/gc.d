@@ -249,8 +249,6 @@ debug (LOGGING)
 
 /* ============================ GC =============================== */
 
-__gshared ConservativeGC instance;
-
 class ConservativeGC : GC
 {
     // For passing to debug code (not thread safe)
@@ -286,7 +284,7 @@ class ConservativeGC : GC
 
         auto init = typeid(ConservativeGC).initializer();
         assert(init.length == __traits(classInstanceSize, ConservativeGC));
-        instance = cast(ConservativeGC) memcpy(p, init.ptr, init.length);
+        auto instance = cast(ConservativeGC) memcpy(p, init.ptr, init.length);
         instance.__ctor();
 
         gc = instance;
