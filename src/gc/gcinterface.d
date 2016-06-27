@@ -36,9 +36,6 @@ struct Range
     alias pbot this; // only consider pbot for relative ordering (opCmp)
 }
 
-const uint GCVERSION = 1; // increment every time we change interface
-// to GC.
-
 interface GC
 {
 

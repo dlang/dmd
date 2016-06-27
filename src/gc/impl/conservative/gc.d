@@ -257,8 +257,6 @@ class ConservativeGC : GC
     __gshared size_t line;
     __gshared char*  file;
 
-    uint gcversion = GCVERSION;
-
     Gcx *gcx;                   // implementation
 
     import core.internal.spinlock;
