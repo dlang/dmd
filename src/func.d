@@ -357,7 +357,7 @@ public:
              *      // equivalent with:
              *      //    s->body; scope(exit) nrvo_var->edtor;
              * as:
-             *      try { s->body; } catch(__o) { nrvo_var->edtor; throw __o; }
+             *      try { s->body; } catch(Throwable __o) { nrvo_var->edtor; throw __o; }
              *      // equivalent with:
              *      //    s->body; scope(failure) nrvo_var->edtor;
              */
@@ -373,7 +373,7 @@ public:
             }
 
             auto catches = new Catches();
-            auto ctch = new Catch(Loc(), null, id, handler);
+            auto ctch = new Catch(Loc(), getThrowable(), id, handler);
             ctch.internalCatch = true;
             ctch.semantic(sc); // Run semantic to resolve identifier '__o'
             catches.push(ctch);
@@ -3756,13 +3756,13 @@ extern (C++) class FuncDeclaration : Declaration
                 //printf("fdv->frequire: %s\n", fdv->frequire->toChars());
                 /* Make the call:
                  *   try { __require(); }
-                 *   catch { frequire; }
+                 *   catch (Throwable) { frequire; }
                  */
                 Expression eresult = null;
                 Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), eresult);
                 Statement s2 = new ExpStatement(loc, e);
 
-                auto c = new Catch(loc, null, null, sf);
+                auto c = new Catch(loc, getThrowable(), null, sf);
                 c.internalCatch = true;
                 auto catches = new Catches();
                 catches.push(c);

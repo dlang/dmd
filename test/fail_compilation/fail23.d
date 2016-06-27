@@ -13,7 +13,7 @@ void main()
     {
         break;
     }
-    catch
+    catch (Throwable)
     {
     }
 }
