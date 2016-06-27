@@ -28,8 +28,8 @@ private
     extern (C) void thread_init();
     extern (C) void thread_term();
 
-    __gshared GC currentGC;  //used for making the GC calls
-    __gshared GC initialGC; //used to reset currentGC if gc_clrProxy was called
+    __gshared GC instance;
+    __gshared GC proxiedGC; // used to iterate roots of Windows DLLs
 
 }
 
@@ -40,10 +40,8 @@ extern (C)
     void gc_init()
     {
         config.initialize();
-        ManualGC.initialize(initialGC);
-        ConservativeGC.initialize(initialGC);
-
-        currentGC = initialGC;
+        ManualGC.initialize(instance);
+        ConservativeGC.initialize(instance);
 
         // NOTE: The GC must initialize the thread library
         //       before its first collection.
@@ -62,172 +60,174 @@ extern (C)
         // NOTE: Due to popular demand, this has been re-enabled.  It still has
         //       the problems mentioned above though, so I guess we'll see.
 
-        currentGC.collectNoStack(); // not really a 'collect all' -- still scans
+        instance.collectNoStack(); // not really a 'collect all' -- still scans
                                     // static data area, roots, and ranges.
 
         thread_term();
 
-        ManualGC.finalize(initialGC);
-        ConservativeGC.finalize(initialGC);
+        ManualGC.finalize(instance);
+        ConservativeGC.finalize(instance);
     }
 
     void gc_enable()
     {
-        currentGC.enable();
+        instance.enable();
     }
 
     void gc_disable()
     {
-        currentGC.disable();
+        instance.disable();
     }
 
     void gc_collect() nothrow
     {
-        currentGC.collect();
+        instance.collect();
     }
 
     void gc_minimize() nothrow
     {
-        currentGC.minimize();
+        instance.minimize();
     }
 
     uint gc_getAttr( void* p ) nothrow
     {
-        return currentGC.getAttr(p);
+        return instance.getAttr(p);
     }
 
     uint gc_setAttr( void* p, uint a ) nothrow
     {
-        return currentGC.setAttr(p, a);
+        return instance.setAttr(p, a);
     }
 
     uint gc_clrAttr( void* p, uint a ) nothrow
     {
-        return currentGC.clrAttr(p, a);
+        return instance.clrAttr(p, a);
     }
 
     void* gc_malloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return currentGC.malloc(sz, ba, ti);
+        return instance.malloc(sz, ba, ti);
     }
 
     BlkInfo gc_qalloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return currentGC.qalloc( sz, ba, ti );
+        return instance.qalloc( sz, ba, ti );
     }
 
     void* gc_calloc( size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return currentGC.calloc( sz, ba, ti );
+        return instance.calloc( sz, ba, ti );
     }
 
     void* gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo ti = null ) nothrow
     {
-        return currentGC.realloc( p, sz, ba, ti );
+        return instance.realloc( p, sz, ba, ti );
     }
 
     size_t gc_extend( void* p, size_t mx, size_t sz, const TypeInfo ti = null ) nothrow
     {
-        return currentGC.extend( p, mx, sz,ti );
+        return instance.extend( p, mx, sz,ti );
     }
 
     size_t gc_reserve( size_t sz ) nothrow
     {
-        return currentGC.reserve( sz );
+        return instance.reserve( sz );
     }
 
     void gc_free( void* p ) nothrow
     {
-        return currentGC.free( p );
+        return instance.free( p );
     }
 
     void* gc_addrOf( void* p ) nothrow
     {
-        return currentGC.addrOf( p );
+        return instance.addrOf( p );
     }
 
     size_t gc_sizeOf( void* p ) nothrow
     {
-        return currentGC.sizeOf( p );
+        return instance.sizeOf( p );
     }
 
     BlkInfo gc_query( void* p ) nothrow
     {
-        return currentGC.query( p );
+        return instance.query( p );
     }
 
     // NOTE: This routine is experimental. The stats or function name may change
     //       before it is made officially available.
     GCStats gc_stats() nothrow
     {
-        return currentGC.stats();
+        return instance.stats();
     }
 
     void gc_addRoot( void* p ) nothrow
     {
-        return currentGC.addRoot( p );
+        return instance.addRoot( p );
     }
 
     void gc_addRange( void* p, size_t sz, const TypeInfo ti = null ) nothrow
     {
-        return currentGC.addRange( p, sz, ti );
+        return instance.addRange( p, sz, ti );
     }
 
     void gc_removeRoot( void* p ) nothrow
     {
-        return currentGC.removeRoot( p );
+        return instance.removeRoot( p );
     }
 
     void gc_removeRange( void* p ) nothrow
     {
-        return currentGC.removeRange( p );
+        return instance.removeRange( p );
     }
 
     void gc_runFinalizers( in void[] segment ) nothrow
     {
-        return currentGC.runFinalizers( segment );
+        return instance.runFinalizers( segment );
     }
 
     bool gc_inFinalizer() nothrow
     {
-        return currentGC.inFinalizer();
+        return instance.inFinalizer();
     }
 
     GC gc_getProxy() nothrow
     {
-        return currentGC;
+        return instance;
     }
 
     export
     {
-        void gc_setProxy( GC newGC )
+        void gc_setProxy( GC proxy )
         {
-            foreach(root; currentGC.rootIter)
+            foreach(root; instance.rootIter)
             {
-                newGC.addRoot(root);
+                proxy.addRoot(root);
             }
 
-            foreach(range; currentGC.rangeIter)
+            foreach(range; instance.rangeIter)
             {
-                newGC.addRange(range.pbot, range.ptop - range.pbot, range.ti);
+                proxy.addRange(range.pbot, range.ptop - range.pbot, range.ti);
             }
 
-            currentGC = newGC;
+            proxiedGC = instance; // remember initial GC to later remove roots
+            instance = proxy;
         }
 
         void gc_clrProxy()
         {
-            foreach(root; initialGC.rootIter)
+            foreach(root; proxiedGC.rootIter)
             {
-                currentGC.removeRoot(root);
+                instance.removeRoot(root);
             }
 
-            foreach(range; initialGC.rangeIter)
+            foreach(range; proxiedGC.rangeIter)
             {
-                currentGC.removeRange(range);
+                instance.removeRange(range);
             }
 
-            currentGC = initialGC;
+            instance = proxiedGC;
+            proxiedGC = null;
         }
     }
 }
