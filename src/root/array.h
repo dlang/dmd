@@ -50,7 +50,7 @@ struct Array
 
     char *toChars()
     {
-        char **buf = (char **)mem.xmalloc(dim * sizeof(char *));
+        const char **buf = (const char **)mem.xmalloc(dim * sizeof(const char *));
         d_size_t len = 2;
         for (d_size_t u = 0; u < dim; u++)
         {

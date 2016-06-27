@@ -49,7 +49,7 @@ public:
     // kludge for template.isType()
     int dyncast() { return DYNCAST_TUPLE; }
 
-    char *toChars() { return objects.toChars(); }
+    const char *toChars() { return objects.toChars(); }
 };
 
 struct TemplatePrevious
@@ -88,7 +88,7 @@ public:
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind();
-    char *toChars();
+    const char *toChars();
 
     Prot prot();
 
@@ -320,7 +320,7 @@ public:
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    char *toChars();
+    const char *toChars();
     char* toPrettyCharsHelper();
     void printInstantiationTrace();
     Identifier *getIdent();
@@ -362,7 +362,7 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    char *toChars();
+    const char *toChars();
 
     bool findTempDecl(Scope *sc);
 
