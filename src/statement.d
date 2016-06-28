@@ -839,6 +839,11 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
+    ForStatement isForStatement()
+    {
+        return null;
+    }
+
     ReturnStatement isReturnStatement()
     {
         return null;
@@ -1599,6 +1604,11 @@ extern (C++) final class ForStatement : Statement
     override bool hasContinue()
     {
         return true;
+    }
+
+    override final ForStatement isForStatement()
+    {
+        return this;
     }
 
     override void accept(Visitor v)

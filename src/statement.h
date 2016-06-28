@@ -100,6 +100,7 @@ public:
     virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual ExpStatement *isExpStatement() { return NULL; }
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
+    virtual ForStatement *isForStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
     virtual IfStatement *isIfStatement() { return NULL; }
     virtual CaseStatement *isCaseStatement() { return NULL; }
@@ -267,6 +268,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
+    ForStatement *isForStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
