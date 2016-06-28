@@ -35,8 +35,6 @@ import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 
 extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
 
-__gshared ManualGC instance;
-
 class ManualGC : GC
 {
     __gshared Array!Root roots;
@@ -53,21 +51,22 @@ class ManualGC : GC
         if (!p)
             onOutOfMemoryError();
 
-        instance = cast(ManualGC) memcpy(p, typeid(ManualGC).initializer.ptr,
-            typeid(ManualGC).initializer.length);
-
+        auto init = typeid(ManualGC).initializer();
+        assert(init.length == __traits(classInstanceSize, ManualGC));
+        auto instance = cast(ManualGC) memcpy(p, init.ptr, init.length);
         instance.__ctor();
 
         gc = instance;
     }
 
-    static void finalize()
+    static void finalize(ref GC gc)
     {
-        if (instance !is null)
-        {
-            instance.Dtor();
-            cstdlib.free(cast(void*) instance);
-        }
+        if (config.gc != "manual")
+            return;
+
+        auto instance = cast(ManualGC) gc;
+        instance.Dtor();
+        cstdlib.free(cast(void*) instance);
     }
 
     this()
@@ -198,19 +197,16 @@ class ManualGC : GC
 
     void addRoot(void* p) nothrow @nogc
     {
-
-        Root r = {p};
-        roots.insertBack(r);
+        roots.insertBack(Root(p));
     }
 
     void removeRoot(void* p) nothrow @nogc
     {
-
-        for (size_t i = 0; i < roots.length; ++i)
+        foreach (ref r; roots)
         {
-            if (roots[i] is p)
+            if (r is p)
             {
-                roots[i] = roots.back;
+                r = roots.back;
                 roots.popBack();
                 return;
             }
@@ -225,31 +221,26 @@ class ManualGC : GC
 
     private int rootsApply(scope int delegate(ref Root) nothrow dg)
     {
-        int result = 0;
-        for (int i = 0; i < roots.length; i++)
+        foreach (ref r; roots)
         {
-            result = dg(roots[i]);
-
-            if (result)
-                break;
+            if (auto result = dg(r))
+                return result;
         }
-
-        return result;
+        return 0;
     }
 
     void addRange(void* p, size_t sz, const TypeInfo ti = null) nothrow @nogc
     {
-        Range newRange = {p, p + sz, cast() ti};
-        ranges.insertBack(newRange);
+        ranges.insertBack(Range(p, p + sz, cast() ti));
     }
 
     void removeRange(void* p) nothrow @nogc
     {
-        for (size_t i = 0; i < ranges.length; ++i)
+        foreach (ref r; ranges)
         {
-            if (ranges[i].pbot is p)
+            if (r.pbot is p)
             {
-                ranges[i] = ranges.back;
+                r = ranges.back;
                 ranges.popBack();
                 return;
             }
@@ -264,16 +255,12 @@ class ManualGC : GC
 
     private int rangesApply(scope int delegate(ref Range) nothrow dg)
     {
-        int result = 0;
-        for (int i = 0; i < ranges.length; i++)
+        foreach (ref r; ranges)
         {
-            result = dg(ranges[i]);
-
-            if (result)
-                break;
+            if (auto result = dg(r))
+                return result;
         }
-
-        return result;
+        return 0;
     }
 
     void runFinalizers(in void[] segment) nothrow

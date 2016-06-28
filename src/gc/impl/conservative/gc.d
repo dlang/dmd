@@ -249,8 +249,6 @@ debug (LOGGING)
 
 /* ============================ GC =============================== */
 
-__gshared ConservativeGC instance;
-
 class ConservativeGC : GC
 {
     // For passing to debug code (not thread safe)
@@ -284,21 +282,23 @@ class ConservativeGC : GC
         if(!p)
             onOutOfMemoryErrorNoGC();
 
-        instance = cast(ConservativeGC)memcpy(p, typeid(ConservativeGC).initializer.ptr, typeid(ConservativeGC).initializer.length);
-
+        auto init = typeid(ConservativeGC).initializer();
+        assert(init.length == __traits(classInstanceSize, ConservativeGC));
+        auto instance = cast(ConservativeGC) memcpy(p, init.ptr, init.length);
         instance.__ctor();
 
         gc = instance;
     }
 
 
-    static void finalize()
+    static void finalize(ref GC gc)
     {
-        if(instance !is null)
-        {
-            instance.Dtor();
-            cstdlib.free(cast(void*)instance);
-        }
+        if(config.gc != "conservative")
+              return;
+
+        auto instance = cast(ConservativeGC) gc;
+        instance.Dtor();
+        cstdlib.free(cast(void*)instance);
     }
 
 
