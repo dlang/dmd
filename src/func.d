@@ -1259,29 +1259,8 @@ extern (C++) class FuncDeclaration : Declaration
         /* Purity and safety can be inferred for some functions by examining
          * the function body.
          */
-        TemplateInstance ti;
-        if (fbody && !isVirtualMethod() &&
-                        /********** this is for backwards compatibility for the moment ********/
-            (sc.func && (!isMember() || sc.func.isSafeBypassingInference() && !isInstantiated()) ||
-             isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) ||
-             isInstantiated() &&
-             ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)))
-        {
-            if (f.purity == PUREimpure) // purity not specified
-                flags |= FUNCFLAGpurityInprocess;
-
-            if (f.trust == TRUSTdefault)
-                flags |= FUNCFLAGsafetyInprocess;
-
-            if (!f.isnothrow)
-                flags |= FUNCFLAGnothrowInprocess;
-
-            if (!f.isnogc)
-                flags |= FUNCFLAGnogcInprocess;
-
-            if (!isVirtual() || introducing)
-                flags |= FUNCFLAGreturnInprocess;
-        }
+        if (canInferAttributes(sc))
+            initInferAttributes();
 
         Module.dprogress++;
         semanticRun = PASSsemanticdone;
@@ -3027,6 +3006,46 @@ extern (C++) class FuncDeclaration : Declaration
     override final bool isOverloadable()
     {
         return true; // functions can be overloaded
+    }
+
+    /**********************************
+     * Decide if attributes for this function can be inferred from examining
+     * the function body.
+     * Returns:
+     *  true if can
+     */
+    private final bool canInferAttributes(Scope* sc)
+    {
+        TemplateInstance ti;
+        return (fbody && !isVirtualMethod() &&
+                        /********** this is for backwards compatibility for the moment ********/
+            (sc.func && (!isMember() || sc.func.isSafeBypassingInference() && !isInstantiated()) ||
+             isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) ||
+             isInstantiated() &&
+             ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)));
+    }
+
+    /*****************************************
+     * Initialize for inferring the attributes of this function.
+     */
+    private final void initInferAttributes()
+    {
+        assert(type.ty == Tfunction);
+        TypeFunction tf = cast(TypeFunction)type;
+        if (tf.purity == PUREimpure) // purity not specified
+            flags |= FUNCFLAGpurityInprocess;
+
+        if (tf.trust == TRUSTdefault)
+            flags |= FUNCFLAGsafetyInprocess;
+
+        if (!tf.isnothrow)
+            flags |= FUNCFLAGnothrowInprocess;
+
+        if (!tf.isnogc)
+            flags |= FUNCFLAGnogcInprocess;
+
+        if (!isVirtual() || introducing)
+            flags |= FUNCFLAGreturnInprocess;
     }
 
     final PURE isPure()
