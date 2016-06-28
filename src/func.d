@@ -604,21 +604,6 @@ extern (C++) class FuncDeclaration : Declaration
             TypeFunction tf = cast(TypeFunction)type;
             if (sc.func)
             {
-                /* If the parent is @safe, then this function defaults to safe too.
-                 */
-                if (tf.trust == TRUSTdefault)
-                {
-                    FuncDeclaration fd = sc.func;
-
-                    /* If the parent's @safe-ty is inferred, then this function's @safe-ty needs
-                     * to be inferred first.
-                     * If this function's @safe-ty is inferred, then it needs to be infeerd first.
-                     * (local template function inside @safe function can be inferred to @system).
-                     */
-                    if (fd.isSafeBypassingInference() && !isInstantiated())
-                        tf.trust = TRUSTsafe; // default to @safe
-                }
-
                 /* If the nesting parent is pure without inference,
                  * then this function defaults to pure too.
                  *
@@ -1275,8 +1260,11 @@ extern (C++) class FuncDeclaration : Declaration
          * the function body.
          */
         TemplateInstance ti;
-        if (fbody &&
-            (isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) || isInstantiated() && !isVirtualMethod() &&
+        if (fbody && !isVirtualMethod() &&
+                        /********** this is for backwards compatibility for the moment ********/
+            (sc.func && (!isMember() || sc.func.isSafeBypassingInference() && !isInstantiated()) ||
+             isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) ||
+             isInstantiated() &&
              ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)))
         {
             if (f.purity == PUREimpure) // purity not specified

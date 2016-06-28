@@ -6,43 +6,43 @@ void testfp()
 {
     static int func1(int n = 1) { return n; }
     static int func2(int n    ) { return n; }
-    static assert(typeof(func1).stringof == "int(int n = 1)");
-    static assert(typeof(func2).stringof == "int(int n)");
+    static assert(typeof(func1).stringof == "pure nothrow @nogc @safe int(int n = 1)");
+    static assert(typeof(func2).stringof == "pure nothrow @nogc @safe int(int n)");
     static assert( is(typeof(func1())));     // OK
     static assert(!is(typeof(func2())));     // NG
 
     alias typeof(func1) Func1;
     alias typeof(func2) Func2;
     static assert(is(Func1 == Func2));
-    static assert(Func1.stringof == "int(int n = 1)");
-    static assert(Func2.stringof == "int(int n)");
+    static assert(Func1.stringof == "pure nothrow @nogc @safe int(int n = 1)");
+    static assert(Func2.stringof == "pure nothrow @nogc @safe int(int n)");
 
     auto fp1 = &func1;
     auto fp2 = &func2;
-    static assert(typeof(fp1).stringof == "int function(int n = 1)");
-    static assert(typeof(fp2).stringof == "int function(int n)");
+    static assert(typeof(fp1).stringof == "int function(int n = 1) pure nothrow @nogc @safe");
+    static assert(typeof(fp2).stringof == "int function(int n) pure nothrow @nogc @safe");
     static assert( is(typeof(fp1())));     // OK
     static assert(!is(typeof(fp2())));     // NG
 
     alias typeof(fp1) Fp1;
     alias typeof(fp2) Fp2;
     static assert(is(Fp1 == Fp2));
-    static assert(Fp1.stringof == "int function(int n = 1)");
-    static assert(Fp2.stringof == "int function(int n)");
+    static assert(Fp1.stringof == "int function(int n = 1) pure nothrow @nogc @safe");
+    static assert(Fp2.stringof == "int function(int n) pure nothrow @nogc @safe");
 
     typeof(fp1) fp3 = fp1;
     typeof(fp2) fp4 = fp2;
     static assert(is(typeof(fp3) == typeof(fp4)));
-    static assert(typeof(fp3).stringof == "int function(int n = 1)");
-    static assert(typeof(fp4).stringof == "int function(int n)");
+    static assert(typeof(fp3).stringof == "int function(int n = 1) pure nothrow @nogc @safe");
+    static assert(typeof(fp4).stringof == "int function(int n) pure nothrow @nogc @safe");
     static assert( is(typeof(fp3())));     // OK
     static assert(!is(typeof(fp4())));     // NG
 
     alias typeof(fp3) Fp3;
     alias typeof(fp4) Fp4;
     static assert(is(Fp3 == Fp4));
-    static assert(Fp3.stringof == "int function(int n = 1)");
-    static assert(Fp4.stringof == "int function(int n)");
+    static assert(Fp3.stringof == "int function(int n = 1) pure nothrow @nogc @safe");
+    static assert(Fp4.stringof == "int function(int n) pure nothrow @nogc @safe");
 
     auto fplit1 = function(int n = 1) { return n; };
     auto fplit2 = function(int n    ) { return n; };
@@ -54,42 +54,42 @@ void testdg()
 {
     int nest1(int n = 1) { return n; }
     int nest2(int n    ) { return n; }
-    static assert(typeof(nest1).stringof == "int(int n = 1)");
-    static assert(typeof(nest2).stringof == "int(int n)");
+    static assert(typeof(nest1).stringof == "pure nothrow @nogc @safe int(int n = 1)");
+    static assert(typeof(nest2).stringof == "pure nothrow @nogc @safe int(int n)");
     static assert( is(typeof(nest1())));     // OK
     static assert(!is(typeof(nest2())));     // NG
 
     alias typeof(nest1) Nest1;
     alias typeof(nest2) Nest2;
     static assert(is(Nest1 == Nest2));
-    static assert(Nest1.stringof == "int(int n = 1)");
-    static assert(Nest2.stringof == "int(int n)");
+    static assert(Nest1.stringof == "pure nothrow @nogc @safe int(int n = 1)");
+    static assert(Nest2.stringof == "pure nothrow @nogc @safe int(int n)");
 
     auto dg1 = &nest1;
     auto dg2 = &nest2;
-    static assert(typeof(dg1).stringof == "int delegate(int n = 1)");
-    static assert(typeof(dg2).stringof == "int delegate(int n)");
+    static assert(typeof(dg1).stringof == "int delegate(int n = 1) pure nothrow @nogc @safe");
+    static assert(typeof(dg2).stringof == "int delegate(int n) pure nothrow @nogc @safe");
     static assert( is(typeof(dg1())));     // OK
     static assert(!is(typeof(dg2())));     // NG
 
     alias typeof(dg1) Dg1;
     alias typeof(dg2) Dg2;
     static assert(is(Dg1 == Dg2));
-    static assert(Dg1.stringof == "int delegate(int n = 1)");
-    static assert(Dg2.stringof == "int delegate(int n)");
+    static assert(Dg1.stringof == "int delegate(int n = 1) pure nothrow @nogc @safe");
+    static assert(Dg2.stringof == "int delegate(int n) pure nothrow @nogc @safe");
 
     typeof(dg1) dg3 = dg1;
     typeof(dg2) dg4 = dg2;
-    static assert(typeof(dg3).stringof == "int delegate(int n = 1)");
-    static assert(typeof(dg4).stringof == "int delegate(int n)");
+    static assert(typeof(dg3).stringof == "int delegate(int n = 1) pure nothrow @nogc @safe");
+    static assert(typeof(dg4).stringof == "int delegate(int n) pure nothrow @nogc @safe");
     static assert( is(typeof(dg3())));     // OK
     static assert(!is(typeof(dg4())));     // NG
 
     alias typeof(dg3) Dg3;
     alias typeof(dg4) Dg4;
     static assert(is(Dg3 == Dg4));
-    static assert(Dg3.stringof == "int delegate(int n = 1)");
-    static assert(Dg4.stringof == "int delegate(int n)");
+    static assert(Dg3.stringof == "int delegate(int n = 1) pure nothrow @nogc @safe");
+    static assert(Dg4.stringof == "int delegate(int n) pure nothrow @nogc @safe");
 
     auto dglit1 = delegate(int n = 1) { return n; };
     auto dglit2 = delegate(int n    ) { return n; };
@@ -127,8 +127,8 @@ template StringOf(T)
 void testti()
 {
     int[] test(int[] a = []) { return a; }
-    static assert(typeof(test).stringof == "int[](int[] a = [])");
-    static assert(StringOf!(typeof(test)) == "int[](int[])");
+    static assert(typeof(test).stringof == "pure nothrow @nogc @safe int[](int[] a = [])");
+    static assert(StringOf!(typeof(test)) == "pure nothrow @nogc @safe int[](int[])");
 
     float function(float x = 0F) fp = x => x;
     static assert(typeof(fp).stringof == "float function(float x = " ~ (0F).stringof ~ ")");
@@ -240,8 +240,8 @@ void test8579()
     auto fn2 = &func2;
     static assert(is(typeof(fn1) == typeof(fn2)));
            assert(   typeid(fn1) is typeid(fn2) );
-    static assert(typeof(fn1).stringof == "void function(int i, double j = " ~ (1.0).stringof ~ ")");
-    static assert(typeof(fn2).stringof == "void function(int x, double y)");
+    static assert(typeof(fn1).stringof == "void function(int i, double j = " ~ (1.0).stringof ~ ") pure nothrow @nogc @safe");
+    static assert(typeof(fn2).stringof == "void function(int x, double y) pure nothrow @nogc @safe");
 
     static int func3(int x, double y) { return 0; }
     static int func4(int i, double j = 1.0) { return 0; }
@@ -249,8 +249,8 @@ void test8579()
     auto fn4 = &func4;
     static assert(is(typeof(fn3) == typeof(fn4)));
            assert(   typeid(fn3) is typeid(fn4) );
-    static assert(typeof(fn3).stringof == "int function(int x, double y)");
-    static assert(typeof(fn4).stringof == "int function(int i, double j = " ~ (1.0).stringof ~ ")");
+    static assert(typeof(fn3).stringof == "int function(int x, double y) pure nothrow @nogc @safe");
+    static assert(typeof(fn4).stringof == "int function(int i, double j = " ~ (1.0).stringof ~ ") pure nothrow @nogc @safe");
 }
 
 /***************************************************/
