@@ -245,6 +245,8 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D SysV4)) , $(ARGS System V Release 4))
 	$(TROW $(ARGS $(D Hurd)) , $(ARGS GNU Hurd))
 	$(TROW $(ARGS $(D Android)) , $(ARGS The Android platform))
+	$(TROW $(ARGS $(D PlayStation)) , $(ARGS The PlayStation platform))
+	$(TROW $(ARGS $(D PlayStation4)) , $(ARGS The PlayStation 4 platform))
 	$(TROW $(ARGS $(D Cygwin)) , $(ARGS The Cygwin environment))
 	$(TROW $(ARGS $(D MinGW)) , $(ARGS The MinGW environment))
 	$(TROW $(ARGS $(D FreeStanding)) , $(ARGS An environment without an operating system (such as Bare-metal targets)))
