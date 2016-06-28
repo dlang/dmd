@@ -8089,7 +8089,16 @@ extern (C++) final class TypeStruct : Type
     {
         //printf("TypeStruct::semantic('%s')\n", sym.toChars());
         if (deco)
+        {
+            if (sc.cppmangle != CPPMANGLE.def)
+            {
+                if (this.cppmangle == CPPMANGLE.def)
+                    this.cppmangle = sc.cppmangle;
+                else
+                    assert(this.cppmangle == sc.cppmangle);
+            }
             return this;
+        }
 
         /* Don't semantic for sym because it should be deferred until
          * sizeof needed or its members accessed.
@@ -8929,7 +8938,16 @@ extern (C++) final class TypeClass : Type
     {
         //printf("TypeClass::semantic(%s)\n", sym.toChars());
         if (deco)
+        {
+            if (sc.cppmangle != CPPMANGLE.def)
+            {
+                if (this.cppmangle == CPPMANGLE.def)
+                    this.cppmangle = sc.cppmangle;
+                else
+                    assert(this.cppmangle == sc.cppmangle);
+            }
             return this;
+        }
 
         /* Don't semantic for sym because it should be deferred until
          * sizeof needed or its members accessed.

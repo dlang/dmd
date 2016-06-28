@@ -169,6 +169,8 @@ interface Test38
      public static void dispose(ref Test38);
 }
 
+extern(C++) int test39cpp(C2!char, S2!(int)*);
+
 extern(C++, class)
 struct S1
 {
@@ -206,8 +208,6 @@ class C2(T)
     static C2!T init(const(T)* p);
     const(T)* getData();
 }
-
-extern(C++) int test39cpp(C2!char, S2!(int)*);
 
 void test39()
 {
