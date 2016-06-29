@@ -392,13 +392,14 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
-    final Dsymbol pastMixin()
+    final inout(Dsymbol) pastMixin() inout
     {
-        Dsymbol s = this;
         //printf("Dsymbol::pastMixin() %s\n", toChars());
-        while (s && s.isTemplateMixin())
-            s = s.parent;
-        return s;
+        if (!isTemplateMixin())
+            return this;
+        if (!parent)
+            return null;
+        return parent.pastMixin();
     }
 
     /**********************************
@@ -431,49 +432,46 @@ extern (C++) class Dsymbol : RootObject
      *  // s.toParent() == TemplateInstance('mod.test.Foo!()')
      *  // s.toParent2() == FuncDeclaration('mod.test')
      */
-    final Dsymbol toParent()
+    final inout(Dsymbol) toParent() inout
     {
         return parent ? parent.pastMixin() : null;
     }
 
     /// ditto
-    final Dsymbol toParent2()
+    final inout(Dsymbol) toParent2() inout
     {
-        Dsymbol s = parent;
-        while (s && s.isTemplateInstance())
-            s = s.parent;
-        return s;
+        if (!parent || !parent.isTemplateInstance)
+            return parent;
+        return parent.toParent2;
     }
 
-    final TemplateInstance isInstantiated()
+    final inout(TemplateInstance) isInstantiated() inout
     {
-        for (Dsymbol s = parent; s; s = s.parent)
-        {
-            TemplateInstance ti = s.isTemplateInstance();
-            if (ti && !ti.isTemplateMixin())
-                return ti;
-        }
-        return null;
+        if (!parent)
+            return null;
+        auto ti = parent.isTemplateInstance();
+        if (ti && !ti.isTemplateMixin())
+            return ti;
+        return parent.isInstantiated();
     }
 
     // Check if this function is a member of a template which has only been
     // instantiated speculatively, eg from inside is(typeof()).
     // Return the speculative template instance it is part of,
     // or NULL if not speculative.
-    final TemplateInstance isSpeculative()
+    final inout(TemplateInstance) isSpeculative() inout
     {
-        Dsymbol par = parent;
-        while (par)
-        {
-            TemplateInstance ti = par.isTemplateInstance();
-            if (ti && ti.gagged)
-                return ti;
-            par = par.toParent();
-        }
-        return null;
+        if (!parent)
+            return null;
+        auto ti = parent.isTemplateInstance();
+        if (ti && ti.gagged)
+            return ti;
+        if (!parent.toParent())
+            return null;
+        return parent.isSpeculative();
     }
 
-    final Ungag ungagSpeculative()
+    final Ungag ungagSpeculative() const
     {
         uint oldgag = global.gag;
         if (global.gag && !isSpeculative() && !toParent2().isFuncDeclaration())
@@ -482,7 +480,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // kludge for template.isSymbol()
-    override final int dyncast()
+    override final int dyncast() const
     {
         return DYNCAST_DSYMBOL;
     }
