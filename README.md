@@ -7,4 +7,5 @@ To report a problem or browse the list of open bugs, please visit the
 [bug tracker](http://issues.dlang.org/).
 
 For more information, including instructions for compiling, installing, and
-hacking on DMD, visit the [D Wiki](http://wiki.dlang.org/DMD).
+hacking on DMD, check the [contribution guide](CONTRIBUTING.md) and
+visit the [D Wiki](http://wiki.dlang.org/DMD).
