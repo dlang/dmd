@@ -1422,25 +1422,6 @@ extern (C++) class VarDeclaration : Declaration
             {
                 error("only parameters or stack based variables can be inout");
             }
-            FuncDeclaration func = sc.func;
-            if (func)
-            {
-                if (func.fes)
-                    func = func.fes.func;
-                bool isWild = false;
-                for (FuncDeclaration fd = func; fd; fd = fd.toParent2().isFuncDeclaration())
-                {
-                    if ((cast(TypeFunction)fd.type).iswild)
-                    {
-                        isWild = true;
-                        break;
-                    }
-                }
-                if (!isWild)
-                {
-                    error("inout variables can only be declared inside inout functions");
-                }
-            }
         }
 
         if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)

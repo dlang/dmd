@@ -6120,7 +6120,6 @@ extern (C++) final class TypeFunction : TypeNext
                 }
         }
 
-        bool wildreturn = false;
         if (tf.next)
         {
             sc = sc.push();
@@ -6133,8 +6132,6 @@ extern (C++) final class TypeFunction : TypeNext
                 error(loc, "functions cannot return scope %s", tf.next.toChars());
                 errors = true;
             }
-            if (tf.next.hasWild())
-                wildreturn = true;
         }
 
         ubyte wildparams = 0;
@@ -6231,8 +6228,6 @@ extern (C++) final class TypeFunction : TypeNext
                 if (t.hasWild())
                 {
                     wildparams |= 1;
-                    //if (tf->next && !wildreturn)
-                    //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
                 }
 
                 if (fparam.defaultArg)
@@ -6358,11 +6353,6 @@ extern (C++) final class TypeFunction : TypeNext
         if (tf.isWild())
             wildparams |= 2;
 
-        if (wildreturn && !wildparams)
-        {
-            error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
-            errors = true;
-        }
         tf.iswild = wildparams;
 
         if (tf.inuse)
