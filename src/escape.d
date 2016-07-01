@@ -8,6 +8,8 @@
 
 module ddmd.escape;
 
+import core.stdc.stdio : printf;
+
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
@@ -242,14 +244,16 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
  *      e = expression to check
  *      gag = do not print error messages
  * Returns:
- *      true if referencess to the stack can escape
+ *      true if references to the stack can escape
  */
 bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 {
-    //import core.stdc.stdio : printf;
-    //printf("[%s] checkEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
-    //printf("current function %s\n", sc.func.toChars());
-    //printf("parent2 function %s\n", sc.func.toParent2().toChars());
+    version (none)
+    {
+        printf("[%s] checkEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
+        printf("current function %s\n", sc.func.toChars());
+        printf("parent2 function %s\n", sc.func.toParent2().toChars());
+    }
 
     extern (C++) final class EscapeRefVisitor : Visitor
     {
@@ -298,10 +302,11 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     v.storage_class |= STCreturn;
                     if (v == sc.func.vthis)
                     {
+                        sc.func.storage_class |= STCreturn;
                         TypeFunction tf = cast(TypeFunction)sc.func.type;
                         if (tf.ty == Tfunction)
                         {
-                            //printf("'this' too\n");
+                            //printf("'this' too %p %s\n", tf, sc.func.toChars());
                             tf.isreturn = true;
                         }
                     }
@@ -451,10 +456,11 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     }
                 }
                 // If 'this' is returned by ref, check it too
-                if (tf.isreturn && e.e1.op == TOKdotvar && t1.ty == Tfunction)
+                if (e.e1.op == TOKdotvar && t1.ty == Tfunction)
                 {
                     DotVarExp dve = cast(DotVarExp)e.e1;
-                    dve.e1.accept(this);
+                    if (dve.var.storage_class & STCreturn || tf.isreturn)
+                        dve.e1.accept(this);
                 }
             }
             else
