@@ -6228,6 +6228,9 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
 
+                if (fparam.storageClass & STCscope && !fparam.type.hasPointers())
+                    fparam.storageClass &= ~STCscope;
+
                 if (t.hasWild())
                 {
                     wildparams |= 1;
