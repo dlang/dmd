@@ -11063,9 +11063,9 @@ extern (C++) final class DeleteExp : UnaExp
             return new ErrorExp();
         }
 
+        bool err = false;
         if (ad)
         {
-            bool err = false;
             if (ad.dtor)
             {
                 err |= checkPurity(sc, ad.dtor);
@@ -11081,6 +11081,15 @@ extern (C++) final class DeleteExp : UnaExp
             if (err)
                 return new ErrorExp();
         }
+
+        // unsafe
+        if (!sc.intypeof && sc.func && sc.func.setUnsafe())
+        {
+            error("%s is not @safe but is used in @safe function %s", toChars(), sc.func.toChars());
+            err = true;
+        }
+        if (err)
+            return new ErrorExp();
 
         return this;
     }
