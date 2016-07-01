@@ -6163,6 +6163,12 @@ extern (C++) final class TypeFunction : TypeNext
 
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
+                // 'in' is the same as 'scope const'
+                if (fparam.storageClass & STCin)
+                {
+                    fparam.storageClass &= ~STCin;
+                    fparam.storageClass |= STCscope | STCconst;
+                }
                 if (fparam.storageClass & (STCauto | STCalias | STCstatic))
                 {
                     if (!fparam.type)
