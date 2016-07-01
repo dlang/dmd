@@ -246,7 +246,11 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 {
+    //import core.stdc.stdio : printf;
     //printf("[%s] checkEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
+    //printf("current function %s\n", sc.func.toChars());
+    //printf("parent2 function %s\n", sc.func.toParent2().toChars());
+
     extern (C++) final class EscapeRefVisitor : Visitor
     {
         alias visit = super.visit;
@@ -272,49 +276,68 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
         {
             assert(d);
             VarDeclaration v = d.isVarDeclaration();
-            if (v && v.toParent2() == sc.func)
+            if (!v)
+                return;
+
+            if (v.isDataseg())
+                return;
+
+            if ((v.storage_class & (STCref | STCout)) == 0 && v.toParent2() == sc.func)
             {
-                if (v.isDataseg())
-                    return;
-                if ((v.storage_class & (STCref | STCout)) == 0)
+                error(loc, "escaping reference to local variable %s", v);
+                return;
+            }
+
+            if (global.params.useDIP25 &&
+                (v.storage_class & (STCref | STCout)) &&
+                !(v.storage_class & (STCreturn | STCforeach)))
+            {
+                if (sc.func.flags & FUNCFLAGreturnInprocess && v.toParent2() == sc.func)
                 {
-                    error(loc, "escaping reference to local variable %s", v);
-                    return;
-                }
-                if (global.params.useDIP25 && (v.storage_class & (STCref | STCout)) && !(v.storage_class & (STCreturn | STCforeach)))
-                {
-                    if (sc.func.flags & FUNCFLAGreturnInprocess)
+                    //printf("inferring 'return' for variable '%s'\n", v.toChars());
+                    v.storage_class |= STCreturn;
+                    if (v == sc.func.vthis)
                     {
-                        //printf("inferring 'return' for variable '%s'\n", v.toChars());
-                        v.storage_class |= STCreturn;
-                        if (v == sc.func.vthis)
+                        TypeFunction tf = cast(TypeFunction)sc.func.type;
+                        if (tf.ty == Tfunction)
                         {
-                            TypeFunction tf = cast(TypeFunction)sc.func.type;
-                            if (tf.ty == Tfunction)
-                            {
-                                //printf("'this' too\n");
-                                tf.isreturn = true;
-                            }
+                            //printf("'this' too\n");
+                            tf.isreturn = true;
                         }
                     }
-                    else if (sc._module && sc._module.isRoot())
+                }
+                else if (sc._module && sc._module.isRoot())
+                {
+                    Dsymbol p = v.toParent2();
+                    if (p == sc.func)
                     {
                         //printf("escaping reference to local ref variable %s\n", v.toChars());
                         //printf("storage class = x%llx\n", v.storage_class);
                         error(loc, "escaping reference to local ref variable %s", v);
-                    }
-                    return;
-                }
-                if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
-                {
-                    // (ref v = ex; ex)
-                    if (ExpInitializer ez = v._init.isExpInitializer())
-                    {
-                        assert(ez.exp && ez.exp.op == TOKconstruct);
-                        Expression ex = (cast(ConstructExp)ez.exp).e2;
-                        ex.accept(this);
                         return;
                     }
+                    // Don't need to be concerned if v's parent does not return a ref
+                    FuncDeclaration fd = p.isFuncDeclaration();
+                    if (fd && fd.type && fd.type.ty == Tfunction)
+                    {
+                        TypeFunction tf = cast(TypeFunction)fd.type;
+                        if (tf.isref)
+                            error(loc, "escaping reference to outer local ref variable %s", v);
+                    }
+
+                }
+                return;
+            }
+
+            if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
+            {
+                // (ref v = ex; ex)
+                if (ExpInitializer ez = v._init.isExpInitializer())
+                {
+                    assert(ez.exp && ez.exp.op == TOKconstruct);
+                    Expression ex = (cast(ConstructExp)ez.exp).e2;
+                    ex.accept(this);
+                    return;
                 }
             }
         }

@@ -1,4 +1,5 @@
 // PERMUTE_ARGS: -inline -O -property
+// REQUIRED_ARGS: -dip25
 
 // Test operator overloading
 
@@ -1363,7 +1364,7 @@ void test9453()
 
 struct S9496
 {
-	static S9496* ptr;
+    static S9496* ptr;
 
     size_t opDollar()
     {
@@ -1748,8 +1749,8 @@ void test11311()
     static struct Arr
     {
         S data;
-        ref S opIndex(int) { return data; }
-        ref S opSlice(int, int) { return data; }
+        ref S opIndex(int) return { return data; }
+        ref S opSlice(int, int) return { return data; }
     }
 
     {
@@ -1846,7 +1847,7 @@ void test20a()
     {
         A1 a1;
         alias a1 this;
-        ref int opIndexAssign(int) { return b; }
+        int opIndexAssign(int) { return b; }
     }
 
     stompStack();
@@ -1942,7 +1943,7 @@ void test14624()
     struct A1
     {
         int x;
-        ref int opIndex() { return x; }
+        ref int opIndex() return { return x; }
         ref int opSlice() { assert(0); }
     }
     {
@@ -1960,10 +1961,10 @@ void test14624()
     struct A2
     {
         int x;
-        ref int opIndex() { x = 10; return x; }
+        ref int opIndex() return               { x = 10; return x; }
         ref int opSlice() { assert(0); }
         ref int opSliceUnary(alias op)()       { x = 11; return x; }
-        ref int opSliceAssign(int)             { x = 12; return x; }
+        ref int opSliceAssign(int) return      { x = 12; return x; }
         ref int opSliceOpAssign(alias op)(int) { x = 13; return x; }
     }
     {
