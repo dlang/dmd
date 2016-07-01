@@ -3016,13 +3016,30 @@ extern (C++) class FuncDeclaration : Declaration
      */
     private final bool canInferAttributes(Scope* sc)
     {
-        TemplateInstance ti;
-        return (fbody && !isVirtualMethod() &&
-                        /********** this is for backwards compatibility for the moment ********/
-            (sc.func && (!isMember() || sc.func.isSafeBypassingInference() && !isInstantiated()) ||
-             isFuncLiteralDeclaration() || (storage_class & STCinference) || (inferRetType && !isCtorDeclaration()) ||
-             isInstantiated() &&
-             ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)));
+        if (!fbody)
+            return false;
+
+        if (isVirtualMethod())
+            return false;               // since they may be overridden
+
+        if (sc.func &&
+            /********** this is for backwards compatibility for the moment ********/
+            (!isMember() || sc.func.isSafeBypassingInference() && !isInstantiated()))
+            return true;
+
+        if (isFuncLiteralDeclaration() ||               // externs are not possible with literals
+            (storage_class & STCinference) ||           // do attribute inference
+            (inferRetType && !isCtorDeclaration()))
+            return true;
+
+        if (isInstantiated())
+        {
+            TemplateInstance ti = parent.isTemplateInstance();
+            if (ti is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)
+                return true;
+        }
+
+        return false;
     }
 
     /*****************************************
