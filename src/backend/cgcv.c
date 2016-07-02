@@ -2545,7 +2545,7 @@ STATIC void cv4_func(Funcsym *s)
     cv4_outsym(s);              // put out function symbol
 #if MARS
     static Funcsym* sfunc;
-    static cntOpenBlocks;
+    static int cntOpenBlocks;
     sfunc = s;
     cntOpenBlocks = 0;
 

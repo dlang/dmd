@@ -75,7 +75,7 @@ static SYMIDX findParentScope(LifeTime* lifetimes, SYMIDX si)
     return -1;
 }
 
-static int strHash(const char* s)
+static int getHash(const char* s)
 {
     int hash = 0;
     for (; *s; s++)
@@ -85,26 +85,26 @@ static int strHash(const char* s)
 
 bool VarStatistics::hashSymbolIdentifiers(symtab_t* symtab)
 {
-    // fill the hash table for faster lookup of identical symbols
+    // build circular-linked lists of symbols with same identifier hash
     bool hashCollisions = false;
-    SYMIDX firstIdent[256];
-    memset(firstIdent, -1, sizeof(firstIdent));
+    SYMIDX firstSym[256];
+    memset(firstSym, -1, sizeof(firstSym));
     for (SYMIDX si = 0; si < symtab->top; si++)
     {
         Symbol* sa = symtab->tab[si];
-        int hash = strHash(sa->Sident) & 255;
-        SYMIDX first = firstIdent[hash];
+        int hash = getHash(sa->Sident) & 255;
+        SYMIDX first = firstSym[hash];
         if (first == -1)
         {
             // connect full circle, so we don't have to recalculate the hash
-            nextIdent[si] = si;
-            firstIdent[hash] = si;
+            nextSym[si] = si;
+            firstSym[hash] = si;
         }
         else
         {
             // insert after first entry
-            nextIdent[si] = nextIdent[first];
-            nextIdent[first] = si;
+            nextSym[si] = nextSym[first];
+            nextSym[first] = si;
             hashCollisions = true;
         }
     }
@@ -114,8 +114,8 @@ bool VarStatistics::hashSymbolIdentifiers(symtab_t* symtab)
 bool VarStatistics::hasUniqueIdentifier(symtab_t* symtab, SYMIDX si)
 {
     Symbol* sa = symtab->tab[si];
-    for (SYMIDX sj = nextIdent[si]; sj != si; sj = nextIdent[sj])
-        if (strcmp (sa->Sident, symtab->tab[sj]->Sident) == 0)
+    for (SYMIDX sj = nextSym[si]; sj != si; sj = nextSym[sj])
+        if (strcmp(sa->Sident, symtab->tab[sj]->Sident) == 0)
             return false;
     return true;
 }
@@ -130,7 +130,7 @@ symtab_t* VarStatistics::calcLexicalScope(symtab_t* symtab)
     // - variables with duplicate names are added with ascending code offset
     if (sortedSymtab.symmax < symtab->top)
     {
-        nextIdent = (int*)util_realloc(nextIdent, symtab->top, sizeof(*nextIdent));
+        nextSym = (int*)util_realloc(nextSym, symtab->top, sizeof(*nextSym));
         sortedSymtab.tab = (Symbol**) util_realloc(sortedSymtab.tab, symtab->top, sizeof(Symbol*));
         sortedSymtab.symmax = symtab->top;
     }
@@ -201,7 +201,7 @@ symtab_t* VarStatistics::calcLexicalScope(symtab_t* symtab)
         for (sj = si + 1; sj < dupcnt; sj++)
             if(!isParentScope(lifeTimes, parent, sj))
                 break;
-            else if (strcmp (lifeTimes[si].sym->Sident, lifeTimes[sj].sym->Sident) == 0)
+            else if (strcmp(lifeTimes[si].sym->Sident, lifeTimes[sj].sym->Sident) == 0)
                 break;
 
         lifeTimes[si].offDestroy = (sj < dupcnt ? lifeTimes[sj].offCreate : retoffset + retsize); // function length

@@ -48,7 +48,7 @@ private:
 
     // symbol table sorted by offset of variable creation
     symtab_t sortedSymtab;
-    SYMIDX* nextIdent;    // next symbol with identifier with same hash, same size as sortedSymtab
+    SYMIDX* nextSym;      // next symbol with identifier with same hash, same size as sortedSymtab
     int uniquecnt;        // number of variables that have unique name and don't need lexical scope
 
     // line number records for the current function
