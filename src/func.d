@@ -645,6 +645,8 @@ extern (C++) class FuncDeclaration : Declaration
 
             if (tf.isref)
                 sc.stc |= STCref;
+            if (tf.isscope)
+                sc.stc |= STCscope;
             if (tf.isnothrow)
                 sc.stc |= STCnothrow;
             if (tf.isnogc)
@@ -718,6 +720,7 @@ extern (C++) class FuncDeclaration : Declaration
             TypeFunction tfo = cast(TypeFunction)originalType;
             TypeFunction tfx = cast(TypeFunction)type;
             tfo.mod = tfx.mod;
+            tfo.isscope = tfx.isscope;
             tfo.isref = tfx.isref;
             tfo.isnothrow = tfx.isnothrow;
             tfo.isnogc = tfx.isnogc;
@@ -733,8 +736,14 @@ extern (C++) class FuncDeclaration : Declaration
 
         if ((storage_class & STCauto) && !f.isref && !inferRetType)
             error("storage class 'auto' has no effect if return type is not inferred");
-        if (storage_class & STCscope)
+
+        /* Functions can only be 'scope' if they have a 'this' that is a pointer, not a ref
+         */
+        if (f.isscope && !isNested() &&
+            !(ad && ad.isClassDeclaration()))
+        {
             error("functions cannot be scope");
+        }
 
         if (isAbstract() && !isVirtual())
         {
