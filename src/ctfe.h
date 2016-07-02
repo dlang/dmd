@@ -43,7 +43,6 @@ class ClassReferenceExp : public Expression
 public:
     StructLiteralExp *value;
     ClassDeclaration *originalClass();
-    VarDeclaration *getFieldAt(unsigned index);
 
     /// Return index of the field, or -1 if not found
     int getFieldIndex(Type *fieldtype, unsigned fieldoffset);
