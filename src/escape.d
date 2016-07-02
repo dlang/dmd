@@ -310,6 +310,23 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                             tf.isreturn = true;
                         }
                     }
+                    else
+                    {
+                        // Set STCreturn in the Parameter storage class corresponding to v
+                        TypeFunction tf = cast(TypeFunction)sc.func.type;
+                        if (tf.parameters)
+                        {
+                            const dim = Parameter.dim(tf.parameters);
+                            foreach (const i; 0 .. dim)
+                            {
+                                Parameter p = Parameter.getNth(tf.parameters, i);
+                                if (p.ident == v.ident)
+                                {
+                                    p.storageClass |= STCreturn;
+                                }
+                            }
+                        }
+                    }
                 }
                 else if (sc._module && sc._module.isRoot())
                 {
