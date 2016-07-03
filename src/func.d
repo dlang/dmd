@@ -745,6 +745,11 @@ extern (C++) class FuncDeclaration : Declaration
             error("functions cannot be scope");
         }
 
+        if (f.isreturn && !needThis())
+        {
+            error("static member has no 'this' to which 'return' can apply");
+        }
+
         if (isAbstract() && !isVirtual())
         {
             const(char)* sfunc;
