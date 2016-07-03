@@ -2087,7 +2087,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     break;
                 t = (cast(TypeNext)t).next;
             }
-            if (Dsymbol s = t.toDsymbol(null))
+            if (Dsymbol s = t.toDsymbol(sc))
             {
                 if (s.isDeprecated())
                     d.storage_class |= STCdeprecated;
