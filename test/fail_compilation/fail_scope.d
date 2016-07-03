@@ -1,7 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_scope.d(17): Error: escaping reference to scope local o
+fail_compilation/fail_scope.d(15): Error: scope variable da may not be returned
+fail_compilation/fail_scope.d(17): Error: scope variable o may not be returned
+fail_compilation/fail_scope.d(18): Error: scope variable dg may not be returned
+fail_compilation/fail_scope.d(20): Error: scope variable da may not be returned
+fail_compilation/fail_scope.d(22): Error: scope variable o may not be returned
+fail_compilation/fail_scope.d(23): Error: scope variable dg may not be returned
 ---
 */
 
