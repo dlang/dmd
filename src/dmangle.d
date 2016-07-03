@@ -399,7 +399,7 @@ public:
         //printf("deco = '%s'\n", fd.type.deco ? fd.type.deco : "null");
         //printf("fd.type = %s\n", fd.type.toChars());
         if (fd.needThis() || fd.isNested())
-            buf.writeByte(Type.needThisPrefix());
+            buf.writeByte('M');
         if (inParent)
         {
             TypeFunction tf = cast(TypeFunction)fd.type;
