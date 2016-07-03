@@ -34,6 +34,10 @@ private
   {
     import core.sys.posix.sys.types;
   }
+  else version (OpenBSD)
+  {
+    import core.sys.posix.sys.types;
+  }
 }
 
 extern (C):
@@ -173,6 +177,36 @@ else version ( FreeBSD )
     {
         char[128]   _mbstate8;
         long        _mbstateL;
+    }
+}
+else version ( OpenBSD )
+{
+    enum
+    {
+        ///
+        BUFSIZ       = 1024,
+        ///
+        EOF          = -1,
+        ///
+        FOPEN_MAX    = 20,
+        ///
+        FILENAME_MAX = 1024,
+        ///
+        TMP_MAX      = 0x7fffffff,
+        ///
+        L_tmpnam     = 1024
+    }
+
+    struct __sbuf
+    {
+        ubyte *_base;
+        int _size;
+    }
+
+    union __mbstate_t // <sys/_types.h>
+    {
+        char[128]   __mbstate8;
+        long        __mbstateL;
     }
 }
 else version (Solaris)
@@ -398,6 +432,44 @@ else version( FreeBSD )
 
     ///
     alias __sFILE _iobuf;
+    ///
+    alias shared(__sFILE) FILE;
+}
+else version( OpenBSD )
+{
+    ///
+    alias fpos_t = off_t;
+
+    ///
+    struct __sFILE
+    {
+        ubyte*          _p;
+        int             _r;
+        int             _w;
+        short           _flags;
+        short           _file;
+        __sbuf          _bf;
+        int             _lbfsize;
+
+        void*           _cookie;
+        int     function(void*)                 _close;
+        int     function(void*, char*, int)     _read;
+        fpos_t  function(void*, fpos_t, int)    _seek;
+        int     function(void*, in char*, int)  _write;
+
+        __sbuf          _ext;
+        ubyte*          _up;
+        int             _ur;
+
+        ubyte[3]        _ubuf;
+        ubyte[1]        _nbuf;
+
+        __sbuf          _lb;
+
+        int             _blksize;
+        fpos_t          _offset;
+    }
+
     ///
     alias shared(__sFILE) FILE;
 }
@@ -668,6 +740,27 @@ else version( FreeBSD )
     alias __stdoutp stdout;
     ///
     alias __stderrp stderr;
+}
+else version( OpenBSD )
+{
+    enum
+    {
+        ///
+        _IOFBF = 0,
+        ///
+        _IOLBF = 1,
+        ///
+        _IONBF = 2,
+    }
+
+    private extern shared FILE[] __sF;
+
+    ///
+    shared stdin  = &__sF[0];
+    ///
+    shared stdout = &__sF[1];
+    ///
+    shared stderr = &__sF[2];
 }
 else version (Solaris)
 {
@@ -1061,6 +1154,97 @@ else version( FreeBSD )
   }
 
   ///
+    int  snprintf(char* s, size_t n, in char* format, ...);
+    ///
+    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+}
+else version( OpenBSD )
+{
+    // No unsafe pointer manipulation.
+    @trusted
+    {
+        ///
+        void rewind(FILE*);
+    }
+    @trusted private
+    {
+        ///
+        pure void clearerr(FILE*);
+        alias __clearerr = clearerr;
+        ///
+        pure int  feof(FILE*);
+        alias __feof = feof;
+        ///
+        pure int  ferror(FILE*);
+        alias __ferror = ferror;
+        ///
+        int  fileno(FILE*);
+        alias __fileno = fileno;
+    }
+
+    enum __SLBF = 0x0001;
+    enum __SNBF = 0x0002;
+    enum __SRD  = 0x0004;
+    enum __SWR  = 0x0008;
+    enum __SRW  = 0x0010;
+    enum __SEOF = 0x0020;
+    enum __SERR = 0x0040;
+    enum __SMBF = 0x0080;
+    enum __SAPP = 0x0100;
+    enum __SSTR = 0x0200;
+    enum __SOPT = 0x0400;
+    enum __SNPT = 0x0800;
+    enum __SOFF = 0x1000;
+    enum __SMOD = 0x2000;
+    enum __SALC = 0x4000;
+    enum __SIGN = 0x8000;
+
+    extern int __isthreaded;
+
+    extern (D)
+    {
+        void __sclearerr(FILE* p)
+        {
+            p._flags &= ~(__SERR|__SEOF);
+        }
+
+        int __sfeof(FILE* p)
+        {
+            return (p._flags & __SEOF) != 0;
+        }
+
+        int __sferror(FILE* p)
+        {
+            return (p._flags & __SERR) != 0;
+        }
+
+        int __sfileno(FILE* p)
+        {
+            return p._file;
+        }
+
+        int clearerr(FILE* file)
+        {
+            return !__isthreaded ? __sclearerr(file) : __clearerr(file);
+        }
+
+        int feof(FILE* file)
+        {
+            return !__isthreaded ? __sfeof(file) : __feof(file);
+        }
+
+        int ferror(FILE* file)
+        {
+            return !__isthreaded ? __sferror(file) : __ferror(file);
+        }
+
+        int fileno(FILE* file)
+        {
+            return !__isthreaded ? __sfileno(file) : __fileno(file);
+        }
+    }
+
+    ///
     int  snprintf(char* s, size_t n, in char* format, ...);
     ///
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
