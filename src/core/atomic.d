@@ -35,9 +35,13 @@ private
     template HeadUnshared(T)
     {
         static if( is( T U : shared(U*) ) )
-            alias shared(U)* HeadUnshared;
+            alias HeadUnshared = shared(U)*;
+        else static if( is( T U : shared(U[]) ) )
+            alias HeadUnshared = shared(U)[];
+        else static if (is (shared T : T))
+            alias HeadUnshared = T;
         else
-            alias T HeadUnshared;
+            alias HeadUnshared = shared T;
     }
 }
 
@@ -1547,5 +1551,29 @@ version( unittest )
         ubyte d = 1;
         atomicOp!"-="( c, d );
         assert(c == 1);
+    }
+
+    pure nothrow @safe unittest // issue 16230
+    {
+        static struct S { int* p; }
+        shared int i;
+        static assert(is(typeof(atomicLoad(i)) == int));
+
+        shared int* p;
+        static assert(is(typeof(atomicLoad(p)) == shared(int)*));
+
+        shared int[] a;
+        static assert(is(typeof(atomicLoad(a)) == shared(int)[]));
+
+        shared S s;
+        static assert(is(typeof(atomicLoad(s)) == shared S));
+
+        static class C { int i; }
+        shared C c;
+        static assert(is(typeof(atomicLoad(c)) == shared C));
+
+        static struct NoIndirections { int i; }
+        shared NoIndirections n;
+        static assert(is(typeof(atomicLoad(n)) == NoIndirections));
     }
 }
