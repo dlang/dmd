@@ -272,7 +272,7 @@ public:
             assert(0);
         }
         buf.writeByte(mc);
-        if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn)
+        if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn || ta.isscope)
         {
             if (ta.purity)
                 buf.writestring("Na");
@@ -286,6 +286,8 @@ public:
                 buf.writestring("Ni");
             if (ta.isreturn)
                 buf.writestring("Nj");
+            if (ta.isscope)
+                buf.writestring("M");
             switch (ta.trust)
             {
             case TRUSTtrusted:

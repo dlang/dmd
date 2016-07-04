@@ -546,6 +546,20 @@ static assert(test2a.mangleof == "_D6mangle6test2aFiZi");
 
 /***************************************************/
 
+class CC
+{
+    int* p;
+
+    int* member() scope
+    {
+        return p;
+    }
+}
+
+static assert(CC.member.mangleof == "_D6mangle2CC6memberMFMZPi");
+
+/***************************************************/
+
 void main()
 {
     test10077h();
