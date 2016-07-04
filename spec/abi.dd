@@ -463,33 +463,41 @@ $(H3 $(LNAME2 type_mangling, Type Mangling))
     $(GNAME FuncAttr):
         $(I empty)
         $(GLINK FuncAttrPure)
+        $(GLINK FuncAttrNogc)
         $(GLINK FuncAttrNothrow)
         $(GLINK FuncAttrProperty)
         $(GLINK FuncAttrRef)
+        $(GLINK FuncAttrReturn)
+        $(GLINK FuncAttrScope)
         $(GLINK FuncAttrTrusted)
         $(GLINK FuncAttrSafe)
-        $(GLINK FuncAttrNogc)
 
     $(GNAME FuncAttrPure):
         $(B Na)
 
+    $(GNAME FuncAttrNogc):
+        $(B Ni)
+
     $(GNAME FuncAttrNothrow):
         $(B Nb)
+
+    $(GNAME FuncAttrProperty):
+        $(B Nd)
 
     $(GNAME FuncAttrRef):
         $(B Nc)
 
-    $(GNAME FuncAttrProperty):
-        $(B Nd)
+    $(GNAME FuncAttrReturn):
+        $(B Nj)
+
+    $(GNAME FuncAttrScope):
+        $(B M)
 
     $(GNAME FuncAttrTrusted):
         $(B Ne)
 
     $(GNAME FuncAttrSafe):
         $(B Nf)
-
-    $(GNAME FuncAttrNogc):
-        $(B Ni)
 
     $(GNAME Parameters):
         $(GLINK Parameter)
