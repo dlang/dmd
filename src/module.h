@@ -179,7 +179,7 @@ struct ModuleDeclaration
     bool isdeprecated;  // if it is a deprecated module
     Expression *msg;
 
-    char *toChars();
+    const char *toChars();
 };
 
 #endif /* DMD_MODULE_H */

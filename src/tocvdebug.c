@@ -777,7 +777,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
         {
         }
 
-        void cvMemberCommon(Dsymbol *s, char *id, idx_t typidx)
+        void cvMemberCommon(Dsymbol *s, const char *id, idx_t typidx)
         {
             if (!p)
                 result = cv_stringbytes(id);
@@ -841,7 +841,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             if (!fd->type)                  // if not compiled in,
                 return;               // skip it
 
-            char *id = fd->toChars();
+            const char *id = fd->toChars();
 
             if (!p)
             {
@@ -953,7 +953,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             if (vd->type->toBasetype()->ty == Ttuple)
                 return;
 
-            char *id = vd->toChars();
+            const char *id = vd->toChars();
 
             if (!p)
             {

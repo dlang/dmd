@@ -47,7 +47,7 @@ public:
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
     virtual Expression *toExpression(Type *t = NULL) = 0;
-    char *toChars();
+    const char *toChars();
 
     virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
     virtual VoidInitializer    *isVoidInitializer() { return NULL; }
