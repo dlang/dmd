@@ -853,11 +853,6 @@ extern (C++) abstract class Type : RootObject
         return buf.extractString();
     }
 
-    static char needThisPrefix()
-    {
-        return 'M'; // name mangling prefix for functions needing 'this'
-    }
-
     static void _init()
     {
         stringtable._init(14000);
