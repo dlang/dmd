@@ -315,67 +315,6 @@ void cv8_func_start(Symbol *sfunc)
     varStats.startFunction();
 }
 
-// record for CV record S_BLOCK_V3
-struct block_v3_data
-{
-    unsigned short len;
-    unsigned short id;
-    unsigned int pParent;
-    unsigned int pEnd;
-    unsigned int length;
-    unsigned int offset;
-    unsigned short seg;
-    unsigned char name[1];
-};
-
-/******************************************
- * write lexical scope records up to the line where the symbol sa is created
- * if sa == NULL, flush all remaining records
- */
-void cv8_writeLexicalScope(Funcsym *s, symbol *sa, VarStatistics* vs)
-{
-    if (vs->cntUsedVarStats == 0)
-        return;
-
-    unsigned line;
-    if(sa)
-    {
-        line = sa->lnoscopestart + 1;
-    }
-    else
-    {
-        // flush all
-        line = vs->firstVarStatsLine + vs->cntUsedVarStats;
-    }
-    while (vs->nextVarStatsLine < line && vs->nextVarStatsLine < vs->firstVarStatsLine + vs->cntUsedVarStats)
-    {
-        Outbuffer *buf = currentfuncdata.f1buf;
-        unsigned idx = vs->nextVarStatsLine - vs->firstVarStatsLine;
-        for(int d = 0; d < vs->varStats[idx].numDel; d++)
-        {
-            static unsigned short s_end[] = { 2, S_END };
-            buf->write(s_end, sizeof(s_end));
-        }
-        for(int n = 0; n < vs->varStats[idx].numNew; n++)
-        {
-            unsigned offset = vs->varStats[idx].offset;
-            unsigned length = vs->varStats[vs->varStats[idx].endLine - vs->firstVarStatsLine].offset - offset;
-            unsigned soffset = buf->size();
-            // parent and end to be filled by linker
-            block_v3_data block32 = { sizeof(block_v3_data) - 2, S_BLOCK_V3, 0, 0, length, offset, 0, { 0 } };
-            buf->write(&block32, sizeof(block32));
-            size_t offOffset = (char*)&block32.offset - (char*)&block32;
-
-            F1_Fixups f1f;
-            f1f.s = s;
-            f1f.offset = soffset + offOffset;
-            f1f.value = offset;
-            currentfuncdata.f1fixup->write(&f1f, sizeof(f1f));
-        }
-        vs->nextVarStatsLine++;
-    }
-}
-
 void cv8_func_term(Symbol *sfunc)
 {
     //printf("cv8_func_term(%s)\n", sfunc->Sident);
@@ -459,27 +398,50 @@ void cv8_func_term(Symbol *sfunc)
     buf->writen(id, len);
     buf->writeByte(0);
 
-    varStats.calcLexicalScope(sfunc, &globsym);
-
-    // Write local symbol table
-    bool endarg = false;
-    for (SYMIDX si = 0; si < globsym.top; si++)
-    {   //printf("globsym.tab[%d] = %p\n",si,globsym.tab[si]);
-        symbol *sa = globsym.tab[si];
-        if (endarg == false &&
-            sa->Sclass != SCparameter &&
-            sa->Sclass != SCfastpar &&
-            sa->Sclass != SCshadowreg)
+    struct cv8
+    {
+        // record for CV record S_BLOCK_V3
+        struct block_v3_data
         {
+            unsigned short len;
+            unsigned short id;
+            unsigned int pParent;
+            unsigned int pEnd;
+            unsigned int length;
+            unsigned int offset;
+            unsigned short seg;
+            unsigned char name[1];
+        };
+
+        static void endArgs()
+        {
+            Outbuffer *buf = currentfuncdata.f1buf;
             buf->writeWord(2);
             buf->writeWord(S_ENDARG);
-            endarg = true;
         }
-        if (varStats.isLexVar[si])
-            cv8_writeLexicalScope(sfunc, sa, &varStats);
-        cv8_outsym(sa);
-    }
-    cv8_writeLexicalScope(sfunc, 0, &varStats); // flush remaining entries
+        static void beginBlock(int offset, int length)
+        {
+            Outbuffer *buf = currentfuncdata.f1buf;
+            unsigned soffset = buf->size();
+            // parent and end to be filled by linker
+            block_v3_data block32 = { sizeof(block_v3_data) - 2, S_BLOCK_V3, 0, 0, length, offset, 0, { 0 } };
+            buf->write(&block32, sizeof(block32));
+            size_t offOffset = (char*)&block32.offset - (char*)&block32;
+
+            F1_Fixups f1f;
+            f1f.s = currentfuncdata.sfunc;
+            f1f.offset = soffset + offOffset;
+            f1f.value = offset;
+            currentfuncdata.f1fixup->write(&f1f, sizeof(f1f));
+        }
+        static void endBlock()
+        {
+            Outbuffer *buf = currentfuncdata.f1buf;
+            buf->writeWord(2);
+            buf->writeWord(S_END);
+        }
+    };
+    varStats.writeSymbolTable(&globsym, &cv8_outsym, &cv8::endArgs, &cv8::beginBlock, &cv8::endBlock);
 
     /* Put out function return record S_RETURN
      * (VC doesn't, so we won't bother, either.)

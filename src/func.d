@@ -1394,6 +1394,11 @@ extern (C++) class FuncDeclaration : Declaration
             }
         }
 
+        uint fensure_endlin = endloc.linnum;
+        if (fensure)
+            if (auto s = fensure.isScopeStatement())
+                fensure_endlin = s.endloc.linnum;
+
         frequire = mergeFrequire(frequire);
         fensure = mergeFensure(fensure, outId);
         if (fbody || frequire || fensure)
@@ -1615,7 +1620,7 @@ extern (C++) class FuncDeclaration : Declaration
                 auto sym = new ScopeDsymbol();
                 sym.parent = sc2.scopesym;
                 sym.loc = loc;
-                sym.endlinnum = endloc.linnum;
+                sym.endlinnum = fensure_endlin;
                 scout = sc2.push(sym);
             }
 
