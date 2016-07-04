@@ -7849,6 +7849,28 @@ bool test16022()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16233
+
+enum valueConvertible(T1, T2) = blah;
+
+struct Checked(T, Hook)
+{
+    bool opEquals(U)(Checked!(U, Hook) rhs)
+    {
+        alias R = typeof(payload + rhs.payload);
+        static if (valueConvertible!(T, R))
+        {
+        }
+        return false;
+    }
+}
+
+void test16233()
+{
+    Checked!(Checked!(int, void), void) x1;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -8164,6 +8186,7 @@ int main()
     test15141();
     test15369();
     test15638();
+    test16233();
 
     printf("Success\n");
     return 0;
