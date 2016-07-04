@@ -1417,8 +1417,13 @@ final class Parser : Lexer
             case TOKpure:
                 stc = STCpure;
                 break;
+
             case TOKreturn:
                 stc = STCreturn;
+                break;
+
+            case TOKscope:
+                stc = STCscope;
                 break;
 
             case TOKat:
@@ -6584,6 +6589,7 @@ final class Parser : Lexer
                     case TOKpure:
                     case TOKnothrow:
                     case TOKreturn:
+                    case TOKscope:
                         t = peek(t);
                         continue;
 

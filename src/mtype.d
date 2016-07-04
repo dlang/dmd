@@ -5979,6 +5979,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isproperty;            // can be called without parentheses
     bool isref;                 // true: returns a reference
     bool isreturn;              // true: 'this' is returned by ref
+    bool isscope;               // true: 'this' is scope
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
     PURE purity = PUREimpure;
@@ -6009,6 +6010,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isref = true;
         if (stc & STCreturn)
             this.isreturn = true;
+        if (stc & STCscope)
+            this.isscope = true;
 
         this.trust = TRUSTdefault;
         if (stc & STCsafe)
@@ -6041,6 +6044,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isproperty = isproperty;
         t.isref = isref;
         t.isreturn = isreturn;
+        t.isscope = isscope;
         t.iswild = iswild;
         t.trust = trust;
         t.fargs = fargs;
@@ -6085,6 +6089,8 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isref = true;
         if (sc.stc & STCreturn)
             tf.isreturn = true;
+        if (sc.stc & STCscope)
+            tf.isscope = true;
 
         if (tf.trust == TRUSTdefault)
         {
@@ -6552,6 +6558,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isproperty = t.isproperty;
             tf.isref = t.isref;
             tf.isreturn = t.isreturn;
+            tf.isscope = t.isscope;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
 
@@ -6602,6 +6609,11 @@ extern (C++) final class TypeFunction : TypeNext
 
         if (isreturn)
             res = fp(param, "return");
+        if (res)
+            return res;
+
+        if (isscope)
+            res = fp(param, "scope");
         if (res)
             return res;
 
@@ -6656,6 +6668,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isproperty = isproperty;
         t.isref = isref;
         t.isreturn = isreturn;
+        t.isscope = isscope;
         t.iswild = 0;
         t.trust = trust;
         t.fargs = fargs;
