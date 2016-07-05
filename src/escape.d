@@ -29,7 +29,7 @@ import ddmd.visitor;
  * Print error messages when these are detected.
  * Params:
  *      sc = used to determine current function and module
- *      e = expression to check
+ *      e = expression to check for any pointers to the stack
  *      gag = do not print error messages
  * Returns:
  *      true if pointers to the stack can escape
@@ -92,20 +92,9 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
                 Type tb = v.type.toBasetype();
                 if (v.isScope())
                 {
-                    /* Today, scope attribute almost doesn't work for escape analysis.
-                     * Until the semantics will be completed, it should be left as-is.
-                     * See also: fail_compilation/fail_scope.d
-                     */
-                    if (tb.ty == Tarray || tb.ty == Tsarray || tb.ty == Tclass || tb.ty == Tdelegate)
-                    {
-                        if (v.needsScopeDtor() || tb.ty == Tclass)
-                        {
-                            error(e.loc, "escaping reference to scope local %s", v);
-                            return;
-                        }
-                    }
+                    error(e.loc, "scope variable %s may not be returned", v);
                 }
-                if (v.storage_class & STCvariadic)
+                else if (v.storage_class & STCvariadic)
                 {
                     if (tb.ty == Tarray || tb.ty == Tsarray)
                         error(e.loc, "escaping reference to variadic parameter %s", v);

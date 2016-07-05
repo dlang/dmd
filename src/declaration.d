@@ -2125,7 +2125,7 @@ extern (C++) class VarDeclaration : Declaration
             return e;
         }
         // Destructors for classes
-        if (storage_class & (STCauto | STCscope))
+        if (storage_class & (STCauto | STCscope) && !(storage_class & STCparameter))
         {
             for (ClassDeclaration cd = type.isClassHandle(); cd; cd = cd.baseClass)
             {

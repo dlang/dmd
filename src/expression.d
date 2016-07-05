@@ -13495,7 +13495,8 @@ extern (C++) class AssignExp : BinExp
             //  d = d[], d = [1,2,3], etc
         }
         if (e1.op == TOKvar &&
-            ((cast(VarExp)e1).var.storage_class & STCscope) &&
+            (((cast(VarExp)e1).var.storage_class & (STCscope | STCparameter)) == STCscope) &&
+            t1.ty == Tclass &&          // local classes are allocated on the stack, so don't rebind
             op == TOKassign)
         {
             error("cannot rebind scope variables");
