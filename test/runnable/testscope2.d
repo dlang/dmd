@@ -6,7 +6,7 @@ import core.stdc.stdio;
 
 struct SS
 {
-    ref int foo1(return ref int delegate() return p) return;
+    ref ulong foo1(return ref int* delegate() return p) return;
     ref int foo2(return ref int delegate() p);
     ref int foo3(inout ref int* p);
     ref int foo4(return inout ref int* p);
@@ -36,13 +36,13 @@ void test3()
     version (all)
     {
         // Test scope mangling
-        assert(SS.foo1.mangleof == "_D10testscope22SS4foo1MFNcNjNkKDFNjZiZi");
+        assert(SS.foo1.mangleof == "_D10testscope22SS4foo1MFNcNjNkKDFNjZPiZm");
         assert(SS.foo2.mangleof == "_D10testscope22SS4foo2MFNcNkKDFZiZi");
         assert(SS.foo3.mangleof == "_D10testscope22SS4foo3MFNcNkKNgPiZi");
         assert(SS.foo4.mangleof == "_D10testscope22SS4foo4MFNcNkKNgPiZi");
 
         // Test scope pretty-printing
-        assert(typeof(SS.foo1).stringof == "ref return int(return ref int delegate() return p)");
+        assert(typeof(SS.foo1).stringof == "ref return ulong(return ref int* delegate() return p)");
         assert(typeof(SS.foo2).stringof == "ref int(return ref int delegate() p)");
         assert(typeof(SS.foo3).stringof == "ref int(return ref inout(int*) p)");
         assert(typeof(SS.foo4).stringof == "ref int(return ref inout(int*) p)");

@@ -6136,6 +6136,11 @@ extern (C++) final class TypeFunction : TypeNext
             }
             if (tf.next.hasWild())
                 wildreturn = true;
+
+            if (tf.isreturn && !tf.isref && !tf.next.hasPointers())
+            {
+                error(loc, "function has 'return' but does not return any indirections");
+            }
         }
 
         ubyte wildparams = 0;
@@ -6200,10 +6205,19 @@ extern (C++) final class TypeFunction : TypeNext
                     fparam.storageClass |= STCreturn;
                 }
 
-                if (fparam.storageClass & STCreturn && !(fparam.storageClass & (STCref | STCout)))
+                if (fparam.storageClass & STCreturn)
                 {
-                    error(loc, "'return' can only be used with 'ref' or 'out'");
-                    errors = true;
+                    if (!(fparam.storageClass & (STCref | STCout)))
+                    {
+                        error(loc, "'return' can only be used with 'ref' or 'out'");
+                        errors = true;
+                    }
+                    else if (!tf.isref && tf.next && !tf.next.hasPointers())
+                    {
+                        error(loc, "parameter %s is 'return' but function does not return any indirections",
+                            fparam.ident ? fparam.ident.toChars() : "");
+                        errors = true;
+                    }
                 }
 
                 if (fparam.storageClass & (STCref | STClazy))
