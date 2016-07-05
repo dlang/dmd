@@ -115,6 +115,7 @@ $(GNAME MemberFunctionAttribute):
     $(D const)
     $(D immutable)
     $(D inout)
+    $(D return)
     $(D shared)
     $(GLINK FunctionAttribute)
 )
