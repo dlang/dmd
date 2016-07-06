@@ -12,6 +12,7 @@ addons:
     packages:
     - g++-multilib
     - gdb
+    - libcurl3-gnutls:i386
 
 env:
   - MODEL=32 SELF_COMPILE=0
