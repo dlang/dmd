@@ -170,7 +170,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
-        if (testArgs.mode != TestMode.FAIL_COMPILE)
+        if (testArgs.mode == TestMode.RUN)
             testArgs.permuteArgs = envData.all_args;
 
         string unittestJunk;
