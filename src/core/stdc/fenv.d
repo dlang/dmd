@@ -196,6 +196,22 @@ else version ( FreeBSD )
 
     alias ushort fexcept_t;
 }
+else version ( OpenBSD )
+{
+    struct fenv_t
+    {
+        struct __x87
+        {
+            uint    __control;
+            uint    __status;
+            uint    __tag;
+            uint[4] __others;
+        }
+    }
+    uint __mxcsr;
+
+    alias fexcept_t = uint;
+}
 else version( CRuntime_Bionic )
 {
     version(X86)
@@ -305,6 +321,12 @@ else version( Darwin )
     enum FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( FreeBSD )
+{
+    private extern const fenv_t __fe_dfl_env;
+    ///
+    enum FE_DFL_ENV = &__fe_dfl_env;
+}
+else version( OpenBSD )
 {
     private extern const fenv_t __fe_dfl_env;
     ///
