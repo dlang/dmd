@@ -970,9 +970,10 @@ extern (C++) class VarDeclaration : Declaration
     structalign_t alignment;
     bool ctorinit;                  // it has been initialized in a ctor
 
-    // 1: it has been allocated on the stack
-    // 2: on stack, run destructor anyway
-    short onstack;
+    // Both these mean the var is not rebindable once assigned,
+    // and the destructor gets run when it goes out of scope
+    bool onstack;                   // it is a class that was allocated on the stack
+    bool mynew;                     // it is a class new'd with custom operator new
 
     int canassign;                  // it can be assigned to
     bool overlapped;                // if it is a field and has overlapping
@@ -1647,12 +1648,17 @@ extern (C++) class VarDeclaration : Declaration
                         {
                             // See if initializer is a NewExp that can be allocated on the stack
                             NewExp ne = cast(NewExp)ex;
-                            if (!(ne.newargs && ne.newargs.dim > 1) && type.toBasetype().ty == Tclass)
+                            if (type.toBasetype().ty == Tclass)
                             {
-                                ne.onstack = 1;
-                                onstack = 1;
-                                if (type.isBaseOf(ne.newtype.semantic(loc, sc), null))
-                                    onstack = 2;
+                                if (ne.newargs && ne.newargs.dim > 1)
+                                {
+                                    mynew = true;
+                                }
+                                else
+                                {
+                                    ne.onstack = 1;
+                                    onstack = true;
+                                }
                             }
                         }
                         else if (ex.op == TOKfunction)
@@ -2141,7 +2147,7 @@ extern (C++) class VarDeclaration : Declaration
                     // Destructors are not supported on extern(C++) classes
                     break;
                 }
-                if (1 || onstack || cd.dtors.dim) // if any destructors
+                if (mynew || onstack || cd.dtors.dim) // if any destructors
                 {
                     // delete this;
                     Expression ec;
