@@ -10,6 +10,7 @@ sudo: false
 addons:
   apt:
     packages:
+    - g++-multilib
     - gdb
 
 env:
