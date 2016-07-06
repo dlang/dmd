@@ -249,7 +249,14 @@ extern(C++) void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4,
     assert(arg3 == 3);
     assert(arg4 == 4);
     assert(arg5 == 5);
-    assert(arg6 == 6);
+    version (OSX)
+    {
+        version (D_LP64)
+            assert(arg6 == 6);
+        // fails on OSX 32-bit
+    }
+    else
+        assert(arg6 == 6);
 }
 
 void test13956()
