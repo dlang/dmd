@@ -31,7 +31,8 @@
 #                        default: (none). Test files with this variable will be ignored unless
 #                        the D_OBJC environment variable is set to "1"
 #
-#   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
+#   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
+#                        An empty set means only one permutation with no arguments.
 #                        default: the make variable ARGS (see below)
 #
 #   TEST_OUTPUT:         the output is expected from the compilation (if the
@@ -92,7 +93,7 @@ export MODEL
 export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
-export ARGS=-inline -release -g -O -unittest
+export ARGS=-inline -release -g -O
 export DMD=../src/dmd.exe
 export EXE=.exe
 export OBJ=.obj
@@ -104,7 +105,7 @@ PHOBOS_PATH=..\..\phobos
 export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
 else
-export ARGS=-inline -release -g -O -unittest -fPIC
+export ARGS=-inline -release -g -O -fPIC
 export DMD=../src/dmd
 export EXE=
 export OBJ=.o

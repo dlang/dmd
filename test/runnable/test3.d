@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
 // EXTRA_SOURCES: imports/test3a.d imports/test3b.d
 
 import imports.test3a;
