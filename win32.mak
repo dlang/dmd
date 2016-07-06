@@ -464,6 +464,9 @@ $(IMPDIR)\core\sys\linux\tipc.d : src\core\sys\linux\tipc.d
 $(IMPDIR)\core\sys\linux\unistd.d : src\core\sys\linux\unistd.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
 	copy $** $@
 
