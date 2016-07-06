@@ -494,7 +494,6 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     opflag_t opflags2 = 0;
     opflag_t opflags3 = 0;
     opflag_t opflags4 = 0;
-    bool    bFake = false;
     bool    bInvalid64bit = false;
 
     bool   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = false;
@@ -710,25 +709,48 @@ TYPE_SIZE_ERROR:
                 {
                     //printf("match\n");
 
-                    /* If they both match and the first op in the table is not AL
-                     * or size of 8 and the second is immediate 8,
-                     * then check to see if the constant
-                     * is a signed 8 bit constant.  If so, then do not match, otherwise match
+                    /* Don't match if implicit sign-extension will
+                     * change the value of the immediate operand
                      */
-                    if (!bRetry &&
-                        !((ASM_GET_uSizemask(table2->usOp1) & _8) ||
-                          (ASM_GET_uRegmask(table2->usOp1) & _al)) &&
-                        (ASM_GET_aopty(table2->usOp2) == _imm) &&
-                        (ASM_GET_uSizemask(table2->usOp2) & _8))
+                    if (!bRetry && ASM_GET_aopty(table2->usOp2) == _imm)
                     {
-
-                        if (popnd2->disp <= SCHAR_MAX)
-                            break;
-                        else
-                            bFake = true;
+                        int op1size = ASM_GET_uSizemask(table2->usOp1);
+                        if (!op1size) // implicit register operand
+                        {
+                            switch (ASM_GET_uRegmask(table2->usOp1))
+                            {
+                                case ASM_GET_uRegmask(_al):
+                                case ASM_GET_uRegmask(_cl): op1size = _8; break;
+                                case ASM_GET_uRegmask(_ax):
+                                case ASM_GET_uRegmask(_dx): op1size = _16; break;
+                                case ASM_GET_uRegmask(_eax): op1size = _32; break;
+                                case ASM_GET_uRegmask(_rax): op1size = _64; break;
+                                default:
+                                    assert(0);
+                            }
+                        }
+                        if (op1size > ASM_GET_uSizemask(table2->usOp2))
+                        {
+                            switch(ASM_GET_uSizemask(table2->usOp2))
+                            {
+                                case _8:
+                                    if (popnd2->disp > SCHAR_MAX)
+                                        continue;
+                                    break;
+                                case _16:
+                                    if (popnd2->disp > SHRT_MAX)
+                                        continue;
+                                    break;
+                                case _32:
+                                    if (popnd2->disp > INT_MAX)
+                                        continue;
+                                    break;
+                                default:
+                                    assert(0);
+                            }
+                        }
                     }
-                    else
-                        break;
+                    break;
                 }
                 if (asmstate.ucItype == ITopt ||
                     asmstate.ucItype == ITfloat)
@@ -970,7 +992,7 @@ TYPE_SIZE_ERROR:
         }
     }
 RETURN_IT:
-    if (bRetry && !bFake)
+    if (bRetry)
     {
         asmerr("bad type/size of operands '%s'", asm_opstr(pop));
     }
