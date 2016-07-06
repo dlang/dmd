@@ -28,3 +28,9 @@ matrix:
     - os: osx
       d: dmd-beta
       env: MODEL=64 SELF_COMPILE=0
+  exclude:
+    # gdc doesn't neither comes w/ multilib support nor picks up system-wide -lstdc++ lgcc_s
+    - d: gdc
+      env: MODEL=32 SELF_COMPILE=0
+    - d: gdc
+      env: MODEL=32 SELF_COMPILE=2
