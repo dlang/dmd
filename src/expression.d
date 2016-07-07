@@ -14709,6 +14709,20 @@ extern (C++) final class PowExp : BinExp
             return e;
         }
 
+        // Determine if we can do this at compileTime
+        auto errors = global.startGagging();
+        if (auto ie1 = e1.ctfeInterpret) {
+            if (auto ie2 = e2.ctfeInterpret) {
+                if (!global.endGagging(errors)) {
+                    import core.stdc.math : sqrtf, powf;
+                    if (ie2.toReal == 0.5f) {
+                        return new RealExp(this.loc, sqrtf(e1.toReal), this.type);
+                    }
+                    return new RealExp(this.loc, powf(ie1.toReal, ie2.toReal), this.type);
+                }
+            }
+        }
+
         // Determine if we're raising to an integer power.
         sinteger_t intpow = 0;
         if (e2.op == TOKint64 && (cast(sinteger_t)e2.toInteger() == 2 || cast(sinteger_t)e2.toInteger() == 3))
