@@ -235,8 +235,8 @@ public:
     bool isargptr;              // if parameter that _argptr points to
     structalign_t alignment;
     bool ctorinit;              // it has been initialized in a ctor
-    short onstack;              // 1: it has been allocated on the stack
-                                // 2: on stack, run destructor anyway
+    bool onstack;               // it is a class that was allocated on the stack
+    bool mynew;                 // it is a class new'd with custom operator new
     int canassign;              // it can be assigned to
     bool overlapped;            // if it is a field and has overlapping
     unsigned char isdataseg;    // private data for isDataseg
