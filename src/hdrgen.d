@@ -3011,6 +3011,8 @@ extern (C++) void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
     bool result = false;
+    if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
+        stc &= ~STCscope;
     while (stc)
     {
         const(char)* p = stcToChars(stc);

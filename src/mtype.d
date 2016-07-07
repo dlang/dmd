@@ -6087,6 +6087,9 @@ extern (C++) final class TypeFunction : TypeNext
         if (sc.stc & STCscope)
             tf.isscope = true;
 
+        if ((sc.stc & (STCreturn | STCref)) == STCreturn)
+            tf.isscope = true;                                  // return by itself means 'return scope'
+
         if (tf.trust == TRUSTdefault)
         {
             if (sc.stc & STCsafe)
@@ -6207,16 +6210,34 @@ extern (C++) final class TypeFunction : TypeNext
 
                 if (fparam.storageClass & STCreturn)
                 {
-                    if (!(fparam.storageClass & (STCref | STCout)))
+                    if (fparam.storageClass & (STCref | STCout))
                     {
-                        error(loc, "'return' can only be used with 'ref' or 'out'");
-                        errors = true;
+                        // Disabled for the moment awaiting improvement to allow return by ref
+                        // to be transformed into return by scope.
+                        if (0 && !tf.isref)
+                        {
+                            auto stc = fparam.storageClass & (STCref | STCout);
+                            error(loc, "parameter %s is 'return %s' but function does not return by ref",
+                                fparam.ident ? fparam.ident.toChars() : "",
+                                stcToChars(stc));
+                            errors = true;
+                        }
                     }
-                    else if (!tf.isref && tf.next && !tf.next.hasPointers())
+                    else
                     {
-                        error(loc, "parameter %s is 'return' but function does not return any indirections",
-                            fparam.ident ? fparam.ident.toChars() : "");
-                        errors = true;
+                        fparam.storageClass |= STCscope;        // 'return' implies 'scope'
+                        if (tf.isref)
+                        {
+                            error(loc, "parameter %s is 'return' but function returns 'ref'",
+                                fparam.ident ? fparam.ident.toChars() : "");
+                            errors = true;
+                        }
+                        else if (tf.next && !tf.next.hasPointers())
+                        {
+                            error(loc, "parameter %s is 'return' but function does not return any indirections",
+                                fparam.ident ? fparam.ident.toChars() : "");
+                            errors = true;
+                        }
                     }
                 }
 
@@ -6244,7 +6265,7 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 if (fparam.storageClass & STCscope && !fparam.type.hasPointers())
-                    fparam.storageClass &= ~STCscope;
+                    fparam.storageClass &= ~(STCreturn | STCscope);
 
                 if (t.hasWild())
                 {
