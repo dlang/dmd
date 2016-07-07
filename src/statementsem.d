@@ -194,7 +194,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             }
 
                             auto catches = new Catches();
-                            auto ctch = new Catch(Loc(), null, id, handler);
+                            auto ctch = new Catch(Loc(), getThrowable(), id, handler);
                             ctch.internalCatch = true;
                             catches.push(ctch);
 
@@ -3441,11 +3441,11 @@ void semantic(Catch c, Scope* sc)
 
     if (!c.type)
     {
+        deprecation(c.loc, "catch statement without an exception " ~
+            "specification is deprecated; use catch(Throwable) for old behavior");
+
         // reference .object.Throwable
-        auto tid = new TypeIdentifier(Loc(), Id.empty);
-        tid.addIdent(Id.object);
-        tid.addIdent(Id.Throwable);
-        c.type = tid;
+        c.type = getThrowable();
     }
     c.type = c.type.semantic(c.loc, sc);
     if (c.type == Type.terror)

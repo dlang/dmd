@@ -90,6 +90,15 @@ Expression checkAssignmentAsCondition(Expression e)
     return e;
 }
 
+/// Return a type identifier reference to 'object.Throwable'
+TypeIdentifier getThrowable()
+{
+    auto tid = new TypeIdentifier(Loc(), Id.empty);
+    tid.addIdent(Id.object);
+    tid.addIdent(Id.Throwable);
+    return tid;
+}
+
 enum BE : int
 {
     BEnone = 0,
@@ -2295,7 +2304,7 @@ extern (C++) final class Catch : RootObject
 
     Catch syntaxCopy()
     {
-        auto c = new Catch(loc, type ? type.syntaxCopy() : null, ident, (handler ? handler.syntaxCopy() : null));
+        auto c = new Catch(loc, type ? type.syntaxCopy() : getThrowable(), ident, (handler ? handler.syntaxCopy() : null));
         c.internalCatch = internalCatch;
         return c;
     }
