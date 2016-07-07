@@ -583,7 +583,7 @@ void validate(S)(in S s)
 /* =================== Conversion to UTF8 ======================= */
 
 @safe pure nothrow @nogc
-char[] toUTF8(return out char[4] buf, dchar c)
+char[] toUTF8(char[] buf, dchar c)
     in
     {
         assert(isValidDchar(c));
@@ -692,7 +692,7 @@ string toUTF8(in dchar[] s)
 /* =================== Conversion to UTF16 ======================= */
 
 @safe pure nothrow @nogc
-wchar[] toUTF16(return out wchar[2] buf, dchar c)
+wchar[] toUTF16(wchar[] buf, dchar c)
     in
     {
         assert(isValidDchar(c));
