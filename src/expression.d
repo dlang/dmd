@@ -2831,7 +2831,24 @@ extern (C++) abstract class Expression : RootObject
             assert(type);
             if (!type.isMutable())
             {
-                error("cannot modify %s expression %s", MODtoChars(type.mod), toChars());
+                bool errFromFunc;
+                const(char)* rep = toChars();
+                if (memcmp(rep, "this.".ptr, 5) == 0)
+                    for (Dsymbol s = sc.func; s; s = s.toParent2())
+                    {
+                        FuncDeclaration ff = s.isFuncDeclaration();
+                        if (!ff)
+                            break;
+                        if (!ff.type.isMutable)
+                        {
+                            error("cannot modify %s in %s function", rep, MODtoChars(type.mod));
+                            errFromFunc = true;
+                            break;
+                        }
+                    }
+                if (!errFromFunc)
+                    error("cannot modify %s expression %s", MODtoChars(type.mod), rep);
+
                 return new ErrorExp();
             }
             else if (!type.isAssignable())
