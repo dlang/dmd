@@ -864,6 +864,16 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
+    GotoDefaultStatement isGotoDefaultStatement() pure
+    {
+        return null;
+    }
+
+    GotoCaseStatement isGotoCaseStatement() pure
+    {
+        return null;
+    }
+
     DtorExpStatement isDtorExpStatement()
     {
         return null;
@@ -2050,6 +2060,11 @@ extern (C++) final class GotoDefaultStatement : Statement
         return new GotoDefaultStatement(loc);
     }
 
+    override GotoDefaultStatement isGotoDefaultStatement() pure
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2072,6 +2087,11 @@ extern (C++) final class GotoCaseStatement : Statement
     override Statement syntaxCopy()
     {
         return new GotoCaseStatement(loc, exp ? exp.syntaxCopy() : null);
+    }
+
+    override GotoCaseStatement isGotoCaseStatement() pure
+    {
+        return this;
     }
 
     override void accept(Visitor v)
