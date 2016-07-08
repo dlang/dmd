@@ -260,21 +260,20 @@ $(GNAME ElseStatement):
         initialized to the end of the $(I ThenStatement).)
 
 ---
-import std.regexp;
+import std.regex;
 ...
-if (auto m = std.regexp.search("abcdef", "b(c)d"))
+if (auto m = std.regex.matchFirst("abcdef", "b(c)d"))
 {
-    writefln("[%s]", m.pre);      // prints [a]
-    writefln("[%s]", m.post);     // prints [ef]
-    writefln("[%s]", m.match(0)); // prints [bcd]
-    writefln("[%s]", m.match(1)); // prints [c]
-    writefln("[%s]", m.match(2)); // prints []
+    writefln("[%s]", m.pre);    // prints [a]
+    writefln("[%s]", m.post);   // prints [ef]
+    writefln("[%s]", m[0]);     // prints [bcd]
+    writefln("[%s]", m[1]);     // prints [c]
 }
 else
 {
-    writeln(m.post);    // error, m undefined
+    writeln(m.post); // Error: undefined identifier 'm'
 }
-writeln(m.pre);         // error, m undefined
+writeln(m.pre);      // Error: undefined identifier 'm'
 ---
 
 $(H3 $(LEGACY_LNAME2 WhileStatement, while-statement, While Statement))
