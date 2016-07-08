@@ -2299,7 +2299,7 @@ public:
             {
                 if (v.inuse)
                 {
-                    error(loc, "circular initialization of %s", v.toChars());
+                    error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
                     return CTFEExp.cantexp;
                 }
                 if (v._scope)
