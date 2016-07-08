@@ -36,38 +36,127 @@ import ddmd.visitor;
  */
 bool checkEscape(Scope* sc, Expression e, bool gag)
 {
+    Expression er = escapeExpressionValue(sc, e);
+    if (!er)
+        return false;
+    if (gag)
+        return true;
+
+    if (er.op == TOKvar)
+    {
+        VarDeclaration v = (cast(VarExp)er).var.isVarDeclaration();
+        if (v.isScope())
+        {
+            error(er.loc, "scope variable %s may not be returned", v.toChars());
+        }
+        else if (v.storage_class & STCvariadic)
+        {
+            error(er.loc, "escaping reference to variadic parameter %s", v.toChars());
+        }
+        else
+            assert(0);
+    }
+    else if (er.op == TOKsymoff)
+    {
+        VarDeclaration v = (cast(SymOffExp)er).var.isVarDeclaration();
+        error(er.loc, "escaping reference to local %s", v.toChars());
+    }
+    else if (er.op == TOKaddress)
+    {
+        return checkEscapeRef(sc, (cast(AddrExp)er).e1, gag);
+    }
+    else if (er.op == TOKcast)
+    {
+        return checkEscapeRef(sc, (cast(CastExp)er).e1, gag);
+    }
+    else if (er.op == TOKslice)
+    {
+        return checkEscapeRef(sc, (cast(SliceExp)er).e1, gag);
+    }
+    else
+    {
+        error(er.loc, "escaping reference to stack allocated value returned by %s", er.toChars());
+    }
+    return true;
+}
+
+/************************************
+ * Detect cases where returning 'e' by ref can result in a reference to the stack
+ * being returned.
+ * Print error messages when these are detected.
+ * Params:
+ *      sc = used to determine current function and module
+ *      e = expression to check
+ *      gag = do not print error messages
+ * Returns:
+ *      true if references to the stack can escape
+ */
+bool checkEscapeRef(Scope* sc, Expression e, bool gag)
+{
+    version (none)
+    {
+        printf("[%s] checkEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
+        printf("current function %s\n", sc.func.toChars());
+        printf("parent2 function %s\n", sc.func.toParent2().toChars());
+    }
+
+    Expression er = escapeExpressionRef(sc, e);
+    if (!er)
+        return false;
+    if (gag)
+        return true;
+
+    if (er.op == TOKvar)
+    {
+        error(er.loc, "escaping reference to variable %s", er.toChars());
+    }
+    else if (er.op == TOKthis)
+    {
+        error(er.loc, "escaping reference to 'this'");
+    }
+    else if (er.op == TOKstar)
+    {
+        return checkEscape(sc, (cast(PtrExp)er).e1, gag);
+    }
+    else if (er.op == TOKdotvar)
+    {
+        return checkEscape(sc, (cast(DotVarExp)er).e1, gag);
+    }
+    else if (er.op == TOKcall)
+    {
+        error(er.loc, "escaping reference to stack allocated value returned by %s", er.toChars());
+    }
+    else
+    {
+        error(er.loc, "escaping reference to expression %s", er.toChars());
+    }
+    return true;
+}
+
+
+/****************************************
+ * Walk e to determine which sub-expression contains the pointers
+ * that form the foundation of the pointers in e,
+ * if those pointers come with restrictions.
+ * Params:
+ *      sc = used to determine current function and module
+ *      e = expression to check for any pointers to the stack
+ * Returns:
+ *      null means no pointers with restrictions, otherwise the sub-expression
+ */
+private Expression escapeExpressionValue(Scope* sc, Expression e)
+{
     //printf("[%s] checkEscape, e = %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
     {
         alias visit = super.visit;
     public:
         Scope* sc;
-        bool gag;
-        bool result;
+        Expression result;
 
-        extern (D) this(Scope* sc, bool gag)
+        extern (D) this(Scope* sc)
         {
             this.sc = sc;
-            this.gag = gag;
-        }
-
-        void error(Loc loc, const(char)* format, Dsymbol s)
-        {
-            if (!gag)
-                .error(loc, format, s.toChars());
-            result = true;
-        }
-
-        void check(Loc loc, Declaration d)
-        {
-            VarDeclaration v = d.isVarDeclaration();
-            if (v && v.toParent2() == sc.func)
-            {
-                if (v.isDataseg())
-                    return;
-                if ((v.storage_class & (STCref | STCout)) == 0)
-                    error(loc, "escaping reference to local %s", v);
-            }
         }
 
         override void visit(Expression e)
@@ -76,12 +165,20 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
 
         override void visit(AddrExp e)
         {
-            result |= checkEscapeRef(sc, e.e1, gag);
+            if (checkEscapeRef(sc, e.e1, true))
+                result = e;
         }
 
         override void visit(SymOffExp e)
         {
-            check(e.loc, e.var);
+            VarDeclaration v = e.var.isVarDeclaration();
+            if (v && v.toParent2() == sc.func)
+            {
+                if (v.isDataseg())
+                    return;
+                if ((v.storage_class & (STCref | STCout)) == 0)
+                    result = e;
+            }
         }
 
         override void visit(VarExp e)
@@ -89,15 +186,15 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
             {
-                Type tb = v.type.toBasetype();
                 if (v.isScope())
                 {
-                    error(e.loc, "scope variable %s may not be returned", v);
+                    result = e;
                 }
                 else if (v.storage_class & STCvariadic)
                 {
+                    Type tb = v.type.toBasetype();
                     if (tb.ty == Tarray || tb.ty == Tsarray)
-                        error(e.loc, "escaping reference to variadic parameter %s", v);
+                        result = e;
                 }
             }
         }
@@ -159,7 +256,8 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
             {
-                result |= checkEscapeRef(sc, e.e1, gag);
+                if (checkEscapeRef(sc, e.e1, true))
+                    result = e;
             }
         }
 
@@ -175,14 +273,17 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
                         return;
                     if (v.storage_class & STCvariadic)
                     {
-                        error(e.loc, "escaping reference to the payload of variadic parameter %s", v);
+                        result = e.e1;
                         return;
                     }
                 }
             }
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tsarray)
-                result |= checkEscapeRef(sc, e.e1, gag);
+            {
+                if (checkEscapeRef(sc, e.e1, true))
+                    result = e;
+            }
             else
                 e.e1.accept(this);
         }
@@ -219,53 +320,37 @@ bool checkEscape(Scope* sc, Expression e, bool gag)
         }
     }
 
-    scope EscapeVisitor v = new EscapeVisitor(sc, gag);
+    scope EscapeVisitor v = new EscapeVisitor(sc);
     e.accept(v);
     return v.result;
 }
 
-/************************************
- * Detect cases where returning 'e' by ref can result in a reference to the stack
- * being returned.
- * Print error messages when these are detected.
+/****************************************
+ * Walk e to determine which sub-expression contains the refs
+ * that form the foundation of the refs of e,
+ * if those refs come with restrictions.
+ * Do inference of 'return' storage class if possible.
  * Params:
  *      sc = used to determine current function and module
- *      e = expression to check
- *      gag = do not print error messages
+ *      e = expression to check for any refs
  * Returns:
- *      true if references to the stack can escape
+ *      null means no refs with restrictions, otherwise the sub-expression
  */
-bool checkEscapeRef(Scope* sc, Expression e, bool gag)
+private Expression escapeExpressionRef(Scope* sc, Expression e)
 {
-    version (none)
-    {
-        printf("[%s] checkEscapeRef, e = %s\n", e.loc.toChars(), e.toChars());
-        printf("current function %s\n", sc.func.toChars());
-        printf("parent2 function %s\n", sc.func.toParent2().toChars());
-    }
-
     extern (C++) final class EscapeRefVisitor : Visitor
     {
         alias visit = super.visit;
     public:
         Scope* sc;
-        bool gag;
-        bool result;
+        Expression result;
 
-        extern (D) this(Scope* sc, bool gag)
+        extern (D) this(Scope* sc)
         {
             this.sc = sc;
-            this.gag = gag;
         }
 
-        void error(Loc loc, const(char)* format, RootObject o)
-        {
-            if (!gag)
-                .error(loc, format, o.toChars());
-            result = true;
-        }
-
-        void check(Loc loc, Declaration d)
+        void check(Expression e, Declaration d)
         {
             assert(d);
             VarDeclaration v = d.isVarDeclaration();
@@ -277,20 +362,28 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 
             if ((v.storage_class & (STCref | STCout)) == 0 && v.toParent2() == sc.func)
             {
-                error(loc, "escaping reference to local variable %s", v);
+                // Returning a non-ref local by ref
+                result = e;
                 return;
             }
 
+            /* Check for returning a ref variable by 'ref', but should be 'return ref'
+             * Infer the addition of 'return', or set result to be the offending expression.
+             */
             if (global.params.useDIP25 &&
                 (v.storage_class & (STCref | STCout)) &&
                 !(v.storage_class & (STCreturn | STCforeach)))
             {
                 if (sc.func.flags & FUNCFLAGreturnInprocess && v.toParent2() == sc.func)
                 {
+                    // v is a local in the current function
+
                     //printf("inferring 'return' for variable '%s'\n", v.toChars());
                     v.storage_class |= STCreturn;
+
                     if (v == sc.func.vthis)
                     {
+                        // Perform 'return' inference on function type
                         sc.func.storage_class |= STCreturn;
                         TypeFunction tf = cast(TypeFunction)sc.func.type;
                         if (tf.ty == Tfunction)
@@ -301,7 +394,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     }
                     else
                     {
-                        // Set STCreturn in the Parameter storage class corresponding to v
+                        // Perform 'return' inference on parameter
                         TypeFunction tf = cast(TypeFunction)sc.func.type;
                         if (tf.parameters)
                         {
@@ -312,6 +405,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                                 if (p.ident == v.ident)
                                 {
                                     p.storageClass |= STCreturn;
+                                    break;              // there can be only one
                                 }
                             }
                         }
@@ -319,12 +413,14 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                 }
                 else if (sc._module && sc._module.isRoot())
                 {
+                    // Only look for errors if in module listed on command line
+
                     Dsymbol p = v.toParent2();
                     if (p == sc.func)
                     {
                         //printf("escaping reference to local ref variable %s\n", v.toChars());
                         //printf("storage class = x%llx\n", v.storage_class);
-                        error(loc, "escaping reference to local ref variable %s", v);
+                        result = e;             // escaping ref to local variable
                         return;
                     }
                     // Don't need to be concerned if v's parent does not return a ref
@@ -333,7 +429,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     {
                         TypeFunction tf = cast(TypeFunction)fd.type;
                         if (tf.isref)
-                            error(loc, "escaping reference to outer local ref variable %s", v);
+                            result = e;         // escaping ref to outer variable
                     }
 
                 }
@@ -342,6 +438,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 
             if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
             {
+                // If compiler generated ref temporary
                 // (ref v = ex; ex)
                 if (ExpInitializer ez = v._init.isExpInitializer())
                 {
@@ -359,18 +456,19 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 
         override void visit(VarExp e)
         {
-            check(e.loc, e.var);
+            check(e, e.var);
         }
 
         override void visit(ThisExp e)
         {
             if (e.var)
-                check(e.loc, e.var);
+                check(e, e.var);
         }
 
         override void visit(PtrExp e)
         {
-            result |= checkEscape(sc, e.e1, gag);
+            if (checkEscape(sc, e.e1, true))
+                result = e;
         }
 
         override void visit(IndexExp e)
@@ -385,7 +483,7 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
                     {
                         if (v.storage_class & STCvariadic)
                         {
-                            error(e.loc, "escaping reference to the payload of variadic parameter %s", v);
+                            result = e.e1;
                             return;
                         }
                     }
@@ -402,7 +500,10 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
         {
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tclass)
-                result |= checkEscape(sc, e.e1, gag);
+            {
+                if (checkEscape(sc, e.e1, true))
+                   result = e;
+            }
             else
                 e.e1.accept(this);
         }
@@ -471,13 +572,12 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
             }
             else
             {
-                error(e.loc, "escaping reference to stack allocated value returned by %s", e);
-                return;
+                result = e;
             }
         }
     }
 
-    scope EscapeRefVisitor v = new EscapeRefVisitor(sc, gag);
+    scope EscapeRefVisitor v = new EscapeRefVisitor(sc);
     e.accept(v);
     return v.result;
 }

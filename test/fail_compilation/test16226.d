@@ -1,7 +1,7 @@
 /* REQUIRED_ARGS: -dip25
    TEST_OUTPUT:
 ---
-fail_compilation/test16226.d(14): Error: escaping reference to local variable i
+fail_compilation/test16226.d(14): Error: escaping reference to variable i
 ---
 */
 
