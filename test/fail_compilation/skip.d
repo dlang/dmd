@@ -1,8 +1,9 @@
 /*
+ * REQUIRED_ARGS: -de
  * TEST_OUTPUT:
 ---
-fail_compilation/skip.d(20): Error: 'switch' skips declaration of 'with' temporary at fail_compilation/skip.d(25)
-fail_compilation/skip.d(42): Error: 'switch' skips declaration of variable skip.test14532.n at fail_compilation/skip.d(44)
+fail_compilation/skip.d(21): Deprecation: 'switch' skips declaration of 'with' temporary at fail_compilation/skip.d(26)
+fail_compilation/skip.d(43): Deprecation: 'switch' skips declaration of variable skip.test14532.n at fail_compilation/skip.d(45)
 ---
  */
 // https://issues.dlang.org/show_bug.cgi?id=10524
@@ -49,5 +50,3 @@ void test14532()
       default:
     }
 }
-
-
