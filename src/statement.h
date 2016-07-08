@@ -105,6 +105,8 @@ public:
     virtual CaseStatement *isCaseStatement() { return NULL; }
     virtual DefaultStatement *isDefaultStatement() { return NULL; }
     virtual LabelStatement *isLabelStatement() { return NULL; }
+    virtual GotoDefaultStatement *isGotoDefaultStatement() { return NULL; }
+    virtual GotoCaseStatement *isGotoCaseStatement() { return NULL; }
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
@@ -435,6 +437,7 @@ public:
     SwitchStatement *sw;
 
     Statement *syntaxCopy();
+    GotoDefaultStatement *isGotoDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -446,6 +449,7 @@ public:
     CaseStatement *cs;          // case statement it resolves to
 
     Statement *syntaxCopy();
+    GotoCaseStatement *isGotoCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
