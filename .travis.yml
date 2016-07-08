@@ -23,10 +23,10 @@ env:
 matrix:
   include:
     - os: osx
-      d: dmd-beta
+      d: dmd
       env: MODEL=32 SELF_COMPILE=0
     - os: osx
-      d: dmd-beta
+      d: dmd
       env: MODEL=64 SELF_COMPILE=0
   exclude:
     # gdc doesn't neither comes w/ multilib support nor picks up system-wide -lstdc++ lgcc_s
