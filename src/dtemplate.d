@@ -4183,7 +4183,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         override void visit(Expression e)
         {
-            //printf("Expression::deduceType(e = %s)\n", e->toChars());
+            //printf("Expression::deduceType(e = %s)\n", e.toChars());
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND || (cast(TypeIdentifier)tparam).idents.dim > 0)
             {
@@ -4215,6 +4215,14 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 }
             }
 
+            bool isTopRef(Type t)
+            {
+                auto tb = t.baseElemOf();
+                return tb.ty == Tclass ||
+                       tb.ty == Taarray ||
+                       tb.ty == Tstruct && tb.hasPointers();
+            }
+
             Type at = cast(Type)(*dedtypes)[i];
             Type tt;
             if (ubyte wx = deduceWildHelper(e.type, &tt, tparam))
@@ -4225,6 +4233,16 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             else if (MATCH m = deduceTypeHelper(e.type, &tt, tparam))
             {
                 result = m;
+            }
+            else if (!isTopRef(e.type))
+            {
+                /* Bugzilla 15653, In IFTI, recognize top-qualifier conversions
+                 * through the value copy, e.g.
+                 *      int --> immutable(int)
+                 *      immutable(string[]) --> immutable(string)[]
+                 */
+                tt = e.type.mutableOf();
+                result = MATCHconvert;
             }
             else
                 return; // nomatch
