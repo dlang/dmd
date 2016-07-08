@@ -81,6 +81,7 @@ public:
     bool isstatic;              // this is static template declaration
     Prot protection;
 
+    int inuse;
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
     Dsymbol *syntaxCopy(Dsymbol *);
