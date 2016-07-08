@@ -1919,27 +1919,29 @@ extern (C++) final class SwitchStatement : Statement
             }
             else if (vd.ident == Id.withSym)
             {
-                error("'switch' skips declaration of 'with' temporary at %s", vd.loc.toChars());
+                deprecation("'switch' skips declaration of 'with' temporary at %s", vd.loc.toChars());
                 return true;
             }
             else
             {
-                error("'switch' skips declaration of variable %s at %s", vd.toPrettyChars(), vd.loc.toChars());
+                deprecation("'switch' skips declaration of variable %s at %s", vd.toPrettyChars(), vd.loc.toChars());
                 return true;
             }
 
             return false;
         }
 
+        enum error = true;
+
         if (sdefault && checkVar(sdefault.lastVar))
-            return true;
+            return !error; // return error once fully deprecated
 
         foreach (scase; *cases)
         {
             if (scase && checkVar(scase.lastVar))
-                return true;
+                return !error; // return error once fully deprecated
         }
-        return false;
+        return !error;
     }
 
     override void accept(Visitor v)
