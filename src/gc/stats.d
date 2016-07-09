@@ -13,15 +13,13 @@
  */
 module gc.stats;
 
-
 /**
- *
+ * Aggregation of GC stats to be exposed via public API
  */
 struct GCStats
 {
-    size_t poolsize;        // total size of pool
-    size_t usedsize;        // bytes allocated
-    size_t freeblocks;      // number of blocks marked FREE
-    size_t freelistsize;    // total of memory on free lists
-    size_t pageblocks;      // number of blocks marked PAGE
+    /// total size of GC heap
+    size_t usedSize;
+    /// free bytes on the GC heap (might only get updated after a collection)
+    size_t freeSize;
 }

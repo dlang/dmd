@@ -1157,8 +1157,8 @@ class ConservativeGC : GC
             GCStats stats;
 
             getStats(stats);
-            debug(PRINTF) printf("poolsize = %zx, usedsize = %zx, freelistsize = %zx\n",
-                    stats.poolsize, stats.usedsize, stats.freelistsize);
+            debug(PRINTF) printf("heapSize = %zx, freeSize = %zx\n",
+                stats.heapSize, stats.freeSize);
         }
 
         gcx.log_collect();
@@ -1223,11 +1223,7 @@ class ConservativeGC : GC
             for (size_t j = 0; j < pool.npages; j++)
             {
                 Bins bin = cast(Bins)pool.pagetable[j];
-                if (bin == B_FREE)
-                    stats.freeblocks++;
-                else if (bin == B_PAGE)
-                    stats.pageblocks++;
-                else if (bin < B_PAGE)
+                if (bin < B_PAGE)
                     bsize += PAGESIZE;
             }
         }
@@ -1244,9 +1240,8 @@ class ConservativeGC : GC
 
         usize = bsize - flsize;
 
-        stats.poolsize = psize;
-        stats.usedsize = bsize - flsize;
-        stats.freelistsize = flsize;
+        stats.usedSize = bsize - flsize;
+        stats.freeSize = flsize;
     }
 }
 
