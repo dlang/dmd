@@ -16,9 +16,9 @@ module gc.proxy;
 import gc.impl.conservative.gc;
 import gc.impl.manual.gc;
 import gc.config;
-import gc.stats;
 import gc.gcinterface;
 
+static import core.memory;
 
 private
 {
@@ -164,7 +164,7 @@ extern (C)
 
     // NOTE: This routine is experimental. The stats or function name may change
     //       before it is made officially available.
-    GCStats gc_stats() nothrow
+    core.memory.GC.Stats gc_stats() nothrow
     {
         return instance.stats();
     }

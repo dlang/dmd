@@ -39,7 +39,6 @@ version = STACKGROWSDOWN;       // growing the stack means subtracting from the 
 /***************************************************/
 
 import gc.bits;
-import gc.stats;
 import gc.os;
 import gc.config;
 import gc.gcinterface;
@@ -50,6 +49,7 @@ import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
 import core.thread;
+static import core.memory;
 
 version (GNU) import gcc.builtins;
 
@@ -1191,9 +1191,9 @@ class ConservativeGC : GC
     }
 
 
-    GCStats stats() nothrow
+    core.memory.GC.Stats stats() nothrow
     {
-        GCStats ret;
+        typeof(return) ret;
 
         runLocked!(getStatsNoSync, otherTime, numOthers)(ret);
 
@@ -1204,7 +1204,7 @@ class ConservativeGC : GC
     //
     //
     //
-    private void getStatsNoSync(out GCStats stats) nothrow
+    private void getStatsNoSync(out core.memory.GC.Stats stats) nothrow
     {
         size_t psize = 0;
         size_t usize = 0;
@@ -1214,7 +1214,7 @@ class ConservativeGC : GC
         size_t bsize = 0;
 
         //debug(PRINTF) printf("getStats()\n");
-        memset(&stats, 0, GCStats.sizeof);
+        memset(&stats, 0, core.memory.GC.Stats.sizeof);
 
         for (n = 0; n < gcx.npools; n++)
         {   Pool *pool = gcx.pooltable[n];

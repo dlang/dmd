@@ -26,12 +26,12 @@
 module gc.impl.manual.gc;
 
 import gc.config;
-import gc.stats;
 import gc.gcinterface;
 
 import rt.util.container.array;
 
 import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
+static import core.memory;
 
 extern (C) void onOutOfMemoryError(void* pretend_sideffect = null) @trusted pure nothrow @nogc; /* dmd @@@BUG11461@@@ */
 
@@ -190,9 +190,9 @@ class ManualGC : GC
         return BlkInfo.init;
     }
 
-    GCStats stats() nothrow
+    core.memory.GC.Stats stats() nothrow
     {
-        return GCStats.init;
+        return typeof(return).init;
     }
 
     void addRoot(void* p) nothrow @nogc

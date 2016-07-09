@@ -12,7 +12,6 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module gc.gcinterface;
-import gc.stats;
 
 static import core.memory;
 alias BlkAttr = core.memory.GC.BlkAttr;
@@ -147,7 +146,7 @@ interface GC
      * Retrieve statistics about garbage collection.
      * Useful for debugging and tuning.
      */
-    GCStats stats() nothrow;
+    core.memory.GC.Stats stats() nothrow;
 
     /**
      * add p to list of roots

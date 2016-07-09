@@ -241,7 +241,6 @@ SRCS=\
 	src\gc\os.d \
 	src\gc\pooltable.d \
 	src\gc\proxy.d \
-	src\gc\stats.d \
 	src\gc\impl\conservative\gc.d \
 	src\gc\impl\manual\gc.d \
 	\

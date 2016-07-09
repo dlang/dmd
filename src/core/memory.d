@@ -159,6 +159,17 @@ struct GC
     @disable this();
 
     /**
+     * Aggregation of GC stats to be exposed via public API
+     */
+    static struct Stats
+    {
+        /// number of used bytes on the GC heap (might only get updated after a collection)
+        size_t usedSize;
+        /// number of free bytes on the GC heap (might only get updated after a collection)
+        size_t freeSize;
+    }
+
+    /**
      * Enables automatic garbage collection behavior if collections have
      * previously been suspended by a call to disable.  This function is
      * reentrant, and must be called once for every call to disable before
