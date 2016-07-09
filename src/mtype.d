@@ -7537,9 +7537,17 @@ public:
          */
         Scope* sc2 = sc.push();
         sc2.intypeof = 1;
-        exp = exp.semantic(sc2);
-        exp = resolvePropertiesOnly(sc2, exp);
+        auto exp2 = exp.semantic(sc2);
+        exp2 = resolvePropertiesOnly(sc2, exp2);
         sc2.pop();
+
+        if (exp2.op == TOKerror)
+        {
+            if (!global.gag)
+                exp = exp2;
+            goto Lerr;
+        }
+        exp = exp2;
 
         if (exp.op == TOKtype ||
             exp.op == TOKscope)
