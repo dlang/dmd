@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS:=stderr_msg unittest_assert invalid_memory_operation
+TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS:=$(TESTS) line_trace
 endif
@@ -24,6 +24,7 @@ $(ROOT)/line_trace.done: $(ROOT)/line_trace
 $(ROOT)/stderr_msg.done: STDERR_EXP="stderr_msg msg"
 $(ROOT)/unittest_assert.done: STDERR_EXP="unittest_assert msg"
 $(ROOT)/invalid_memory_operation.done: STDERR_EXP="InvalidMemoryOperationError"
+$(ROOT)/unknown_gc.done: STDERR_EXP="'unknowngc'"
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)

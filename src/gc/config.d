@@ -26,7 +26,7 @@ struct Config
 {
     bool disable;            // start disabled
     ubyte profile;           // enable profiling with summary when terminating program
-    string gc = "conservative"; // select gc implementation conservative|manual
+    const(char)[] gc = "conservative"; // select gc implementation conservative|manual
 
     size_t initReserve;      // initial reserve (MB)
     size_t minPoolSize = 1;  // initial and minimum pool size (MB)
@@ -190,27 +190,10 @@ bool parse(T:const(char)[])(const(char)[] optname, ref const(char)[] str, ref T 
 in { assert(str.length); }
 body
 {
-    bool findNext(string next)
-    {
-        if(next.length>str.length)
-            return false;
-
-        return (next.length == str.length)? (next == str):(isspace(str[next.length+1])&&(next == str[0..next.length]));
-    }
-
-    if(findNext("manual"))
-    {
-        res = "manual";
-    }
-    else if(findNext("conservative"))
-    {
-        res = "conservative";
-    }
-    else
-    {
-        return parseError("conservative or manual", optname, str);
-    }
-
+    // [_a-zA-Z][_a-zA-Z0-9]*]
+    if (str[0] != '_' && !isalpha(str[0]))
+        return parseError("an identifier", optname, str);
+    res = str[0 .. $ - str[1 .. $].find!(c => c != '_' && !isalnum(c)).length];
     str = str[res.length .. $];
     return true;
 }
@@ -274,4 +257,10 @@ unittest
     assert(conf.parseOptions("help"));
     assert(conf.parseOptions("help profile:1"));
     assert(conf.parseOptions("help profile:1 help"));
+
+    assert(conf.parseOptions("gc:manual") && conf.gc == "manual");
+    assert(conf.parseOptions("gc:conservative help profile:1") && conf.gc == "conservative" && conf.profile == 1);
+
+    // the config parse doesn't know all available GC names, so should accept unknown ones
+    assert(conf.parseOptions("gc:whatever"));
 }

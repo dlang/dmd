@@ -42,6 +42,14 @@ extern (C)
         config.initialize();
         ManualGC.initialize(instance);
         ConservativeGC.initialize(instance);
+        if (instance is null)
+        {
+            import core.stdc.stdio : fprintf, stderr;
+            import core.stdc.stdlib : exit;
+
+            fprintf(stderr, "No GC was initialized, please recheck the name of the selected GC ('%.*s').\n", cast(int)config.gc.length, config.gc.ptr);
+            exit(1);
+        }
 
         // NOTE: The GC must initialize the thread library
         //       before its first collection.
