@@ -1361,7 +1361,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         if (sz == 1)
         {   /* Don't use SI or DI for this variable     */
             s->Sflags |= GTbyte;
-            if (e->EV.sp.Voffset > 1)
+            if (e->EV.sp.Voffset > 1 ||
+                I64)                            // could work if restrict reg to AH,BH,CH,DH
                 s->Sflags &= ~GTregcand;
         }
         else if (e->EV.sp.Voffset)
