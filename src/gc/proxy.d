@@ -162,8 +162,6 @@ extern (C)
         return instance.query( p );
     }
 
-    // NOTE: This routine is experimental. The stats or function name may change
-    //       before it is made officially available.
     core.memory.GC.Stats gc_stats() nothrow
     {
         return instance.stats();
