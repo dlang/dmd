@@ -660,22 +660,19 @@ public:
             type = null;
             aliassym = s;
         }
-        inuse = 0;
         if (global.gag && errors != global.errors)
         {
             type = oldtype;
             aliassym = null;
         }
-        else
-        {
-            semanticRun = PASSsemanticdone;
+        inuse = 0;
+        semanticRun = PASSsemanticdone;
 
-            if (auto sx = overnext)
-            {
-                overnext = null;
-                if (!overloadInsert(sx))
-                    ScopeDsymbol.multiplyDefined(Loc(), sx, this);
-            }
+        if (auto sx = overnext)
+        {
+            overnext = null;
+            if (!overloadInsert(sx))
+                ScopeDsymbol.multiplyDefined(Loc(), sx, this);
         }
     }
 
