@@ -779,12 +779,8 @@ $(GNAME TryStatement):
     $(D try) $(PSSCOPE) $(GLINK FinallyStatement)
 
 $(GNAME Catches):
-    $(GLINK LastCatch)
     $(GLINK Catch)
     $(GLINK Catch) $(I Catches)
-
-$(GNAME LastCatch):
-    $(D catch) $(PS0)
 
 $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
