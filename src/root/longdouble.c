@@ -131,6 +131,24 @@ unsigned long long ld_readull(const longdouble* pthis)
 }
 
 #ifndef _WIN64
+int ld_statusfpu()
+{
+    int res = 0;
+    __asm
+    {
+        fstsw word ptr [res];
+    }
+    return res;
+}
+
+void ld_clearfpu()
+{
+    __asm
+    {
+        fclex
+    }
+}
+
 void ld_set(longdouble* pthis, double d)
 {
     __asm
