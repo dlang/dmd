@@ -1,10 +1,14 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2016 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Template implementation.
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _dtemplate.d)
+ */
 
 module ddmd.dtemplate;
 
@@ -457,7 +461,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.protection = Prot(PROTundefined);
 
         // Compute in advance for Ddoc's use
-        // Bugzilla 11153: ident could be NULL if parsing fails.
+        // https://issues.dlang.org/show_bug.cgi?id=11153: ident could be NULL if parsing fails.
         if (members && ident)
         {
             Dsymbol s;
@@ -471,7 +475,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override Dsymbol syntaxCopy(Dsymbol)
     {
-        //printf("TemplateDeclaration::syntaxCopy()\n");
+        //printf("TemplateDeclaration.syntaxCopy()\n");
         TemplateParameters* p = null;
         if (parameters)
         {
@@ -487,9 +491,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     {
         static if (LOG)
         {
-            printf("TemplateDeclaration::semantic(this = %p, id = '%s')\n", this, ident.toChars());
-            printf("sc->stc = %llx\n", sc.stc);
-            printf("sc->module = %s\n", sc._module.toChars());
+            printf("TemplateDeclaration.semantic(this = %p, id = '%s')\n", this, ident.toChars());
+            printf("sc.stc = %llx\n", sc.stc);
+            printf("sc.module = %s\n", sc._module.toChars());
         }
         if (semanticRun != PASSinit)
             return; // semantic() already run
@@ -557,7 +561,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        /* Calculate TemplateParameter::dependent
+        /* Calculate TemplateParameter.dependent
          */
         TemplateParameters tparams;
         tparams.setDim(1);
@@ -615,7 +619,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     {
         static if (LOG)
         {
-            printf("TemplateDeclaration::overloadInsert('%s')\n", s.toChars());
+            printf("TemplateDeclaration.overloadInsert('%s')\n", s.toChars());
         }
         FuncDeclaration fd = s.isFuncDeclaration();
         if (fd)
@@ -704,7 +708,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
         /* Detect recursive attempts to instantiate this template declaration,
-         * Bugzilla 4072
+         * https://issues.dlang.org/show_bug.cgi?id=4072
          *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
          *  static assert(!is(typeof(foo(7))));
          * Recursive attempts are regarded as a constraint failure.
@@ -712,7 +716,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         /* There's a chicken-and-egg problem here. We don't know yet if this template
          * instantiation will be a local one (enclosing is set), and we won't know until
          * after selecting the correct template. Thus, function we're nesting inside
-         * is not on the sc scope chain, and this can cause errors in FuncDeclaration::getLevel().
+         * is not on the sc scope chain, and this can cause errors in FuncDeclaration.getLevel().
          * Workaround the problem by setting a flag to relax the checking on frame errors.
          */
 
@@ -720,8 +724,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             if (arrayObjectMatch(p.dedargs, dedargs))
             {
-                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                /* It must be a subscope of p->sc, other scope chains are not recursive
+                //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
+                /* It must be a subscope of p.sc, other scope chains are not recursive
                  * instantiations.
                  */
                 for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -751,7 +755,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (fd)
         {
             /* Declare all the function parameters as variables and add them to the scope
-             * Making parameters is similar to FuncDeclaration::semantic3
+             * Making parameters is similar to FuncDeclaration.semantic3
              */
             TypeFunction tf = cast(TypeFunction)fd.type;
             assert(tf.ty == Tfunction);
@@ -797,7 +801,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
 
-        //printf("\tscx->parent = %s %s\n", scx->parent->kind(), scx->parent->toPrettyChars());
+        //printf("\tscx.parent = %s %s\n", scx.parent.kind(), scx.parent.toPrettyChars());
         e = e.semantic(scx);
         e = resolveProperties(scx, e);
 
@@ -842,13 +846,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         enum LOGM = 0;
         static if (LOGM)
         {
-            printf("\n+TemplateDeclaration::matchWithInstance(this = %s, ti = %s, flag = %d)\n", toChars(), ti.toChars(), flag);
+            printf("\n+TemplateDeclaration.matchWithInstance(this = %s, ti = %s, flag = %d)\n", toChars(), ti.toChars(), flag);
         }
         version (none)
         {
-            printf("dedtypes->dim = %d, parameters->dim = %d\n", dedtypes.dim, parameters.dim);
+            printf("dedtypes.dim = %d, parameters.dim = %d\n", dedtypes.dim, parameters.dim);
             if (ti.tiargs.dim)
-                printf("ti->tiargs->dim = %d, [0] = %p\n", ti.tiargs.dim, (*ti.tiargs)[0]);
+                printf("ti.tiargs.dim = %d, [0] = %p\n", ti.tiargs.dim, (*ti.tiargs)[0]);
         }
         MATCH m;
         size_t dedtypes_dim = dedtypes.dim;
@@ -896,7 +900,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             //printf("\targument [%d]\n", i);
             static if (LOGM)
             {
-                //printf("\targument [%d] is %s\n", i, oarg ? oarg->toChars() : "null");
+                //printf("\targument [%d] is %s\n", i, oarg ? oarg.toChars() : "null");
                 TemplateTypeParameter ttp = tp.isTemplateTypeParameter();
                 if (ttp)
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
@@ -920,7 +924,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 sparam.semantic(paramscope);
             if (!paramscope.insert(sparam)) // TODO: This check can make more early
             {
-                // in TemplateDeclaration::semantic, and
+                // in TemplateDeclaration.semantic, and
                 // then we don't need to make sparam if flags == 0
                 goto Lnomatch;
             }
@@ -977,7 +981,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 fd.originalType = fd.type; // for mangling
             }
 
-            // TODO: dedtypes => ti->tiargs ?
+            // TODO: dedtypes => ti.tiargs ?
             if (!evaluateConstraint(ti, sc, paramscope, dedtypes, fd))
                 goto Lnomatch;
         }
@@ -1022,7 +1026,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         paramscope.pop();
         static if (LOGM)
         {
-            printf("-TemplateDeclaration::matchWithInstance(this = %p, ti = %p) = %d\n", this, ti, m);
+            printf("-TemplateDeclaration.matchWithInstance(this = %p, ti = %p) = %d\n", this, ti, m);
         }
         return m;
     }
@@ -1104,7 +1108,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      *      fargs           arguments to function
      * Output:
      *      fd              Partially instantiated function declaration
-     *      ti->tdtypes     Expression/Type deduced template arguments
+     *      ti.tdtypes     Expression/Type deduced template arguments
      * Returns:
      *      match level
      *          bit 0-3     Match template parameters by inferred template arguments
@@ -1130,14 +1134,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         version (none)
         {
-            printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
+            printf("\nTemplateDeclaration.deduceFunctionTemplateMatch() %s\n", toChars());
             for (size_t i = 0; i < (fargs ? fargs.dim : 0); i++)
             {
                 Expression e = (*fargs)[i];
                 printf("\tfarg[%d] is %s, type is %s\n", i, e.toChars(), e.type.toChars());
             }
             printf("fd = %s\n", fd.toChars());
-            printf("fd->type = %s\n", fd.type.toChars());
+            printf("fd.type = %s\n", fd.type.toChars());
             if (tthis)
                 printf("tthis = %s\n", tthis.toChars());
         }
@@ -1324,7 +1328,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (fd.type && !fd.isCtorDeclaration())
             {
                 StorageClass stc = _scope.stc | fd.storage_class2;
-                // Propagate parent storage class (see bug 5504)
+                // Propagate parent storage class, https://issues.dlang.org/show_bug.cgi?id=5504
                 Dsymbol p = parent;
                 while (p.isTemplateDeclaration() || p.isTemplateInstance())
                     p = p.parent;
@@ -1358,8 +1362,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         // Loop through the function parameters
         {
-            //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple->objects.dim : 0);
-            //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple->toChars() : NULL);
+            //printf("%s\n\tnfargs = %d, nfparams = %d, tuple_dim = %d\n", toChars(), nfargs, nfparams, declaredTuple ? declaredTuple.objects.dim : 0);
+            //printf("\ttp = %p, fptupindex = %d, found = %d, declaredTuple = %s\n", tp, fptupindex, fptupindex != IDX_NOTFOUND, declaredTuple ? declaredTuple.toChars() : NULL);
             size_t argi = 0;
             size_t nfargs2 = nfargs; // nfargs + supplied defaultArgs
             for (size_t parami = 0; parami < nfparams; parami++)
@@ -1446,7 +1450,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                     else
                     {
-                        // Bugzilla 6810: If declared tuple is not a type tuple,
+                        // https://issues.dlang.org/show_bug.cgi?id=6810
+                        // If declared tuple is not a type tuple,
                         // it cannot be function parameter types.
                         for (size_t i = 0; i < declaredTuple.objects.dim; i++)
                         {
@@ -1497,11 +1502,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     if (!fparam.defaultArg)
                         goto Lvarargs;
 
-                    /* Bugzilla 2803: Before the starting of type deduction from the function
+                    /* https://issues.dlang.org/show_bug.cgi?id=2803
+                     * Before the starting of type deduction from the function
                      * default arguments, set the already deduced parameters into paramscope.
                      * It's necessary to avoid breaking existing acceptable code. Cases:
                      *
-                     * 1. Already deduced template parameters can appear in fparam->defaultArg:
+                     * 1. Already deduced template parameters can appear in fparam.defaultArg:
                      *  auto foo(A, B)(A a, B b = A.stringof);
                      *  foo(1);
                      *  // at fparam == 'B b = A.string', A is equivalent with the deduced type 'int'
@@ -1511,7 +1517,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                      *  auto foo(N = size_t, R)(R r, N start = 0)
                      *  foo([1,2,3]);
                      *  // at fparam `N start = 0`, N should be 'size_t' before
-                     *  // the deduction result from fparam->defaultArg.
+                     *  // the deduction result from fparam.defaultArg.
                      */
                     if (argi == nfargs)
                     {
@@ -1579,7 +1585,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                      *  foo([1,2,3]);
                      *  // at fparam == 'ElementType!R sum = 0'
                      *
-                     * Deducing prmtype from fparam->defaultArg is not necessary.
+                     * Deducing prmtype from fparam.defaultArg is not necessary.
                      */
                     if (prmtype.deco || prmtype.syntaxCopy().trySemantic(loc, paramscope))
                     {
@@ -1605,15 +1611,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 Lretry:
                     version (none)
                     {
-                        printf("\tfarg->type   = %s\n", farg.type.toChars());
-                        printf("\tfparam->type = %s\n", prmtype.toChars());
+                        printf("\tfarg.type   = %s\n", farg.type.toChars());
+                        printf("\tfparam.type = %s\n", prmtype.toChars());
                     }
                     Type argtype = farg.type;
 
                     if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
                         goto Lnomatch;
 
-                    // Bugzilla 12876: optimize arugument to allow CT-known length matching
+                    // https://issues.dlang.org/show_bug.cgi?id=12876
+                    // Optimize argument to allow CT-known length matching
                     farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
                     //printf("farg = %s %s\n", farg.type.toChars(), fargtoChars());
 
@@ -1685,10 +1692,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         AggregateDeclaration ad = isAggregate(farg.type);
                         if (ad && ad.aliasthis && argtype != att)
                         {
-                            if (!att && argtype.checkAliasThisRec())   // Bugzilla 12537
+                            if (!att && argtype.checkAliasThisRec())   // https://issues.dlang.org/show_bug.cgi?id=12537
                                 att = argtype;
                             /* If a semantic error occurs while doing alias this,
-                             * eg purity(bug 7295), just regard it as not a match.
+                             * eg purity(https://issues.dlang.org/show_bug.cgi?id=7295),
+                             * just regard it as not a match.
                              */
                             if (auto e = resolveAliasThis(sc, farg, true))
                             {
@@ -1714,7 +1722,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     {
                         if (!farg.isLvalue())
                             goto Lnomatch;
-                        if (!farg.type.isMutable()) // Bugzilla 11916
+                        if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
                             goto Lnomatch;
                     }
                     if (m == MATCHnomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
@@ -1730,7 +1738,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             Lvarargs:
                 /* The following code for variadic arguments closely
-                 * matches TypeFunction::callMatch()
+                 * matches TypeFunction.callMatch()
                  */
                 if (!(fvarargs == 2 && parami + 1 == nfparams))
                     goto Lnomatch;
@@ -1744,7 +1752,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 case Tsarray:
                 case Taarray:
                     {
-                        // Perhaps we can do better with this, see TypeFunction::callMatch()
+                        // Perhaps we can do better with this, see TypeFunction.callMatch()
                         if (tb.ty == Tsarray)
                         {
                             TypeSArray tsa = cast(TypeSArray)tb;
@@ -1774,7 +1782,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             }
                             else
                             {
-                                // This code matches code in TypeInstance::deduceType()
+                                // This code matches code in TypeInstance.deduceType()
                                 TemplateParameter tprm = (*parameters)[i];
                                 TemplateValueParameter tvp = tprm.isTemplateValueParameter();
                                 if (!tvp)
@@ -1848,7 +1856,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 }
                 assert(0);
             }
-            //printf("-> argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
+            //printf(". argi = %d, nfargs = %d, nfargs2 = %d\n", argi, nfargs, nfargs2);
             if (argi != nfargs2 && !fvarargs)
                 goto Lnomatch;
         }
@@ -1870,7 +1878,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         for (size_t i = ntargs; i < dedargs.dim; i++)
         {
             TemplateParameter tparam = (*parameters)[i];
-            //printf("tparam[%d] = %s\n", i, tparam->ident->toChars());
+            //printf("tparam[%d] = %s\n", i, tparam.ident.toChars());
 
             /* For T:T*, the dedargs is the T*, dedtypes is the T
              * But for function templates, we really need them to match
@@ -1878,8 +1886,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             RootObject oarg = (*dedargs)[i];
             RootObject oded = (*dedtypes)[i];
             //printf("1dedargs[%d] = %p, dedtypes[%d] = %p\n", i, oarg, i, oded);
-            //if (oarg) printf("oarg: %s\n", oarg->toChars());
-            //if (oded) printf("oded: %s\n", oded->toChars());
+            //if (oarg) printf("oarg: %s\n", oarg.toChars());
+            //if (oded) printf("oded: %s\n", oded.toChars());
             if (!oarg)
             {
                 if (oded)
@@ -1951,7 +1959,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        /* Bugzilla 7469: As same as the code for 7469 in findBestMatch,
+        /* https://issues.dlang.org/show_bug.cgi?id=7469
+         * As same as the code for 7469 in findBestMatch,
          * expand a Tuple in dedargs to normalize template arguments.
          */
         if (auto d = dedargs.dim)
@@ -1964,7 +1973,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         ti.tiargs = dedargs; // update to the normalized template arguments.
 
-        // Partially instantiate function for constraint and fd->leastAsSpecialized()
+        // Partially instantiate function for constraint and fd.leastAsSpecialized()
         {
             assert(paramsym);
             Scope* sc2 = _scope;
@@ -2019,7 +2028,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     RootObject declareParameter(Scope* sc, TemplateParameter tp, RootObject o)
     {
-        //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
+        //printf("TemplateDeclaration.declareParameter('%s', o = %p)\n", tp.ident.toChars(), o);
         Type ta = isType(o);
         Expression ea = isExpression(o);
         Dsymbol sa = isDsymbol(o);
@@ -2044,12 +2053,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         if (ta)
         {
-            //printf("type %s\n", ta->toChars());
+            //printf("type %s\n", ta.toChars());
             d = new AliasDeclaration(Loc(), tp.ident, ta);
         }
         else if (sa)
         {
-            //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
+            //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
             d = new AliasDeclaration(Loc(), tp.ident, sa);
         }
         else if (ea)
@@ -2080,7 +2089,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (ta)
         {
             Type t = ta;
-            // consistent with Type::checkDeprecated()
+            // consistent with Type.checkDeprecated()
             while (t.ty != Tenum)
             {
                 if (!t.nextOf())
@@ -2110,7 +2119,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     }
 
     /*************************************************
-     * Limited function template instantiation for using fd->leastAsSpecialized()
+     * Limited function template instantiation for using fd.leastAsSpecialized()
      */
     FuncDeclaration doHeaderInstantiation(TemplateInstance ti, Scope* sc2, FuncDeclaration fd, Type tthis, Expressions* fargs)
     {
@@ -2177,7 +2186,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             tf.next = tret;
             if (ad && ad.isStructDeclaration())
                 tf.isref = 1;
-            //printf("tf = %s\n", tf->toChars());
+            //printf("tf = %s\n", tf.toChars());
         }
         else
             tf.next = null;
@@ -2190,8 +2199,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             return null;
 
         fd.originalType = fd.type; // for mangling
-        //printf("\t[%s] fd->type = %s, mod = %x, ", loc.toChars(), fd->type->toChars(), fd->type->mod);
-        //printf("fd->needThis() = %d\n", fd->needThis());
+        //printf("\t[%s] fd.type = %s, mod = %x, ", loc.toChars(), fd.type.toChars(), fd.type.mod);
+        //printf("fd.needThis() = %d\n", fd.needThis());
 
         return fd;
     }
@@ -2263,7 +2272,7 @@ extern (C++) final class TypeDeduced : Type
 {
     Type tded;
     Expressions argexps; // corresponding expressions
-    Types tparams; // tparams[i]->mod
+    Types tparams; // tparams[i].mod
 
     extern (D) this(Type tt, Expression e, Type tparam)
     {
@@ -2351,10 +2360,10 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         {
             Expression arg = (*fargs)[i];
             printf("\t%s %s\n", arg.type.toChars(), arg.toChars());
-            //printf("\tty = %d\n", arg->type->ty);
+            //printf("\tty = %d\n", arg.type.ty);
         }
-        //printf("stc = %llx\n", dstart->scope->stc);
-        //printf("match:t/f = %d/%d\n", ta_last, m->last);
+        //printf("stc = %llx\n", dstart.scope.stc);
+        //printf("match:t/f = %d/%d\n", ta_last, m.last);
     }
 
     // results
@@ -2386,7 +2395,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             .error(loc, "forward reference to template %s", fd.toChars());
             return 1;
         }
-        //printf("fd = %s %s, fargs = %s\n", fd->toChars(), fd->type->toChars(), fargs->toChars());
+        //printf("fd = %s %s, fargs = %s\n", fd.toChars(), fd.type.toChars(), fargs.toChars());
         m.anyf = fd;
         auto tf = cast(TypeFunction)fd.type;
 
@@ -2403,13 +2412,13 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         Type tthis_fd = fd.needThis() ? tthis : null;
         if (tthis_fd && fd.isCtorDeclaration())
         {
-            //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
-            //        tf->mod, tthis_fd->mod, fd->isolateReturn());
+            //printf("%s tf.mod = x%x tthis_fd.mod = x%x %d\n", tf.toChars(),
+            //        tf.mod, tthis_fd.mod, fd.isolateReturn());
             if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
                 tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
                 fd.isolateReturn())
             {
-                /* && tf->isShared() == tthis_fd->isShared()*/
+                /* && tf.isShared() == tthis_fd.isShared()*/
                 // Uniquely constructed object can ignore shared qualifier.
                 // TODO: Is this appropriate?
                 tthis_fd = null;
@@ -2486,7 +2495,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             return 0;
 
         if (!sc)
-            sc = td._scope; // workaround for Type::aliasthisOf
+            sc = td._scope; // workaround for Type.aliasthisOf
 
         if (td.semanticRun == PASSinit && td._scope)
         {
@@ -2503,7 +2512,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             m.last = MATCHnomatch;
             return 1;
         }
-        //printf("td = %s\n", td->toChars());
+        //printf("td = %s\n", td.toChars());
 
         auto f = td.onemember ? td.onemember.isFuncDeclaration() : null;
         if (!f)
@@ -2529,13 +2538,14 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             {
                 Objects dedtypesX;      // empty tiargs
 
-                // Bugzilla 11553: Check for recursive instantiation of tdx.
+                // https://issues.dlang.org/show_bug.cgi?id=11553
+                // Check for recursive instantiation of tdx.
                 for (TemplatePrevious* p = tdx.previous; p; p = p.prev)
                 {
                     if (arrayObjectMatch(p.dedargs, &dedtypesX))
                     {
-                        //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
-                        /* It must be a subscope of p->sc, other scope chains are not recursive
+                        //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
+                        /* It must be a subscope of p.sc, other scope chains are not recursive
                          * instantiations.
                          */
                         for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -2617,7 +2627,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             return 0;
         }
 
-        //printf("td = %s\n", td->toChars());
+        //printf("td = %s\n", td.toChars());
         for (size_t ovi = 0; f; f = f.overnext0, ovi++)
         {
             if (f.type.ty != Tfunction || f.errors)
@@ -2674,7 +2684,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
             }
             assert(fd && m.lastf);
             {
-                // Disambiguate by tf->callMatch
+                // Disambiguate by tf.callMatch
                 auto tf1 = cast(TypeFunction)fd.type;
                 assert(tf1.ty == Tfunction);
                 auto tf2 = cast(TypeFunction)m.lastf.type;
@@ -2734,7 +2744,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         return 0;
     });
 
-    //printf("td_best = %p, m->lastf = %p\n", td_best, m.lastf);
+    //printf("td_best = %p, m.lastf = %p\n", td_best, m.lastf);
     if (td_best && ti_best && m.count == 1)
     {
         // Matches to template function
@@ -2744,7 +2754,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
          */
         assert(td_best._scope);
         if (!sc)
-            sc = td_best._scope; // workaround for Type::aliasthisOf
+            sc = td_best._scope; // workaround for Type.aliasthisOf
 
         auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
         ti.semantic(sc, fargs);
@@ -2762,7 +2772,7 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         }
 
         // look forward instantiated overload function
-        // Dsymbol::oneMembers is alredy called in TemplateInstance::semantic.
+        // Dsymbol.oneMembers is alredy called in TemplateInstance.semantic.
         // it has filled overnext0d
         while (ov_index--)
         {
@@ -2779,10 +2789,12 @@ extern (C++) void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, 
         if (!tf.callMatch(tthis_best, fargs))
             goto Lnomatch;
 
-        /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
+        /* As https://issues.dlang.org/show_bug.cgi?id=3682 shows,
+         * a template instance can be matched while instantiating
          * that same template. Thus, the function type can be incomplete. Complete it.
          *
-         * Bugzilla 9208: For auto function, completion should be deferred to the end of
+         * https://issues.dlang.org/show_bug.cgi?id=9208
+         * For auto function, completion should be deferred to the end of
          * its semantic3. Should not complete it in here.
          */
         if (tf.next && !m.lastf.inferRetType)
@@ -2827,7 +2839,7 @@ extern (C++) size_t templateParameterLookup(Type tparam, TemplateParameters* par
     if (tparam.ty == Tident)
     {
         TypeIdentifier tident = cast(TypeIdentifier)tparam;
-        //printf("\ttident = '%s'\n", tident->toChars());
+        //printf("\ttident = '%s'\n", tident.toChars());
         return templateIdentifierLookup(tident.ident, parameters);
     }
     return IDX_NOTFOUND;
@@ -3145,7 +3157,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             version (none)
             {
-                printf("Type::deduceType()\n");
+                printf("Type.deduceType()\n");
                 printf("\tthis   = %d, ", t.ty);
                 t.print();
                 printf("\ttparam = %d, ", tparam.ty);
@@ -3189,7 +3201,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 TypeIdentifier tident = cast(TypeIdentifier)tparam;
                 if (tident.idents.dim > 0)
                 {
-                    //printf("matching %s to %s\n", tparam->toChars(), t->toChars());
+                    //printf("matching %s to %s\n", tparam.toChars(), t.toChars());
                     Dsymbol s = t.toDsymbol(sc);
                     for (size_t j = tident.idents.dim; j-- > 0;)
                     {
@@ -3202,7 +3214,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                             if (!s2)
                                 goto Lnomatch;
                             s2 = s2.toAlias();
-                            //printf("[%d] s = %s %s, s2 = %s %s\n", j, s->kind(), s->toChars(), s2->kind(), s2->toChars());
+                            //printf("[%d] s = %s %s, s2 = %s %s\n", j, s.kind(), s.toChars(), s2.kind(), s2.toChars());
                             if (s != s2)
                             {
                                 if (Type tx = s2.getType())
@@ -3218,7 +3230,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         else
                             goto Lnomatch;
                     }
-                    //printf("[e] s = %s\n", s?s->toChars():"(null)");
+                    //printf("[e] s = %s\n", s?s.toChars():"(null)");
                     if (tp.isTemplateTypeParameter())
                     {
                         Type tt = s.getType();
@@ -3396,7 +3408,8 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 Type tpn = tparam.nextOf();
                 if (wm && t.ty == Taarray && tparam.isWild())
                 {
-                    // Bugzilla 12403: In IFTI, stop inout matching on transitive part of AA types.
+                    // https://issues.dlang.org/show_bug.cgi?id=12403
+                    // In IFTI, stop inout matching on transitive part of AA types.
                     tpn = tpn.substWildTo(MODmutable);
                 }
 
@@ -3420,7 +3433,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             version (none)
             {
-                printf("TypeVector::deduceType()\n");
+                printf("TypeVector.deduceType()\n");
                 printf("\tthis   = %d, ", t.ty);
                 t.print();
                 printf("\ttparam = %d, ", tparam.ty);
@@ -3439,7 +3452,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             version (none)
             {
-                printf("TypeDArray::deduceType()\n");
+                printf("TypeDArray.deduceType()\n");
                 printf("\tthis   = %d, ", t.ty);
                 t.print();
                 printf("\ttparam = %d, ", tparam.ty);
@@ -3452,7 +3465,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             version (none)
             {
-                printf("TypeSArray::deduceType()\n");
+                printf("TypeSArray.deduceType()\n");
                 printf("\tthis   = %d, ", t.ty);
                 t.print();
                 printf("\ttparam = %d, ", tparam.ty);
@@ -3513,7 +3526,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             version (none)
             {
-                printf("TypeAArray::deduceType()\n");
+                printf("TypeAArray.deduceType()\n");
                 printf("\tthis   = %d, ", t.ty);
                 t.print();
                 printf("\ttparam = %d, ", tparam.ty);
@@ -3535,9 +3548,9 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         override void visit(TypeFunction t)
         {
-            //printf("TypeFunction::deduceType()\n");
-            //printf("\tthis   = %d, ", t->ty); t->print();
-            //printf("\ttparam = %d, ", tparam->ty); tparam->print();
+            //printf("TypeFunction.deduceType()\n");
+            //printf("\tthis   = %d, ", t.ty); t.print();
+            //printf("\ttparam = %d, ", tparam.ty); tparam.print();
 
             // Extra check that function characteristics must match
             if (tparam && tparam.ty == Tfunction)
@@ -3552,15 +3565,16 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 size_t nfargs = Parameter.dim(t.parameters);
                 size_t nfparams = Parameter.dim(tp.parameters);
 
-                // bug 2579 fix: Apply function parameter storage classes to parameter types
+                // https://issues.dlang.org/show_bug.cgi?id=2579
+                // Apply function parameter storage classes to parameter types
                 for (size_t i = 0; i < nfparams; i++)
                 {
                     Parameter fparam = Parameter.getNth(tp.parameters, i);
                     fparam.type = fparam.type.addStorageClass(fparam.storageClass);
                     fparam.storageClass &= ~(STC_TYPECTOR | STCin);
                 }
-                //printf("\t-> this   = %d, ", t->ty); t->print();
-                //printf("\t-> tparam = %d, ", tparam->ty); tparam->print();
+                //printf("\t. this   = %d, ", t.ty); t.print();
+                //printf("\t. tparam = %d, ", tparam.ty); tparam.print();
 
                 /* See if tuple match
                  */
@@ -3578,7 +3592,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     if (tid.idents.dim)
                         goto L1;
 
-                    /* Look through parameters to find tuple matching tid->ident
+                    /* Look through parameters to find tuple matching tid.ident
                      */
                     size_t tupi = 0;
                     for (; 1; tupi++)
@@ -3679,7 +3693,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             version (none)
             {
-                printf("TypeInstance::deduceType()\n");
+                printf("TypeInstance.deduceType()\n");
                 printf("\tthis   = %d, ", t.ty);
                 t.print();
                 printf("\ttparam = %d, ", tparam.ty);
@@ -3693,11 +3707,11 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
                 TypeInstance tp = cast(TypeInstance)tparam;
 
-                //printf("tempinst->tempdecl = %p\n", tempdecl);
-                //printf("tp->tempinst->tempdecl = %p\n", tp->tempinst->tempdecl);
+                //printf("tempinst.tempdecl = %p\n", tempdecl);
+                //printf("tp.tempinst.tempdecl = %p\n", tp.tempinst.tempdecl);
                 if (!tp.tempinst.tempdecl)
                 {
-                    //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
+                    //printf("tp.tempinst.name = '%s'\n", tp.tempinst.name.toChars());
 
                     /* Handle case of:
                      *  template Foo(T : sa!(T), alias sa)
@@ -3706,7 +3720,8 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     if (i == IDX_NOTFOUND)
                     {
                         /* Didn't find it as a parameter identifier. Try looking
-                         * it up and seeing if is an alias. See Bugzilla 1454
+                         * it up and seeing if is an alias.
+                         * https://issues.dlang.org/show_bug.cgi?id=1454
                          */
                         auto tid = new TypeIdentifier(tp.loc, tp.tempinst.name);
                         Type tx;
@@ -3718,7 +3733,8 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                             s = tx.toDsymbol(sc);
                             if (TemplateInstance ti = s ? s.parent.isTemplateInstance() : null)
                             {
-                                // Bugzilla 14290: Try to match with ti->tempecl,
+                                // https://issues.dlang.org/show_bug.cgi?id=14290
+                                // Try to match with ti.tempecl,
                                 // only when ti is an enclosing instance.
                                 Dsymbol p = sc.parent;
                                 while (p && p != ti)
@@ -3754,7 +3770,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             L2:
                 for (size_t i = 0; 1; i++)
                 {
-                    //printf("\ttest: tempinst->tiargs[%d]\n", i);
+                    //printf("\ttest: tempinst.tiargs[%d]\n", i);
                     RootObject o1 = null;
                     if (i < t.tempinst.tiargs.dim)
                         o1 = (*t.tempinst.tiargs)[i];
@@ -3873,11 +3889,11 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                             // (it may be from a parent template, for example)
                         }
 
-                        e2 = e2.semantic(sc); // Bugzilla 13417
+                        e2 = e2.semantic(sc); // https://issues.dlang.org/show_bug.cgi?id=13417
                         e2 = e2.ctfeInterpret();
 
-                        //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
-                        //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
+                        //printf("e1 = %s, type = %s %d\n", e1.toChars(), e1.type.toChars(), e1.type.ty);
+                        //printf("e2 = %s, type = %s %d\n", e2.toChars(), e2.type.toChars(), e2.type.ty);
                         if (!e1.equals(e2))
                         {
                             if (!e2.implicitConvTo(e1.type))
@@ -3938,8 +3954,8 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
         {
             version (none)
             {
-                printf("TypeStruct::deduceType()\n");
-                printf("\tthis->parent   = %s, ", t.sym.parent.toChars());
+                printf("TypeStruct.deduceType()\n");
+                printf("\tthis.parent   = %s, ", t.sym.parent.toChars());
                 t.print();
                 printf("\ttparam = %d, ", tparam.ty);
                 tparam.print();
@@ -3988,7 +4004,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             {
                 TypeStruct tp = cast(TypeStruct)tparam;
 
-                //printf("\t%d\n", (MATCH) t->implicitConvTo(tp));
+                //printf("\t%d\n", (MATCH) t.implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
                 {
                     result = MATCHconst;
@@ -4021,7 +4037,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             visit(cast(Type)t);
         }
 
-        /* Helper for TypeClass::deduceType().
+        /* Helper for TypeClass.deduceType().
          * Classes can match with implicit conversion to a base class or interface.
          * This is complicated, because there may be more than one base class which
          * matches. In such cases, one or more parameters remain ambiguous.
@@ -4077,7 +4093,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         override void visit(TypeClass t)
         {
-            //printf("TypeClass::deduceType(this = %s)\n", t->toChars());
+            //printf("TypeClass.deduceType(this = %s)\n", t.toChars());
 
             /* If this class is a template class, and we're matching
              * it against a template instance, convert the class type
@@ -4169,7 +4185,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
             {
                 TypeClass tp = cast(TypeClass)tparam;
 
-                //printf("\t%d\n", (MATCH) t->implicitConvTo(tp));
+                //printf("\t%d\n", (MATCH) t.implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
                 {
                     result = MATCHconst;
@@ -4183,7 +4199,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         override void visit(Expression e)
         {
-            //printf("Expression::deduceType(e = %s)\n", e->toChars());
+            //printf("Expression.deduceType(e = %s)\n", e.toChars());
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND || (cast(TypeIdentifier)tparam).idents.dim > 0)
             {
@@ -4276,7 +4292,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                         else
                             match1 = MATCHnomatch;
                     }
-                    //printf("tt = %s, at = %s\n", tt->toChars(), at->toChars());
+                    //printf("tt = %s, at = %s\n", tt.toChars(), at.toChars());
                 }
                 else
                 {
@@ -4427,7 +4443,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
 
         override void visit(FuncExp e)
         {
-            //printf("e->type = %s, tparam = %s\n", e->type->toChars(), tparam->toChars());
+            //printf("e.type = %s, tparam = %s\n", e.type.toChars(), tparam.toChars());
             if (e.td)
             {
                 Type to = tparam;
@@ -4438,8 +4454,8 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 // Parameter types inference from 'tof'
                 assert(e.td._scope);
                 TypeFunction tf = cast(TypeFunction)e.fd.type;
-                //printf("\ttof = %s\n", tof->toChars());
-                //printf("\ttf  = %s\n", tf->toChars());
+                //printf("\ttof = %s\n", tof.toChars());
+                //printf("\ttf  = %s\n", tf.toChars());
                 size_t dim = Parameter.dim(tf.parameters);
 
                 if (Parameter.dim(tof.parameters) != dim || tof.varargs != tf.varargs)
@@ -4464,7 +4480,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                     Parameter pto = Parameter.getNth(tof.parameters, u);
                     if (!pto)
                         break;
-                    Type t = pto.type.syntaxCopy(); // Bugzilla 11774
+                    Type t = pto.type.syntaxCopy(); // https://issues.dlang.org/show_bug.cgi?id=11774
                     if (reliesOnTident(t, parameters, inferStart))
                         return;
                     t = t.semantic(e.loc, sc);
@@ -4502,7 +4518,7 @@ extern (C++) MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplatePara
                 TypeFunction tf = cast(TypeFunction)t.nextOf();
                 t = (new TypeDelegate(tf)).merge();
             }
-            //printf("tparam = %s <= e->type = %s, t = %s\n", tparam->toChars(), e->type->toChars(), t->toChars());
+            //printf("tparam = %s <= e.type = %s, t = %s\n", tparam.toChars(), e.type.toChars(), t.toChars());
             visit(t);
         }
 
@@ -4637,7 +4653,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(TypeTypeof t)
         {
-            //printf("TypeTypeof::reliesOnTident('%s')\n", t.toChars());
+            //printf("TypeTypeof.reliesOnTident('%s')\n", t.toChars());
             t.exp.accept(this);
         }
 
@@ -4657,12 +4673,12 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(Expression e)
         {
-            //printf("Expression::reliesOnTident('%s')\n", e.toChars());
+            //printf("Expression.reliesOnTident('%s')\n", e.toChars());
         }
 
         override void visit(IdentifierExp e)
         {
-            //printf("IdentifierExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("IdentifierExp.reliesOnTident('%s')\n", e.toChars());
             for (size_t i = iStart; i < tparams.dim; i++)
             {
                 auto tp = (*tparams)[i];
@@ -4676,7 +4692,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(TupleExp e)
         {
-            //printf("TupleExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("TupleExp.reliesOnTident('%s')\n", e.toChars());
             if (e.exps)
             {
                 foreach (ea; *e.exps)
@@ -4690,7 +4706,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(ArrayLiteralExp e)
         {
-            //printf("ArrayLiteralExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("ArrayLiteralExp.reliesOnTident('%s')\n", e.toChars());
             if (e.elements)
             {
                 foreach (el; *e.elements)
@@ -4704,7 +4720,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(AssocArrayLiteralExp e)
         {
-            //printf("AssocArrayLiteralExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("AssocArrayLiteralExp.reliesOnTident('%s')\n", e.toChars());
             foreach (ek; *e.keys)
             {
                 ek.accept(this);
@@ -4721,7 +4737,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(StructLiteralExp e)
         {
-            //printf("StructLiteralExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("StructLiteralExp.reliesOnTident('%s')\n", e.toChars());
             if (e.elements)
             {
                 foreach (ea; *e.elements)
@@ -4735,13 +4751,13 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(TypeExp e)
         {
-            //printf("TypeExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("TypeExp.reliesOnTident('%s')\n", e.toChars());
             e.type.accept(this);
         }
 
         override void visit(NewExp e)
         {
-            //printf("NewExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("NewExp.reliesOnTident('%s')\n", e.toChars());
             if (e.thisexp)
                 e.thisexp.accept(this);
             if (!result && e.newargs)
@@ -4767,19 +4783,19 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(NewAnonClassExp e)
         {
-            //printf("NewAnonClassExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("NewAnonClassExp.reliesOnTident('%s')\n", e.toChars());
             result = true;
         }
 
         override void visit(FuncExp e)
         {
-            //printf("FuncExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("FuncExp.reliesOnTident('%s')\n", e.toChars());
             result = true;
         }
 
         override void visit(TypeidExp e)
         {
-            //printf("TypeidExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("TypeidExp.reliesOnTident('%s')\n", e.toChars());
             if (auto ea = isExpression(e.obj))
                 ea.accept(this);
             else if (auto ta = isType(e.obj))
@@ -4788,7 +4804,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(TraitsExp e)
         {
-            //printf("TraitsExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("TraitsExp.reliesOnTident('%s')\n", e.toChars());
             if (e.args)
             {
                 foreach (oa; *e.args)
@@ -4805,19 +4821,19 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(IsExp e)
         {
-            //printf("IsExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("IsExp.reliesOnTident('%s')\n", e.toChars());
             e.targ.accept(this);
         }
 
         override void visit(UnaExp e)
         {
-            //printf("UnaExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("UnaExp.reliesOnTident('%s')\n", e.toChars());
             e.e1.accept(this);
         }
 
         override void visit(DotTemplateInstanceExp e)
         {
-            //printf("DotTemplateInstanceExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("DotTemplateInstanceExp.reliesOnTident('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.ti.tiargs)
             {
@@ -4835,7 +4851,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(CallExp e)
         {
-            //printf("CallExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("CallExp.reliesOnTident('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.arguments)
             {
@@ -4850,7 +4866,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(CastExp e)
         {
-            //printf("CallExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("CallExp.reliesOnTident('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result)
                 e.to.accept(this);
@@ -4858,7 +4874,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(SliceExp e)
         {
-            //printf("SliceExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("SliceExp.reliesOnTident('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.lwr)
                 e.lwr.accept(this);
@@ -4868,7 +4884,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(IntervalExp e)
         {
-            //printf("IntervalExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("IntervalExp.reliesOnTident('%s')\n", e.toChars());
             e.lwr.accept(this);
             if (!result)
                 e.upr.accept(this);
@@ -4876,7 +4892,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(ArrayExp e)
         {
-            //printf("ArrayExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("ArrayExp.reliesOnTident('%s')\n", e.toChars());
             visit(cast(UnaExp)e);
             if (!result && e.arguments)
             {
@@ -4887,7 +4903,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(BinExp e)
         {
-            //printf("BinExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("BinExp.reliesOnTident('%s')\n", e.toChars());
             e.e1.accept(this);
             if (!result)
                 e.e2.accept(this);
@@ -4895,7 +4911,7 @@ extern (C++) bool reliesOnTident(Type t, TemplateParameters* tparams = null, siz
 
         override void visit(CondExp e)
         {
-            //printf("BinExp::reliesOnTident('%s')\n", e.toChars());
+            //printf("BinExp.reliesOnTident('%s')\n", e.toChars());
             e.econd.accept(this);
             if (!result)
                 visit(cast(BinExp)e);
@@ -5054,7 +5070,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
     override final bool declareParameter(Scope* sc)
     {
-        //printf("TemplateTypeParameter::declareParameter('%s')\n", ident->toChars());
+        //printf("TemplateTypeParameter.declareParameter('%s')\n", ident.toChars());
         auto ti = new TypeIdentifier(loc, ident);
         Declaration ad = new AliasDeclaration(loc, ident, ti);
         return sc.insert(ad) !is null;
@@ -5062,7 +5078,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
     override final bool semantic(Scope* sc, TemplateParameters* parameters)
     {
-        //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
+        //printf("TemplateTypeParameter.semantic('%s')\n", ident.toChars());
         if (specType && !reliesOnTident(specType, parameters))
         {
             specType = specType.semantic(loc, sc);
@@ -5117,22 +5133,22 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
     override final MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
-        //printf("TemplateTypeParameter::matchArg('%s')\n", ident->toChars());
+        //printf("TemplateTypeParameter.matchArg('%s')\n", ident.toChars());
         MATCH m = MATCHexact;
         Type ta = isType(oarg);
         if (!ta)
         {
-            //printf("%s %p %p %p\n", oarg->toChars(), isExpression(oarg), isDsymbol(oarg), isTuple(oarg));
+            //printf("%s %p %p %p\n", oarg.toChars(), isExpression(oarg), isDsymbol(oarg), isTuple(oarg));
             goto Lnomatch;
         }
-        //printf("ta is %s\n", ta->toChars());
+        //printf("ta is %s\n", ta.toChars());
 
         if (specType)
         {
             if (!ta || ta == tdummy)
                 goto Lnomatch;
 
-            //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
+            //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta.toChars(), specType.toChars());
             MATCH m2 = deduceType(ta, sc, specType, parameters, dedtypes);
             if (m2 <= MATCHnomatch)
             {
@@ -5146,14 +5162,14 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
             {
                 Type t = cast(Type)(*dedtypes)[i];
 
-                if (dependent && !t.equals(ta)) // Bugzilla 14357
+                if (dependent && !t.equals(ta)) // https://issues.dlang.org/show_bug.cgi?id=14357
                     goto Lnomatch;
 
                 /* This is a self-dependent parameter. For example:
                  *  template X(T : T*) {}
                  *  template X(T : S!T, alias S) {}
                  */
-                //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
+                //printf("t = %s ta = %s\n", t.toChars(), ta.toChars());
                 ta = t;
             }
         }
@@ -5166,7 +5182,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
                 if (!t.equals(ta))
                 {
-                    //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
+                    //printf("t = %s ta = %s\n", t.toChars(), ta.toChars());
                     goto Lnomatch;
                 }
             }
@@ -5349,7 +5365,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         size_t i, TemplateParameters* parameters, Objects* dedtypes,
         Declaration* psparam)
     {
-        //printf("TemplateValueParameter::matchArg('%s')\n", ident.toChars());
+        //printf("TemplateValueParameter.matchArg('%s')\n", ident.toChars());
 
         MATCH m = MATCHexact;
 
@@ -5375,7 +5391,8 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             if (global.endGagging(olderrors) || ei.op == TOKerror)
                 goto Lnomatch;
 
-            /* Bugzilla 14520: A property-like function can match to both
+            /* https://issues.dlang.org/show_bug.cgi?id=14520
+             * A property-like function can match to both
              * TemplateAlias and ValueParameter. But for template overloads,
              * it should always prefer alias parameter to be consistent
              * template match result.
@@ -5399,10 +5416,10 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             ei = ei.ctfeInterpret();
         }
 
-        //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
+        //printf("\tvalType: %s, ty = %d\n", valType.toChars(), valType.ty);
         vt = valType.semantic(loc, sc);
-        //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
-        //printf("vt = %s\n", vt->toChars());
+        //printf("ei: %s, ei.type: %s\n", ei.toChars(), ei.type.toChars());
+        //printf("vt = %s\n", vt.toChars());
 
         if (ei.type)
         {
@@ -5436,8 +5453,8 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             sc = sc.endCTFE();
             ei = ei.implicitCastTo(sc, vt);
             ei = ei.ctfeInterpret();
-            //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
-            //printf("\te : %s, %s\n", e->toChars(), e->type->toChars());
+            //printf("\tei: %s, %s\n", ei.toChars(), ei.type.toChars());
+            //printf("\te : %s, %s\n", e.toChars(), e.type.toChars());
             if (!ei.equals(e))
                 goto Lnomatch;
         }
@@ -5605,7 +5622,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 
     override MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
-        //printf("TemplateAliasParameter::matchArg('%s')\n", ident->toChars());
+        //printf("TemplateAliasParameter.matchArg('%s')\n", ident.toChars());
         MATCH m = MATCHexact;
         Type ta = isType(oarg);
         RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
@@ -5644,7 +5661,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
             }
             else if (ta && ta.ty == Tinstance && !specAlias)
             {
-                /* Bugzilla xxxxx: Specialized parameter should be prefeerd
+                /* Specialized parameter should be preferred
                  * match to the template type parameter.
                  *  template X(alias a) {}                      // a == this
                  *  template X(alias a : B!A, alias B, A...) {} // B!A => ta
@@ -5652,7 +5669,8 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
             }
             else if (sa && sa == TemplateTypeParameter.tdummy)
             {
-                /* Bugzilla 2025: Aggregate Types should preferentially
+                /* https://issues.dlang.org/show_bug.cgi?id=2025
+                 * Aggregate Types should preferentially
                  * match to the template type parameter.
                  *  template X(alias a) {}  // a == this
                  *  template X(T) {}        // T => sa
@@ -5787,7 +5805,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         Tuple v = isTuple(oded);
         assert(v);
 
-        //printf("|%d| ", v->objects.dim);
+        //printf("|%d| ", v.objects.dim);
         for (size_t i = 0; i < v.objects.dim; i++)
         {
             if (i)
@@ -5845,7 +5863,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
             //printf("ovar = %p\n", ovar);
             if (i < tiargs.dim)
             {
-                //printf("i = %d, tiargs->dim = %d\n", i, tiargs->dim);
+                //printf("i = %d, tiargs.dim = %d\n", i, tiargs.dim);
                 ovar.objects.setDim(tiargs.dim - i);
                 for (size_t j = 0; j < ovar.objects.dim; j++)
                     ovar.objects[j] = (*tiargs)[i + j];
@@ -5856,7 +5874,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
 
     override MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
-        //printf("TemplateTupleParameter::matchArg('%s')\n", ident->toChars());
+        //printf("TemplateTupleParameter.matchArg('%s')\n", ident.toChars());
         Tuple ovar = isTuple(oarg);
         if (!ovar)
             return MATCHnomatch;
@@ -5987,7 +6005,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     void semantic(Scope* sc, Expressions* fargs)
     {
-        //printf("[%s] TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", loc.toChars(), toChars(), this, global.gag, sc);
+        //printf("[%s] TemplateInstance.semantic('%s', this=%p, gag = %d, sc = %p)\n", loc.toChars(), toChars(), this, global.gag, sc);
         version (none)
         {
             for (Dsymbol s = this; s; s = s.parent)
@@ -6003,13 +6021,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         static if (LOG)
         {
-            printf("\n+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+            printf("\n+TemplateInstance.semantic('%s', this=%p)\n", toChars(), this);
         }
         if (inst) // if semantic() was already run
         {
             static if (LOG)
             {
-                printf("-TemplateInstance::semantic('%s', this=%p) already run\n", inst.toChars(), inst);
+                printf("-TemplateInstance.semantic('%s', this=%p) already run\n", inst.toChars(), inst);
             }
             return;
         }
@@ -6036,7 +6054,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         // Get the instantiating module from the scope minst
         minst = sc.minst;
-        // Bugzilla 10920: If the enclosing function is non-root symbol,
+        // https://issues.dlang.org/show_bug.cgi?id=10920
+        // If the enclosing function is non-root symbol,
         // this instance should be speculative.
         if (!tinst && sc.func && sc.func.inNonRoot())
         {
@@ -6060,7 +6079,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         Lerror:
             if (gagged)
             {
-                // Bugzilla 13220: Rollback status for later semantic re-running.
+                // https://issues.dlang.org/show_bug.cgi?id=13220
+                // Roll back status for later semantic re-running
                 semanticRun = PASSinit;
             }
             else
@@ -6126,7 +6146,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * in the separately compiled obj/lib file (e.g. phobos.lib).
              *
              * However, if 'this' second instantiation happened in root module,
-             * compiler might need to invoke its codegen (Bugzilla 2500 & 2644).
+             * compiler might need to invoke its codegen
+             * (https://issues.dlang.org/show_bug.cgi?id=2500 & https://issues.dlang.org/show_bug.cgi?id=2644).
              * But whole import graph is not determined until all semantic pass finished,
              * so 'inst' should conservatively finish the semantic3 pass for the codegen.
              */
@@ -6175,7 +6196,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         inst = this;
         parent = enclosing ? enclosing : tempdecl.parent;
-        //printf("parent = '%s'\n", parent->kind());
+        //printf("parent = '%s'\n", parent.kind());
 
         TemplateInstance tempdecl_instance_idx = tempdecl.addInstance(this);
 
@@ -6198,7 +6219,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             assert(t);
             if (StorageClass stc = ModToStc(t.mod))
             {
-                //printf("t = %s, stc = x%llx\n", t->toChars(), stc);
+                //printf("t = %s, stc = x%llx\n", t.toChars(), stc);
                 auto s = new Dsymbols();
                 s.push(new StorageClassDeclaration(stc, members));
                 members = s;
@@ -6223,17 +6244,18 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         _scope = _scope.push(argsym);
         _scope.tinst = this;
         _scope.minst = minst;
-        //scope->stc = 0;
+        //scope.stc = 0;
 
         // Declare each template parameter as an alias for the argument type
         Scope* paramscope = _scope.push();
         paramscope.stc = 0;
-        paramscope.protection = Prot(PROTpublic); // Bugzilla 14169: template parameters should be public
+        paramscope.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=14169
+                                                  // template parameters should be public
         declareParameters(paramscope);
         paramscope.pop();
 
         // Add members of template instance to template instance symbol table
-        //parent = scope->scopesym;
+        //parent = scope.scopesym;
         symtab = new DsymbolTable();
         for (size_t i = 0; i < members.dim; i++)
         {
@@ -6253,7 +6275,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
          * member has the same name as the template instance.
          * If so, this template instance becomes an alias for that member.
          */
-        //printf("members->dim = %d\n", members->dim);
+        //printf("members.dim = %d\n", members.dim);
         if (members.dim)
         {
             Dsymbol s;
@@ -6272,7 +6294,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             FuncDeclaration fd = aliasdecl.isFuncDeclaration();
             if (fd)
             {
-                /* Transmit fargs to type so that TypeFunction::semantic() can
+                /* Transmit fargs to type so that TypeFunction.semantic() can
                  * resolve any "auto ref" storage classes.
                  */
                 TypeFunction tf = cast(TypeFunction)fd.type;
@@ -6288,7 +6310,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         Scope* sc2;
         sc2 = _scope.push(this);
-        //printf("enclosing = %d, sc->parent = %s\n", enclosing, sc->parent->toChars());
+        //printf("enclosing = %d, sc.parent = %s\n", enclosing, sc.parent.toChars());
         sc2.parent = this;
         sc2.tinst = this;
         sc2.minst = minst;
@@ -6330,7 +6352,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (ad && ad.parent && ad.parent.isTemplateInstance())
                 {
                     //printf("deferred template aggregate: %s %s\n",
-                    //        sd->parent->toChars(), sd->toChars());
+                    //        sd.parent.toChars(), sd.toChars());
                     found_deferred_ad = true;
                     if (ad.parent == this)
                     {
@@ -6344,12 +6366,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
 
         /* The problem is when to parse the initializer for a variable.
-         * Perhaps VarDeclaration::semantic() should do it like it does
+         * Perhaps VarDeclaration.semantic() should do it like it does
          * for initializers inside a function.
          */
-        //if (sc->parent->isFuncDeclaration())
+        //if (sc.parent.isFuncDeclaration())
         {
-            /* BUG 782: this has problems if the classes this depends on
+            /* https://issues.dlang.org/show_bug.cgi?id=782
+             * this has problems if the classes this depends on
              * are forward referenced. Find a way to defer semantic()
              * on this template.
              */
@@ -6362,7 +6385,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             /* If a template is instantiated inside function, the whole instantiation
              * should be done at that position. But, immediate running semantic3 of
-             * dependent templates may cause unresolved forward reference (Bugzilla 9050).
+             * dependent templates may cause unresolved forward reference.
+             * https://issues.dlang.org/show_bug.cgi?id=9050
              * To avoid the issue, don't run semantic3 until semantic and semantic2 done.
              */
             TemplateInstances deferred;
@@ -6373,7 +6397,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
             for (size_t i = 0; i < deferred.dim; i++)
             {
-                //printf("+ run deferred semantic3 on %s\n", deferred[i]->toChars());
+                //printf("+ run deferred semantic3 on %s\n", deferred[i].toChars());
                 deferred[i].semantic3(null);
             }
 
@@ -6437,7 +6461,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             }
             if (ti && ti.deferred)
             {
-                //printf("deferred semantic3 of %p %s, ti = %s, ti->deferred = %p\n", this, toChars(), ti->toChars());
+                //printf("deferred semantic3 of %p %s, ti = %s, ti.deferred = %p\n", this, toChars(), ti.toChars());
                 for (size_t i = 0;; i++)
                 {
                     if (i == ti.deferred.dim)
@@ -6453,8 +6477,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         if (aliasdecl)
         {
-            /* Bugzilla 13816: AliasDeclaration tries to resolve forward reference
-             * twice (See inuse check in AliasDeclaration::toAlias()). It's
+            /* https://issues.dlang.org/show_bug.cgi?id=13816
+             * AliasDeclaration tries to resolve forward reference
+             * twice (See inuse check in AliasDeclaration.toAlias()). It's
              * necessary to resolve mutual references of instantiated symbols, but
              * it will left a true recursive alias in tuple declaration - an
              * AliasDeclaration A refers TupleDeclaration B, and B contains A
@@ -6484,7 +6509,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 // Errors are gagged, so remove the template instance from the
                 // instance/symbol lists we added it to and reset our state to
                 // finish clean and so we can try to instantiate it again later
-                // (see bugzilla 4302 and 6602).
+                // (see https://issues.dlang.org/show_bug.cgi?id=4302 and https://issues.dlang.org/show_bug.cgi?id=6602).
                 tempdecl.removeInstance(tempdecl_instance_idx);
                 if (target_symbol_list)
                 {
@@ -6501,7 +6526,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         else if (errinst)
         {
-            /* Bugzilla 14541: If the previous gagged instance had failed by
+            /* https://issues.dlang.org/show_bug.cgi?id=14541
+             * If the previous gagged instance had failed by
              * circular references, currrent "error reproduction instantiation"
              * might succeed, because of the difference of instantiated context.
              * On such case, the cached error instance needs to be overridden by the
@@ -6518,7 +6544,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         static if (LOG)
         {
-            printf("-TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
+            printf("-TemplateInstance.semantic('%s', this=%p)\n", toChars(), this);
         }
     }
 
@@ -6534,7 +6560,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         semanticRun = PASSsemantic2;
         static if (LOG)
         {
-            printf("+TemplateInstance::semantic2('%s')\n", toChars());
+            printf("+TemplateInstance.semantic2('%s')\n", toChars());
         }
         if (!errors && members)
         {
@@ -6585,7 +6611,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         static if (LOG)
         {
-            printf("-TemplateInstance::semantic2('%s')\n", toChars());
+            printf("-TemplateInstance.semantic2('%s')\n", toChars());
         }
     }
 
@@ -6593,7 +6619,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         static if (LOG)
         {
-            printf("TemplateInstance::semantic3('%s'), semanticRun = %d\n", toChars(), semanticRun);
+            printf("TemplateInstance.semantic3('%s'), semanticRun = %d\n", toChars(), semanticRun);
         }
         //if (toChars()[0] == 'D') *(char*)0=0;
         if (semanticRun >= PASSsemantic3)
@@ -6653,7 +6679,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         static if (LOG)
         {
-            printf("TemplateInstance::toAlias()\n");
+            printf("TemplateInstance.toAlias()\n");
         }
         if (!inst)
         {
@@ -6814,10 +6840,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // Nesting must match
         if (enclosing != ti.enclosing)
         {
-            //printf("test2 enclosing %s ti->enclosing %s\n", enclosing ? enclosing->toChars() : "", ti->enclosing ? ti->enclosing->toChars() : "");
+            //printf("test2 enclosing %s ti.enclosing %s\n", enclosing ? enclosing.toChars() : "", ti.enclosing ? ti.enclosing.toChars() : "");
             goto Lnotequals;
         }
-        //printf("parent = %s, ti->parent = %s\n", parent->toPrettyChars(), ti->parent->toPrettyChars());
+        //printf("parent = %s, ti.parent = %s\n", parent.toPrettyChars(), ti.parent.toPrettyChars());
 
         if (!arrayObjectMatch(&tdtypes, &ti.tdtypes))
             goto Lnotequals;
@@ -6884,30 +6910,36 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // Now -allInst is just for the backward compatibility.
         if (global.params.allInst)
         {
-            //printf("%s minst = %s, enclosing (%s)->isNonRoot = %d\n",
-            //    toPrettyChars(), minst ? minst->toChars() : NULL,
-            //    enclosing ? enclosing->toPrettyChars() : NULL, enclosing && enclosing->inNonRoot());
+            //printf("%s minst = %s, enclosing (%s).isNonRoot = %d\n",
+            //    toPrettyChars(), minst ? minst.toChars() : NULL,
+            //    enclosing ? enclosing.toPrettyChars() : NULL, enclosing && enclosing.inNonRoot());
             if (enclosing)
             {
-                // Bugzilla 14588: If the captured context is not a function
-                // (e.g. class), the instance layout determination is guaranteed,
-                // because the semantic/semantic2 pass will be executed
-                // even for non-root instances.
+                /* https://issues.dlang.org/show_bug.cgi?id=14588
+                 * If the captured context is not a function
+                 * (e.g. class), the instance layout determination is guaranteed,
+                 * because the semantic/semantic2 pass will be executed
+                 * even for non-root instances.
+                 */
                 if (!enclosing.isFuncDeclaration())
                     return true;
 
-                // Bugzilla 14834: If the captured context is a function,
-                // this excessive instantiation may cause ODR violation, because
-                // -allInst and others doesn't guarantee the semantic3 execution
-                // for that function.
-
-                // If the enclosing is also an instantiated function,
-                // we have to rely on the ancestor's needsCodegen() result.
+                /* https://issues.dlang.org/show_bug.cgi?id=14834
+                 * If the captured context is a function,
+                 * this excessive instantiation may cause ODR violation, because
+                 * -allInst and others doesn't guarantee the semantic3 execution
+                 * for that function.
+                 *
+                 * If the enclosing is also an instantiated function,
+                 * we have to rely on the ancestor's needsCodegen() result.
+                 */
                 if (TemplateInstance ti = enclosing.isInstantiated())
                     return ti.needsCodegen();
 
-                // Bugzilla 13415: If and only if the enclosing scope needs codegen,
-                // this nested templates would also need code generation.
+                /* https://issues.dlang.org/show_bug.cgi?id=13415
+                 * If and only if the enclosing scope needs codegen,
+                 * this nested templates would also need code generation.
+                 */
                 return !enclosing.inNonRoot();
             }
             return true;
@@ -6970,7 +7002,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
          * in the compiled importee when it does not, when the instantiation
          * is behind a conditional debug declaration.
          */
-        // workaround for Bugzilla 11239
+        // workaround for https://issues.dlang.org/show_bug.cgi?id=11239
         if (global.params.useUnitTests ||
             global.params.debuglevel)
         {
@@ -6998,7 +7030,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 return true;
             }
 
-            // Bugzilla 2500 case
+            // https://issues.dlang.org/show_bug.cgi?id=2500 case
             if (minst.rootImports())
                 return true;
 
@@ -7019,7 +7051,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              * and B instantiate the same template, does the compilation of A
              * or the compilation of B do the actual instantiation?
              *
-             * See Bugzilla 2500.
+             * See https://issues.dlang.org/show_bug.cgi?id=2500.
              */
             if (!minst.isRoot() && !minst.rootImports())
                 return false;
@@ -7057,7 +7089,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (havetempdecl)
             return true;
 
-        //printf("TemplateInstance::findTempDecl() %s\n", toChars());
+        //printf("TemplateInstance.findTempDecl() %s\n", toChars());
         if (!tempdecl)
         {
             /* Given:
@@ -7080,7 +7112,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 printf("It's an instance of '%s' kind '%s'\n", s.toChars(), s.kind());
                 if (s.parent)
-                    printf("s->parent = '%s'\n", s.parent.toChars());
+                    printf("s.parent = '%s'\n", s.parent.toChars());
             }
             if (pwithsym)
                 *pwithsym = scopesym.isWithScopeSymbol();
@@ -7223,9 +7255,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 debug
                 {
-                    //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
+                    //if (!s.parent) printf("s = %s %s\n", s.kind(), s.toChars());
                 }
-                //assert(s->parent);
+                //assert(s.parent);
                 TemplateInstance ti = s.parent ? s.parent.isTemplateInstance() : null;
                 if (ti && (ti.name == s.ident || ti.toAlias().ident == s.ident) && ti.tempdecl)
                 {
@@ -7263,7 +7295,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     static bool semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags)
     {
         // Run semantic on each argument, place results in tiargs[]
-        //printf("+TemplateInstance::semanticTiargs()\n");
+        //printf("+TemplateInstance.semanticTiargs()\n");
         if (!tiargs)
             return true;
         bool err = false;
@@ -7277,7 +7309,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             //printf("1: (*tiargs)[%d] = %p, s=%p, v=%p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
             if (ta)
             {
-                //printf("type %s\n", ta->toChars());
+                //printf("type %s\n", ta.toChars());
                 // It might really be an Expression or an Alias
                 ta.resolve(loc, sc, &ea, &ta, &sa);
                 if (ea)
@@ -7322,7 +7354,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             else if (ea)
             {
             Lexpr:
-                //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+                //printf("+[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
                 if (flags & 1) // only used by __traits
                 {
                     ea = ea.semantic(sc);
@@ -7344,7 +7376,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         /* This test is to skip substituting a const var with
                          * its initializer. The problem is the initializer won't
                          * match with an 'alias' parameter. Instead, do the
-                         * const substitution in TemplateValueParameter::matchArg().
+                         * const substitution in TemplateValueParameter.matchArg().
                          */
                     }
                     else if (definitelyValueParameter(ea))
@@ -7357,7 +7389,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             ea = new ErrorExp();
                     }
                 }
-                //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+                //printf("-[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
                 if (ea.op == TOKtuple)
                 {
                     // Expand tuple
@@ -7407,7 +7439,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     {
                         /* If template argument is a template lambda,
                          * get template declaration itself. */
-                        //sa = fe->td;
+                        //sa = fe.td;
                         //goto Ldsym;
                     }
                 }
@@ -7432,7 +7464,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             else if (sa)
             {
             Ldsym:
-                //printf("dsym %s %s\n", sa->kind(), sa->toChars());
+                //printf("dsym %s %s\n", sa.kind(), sa.toChars());
                 if (sa.errors)
                 {
                     err = true;
@@ -7480,7 +7512,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         }
         version (none)
         {
-            printf("-TemplateInstance::semanticTiargs()\n");
+            printf("-TemplateInstance.semanticTiargs()\n");
             for (size_t j = 0; j < tiargs.dim; j++)
             {
                 RootObject o = (*tiargs)[j];
@@ -7506,7 +7538,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool semanticTiargs(Scope* sc)
     {
-        //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
+        //printf("+TemplateInstance.semanticTiargs() %s\n", toChars());
         if (semantictiargsdone)
             return true;
         if (semanticTiargs(loc, sc, tiargs, 0))
@@ -7532,13 +7564,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 error("incompatible arguments for template instantiation");
                 return false;
             }
-            // TODO: Normalizing tiargs for bugzilla 7469 is necessary?
+            // TODO: Normalizing tiargs for https://issues.dlang.org/show_bug.cgi?id=7469 is necessary?
             return true;
         }
 
         static if (LOG)
         {
-            printf("TemplateInstance::findBestMatch()\n");
+            printf("TemplateInstance.findBestMatch()\n");
         }
 
         uint errs = global.errors;
@@ -7562,7 +7594,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (!td || td == td_best)   // skip duplicates
                     return 0;
 
-                //printf("td = %s\n", td->toPrettyChars());
+                //printf("td = %s\n", td.toPrettyChars());
                 // If more arguments than parameters,
                 // then this is no match.
                 if (td.parameters.dim < tiargs.dim)
@@ -7631,7 +7663,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         if (td_last)
         {
-            /* Bugzilla 7469: Normalize tiargs by using corresponding deduced
+            /* https://issues.dlang.org/show_bug.cgi?id=7469
+             * Normalize tiargs by using corresponding deduced
              * template value parameters and tuples for the correct mangling.
              *
              * By doing this before hasNestedArgs, CTFEable local variable will be
@@ -7709,7 +7742,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final bool needsTypeInference(Scope* sc, int flag = 0)
     {
-        //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
+        //printf("TemplateInstance.needsTypeInference() %s\n", toChars());
         if (semanticRun != PASSinit)
             return false;
 
@@ -7753,7 +7786,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 /* Determine if the instance arguments, tiargs, are all that is necessary
                  * to instantiate the template.
                  */
-                //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, tiargs->dim);
+                //printf("tp = %p, td.parameters.dim = %d, tiargs.dim = %d\n", tp, td.parameters.dim, tiargs.dim);
                 auto tf = cast(TypeFunction)fd.type;
                 if (size_t dim = Parameter.dim(tf.parameters))
                 {
@@ -7806,7 +7839,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
 
                 /* If there is more than one function template which matches, we may
-                 * need type inference (see Bugzilla 4430)
+                 * need type inference (see https://issues.dlang.org/show_bug.cgi?id=4430)
                  */
                 return ++count > 1 ? 1 : 0;
             });
@@ -7836,7 +7869,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     final bool hasNestedArgs(Objects* args, bool isstatic)
     {
         int nested = 0;
-        //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
+        //printf("TemplateInstance.hasNestedArgs('%s')\n", tempdecl.ident.toChars());
 
         version (none)
         {
@@ -7876,7 +7909,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         sa = (cast(FuncExp)ea).fd;
                     goto Lsa;
                 }
-                // Emulate Expression::toMangleBuffer call that had exist in TemplateInstance::genIdent.
+                // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
                 if (ea.op != TOKint64 && ea.op != TOKfloat64 && ea.op != TOKcomplex80 && ea.op != TOKnull && ea.op != TOKstring && ea.op != TOKarrayliteral && ea.op != TOKassocarrayliteral && ea.op != TOKstructliteral)
                 {
                     ea.error("expression %s is not a valid template value argument", ea.toChars());
@@ -7926,7 +7959,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             errors = true;
                         }
                     L1:
-                        //printf("\tnested inside %s\n", enclosing->toChars());
+                        //printf("\tnested inside %s\n", enclosing.toChars());
                         nested |= 1;
                     }
                     else
@@ -7941,7 +7974,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 nested |= cast(int)hasNestedArgs(&va.objects, isstatic);
             }
         }
-        //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl->ident->toChars(), nested);
+        //printf("-TemplateInstance.hasNestedArgs('%s') = %d\n", tempdecl.ident.toChars(), nested);
         return nested != 0;
     }
 
@@ -7950,7 +7983,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      */
     final Dsymbols* appendToModuleMember()
     {
-        Module mi = minst; // instantiated -> inserted module
+        Module mi = minst; // instantiated . inserted module
 
         if (global.params.useUnitTests || global.params.debuglevel)
         {
@@ -7959,7 +7992,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 mi = null;
         }
 
-        //printf("%s->appendToModuleMember() enclosing = %s mi = %s\n",
+        //printf("%s.appendToModuleMember() enclosing = %s mi = %s\n",
         //    toPrettyChars(),
         //    enclosing ? enclosing.toPrettyChars() : null,
         //    mi ? mi.toPrettyChars() : null);
@@ -7997,7 +8030,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              *  - codegen pass won't reach to the instance.
              */
         }
-        //printf("\t--> mi = %s\n", mi.toPrettyChars());
+        //printf("\t-. mi = %s\n", mi.toPrettyChars());
 
         if (memberOf is mi)     // already a member
         {
@@ -8033,7 +8066,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
 
-        //printf("TemplateInstance::declareParameters()\n");
+        //printf("TemplateInstance.declareParameters()\n");
         for (size_t i = 0; i < tdtypes.dim; i++)
         {
             TemplateParameter tp = (*tempdecl.parameters)[i];
@@ -8055,7 +8088,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         TemplateDeclaration tempdecl = this.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
 
-        //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
+        //printf("TemplateInstance.genIdent('%s')\n", tempdecl.ident.toChars());
         OutBuffer buf;
 
         const id = tempdecl.ident.toString();
@@ -8073,7 +8106,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             Tuple va = isTuple(o);
             //printf("\to [%d] %p ta %p ea %p sa %p va %p\n", i, o, ta, ea, sa, va);
             if (i < nparams && (*tempdecl.parameters)[i].specialization())
-                buf.writeByte('H'); // Bugzilla 6574
+                buf.writeByte('H'); // https://issues.dlang.org/show_bug.cgi?id=6574
             if (ta)
             {
                 buf.writeByte('T');
@@ -8147,7 +8180,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 mangleToBuffer(sa, &bufsa);
                 auto s = bufsa.peekSlice();
 
-                /* Bugzilla 3043: if the first character of p is a digit this
+                /* https://issues.dlang.org/show_bug.cgi?id=3043
+                 * If the first character of p is a digit this
                  * causes ambiguity issues because the digits of the two numbers are adjacent.
                  * Current demanglers resolve this by trying various places to separate the
                  * numbers until one gets a successful demangle.
@@ -8187,13 +8221,13 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         for (size_t i = 0; i < members.dim; i++)
         {
             Dsymbol s = (*members)[i];
-            //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
-            //printf("test: enclosing = %d, sc2->parent = %s\n", enclosing, sc2->parent->toChars());
+            //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
+            //printf("test: enclosing = %d, sc2.parent = %s\n", enclosing, sc2.parent.toChars());
             //if (enclosing)
-            //    s->parent = sc->parent;
-            //printf("test3: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
+            //    s.parent = sc.parent;
+            //printf("test3: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
             s.semantic(sc2);
-            //printf("test4: enclosing = %d, s->parent = %s\n", enclosing, s->parent->toChars());
+            //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
             Module.runDeferredSemantic();
         }
     }
@@ -8371,7 +8405,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
         super(loc,
               tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident,
               tiargs ? tiargs : new Objects());
-        //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");
+        //printf("TemplateMixin(ident = '%s')\n", ident ? ident.toChars() : "");
         this.ident = ident;
         this.tqual = tqual;
     }
@@ -8386,7 +8420,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
     {
         static if (LOG)
         {
-            printf("+TemplateMixin::semantic('%s', this=%p)\n", toChars(), this);
+            printf("+TemplateMixin.semantic('%s', this=%p)\n", toChars(), this);
             fflush(stdout);
         }
         if (semanticRun != PASSinit)
@@ -8469,7 +8503,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
          */
         for (Dsymbol s = parent; s; s = s.parent)
         {
-            //printf("\ts = '%s'\n", s->toChars());
+            //printf("\ts = '%s'\n", s.toChars());
             TemplateMixin tm = s.isTemplateMixin();
             if (!tm || tempdecl != tm.tempdecl)
                 continue;
@@ -8554,8 +8588,8 @@ extern (C++) final class TemplateMixin : TemplateInstance
         {
             Dsymbol s = (*members)[i];
             s.addMember(argscope, this);
-            //printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
-            //printf("s->parent = %s\n", s->parent->toChars());
+            //printf("sc.parent = %p, sc.scopesym = %p\n", sc.parent, sc.scopesym);
+            //printf("s.parent = %s\n", s.parent.toChars());
         }
 
         // Do semantic() analysis on template instance members
@@ -8564,7 +8598,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
             printf("\tdo semantic() on template instance members '%s'\n", toChars());
         }
         Scope* sc2 = argscope.push(this);
-        //size_t deferred_dim = Module::deferred.dim;
+        //size_t deferred_dim = Module.deferred.dim;
 
         static __gshared int nest;
         //printf("%d\n", nest);
@@ -8596,10 +8630,10 @@ extern (C++) final class TemplateMixin : TemplateInstance
         nest--;
 
         /* In DeclDefs scope, TemplateMixin does not have to handle deferred symbols.
-         * Because the members would already call Module::addDeferredSemantic() for themselves.
-         * See Struct, Class, Interface, and EnumDeclaration::semantic().
+         * Because the members would already call Module.addDeferredSemantic() for themselves.
+         * See Struct, Class, Interface, and EnumDeclaration.semantic().
          */
-        //if (!sc->func && Module::deferred.dim > deferred_dim) {}
+        //if (!sc.func && Module.deferred.dim > deferred_dim) {}
 
         AggregateDeclaration ad = toParent().isAggregateDeclaration();
         if (sc.func && !ad)
@@ -8621,7 +8655,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
 
         static if (LOG)
         {
-            printf("-TemplateMixin::semantic('%s', this=%p)\n", toChars(), this);
+            printf("-TemplateMixin.semantic('%s', this=%p)\n", toChars(), this);
         }
     }
 
@@ -8632,7 +8666,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
         semanticRun = PASSsemantic2;
         static if (LOG)
         {
-            printf("+TemplateMixin::semantic2('%s')\n", toChars());
+            printf("+TemplateMixin.semantic2('%s')\n", toChars());
         }
         if (members)
         {
@@ -8653,7 +8687,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
         }
         static if (LOG)
         {
-            printf("-TemplateMixin::semantic2('%s')\n", toChars());
+            printf("-TemplateMixin.semantic2('%s')\n", toChars());
         }
     }
 
@@ -8664,7 +8698,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
         semanticRun = PASSsemantic3;
         static if (LOG)
         {
-            printf("TemplateMixin::semantic3('%s')\n", toChars());
+            printf("TemplateMixin.semantic3('%s')\n", toChars());
         }
         if (members)
         {
@@ -8711,13 +8745,13 @@ extern (C++) final class TemplateMixin : TemplateInstance
 
     override bool hasPointers()
     {
-        //printf("TemplateMixin::hasPointers() %s\n", toChars());
+        //printf("TemplateMixin.hasPointers() %s\n", toChars());
         if (members)
         {
             for (size_t i = 0; i < members.dim; i++)
             {
                 Dsymbol s = (*members)[i];
-                //printf(" s = %s %s\n", s->kind(), s->toChars());
+                //printf(" s = %s %s\n", s.kind(), s.toChars());
                 if (s.hasPointers())
                 {
                     return true;
@@ -8729,7 +8763,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
-        //printf("TemplateMixin::setFieldOffset() %s\n", toChars());
+        //printf("TemplateMixin.setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
             semantic(null); // try to resolve it
         if (members)
@@ -8737,7 +8771,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
             for (size_t i = 0; i < members.dim; i++)
             {
                 Dsymbol s = (*members)[i];
-                //printf("\t%s\n", s->toChars());
+                //printf("\t%s\n", s.toChars());
                 s.setFieldOffset(ad, poffset, isunion);
             }
         }
@@ -8837,7 +8871,8 @@ extern (C++) final class TemplateMixin : TemplateInstance
 
 /************************************
  * This struct is needed for TemplateInstance to be the key in an associative array.
- * Fixing Bugzillas 15812 and 15813 would make it unnecessary.
+ * Fixing https://issues.dlang.org/show_bug.cgi?id=15812 and
+ * https://issues.dlang.org/show_bug.cgi?id=15813 would make it unnecessary.
  */
 struct TemplateInstanceBox
 {
