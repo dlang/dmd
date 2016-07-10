@@ -64,6 +64,8 @@ extern "C"
     void ld_set(longdouble* ld, double d);
     void ld_setll(longdouble* ld, long long d);
     void ld_setull(longdouble* ld, unsigned long long d);
+    int ld_statusfpu();
+    void ld_clearfpu();
 }
 
 #pragma pack(push, 1)

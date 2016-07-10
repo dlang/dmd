@@ -357,4 +357,19 @@ ld_initfpu PROC
 	ret
 ld_initfpu ENDP
 
+; int ld_statusfpu()
+ld_statusfpu PROC
+	push    rcx
+	fstsw   word ptr [rsp]
+	movzx   EAX,word ptr [rsp]
+	pop     rcx
+	ret
+ld_statusfpu ENDP
+
+; void ld_clearfpu()
+ld_clearfpu PROC
+	fclex
+	ret
+ld_clearfpu ENDP
+
 end
