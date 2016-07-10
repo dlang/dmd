@@ -162,6 +162,36 @@ else version( FreeBSD )
 
     dirent* readdir(DIR*);
 }
+else version( OpenBSD )
+{
+    enum
+    {
+        DT_UNKNOWN  = 0,
+        DT_FIFO     = 1,
+        DT_CHR      = 2,
+        DT_DIR      = 4,
+        DT_BLK      = 6,
+        DT_REG      = 8,
+        DT_LNK      = 10,
+        DT_SOCK     = 12,
+    }
+
+    align(4)
+    struct dirent
+    {
+        ino_t     d_fileno;
+        off_t     d_off;
+        ushort    d_reclen;
+        ubyte     d_type;
+        ubyte     d_namlen;
+        ubyte[4]  __d_padding;
+        char[256] d_name;
+    }
+
+    alias void* DIR;
+
+    dirent* readdir(DIR*);
+}
 else version (Solaris)
 {
     struct dirent
@@ -291,6 +321,10 @@ else version( FreeBSD )
 {
     int readdir_r(DIR*, dirent*, dirent**);
 }
+else version( OpenBSD )
+{
+    int readdir_r(DIR*, dirent*, dirent**);
+}
 else version (Solaris)
 {
     static if (__USE_LARGEFILE64)
@@ -326,6 +360,11 @@ version( CRuntime_Glibc )
     c_long telldir(DIR*);
 }
 else version( FreeBSD )
+{
+    void   seekdir(DIR*, c_long);
+    c_long telldir(DIR*);
+}
+else version( OpenBSD )
 {
     void   seekdir(DIR*, c_long);
     c_long telldir(DIR*);

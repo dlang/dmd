@@ -485,6 +485,9 @@ $(IMPDIR)\core\sys\linux\sys\sysinfo.d : src\core\sys\linux\sys\sysinfo.d
 $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
 	copy $** $@
 
