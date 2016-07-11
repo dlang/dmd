@@ -9,6 +9,8 @@ module rt.util.container.array;
 
 static import common = rt.util.container.common;
 
+import core.exception : onOutOfMemoryError;
+
 struct Array(T)
 {
 nothrow:
@@ -81,8 +83,17 @@ nothrow:
 
     void insertBack()(auto ref T val)
     {
-        length = length + 1;
-        back = val;
+        import core.checkedint : addu;
+
+        bool overflow = false;
+        size_t newlength = addu(length, 1, overflow);
+        if (!overflow)
+        {
+            length = newlength;
+            back = val;
+        }
+        else
+            onOutOfMemoryError();
     }
 
     void popBack()
@@ -180,4 +191,18 @@ unittest
     assert(cnt == 1);
     ary.popBack();
     assert(cnt == 0);
+}
+
+unittest
+{
+    import core.exception;
+    try
+    {
+        // Overflow ary.length.
+        auto ary = Array!size_t(null, -1);
+        ary.insertBack(0);
+    }
+    catch(OutOfMemoryError)
+    {
+    }
 }
