@@ -107,6 +107,7 @@ public:
     virtual LabelStatement *isLabelStatement() { return NULL; }
     virtual GotoDefaultStatement *isGotoDefaultStatement() { return NULL; }
     virtual GotoCaseStatement *isGotoCaseStatement() { return NULL; }
+    virtual BreakStatement *isBreakStatement() { return NULL; }
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
@@ -480,6 +481,7 @@ public:
 
     Statement *syntaxCopy();
 
+    BreakStatement *isBreakStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
