@@ -1,13 +1,11 @@
-/*
- * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2016 by Digital Mars
- * All Rights Reserved
- * http://www.digitalmars.com
- * Written by Walter Bright
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
  *
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _libomf.d)
  */
 
 module ddmd.libomf;
