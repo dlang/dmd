@@ -7,6 +7,8 @@ $(COMMENT Pending changelog for 2.072. This will get copied to dlang.org and
 $(BUGSTITLE Language Changes,
     $(LI $(RELATIVE_LINK2 deprecated_commaexp, Using the result of a comma expression is deprecated.))
 
+    $(LI $(RELATIVE_LINK2 deprecated_implicit_catch, Implicit catch statement are deprecated.))
+
     $(LI $(LNAME2 unrestricted_unions, Add Unrestricted Unions.)
 
         $(P
@@ -53,6 +55,25 @@ $(BUGSTITLE Language Changes,
         }
         ---
     )
+
+    $(LI $(LNAME2 deprecated_implicit_catch, Implicit catch statement are deprecated.)
+
+    $(P Implicit catch statement are catch statement without type specified.
+	They default to catching `Throwable`, which is something that should always be explicit.)
+
+    $(P Example:)
+
+        ---
+        int[] arr = new int[](10);
+        // This will throw a RangeError
+        try { arr[42]++; }
+        catch { writeln("An error was caught and ignored"); }
+	// The previous line is equivalent to:
+	// catch (Throwable) { writeln("An error was caught and ignored"); }
+        ---
+    )
+
+
     $(LI $(LNAME2 align_by_ctfe, Align attribute can be used with CTFEable expression.)
 
     $(P Example:)
