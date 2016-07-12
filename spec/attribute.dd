@@ -695,20 +695,27 @@ $(P
 $(H3 $(LNAME2 abstract, $(D abstract) Attribute))
 
 $(P
+        An abstract member function must be overridden by a derived class.
+        Only virtual member functions may be declared abstract; non-virtual 
+        member functions and free-standing functions cannot be declared 
+        abstract.
+)
+
+$(P
+        Classes become abstract if any of the virtual member functions
+        within it are declared as abstract or if they are defined within an
+        abstract attribute. 
+        Note that an abstract class may also contain non-virtual member functions.
+)
+
+$(P
         If a class is abstract, it cannot be instantiated
         directly. It can only be instantiated as a base class of
         another, non-abstract, class.
 )
+
 $(P
-        Classes become abstract if they are defined within an
-        abstract attribute, or if any of the virtual member functions
-        within it are declared as abstract.
-)
-$(P
-        Non-virtual functions cannot be declared as abstract.
-)
-$(P
-        Functions declared as abstract can still have function
+        Member functions declared as abstract can still have function
         bodies. This is so that even though they must be overridden,
         they can still provide $(SINGLEQUOTE base class functionality),
         e.g. through $(D super.foo()) in a derived class.
