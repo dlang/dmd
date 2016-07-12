@@ -2249,9 +2249,19 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return this;
     }
 
+    /**
+     * Check if the last template parameter is a tuple one,
+     * and returns it if so, else returns `null`.
+     *
+     * Returns:
+     *   The last template parameter if it's a `TemplateTupleParameter`
+     */
     TemplateTupleParameter isVariadic()
     {
-        return .isVariadic(parameters);
+        size_t dim = parameters.dim;
+        if (dim == 0)
+            return null;
+        return (*parameters)[dim - 1].isTemplateTupleParameter();
     }
 
     /***********************************
@@ -2317,17 +2327,6 @@ extern (C++) final class TypeDeduced : Type
     }
 }
 
-/**************************************
- * Determine if TemplateDeclaration is variadic.
- */
-extern (C++) TemplateTupleParameter isVariadic(TemplateParameters* parameters)
-{
-    size_t dim = parameters.dim;
-    TemplateTupleParameter tp = null;
-    if (dim)
-        tp = (*parameters)[dim - 1].isTemplateTupleParameter();
-    return tp;
-}
 
 /*************************************************
  * Given function arguments, figure out which template function
