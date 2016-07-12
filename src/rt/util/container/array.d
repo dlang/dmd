@@ -33,12 +33,22 @@ nothrow:
 
     @property void length(size_t nlength)
     {
-        if (nlength < length)
-            foreach (ref val; _ptr[nlength .. length]) common.destroy(val);
-        _ptr = cast(T*)common.xrealloc(_ptr, nlength * T.sizeof);
-        if (nlength > length)
-            foreach (ref val; _ptr[length .. nlength]) common.initialize(val);
-        _length = nlength;
+        import core.checkedint : mulu;
+
+        bool overflow = false;
+        size_t reqsize = mulu(T.sizeof, nlength, overflow);
+        if (!overflow)
+        {
+            if (nlength < length)
+                foreach (ref val; _ptr[nlength .. length]) common.destroy(val);
+            _ptr = cast(T*)common.xrealloc(_ptr, reqsize);
+            if (nlength > length)
+                foreach (ref val; _ptr[length .. nlength]) common.initialize(val);
+            _length = nlength;
+        }
+        else
+            onOutOfMemoryError();
+
     }
 
     @property bool empty() const
@@ -200,6 +210,15 @@ unittest
     {
         // Overflow ary.length.
         auto ary = Array!size_t(null, -1);
+        ary.insertBack(0);
+    }
+    catch(OutOfMemoryError)
+    {
+    }
+    try
+    {
+        // Overflow requested memory size for common.xrealloc().
+        auto ary = Array!size_t(null, -2);
         ary.insertBack(0);
     }
     catch(OutOfMemoryError)
