@@ -298,7 +298,7 @@ extern (C++) final class LibMach : Library
         writeFile(Loc(), libfile);
     }
 
-    void addSymbol(MachObjModule* om, char* name, int pickAny = 0)
+    void addSymbol(MachObjModule* om, const(char)* name, int pickAny = 0)
     {
         static if (LOG)
         {
@@ -349,12 +349,12 @@ private:
             printf("LibMach::scanObjModule(%s)\n", om.name);
         }
 
-        void addSymbol(char* name, int pickAny)
+        void addSymbol(const(char)* name, int pickAny)
         {
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMachObjModule(&addSymbol, om.base, om.length, om.name, loc);
+        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
     }
 
     /*****************************************************************************/

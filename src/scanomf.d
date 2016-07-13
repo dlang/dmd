@@ -130,30 +130,32 @@ extern (C++) static void skipDataType(const(ubyte)** pp)
 }
 
 /*****************************************
- * Reads an object module from base[0..buflen] and passes the names
+ * Reads an object module from base[] and passes the names
  * of any exported symbols to (*pAddSymbol)().
- * Input:
- *      pctx            context pointer, pass to *pAddSymbol
- *      pAddSymbol      function to pass the names to
- *      base[0..buflen] contains contents of object module
- *      module_name     name of the object module (used for error messages)
- *      loc             location to use for error printing
+ * Params:
+ *      pAddSymbol =  function to pass the names to
+ *      base =        array of contents of object module
+ *      module_name = name of the object module (used for error messages)
+ *      loc =         location to use for error printing
  */
-void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
+        const(ubyte)[] base, const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
-        printf("scanMSCoffObjModule(%s)\n", module_name);
+        printf("scanOmfObjModule(%s)\n", module_name);
     }
+    const buf = base.ptr;
+    const buflen = base.length;
     int easyomf;
     ubyte result = 0;
     char[LIBIDMAX + 1] name;
     Strings names;
     names.push(null); // don't use index 0
     easyomf = 0; // assume not EASY-OMF
-    auto pend = cast(const(ubyte)*)base + buflen;
+    auto pend = cast(const(ubyte)*)base.ptr + buflen;
     const(ubyte)* pnext;
-    for (auto p = cast(const(ubyte)*)base; 1; p = pnext)
+    for (auto p = cast(const(ubyte)*)base.ptr; 1; p = pnext)
     {
         assert(p < pend);
         ubyte recTyp = *p++;

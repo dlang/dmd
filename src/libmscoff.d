@@ -423,7 +423,7 @@ extern (C++) final class LibMSCoff : Library
         writeFile(Loc(), libfile);
     }
 
-    void addSymbol(MSCoffObjModule* om, char* name, int pickAny = 0)
+    void addSymbol(MSCoffObjModule* om, const(char)* name, int pickAny = 0)
     {
         static if (LOG)
         {
@@ -447,12 +447,12 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name);
         }
 
-        void addSymbol(char* name, int pickAny)
+        void addSymbol(const(char)* name, int pickAny)
         {
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMSCoffObjModule(&addSymbol, om.base, om.length, om.name, loc);
+        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
     }
 
     /*****************************************************************************/

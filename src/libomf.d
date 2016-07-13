@@ -246,7 +246,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanOmfObjModule(&addSymbol, om.base, om.length, om.name, loc);
+        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
     }
 
     /***********************************

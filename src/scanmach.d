@@ -17,21 +17,23 @@ import ddmd.errors;
 enum LOG = false;
 
 /*****************************************
- * Reads an object module from base[0..buflen] and passes the names
+ * Reads an object module from base[] and passes the names
  * of any exported symbols to (*pAddSymbol)().
- * Input:
- *      pAddSymbol      function to pass the names to
- *      base[0..buflen] contains contents of object module
- *      module_name     name of the object module (used for error messages)
- *      loc             location to use for error printing
+ * Params:
+ *      pAddSymbol =  function to pass the names to
+ *      base =        array of contents of object module
+ *      module_name = name of the object module (used for error messages)
+ *      loc =         location to use for error printing
  */
-void scanMachObjModule(void delegate(char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+void scanMachObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
+        const(ubyte)[] base, const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
         printf("scanMachObjModule(%s)\n", module_name);
     }
-    ubyte* buf = cast(ubyte*)base;
+    const buf = base.ptr;
+    const buflen = base.length;
     int reason = 0;
     uint32_t ncmds;
     mach_header* header = cast(mach_header*)buf;
