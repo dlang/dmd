@@ -1,9 +1,10 @@
 /**
- * Compiler implementation of the D programming language
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
- * Authors: Walter Bright, http://www.digitalmars.com
- * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(DMDSRC _inline.d)
  */
 
