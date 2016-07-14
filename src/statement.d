@@ -822,7 +822,7 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
-    Statement last()
+    inout(Statement) last() inout nothrow pure
     {
         return this;
     }
@@ -833,7 +833,7 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
-    ScopeStatement isScopeStatement()
+    inout(ScopeStatement) isScopeStatement() inout nothrow pure
     {
         return null;
     }
@@ -843,12 +843,12 @@ extern (C++) abstract class Statement : RootObject
         return null;
     }
 
-    CompoundStatement isCompoundStatement()
+    inout(CompoundStatement) isCompoundStatement() inout nothrow pure
     {
         return null;
     }
 
-    ReturnStatement isReturnStatement()
+    inout(ReturnStatement) isReturnStatement() inout nothrow pure
     {
         return null;
     }
@@ -879,6 +879,11 @@ extern (C++) abstract class Statement : RootObject
     }
 
     GotoCaseStatement isGotoCaseStatement() pure
+    {
+        return null;
+    }
+
+    inout(BreakStatement) isBreakStatement() inout nothrow pure
     {
         return null;
     }
@@ -1324,38 +1329,38 @@ extern (C++) class CompoundStatement : Statement
         return statements;
     }
 
-    override final ReturnStatement isReturnStatement()
+    override final inout(ReturnStatement) isReturnStatement() inout nothrow pure
     {
         ReturnStatement rs = null;
         foreach (s; *statements)
         {
             if (s)
             {
-                rs = s.isReturnStatement();
+                rs = cast(ReturnStatement)s.isReturnStatement();
                 if (rs)
                     break;
             }
         }
-        return rs;
+        return cast(inout)rs;
     }
 
-    override final Statement last()
+    override final inout(Statement) last() inout nothrow pure
     {
         Statement s = null;
         for (size_t i = statements.dim; i; --i)
         {
-            s = (*statements)[i - 1];
+            s = cast(Statement)(*statements)[i - 1];
             if (s)
             {
-                s = s.last();
+                s = cast(Statement)s.last();
                 if (s)
                     break;
             }
         }
-        return s;
+        return cast(inout)s;
     }
 
-    override final CompoundStatement isCompoundStatement()
+    override final inout(CompoundStatement) isCompoundStatement() inout nothrow pure
     {
         return this;
     }
@@ -1453,12 +1458,12 @@ extern (C++) final class ScopeStatement : Statement
         return new ScopeStatement(loc, statement ? statement.syntaxCopy() : null, endloc);
     }
 
-    override ScopeStatement isScopeStatement()
+    override inout(ScopeStatement) isScopeStatement() inout nothrow pure
     {
         return this;
     }
 
-    override ReturnStatement isReturnStatement()
+    override inout(ReturnStatement) isReturnStatement() inout nothrow pure
     {
         if (statement)
             return statement.isReturnStatement();
@@ -2144,7 +2149,7 @@ extern (C++) final class ReturnStatement : Statement
         return new ReturnStatement(loc, exp ? exp.syntaxCopy() : null);
     }
 
-    override ReturnStatement isReturnStatement()
+    override inout(ReturnStatement) isReturnStatement() inout nothrow pure
     {
         return this;
     }
@@ -2170,6 +2175,11 @@ extern (C++) final class BreakStatement : Statement
     override Statement syntaxCopy()
     {
         return new BreakStatement(loc, ident);
+    }
+
+    override inout(BreakStatement) isBreakStatement() inout nothrow pure
+    {
+        return this;
     }
 
     override void accept(Visitor v)
