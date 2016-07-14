@@ -26,7 +26,7 @@ struct Config
 {
     bool disable;            // start disabled
     ubyte profile;           // enable profiling with summary when terminating program
-    const(char)[] gc = "conservative"; // select gc implementation conservative|manual
+    string gc = "conservative"; // select gc implementation conservative|manual
 
     size_t initReserve;      // initial reserve (MB)
     size_t minPoolSize = 1;  // initial and minimum pool size (MB)
@@ -74,7 +74,7 @@ struct Config
                cast(long)maxPoolSize, cast(long)incPoolSize, heapSizeFactor);
     }
 
-    bool parseOptions(const(char)[] opt)
+    bool parseOptions(string opt)
     {
         opt = skip!isspace(opt);
         while (opt.length)
@@ -138,7 +138,7 @@ inout(char)[] find(alias pred)(inout(char)[] str)
     return null;
 }
 
-bool parse(T:size_t)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res)
 in { assert(str.length); }
 body
 {
@@ -155,7 +155,7 @@ body
     return true;
 }
 
-bool parse(T:bool)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref bool res)
 in { assert(str.length); }
 body
 {
@@ -169,7 +169,7 @@ body
     return true;
 }
 
-bool parse(T:float)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref float res)
 in { assert(str.length); }
 body
 {
@@ -186,7 +186,7 @@ body
     return true;
 }
 
-bool parse(T:const(char)[])(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref inout(char)[] res)
 in { assert(str.length); }
 body
 {
