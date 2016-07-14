@@ -190,11 +190,11 @@ bool parse(T:const(char)[])(const(char)[] optname, ref const(char)[] str, ref T 
 in { assert(str.length); }
 body
 {
-    // [_a-zA-Z][_a-zA-Z0-9]*]
-    if (str[0] != '_' && !isalpha(str[0]))
+    auto tail = str.find!(c => c == ':' || c == '=' || c == ' ');
+    res = str[0 .. $ - tail.length];
+    if (!res.length)
         return parseError("an identifier", optname, str);
-    res = str[0 .. $ - str[1 .. $].find!(c => c != '_' && !isalnum(c)).length];
-    str = str[res.length .. $];
+    str = tail;
     return true;
 }
 
@@ -259,6 +259,7 @@ unittest
     assert(conf.parseOptions("help profile:1 help"));
 
     assert(conf.parseOptions("gc:manual") && conf.gc == "manual");
+    assert(conf.parseOptions("gc:my-gc~modified") && conf.gc == "my-gc~modified");
     assert(conf.parseOptions("gc:conservative help profile:1") && conf.gc == "conservative" && conf.profile == 1);
 
     // the config parse doesn't know all available GC names, so should accept unknown ones
