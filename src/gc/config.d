@@ -74,7 +74,7 @@ struct Config
                cast(long)maxPoolSize, cast(long)incPoolSize, heapSizeFactor);
     }
 
-    bool parseOptions(const(char)[] opt)
+    bool parseOptions(string opt)
     {
         opt = skip!isspace(opt);
         while (opt.length)
@@ -138,7 +138,7 @@ inout(char)[] find(alias pred)(inout(char)[] str)
     return null;
 }
 
-bool parse(T:size_t)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res)
 in { assert(str.length); }
 body
 {
@@ -155,7 +155,7 @@ body
     return true;
 }
 
-bool parse(T:bool)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref bool res)
 in { assert(str.length); }
 body
 {
@@ -169,7 +169,7 @@ body
     return true;
 }
 
-bool parse(T:float)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref float res)
 in { assert(str.length); }
 body
 {
@@ -186,32 +186,15 @@ body
     return true;
 }
 
-bool parse(T:const(char)[])(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref inout(char)[] res)
 in { assert(str.length); }
 body
 {
-    bool findNext(string next)
-    {
-        if(next.length>str.length)
-            return false;
-
-        return (next.length == str.length)? (next == str):(isspace(str[next.length+1])&&(next == str[0..next.length]));
-    }
-
-    if(findNext("manual"))
-    {
-        res = "manual";
-    }
-    else if(findNext("conservative"))
-    {
-        res = "conservative";
-    }
-    else
-    {
-        return parseError("conservative or manual", optname, str);
-    }
-
-    str = str[res.length .. $];
+    auto tail = str.find!(c => c == ':' || c == '=' || c == ' ');
+    res = str[0 .. $ - tail.length];
+    if (!res.length)
+        return parseError("an identifier", optname, str);
+    str = tail;
     return true;
 }
 
@@ -274,4 +257,11 @@ unittest
     assert(conf.parseOptions("help"));
     assert(conf.parseOptions("help profile:1"));
     assert(conf.parseOptions("help profile:1 help"));
+
+    assert(conf.parseOptions("gc:manual") && conf.gc == "manual");
+    assert(conf.parseOptions("gc:my-gc~modified") && conf.gc == "my-gc~modified");
+    assert(conf.parseOptions("gc:conservative help profile:1") && conf.gc == "conservative" && conf.profile == 1);
+
+    // the config parse doesn't know all available GC names, so should accept unknown ones
+    assert(conf.parseOptions("gc:whatever"));
 }
