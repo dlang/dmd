@@ -354,7 +354,7 @@ extern (C++) final class LibElf : Library
         writeFile(Loc(), libfile);
     }
 
-    void addSymbol(ElfObjModule* om, char* name, int pickAny = 0)
+    void addSymbol(ElfObjModule* om, const(char)* name, int pickAny = 0)
     {
         static if (LOG)
         {
@@ -394,12 +394,12 @@ private:
             printf("LibElf::scanObjModule(%s)\n", om.name);
         }
 
-        void addSymbol(char* name, int pickAny)
+        void addSymbol(const(char)* name, int pickAny)
         {
             this.addSymbol(om, name, pickAny);
         }
 
-        scanElfObjModule(&addSymbol, om.base, om.length, om.name, loc);
+        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
     }
 
     /*****************************************************************************/
