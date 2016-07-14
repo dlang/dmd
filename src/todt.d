@@ -1,11 +1,11 @@
-/* Compiler implementation of the D programming language
- * Copyright (c) 1999-2016 by Digital Mars
- * All Rights Reserved
- * written by Walter Bright
- * http://www.digitalmars.com
- * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/todt.d
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _todt.d)
  */
 
 module ddmd.todt;
