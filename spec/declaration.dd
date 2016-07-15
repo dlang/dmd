@@ -621,7 +621,7 @@ $(H3 $(LNAME2 global_static_init, Global and Static Initializers))
 $(H3 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
 	$(P D draws a distinction between a type qualifer and a storage class.)
-	
+
 	$(P A $(I type qualifier) creates a derived type from an existing base
 	type, and the resulting type may be used to create multiple instances
 	of that type.)

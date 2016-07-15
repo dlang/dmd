@@ -59,11 +59,11 @@ import core.simd;
 	$(P These types and operations will be the ones defined for the architecture
 	the compiler is targeting. If a particular CPU family has varying
 	support for vector types, an additional runtime check may be necessary.
-	The compiler does not emit runtime checks; those must be done by the 
+	The compiler does not emit runtime checks; those must be done by the
 	programmer.
 	)
-	
-	$(P Depending on the architecture, compiler flags may be required to  
+
+	$(P Depending on the architecture, compiler flags may be required to
 	activate support for SIMD types.
 	)
 

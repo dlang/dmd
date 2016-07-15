@@ -528,12 +528,12 @@ $(GNAME TemplateAliasParameterDefault):
 )
 
     $(P Alias parameters enable templates to be parameterized with
-        almost any kind of D symbol, including user-defined type names, 
-        global names, local names, module names, template names, and 
+        almost any kind of D symbol, including user-defined type names,
+        global names, local names, module names, template names, and
         template instance names.
         Literals can also be used as arguments to alias parameters.
     )
-    
+
     $(P $(B Examples:))
 
     $(UL
@@ -1401,13 +1401,13 @@ $(GNAME Constraint):
         foo!(4)();  // Error, no match
         ---
     )
-    
-    $(P Template constraints can be used with aggregate types (structs, classes, unions). 
+
+    $(P Template constraints can be used with aggregate types (structs, classes, unions).
         Constraints are effectively used with library module "std.traits":
-    
+
         ---
         import std.traits;
-        
+
         struct Bar(T)
             if (isIntegral!T)
         {
