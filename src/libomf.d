@@ -239,9 +239,9 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name);
         }
 
-        void addSymbol(const(char)* name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            this.addSymbol(om, name, pickAny);
+            this.addSymbol(om, name.ptr, pickAny);
         }
 
         scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);

@@ -140,7 +140,7 @@ extern (C++) static void skipDataType(const(ubyte)** pp)
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
  */
-void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
+void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         const(ubyte)[] base, const(char)* module_name, Loc loc)
 {
     static if (LOG)
@@ -187,7 +187,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                 parseName(&p, name.ptr);
                 p += (recTyp == PUBDEF) ? 2 : 4; // skip offset
                 parseIdx(&p); // skip type index
-                pAddSymbol(name.ptr, 0);
+                pAddSymbol(name[0 .. strlen(name.ptr)], 0);
             }
             break;
         case COMDAT:
@@ -220,7 +220,8 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                     return;
                 }
                 //printf("[s] name='%s'\n",name);
-                pAddSymbol(names[idx], pickAny);
+                const(char)* n = names[idx];
+                pAddSymbol(n[0 .. strlen(name.ptr)], pickAny);
                 break;
             }
         case COMDEF:
@@ -230,7 +231,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                     parseName(&p, name.ptr);
                     parseIdx(&p); // type index
                     skipDataType(&p); // data type
-                    pAddSymbol(name.ptr, 1);
+                    pAddSymbol(name[0 .. strlen(name.ptr)], 1);
                 }
                 break;
             }
@@ -238,7 +239,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
             while (p + 1 < pnext)
             {
                 parseName(&p, name.ptr);
-                pAddSymbol(name.ptr, 0);
+                pAddSymbol(name[0 .. strlen(name.ptr)], 0);
                 parseName(&p, name.ptr);
             }
             break;
@@ -271,7 +272,7 @@ void scanOmfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                             goto L2;
                     p++; // skip OrdFlag field
                     parseName(&p, name.ptr);
-                    pAddSymbol(name.ptr, 0);
+                    pAddSymbol(name[0 .. strlen(name.ptr)], 0);
                     break;
                 L2:
                 }
