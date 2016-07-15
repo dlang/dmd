@@ -35,7 +35,7 @@ extern (C++) __gshared char* elf = [0x7F, 'E', 'L', 'F']; // ELF file signature
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
  */
-void scanElfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
+void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         const(ubyte)[] base, const(char)* module_name, Loc loc)
 {
     static if (LOG)
@@ -99,9 +99,18 @@ void scanElfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                     Elf32_Sym* sym = cast(Elf32_Sym*)(buf + section.sh_offset + offset);
                     if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
                     {
-                        char* name = string_tab + sym.st_name;
+                        const(char)* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
-                        pAddSymbol(name, 1);
+                        const pend = memchr(name, 0, cast(size_t)(string_section.sh_size - sym.st_name));
+                        if (pend)       // if found terminating 0 inside the string section
+                        {
+                            pAddSymbol(name[0 .. pend - name], 1);
+                        }
+                        else
+                        {
+                            reason = __LINE__;
+                            goto Lcorrupt;
+                        }
                     }
                 }
             }
@@ -146,7 +155,16 @@ void scanElfObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                     {
                         char* name = string_tab + sym.st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
-                        pAddSymbol(name, 1);
+                        const pend = memchr(name, 0, cast(size_t)(string_section.sh_size - sym.st_name));
+                        if (pend)
+                        {
+                            pAddSymbol(name[0 .. pend - name], 1);
+                        }
+                        else
+                        {
+                            reason = __LINE__;
+                            goto Lcorrupt;
+                        }
                     }
                 }
             }

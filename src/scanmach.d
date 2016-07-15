@@ -27,7 +27,7 @@ enum LOG = false;
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
  */
-void scanMachObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
+void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         const(ubyte)[] base, const(char)* module_name, Loc loc)
 {
     static if (LOG)
@@ -146,7 +146,8 @@ void scanMachObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist_64* s = symtab + i;
-                char* name = strtab + s.n_strx;
+                const(char)* name = strtab + s.n_strx;
+                const namelen = strlen(name);
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h
@@ -167,13 +168,13 @@ void scanMachObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                     {
                     case N_UNDF:
                         if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            pAddSymbol(name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_ABS:
                         break;
                     case N_SECT:
                         if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            pAddSymbol(name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_PBUD:
                         break;
@@ -198,7 +199,8 @@ void scanMachObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist* s = symtab + i;
-                char* name = strtab + s.n_strx;
+                const(char)* name = strtab + s.n_strx;
+                const namelen = strlen(name);
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h
@@ -219,13 +221,13 @@ void scanMachObjModule(void delegate(const(char)* name, int pickAny) pAddSymbol,
                     {
                     case N_UNDF:
                         if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            pAddSymbol(name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_ABS:
                         break;
                     case N_SECT:
                         if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            pAddSymbol(name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_PBUD:
                         break;
