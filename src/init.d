@@ -11,6 +11,7 @@
 module ddmd.init;
 
 import core.stdc.stdio;
+import core.checkedint;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
@@ -386,7 +387,7 @@ extern (C++) final class ArrayInitializer : Initializer
 {
     Expressions index;      // indices
     Initializers value;     // of Initializer *'s
-    size_t dim;             // length of array being initialized
+    uint dim;               // length of array being initialized
     Type type;              // type that array will be used to initialize
     bool sem;               // true if semantic() is run
 
@@ -495,7 +496,7 @@ extern (C++) final class ArrayInitializer : Initializer
 
     override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
-        size_t length;
+        uint length;
         const(uint) amax = 0x80000000;
         bool errors = false;
         //printf("ArrayInitializer::semantic(%s)\n", t.toChars());
@@ -548,7 +549,13 @@ extern (C++) final class ArrayInitializer : Initializer
                 sc = sc.endCTFE();
                 idx = idx.ctfeInterpret();
                 index[i] = idx;
-                length = cast(size_t)idx.toInteger();
+                const uinteger_t idxvalue = idx.toInteger();
+                if (idxvalue >= amax)
+                {
+                    error(loc, "array index %llu overflow", ulong(idxvalue));
+                    errors = true;
+                }
+                length = cast(uint)idxvalue;
                 if (idx.op == TOKerror)
                     errors = true;
             }
@@ -590,21 +597,26 @@ extern (C++) final class ArrayInitializer : Initializer
         }
         if (t.ty == Tsarray)
         {
-            dinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
+            uinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
             if (dim > edim)
             {
-                error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
+                error(loc, "array initializer has %u elements, but array length is %llu", dim, edim);
                 goto Lerr;
             }
         }
         if (errors)
             goto Lerr;
-        if (cast(uinteger_t)dim * t.nextOf().size() >= amax)
         {
-            error(loc, "array dimension %u exceeds max of %u", cast(uint)dim, cast(uint)(amax / t.nextOf().size()));
-            goto Lerr;
+            const sz = t.nextOf().size();
+            bool overflow;
+            const max = mulu(dim, sz, overflow);
+            if (overflow || max >= amax)
+            {
+                error(loc, "array dimension %llu exceeds max of %llu", ulong(dim), ulong(amax / sz));
+                goto Lerr;
+            }
+            return this;
         }
-        return this;
     Lerr:
         return new ErrorInitializer();
     }
@@ -618,7 +630,8 @@ extern (C++) final class ArrayInitializer : Initializer
         //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
         //static int i; if (++i == 2) assert(0);
         Expressions* elements;
-        size_t edim;
+        uint edim;
+        const(uint) amax = 0x80000000;
         Type t = null;
         if (type)
         {
@@ -627,35 +640,45 @@ extern (C++) final class ArrayInitializer : Initializer
             t = type.toBasetype();
             switch (t.ty)
             {
-            case Tsarray:
-                edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                break;
             case Tvector:
                 t = (cast(TypeVector)t).basetype;
-                edim = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+                goto case Tsarray;
+
+            case Tsarray:
+                uinteger_t adim = (cast(TypeSArray)t).dim.toInteger();
+                if (adim >= amax)
+                    goto Lno;
+                edim = cast(uint)adim;
                 break;
+
             case Tpointer:
             case Tarray:
                 edim = dim;
                 break;
+
             default:
                 assert(0);
             }
         }
         else
         {
-            edim = value.dim;
+            edim = cast(uint)value.dim;
             for (size_t i = 0, j = 0; i < value.dim; i++, j++)
             {
                 if (index[i])
                 {
                     if (index[i].op == TOKint64)
-                        j = cast(size_t)index[i].toInteger();
+                    {
+                        const uinteger_t idxval = index[i].toInteger();
+                        if (idxval >= amax)
+                            goto Lno;
+                        j = cast(size_t)idxval;
+                    }
                     else
                         goto Lno;
                 }
                 if (j >= edim)
-                    edim = j + 1;
+                    edim = cast(uint)(j + 1);
             }
         }
         elements = new Expressions();
