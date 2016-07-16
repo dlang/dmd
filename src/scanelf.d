@@ -18,13 +18,13 @@ else version (Solaris)
     import core.sys.solaris.elf;
 
 import core.stdc.string;
+import core.checkedint;
+
 import ddmd.globals;
 import ddmd.errors;
 
 enum LOG = false;
 
-/*****************************************************************************/
-extern (C++) __gshared char* elf = [0x7F, 'E', 'L', 'F']; // ELF file signature
 
 /*****************************************
  * Reads an object module from base[] and passes the names
@@ -42,129 +42,170 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
     {
         printf("scanElfObjModule(%s)\n", module_name);
     }
-    const buf = base.ptr;
-    const buflen = base.length;
-    int reason = 0;
-    if (buflen < Elf32_Ehdr.sizeof)
+
+    void corrupt(int reason)
     {
-        reason = __LINE__;
-    Lcorrupt:
         error(loc, "corrupt ELF object module %s %d", module_name, reason);
+    }
+
+    if (base.length < Elf32_Ehdr.sizeof)
+        return corrupt(__LINE__);
+
+    static immutable ubyte[4] elf = [0x7F, 'E', 'L', 'F']; // ELF file signature
+    if (memcmp(base.ptr, elf.ptr, elf.length))
+        return corrupt(__LINE__);
+
+    if (base[EI_VERSION] != EV_CURRENT)
+    {
+        error(loc, "ELF object module %s has EI_VERSION = %d, should be %d", module_name, base[EI_VERSION], EV_CURRENT);
         return;
     }
-    if (memcmp(buf, elf, 4))
-    {
-        reason = __LINE__;
-        goto Lcorrupt;
-    }
-    if (buf[EI_VERSION] != EV_CURRENT)
-    {
-        error(loc, "ELF object module %s has EI_VERSION = %d, should be %d", module_name, buf[EI_VERSION], EV_CURRENT);
-        return;
-    }
-    if (buf[EI_DATA] != ELFDATA2LSB)
+    if (base[EI_DATA] != ELFDATA2LSB)
     {
         error(loc, "ELF object module %s is byte swapped and unsupported", module_name);
         return;
     }
-    if (buf[EI_CLASS] == ELFCLASS32)
+    if (base[EI_CLASS] == ELFCLASS32)
     {
-        Elf32_Ehdr* eh = cast(Elf32_Ehdr*)buf;
+        const eh = cast(const(Elf32_Ehdr)*) base.ptr;
         if (eh.e_type != ET_REL)
         {
             error(loc, "ELF object module %s is not relocatable", module_name);
             return; // not relocatable object module
         }
         if (eh.e_version != EV_CURRENT)
-            goto Lcorrupt;
+            return corrupt(__LINE__);
+
+        bool overflow;
+        const end = addu(eh.e_shoff, mulu(eh.e_shentsize, eh.e_shnum, overflow), overflow);
+        if (overflow || end > base.length)
+            return corrupt(__LINE__);
+
         /* For each Section
          */
-        for (uint u = 0; u < eh.e_shnum; u++)
+        const sections = (cast(const(Elf32_Shdr)*)(base.ptr + eh.e_shoff))[0 .. eh.e_shnum];
+        foreach (ref const section; sections)
         {
-            Elf32_Shdr* section = cast(Elf32_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * u);
             if (section.sh_type == SHT_SYMTAB)
             {
+                bool checkShdr32(const ref Elf32_Shdr shdr)
+                {
+                    bool overflow;
+                    return (addu(shdr.sh_offset, shdr.sh_size, overflow) > base.length || overflow);
+                }
+
+                if (checkShdr32(section))
+                    return corrupt(__LINE__);
+
                 /* sh_link gives the particular string table section
                  * used for the symbol names.
                  */
-                Elf32_Shdr* string_section = cast(Elf32_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * section.sh_link);
+                if (section.sh_link >= eh.e_shnum)
+                    return corrupt(__LINE__);
+
+                const string_section = &sections[section.sh_link];
                 if (string_section.sh_type != SHT_STRTAB)
+                    return corrupt(__LINE__);
+
+                if (checkShdr32(*string_section))
+                    return corrupt(__LINE__);
+
+                const string_tab = (cast(const(char)[])base)[string_section.sh_offset .. string_section.sh_offset + string_section.sh_size];
+
+                /* Get the array of symbols this section refers to
+                 */
+                const symbols = (cast(Elf32_Sym*)(base.ptr + section.sh_offset))[0 .. section.sh_size / Elf32_Sym.sizeof];
+
+                foreach (ref const sym; symbols)
                 {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
-                char* string_tab = cast(char*)(buf + string_section.sh_offset);
-                for (uint offset = 0; offset < section.sh_size; offset += Elf32_Sym.sizeof)
-                {
-                    Elf32_Sym* sym = cast(Elf32_Sym*)(buf + section.sh_offset + offset);
-                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
+                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) &&
+                        sym.st_shndx != SHN_UNDEF) // not extern
                     {
-                        const(char)* name = string_tab + sym.st_name;
-                        //printf("sym st_name = x%x\n", sym->st_name);
-                        const pend = memchr(name, 0, cast(size_t)(string_section.sh_size - sym.st_name));
-                        if (pend)       // if found terminating 0 inside the string section
-                        {
-                            pAddSymbol(name[0 .. pend - name], 1);
-                        }
-                        else
-                        {
-                            reason = __LINE__;
-                            goto Lcorrupt;
-                        }
+                        if (sym.st_name >= string_tab.length)
+                            return corrupt(__LINE__);
+
+                        const name = &string_tab[sym.st_name];
+                        //printf("sym st_name = x%x\n", sym.st_name);
+                        const pend = memchr(name, 0, string_tab.length - sym.st_name);
+                        if (!pend)       // if didn't find terminating 0 inside the string section
+                            return corrupt(__LINE__);
+                        pAddSymbol(name[0 .. pend - name], 1);
                     }
                 }
             }
         }
     }
-    else if (buf[EI_CLASS] == ELFCLASS64)
+    else if (base[EI_CLASS] == ELFCLASS64)
     {
-        Elf64_Ehdr* eh = cast(Elf64_Ehdr*)buf;
-        if (buflen < Elf64_Ehdr.sizeof)
-            goto Lcorrupt;
+        const eh = cast(const(Elf64_Ehdr)*)base.ptr;
+        if (base.length < Elf64_Ehdr.sizeof)
+            return corrupt(__LINE__);
+
         if (eh.e_type != ET_REL)
         {
             error(loc, "ELF object module %s is not relocatable", module_name);
             return; // not relocatable object module
         }
         if (eh.e_version != EV_CURRENT)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
+
+        bool overflow;
+        const end = addu(eh.e_shoff, mulu(eh.e_shentsize, eh.e_shnum, overflow), overflow);
+        if (overflow || end > base.length)
+            return corrupt(__LINE__);
+
         /* For each Section
          */
-        for (uint u = 0; u < eh.e_shnum; u++)
+        const sections = (cast(const(Elf64_Shdr)*)(base.ptr + eh.e_shoff))[0 .. eh.e_shnum];
+        foreach (ref const section; sections)
         {
-            Elf64_Shdr* section = cast(Elf64_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * u);
             if (section.sh_type == SHT_SYMTAB)
             {
+                bool checkShdr64(const ref Elf64_Shdr shdr)
+                {
+                    bool overflow;
+                    return (addu(shdr.sh_offset, shdr.sh_size, overflow) > base.length || overflow);
+                }
+
+                if (checkShdr64(section))
+                    return corrupt(__LINE__);
+
                 /* sh_link gives the particular string table section
                  * used for the symbol names.
                  */
-                Elf64_Shdr* string_section = cast(Elf64_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * section.sh_link);
+                if (section.sh_link >= eh.e_shnum)
+                    return corrupt(__LINE__);
+
+                const string_section = &sections[section.sh_link];
                 if (string_section.sh_type != SHT_STRTAB)
+                    return corrupt(__LINE__);
+
+                if (checkShdr64(*string_section))
+                    return corrupt(__LINE__);
+
+                const string_tab = (cast(const(char)[])base)
+                    [cast(size_t)string_section.sh_offset ..
+                     cast(size_t)(string_section.sh_offset + string_section.sh_size)];
+
+                /* Get the array of symbols this section refers to
+                 */
+                const symbols = (cast(Elf64_Sym*)(base.ptr + cast(size_t)section.sh_offset))
+                    [0 .. cast(size_t)(section.sh_size / Elf64_Sym.sizeof)];
+
+                foreach (ref const sym; symbols)
                 {
-                    reason = 3;
-                    goto Lcorrupt;
-                }
-                char* string_tab = cast(char*)(buf + string_section.sh_offset);
-                for (uint offset = 0; offset < section.sh_size; offset += Elf64_Sym.sizeof)
-                {
-                    Elf64_Sym* sym = cast(Elf64_Sym*)(buf + section.sh_offset + offset);
-                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) && sym.st_shndx != SHN_UNDEF) // not extern
+                    if (((sym.st_info >> 4) == STB_GLOBAL || (sym.st_info >> 4) == STB_WEAK) &&
+                        sym.st_shndx != SHN_UNDEF) // not extern
                     {
-                        char* name = string_tab + sym.st_name;
-                        //printf("sym st_name = x%x\n", sym->st_name);
-                        const pend = memchr(name, 0, cast(size_t)(string_section.sh_size - sym.st_name));
-                        if (pend)
-                        {
-                            pAddSymbol(name[0 .. pend - name], 1);
-                        }
-                        else
-                        {
-                            reason = __LINE__;
-                            goto Lcorrupt;
-                        }
+                        if (sym.st_name >= string_tab.length)
+                            return corrupt(__LINE__);
+
+                        const name = &string_tab[sym.st_name];
+                        //printf("sym st_name = x%x\n", sym.st_name);
+                        const pend = memchr(name, 0, string_tab.length - sym.st_name);
+                        if (!pend)       // if didn't find terminating 0 inside the string section
+                            return corrupt(__LINE__);
+                        pAddSymbol(name[0 .. pend - name], 1);
                     }
                 }
             }
@@ -172,22 +213,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
     }
     else
     {
-        error(loc, "ELF object module %s is unrecognized class %d", module_name, buf[EI_CLASS]);
+        error(loc, "ELF object module %s is unrecognized class %d", module_name, base[EI_CLASS]);
         return;
-    }
-    version (none)
-    {
-        /* String table section
-         */
-        Elf32_Shdr* string_section = cast(Elf32_Shdr*)(buf + eh.e_shoff + eh.e_shentsize * eh.e_shstrndx);
-        if (string_section.sh_type != SHT_STRTAB)
-        {
-            //printf("buf = %p, e_shentsize = %d, e_shstrndx = %d\n", buf, eh->e_shentsize, eh->e_shstrndx);
-            //printf("sh_type = %d, SHT_STRTAB = %d\n", string_section->sh_type, SHT_STRTAB);
-            reason = 2;
-            goto Lcorrupt;
-        }
-        printf("strtab sh_offset = x%x\n", string_section.sh_offset);
-        char* string_tab = cast(char*)(buf + string_section.sh_offset);
     }
 }
