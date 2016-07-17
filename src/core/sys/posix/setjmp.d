@@ -170,6 +170,45 @@ else version( FreeBSD )
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
+else version( OpenBSD )
+{
+    // <machine/setjmp.h>
+    version( X86 )
+    {
+        enum _JBLEN = 10;
+    }
+    else version( X86_64)
+    {
+        enum _JBLEN = 11;
+    }
+    else version( ARM )
+    {
+        enum _JBLEN = 64;
+    }
+    else version( PPC )
+    {
+        enum _JBLEN = 100;
+    }
+    else version( MIPS64 )
+    {
+        enum _JBLEN = 83;
+    }
+    else version( SPARC )
+    {
+        enum _JBLEN = 10;
+    }
+    else version( SPARC64 )
+    {
+        enum _JBLEN = 14;
+    }
+    else
+        static assert(0);
+
+    alias jmp_buf = c_long[_JBLEN];
+
+    int  setjmp(ref jmp_buf);
+    void longjmp(ref jmp_buf, int);
+}
 else version( CRuntime_Bionic )
 {
     // <machine/setjmp.h>
@@ -238,6 +277,13 @@ else version( FreeBSD )
     int  sigsetjmp(ref sigjmp_buf);
     void siglongjmp(ref sigjmp_buf, int);
 }
+else version( OpenBSD )
+{
+    alias sigjmp_buf = c_long[_JBLEN + 1];
+
+    int  sigsetjmp(ref sigjmp_buf);
+    void siglongjmp(ref sigjmp_buf, int);
+}
 else version( CRuntime_Bionic )
 {
     alias c_long[_JBLEN + 1] sigjmp_buf;
@@ -260,6 +306,11 @@ version( CRuntime_Glibc )
     void _longjmp(ref jmp_buf, int);
 }
 else version( FreeBSD )
+{
+    int  _setjmp(ref jmp_buf);
+    void _longjmp(ref jmp_buf, int);
+}
+else version( OpenBSD )
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);
