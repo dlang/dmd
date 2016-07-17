@@ -182,10 +182,6 @@ final class LibOMF : Library
     }
 
     /*****************************************************************************/
-    override void addLibrary(const ubyte[] buf)
-    {
-        addObject(null, buf);
-    }
 
     override void write()
     {
