@@ -7084,32 +7084,32 @@ final class Parser : Lexer
             break;
 
         case TOKfloat32v:
-            e = new RealExp(loc, token.float80value, Type.tfloat32);
+            e = new RealExp(loc, token.floatvalue, Type.tfloat32);
             nextToken();
             break;
 
         case TOKfloat64v:
-            e = new RealExp(loc, token.float80value, Type.tfloat64);
+            e = new RealExp(loc, token.floatvalue, Type.tfloat64);
             nextToken();
             break;
 
         case TOKfloat80v:
-            e = new RealExp(loc, token.float80value, Type.tfloat80);
+            e = new RealExp(loc, token.floatvalue, Type.tfloat80);
             nextToken();
             break;
 
         case TOKimaginary32v:
-            e = new RealExp(loc, token.float80value, Type.timaginary32);
+            e = new RealExp(loc, token.floatvalue, Type.timaginary32);
             nextToken();
             break;
 
         case TOKimaginary64v:
-            e = new RealExp(loc, token.float80value, Type.timaginary64);
+            e = new RealExp(loc, token.floatvalue, Type.timaginary64);
             nextToken();
             break;
 
         case TOKimaginary80v:
-            e = new RealExp(loc, token.float80value, Type.timaginary80);
+            e = new RealExp(loc, token.floatvalue, Type.timaginary80);
             nextToken();
             break;
 

@@ -25,6 +25,7 @@ import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.mtype;
+import ddmd.root.ctfloat;
 import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.target;
@@ -1066,7 +1067,7 @@ extern (C++) int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
 extern (C++) int realCmp(TOK op, real_t r1, real_t r2)
 {
     // Don't rely on compiler, handle NAN arguments separately
-    if (Port.isNan(r1) || Port.isNan(r2)) // if unordered
+    if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
     {
         switch (op)
         {
@@ -1244,8 +1245,8 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     {
         return e1.toInteger() != e2.toInteger();
     }
-    real_t r1;
-    real_t r2;
+    real_t r1 = 0;
+    real_t r2 = 0;
     if (e1.type.isreal())
     {
         r1 = e1.toReal();
@@ -1257,7 +1258,7 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
         r1 = e1.toImaginary();
         r2 = e2.toImaginary();
     L1:
-        if (Port.isNan(r1) || Port.isNan(r2)) // if unordered
+        if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;
         }

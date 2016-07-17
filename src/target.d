@@ -15,7 +15,7 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
-import ddmd.root.longdouble;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 
 /***********************************************************
@@ -32,6 +32,33 @@ struct Target
     extern (C++) static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
     extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
     extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
+
+    template FPTypeProperties(T)
+    {
+        enum : real_t
+        {
+            max = T.max,
+            min_normal = T.min_normal,
+            nan = T.nan,
+            snan = T.init,
+            infinity = T.infinity,
+            epsilon = T.epsilon
+        }
+
+        enum : long
+        {
+            dig = T.dig,
+            mant_dig = T.mant_dig,
+            max_exp = T.max_exp,
+            min_exp = T.min_exp,
+            max_10_exp = T.max_10_exp,
+            min_10_exp = T.min_10_exp
+        }
+    }
+
+    alias FloatProperties = FPTypeProperties!float;
+    alias DoubleProperties = FPTypeProperties!double;
+    alias RealProperties = FPTypeProperties!real;
 
     extern (C++) static void _init()
     {
@@ -334,7 +361,7 @@ extern (C++) static Expression decodeInteger(Loc loc, Type type, ubyte* buffer)
     return new IntegerExp(loc, value, type);
 }
 
-// Write the real value of 'e' into a unsigned byte buffer.
+// Write the real_t value of 'e' into a unsigned byte buffer.
 extern (C++) static void encodeReal(Expression e, ubyte* buffer)
 {
     switch (e.type.ty)
@@ -356,23 +383,23 @@ extern (C++) static void encodeReal(Expression e, ubyte* buffer)
     }
 }
 
-// Write the bytes encoded in 'buffer' into a longdouble and returns
+// Write the bytes encoded in 'buffer' into a real_t and returns
 // the value as a new RealExp.
 extern (C++) static Expression decodeReal(Loc loc, Type type, ubyte* buffer)
 {
-    real value;
+    real_t value;
     switch (type.ty)
     {
     case Tfloat32:
         {
             float* p = cast(float*)buffer;
-            value = ldouble(*p);
+            value = real_t(*p);
             break;
         }
     case Tfloat64:
         {
             double* p = cast(double*)buffer;
-            value = ldouble(*p);
+            value = real_t(*p);
             break;
         }
     default:

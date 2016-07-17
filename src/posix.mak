@@ -213,8 +213,8 @@ else
 	FRONT_SRCS += objc_stubs.d
 endif
 
-ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array file filename	\
-	longdouble man outbuffer port response rmem rootobject speller	\
+ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
+	filename man outbuffer port response rmem rootobject speller \
 	stringtable))
 
 GLUE_OBJS = glue.o msc.o s2ir.o e2ir.o tocsym.o toobj.o \
@@ -264,9 +264,9 @@ SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d         \
 	$(DMD_SRCS)
 
-ROOT_SRC = $(addprefix $(ROOT)/, array.h file.h filename.h		\
-	longdouble.h newdelete.c object.h outbuffer.h port.h rmem.h	\
-	root.h stringtable.h)
+ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
+	longdouble.h newdelete.c object.h outbuffer.h port.h \
+	rmem.h root.h stringtable.h)
 
 GLUE_SRC = glue.c msc.c s2ir.c e2ir.c tocsym.c \
 	toobj.c tocvdebug.c toir.h toir.c \

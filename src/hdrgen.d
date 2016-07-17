@@ -39,8 +39,8 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.nspace;
 import ddmd.parse;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
-import ddmd.root.port;
 import ddmd.root.rootobject;
 import ddmd.statement;
 import ddmd.staticassert;
@@ -2196,13 +2196,13 @@ public:
          Plus one for rounding. */
         const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
         char[BUFFER_LEN] buffer;
-        Port.ld_sprint(buffer.ptr, 'g', value);
+        CTFloat.sprint(buffer.ptr, 'g', value);
         assert(strlen(buffer.ptr) < BUFFER_LEN);
         if (hgs.hdrgen)
         {
-            real_t r = Port.strtold(buffer.ptr, null);
+            real_t r = CTFloat.parse(buffer.ptr);
             if (r != value) // if exact duplication
-                Port.ld_sprint(buffer.ptr, 'a', value);
+                CTFloat.sprint(buffer.ptr, 'a', value);
         }
         buf.writestring(buffer.ptr);
         if (type)

@@ -30,7 +30,7 @@ import ddmd.init;
 import ddmd.intrange;
 import ddmd.mtype;
 import ddmd.opover;
-import ddmd.root.longdouble;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.tokens;
@@ -463,17 +463,16 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             case Tfloat80:
                 {
-                    real f;
                     if (e.type.isunsigned())
                     {
-                        f = ldouble(value);
-                        if (f != value) // isn't this a noop, because the compiler prefers ld
+                        const f = real_t(value);
+                        if (cast(dinteger_t)f != value) // isn't this a noop, because the compiler prefers ld
                             return;
                     }
                     else
                     {
-                        f = ldouble(cast(sinteger_t)value);
-                        if (f != cast(sinteger_t)value)
+                        const f = real_t(cast(sinteger_t)value);
+                        if (cast(sinteger_t)f != cast(sinteger_t)value)
                             return;
                     }
                     break;

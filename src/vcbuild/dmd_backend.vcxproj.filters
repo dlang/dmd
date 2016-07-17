@@ -428,6 +428,9 @@
     <ClInclude Include="..\tk\vec.h">
       <Filter>src\tk</Filter>
     </ClInclude>
+    <ClInclude Include="..\root\ctfloat.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
     <ClInclude Include="..\root\longdouble.h">
       <Filter>src\root</Filter>
     </ClInclude>

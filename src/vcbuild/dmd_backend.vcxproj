@@ -249,6 +249,7 @@ popd</Command>
     <ClInclude Include="..\tk\list.h" />
     <ClInclude Include="..\tk\mem.h" />
     <ClInclude Include="..\tk\vec.h" />
+    <ClInclude Include="..\root\ctfloat.h" />
     <ClInclude Include="..\root\longdouble.h" />
     <ClInclude Include="..\root\port.h" />
     <ClInclude Include="..\root\rmem.h" />
