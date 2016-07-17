@@ -748,7 +748,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (binOptimize(e, result))
                 return;
             // Replace 1 ^^ x or 1.0^^x by (x, 1)
-            if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) || (e.e1.op == TOKfloat64 && e.e1.toReal() == real_t(1)))
+            if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) || (e.e1.op == TOKfloat64 && e.e1.toReal() == CTFloat.one))
             {
                 ret = new CommaExp(e.loc, e.e2, e.e1);
                 return;
@@ -762,25 +762,25 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             }
             // Replace x ^^ 0 or x^^0.0 by (x, 1)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 0) || (e.e2.op == TOKfloat64 && e.e2.toReal() == real_t(0)))
+            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 0) || (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.zero))
             {
                 if (e.e1.type.isintegral())
                     ret = new IntegerExp(e.loc, 1, e.e1.type);
                 else
-                    ret = new RealExp(e.loc, real_t(1), e.e1.type);
+                    ret = new RealExp(e.loc, CTFloat.one, e.e1.type);
                 ret = new CommaExp(e.loc, e.e1, ret);
                 return;
             }
             // Replace x ^^ 1 or x^^1.0 by (x)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 1) || (e.e2.op == TOKfloat64 && e.e2.toReal() == real_t(1)))
+            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 1) || (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.one))
             {
                 ret = e.e1;
                 return;
             }
             // Replace x ^^ -1.0 by (1.0 / x)
-            if ((e.e2.op == TOKfloat64 && e.e2.toReal() == real_t(-1)))
+            if (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.minusone)
             {
-                ret = new DivExp(e.loc, new RealExp(e.loc, real_t(1), e.e2.type), e.e1);
+                ret = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, e.e2.type), e.e1);
                 return;
             }
             // All other negative integral powers are illegal

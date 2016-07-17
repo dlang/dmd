@@ -132,13 +132,13 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
     {
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
-        auto c1 = complex_t(real_t(0));
+        auto c1 = complex_t(CTFloat.zero);
         real_t r1 = 0;
         real_t i1 = 0;
-        auto c2 = complex_t(real_t(0));
+        auto c2 = complex_t(CTFloat.zero);
         real_t r2 = 0;
         real_t i2 = 0;
-        auto v = complex_t(real_t(0));
+        auto v = complex_t(CTFloat.zero);
         int x;
         if (e1.type.isreal())
         {
@@ -184,7 +184,7 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
             v = complex_t(r2, i1);
             break;
         case 3 + 1:
-            v = complex_t(real_t(0), i1 + i2);
+            v = complex_t(CTFloat.zero, i1 + i2);
             break;
         case 3 + 2:
             v = complex_t(creall(c2), i1 + cimagl(c2));
@@ -235,13 +235,13 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
     {
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
-        auto c1 = complex_t(real_t(0));
+        auto c1 = complex_t(CTFloat.zero);
         real_t r1 = 0;
         real_t i1 = 0;
-        auto c2 = complex_t(real_t(0));
+        auto c2 = complex_t(CTFloat.zero);
         real_t r2 = 0;
         real_t i2 = 0;
-        auto v = complex_t(real_t(0));
+        auto v = complex_t(CTFloat.zero);
         int x;
         if (e1.type.isreal())
         {
@@ -287,7 +287,7 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
             v = complex_t(-r2, i1);
             break;
         case 3 + 1:
-            v = complex_t(real_t(0), i1 - i2);
+            v = complex_t(CTFloat.zero, i1 - i2);
             break;
         case 3 + 2:
             v = complex_t(-creall(c2), i1 - cimagl(c2));
@@ -324,7 +324,7 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
     UnionExp ue;
     if (type.isfloating())
     {
-        auto c = complex_t(real_t(0));
+        auto c = complex_t(CTFloat.zero);
         real_t r = 0;
         if (e1.type.isreal())
         {
@@ -373,7 +373,7 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
     UnionExp ue;
     if (type.isfloating())
     {
-        auto c = complex_t(real_t(0));
+        auto c = complex_t(CTFloat.zero);
         //e1->type->print();
         //e2->type->print();
         if (e2.type.isreal())
@@ -447,7 +447,7 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
     UnionExp ue;
     if (type.isfloating())
     {
-        auto c = complex_t(real_t(0));
+        auto c = complex_t(CTFloat.zero);
         if (e2.type.isreal())
         {
             const r2 = e2.toReal();
@@ -529,12 +529,12 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         if (e1.type.iscomplex())
         {
             emplaceExp!(ComplexExp)(&ur, loc, e1.toComplex(), e1.type);
-            emplaceExp!(ComplexExp)(&uv, loc, complex_t(real_t(1)), e1.type);
+            emplaceExp!(ComplexExp)(&uv, loc, complex_t(CTFloat.one), e1.type);
         }
         else if (e1.type.isfloating())
         {
             emplaceExp!(RealExp)(&ur, loc, e1.toReal(), e1.type);
-            emplaceExp!(RealExp)(&uv, loc, real_t(1), e1.type);
+            emplaceExp!(RealExp)(&uv, loc, CTFloat.one, e1.type);
         }
         else
         {
@@ -558,7 +558,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
         {
             // ue = 1.0 / v
             UnionExp one;
-            emplaceExp!(RealExp)(&one, loc, real_t(1), v.type);
+            emplaceExp!(RealExp)(&one, loc, CTFloat.one, v.type);
             uv = Div(loc, v.type, one.exp(), v);
         }
         if (type.iscomplex())
@@ -571,7 +571,7 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
     else if (e2.type.isfloating())
     {
         // x ^^ y for x < 0 and y not an integer is not defined; so set result as NaN
-        if (e1.toReal() < real_t(0))
+        if (e1.toReal() < CTFloat.zero)
         {
             emplaceExp!(RealExp)(&ue, loc, Target.RealProperties.nan, type);
         }

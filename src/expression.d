@@ -2776,19 +2776,19 @@ extern (C++) abstract class Expression : RootObject
     real_t toReal()
     {
         error("floating point constant expression expected instead of %s", toChars());
-        return real_t(0);
+        return CTFloat.zero;
     }
 
     real_t toImaginary()
     {
         error("floating point constant expression expected instead of %s", toChars());
-        return real_t(0);
+        return CTFloat.zero;
     }
 
     complex_t toComplex()
     {
         error("floating point constant expression expected instead of %s", toChars());
-        return complex_t(real_t(0));
+        return complex_t(CTFloat.zero);
     }
 
     StringExp toStringExp()
@@ -3556,7 +3556,7 @@ extern (C++) final class IntegerExp : Expression
 
     override real_t toImaginary()
     {
-        return real_t(0);
+        return CTFloat.zero;
     }
 
     override complex_t toComplex()
@@ -3732,12 +3732,12 @@ extern (C++) final class RealExp : Expression
 
     override real_t toReal()
     {
-        return type.isreal() ? value : real_t(0);
+        return type.isreal() ? value : CTFloat.zero;
     }
 
     override real_t toImaginary()
     {
-        return type.isreal() ? real_t(0) : value;
+        return type.isreal() ? CTFloat.zero : value;
     }
 
     override complex_t toComplex()
@@ -8030,7 +8030,7 @@ extern (C++) abstract class BinExp : Expression
                 {
                     // x/iv = i(-x/v)
                     // Therefore, the result is 0
-                    e2 = new CommaExp(loc, e2, new RealExp(loc, real_t(0), t1));
+                    e2 = new CommaExp(loc, e2, new RealExp(loc, CTFloat.zero, t1));
                     e2.type = t1;
                     Expression e = new AssignExp(loc, e1, e2);
                     e.type = t1;
@@ -14774,7 +14774,7 @@ extern (C++) final class PowExp : BinExp
         }
         e = new ScopeExp(loc, mmath);
 
-        if (e2.op == TOKfloat64 && e2.toReal() == real_t(0.5))
+        if (e2.op == TOKfloat64 && e2.toReal() == CTFloat.half)
         {
             // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
             e = new CallExp(loc, new DotIdExp(loc, e, Id._sqrt), e1);
