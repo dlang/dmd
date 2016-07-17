@@ -26,7 +26,6 @@
 #include "id.h"
 #include "import.h"
 #include "template.h"
-#include "lib.h"
 #include "target.h"
 
 #include "rmem.h"
@@ -64,6 +63,9 @@ Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
 static void genhelpers(Module *m);
+
+class Library;
+void addObjectToLibrary(Library *lib, const char *module_name, const unsigned char *buf, size_t buflen);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -264,7 +266,7 @@ void obj_end(Library *library, File *objfile)
     if (library)
     {
         // Transfer image to library
-        library->addObject(objfilename, objbuf.buf, objbuf.p - objbuf.buf);
+        addObjectToLibrary(library, objfilename, objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
     }
     else

@@ -40,7 +40,7 @@ alias OmfObjSymbols = Array!(OmfObjSymbol*);
 extern (C) uint _rotl(uint value, int shift);
 extern (C) uint _rotr(uint value, int shift);
 
-extern (C++) final class LibOMF : Library
+final class LibOMF : Library
 {
     File* libfile;
     OmfObjModules objmodules; // OmfObjModule[]
@@ -82,12 +82,14 @@ extern (C++) final class LibOMF : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, void* buf, size_t buflen)
+    override void addObject(const(char)* module_name, const ubyte[] buffer)
     {
         static if (LOG)
         {
             printf("LibOMF::addObject(%s)\n", module_name ? module_name : "");
         }
+        auto buf = buffer.ptr;
+        auto buflen = buffer.length;
         if (!buf)
         {
             assert(module_name);
@@ -128,7 +130,7 @@ extern (C++) final class LibOMF : Library
              */
             islibrary = 1;
             g_page_size = lh.pagesize + 3;
-            buf = cast(void*)(pstart + g_page_size);
+            buf = cast(ubyte*)(pstart + g_page_size);
             if (lh.lSymSeek > buflen || g_page_size > buflen)
                 goto Lcorrupt;
             buflen = lh.lSymSeek - g_page_size;
@@ -175,14 +177,14 @@ extern (C++) final class LibOMF : Library
             this.objmodules.push(om);
         }
 
-        if (scanOmfLib(&addOmfObjModule, buf, buflen, g_page_size))
+        if (scanOmfLib(&addOmfObjModule, cast(void*)buf, buflen, g_page_size))
             goto Lcorrupt;
     }
 
     /*****************************************************************************/
-    override void addLibrary(void* buf, size_t buflen)
+    override void addLibrary(const ubyte[] buf)
     {
-        addObject(null, buf, buflen);
+        addObject(null, buf);
     }
 
     override void write()

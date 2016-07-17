@@ -41,7 +41,7 @@ struct MachObjSymbol
 alias MachObjModules = Array!(MachObjModule*);
 alias MachObjSymbols = Array!(MachObjSymbol*);
 
-extern (C++) final class LibMach : Library
+final class LibMach : Library
 {
     File* libfile;
     MachObjModules objmodules; // MachObjModule[]
@@ -87,7 +87,7 @@ extern (C++) final class LibMach : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, void* buf, size_t buflen)
+    override void addObject(const(char)* module_name, const ubyte[] buffer)
     {
         if (!module_name)
             module_name = "";
@@ -96,6 +96,8 @@ extern (C++) final class LibMach : Library
             printf("LibMach::addObject(%s)\n", module_name);
         }
         int fromfile = 0;
+        auto buf = buffer.ptr;
+        auto buflen = buffer.length;
         if (!buf)
         {
             assert(module_name[0]);
@@ -282,9 +284,9 @@ extern (C++) final class LibMach : Library
     }
 
     /*****************************************************************************/
-    override void addLibrary(void* buf, size_t buflen)
+    override void addLibrary(const ubyte[] buf)
     {
-        addObject(null, buf, buflen);
+        addObject(null, buf);
     }
 
     override void write()

@@ -53,7 +53,7 @@ extern (C) int MSCoffObjSymbol_cmp(const(void*) p, const(void*) q)
 alias MSCoffObjModules = Array!(MSCoffObjModule*);
 alias MSCoffObjSymbols = Array!(MSCoffObjSymbol*);
 
-extern (C++) final class LibMSCoff : Library
+final class LibMSCoff : Library
 {
     File* libfile;
     MSCoffObjModules objmodules; // MSCoffObjModule[]
@@ -99,7 +99,7 @@ extern (C++) final class LibMSCoff : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, void* buf, size_t buflen)
+    override void addObject(const(char)* module_name, const ubyte[] buffer)
     {
         if (!module_name)
             module_name = "";
@@ -108,6 +108,8 @@ extern (C++) final class LibMSCoff : Library
             printf("LibMSCoff::addObject(%s)\n", module_name);
         }
         int fromfile = 0;
+        auto buf = buffer.ptr;
+        auto buflen = buffer.length;
         if (!buf)
         {
             assert(module_name[0]);
@@ -407,9 +409,9 @@ extern (C++) final class LibMSCoff : Library
     }
 
     /*****************************************************************************/
-    override void addLibrary(void* buf, size_t buflen)
+    override void addLibrary(const ubyte[] buf)
     {
-        addObject(null, buf, buflen);
+        addObject(null, buf);
     }
 
     override void write()
