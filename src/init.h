@@ -104,7 +104,7 @@ class ArrayInitializer : public Initializer
 public:
     Expressions index;  // indices
     Initializers value; // of Initializer *'s
-    size_t dim;         // length of array being initialized
+    unsigned dim;       // length of array being initialized
     Type *type;         // type that array will be used to initialize
     bool sem;           // true if semantic() is run
 
