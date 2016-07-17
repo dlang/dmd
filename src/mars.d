@@ -1441,7 +1441,7 @@ Language changes listed by -transition=id:
         for (size_t i = 0; i < libmodules.dim; i++)
         {
             const(char)* p = libmodules[i];
-            library.addObject(p, null, 0);
+            library.addObject(p, null);
         }
     }
     // Generate output files

@@ -30,7 +30,7 @@ else
     static assert(0, "unsupported system");
 }
 
-extern (C++) class Library
+class Library
 {
     static Library factory()
     {
@@ -54,9 +54,14 @@ extern (C++) class Library
 
     abstract void setFilename(const(char)* dir, const(char)* filename);
 
-    abstract void addObject(const(char)* module_name, void* buf, size_t buflen);
+    abstract void addObject(const(char)* module_name, const ubyte[] buf);
 
-    abstract void addLibrary(void* buf, size_t buflen);
+    abstract void addLibrary(const ubyte[] buf);
 
     abstract void write();
+}
+
+extern (C++) void addObjectToLibrary(Library lib, const(char)* module_name, const(ubyte)* buf, size_t buflen)
+{
+    lib.addObject(module_name, buf[0 .. buflen]);
 }
