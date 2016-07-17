@@ -130,4 +130,10 @@ extern (C++) struct CTFloat
             }
         }
     }
+
+    // Constant real values 0, 1, -1 and 0.5.
+    static __gshared real_t zero = real_t(0);
+    static __gshared real_t one = real_t(1);
+    static __gshared real_t minusone = real_t(-1);
+    static __gshared real_t half = real_t(0.5);
 }

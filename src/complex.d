@@ -21,7 +21,7 @@ struct complex_t
 
     this(real_t re)
     {
-        this(re, real_t(0));
+        this(re, CTFloat.zero);
     }
 
     this(real_t re, real_t im)

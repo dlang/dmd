@@ -4031,7 +4031,7 @@ extern (C++) final class TypeBasic : Type
                 t = tfloat80;
                 goto L2;
             L2:
-                e = new RealExp(e.loc, real_t(0), t);
+                e = new RealExp(e.loc, CTFloat.zero, t);
                 break;
 
             default:
@@ -4082,7 +4082,7 @@ extern (C++) final class TypeBasic : Type
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                e = new RealExp(e.loc, real_t(0), this);
+                e = new RealExp(e.loc, CTFloat.zero, this);
                 break;
 
             default:
