@@ -409,10 +409,6 @@ final class LibMSCoff : Library
     }
 
     /*****************************************************************************/
-    override void addLibrary(const ubyte[] buf)
-    {
-        addObject(null, buf);
-    }
 
     override void write()
     {

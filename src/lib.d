@@ -56,8 +56,6 @@ class Library
 
     abstract void addObject(const(char)* module_name, const ubyte[] buf);
 
-    abstract void addLibrary(const ubyte[] buf);
-
     abstract void write();
 }
 
