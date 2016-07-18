@@ -59,7 +59,17 @@ class Library
     abstract void write();
 }
 
-extern (C++) void addObjectToLibrary(Library lib, const(char)* module_name, const(ubyte)* buf, size_t buflen)
+version (D_LP64)
+    alias cpp_size_t = size_t;
+else version (OSX)
+{
+    import core.stdc.config : cpp_ulong;
+    alias cpp_size_t = cpp_ulong;
+}
+else
+    alias cpp_size_t = size_t;
+
+extern (C++) void addObjectToLibrary(Library lib, const(char)* module_name, const(ubyte)* buf, cpp_size_t buflen)
 {
     lib.addObject(module_name, buf[0 .. buflen]);
 }
