@@ -352,7 +352,19 @@ extern (C) size_t _aaLen(in AA aa) pure nothrow @nogc
     return aa ? aa.length : 0;
 }
 
-/// Get LValue for key
+/******************************
+ * Lookup *pkey in aa.
+ * Called only from implementation of (aa[key]) expressions when value is mutable.
+ * Params:
+ *      aa = associative array opaque pointer
+ *      ti = TypeInfo for the associative array
+ *      valsz = ignored
+ *      pkey = pointer to the key value
+ * Returns:
+ *      if key was in the aa, a mutable pointer to the existing value.
+ *      If key was not in the aa, a mutable pointer to newly inserted value which
+ *      is set to all zeros
+ */
 extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t valsz,
     in void* pkey)
 {
@@ -393,14 +405,33 @@ extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti, in size_t v
     return p.entry + aa.valoff;
 }
 
-/// Get RValue for key, returns null if not present
+/******************************
+ * Lookup *pkey in aa.
+ * Called only from implementation of (aa[key]) expressions when value is not mutable.
+ * Params:
+ *      aa = associative array opaque pointer
+ *      keyti = TypeInfo for the key
+ *      valsz = ignored
+ *      pkey = pointer to the key value
+ * Returns:
+ *      pointer to value if present, null otherwise
+ */
 extern (C) inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valsz,
     in void* pkey)
 {
     return _aaInX(aa, keyti, pkey);
 }
 
-/// Return pointer to value if present, null otherwise
+/******************************
+ * Lookup *pkey in aa.
+ * Called only from implementation of (key in aa) expressions.
+ * Params:
+ *      aa = associative array opaque pointer
+ *      keyti = TypeInfo for the key
+ *      pkey = pointer to the key value
+ * Returns:
+ *      pointer to value if present, null otherwise
+ */
 extern (C) inout(void)* _aaInX(inout AA aa, in TypeInfo keyti, in void* pkey)
 {
     if (aa.empty)
