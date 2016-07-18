@@ -20,17 +20,42 @@ import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
-import ddmd.root.stringtable;
 import ddmd.errors;
 import ddmd.utils;
 
 import ddmd.scanomf;
 
+//version = STRINGTABLE;
+version (STRINGTABLE)
+{
+    import ddmd.root.stringtable;
+}
+else
+{
+    // Use builtin associative arrays
+
+    alias OmfObjSymbol* Value;
+    alias const(char)[] Key;
+    alias Value[Key] StringTable;
+
+    static assert(StringTable.sizeof == (void*).sizeof);
+
+    version = DIRECTAA;         // call implementation code directly
+    version (DIRECTAA)
+    {
+        /* Directly access implementation of builtin AAs in rt/aaA.d in order
+         * to avoid double lookups.
+         */
+        extern (C) Value* _aaGetY(StringTable* aa, const TypeInfo_AssociativeArray ti, in size_t valsz,
+            in Key* pkey);
+    }
+}
+
 enum LOG = false;
 
 struct OmfObjSymbol
 {
-    char* name;
+    const(char)* name;
     OmfObjModule* om;
 }
 
@@ -45,11 +70,15 @@ final class LibOMF : Library
     File* libfile;
     OmfObjModules objmodules; // OmfObjModule[]
     OmfObjSymbols objsymbols; // OmfObjSymbol[]
+
     StringTable tab;
 
-    extern (D) this()
+    version (STRINGTABLE)
     {
-        tab._init(14000);
+        extern (D) this()
+        {
+            tab._init(14000);
+        }
     }
 
     /***********************************
@@ -203,25 +232,83 @@ final class LibOMF : Library
             printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
         }
         const namelen = strlen(name);
-        StringValue* s = tab.insert(name, namelen, null);
-        if (!s)
+
+        version (STRINGTABLE)
         {
-            // already in table
-            if (!pickAny)
+            StringValue* s = tab.insert(name, namelen, null);
+            if (!s)
             {
-                const s2 = tab.lookup(name, namelen);
-                assert(s2);
-                const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                // already in table
+                if (!pickAny)
+                {
+                    const s2 = tab.lookup(name, namelen);
+                    assert(s2);
+                    const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
+                    error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                }
+            }
+            else
+            {
+                auto os = new OmfObjSymbol();
+                os.name = strdup(name);
+                os.om = om;
+                s.ptrvalue = cast(void*)os;
+                objsymbols.push(os);
+            }
+        }
+        else version (DIRECTAA)
+        {
+            Key key = name[0 .. namelen];
+            OmfObjSymbol** pvalue = _aaGetY(&tab, typeid(tab), Value.sizeof, &key);
+            if (*pvalue)
+            {
+                // already in table
+                if (!pickAny)
+                {
+                    const os = *pvalue;
+                    error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                }
+            }
+            else
+            {
+                auto os = new OmfObjSymbol();
+                os.name = strdup(name);         // copy name[] because it is ephemeral
+                os.om = om;
+
+                /* Need to change the key from name[] to os.name[],
+                 * because the former is ephemeral.
+                 * This uses the inside knowledge that the key
+                 * is stored immediatedly before the value.
+                 */
+                auto pkey = cast(Key*)pvalue - 1;
+                *pkey = os.name[0 .. namelen];
+
+                *pvalue = os;
+                objsymbols.push(os);
             }
         }
         else
         {
-            auto os = new OmfObjSymbol();
-            os.name = strdup(name);
-            os.om = om;
-            s.ptrvalue = cast(void*)os;
-            objsymbols.push(os);
+            /* Standard, but double lookup version
+             */
+            OmfObjSymbol** pvalue = name[0 .. namelen] in tab;
+            if (pvalue)
+            {
+                // already in table
+                if (!pickAny)
+                {
+                    const os = *pvalue;
+                    error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                }
+            }
+            else
+            {
+                auto os = new OmfObjSymbol();
+                os.name = strdup(name);
+                os.om = om;
+                tab[os.name[0 .. namelen]] = os;   // second lookup :-(
+                objsymbols.push(os);
+            }
         }
     }
 
