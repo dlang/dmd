@@ -24,6 +24,7 @@ import ddmd.root.file;
 import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
 import ddmd.root.filename;
+import ddmd.root.rmem;
 import ddmd.root.port;
 import ddmd.scanelf;
 import ddmd.errors;
@@ -33,7 +34,7 @@ enum LOG = false;
 
 struct ElfObjSymbol
 {
-    char* name;
+    const(char)[] name;
     ElfObjModule* om;
 }
 
@@ -265,15 +266,15 @@ final class LibElf : Library
             }
             for (uint i = 0; i < nsymbols; i++)
             {
-                char* name = s;
-                s += strlen(name) + 1;
+                const(char)[] name = s[0 .. strlen(s)];
+                s += name.length + 1;
                 if (s - symtab > symtab_size)
                 {
                     reason = __LINE__;
                     goto Lcorrupt;
                 }
                 uint moff = Port.readlongBE(symtab + 4 + i * 4);
-                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name);
+                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name.ptr);
                 for (uint m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
@@ -354,28 +355,28 @@ final class LibElf : Library
         writeFile(Loc(), libfile);
     }
 
-    void addSymbol(ElfObjModule* om, const(char)* name, int pickAny = 0)
+    void addSymbol(ElfObjModule* om, const(char)[] name, int pickAny = 0)
     {
         static if (LOG)
         {
-            printf("LibElf::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
+            printf("LibElf::addSymbol(%s, %s, %d)\n", om.name, name.ptr, pickAny);
         }
-        StringValue* s = tab.insert(name, strlen(name), null);
+        StringValue* s = tab.insert(name.ptr, name.length, null);
         if (!s)
         {
             // already in table
             if (!pickAny)
             {
-                s = tab.lookup(name, strlen(name));
+                s = tab.lookup(name.ptr, name.length);
                 assert(s);
                 ElfObjSymbol* os = cast(ElfObjSymbol*)s.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name.ptr);
             }
         }
         else
         {
             auto os = new ElfObjSymbol();
-            os.name = strdup(name);
+            os.name = xarraydup(name);
             os.om = om;
             s.ptrvalue = cast(void*)os;
             objsymbols.push(os);
@@ -396,7 +397,7 @@ private:
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            this.addSymbol(om, name.ptr, pickAny);
+            this.addSymbol(om, name, pickAny);
         }
 
         scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
@@ -452,7 +453,7 @@ private:
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             ElfObjSymbol* os = objsymbols[i];
-            moffset += 4 + strlen(os.name) + 1;
+            moffset += 4 + os.name.length + 1;
         }
         uint hoffset = moffset;
         static if (LOG)

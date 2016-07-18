@@ -209,3 +209,18 @@ else
         }
     }
 }
+
+extern (D) static char[] xarraydup(const(char)[] s) nothrow
+{
+    if (s)
+    {
+        auto p = cast(char*)mem.xmalloc(s.length + 1);
+        char[] a = p[0 .. s.length];
+        a[] = s[0 .. s.length];
+        p[s.length] = 0;    // preserve 0 terminator semantics
+        return a;
+    }
+    return null;
+}
+
+
