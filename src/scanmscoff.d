@@ -31,18 +31,19 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
     {
         printf("scanMSCoffObjModule(%s)\n", module_name);
     }
+
+    void corrupt(int reason)
+    {
+        error(loc, "corrupt MS-Coff object module %s %d", module_name, reason);
+    }
+
     const buf = base.ptr;
     const buflen = base.length;
-    int reason;
     /* First do sanity checks on object file
      */
     if (buflen < BIGOBJ_HEADER.sizeof)
-    {
-        reason = __LINE__;
-    Lcorrupt:
-        error(loc, "MS-Coff object module %s is corrupt, %d", module_name, reason);
-        return;
-    }
+        return corrupt(__LINE__);
+
     BIGOBJ_HEADER* header = cast(BIGOBJ_HEADER*)buf;
     char is_old_coff = false;
     if (header.Sig2 != 0xFFFF && header.Version != 2)
@@ -82,17 +83,13 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
     }
     off += header.NumberOfSymbols * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
     if (off + 4 > buflen)
-    {
-        reason = __LINE__;
-        goto Lcorrupt;
-    }
+        return corrupt(__LINE__);
+
     uint string_len = *cast(uint*)(buf + off);
     char* string_table = cast(char*)(buf + off + 4);
     if (off + string_len > buflen)
-    {
-        reason = __LINE__;
-        goto Lcorrupt;
-    }
+        return corrupt(__LINE__);
+
     string_len -= 4;
     for (int i = 0; i < header.NumberOfSymbols; i++)
     {
@@ -105,10 +102,8 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         }
         off = header.PointerToSymbolTable + i * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
         if (off > buflen)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
+
         n = cast(SymbolTable32*)(buf + off);
         if (is_old_coff)
         {

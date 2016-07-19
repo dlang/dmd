@@ -34,21 +34,22 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     {
         printf("scanMachObjModule(%s)\n", module_name);
     }
+
+    void corrupt(int reason)
+    {
+        error(loc, "corrupt Mach-O object module %s %d", module_name, reason);
+    }
+
     const buf = base.ptr;
     const buflen = base.length;
-    int reason = 0;
     uint32_t ncmds;
     mach_header* header = cast(mach_header*)buf;
     mach_header_64* header64 = null;
     /* First do sanity checks on object file
      */
     if (buflen < mach_header.sizeof)
-    {
-        reason = __LINE__;
-    Lcorrupt:
-        error(loc, "Mach-O object module %s corrupt, %d", module_name, reason);
-        return;
-    }
+        return corrupt(__LINE__);
+
     if (header.magic == MH_MAGIC)
     {
         if (header.cputype != CPU_TYPE_I386)
@@ -62,17 +63,14 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
         ncmds = header.ncmds;
     }
     else if (header.magic == MH_MAGIC_64)
     {
         header64 = cast(mach_header_64*)buf;
         if (buflen < mach_header_64.sizeof)
-            goto Lcorrupt;
+            return corrupt(__LINE__);
         if (header64.cputype != CPU_TYPE_X86_64)
         {
             error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
@@ -84,17 +82,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
         ncmds = header64.ncmds;
     }
     else
-    {
-        reason = __LINE__;
-        goto Lcorrupt;
-    }
+        return corrupt(__LINE__);
+
     segment_command* segment_commands = null;
     segment_command_64* segment_commands64 = null;
     symtab_command* symtab_commands = null;
@@ -129,19 +122,15 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
         // Get pointer to string table
         char* strtab = cast(char*)buf + symtab_commands.stroff;
         if (buflen < symtab_commands.stroff + symtab_commands.strsize)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
+
         if (header.magic == MH_MAGIC_64)
         {
             // Get pointer to symbol table
             nlist_64* symtab = cast(nlist_64*)(cast(char*)buf + symtab_commands.symoff);
             if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist_64.sizeof)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
@@ -191,10 +180,8 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             // Get pointer to symbol table
             nlist* symtab = cast(nlist*)(cast(char*)buf + symtab_commands.symoff);
             if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist.sizeof)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
