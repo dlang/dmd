@@ -289,7 +289,7 @@ final class LibMSCoff : Library
                         assert(oname);
                         memcpy(oname, longnames + foff, i);
                         oname[i] = 0;
-                        om.name = oname;
+                        om.name = oname[0 .. i];
                         //printf("\tname = '%s'\n", om->name);
                     }
                     else
@@ -298,7 +298,8 @@ final class LibMSCoff : Library
                          */
                         char* oname = cast(char*)malloc(MSCOFF_OBJECT_NAME_SIZE);
                         assert(oname);
-                        for (int i = 0; 1; i++)
+                        int i;
+                        for (i = 0; 1; i++)
                         {
                             if (i == MSCOFF_OBJECT_NAME_SIZE)
                             {
@@ -313,7 +314,7 @@ final class LibMSCoff : Library
                             }
                             oname[i] = c;
                         }
-                        om.name = oname;
+                        om.name = oname[0 .. i];
                     }
                     om.file_time = strtoul(cast(char*)header.file_time, &endptr, 10);
                     om.user_id = strtoul(cast(char*)header.user_id, &endptr, 10);
@@ -378,7 +379,8 @@ final class LibMSCoff : Library
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        om.name = global.params.preservePaths ? module_name : FileName.name(module_name); // remove path, but not extension
+        const(char)* n = global.params.preservePaths ? module_name : FileName.name(module_name); // remove path, but not extension
+        om.name = n[0 .. strlen(n)];
         om.scan = 1;
         if (fromfile)
         {
@@ -428,7 +430,7 @@ final class LibMSCoff : Library
     {
         static if (LOG)
         {
-            printf("LibMSCoff::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
+            printf("LibMSCoff::addSymbol(%s, %s, %d)\n", om.name.ptr, name, pickAny);
         }
         auto os = new MSCoffObjSymbol();
         os.name = xarraydup(name);
@@ -445,7 +447,7 @@ private:
     {
         static if (LOG)
         {
-            printf("LibMSCoff::scanObjModule(%s)\n", om.name);
+            printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
@@ -453,7 +455,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
+        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
     }
 
     /*****************************************************************************/
@@ -493,7 +495,7 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MSCoffObjModule* om = objmodules[i];
-            size_t len = strlen(om.name);
+            size_t len = om.name.length;
             if (len >= MSCOFF_OBJECT_NAME_SIZE)
             {
                 om.name_offset = noffset;
@@ -546,7 +548,7 @@ private:
         om.base = null;
         om.length = cast(uint)(4 + objsymbols.dim * 4 + slength);
         om.offset = 8;
-        om.name = cast(char*)"";
+        om.name = "";
         time_t file_time = 0;
         .time(&file_time);
         om.file_time = cast(long)file_time;
@@ -691,7 +693,7 @@ struct MSCoffObjModule
     uint length; // in bytes
     uint offset; // offset from start of library
     ushort index; // index in Second Linker Member
-    const(char)* name; // module name (file name)
+    const(char)[] name; // module name (file name) terminated with 0
     int name_offset; // if not -1, offset into string table of name
     long file_time; // file time
     uint user_id;
@@ -728,8 +730,8 @@ extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
     size_t len;
     if (om.name_offset == -1)
     {
-        len = strlen(om.name);
-        memcpy(h.object_name.ptr, om.name, len);
+        len = om.name.length;
+        memcpy(h.object_name.ptr, om.name.ptr, len);
         h.object_name[len] = '/';
     }
     else
