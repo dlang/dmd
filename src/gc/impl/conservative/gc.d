@@ -1206,42 +1206,27 @@ class ConservativeGC : GC
     //
     private void getStatsNoSync(out core.memory.GC.Stats stats) nothrow
     {
-        size_t psize = 0;
-        size_t usize = 0;
-        size_t flsize = 0;
-
-        size_t n;
-        size_t bsize = 0;
-
-        //debug(PRINTF) printf("getStats()\n");
-        memset(&stats, 0, core.memory.GC.Stats.sizeof);
-
-        for (n = 0; n < gcx.npools; n++)
-        {   Pool *pool = gcx.pooltable[n];
-
-            psize += pool.npages * PAGESIZE;
-            for (size_t j = 0; j < pool.npages; j++)
-            {
-                Bins bin = cast(Bins)pool.pagetable[j];
-                if (bin < B_PAGE)
-                    bsize += PAGESIZE;
-            }
-        }
-
-        for (n = 0; n < B_PAGE; n++)
+        foreach (pool; gcx.pooltable[0 .. gcx.npools])
         {
-            //debug(PRINTF) printf("bin %d\n", n);
-            for (List *list = gcx.bucket[n]; list; list = list.next)
+            foreach (bin; pool.pagetable[0 .. pool.npages])
             {
-                //debug(PRINTF) printf("\tlist %p\n", list);
-                flsize += binsize[n];
+                if (bin == B_FREE)
+                    stats.freeSize += PAGESIZE;
+                else
+                    stats.usedSize += PAGESIZE;
             }
         }
 
-        usize = bsize - flsize;
+        size_t freeListSize;
+        foreach (n; 0 .. B_PAGE)
+        {
+            immutable sz = binsize[n];
+            for (List *list = gcx.bucket[n]; list; list = list.next)
+                freeListSize += sz;
+        }
 
-        stats.usedSize = bsize - flsize;
-        stats.freeSize = flsize;
+        stats.usedSize -= freeListSize;
+        stats.freeSize += freeListSize;
     }
 }
 
