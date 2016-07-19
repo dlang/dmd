@@ -101,11 +101,6 @@ struct ModuleGroup
         }
 
 
-        // The list of constructors that will be returned by the sorting.
-        immutable(ModuleInfo)*[] ctors;
-        // current element being inserted into ctors list.
-        size_t ctoridx = 0;
-
         // allocate some stack arrays that will be used throughout the process.
         immutable nwords = (len + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
         immutable flagbytes = nwords * size_t.sizeof;
@@ -263,10 +258,8 @@ distloop:
         // trivial modules to get at the non-trivial ones.
         size_t _findDependencies(int idx, bool orig = true)
         {
-            // if it was already set, then we've already examined it.
-            auto current = _modules[idx];
             size_t result = 0;
-            foreach (m; current.importedModules)
+            foreach (m; _modules[idx].importedModules)
             {
                 auto midx = findModule(m);
                 // if midx is -1, then this isn't part of this DSO.
@@ -274,15 +267,26 @@ distloop:
                     if(!bts(reachable, midx))
                     {
                         if(bt(relevant, midx))
+                        {
                             // non-trivial, stop here
                             result += 1;
-                        else
-                            // non-relevant, recurse
-                            result += _findDependencies(midx, false);
+                        }
+                        else if(!bt(ctordone, midx))
+                        {
+                            // non-relevant, and hasn't been exhaustively processed, recurse.
+                            result += (!bt(ctorstart, midx) ? 1 : 0) +
+                                _findDependencies(midx, false);
+                        }
                     }
             }
             return result;
         }
+
+        // The list of constructors that will be returned by the sorting.
+        immutable(ModuleInfo)*[] ctors;
+        // current element being inserted into ctors list.
+        size_t ctoridx = 0;
+
 
         // This function will determine the order of construction/destruction and
         // check for cycles. If a cycle is found, the cycle path is transformed
@@ -309,22 +313,34 @@ distloop:
             // fill in the dependencies
             foreach (int i; 0 .. len)
             {
-                if(i != curidx && bt(reachable, i) && bt(relevant, i))
+                if(i != curidx && bt(reachable, i))
                 {
-                    if(bt(ctorstart, i))
-                    {
-                        // found a cycle
-                        println("Cyclic dependency between module ", _modules[i].name, " and ", current.name);
-                        genPath(i, curidx);
+                   if(bt(relevant, i))
+                   {
+                       if(bt(ctorstart, i))
+                       {
+                           // found a cycle
+                           println("Cyclic dependency between module ", _modules[i].name, " and ", current.name);
+                           genPath(i, curidx);
 
-                        foreach(midx; cyclePath[0 .. $-1])
-                        {
-                            println(_modules[midx].name, bt(relevant, midx) ? "* ->" : " ->");
-                        }
-                        println(_modules[i].name, "*");
-                        throw new Error(errmsg);
-                    }
-                    dependencies[depidx++] = i;
+                           foreach(midx; cyclePath[0 .. $-1])
+                           {
+                               println(_modules[midx].name, bt(relevant, midx) ? "* ->" : " ->");
+                           }
+                           println(_modules[i].name, "*");
+                           throw new Error(errmsg);
+                       }
+                       dependencies[depidx++] = i;
+                   }
+                   else if(!bts(ctorstart, i))
+                   {
+                       // this is a non-relevant module, but it has never been
+                       // imported by any other relevant module in our search.
+                       // Once we have processed the current relevant module,
+                       // we can mark this non-relevant module as done, so it's
+                       // not ever looked at again.
+                       dependencies[depidx++] = i;
+                   }
                 }
             }
             assert(depidx == nmodules);
@@ -332,10 +348,23 @@ distloop:
             // process all the dependencies
             bts(ctorstart, curidx);
             foreach (m; dependencies)
-                if(!bt(ctordone, m))
+            {
+                if(bt(relevant, m) && !bt(ctordone, m))
                     _checkModCtors2(m);
+            }
             bts(ctordone, curidx);
             btr(ctorstart, curidx);
+
+            // mark all non-relevant dependencies as done
+            foreach(m; dependencies)
+            {
+                if(!bt(relevant, m))
+                {
+                    bts(ctordone, m);
+                    // no need to clear ctorstart, as we don't care about
+                    // irrelevant modules for detecting cycles.
+                }
+            }
             // add this module to the construction order list
             ctors[ctoridx++] = current;
         }
