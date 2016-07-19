@@ -39,7 +39,6 @@ version = STACKGROWSDOWN;       // growing the stack means subtracting from the 
 /***************************************************/
 
 import gc.bits;
-import gc.stats;
 import gc.os;
 import gc.config;
 import gc.gcinterface;
@@ -50,6 +49,7 @@ import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string : memcpy, memset, memmove;
 import core.bitop;
 import core.thread;
+static import core.memory;
 
 version (GNU) import gcc.builtins;
 
@@ -1157,8 +1157,8 @@ class ConservativeGC : GC
             GCStats stats;
 
             getStats(stats);
-            debug(PRINTF) printf("poolsize = %zx, usedsize = %zx, freelistsize = %zx\n",
-                    stats.poolsize, stats.usedsize, stats.freelistsize);
+            debug(PRINTF) printf("heapSize = %zx, freeSize = %zx\n",
+                stats.heapSize, stats.freeSize);
         }
 
         gcx.log_collect();
@@ -1191,9 +1191,9 @@ class ConservativeGC : GC
     }
 
 
-    GCStats stats() nothrow
+    core.memory.GC.Stats stats() nothrow
     {
-        GCStats ret;
+        typeof(return) ret;
 
         runLocked!(getStatsNoSync, otherTime, numOthers)(ret);
 
@@ -1204,49 +1204,29 @@ class ConservativeGC : GC
     //
     //
     //
-    private void getStatsNoSync(out GCStats stats) nothrow
+    private void getStatsNoSync(out core.memory.GC.Stats stats) nothrow
     {
-        size_t psize = 0;
-        size_t usize = 0;
-        size_t flsize = 0;
-
-        size_t n;
-        size_t bsize = 0;
-
-        //debug(PRINTF) printf("getStats()\n");
-        memset(&stats, 0, GCStats.sizeof);
-
-        for (n = 0; n < gcx.npools; n++)
-        {   Pool *pool = gcx.pooltable[n];
-
-            psize += pool.npages * PAGESIZE;
-            for (size_t j = 0; j < pool.npages; j++)
-            {
-                Bins bin = cast(Bins)pool.pagetable[j];
-                if (bin == B_FREE)
-                    stats.freeblocks++;
-                else if (bin == B_PAGE)
-                    stats.pageblocks++;
-                else if (bin < B_PAGE)
-                    bsize += PAGESIZE;
-            }
-        }
-
-        for (n = 0; n < B_PAGE; n++)
+        foreach (pool; gcx.pooltable[0 .. gcx.npools])
         {
-            //debug(PRINTF) printf("bin %d\n", n);
-            for (List *list = gcx.bucket[n]; list; list = list.next)
+            foreach (bin; pool.pagetable[0 .. pool.npages])
             {
-                //debug(PRINTF) printf("\tlist %p\n", list);
-                flsize += binsize[n];
+                if (bin == B_FREE)
+                    stats.freeSize += PAGESIZE;
+                else
+                    stats.usedSize += PAGESIZE;
             }
         }
 
-        usize = bsize - flsize;
+        size_t freeListSize;
+        foreach (n; 0 .. B_PAGE)
+        {
+            immutable sz = binsize[n];
+            for (List *list = gcx.bucket[n]; list; list = list.next)
+                freeListSize += sz;
+        }
 
-        stats.poolsize = psize;
-        stats.usedsize = bsize - flsize;
-        stats.freelistsize = flsize;
+        stats.usedSize -= freeListSize;
+        stats.freeSize += freeListSize;
     }
 }
 

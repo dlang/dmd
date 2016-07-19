@@ -138,6 +138,7 @@ private
     }
 
     extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
+    extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
 
     extern (C) void gc_addRoot( in void* p ) nothrow @nogc;
     extern (C) void gc_addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
@@ -157,6 +158,17 @@ private
 struct GC
 {
     @disable this();
+
+    /**
+     * Aggregation of GC stats to be exposed via public API
+     */
+    static struct Stats
+    {
+        /// number of used bytes on the GC heap (might only get updated after a collection)
+        size_t usedSize;
+        /// number of free bytes on the GC heap (might only get updated after a collection)
+        size_t freeSize;
+    }
 
     /**
      * Enables automatic garbage collection behavior if collections have
@@ -659,6 +671,14 @@ struct GC
         return gc_query( p );
     }
 
+    /**
+     * Returns runtime stats for currently active GC implementation
+     * See `core.memory.GC.Stats` for list of available metrics.
+     */
+    static Stats stats() nothrow
+    {
+        return gc_stats();
+    }
 
     /**
      * Adds an internal root pointing to the GC memory block referenced by p.
