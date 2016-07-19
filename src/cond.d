@@ -193,6 +193,7 @@ extern (C++) final class VersionCondition : DVCondition
      */
     extern(D) private static bool isReserved(const(char)[] ident)
     {
+        // This list doesn't include "D_*" versions, see the last return
         static immutable string[] reserved =
         [
             "DigitalMars",
@@ -274,18 +275,6 @@ extern (C++) final class VersionCondition : DVCondition
             "CRuntime_DigitalMars",
             "CRuntime_Glibc",
             "CRuntime_Microsoft",
-            "D_Coverage",
-            "D_Ddoc",
-            "D_InlineAsm_X86",
-            "D_InlineAsm_X86_64",
-            "D_LP64",
-            "D_X32",
-            "D_HardFloat",
-            "D_SoftFloat",
-            "D_PIC",
-            "D_SIMD",
-            "D_Version2",
-            "D_NoBoundsChecks",
             "unittest",
             "assert",
             "all",
