@@ -23,6 +23,7 @@ import ddmd.lib;
 import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
+import ddmd.root.rmem;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
 import ddmd.root.stringtable;
@@ -36,7 +37,7 @@ alias stat_t = struct_stat;
 
 struct MSCoffObjSymbol
 {
-    char* name;
+    const(char)[] name;         // still has a terminating 0
     MSCoffObjModule* om;
 }
 
@@ -47,7 +48,7 @@ extern (C) int MSCoffObjSymbol_cmp(const(void*) p, const(void*) q)
 {
     MSCoffObjSymbol* s1 = *cast(MSCoffObjSymbol**)p;
     MSCoffObjSymbol* s2 = *cast(MSCoffObjSymbol**)q;
-    return strcmp(s1.name, s2.name);
+    return strcmp(s1.name.ptr, s2.name.ptr);
 }
 
 alias MSCoffObjModules = Array!(MSCoffObjModule*);
@@ -342,8 +343,8 @@ final class LibMSCoff : Library
             char* s = string_table;
             for (uint i = 0; i < number_of_symbols; i++)
             {
-                char* name = s;
-                s += strlen(s) + 1;
+                const(char)[] name = s[0 .. strlen(s)];
+                s += name.length + 1;
                 uint memi = indices[i] - 1;
                 if (memi >= number_of_members)
                 {
@@ -423,14 +424,14 @@ final class LibMSCoff : Library
         writeFile(Loc(), libfile);
     }
 
-    void addSymbol(MSCoffObjModule* om, const(char)* name, int pickAny = 0)
+    void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0)
     {
         static if (LOG)
         {
             printf("LibMSCoff::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
         }
         auto os = new MSCoffObjSymbol();
-        os.name = strdup(name);
+        os.name = xarraydup(name);
         os.om = om;
         objsymbols.push(os);
     }
@@ -449,7 +450,7 @@ private:
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            this.addSymbol(om, name.ptr, pickAny);
+            this.addSymbol(om, name, pickAny);
         }
 
         scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
@@ -510,7 +511,7 @@ private:
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
-            slength += strlen(os.name) + 1;
+            slength += os.name.length + 1;
         }
         /************* Offset of first module ***********************/
         size_t moffset = 8; // signature

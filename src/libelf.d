@@ -370,7 +370,7 @@ final class LibElf : Library
                 s = tab.lookup(name.ptr, name.length);
                 assert(s);
                 ElfObjSymbol* os = cast(ElfObjSymbol*)s.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name.ptr);
+                error("multiple definition of %s: %s and %s: %s", om.name, name.ptr, os.om.name, os.name.ptr);
             }
         }
         else

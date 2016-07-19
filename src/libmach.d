@@ -25,6 +25,7 @@ import ddmd.root.file;
 import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
 import ddmd.root.filename;
+import ddmd.root.rmem;
 import ddmd.root.port;
 import ddmd.scanmach;
 import ddmd.errors;
@@ -34,7 +35,7 @@ enum LOG = false;
 
 struct MachObjSymbol
 {
-    char* name;
+    const(char)[] name;         // still has a terminating 0
     MachObjModule* om;
 }
 
@@ -210,9 +211,10 @@ final class LibMach : Library
             for (uint i = 0; i < nsymbols; i++)
             {
                 uint soff = Port.readlongLE(symtab + 4 + i * 8);
-                char* name = s + soff;
+                const(char)* name = s + soff;
+                size_t namelen = strlen(name);
                 //printf("soff = x%x name = %s\n", soff, name);
-                if (s + strlen(name) + 1 - symtab > symtab_size)
+                if (s + namelen + 1 - symtab > symtab_size)
                 {
                     reason = __LINE__;
                     goto Lcorrupt;
@@ -230,7 +232,7 @@ final class LibMach : Library
                     //printf("\tom offset = x%x\n", (char *)om->base - (char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
                     {
-                        addSymbol(om, name, 1);
+                        addSymbol(om, name[0 .. namelen], 1);
                         //if (mstart == m)
                         //    mstart++;
                         break;
@@ -298,31 +300,31 @@ final class LibMach : Library
         writeFile(Loc(), libfile);
     }
 
-    void addSymbol(MachObjModule* om, const(char)* name, int pickAny = 0)
+    void addSymbol(MachObjModule* om, const(char)[] name, int pickAny = 0)
     {
         static if (LOG)
         {
-            printf("LibMach::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
+            printf("LibMach::addSymbol(%s, %s, %d)\n", om.name, name.ptr, pickAny);
         }
         version (none)
         {
             // let linker sort out duplicates
-            StringValue* s = tab.insert(name, strlen(name), null);
+            StringValue* s = tab.insert(name.ptr, name.length, null);
             if (!s)
             {
                 // already in table
                 if (!pickAny)
                 {
-                    s = tab.lookup(name, strlen(name));
+                    s = tab.lookup(name.ptr, name.length);
                     assert(s);
                     MachObjSymbol* os = cast(MachObjSymbol*)s.ptrvalue;
-                    error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                    error("multiple definition of %s: %s and %s: %s", om.name, name.ptr, os.om.name, os.name.ptr);
                 }
             }
             else
             {
                 auto os = new MachObjSymbol();
-                os.name = strdup(name);
+                os.name = xarraydup(name);
                 os.om = om;
                 s.ptrvalue = cast(void*)os;
                 objsymbols.push(os);
@@ -331,7 +333,7 @@ final class LibMach : Library
         else
         {
             auto os = new MachObjSymbol();
-            os.name = strdup(name);
+            os.name = xarraydup(name);
             os.om = om;
             objsymbols.push(os);
         }
@@ -351,7 +353,7 @@ private:
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            this.addSymbol(om, name.ptr, pickAny);
+            this.addSymbol(om, name, pickAny);
         }
 
         scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
@@ -388,7 +390,7 @@ private:
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MachObjSymbol* os = objsymbols[i];
-            moffset += 8 + strlen(os.name) + 1;
+            moffset += 8 + os.name.length + 1;
         }
         moffset = (moffset + 3) & ~3;
         //if (moffset & 4)
@@ -448,7 +450,7 @@ private:
             libbuf.write(buf.ptr, 4);
             Port.writelongLE(os.om.offset, buf.ptr);
             libbuf.write(buf.ptr, 4);
-            stringoff += strlen(os.name) + 1;
+            stringoff += os.name.length + 1;
         }
         Port.writelongLE(stringoff, buf.ptr);
         libbuf.write(buf.ptr, 4);
