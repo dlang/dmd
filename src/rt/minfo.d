@@ -62,6 +62,7 @@ struct ModuleGroup
      */
     void sortCtors()
     {
+        import core.bitop: bts, btr, bt;
         debug(printModuleDependencies)
         {
             import core.stdc.stdio : printf;
@@ -74,34 +75,49 @@ struct ModuleGroup
             }
         }
 
-        immutable len = _modules.length;
+        immutable uint len = cast(uint)_modules.length;
+        if(!len)
+            return; // nothing to do.
 
-        // This is ugly to say the least. Would be nice to use a binary
-        // search at least instead of linear...
+        immutable(ModuleInfo)* minMod = _modules[0];
+        immutable(ModuleInfo)* maxMod = _modules[0];
+        foreach(m; _modules)
+        {
+            if(m < minMod)
+                minMod = m;
+            if(m > maxMod)
+                maxMod = m;
+        }
+
         int findModule(in ModuleInfo* mi)
         {
+            // short circuit linear search if possible.
+            if(mi < minMod || mi > maxMod)
+                return -1;
+            // binary search would be nice...
             foreach (i, m; _modules)
                 if (m is mi) return cast(int)i;
             return -1;
         }
 
-        // allocate the two constructor lists. These will be stored for life of
-        // the program, so use malloc.
-        _ctors = (cast(immutable(ModuleInfo)**).malloc(len * (void*).sizeof))[0 .. len];
-        _tlsctors = (cast(immutable(ModuleInfo)**).malloc(len * (void*).sizeof))[0 .. len];
 
-        // Start out doing the shared ctors. The destruction is done in reverse.
-        auto ctors = _ctors;
+        // The list of constructors that will be returned by the sorting.
+        immutable(ModuleInfo)*[] ctors;
         // current element being inserted into ctors list.
         size_t ctoridx = 0;
 
         // allocate some stack arrays that will be used throughout the process.
-        ubyte* p = cast(ubyte *)alloca(len * ubyte.sizeof);
-        auto reachable = p[0 .. len];
+        immutable nwords = (len + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
+        immutable flagbytes = nwords * size_t.sizeof;
+        auto ctorstart = cast(size_t*)alloca(flagbytes);// ctor/dtor seen
+        auto ctordone = cast(size_t*)alloca(flagbytes);// ctor/dtor processed
+        auto relevant = cast(size_t*)alloca(flagbytes);// has ctors/dtors
+        auto reachable = cast(size_t*)alloca(flagbytes);// used for reachability check
 
-        p = cast(ubyte *)alloca(len * ubyte.sizeof);
-        auto flags = p[0 .. len];
-
+        void clearFlags(size_t *flags)
+        {
+            memset(flags, 0, flagbytes);
+        }
 
         // use this to hold the error message.
         string errmsg = null;
@@ -224,18 +240,13 @@ distloop:
             {
                 // use reachable, because an import can appear more than once.
                 // https://issues.dlang.org/show_bug.cgi?id=16208
-                reachable[] = 0;
+                clearFlags(reachable);
                 foreach(e; m.importedModules)
                 {
                     auto impidx = findModule(e);
                     if(impidx != -1 && impidx != i)
-                        reachable[impidx] = 1;
-                }
-
-                foreach(int j, r; reachable)
-                {
-                    if(r)
-                        edges[i] ~= j;
+                        if(!bts(reachable, impidx))
+                            edges[i] ~= impidx;
                 }
             }
 
@@ -252,20 +263,23 @@ distloop:
         // trivial modules to get at the non-trivial ones.
         size_t _findDependencies(int idx, bool orig = true)
         {
-            if(reachable[idx])
-                return 0;
+            // if it was already set, then we've already examined it.
             auto current = _modules[idx];
             size_t result = 0;
-            reachable[idx] = 1;
-            if(!orig && (flags[idx] & (MIctor | MIdtor)) && !(flags[idx] & MIstandalone))
-                // non-trivial, stop here
-                return result + 1;
             foreach (m; current.importedModules)
             {
                 auto midx = findModule(m);
+                // if midx is -1, then this isn't part of this DSO.
                 if(midx != -1)
-                    // not part of this DSO, don't consider it.
-                    result += _findDependencies(midx, false);
+                    if(!bts(reachable, midx))
+                    {
+                        if(bt(relevant, midx))
+                            // non-trivial, stop here
+                            result += 1;
+                        else
+                            // non-relevant, recurse
+                            result += _findDependencies(midx, false);
+                    }
             }
             return result;
         }
@@ -282,111 +296,95 @@ distloop:
             assert(curidx != -1);
             immutable ModuleInfo* current = _modules[curidx];
 
-            // we only get called if current has a dtor or a ctor, so no need to
-            // check that.  First, determine what non-trivial elements are
-            // reachable.
-            reachable[] = 0;
+            // First, determine what non-trivial elements are reachable.
+            clearFlags(reachable);
+            bts(reachable, curidx);
             auto nmodules = _findDependencies(curidx);
 
-            // allocate the dependencies on the stack
+            // allocate the dependencies on the stack, because reachable will
+            // be reused as we recurse.
             auto p = cast(int *)alloca(nmodules * int.sizeof);
             auto dependencies = p[0 .. nmodules];
             uint depidx = 0;
             // fill in the dependencies
-            foreach (int i, r; reachable)
+            foreach (int i; 0 .. len)
             {
-                if(r && i != curidx)
+                if(i != curidx && bt(reachable, i) && bt(relevant, i))
                 {
-                    if((flags[i] & (MIctor | MIdtor)) && !(flags[i] & MIstandalone))
+                    if(bt(ctorstart, i))
                     {
-                        dependencies[depidx++] = i;
+                        // found a cycle
+                        println("Cyclic dependency between module ", _modules[i].name, " and ", current.name);
+                        genPath(i, curidx);
+
+                        foreach(midx; cyclePath[0 .. $-1])
+                        {
+                            println(_modules[midx].name, bt(relevant, midx) ? "* ->" : " ->");
+                        }
+                        println(_modules[i].name, "*");
+                        throw new Error(errmsg);
                     }
+                    dependencies[depidx++] = i;
                 }
             }
             assert(depidx == nmodules);
 
-            // ok, now perform cycle detection
-            flags[curidx] |= MIctorstart;
+            // process all the dependencies
+            bts(ctorstart, curidx);
             foreach (m; dependencies)
-            {
-                auto mflags = flags[m];
-                if(mflags & MIctorstart)
-                {
-                    // found a cycle
-                    println("Cyclic dependency between module ", _modules[m].name, " and ", current.name);
-                    genPath(m, curidx);
-
-                    foreach(midx; cyclePath[0 .. $-1])
-                    {
-                        println(_modules[midx].name, (flags[midx] & (MIctor | MIdtor)) ? "* ->" : " ->");
-                    }
-                    println(_modules[m].name, "*");
-                    throw new Error(errmsg);
-                }
-                else if(!(mflags & MIctordone))
-                {
+                if(!bt(ctordone, m))
                     _checkModCtors2(m);
-                }
-            }
-            flags[curidx] = (flags[curidx] & ~MIctorstart) | MIctordone;
+            bts(ctordone, curidx);
+            btr(ctorstart, curidx);
             // add this module to the construction order list
             ctors[ctoridx++] = current;
         }
 
-        void _checkModCtors3()
+        immutable(ModuleInfo)*[]
+            _checkModCtors3(int function(immutable ModuleInfo *) getf)
         {
+            clearFlags(relevant);
+            clearFlags(ctorstart);
+            clearFlags(ctordone);
+
+            // pre-allocate enough space to hold all modules.
+            ctors = (cast(immutable(ModuleInfo)**).malloc(len * (void*).sizeof))[0 .. len];
+            ctoridx = 0;
             foreach (int idx, m; _modules)
             {
                 // TODO: Should null ModuleInfo be allowed?
                 if (m is null) continue;
-                auto flag = flags[idx];
-                if((flag & (MIctor | MIdtor)) && !(flag & MIctordone))
+                auto flag = getf(m);
+                if(flag & MIctor)
                 {
                     if(flag & MIstandalone)
                     {
-                        // no need to run a check on this one, but we do need to call its ctor/dtor
+                        // can run at any time. Just run it first.
                         ctors[ctoridx++] = m;
                     }
                     else
+                    {
+                        bts(relevant, idx);
+                    }
+                }
+            }
+
+            // now run the search in the relevant ones
+            foreach (int idx, m; _modules)
+            {
+                if(bt(relevant, idx))
+                {
+                    if(!bt(ctordone, idx))
                         _checkModCtors2(idx);
                 }
             }
+
+            return ctors[0 .. ctoridx];
         }
 
-        // initialize the flags for the first run (shared ctors).
-        foreach (uint i, m; _modules)
-        {
-            // TODO: Should null ModuleInfo be allowed?
-            if (m is null) continue;
-            ubyte flag = m.flags & MIstandalone;
-            if(m.dtor)
-                flag |= MIdtor;
-            if(m.ctor)
-                flag |= MIctor;
-            flags[i] = flag;
-        }
-
-        _checkModCtors3();
-
-        // _ctors is now valid up to ctoridx
-        _ctors = _ctors[0 .. ctoridx];
-
-        // tls ctors/dtors
-        ctors = _tlsctors;
-        ctoridx = 0;
-        foreach (i, m; modules)
-        {
-            // TODO: Should null ModuleInfo be allowed?
-            if (m is null) continue;
-            ubyte flag = m.flags & MIstandalone;
-            if(m.tlsdtor)
-                flag |= MIdtor;
-            if(m.tlsctor)
-                flag |= MIctor;
-            flags[i] = flag;
-        }
-        _checkModCtors3();
-        _tlsctors = _tlsctors[0 .. ctoridx];
+        // finally, do the sorting for both shared and tls ctors.
+        _ctors = _checkModCtors3((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.dtor || m.ctor)? MIctor : 0));
+        _tlsctors = _checkModCtors3((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.tlsdtor || m.tlsctor)? MIctor : 0));
     }
 
     void runCtors()
@@ -746,8 +744,8 @@ unittest
         m1.setImports(&m2.mi);
         m2.setImports(&m0.mi);
         // NOTE: this is implementation dependent, sorted order shouldn't be tested.
-        //checkExp("closed ctors cycle", false, [&m0.mi, &m1.mi, &m2.mi], [&m1.mi, &m2.mi, &m0.mi]);
-        checkExp("closed ctors cycle", false, [&m0.mi, &m1.mi, &m2.mi], [&m0.mi, &m1.mi, &m2.mi]);
+        checkExp("closed ctors cycle", false, [&m0.mi, &m1.mi, &m2.mi], [&m1.mi, &m2.mi, &m0.mi]);
+        //checkExp("closed ctors cycle", false, [&m0.mi, &m1.mi, &m2.mi], [&m0.mi, &m1.mi, &m2.mi]);
     }
 }
 
