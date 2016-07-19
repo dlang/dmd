@@ -155,9 +155,9 @@ void safeunions()   // improved for issue 11510
     // Writing field is always allowed, even if it is overlapped.
     su1.a = 7, su1.b = 8, su1.c = null;
     su2.a = 7, su2.b = 8, su2.c = 9;
-    uu1.a = 7,            uu1.c = null;
+    uu1.a = 7,            //uu1.c = null;
     uu2.a = 7; uu2.b = 8, //uu2.c = null;
-    uu3.a = 7;            uu3.c = null;
+    uu3.a = 7;            //uu3.c = null;
     uu4.a = 7; uu4.b = 8, //uu4.c = null;
     uu5.x.a = 7; uu5.x.b = 8, uu5.x.c = 9;
     uud.a.a.a.a = null, uud.a.a.a.b = null;

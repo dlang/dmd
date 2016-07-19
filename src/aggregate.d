@@ -337,7 +337,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     /***************************************
-     * Calculate field[i].overlapped, and check that all of explicit
+     * Calculate field[i].overlapped and overlapUnsafe, and check that all of explicit
      * field initializers have unique memory space on instance.
      * Returns:
      *      true if any errors happen.
@@ -378,6 +378,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 // vd and v2 are overlapping.
                 vd.overlapped = true;
                 v2.overlapped = true;
+
+                if (!MODimplicitConv(vd.type.mod, v2.type.mod))
+                    v2.overlapUnsafe = true;
+                if (!MODimplicitConv(v2.type.mod, vd.type.mod))
+                    vd.overlapUnsafe = true;
 
                 if (!vx)
                     continue;

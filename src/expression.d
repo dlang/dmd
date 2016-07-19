@@ -81,73 +81,69 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
 }
 
 /*************************************************************
- * Check if e is a DotVarExp representing an overlapped pointer.
- * Print error if overlapped pointer and in @safe.
+ * Check for unsafe access in @safe code:
+ * 1. read overlapped pointers
+ * 2. write misaligned pointers
+ * 3. write overlapped storage classes
+ * Print error if unsafe.
  * Params:
  *      sc = scope
  *      e = expression to check
- *      msg = error message string
+ *      readonly = if access is read-only
+ *      printmsg = print error message if true
  * Returns:
  *      true if error
  */
 
-bool checkOverlappedPointer(Scope* sc, Expression e, string msg)
+private bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 {
     if (e.op != TOKdotvar)
         return false;
     DotVarExp dve = cast(DotVarExp)e;
     if (VarDeclaration v = dve.var.isVarDeclaration())
     {
-        if (v.overlapped && !sc.intypeof && sc.func && v.type.hasPointers())
+        if (sc.intypeof || !sc.func || !sc.func.isSafeBypassingInference())
+            return false;
+
+        auto ad = v.toParent2().isAggregateDeclaration();
+        if (!ad)
+            return false;
+
+        if (v.overlapped && v.type.hasPointers() && sc.func.setUnsafe())
         {
-            if (auto ad = v.toParent2().isAggregateDeclaration())
+            if (printmsg)
+                e.error("field %s.%s cannot access pointers in @safe code that overlap other fields",
+                    ad.toChars(), v.toChars());
+            return true;
+        }
+
+        if (readonly || !e.type.isMutable())
+            return false;
+
+        if (v.type.hasPointers() && v.type.toBasetype().ty != Tstruct)
+        {
+            if ((ad.type.alignment() < Target.ptrsize ||
+                 (v.offset & (Target.ptrsize - 1))) &&
+                sc.func.setUnsafe())
             {
-                if (sc.func.setUnsafe())
-                {
-                    e.error(msg.ptr, ad.toChars(), v.toChars());
-                    return true;
-                }
+                if (printmsg)
+                    e.error("field %s.%s cannot modify misaligned pointers in @safe code",
+                        ad.toChars(), v.toChars());
+                return true;
             }
+        }
+
+        if (v.overlapUnsafe && sc.func.setUnsafe())
+        {
+             if (printmsg)
+                 e.error("field %s.%s cannot modify fields in @safe code that overlap fields with other storage classes",
+                    ad.toChars(), v.toChars());
+             return true;
         }
     }
     return false;
 }
 
-/*************************************************************
- * Check if e is a DotVarExp representing a misaligned pointer.
- * Print error if misaligned pointer and in @safe.
- * Params:
- *      sc = scope
- *      e = expression to check
- *      msg = error message string
- * Returns:
- *      true if error
- */
-
-bool checkMisalignedPointer(Scope* sc, Expression e, string msg)
-{
-    if (e.op != TOKdotvar)
-        return false;
-    DotVarExp dve = cast(DotVarExp)e;
-    if (VarDeclaration v = dve.var.isVarDeclaration())
-    {
-        if (v.isField() && !sc.intypeof && sc.func &&
-            (v.type.hasPointers() && v.type.toBasetype().ty != Tstruct))
-        {
-            if (auto ad = v.toParent2().isAggregateDeclaration())
-            {
-                if ((ad.type.alignment() < Target.ptrsize ||
-                     (v.offset & (Target.ptrsize - 1))) &&
-                    sc.func.setUnsafe())
-                {
-                    e.error(msg.ptr, ad.toChars(), v.toChars());
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
 
 /*************************************************************
  * Given var, we need to get the
@@ -536,7 +532,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         else if (e1.op == TOKdotvar)
         {
             // Check for reading overlapped pointer field in @safe code.
-            if (checkOverlappedPointer(sc, e1, "field %s.%s cannot be accessed in @safe code because it overlaps with a pointer"))
+            if (checkUnsafeAccess(sc, e1, true, true))
                 return new ErrorExp();
         }
         else if (e1.op == TOKdot)
@@ -548,7 +544,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         {
             CallExp ce = cast(CallExp)e1;
             // Check for reading overlapped pointer field in @safe code.
-            if (checkOverlappedPointer(sc, ce.e1, "field %s.%s cannot be accessed in @safe code because it overlaps with a pointer"))
+            if (checkUnsafeAccess(sc, ce.e1, true, true))
                 return new ErrorExp();
         }
     }
@@ -1724,9 +1720,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             {
                 arg = arg.toLvalue(sc, arg);
 
-                // Look for mutable misaligned pointer in @safe mode
-                if (arg.type.isMutable())
-                    err |= checkMisalignedPointer(sc, arg, "'ref' of misaligned pointer in field %s.%s is not @safe");
+                // Look for mutable misaligned pointer, etc., in @safe mode
+                err |= checkUnsafeAccess(sc, arg, false, true);
             }
             else if (p.storageClass & STCout)
             {
@@ -1738,8 +1733,8 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 }
                 else
                 {
-                    // Look for misaligned pointer in @safe mode
-                    err |= checkMisalignedPointer(sc, arg, "'out' of misaligned pointer in field %s.%s is not @safe");
+                    // Look for misaligned pointer, etc., in @safe mode
+                    err |= checkUnsafeAccess(sc, arg, false, true);
                     err |= checkDefCtor(arg.loc, t); // t must be default constructible
                 }
                 arg = arg.toLvalue(sc, arg);
@@ -9099,11 +9094,14 @@ extern (C++) final class DotVarExp : UnaExp
 
     override int checkModifiable(Scope* sc, int flag)
     {
-        //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type->toChars());
+        //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
+        if (checkUnsafeAccess(sc, this, false, !flag))
+            return 2;
+
         if (e1.op == TOKthis)
             return var.checkModify(loc, sc, type, e1, flag);
 
-        //printf("\te1 = %s\n", e1->toChars());
+        //printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
     }
 
@@ -9128,10 +9126,6 @@ extern (C++) final class DotVarExp : UnaExp
             printf("e1->type = %s\n", e1.type.toChars());
             printf("var->type = %s\n", var.type.toChars());
         }
-
-        // Look for misaligned pointer in @safe mode
-        if (checkMisalignedPointer(sc, this, "writing to misaligned pointer in field %s.%s is not @safe"))
-            return new ErrorExp();
 
         return Expression.modifiableLvalue(sc, e);
     }
@@ -10625,7 +10619,7 @@ extern (C++) final class AddrExp : UnaExp
             }
 
             // Look for misaligned pointer in @safe mode
-            if (checkMisalignedPointer(sc, dve, "taking address of misaligned pointer in field %s.%s is not @safe"))
+            if (checkUnsafeAccess(sc, dve, !type.isMutable(), true))
                 return new ErrorExp();
         }
         else if (e1.op == TOKvar)
