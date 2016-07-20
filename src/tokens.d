@@ -160,11 +160,13 @@ enum TOK : int
     TOKimaginary64v,
     TOKimaginary80v,
 
+    // 123
     // Char constants
     TOKcharv,
     TOKwcharv,
     TOKdcharv,
 
+    // 126
     // Leaf operators
     TOKidentifier,
     TOKstring,
@@ -175,6 +177,7 @@ enum TOK : int
     TOKtuple,
     TOKerror,
 
+    // 134
     // Basic types
     TOKvoid,
     TOKint8,
@@ -235,6 +238,7 @@ enum TOK : int
     TOKmanifest,
     TOKimmutable,
 
+    // 189
     // Statements
     TOKif,
     TOKelse,
@@ -261,6 +265,7 @@ enum TOK : int
     TOKon_scope_failure,
     TOKon_scope_success,
 
+    // 213
     // Contracts
     TOKbody,
     TOKinvariant,
@@ -273,6 +278,7 @@ enum TOK : int
     TOKref,
     TOKmacro,
 
+    // 219
     TOKparameters,
     TOKtraits,
     TOKoverloadset,
@@ -292,6 +298,7 @@ enum TOK : int
     TOKvector,
     TOKpound,
 
+    // 237
     TOKinterval,
     TOKvoidexp,
     TOKcantexp,
@@ -572,8 +579,121 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    extern (D) private __gshared string[TOKMAX] tochars =
+    extern (D) private __gshared immutable string[TOKMAX] tochars =
     [
+        // Keywords
+        TOKthis: "this",
+        TOKsuper: "super",
+        TOKassert: "assert",
+        TOKnull: "null",
+        TOKtrue: "true",
+        TOKfalse: "false",
+        TOKcast: "cast",
+        TOKnew: "new",
+        TOKdelete: "delete",
+        TOKthrow: "throw",
+        TOKmodule: "module",
+        TOKpragma: "pragma",
+        TOKtypeof: "typeof",
+        TOKtypeid: "typeid",
+        TOKtemplate: "template",
+        TOKvoid: "void",
+        TOKint8: "byte",
+        TOKuns8: "ubyte",
+        TOKint16: "short",
+        TOKuns16: "ushort",
+        TOKint32: "int",
+        TOKuns32: "uint",
+        TOKint64: "long",
+        TOKuns64: "ulong",
+        TOKint128: "cent",
+        TOKuns128: "ucent",
+        TOKfloat32: "float",
+        TOKfloat64: "double",
+        TOKfloat80: "real",
+        TOKbool: "bool",
+        TOKchar: "char",
+        TOKwchar: "wchar",
+        TOKdchar: "dchar",
+        TOKimaginary32: "ifloat",
+        TOKimaginary64: "idouble",
+        TOKimaginary80: "ireal",
+        TOKcomplex32: "cfloat",
+        TOKcomplex64: "cdouble",
+        TOKcomplex80: "creal",
+        TOKdelegate: "delegate",
+        TOKfunction: "function",
+        TOKis: "is",
+        TOKif: "if",
+        TOKelse: "else",
+        TOKwhile: "while",
+        TOKfor: "for",
+        TOKdo: "do",
+        TOKswitch: "switch",
+        TOKcase: "case",
+        TOKdefault: "default",
+        TOKbreak: "break",
+        TOKcontinue: "continue",
+        TOKsynchronized: "synchronized",
+        TOKreturn: "return",
+        TOKgoto: "goto",
+        TOKtry: "try",
+        TOKcatch: "catch",
+        TOKfinally: "finally",
+        TOKwith: "with",
+        TOKasm: "asm",
+        TOKforeach: "foreach",
+        TOKforeach_reverse: "foreach_reverse",
+        TOKscope: "scope",
+        TOKstruct: "struct",
+        TOKclass: "class",
+        TOKinterface: "interface",
+        TOKunion: "union",
+        TOKenum: "enum",
+        TOKimport: "import",
+        TOKmixin: "mixin",
+        TOKstatic: "static",
+        TOKfinal: "final",
+        TOKconst: "const",
+        TOKalias: "alias",
+        TOKoverride: "override",
+        TOKabstract: "abstract",
+        TOKdebug: "debug",
+        TOKdeprecated: "deprecated",
+        TOKin: "in",
+        TOKout: "out",
+        TOKinout: "inout",
+        TOKlazy: "lazy",
+        TOKauto: "auto",
+        TOKalign: "align",
+        TOKextern: "extern",
+        TOKprivate: "private",
+        TOKpackage: "package",
+        TOKprotected: "protected",
+        TOKpublic: "public",
+        TOKexport: "export",
+        TOKbody: "body",
+        TOKinvariant: "invariant",
+        TOKunittest: "unittest",
+        TOKversion: "version",
+        TOKargTypes: "__argTypes",
+        TOKparameters: "__parameters",
+        TOKref: "ref",
+        TOKmacro: "macro",
+        TOKpure: "pure",
+        TOKnothrow: "nothrow",
+        TOKgshared: "__gshared",
+        TOKtraits: "__traits",
+        TOKvector: "__vector",
+        TOKoverloadset: "__overloadset",
+        TOKfile: "__FILE__",
+        TOKline: "__LINE__",
+        TOKmodulestring: "__MODULE__",
+        TOKfuncstring: "__FUNCTION__",
+        TOKprettyfunc: "__PRETTY_FUNCTION__",
+        TOKshared: "shared",
+        TOKimmutable: "immutable",
+
         TOKeof: "EOF",
         TOKlcurly: "{",
         TOKrcurly: "}",
@@ -625,7 +745,6 @@ extern (C++) struct Token
         TOKstar: "*",
         TOKtilde: "~",
         TOKdollar: "$",
-        TOKcast: "cast",
         TOKplusplus: "++",
         TOKminusminus: "--",
         TOKpreplusplus: "++",
@@ -677,6 +796,39 @@ extern (C++) struct Token
         TOKon_scope_success: "scope(success)",
         TOKon_scope_failure: "scope(failure)",
         TOKdelegateptr: "delegateptr",
+
+        // Finish up
+        TOKreserved: "reserved",
+        TOKremove: "remove",
+        TOKnewanonclass: "newanonclass",
+        TOKcomment: "comment",
+        TOKclassreference: "classreference",
+        TOKthrownexception: "thrownexception",
+        TOKdelegatefuncptr: "delegatefuncptr",
+        TOKarrow: "arrow",
+        TOKint32v: "int32v",
+        TOKuns32v: "uns32v",
+        TOKint64v: "int64v",
+        TOKuns64v: "uns64v",
+        TOKint128v: "int128v",
+        TOKuns128v: "uns128v",
+        TOKfloat32v: "float32v",
+        TOKfloat64v: "float64v",
+        TOKfloat80v: "float80v",
+        TOKimaginary32v: "imaginary32v",
+        TOKimaginary64v: "imaginary64v",
+        TOKimaginary80v: "imaginary80v",
+        TOKcharv: "charv",
+        TOKwcharv: "wcharv",
+        TOKdcharv: "dcharv",
+
+        TOKhalt: "halt",
+        TOKxstring: "xstring",
+        TOKmanifest: "manifest",
+
+        TOKinterval: "interval",
+        TOKvoidexp: "voidexp",
+        TOKcantexp: "cantexp",
     ];
 
     static this()
@@ -684,13 +836,13 @@ extern (C++) struct Token
         Identifier.initTable();
         foreach (kw; keywords)
         {
-            //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-            immutable(char)* s = kw.name;
-            TOK v = kw.value;
-            size_t len = strlen(s);
-            auto id = Identifier.idPool(s, len, v);
-            //printf("tochars[%d] = '%s'\n",v, s);
-            Token.tochars[v] = s[0 .. len];
+            //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
+            Identifier.idPool(tochars[kw].ptr, tochars[kw].length, cast(uint)kw);
+        }
+
+        foreach (i, s; tochars)
+        {
+            assert(s.length);
         }
     }
 
@@ -718,7 +870,7 @@ extern (C++) struct Token
     {
         foreach (kw; keywords)
         {
-            if (kw.value == value)
+            if (kw == value)
                 return 1;
         }
         return 0;
@@ -910,138 +1062,126 @@ extern (C++) struct Token
         return toString(value).ptr;
     }
 
-    extern (D) static const(char)[] toString(TOK value)
+    extern (D) static string toString(TOK value) pure nothrow @nogc @safe
     {
-        __gshared char[3 + 3 * value.sizeof + 1] buffer;
-        auto s = tochars[value];
-        if (s.length == 0)
-        {
-            int len =  sprintf(&buffer[0], "TOK%d", value);
-            return buffer[0 .. len];
-        }
-        return s;
+        return tochars[value];
     }
 }
 
 /****************************************
  */
-struct Keyword
-{
-    immutable(char)* name;
-    TOK value;
-}
 
-immutable Keyword[] keywords =
+private immutable TOK[] keywords =
 [
-    Keyword("this", TOKthis),
-    Keyword("super", TOKsuper),
-    Keyword("assert", TOKassert),
-    Keyword("null", TOKnull),
-    Keyword("true", TOKtrue),
-    Keyword("false", TOKfalse),
-    Keyword("cast", TOKcast),
-    Keyword("new", TOKnew),
-    Keyword("delete", TOKdelete),
-    Keyword("throw", TOKthrow),
-    Keyword("module", TOKmodule),
-    Keyword("pragma", TOKpragma),
-    Keyword("typeof", TOKtypeof),
-    Keyword("typeid", TOKtypeid),
-    Keyword("template", TOKtemplate),
-    Keyword("void", TOKvoid),
-    Keyword("byte", TOKint8),
-    Keyword("ubyte", TOKuns8),
-    Keyword("short", TOKint16),
-    Keyword("ushort", TOKuns16),
-    Keyword("int", TOKint32),
-    Keyword("uint", TOKuns32),
-    Keyword("long", TOKint64),
-    Keyword("ulong", TOKuns64),
-    Keyword("cent", TOKint128),
-    Keyword("ucent", TOKuns128),
-    Keyword("float", TOKfloat32),
-    Keyword("double", TOKfloat64),
-    Keyword("real", TOKfloat80),
-    Keyword("bool", TOKbool),
-    Keyword("char", TOKchar),
-    Keyword("wchar", TOKwchar),
-    Keyword("dchar", TOKdchar),
-    Keyword("ifloat", TOKimaginary32),
-    Keyword("idouble", TOKimaginary64),
-    Keyword("ireal", TOKimaginary80),
-    Keyword("cfloat", TOKcomplex32),
-    Keyword("cdouble", TOKcomplex64),
-    Keyword("creal", TOKcomplex80),
-    Keyword("delegate", TOKdelegate),
-    Keyword("function", TOKfunction),
-    Keyword("is", TOKis),
-    Keyword("if", TOKif),
-    Keyword("else", TOKelse),
-    Keyword("while", TOKwhile),
-    Keyword("for", TOKfor),
-    Keyword("do", TOKdo),
-    Keyword("switch", TOKswitch),
-    Keyword("case", TOKcase),
-    Keyword("default", TOKdefault),
-    Keyword("break", TOKbreak),
-    Keyword("continue", TOKcontinue),
-    Keyword("synchronized", TOKsynchronized),
-    Keyword("return", TOKreturn),
-    Keyword("goto", TOKgoto),
-    Keyword("try", TOKtry),
-    Keyword("catch", TOKcatch),
-    Keyword("finally", TOKfinally),
-    Keyword("with", TOKwith),
-    Keyword("asm", TOKasm),
-    Keyword("foreach", TOKforeach),
-    Keyword("foreach_reverse", TOKforeach_reverse),
-    Keyword("scope", TOKscope),
-    Keyword("struct", TOKstruct),
-    Keyword("class", TOKclass),
-    Keyword("interface", TOKinterface),
-    Keyword("union", TOKunion),
-    Keyword("enum", TOKenum),
-    Keyword("import", TOKimport),
-    Keyword("mixin", TOKmixin),
-    Keyword("static", TOKstatic),
-    Keyword("final", TOKfinal),
-    Keyword("const", TOKconst),
-    Keyword("alias", TOKalias),
-    Keyword("override", TOKoverride),
-    Keyword("abstract", TOKabstract),
-    Keyword("debug", TOKdebug),
-    Keyword("deprecated", TOKdeprecated),
-    Keyword("in", TOKin),
-    Keyword("out", TOKout),
-    Keyword("inout", TOKinout),
-    Keyword("lazy", TOKlazy),
-    Keyword("auto", TOKauto),
-    Keyword("align", TOKalign),
-    Keyword("extern", TOKextern),
-    Keyword("private", TOKprivate),
-    Keyword("package", TOKpackage),
-    Keyword("protected", TOKprotected),
-    Keyword("public", TOKpublic),
-    Keyword("export", TOKexport),
-    Keyword("body", TOKbody),
-    Keyword("invariant", TOKinvariant),
-    Keyword("unittest", TOKunittest),
-    Keyword("version", TOKversion),
-    Keyword("__argTypes", TOKargTypes),
-    Keyword("__parameters", TOKparameters),
-    Keyword("ref", TOKref),
-    Keyword("macro", TOKmacro),
-    Keyword("pure", TOKpure),
-    Keyword("nothrow", TOKnothrow),
-    Keyword("__gshared", TOKgshared),
-    Keyword("__traits", TOKtraits),
-    Keyword("__vector", TOKvector),
-    Keyword("__overloadset", TOKoverloadset),
-    Keyword("__FILE__", TOKfile),
-    Keyword("__LINE__", TOKline),
-    Keyword("__MODULE__", TOKmodulestring),
-    Keyword("__FUNCTION__", TOKfuncstring),
-    Keyword("__PRETTY_FUNCTION__", TOKprettyfunc),
-    Keyword("shared", TOKshared),
-    Keyword("immutable", TOKimmutable),
+    TOKthis,
+    TOKsuper,
+    TOKassert,
+    TOKnull,
+    TOKtrue,
+    TOKfalse,
+    TOKcast,
+    TOKnew,
+    TOKdelete,
+    TOKthrow,
+    TOKmodule,
+    TOKpragma,
+    TOKtypeof,
+    TOKtypeid,
+    TOKtemplate,
+    TOKvoid,
+    TOKint8,
+    TOKuns8,
+    TOKint16,
+    TOKuns16,
+    TOKint32,
+    TOKuns32,
+    TOKint64,
+    TOKuns64,
+    TOKint128,
+    TOKuns128,
+    TOKfloat32,
+    TOKfloat64,
+    TOKfloat80,
+    TOKbool,
+    TOKchar,
+    TOKwchar,
+    TOKdchar,
+    TOKimaginary32,
+    TOKimaginary64,
+    TOKimaginary80,
+    TOKcomplex32,
+    TOKcomplex64,
+    TOKcomplex80,
+    TOKdelegate,
+    TOKfunction,
+    TOKis,
+    TOKif,
+    TOKelse,
+    TOKwhile,
+    TOKfor,
+    TOKdo,
+    TOKswitch,
+    TOKcase,
+    TOKdefault,
+    TOKbreak,
+    TOKcontinue,
+    TOKsynchronized,
+    TOKreturn,
+    TOKgoto,
+    TOKtry,
+    TOKcatch,
+    TOKfinally,
+    TOKwith,
+    TOKasm,
+    TOKforeach,
+    TOKforeach_reverse,
+    TOKscope,
+    TOKstruct,
+    TOKclass,
+    TOKinterface,
+    TOKunion,
+    TOKenum,
+    TOKimport,
+    TOKmixin,
+    TOKstatic,
+    TOKfinal,
+    TOKconst,
+    TOKalias,
+    TOKoverride,
+    TOKabstract,
+    TOKdebug,
+    TOKdeprecated,
+    TOKin,
+    TOKout,
+    TOKinout,
+    TOKlazy,
+    TOKauto,
+    TOKalign,
+    TOKextern,
+    TOKprivate,
+    TOKpackage,
+    TOKprotected,
+    TOKpublic,
+    TOKexport,
+    TOKbody,
+    TOKinvariant,
+    TOKunittest,
+    TOKversion,
+    TOKargTypes,
+    TOKparameters,
+    TOKref,
+    TOKmacro,
+    TOKpure,
+    TOKnothrow,
+    TOKgshared,
+    TOKtraits,
+    TOKvector,
+    TOKoverloadset,
+    TOKfile,
+    TOKline,
+    TOKmodulestring,
+    TOKfuncstring,
+    TOKprettyfunc,
+    TOKshared,
+    TOKimmutable,
 ];
