@@ -107,7 +107,6 @@ struct ModuleGroup
         auto ctorstart = cast(size_t*)alloca(flagbytes);// ctor/dtor seen
         auto ctordone = cast(size_t*)alloca(flagbytes);// ctor/dtor processed
         auto relevant = cast(size_t*)alloca(flagbytes);// has ctors/dtors
-        auto reachable = cast(size_t*)alloca(flagbytes);// used for reachability check
 
         void clearFlags(size_t *flags)
         {
@@ -231,9 +230,10 @@ distloop:
             // set up all the arrays. Use the GC, we are going to exit anyway.
             distance.length = len;
             edges.length = len;
+            auto reachable = (new size_t[](nwords)).ptr;
             foreach(i, m; _modules)
             {
-                // use reachable, because an import can appear more than once.
+                // use bit array to prevent duplicates
                 // https://issues.dlang.org/show_bug.cgi?id=16208
                 clearFlags(reachable);
                 foreach(e; m.importedModules)
@@ -256,7 +256,9 @@ distloop:
         // find all the non-trivial dependencies (that is, dependencies that have a
         // ctor or dtor) of a given module.  Doing this, we can 'skip over' the
         // trivial modules to get at the non-trivial ones.
-        size_t _findDependencies(int idx)
+        //
+        // If a cycle is detected, returns the index of the module that completes the cycle.
+        int findDeps(int idx, size_t *reachable)
         {
             static struct stackFrame
             {
@@ -270,7 +272,10 @@ distloop:
             auto sp = stack;
             sp.curMod = idx;
             sp.curDep = 0;
-            size_t result = 0;
+
+            // initialize reachable by flagging source module
+            clearFlags(reachable);
+            bts(reachable, idx);
 
             for(;;)
             {
@@ -282,40 +287,44 @@ distloop:
                         // finished the algorithm
                         break;
                     --sp;
-                    ++sp.curDep;
-                    continue;
                 }
-                auto midx = findModule(m.importedModules[sp.curDep]);
-                // if midx is -1, then this isn't part of this DSO.
-                if(midx != -1 && !bts(reachable, midx))
+                else
                 {
-                    if(bt(relevant, midx))
+                    auto midx = findModule(m.importedModules[sp.curDep]);
+                    // if midx is -1, then this isn't part of this DSO.
+                    if(midx != -1 && !bts(reachable, midx))
                     {
-                        // non-trivial, stop here
-                        result += 1;
-                    }
-                    else if(!bt(ctordone, midx))
-                    {
-                        // non-relevant, and hasn't been exhaustively processed, recurse.
-                        if(!bt(ctorstart, midx))
-                            ++result;
-                        // recurse
-                        if(++sp >= stacktop)
+                        if(bt(relevant, midx))
                         {
-                            // stack overflow, this shouldn't happen.
-                            import core.internal.abort : abort;
-                            abort("stack overflow on dependency search");
+                            // need to process this node, don't recurse.
+                            if(bt(ctorstart, midx))
+                            {
+                                // was already started, this is a cycle.
+                                return midx;
+                            }
                         }
-                        sp.curMod = midx;
-                        sp.curDep = 0;
-                        continue;
+                        else if(!bt(ctordone, midx))
+                        {
+                            // non-relevant, and hasn't been exhaustively processed, recurse.
+                            if(++sp >= stacktop)
+                            {
+                                // stack overflow, this shouldn't happen.
+                                import core.internal.abort : abort;
+                                abort("stack overflow on dependency search");
+                            }
+                            sp.curMod = midx;
+                            sp.curDep = 0;
+                            continue;
+                        }
                     }
                 }
 
                 // next dependency
                 ++sp.curDep;
             }
-            return result;
+
+            // no cycles seen
+            return -1;
         }
 
         // The list of constructors that will be returned by the sorting.
@@ -331,82 +340,61 @@ distloop:
         // Each call into this function is given a module that has static
         // ctor/dtors that must be dealt with. It recurses only when it finds
         // dependencies that also have static ctor/dtors.
-        void _checkModCtors2(int curidx)
+        void processMod(int curidx)
         {
             assert(curidx != -1);
             immutable ModuleInfo* current = _modules[curidx];
 
-            // First, determine what non-trivial elements are reachable.
-            clearFlags(reachable);
-            bts(reachable, curidx);
-            auto nmodules = _findDependencies(curidx);
+            // First, determine what modules are reachable.
+            auto reachable = cast(size_t *)alloca(flagbytes);
+            auto cycleIdx = findDeps(curidx, reachable);
+            if(cycleIdx != -1)
+            {
+                auto cycleMod = _modules[cycleIdx];
+                // found a cycle
+                println("Cyclic dependency between module ", cycleMod.name, " and ", current.name);
+                genPath(cycleIdx, curidx);
 
-            // allocate the dependencies on the stack, because reachable will
-            // be reused as we recurse.
-            auto p = cast(int *)alloca(nmodules * int.sizeof);
-            auto dependencies = p[0 .. nmodules];
-            uint depidx = 0;
-            // fill in the dependencies
+                foreach(midx; cyclePath[0 .. $-1])
+                {
+                    println(_modules[midx].name, bt(relevant, midx) ? "* ->" : " ->");
+                }
+                println(cycleMod.name, "*");
+                throw new Error(errmsg);
+            }
+
+            // process the dependencies. First, we process all relevant ones
+            bts(ctorstart, curidx);
             foreach (int i; 0 .. len)
             {
-                if(i != curidx && bt(reachable, i))
+                if(i != curidx && bt(reachable, i) &&
+                   bt(relevant, i) && !bt(ctordone, i))
                 {
-                   if(bt(relevant, i))
-                   {
-                       if(bt(ctorstart, i))
-                       {
-                           // found a cycle
-                           println("Cyclic dependency between module ", _modules[i].name, " and ", current.name);
-                           genPath(i, curidx);
-
-                           foreach(midx; cyclePath[0 .. $-1])
-                           {
-                               println(_modules[midx].name, bt(relevant, midx) ? "* ->" : " ->");
-                           }
-                           println(_modules[i].name, "*");
-                           throw new Error(errmsg);
-                       }
-                       dependencies[depidx++] = i;
-                   }
-                   else if(!bts(ctorstart, i))
-                   {
-                       // this is a non-relevant module, but it has never been
-                       // imported by any other relevant module in our search.
-                       // Once we have processed the current relevant module,
-                       // we can mark this non-relevant module as done, so it's
-                       // not ever looked at again.
-                       dependencies[depidx++] = i;
-                   }
+                    assert(!bt(ctorstart, i)); // sanity check, this should have been flagged a cycle earlier
+                    processMod(i);
                 }
             }
-            assert(depidx == nmodules);
 
-            // process all the dependencies
-            bts(ctorstart, curidx);
-            foreach (m; dependencies)
-            {
-                if(bt(relevant, m) && !bt(ctordone, m))
-                    _checkModCtors2(m);
-            }
+            // now mark this node, and all nodes reachable from this module as done.
             bts(ctordone, curidx);
             btr(ctorstart, curidx);
-
-            // mark all non-relevant dependencies as done
-            foreach(m; dependencies)
+            foreach (int i; 0 .. len)
             {
-                if(!bt(relevant, m))
+                if(bt(reachable, i))
                 {
-                    bts(ctordone, m);
-                    // no need to clear ctorstart, as we don't care about
-                    // irrelevant modules for detecting cycles.
+                    // Since relevant dependencies are already marked as done
+                    // from recursion above, no reason to check for relevance,
+                    // that is a wasted op.
+                    bts(ctordone, i);
                 }
             }
+
             // add this module to the construction order list
             ctors[ctoridx++] = current;
         }
 
         immutable(ModuleInfo)*[]
-            _checkModCtors3(int function(immutable ModuleInfo *) getf)
+            doSort(int function(immutable ModuleInfo *) getf)
         {
             clearFlags(relevant);
             clearFlags(ctorstart);
@@ -434,13 +422,13 @@ distloop:
                 }
             }
 
-            // now run the search in the relevant ones
+            // now run the algorithm in the relevant ones
             foreach (int idx, m; _modules)
             {
                 if(bt(relevant, idx))
                 {
                     if(!bt(ctordone, idx))
-                        _checkModCtors2(idx);
+                        processMod(idx);
                 }
             }
 
@@ -448,8 +436,8 @@ distloop:
         }
 
         // finally, do the sorting for both shared and tls ctors.
-        _ctors = _checkModCtors3((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.dtor || m.ctor)? MIctor : 0));
-        _tlsctors = _checkModCtors3((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.tlsdtor || m.tlsctor)? MIctor : 0));
+        _ctors = doSort((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.dtor || m.ctor)? MIctor : 0));
+        _tlsctors = doSort((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.tlsdtor || m.tlsctor)? MIctor : 0));
     }
 
     void runCtors()
