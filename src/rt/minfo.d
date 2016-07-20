@@ -256,28 +256,64 @@ distloop:
         // find all the non-trivial dependencies (that is, dependencies that have a
         // ctor or dtor) of a given module.  Doing this, we can 'skip over' the
         // trivial modules to get at the non-trivial ones.
-        size_t _findDependencies(int idx, bool orig = true)
+        size_t _findDependencies(int idx)
         {
-            size_t result = 0;
-            foreach (m; _modules[idx].importedModules)
+            static struct stackFrame
             {
-                auto midx = findModule(m);
+                int curMod;
+                int curDep;
+            }
+
+            // initialize "stack"
+            auto stack = cast(stackFrame *)alloca(stackFrame.sizeof * len);
+            auto stacktop = stack + len;
+            auto sp = stack;
+            sp.curMod = idx;
+            sp.curDep = 0;
+            size_t result = 0;
+
+            for(;;)
+            {
+                auto m = _modules[sp.curMod];
+                if(sp.curDep >= m.importedModules.length)
+                {
+                    // return
+                    if(sp == stack)
+                        // finished the algorithm
+                        break;
+                    --sp;
+                    ++sp.curDep;
+                    continue;
+                }
+                auto midx = findModule(m.importedModules[sp.curDep]);
                 // if midx is -1, then this isn't part of this DSO.
-                if(midx != -1)
-                    if(!bts(reachable, midx))
+                if(midx != -1 && !bts(reachable, midx))
+                {
+                    if(bt(relevant, midx))
                     {
-                        if(bt(relevant, midx))
-                        {
-                            // non-trivial, stop here
-                            result += 1;
-                        }
-                        else if(!bt(ctordone, midx))
-                        {
-                            // non-relevant, and hasn't been exhaustively processed, recurse.
-                            result += (!bt(ctorstart, midx) ? 1 : 0) +
-                                _findDependencies(midx, false);
-                        }
+                        // non-trivial, stop here
+                        result += 1;
                     }
+                    else if(!bt(ctordone, midx))
+                    {
+                        // non-relevant, and hasn't been exhaustively processed, recurse.
+                        if(!bt(ctorstart, midx))
+                            ++result;
+                        // recurse
+                        if(++sp >= stacktop)
+                        {
+                            // stack overflow, this shouldn't happen.
+                            import core.internal.abort : abort;
+                            abort("stack overflow on dependency search");
+                        }
+                        sp.curMod = midx;
+                        sp.curDep = 0;
+                        continue;
+                    }
+                }
+
+                // next dependency
+                ++sp.curDep;
             }
             return result;
         }
