@@ -5060,7 +5060,7 @@ extern (C++) final class TupleExp : Expression
  */
 extern (C++) final class ArrayLiteralExp : Expression
 {
-    /* If !is null, elements[] can be sparse and basis is used for the
+    /** If !is null, elements[] can be sparse and basis is used for the
      * "default" element value. In other words, non-null elements[i] overrides
      * this 'basis' value.
      */
@@ -5133,7 +5133,7 @@ extern (C++) final class ArrayLiteralExp : Expression
         return el;
     }
 
-    /* Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
+    /** Copy element `Expressions` in the parameters when they're `ArrayLiteralExp`s.
      * Params:
      *      e1  = If it's ArrayLiteralExp, its `elements` will be copied.
      *            Otherwise, `e1` itself will be pushed into the new `Expressions`.
@@ -5387,40 +5387,42 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     }
 }
 
-enum stageScrub             = 0x1;  // scrubReturnValue is running
-enum stageSearchPointers    = 0x2;  // hasNonConstPointers is running
-enum stageOptimize          = 0x4;  // optimize is running
-enum stageApply             = 0x8;  // apply is running
-enum stageInlineScan        = 0x10; // inlineScan is running
-enum stageToCBuffer         = 0x20; // toCBuffer is running
+enum stageScrub             = 0x1;  /// scrubReturnValue is running
+enum stageSearchPointers    = 0x2;  /// hasNonConstPointers is running
+enum stageOptimize          = 0x4;  /// optimize is running
+enum stageApply             = 0x8;  /// apply is running
+enum stageInlineScan        = 0x10; /// inlineScan is running
+enum stageToCBuffer         = 0x20; /// toCBuffer is running
 
 /***********************************************************
  * sd( e1, e2, e3, ... )
  */
 extern (C++) final class StructLiteralExp : Expression
 {
-    StructDeclaration sd;   // which aggregate this is for
-    Expressions* elements;  // parallels sd.fields[] with null entries for fields to skip
-    Type stype;             // final type of result (can be different from sd's type)
+    StructDeclaration sd;   /// which aggregate this is for
+    Expressions* elements;  /// parallels sd.fields[] with null entries for fields to skip
+    Type stype;             /// final type of result (can be different from sd's type)
 
-    bool useStaticInit;     // if this is true, use the StructDeclaration's init symbol
-    Symbol* sym;            // back end symbol to initialize with literal
+    bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
+    Symbol* sym;            /// back end symbol to initialize with literal
 
     OwnedBy ownedByCtfe = OWNEDcode;
 
-    // pointer to the origin instance of the expression.
-    // once a new expression is created, origin is set to 'this'.
-    // anytime when an expression copy is created, 'origin' pointer is set to
-    // 'origin' pointer value of the original expression.
+    /** pointer to the origin instance of the expression.
+     * once a new expression is created, origin is set to 'this'.
+     * anytime when an expression copy is created, 'origin' pointer is set to
+     * 'origin' pointer value of the original expression.
+     */
     StructLiteralExp origin;
 
-    // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
+    /// those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp inlinecopy;
 
-    // anytime when recursive function is calling, 'stageflags' marks with bit flag of
-    // current stage and unmarks before return from this function.
-    // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
-    // (with infinite recursion) of this expression.
+    /** anytime when recursive function is calling, 'stageflags' marks with bit flag of
+     * current stage and unmarks before return from this function.
+     * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
+     * (with infinite recursion) of this expression.
+     */
     int stageflags;
 
     extern (D) this(Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null)
