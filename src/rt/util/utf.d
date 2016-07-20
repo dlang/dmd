@@ -767,7 +767,7 @@ wptr toUTF16z(in char[] s)
         }
     }
     r ~= '\000';
-    return r.ptr;
+    return &r[0];
 }
 
 /** ditto */
