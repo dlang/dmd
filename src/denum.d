@@ -337,9 +337,14 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     }
 
     /******************************
-     * Get the value of the .max/.min property as an Expression
-     * Input:
-     *      id      Id::max or Id::min
+     * Get the value of the .max/.min property as an Expression.
+     * Lazily computes the value and caches it in maxval/minval.
+     * Reports any errors.
+     * Params:
+     *      loc = location to use for error messages
+     *      id = Id::max or Id::min
+     * Returns:
+     *      corresponding value of .max/.min
      */
     Expression getMaxMinValue(Loc loc, Identifier id)
     {
@@ -348,10 +353,16 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
         Expression* pval = (id == Id.max) ? &maxval : &minval;
 
+        Expression errorReturn()
+        {
+            *pval = new ErrorExp();
+            return *pval;
+        }
+
         if (inuse)
         {
             error(loc, "recursive definition of .%s property", id.toChars());
-            goto Lerrors;
+            return errorReturn();
         }
         if (*pval)
             goto Ldone;
@@ -359,16 +370,16 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (_scope)
             semantic(_scope);
         if (errors)
-            goto Lerrors;
+            return errorReturn();
         if (semanticRun == PASSinit || !members)
         {
             error("is forward referenced looking for .%s", id.toChars());
-            goto Lerrors;
+            return errorReturn();
         }
         if (!(memtype && memtype.isintegral()))
         {
             error(loc, "has no .%s property because base type %s is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
-            goto Lerrors;
+            return errorReturn();
         }
 
         for (size_t i = 0; i < members.dim; i++)
@@ -377,7 +388,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             if (!em)
                 continue;
             if (em.errors)
-                goto Lerrors;
+                return errorReturn();
 
             Expression e = em.value;
             if (first)
@@ -407,19 +418,13 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             }
         }
     Ldone:
+        Expression e = *pval;
+        if (e.op != TOKerror)
         {
-            Expression e = *pval;
-            if (e.op != TOKerror)
-            {
-                e = e.copy();
-                e.loc = loc;
-            }
-            return e;
+            e = e.copy();
+            e.loc = loc;
         }
-
-    Lerrors:
-        *pval = new ErrorExp();
-        return *pval;
+        return e;
     }
 
     Expression getDefaultValue(Loc loc)
