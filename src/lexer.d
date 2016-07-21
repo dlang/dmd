@@ -1623,7 +1623,7 @@ class Lexer
      */
     final TOK charConstant(Token* t)
     {
-        auto tk = TOKcharv;
+        TOK tk = TOKcharv;
         //printf("Lexer::charConstant\n");
         p++;
         dchar c = *p++;
