@@ -18,8 +18,13 @@ import ddmd.root.outbuffer;
  */
 extern (C++) class RootObject
 {
+    void* annotation1;
+    void* annotation2;
+
     this()
     {
+        annotation1 = null;
+        annotation2 = null;
     }
 
     bool equals(RootObject o)

@@ -28,7 +28,10 @@ struct OutBuffer;
 class RootObject
 {
 public:
-    RootObject() { }
+    RootObject() { annotation1 = NULL; annotation2 = NULL; }
+
+    void* annotation1;
+    void* annotation2;
 
     virtual bool equals(RootObject *o);
 
