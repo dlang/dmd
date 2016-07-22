@@ -169,6 +169,7 @@ enum TOK
         TOKgshared,
         TOKline,
         TOKfile,
+        TOKfilefullpath,
         TOKmodulestring,
         TOKfuncstring,
         TOKprettyfunc,

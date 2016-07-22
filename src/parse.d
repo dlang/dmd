@@ -37,6 +37,7 @@ import ddmd.init;
 import ddmd.lexer;
 import ddmd.mtype;
 import ddmd.nspace;
+import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
@@ -87,6 +88,7 @@ __gshared PREC[TOKMAX] precedence =
     TOKassocarrayliteral : PREC.primary,
     TOKclassreference : PREC.primary,
     TOKfile : PREC.primary,
+    TOKfilefullpath : PREC.primary,
     TOKline : PREC.primary,
     TOKmodulestring : PREC.primary,
     TOKfuncstring : PREC.primary,
@@ -2048,6 +2050,7 @@ final class Parser : Lexer
         case TOKstring:
         case TOKxstring:
         case TOKfile:
+        case TOKfilefullpath:
         case TOKline:
         case TOKmodulestring:
         case TOKfuncstring:
@@ -4902,6 +4905,7 @@ final class Parser : Lexer
         case TOKlbracket:
         case TOKtraits:
         case TOKfile:
+        case TOKfilefullpath:
         case TOKline:
         case TOKmodulestring:
         case TOKfuncstring:
@@ -6123,18 +6127,20 @@ final class Parser : Lexer
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
+     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
      */
     Expression parseDefaultInitExp()
     {
-        if (token.value == TOKfile || token.value == TOKline || token.value == TOKmodulestring || token.value == TOKfuncstring || token.value == TOKprettyfunc)
+        if (token.value == TOKfile || token.value == TOKfilefullpath || token.value == TOKline || token.value == TOKmodulestring || token.value == TOKfuncstring || token.value == TOKprettyfunc)
         {
             Token* t = peek(&token);
             if (t.value == TOKcomma || t.value == TOKrparen)
             {
                 Expression e = null;
                 if (token.value == TOKfile)
-                    e = new FileInitExp(token.loc);
+                    e = new FileInitExp(token.loc, TOKfile);
+                else if (token.value == TOKfilefullpath)
+                    e = new FileInitExp(token.loc, TOKfilefullpath);
                 else if (token.value == TOKline)
                     e = new LineInitExp(token.loc);
                 else if (token.value == TOKmodulestring)
@@ -6357,6 +6363,7 @@ final class Parser : Lexer
                     case TOKstring:
                     case TOKxstring:
                     case TOKfile:
+                    case TOKfilefullpath:
                     case TOKline:
                     case TOKmodulestring:
                     case TOKfuncstring:
@@ -7125,6 +7132,19 @@ final class Parser : Lexer
                 nextToken();
                 break;
             }
+        case TOKfilefullpath:
+            {
+                const(char)* srcfile = mod.srcfile.name.toChars();
+                const(char)* s;
+                if(loc.filename && !FileName.equals(loc.filename, srcfile)) {
+                    s = loc.filename;
+                } else {
+                    s = FileName.combine(mod.srcfilePath, srcfile);
+                }
+                e = new StringExp(loc, cast(char*)s);
+                nextToken();
+                break;
+            }
         case TOKline:
             e = new IntegerExp(loc, loc.linnum, Type.tint32);
             nextToken();
@@ -7757,6 +7777,7 @@ final class Parser : Lexer
                         case TOKtypeof:
                         case TOKvector:
                         case TOKfile:
+                        case TOKfilefullpath:
                         case TOKline:
                         case TOKmodulestring:
                         case TOKfuncstring:
