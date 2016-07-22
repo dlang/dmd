@@ -167,6 +167,20 @@ extern (C++) final class DebugCondition : DVCondition
 extern (C++) final class VersionCondition : DVCondition
 {
     /**
+     * Global numeric version level
+     *
+     * See_Also: `VersionCondition.setGlobalLevel`
+     */
+    private extern (D) static __gshared uint globalLevel;
+
+    /**
+     * Global version identifiers
+     *
+     * See_Also: `VersionCondition.addPredefinedGlobalIdent`
+     */
+    private extern (D) static __gshared const(char[])[] globalIdentifiers;
+
+    /**
      * Set the global version level
      *
      * Only called from the driver
@@ -176,7 +190,7 @@ extern (C++) final class VersionCondition : DVCondition
      */
     static void setGlobalLevel(uint level)
     {
-        global.params.versionlevel = level;
+        globalLevel = level;
     }
 
     /**
@@ -362,9 +376,7 @@ extern (C++) final class VersionCondition : DVCondition
     /// Ditto
     extern(D) static void addPredefinedGlobalIdent(const(char)[] ident)
     {
-        if (!global.params.versionids)
-            global.params.versionids = new Strings();
-        global.params.versionids.push(cast(char*)ident);
+        globalIdentifiers ~= ident;
     }
 
     /**
@@ -384,8 +396,7 @@ extern (C++) final class VersionCondition : DVCondition
 
     override int include(Scope* sc, ScopeDsymbol sds)
     {
-        //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
-        //if (ident) printf("\tident = '%s'\n", ident->toChars());
+        //printf("VersionCondition.include() level = %d, globalLevel = %d\n", level, globalLevel);
         if (inc == 0)
         {
             inc = 2;
@@ -397,7 +408,7 @@ extern (C++) final class VersionCondition : DVCondition
                     inc = 1;
                     definedInModule = true;
                 }
-                else if (findCondition(global.params.versionids, ident))
+                else if (findCondition(globalIdentifiers, ident))
                     inc = 1;
                 else
                 {
@@ -406,7 +417,7 @@ extern (C++) final class VersionCondition : DVCondition
                     mod.versionidsNot.push(ident.toChars());
                 }
             }
-            else if (level <= global.params.versionlevel || level <= mod.versionlevel)
+            else if (level <= globalLevel || level <= mod.versionlevel)
                 inc = 1;
             if (!definedInModule &&
                 (!ident || (!isReserved(ident.toString()) && ident != Id._unittest && ident != Id._assert)))
@@ -536,6 +547,17 @@ extern (C++) int findCondition(Strings* ids, Identifier ident)
     }
     return false;
 }
+
+private int findCondition(const(char[])[] ids, Identifier ident)
+{
+    foreach (id; ids)
+    {
+        if (id == ident.toString())
+            return true;
+    }
+    return false;
+}
+
 
 // Helper for printing dependency information
 private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
