@@ -180,7 +180,8 @@ final class LibMach : Library
                     om.base = cast(ubyte*)buf + offset - MachLibHeader.sizeof;
                     om.length = cast(uint)(size + MachLibHeader.sizeof);
                     om.offset = 0;
-                    om.name = cast(char*)(om.base + MachLibHeader.sizeof);
+                    const n = cast(const(char)*)(om.base + MachLibHeader.sizeof);
+                    om.name = n[0 .. strlen(n)];
                     om.file_time = cast(uint)strtoul(header.file_time.ptr, &endptr, 10);
                     om.user_id = cast(uint)strtoul(header.user_id.ptr, &endptr, 10);
                     om.group_id = cast(uint)strtoul(header.group_id.ptr, &endptr, 10);
@@ -247,7 +248,8 @@ final class LibMach : Library
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        om.name = cast(char*)FileName.name(module_name); // remove path, but not extension
+        const n = cast(const(char)*)FileName.name(module_name); // remove path, but not extension
+        om.name = n[0 .. strlen(n)];
         om.scan = 1;
         if (fromfile)
         {
@@ -304,7 +306,7 @@ final class LibMach : Library
     {
         static if (LOG)
         {
-            printf("LibMach::addSymbol(%s, %s, %d)\n", om.name, name.ptr, pickAny);
+            printf("LibMach::addSymbol(%s, %s, %d)\n", om.name.ptr, name.ptr, pickAny);
         }
         version (none)
         {
@@ -318,7 +320,7 @@ final class LibMach : Library
                     s = tab.lookup(name.ptr, name.length);
                     assert(s);
                     MachObjSymbol* os = cast(MachObjSymbol*)s.ptrvalue;
-                    error("multiple definition of %s: %s and %s: %s", om.name, name.ptr, os.om.name, os.name.ptr);
+                    error("multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
                 }
             }
             else
@@ -348,7 +350,7 @@ private:
     {
         static if (LOG)
         {
-            printf("LibMach::scanObjModule(%s)\n", om.name);
+            printf("LibMach::scanObjModule(%s)\n", om.name.ptr);
         }
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
@@ -356,7 +358,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
+        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
     }
 
     /*****************************************************************************/
@@ -407,7 +409,7 @@ private:
             om.offset = moffset;
             if (om.scan)
             {
-                size_t slen = strlen(om.name);
+                const slen = om.name.length;
                 int nzeros = 8 - ((slen + 4) & 7);
                 if (nzeros < 4)
                     nzeros += 8; // emulate mysterious behavior of ar
@@ -427,7 +429,7 @@ private:
         om.base = null;
         om.length = cast(uint)(hoffset - (8 + MachLibHeader.sizeof));
         om.offset = 8;
-        om.name = cast(char*)"";
+        om.name = "";
         .time(&om.file_time);
         om.user_id = getuid();
         om.group_id = getgid();
@@ -481,9 +483,8 @@ private:
             {
                 MachOmToHeader(&h, om2);
                 libbuf.write(&h, h.sizeof); // module header
-                size_t len2 = strlen(om2.name);
-                libbuf.write(om2.name, len2);
-                int nzeros = 8 - ((len2 + 4) & 7);
+                libbuf.write(om2.name.ptr, om2.name.length);
+                int nzeros = 8 - ((om2.name.length + 4) & 7);
                 if (nzeros < 4)
                     nzeros += 8; // emulate mysterious behavior of ar
                 libbuf.fill0(nzeros);
@@ -530,7 +531,7 @@ struct MachObjModule
     ubyte* base; // where are we holding it in memory
     uint length; // in bytes
     uint offset; // offset from start of library
-    char* name; // module name (file name)
+    const(char)[] name; // module name (file name) with terminating 0
     c_long file_time; // file time
     uint user_id;
     uint group_id;
@@ -553,7 +554,7 @@ struct MachLibHeader
 
 extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
 {
-    size_t slen = strlen(om.name);
+    const slen = om.name.length;
     int nzeros = 8 - ((slen + 4) & 7);
     if (nzeros < 4)
         nzeros += 8; // emulate mysterious behavior of ar

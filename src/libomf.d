@@ -158,8 +158,9 @@ final class LibOMF : Library
             if (firstmodule && module_name && !islibrary)
             {
                 // Remove path and extension
-                om.name = strdup(FileName.name(module_name));
-                char* ext = cast(char*)FileName.ext(om.name);
+                auto n = strdup(FileName.name(module_name));
+                om.name = n[0 .. strlen(n)];
+                char* ext = cast(char*)FileName.ext(n);
                 if (ext)
                     ext[-1] = 0;
             }
@@ -168,8 +169,9 @@ final class LibOMF : Library
                 /* Use THEADR name as module name,
                  * removing path and extension.
                  */
-                om.name = strdup(FileName.name(name));
-                char* ext = cast(char*)FileName.ext(om.name);
+                auto n = strdup(FileName.name(name));
+                om.name = n[0 .. strlen(n)];
+                char* ext = cast(char*)FileName.ext(n);
                 if (ext)
                     ext[-1] = 0;
             }
@@ -200,7 +202,7 @@ final class LibOMF : Library
     {
         static if (LOG)
         {
-            printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
+            printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name.ptr, name, pickAny);
         }
         const namelen = strlen(name);
         StringValue* s = tab.insert(name, namelen, null);
@@ -212,7 +214,7 @@ final class LibOMF : Library
                 const s2 = tab.lookup(name, namelen);
                 assert(s2);
                 const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                error("multiple definition of %s: %s and %s: %s", om.name.ptr, name, os.om.name.ptr, os.name);
             }
         }
         else
@@ -234,7 +236,7 @@ private:
     {
         static if (LOG)
         {
-            printf("LibMSCoff::scanObjModule(%s)\n", om.name);
+            printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
@@ -242,7 +244,7 @@ private:
             this.addSymbol(om, name.ptr, pickAny);
         }
 
-        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name, loc);
+        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
     }
 
     /***********************************
@@ -264,7 +266,7 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
-            size_t len = strlen(om.name);
+            size_t len = om.name.length;
             if (len > 0xFF)
                 len += 2; // Digital Mars long name extension
             symSize += (len + 4 + 1) & ~1;
@@ -333,19 +335,19 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
-            ushort n = cast(ushort)strlen(om.name);
+            ushort n = cast(ushort)om.name.length;
             if (n > 255)
             {
                 entry[0] = 0xFF;
                 entry[1] = 0;
                 *cast(ushort*)(entry.ptr + 2) = cast(ushort)(n + 1);
-                memcpy(entry.ptr + 4, om.name, n);
+                memcpy(entry.ptr + 4, om.name.ptr, n);
                 n += 3;
             }
             else
             {
                 entry[0] = cast(ubyte)(1 + n);
-                memcpy(entry.ptr + 1, om.name, n);
+                memcpy(entry.ptr + 1, om.name.ptr, n);
             }
             entry[n + 1] = '!';
             *(cast(ushort*)(n + 2 + entry.ptr)) = om.page;
@@ -426,7 +428,7 @@ private:
                     g_page_size *= 2;
                     goto Lagain;
                 }
-                offset += OMFObjSize(om.base, om.length, om.name);
+                offset += OMFObjSize(om.base, om.length, om.name.ptr);
                 // Round the size of the file up to the next page size
                 // by filling with 0s
                 uint n = (g_page_size - 1) & offset;
@@ -448,7 +450,7 @@ private:
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
-            writeOMFObj(libbuf, om.base, om.length, om.name);
+            writeOMFObj(libbuf, om.base, om.length, om.name.ptr);
             // Round the size of the file up to the next page size
             // by filling with 0s
             uint n = (g_page_size - 1) & libbuf.offset;
@@ -547,7 +549,7 @@ struct OmfObjModule
     ubyte* base; // where are we holding it in memory
     uint length; // in bytes
     ushort page; // page module starts in output file
-    char* name; // module name
+    const(char)[] name; // module name, with terminating 0
 }
 
 /*****************************************************************************/
