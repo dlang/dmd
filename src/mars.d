@@ -816,7 +816,7 @@ Language changes listed by -transition=id:
                         VersionCondition.setGlobalLevel(cast(int)level);
                     }
                     else if (Identifier.isValidIdentifier(p + 9))
-                        VersionCondition.addGlobalIdent(p + 9);
+                        VersionCondition.addGlobalIdent(p[9 .. p.strlen]);
                     else
                         goto Lerror;
                 }
