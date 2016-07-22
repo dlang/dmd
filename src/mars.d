@@ -797,7 +797,7 @@ Language changes listed by -transition=id:
                 else if (p[6])
                     goto Lerror;
                 else
-                    global.params.debuglevel = 1;
+                    DebugCondition.setGlobalLevel(1);
             }
             else if (memcmp(p + 1, cast(char*)"version", 7) == 0)
             {
