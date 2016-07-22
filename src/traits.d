@@ -358,6 +358,12 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     size_t dim = e.args ? e.args.dim : 0;
 
+    Expression dimError(int expected)
+    {
+        e.error("expected %d arguments for %s but had %d", expected, e.ident.toChars(), cast(int)dim);
+        return new ErrorExp();
+    }
+
     Expression isX(T)(bool function(T) fp)
     {
         int result = 0;
@@ -446,7 +452,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.isPOD)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto t = isType(o);
@@ -470,7 +476,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.isNested)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -541,7 +547,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 2))
             return new ErrorExp();
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         Identifier id;
@@ -567,7 +573,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getProtection)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         Scope* sc2 = sc.push();
         sc2.flags = sc.flags | SCOPEnoaccesscheck;
@@ -595,7 +601,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.parent)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -638,7 +644,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         e.ident == Id.getVirtualFunctions)
     {
         if (dim != 2)
-            goto Ldimerror;
+            return dimError(2);
 
         auto o = (*e.args)[0];
         auto ex = isExpression((*e.args)[1]);
@@ -764,7 +770,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.classInstanceSize)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -789,7 +795,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getAliasThis)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -810,7 +816,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getAttributes)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -843,7 +849,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         // extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -884,7 +890,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         e.ident == Id.derivedMembers)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -1055,7 +1061,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         /* Determine if two symbols are the same
          */
         if (dim != 2)
-            goto Ldimerror;
+            return dimError(2);
 
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 0))
             return new ErrorExp();
@@ -1108,7 +1114,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getUnitTests)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -1169,7 +1175,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getVirtualIndex)
     {
         if (dim != 1)
-            goto Ldimerror;
+            return dimError(1);
 
         auto o = (*e.args)[0];
         auto s = getDsymbol(o);
@@ -1204,10 +1210,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         e.error("unrecognized trait '%s', did you mean '%s'?", e.ident.toChars(), sub);
     else
         e.error("unrecognized trait '%s'", e.ident.toChars());
-    return new ErrorExp();
-
-Ldimerror:
-    e.error("wrong number of arguments %d", cast(int)dim);
     return new ErrorExp();
 
 Lfalse:
