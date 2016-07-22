@@ -62,7 +62,7 @@ extern (C++) __gshared int Tptrdiff_t = Tint32;
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto
  */
-extern (C++) bool MODimplicitConv(MOD modfrom, MOD modto)
+bool MODimplicitConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
 {
     if (modfrom == modto)
         return true;
@@ -92,7 +92,7 @@ extern (C++) bool MODimplicitConv(MOD modfrom, MOD modto)
 /***************************
  * Return MATCHexact or MATCHconst if a method of type '() modfrom' can call a method of type '() modto'.
  */
-extern (C++) MATCH MODmethodConv(MOD modfrom, MOD modto)
+MATCH MODmethodConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
 {
     if (modfrom == modto)
         return MATCHexact;
@@ -124,7 +124,7 @@ extern (C++) MATCH MODmethodConv(MOD modfrom, MOD modto)
 /***************************
  * Merge mod bits to form common mod.
  */
-extern (C++) MOD MODmerge(MOD mod1, MOD mod2)
+MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
 {
     if (mod1 == mod2)
         return mod1;
@@ -157,7 +157,7 @@ extern (C++) MOD MODmerge(MOD mod1, MOD mod2)
 /*********************************
  * Store modifier name into buf.
  */
-extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
+void MODtoBuffer(OutBuffer* buf, MOD mod)
 {
     switch (mod)
     {
@@ -206,7 +206,7 @@ extern (C++) void MODtoBuffer(OutBuffer* buf, MOD mod)
 /*********************************
  * Return modifier name.
  */
-extern (C++) char* MODtoChars(MOD mod)
+char* MODtoChars(MOD mod)
 {
     OutBuffer buf;
     buf.reserve(16);
@@ -217,7 +217,7 @@ extern (C++) char* MODtoChars(MOD mod)
 /************************************
  * Convert MODxxxx to STCxxx
  */
-extern (C++) StorageClass ModToStc(uint mod)
+StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
 {
     StorageClass stc = 0;
     if (mod & MODimmutable)
@@ -236,7 +236,7 @@ extern (C++) StorageClass ModToStc(uint mod)
  * If some of parameter types or return type are function pointer, delegate, or
  * the types which contains either, then strip also from them.
  */
-extern (C++) Type stripDefaultArgs(Type t)
+private Type stripDefaultArgs(Type t)
 {
     static Parameters* stripParams(Parameters* parameters)
     {
@@ -314,7 +314,7 @@ enum TFLAGSreal         = 8;
 enum TFLAGSimaginary    = 0x10;
 enum TFLAGScomplex      = 0x20;
 
-extern (C++) Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
+private Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
 {
     ScopeDsymbol sym = new ArrayScopeSymbol(sc, tup);
     sym.parent = sc.scopesym;
@@ -332,7 +332,7 @@ extern (C++) Expression semanticLength(Scope* sc, TupleDeclaration tup, Expressi
  * This evaluates exp while setting length to be the number
  * of elements in the tuple t.
  */
-extern (C++) Expression semanticLength(Scope* sc, Type t, Expression exp)
+private Expression semanticLength(Scope* sc, Type t, Expression exp)
 {
     if (t.ty == Ttuple)
     {
