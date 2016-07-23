@@ -790,14 +790,14 @@ Language changes listed by -transition=id:
                         DebugCondition.setGlobalLevel(cast(int)level);
                     }
                     else if (Identifier.isValidIdentifier(p + 7))
-                        DebugCondition.addGlobalIdent(p + 7);
+                        DebugCondition.addGlobalIdent(p[7 .. p.strlen]);
                     else
                         goto Lerror;
                 }
                 else if (p[6])
                     goto Lerror;
                 else
-                    global.params.debuglevel = 1;
+                    DebugCondition.setGlobalLevel(1);
             }
             else if (memcmp(p + 1, cast(char*)"version", 7) == 0)
             {

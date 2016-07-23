@@ -89,18 +89,63 @@ extern (C++) class DVCondition : Condition
  */
 extern (C++) final class DebugCondition : DVCondition
 {
+    /**
+     * Set the global debug level
+     *
+     * Only called from the driver
+     *
+     * Params:
+     *   level = Integer literal to set the global version to
+     */
     static void setGlobalLevel(uint level)
     {
         global.params.debuglevel = level;
     }
 
+
+    /**
+     * Add an user-supplied identifier to the list of global debug identifiers
+     *
+     * Can be called from either the driver or a `debug = Ident;` statement.
+     * Unlike version identifier, there isn't any reserved debug identifier
+     * so no validation takes place.
+     *
+     * Params:
+     *   ident = identifier to add
+     */
+    deprecated("Kept for C++ compat - Use the string overload instead")
     static void addGlobalIdent(const(char)* ident)
+    {
+        addGlobalIdent(ident[0 .. ident.strlen]);
+    }
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(string ident)
+    {
+        // Overload necessary for string literals
+        addGlobalIdent(cast(const(char)[])ident);
+    }
+
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(const(char)[] ident)
     {
         if (!global.params.debugids)
             global.params.debugids = new Strings();
         global.params.debugids.push(cast(char*)ident);
     }
 
+
+    /**
+     * Instantiate a new `DebugCondition`
+     *
+     * Params:
+     *   mod = Module this node belongs to
+     *   level = Minimum global level this condition needs to pass.
+     *           Only used if `ident` is `null`.
+     *   ident = Identifier required for this condition to pass.
+     *           If `null`, this conditiion will use an integer level.
+     */
     extern (D) this(Module mod, uint level, Identifier ident)
     {
         super(mod, level, ident);
