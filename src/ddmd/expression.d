@@ -2933,6 +2933,11 @@ extern (C++) abstract class Expression : RootObject
     final void checkDeprecated(Scope* sc, Dsymbol s)
     {
         s.checkDeprecated(loc, sc);
+        // Checks for deprecated and disabled have historically
+        // been in the same function, this is a temporary transition
+        // measure to keep the same semantic.
+        if (auto d = s.isDeclaration)
+            d.checkDisabled(loc, sc);
     }
 
     /*********************************************
@@ -3242,11 +3247,8 @@ extern (C++) abstract class Expression : RootObject
             StructDeclaration sd = (cast(TypeStruct)t).sym;
             if (sd.postblit)
             {
-                if (sd.postblit.storage_class & STCdisable)
-                {
-                    sd.error(loc, "is not copyable because it is annotated with @disable");
+                if (sd.postblit.checkDisabled(loc, sc))
                     return true;
-                }
                 //checkDeprecated(sc, sd.postblit);        // necessary?
                 checkPurity(sc, sd.postblit);
                 checkSafety(sc, sd.postblit);
@@ -4054,7 +4056,11 @@ extern (C++) final class DsymbolExp : Expression
         else
         {
             if (!s.isFuncDeclaration()) // functions are checked after overloading
+            {
                 s.checkDeprecated(loc, sc);
+                if (d)
+                    d.checkDisabled(loc, sc);
+            }
 
             // https://issues.dlang.org/show_bug.cgi?id=12023
             // if 's' is a tuple variable, the tuple is returned.
@@ -4062,7 +4068,11 @@ extern (C++) final class DsymbolExp : Expression
 
             //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
             if (s != olds && !s.isFuncDeclaration())
+            {
                 s.checkDeprecated(loc, sc);
+                if (d)
+                    d.checkDisabled(loc, sc);
+            }
         }
 
         if (auto em = s.isEnumMember())

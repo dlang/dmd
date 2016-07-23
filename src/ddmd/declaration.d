@@ -181,6 +181,37 @@ extern (C++) abstract class Declaration : Dsymbol
         return type.size();
     }
 
+
+    /**
+     * Issue an error if an attempt to call a disabled method is made
+     *
+     * If the declaration is disabled but inside a disabled function,
+     * returns `true` but do not issue an error message.
+     *
+     * Params:
+     *   loc = Location information of the call
+     *   sc  = Scope in which the call occurs
+     *
+     * Returns:
+     *   `true` if this `Declaration` is `@disable`d, `false` otherwise.
+     */
+    final bool checkDisabled(Loc loc, Scope* sc)
+    {
+        if (storage_class & STCdisable)
+        {
+            if (!(sc.func && sc.func.storage_class & STCdisable))
+            {
+                if (toParent() && isPostBlitDeclaration())
+                    toParent().error(loc, "is not copyable because it is annotated with @disable");
+                else
+                    error(loc, "is not callable because it is annotated with @disable");
+            }
+            return true;
+        }
+        return false;
+    }
+
+
     /*************************************
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
