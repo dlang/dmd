@@ -1288,26 +1288,35 @@ extern (C++) class CompoundStatement : Statement
 {
     Statements* statements;
 
+    /**
+     * Construct a `CompoundStatement` using an already existing
+     * array of `Statement`s
+     *
+     * Params:
+     *   loc = Instantiation informations
+     *   s   = An array of `Statement`s, that will referenced by this class
+     */
     final extern (D) this(Loc loc, Statements* s)
     {
         super(loc);
         statements = s;
     }
 
-    final extern (D) this(Loc loc, Statement s1)
+    /**
+     * Construct a `CompoundStatement` from an array of `Statement`s
+     *
+     * Params:
+     *   loc = Instantiation informations
+     *   s   = A variadic array of `Statement`s, that will copied in this class
+     *         The entries themselves will not be copied.
+     */
+    final extern (D) this(Loc loc, Statement[] sts...)
     {
         super(loc);
         statements = new Statements();
-        statements.push(s1);
-    }
-
-    final extern (D) this(Loc loc, Statement s1, Statement s2)
-    {
-        super(loc);
-        statements = new Statements();
-        statements.reserve(2);
-        statements.push(s1);
-        statements.push(s2);
+        statements.reserve(sts.length);
+        foreach (s; sts)
+            statements.push(s);
     }
 
     static CompoundStatement create(Loc loc, Statement s1, Statement s2)
