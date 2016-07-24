@@ -24,6 +24,9 @@ import ddmd.mtype;
 import ddmd.root.rootobject;
 import ddmd.tokens;
 import ddmd.visitor;
+import ddmd.arraytypes;
+
+
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -38,48 +41,7 @@ import ddmd.visitor;
  */
 bool checkEscape(Scope* sc, Expression e, bool gag)
 {
-    Expression er = escapeExpressionValue(sc, e);
-    if (!er)
-        return false;
-    if (gag)
-        return true;
-
-    if (er.op == TOKvar)
-    {
-        VarDeclaration v = (cast(VarExp)er).var.isVarDeclaration();
-        if (v.isScope())
-        {
-            error(er.loc, "scope variable %s may not be returned", v.toChars());
-        }
-        else if (v.storage_class & STCvariadic)
-        {
-            error(er.loc, "escaping reference to variadic parameter %s", v.toChars());
-        }
-        else
-            assert(0);
-    }
-    else if (er.op == TOKsymoff)
-    {
-        VarDeclaration v = (cast(SymOffExp)er).var.isVarDeclaration();
-        error(er.loc, "escaping reference to local %s", v.toChars());
-    }
-    else if (er.op == TOKaddress)
-    {
-        return checkEscapeRef(sc, (cast(AddrExp)er).e1, gag);
-    }
-    else if (er.op == TOKcast)
-    {
-        return checkEscapeRef(sc, (cast(CastExp)er).e1, gag);
-    }
-    else if (er.op == TOKslice)
-    {
-        return checkEscapeRef(sc, (cast(SliceExp)er).e1, gag);
-    }
-    else
-    {
-        error(er.loc, "escaping reference to stack allocated value returned by %s", er.toChars());
-    }
-    return true;
+    return checkEscapeImpl(sc, e, false, gag);
 }
 
 /************************************
@@ -102,63 +64,198 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
         printf("parent2 function %s\n", sc.func.toParent2().toChars());
     }
 
-    Expression er = escapeExpressionRef(sc, e);
-    if (!er)
-        return false;
-    if (gag)
-        return true;
+    return checkEscapeImpl(sc, e, true, gag);
+}
 
-    if (er.op == TOKvar)
+private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
+{
+    VarDeclarations byref, byvalue;
+    Expressions byexp;
+
+    if (refs)
+        escapeByRef(e, &byref, &byvalue, &byexp);
+    else
+        escapeByValue(e, &byref, &byvalue, &byexp);
+
+    if (!byref.dim && !byvalue.dim && !byexp.dim)
+        return false;
+
+    bool result = false;
+    foreach (VarDeclaration v; byvalue)
     {
-        error(er.loc, "escaping reference to variable %s", er.toChars());
+        if (v.isDataseg())
+            continue;
+
+        if (v.toParent2() != sc.func)
+            continue;
+
+        if (v.isScope())
+        {
+            if (!gag)
+                error(e.loc, "scope variable %s may not be returned", v.toChars());
+            result = true;
+        }
+        else if (v.storage_class & STCvariadic)
+        {
+            Type tb = v.type.toBasetype();
+            if (tb.ty == Tarray || tb.ty == Tsarray)
+            {
+                if (!gag)
+                    error(e.loc, "escaping reference to variadic parameter %s", v.toChars());
+                result = false;
+            }
+        }
     }
-    else if (er.op == TOKthis)
+
+    foreach (VarDeclaration v; byref)
     {
-        error(er.loc, "escaping reference to 'this'");
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if ((v.storage_class & (STCref | STCout)) == 0 && p == sc.func)
+        {
+            if (!gag)
+                error(e.loc, "escaping reference to local variable %s", v.toChars());
+            result = true;
+            continue;
+        }
+
+        /* Check for returning a ref variable by 'ref', but should be 'return ref'
+         * Infer the addition of 'return', or set result to be the offending expression.
+         */
+        if (global.params.useDIP25 &&
+            (v.storage_class & (STCref | STCout)) &&
+            !(v.storage_class & (STCreturn | STCforeach)))
+        {
+            if (sc.func.flags & FUNCFLAGreturnInprocess && p == sc.func)
+            {
+                inferReturn(sc.func, v);        // infer addition of 'return'
+            }
+            else if (sc._module && sc._module.isRoot())
+            {
+                // Only look for errors if in module listed on command line
+
+                if (p == sc.func)
+                {
+                    //printf("escaping reference to local ref variable %s\n", v.toChars());
+                    //printf("storage class = x%llx\n", v.storage_class);
+                    if (!gag)
+                        error(e.loc, "escaping reference to local variable %s", v.toChars());
+                    result = true;
+                    continue;
+                }
+                // Don't need to be concerned if v's parent does not return a ref
+                FuncDeclaration fd = p.isFuncDeclaration();
+                if (fd && fd.type && fd.type.ty == Tfunction)
+                {
+                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    if (tf.isref)
+                    {
+                        if (!gag)
+                            error(e.loc, "escaping reference to outer local variable %s", v.toChars());
+                        result = true;
+                        continue;
+                    }
+                }
+
+            }
+        }
     }
-    else if (er.op == TOKstar)
+
+    foreach (Expression er; byexp)
     {
-        return checkEscape(sc, (cast(PtrExp)er).e1, gag);
+        if (!gag)
+            error(er.loc, "escaping reference to stack allocated value returned by %s", er.toChars());
+        result = true;
     }
-    else if (er.op == TOKdotvar)
+
+    return result;
+}
+
+
+/*************************************
+ * Variable v needs to have 'return' inferred for it.
+ * Params:
+ *      fd = function that v is a parameter to
+ *      v = parameter that needs to be STCreturn
+ */
+
+private void inferReturn(FuncDeclaration fd, VarDeclaration v)
+{
+    // v is a local in the current function
+
+    //printf("inferring 'return' for variable '%s'\n", v.toChars());
+    v.storage_class |= STCreturn;
+
+    TypeFunction tf = cast(TypeFunction)fd.type;
+    if (v == fd.vthis)
     {
-        return checkEscape(sc, (cast(DotVarExp)er).e1, gag);
-    }
-    else if (er.op == TOKcall)
-    {
-        error(er.loc, "escaping reference to stack allocated value returned by %s", er.toChars());
+        /* v is the 'this' reference, so mark the function
+         */
+        fd.storage_class |= STCreturn;
+        if (tf.ty == Tfunction)
+        {
+            //printf("'this' too %p %s\n", tf, sc.func.toChars());
+            tf.isreturn = true;
+        }
     }
     else
     {
-        error(er.loc, "escaping reference to expression %s", er.toChars());
+        // Perform 'return' inference on parameter
+        if (tf.ty == Tfunction && tf.parameters)
+        {
+            const dim = Parameter.dim(tf.parameters);
+            foreach (const i; 0 .. dim)
+            {
+                Parameter p = Parameter.getNth(tf.parameters, i);
+                if (p.ident == v.ident)
+                {
+                    p.storageClass |= STCreturn;
+                    break;              // there can be only one
+                }
+            }
+        }
     }
-    return true;
 }
 
 
 /****************************************
- * Walk e to determine which sub-expression contains the pointers
- * that form the foundation of the pointers in e,
- * if those pointers come with restrictions.
+ * e is an expression to be returned by value, and that value contains pointers.
+ * Walk e to determine which variables are possibly being
+ * returned by value, such as:
+ *      int* function(int* p) { return p; }
+ * If e is a form of &p, determine which variables have content
+ * which is being returned as ref, such as:
+ *      int* function(int i) { return &i; }
+ * Multiple variables can be inserted, because of expressions like this:
+ *      int function(bool b, int i, int* p) { return b ? &i : p; }
+ *
+ * No side effects.
+ *
  * Params:
- *      sc = used to determine current function and module
- *      e = expression to check for any pointers to the stack
- * Returns:
- *      null means no pointers with restrictions, otherwise the sub-expression
+ *      e = expression to be returned by value
+ *      byref = array into which variables being returned by ref are inserted
+ *      byvalue = array into which variables with values containing pointers are inserted
+ *      byexp = array into which temporaries being returned by ref are inserted
  */
-private Expression escapeExpressionValue(Scope* sc, Expression e)
+private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations* byvalue, Expressions* byexp)
 {
     //printf("[%s] checkEscape, e = %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
     {
         alias visit = super.visit;
     public:
-        Scope* sc;
-        Expression result;
+        VarDeclarations* byref;
+        VarDeclarations* byvalue;
+        Expressions* byexp;
 
-        extern (D) this(Scope* sc)
+        extern (D) this(VarDeclarations* byref, VarDeclarations* byvalue, Expressions* byexp)
         {
-            this.sc = sc;
+            this.byref = byref;
+            this.byvalue = byvalue;
+            this.byexp = byexp;
         }
 
         override void visit(Expression e)
@@ -167,45 +264,28 @@ private Expression escapeExpressionValue(Scope* sc, Expression e)
 
         override void visit(AddrExp e)
         {
-            if (checkEscapeRef(sc, e.e1, true))
-                result = e;
+            escapeByRef(e.e1, byref, byvalue, byexp);
         }
 
         override void visit(SymOffExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
-            if (v && v.toParent2() == sc.func)
-            {
-                if (v.isDataseg())
-                    return;
-                if ((v.storage_class & (STCref | STCout)) == 0)
-                    result = e;
-            }
+            if (v)
+                byref.push(v);
         }
 
         override void visit(VarExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
-            {
-                if (v.isScope())
-                {
-                    result = e;
-                }
-                else if (v.storage_class & STCvariadic)
-                {
-                    Type tb = v.type.toBasetype();
-                    if (tb.ty == Tarray || tb.ty == Tsarray)
-                        result = e;
-                }
-            }
+                byvalue.push(v);
         }
 
         override void visit(TupleExp e)
         {
-            for (size_t i = 0; i < e.exps.dim; i++)
+            if (e.exps.dim)
             {
-                (*e.exps)[i].accept(this);
+                (*e.exps)[e.exps.dim - 1].accept(this); // last one only
             }
         }
 
@@ -216,12 +296,10 @@ private Expression escapeExpressionValue(Scope* sc, Expression e)
             {
                 if (e.basis)
                     e.basis.accept(this);
-                for (size_t i = 0; i < e.elements.dim; i++)
+                foreach (el; *e.elements)
                 {
-                    auto el = (*e.elements)[i];
-                    if (!el)
-                        continue;
-                    el.accept(this);
+                    if (el)
+                        el.accept(this);
                 }
             }
         }
@@ -230,9 +308,8 @@ private Expression escapeExpressionValue(Scope* sc, Expression e)
         {
             if (e.elements)
             {
-                for (size_t i = 0; i < e.elements.dim; i++)
+                foreach (ex; *e.elements)
                 {
-                    Expression ex = (*e.elements)[i];
                     if (ex)
                         ex.accept(this);
                 }
@@ -244,9 +321,8 @@ private Expression escapeExpressionValue(Scope* sc, Expression e)
             Type tb = e.newtype.toBasetype();
             if (tb.ty == Tstruct && !e.member && e.arguments)
             {
-                for (size_t i = 0; i < e.arguments.dim; i++)
+                foreach (ex; *e.arguments)
                 {
-                    Expression ex = (*e.arguments)[i];
                     if (ex)
                         ex.accept(this);
                 }
@@ -258,8 +334,7 @@ private Expression escapeExpressionValue(Scope* sc, Expression e)
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
             {
-                if (checkEscapeRef(sc, e.e1, true))
-                    result = e;
+                escapeByRef(e.e1, byref, byvalue, byexp);
             }
         }
 
@@ -275,17 +350,14 @@ private Expression escapeExpressionValue(Scope* sc, Expression e)
                         return;
                     if (v.storage_class & STCvariadic)
                     {
-                        result = e.e1;
+                        byvalue.push(v);
                         return;
                     }
                 }
             }
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tsarray)
-            {
-                if (checkEscapeRef(sc, e.e1, true))
-                    result = e;
-            }
+                escapeByRef(e.e1, byref, byvalue, byexp);
             else
                 e.e1.accept(this);
         }
@@ -322,134 +394,45 @@ private Expression escapeExpressionValue(Scope* sc, Expression e)
         }
     }
 
-    scope EscapeVisitor v = new EscapeVisitor(sc);
+    scope EscapeVisitor v = new EscapeVisitor(byref, byvalue, byexp);
     e.accept(v);
-    return v.result;
 }
 
+
 /****************************************
- * Walk e to determine which sub-expression contains the refs
- * that form the foundation of the refs of e,
- * if those refs come with restrictions.
- * Do inference of 'return' storage class if possible.
+ * e is an expression to be returned by 'ref'.
+ * Walk e to determine which variables are possibly being
+ * returned by ref, such as:
+ *      ref int function(int i) { return i; }
+ * If e is a form of *p, determine which variables have content
+ * which is being returned as ref, such as:
+ *      ref int function(int* p) { return *p; }
+ * Multiple variables can be inserted, because of expressions like this:
+ *      ref int function(bool b, int i, int* p) { return b ? i : *p; }
+ *
+ * No side effects.
+ *
  * Params:
- *      sc = used to determine current function and module
- *      e = expression to check for any refs
- * Returns:
- *      null means no refs with restrictions, otherwise the sub-expression
+ *      e = expression to be returned by 'ref'
+ *      byref = array into which variables being returned by ref are inserted
+ *      byvalue = array into which variables with values containing pointers are inserted
+ *      byexp = array into which temporaries being returned by ref are inserted
  */
-private Expression escapeExpressionRef(Scope* sc, Expression e)
+private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *byvalue, Expressions* byexp)
 {
     extern (C++) final class EscapeRefVisitor : Visitor
     {
         alias visit = super.visit;
     public:
-        Scope* sc;
-        Expression result;
+        VarDeclarations* byref;
+        VarDeclarations* byvalue;
+        Expressions* byexp;
 
-        extern (D) this(Scope* sc)
+        extern (D) this(VarDeclarations* byref, VarDeclarations* byvalue, Expressions* byexp)
         {
-            this.sc = sc;
-        }
-
-        void check(Expression e, Declaration d)
-        {
-            assert(d);
-            VarDeclaration v = d.isVarDeclaration();
-            if (!v)
-                return;
-
-            if (v.isDataseg())
-                return;
-
-            if ((v.storage_class & (STCref | STCout)) == 0 && v.toParent2() == sc.func)
-            {
-                // Returning a non-ref local by ref
-                result = e;
-                return;
-            }
-
-            /* Check for returning a ref variable by 'ref', but should be 'return ref'
-             * Infer the addition of 'return', or set result to be the offending expression.
-             */
-            if (global.params.useDIP25 &&
-                (v.storage_class & (STCref | STCout)) &&
-                !(v.storage_class & (STCreturn | STCforeach)))
-            {
-                if (sc.func.flags & FUNCFLAGreturnInprocess && v.toParent2() == sc.func)
-                {
-                    // v is a local in the current function
-
-                    //printf("inferring 'return' for variable '%s'\n", v.toChars());
-                    v.storage_class |= STCreturn;
-
-                    if (v == sc.func.vthis)
-                    {
-                        // Perform 'return' inference on function type
-                        sc.func.storage_class |= STCreturn;
-                        TypeFunction tf = cast(TypeFunction)sc.func.type;
-                        if (tf.ty == Tfunction)
-                        {
-                            //printf("'this' too %p %s\n", tf, sc.func.toChars());
-                            tf.isreturn = true;
-                        }
-                    }
-                    else
-                    {
-                        // Perform 'return' inference on parameter
-                        TypeFunction tf = cast(TypeFunction)sc.func.type;
-                        if (tf.parameters)
-                        {
-                            const dim = Parameter.dim(tf.parameters);
-                            foreach (const i; 0 .. dim)
-                            {
-                                Parameter p = Parameter.getNth(tf.parameters, i);
-                                if (p.ident == v.ident)
-                                {
-                                    p.storageClass |= STCreturn;
-                                    break;              // there can be only one
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (sc._module && sc._module.isRoot())
-                {
-                    // Only look for errors if in module listed on command line
-
-                    Dsymbol p = v.toParent2();
-                    if (p == sc.func)
-                    {
-                        //printf("escaping reference to local ref variable %s\n", v.toChars());
-                        //printf("storage class = x%llx\n", v.storage_class);
-                        result = e;             // escaping ref to local variable
-                        return;
-                    }
-                    // Don't need to be concerned if v's parent does not return a ref
-                    FuncDeclaration fd = p.isFuncDeclaration();
-                    if (fd && fd.type && fd.type.ty == Tfunction)
-                    {
-                        TypeFunction tf = cast(TypeFunction)fd.type;
-                        if (tf.isref)
-                            result = e;         // escaping ref to outer variable
-                    }
-
-                }
-                return;
-            }
-
-            if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
-            {
-                // If compiler generated ref temporary
-                // (ref v = ex; ex)
-                if (ExpInitializer ez = v._init.isExpInitializer())
-                {
-                    assert(ez.exp && ez.exp.op == TOKconstruct);
-                    Expression ex = (cast(ConstructExp)ez.exp).e2;
-                    ex.accept(this);
-                    return;
-                }
-            }
+            this.byref = byref;
+            this.byvalue = byvalue;
+            this.byexp = byexp;
         }
 
         override void visit(Expression e)
@@ -458,43 +441,61 @@ private Expression escapeExpressionRef(Scope* sc, Expression e)
 
         override void visit(VarExp e)
         {
-            check(e, e.var);
+            auto v = e.var.isVarDeclaration();
+            if (v)
+            {
+                if (v.storage_class & STCref && v.storage_class & (STCforeach | STCtemp) && v._init)
+                {
+                    /* If compiler generated ref temporary
+                     *   (ref v = ex; ex)
+                     * look at the initializer instead
+                     */
+                    if (ExpInitializer ez = v._init.isExpInitializer())
+                    {
+                        assert(ez.exp && ez.exp.op == TOKconstruct);
+                        Expression ex = (cast(ConstructExp)ez.exp).e2;
+                        ex.accept(this);
+                    }
+                }
+                else
+                    byref.push(v);
+            }
         }
 
         override void visit(ThisExp e)
         {
-            if (e.var)
-                check(e, e.var);
+            auto v = e.var.isVarDeclaration();
+            if (v)
+                byref.push(v);
         }
 
         override void visit(PtrExp e)
         {
-            if (checkEscape(sc, e.e1, true))
-                result = e;
+            escapeByValue(e.e1, byref, byvalue, byexp);
         }
 
         override void visit(IndexExp e)
         {
+            Type tb = e.e1.type.toBasetype();
             if (e.e1.op == TOKvar)
             {
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
-                if (v && v.toParent2() == sc.func)
+                if (tb.ty == Tarray || tb.ty == Tsarray)
                 {
-                    Type tb = v.type.toBasetype();
-                    if (tb.ty == Tarray || tb.ty == Tsarray)
+                    if (v && v.storage_class & STCvariadic)
                     {
-                        if (v.storage_class & STCvariadic)
-                        {
-                            result = e.e1;
-                            return;
-                        }
+                        byref.push(v);
+                        return;
                     }
                 }
             }
-            Type tb = e.e1.type.toBasetype();
             if (tb.ty == Tsarray)
             {
                 e.e1.accept(this);
+            }
+            else if (tb.ty == Tarray)
+            {
+                escapeByValue(e.e1, byref, byvalue, byexp);
             }
         }
 
@@ -502,10 +503,7 @@ private Expression escapeExpressionRef(Scope* sc, Expression e)
         {
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tclass)
-            {
-                if (checkEscape(sc, e.e1, true))
-                   result = e;
-            }
+                escapeByValue(e.e1, byref, byvalue, byexp);
             else
                 e.e1.accept(this);
         }
@@ -573,13 +571,11 @@ private Expression escapeExpressionRef(Scope* sc, Expression e)
                 }
             }
             else
-            {
-                result = e;
-            }
+                byexp.push(e);
         }
     }
 
-    scope EscapeRefVisitor v = new EscapeRefVisitor(sc);
+    scope EscapeRefVisitor v = new EscapeRefVisitor(byref, byvalue, byexp);
     e.accept(v);
-    return v.result;
 }
+

@@ -2,7 +2,7 @@
 REQUIRED_ARGS: -dip25
 TEST_OUTPUT:
 ---
-fail_compilation/test15192.d(14): Error: escaping reference to variable x
+fail_compilation/test15192.d(14): Error: escaping reference to outer local variable x
 ---
 */
 

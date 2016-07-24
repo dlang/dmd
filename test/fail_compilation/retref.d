@@ -4,7 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retref.d(31): Error: escaping reference to variable s
+fail_compilation/retref.d(31): Error: escaping reference to local variable s
 fail_compilation/retref.d(42): Error: retref.foo called with argument types (int) matches both:
 fail_compilation/retref.d(36):     retref.foo(ref int x)
 and:
