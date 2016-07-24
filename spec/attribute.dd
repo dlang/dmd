@@ -11,7 +11,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 linkage, $(I LinkageAttribute))
     $(RELATIVE_LINK2 align, $(I AlignAttribute))
     $(RELATIVE_LINK2 deprecated, $(I DeprecatedAttribute))
-    $(GLINK ProtectionAttribute)
+    $(GLINK VisibilityAttribute)
     $(GLINK2 pragma, Pragma)
     $(RELATIVE_LINK2 static, $(D static))
     $(RELATIVE_LINK2 linkage, $(D extern))
@@ -334,10 +334,10 @@ $(GNAME DeprecatedAttribute):
         )
 
 
-$(H3 $(LNAME2 protection_attributes, Protection Attribute))
+$(H3 $(LNAME2 visibility_attributes, Visibility Attribute))
 
 $(GRAMMAR
-$(GNAME ProtectionAttribute):
+$(GNAME VisibilityAttribute):
     $(D private)
     $(D package)
     $(D package) $(D $(LPAREN)) $(GLINK IdentifierList) $(D $(RPAREN))
@@ -346,76 +346,51 @@ $(GNAME ProtectionAttribute):
     $(D export)
 )
 
-        $(P Protection is an attribute that is one of
+        $(P Visibility is an attribute that is one of
         $(D private), $(D package), $(D protected),
         $(D public) or $(D export).
         )
 
-        $(P Private means that only members of the enclosing class can access
-        the member, or members and functions in the same module as the
-        enclosing class.
-        Private members cannot be overridden.
-        Private module members are equivalent to $(D static) declarations
-        in C programs.
+        $(P They may be refered to as protection attributes in documents written
+        before $(LINK2 http://wiki.dlang.org/DIP22, DIP22) was implemented.)
+
+        $(P Symbols with $(D private) visibility can only be accessed from
+        within the same module.
+        Private member functions are implicitly final and cannot be overridden.
         )
 
-        $(P Package extends private so that package members can be accessed
+        $(P $(D package) extends private so that package members can be accessed
         from code in other modules that are in the same package.
-        This applies to the innermost package only, if a module is in
-        nested packages.
+        If no identifier is provided, this applies to the innermost package only,
+        or defaults to $(D private) if a module is not nested in a package.
         )
 
-        $(P Package may have an optional parameter - dot-separated identifier
+        $(P $(D package) may have an optional parameter, dot-separated identifier
         list which is resolved as the qualified package name. If this optional
-        parameter is present, the symbol is considered to be owned by that
-        package instead of the default innermost one. This only applies to
-        access checks and does not affect the module/package this symbol
-        belongs to.
+        parameter is present, the symbol will be visible by this package and
+        all its descendants.
         )
 
-        $(P Protected means that only members of the enclosing class or any
-        classes derived from that class,
-        or members and functions in the same module
-        as the enclosing class, can access the member.
+        $(P $(D protected) only applies inside classes (and templates as they can be mixed in)
+        and means that a symbol can only be seen by members of the same module,
+        or by a derived class.
         If accessing a protected instance member through a derived class member
-        function,
-        that member can only be accessed for the object instance
+        function, that member can only be accessed for the object instance
         which can be implicitly cast to the same type as $(SINGLEQUOTE this).
-        Protected module members are illegal.
+        $(D protected) module members are illegal.
         )
 
-        $(P Public means that any code within the executable can access the member.
+        $(P $(D public) means that any code within the executable can see the member.
+        It is the default visibility attribute.
         )
 
-        $(P Export means that any code outside the executable can access the
-        member. Export
-        is analogous to exporting definitions from a DLL.
+        $(P $(D export) means that any code outside the executable can access the
+        member. $(D export) is analogous to exporting definitions from a DLL.
         )
 
-        $(P Protection does not participate in name lookup.
-        In particular, if two symbols with the same name are in scope,
-        and that name is used unqualified then the lookup will be ambiguous,
-        even if one of the symbols is inaccessible due to protection.
-        For example:
+        $(P Visibility participates in $(DDSUBLINK spec/module, name_lookup, symbol name lookup).
         )
 
----------------
-module A;
-private class Foo {}
----------------
-
----------------
-module B;
-public class Foo {}
----------------
-
----------------
-import A;
-import B;
-
-Foo f1; // error, could be either A.Foo or B.Foo
-B.Foo f2; // ok
----------------
 
 $(H3 $(LNAME2 const, $(D const) Attribute))
 
