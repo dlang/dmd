@@ -10,7 +10,16 @@
 
 module ddmd.lib;
 
+import core.stdc.stdio;
+import core.stdc.stdarg;
+
 import ddmd.globals;
+import ddmd.errors;
+import ddmd.utils;
+
+import ddmd.root.outbuffer;
+import ddmd.root.file;
+import ddmd.root.filename;
 
 static if (TARGET_WINDOS)
 {
@@ -29,6 +38,8 @@ else
 {
     static assert(0, "unsupported system");
 }
+
+enum LOG = false;
 
 class Library
 {
@@ -52,11 +63,67 @@ class Library
         }
     }
 
-    abstract void setFilename(const(char)* dir, const(char)* filename);
-
     abstract void addObject(const(char)* module_name, const ubyte[] buf);
 
-    abstract void write();
+    protected abstract void WriteLibToBuffer(OutBuffer* libbuf);
+
+
+    /***********************************
+     * Set the library file name based on the output directory
+     * and the filename.
+     * Add default library file name extension.
+     * Params:
+     *  dir = path to file
+     *  filename = name of file relative to `dir`
+     */
+    final void setFilename(const(char)* dir, const(char)* filename)
+    {
+        static if (LOG)
+        {
+            printf("LibElf::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
+        }
+        const(char)* arg = filename;
+        if (!arg || !*arg)
+        {
+            // Generate lib file name from first obj name
+            const(char)* n = (*global.params.objfiles)[0];
+            n = FileName.name(n);
+            arg = FileName.forceExt(n, global.lib_ext);
+        }
+        if (!FileName.absolute(arg))
+            arg = FileName.combine(dir, arg);
+
+        loc.filename = FileName.defaultExt(arg, global.lib_ext);
+        loc.linnum = 0;
+        loc.charnum = 0;
+    }
+
+    final void write()
+    {
+        if (global.params.verbose)
+            fprintf(global.stdmsg, "library   %s\n", loc.filename);
+
+        OutBuffer libbuf;
+        WriteLibToBuffer(&libbuf);
+
+        // Transfer image to file
+        File* libfile = File.create(loc.filename);
+        libfile.setbuffer(libbuf.data, libbuf.offset);
+        libbuf.extractData();
+        ensurePathToNameExists(Loc(), libfile.name.toChars());
+        writeFile(Loc(), libfile);
+    }
+
+    final void error(const(char)* format, ...)
+    {
+        va_list ap;
+        va_start(ap, format);
+        .verror(loc, format, ap);
+        va_end(ap);
+    }
+
+  protected:
+    Loc loc;                  // the filename of the library
 }
 
 version (D_LP64)

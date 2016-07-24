@@ -14,22 +14,24 @@ import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.stdio;
-import core.stdc.stdarg;
 import core.stdc.config;
+
 import core.sys.posix.sys.stat;
 import core.sys.posix.unistd;
+
 import ddmd.globals;
 import ddmd.lib;
+import ddmd.utils;
+
 import ddmd.root.array;
 import ddmd.root.file;
-import ddmd.root.outbuffer;
-import ddmd.root.stringtable;
 import ddmd.root.filename;
-import ddmd.root.rmem;
+import ddmd.root.outbuffer;
 import ddmd.root.port;
+import ddmd.root.rmem;
+import ddmd.root.stringtable;
+
 import ddmd.scanmach;
-import ddmd.errors;
-import ddmd.utils;
 
 enum LOG = false;
 
@@ -44,7 +46,6 @@ alias MachObjSymbols = Array!(MachObjSymbol*);
 
 final class LibMach : Library
 {
-    File* libfile;
     MachObjModules objmodules; // MachObjModule[]
     MachObjSymbols objsymbols; // MachObjSymbol[]
     StringTable tab;
@@ -52,34 +53,6 @@ final class LibMach : Library
     extern (D) this()
     {
         tab._init(14000);
-    }
-
-    /***********************************
-     * Set the library file name based on the output directory
-     * and the filename.
-     * Add default library file name extension.
-     */
-    override void setFilename(const(char)* dir, const(char)* filename)
-    {
-        static if (LOG)
-        {
-            printf("LibMach::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
-        }
-        const(char)* arg = filename;
-        if (!arg || !*arg)
-        {
-            // Generate lib file name from first obj name
-            const(char)* n = (*global.params.objfiles)[0];
-            n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
-        }
-        if (!FileName.absolute(arg))
-            arg = FileName.combine(dir, arg);
-        const(char)* libfilename = FileName.defaultExt(arg, global.lib_ext);
-        libfile = File.create(libfilename);
-        loc.filename = libfile.name.toChars();
-        loc.linnum = 0;
-        loc.charnum = 0;
     }
 
     /***************************************
@@ -263,19 +236,6 @@ final class LibMach : Library
 
     /*****************************************************************************/
 
-    override void write()
-    {
-        if (global.params.verbose)
-            fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());
-        OutBuffer libbuf;
-        WriteLibToBuffer(&libbuf);
-        // Transfer image to file
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc(), libfile.name.toChars());
-        writeFile(Loc(), libfile);
-    }
-
     void addSymbol(MachObjModule* om, const(char)[] name, int pickAny = 0)
     {
         static if (LOG)
@@ -345,7 +305,7 @@ private:
      *      dictionary
      *      object modules...
      */
-    void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void WriteLibToBuffer(OutBuffer* libbuf)
     {
         static if (LOG)
         {
@@ -481,16 +441,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-
-    void error(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-    Loc loc;
 }
 
 extern (C++) Library LibMach_factory()
