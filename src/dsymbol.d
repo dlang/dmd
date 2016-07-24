@@ -1881,32 +1881,88 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     assert(exp.op == TOKarray || exp.op == TOKslice);
                     AggregateDeclaration ad = isAggregate(t);
                     assert(ad);
-                    Dsymbol s = ad.search(loc, Id.opDollar);
-                    if (!s) // no dollar exists -- search in higher scope
-                        return null;
-                    s = s.toAlias();
-                    Expression e = null;
-                    // Check for multi-dimensional opDollar(dim) template.
-                    if (TemplateDeclaration td = s.isTemplateDeclaration())
+
+                    Dsymbol sx = ad.search(loc, Id.opDollar);
+                    Dsymbol s;
+                    if (!sx)
                     {
-                        dinteger_t dim = 0;
-                        if (exp.op == TOKarray)
+                        // See UFCS opDollar (same as searchUFCS)
+                        s = null;
+                        for (Scope* scx = sc; scx; scx = scx.enclosing)
                         {
-                            dim = (cast(ArrayExp)exp).currentDimension;
+                            if (!scx.scopesym)
+                                continue;
+                            s = scx.scopesym.search(loc, Id.opDollar);
+                            if (s)
+                            {
+                                // overload set contains only module scope symbols.
+                                if (s.isOverloadSet())
+                                    break;
+                                // selective/renamed imports also be picked up
+                                if (s.isAliasDeclaration() && (cast(AliasDeclaration)s)._import)
+                                    break;
+                                // See only module scope symbols for UFCS target.
+                                Dsymbol p = s.toParent2();
+                                if (p && p.isModule())
+                                    break;
+                            }
+                            s = null;
                         }
-                        else if (exp.op == TOKslice)
+                        if (!s) // no opDollar exists
+                            return null;
+                        s = s.toAlias();
+                    }
+                    else
+                        s = sx.toAlias();
+
+                    dinteger_t curdim, maxdim;
+                    if (exp.op == TOKarray)
+                    {
+                        ArrayExp ae = cast(ArrayExp)exp;
+                        curdim = ae.currentDimension;
+                        maxdim = ae.arguments.dim;
+                    }
+                    else //if (exp.op == TOKslice)
+                    {
+                        curdim = 0; // slices are currently always one-dimensional
+                        maxdim = 1;
+                    }
+
+                    Expression e = null;
+                    TemplateDeclaration td;
+                    if (auto fd = s.isFuncDeclaration())
+                        td = fd.findTemplateDeclRoot();
+                    else
+                        td = s.isTemplateDeclaration();
+
+                    bool isMultiDimOpDollar(TemplateDeclaration td)
+                    {
+                        for (; td; td = td.overnext)
                         {
-                            dim = 0; // slices are currently always one-dimensional
+                            if (td.parameters.dim &&
+                                (*td.parameters)[0].isTemplateValueParameter())
+                            {
+                                return true;
+                            }
                         }
-                        else
-                        {
-                            assert(0);
-                        }
+                        return false;
+                    }
+
+                    // Prefer multi-dimensional opDollar(size_t dim) template.
+                    if (td && isMultiDimOpDollar(td))
+                    {
                         auto tiargs = new Objects();
-                        Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
+                        Expression edim = new IntegerExp(Loc(), curdim, Type.tsize_t);
                         edim = edim.semantic(sc);
                         tiargs.push(edim);
-                        e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
+                        if (!sx)    // UFCS version
+                        {
+                            e = new ScopeExp(loc, new TemplateInstance(loc, td, tiargs));
+                            e = new CallExp(loc, e, ce);
+                            //printf("1 e = %s\n", e.toChars());
+                        }
+                        else
+                            e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                     }
                     else
                     {
@@ -1915,21 +1971,27 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                          * Note that it's impossible to have both template & function opDollar,
                          * because both take no arguments.
                          */
-                        if (exp.op == TOKarray && (cast(ArrayExp)exp).arguments.dim != 1)
+                        if (maxdim != 1)
                         {
-                            exp.error("%s only defines opDollar for one dimension", ad.toChars());
-                            return null;
+                            if (!sx)
+                                exp.error("multi-dimensional opDollar for %s is not found", ad.toChars());
+                            else
+                                exp.error("%s only defines opDollar for one dimension", ad.toChars());
                         }
-                        Declaration d = s.isDeclaration();
-                        assert(d);
-                        e = new DotVarExp(loc, ce, d);
+                        if (!sx)    // UFCS version
+                        {
+                            e = new DsymbolExp(loc, s);
+                            e = new CallExp(loc, e, ce);
+                            //printf("2 e = %s\n", e.toChars());
+                        }
+                        else
+                            e = new DotIdExp(loc, ce, s.ident);
                     }
                     e = e.semantic(sc);
-                    if (!e.type)
-                        exp.error("%s has no value", e.toChars());
-                    t = e.type.toBasetype();
-                    if (t && t.ty == Tfunction)
+                    if (e.type && e.type.toBasetype().ty == Tfunction)
                         e = new CallExp(e.loc, e);
+                    if (e.checkValue())
+                        return null;
                     v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
                     v.storage_class |= STCtemp | STCctfe | STCrvalue;
                 }
