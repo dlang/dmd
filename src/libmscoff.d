@@ -12,24 +12,26 @@ module ddmd.libmscoff;
 
 import core.stdc.stdlib;
 import core.stdc.string;
-import core.sys.windows.windows;
-import core.sys.windows.stat;
 import core.stdc.time;
 import core.stdc.stdio;
-import core.stdc.stdarg;
 import core.stdc.string;
+
+import core.sys.windows.windows;
+import core.sys.windows.stat;
+
 import ddmd.globals;
 import ddmd.lib;
+import ddmd.utils;
+
 import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
-import ddmd.root.rmem;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
+import ddmd.root.rmem;
 import ddmd.root.stringtable;
+
 import ddmd.scanmscoff;
-import ddmd.errors;
-import ddmd.utils;
 
 enum LOG = false;
 
@@ -56,7 +58,6 @@ alias MSCoffObjSymbols = Array!(MSCoffObjSymbol*);
 
 final class LibMSCoff : Library
 {
-    File* libfile;
     MSCoffObjModules objmodules; // MSCoffObjModule[]
     MSCoffObjSymbols objsymbols; // MSCoffObjSymbol[]
     StringTable tab;
@@ -64,34 +65,6 @@ final class LibMSCoff : Library
     extern (D) this()
     {
         tab._init(14000);
-    }
-
-    /***********************************
-     * Set the library file name based on the output directory
-     * and the filename.
-     * Add default library file name extension.
-     */
-    override void setFilename(const(char)* dir, const(char)* filename)
-    {
-        static if (LOG)
-        {
-            printf("LibMSCoff::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
-        }
-        const(char)* arg = filename;
-        if (!arg || !*arg)
-        {
-            // Generate lib file name from first obj name
-            const(char)* n = (*global.params.objfiles)[0];
-            n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
-        }
-        if (!FileName.absolute(arg))
-            arg = FileName.combine(dir, arg);
-        const(char)* libfilename = FileName.defaultExt(arg, global.lib_ext);
-        libfile = File.create(libfilename);
-        loc.filename = libfile.name.toChars();
-        loc.linnum = 0;
-        loc.charnum = 0;
     }
 
     /***************************************
@@ -366,19 +339,6 @@ final class LibMSCoff : Library
 
     /*****************************************************************************/
 
-    override void write()
-    {
-        if (global.params.verbose)
-            fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());
-        OutBuffer libbuf;
-        WriteLibToBuffer(&libbuf);
-        // Transfer image to file
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc(), libfile.name.toChars());
-        writeFile(Loc(), libfile);
-    }
-
     void addSymbol(MSCoffObjModule* om, const(char)[] name, int pickAny = 0)
     {
         static if (LOG)
@@ -425,7 +385,7 @@ private:
      *      Longnames Member
      *      object modules...
      */
-    void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void WriteLibToBuffer(OutBuffer* libbuf)
     {
         static if (LOG)
         {
@@ -621,16 +581,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-
-    void error(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-    Loc loc;
 }
 
 extern (C++) Library LibMSCoff_factory()

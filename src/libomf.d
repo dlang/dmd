@@ -13,16 +13,16 @@ module ddmd.libomf;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
-import core.stdc.stdarg;
+
 import ddmd.globals;
+import ddmd.utils;
 import ddmd.lib;
+
 import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
-import ddmd.errors;
-import ddmd.utils;
 
 import ddmd.scanomf;
 
@@ -42,7 +42,6 @@ extern (C) uint _rotr(uint value, int shift);
 
 final class LibOMF : Library
 {
-    File* libfile;
     OmfObjModules objmodules; // OmfObjModule[]
     OmfObjSymbols objsymbols; // OmfObjSymbol[]
     StringTable tab;
@@ -50,30 +49,6 @@ final class LibOMF : Library
     extern (D) this()
     {
         tab._init(14000);
-    }
-
-    /***********************************
-     * Set the library file name based on the output directory
-     * and the filename.
-     * Add default library file name extension.
-     */
-    override void setFilename(const(char)* dir, const(char)* filename)
-    {
-        const(char)* arg = filename;
-        if (!arg || !*arg)
-        {
-            // Generate lib file name from first obj name
-            const(char)* n = (*global.params.objfiles)[0];
-            n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
-        }
-        if (!FileName.absolute(arg))
-            arg = FileName.combine(dir, arg);
-        const(char)* libfilename = FileName.defaultExt(arg, global.lib_ext);
-        libfile = File.create(libfilename);
-        loc.filename = libfile.name.toChars();
-        loc.linnum = 0;
-        loc.charnum = 0;
     }
 
     /***************************************
@@ -187,19 +162,6 @@ final class LibOMF : Library
     }
 
     /*****************************************************************************/
-
-    override void write()
-    {
-        if (global.params.verbose)
-            fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());
-        OutBuffer libbuf;
-        WriteLibToBuffer(&libbuf);
-        // Transfer image to file
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc(), libfile.name.toChars());
-        writeFile(Loc(), libfile);
-    }
 
     void addSymbol(OmfObjModule* om, const(char)* name, int pickAny = 0)
     {
@@ -398,7 +360,7 @@ private:
      *      dictionary header
      *      dictionary pages...
      */
-    void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void WriteLibToBuffer(OutBuffer* libbuf)
     {
         /* Scan each of the object modules for symbols
          * to go into the dictionary
@@ -521,23 +483,6 @@ private:
         // Write library header at start of buffer
         memcpy(libbuf.data, &libHeader, (libHeader).sizeof);
     }
-
-    void error(const(char)* format, ...)
-    {
-        Loc loc;
-        if (libfile)
-        {
-            loc.filename = libfile.name.toChars();
-            loc.linnum = 0;
-            loc.charnum = 0;
-        }
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-    Loc loc;
 }
 
 extern (C++) Library LibOMF_factory()
