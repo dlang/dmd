@@ -273,14 +273,14 @@ public:
                 {
                     // import a.b.c.d;
                     auto p = pkg; // a
-                    scopesym.addAccessiblePackage(p);
+                    scopesym.addAccessiblePackage(p, protection);
                     foreach (id; (*packages)[1 .. packages.dim]) // [b, c]
                     {
                         p = cast(Package) p.symtab.lookup(id);
-                        scopesym.addAccessiblePackage(p);
+                        scopesym.addAccessiblePackage(p, protection);
                     }
                 }
-                scopesym.addAccessiblePackage(mod); // d
+                scopesym.addAccessiblePackage(mod, protection); // d
             }
 
             mod.semantic();
