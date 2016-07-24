@@ -108,6 +108,12 @@ final class LibMSCoff : Library
         {
             printf("LibMSCoff::addObject(%s)\n", module_name);
         }
+
+        void corrupt(int reason)
+        {
+            error("corrupt MS Coff object module %s %d", module_name, reason);
+        }
+
         int fromfile = 0;
         auto buf = buffer.ptr;
         auto buflen = buffer.length;
@@ -128,9 +134,7 @@ final class LibMSCoff : Library
             {
                 printf("buf = %p, buflen = %d\n", buf, buflen);
             }
-        Lcorrupt:
-            error("corrupt object module %s %d", module_name, reason);
-            exit(EXIT_FAILURE);
+            return corrupt(__LINE__);
         }
         if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
         {
@@ -163,24 +167,15 @@ final class LibMSCoff : Library
                 if (offset >= buflen)
                     break;
                 if (offset + MSCoffLibHeader.sizeof >= buflen)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 MSCoffLibHeader* header = cast(MSCoffLibHeader*)(cast(ubyte*)buf + offset);
                 offset += MSCoffLibHeader.sizeof;
                 char* endptr = null;
                 uint size = strtoul(cast(char*)header.file_size, &endptr, 10);
                 if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 if (offset + size > buflen)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 //printf("header->object_name = '%.*s'\n", MSCOFF_OBJECT_NAME_SIZE, header->object_name);
                 if (memcmp(cast(char*)header.object_name, cast(char*)"/               ", MSCOFF_OBJECT_NAME_SIZE) == 0)
                 {
@@ -194,25 +189,16 @@ final class LibMSCoff : Library
                         // Second Linker Member, which we require even though the format doesn't require it
                         slm = header;
                         if (size < 4 + 4)
-                        {
-                            reason = __LINE__;
-                            goto Lcorrupt;
-                        }
+                            return corrupt(__LINE__);
                         number_of_members = Port.readlongLE(cast(char*)buf + offset);
                         member_file_offsets = cast(uint*)(cast(char*)buf + offset + 4);
                         if (size < 4 + number_of_members * 4 + 4)
-                        {
-                            reason = __LINE__;
-                            goto Lcorrupt;
-                        }
+                            return corrupt(__LINE__);
                         number_of_symbols = Port.readlongLE(cast(char*)buf + offset + 4 + number_of_members * 4);
                         indices = cast(ushort*)(cast(char*)buf + offset + 4 + number_of_members * 4 + 4);
                         string_table = cast(char*)(cast(char*)buf + offset + 4 + number_of_members * 4 + 4 + number_of_symbols * 2);
                         if (size <= (4 + number_of_members * 4 + 4 + number_of_symbols * 2))
-                        {
-                            reason = __LINE__;
-                            goto Lcorrupt;
-                        }
+                            return corrupt(__LINE__);
                         string_table_length = size - (4 + number_of_members * 4 + 4 + number_of_symbols * 2);
                         /* The number of strings in the string_table must be number_of_symbols; check it
                          * The strings must also be in ascending lexical order; not checked.
@@ -223,19 +209,13 @@ final class LibMSCoff : Library
                             while (1)
                             {
                                 if (i >= string_table_length)
-                                {
-                                    reason = __LINE__;
-                                    goto Lcorrupt;
-                                }
+                                    return corrupt(__LINE__);
                                 if (!string_table[i++])
                                     break;
                             }
                         }
                         if (i != string_table_length)
-                        {
-                            reason = __LINE__;
-                            goto Lcorrupt;
-                        }
+                            return corrupt(__LINE__);
                     }
                 }
                 else if (memcmp(cast(char*)header.object_name, cast(char*)"//              ", MSCOFF_OBJECT_NAME_SIZE) == 0)
@@ -250,18 +230,12 @@ final class LibMSCoff : Library
                 else
                 {
                     if (!slm)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt;
-                    }
+                        return corrupt(__LINE__);
                     version (none)
                     {
                         // Microsoft Spec says longnames member must appear, but Microsoft Lib says otherwise
                         if (!lnm)
-                        {
-                            reason = __LINE__;
-                            goto Lcorrupt;
-                        }
+                            return corrupt(__LINE__);
                     }
                     auto om = new MSCoffObjModule();
                     // Include MSCoffLibHeader in base[0..length], so we don't have to repro it
@@ -277,10 +251,7 @@ final class LibMSCoff : Library
                         for (i = 0; 1; i++)
                         {
                             if (foff + i >= longnames_length)
-                            {
-                                reason = __LINE__;
-                                goto Lcorrupt;
-                            }
+                                return corrupt(__LINE__);
                             char c = longnames[foff + i];
                             if (c == 0)
                                 break;
@@ -302,10 +273,7 @@ final class LibMSCoff : Library
                         for (i = 0; 1; i++)
                         {
                             if (i == MSCOFF_OBJECT_NAME_SIZE)
-                            {
-                                reason = __LINE__;
-                                goto Lcorrupt;
-                            }
+                                return corrupt(__LINE__);
                             char c = header.object_name[i];
                             if (c == '/')
                             {
@@ -326,10 +294,7 @@ final class LibMSCoff : Library
                 offset += size;
             }
             if (offset != buflen)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             /* Scan the library's symbol table, and insert it into our own.
              * We use this instead of rescanning the object module, because
              * the library's creator may have a different idea of what symbols
@@ -337,10 +302,7 @@ final class LibMSCoff : Library
              * This is also probably faster.
              */
             if (!slm)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             char* s = string_table;
             for (uint i = 0; i < number_of_symbols; i++)
             {
@@ -348,18 +310,12 @@ final class LibMSCoff : Library
                 s += name.length + 1;
                 uint memi = indices[i] - 1;
                 if (memi >= number_of_members)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 uint moff = member_file_offsets[memi];
                 for (size_t m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt; // didn't find it
-                    }
+                        return corrupt(__LINE__);       // didn't find it
                     MSCoffObjModule* om = objmodules[m];
                     //printf("\tom offset = x%x\n", (char *)om->base - (char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
@@ -387,10 +343,7 @@ final class LibMSCoff : Library
             stat_t statbuf;
             int i = stat(cast(char*)module_name, &statbuf);
             if (i == -1) // error, errno is set
-            {
-                reason = 14;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;
             om.user_id = statbuf.st_uid;
             om.group_id = statbuf.st_gid;
