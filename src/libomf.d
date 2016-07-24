@@ -88,6 +88,12 @@ final class LibOMF : Library
         {
             printf("LibOMF::addObject(%s)\n", module_name ? module_name : "");
         }
+
+        void corrupt(int reason)
+        {
+            error("corrupt OMF object module %s %d", module_name, reason);
+        }
+
         auto buf = buffer.ptr;
         auto buflen = buffer.length;
         if (!buf)
@@ -118,10 +124,7 @@ final class LibOMF : Library
          * or something else.
          */
         if (buflen < (LibHeader).sizeof)
-        {
-        Lcorrupt:
-            error("corrupt object module");
-        }
+            return corrupt(__LINE__);
         const lh = cast(const(LibHeader)*)buf;
         if (lh.recTyp == 0xF0)
         {
@@ -132,7 +135,7 @@ final class LibOMF : Library
             g_page_size = lh.pagesize + 3;
             buf = cast(ubyte*)(pstart + g_page_size);
             if (lh.lSymSeek > buflen || g_page_size > buflen)
-                goto Lcorrupt;
+                return corrupt(__LINE__);
             buflen = lh.lSymSeek - g_page_size;
         }
         else if (lh.recTyp == '!' && memcmp(lh, cast(char*)"!<arch>\n", 8) == 0)
@@ -180,7 +183,7 @@ final class LibOMF : Library
         }
 
         if (scanOmfLib(&addOmfObjModule, cast(void*)buf, buflen, g_page_size))
-            goto Lcorrupt;
+            return corrupt(__LINE__);
     }
 
     /*****************************************************************************/

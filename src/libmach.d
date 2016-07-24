@@ -96,6 +96,12 @@ final class LibMach : Library
         {
             printf("LibMach::addObject(%s)\n", module_name);
         }
+
+        void corrupt(int reason)
+        {
+            error("corrupt Mach object module %s %d", module_name, reason);
+        }
+
         int fromfile = 0;
         auto buf = buffer.ptr;
         auto buflen = buffer.length;
@@ -116,9 +122,7 @@ final class LibMach : Library
             {
                 printf("buf = %p, buflen = %d\n", buf, buflen);
             }
-        Lcorrupt:
-            error("corrupt object module %s %d", module_name, reason);
-            return;
+            return corrupt(__LINE__);
         }
         if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
         {
@@ -137,24 +141,15 @@ final class LibMach : Library
             while (offset < buflen)
             {
                 if (offset + MachLibHeader.sizeof >= buflen)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 MachLibHeader* header = cast(MachLibHeader*)(cast(ubyte*)buf + offset);
                 offset += MachLibHeader.sizeof;
                 char* endptr = null;
                 uint size = cast(uint)strtoul(header.file_size.ptr, &endptr, 10);
                 if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 if (offset + size > buflen)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 if (memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF       ", 16) == 0 ||
                     memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF SORTED", 16) == 0)
                 {
@@ -162,17 +157,11 @@ final class LibMach : Library
                      * library, just use the already created symbol table.
                      */
                     if (symtab)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt;
-                    }
+                        return corrupt(__LINE__);
                     symtab = cast(char*)buf + offset;
                     symtab_size = size;
                     if (size < 4)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt;
-                    }
+                        return corrupt(__LINE__);
                 }
                 else
                 {
@@ -192,10 +181,7 @@ final class LibMach : Library
                 offset += (size + 1) & ~1;
             }
             if (offset != buflen)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             /* Scan the library's symbol table, and insert it into our own.
              * We use this instead of rescanning the object module, because
              * the library's creator may have a different idea of what symbols
@@ -205,10 +191,7 @@ final class LibMach : Library
             uint nsymbols = Port.readlongLE(symtab) / 8;
             char* s = symtab + 4 + nsymbols * 8 + 4;
             if (4 + nsymbols * 8 + 4 > symtab_size)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             for (uint i = 0; i < nsymbols; i++)
             {
                 uint soff = Port.readlongLE(symtab + 4 + i * 8);
@@ -216,19 +199,13 @@ final class LibMach : Library
                 size_t namelen = strlen(name);
                 //printf("soff = x%x name = %s\n", soff, name);
                 if (s + namelen + 1 - symtab > symtab_size)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 uint moff = Port.readlongLE(symtab + 4 + i * 8 + 4);
                 //printf("symtab[%d] moff = x%x  x%x, name = %s\n", i, moff, moff + sizeof(Header), name);
                 for (uint m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt; // didn't find it
-                    }
+                        return corrupt(__LINE__);       // didn't find it
                     MachObjModule* om = objmodules[m];
                     //printf("\tom offset = x%x\n", (char *)om->base - (char *)buf);
                     if (moff == cast(char*)om.base - cast(char*)buf)
@@ -256,10 +233,7 @@ final class LibMach : Library
             stat_t statbuf;
             int i = stat(module_name, &statbuf);
             if (i == -1) // error, errno is set
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;
             om.user_id = statbuf.st_uid;
             om.group_id = statbuf.st_gid;
