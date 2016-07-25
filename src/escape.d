@@ -86,16 +86,32 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if (v.isDataseg())
             continue;
 
-        if (v.toParent2() != sc.func)
-            continue;
+        Dsymbol p = v.toParent2();
 
         if (v.isScope())
         {
-            if (!gag)
-                error(e.loc, "scope variable %s may not be returned", v.toChars());
-            result = true;
+            if (v.storage_class & STCreturn)
+                continue;
+
+            if (v.isParameter())
+            {
+                if (sc.func.flags & FUNCFLAGreturnInprocess && p == sc.func)
+                {
+                    inferReturn(sc.func, v);        // infer addition of 'return'
+                    continue;
+                }
+            }
+            if (sc._module && sc._module.isRoot())
+            {
+                // Only look for errors if in module listed on command line
+
+                if (!gag)
+                    error(e.loc, "scope variable %s may not be returned", v.toChars());
+                result = true;
+                continue;
+            }
         }
-        else if (v.storage_class & STCvariadic)
+        else if (v.storage_class & STCvariadic && p == sc.func)
         {
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -391,6 +407,47 @@ private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations
         {
             e.e1.accept(this);
             e.e2.accept(this);
+        }
+
+        override void visit(CallExp e)
+        {
+            /* Check each argument that is
+             * passed as 'return scope'.
+             */
+            Type t1 = e.e1.type.toBasetype();
+            TypeFunction tf;
+            if (t1.ty == Tdelegate)
+                tf = cast(TypeFunction)(cast(TypeDelegate)t1).next;
+            else if (t1.ty == Tfunction)
+                tf = cast(TypeFunction)t1;
+            else
+                return;
+
+            if (e.arguments && e.arguments.dim)
+            {
+                /* j=1 if _arguments[] is first argument,
+                 * skip it because it is not passed by ref
+                 */
+                int j = (tf.linkage == LINKd && tf.varargs == 1);
+                for (size_t i = j; i < e.arguments.dim; ++i)
+                {
+                    Expression arg = (*e.arguments)[i];
+                    size_t nparams = Parameter.dim(tf.parameters);
+                    if (i - j < nparams && i >= j)
+                    {
+                        Parameter p = Parameter.getNth(tf.parameters, i - j);
+                        if ((p.storageClass & (STCscope)) && (p.storageClass & STCreturn))
+                            arg.accept(this);
+                    }
+                }
+            }
+            // If 'this' is returned, check it too
+            if (e.e1.op == TOKdotvar && t1.ty == Tfunction)
+            {
+                DotVarExp dve = cast(DotVarExp)e.e1;
+                if (dve.var.storage_class & STCreturn || tf.isreturn)
+                    dve.e1.accept(this);
+            }
         }
     }
 
