@@ -4738,7 +4738,7 @@ unittest
     assert(aStr == "-0.337", aStr);
 }
 
-version(unittest) const(char)* numToStringz()(long value) @safe pure nothrow
+version(unittest) const(char)* numToStringz()(long value) @trusted pure nothrow
 {
     return (signedToTempString(value, 10) ~ "\0").ptr;
 }
