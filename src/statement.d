@@ -2590,6 +2590,10 @@ extern (C++) final class GotoStatement : Statement
         {
             // All good, the label's scope has no variables
         }
+        else if (vd.storage_class & STCexptemp)
+        {
+            // Lifetime ends at end of expression, so no issue with skipping the statement
+        }
         else if (vd.ident == Id.withSym)
         {
             error("goto skips declaration of with temporary at %s", vd.loc.toChars());

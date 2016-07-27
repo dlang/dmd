@@ -126,6 +126,7 @@ enum STCvolatile            = (1L << 43);   // destined for volatile in the back
 enum STCreturn              = (1L << 44);   // 'return ref' for function parameters
 enum STCautoref             = (1L << 45);   // Mark for the already deduced 'auto ref' parameter
 enum STCinference           = (1L << 46);   // do attribute inference
+enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
 
 enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
 enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
