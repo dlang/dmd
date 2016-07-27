@@ -1025,6 +1025,8 @@ typedef struct STRUCT
                                 // of a template class, this is the
                                 // template class Symbol
 
+    Symbol* Sinit;              // symbol for the init data
+
     // For 64 bit Elf function ABI
     type *Sarg1type;
     type *Sarg2type;

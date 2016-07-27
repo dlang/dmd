@@ -480,7 +480,8 @@ type *type_enum(const char *name, type *tbase)
  *      Tcount already incremented
  */
 type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
-        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD)
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD,
+        Symbol* init)
 {
     Symbol *s = symbol_calloc(name);
     s->Sclass = SCstruct;
@@ -490,6 +491,7 @@ type *type_struct_class(const char *name, unsigned alignsize, unsigned structsiz
     s->Sstruct->Sstructsize = structsize;
     s->Sstruct->Sarg1type = arg1type;
     s->Sstruct->Sarg2type = arg2type;
+    s->Sstruct->Sinit = init;
 
     if (!isPOD)
         s->Sstruct->Sflags |= STRnotpod;

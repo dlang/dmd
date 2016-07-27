@@ -782,7 +782,7 @@ void buildClosure(FuncDeclaration *fd, IRState *irs)
         strcat(strcat(closname, name1), name2);
 
         /* Build type for closure */
-        type *Closstru = type_struct_class(closname, Target::ptrsize, 0, NULL, NULL, false, false, true);
+        type *Closstru = type_struct_class(closname, Target::ptrsize, 0, NULL, NULL, false, false, true, NULL);
         free(closname);
         symbol_struct_addField(Closstru->Ttag, "__chain", Type_toCtype(Type::tvoidptr), 0);
 
