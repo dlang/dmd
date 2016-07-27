@@ -15885,9 +15885,9 @@ extern (C++) class DefaultInitExp : Expression
  */
 extern (C++) final class FileInitExp : DefaultInitExp
 {
-    extern (D) this(Loc loc)
+    extern (D) this(Loc loc, TOK tok)
     {
-        super(loc, TOKfile, __traits(classInstanceSize, FileInitExp));
+        super(loc, tok, __traits(classInstanceSize, FileInitExp));
     }
 
     override Expression semantic(Scope* sc)
