@@ -23,6 +23,7 @@ $(BUGSTITLE Language Changes,
 $(BUGSTITLE Compiler Changes,
     $(LI $(RELATIVE_LINK2 deferred_alias, Analysis for aliases in imported modules is deferred.))
     $(LI $(RELATIVE_LINK2 native_tls_osx, Native TLS on OS X 64 bit.))
+    $(LI $(RELATIVE_LINK2 __FILE_FULL_PATH__, Special keyword replaced by the source file's absolute file name.)
 )
 
 $(BUGSTITLE Language Changes,
@@ -147,6 +148,32 @@ $(BUGSTITLE Compiler Changes,
             Xcode 7.3 has a bug causing linker errors for some TLS variables.
             Xcode 7.3.1 fixes this bug. Any version older than 7.3 works as well.
         )
+    )
+
+    $(LI $(LNAME2 __FILE_FULL_PATH__, Special keyword replaced by the source file's absolute file name.)
+        $(P
+            The __FILE_FULL_PATH__ special keyword is replaced by the absolute path
+            of the current source file by the compiler.
+        )
+        $(P Example:)
+        ---
+        import std.stdio;
+        import std.path;
+        import std.file;
+        void main()
+        {
+            writeln("The main source file lives here: ", __FILE_FULL_PATH__);
+            writeln("The contents are:");
+            foreach(line; File(__FILE_FULL_PATH__, "r").byLine) {
+                writeln(line);
+            }
+            writeln();
+            writeln("Other files in the same directory are:");
+            foreach(entry; dirEntries(__FILE_FULL_PATH__.dirName, SpanMode.shallow)) {
+                writefln("  - %s", entry.name);
+            }
+        }
+        ---
     )
 )
 
