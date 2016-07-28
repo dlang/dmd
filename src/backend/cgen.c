@@ -390,6 +390,22 @@ void CodeBuilder::genasm(char *s, unsigned slen)
     pTail = &ce->next;
 }
 
+#if MARS
+
+void CodeBuilder::genasm(LabelDsymbol *label)
+{
+    code *ce = code_calloc();
+    ce->Iop = ASM;
+    ce->Iflags = CFaddrsize;
+    ce->IFL1 = FLblockoff;
+    ce->IEVlsym1 = label;
+
+    *pTail = ce;
+    pTail = &ce->next;
+}
+
+#endif
+
 #if TX86
 code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 {   code cs;

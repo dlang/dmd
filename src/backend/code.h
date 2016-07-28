@@ -724,6 +724,9 @@ struct CodeBuilder
     void gen2(unsigned op, unsigned rm);
     void gen2sib(unsigned op, unsigned rm, unsigned sib);
     void genasm(char *s, unsigned slen);
+#if MARS
+    void genasm(LabelDsymbol *label);
+#endif
     void gencsi(unsigned op, unsigned rm, unsigned FL2, SYMIDX si);
     void gencs(unsigned op, unsigned rm, unsigned FL2, symbol *s);
     void genc2(unsigned op, unsigned rm, targ_size_t EV2);

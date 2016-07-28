@@ -3433,8 +3433,7 @@ static unsigned asm_type_size(Type * ptype)
 
 static code *asm_da_parse(OP *pop)
 {
-    code *clst = NULL;
-
+    CodeBuilder cb;
     while (1)
     {
         if (tok_value == TOKidentifier)
@@ -3443,13 +3442,9 @@ static code *asm_da_parse(OP *pop)
             if (!label)
                 error(asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
 
-            code *c = code_calloc();
-            c->Iop = ASM;
-            c->Iflags = CFaddrsize;
-            c->IFL1 = FLblockoff;
-            c->IEVlsym1 = label;
-            c = asm_genloc(asmstate.loc, c);
-            clst = cat(clst,c);
+            if (global.params.symdebug)
+                cb.genlinnum(Srcpos::create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
+            cb.genasm(label);
         }
         else
             error(asmstate.loc, "label expected as argument to DA pseudo-op"); // illegal addressing mode
@@ -3462,7 +3457,7 @@ static code *asm_da_parse(OP *pop)
     asmstate.statement->regs |= mES|ALLREGS;
     asmstate.bReturnax = true;
 
-    return clst;
+    return cb.finish();
 }
 
 /*******************************************
@@ -3471,9 +3466,6 @@ static code *asm_da_parse(OP *pop)
 
 static code *asm_db_parse(OP *pop)
 {
-    size_t usSize;
-    size_t usMaxbytes;
-    size_t usBytes;
     union DT
     {
         targ_ullong ul;
@@ -3482,17 +3474,15 @@ static code *asm_db_parse(OP *pop)
         targ_ldouble ld;
         char value[10];
     } dt;
-    code *c;
-    unsigned op;
-    static unsigned char opsize[] = { 1,2,4,8,4,8,10 };
 
-    op = pop->usNumops & ITSIZE;
-    usSize = opsize[op];
+    static const unsigned char opsize[] = { 1,2,4,8,4,8,10 };
 
-    usBytes = 0;
-    usMaxbytes = 0;
-    c = code_calloc();
-    c->Iop = ASM;
+    unsigned op = pop->usNumops & ITSIZE;
+    size_t usSize = opsize[op];
+
+    size_t usBytes = 0;
+    size_t usMaxbytes = 0;
+    char *bytes = NULL;
 
     while (1)
     {
@@ -3503,7 +3493,7 @@ static code *asm_db_parse(OP *pop)
         if (usBytes+usSize > usMaxbytes)
         {
             usMaxbytes = usBytes + usSize + 10;
-            c->IEV1.as.bytes = (char *)mem_realloc(c->IEV1.as.bytes,usMaxbytes);
+            bytes = (char *)mem_realloc(bytes, usMaxbytes);
         }
         switch (tok_value)
         {
@@ -3552,7 +3542,7 @@ static code *asm_db_parse(OP *pop)
                 goto L2;
 
             L2:
-                memcpy(c->IEV1.as.bytes + usBytes,&dt,usSize);
+                memcpy(bytes + usBytes, &dt, usSize);
                 usBytes += usSize;
                 break;
 
@@ -3563,11 +3553,10 @@ static code *asm_db_parse(OP *pop)
                 if (len)
                 {
                     usMaxbytes += len * usSize;
-                    c->IEV1.as.bytes =
-                        (char *)mem_realloc(c->IEV1.as.bytes,usMaxbytes);
-                    memcpy(c->IEV1.as.bytes + usBytes,asmtok->ustring,len);
+                    bytes = (char *)mem_realloc(bytes, usMaxbytes);
+                    memcpy(bytes + usBytes, asmtok->ustring, len);
 
-                    char *p = c->IEV1.as.bytes + usBytes;
+                    char *p = bytes + usBytes;
                     for (size_t i = 0; i < len; i++)
                     {
                         // Be careful that this works
@@ -3658,7 +3647,6 @@ static code *asm_db_parse(OP *pop)
                 asmerr("constant initializer expected");          // constant initializer
                 break;
         }
-        c->IEV1.as.len = usBytes;
 
         asm_token();
         if (tok_value != TOKcomma)
@@ -3666,7 +3654,12 @@ static code *asm_db_parse(OP *pop)
         asm_token();
     }
 
-    c = asm_genloc(asmstate.loc, c);
+    CodeBuilder cb;
+    if (global.params.symdebug)
+        cb.genlinnum(Srcpos::create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
+    cb.genasm(bytes, usBytes);
+    code *c = cb.finish();
+    mem_free(bytes);
 
     asmstate.statement->regs |= /* mES| */ ALLREGS;
     asmstate.bReturnax = true;
