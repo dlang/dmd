@@ -109,7 +109,7 @@ struct ASM_STATE
     Scope *sc;
 };
 
-ASM_STATE asmstate;
+static ASM_STATE asmstate;
 
 static Token *asmtok;
 static TOK tok_value;
@@ -128,12 +128,12 @@ struct REG
     unsigned char val;
     opflag_t ty;
 
-    bool isSIL_DIL_BPL_SPL();
+    bool isSIL_DIL_BPL_SPL() const;
 };
 
-static REG regFp =      { "ST", 0, _st };
+static const REG regFp =      { "ST", 0, _st };
 
-static REG aregFp[] =
+static const REG aregFp[] =
 {
     { "ST(0)", 0, _sti },
     { "ST(1)", 1, _sti },
@@ -144,38 +144,42 @@ static REG aregFp[] =
     { "ST(6)", 6, _sti },
     { "ST(7)", 7, _sti }
 };
-#define _AL             0
-#define _AH             4
-#define _AX             0
-#define _EAX            0
-#define _BL             3
-#define _BH             7
-#define _BX             3
-#define _EBX            3
-#define _CL             1
-#define _CH             5
-#define _CX             1
-#define _ECX            1
-#define _DL             2
-#define _DH             6
-#define _DX             2
-#define _EDX            2
-#define _BP             5
-#define _EBP            5
-#define _SP             4
-#define _ESP            4
-#define _DI             7
-#define _EDI            7
-#define _SI             6
-#define _ESI            6
-#define _ES             0
-#define _CS             1
-#define _SS             2
-#define _DS             3
-#define _GS             5
-#define _FS             4
 
-static REG regtab[] =
+enum // the x86 CPU numbers for these registers
+{
+    _AL           = 0,
+    _AH           = 4,
+    _AX           = 0,
+    _EAX          = 0,
+    _BL           = 3,
+    _BH           = 7,
+    _BX           = 3,
+    _EBX          = 3,
+    _CL           = 1,
+    _CH           = 5,
+    _CX           = 1,
+    _ECX          = 1,
+    _DL           = 2,
+    _DH           = 6,
+    _DX           = 2,
+    _EDX          = 2,
+    _BP           = 5,
+    _EBP          = 5,
+    _SP           = 4,
+    _ESP          = 4,
+    _DI           = 7,
+    _EDI          = 7,
+    _SI           = 6,
+    _ESI          = 6,
+    _ES           = 0,
+    _CS           = 1,
+    _SS           = 2,
+    _DS           = 3,
+    _GS           = 5,
+    _FS           = 4,
+};
+
+static const REG regtab[] =
 {
     {"AL",   _AL,    _r8 | _al},
     {"AH",   _AH,    _r8},
@@ -242,56 +246,58 @@ static REG regtab[] =
     {"XMM7", 7,      _xmm},
 };
 
-// 64 bit only registers
-#define _RAX    0
-#define _RBX    3
-#define _RCX    1
-#define _RDX    2
-#define _RSI    6
-#define _RDI    7
-#define _RBP    5
-#define _RSP    4
-#define _R8     8
-#define _R9     9
-#define _R10    10
-#define _R11    11
-#define _R12    12
-#define _R13    13
-#define _R14    14
-#define _R15    15
+enum // 64 bit only registers
+{
+    _RAX  = 0,
+    _RBX  = 3,
+    _RCX  = 1,
+    _RDX  = 2,
+    _RSI  = 6,
+    _RDI  = 7,
+    _RBP  = 5,
+    _RSP  = 4,
+    _R8   = 8,
+    _R9   = 9,
+    _R10  = 10,
+    _R11  = 11,
+    _R12  = 12,
+    _R13  = 13,
+    _R14  = 14,
+    _R15  = 15,
 
-#define _R8D    8
-#define _R9D    9
-#define _R10D   10
-#define _R11D   11
-#define _R12D   12
-#define _R13D   13
-#define _R14D   14
-#define _R15D   15
+    _R8D  = 8,
+    _R9D  = 9,
+    _R10D = 10,
+    _R11D = 11,
+    _R12D = 12,
+    _R13D = 13,
+    _R14D = 14,
+    _R15D = 15,
 
-#define _R8W    8
-#define _R9W    9
-#define _R10W   10
-#define _R11W   11
-#define _R12W   12
-#define _R13W   13
-#define _R14W   13
-#define _R15W   15
+    _R8W  = 8,
+    _R9W  = 9,
+    _R10W = 10,
+    _R11W = 11,
+    _R12W = 12,
+    _R13W = 13,
+    _R14W = 13,
+    _R15W = 15,
 
-#define _SIL    6
-#define _DIL    7
-#define _BPL    5
-#define _SPL    4
-#define _R8B    8
-#define _R9B    9
-#define _R10B   10
-#define _R11B   11
-#define _R12B   12
-#define _R13B   13
-#define _R14B   14
-#define _R15B   15
+    _SIL  = 6,
+    _DIL  = 7,
+    _BPL  = 5,
+    _SPL  = 4,
+    _R8B  = 8,
+    _R9B  = 9,
+    _R10B = 10,
+    _R11B = 11,
+    _R12B = 12,
+    _R13B = 13,
+    _R14B = 14,
+    _R15B = 15,
+};
 
-static REG regtab64[] =
+static const REG regtab64[] =
 {
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},
@@ -368,7 +374,7 @@ static REG regtab64[] =
     {"YMM15", 15,    _ymm},
 };
 
-bool REG::isSIL_DIL_BPL_SPL()
+bool REG::isSIL_DIL_BPL_SPL() const
 {
     // Be careful as these have the same val's as AH CH DH BH
     return ty == _r8 &&
@@ -388,10 +394,10 @@ enum ASM_JUMPTYPE
 
 struct OPND
 {
-    REG *base;              // if plain register
-    REG *pregDisp1;         // if [register1]
-    REG *pregDisp2;
-    REG *segreg;            // if segment override
+    const REG *base;        // if plain register
+    const REG *pregDisp1;   // if [register1]
+    const REG *pregDisp2;
+    const REG *segreg;      // if segment override
     bool bOffset;           // if 'offset' keyword
     bool bSeg;              // if 'segment' keyword
     bool bPtr;              // if 'ptr' keyword
@@ -421,8 +427,8 @@ static OPND *asm_add_exp();
 static OPND *asm_and_exp();
 static OPND *asm_cond_exp();
 static opflag_t asm_determine_operand_flags(OPND *popnd);
-code *asm_genloc(Loc loc, code *c);
-int asm_getnum();
+static code *asm_genloc(Loc loc, code *c);
+static int asm_getnum();
 
 static void asmerr(const char *, ...);
 
@@ -1225,7 +1231,7 @@ static code *asm_emit(Loc loc,
     OPND *popndTmp = NULL;
     ASM_OPERAND_TYPE    aoptyTmp;
     unsigned  uSizemaskTmp;
-    REG     *pregSegment;
+    const REG *pregSegment;
     code    *pcPrefix = NULL;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
     ASM_MODIFIERS       amod1 = _normal, amod2 = _normal;
@@ -2020,7 +2026,7 @@ L2:
  * Prepend line number to c.
  */
 
-code *asm_genloc(Loc loc, code *c)
+static code *asm_genloc(Loc loc, code *c)
 {
     if (global.params.symdebug)
     {
@@ -3320,7 +3326,7 @@ static void asm_output_popnd(OPND *popnd)
 /*******************************
  */
 
-static REG *asm_reg_lookup(const char *s)
+static const REG *asm_reg_lookup(const char *s)
 {
     int i;
 
@@ -3672,7 +3678,7 @@ static code *asm_db_parse(OP *pop)
  * Parse and get integer expression.
  */
 
-int asm_getnum()
+static int asm_getnum()
 {
     int v;
     dinteger_t i;
@@ -4282,7 +4288,7 @@ static OPND *asm_primary_exp()
     Dsymbol *s;
     Dsymbol *scopesym;
 
-    REG *regp;
+    const REG *regp;
 
     switch (tok_value)
     {
@@ -4522,6 +4528,7 @@ void iasm_term()
 
 /**********************************
  * Return mask of registers used by block bp.
+ * Called from back end.
  */
 
 regm_t iasm_regs(block *bp)
