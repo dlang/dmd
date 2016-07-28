@@ -2030,15 +2030,7 @@ static code *asm_genloc(Loc loc, code *c)
 {
     if (global.params.symdebug)
     {
-        code *pcLin;
-        Srcpos srcpos;
-
-        memset(&srcpos, 0, sizeof(srcpos));
-        srcpos.Slinnum = loc.linnum;
-        srcpos.Scharnum = loc.charnum;
-        srcpos.Sfilename = (char *)loc.filename;
-        pcLin = genlinnum(NULL, srcpos);
-        c = cat(pcLin, c);
+        c = cat(genlinnum(NULL, Srcpos::create(loc.filename, loc.linnum, loc.charnum)), c);
     }
     return c;
 }

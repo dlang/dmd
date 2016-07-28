@@ -201,6 +201,16 @@ typedef struct Srcpos
 #if MARS
     const char *Sfilename;
     #define srcpos_name(p)      ((p)->Sfilename)
+
+    static Srcpos create(const char *filename, unsigned linnum, unsigned charnum)
+    {
+        // Cannot have constructor because Srcpos is used in a union
+        Srcpos sp;
+        sp.Sfilename = filename;
+        sp.Slinnum = linnum;
+        sp.Scharnum = charnum;
+        return sp;
+    }
 #endif
 #if M_UNIX
     short Sfilnum;              // file number
