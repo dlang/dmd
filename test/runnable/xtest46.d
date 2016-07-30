@@ -5118,6 +5118,30 @@ void test6565()
 }
 
 /***************************************************/
+// 6620
+
+extern(C) int foo6620(int a, int b) { return b - a; }
+          int bar6620(int a, int b) { return b - a; }
+
+auto foo6620p(ref int i) { i = 10; return &foo6620; }
+auto bar6620p(ref int i) { i = 10; return &bar6620; }
+
+void test6620()
+{
+    int i;
+
+    i = 0;
+    assert(foo6620(++i, ++i) == 1);
+
+    i = 0;
+    assert(bar6620(++i, ++i) == 1);
+
+    assert(foo6620p(i)(++i, ++i) == 1 && i == 12);
+
+    assert(bar6620p(i)(++i, ++i) == 1 && i == 12);
+}
+
+/***************************************************/
 // 6836
 
 template map6836(fun...) if (fun.length >= 1)
@@ -8087,6 +8111,7 @@ int main()
     test6084();
     test6488();
     test6565();
+    test6620();
     test6836();
     test6837();
     test6927();

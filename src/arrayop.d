@@ -20,8 +20,10 @@ import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
+import ddmd.init;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
+import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -183,6 +185,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
         return new ErrorExp();
     }
 
+    Expression e0;
     auto arguments = new Expressions();
 
     /* The expression to generate an array operation for is mangled
@@ -194,18 +197,22 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
     buildArrayIdent(e, &buf, arguments);
     buf.writeByte('_');
 
+    /* Create temporaries of non-trivial argument expressions, to keep existing
+     * array-op evaluation order.
+     */
+    foreach_reverse (ref arg; *arguments)
+    {
+        arg = extractSideEffect(sc, "__arrtmp", e0, arg);
+    }
+
     /* Append deco of array element type
      */
     buf.writestring(e.type.toBasetype().nextOf().toBasetype().mutableOf().deco);
 
     auto ident = Identifier.idPool(buf.peekSlice());
 
-    FuncDeclaration* pFd = cast(void*)ident in arrayfuncs;
-    FuncDeclaration fd;
-    if (pFd)
-        fd = *pFd;
-    else
-        fd = buildArrayOp(ident, e, sc, e.loc);
+    auto pFd = cast(void*)ident in arrayfuncs;
+    auto fd = pFd ? *pFd : buildArrayOp(ident, e, sc, e.loc);
 
     if (fd && fd.errors)
     {
@@ -225,6 +232,8 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
 
     Expression ev = new VarExp(e.loc, fd);
     Expression ec = new CallExp(e.loc, ev, arguments);
+    ec = Expression.combine(e0, ec);
+    //printf("[%s] ec = %s\n", e.loc.toChars(), ec.toChars());
     return ec.semantic(sc);
 }
 
@@ -366,10 +375,10 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                 Type tb = e.type.toBasetype();
                 Type t1 = e.e1.type.toBasetype();
                 Type t2 = e.e2.type.toBasetype();
+
                 e.e1.accept(this);
-                if (t1.ty == Tarray &&
-                    (t2.ty == Tarray && !t1.equivalent(tb) ||
-                     t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
+                if (t1.ty == Tarray && (t2.ty == Tarray && !t1.equivalent(tb) ||
+                                        t2.ty != Tarray && !t1.nextOf().equivalent(e.e2.type)))
                 {
                     // Bugzilla 12780: if A is narrower than B
                     //  A[] op B[]
@@ -377,10 +386,10 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     buf.writestring("Of");
                     buf.writestring(t1.nextOf().mutableOf().deco);
                 }
+
                 e.e2.accept(this);
-                if (t2.ty == Tarray &&
-                    (t1.ty == Tarray && !t2.equivalent(tb) ||
-                     t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
+                if (t2.ty == Tarray && (t1.ty == Tarray && !t2.equivalent(tb) ||
+                                        t1.ty != Tarray && !t2.nextOf().equivalent(e.e1.type)))
                 {
                     // Bugzilla 12780: if B is narrower than A:
                     //  A[] op B[]
@@ -388,6 +397,7 @@ extern (C++) void buildArrayIdent(Expression e, OutBuffer* buf, Expressions* arg
                     buf.writestring("Of");
                     buf.writestring(t2.nextOf().mutableOf().deco);
                 }
+
                 buf.writestring(s);
             }
             else
@@ -461,13 +471,14 @@ extern (C++) Expression buildArrayLoop(Expression e, Parameters* fparams)
             /* Evaluate assign expressions right to left
              */
             Expression ex2 = buildArrayLoop(e.e2);
+            Expression ex1 = buildArrayLoop(e.e1);
+
             /* Need the cast because:
              *   b = c + p[i];
              * where b is a byte fails because (c + p[i]) is an int
              * which cannot be implicitly cast to byte.
              */
             ex2 = new CastExp(Loc(), ex2, e.e1.type.nextOf());
-            Expression ex1 = buildArrayLoop(e.e1);
             Parameter param = (*fparams)[0];
             param.storageClass = 0;
             result = new AssignExp(Loc(), ex1, ex2);

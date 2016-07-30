@@ -115,10 +115,11 @@ elem *useOPstrpar(elem *e)
     return e;
 }
 
+void extractLast2(Expressions* exps, Expression **pe0);
+
 /************************************
  * Call a function.
  */
-
 elem *callfunc(Loc loc,
         IRState *irs,
         int directcall,         // 1: don't do virtual call
@@ -181,60 +182,57 @@ elem *callfunc(Loc loc,
     op = fd ? intrinsic_op(fd) : -1;
     if (arguments)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {
-        Lagain:
-            Expression *arg = (*arguments)[i];
-            assert(arg->op != TOKtuple);
-            if (arg->op == TOKcomma)
-            {
-                CommaExp *ce = (CommaExp *)arg;
-                eside = el_combine(eside, toElem(ce->e1, irs));
-                (*arguments)[i] = ce->e2;
-                goto Lagain;
-            }
-        }
+        Expression *e0 = NULL;
+        extractLast2(arguments, &e0);
+        if (e0)
+            eside = el_combine(eside, toElem(e0, irs));
 
         // j=1 if _arguments[] is first argument
         int j = (tf->linkage == LINKd && tf->varargs == 1);
 
+        size_t nparams = Parameter::dim(tf->parameters);
+
         for (size_t i = 0; i < arguments->dim ; i++)
         {
             Expression *arg = (*arguments)[i];
-            elem *ea;
-
             //printf("\targ[%d]: %s\n", i, arg->toChars());
 
-            size_t nparams = Parameter::dim(tf->parameters);
+            bool isRef = false;
             if (i - j < nparams && i >= j)
             {
                 Parameter *p = Parameter::getNth(tf->parameters, i - j);
-
                 if (p->storageClass & (STCout | STCref))
-                {
-                    // Convert argument to a pointer
-                    ea = toElem(arg, irs);
-                    ea = addressElem(ea, arg->type->pointerTo());
-                    goto L1;
-                }
+                    isRef = true;
             }
-            if (config.exe == EX_WIN64 && arg->type->size(arg->loc) > REGSIZE && op == -1)
+
+            elem *ea = toElem(arg, irs);
+
+            if (isRef)
             {
-                /* Copy to a temporary, and make the argument a pointer
-                 * to that temporary.
-                 */
-                ea = toElem(arg, irs);
-                ea = addressElem(ea, arg->type, true);
-                goto L1;
+                // Convert argument to a pointer
+                ea = addressElem(ea, arg->type->pointerTo());
             }
-            ea = toElem(arg, irs);
-            if (config.exe == EX_WIN64 && tybasic(ea->Ety) == TYcfloat)
+            else if (config.exe == EX_WIN64 && tybasic(ea->Ety) == TYcfloat)
             {
                 /* Treat a cfloat like it was a struct { float re,im; }
                  */
                 ea->Ety = TYllong;
             }
-        L1:
+            if (el_sideeffect(ea))
+            {
+                // Bugzilla 6620: evaluate arguments left to right.
+                elem *ex = ea;
+                ea = el_same(&ex);
+                eside = el_combine(eside, ex);
+            }
+            if (config.exe == EX_WIN64 && !isRef && arg->type->size(arg->loc) > REGSIZE && op == -1)
+            {
+                /* Copy to a temporary, and make the argument a pointer
+                 * to that temporary.
+                 */
+                ea = addressElem(ea, arg->type, true);
+            }
+
             ea = useOPstrpar(ea);
             if (reverse)
                 ep = el_param(ep,ea);
@@ -329,7 +327,7 @@ elem *callfunc(Loc loc,
             assert((int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-if (I32) assert(tysize[TYnptr] == 4);
+            assert(!I32 || tysize[TYnptr] == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize[TYnptr]));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
