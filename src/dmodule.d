@@ -1111,6 +1111,18 @@ public:
         return s;
     }
 
+    override bool isPackageAccessible(Package p, Prot protection, int flags = 0)
+    {
+        if (insearch) // don't follow import cycles
+            return false;
+        insearch = true;
+        scope (exit)
+            insearch = false;
+        if (flags & IgnorePrivateImports)
+            protection = Prot(PROTpublic); // only consider public imports
+        return super.isPackageAccessible(p, protection);
+    }
+
     override Dsymbol symtabInsert(Dsymbol s)
     {
         searchCacheIdent = null; // symbol is inserted, so invalidate cache
