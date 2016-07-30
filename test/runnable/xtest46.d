@@ -5052,8 +5052,11 @@ version(none)
     ucent issue785;
 }
 
-static assert(!is(cent) && !is(ucent));
-static assert(!__traits(compiles, { cent x; }));
+static assert(is(cent) && is(ucent) || !is(cent) && !is(ucent));
+static if (is(cent))
+  static assert(__traits(compiles, { cent x; }));
+else
+  static assert(!__traits(compiles, { cent x; }));
 
 /***************************************************/
 // 6847

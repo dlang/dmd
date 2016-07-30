@@ -467,6 +467,45 @@ void test37()
 }
 
 /******************************************************/
+
+void test38()
+{
+    static if (is(cent))
+    {
+        TypeInfo ti = typeid(cent*);
+        assert(!(ti is null));
+        assert(ti.tsize==(cent*).sizeof);
+        assert(ti.toString()=="cent*");
+    }
+}
+
+/******************************************************/
+
+void test39()
+{
+    static if (is(ucent))
+    {
+        TypeInfo ti = typeid(ucent*);
+        assert(!(ti is null));
+        assert(ti.tsize==(ucent*).sizeof);
+        assert(ti.toString()=="ucent*");
+    }
+}
+
+/******************************************************/
+
+void test40()
+{
+    static if (is(cent))
+    {
+        cent i;
+        assert(typeid(i++) == typeid(cent));
+        assert(i == 1);
+        assert(typeid(i + 1) == typeid(cent));
+    }
+}
+
+/******************************************************/
 // 9442
 
 class C
@@ -633,6 +672,9 @@ int main()
     test35();
     test36();
     test37();
+    test38();
+    test39();
+    test40();
     test9442();
     test10451();
     test11010();
