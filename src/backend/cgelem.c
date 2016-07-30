@@ -2384,7 +2384,7 @@ STATIC elem * eloror(elem *e, goal_t goal)
             L2:
                 e->Eoper = OPcomma;
                 el_free(e->E2);
-                e->E2 = el_int(t,1);
+                e->E2 = el_long(t,1);
             }
         }
         else                            /* (x,0) || e2  =>  (x,0),(bool e2) */
@@ -2727,7 +2727,7 @@ STATIC elem * elandand(elem *e, goal_t goal)
             else
             {
                 el_free(e->E2);
-                e->E2 = el_int(e->Ety,0);
+                e->E2 = el_long(e->Ety,0);
             }
         }
     }
@@ -2803,8 +2803,8 @@ STATIC elem * elbit(elem *e, goal_t goal)
   e2->Ety = e->Ety;
 
   e->E1 = el_bin(OPshr,tym1,
-                el_bin(OPshl,tym1,e->E1,el_int(TYint,c)),
-                el_int(TYint,b));
+                el_bin(OPshl,tym1,e->E1,el_long(TYint,c)),
+                el_long(TYint,b));
 L1:
   return optelem(e,GOALvalue);               /* optimize result              */
 }
@@ -3541,7 +3541,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
                 el_bin(OPor,t,
                         el_bin(OPshl,t,
                                 (r2 = el_bin(OPand,t,r,el_long(t,m))),
-                                el_int(TYint,b)
+                                el_long(TYint,b)
                         ),
                         el_bin(OPand,t,
                                 (l2 = el_copytree(l)),
@@ -4077,7 +4077,7 @@ STATIC elem * elbool(elem *e, goal_t goal)
         {
             int i = boolres(e1) != 0;
             e->Eoper = OPcomma;
-            e->E2 = el_int(e->Ety,i);
+            e->E2 = el_long(e->Ety,i);
             e = optelem(e,GOALvalue);
             return e;
         }
@@ -4586,7 +4586,7 @@ STATIC elem * elshr(elem *e, goal_t goal)
             e->E1 = el_una(OPind,TYshort,
                         el_bin(OPadd,e1->E1->Ety,
                                 el_una(OPaddr,e1->E1->Ety,e1),
-                                el_int(TYint,SHORTSIZE)));
+                                el_long(TYint,SHORTSIZE)));
         L1:
             e->Eoper = tyuns(e1->Ety) ? OPu16_32 : OPs16_32;
             el_free(e2);
@@ -4614,7 +4614,7 @@ STATIC elem * elshr(elem *e, goal_t goal)
             e->E1 = el_una(OPind,TYlong,
                         el_bin(OPadd,e1->E1->Ety,
                                 el_una(OPaddr,e1->E1->Ety,e1),
-                                el_int(TYint,LONGSIZE)));
+                                el_long(TYint,LONGSIZE)));
         L2:
             e->Eoper = tyuns(e1->Ety) ? OPu32_64 : OPs32_64;
             el_free(e2);
@@ -4655,7 +4655,7 @@ elem *elmsw(elem *e, goal_t goal)
             e1 = el_una(OPind,ty,
                 el_bin(OPadd,e1->E1->Ety,
                     el_una(OPaddr,e1->E1->Ety,e1),
-                    el_int(TYint,LONGSIZE)));
+                    el_long(TYint,LONGSIZE)));
             e = optelem(e1,GOALvalue);
         }
         else
@@ -4680,7 +4680,7 @@ elem *elmsw(elem *e, goal_t goal)
             e1 = el_una(OPind,ty,
                 el_bin(OPadd,e1->E1->Ety,
                     el_una(OPaddr,e1->E1->Ety,e1),
-                    el_int(TYint,LLONGSIZE)));
+                    el_long(TYint,LLONGSIZE)));
             e = optelem(e1,GOALvalue);
         }
         else
