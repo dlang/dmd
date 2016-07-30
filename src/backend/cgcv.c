@@ -569,7 +569,7 @@ void cv_init()
  * Return number of bytes required to store a numeric leaf.
  */
 
-unsigned cv4_numericbytes(targ_size_t value)
+unsigned cv4_numericbytes(unsigned value)
 {   unsigned u;
 
     if (value < 0x8000)
@@ -586,7 +586,7 @@ unsigned cv4_numericbytes(targ_size_t value)
  * Must use exact same number of bytes as cv4_numericbytes().
  */
 
-void cv4_storenumeric(unsigned char *p,targ_size_t value)
+void cv4_storenumeric(unsigned char *p, unsigned value)
 {
     if (value < 0x8000)
         TOWORD(p,value);
