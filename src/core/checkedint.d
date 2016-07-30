@@ -102,6 +102,38 @@ unittest
     assert(overflow);                   // sticky
 }
 
+static if (is(cent))
+{
+/// ditto
+pragma(inline, true)
+cent adds(cent x, cent y, ref bool overflow)
+{
+    cent r = cast(ucent)x + cast(ucent)y;
+    if (x <  0 && y <  0 && r >= 0 ||
+        x >= 0 && y >= 0 && r <  0)
+        overflow = true;
+    return r;
+}
+
+unittest
+{
+    bool overflow;
+    assert(adds(cast(cent)2L, 3L, overflow) == 5);
+    assert(!overflow);
+    assert(adds(1L, cent.max - 1, overflow) == cent.max);
+    assert(!overflow);
+    assert(adds(cent.min + 1, -1, overflow) == cent.min);
+    assert(!overflow);
+    assert(adds(cent.max, 1, overflow) == cent.min);
+    assert(overflow);
+    overflow = false;
+    assert(adds(cent.min, -1, overflow) == cent.max);
+    assert(overflow);
+    assert(adds(cast(cent)0L, 0L, overflow) == 0);
+    assert(overflow);                   // sticky
+}
+}
+
 
 /*******************************
  * Add two unsigned integers, checking for overflow (aka carry).
@@ -169,6 +201,37 @@ unittest
     assert(overflow);
     assert(addu(0L, 0L, overflow) == 0);
     assert(overflow);                   // sticky
+}
+
+static if (is(ucent))
+{
+/// ditto
+pragma(inline, true)
+ucent addu(ucent x, ucent y, ref bool overflow)
+{
+    ucent r = x + y;
+    if (r < x || r < y)
+        overflow = true;
+    return r;
+}
+
+unittest
+{
+    bool overflow;
+    assert(addu(cast(ucent)2L, 3L, overflow) == 5);
+    assert(!overflow);
+    assert(addu(1, ucent.max - 1, overflow) == ucent.max);
+    assert(!overflow);
+    assert(addu(ucent.min, -1L, overflow) == ucent.max);
+    assert(!overflow);
+    assert(addu(ucent.max, 1, overflow) == ucent.min);
+    assert(overflow);
+    overflow = false;
+    assert(addu(ucent.min + 1, -1L, overflow) == ucent.min);
+    assert(overflow);
+    assert(addu(cast(ucent)0L, 0L, overflow) == 0);
+    assert(overflow);                   // sticky
+}
 }
 
 
@@ -243,6 +306,41 @@ unittest
     assert(overflow);                   // sticky
 }
 
+static if (is(cent))
+{
+/// ditto
+pragma(inline, true)
+cent subs(cent x, cent y, ref bool overflow)
+{
+    cent r = cast(ucent)x - cast(ucent)y;
+    if (x <  0 && y >= 0 && r >= 0 ||
+        x >= 0 && y <  0 && (r <  0 || y == long.min))
+        overflow = true;
+    return r;
+}
+
+unittest
+{
+    bool overflow;
+    assert(subs(cast(cent)2L, -3L, overflow) == 5);
+    assert(!overflow);
+    assert(subs(1L, -cent.max + 1, overflow) == cent.max);
+    assert(!overflow);
+    assert(subs(cent.min + 1, 1, overflow) == cent.min);
+    assert(!overflow);
+    assert(subs(-1L, cent.min, overflow) == cent.max);
+    assert(!overflow);
+    assert(subs(cent.max, -1, overflow) == cent.min);
+    assert(overflow);
+    overflow = false;
+    assert(subs(cent.min, 1, overflow) == cent.max);
+    assert(overflow);
+    assert(subs(cast(cent)0L, 0L, overflow) == 0);
+    assert(overflow);                   // sticky
+}
+}
+
+
 /*******************************
  * Subtract two unsigned integers, checking for overflow (aka borrow).
  *
@@ -310,6 +408,36 @@ unittest
     assert(overflow);                   // sticky
 }
 
+static if (is(ucent))
+{
+/// ditto
+pragma(inline, true)
+ucent subu(ucent x, ucent y, ref bool overflow)
+{
+    if (x < y)
+        overflow = true;
+    return x - y;
+}
+
+unittest
+{
+    bool overflow;
+    assert(subu(cast(ucent)3UL, 2UL, overflow) == 1);
+    assert(!overflow);
+    assert(subu(ucent.max, 1, overflow) == ucent.max - 1);
+    assert(!overflow);
+    assert(subu(1UL, 1UL, overflow) == ucent.min);
+    assert(!overflow);
+    assert(subu(cast(ucent)0UL, 1UL, overflow) == ucent.max);
+    assert(overflow);
+    overflow = false;
+    assert(subu(ucent.max - 1, ucent.max, overflow) == ucent.max);
+    assert(overflow);
+    assert(subu(cast(ucent)0UL, 0UL, overflow) == 0);
+    assert(overflow);                   // sticky
+}
+}
+
 
 /***********************************************
  * Negate an integer.
@@ -366,6 +494,33 @@ unittest
     assert(overflow);
     assert(negs(0L, overflow) == -0);
     assert(overflow);                   // sticky
+}
+
+static if (is(cent))
+{
+/// ditto
+pragma(inline, true)
+cent negs(cent x, ref bool overflow)
+{
+    if (x == cent.min)
+        overflow = true;
+    return -x;
+}
+
+unittest
+{
+    bool overflow;
+    assert(negs(cast(cent)0L, overflow) == -0);
+    assert(!overflow);
+    assert(negs(cast(cent)1234L, overflow) == -1234);
+    assert(!overflow);
+    assert(negs(cast(cent)-5678L, overflow) == 5678);
+    assert(!overflow);
+    assert(negs(cent.min, overflow) == -cent.min);
+    assert(overflow);
+    assert(negs(cast(cent)0L, overflow) == -0);
+    assert(overflow);                   // sticky
+}
 }
 
 
@@ -445,6 +600,43 @@ unittest
     assert(overflow);                   // sticky
 }
 
+static if (is(cent))
+{
+/// ditto
+pragma(inline, true)
+cent muls(cent x, cent y, ref bool overflow)
+{
+    cent r = cast(ucent)x * cast(ucent)y;
+    enum not0or1 = ~1L;
+    if((x & not0or1) && ((r == y)? r : (r / x) != y))
+        overflow = true;
+    return r;
+}
+
+unittest
+{
+    bool overflow;
+    assert(muls(cast(cent)2L, 3L, overflow) == 6);
+    assert(!overflow);
+    assert(muls(cast(cent)-200L, 300L, overflow) == -60_000);
+    assert(!overflow);
+    assert(muls(1, cent.max, overflow) == cent.max);
+    assert(!overflow);
+    assert(muls(cent.min, 1L, overflow) == cent.min);
+    assert(!overflow);
+    assert(muls(cent.max, 2L, overflow) == (cent.max * 2));
+    assert(overflow);
+    overflow = false;
+    assert(muls(-1L, cent.min, overflow) == cent.min);
+    assert(overflow);
+    overflow = false;
+    assert(muls(cent.min, -1L, overflow) == cent.min);
+    assert(overflow);
+    assert(muls(cast(cent)0L, 0L, overflow) == 0);
+    assert(overflow);                   // sticky
+}
+}
+
 
 /*******************************
  * Multiply two unsigned integers, checking for overflow (aka carry).
@@ -516,4 +708,37 @@ unittest
     bool overflow = true;
     assert(mulu(0UL, 0UL, overflow) == 0);
     assert(overflow);                   // sticky
+}
+
+static if (is(ucent))
+{
+/// ditto
+pragma(inline, true)
+ucent mulu(ucent x, ucent y, ref bool overflow)
+{
+    ucent r = x * y;
+    if (x && (r / x) != y)
+        overflow = true;
+    return r;
+}
+
+unittest
+{
+    void test(ucent x, ucent y, ucent r, bool overflow) @nogc nothrow
+    {
+        bool o;
+        assert(mulu(x, y, o) == r);
+        assert(o == overflow);
+    }
+    test(2, 3, 6, false);
+    test(1, ucent.max, ucent.max, false);
+    test(0, 1, 0, false);
+    test(0, ucent.max, 0, false);
+    test(ucent.max, 2, 2 * ucent.max, true);
+    test(cast(ucent)1UL << 64, cast(ucent)1UL << 64, 0, true);
+
+    bool overflow = true;
+    assert(mulu(0UL, 0UL, overflow) == 0);
+    assert(overflow);                   // sticky
+}
 }
