@@ -121,7 +121,7 @@ enum TYM
 };
 
 #define mTYbasic        0xFF    /* bit mask for basic types     */
-#define tybasic(ty)     ((ty) & mTYbasic)
+inline tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
 
 // These change depending on memory model
 extern int TYptrdiff, TYsize, TYsize_t;
@@ -179,115 +179,116 @@ extern int TYptrdiff, TYsize, TYsize_t;
 
 /* Flags in tytab[] array       */
 extern unsigned tytab[];
-#define TYFLptr         1
-#define TYFLreal        2
-#define TYFLintegral    4
-#define TYFLcomplex     8
-#define TYFLimaginary   0x10
-#define TYFLuns         0x20
-#define TYFLmptr        0x40
-#define TYFLfv          0x80    /* TYfptr || TYvptr     */
+enum
+{
+    TYFLptr         = 1,
+    TYFLreal        = 2,
+    TYFLintegral    = 4,
+    TYFLcomplex     = 8,
+    TYFLimaginary   = 0x10,
+    TYFLuns         = 0x20,
+    TYFLmptr        = 0x40,
+    TYFLfv          = 0x80,       // TYfptr || TYvptr
 
-#define TYFLpascal      0x200       // callee cleans up stack
-#define TYFLrevparam    0x400       // function parameters are reversed
-#define TYFLnullptr     0x800
-#define TYFLshort       0x1000
-#define TYFLaggregate   0x2000
-#define TYFLfunc        0x4000
-#define TYFLref         0x8000
-#define TYFLsimd        0x20000     // SIMD vector type
-#define TYFLfarfunc     0x100       // __far functions (for segmented architectures)
-#define TYFLxmmreg      0x10000     // can be put in XMM register
-
-/* Groupings of types   */
-
-#define tyintegral(ty)  (tytab[(ty) & 0xFF] & TYFLintegral)
-
-#define tyarithmetic(ty) (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex))
-
-#define tyaggregate(ty) (tytab[(ty) & 0xFF] & TYFLaggregate)
-
-#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref))
-
-#define tyfloating(ty)  (tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex))
-
-#define tyimaginary(ty) (tytab[(ty) & 0xFF] & TYFLimaginary)
-
-#define tycomplex(ty)   (tytab[(ty) & 0xFF] & TYFLcomplex)
-
-#define tyreal(ty)      (tytab[(ty) & 0xFF] & TYFLreal)
-
-// Fits into 64 bit register
-#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= NPTRSIZE)
-
-// Can go in XMM floating point register
-#define tyxmmreg(ty)    (tytab[(ty) & 0xFF] & TYFLxmmreg)
-
-// Is a vector type
-#define tyvector(ty)    (tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2)
-
-/* Types that are chars or shorts       */
-#define tyshort(ty)     (tytab[(ty) & 0xFF] & TYFLshort)
-
-/* Detect TYlong or TYulong     */
-#define tylong(ty)      (tybasic(ty) == TYlong || tybasic(ty) == TYulong)
-
-/* Use to detect a pointer type */
-#define typtr(ty)       (tytab[(ty) & 0xFF] & TYFLptr)
-
-/* Use to detect a reference type */
-#define tyref(ty)       (tytab[(ty) & 0xFF] & TYFLref)
-
-/* Use to detect a pointer type or a member pointer     */
-#define tymptr(ty)      (tytab[(ty) & 0xFF] & (TYFLptr | TYFLmptr))
-
-// Use to detect a nullptr type or a member pointer
-#define tynullptr(ty)      (tytab[(ty) & 0xFF] & TYFLnullptr)
-
-/* Detect TYfptr or TYvptr      */
-#define tyfv(ty)        (tytab[(ty) & 0xFF] & TYFLfv)
+    TYFLpascal      = 0x200,      // callee cleans up stack
+    TYFLrevparam    = 0x400,      // function parameters are reversed
+    TYFLnullptr     = 0x800,
+    TYFLshort       = 0x1000,
+    TYFLaggregate   = 0x2000,
+    TYFLfunc        = 0x4000,
+    TYFLref         = 0x8000,
+    TYFLsimd        = 0x20000,    // SIMD vector type
+    TYFLfarfunc     = 0x100,      // __far functions (for segmented architectures)
+    TYFLxmmreg      = 0x10000,    // can be put in XMM register
+};
 
 /* Array to give the size in bytes of a type, -1 means error    */
 extern signed char tysize[];
 extern signed char tyalignsize[];
 
 // Give size of type
-#define tysize(ty)      tysize[(ty) & 0xFF]
+#define tysize(ty) tysize[(ty) & 0xFF]
 #define tyalignsize(ty) tyalignsize[(ty) & 0xFF]
 
+
+/* Groupings of types   */
+
+inline unsigned tyintegral(tym_t ty) { return tytab[ty & 0xFF] & TYFLintegral; }
+
+inline unsigned tyarithmetic(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex); }
+
+inline unsigned tyaggregate(tym_t ty) { return tytab[ty & 0xFF] & TYFLaggregate; }
+
+inline unsigned tyscalar(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref); }
+
+inline unsigned tyfloating(tym_t ty) { return tytab[ty & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex); }
+
+inline unsigned tyimaginary(tym_t ty) { return tytab[ty & 0xFF] & TYFLimaginary; }
+
+inline unsigned tycomplex(tym_t ty) { return tytab[ty & 0xFF] & TYFLcomplex; }
+
+inline unsigned tyreal(tym_t ty) { return tytab[ty & 0xFF] & TYFLreal; }
+
+// Fits into 64 bit register
+inline bool ty64reg(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= NPTRSIZE; }
+
+// Can go in XMM floating point register
+inline unsigned tyxmmreg(tym_t ty) { return tytab[ty & 0xFF] & TYFLxmmreg; }
+
+// Is a vector type
+inline bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2; }
+
+/* Types that are chars or shorts       */
+inline unsigned tyshort(tym_t ty) { return tytab[ty & 0xFF] & TYFLshort; }
+
+/* Detect TYlong or TYulong     */
+inline bool tylong(tym_t ty) { return tybasic(ty) == TYlong || tybasic(ty) == TYulong; }
+
+/* Use to detect a pointer type */
+inline unsigned typtr(tym_t ty) { return tytab[ty & 0xFF] & TYFLptr; }
+
+/* Use to detect a reference type */
+inline unsigned tyref(tym_t ty) { return tytab[ty & 0xFF] & TYFLref; }
+
+/* Use to detect a pointer type or a member pointer     */
+inline unsigned tymptr(tym_t ty) { return tytab[ty & 0xFF] & (TYFLptr | TYFLmptr); }
+
+// Use to detect a nullptr type or a member pointer
+inline unsigned tynullptr(tym_t ty) { return tytab[ty & 0xFF] & TYFLnullptr; }
+
+/* Detect TYfptr or TYvptr      */
+inline unsigned tyfv(tym_t ty) { return tytab[ty & 0xFF] & TYFLfv; }
+
 /* All data types that fit in exactly 8 bits    */
-#define tybyte(ty)      (tysize(ty) == 1)
+inline bool tybyte(tym_t ty) { return tysize(ty) == 1; }
 
 /* Types that fit into a single machine register        */
-#define tyreg(ty)       (tysize(ty) <= REGSIZE)
+inline bool tyreg(tym_t ty) { return tysize(ty) <= REGSIZE; }
 
 /* Detect function type */
-#define tyfunc(ty)      (tytab[(ty) & 0xFF] & TYFLfunc)
+inline unsigned tyfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfunc; }
 
 /* Detect function type where parameters are pushed left to right    */
-#define tyrevfunc(ty)   (tytab[(ty) & 0xFF] & TYFLrevparam)
+inline unsigned tyrevfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLrevparam; }
 
 /* Detect unsigned types */
-#define tyuns(ty)       (tytab[(ty) & 0xFF] & (TYFLuns | TYFLptr))
+inline unsigned tyuns(tym_t ty) { return tytab[ty & 0xFF] & (TYFLuns | TYFLptr); }
 
 /* Target dependent info        */
 #define TYoffset TYuint         /* offset to an address         */
 
 /* Detect cpp function type (callee cleans up stack)    */
-#define typfunc(ty)     (tytab[(ty) & 0xFF] & TYFLpascal)
+inline unsigned typfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLpascal; }
 
 /* Array to convert a type to its unsigned equivalent   */
 extern const tym_t tytouns[];
-#define touns(ty)       (tytouns[(ty) & 0xFF])
+inline tym_t touns(tym_t ty) { return tytouns[ty & 0xFF]; }
 
 /* Determine if TYffunc or TYfpfunc (a far function) */
-#define tyfarfunc(ty)   (tytab[(ty) & 0xFF] & TYFLfarfunc)
-
-/* Determine relaxed type       */
-#define tyrelax(ty)     (_tyrelax[tybasic(ty)])
+inline unsigned tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
 
 // Determine if parameter is a SIMD vector type
-#define tysimd(ty)   (tytab[(ty) & 0xFF] & TYFLsimd)
+inline unsigned tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 
 /* Array to give the 'relaxed' type for relaxed type checking   */
 extern unsigned char _tyrelax[];
@@ -297,6 +298,10 @@ extern unsigned char _tyrelax[];
 #else
 #define type_semirelax  type_relax
 #endif
+
+/* Determine relaxed type       */
+inline unsigned tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
+
 
 /* Determine functionally equivalent type       */
 extern unsigned char tyequiv[];
