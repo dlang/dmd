@@ -101,14 +101,7 @@ regm_t msavereg;        // Mask of registers that we would like to save.
                         // they are temporaries (set by scodelem())
 regm_t mfuncreg;        // Mask of registers preserved by a function
 
-#if __DMC__
-extern "C" {
-// make sure it isn't merged with ALLREGS
-regm_t __cdecl allregs;         // ALLREGS optionally including mBP
-}
-#else
 regm_t allregs;                // ALLREGS optionally including mBP
-#endif
 
 int dfoidx;                     /* which block we are in                */
 struct CSE *csextab = NULL;     /* CSE table (allocated for each function) */
@@ -147,7 +140,7 @@ void codgen()
     tym_t functy = tybasic(funcsym_p->ty());
     cod3_initregs();
     allregs = ALLREGS;
-    pass = PASSinit;
+    pass = PASSinitial;
     Alloca.init();
     anyiasm = 0;
 
@@ -155,7 +148,7 @@ tryagain:
     #ifdef DEBUG
     if (debugr)
         printf("------------------ PASS%s -----------------\n",
-            (pass == PASSinit) ? "init" : ((pass == PASSreg) ? "reg" : "final"));
+            (pass == PASSinitial) ? "init" : ((pass == PASSreg) ? "reg" : "final"));
     #endif
     lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
 

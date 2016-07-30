@@ -390,8 +390,6 @@ void CodeBuilder::genasm(char *s, unsigned slen)
     pTail = &ce->next;
 }
 
-#if MARS
-
 void CodeBuilder::genasm(LabelDsymbol *label)
 {
     code *ce = code_calloc();
@@ -404,7 +402,18 @@ void CodeBuilder::genasm(LabelDsymbol *label)
     pTail = &ce->next;
 }
 
-#endif
+void CodeBuilder::genasm(block *label)
+{
+    code *ce = code_calloc();
+    ce->Iop = ASM;
+    ce->Iflags = CFaddrsize;
+    ce->IFL1 = FLblockoff;
+    ce->IEV1.Vblock = label;
+    label->Bflags |= BFLlabel;
+
+    *pTail = ce;
+    pTail = &ce->next;
+}
 
 #if TX86
 code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
@@ -534,9 +543,7 @@ void CodeBuilder::genc(unsigned op, unsigned ea, unsigned FL1, targ_size_t EV1, 
 code *genlinnum(code *c,Srcpos srcpos)
 {   code cs;
 
-#if 0
-    srcpos.print("genlinnum");
-#endif
+    //srcpos.print("genlinnum");
     cs.Iop = ESCAPE | ESClinnum;
     cs.IEV1.Vsrcpos = srcpos;
     return gen(c,&cs);
