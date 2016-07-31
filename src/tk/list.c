@@ -215,33 +215,7 @@ list_t list_prepend(list_t *plist,void *ptr)
 
 /*************************/
 
-#if __SC__ && __INTSIZE == 4 && _M_I86 && !_DEBUG_TRACE
-
-__declspec(naked) int __pascal list_nitems(list_t list)
-{
-    _asm
-    {
-        mov     ECX,list-4[ESP]
-        xor     EAX,EAX
-        test    ECX,ECX
-        jz      L1
-    L2:
-        mov     ECX,[ECX]LIST.next
-        inc     EAX
-        test    ECX,ECX
-        jnz     L2
-    L1:
-        ret     4
-    }
-}
-
-#else
-
-#if __DMC__
-int __pascal list_nitems(list_t list)
-#else
 int list_nitems(list_t list)
-#endif
 {       register int n;
 
         n = 0;
@@ -252,7 +226,6 @@ int list_nitems(list_t list)
         return n;
 }
 
-#endif
 
 /*************************/
 
