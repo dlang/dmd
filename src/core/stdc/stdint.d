@@ -35,7 +35,9 @@ alias int16_t = short;
 alias int32_t = int  ;
 ///
 alias int64_t = long ;
-//alias int128_t = cent;
+///
+static if (is(ucent))
+    alias int128_t = cent;
 
 ///
 alias uint8_t  = ubyte ;
@@ -45,7 +47,9 @@ alias uint16_t = ushort;
 alias uint32_t = uint  ;
 ///
 alias uint64_t = ulong ;
-//alias uint128_t = ucent;
+///
+static if (is(ucent))
+    alias uint128_t = ucent;
 
 ///
 alias int_least8_t  = byte ;
