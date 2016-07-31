@@ -85,4 +85,9 @@ shared static this()
 
 void main()
 {
+    version(D_Coverage)
+    {
+        import core.runtime : dmd_coverSetMerge;
+        dmd_coverSetMerge(true);
+    }
 }
