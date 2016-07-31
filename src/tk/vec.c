@@ -219,18 +219,6 @@ vec_t vec_realloc(vec_t v, size_t numbits)
 
 #ifndef vec_setbit
 
-#if _M_I86 && __INTSIZE == 4 && __SC__
-__declspec(naked) void __pascal vec_setbit(size_t b,vec_t v)
-{
-    _asm
-    {
-        mov     EAX,b-4[ESP]
-        mov     ECX,v-4[ESP]
-        bts     [ECX],EAX
-        ret     8
-    }
-}
-#else
 void vec_setbit(size_t b,vec_t v)
 {
 #ifdef DEBUG
@@ -241,7 +229,6 @@ void vec_setbit(size_t b,vec_t v)
   assert(v && b < vec_numbits(v));
   *(v + (b >> VECSHIFT)) |= MASK(b);
 }
-#endif
 
 #endif
 
@@ -251,24 +238,11 @@ void vec_setbit(size_t b,vec_t v)
 
 #ifndef vec_clearbit
 
-#if _M_I86 && __INTSIZE == 4 && __SC__
-__declspec(naked) void __pascal vec_clearbit(size_t b,vec_t v)
-{
-    _asm
-    {
-        mov     EAX,b-4[ESP]
-        mov     ECX,v-4[ESP]
-        btr     [ECX],EAX
-        ret     8
-    }
-}
-#else
 void vec_clearbit(size_t b,vec_t v)
 {
   assert(v && b < vec_numbits(v));
   *(v + (b >> VECSHIFT)) &= ~MASK(b);
 }
-#endif
 
 #endif
 
@@ -278,21 +252,6 @@ void vec_clearbit(size_t b,vec_t v)
 
 #ifndef vec_testbit
 
-#if _M_I86 && __INTSIZE == 4 && __SC__
-__declspec(naked) size_t __pascal vec_testbit(size_t b,vec_t v)
-{
-    _asm
-    {
-        mov     EAX,v-4[ESP]
-        mov     ECX,b-4[ESP]
-        test    EAX,EAX
-        jz      L1
-        bt      [EAX],ECX
-        sbb     EAX,EAX
-    L1: ret     8
-    }
-}
-#else
 size_t vec_testbit(size_t b,vec_t v)
 {
   if (!v)
@@ -334,7 +293,6 @@ size_t vec_testbit(size_t b,vec_t v)
   return *(v + (b >> VECSHIFT)) & MASK(b);
 #endif
 }
-#endif
 
 #endif
 
