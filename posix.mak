@@ -28,6 +28,7 @@ DOCDIR=doc
 IMPDIR=import
 
 OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
+OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov,)
 
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
@@ -52,7 +53,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -dip25 $(MODEL_FLAG) $(OPTIONAL_PIC)
+UDFLAGS:=-conf= -Isrc -Iimport -w -dip25 $(MODEL_FLAG) $(OPTIONAL_PIC) $(OPTIONAL_COVERAGE)
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
