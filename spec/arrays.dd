@@ -424,8 +424,8 @@ Returns an array literal with each element of the literal being the $(D .init) p
         $(TROW $(D .length), Returns the number of elements in the array.
         This is a fixed quantity for static arrays. It is of type $(D size_t).)
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
-        $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it.)
-        $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable.)
+        $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid, the call will not compile.)
+        $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid, the call will not compile.)
         $(TROW $(D .reverse), Reverses in place the order of the elements in the array.
         Returns the array.)
         $(TROW $(D .sort), Sorts in place the order of the elements in
@@ -442,11 +442,8 @@ Returns an array literal with each element of the literal being the $(D .init) p
         $(TROW $(D .length), Get/set number of elements in the
         array. It is of type $(D size_t).)
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
-        $(TROW $(D .dup), Create a dynamic array of the same size
-        and copy the contents of the array into it.)
-        $(TROW $(D .idup), Create a dynamic array of the same size and
-        copy the contents of the array into it. The copy is typed as
-        being immutable. $(I D 2.0 only))
+        $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid, the call will not compile.)
+        $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid, the call will not compile.)
         $(TROW $(D .reverse), Reverses in place the order of the
         elements in the array. Returns the array.)
         $(TROW $(D .sort), Sorts in place the order of the elements in
