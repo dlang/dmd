@@ -26,7 +26,7 @@ static uinteger_t copySign(uinteger_t x, bool sign)
 
 struct SignExtendedNumber
 {
-    ulong value;
+    uinteger_t value;
     bool negative;
     static SignExtendedNumber fromInteger(uinteger_t value_)
     {
