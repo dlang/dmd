@@ -604,7 +604,7 @@ Written by Walter Bright"
  */
 
 /* Linkage type         */
-typedef enum LINKAGE
+enum linkage_t
 {
     LINK_C,                     /* C style                              */
     LINK_CPP,                   /* C++ style                            */
@@ -614,7 +614,7 @@ typedef enum LINKAGE
     LINK_STDCALL,
     LINK_D,                     // D code
     LINK_MAXDIM                 /* array dimension                      */
-} linkage_t;
+};
 
 /**********************************
  * Exception handling method
@@ -629,61 +629,128 @@ enum EHmethod
     EH_DWARF,                   // Dwarf method
 };
 
+// CPU target
+typedef char cpu_target_t;
+enum
+{
+    TARGET_8086             = 0,
+    TARGET_80286            = 2,
+    TARGET_80386            = 3,
+    TARGET_80486            = 4,
+    TARGET_Pentium          = 5,
+    TARGET_PentiumMMX       = 6,
+    TARGET_PentiumPro       = 7,
+    TARGET_PentiumII        = 8,
+};
+
+// Symbolic debug info
+typedef char symbolic_debug_t;
+enum
+{
+    CVNONE    = 0,           // No symbolic info
+    CVOLD     = 1,           // Codeview 1 symbolic info
+    CV4       = 2,           // Codeview 4 symbolic info
+    CVSYM     = 3,           // Symantec format
+    CVTDB     = 4,           // Symantec format written to file
+    CVDWARF_C = 5,           // Dwarf in C format
+    CVDWARF_D = 6,           // Dwarf in D format
+    CVSTABS   = 7,           // Elf Stabs in C format
+    CV8       = 8,           // Codeview 8 symbolic info
+};
+
+// Windows code gen flags
+typedef unsigned windows_flags_t;
+enum
+{
+    WFwindows    = 1,      // generating code for Windows app or DLL
+    WFdll        = 2,      // generating code for Windows DLL
+    WFincbp      = 4,      // mark far stack frame with inc BP / dec BP
+    WFloadds     = 8,      // assume __loadds for all functions
+    WFexpdef     = 0x10,   // generate export definition records for
+                           // exported functions
+    WFss         = 0x20,   // load DS from SS
+    WFreduced    = 0x40,   // skip DS load for non-exported functions
+    WFdgroup     = 0x80,   // load DS from DGROUP
+    WFexport     = 0x100,  // assume __export for all far functions
+    WFds         = 0x200,  // load DS from DS
+    WFmacros     = 0x400,  // define predefined windows macros
+    WFssneds     = 0x800,  // SS != DS
+    WFthunk      = 0x1000, // use fixups instead of direct ref to CS
+    WFsaveds     = 0x2000, // use push/pop DS for far functions
+    WFdsnedgroup = 0x4000, // DS != DGROUP
+    WFexe        = 0x8000, // generating code for Windows EXE
+};
+
+// Object file format
+typedef unsigned objfmt_t;
+enum
+{
+    OBJ_OMF         = 1,
+    OBJ_MSCOFF      = 2,
+    OBJ_ELF         = 4,
+    OBJ_MACH        = 8,
+};
+
+// Executable file format
+typedef unsigned exefmt_t;
+enum
+{
+    EX_DOSX         = 1,       // DOSX 386 program
+    EX_ZPM          = 2,       // ZPM 286 program
+    EX_RATIONAL     = 4,       // RATIONAL 286 program
+    EX_PHARLAP      = 8,       // PHARLAP 386 program
+    EX_COM          = 0x10,    // MSDOS .COM program
+//    EX_WIN16      = 0x20,    // Windows 3.x 16 bit program
+    EX_OS2          = 0x40,    // OS/2 2.0 32 bit program
+    EX_OS1          = 0x80,    // OS/2 1.x 16 bit program
+    EX_WIN32        = 0x100,
+    EX_MZ           = 0x200,   // MSDOS real mode program
+    EX_XENIX        = 0x400,
+    EX_SCOUNIX      = 0x800,
+    EX_UNIXSVR4     = 0x1000,
+    EX_LINUX        = 0x2000,
+    EX_WIN64        = 0x4000,  // AMD64 and Windows (64 bit mode)
+    EX_LINUX64      = 0x8000,  // AMD64 and Linux (64 bit mode)
+    EX_OSX          = 0x10000,
+    EX_OSX64        = 0x20000,
+    EX_FREEBSD      = 0x40000,
+    EX_FREEBSD64    = 0x80000,
+    EX_SOLARIS      = 0x100000,
+    EX_SOLARIS64    = 0x200000,
+    EX_OPENBSD      = 0x400000,
+    EX_OPENBSD64    = 0x800000,
+};
+
+
+// All flat memory models (no segment registers)
+const exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
+                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
+                         EX_OPENBSD | EX_OPENBSD64 |
+                         EX_SOLARIS | EX_SOLARIS64;
+
+// All DOS executable types
+const exefmt_t EX_dos =  EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
+                         EX_COM | EX_MZ /*| EX_WIN16*/;
+
 // This part of the configuration is saved in the precompiled header for use
 // in comparing to make sure it hasn't changed.
 
 struct Config
 {
     char language;              // 'C' = C, 'D' = C++
-//#define CPP (config.language == 'D')
     char version[8];            // = VERSION
     char exetype[3];            // distinguish exe types so PH
                                 // files are distinct (= SUFFIX)
 
-    char target_cpu;            // instruction selection
-    char target_scheduler;      // instruction scheduling (normally same as selection)
-#define TARGET_8086             0
-#define TARGET_80286            2
-#define TARGET_80386            3
-#define TARGET_80486            4
-#define TARGET_Pentium          5
-#define TARGET_PentiumMMX       6
-#define TARGET_PentiumPro       7
-#define TARGET_PentiumII        8
-#define TARGET_AMD64            9       // (32 or 64 bit mode)
+    cpu_target_t target_cpu;       // instruction selection
+    cpu_target_t target_scheduler; // instruction scheduling (normally same as selection)
 
     short versionint;           // intermediate file version (= VERSIONINT)
     int defstructalign;         // struct alignment specified by command line
     short hxversion;            // HX version number
-    char fulltypes;
-#define CVNONE  0               // No symbolic info
-#define CVOLD   1               // Codeview 1 symbolic info
-#define CV4     2               // Codeview 4 symbolic info
-#define CVSYM   3               // Symantec format
-#define CVTDB   4               // Symantec format written to file
-#define CVDWARF_C 5             // Dwarf in C format
-#define CVDWARF_D 6             // Dwarf in D format
-#define CVSTABS 7               // Elf Stabs in C format
-#define CV8     8               // Codeview 8 symbolic info
+    symbolic_debug_t fulltypes; // format of symbolic debug info
 
-    unsigned wflags;            // flags for Windows code generation
-#       define WFwindows 1      // generating code for Windows app or DLL
-#       define WFdll     2      // generating code for Windows DLL
-#       define WFincbp   4      // mark far stack frame with inc BP / dec BP
-#       define WFloadds  8      // assume __loadds for all functions
-#       define WFexpdef  0x10   // generate export definition records for
-                                // exported functions
-#       define WFss      0x20   // load DS from SS
-#       define WFreduced 0x40   // skip DS load for non-exported functions
-#       define WFdgroup  0x80   // load DS from DGROUP
-#       define WFexport  0x100  // assume __export for all far functions
-#       define WFds      0x200  // load DS from DS
-#       define WFmacros  0x400  // define predefined windows macros
-#       define WFssneds  0x800  // SS != DS
-#       define WFthunk   0x1000 // use fixups instead of direct ref to CS
-#       define WFsaveds  0x2000 // use push/pop DS for far functions
-#       define WFdsnedgroup 0x4000      // DS != DGROUP
-#       define WFexe     0x8000 // generating code for Windows EXE
+    windows_flags_t wflags;     // flags for Windows code generation
 
     bool fpxmmregs;             // use XMM registers for floating point
     char inline8087;            /* 0:   emulator
@@ -691,43 +758,8 @@ struct Config
                                    2:   fast inline 8087 code
                                  */
     short memmodel;             // 0:S,X,N,F, 1:M, 2:C, 3:L, 4:V
-    unsigned objfmt;            // target object format
-#define OBJ_OMF         1
-#define OBJ_MSCOFF      2
-#define OBJ_ELF         4
-#define OBJ_MACH        8
-    unsigned exe;               // target operating system
-#define EX_DOSX         1       // DOSX 386 program
-#define EX_ZPM          2       // ZPM 286 program
-#define EX_RATIONAL     4       // RATIONAL 286 program
-#define EX_PHARLAP      8       // PHARLAP 386 program
-#define EX_COM          0x10    // MSDOS .COM program
-//#define EX_WIN16      0x20    // Windows 3.x 16 bit program
-#define EX_OS2          0x40    // OS/2 2.0 32 bit program
-#define EX_OS1          0x80    // OS/2 1.x 16 bit program
-#define EX_WIN32        0x100
-#define EX_MZ           0x200   // MSDOS real mode program
-#define EX_XENIX        0x400
-#define EX_SCOUNIX      0x800
-#define EX_UNIXSVR4     0x1000
-#define EX_LINUX        0x2000
-#define EX_WIN64        0x4000  // AMD64 and Windows (64 bit mode)
-#define EX_LINUX64      0x8000  // AMD64 and Linux (64 bit mode)
-#define EX_OSX          0x10000
-#define EX_OSX64        0x20000
-#define EX_FREEBSD      0x40000
-#define EX_FREEBSD64    0x80000
-#define EX_SOLARIS      0x100000
-#define EX_SOLARIS64    0x200000
-#define EX_OPENBSD      0x400000
-#define EX_OPENBSD64    0x800000
-
-#define EX_flat         (EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
-                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
-                         EX_OPENBSD | EX_OPENBSD64 | \
-                         EX_SOLARIS | EX_SOLARIS64)
-#define EX_dos          (EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP | \
-                         EX_COM | EX_MZ /*| EX_WIN16*/)
+    objfmt_t objfmt;            // target object format
+    exefmt_t exe;               // target operating system
 
 /* CFGX: flags ignored in precompiled headers
  * CFGY: flags copied from precompiled headers into current config
@@ -855,8 +887,8 @@ struct Config
                                 // be far (16 bit models only)
 #define THRESHMAX 0xFFFF        // if threshold == THRESHMAX, all data defaults
                                 // to near
-    enum LINKAGE linkage;       // default function call linkage
-    enum EHmethod ehmethod;     // exception handling method
+    linkage_t linkage;          // default function call linkage
+    EHmethod ehmethod;          // exception handling method
 };
 
 // Configuration that is not saved in precompiled header
