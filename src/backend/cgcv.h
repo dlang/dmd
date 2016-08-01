@@ -15,13 +15,16 @@
 #define CGCV_H
 //#pragma once
 
+struct Symbol;
+struct Classsym;
+
 extern char *ftdbname;
 
-void cv_init ( void );
+void cv_init();
 unsigned cv_typidx ( type *t );
 void cv_outsym ( Symbol *s );
 void cv_func ( Symbol *s );
-void cv_term ( void );
+void cv_term();
 unsigned cv4_struct(Classsym *,int);
 
 
@@ -33,12 +36,12 @@ typedef unsigned idx_t;        // type of type index
 
 #pragma pack(1)
 
-typedef struct DEBTYP_T
+struct debtyp_t
 {
     unsigned prev;              // previous debtyp_t with same hash
     unsigned short length;      // length of following array
     unsigned char data[2];      // variable size array
-} debtyp_t;
+};
 
 #pragma pack()
 
@@ -57,8 +60,8 @@ extern Cgcv cgcv;
 
 debtyp_t * debtyp_alloc(unsigned length);
 int cv_stringbytes(const char *name);
-unsigned cv4_numericbytes(targ_size_t value);
-void cv4_storenumeric(unsigned char *p,targ_size_t value);
+unsigned cv4_numericbytes(unsigned value);
+void cv4_storenumeric(unsigned char *p, unsigned value);
 idx_t cv_debtyp ( debtyp_t *d );
 int cv_namestring ( unsigned char *p , const char *name, int length = -1);
 unsigned cv4_typidx(type *t);
@@ -79,7 +82,7 @@ void cv8_initmodule(const char *filename, const char *modulename);
 void cv8_termmodule();
 void cv8_func_start(Symbol *sfunc);
 void cv8_func_term(Symbol *sfunc);
-void cv8_linnum(Srcpos srcpos, targ_size_t offset);
+void cv8_linnum(Srcpos srcpos, unsigned offset);
 void cv8_outsym(Symbol *s);
 void cv8_udt(const char *id, idx_t typidx);
 int cv8_regnum(Symbol *s);

@@ -458,7 +458,7 @@ void cv8_func_term(Symbol *sfunc)
 /**********************************************
  */
 
-void cv8_linnum(Srcpos srcpos, targ_size_t offset)
+void cv8_linnum(Srcpos srcpos, unsigned offset)
 {
     //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", srcpos.Sfilename, (int)srcpos.Slinnum, (unsigned)offset);
     if (currentfuncdata.srcfilename)
