@@ -437,7 +437,6 @@ extern (C++) class FuncDeclaration : Declaration
     ILS inlineStatusExp = ILSuninitialized;
     PINLINE inlining = PINLINEdefault;
 
-    CompiledCtfeFunction* ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
     // true if errors in semantic3 this function's frame ptr
