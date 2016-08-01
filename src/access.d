@@ -457,7 +457,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
         return false;
     for (; sc; sc = sc.enclosing)
     {
-        if (sc.scopesym && sc.scopesym.isPackageAccessible(p))
+        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(PROTprivate)))
             return false;
     }
     auto name = p.toPrettyChars();

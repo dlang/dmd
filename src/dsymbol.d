@@ -1269,7 +1269,7 @@ private:
     PROTKIND* prots;            // array of PROTKIND, one for each import
 
     import ddmd.root.array : BitArray;
-    BitArray accessiblePackages;// whitelist of accessible (imported) packages
+    BitArray accessiblePackages, privateAccessiblePackages;// whitelists of accessible (imported) packages
 
 public:
     final extern (D) this()
@@ -1506,17 +1506,27 @@ public:
         }
     }
 
-    final void addAccessiblePackage(Package p)
+    final void addAccessiblePackage(Package p, Prot protection)
     {
-        if (accessiblePackages.length <= p.tag)
-            accessiblePackages.length = p.tag + 1;
-        accessiblePackages[p.tag] = true;
+        auto pary = protection.kind == PROTprivate ? &privateAccessiblePackages : &accessiblePackages;
+        if (pary.length <= p.tag)
+            pary.length = p.tag + 1;
+        (*pary)[p.tag] = true;
     }
 
-    final bool isPackageAccessible(Package p)
+    bool isPackageAccessible(Package p, Prot protection, int flags = 0)
     {
-        return p.tag < accessiblePackages.length &&
-            accessiblePackages[p.tag];
+        if (p.tag < accessiblePackages.length && accessiblePackages[p.tag] ||
+            protection.kind == PROTprivate && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
+            return true;
+        foreach (i, ss; importedScopes ? (*importedScopes)[] : null)
+        {
+            // only search visible scopes && imported modules should ignore private imports
+            if (protection.kind <= prots[i] &&
+                ss.isScopeDsymbol.isPackageAccessible(p, protection, IgnorePrivateImports))
+                return true;
+        }
+        return false;
     }
 
     override final bool isforwardRef()

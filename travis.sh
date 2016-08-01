@@ -8,8 +8,8 @@ if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
 fi
 N=2
 
-git clone --depth=1 https://github.com/D-Programming-Language/druntime.git ../druntime
-git clone --depth=1 https://github.com/D-Programming-Language/phobos.git ../phobos
+git clone --depth=1 --branch $TRAVIS_BRANCH https://github.com/D-Programming-Language/druntime.git ../druntime
+git clone --depth=1 --branch $TRAVIS_BRANCH https://github.com/D-Programming-Language/phobos.git ../phobos
 
 make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD all
 make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD dmd.conf
