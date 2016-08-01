@@ -902,13 +902,13 @@ size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int fl
 #if TARGET_SEGMENTED
         switch (flags & (CFoff | CFseg))
         {
-            case CFoff:         numbytes = tysize[TYnptr];      break;
+            case CFoff:         numbytes = tysize(TYnptr);      break;
             case CFseg:         numbytes = 2;                   break;
-            case CFoff | CFseg: numbytes = tysize[TYfptr];      break;
+            case CFoff | CFseg: numbytes = tysize(TYfptr);      break;
             default:            assert(0);
         }
 #else
-        numbytes = tysize[TYnptr];
+        numbytes = tysize(TYnptr);
         if (I64 && !(flags & CFoffset64))
             numbytes = 4;
 

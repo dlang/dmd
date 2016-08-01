@@ -2700,7 +2700,7 @@ L1:
                         /* Far pointers on the 386 are longer than
                            any integral type...
                          */
-                        if (memcmp(&n1->EV,&n2->EV,tysize[tybasic(tym)]))
+                        if (memcmp(&n1->EV, &n2->EV, tysize(tym)))
                             goto nomatch;
                         break;
 
@@ -3307,7 +3307,7 @@ case_tym:
         case TYint:
         case TYuint:
         case TYvoid:        /* in case (void)(1)    */
-            if (tysize[TYint] == LONGSIZE)
+            if (tysize(TYint) == LONGSIZE)
                 goto L1;
         case TYshort:
         case TYwchar_t:

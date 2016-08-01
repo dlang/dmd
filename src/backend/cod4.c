@@ -3399,7 +3399,7 @@ code *cdbtst(elem *e, regm_t *pretregs)
     }
     else
     {
-        retregs = tysize[tybasic(e1->Ety)] == 1 ? BYTEREGS : allregs;
+        retregs = tysize(e1->Ety) == 1 ? BYTEREGS : allregs;
         c = codelem(e1, &retregs, FALSE);
         reg = findreg(retregs);
         cs.Irm = modregrm(3,0,reg & 7);

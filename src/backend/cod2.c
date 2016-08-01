@@ -398,7 +398,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                 regm_t regm;
                 if (e11->Eoper == OPvar && isregvar(e11,&regm,&reg1))
                 {
-                    if (tysize[tybasic(e11->Ety)]<= REGSIZE)
+                    if (tysize(e11->Ety) <= REGSIZE)
                         retregs = mask[reg1]; // only want the LSW
                     else
                         retregs = regm;

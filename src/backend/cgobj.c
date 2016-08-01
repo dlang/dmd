@@ -1744,7 +1744,7 @@ void Obj::funcptr(Symbol *s)
 
     // Put out segment definition record
     // size is NPTRSIZE or FPTRSIZE
-    objsegdef(dsegattr,(i & 2) + tysize[TYnptr],obj.lnameidx + 1,DATACLASS);
+    objsegdef(dsegattr,(i & 2) + tysize(TYnptr),obj.lnameidx + 1,DATACLASS);
     seg_data *pseg = getsegment();
     pseg->segidx = obj.segidx;
     Obj::reftoident(pseg->SDseg,0,s,0,0);     // put out function pointer
@@ -3128,14 +3128,14 @@ void Obj::ledata(int seg,targ_size_t offset,targ_size_t data,
 {   unsigned i;
     unsigned size;                      // number of bytes to output
 
-    unsigned ptrsize = tysize[TYfptr];
+    unsigned ptrsize = tysize(TYfptr);
 
     if ((lcfd & LOCxx) == obj.LOCpointer)
         size = ptrsize;
     else if ((lcfd & LOCxx) == LOCbase)
         size = 2;
     else
-        size = tysize[TYnptr];
+        size = tysize(TYnptr);
 
     Ledatarec *lr = SegData[seg]->ledata;
     if (!lr)
@@ -3176,7 +3176,7 @@ L1:     ;
     else
         TOLONG(lr->data + i,data);
     if (size == ptrsize)         // if doing a seg:offset pair
-        TOWORD(lr->data + i + tysize[TYnptr],0);        // segment portion
+        TOWORD(lr->data + i + tysize(TYnptr),0);        // segment portion
     addfixup(lr, offset - lr->offset,lcfd,idx1,idx2);
 }
 
@@ -3198,7 +3198,7 @@ L1:     ;
 void Obj::write_long(int seg,targ_size_t offset,unsigned long data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
 {
-    unsigned sz = tysize[TYfptr];
+    unsigned sz = tysize(TYfptr);
     Ledatarec *lr = SegData[seg]->ledata;
     if (!lr)
          lr = ledata_new(seg, offset);
@@ -3392,7 +3392,7 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                           && !(flags & CFselfrel))
                             ? LOCloader_resolved : obj.LOCoffset;
                 }
-                numbytes = tysize[TYnptr];
+                numbytes = tysize(TYnptr);
                 break;
             case CFseg:
                 lc = LOCbase;
@@ -3400,7 +3400,7 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                 break;
             case CFoff | CFseg:
                 lc = obj.LOCpointer;
-                numbytes = tysize[TYfptr];
+                numbytes = tysize(TYfptr);
                 break;
         }
         break;

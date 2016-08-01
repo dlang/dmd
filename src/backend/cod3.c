@@ -1386,7 +1386,7 @@ void doswitch(block *b)
         if (vmin > 0 && vmin <= intsize)
             vmin = 0;
 
-        b->Btablesize = (int) (vmax - vmin + 1) * tysize[TYnptr];
+        b->Btablesize = (int) (vmax - vmin + 1) * tysize(TYnptr);
         regm_t retregs = IDXREGS;
         if (dword)
             retregs |= mMSW;
@@ -1678,7 +1678,7 @@ void doswitch(block *b)
             ct->Iflags |= csseg ? CFcs : 0;
         }
         ce = cat(ce,ct);
-        b->Btablesize = disp + intsize + ncases * tysize[TYnptr];
+        b->Btablesize = disp + intsize + ncases * tysize(TYnptr);
     }
 
 L2: ;
@@ -1781,7 +1781,7 @@ void outjmptab(block *b)
         else
         {
             objmod->reftocodeseg(jmpseg,*poffset,targ);
-            *poffset += tysize[TYnptr];
+            *poffset += tysize(TYnptr);
         }
 #else
         assert(0);
@@ -1838,7 +1838,7 @@ void outswitab(block *b)
   offset += alignbytes + sz * ncases;
   assert(*poffset == offset);
 
-  if (b->Btablesize == ncases * (REGSIZE * 2 + tysize[TYnptr]))
+  if (b->Btablesize == ncases * (REGSIZE * 2 + tysize(TYnptr)))
   {
         /* Send out MSW table   */
         p -= ncases;
@@ -1855,9 +1855,9 @@ void outswitab(block *b)
   for (n = 0; n < ncases; n++)          /* send out address table       */
   {     bl = list_next(bl);
         objmod->reftocodeseg(seg,*poffset,list_block(bl)->Boffset);
-        *poffset += tysize[TYnptr];
+        *poffset += tysize(TYnptr);
   }
-  assert(*poffset == offset + ncases * tysize[TYnptr]);
+  assert(*poffset == offset + ncases * tysize(TYnptr));
 }
 
 /*****************************
@@ -2195,7 +2195,7 @@ Lcant:
 bool cse_simple(code *c, elem *e)
 {   regm_t regm;
     unsigned reg;
-    int sz = tysize[tybasic(e->Ety)];
+    int sz = tysize(e->Ety);
 
     if (!I16 &&                                  // don't bother with 16 bit code
         e->Eoper == OPadd &&
@@ -4147,10 +4147,10 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     thunkty = tybasic(sthunk->ty());
 #if TARGET_SEGMENTED
     if (tyfarfunc(thunkty))
-        p += I32 ? 8 : tysize[TYfptr];          /* far function */
+        p += I32 ? 8 : tysize(TYfptr);          /* far function */
     else
 #endif
-        p += tysize[TYnptr];
+        p += tysize(TYnptr);
 
     if (!I16)
     {
@@ -4846,7 +4846,7 @@ void assignaddrc(code *c)
 #if MARS
                 assert(c->IEV1.Vuns < NDP::savetop);
 #endif
-                c->IEVpointer1 = c->IEV1.Vuns * tysize[TYldouble] + NDPoff + BPoff;
+                c->IEVpointer1 = c->IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c->Iflags |= CFunambig;
                 goto L2;
             case FLoffset:
