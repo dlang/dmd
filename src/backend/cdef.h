@@ -955,7 +955,7 @@ union eve
             targ_size_t Voffset;// offset from symbol
             Symbol *Vsym;       // pointer to symbol table
             union
-            {   struct PARAM *Vtal;     // template-argument-list for SCfunctempl,
+            {   struct param_t *Vtal;     // template-argument-list for SCfunctempl,
                                 // used only to transmit it to cpp_overload()
                 LIST *Erd;      // OPvar: reaching definitions
             } spu;
