@@ -11,7 +11,7 @@
 module ddmd.irstate;
 
 import ddmd.arraytypes;
-import ddmd.backend;
+import ddmd.backenddecls;
 import ddmd.dmodule;
 import ddmd.dsymbol;
 import ddmd.func;

@@ -237,7 +237,7 @@ endif
 
 GLUE_SRCS=$(addsuffix .d,backend irstate toelfdebug toctype gluelayer todt)
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS)
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDR)
 
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
@@ -276,6 +276,8 @@ GLUE_SRC = glue.c msc.c s2ir.c e2ir.c tocsym.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
 
+BACK_HDR= $C/cgcv.d $C/dt.d
+
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
@@ -302,7 +304,8 @@ BACK_SRC = \
 
 TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
-	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
+	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
+	$(TK)/dlist.d
 
 STRING_IMPORT_FILES = verstr.h SYSCONFDIR.imp
 

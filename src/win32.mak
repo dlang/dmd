@@ -156,7 +156,9 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 
 GLUE_SRCS=irstate.d toctype.d backend.d gluelayer.d todt.d
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS)
+BACK_HDRS=$C/cgcv.d $C/dt.d
+
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj e2ir.obj tocsym.obj \
@@ -223,7 +225,9 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 
 # Toolkit
 TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
-TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
+TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
+	$(TK)\dlist.d \
+	$(TKSRCC)
 
 # Root package
 ROOTSRCC=$(ROOT)\newdelete.c

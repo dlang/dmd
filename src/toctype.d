@@ -12,7 +12,7 @@ module ddmd.toctype;
 
 import core.stdc.stdlib;
 
-import ddmd.backend;
+import ddmd.backenddecls;
 import ddmd.declaration;
 import ddmd.dstruct;
 import ddmd.globals;
