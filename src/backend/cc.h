@@ -174,7 +174,6 @@ struct dt_t;
 typedef struct TYPE type;
 typedef struct Symbol symbol;
 typedef Symbol Funcsym;
-//typedef Symbol Classsym;      // a Symbol that is an SCclass, SCstruct or SCunion
 struct elem;
 #if !MARS
 typedef struct MACRO macro_t;
@@ -222,13 +221,45 @@ typedef struct Srcpos
 #include "token.h"
 #endif
 
+typedef unsigned stflags_t;
+enum
+{
+    PFLpreprocessor  = 1,       // in preprocessor
+    PFLmasm          = 2,       // in Microsoft-style inline assembler
+    PFLbasm          = 4,       // in Borland-style inline assembler
+    PFLsemi          = 8,       // ';' means start of comment
+//  PFLautogen       = 0x10,    // automatically generate HX ph file
+    PFLmftemp        = 0x20,    // if expanding member function template
+    PFLextdef        = 0x40,    // we had an external def
+    PFLhxwrote       = 0x80,    // already generated HX ph file
+    PFLhxdone        = 0x100,   // done with HX ph file
+#if TX86
+    PFLhxread        = 0x200,   // have read in an HX ph file
+    PFLhxgen         = 0x400,   // need to generate HX ph file
+    PFLphread        = 0x800,   // read a ph file
+    PFLcomdef        = 0x1000,  // had a common block
+    PFLmacdef        = 0x2000,  // defined a macro in the source code
+    PFLsymdef        = 0x4000,  // declared a global Symbol in the source
+    PFLinclude       = 0x8000,  // read a .h file
+    PFLmfc           = 0x10000, // something will affect MFC compatibility
+#endif
+};
+
+typedef char sthflags_t;
+enum
+{
+    FLAG_INPLACE    = 0,       // in place hydration
+    FLAG_HX         = 1,       // HX file hydration
+    FLAG_SYM        = 2,       // .SYM file hydration
+};
+
 /**********************************
  * Current 'state' of the compiler.
  * Used to gather together most global variables.
  * This struct is saved/restored during function body parsing.
  */
 
-typedef struct Pstate
+struct Pstate
 {
     char STinopeq;              // if in n2_createopeq()
     char STinarglist;           // if !=0, then '>' is the end of a template
@@ -259,28 +290,10 @@ typedef struct Pstate
 
 #   define funcsym_p (pstate.STfuncsym_p)
 
-    unsigned STflags;
-#       define PFLpreprocessor  1       // in preprocessor
-#       define preprocessor     (pstate.STflags & PFLpreprocessor)
-#       define PFLmasm          2       // in Microsoft-style inline assembler
-#       define PFLbasm          4       // in Borland-style inline assembler
-#       define inline_asm       (pstate.STflags & (PFLmasm | PFLbasm))
-#       define PFLsemi          8       // ';' means start of comment
-//#     define PFLautogen       0x10    // automatically generate HX ph file
-#       define PFLmftemp        0x20    // if expanding member function template
-#       define PFLextdef        0x40    // we had an external def
-#       define PFLhxwrote       0x80    // already generated HX ph file
-#       define PFLhxdone        0x100   // done with HX ph file
-#if TX86
-#       define PFLhxread        0x200   // have read in an HX ph file
-#       define PFLhxgen         0x400   // need to generate HX ph file
-#       define PFLphread        0x800   // read a ph file
-#       define PFLcomdef        0x1000  // had a common block
-#       define PFLmacdef        0x2000  // defined a macro in the source code
-#       define PFLsymdef        0x4000  // declared a global Symbol in the source
-#       define PFLinclude       0x8000  // read a .h file
-#       define PFLmfc           0x10000 // something will affect MFC compatibility
-#endif
+    stflags_t STflags;
+    #define preprocessor     (pstate.STflags & PFLpreprocessor)
+    #define inline_asm       (pstate.STflags & (PFLmasm | PFLbasm))
+
 #if !MARS
     int STinparamlist;          // if != 0, then parser is in
                                 // function parameter list
@@ -291,10 +304,7 @@ typedef struct Pstate
 
 #if TX86
     // should probably be inside #if HYDRATE, but unclear for the dmc source
-    char SThflag;               // FLAG_XXXX: hydration flag
-#define FLAG_INPLACE    0       // in place hydration
-#define FLAG_HX         1       // HX file hydration
-#define FLAG_SYM        2       // .SYM file hydration
+    sthflags_t SThflag;         // FLAG_XXXX: hydration flag
 #endif
 
     Classsym *STclasssym;       // if in the scope of this class
@@ -319,7 +329,7 @@ typedef struct Pstate
     unsigned STsequence;        // sequence number (Ssequence) of next Symbol
     unsigned STmaxsequence;     // won't find Symbols with STsequence larger
                                 // than STmaxsequence
-} Pstate;
+};
 
 extern Pstate pstate;
 
@@ -823,16 +833,22 @@ typedef struct BASECLASS
  * For virtual tables.
  */
 
-typedef struct MPTR
-{   targ_short     MPd;
+typedef char mptr_flags_t;
+enum
+{
+    MPTRvirtual     = 1,       // it's an offset to a virtual base
+    MPTRcovariant   = 2,       // need covariant return pointer adjustment
+};
+
+struct mptr_t
+{
+    targ_short     MPd;
     targ_short     MPi;
     Symbol        *MPf;
     Symbol        *MPparent;    // immediate parent of this base class
                                 //   in Smptrbase
-    unsigned char  MPflags;
-#define MPTRvirtual     1       // it's an offset to a virtual base
-#define MPTRcovariant   2       // need covariant return pointer adjustment
-} mptr_t;
+    mptr_flags_t   MPflags;
+};
 
 #define list_mptr(l)    ((mptr_t *) list_ptr(l))
 
@@ -948,21 +964,56 @@ struct template_t
  * Special information for enums.
  */
 
+typedef unsigned enum_flags_t;
+enum
+{
+    SENnotagname  = 1,       // no tag name for enum
+    SENforward    = 2,       // forward referenced enum
+};
+
 struct enum_t
 {
-    unsigned SEflags;
-#define SENnotagname    1       // no tag name for enum
-#define SENforward      2       // forward referenced enum
-
+    enum_flags_t SEflags;
     Symbol *SEalias;            // pointer to identifier E to use if
-                                /* enum was defined as:                 */
-                                /*      typedef enum { ... } E;         */
+                                // enum was defined as:
+                                //      typedef enum { ... } E;
     symlist_t SEenumlist;       // all members of enum
 };
 
 /***********************************
  * Special information for structs.
  */
+
+typedef unsigned long struct_flags_t;
+enum
+{
+    STRanonymous     = 1,          // set for unions with no tag names
+    STRglobal        = 2,          // defined at file scope
+    STRnotagname     = 4,          // struct/class with no tag name
+    STRoutdef        = 8,          // we've output the debug definition
+    STRbitfields     = 0x10,       // set if struct contains bit fields
+    STRabstract      = 0x20,       // abstract class
+    STRbitcopy       = 0x40,       // set if operator=() is merely a bit copy
+    STRanyctor       = 0x80,       // set if any constructors were defined
+                                   // by the user
+    STRnoctor        = 0x100,      // no constructors allowed
+    STRgen           = 0x200,      // if struct is an instantiation of a
+                                   // template class, and was generated by
+                                   // that template
+    STRvtblext       = 0x400,      // generate vtbl[] only when first member function
+                                   // definition is encountered (see Fvtblgen)
+    STRexport        = 0x800,      // all member functions are to be _export
+    STRpredef        = 0x1000,     // a predefined struct
+    STRunion         = 0x2000,     // actually, it's a union
+    STRclass         = 0x4000,     // it's a class, not a struct
+    STRimport        = 0x8000,     // imported class
+    STRstaticmems    = 0x10000,    // class has static members
+    STR0size         = 0x20000,    // zero sized struct
+    STRinstantiating = 0x40000,    // if currently being instantiated
+    STRexplicit      = 0x80000,    // if explicit template instantiation
+    STRgenctor0      = 0x100000,   // need to gen X::X()
+    STRnotpod        = 0x200000,   // struct is not POD
+};
 
 struct struct_t
 {
@@ -971,36 +1022,7 @@ struct struct_t
     Symbol *Sroot;              // root of binary tree Symbol table
     unsigned Salignsize;        // size of struct for alignment purposes
     unsigned char Sstructalign; // struct member alignment in effect
-    unsigned long Sflags;
-#define STRanonymous    0x01    // set for unions with no tag names
-#define STRglobal       0x02    // defined at file scope
-#define STRnotagname    0x04    // struct/class with no tag name
-#define STRoutdef       0x08    // we've output the debug definition
-#define STRbitfields    0x10    // set if struct contains bit fields
-#define STRpredef       0x1000 // a predefined struct
-#define STRunion        0x4000  // actually, it's a union
-
-#define STRabstract     0x20    // abstract class
-#define STRbitcopy      0x40    // set if operator=() is merely a bit copy
-#define STRanyctor      0x80    // set if any constructors were defined
-                                // by the user
-#define STRnoctor       0x100   // no constructors allowed
-#define STRgen          0x200   // if struct is an instantiation of a
-                                // template class, and was generated by
-                                // that template
-#define STRvtblext      0x400   // generate vtbl[] only when first member function
-                                // definition is encountered (see Fvtblgen)
-#define STRexport       0x800   // all member functions are to be _export
-#define STRclass        0x8000  // it's a class, not a struct
-#if TX86
-#define STRimport       0x40000 // imported class
-#define STRstaticmems   0x80000 // class has static members
-#endif
-#define STR0size        0x100000        // zero sized struct
-#define STRinstantiating 0x200000       // if currently being instantiated
-#define STRexplicit     0x400000        // if explicit template instantiation
-#define STRgenctor0     0x800000        // need to gen X::X()
-#define STRnotpod       0x1000000       // struct is not POD
+    struct_flags_t Sflags;
     tym_t ptrtype;              // type of pointer to refer to classes by
     unsigned short access;      // current access privilege, here so
                                 // enum declarations can get at it
@@ -1097,6 +1119,69 @@ struct struct_t
 #define list_symbol(l)          ((Symbol *) list_ptr(l))
 #define list_setsymbol(l,s)     list_ptr(l) = (s)
 #define list_Classsym(l)        ((Classsym *) list_ptr(l))
+
+enum
+{
+    SFLvalue        = 1,           // Svalue contains const expression
+    SFLimplem       = 2,           // if seen implementation of Symbol
+                                   // (function body for functions,
+                                   // initializer for variables)
+    SFLdouble       = 2,           // SCregpar or SCparameter, where float
+                                   // is really passed as a double
+    SFLfree         = 4,           // if we can symbol_free() a Symbol in
+                                   // a Symbol table[]
+    SFLmark         = 8,           // temporary marker
+    SFLexit         = 0x10,        // tyfunc: function does not return
+                                   // (ex: exit,abort,_assert,longjmp)
+    SFLtrue         = 0x200,       // value of Symbol != 0
+    SFLreplace      = SFLmark,     // variable gets replaced in inline expansion
+    SFLskipinit     = 0x10000,     // SCfield, SCmember: initializer is skipped
+    SFLnodebug      = 0x20000,     // don't generate debug info
+    SFLwasstatic    = 0x800000,    // was an uninitialized static
+    SFLweak         = 0x1000000,   // resolve to NULL if not found
+    SFLartifical    = 0x4000000,   // compiler generated symbol
+
+    // CPP
+    SFLnodtor       = 0x10,        // set if destructor for Symbol is already called
+    SFLdtorexp      = 0x80,        // Svalue has expression to tack onto dtor
+    SFLmutable      = 0x100000,    // SCmember or SCfield is mutable
+    SFLdyninit      = 0x200000,    // symbol has dynamic initializer
+    SFLtmp          = 0x400000,    // symbol is a generated temporary
+    SFLthunk        = 0x40000,     // symbol is temporary for thunk
+
+    // Possible values for protection bits
+    SFLprivate      = 0x60,
+    SFLprotected    = 0x40,
+    SFLpublic       = 0x20,
+    SFLnone         = 0x00,
+    SFLpmask        = 0x60,        // mask for the protection bits
+
+    SFLvtbl         = 0x2000,      // VEC_VTBL_LIST: Symbol is a vtable or vbtable
+
+    // OPTIMIZER and CODGEN
+    GTregcand       = 0x100,       // if Symbol is a register candidate
+    SFLdead         = 0x800,       // this variable is dead
+    GTunregister    = 0x2000000,   // 'unregister' a previous register assignment
+
+    // OPTIMIZER only
+    SFLunambig      = 0x400,       // only accessible by unambiguous reference,
+                                   // i.e. cannot be addressed via pointer
+                                   // (GTregcand is a subset of this)
+                                   // P.S. code generator turns off this
+                                   // flag if any reads are done from it.
+                                   // This is to eliminate stores to it
+                                   // that are never read.
+    SFLlivexit      = 0x1000,      // live on exit from function
+    SFLnotbasiciv   = 0x4000,      // not a basic induction variable
+    SFLnord         = SFLdouble,   // SCauto,SCregister,SCtmp: disallow redundant warnings
+
+    // CODGEN only
+    GTtried         = SFLmark,     // tried to place in register
+    GTbyte          = 0x8000,      // variable is sometimes accessed as
+    SFLread         = 0x40000,     // variable is actually read from
+                                   // (to eliminate dead stores)
+    SFLspill        = 0x80000,     // only in register part of the time
+};
 
 struct Symbol
 {
@@ -1227,68 +1312,6 @@ struct Symbol
     enum_SC Sclass;             // storage class (SCxxxx)
     char Sfl;                   // flavor (FLxxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
-        #define SFLmark         0x08    // temporary marker
-        #define SFLvalue        0x01    // Svalue contains const expression
-        #define SFLimplem       0x02    // if seen implementation of Symbol
-                                        // (function body for functions,
-                                        // initializer for variables)
-        #define SFLdouble       0x02    // SCregpar or SCparameter, where float
-                                        // is really passed as a double
-        #define SFLfree         0x04    // if we can symbol_free() a Symbol in
-                                        // a Symbol table[]
-        #define SFLexit         0x10    // tyfunc: function does not return
-                                        // (ex: exit,abort,_assert,longjmp)
-        #define SFLtrue         0x200   // value of Symbol != 0
-        #define SFLreplace      SFLmark // variable gets replaced in inline expansion
-        #define SFLskipinit     0x10000 // SCfield, SCmember: initializer is skipped
-        #define SFLnodebug      0x20000 // don't generate debug info
-        #define SFLwasstatic    0x800000 // was an uninitialized static
-        #define SFLweak         0x1000000 // resolve to NULL if not found
-        #define SFLartifical    0x4000000 // compiler generated symbol
-
-        // CPP
-        #define SFLnodtor       0x10    // set if destructor for Symbol is already called
-        #define SFLdtorexp      0x80    // Svalue has expression to tack onto dtor
-        #define SFLmutable      0x100000        // SCmember or SCfield is mutable
-        #define SFLdyninit      0x200000        // symbol has dynamic initializer
-        #define SFLtmp          0x400000        // symbol is a generated temporary
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        #define SFLthunk        0x40000 // symbol is temporary for thunk
-#endif
-
-        // Possible values for protection bits
-        #define SFLprivate      0x60
-        #define SFLprotected    0x40
-        #define SFLpublic       0x20
-        #define SFLnone         0x00
-        #define SFLpmask        0x60    // mask for the protection bits
-#if VEC_VTBL_LIST
-        #define SFLvtbl         0x2000  // Symbol is a vtable or vbtable
-#endif
-
-        // OPTIMIZER and CODGEN
-        #define GTregcand       0x100   // if Symbol is a register candidate
-        #define SFLdead         0x800   // this variable is dead
-        #define GTunregister    0x2000000       // 'unregister' a previous register assignment
-
-        // OPTIMIZER only
-        #define SFLunambig      0x400   // only accessible by unambiguous reference,
-                                        // i.e. cannot be addressed via pointer
-                                        // (GTregcand is a subset of this)
-                                        // P.S. code generator turns off this
-                                        // flag if any reads are done from it.
-                                        // This is to eliminate stores to it
-                                        // that are never read.
-        #define SFLlivexit      0x1000  // live on exit from function
-        #define SFLnotbasiciv   0x4000  // not a basic induction variable
-        #define SFLnord         SFLdouble // SCauto,SCregister,SCtmp: disallow redundant warnings
-
-        // CODGEN only
-        #define GTtried         SFLmark // tried to place in register
-        #define GTbyte          0x8000  // variable is sometimes accessed as
-        #define SFLread         0x40000 // variable is actually read from
-                                        // (to eliminate dead stores)
-        #define SFLspill        0x80000 // only in register part of the time
 
     vec_t       Srange;         // live range, if any
     vec_t       Slvreg;         // when symbol is in register
@@ -1483,6 +1506,15 @@ enum FL
 
 #if !MARS
 // Collect information about a source file.
+typedef unsigned sfile_flags_t;
+enum
+{
+    SFonce    = 1,      // file is to be #include'd only once
+    SFhx      = 2,      // file is in an HX file and has not been loaded
+    SFtop     = 4,      // file is a top level source file
+    SFloaded  = 8,      // read from PH file
+};
+
 struct Sfile
 {
 #ifdef DEBUG
@@ -1494,11 +1526,7 @@ struct Sfile
 #endif
 
     char     *SFname;           // name of file
-    unsigned  SFflags;
-        #define SFonce    0x01      // file is to be #include'd only once
-        #define SFhx      0x02      // file is in an HX file and has not been loaded
-        #define SFtop     0x04      // file is a top level source file
-        #define SFloaded  0x08      // read from PH file
+    sfile_flags_t  SFflags;
     list_t    SFfillist;        // file pointers of Sfile's that this Sfile is
                                 //     dependent on (i.e. they were #include'd).
                                 //     Does not include nested #include's
@@ -1571,12 +1599,15 @@ extern Symbol *rtlsym[RTLSYM_MAX];
 
 // Different goals for el_optimize()
 typedef unsigned goal_t;
-#define GOALnone        0       // evaluate for side effects only
-#define GOALvalue       1       // evaluate for value
-#define GOALflags       2       // evaluate for flags
-#define GOALagain       4
-#define GOALstruct      8
-#define GOALhandle      0x10    // don't replace handle'd objects
+enum
+{
+    GOALnone        = 0,       // evaluate for side effects only
+    GOALvalue       = 1,       // evaluate for value
+    GOALflags       = 2,       // evaluate for flags
+    GOALagain       = 4,
+    GOALstruct      = 8,
+    GOALhandle      = 0x10,    // don't replace handle'd objects
+};
 
 /* Globals returned by declar() */
 struct Declar
@@ -1653,13 +1684,13 @@ struct dt_t
 
 enum
 {
-    DT_abytes,
-    DT_azeros,  // 1
-    DT_xoff,
-    DT_nbytes,
-    DT_common,
-    DT_coff,
-    DT_ibytes, // 6
+    DT_abytes = 0,
+    DT_azeros = 1,
+    DT_xoff   = 2,
+    DT_nbytes = 3,
+    DT_common = 4,
+    DT_coff   = 5,
+    DT_ibytes = 6,
 };
 
 // An efficient way to clear aligned memory
