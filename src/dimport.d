@@ -283,7 +283,7 @@ extern (C++) final class Import : Dsymbol
                 scopesym.addAccessiblePackage(mod, protection); // d
             }
 
-            mod.semantic();
+            mod.semantic(null);
             if (mod.needmoduleinfo)
             {
                 //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
@@ -395,7 +395,7 @@ extern (C++) final class Import : Dsymbol
         //printf("Import::semantic2('%s')\n", toChars());
         if (mod)
         {
-            mod.semantic2();
+            mod.semantic2(null);
             if (mod.needmoduleinfo)
             {
                 //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
@@ -462,7 +462,7 @@ extern (C++) final class Import : Dsymbol
         {
             load(null);
             mod.importAll(null);
-            mod.semantic();
+            mod.semantic(null);
         }
         // Forward it to the package/module
         return pkg.search(loc, ident, flags);
