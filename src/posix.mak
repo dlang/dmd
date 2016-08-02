@@ -148,6 +148,8 @@ endif
 DFLAGS=
 # Enable D warnings
 DFLAGS += -wi
+# Enable coverage statistics if requested
+DFLAGS += $(if $(DMD_TEST_COVERAGE),-cov,)
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1

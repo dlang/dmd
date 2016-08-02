@@ -1582,6 +1582,26 @@ int main()
     {
         GC.disable();
     }
+    version(D_Coverage)
+    {
+        // for now we need to manually set the source path
+        string dirName(string path, char separator)
+        {
+            for (size_t i = path.length - 1; i > 0; i--)
+            {
+                if (path[i] == separator)
+                    return path[0..i];
+            }
+            return path;
+        }
+        version (Windows)
+            enum sourcePath = dirName(__FILE_FULL_PATH__, `\`);
+        else
+            enum sourcePath = dirName(__FILE_FULL_PATH__, '/');
+
+        dmd_coverSourcePath(sourcePath);
+        dmd_coverSetMerge(true);
+    }
 
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv);
