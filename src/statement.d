@@ -2079,9 +2079,11 @@ public:
             return new ErrorStatement();
         Expression oaggr = aggr;
         if (aggr.type && aggr.type.toBasetype().ty == Tstruct &&
+            (cast(TypeStruct)(aggr.type.toBasetype())).sym.dtor &&
             aggr.op != TOKtype && !aggr.isLvalue())
         {
-            // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
+            // https://issues.dlang.org/show_bug.cgi?id=14653
+            // Extend the life of rvalue aggregate till the end of foreach.
             vinit = new VarDeclaration(loc, aggr.type, Identifier.generateId("__aggr"), new ExpInitializer(loc, aggr));
             vinit.storage_class |= STCtemp;
             vinit.semantic(sc);
