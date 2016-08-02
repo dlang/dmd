@@ -118,7 +118,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
         {
             unsigned nretregs = XMMREGS & ~retregs;
             unsigned sreg; // hold sign bit
-            unsigned sz = tysize[tybasic(e1->Ety)];
+            unsigned sz = tysize(e1->Ety);
             c = cat(c,allocreg(&nretregs,&sreg,e2->Ety));
             targ_size_t signbit = 0x80000000;
             if (sz == 8)

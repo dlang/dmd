@@ -2483,7 +2483,7 @@ unsigned dwarf_typidx(type *t)
             // vector length stored as subrange type
             code = dwarf_abbrev_code(abbrevSubRange, sizeof(abbrevSubRange));
             infobuf->writeuLEB128(code);        // DW_TAG_subrange_type
-            unsigned char dim = tysize[tybasic(t->Tty)] / tysize[tybasic(tbase->Tty)];
+            unsigned char dim = tysize(t->Tty) / tysize(tbase->Tty);
             infobuf->writeByte(dim - 1);        // DW_AT_upper_bound
 
             infobuf->writeByte(0);              // no more children

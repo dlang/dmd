@@ -1923,7 +1923,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
 
                 /* Replace ((a relop b) ? 1 : 0) with (a relop b)       */
                 else if (OTrel(e1->Eoper) &&
-                    tysize(ty) <= tysize[TYint])
+                    tysize(ty) <= tysize(TYint))
                 {
                     if (i1 == 1 && i2 == 0)
                         e = el_selecte1(e);
@@ -1950,7 +1950,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
                 {
                     if (tyfv(e1->Ety))
                     {
-                        if (tysize(e->Ety) == tysize[TYint])
+                        if (tysize(e->Ety) == tysize(TYint))
                         {
                             if (i1 == 1 && i2 == 0)
                             {   e->Eoper = OPbool;

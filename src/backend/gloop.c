@@ -2338,7 +2338,7 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
         {   int sz;
 
             sz = tysize(ty);
-            if (sz == tysize[TYfptr] && !tyfv(ty) &&
+            if (sz == tysize(TYfptr) && !tyfv(ty) &&
                 (sz != tysize(n1->Ety) || sz != tysize(n2->Ety)))
                 return;
         }

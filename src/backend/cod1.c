@@ -4119,7 +4119,7 @@ code *pushParams(elem *e,unsigned stackalign)
         s = e->EV.sp.Vsym;
         //if (sytab[s->Sclass] & SCSS && !I32)  // if variable is on stack
         //    needframe = TRUE;                 // then we need stack frame
-        if (tysize[tym] == tysize[TYfptr] &&
+        if (tysize[tym] == tysize(TYfptr) &&
             (fl = s->Sfl) != FLfardata &&
             /* not a function that CS might not be the segment of       */
             (!((fl == FLfunc || s->ty() & mTYcs) &&
@@ -4148,7 +4148,7 @@ code *pushParams(elem *e,unsigned stackalign)
         if (config.target_cpu >= TARGET_80286 && !e->Ecount)
         {
             stackpush += sz;
-            if (tysize[tym] == tysize[TYfptr])
+            if (tysize[tym] == tysize(TYfptr))
             {
                 /* PUSH SEG e   */
                 code *c1 = gencs(CNIL,0x68,0,FLextern,s);
@@ -4235,7 +4235,7 @@ code *pushParams(elem *e,unsigned stackalign)
             goto L2;
         }
 
-        assert(I64 || sz <= tysize[TYldouble]);
+        assert(I64 || sz <= tysize(TYldouble));
         int i = sz;
         if (!I16 && i == 2)
             flag = CFopsize;
@@ -4580,7 +4580,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 c = cat(c,c1);
             }
         }
-        else if (sz == tysize[TYldouble])               // TYldouble
+        else if (sz == tysize(TYldouble))               // TYldouble
             return load87(e,0,pretregs,NULL,-1);
         else
         {

@@ -329,8 +329,8 @@ elem *callfunc(Loc loc,
             assert((int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-if (I32) assert(tysize[TYnptr] == 4);
-            ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize[TYnptr]));
+if (I32) assert(tysize(TYnptr) == 4);
+            ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
         }
@@ -611,7 +611,7 @@ elem *array_toDarray(Type *t, elem *e)
             {
                 case OPconst:
                 {
-                    size_t len = tysize[tybasic(e->Ety)];
+                    size_t len = tysize(e->Ety);
                     elem *es = el_calloc();
                     es->Eoper = OPstring;
 
@@ -3926,7 +3926,7 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     // e1 -> *(&e1 + 4)
                     e = el_una(OPaddr, TYnptr, e);
-                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize[TYnptr]));
+                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize(TYnptr)));
                     e = el_una(OPind,totym(t),e);
                 }
                 else
@@ -5329,7 +5329,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
         e1 = el_una(OPind, ty, e1);
         e1 = el_bin(OPeq, ty, e1, el_long(ty, 0));
         e = el_combine(e, e1);
-        *poffset += tysize[ty];
+        *poffset += tysize(ty);
     }
     return e;
 }
