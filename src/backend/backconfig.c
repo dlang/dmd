@@ -302,9 +302,9 @@ void util_set16()
     tysize[TYildouble] = 10;
     tysize[TYcldouble] = 20;
 
-    tyalignsize[TYldouble] = 2;
-    tyalignsize[TYildouble] = 2;
-    tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYldouble] = 2;
+    _tyalignsize[TYildouble] = 2;
+    _tyalignsize[TYcldouble] = 2;
 }
 
 /*******************************
@@ -347,29 +347,29 @@ void util_set32()
     tysize[TYvptr] = 6;     // tysize[x] == tysize[TYfptr] so don't set
     tysize[TYfref] = 6;     // tysize[TYfptr] to tysize[TYnptr]
 
-    tyalignsize[TYenum] = LONGSIZE;
-    tyalignsize[TYint ] = LONGSIZE;
-    tyalignsize[TYuint] = LONGSIZE;
-    tyalignsize[TYnullptr] = LONGSIZE;
-    tyalignsize[TYnref] = LONGSIZE;
-    tyalignsize[TYnptr] = LONGSIZE;
+    _tyalignsize[TYenum] = LONGSIZE;
+    _tyalignsize[TYint ] = LONGSIZE;
+    _tyalignsize[TYuint] = LONGSIZE;
+    _tyalignsize[TYnullptr] = LONGSIZE;
+    _tyalignsize[TYnref] = LONGSIZE;
+    _tyalignsize[TYnptr] = LONGSIZE;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    tyalignsize[TYldouble] = 4;
-    tyalignsize[TYildouble] = 4;
-    tyalignsize[TYcldouble] = 4;
+    _tyalignsize[TYldouble] = 4;
+    _tyalignsize[TYildouble] = 4;
+    _tyalignsize[TYcldouble] = 4;
 #elif TARGET_OSX
-    tyalignsize[TYldouble] = 16;
-    tyalignsize[TYildouble] = 16;
-    tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYldouble] = 16;
+    _tyalignsize[TYildouble] = 16;
+    _tyalignsize[TYcldouble] = 16;
 #elif TARGET_WINDOS
-    tyalignsize[TYldouble] = 2;
-    tyalignsize[TYildouble] = 2;
-    tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYldouble] = 2;
+    _tyalignsize[TYildouble] = 2;
+    _tyalignsize[TYcldouble] = 2;
 #else
     assert(0);
 #endif
-    tyalignsize[TYsptr] = LONGSIZE;
-    tyalignsize[TYcptr] = LONGSIZE;
+    _tyalignsize[TYsptr] = LONGSIZE;
+    _tyalignsize[TYcptr] = LONGSIZE;
 }
 
 /*******************************
@@ -408,32 +408,32 @@ void util_set64()
     tysize[TYvptr] = 10;    // tysize[x] == tysize[TYfptr] so don't set
     tysize[TYfref] = 10;    // tysize[TYfptr] to tysize[TYnptr]
 
-    tyalignsize[TYenum] = LONGSIZE;
-    tyalignsize[TYint ] = LONGSIZE;
-    tyalignsize[TYuint] = LONGSIZE;
-    tyalignsize[TYnullptr] = 8;
-    tyalignsize[TYnptr] = 8;
-    tyalignsize[TYnref] = 8;
+    _tyalignsize[TYenum] = LONGSIZE;
+    _tyalignsize[TYint ] = LONGSIZE;
+    _tyalignsize[TYuint] = LONGSIZE;
+    _tyalignsize[TYnullptr] = 8;
+    _tyalignsize[TYnptr] = 8;
+    _tyalignsize[TYnref] = 8;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    tyalignsize[TYldouble] = 16;
-    tyalignsize[TYildouble] = 16;
-    tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYldouble] = 16;
+    _tyalignsize[TYildouble] = 16;
+    _tyalignsize[TYcldouble] = 16;
 #elif TARGET_OSX
-    tyalignsize[TYldouble] = 16;
-    tyalignsize[TYildouble] = 16;
-    tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYldouble] = 16;
+    _tyalignsize[TYildouble] = 16;
+    _tyalignsize[TYcldouble] = 16;
 #elif TARGET_WINDOS
-    tyalignsize[TYldouble] = 2;
-    tyalignsize[TYildouble] = 2;
-    tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYldouble] = 2;
+    _tyalignsize[TYildouble] = 2;
+    _tyalignsize[TYcldouble] = 2;
 #else
     assert(0);
 #endif
-    tyalignsize[TYsptr] = 8;
-    tyalignsize[TYcptr] = 8;
-    tyalignsize[TYfptr] = 8;
-    tyalignsize[TYvptr] = 8;
-    tyalignsize[TYfref] = 8;
+    _tyalignsize[TYsptr] = 8;
+    _tyalignsize[TYcptr] = 8;
+    _tyalignsize[TYfptr] = 8;
+    _tyalignsize[TYvptr] = 8;
+    _tyalignsize[TYfref] = 8;
     tytab[TYjfunc] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
 
     TYptrdiff = TYllong;

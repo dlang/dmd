@@ -1006,9 +1006,9 @@ void dotytab()
                 break;
         }
         tysize[typetab[i].ty | 0x00] = sz;
-        /*printf("tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
+        /*printf("_tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
-    fprintf(f,"signed char tyalignsize[] =\n{ ");
+    fprintf(f,"signed char _tyalignsize[] =\n{ ");
     for (i = 0; i < arraysize(tysize); i++)
     {   fprintf(f,"%d,",tysize[i]);
         if ((i & 7) == 7 && i < arraysize(tysize) - 1)
