@@ -20,9 +20,7 @@
 #include        <string.h>
 #include        <time.h>
 #include        <assert.h>
-#if __DMC__
 #include        <limits.h>
-#endif
 
 
 // D compiler
