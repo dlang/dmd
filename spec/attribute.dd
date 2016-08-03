@@ -709,8 +709,9 @@ $(P
 )
 
 $(P
-        If a class is abstract, it cannot be instantiated
-        directly. It can only be instantiated as a base class of
+        Classes defined within an abstract attribute or with abstract member 
+        functions cannot be instantiated directly.
+        They can only be instantiated as a base class of
         another, non-abstract, class.
 )
 
