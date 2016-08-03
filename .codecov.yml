@@ -9,3 +9,4 @@ codecov:
 coverage:
   fixes:
     - "test/.*/::src/"
+    - "fail_compilation/::src/"
