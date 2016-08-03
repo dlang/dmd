@@ -26,25 +26,28 @@ struct BIGOBJ_HEADER
     uint32_t NumberOfSymbols;      // number of entries in the symbol table
 };
 
-#define IMAGE_FILE_MACHINE_UNKNOWN 0            // applies to any machine type
-#define IMAGE_FILE_MACHINE_I386    0x14C        // x86
-#define IMAGE_FILE_MACHINE_AMD64   0x8664       // x86_64
+enum
+{
+    IMAGE_FILE_MACHINE_UNKNOWN            = 0,           // applies to any machine type
+    IMAGE_FILE_MACHINE_I386               = 0x14C,       // x86
+    IMAGE_FILE_MACHINE_AMD64              = 0x8664,      // x86_64
 
-#define IMAGE_FILE_RELOCS_STRIPPED              1
-#define IMAGE_FILE_EXECUTABLE_IMAGE             2
-#define IMAGE_FILE_LINE_NUMS_STRIPPED           4
-#define IMAGE_FILE_LOCAL_SYMS_STRIPPED          8
-#define IMAGE_FILE_AGGRESSIVE_WS_TRIM           0x10
-#define IMAGE_FILE_LARGE_ADDRESS_AWARE          0x20
-#define IMAGE_FILE_BYTES_REVERSED_LO            0x80
-#define IMAGE_FILE_32BIT_MACHINE                0x100
-#define IMAGE_FILE_DEBUG_STRIPPED               0x200
-#define IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP      0x400
-#define IMAGE_FILE_NET_RUN_FROM_SWAP            0x800
-#define IMAGE_FILE_SYSTEM                       0x1000
-#define IMAGE_FILE_DLL                          0x2000
-#define IMAGE_FILE_UP_SYSTEM_ONLY               0x4000
-#define IMAGE_FILE_BYTES_REVERSED_HI            0x8000
+    IMAGE_FILE_RELOCS_STRIPPED            = 1,
+    IMAGE_FILE_EXECUTABLE_IMAGE           = 2,
+    IMAGE_FILE_LINE_NUMS_STRIPPED         = 4,
+    IMAGE_FILE_LOCAL_SYMS_STRIPPED        = 8,
+    IMAGE_FILE_AGGRESSIVE_WS_TRIM         = 0x10,
+    IMAGE_FILE_LARGE_ADDRESS_AWARE        = 0x20,
+    IMAGE_FILE_BYTES_REVERSED_LO          = 0x80,
+    IMAGE_FILE_32BIT_MACHINE              = 0x100,
+    IMAGE_FILE_DEBUG_STRIPPED             = 0x200,
+    IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP    = 0x400,
+    IMAGE_FILE_NET_RUN_FROM_SWAP          = 0x800,
+    IMAGE_FILE_SYSTEM                     = 0x1000,
+    IMAGE_FILE_DLL                        = 0x2000,
+    IMAGE_FILE_UP_SYSTEM_ONLY             = 0x4000,
+    IMAGE_FILE_BYTES_REVERSED_HI          = 0x8000,
+};
 
 struct IMAGE_FILE_HEADER
 {
@@ -75,56 +78,62 @@ struct IMAGE_SECTION_HEADER
     uint32_t Characteristics;
 };
 
-#define IMAGE_SCN_TYPE_NO_PAD           8       // obsolete
-#define IMAGE_SCN_CNT_CODE              0x20    // code section
-#define IMAGE_SCN_CNT_INITIALIZED_DATA  0x40
-#define IMAGE_SCN_CNT_UNINITIALIZED_DATA        0x80
-#define IMAGE_SCN_LNK_OTHER             0x100
-#define IMAGE_SCN_LNK_INFO              0x200   // comments; for .drectve section
-#define IMAGE_SCN_LNK_REMOVE            0x800   // do not put in image file
-#define IMAGE_SCN_LNK_COMDAT            0x1000  // COMDAT section
-#define IMAGE_SCN_GPREL                 0x8000  // data referenced through global pointer GP
-#define IMAGE_SCN_MEM_PURGEABLE         0x20000
-#define IMAGE_SCN_MEM_16BIT             0x20000
-#define IMAGE_SCN_MEM_LOCKED            0x40000
-#define IMAGE_SCN_MEM_PRELOAD           0x80000
-#define IMAGE_SCN_ALIGN_1BYTES          0x100000
-#define IMAGE_SCN_ALIGN_2BYTES          0x200000
-#define IMAGE_SCN_ALIGN_4BYTES          0x300000
-#define IMAGE_SCN_ALIGN_8BYTES          0x400000
-#define IMAGE_SCN_ALIGN_16BYTES         0x500000
-#define IMAGE_SCN_ALIGN_32BYTES         0x600000
-#define IMAGE_SCN_ALIGN_64BYTES         0x700000
-#define IMAGE_SCN_ALIGN_128BYTES        0x800000
-#define IMAGE_SCN_ALIGN_256BYTES        0x900000
-#define IMAGE_SCN_ALIGN_512BYTES        0xA00000
-#define IMAGE_SCN_ALIGN_1024BYTES       0xB00000
-#define IMAGE_SCN_ALIGN_2048BYTES       0xC00000
-#define IMAGE_SCN_ALIGN_4096BYTES       0xD00000
-#define IMAGE_SCN_ALIGN_8192BYTES       0xE00000
-#define IMAGE_SCN_LNK_NRELOC_OVFL       0x1000000       // more than 0xFFFF relocations
-#define IMAGE_SCN_MEM_DISCARDABLE       0x2000000       // can be discarded
-#define IMAGE_SCN_MEM_NOT_CACHED        0x4000000       // cannot be cached
-#define IMAGE_SCN_MEM_NOT_PAGED         0x8000000       // cannot be paged
-#define IMAGE_SCN_MEM_SHARED            0x10000000      // can be shared
-#define IMAGE_SCN_MEM_EXECUTE           0x20000000      // executable code
-#define IMAGE_SCN_MEM_READ              0x40000000      // readable
-#define IMAGE_SCN_MEM_WRITE             0x80000000      // writeable
+enum
+{
+    IMAGE_SCN_TYPE_NO_PAD           = 8,       // obsolete
+    IMAGE_SCN_CNT_CODE              = 0x20,    // code section
+    IMAGE_SCN_CNT_INITIALIZED_DATA  = 0x40,
+    IMAGE_SCN_CNT_UNINITIALIZED_DATA = 0x80,
+    IMAGE_SCN_LNK_OTHER             = 0x100,
+    IMAGE_SCN_LNK_INFO              = 0x200,   // comments; for .drectve section
+    IMAGE_SCN_LNK_REMOVE            = 0x800,   // do not put in image file
+    IMAGE_SCN_LNK_COMDAT            = 0x1000,  // COMDAT section
+    IMAGE_SCN_GPREL                 = 0x8000,  // data referenced through global pointer GP
+    IMAGE_SCN_MEM_PURGEABLE         = 0x20000,
+    IMAGE_SCN_MEM_16BIT             = 0x20000,
+    IMAGE_SCN_MEM_LOCKED            = 0x40000,
+    IMAGE_SCN_MEM_PRELOAD           = 0x80000,
+    IMAGE_SCN_ALIGN_1BYTES          = 0x100000,
+    IMAGE_SCN_ALIGN_2BYTES          = 0x200000,
+    IMAGE_SCN_ALIGN_4BYTES          = 0x300000,
+    IMAGE_SCN_ALIGN_8BYTES          = 0x400000,
+    IMAGE_SCN_ALIGN_16BYTES         = 0x500000,
+    IMAGE_SCN_ALIGN_32BYTES         = 0x600000,
+    IMAGE_SCN_ALIGN_64BYTES         = 0x700000,
+    IMAGE_SCN_ALIGN_128BYTES        = 0x800000,
+    IMAGE_SCN_ALIGN_256BYTES        = 0x900000,
+    IMAGE_SCN_ALIGN_512BYTES        = 0xA00000,
+    IMAGE_SCN_ALIGN_1024BYTES       = 0xB00000,
+    IMAGE_SCN_ALIGN_2048BYTES       = 0xC00000,
+    IMAGE_SCN_ALIGN_4096BYTES       = 0xD00000,
+    IMAGE_SCN_ALIGN_8192BYTES       = 0xE00000,
+    IMAGE_SCN_LNK_NRELOC_OVFL       = 0x1000000,     // more than 0xFFFF relocations
+    IMAGE_SCN_MEM_DISCARDABLE       = 0x2000000,     // can be discarded
+    IMAGE_SCN_MEM_NOT_CACHED        = 0x4000000,     // cannot be cached
+    IMAGE_SCN_MEM_NOT_PAGED         = 0x8000000,     // cannot be paged
+    IMAGE_SCN_MEM_SHARED            = 0x10000000,    // can be shared
+    IMAGE_SCN_MEM_EXECUTE           = 0x20000000,    // executable code
+    IMAGE_SCN_MEM_READ              = 0x40000000,    // readable
+    IMAGE_SCN_MEM_WRITE             = 0x80000000,    // writeable
+};
 
 /***********************************************/
 
 #define SYMNMLEN        8
 
-#define IMAGE_SYM_DEBUG                 -2
-#define IMAGE_SYM_ABSOLUTE              -1
-#define IMAGE_SYM_UNDEFINED             0
+enum
+{
+    IMAGE_SYM_DEBUG                 = -2,
+    IMAGE_SYM_ABSOLUTE              = -1,
+    IMAGE_SYM_UNDEFINED             = 0,
 
 /* Values for n_sclass  */
-#define IMAGE_SYM_CLASS_EXTERNAL        2
-#define IMAGE_SYM_CLASS_STATIC          3
-#define IMAGE_SYM_CLASS_LABEL           6
-#define IMAGE_SYM_CLASS_FUNCTION        101
-#define IMAGE_SYM_CLASS_FILE            103
+    IMAGE_SYM_CLASS_EXTERNAL        = 2,
+    IMAGE_SYM_CLASS_STATIC          = 3,
+    IMAGE_SYM_CLASS_LABEL           = 6,
+    IMAGE_SYM_CLASS_FUNCTION        = 101,
+    IMAGE_SYM_CLASS_FILE            = 103,
+};
 
 struct SymbolTable32
 {
@@ -162,40 +171,41 @@ struct reloc
     unsigned r_vaddr;           // file offset of relocation
     unsigned r_symndx;          // symbol table index
     unsigned short r_type;      // IMAGE_REL_XXX kind of relocation to be performed
-
-#define IMAGE_REL_AMD64_ABSOLUTE        0
-#define IMAGE_REL_AMD64_ADDR64          1
-#define IMAGE_REL_AMD64_ADDR32          2
-#define IMAGE_REL_AMD64_ADDR32NB        3
-#define IMAGE_REL_AMD64_REL32           4
-#define IMAGE_REL_AMD64_REL32_1         5
-#define IMAGE_REL_AMD64_REL32_2         6
-#define IMAGE_REL_AMD64_REL32_3         7
-#define IMAGE_REL_AMD64_REL32_4         8
-#define IMAGE_REL_AMD64_REL32_5         9
-#define IMAGE_REL_AMD64_SECTION         0xA
-#define IMAGE_REL_AMD64_SECREL          0xB
-#define IMAGE_REL_AMD64_SECREL7         0xC
-#define IMAGE_REL_AMD64_TOKEN           0xD
-#define IMAGE_REL_AMD64_SREL32          0xE
-#define IMAGE_REL_AMD64_PAIR            0xF
-#define IMAGE_REL_AMD64_SSPAN32         0x10
-
-#define IMAGE_REL_I386_ABSOLUTE         0
-#define IMAGE_REL_I386_DIR16            1
-#define IMAGE_REL_I386_REL16            2
-#define IMAGE_REL_I386_DIR32            6
-#define IMAGE_REL_I386_DIR32NB          7
-#define IMAGE_REL_I386_SEG12            9
-#define IMAGE_REL_I386_SECTION          0xA
-#define IMAGE_REL_I386_SECREL           0xB
-#define IMAGE_REL_I386_TOKEN            0xC
-#define IMAGE_REL_I386_SECREL7          0xD
-#define IMAGE_REL_I386_REL32            0x14
-
 #pragma pack()
 };
 
+enum
+{
+    IMAGE_REL_AMD64_ABSOLUTE        = 0,
+    IMAGE_REL_AMD64_ADDR64          = 1,
+    IMAGE_REL_AMD64_ADDR32          = 2,
+    IMAGE_REL_AMD64_ADDR32NB        = 3,
+    IMAGE_REL_AMD64_REL32           = 4,
+    IMAGE_REL_AMD64_REL32_1         = 5,
+    IMAGE_REL_AMD64_REL32_2         = 6,
+    IMAGE_REL_AMD64_REL32_3         = 7,
+    IMAGE_REL_AMD64_REL32_4         = 8,
+    IMAGE_REL_AMD64_REL32_5         = 9,
+    IMAGE_REL_AMD64_SECTION         = 0xA,
+    IMAGE_REL_AMD64_SECREL          = 0xB,
+    IMAGE_REL_AMD64_SECREL7         = 0xC,
+    IMAGE_REL_AMD64_TOKEN           = 0xD,
+    IMAGE_REL_AMD64_SREL32          = 0xE,
+    IMAGE_REL_AMD64_PAIR            = 0xF,
+    IMAGE_REL_AMD64_SSPAN32         = 0x10,
+
+    IMAGE_REL_I386_ABSOLUTE         = 0,
+    IMAGE_REL_I386_DIR16            = 1,
+    IMAGE_REL_I386_REL16            = 2,
+    IMAGE_REL_I386_DIR32            = 6,
+    IMAGE_REL_I386_DIR32NB          = 7,
+    IMAGE_REL_I386_SEG12            = 9,
+    IMAGE_REL_I386_SECTION          = 0xA,
+    IMAGE_REL_I386_SECREL           = 0xB,
+    IMAGE_REL_I386_TOKEN            = 0xC,
+    IMAGE_REL_I386_SECREL7          = 0xD,
+    IMAGE_REL_I386_REL32            = 0x14,
+};
 
 /***********************************************/
 
@@ -266,12 +276,6 @@ union auxent
         unsigned char Unused;
         unsigned short NumberHighPart;
         unsigned short Zeros;
-#define IMAGE_COMDAT_SELECT_NODUPLICATES        1
-#define IMAGE_COMDAT_SELECT_ANY                 2
-#define IMAGE_COMDAT_SELECT_SAME_SIZE           3
-#define IMAGE_COMDAT_SELECT_EXACT_MATCH         4
-#define IMAGE_COMDAT_SELECT_ASSOCIATIVE         5
-#define IMAGE_COMDAT_SELECT_LARGEST             6
     } x_section;
 
     char filler[18];
@@ -279,6 +283,16 @@ union auxent
 };
 #pragma pack()
 
+// auxent.x_section.Zeros
+enum
+{
+    IMAGE_COMDAT_SELECT_NODUPLICATES        = 1,
+    IMAGE_COMDAT_SELECT_ANY                 = 2,
+    IMAGE_COMDAT_SELECT_SAME_SIZE           = 3,
+    IMAGE_COMDAT_SELECT_EXACT_MATCH         = 4,
+    IMAGE_COMDAT_SELECT_ASSOCIATIVE         = 5,
+    IMAGE_COMDAT_SELECT_LARGEST             = 6,
+};
 
 /***********************************************/
 
