@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -21,44 +21,46 @@
  */
 
 typedef unsigned mftype;        /* a type big enough for all the flags  */
-
-#define MFdc    1               // dead code
-#define MFda    2               // dead assignments
-#define MFdv    4               // dead variables
-#define MFreg   8               // register variables
-#define MFcse   0x10            // global common subexpressions
-#define MFvbe   0x20            // very busy expressions
-#define MFtime  0x40            // favor time (speed) over space
-#define MFli    0x80            // loop invariants
-#define MFliv   0x100           // loop induction variables
-#define MFcp    0x200           // copy propagation
-#define MFcnp   0x400           // constant propagation
-#define MFloop  0x800           // loop till no more changes
-#define MFtree  0x1000          // optelem (tree optimization)
-#define MFlocal 0x2000          // localize expressions
-#define MFall   (~0)            // do everything
+enum
+{
+    MFdc    = 1,               // dead code
+    MFda    = 2,               // dead assignments
+    MFdv    = 4,               // dead variables
+    MFreg   = 8,               // register variables
+    MFcse   = 0x10,            // global common subexpressions
+    MFvbe   = 0x20,            // very busy expressions
+    MFtime  = 0x40,            // favor time (speed) over space
+    MFli    = 0x80,            // loop invariants
+    MFliv   = 0x100,           // loop induction variables
+    MFcp    = 0x200,           // copy propagation
+    MFcnp   = 0x400,           // constant propagation
+    MFloop  = 0x800,           // loop till no more changes
+    MFtree  = 0x1000,          // optelem (tree optimization)
+    MFlocal = 0x2000,          // localize expressions
+    MFall   = 0xFFFF,          // do everything
+};
 
 /**********************************
  * Definition elem vector, used for reaching definitions.
  */
 
-typedef struct DN
-    {
-        elem    *DNelem;        // pointer to definition elem
-        block   *DNblock;       // pointer to block that the elem is in
-    } dn;
+struct DefNode
+{
+    elem    *DNelem;        // pointer to definition elem
+    block   *DNblock;       // pointer to block that the elem is in
+};
 
 /* Global Variables */
 extern unsigned optab[];
 
 /* Global Optimizer variables
  */
-struct Go
+struct GlobalOptimizer
 {
     mftype mfoptim;
     unsigned changes;   // # of optimizations performed
 
-    struct DN *defnod;  // array of definition elems
+    DefNode *defnod;    // array of definition elems
     unsigned deftop;    // # of entries in defnod[]
 
     elem **expnod;      // array of expression elems
@@ -71,11 +73,11 @@ struct Go
     vec_t vptrkill;     // vector of AEs killed by an access
 };
 
-extern struct Go go;
+extern GlobalOptimizer go;
 
 /* gdag.c */
-void builddags(void);
-void boolopt(void);
+void builddags();
+void boolopt();
 void opt_arraybounds();
 
 /* gflow.c */
@@ -84,23 +86,23 @@ void flowrd(),flowlv(),flowae(),flowvbe(),
 int ae_field_affect(elem *lvalue,elem *e);
 
 /* glocal.c */
-void localize(void);
+void localize();
 
 /* gloop.c */
-int blockinit(void);
-void compdom(void);
-void loopopt(void);
+int blockinit();
+void compdom();
+void loopopt();
 void updaterd(elem *n,vec_t GEN,vec_t KILL);
 
 /* gother.c */
-void rd_arraybounds(void);
+void rd_arraybounds();
 void rd_free();
-void constprop(void);
-void copyprop(void);
-void rmdeadass(void);
+void constprop();
+void copyprop();
+void rmdeadass();
 void elimass(elem *);
-void deadvar(void);
-void verybusyexp(void);
+void deadvar();
+void verybusyexp();
 list_t listrds(vec_t, elem *, vec_t);
 
 #endif /*  GO_H */

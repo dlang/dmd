@@ -154,7 +154,7 @@ STATIC void rdgenkill()
         /*      The elems are in dfo order.                     */
         /*      go.defnod[]s consist of a elem pointer and a pointer */
         /*      to the enclosing block.                         */
-        go.defnod = (dn *) util_calloc(sizeof(dn),go.deftop);
+        go.defnod = (DefNode *) util_calloc(sizeof(DefNode),go.deftop);
         deftopsave = go.deftop;
         go.deftop = 0;
         for (i = 0; i < dfotop; i++)
