@@ -53,7 +53,7 @@ if [ "${CIRCLECI}" != "true" ] ; then
 fi
 
 QUICK_BUILD=0
-if [ "$TRAVIS_PULL_REQUEST" == "false" ] || [ "$CIRCLECI" == "true" ]; then
+if [ "$TRAVIS_PULL_REQUEST" == "false" ] ; then
 	QUICK_BUILD=1
 fi
 
