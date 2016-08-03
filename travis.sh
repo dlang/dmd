@@ -52,8 +52,13 @@ if [ "${CIRCLECI}" != "true" ] ; then
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
 fi
 
+QUICK_BUILD=0
+if [ "$TRAVIS_PULL_REQUEST" == "false" ] || [ "$CIRCLECI" == "true" ]; then
+	QUICK_BUILD=1
+fi
+
 # test fewer compiler argument permutations for PRs to reduce CI load
-if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+if [ $QUICK_BUILD -eq 1 ]; then
     make -j$N -C test MODEL=$MODEL
 else
     make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"

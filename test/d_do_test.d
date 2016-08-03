@@ -1,3 +1,4 @@
+#!/usr/bin/env rdmd
 module d_do_test;
 
 import std.algorithm;
@@ -80,6 +81,7 @@ struct EnvData
     string model;
     string required_args;
     bool dobjc;
+    bool coverage_build;
 }
 
 bool findTestParameter(string file, string token, ref string result)
@@ -446,6 +448,7 @@ int main(string[] args)
     envData.model         = environment.get("MODEL");
     envData.required_args = environment.get("REQUIRED_ARGS");
     envData.dobjc         = environment.get("D_OBJC") == "1";
+    envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
@@ -464,6 +467,10 @@ int main(string[] args)
             writeln("input_dir must be one of 'compilable', 'fail_compilation', or 'runnable'");
             return 1;
     }
+
+    // running & linking costs time - for coverage builds we can save this
+    if (envData.coverage_build && testArgs.mode == TestMode.RUN)
+        testArgs.mode = TestMode.COMPILE;
 
     if (envData.ccompiler.empty)
     {
@@ -632,7 +639,7 @@ int main(string[] args)
 
             fThisRun.close();
 
-            if (testArgs.postScript)
+            if (testArgs.postScript && !envData.coverage_build)
             {
                 f.write("Executing post-test script: ");
                 string prefix = "";
