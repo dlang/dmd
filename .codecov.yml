@@ -1,0 +1,7 @@
+# Documentation: https://github.com/codecov/support/wiki/codecov.yml
+
+codecov:
+  # CodeCov should only wait for CI's that run coverage tests
+  # DAutoTester and auto-tester are not in the default list
+  ci:
+    - !travis
