@@ -1600,6 +1600,7 @@ int main()
             enum sourcePath = dirName(__FILE_FULL_PATH__, '/');
 
         dmd_coverSourcePath(sourcePath);
+        dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
     }
 

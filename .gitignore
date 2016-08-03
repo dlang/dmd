@@ -51,6 +51,7 @@ dmd.xcodeproj/
 # Output files
 src/*.bak
 src/*.lib
+src/*.lst
 tags
 
 # OSX
