@@ -5,3 +5,8 @@ codecov:
   # DAutoTester and auto-tester are not in the default list
   ci:
     - !travis
+
+coverage:
+  fixes:
+    - "test/.*/::src/"
+    - "fail_compilation/::src/"
