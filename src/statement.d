@@ -192,7 +192,9 @@ public:
     // Same as semanticNoScope(), but do create a new scope
     final Statement semanticScope(Scope* sc, Statement sbreak, Statement scontinue)
     {
-        Scope* scd = sc.push();
+        auto sym = new ScopeDsymbol();
+        sym.parent = sc.scopesym;
+        Scope* scd = sc.push(sym);
         if (sbreak)
             scd.sbreak = sbreak;
         if (scontinue)
