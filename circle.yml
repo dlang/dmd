@@ -1,0 +1,8 @@
+test:
+  override:
+    - echo noop
+
+general:
+  branches:
+    ignore:
+      - stable
