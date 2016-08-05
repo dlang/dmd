@@ -204,11 +204,11 @@ enum
 
 /* Array to give the size in bytes of a type, -1 means error    */
 extern signed char tysize[];
-extern signed char tyalignsize[];
+extern signed char _tyalignsize[];
 
 // Give size of type
 #define tysize(ty) tysize[(ty) & 0xFF]
-#define tyalignsize(ty) tyalignsize[(ty) & 0xFF]
+#define tyalignsize(ty) _tyalignsize[(ty) & 0xFF]
 
 
 /* Groupings of types   */
