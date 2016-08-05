@@ -120,62 +120,66 @@ enum TYM
     TYMAX               = 0x48,
 };
 
-#define mTYbasic        0xFF    /* bit mask for basic types     */
-inline tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
-
 // These change depending on memory model
 extern int TYptrdiff, TYsize, TYsize_t;
 
-/* Linkage type                 */
-#define mTYnear         0x0800
-#define mTYfar          0x1000           // seg:offset style pointer
-#define mTYcs           0x2000           // in code segment
-#define mTYthread       0x4000
+enum
+{
+    mTYbasic        = 0xFF,          // bit mask for basic types
 
-/// Used for symbols going in the __thread_data section for TLS variables for Mach-O 64bit
-#define mTYthreadData   0x5000
-#define mTYLINK         0x7800           // all linkage bits
+   // Linkage type
+    mTYnear         = 0x0800,
+    mTYfar          = 0x1000,        // seg:offset style pointer
+    mTYcs           = 0x2000,        // in code segment
+    mTYthread       = 0x4000,
 
-#define mTYloadds       0x08000          // 16 bit Windows LOADDS attribute
-#define mTYexport       0x10000
-#define mTYweak         0x00000
-#define mTYimport       0x20000
-#define mTYnaked        0x40000
-#define mTYMOD          0x78000          // all modifier bits
+    // Used for symbols going in the __thread_data section for TLS variables for Mach-O 64bit
+    mTYthreadData   = 0x5000,
+    mTYLINK         = 0x7800,        // all linkage bits
 
-/* Modifiers to basic types     */
+    mTYloadds       = 0x08000,       // 16 bit Windows LOADDS attribute
+    mTYexport       = 0x10000,
+    mTYweak         = 0x00000,
+    mTYimport       = 0x20000,
+    mTYnaked        = 0x40000,
+    mTYMOD          = 0x78000,       // all modifier bits
 
-#define mTYarrayhandle  0x0
-#define mTYconst        0x100
-#define mTYvolatile     0x200
-#define mTYrestrict     0               // BUG: add for C99
-#define mTYmutable      0               // need to add support
-#define mTYunaligned    0               // non-zero for PowerPC
+    // Modifiers to basic types
 
-#define mTYimmutable    0x00080000       // immutable data
-#define mTYshared       0x00100000       // shared data
-#define mTYnothrow      0x00200000       // nothrow function
+    mTYarrayhandle  = 0x0,
+    mTYconst        = 0x100,
+    mTYvolatile     = 0x200,
+    mTYrestrict     = 0,             // BUG: add for C99
+    mTYmutable      = 0,             // need to add support
+    mTYunaligned    = 0,             // non-zero for PowerPC
 
-// Used only by C/C++ compiler
+    mTYimmutable    = 0x00080000,    // immutable data
+    mTYshared       = 0x00100000,    // shared data
+    mTYnothrow      = 0x00200000,    // nothrow function
+
+    // Used only by C/C++ compiler
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define mTYnoret        0x01000000        // function has no return
-#define mTYtransu       0x01000000        // transparent union
+    mTYnoret        = 0x01000000,    // function has no return
+    mTYtransu       = 0x01000000,    // transparent union
 #else
-#define mTYfar16        0x01000000
+    mTYfar16        = 0x01000000,
 #endif
-#define mTYstdcall      0x02000000
-#define mTYfastcall     0x04000000
-#define mTYinterrupt    0x08000000
-#define mTYcdecl        0x10000000
-#define mTYpascal       0x20000000
-#define mTYsyscall      0x40000000
-#define mTYjava         0x80000000
+    mTYstdcall      = 0x02000000,
+    mTYfastcall     = 0x04000000,
+    mTYinterrupt    = 0x08000000,
+    mTYcdecl        = 0x10000000,
+    mTYpascal       = 0x20000000,
+    mTYsyscall      = 0x40000000,
+    mTYjava         = 0x80000000,
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define mTYTFF          0xFE000000
+    mTYTFF          = 0xFE000000,
 #else
-#define mTYTFF          0xFF000000
+    mTYTFF          = 0xFF000000,
 #endif
+};
+
+inline tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
 
 /* Flags in tytab[] array       */
 extern unsigned tytab[];
