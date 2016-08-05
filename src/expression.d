@@ -2343,7 +2343,10 @@ extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
          *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
          *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
          */
-        e1 = extractSideEffect(sc, "__dop", e0, e1);
+        e1 = extractSideEffect(sc, "__dop", e0, e1, false);
+        assert(e1.op == TOKvar);
+        VarExp ve = cast(VarExp)e1;
+        ve.var.storage_class |= STCexptemp;     // lifetime limited to expression
     }
     ue.e1 = e1;
     return e0;
