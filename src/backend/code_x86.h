@@ -11,14 +11,17 @@
 
 /* Register definitions */
 
-#define AX      0
-#define CX      1
-#define DX      2
-#define BX      3
-#define SP      4
-#define BP      5
-#define SI      6
-#define DI      7
+enum
+{
+    AX      = 0,
+    CX      = 1,
+    DX      = 2,
+    BX      = 3,
+    SP      = 4,
+    BP      = 5,
+    SI      = 6,
+    DI      = 7,
+};
 
 #define PICREG  BX
 
@@ -34,16 +37,19 @@ enum // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
     R15      = 15,
 };
 
-#define XMM0    16
-#define XMM1    17
-#define XMM2    18
-#define XMM3    19
-#define XMM4    20
-#define XMM5    21
-#define XMM6    22
-#define XMM7    23
+enum
+{
+    XMM0    = 16,
+    XMM1    = 17,
+    XMM2    = 18,
+    XMM3    = 19,
+    XMM4    = 20,
+    XMM5    = 21,
+    XMM6    = 22,
+    XMM7    = 23,
 /* There are also XMM8..XMM14 */
-#define XMM15   31
+    XMM15   = 31,
+};
 
 /* See Solaris note in optabgen.c */
 #ifdef ES
@@ -65,50 +71,56 @@ enum // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
 
 #define NOREG   29     // no register
 
-#define AL      0
-#define CL      1
-#define DL      2
-#define BL      3
-#define AH      4
-#define CH      5
-#define DH      6
-#define BH      7
+enum
+{
+    AL      = 0,
+    CL      = 1,
+    DL      = 2,
+    BL      = 3,
+    AH      = 4,
+    CH      = 5,
+    DH      = 6,
+    BH      = 7,
+};
 
-#define mAX     1
-#define mCX     2
-#define mDX     4
-#define mBX     8
-#define mSP     0x10
-#define mBP     0x20
-#define mSI     0x40
-#define mDI     0x80
+enum
+{
+    mAX     = 1,
+    mCX     = 2,
+    mDX     = 4,
+    mBX     = 8,
+    mSP     = 0x10,
+    mBP     = 0x20,
+    mSI     = 0x40,
+    mDI     = 0x80,
 
-#define mR8     (1 << R8)
-#define mR9     (1 << R9)
-#define mR10    (1 << R10)
-#define mR11    (1 << R11)
-#define mR12    (1 << R12)
-#define mR13    (1 << R13)
-#define mR14    (1 << R14)
-#define mR15    (1 << R15)
+    mR8     = (1 << R8),
+    mR9     = (1 << R9),
+    mR10    = (1 << R10),
+    mR11    = (1 << R11),
+    mR12    = (1 << R12),
+    mR13    = (1 << R13),
+    mR14    = (1 << R14),
+    mR15    = (1 << R15),
 
-#define mXMM0   (1 << XMM0)
-#define mXMM1   (1 << XMM1)
-#define mXMM2   (1 << XMM2)
-#define mXMM3   (1 << XMM3)
-#define mXMM4   (1 << XMM4)
-#define mXMM5   (1 << XMM5)
-#define mXMM6   (1 << XMM6)
-#define mXMM7   (1 << XMM7)
-#define XMMREGS  (mXMM0 |mXMM1 |mXMM2 |mXMM3 |mXMM4 |mXMM5 |mXMM6 |mXMM7)
+    mXMM0   = (1 << XMM0),
+    mXMM1   = (1 << XMM1),
+    mXMM2   = (1 << XMM2),
+    mXMM3   = (1 << XMM3),
+    mXMM4   = (1 << XMM4),
+    mXMM5   = (1 << XMM5),
+    mXMM6   = (1 << XMM6),
+    mXMM7   = (1 << XMM7),
+    XMMREGS = (mXMM0 |mXMM1 |mXMM2 |mXMM3 |mXMM4 |mXMM5 |mXMM6 |mXMM7),
 
-#define mES     (1 << ES)       // 0x1000000
-#define mPSW    (1 << PSW)      // 0x2000000
+    mES     = (1 << ES),      // 0x1000000
+    mPSW    = (1 << PSW),     // 0x2000000
 
-#define mSTACK  (1 << STACK)    // 0x4000000
+    mSTACK  = (1 << STACK),   // 0x4000000
 
-#define mST0    (1 << ST0)      // 0x20000000
-#define mST01   (1 << ST01)     // 0x40000000
+    mST0    = (1 << ST0),     // 0x20000000
+    mST01   = (1 << ST01),    // 0x40000000
+};
 
 // Flags for getlvalue (must fit in regm_t)
 #define RMload  (1 << 30)
@@ -150,10 +162,13 @@ extern regm_t BYTEREGS;
 /*#define _8087REGS (mST0|mST1|mST2|mST3|mST4|mST5|mST6|mST7)*/
 
 /* Segment registers    */
-#define SEG_ES  0
-#define SEG_CS  1
-#define SEG_SS  2
-#define SEG_DS  3
+enum
+{
+    SEG_ES  = 0,
+    SEG_CS  = 1,
+    SEG_SS  = 2,
+    SEG_DS  = 3,
+};
 
 /*********************
  * Masks for register pairs.
@@ -191,68 +206,74 @@ extern regm_t BYTEREGS;
  * Some instructions.
  */
 
-#define SEGES   0x26
-#define SEGCS   0x2E
-#define SEGSS   0x36
-#define SEGDS   0x3E
-#define SEGFS   0x64
-#define SEGGS   0x65
+enum
+{
+    SEGES   = 0x26,
+    SEGCS   = 0x2E,
+    SEGSS   = 0x36,
+    SEGDS   = 0x3E,
+    SEGFS   = 0x64,
+    SEGGS   = 0x65,
 
-#define CALL    0xE8
-#define JMP     0xE9    /* Intra-Segment Direct */
-#define JMPS    0xEB    /* JMP SHORT            */
-#define JCXZ    0xE3
-#define LOOP    0xE2
-#define LES     0xC4
-#define LEA     0x8D
-#define LOCK    0xF0
+    CALL    = 0xE8,
+    JMP     = 0xE9,    // Intra-Segment Direct
+    JMPS    = 0xEB,    // JMP SHORT
+    JCXZ    = 0xE3,
+    LOOP    = 0xE2,
+    LES     = 0xC4,
+    LEA     = 0x8D,
+    LOCK    = 0xF0,
 
-#define JO      0x70
-#define JNO     0x71
-#define JC      0x72
-#define JB      0x72
-#define JNC     0x73
-#define JAE     0x73
-#define JE      0x74
-#define JNE     0x75
-#define JBE     0x76
-#define JA      0x77
-#define JS      0x78
-#define JNS     0x79
-#define JP      0x7A
-#define JNP     0x7B
-#define JL      0x7C
-#define JGE     0x7D
-#define JLE     0x7E
-#define JG      0x7F
+    JO      = 0x70,
+    JNO     = 0x71,
+    JC      = 0x72,
+    JB      = 0x72,
+    JNC     = 0x73,
+    JAE     = 0x73,
+    JE      = 0x74,
+    JNE     = 0x75,
+    JBE     = 0x76,
+    JA      = 0x77,
+    JS      = 0x78,
+    JNS     = 0x79,
+    JP      = 0x7A,
+    JNP     = 0x7B,
+    JL      = 0x7C,
+    JGE     = 0x7D,
+    JLE     = 0x7E,
+    JG      = 0x7F,
 
+    // NOP is used as a placeholder in the linked list of instructions, no
+    // actual code will be generated for it.
+    NOP     = SEGCS,   // don't use 0x90 because the
+                       // Windows stuff wants to output 0x90's
 
-/* NOP is used as a placeholder in the linked list of instructions, no  */
-/* actual code will be generated for it.                                */
-#define NOP     0x2E    /* actually CS: (we don't use 0x90 because the  */
-                        /* silly Windows stuff wants to output 0x90's)  */
+    ASM     = SEGSS,   // string of asm bytes
+
+    ESCAPE  = SEGDS,   // marker that special information is here
+                       // (Iop2 is the type of special information)
+};
+
 
 #define ESCAPEmask 0xFF // code.Iop & ESCAPEmask ==> actual Iop
-#define ESCAPE  0x3E    // marker that special information is here
-                        // (Iop2 is the type of special information)
-                        // (Same as DS:, but we will never generate
-                        // a separate DS: opcode anyway)
-    #define ESClinnum   (1 << 8)       // line number information
-    #define ESCctor     (2 << 8)       // object is constructed
-    #define ESCdtor     (3 << 8)       // object is destructed
-    #define ESCmark     (4 << 8)       // mark eh stack
-    #define ESCrelease  (5 << 8)       // release eh stack
-    #define ESCoffset   (6 << 8)       // set code offset for eh
-    #define ESCadjesp   (7 << 8)       // adjust ESP by IEV2.Vint
-    #define ESCmark2    (8 << 8)       // mark eh stack
-    #define ESCrelease2 (9 << 8)       // release eh stack
-    #define ESCframeptr (10 << 8)      // replace with load of frame pointer
-    #define ESCdctor    (11 << 8)      // D object is constructed
-    #define ESCddtor    (12 << 8)      // D object is destructed
-    #define ESCadjfpu   (13 << 8)      // adjust fpustackused by IEV2.Vint
-    #define ESCfixesp   (14 << 8)      // reset ESP to end of local frame
 
-#define ASM     0x36    // string of asm bytes, actually an SS: opcode
+enum
+{
+    ESClinnum   = (1 << 8),      // line number information
+    ESCctor     = (2 << 8),      // object is constructed
+    ESCdtor     = (3 << 8),      // object is destructed
+    ESCmark     = (4 << 8),      // mark eh stack
+    ESCrelease  = (5 << 8),      // release eh stack
+    ESCoffset   = (6 << 8),      // set code offset for eh
+    ESCadjesp   = (7 << 8),      // adjust ESP by IEV2.Vint
+    ESCmark2    = (8 << 8),      // mark eh stack
+    ESCrelease2 = (9 << 8),      // release eh stack
+    ESCframeptr = (10 << 8),     // replace with load of frame pointer
+    ESCdctor    = (11 << 8),     // D object is constructed
+    ESCddtor    = (12 << 8),     // D object is destructed
+    ESCadjfpu   = (13 << 8),     // adjust fpustackused by IEV2.Vint
+    ESCfixesp   = (14 << 8),     // reset ESP to end of local frame
+};
 
 /*********************************
  * Macros to ease generating code
@@ -275,11 +296,14 @@ extern regm_t BYTEREGS;
 
 #define genorreg(c,t,f)         genregs((c),0x09,(f),(t))
 
-#define REX     0x40            // REX prefix byte, OR'd with the following bits:
-#define REX_W   8               // 0 = default operand size, 1 = 64 bit operand size
-#define REX_R   4               // high bit of reg field of modregrm
-#define REX_X   2               // high bit of sib index reg
-#define REX_B   1               // high bit of rm field, sib base reg, or opcode reg
+enum
+{
+    REX     = 0x40,        // REX prefix byte, OR'd with the following bits:
+    REX_W   = 8,           // 0 = default operand size, 1 = 64 bit operand size
+    REX_R   = 4,           // high bit of reg field of modregrm
+    REX_X   = 2,           // high bit of sib index reg
+    REX_B   = 1,           // high bit of rm field, sib base reg, or opcode reg
+};
 
 #define VEX2_B1(ivex)                           \
     (                                           \
@@ -351,49 +375,54 @@ enum CLIB
         CLIBMAX
 };
 
+typedef unsigned code_flags_t;
+enum
+{
+    CFes        =        1,     // generate an ES: segment override for this instr
+    CFjmp16     =        2,     // need 16 bit jump offset (long branch)
+    CFtarg      =        4,     // this code is the target of a jump
+    CFseg       =        8,     // get segment of immediate value
+    CFoff       =     0x10,     // get offset of immediate value
+    CFss        =     0x20,     // generate an SS: segment override (not with
+                                // CFes at the same time, though!)
+    CFpsw       =     0x40,     // we need the flags result after this instruction
+    CFopsize    =     0x80,     // prefix with operand size
+    CFaddrsize  =    0x100,     // prefix with address size
+    CFds        =    0x200,     // need DS override (not with ES, SS, or CS )
+    CFcs        =    0x400,     // need CS override
+    CFfs        =    0x800,     // need FS override
+    CFgs        =   CFcs | CFfs,   // need GS override
+    CFwait      =   0x1000,     // If I32 it indicates when to output a WAIT
+    CFselfrel   =   0x2000,     // if self-relative
+    CFunambig   =   0x4000,     // indicates cannot be accessed by other addressing
+                                // modes
+    CFtarg2     =   0x8000,     // like CFtarg, but we can't optimize this away
+    CFvolatile  =  0x10000,     // volatile reference, do not schedule
+    CFclassinit =  0x20000,     // class init code
+    CFoffset64  =  0x40000,     // offset is 64 bits
+    CFpc32      =  0x80000,     // I64: PC relative 32 bit fixup
+
+    CFvex       =  0x100000,    // vex prefix
+    CFvex3      =  0x200000,    // 3 byte vex prefix
+
+    CFjmp5      =  0x400000,    // always a 5 byte jmp
+    CFswitch    =  0x800000,    // kludge for switch table fixups
+
+    CFindirect  = 0x1000000,    // OSX32: indirect fixups
+
+    /* These are for CFpc32 fixups, they're the negative of the offset of the fixup
+     * from the program counter
+     */
+    CFREL       = 0x7000000,
+
+    CFSEG       = CFes | CFss | CFds | CFcs | CFfs | CFgs,
+    CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
+};
+
 struct code
 {
     code *next;
-    unsigned Iflags;
-#define CFes              1     // generate an ES: segment override for this instr
-#define CFjmp16           2     // need 16 bit jump offset (long branch)
-#define CFtarg            4     // this code is the target of a jump
-#define CFseg             8     // get segment of immediate value
-#define CFoff          0x10     // get offset of immediate value
-#define CFss           0x20     // generate an SS: segment override (not with
-                                // CFes at the same time, though!)
-#define CFpsw          0x40     // we need the flags result after this instruction
-#define CFopsize       0x80     // prefix with operand size
-#define CFaddrsize    0x100     // prefix with address size
-#define CFds          0x200     // need DS override (not with es, ss, or cs )
-#define CFcs          0x400     // need CS override
-#define CFfs          0x800     // need FS override
-#define CFgs    (CFcs | CFfs)   // need GS override
-#define CFwait       0x1000     // If I32 it indicates when to output a WAIT
-#define CFselfrel    0x2000     // if self-relative
-#define CFunambig    0x4000     // indicates cannot be accessed by other addressing
-                                // modes
-#define CFtarg2      0x8000     // like CFtarg, but we can't optimize this away
-#define CFvolatile  0x10000     // volatile reference, do not schedule
-#define CFclassinit 0x20000     // class init code
-#define CFoffset64  0x40000     // offset is 64 bits
-#define CFpc32      0x80000     // I64: PC relative 32 bit fixup
-
-#define CFvex       0x100000    // vex prefix
-#define CFvex3      0x200000    // 3 byte vex prefix
-
-#define CFjmp5      0x400000    // always a 5 byte jmp
-#define CFswitch    0x800000    // kludge for switch table fixups
-
-#define CFindirect  0x1000000   // OSX32: indirect fixups
-
-/* These are for CFpc32 fixups, they're the negative of the offset of the fixup
- * from the program counter
- */
-#define CFREL       0x7000000
-
-#define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
-#define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
+    code_flags_t Iflags;
 
     union {
         unsigned _Iop;
