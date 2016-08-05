@@ -1,3 +1,5 @@
+// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+
 import std.stdio;
 import core.stdc.stdio;
 

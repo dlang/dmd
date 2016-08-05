@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
 
 import core.vararg;
 
