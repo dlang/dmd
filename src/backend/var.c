@@ -192,7 +192,7 @@ unsigned
                         /* dfoblks <= numblks <= maxblks                */
          numcse;        /* number of common subexpressions              */
 
-struct Go go;
+GlobalOptimizer go;
 
 /* From debug.c */
 #if DEBUG
