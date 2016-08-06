@@ -57,7 +57,7 @@ coverage() {
     mv src/dmd src/host_dmd
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd clean
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd dmd.conf
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd DMD_TEST_COVERAGE=1
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=./host_dmd ENABLE_COVERAGE=1
 
     make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1
 }

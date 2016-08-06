@@ -148,8 +148,6 @@ endif
 DFLAGS=
 # Enable D warnings
 DFLAGS += -wi
-# Enable coverage statistics if requested
-DFLAGS += $(if $(DMD_TEST_COVERAGE),-cov,)
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
@@ -184,6 +182,9 @@ DFLAGS  += -unittest -cov
 endif
 ifdef ENABLE_PROFILE
 DFLAGS  += -profile
+endif
+ifdef ENABLE_COVERAGE
+DFLAGS  += -cov
 endif
 
 # Uniqe extra flags if necessary
