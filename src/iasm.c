@@ -2037,6 +2037,7 @@ static code *asm_genloc(Loc loc, code *c)
 /*******************************
  */
 
+struct AsmErr {};
 static void asmerr(const char *format, ...)
 {
     va_list ap;
@@ -2044,7 +2045,7 @@ static void asmerr(const char *format, ...)
     verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    exit(EXIT_FAILURE);
+    throw AsmErr();
 }
 
 /*******************************
@@ -3977,7 +3978,7 @@ static OPND *asm_add_exp()
                     o1->disp -= o2->disp;
                     o2->disp = 0;
                 }
-                else
+                else if (o2)
                     o2->disp = - o2->disp;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4005,6 +4006,9 @@ static OPND *asm_mul_exp()
             case TOKmul:
                 asm_token();
                 o2 = asm_br_exp();
+
+                if (!o1 || !o2) asmerr("bad operand"); // TOKmul is always binary
+
 #ifdef EXTRA_DEBUG
                 printf("Star  o1.isint=%d, o2.isint=%d, lbra_seen=%d\n",
                     asm_isint(o1), asm_isint(o2), asm_TKlbra_seen );
@@ -4528,7 +4532,7 @@ regm_t iasm_regs(block *bp)
 
 /************************ AsmStatement ***************************************/
 
-Statement* asmSemantic(AsmStatement *s, Scope *sc)
+static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
@@ -4707,4 +4711,13 @@ AFTER_EMIT:
     }
     //return asmstate.bReturnax;
     return s;
+}
+
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
+{
+    try {
+        return asmSemanticImpl(s, sc);
+    } catch (AsmErr) {
+        return NULL; // somehow this just works
+    }
 }
