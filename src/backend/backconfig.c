@@ -439,4 +439,6 @@ void util_set64()
     TYptrdiff = TYllong;
     TYsize = TYullong;
     TYsize_t = TYullong;
+    TYdelegate = TYcent;
+    TYdarray = TYucent;
 }
