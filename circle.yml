@@ -1,21 +1,13 @@
-machine:
-  environment:
-    DMD_VERSION: 2.071.1
-    PATH: "${HOME}/dmd2/linux/bin64:${PATH}"
-    LD_LIBRARY_PATH: "${HOME}/dmd2/linux/lib64:${LD_LIBRARY_PATH}"
-    SELF_COMPILE: 2
-    SELF_DMD_TEST_COVERAGE: 1
-    DC: dmd
-    DMD: dmd
 dependencies:
   pre:
-    - sudo apt-get update; sudo apt-get install g++-multilib
-  override:
-    - curl -fsSL --retry 3 "http://downloads.dlang.org/releases/2.x/${DMD_VERSION}/dmd.${DMD_VERSION}.linux.tar.xz" | tar -C ~ -Jxf -
-    - dmd --version
+    - ./circleci.sh install-deps
+  cache_directories:
+    - "~/dlang"
+
 test:
   override:
-    - case $CIRCLE_NODE_INDEX in 0) MODEL=32 ./travis.sh ;; 1) MODEL=64 ./travis.sh ;; esac:
+    - ./circleci.sh coverage:
         parallel: true
+
   post:
     - bash <(curl -s https://codecov.io/bash)
