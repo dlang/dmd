@@ -960,7 +960,7 @@ void dotytab()
     for (i = 0; i < arraysize(typetab); i++)
     {   tytouns[typetab[i].ty] = typetab[i].unsty;
     }
-    fprintf(f,"tym_t const tytouns[] =\n{ ");
+    fprintf(f,"tym_t tytouns[] =\n{ ");
     for (i = 0; i < arraysize(tytouns); i++)
     {   fprintf(f,"0x%02x,",tytouns[i]);
         if ((i & 7) == 7 && i < arraysize(tytouns) - 1)

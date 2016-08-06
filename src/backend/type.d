@@ -10,6 +10,8 @@
 
 module ddmd.backend.type;
 
+import ddmd.backend.ty;
+
 extern (C++):
 @nogc:
 nothrow:
@@ -22,7 +24,6 @@ struct elem;
 
 // type.h
 
-alias tym_t = uint;
 alias mangle_t = ubyte;
 alias targ_size_t = ulong;
 
@@ -50,13 +51,6 @@ type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
     type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD);
 
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
-
-enum mTYbasic     = 0xFF; /* bit mask for basic types     */
-enum mTYconst     = 0x100;
-enum mTYimmutable = 0x00080000; // immutable data
-enum mTYshared    = 0x00100000; // shared data
-
-tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
 
 // Return true if type is a struct, class or union
 bool type_struct(type* t) { return tybasic(t.Tty) == TYstruct; }
@@ -87,71 +81,4 @@ struct TYPE
     list_t Texcspec;        // tyfunc(): list of types of exception specification
 }
 
-enum
-{
-    TYbool              = 0,
-    TYchar              = 1,
-    TYschar             = 2,    // signed char
-    TYuchar             = 3,    // unsigned char
-    TYchar8             = 4,
-    TYchar16            = 5,
-    TYshort             = 6,
-    TYwchar_t           = 7,
-    TYushort            = 8,    // unsigned short
-    TYenum              = 9,    // enumeration value
-    TYint               = 0xA,
-    TYuint              = 0xB,  // unsigned
-    TYlong              = 0xC,
-    TYulong             = 0xD,  // unsigned long
-    TYdchar             = 0xE,  // 32 bit Unicode char
-    TYllong             = 0xF,  // 64 bit long
-    TYullong            = 0x10, // 64 bit unsigned long
-    TYfloat             = 0x11, // 32 bit real
-    TYdouble            = 0x12, // 64 bit real
-
-    // long double is mapped to either of the following at runtime:
-    TYdouble_alias      = 0x13, // 64 bit real (but distinct for overload purposes)
-    TYldouble           = 0x14, // 80 bit real
-
-    // Add imaginary and complex types for D and C99
-    TYifloat            = 0x15,
-    TYidouble           = 0x16,
-    TYildouble          = 0x17,
-    TYcfloat            = 0x18,
-    TYcdouble           = 0x19,
-    TYcldouble          = 0x1A,
-
-    TYnullptr           = 0x1C,
-    TYnptr              = 0x1D, // data segment relative pointer
-    TYref               = 0x24, // reference to another type
-    TYvoid              = 0x25,
-    TYstruct            = 0x26, // watch tyaggregate()
-    TYarray             = 0x27, // watch tyaggregate()
-    TYnfunc             = 0x28, // near C func
-    TYnpfunc            = 0x2A, // near Cpp func
-    TYnsfunc            = 0x2C, // near stdcall func
-    TYifunc             = 0x2E, // interrupt func
-    TYptr               = 0x33, // generic pointer type
-    TYmfunc             = 0x37, // NT C++ member func
-    TYjfunc             = 0x38, // LINKd D function
-    TYhfunc             = 0x39, // C function with hidden parameter
-    TYnref              = 0x3A, // near reference
-
-    TYcent              = 0x3C, // 128 bit signed integer
-    TYucent             = 0x3D, // 128 bit unsigned integer
-
-    // SIMD vector types        // D type
-    TYfloat4            = 0x3E, // float[4]
-    TYdouble2           = 0x3F, // double[2]
-    TYschar16           = 0x40, // byte[16]
-    TYuchar16           = 0x41, // ubyte[16]
-    TYshort8            = 0x42, // short[8]
-    TYushort8           = 0x43, // ushort[8]
-    TYlong4             = 0x44, // int[4]
-    TYulong4            = 0x45, // uint[4]
-    TYllong2            = 0x46, // long[2]
-    TYullong2           = 0x47, // ulong[2]
-
-    TYMAX               = 0x48,
-}
 
