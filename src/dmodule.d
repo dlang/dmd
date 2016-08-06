@@ -1252,6 +1252,7 @@ extern (C++) final class Module : Package
             if (global.errors)
                 break;
         }
+        a.setDim(0);
     }
 
     static void runDeferredSemantic3()
@@ -1268,6 +1269,7 @@ extern (C++) final class Module : Package
             if (global.errors)
                 break;
         }
+        a.setDim(0);
     }
 
     static void clearCache()
