@@ -55,14 +55,14 @@ version (NoBackend)
 }
 else
 {
-    import ddmd.backenddecls;
+    import ddmd.backend.type;
 
-    alias Symbol = ddmd.backenddecls.Symbol;
-    alias code = ddmd.backenddecls.code;
-    alias block = ddmd.backenddecls.block;
-    alias Blockx = ddmd.backenddecls.Blockx;
-    alias elem = ddmd.backenddecls.elem;
-    alias type = ddmd.backenddecls.type;
+    alias Symbol = ddmd.backend.type.Symbol;
+    alias code = ddmd.backend.type.code;
+    alias block = ddmd.backend.type.block;
+    alias Blockx = ddmd.backend.type.Blockx;
+    alias elem = ddmd.backend.type.elem;
+    alias type = ddmd.backend.type.type;
 
     extern (C++)
     {

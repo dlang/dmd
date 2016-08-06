@@ -18,7 +18,7 @@ import ddmd.root.rmem;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
-import ddmd.backenddecls;
+import ddmd.backend.type;
 import ddmd.complex;
 import ddmd.ctfeexpr;
 import ddmd.declaration;
