@@ -5,10 +5,14 @@
  * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _backend.d)
+ * Source:      $(DMDSRC backend/_type.d)
  */
 
-module ddmd.backenddecls;
+module ddmd.backend.type;
+
+extern (C++):
+@nogc:
+nothrow:
 
 struct Symbol;
 struct code;
@@ -28,24 +32,24 @@ struct LIST;
 alias list_t = LIST*;
 alias type = TYPE;
 
-extern extern (C++) type* type_fake(tym_t);
-extern extern (C++) void type_incCount(type* t);
-extern extern (C++) void type_setIdent(type* t, char* ident);
+type* type_fake(tym_t);
+void type_incCount(type* t);
+void type_setIdent(type* t, char* ident);
 
-extern extern (C++) type* type_alloc(tym_t);
-extern extern (C++) type* type_allocn(tym_t, type* tn);
+type* type_alloc(tym_t);
+type* type_allocn(tym_t, type* tn);
 
-extern extern (C++) type* type_pointer(type* tnext);
-extern extern (C++) type* type_dyn_array(type* tnext);
+type* type_pointer(type* tnext);
+type* type_dyn_array(type* tnext);
 extern extern (C) type* type_static_array(targ_size_t dim, type* tnext);
-extern extern (C++) type* type_assoc_array(type* tkey, type* tvalue);
-extern extern (C++) type* type_delegate(type* tnext);
+type* type_assoc_array(type* tkey, type* tvalue);
+type* type_delegate(type* tnext);
 extern extern (C) type* type_function(tym_t tyf, type** ptypes, size_t nparams, bool variadic, type* tret);
-extern extern (C++) type* type_enum(const(char)* name, type* tbase);
-extern extern (C++) type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
+type* type_enum(const(char)* name, type* tbase);
+type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
     type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD);
 
-extern extern (C++) void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
+void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
 enum mTYbasic     = 0xFF; /* bit mask for basic types     */
 enum mTYconst     = 0x100;
@@ -147,11 +151,6 @@ enum
     TYulong4            = 0x45, // uint[4]
     TYllong2            = 0x46, // long[2]
     TYullong2           = 0x47, // ulong[2]
-
-// // MARS types
-// #define TYaarray        TYnptr
-// #define TYdelegate      (I64 ? TYcent : TYllong)
-// #define TYdarray        (I64 ? TYucent : TYullong)
 
     TYMAX               = 0x48,
 }

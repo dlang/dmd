@@ -10,7 +10,7 @@
 
 module ddmd.backend.dt;
 
-import ddmd.backenddecls;
+import ddmd.backend.type;
 
 //struct Symbol;
 //alias uint tym_t;
