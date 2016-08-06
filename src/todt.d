@@ -18,7 +18,7 @@ import ddmd.root.rmem;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
-import ddmd.backend;
+import ddmd.backenddecls;
 import ddmd.complex;
 import ddmd.ctfeexpr;
 import ddmd.declaration;
@@ -37,6 +37,8 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.typinf;
 import ddmd.visitor;
+
+import ddmd.backend.dt;
 
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
