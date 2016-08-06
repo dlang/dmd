@@ -112,15 +112,13 @@ enum TYM
     TYllong2            = 0x46, // long[2]
     TYullong2           = 0x47, // ulong[2]
 
-// MARS types
-#define TYaarray        TYnptr
-#define TYdelegate      (I64 ? TYcent : TYllong)
-#define TYdarray        (I64 ? TYucent : TYullong)
-
     TYMAX               = 0x48,
 };
 
+extern int TYaarray;                            // D type
+
 // These change depending on memory model
+extern int TYdelegate, TYdarray;                // D types
 extern int TYptrdiff, TYsize, TYsize_t;
 
 enum

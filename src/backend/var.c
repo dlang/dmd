@@ -42,6 +42,9 @@ char dbcs;                      // current double byte character set
 int TYptrdiff = TYint;
 int TYsize = TYuint;
 int TYsize_t = TYuint;
+int TYaarray = TYnptr;
+int TYdelegate = TYllong;
+int TYdarray = TYullong;
 
 char debuga,debugb,debugc,debugd,debuge,debugf,debugr,debugs,debugt,debugu,debugw,debugx,debugy;
 
