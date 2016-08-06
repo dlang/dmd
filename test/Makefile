@@ -123,6 +123,8 @@ export D_OBJC=1
 endif
 endif
 
+export DMD_TEST_COVERAGE=
+
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
