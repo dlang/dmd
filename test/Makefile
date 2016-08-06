@@ -114,7 +114,13 @@ export SEP=/
 
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
-export DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+# link against shared libraries (defaults to true on supported platforms, can be overriden w/ make SHARED=0)
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+ifeq (1,$(SHARED))
+DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+endif
+export DFLAGS
 endif
 
 ifeq ($(OS),osx)
