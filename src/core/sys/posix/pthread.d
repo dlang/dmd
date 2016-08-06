@@ -311,18 +311,21 @@ else
 }
 
 int pthread_atfork(void function(), void function(), void function());
-int pthread_attr_destroy(pthread_attr_t*);
-int pthread_attr_getdetachstate(in pthread_attr_t*, int*);
-int pthread_attr_getschedparam(in pthread_attr_t*, sched_param*);
-int pthread_attr_init(pthread_attr_t*);
-int pthread_attr_setdetachstate(pthread_attr_t*, int);
-int pthread_attr_setschedparam(in pthread_attr_t*, sched_param*);
-int pthread_cancel(pthread_t);
+@nogc {
+    int pthread_atfork(void function() @nogc, void function() @nogc, void function() @nogc);
+    int pthread_attr_destroy(pthread_attr_t*);
+    int pthread_attr_getdetachstate(in pthread_attr_t*, int*);
+    int pthread_attr_getschedparam(in pthread_attr_t*, sched_param*);
+    int pthread_attr_init(pthread_attr_t*);
+    int pthread_attr_setdetachstate(pthread_attr_t*, int);
+    int pthread_attr_setschedparam(in pthread_attr_t*, sched_param*);
+    int pthread_cancel(pthread_t);
+}
 
+alias void function(void*) _pthread_cleanup_routine;
+alias void function(void*) @nogc _pthread_cleanup_routine_nogc;
 version( CRuntime_Glibc )
 {
-    alias void function(void*) _pthread_cleanup_routine;
-
     struct _pthread_cleanup_buffer
     {
         _pthread_cleanup_routine    __routine;
@@ -332,13 +335,14 @@ version( CRuntime_Glibc )
     }
 
     void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine, void*);
+    void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine_nogc, void*) @nogc;
     void _pthread_cleanup_pop(_pthread_cleanup_buffer*, int);
 
     struct pthread_cleanup
     {
         _pthread_cleanup_buffer buffer = void;
 
-        extern (D) void push()( _pthread_cleanup_routine routine, void* arg )
+        extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
         {
             _pthread_cleanup_push( &buffer, routine, arg );
         }
@@ -351,8 +355,6 @@ version( CRuntime_Glibc )
 }
 else version( Darwin )
 {
-    alias void function(void*) _pthread_cleanup_routine;
-
     struct _pthread_cleanup_buffer
     {
         _pthread_cleanup_routine    __routine;
@@ -364,7 +366,7 @@ else version( Darwin )
     {
         _pthread_cleanup_buffer buffer = void;
 
-        extern (D) void push()( _pthread_cleanup_routine routine, void* arg )
+        extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
         {
             pthread_t self       = pthread_self();
             buffer.__routine     = routine;
@@ -386,8 +388,6 @@ else version( Darwin )
 }
 else version( FreeBSD )
 {
-    alias void function(void*) _pthread_cleanup_routine;
-
     struct _pthread_cleanup_info
     {
         uintptr_t[8]    pthread_cleanup_pad;
@@ -397,7 +397,7 @@ else version( FreeBSD )
     {
         _pthread_cleanup_info __cleanup_info__ = void;
 
-        extern (D) void push()( _pthread_cleanup_routine cleanup_routine, void* cleanup_arg )
+        extern (D) void push(F: _pthread_cleanup_routine)(F cleanup_routine, void* cleanup_arg )
         {
             __pthread_cleanup_push_imp( cleanup_routine, cleanup_arg, &__cleanup_info__ );
         }
@@ -409,6 +409,7 @@ else version( FreeBSD )
     }
 
     void __pthread_cleanup_push_imp(_pthread_cleanup_routine, void*, _pthread_cleanup_info*);
+    void __pthread_cleanup_push_imp(_pthread_cleanup_routine_nogc, void*, _pthread_cleanup_info*) @nogc;
     void __pthread_cleanup_pop_imp(int);
 }
 else version ( OpenBSD )
@@ -418,8 +419,6 @@ else version ( OpenBSD )
 }
 else version (Solaris)
 {
-    alias void function(void*) _pthread_cleanup_routine;
-
     caddr_t _getfp();
 
     struct _pthread_cleanup_info
@@ -431,7 +430,7 @@ else version (Solaris)
     {
         _pthread_cleanup_info __cleanup_info__ = void;
 
-        extern (D) void push()(_pthread_cleanup_routine cleanup_routine, void* cleanup_arg)
+        extern (D) void push(F: _pthread_cleanup_routine)(F cleanup_routine, void* cleanup_arg)
         {
             __pthread_cleanup_push(cleanup_routine, cleanup_arg, _getfp(), &__cleanup_info__);
         }
@@ -443,12 +442,11 @@ else version (Solaris)
     }
 
     void __pthread_cleanup_push(_pthread_cleanup_routine, void*, caddr_t, _pthread_cleanup_info*);
+    void __pthread_cleanup_push(_pthread_cleanup_routine_nogc, void*, caddr_t, _pthread_cleanup_info*) @nogc;
     void __pthread_cleanup_pop(int, _pthread_cleanup_info*);
 }
 else version( CRuntime_Bionic )
 {
-    alias void function(void*) __pthread_cleanup_func_t;
-
     struct __pthread_cleanup_t
     {
         __pthread_cleanup_t*     __cleanup_prev;
@@ -456,15 +454,15 @@ else version( CRuntime_Bionic )
         void*                    __cleanup_arg;
     }
 
-    void __pthread_cleanup_push(__pthread_cleanup_t*, __pthread_cleanup_func_t,
-                                void*);
+    void __pthread_cleanup_push(__pthread_cleanup_t*, _pthread_cleanup_routine, void*);
+    void __pthread_cleanup_push(__pthread_cleanup_t*, _pthread_cleanup_routine_nogc, void*) @nogc;
     void __pthread_cleanup_pop(__pthread_cleanup_t*, int);
 
     struct pthread_cleanup
     {
         __pthread_cleanup_t __cleanup = void;
 
-        extern (D) void push()( __pthread_cleanup_func_t routine, void* arg )
+        extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
         {
             __pthread_cleanup_push( &__cleanup, routine, arg );
         }
@@ -480,47 +478,46 @@ else
     static assert(false, "Unsupported platform");
 }
 
-@nogc
-{
-    int pthread_cond_broadcast(pthread_cond_t*);
-    int pthread_cond_destroy(pthread_cond_t*);
-    int pthread_cond_init(in pthread_cond_t*, pthread_condattr_t*) @trusted;
-    int pthread_cond_signal(pthread_cond_t*);
-    int pthread_cond_timedwait(pthread_cond_t*, pthread_mutex_t*, in timespec*);
-    int pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);
-    int pthread_condattr_destroy(pthread_condattr_t*);
-    int pthread_condattr_init(pthread_condattr_t*);
-    int pthread_create(pthread_t*, in pthread_attr_t*, void* function(void*), void*);
-    int pthread_detach(pthread_t);
-    int pthread_equal(pthread_t, pthread_t);
-    void pthread_exit(void*);
-    void* pthread_getspecific(pthread_key_t);
-    int pthread_join(pthread_t, void**);
-    int pthread_key_create(pthread_key_t*, void function(void*));
-    int pthread_key_delete(pthread_key_t);
-    int pthread_mutex_destroy(pthread_mutex_t*);
-    int pthread_mutex_init(pthread_mutex_t*, pthread_mutexattr_t*) @trusted;
-    int pthread_mutex_lock(pthread_mutex_t*);
-    int pthread_mutex_trylock(pthread_mutex_t*);
-    int pthread_mutex_unlock(pthread_mutex_t*);
-    int pthread_mutexattr_destroy(pthread_mutexattr_t*);
-    int pthread_mutexattr_init(pthread_mutexattr_t*) @trusted;
-    int pthread_once(pthread_once_t*, void function());
-    int pthread_rwlock_destroy(pthread_rwlock_t*);
-    int pthread_rwlock_init(pthread_rwlock_t*, in pthread_rwlockattr_t*);
-    int pthread_rwlock_rdlock(pthread_rwlock_t*);
-    int pthread_rwlock_tryrdlock(pthread_rwlock_t*);
-    int pthread_rwlock_trywrlock(pthread_rwlock_t*);
-    int pthread_rwlock_unlock(pthread_rwlock_t*);
-    int pthread_rwlock_wrlock(pthread_rwlock_t*);
-    int pthread_rwlockattr_destroy(pthread_rwlockattr_t*);
-    int pthread_rwlockattr_init(pthread_rwlockattr_t*);
-    pthread_t pthread_self();
-    int pthread_setcancelstate(int, int*);
-    int pthread_setcanceltype(int, int*);
-    int pthread_setspecific(pthread_key_t, in void*);
-    void pthread_testcancel();
-}
+@nogc:
+
+int pthread_cond_broadcast(pthread_cond_t*);
+int pthread_cond_destroy(pthread_cond_t*);
+int pthread_cond_init(in pthread_cond_t*, pthread_condattr_t*) @trusted;
+int pthread_cond_signal(pthread_cond_t*);
+int pthread_cond_timedwait(pthread_cond_t*, pthread_mutex_t*, in timespec*);
+int pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);
+int pthread_condattr_destroy(pthread_condattr_t*);
+int pthread_condattr_init(pthread_condattr_t*);
+int pthread_create(pthread_t*, in pthread_attr_t*, void* function(void*), void*);
+int pthread_detach(pthread_t);
+int pthread_equal(pthread_t, pthread_t);
+void pthread_exit(void*);
+void* pthread_getspecific(pthread_key_t);
+int pthread_join(pthread_t, void**);
+int pthread_key_create(pthread_key_t*, void function(void*));
+int pthread_key_delete(pthread_key_t);
+int pthread_mutex_destroy(pthread_mutex_t*);
+int pthread_mutex_init(pthread_mutex_t*, pthread_mutexattr_t*) @trusted;
+int pthread_mutex_lock(pthread_mutex_t*);
+int pthread_mutex_trylock(pthread_mutex_t*);
+int pthread_mutex_unlock(pthread_mutex_t*);
+int pthread_mutexattr_destroy(pthread_mutexattr_t*);
+int pthread_mutexattr_init(pthread_mutexattr_t*) @trusted;
+int pthread_once(pthread_once_t*, void function());
+int pthread_rwlock_destroy(pthread_rwlock_t*);
+int pthread_rwlock_init(pthread_rwlock_t*, in pthread_rwlockattr_t*);
+int pthread_rwlock_rdlock(pthread_rwlock_t*);
+int pthread_rwlock_tryrdlock(pthread_rwlock_t*);
+int pthread_rwlock_trywrlock(pthread_rwlock_t*);
+int pthread_rwlock_unlock(pthread_rwlock_t*);
+int pthread_rwlock_wrlock(pthread_rwlock_t*);
+int pthread_rwlockattr_destroy(pthread_rwlockattr_t*);
+int pthread_rwlockattr_init(pthread_rwlockattr_t*);
+pthread_t pthread_self();
+int pthread_setcancelstate(int, int*);
+int pthread_setcanceltype(int, int*);
+int pthread_setspecific(pthread_key_t, in void*);
+void pthread_testcancel();
 
 //
 // Barrier (BAR)
