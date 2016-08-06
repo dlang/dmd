@@ -298,9 +298,9 @@ void out_config_debug(
 void util_set16()
 {
     // The default is 16 bits
-    tysize[TYldouble] = 10;
-    tysize[TYildouble] = 10;
-    tysize[TYcldouble] = 20;
+    _tysize[TYldouble] = 10;
+    _tysize[TYildouble] = 10;
+    _tysize[TYcldouble] = 20;
 
     _tyalignsize[TYldouble] = 2;
     _tyalignsize[TYildouble] = 2;
@@ -320,32 +320,32 @@ void util_set32()
     tyequiv[TYint] = TYlong;
     tyequiv[TYuint] = TYulong;
 
-    tysize[TYenum] = LONGSIZE;
-    tysize[TYint ] = LONGSIZE;
-    tysize[TYuint] = LONGSIZE;
-    tysize[TYnullptr] = LONGSIZE;
-    tysize[TYnptr] = LONGSIZE;
-    tysize[TYnref] = LONGSIZE;
+    _tysize[TYenum] = LONGSIZE;
+    _tysize[TYint ] = LONGSIZE;
+    _tysize[TYuint] = LONGSIZE;
+    _tysize[TYnullptr] = LONGSIZE;
+    _tysize[TYnptr] = LONGSIZE;
+    _tysize[TYnref] = LONGSIZE;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    tysize[TYldouble] = 12;
-    tysize[TYildouble] = 12;
-    tysize[TYcldouble] = 24;
+    _tysize[TYldouble] = 12;
+    _tysize[TYildouble] = 12;
+    _tysize[TYcldouble] = 24;
 #elif TARGET_OSX
-    tysize[TYldouble] = 16;
-    tysize[TYildouble] = 16;
-    tysize[TYcldouble] = 32;
+    _tysize[TYldouble] = 16;
+    _tysize[TYildouble] = 16;
+    _tysize[TYcldouble] = 32;
 #elif TARGET_WINDOS
-    tysize[TYldouble] = 10;
-    tysize[TYildouble] = 10;
-    tysize[TYcldouble] = 20;
+    _tysize[TYldouble] = 10;
+    _tysize[TYildouble] = 10;
+    _tysize[TYcldouble] = 20;
 #else
     assert(0);
 #endif
-    tysize[TYsptr] = LONGSIZE;
-    tysize[TYcptr] = LONGSIZE;
-    tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
-    tysize[TYvptr] = 6;     // tysize[x] == tysize[TYfptr] so don't set
-    tysize[TYfref] = 6;     // tysize[TYfptr] to tysize[TYnptr]
+    _tysize[TYsptr] = LONGSIZE;
+    _tysize[TYcptr] = LONGSIZE;
+    _tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
+    _tysize[TYvptr] = 6;     // _tysize[x] == _tysize[TYfptr] so don't set
+    _tysize[TYfref] = 6;     // _tysize[TYfptr] to _tysize[TYnptr]
 
     _tyalignsize[TYenum] = LONGSIZE;
     _tyalignsize[TYint ] = LONGSIZE;
@@ -385,28 +385,28 @@ void util_set64()
     tyequiv[TYint] = TYlong;
     tyequiv[TYuint] = TYulong;
 
-    tysize[TYenum] = LONGSIZE;
-    tysize[TYint ] = LONGSIZE;
-    tysize[TYuint] = LONGSIZE;
-    tysize[TYnullptr] = 8;
-    tysize[TYnptr] = 8;
-    tysize[TYnref] = 8;
+    _tysize[TYenum] = LONGSIZE;
+    _tysize[TYint ] = LONGSIZE;
+    _tysize[TYuint] = LONGSIZE;
+    _tysize[TYnullptr] = 8;
+    _tysize[TYnptr] = 8;
+    _tysize[TYnref] = 8;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
-    tysize[TYldouble] = 16;
-    tysize[TYildouble] = 16;
-    tysize[TYcldouble] = 32;
+    _tysize[TYldouble] = 16;
+    _tysize[TYildouble] = 16;
+    _tysize[TYcldouble] = 32;
 #elif TARGET_WINDOS
-    tysize[TYldouble] = 10;
-    tysize[TYildouble] = 10;
-    tysize[TYcldouble] = 20;
+    _tysize[TYldouble] = 10;
+    _tysize[TYildouble] = 10;
+    _tysize[TYcldouble] = 20;
 #else
     assert(0);
 #endif
-    tysize[TYsptr] = 8;
-    tysize[TYcptr] = 8;
-    tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
-    tysize[TYvptr] = 10;    // tysize[x] == tysize[TYfptr] so don't set
-    tysize[TYfref] = 10;    // tysize[TYfptr] to tysize[TYnptr]
+    _tysize[TYsptr] = 8;
+    _tysize[TYcptr] = 8;
+    _tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
+    _tysize[TYvptr] = 10;    // _tysize[x] == _tysize[TYfptr] so don't set
+    _tysize[TYfref] = 10;    // _tysize[TYfptr] to _tysize[TYnptr]
 
     _tyalignsize[TYenum] = LONGSIZE;
     _tyalignsize[TYint ] = LONGSIZE;

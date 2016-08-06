@@ -1828,7 +1828,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         }
 #endif
         tym = tybasic(tym);
-        unsigned size = tysize[tym];
+        unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
         regm_t retregs = *pretregs;
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
@@ -2327,7 +2327,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
 #endif
 
   tym = tybasic(e->Ety);
-  sz = tysize[tym];
+  sz = _tysize[tym];
   byte = sz == 1;
 
   if (sz <= REGSIZE || tyvector(tym))                   // if data will fit in one register

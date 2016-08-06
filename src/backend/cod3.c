@@ -1265,7 +1265,7 @@ void doswitch(block *b)
     code *cc = docommas(&e);
     cgstate.stackclean++;
     tym_t tys = tybasic(e->Ety);
-    int sz = tysize[tys];
+    int sz = _tysize[tys];
     bool dword = (sz == 2 * REGSIZE);
     bool mswsame = true;                // assume all msw's are the same
     targ_llong *p = b->BS.Bswitch;      // pointer to case data

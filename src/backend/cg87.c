@@ -839,7 +839,7 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
     c1 = CNIL;
     c2 = CNIL;
     tym = tybasic(e->Ety);
-    sz = tysize[tym];
+    sz = _tysize[tym];
     //printf("tym = x%x, sz = %d\n", tym, sz);
 
     if (*pretregs & mST01)
@@ -2427,7 +2427,7 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
      */
 
     ty1 = tybasic(e->E1->Ety);
-    sz2 = tysize[ty1] / 2;
+    sz2 = _tysize[ty1] / 2;
 
     retregs = mST0;
     cr = codelem(e->E2,&retregs,FALSE);         // FLD E2
@@ -2503,7 +2503,7 @@ code *opass_complex87(elem *e,regm_t *pretregs)
     unsigned sz2;
 
     ty1 = tybasic(e->E1->Ety);
-    sz2 = tysize[ty1] / 2;
+    sz2 = _tysize[ty1] / 2;
     switch (e->Eoper)
     {   case OPpostinc:
         case OPaddass:  op = 0 << 3;            // FADD
@@ -2791,7 +2791,7 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     //printf("cdnegass87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     elem *e1 = e->E1;
     tym_t tyml = tybasic(e1->Ety);            // type of lvalue
-    int sz = tysize[tyml];
+    int sz = _tysize[tyml];
 
     cl = getlvalue87(&cs,e1,0);
 
@@ -2894,7 +2894,7 @@ code *post87(elem *e,regm_t *pretregs)
         cl = cat(cl,push87());
         cl = gen(cl,&cs);               // FLD e->E1
         if (tycomplex(ty1))
-        {   unsigned sz = tysize[ty1] / 2;
+        {   unsigned sz = _tysize[ty1] / 2;
 
             cl = cat(cl,push87());
             cs.IEVoffset1 += sz;
@@ -3664,7 +3664,7 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
     c1 = CNIL;
     c2 = CNIL;
     tym = tybasic(e->Ety);
-    sz = tysize[tym];
+    sz = _tysize[tym];
 
     if (*pretregs == 0 && retregs == mST01)
     {
@@ -3818,7 +3818,7 @@ __body
     int i;
 
     //printf("cload87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-    sz = tysize[ty] / 2;
+    sz = _tysize[ty] / 2;
     memset(&cs, 0, sizeof(cs));
     if (ADDFWAIT())
         cs.Iflags = CFwait;
