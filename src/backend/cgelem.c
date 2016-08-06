@@ -848,9 +848,9 @@ L1:
             ety = tybasic(e->Ety);
             e11ty = tybasic(e1->E1->Ety);
             if (typtr(ety) && typtr(e11ty) &&
-                tysize[ety] != tysize[e11ty])
+                _tysize[ety] != _tysize[e11ty])
             {
-                e = el_una((tysize[ety] > tysize[e11ty]) ? OPnp_fp : OPoffset,
+                e = el_una((_tysize[ety] > _tysize[e11ty]) ? OPnp_fp : OPoffset,
                             e->Ety,e);
                 e->E1->Ety = e1->Ety;
             }
@@ -4013,7 +4013,7 @@ L1:
                 tym_t ty;
 
                 ty = tybasic(e2->Ety);
-                switch (tysize[ty])
+                switch (_tysize[ty])
                 {   case 1:     ty = TYschar;   break;
                     case 2:     ty = TYshort;   break;
                     default:    assert(0);

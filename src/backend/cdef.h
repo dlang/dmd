@@ -471,10 +471,10 @@ typedef unsigned        targ_uns;
 #define DOUBLESIZE      8
 #define TMAXSIZE        16      // largest size a constant can be
 
-#define intsize         tysize[TYint]
-#define REGSIZE         tysize[TYnptr]
-#define NPTRSIZE        tysize[TYnptr]
-#define FPTRSIZE        tysize[TYfptr]
+#define intsize         _tysize[TYint]
+#define REGSIZE         _tysize[TYnptr]
+#define NPTRSIZE        _tysize[TYnptr]
+#define FPTRSIZE        _tysize[TYfptr]
 #define REGMASK         0xFFFF
 
 // targ_llong is also used to store host pointers, so it should have at least their size

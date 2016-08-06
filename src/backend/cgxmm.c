@@ -409,7 +409,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
 {   elem *e1 = e->E1;
     elem *e2 = e->E2;
     tym_t ty1 = tybasic(e1->Ety);
-    unsigned sz1 = tysize[ty1];
+    unsigned sz1 = _tysize[ty1];
     regm_t rretregs = XMMREGS & ~*pretregs;
     if (!rretregs)
         rretregs = XMMREGS;
@@ -485,7 +485,7 @@ code *xmmneg(elem *e,regm_t *pretregs)
     //elem_print(e);
     assert(*pretregs);
     tym_t tyml = tybasic(e->E1->Ety);
-    int sz = tysize[tyml];
+    int sz = _tysize[tyml];
 
     regm_t retregs = *pretregs & XMMREGS;
     if (!retregs)
@@ -847,7 +847,7 @@ code *cdvector(elem *e, regm_t *pretregs)
     assert(!isXMMstore(op));
 #endif
     tym_t ty1 = tybasic(op1->Ety);
-    unsigned sz1 = tysize[ty1];
+    unsigned sz1 = _tysize[ty1];
 //    assert(sz1 == 16);       // float or double
 
     regm_t retregs;

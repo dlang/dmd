@@ -187,7 +187,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   tym_t ty2 = tybasic(e2->Ety);
   int e2oper = e2->Eoper;
   tym_t ty = tybasic(e->Ety);
-  unsigned sz = tysize[ty];
+  unsigned sz = _tysize[ty];
   unsigned byte = (sz == 1);
   unsigned char word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
   unsigned test = FALSE;                // assume we destroyed lvalue
@@ -240,7 +240,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   }
 
   // Special cases where only flags are set
-  if (test && tysize[ty1] <= REGSIZE &&
+  if (test && _tysize[ty1] <= REGSIZE &&
       (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount))
 #if TARGET_OSX
       && !movOnly(e1)
@@ -475,10 +475,10 @@ code *cdorth(elem *e,regm_t *pretregs)
                                         /* (like if wanted flags only)  */
         retregs = ALLREGS & posregs;    // give us some
 
-  if (tysize[ty1] > REGSIZE && numwords == 1)
+  if (_tysize[ty1] > REGSIZE && numwords == 1)
   {     /* The only possibilities are (TYfptr + tyword) or (TYfptr - tyword) */
 #if DEBUG
-        if (tysize[ty2] != REGSIZE)
+        if (_tysize[ty2] != REGSIZE)
         {       printf("e = %p, e->Eoper = ",e);
                 WROP(e->Eoper);
                 printf(" e1->Ety = ");
@@ -489,7 +489,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                 elem_print(e);
         }
 #endif
-        assert(tysize[ty2] == REGSIZE);
+        assert(_tysize[ty2] == REGSIZE);
 
         /* Watch out for the case here where you are going to OP reg,EA */
         /* and both the reg and EA use ES! Prevent this by forcing      */
@@ -558,7 +558,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   {     regm_t regm;
 
         /* if (tyword + TYfptr) */
-        if (tysize[ty1] == REGSIZE && tysize[ty2] > REGSIZE)
+        if (_tysize[ty1] == REGSIZE && _tysize[ty2] > REGSIZE)
         {   retregs = ~*pretregs & ALLREGS;
 
             /* if retregs doesn't have any regs in it that aren't reg vars */
@@ -579,7 +579,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                  e->Eoper != OPmin &&
                  isregvar(e1,&regm,NULL) &&
                  regm != retregs &&
-                 tysize[ty1] == tysize[ty2])
+                 _tysize[ty1] == _tysize[ty2])
         {
             elem *es = e1;
             e1 = e2;
@@ -598,18 +598,18 @@ code *cdorth(elem *e,regm_t *pretregs)
     L2:
         rretregs = ALLREGS & ~retregs;
         /* Be careful not to do arithmetic on ES        */
-        if (tysize[ty1] == REGSIZE && tysize[ty2] > REGSIZE && *pretregs != mPSW)
+        if (_tysize[ty1] == REGSIZE && _tysize[ty2] > REGSIZE && *pretregs != mPSW)
             rretregs = *pretregs & (mES | ALLREGS | mBP) & ~retregs;
         else if (byte)
             rretregs &= BYTEREGS;
 
         cr = scodelem(e2,&rretregs,retregs,TRUE);       /* get rvalue   */
-        rreg = (tysize[ty2] > REGSIZE) ? findreglsw(rretregs) : findreg(rretregs);
+        rreg = (_tysize[ty2] > REGSIZE) ? findreglsw(rretregs) : findreg(rretregs);
         c = CNIL;
         if (numwords == 1)                              /* ADD reg,rreg */
         {
                 /* reverse operands to avoid moving around the segment value */
-                if (tysize[ty2] > REGSIZE)
+                if (_tysize[ty2] > REGSIZE)
                 {       c = cat(c,getregs(rretregs));
                         c = genregs(c,op1,rreg,reg);
                         retregs = rretregs;     /* reverse operands     */
@@ -854,7 +854,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     e2 = e->E2;
     e1 = e->E1;
     tyml = tybasic(e1->Ety);
-    sz = tysize[tyml];
+    sz = _tysize[tyml];
     byte = tybyte(e->Ety) != 0;
     uns = tyuns(tyml) || tyuns(e2->Ety);
     oper = e->Eoper;
@@ -1791,7 +1791,7 @@ code *cdcom(elem *e,regm_t *pretregs)
   if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
   tym = tybasic(e->Ety);
-  sz = tysize[tym];
+  sz = _tysize[tym];
   unsigned rex = (I64 && sz == 8) ? REX_W : 0;
   possregs = (sz == 1) ? BYTEREGS : allregs;
   retregs = *pretregs & possregs;
@@ -1839,7 +1839,7 @@ code *cdbswap(elem *e,regm_t *pretregs)
         return codelem(e->E1,pretregs,FALSE);
 
     tym = tybasic(e->Ety);
-    assert(tysize[tym] == 4);
+    assert(_tysize[tym] == 4);
     retregs = *pretregs & allregs;
     if (retregs == 0)
         retregs = allregs;
@@ -2274,7 +2274,7 @@ code *cdshift(elem *e,regm_t *pretregs)
   }
 
   tyml = tybasic(e1->Ety);
-  sz = tysize[tyml];
+  sz = _tysize[tyml];
   assert(!tyfloating(tyml));
   oper = e->Eoper;
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
@@ -2794,7 +2794,7 @@ code *cdind(elem *e,regm_t *pretregs)
 #endif
             break;
   }
-  sz = tysize[tym];
+  sz = _tysize[tym];
   byte = tybyte(tym) != 0;
 
   c = getlvalue(&cs,e,RMload);          // get addressing mode
@@ -4091,7 +4091,7 @@ code *cdrelconst(elem *e,regm_t *pretregs)
   /*assert(tym & typtr);*/              /* don't fail on (int)&a        */
 
   c = cat(c,allocreg(pretregs,&lreg,tym));
-  if (tysize[tym] > REGSIZE)            /* fptr could've been cast to long */
+  if (_tysize[tym] > REGSIZE)            /* fptr could've been cast to long */
   {     tym_t ety;
         symbol *s;
 
@@ -4406,7 +4406,7 @@ code *cdneg(elem *e,regm_t *pretregs)
   if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
   tyml = tybasic(e->E1->Ety);
-  sz = tysize[tyml];
+  sz = _tysize[tyml];
   if (tyfloating(tyml))
   {     if (tycomplex(tyml))
             return neg_complex87(e, pretregs);
@@ -4443,7 +4443,7 @@ code *cdneg(elem *e,regm_t *pretregs)
         if (I64 && sz == 1 && reg >= 4)
             rex |= REX;
         c = gen2(CNIL,0xF7 ^ byte,(rex << 16) | modregrmx(3,3,reg));   // NEG reg
-        if (!I16 && tysize[tyml] == SHORTSIZE && *pretregs & mPSW)
+        if (!I16 && _tysize[tyml] == SHORTSIZE && *pretregs & mPSW)
             c->Iflags |= CFopsize | CFpsw;
         *pretregs &= mBP | ALLREGS;             // flags already set
   }
@@ -4478,7 +4478,7 @@ code *cdabs( elem *e, regm_t *pretregs)
   if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
   tyml = tybasic(e->E1->Ety);
-  int sz = tysize[tyml];
+  int sz = _tysize[tyml];
   unsigned rex = (I64 && sz == 8) ? REX_W : 0;
   if (tyfloating(tyml))
   {     if (config.inline8087 && ((*pretregs & (ALLREGS | mBP)) == 0 || I64))
@@ -4598,7 +4598,7 @@ code *cdpost(elem *e,regm_t *pretregs)
         return cdaddass(e,pretregs);
   c5 = CNIL;
   tyml = tybasic(e->E1->Ety);
-  sz = tysize[tyml];
+  sz = _tysize[tyml];
   e2 = e->E2;
   unsigned rex = (I64 && sz == 8) ? REX_W : 0;
 

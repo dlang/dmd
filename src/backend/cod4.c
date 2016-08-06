@@ -219,7 +219,7 @@ STATIC code * opnegassdbl(elem *e,regm_t *pretregs)
         return cdnegass87(e,pretregs);
     e1 = e->E1;
     tym = tybasic(e1->Ety);
-    sz = tysize[tym];
+    sz = _tysize[tym];
 
     cl = getlvalue(&cs,e1,*pretregs ? DOUBLEREGS | mBX | mCX : 0);
     cr = modEA(&cs);
@@ -355,7 +355,7 @@ code *cdeq(elem *e,regm_t *pretregs)
             return eq87(e,pretregs);
     }
 
-  unsigned sz = tysize[tyml];           // # of bytes to transfer
+  unsigned sz = _tysize[tyml];           // # of bytes to transfer
   assert((int)sz > 0);
 
   if (retregs == 0)                     /* if no return value           */
@@ -809,7 +809,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   reverse = 0;
   e1 = e->E1;
   tyml = tybasic(e1->Ety);              // type of lvalue
-  sz = tysize[tyml];
+  sz = _tysize[tyml];
   byte = (sz == 1);                     // 1 for byte operation, else 0
 
     // See if evaluate in XMM registers
@@ -867,7 +867,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
         cr = modEA(&cs);
         cs.Irm |= modregrm(0,3,0);
         cs.Iop = op1;
-        switch (tysize[tyml])
+        switch (_tysize[tyml])
         {   case CHARSIZE:
                 c = gen(CNIL,&cs);
                 break;
@@ -1312,7 +1312,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
 
     tym_t tyml = tybasic(e1->Ety);              // type of lvalue
     char uns = tyuns(tyml) || tyuns(e2->Ety);
-    unsigned sz = tysize[tyml];
+    unsigned sz = _tysize[tyml];
 
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
@@ -1556,7 +1556,7 @@ code *cdshass(elem *e,regm_t *pretregs)
   e2 = e->E2;
 
   tyml = tybasic(e1->Ety);              /* type of lvalue               */
-  sz = tysize[tyml];
+  sz = _tysize[tyml];
   byte = tybyte(e->Ety) != 0;           /* 1 for byte operations        */
   tym = tybasic(e->Ety);                /* type of result               */
   oper = e->Eoper;
@@ -1622,7 +1622,7 @@ code *cdshass(elem *e,regm_t *pretregs)
   cl = cat(cl,modEA(&cs));              // check for modifying register
 
   if (*pretregs == 0 ||                 /* if don't return result       */
-      (*pretregs == mPSW && conste2 && tysize[tym] <= REGSIZE) ||
+      (*pretregs == mPSW && conste2 && _tysize[tym] <= REGSIZE) ||
       sz > REGSIZE
      )
   {     retregs = 0;            // value not returned in a register
@@ -1740,7 +1740,7 @@ code *cdshass(elem *e,regm_t *pretregs)
                 /* it's a left shift and we're not concerned about      */
                 /* the flags. Remember that flags are not set if        */
                 /* a shift of 0 occurs.                         */
-                if (tysize[tym] == SHORTSIZE &&
+                if (_tysize[tym] == SHORTSIZE &&
                     (oper == OPshrass || oper == OPashrass ||
                      (*pretregs & mPSW && conste2)))
                      ce->Iflags |= CFopsize;            /* 16 bit operand */
@@ -1819,7 +1819,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
   eqorne = (op == OPeqeq) || (op == OPne);
 
   tym = tybasic(e1->Ety);
-  sz = tysize[tym];
+  sz = _tysize[tym];
   byte = sz == 1;
 
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
@@ -3411,7 +3411,7 @@ code *cdbtst(elem *e, regm_t *pretregs)
     }
 
     ty1 = tybasic(e1->Ety);
-    word = (!I16 && tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
+    word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
 
 //    if (e2->Eoper == OPconst && e2->EV.Vuns < 0x100)  // should do this instead?
     if (e2->Eoper == OPconst)
@@ -3420,11 +3420,11 @@ code *cdbtst(elem *e, regm_t *pretregs)
         cs.Irm |= modregrm(0,mode,0);
         cs.Iflags |= CFpsw | word;
         cs.IFL2 = FLconst;
-        if (tysize[ty1] == SHORTSIZE)
+        if (_tysize[ty1] == SHORTSIZE)
         {
             cs.IEV2.Vint = e2->EV.Vint & 15;
         }
-        else if (tysize[ty1] == 4)
+        else if (_tysize[ty1] == 4)
         {
             cs.IEV2.Vint = e2->EV.Vint & 31;
         }
@@ -3445,7 +3445,7 @@ code *cdbtst(elem *e, regm_t *pretregs)
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
         code_newreg(&cs,reg);
         cs.Iflags |= CFpsw | word;
-        if (I64 && tysize[ty1] == 8)
+        if (I64 && _tysize[ty1] == 8)
             cs.Irex |= REX_W;
         c2 = gen(c2,&cs);
     }
@@ -3531,7 +3531,7 @@ code *cdbt(elem *e, regm_t *pretregs)
         return cat(c, codelem(e2,pretregs,FALSE));
 
     ty1 = tybasic(e1->Ety);
-    word = (!I16 && tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
+    word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
     idxregs = idxregm(&cs);         // mask if index regs used
 
 //    if (e2->Eoper == OPconst && e2->EV.Vuns < 0x100)  // should do this instead?
@@ -3541,12 +3541,12 @@ code *cdbt(elem *e, regm_t *pretregs)
         cs.Irm |= modregrm(0,mode,0);
         cs.Iflags |= CFpsw | word;
         cs.IFL2 = FLconst;
-        if (tysize[ty1] == SHORTSIZE)
+        if (_tysize[ty1] == SHORTSIZE)
         {
             cs.IEVoffset1 += (e2->EV.Vuns & ~15) >> 3;
             cs.IEV2.Vint = e2->EV.Vint & 15;
         }
-        else if (tysize[ty1] == 4)
+        else if (_tysize[ty1] == 4)
         {
             cs.IEVoffset1 += (e2->EV.Vuns & ~31) >> 3;
             cs.IEV2.Vint = e2->EV.Vint & 31;
@@ -3574,7 +3574,7 @@ code *cdbt(elem *e, regm_t *pretregs)
 
     if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
     {
-        if (tysize[e->Ety] == 1)
+        if (_tysize[e->Ety] == 1)
         {
             assert(I64 || retregs & BYTEREGS);
             code *cg = allocreg(&retregs,&reg,TYint);
@@ -3631,7 +3631,7 @@ code *cdbscan(elem *e, regm_t *pretregs)
     if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
     tyml = tybasic(e->E1->Ety);
-    sz = tysize[tyml];
+    sz = _tysize[tyml];
     assert(sz == 2 || sz == 4 || sz == 8);
 
     if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
@@ -3683,7 +3683,7 @@ code *cdpopcnt(elem *e,regm_t *pretregs)
 
     tym_t tyml = tybasic(e->E1->Ety);
 
-    int sz = tysize[tyml];
+    int sz = _tysize[tyml];
     assert(sz == 2 || sz == 4 || (sz == 8 && I64));     // no byte op
 
     if ((e->E1->Eoper == OPind && !e->E1->Ecount) || e->E1->Eoper == OPvar)
@@ -3790,7 +3790,7 @@ code *cdcmpxchg(elem *e, regm_t *pretregs)
     assert(!e2->Ecount);
 
     tym_t tyml = tybasic(e1->Ety);              // type of lvalue
-    unsigned sz = tysize[tyml];
+    unsigned sz = _tysize[tyml];
 
     if (I32 && sz == 8)
     {

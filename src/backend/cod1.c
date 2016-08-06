@@ -1123,7 +1123,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          */
 
         if (!I16 && e1isadd && (!e1->Ecount || !e1free) &&
-            (tysize[e1ty] == REGSIZE || (I64 && tysize[e1ty] == 4)))
+            (_tysize[e1ty] == REGSIZE || (I64 && _tysize[e1ty] == 4)))
         {   code *c2;
             regm_t idxregs2;
             unsigned base,index;
@@ -1509,7 +1509,7 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
   tym = tybasic(tym);
   code *ce = CNIL;
   unsigned reg = findreg(regm);
-  unsigned sz = tysize[tym];
+  unsigned sz = _tysize[tym];
   if (sz == 1)
   {     assert(regm & BYTEREGS);
         ce = genregs(ce,0x84,reg,reg);        // TEST regL,regL
@@ -1668,7 +1668,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   }
 #endif
   c = CNIL;
-  sz = tysize[tym];
+  sz = _tysize[tym];
   if (sz == 1)
   {
         assert(retregs & BYTEREGS);
@@ -4119,7 +4119,7 @@ code *pushParams(elem *e,unsigned stackalign)
         s = e->EV.sp.Vsym;
         //if (sytab[s->Sclass] & SCSS && !I32)  // if variable is on stack
         //    needframe = TRUE;                 // then we need stack frame
-        if (tysize[tym] == tysize(TYfptr) &&
+        if (_tysize[tym] == tysize(TYfptr) &&
             (fl = s->Sfl) != FLfardata &&
             /* not a function that CS might not be the segment of       */
             (!((fl == FLfunc || s->ty() & mTYcs) &&
@@ -4148,7 +4148,7 @@ code *pushParams(elem *e,unsigned stackalign)
         if (config.target_cpu >= TARGET_80286 && !e->Ecount)
         {
             stackpush += sz;
-            if (tysize[tym] == tysize(TYfptr))
+            if (_tysize[tym] == tysize(TYfptr))
             {
                 /* PUSH SEG e   */
                 code *c1 = gencs(CNIL,0x68,0,FLextern,s);
@@ -4479,7 +4479,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 return cload87(e, pretregs);
         }
   }
-  sz = tysize[tym];
+  sz = _tysize[tym];
   cs.Iflags = 0;
   cs.Irex = 0;
   if (*pretregs == mPSW)
