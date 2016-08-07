@@ -230,7 +230,7 @@ extern (C++) class Package : ScopeDsymbol
         return isAncestorPackageOf(pkg.parent.isPackage());
     }
 
-    override final void semantic(Scope* sc)
+    override void semantic(Scope* sc)
     {
     }
 
@@ -994,7 +994,7 @@ extern (C++) final class Module : Package
     }
 
     // semantic analysis
-    void semantic()
+    override void semantic(Scope*)
     {
         if (semanticRun != PASSinit)
             return;
@@ -1031,7 +1031,7 @@ extern (C++) final class Module : Package
     }
 
     // pass 2 semantic analysis
-    void semantic2()
+    override void semantic2(Scope*)
     {
         //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
         if (semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
@@ -1059,7 +1059,7 @@ extern (C++) final class Module : Package
     }
 
     // pass 3 semantic analysis
-    void semantic3()
+    override void semantic3(Scope*)
     {
         //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
         if (semanticRun != PASSsemantic2done)
