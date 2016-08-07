@@ -432,10 +432,10 @@ version(AnyX86)
     }
 }
 
-@trusted pure nothrow
+@trusted pure nothrow @nogc
 size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
 {
-    static uint rotl32(uint n)(in uint x) pure nothrow @safe
+    static uint rotl32(uint n)(in uint x) pure nothrow @safe @nogc
     {
         return (x << n) | (x >> (32 - n));
     }
@@ -443,7 +443,7 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
     //-----------------------------------------------------------------------------
     // Block read - if your platform needs to do endian-swapping or can only
     // handle aligned reads, do the conversion here
-    static uint get32bits(const (ubyte)* x) pure nothrow
+    static uint get32bits(const (ubyte)* x) pure nothrow @nogc
     {
         //Compiler can optimize this code to simple *cast(uint*)x if it possible.
         version(HasUnalignedOps)
@@ -463,7 +463,7 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
 
     //-----------------------------------------------------------------------------
     // Finalization mix - force all bits of a hash block to avalanche
-    static uint fmix32(uint h) pure nothrow @safe
+    static uint fmix32(uint h) pure nothrow @safe @nogc
     {
         h ^= h >> 16;
         h *= 0x85ebca6b;
@@ -520,7 +520,7 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
 }
 
 //  Check that bytesHash works with CTFE
-unittest
+pure nothrow @safe @nogc unittest
 {
     size_t ctfeHash(string x)
     {
