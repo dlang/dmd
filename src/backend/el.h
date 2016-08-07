@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1995 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -17,6 +17,39 @@
 
 #ifndef EL_H
 #define EL_H    1
+
+struct TYPE;
+
+extern char PARSER;
+
+typedef unsigned char eflags_t;
+enum
+{
+    EFLAGS_variadic = 1,   // variadic function call
+};
+
+typedef unsigned pef_flags_t;
+enum
+{
+    PEFnotlvalue    = 1,       // although elem may look like
+                               // an lvalue, it isn't
+    PEFtemplate_id  = 0x10,    // symbol is a template-id
+    PEFparentheses  = 0x20,    // expression was within ()
+    PEFaddrmem      = 0x40,    // address of member
+    PEFdependent    = 0x80,    // value-dependent
+    PEFmember       = 0x100,   // was a class member access
+};
+
+typedef unsigned char nflags_t;
+enum
+{
+    NFLli     = 1,     // loop invariant
+    NFLnogoal = 2,     // evaluate elem for side effects only
+    NFLassign = 8,     // unambiguous assignment elem
+    NFLaecp   = 0x10,  // AE or CP or VBE expression
+    NFLdelcse = 0x40,  // this is not the generating CSE
+    NFLtouns  = 0x80,  // relational operator was changed from signed to unsigned
+};
 
 /******************************************
  * Elems:
@@ -38,8 +71,7 @@ struct elem
     unsigned char Eoper;        // operator (OPxxxx)
     unsigned char Ecount;       // # of parents of this elem - 1,
                                 // always 0 until CSE elimination is done
-    unsigned char Eflags;
-    #define EFLAGS_variadic 1   // variadic function call
+    eflags_t Eflags;
 
     union eve EV;               // variants for each type of elem
     union
@@ -47,15 +79,8 @@ struct elem
         // PARSER
         struct
         {
-            unsigned PEFflags_;
+            pef_flags_t PEFflags_;
             #define PEFflags _EU._EP.PEFflags_
-                #define PEFnotlvalue    1       // although elem may look like
-                                                // an lvalue, it isn't
-                #define PEFtemplate_id  0x10    // symbol is a template-id
-                #define PEFparentheses  0x20    // expression was within ()
-                #define PEFaddrmem      0x40    // address of member
-                #define PEFdependent    0x80    // value-dependent
-                #define PEFmember       0x100   // was a class member access
             Symbol *Emember_;                   // if PEFmember, this is the member
             #define Emember _EU._EP.Emember_
         }_EP;
@@ -70,17 +95,11 @@ struct elem
 
             // These flags are all temporary markers, used once and then
             // thrown away.
-            unsigned char Nflags_;      // NFLxxx
+            nflags_t Nflags_;           // NFLxxx
             #define Nflags _EU._EO.Nflags_
-                #define NFLli     1     // loop invariant
-                #define NFLnogoal 2     // evaluate elem for side effects only
-                #define NFLassign 8     // unambiguous assignment elem
-                #define NFLaecp 0x10    // AE or CP or VBE expression
-                #define NFLdelcse 0x40  // this is not the generating CSE
-                #define NFLtouns 0x80   // relational operator was changed from signed to unsigned
 
             // MARS
-            unsigned char Ejty_;                // original Mars type
+            unsigned char Ejty_;        // original Mars type
             #define Ejty _EU._EO.Ejty_
         }_EO;
 
@@ -97,11 +116,12 @@ struct elem
         }_EC;
     }_EU;
 
-    struct TYPE *ET;            // pointer to type of elem if TYstruct | TYarray
+    TYPE *ET;                   // pointer to type of elem if TYstruct | TYarray
     Srcpos Esrcpos;             // source file position
 };
 
-#define typemask(e)     ((!MARS && PARSER) ? (e)->ET->Tty : (e)->Ety )
+//inline tym_t typemask(elem *e) { return (!MARS && PARSER) ? (e)->ET->Tty : (e)->Ety; }
+#define typemask(e)    ((!MARS && PARSER) ? (e)->ET->Tty : (e)->Ety )
 
 inline enum FL el_fl(elem *e) { return (enum FL)e->EV.sp.Vsym->Sfl; }
 
@@ -133,7 +153,7 @@ elem *el_alloctmp(tym_t);
 elem *el_selecte1(elem *);
 elem *el_selecte2(elem *);
 elem *el_copytree(elem *);
-void   el_replace_sym(elem *e,symbol *s1,symbol *s2);
+void   el_replace_sym(elem *e,Symbol *s1,Symbol *s2);
 elem *el_scancommas(elem *);
 int el_countCommas(elem *);
 int el_sideeffect(elem *);
@@ -152,7 +172,7 @@ int el_match3(elem *,elem *);
 int el_match4(elem *,elem *);
 int el_match5(elem *,elem *);
 
-int el_appears(elem *e,symbol *s);
+int el_appears(elem *e,Symbol *s);
 Symbol *el_basesym(elem *e);
 int el_anydef(elem *ed, elem *e);
 elem *el_bint(unsigned,type *,elem *,elem *);
@@ -160,14 +180,14 @@ elem *el_unat(unsigned,type *,elem *);
 elem *el_bin(unsigned,tym_t,elem *,elem *);
 elem *el_una(unsigned,tym_t,elem *);
 elem *el_longt(type *,targ_llong);
-symbol *el_alloc_localgot();
-elem *el_var(symbol *);
+Symbol *el_alloc_localgot();
+elem *el_var(Symbol *);
 elem *el_settype(elem *,type *);
 elem *el_typesize(type *);
-elem *el_ptr(symbol *);
-void el_replace_sym(elem *e,symbol *s1,symbol *s2);
-elem *el_ptr_offset(symbol *s,targ_size_t offset);
-void el_replacesym(elem *,symbol *,symbol *);
+elem *el_ptr(Symbol *);
+void el_replace_sym(elem *e,Symbol *s1,Symbol *s2);
+elem *el_ptr_offset(Symbol *s,targ_size_t offset);
+void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);
 
 elem *el_long(tym_t,targ_llong);
@@ -177,7 +197,7 @@ int el_noreturn(elem *);
 //elem *el_dctor(elem *e,void *decl);
 //elem *el_ddtor(elem *e,void *decl);
 elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor);
-elem *el_ctor(elem *ector,elem *e,symbol *sdtor);
+elem *el_ctor(elem *ector,elem *e,Symbol *sdtor);
 elem *el_dtor(elem *edtor,elem *e);
 elem *el_zero(type *t);
 elem *el_const(tym_t,union eve *);
