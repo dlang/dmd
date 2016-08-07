@@ -1,21 +1,21 @@
-// Copyright (C) 1983-1998 by Symantec
-// Copyright (C) 2000-2016 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1983-1998 by Symantec
+ *              Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     backendlicense.txt
+ * Source:      $(DMDSRC backend/_ty.d)
  */
 
+module ddmd.backend.ty;
 
-#if __DMC__
-#pragma once
-#endif
+extern (C++):
+@nogc:
+nothrow:
 
-#ifndef TY_H
-#define TY_H 1
+alias tym_t = uint;
 
 /*****************************************
  * Data types.
@@ -26,7 +26,7 @@
 // casttab[][] in exp2.c depends on the order of this
 // typromo[] in cpp.c depends on the order too
 
-enum TYM
+enum
 {
     TYbool              = 0,
     TYchar              = 1,
@@ -115,11 +115,11 @@ enum TYM
     TYMAX               = 0x48,
 };
 
-extern int TYaarray;                            // D type
+extern __gshared int TYaarray;                            // D type
 
 // These change depending on memory model
-extern int TYdelegate, TYdarray;                // D types
-extern int TYptrdiff, TYsize, TYsize_t;
+extern __gshared int TYdelegate, TYdarray;                // D types
+extern __gshared int TYptrdiff, TYsize, TYsize_t;
 
 enum
 {
@@ -156,12 +156,12 @@ enum
     mTYnothrow      = 0x00200000,    // nothrow function
 
     // Used only by C/C++ compiler
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     mTYnoret        = 0x01000000,    // function has no return
     mTYtransu       = 0x01000000,    // transparent union
-#else
+//#else
     mTYfar16        = 0x01000000,
-#endif
+//#endif
     mTYstdcall      = 0x02000000,
     mTYfastcall     = 0x04000000,
     mTYinterrupt    = 0x08000000,
@@ -170,17 +170,18 @@ enum
     mTYsyscall      = 0x40000000,
     mTYjava         = 0x80000000,
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    mTYTFF          = 0xFE000000,
-#else
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//    mTYTFF          = 0xFE000000,
+//#else
     mTYTFF          = 0xFF000000,
-#endif
+//#endif
 };
 
-inline tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
+pure
+tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
 
 /* Flags in tytab[] array       */
-extern unsigned tytab[];
+extern __gshared uint[256] tytab;
 enum
 {
     TYFLptr         = 1,
@@ -205,114 +206,112 @@ enum
 };
 
 /* Array to give the size in bytes of a type, -1 means error    */
-extern signed char _tysize[];
-extern signed char _tyalignsize[];
+extern __gshared byte[256] _tysize;
+extern __gshared byte[256] _tyalignsize;
 
 // Give size of type
-#define tysize(ty) _tysize[(ty) & 0xFF]
-#define tyalignsize(ty) _tyalignsize[(ty) & 0xFF]
+byte tysize(tym_t ty)      { return _tysize[ty & 0xFF]; }
+byte tyalignsize(tym_t ty) { return _tyalignsize[ty & 0xFF]; }
 
 
 /* Groupings of types   */
 
-inline unsigned tyintegral(tym_t ty) { return tytab[ty & 0xFF] & TYFLintegral; }
+uint tyintegral(tym_t ty) { return tytab[ty & 0xFF] & TYFLintegral; }
 
-inline unsigned tyarithmetic(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex); }
+uint tyarithmetic(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex); }
 
-inline unsigned tyaggregate(tym_t ty) { return tytab[ty & 0xFF] & TYFLaggregate; }
+uint tyaggregate(tym_t ty) { return tytab[ty & 0xFF] & TYFLaggregate; }
 
-inline unsigned tyscalar(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref); }
+uint tyscalar(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref); }
 
-inline unsigned tyfloating(tym_t ty) { return tytab[ty & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex); }
+uint tyfloating(tym_t ty) { return tytab[ty & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex); }
 
-inline unsigned tyimaginary(tym_t ty) { return tytab[ty & 0xFF] & TYFLimaginary; }
+uint tyimaginary(tym_t ty) { return tytab[ty & 0xFF] & TYFLimaginary; }
 
-inline unsigned tycomplex(tym_t ty) { return tytab[ty & 0xFF] & TYFLcomplex; }
+uint tycomplex(tym_t ty) { return tytab[ty & 0xFF] & TYFLcomplex; }
 
-inline unsigned tyreal(tym_t ty) { return tytab[ty & 0xFF] & TYFLreal; }
+uint tyreal(tym_t ty) { return tytab[ty & 0xFF] & TYFLreal; }
 
 // Fits into 64 bit register
-inline bool ty64reg(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= NPTRSIZE; }
+bool ty64reg(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= _tysize[TYnptr]; }
 
 // Can go in XMM floating point register
-inline unsigned tyxmmreg(tym_t ty) { return tytab[ty & 0xFF] & TYFLxmmreg; }
+uint tyxmmreg(tym_t ty) { return tytab[ty & 0xFF] & TYFLxmmreg; }
 
 // Is a vector type
-inline bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2; }
+bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2; }
 
 /* Types that are chars or shorts       */
-inline unsigned tyshort(tym_t ty) { return tytab[ty & 0xFF] & TYFLshort; }
+uint tyshort(tym_t ty) { return tytab[ty & 0xFF] & TYFLshort; }
 
 /* Detect TYlong or TYulong     */
-inline bool tylong(tym_t ty) { return tybasic(ty) == TYlong || tybasic(ty) == TYulong; }
+bool tylong(tym_t ty) { return tybasic(ty) == TYlong || tybasic(ty) == TYulong; }
 
 /* Use to detect a pointer type */
-inline unsigned typtr(tym_t ty) { return tytab[ty & 0xFF] & TYFLptr; }
+uint typtr(tym_t ty) { return tytab[ty & 0xFF] & TYFLptr; }
 
 /* Use to detect a reference type */
-inline unsigned tyref(tym_t ty) { return tytab[ty & 0xFF] & TYFLref; }
+uint tyref(tym_t ty) { return tytab[ty & 0xFF] & TYFLref; }
 
 /* Use to detect a pointer type or a member pointer     */
-inline unsigned tymptr(tym_t ty) { return tytab[ty & 0xFF] & (TYFLptr | TYFLmptr); }
+uint tymptr(tym_t ty) { return tytab[ty & 0xFF] & (TYFLptr | TYFLmptr); }
 
 // Use to detect a nullptr type or a member pointer
-inline unsigned tynullptr(tym_t ty) { return tytab[ty & 0xFF] & TYFLnullptr; }
+uint tynullptr(tym_t ty) { return tytab[ty & 0xFF] & TYFLnullptr; }
 
 /* Detect TYfptr or TYvptr      */
-inline unsigned tyfv(tym_t ty) { return tytab[ty & 0xFF] & TYFLfv; }
+uint tyfv(tym_t ty) { return tytab[ty & 0xFF] & TYFLfv; }
 
 /* All data types that fit in exactly 8 bits    */
-inline bool tybyte(tym_t ty) { return tysize(ty) == 1; }
+bool tybyte(tym_t ty) { return tysize(ty) == 1; }
 
 /* Types that fit into a single machine register        */
-inline bool tyreg(tym_t ty) { return tysize(ty) <= REGSIZE; }
+bool tyreg(tym_t ty) { return tysize(ty) <= _tysize[TYnptr]; }
 
 /* Detect function type */
-inline unsigned tyfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfunc; }
+uint tyfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfunc; }
 
 /* Detect function type where parameters are pushed left to right    */
-inline unsigned tyrevfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLrevparam; }
+uint tyrevfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLrevparam; }
 
-/* Detect unsigned types */
-inline unsigned tyuns(tym_t ty) { return tytab[ty & 0xFF] & (TYFLuns | TYFLptr); }
+/* Detect uint types */
+uint tyuns(tym_t ty) { return tytab[ty & 0xFF] & (TYFLuns | TYFLptr); }
 
 /* Target dependent info        */
-#define TYoffset TYuint         /* offset to an address         */
+alias TYoffset = TYuint;         // offset to an address
 
 /* Detect cpp function type (callee cleans up stack)    */
-inline unsigned typfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLpascal; }
+uint typfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLpascal; }
 
 /* Array to convert a type to its unsigned equivalent   */
-extern tym_t tytouns[];
-inline tym_t touns(tym_t ty) { return tytouns[ty & 0xFF]; }
+extern __gshared tym_t[256] tytouns;
+tym_t touns(tym_t ty) { return tytouns[ty & 0xFF]; }
 
 /* Determine if TYffunc or TYfpfunc (a far function) */
-inline unsigned tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
+uint tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
 
 // Determine if parameter is a SIMD vector type
-inline unsigned tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
+uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 
 /* Array to give the 'relaxed' type for relaxed type checking   */
-extern unsigned char _tyrelax[];
-#define type_relax      (config.flags3 & CFG3relax)     // !=0 if relaxed type checking
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define type_semirelax  (config.flags3 & CFG3semirelax) // !=0 if semi-relaxed type checking
-#else
-#define type_semirelax  type_relax
-#endif
+extern __gshared ubyte[TYMAX] _tyrelax;
+//#define type_relax      (config.flags3 & CFG3relax)     // !=0 if relaxed type checking
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#define type_semirelax  (config.flags3 & CFG3semirelax) // !=0 if semi-relaxed type checking
+//#else
+//#define type_semirelax  type_relax
+//#endif
 
 /* Determine relaxed type       */
-inline unsigned tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
+uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 
 
 /* Determine functionally equivalent type       */
-extern unsigned char tyequiv[];
+extern __gshared ubyte[TYMAX] tyequiv;
 
 /* Give an ascii string for a type      */
-extern const char *tystring[];
+extern __gshared const char*[TYMAX] tystring;
 
 /* Debugger value for type      */
-extern unsigned char dttab[];
-extern unsigned short dttab4[];
-
-#endif /* TY_H */
+extern __gshared ubyte[TYMAX] dttab;
+extern __gshared ushort[TYMAX] dttab4;
