@@ -8,8 +8,22 @@ if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
 fi
 N=2
 
-git clone --depth=1 --branch $TRAVIS_BRANCH https://github.com/D-Programming-Language/druntime.git ../druntime
-git clone --depth=1 --branch $TRAVIS_BRANCH https://github.com/D-Programming-Language/phobos.git ../phobos
+# clone druntime and phobos
+clone() {
+    local url="$1"
+    local path="$2"
+    local branch="$3"
+    for i in {0..4}; do
+        if git clone --depth=1 --branch "$branch" "$url" "$path"; then
+            break
+        elif [ $i -lt 4 ]; then
+            sleep $((1 << $i))
+        else
+            echo "Failed to clone: ${url}"
+            exit 1
+        fi
+    done
+}
 
 # build dmd, druntime, phobos
 build() {
@@ -43,6 +57,9 @@ test_dmd() {
         make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
     fi
 }
+
+clone https://github.com/dlang/druntime.git ../druntime $TRAVIS_BRANCH
+clone https://github.com/dlang/phobos.git ../phobos $TRAVIS_BRANCH
 
 build
 test
