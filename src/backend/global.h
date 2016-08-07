@@ -82,8 +82,8 @@ extern regm_t fregsaved;
 extern tym_t pointertype;              /* default data pointer type */
 
 // cg.c
-extern symbol *localgot;
-extern symbol *tls_get_addr_sym;
+extern Symbol *localgot;
+extern Symbol *tls_get_addr_sym;
 
 // iasm.c
 Symbol *asm_define_label(const char *id);
@@ -103,7 +103,7 @@ void eecontext_parse();
 #define REP_THRESHOLD (REGSIZE * (6+ (REGSIZE == 4)))
         /* doesn't belong here, but func to OPxxx is in exp2 */
 void exp2_setstrthis(elem *e,Symbol *s,targ_size_t offset,type *t);
-symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
+Symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
 elem *exp2_copytotemp(elem *e);
 
 /* util.c */
@@ -123,9 +123,9 @@ void util_assert(const char *, int);
 #endif
 
 void util_progress();
-void util_set16(void);
-void util_set32(void);
-void util_set64(void);
+void util_set16();
+void util_set32();
+void util_set64();
 int ispow2(targ_ullong);
 
 #if __GNUC__
@@ -161,12 +161,12 @@ int ishex(int);
 #endif
 
 /* from cgcs.c */
-extern void comsubs(void);
+void comsubs();
 void cgcs_term();
 
 /* errmsgs.c */
-extern char *dlcmsgs(int);
-extern void errmsgs_term();
+char *dlcmsgs(int);
+void errmsgs_term();
 
 /* from evalu8.c */
 int boolres(elem *);
@@ -188,12 +188,12 @@ int synerr(unsigned,...);
 void preerr(unsigned,...);
 
 #if __clang__
-void err_exit(void) __attribute__((analyzer_noreturn));
-void err_nomem(void) __attribute__((analyzer_noreturn));
+void err_exit() __attribute__((analyzer_noreturn));
+void err_nomem() __attribute__((analyzer_noreturn));
 void err_fatal(unsigned,...) __attribute__((analyzer_noreturn));
 #else
-void err_exit(void);
-void err_nomem(void);
+void err_exit();
+void err_nomem();
 void err_fatal(unsigned,...);
 #if __DMC__
 #pragma ZTC noreturn(err_exit)
@@ -209,7 +209,7 @@ extern int errmsgs_tx86idx;
 #endif
 void warerr(unsigned,...);
 void err_warning_enable(unsigned warnum, int on);
-extern void lexerr(unsigned,...);
+void lexerr(unsigned,...);
 
 int typerr(int,type *,type *,...);
 void err_noctor(Classsym *stag,list_t arglist);
@@ -218,21 +218,21 @@ void err_ambiguous(Symbol *,Symbol *);
 void err_noinstance(Symbol *s1,Symbol *s2);
 void err_redeclar(Symbol *s,type *t1,type *t2);
 void err_override(Symbol *sfbase,Symbol *sfder);
-void err_notamember(const char *id, Classsym *s, symbol *alternate = NULL);
+void err_notamember(const char *id, Classsym *s, Symbol *alternate = NULL);
 
 /* exp.c */
-elem *expression(void),*const_exp(void),*assign_exp(void);
+elem *expression(),*const_exp(),*assign_exp();
 elem *exp_simplecast(type *);
 
 /* file.c */
 char *file_getsource(const char *iname);
 int file_isdir(const char *fname);
-void file_progress(void);
+void file_progress();
 void file_remove(char *fname);
 int file_stat(const char *fname,struct stat *pbuf);
 int file_exists(const char *fname);
 long file_size(const char *fname);
-void file_term(void);
+void file_term();
 #if __NT__ && _WINDLL
 char *file_nettranslate(const char *filename,const char *mode);
 #else
@@ -256,9 +256,9 @@ void chkassign(elem *);
 void chknosu(elem *);
 void chkunass(elem *);
 void chknoabstract(type *);
-extern targ_llong msc_getnum(void);
-extern targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-extern targ_size_t align(targ_size_t,targ_size_t);
+targ_llong msc_getnum();
+targ_size_t alignmember(type *,targ_size_t,targ_size_t);
+targ_size_t align(targ_size_t,targ_size_t);
 
 /* nteh.c */
 unsigned char *nteh_context_string();
@@ -308,18 +308,18 @@ extern unsigned char pseudoreg[];
 extern regm_t pseudomask[];
 
 /* Symbol.c */
-symbol **symtab_realloc(symbol **tab, size_t symmax);
-symbol **symtab_malloc(size_t symmax);
-symbol **symtab_calloc(size_t symmax);
-void symtab_free(symbol **tab);
+Symbol **symtab_realloc(Symbol **tab, size_t symmax);
+Symbol **symtab_malloc(size_t symmax);
+Symbol **symtab_calloc(size_t symmax);
+void symtab_free(Symbol **tab);
 #if TERMCODE
 void symbol_keep(Symbol *s);
 #else
 #define symbol_keep(s) ((void)(s))
 #endif
 void symbol_print(Symbol *s);
-void symbol_term(void);
-char *symbol_ident(symbol *s);
+void symbol_term();
+char *symbol_ident(Symbol *s);
 Symbol *symbol_calloc(const char *id);
 Symbol *symbol_calloc(const char *id, size_t len);
 Symbol *symbol_name(const char *name, int sclass, type *t);
@@ -335,9 +335,9 @@ Symbol *defsy(const char *p, Symbol **parent);
 void symbol_addtotree(Symbol **parent,Symbol *s);
 //Symbol *lookupsym(const char *p);
 Symbol *findsy(const char *p, Symbol *rover);
-void createglobalsymtab(void);
-void createlocalsymtab(void);
-void deletesymtab(void);
+void createglobalsymtab();
+void createlocalsymtab();
+void deletesymtab();
 void meminit_free(meminit_t *m);
 baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase);
 baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase);
@@ -349,15 +349,13 @@ Symbol * symbol_copy(Symbol *s);
 Symbol * symbol_searchlist(symlist_t sl, const char *vident);
 void symbol_reset(Symbol *s);
 
-#if TX86
 // cg87.c
 void cg87_reset();
-#endif
 
 unsigned char loadconst(elem *e, int im);
 
 /* From cgopt.c */
-extern void opt(void);
+void opt();
 
 
 // objrecor.c
@@ -381,7 +379,7 @@ void out_regcand(symtab_t *);
 void writefunc(Symbol *sfunc);
 void alignOffset(int seg,targ_size_t datasize);
 void out_reset();
-symbol *out_readonly_sym(tym_t ty, void *p, int len);
+Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 
 /* blockopt.c */
 extern unsigned bc_goal[BCMAX];
@@ -389,21 +387,18 @@ extern unsigned bc_goal[BCMAX];
 block *block_calloc();
 void block_init();
 void block_term();
-#if MARS
 void block_next(Blockx *bctx,enum BC bc,block *bn);
 block *block_goto(Blockx *bctx,enum BC bc,block *bn);
-#else
 void block_next(enum BC,block *);
-#endif
 void block_setlabel(unsigned lbl);
 void block_goto();
 void block_goto(block *);
 void block_goto(block *bgoto, block *bnew);
-void block_ptr(void);
-void block_pred(void);
+void block_ptr();
+void block_pred();
 void block_clearvisit();
 void block_visit(block *b);
-void block_compbcount(void);
+void block_compbcount();
 void blocklist_free(block **pb);
 void block_optimizer_free(block *b);
 void block_free(block *b);
@@ -412,9 +407,9 @@ void blocklist_dehydrate(block **pb);
 void block_appendexp(block *b, elem *e);
 void block_initvar(Symbol *s);
 void block_endfunc(int flag);
-void brcombine(void);
+void brcombine();
 void blockopt(int);
-void compdfo(void);
+void compdfo();
 
 #define block_initvar(s) (curblock->Binitvar = (s))
 
@@ -450,9 +445,9 @@ int binary(const char *p, const char ** tab, int high);
 int binary(const char *p, size_t len, const char ** tab, int high);
 
 /* go.c */
-void go_term(void);
+void go_term();
 int go_flag(char *cp);
-void optfunc(void);
+void optfunc();
 
 /* filename.c */
 #if !MARS
@@ -465,7 +460,7 @@ void filename_dehydrate( Srcfiles *fn );
 void filename_merge( Srcfiles *fn );
 void filename_mergefl(Sfile *sf);
 void filename_translate(Srcpos *);
-void filename_free( void );
+void filename_free();
 int filename_cmp(const char *f1,const char *f2);
 void srcpos_hydrate(Srcpos *);
 void srcpos_dehydrate(Srcpos *);
@@ -492,12 +487,11 @@ void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-elem * exp_isconst();
+// TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+elem *exp_isconst();
 elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const char *);
-void  lnx_funcdecl(symbol *,enum SC,enum_SC,int);
-int  lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int *pattrtype);
-#endif
+void  lnx_funcdecl(Symbol *,enum SC,enum_SC,int);
+int   lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int *pattrtype);
 
 #endif /* GLOBAL_H */
