@@ -338,7 +338,7 @@ void doreltables(FILE *f)
             rel_unord    [j] = reltables[i].unord;
         }
 
-    fprintf(f,"unsigned char rel_not[] =\n{ ");
+    fprintf(f,"unsigned char _rel_not[] =\n{ ");
     for (i = 0; i < arraysize(rel_not); i++)
     {   fprintf(f,"0x%02x,",rel_not[i]);
         if ((i & 7) == 7 && i < arraysize(rel_not) - 1)
@@ -346,7 +346,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_swap[] =\n{ ");
+    fprintf(f,"unsigned char _rel_swap[] =\n{ ");
     for (i = 0; i < arraysize(rel_swap); i++)
     {   fprintf(f,"0x%02x,",rel_swap[i]);
         if ((i & 7) == 7 && i < arraysize(rel_swap) - 1)
@@ -354,7 +354,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_integral[] =\n{ ");
+    fprintf(f,"unsigned char _rel_integral[] =\n{ ");
     for (i = 0; i < arraysize(rel_integral); i++)
     {   fprintf(f,"0x%02x,",rel_integral[i]);
         if ((i & 7) == 7 && i < arraysize(rel_integral) - 1)
@@ -362,7 +362,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_exception[] =\n{ ");
+    fprintf(f,"unsigned char _rel_exception[] =\n{ ");
     for (i = 0; i < arraysize(rel_exception); i++)
     {   fprintf(f,"0x%02x,",rel_exception[i]);
         if ((i & 7) == 7 && i < arraysize(rel_exception) - 1)
@@ -370,7 +370,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_unord[] =\n{ ");
+    fprintf(f,"unsigned char _rel_unord[] =\n{ ");
     for (i = 0; i < arraysize(rel_unord); i++)
     {   fprintf(f,"0x%02x,",rel_unord[i]);
         if ((i & 7) == 7 && i < arraysize(rel_unord) - 1)
@@ -960,7 +960,7 @@ void dotytab()
     for (i = 0; i < arraysize(typetab); i++)
     {   tytouns[typetab[i].ty] = typetab[i].unsty;
     }
-    fprintf(f,"const tym_t tytouns[] =\n{ ");
+    fprintf(f,"tym_t const tytouns[] =\n{ ");
     for (i = 0; i < arraysize(tytouns); i++)
     {   fprintf(f,"0x%02x,",tytouns[i]);
         if ((i & 7) == 7 && i < arraysize(tytouns) - 1)

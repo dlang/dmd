@@ -132,7 +132,7 @@ enum OPER
         OPnuge,
         OPnug,
         OPnue,
-
+#define RELOPMAX        ((int)OPnue + 1 - RELOPMIN)
 #define rel_toktoop(tk) ((enum OPER)((int)tk - (int)TKle + (int)OPle))
 
 /***************** End of relational operators ******************/
@@ -251,23 +251,23 @@ enum OPER
 
         OPMAX                   /* 1 past last operator         */
 };
-typedef enum OPER OPER;         /* needed for optabgen          */
 
 /************************************
  * Determine things about relational operators.
  */
 
-extern unsigned char rel_not[];
-extern unsigned char rel_swap[];
-extern unsigned char rel_integral[];
-extern unsigned char rel_exception[];
-extern unsigned char rel_unord[];
+extern unsigned char
+        _rel_not[RELOPMAX],
+        _rel_swap[RELOPMAX],
+        _rel_integral[RELOPMAX],
+        _rel_exception[RELOPMAX],
+        _rel_unord[RELOPMAX];
 
-#define rel_not(op)             rel_not[(int)(op) - RELOPMIN]
-#define rel_swap(op)            rel_swap[(int)(op) - RELOPMIN]
-#define rel_integral(op)        rel_integral[(int)(op) - RELOPMIN]
-#define rel_exception(op)       rel_exception[(int)(op) - RELOPMIN]
-#define rel_unord(op)           rel_unord[(int)(op) - RELOPMIN]
+inline int rel_not(int op)       { return _rel_not      [(int)(op) - RELOPMIN]; }
+inline int rel_swap(int op)      { return _rel_swap     [(int)(op) - RELOPMIN]; }
+inline int rel_integral(int op)  { return _rel_integral [(int)(op) - RELOPMIN]; }
+inline int rel_exception(int op) { return _rel_exception[(int)(op) - RELOPMIN]; }
+inline int rel_unord(int op)     { return _rel_unord    [(int)(op) - RELOPMIN]; }
 
 
 /**********************************
