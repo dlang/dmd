@@ -304,6 +304,11 @@ clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
 
+# Submission to Druntime are required to conform to the DStyle
+# The tests below automate some, but not all parts of the DStyle guidelines.
+# See: http://dlang.org/dstyle.html
+style: checkwhitespace
+
 .PHONY : auto-tester-build
 auto-tester-build: target checkwhitespace
 

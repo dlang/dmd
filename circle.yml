@@ -1,0 +1,16 @@
+dependencies:
+  pre:
+    - ./circleci.sh install-deps
+  cache_directories:
+    - "~/dlang"
+
+test:
+  override:
+    - make -f posix.mak style
+    - ./circleci.sh coverage:
+        parallel: true
+
+  post:
+    # CodeCov gets confused by stored .lst files
+    - rm -rf test/coverage/generated
+    - bash <(curl -s https://codecov.io/bash)
