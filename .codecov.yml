@@ -7,6 +7,17 @@ codecov:
     - !travis
 
 coverage:
+  precision: 3
+  round: down
+  range: 80...100
+
+  status:
+    # Learn more at https://codecov.io/docs#yaml_default_commit_status
+    project: true
+    patch: true
+    changes: false
   fixes:
     - "test/.*/::src/"
     - "fail_compilation/::src/"
+
+comment: false
