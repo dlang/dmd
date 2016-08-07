@@ -82,6 +82,15 @@ extern (C++) struct CTFloat
         return isNaN(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
     }
 
+    // the implementation of longdouble for MSVC is a struct, so mangling
+    //  doesn't match with the C++ header.
+    // add a wrapper just for isSNaN as this is the only function called from C++
+    version(CRuntime_Microsoft)
+        static bool isSNaN(longdouble ld)
+        {
+            return isSNaN(ld.r);
+        }
+
     static bool isInfinity(real_t r)
     {
         return r is real_t.infinity || r is -real_t.infinity;
