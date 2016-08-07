@@ -11,6 +11,23 @@ case $CIRCLE_NODE_INDEX in
     1) MODEL=32 ;;
 esac
 
+# clone druntime and phobos
+clone() {
+    local url="$1"
+    local path="$2"
+    local branch="$3"
+    for i in {0..4}; do
+        if git clone --depth=1 --branch "$branch" "$url" "$path"; then
+            break
+        elif [ $i -lt 4 ]; then
+            sleep $((1 << $i))
+        else
+            echo "Failed to clone: ${url}"
+            exit 1
+        fi
+    done
+}
+
 install_deps() {
     if [ $MODEL -eq 32 ]; then
         sudo apt-get update
@@ -40,8 +57,8 @@ coverage() {
         local base_branch=$CIRCLE_BRANCH
     fi
 
-    git clone --depth=1 --branch $base_branch https://github.com/dlang/druntime.git ../druntime
-    git clone --depth=1 --branch $base_branch https://github.com/dlang/phobos.git ../phobos
+    clone https://github.com/dlang/druntime.git ../druntime $base_branch
+    clone https://github.com/dlang/phobos.git ../phobos $base_branch
 
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
