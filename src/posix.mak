@@ -145,7 +145,7 @@ CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
-DFLAGS=
+DFLAGS= -version=MARS
 # Enable D warnings
 DFLAGS += -wi
 
@@ -277,7 +277,7 @@ GLUE_SRC = glue.c msc.c s2ir.c e2ir.c tocsym.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
 
-BACK_HDR= $C/cgcv.d $C/dt.d $C/ty.d $C/type.d
+BACK_HDR= $C/cgcv.d $C/oper.d $C/dt.d $C/ty.d $C/type.d
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \

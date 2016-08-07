@@ -234,7 +234,7 @@ void dooptab()
 #undef X1
 
         f = fopen("optab.c","w");
-        fprintf(f,"const unsigned char optab1[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" const unsigned char optab1[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -243,7 +243,7 @@ void dooptab()
                         fprintf(f,",");
         }
         fprintf(f,"\t};\n");
-        fprintf(f,"const unsigned char optab2[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" const unsigned char optab2[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -252,7 +252,7 @@ void dooptab()
                         fprintf(f,",");
         }
         fprintf(f,"\t};\n");
-        fprintf(f,"const unsigned char optab3[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" const unsigned char optab3[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -262,7 +262,7 @@ void dooptab()
         }
         fprintf(f,"\t};\n");
 
-        fprintf(f,"const unsigned char opcost[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" const unsigned char opcost[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
