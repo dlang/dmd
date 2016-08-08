@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Martin Nowak 2011 - 2015.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors:    Martin Nowak
+ * Authors:   Martin Nowak
  */
 void main(string[] args)
 {
