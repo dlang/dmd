@@ -417,6 +417,13 @@ struct ModuleGroup
                     processMod(idx);
             }
 
+            if (ctoridx == 0)
+            {
+                // no ctors in the list.
+                .free(ctors);
+                return null;
+            }
+
             ctors = cast(immutable(ModuleInfo)**).realloc(ctors, ctoridx * (void*).sizeof);
             if (ctors is null)
                 assert(0);
