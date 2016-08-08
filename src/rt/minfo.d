@@ -393,9 +393,6 @@ struct ModuleGroup
             ctoridx = 0;
             foreach (int idx, m; _modules)
             {
-                // TODO: Should null ModuleInfo be allowed?
-                if (m is null)
-                    continue;
                 if (m.flags & relevantFlags)
                 {
                     if (m.flags & MIstandalone)
