@@ -156,7 +156,7 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 
 GLUE_SRCS=irstate.d toctype.d gluelayer.d todt.d
 
-BACK_HDRS=$C/cgcv.d $C/oper.d $C/dt.d $C/ty.d $C/type.d
+BACK_HDRS=$C/bcomplex.d $C/cgcv.d $C/oper.d $C/dt.d $C/ty.d $C/type.d
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
