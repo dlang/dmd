@@ -62,53 +62,56 @@ struct ModuleGroup
      */
     void sortCtors()
     {
-        import core.bitop: bts, btr, bt;
-        debug(printModuleDependencies)
+        import core.bitop : bts, btr, bt;
+
+        debug (printModuleDependencies)
         {
             import core.stdc.stdio : printf;
-            foreach(_m; _modules)
+
+            foreach (_m; _modules)
             {
-                printf("%s%s%s:", _m.name.ptr, (_m.flags & MIstandalone) ? "+".ptr : "".ptr, (_m.flags & (MIctor | MIdtor)) ? "*".ptr : "".ptr);
-                foreach(_i; _m.importedModules)
+                printf("%s%s%s:", _m.name.ptr, (_m.flags & MIstandalone)
+                        ? "+".ptr : "".ptr, (_m.flags & (MIctor | MIdtor)) ? "*".ptr : "".ptr);
+                foreach (_i; _m.importedModules)
                     printf(" %s", _i.name.ptr);
                 printf("\n");
             }
         }
 
-        immutable uint len = cast(uint)_modules.length;
-        if(!len)
+        immutable uint len = cast(uint) _modules.length;
+        if (!len)
             return; // nothing to do.
 
         immutable(ModuleInfo)* minMod = _modules[0];
         immutable(ModuleInfo)* maxMod = _modules[0];
-        foreach(m; _modules)
+        foreach (m; _modules)
         {
-            if(m < minMod)
+            if (m < minMod)
                 minMod = m;
-            if(m > maxMod)
+            if (m > maxMod)
                 maxMod = m;
         }
 
         int findModule(in ModuleInfo* mi)
         {
             // short circuit linear search if possible.
-            if(mi < minMod || mi > maxMod)
+            if (mi < minMod || mi > maxMod)
                 return -1;
             // binary search would be nice...
             foreach (i, m; _modules)
-                if (m is mi) return cast(int)i;
+                if (m is mi)
+                    return cast(int) i;
             return -1;
         }
-
 
         // allocate some stack arrays that will be used throughout the process.
         immutable nwords = (len + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
         immutable flagbytes = nwords * size_t.sizeof;
-        auto ctorstart = cast(size_t*)alloca(flagbytes);// ctor/dtor seen
-        auto ctordone = cast(size_t*)alloca(flagbytes);// ctor/dtor processed
-        auto relevant = cast(size_t*)alloca(flagbytes);// has ctors/dtors
+        auto ctorstart = cast(size_t*) alloca(flagbytes); // ctor/dtor seen
+        auto ctordone = cast(size_t*) alloca(flagbytes); // ctor/dtor processed
+        auto relevant = cast(size_t*) alloca(flagbytes); // has ctors/dtors
 
-        void clearFlags(size_t *flags)
+        void clearFlags(size_t* flags)
         {
             memset(flags, 0, flagbytes);
         }
@@ -130,7 +133,7 @@ struct ModuleGroup
         void println(string[] msgs...)
         {
             print(msgs);
-            version(Windows)
+            version (Windows)
                 print("\r\n");
             else
                 print("\n");
@@ -153,21 +156,21 @@ struct ModuleGroup
             distance[] = int.max;
             int curdist = 0;
             distance[start] = 0;
-            while(true)
+            while (true)
             {
                 bool done = true;
-                foreach(i, x; distance)
+                foreach (i, x; distance)
                 {
-                    if(x == curdist)
+                    if (x == curdist)
                     {
-                        if(i == target)
+                        if (i == target)
                         {
                             done = true;
                             break;
                         }
-                        foreach(n; edges[i])
+                        foreach (n; edges[i])
                         {
-                            if(distance[n] == int.max)
+                            if (distance[n] == int.max)
                             {
                                 distance[n] = curdist + 1;
                                 done = false;
@@ -175,14 +178,14 @@ struct ModuleGroup
                         }
                     }
                 }
-                if(done)
+                if (done)
                     break;
                 ++curdist;
             }
             // it should be impossible to not get to target, this is just a
             // sanity check. Not an assert, because druntime is compiled in
             // release mode.
-            if(distance[target] != curdist)
+            if (distance[target] != curdist)
             {
                 throw new Error("internal error printing module cycle");
             }
@@ -191,23 +194,23 @@ struct ModuleGroup
             // follow the edges in reverse to get back to the original. We
             // don't have a reverse mapping, so it takes a bit of looping.
             cyclePath.length += curdist;
-            auto subpath = cyclePath[$-curdist .. $];
-            while(true)
+            auto subpath = cyclePath[$ - curdist .. $];
+            while (true)
             {
                 --curdist;
                 subpath[curdist] = target;
-                if(curdist == 0)
+                if (curdist == 0)
                     break;
-distloop:
+            distloop:
                 // search for next (previous) module in cycle.
-                foreach(int m, d; distance)
+                foreach (int m, d; distance)
                 {
-                    if(d == curdist)
+                    if (d == curdist)
                     {
                         // determine if m can reach target
-                        foreach(e; edges[m])
+                        foreach (e; edges[m])
                         {
-                            if(e == target)
+                            if (e == target)
                             {
                                 // recurse
                                 target = m;
@@ -231,16 +234,16 @@ distloop:
             distance.length = len;
             edges.length = len;
             auto reachable = (new size_t[](nwords)).ptr;
-            foreach(i, m; _modules)
+            foreach (i, m; _modules)
             {
                 // use bit array to prevent duplicates
                 // https://issues.dlang.org/show_bug.cgi?id=16208
                 clearFlags(reachable);
-                foreach(e; m.importedModules)
+                foreach (e; m.importedModules)
                 {
                     auto impidx = findModule(e);
-                    if(impidx != -1 && impidx != i)
-                        if(!bts(reachable, impidx))
+                    if (impidx != -1 && impidx != i)
+                        if (!bts(reachable, impidx))
                             edges[i] ~= impidx;
                 }
             }
@@ -258,7 +261,7 @@ distloop:
         // trivial modules to get at the non-trivial ones.
         //
         // If a cycle is detected, returns the index of the module that completes the cycle.
-        int findDeps(int idx, size_t *reachable)
+        int findDeps(int idx, size_t* reachable)
         {
             static struct stackFrame
             {
@@ -267,7 +270,7 @@ distloop:
             }
 
             // initialize "stack"
-            auto stack = cast(stackFrame *)alloca(stackFrame.sizeof * len);
+            auto stack = cast(stackFrame*) alloca(stackFrame.sizeof * len);
             auto stacktop = stack + len;
             auto sp = stack;
             sp.curMod = idx;
@@ -277,14 +280,13 @@ distloop:
             clearFlags(reachable);
             bts(reachable, idx);
 
-            for(;;)
+            for (;;)
             {
                 auto m = _modules[sp.curMod];
-                if(sp.curDep >= m.importedModules.length)
+                if (sp.curDep >= m.importedModules.length)
                 {
                     // return
-                    if(sp == stack)
-                        // finished the algorithm
+                    if (sp == stack) // finished the algorithm
                         break;
                     --sp;
                 }
@@ -292,24 +294,25 @@ distloop:
                 {
                     auto midx = findModule(m.importedModules[sp.curDep]);
                     // if midx is -1, then this isn't part of this DSO.
-                    if(midx != -1 && !bts(reachable, midx))
+                    if (midx != -1 && !bts(reachable, midx))
                     {
-                        if(bt(relevant, midx))
+                        if (bt(relevant, midx))
                         {
                             // need to process this node, don't recurse.
-                            if(bt(ctorstart, midx))
+                            if (bt(ctorstart, midx))
                             {
                                 // was already started, this is a cycle.
                                 return midx;
                             }
                         }
-                        else if(!bt(ctordone, midx))
+                        else if (!bt(ctordone, midx))
                         {
                             // non-relevant, and hasn't been exhaustively processed, recurse.
-                            if(++sp >= stacktop)
+                            if (++sp >= stacktop)
                             {
                                 // stack overflow, this shouldn't happen.
                                 import core.internal.abort : abort;
+
                                 abort("stack overflow on dependency search");
                             }
                             sp.curMod = midx;
@@ -332,7 +335,6 @@ distloop:
         // current element being inserted into ctors list.
         size_t ctoridx = 0;
 
-
         // This function will determine the order of construction/destruction and
         // check for cycles. If a cycle is found, the cycle path is transformed
         // into a string and thrown as an error.
@@ -346,16 +348,16 @@ distloop:
             immutable ModuleInfo* current = _modules[curidx];
 
             // First, determine what modules are reachable.
-            auto reachable = cast(size_t *)alloca(flagbytes);
+            auto reachable = cast(size_t*) alloca(flagbytes);
             auto cycleIdx = findDeps(curidx, reachable);
-            if(cycleIdx != -1)
+            if (cycleIdx != -1)
             {
                 auto cycleMod = _modules[cycleIdx];
                 // found a cycle
                 println("Cyclic dependency between module ", cycleMod.name, " and ", current.name);
                 genPath(cycleIdx, curidx);
 
-                foreach(midx; cyclePath[0 .. $-1])
+                foreach (midx; cyclePath[0 .. $ - 1])
                 {
                     println(_modules[midx].name, bt(relevant, midx) ? "* ->" : " ->");
                 }
@@ -367,8 +369,7 @@ distloop:
             bts(ctorstart, curidx);
             foreach (int i; 0 .. len)
             {
-                if(i != curidx && bt(reachable, i) &&
-                   bt(relevant, i) && !bt(ctordone, i))
+                if (i != curidx && bt(reachable, i) && bt(relevant, i) && !bt(ctordone, i))
                 {
                     assert(!bt(ctorstart, i)); // sanity check, this should have been flagged a cycle earlier
                     processMod(i);
@@ -380,7 +381,7 @@ distloop:
             btr(ctorstart, curidx);
             foreach (int i; 0 .. len)
             {
-                if(bt(reachable, i))
+                if (bt(reachable, i))
                 {
                     // Since relevant dependencies are already marked as done
                     // from recursion above, no reason to check for relevance,
@@ -393,8 +394,7 @@ distloop:
             ctors[ctoridx++] = current;
         }
 
-        immutable(ModuleInfo)*[]
-            doSort(int function(immutable ModuleInfo *) getf)
+        immutable(ModuleInfo)*[] doSort(int function(immutable ModuleInfo*) getf)
         {
             clearFlags(relevant);
             clearFlags(ctorstart);
@@ -406,11 +406,12 @@ distloop:
             foreach (int idx, m; _modules)
             {
                 // TODO: Should null ModuleInfo be allowed?
-                if (m is null) continue;
+                if (m is null)
+                    continue;
                 auto flag = getf(m);
-                if(flag & MIctor)
+                if (flag & MIctor)
                 {
-                    if(flag & MIstandalone)
+                    if (flag & MIstandalone)
                     {
                         // can run at any time. Just run it first.
                         ctors[ctoridx++] = m;
@@ -425,9 +426,9 @@ distloop:
             // now run the algorithm in the relevant ones
             foreach (int idx, m; _modules)
             {
-                if(bt(relevant, idx))
+                if (bt(relevant, idx))
                 {
-                    if(!bt(ctordone, idx))
+                    if (!bt(ctordone, idx))
                         processMod(idx);
                 }
             }
@@ -436,8 +437,10 @@ distloop:
         }
 
         // finally, do the sorting for both shared and tls ctors.
-        _ctors = doSort((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.dtor || m.ctor)? MIctor : 0));
-        _tlsctors = doSort((immutable ModuleInfo * m) => (m.flags & MIstandalone) | ((m.tlsdtor || m.tlsctor)? MIctor : 0));
+        _ctors = doSort((immutable ModuleInfo* m) => (m.flags & MIstandalone) | ((m.dtor
+                || m.ctor) ? MIctor : 0));
+        _tlsctors = doSort((immutable ModuleInfo* m) => (m.flags & MIstandalone) | ((m.tlsdtor
+                || m.tlsctor) ? MIctor : 0));
     }
 
     void runCtors()
