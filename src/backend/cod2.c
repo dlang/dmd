@@ -35,21 +35,31 @@ extern bool choose_multiplier(int N, targ_ullong d, int prec, targ_ullong *pm, i
 extern bool udiv_coefficients(int N, targ_ullong d, int *pshpre, targ_ullong *pm, int *pshpost);
 
 
+/*******************************
+ * Swap two integers.
+ */
+
+static inline void swap(int *a,int *b)
+{
+    int tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+
 /*******************************************
  * !=0 if cannot use this EA in anything other than a MOV instruction.
  */
 
 int movOnly(elem *e)
 {
-#if TARGET_OSX
-    if (I64 && config.flags3 & CFG3pic && e->Eoper == OPvar)
+    if (config.exe & EX_OSX64 && config.flags3 & CFG3pic && e->Eoper == OPvar)
     {   symbol *s = e->EV.sp.Vsym;
         // Fixups for these can only be done with a MOV
         if (s->Sclass == SCglobal || s->Sclass == SCextern ||
             s->Sclass == SCcomdat || s->Sclass == SCcomdef)
             return 1;
     }
-#endif
     return 0;
 }
 
@@ -242,9 +252,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   // Special cases where only flags are set
   if (test && _tysize[ty1] <= REGSIZE &&
       (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount))
-#if TARGET_OSX
       && !movOnly(e1)
-#endif
      )
   {
         // Handle the case of (var & const)
@@ -755,10 +763,8 @@ code *cdorth(elem *e,regm_t *pretregs)
         break;
 
     case OPvar:
-#if TARGET_OSX
         if (movOnly(e2))
             goto L2;
-#endif
     L1:
         if (tyfv(ty2))
                 goto L2;
@@ -4325,11 +4331,6 @@ code *getoffset(elem *e,unsigned reg)
                 if (config.flags3 & CFG3pic || config.exe == EX_WIN64)
                 {   // LEA reg,immed32[RIP]
                     cs.Iop = 0x8D;
-#if TARGET_OSX
-                    symbol *s = e->EV.sp.Vsym;
-//                    if (fl == FLextern)
-//                        cs.Iop = 0x8B;          // MOV reg,[00][RIP]
-#endif
                     cs.Irm = modregrm(0,reg & 7,5);
                     if (reg & 8)
                         cs.Irex = (cs.Irex & ~REX_B) | REX_R;
