@@ -1,25 +1,24 @@
-// Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2016 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1985-1998 by Symantec
+ *              Copyright (c) 2000-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     backendlicense.txt
+ * Source:      $(DMDSRC backend/_oper.d)
  */
 
+module ddmd.backend.oper;
 
-#if __DMC__
-#pragma once
-#endif
+extern (C++):
+@nogc:
+nothrow:
 
-#ifndef OPER_H
-#define OPER_H  1
-
-enum OPER
+alias int OPER;
+enum
 {
-        OPunde,                 /* place holder for undefined operator  */
+        OPunde,                 // place holder for undefined operator
 
         OPadd,
         OPmin,
@@ -33,23 +32,23 @@ enum OPER
         OPor,
         OPashr,                 // signed right shift
         OPnot,
-        OPbool,                 /* "booleanize"                 */
+        OPbool,                 // "booleanize"
         OPcom,
         OPcond,
         OPcomma,
         OPoror,
         OPandand,
-        OPbit,                  /* ref to bit field             */
-        OPind,                  /* *E                           */
-        OPaddr,                 /* &E                           */
-        OPneg,                  /* unary -                      */
-        OPuadd,                 /* unary +                      */
+        OPbit,                  // ref to bit field
+        OPind,                  // *E
+        OPaddr,                 // &E
+        OPneg,                  // unary -
+        OPuadd,                 // unary +
         OPvoid,                 // where casting to void is not a no-op
-        OPabs,                  /* absolute value               */
+        OPabs,                  // absolute value
         OPrndtol,               // round to short, long, long long (inline 8087 only)
         OPrint,                 // round to int
 
-        OPsqrt,                 /* square root                  */
+        OPsqrt,                 // square root
         OPsin,                  // sine
         OPcos,                  // cosine
         OPscale,                // ldexp
@@ -57,10 +56,10 @@ enum OPER
         OPyl2xp1,               // y * log2(x + 1)
         OPcmpxchg,              // cmpxchg
 
-        OPstrlen,               /* strlen()                     */
-        OPstrcpy,               /* strcpy()                     */
-        OPstrcat,               /* strcat()                     */
-        OPstrcmp,               /* strcmp()                     */
+        OPstrlen,               // strlen()
+        OPstrcpy,               // strcpy()
+        OPstrcat,               // strcat()
+        OPstrcmp,               // strcmp()
         OPmemcpy,
         OPmemcmp,
         OPmemset,
@@ -80,11 +79,11 @@ enum OPER
         OPbtst,                 // bit test
         OPpopcnt,               // count of number of bits set to 1
 
-        OPstreq,                /* structure assignment         */
+        OPstreq,                // structure assignment
 
         OPnegass,               // x = -x
-        OPpostinc,              /* x++                          */
-        OPpostdec,              /* x--                          */
+        OPpostinc,              // x++
+        OPpostdec,              // x--
 
         OPeq,
         OPaddass,
@@ -98,28 +97,25 @@ enum OPER
         OPxorass,
         OPorass,
 
-/* Convert from token to assignment operator    */
-#define asgtoktoop(tok) ((int) (tok) + ((int)OPeq - (int) TKeq))
-
         OPashrass,
 
-        /* relational operators (in same order as corresponding tokens) */
-#define RELOPMIN        ((int)OPle)
-        OPle,
+        // relational operators (in same order as corresponding tokens)
+        RELOPMIN,
+        OPle = RELOPMIN,
         OPgt,
         OPlt,
         OPge,
         OPeqeq,
         OPne,
 
-        OPunord,        /* !<>=         */
-        OPlg,           /* <>           */
-        OPleg,          /* <>=          */
-        OPule,          /* !>           */
-        OPul,           /* !>=          */
-        OPuge,          /* !<           */
-        OPug,           /* !<=          */
-        OPue,           /* !<>          */
+        OPunord,        // !<>=
+        OPlg,           // <>
+        OPleg,          // <>=
+        OPule,          // !>
+        OPul,           // !>=
+        OPuge,          // !<
+        OPug,           // !<=
+        OPue,           // !<>
         OPngt,
         OPnge,
         OPnlt,
@@ -131,18 +127,10 @@ enum OPER
         OPnul,
         OPnuge,
         OPnug,
-        OPnue,
-#define RELOPMAX        ((int)OPnue + 1 - RELOPMIN)
-#define rel_toktoop(tk) ((enum OPER)((int)tk - (int)TKle + (int)OPle))
+        RELOPMAX,
+        OPnue = RELOPMAX,
 
-/***************** End of relational operators ******************/
-
-/* Convert from conversion operator to conversion index         */
-// parallel array invconvtab[] in cgelem.c)
-
-#define CNVOPMIN        (OPb_8)
-#define CNVOPMAX        (OPld_u64)
-#define convidx(op)     ((int)(op) - CNVOPMIN)
+//**************** End of relational operators *****************
 
 /*      8,16,32,64      integral type of unspecified sign
         s,u             signed/unsigned
@@ -151,7 +139,8 @@ enum OPER
         cvp             const handle pointer
 */
 
-        OPb_8,          // convert bit to byte
+        CNVOPMIN,
+        OPb_8 = CNVOPMIN,   // convert bit to byte
         OPd_s32,
         OPs32_d,
         OPd_s16,
@@ -189,34 +178,35 @@ enum OPER
 
         OPld_d,
         OPd_ld,
-        OPld_u64,
+        CNVOPMAX,
+        OPld_u64 = CNVOPMAX,
 
-/***************** End of conversion operators ******************/
+//**************** End of conversion operators *****************
 
         OPc_r,          // complex to real
         OPc_i,          // complex to imaginary
         OPmsw,          // top 32 bits of 64 bit word (32 bit code gen)
                         // top 16 bits of 32 bit word (16 bit code gen)
 
-        OPparam,                /* function parameter separator */
-        OPcall,                 /* binary function call         */
-        OPucall,                /* unary function call          */
+        OPparam,                // function parameter separator
+        OPcall,                 // binary function call
+        OPucall,                // unary function call
         OPcallns,               // binary function call, no side effects
         OPucallns,              // unary function call, no side effects
 
-        OPsizeof,               /* for forward-ref'd structs    */
-        OPstrctor,              /* call ctor on struct param    */
+        OPsizeof,               // for forward-ref'd structs
+        OPstrctor,              // call ctor on struct param
         OPstrthis,              // 'this' pointer for OPstrctor
-        OPstrpar,               /* structure func param         */
-        OPconst,                /* constant                     */
-        OPrelconst,             /* constant that contains an address */
-        OPvar,                  /* variable                     */
+        OPstrpar,               // structure func param
+        OPconst,                // constant
+        OPrelconst,             // constant that contains an address
+        OPvar,                  // variable
         OPreg,                  // register (used in inline asm operand expressions)
-        OPcolon,                /* : as in ?:                   */
+        OPcolon,                // : as in ?:
         OPcolon2,               // alternate version with different EH semantics
-        OPstring,               /* address of string            */
+        OPstring,               // address of string
         OPnullptr,              // null pointer
-        OPasm,                  /* in-line assembly code        */
+        OPasm,                  // in-line assembly code
         OPinfo,                 // attach info (used to attach ctor/dtor
                                 // info for exception handling)
         OPhalt,                 // insert HLT instruction
@@ -233,41 +223,54 @@ enum OPER
         OPvector,               // SIMD vector operations
         OPvecsto,               // SIMD vector store operations
 
-        OPinp,                  /* input from I/O port          */
-        OPoutp,                 /* output to I/O port           */
+        OPinp,                  // input from I/O port
+        OPoutp,                 // output to I/O port
 
-        /* C++ operators */
+        // C++ operators
         OPnew,                  // operator new
         OPanew,                 // operator new[]
         OPdelete,               // operator delete
         OPadelete,              // operator delete[]
-        OPbrack,                /* [] subscript                 */
-        OParrow,                /* for -> overloading           */
-        OParrowstar,            /* for ->* overloading          */
-        OPpreinc,               /* ++x overloading              */
-        OPpredec,               /* --x overloading              */
+        OPbrack,                // [] subscript
+        OParrow,                // for -> overloading
+        OParrowstar,            // for ->* overloading
+        OPpreinc,               // ++x overloading
+        OPpredec,               // --x overloading
 
         OPva_start,             // va_start intrinsic (dmd)
 
-        OPMAX                   /* 1 past last operator         */
-};
+        OPMAX                   // 1 past last operator
+}
+
+/* Convert from token to assignment operator    */
+//int asgtoktoop(int tok) { return tok + OPeq - TKeq; }
+
 
 /************************************
  * Determine things about relational operators.
  */
 
-extern unsigned char
-        _rel_not[RELOPMAX],
-        _rel_swap[RELOPMAX],
-        _rel_integral[RELOPMAX],
-        _rel_exception[RELOPMAX],
-        _rel_unord[RELOPMAX];
+//OPER rel_toktoop(int tk) { return tk - TKle + RELOPMIN; }
 
-inline int rel_not(int op)       { return _rel_not      [(int)(op) - RELOPMIN]; }
-inline int rel_swap(int op)      { return _rel_swap     [(int)(op) - RELOPMIN]; }
-inline int rel_integral(int op)  { return _rel_integral [(int)(op) - RELOPMIN]; }
-inline int rel_exception(int op) { return _rel_exception[(int)(op) - RELOPMIN]; }
-inline int rel_unord(int op)     { return _rel_unord    [(int)(op) - RELOPMIN]; }
+extern __gshared ubyte[RELOPMAX - RELOPMIN + 1]
+        _rel_not,
+        _rel_swap,
+        _rel_integral,
+        _rel_exception,
+        _rel_unord;
+
+int rel_not(int op)       { return _rel_not      [op - RELOPMIN]; }
+int rel_swap(int op)      { return _rel_swap     [op - RELOPMIN]; }
+int rel_integral(int op)  { return _rel_integral [op - RELOPMIN]; }
+int rel_exception(int op) { return _rel_exception[op - RELOPMIN]; }
+int rel_unord(int op)     { return _rel_unord    [op - RELOPMIN]; }
+
+/****************************************
+ * Conversion operators.
+ * Convert from conversion operator to conversion index
+ * parallel array invconvtab[] in cgelem.c)
+ */
+int convidx(OPER op) { return op - CNVOPMIN; }
 
 
 /**********************************
@@ -301,11 +304,12 @@ inline int rel_unord(int op)     { return _rel_unord    [(int)(op) - RELOPMIN]; 
  *      OTboolnop       operation is a nop if boolean result is desired
  */
 
-extern "C" // https://issues.dlang.org/show_bug.cgi?id=16359
-{
-extern const unsigned char optab1[OPMAX],optab2[OPMAX],optab3[OPMAX];
-extern const unsigned char opcost[OPMAX];
-}
+// Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
+static if (__VERSION__ <= 2066):
+    private enum computeEnumValue = OPMAX;
+
+extern __gshared ubyte[OPMAX] optab1, optab2, optab3;
+extern __gshared ubyte[OPMAX] opcost;
 
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */
 enum
@@ -318,7 +322,7 @@ enum
     _OTeop0e        = 0x20,
     _OTeop00        = 0x40,
     _OTeop1e        = 0x80,
-};
+}
 
 /* optab2[]     */
 enum
@@ -330,44 +334,44 @@ enum
     _OTassign       = 0x10,
     _OTdef          = 0x20,
     _OTae           = 0x40,
-};
+}
 
 // optab3[]
 enum
 {
     _OTboolnop      = 1,
-};
+}
 
-inline unsigned char OTbinary(unsigned op)    { return optab1[op] & _OTbinary; }
-inline unsigned char OTunary(unsigned op)     { return optab1[op] & _OTunary; }
-inline bool          OTleaf(unsigned op)      { return !(optab1[op] & (_OTunary|_OTbinary)); }
-inline unsigned char OTcommut(unsigned op)    { return optab1[op] & _OTcommut; }
-inline unsigned char OTassoc(unsigned op)     { return optab1[op] & _OTassoc; }
-inline unsigned char OTassign(unsigned op)    { return optab2[op]&_OTassign; }
-inline bool          OTpost(unsigned op)      { return op == OPpostinc || op == OPpostdec; }
-inline unsigned char OTeop0e(unsigned op)     { return optab1[op] & _OTeop0e; }
-inline unsigned char OTeop00(unsigned op)     { return optab1[op] & _OTeop00; }
-inline unsigned char OTeop1e(unsigned op)     { return optab1[op] & _OTeop1e; }
-inline unsigned char OTsideff(unsigned op)    { return optab1[op] & _OTsideff; }
-inline bool          OTconv(unsigned op)      { return op >= CNVOPMIN && op <= CNVOPMAX; }
-inline unsigned char OTlogical(unsigned op)   { return optab2[op] & _OTlogical; }
-inline unsigned char OTwid(unsigned op)       { return optab2[op] & _OTwid; }
-inline bool          OTopeq(unsigned op)      { return op >= OPaddass && op <= OPashrass; }
-inline bool          OTop(unsigned op)        { return op >= OPadd && op <= OPor; }
-inline unsigned char OTcall(unsigned op)      { return optab2[op] & _OTcall; }
-inline unsigned char OTrtol(unsigned op)      { return optab2[op] & _OTrtol; }
-inline bool          OTrel(unsigned op)       { return op >= OPle && op <= OPnue; }
-inline bool          OTrel2(unsigned op)      { return op >= OPle && op <= OPge; }
-inline unsigned char OTdef(unsigned op)       { return optab2[op] & _OTdef; }
-inline unsigned char OTae(unsigned op)        { return optab2[op] & _OTae; }
-inline unsigned char OTboolnop(unsigned op)   { return optab3[op] & _OTboolnop; }
-inline bool          OTcalldef(unsigned op)   { return OTcall(op) || op == OPstrcpy || op == OPstrcat || op == OPmemcpy; }
+ubyte OTbinary(int op)    { return optab1[op] & _OTbinary; }
+ubyte OTunary(int op)     { return optab1[op] & _OTunary; }
+bool  OTleaf(int op)      { return !(optab1[op] & (_OTunary|_OTbinary)); }
+ubyte OTcommut(int op)    { return optab1[op] & _OTcommut; }
+ubyte OTassoc(int op)     { return optab1[op] & _OTassoc; }
+ubyte OTassign(int op)    { return optab2[op]&_OTassign; }
+bool  OTpost(int op)      { return op == OPpostinc || op == OPpostdec; }
+ubyte OTeop0e(int op)     { return optab1[op] & _OTeop0e; }
+ubyte OTeop00(int op)     { return optab1[op] & _OTeop00; }
+ubyte OTeop1e(int op)     { return optab1[op] & _OTeop1e; }
+ubyte OTsideff(int op)    { return optab1[op] & _OTsideff; }
+bool  OTconv(int op)      { return op >= CNVOPMIN && op <= CNVOPMAX; }
+ubyte OTlogical(int op)   { return optab2[op] & _OTlogical; }
+ubyte OTwid(int op)       { return optab2[op] & _OTwid; }
+bool  OTopeq(int op)      { return op >= OPaddass && op <= OPashrass; }
+bool  OTop(int op)        { return op >= OPadd && op <= OPor; }
+ubyte OTcall(int op)      { return optab2[op] & _OTcall; }
+ubyte OTrtol(int op)      { return optab2[op] & _OTrtol; }
+bool  OTrel(int op)       { return op >= OPle && op <= OPnue; }
+bool  OTrel2(int op)      { return op >= OPle && op <= OPge; }
+ubyte OTdef(int op)       { return optab2[op] & _OTdef; }
+ubyte OTae(int op)        { return optab2[op] & _OTae; }
+ubyte OTboolnop(int op)   { return optab3[op] & _OTboolnop; }
+bool  OTcalldef(int op)   { return OTcall(op) || op == OPstrcpy || op == OPstrcat || op == OPmemcpy; }
 
 /* Convert op= to op    */
-inline int opeqtoop(int opx)   { return opx - OPaddass + OPadd; }
+int opeqtoop(int opx)   { return opx - OPaddass + OPadd; }
 
 /* Convert op to op=    */
-inline int optoopeq(int opx)   { return opx - OPadd + OPaddass; }
+int optoopeq(int opx)   { return opx - OPadd + OPaddass; }
 
 /***************************
  * Determine properties of an elem.
@@ -378,16 +382,13 @@ inline int optoopeq(int opx)   { return opx - OPadd + OPaddass; }
  * Eunambig     unambiguous definition elem?
  */
 
-#define EBIN(e) (OTbinary((e)->Eoper))
-#define EUNA(e) (OTunary((e)->Eoper))
+//#define EBIN(e) (OTbinary((e)->Eoper))
+//#define EUNA(e) (OTunary((e)->Eoper))
 
 /* ERTOL(e) is moved to el.c    */
 
-#define Elvalue(e)      ((e)->E1)
-#define Eunambig(e)     (OTassign((e)->Eoper) && \
-                            (e)->E1->Eoper == OPvar)
+//#define Elvalue(e)      ((e)->E1)
+//#define Eunambig(e)     (OTassign((e)->Eoper) && (e)->E1->Eoper == OPvar)
 
-#define EOP(e)  (!OTleaf((e)->Eoper))
-
-#endif /* OPER_H */
+//#define EOP(e)  (!OTleaf((e)->Eoper))
 

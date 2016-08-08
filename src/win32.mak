@@ -133,7 +133,7 @@ CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
-DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi
+DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS
 
 # Recursive make
 DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" DMODEL=$(DMODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
@@ -156,7 +156,7 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 
 GLUE_SRCS=irstate.d toctype.d gluelayer.d todt.d
 
-BACK_HDRS=$C/cgcv.d $C/dt.d $C/ty.d $C/type.d
+BACK_HDRS=$C/cgcv.d $C/oper.d $C/dt.d $C/ty.d $C/type.d
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
