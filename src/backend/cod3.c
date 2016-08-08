@@ -50,6 +50,9 @@ STATIC void pinholeopt_unittest();
 //#define JMPJMPTABLE   TARGET_WINDOS
 #define JMPJMPTABLE     0               // benchmarking shows its slower
 
+#define MINLL           0x8000000000000000LL
+#define MAXLL           0x7FFFFFFFFFFFFFFFLL
+
 /*************
  * Size in bytes of each instruction.
  * 0 means illegal instruction.

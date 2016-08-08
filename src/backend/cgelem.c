@@ -34,6 +34,16 @@ STATIC elem * eldiv(elem *, goal_t goal);
 
 extern elem * evalu8(elem *, goal_t goal);
 
+/* Masks so we can easily check size */
+#define CHARMASK        (0xFFL)
+#define SHORTMASK       (0xFFFFL)
+#define INTMASK         SHORTMASK
+#define LONGMASK        0xFFFFFFFF
+
+/* Common constants often checked for */
+#define LLONGMASK       0xFFFFFFFFFFFFFFFFLL
+#define ZEROLL          0LL
+
 static bool again;
 
 /*****************************

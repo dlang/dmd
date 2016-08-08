@@ -150,7 +150,6 @@ char *parc_strdup(const char *s);
 void parc_free(void *p);
 #endif
 
-void swap(int *,int *);
 void crlf(FILE *);
 char *unsstr(unsigned);
 int isignore(int);
