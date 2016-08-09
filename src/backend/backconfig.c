@@ -442,3 +442,8 @@ void util_set64()
     TYdelegate = TYcent;
     TYdarray = TYucent;
 }
+
+unsigned Config::sizeCheck() { return sizeof(Config); }
+unsigned Configv::sizeCheck() { return sizeof(Configv); }
+unsigned eve::sizeCheck() { return sizeof(eve); }
+

@@ -898,7 +898,10 @@ struct Config
                                 // to near
     linkage_t linkage;          // default function call linkage
     EHmethod ehmethod;          // exception handling method
+
+    static unsigned sizeCheck();
 };
+
 
 // Configuration that is not saved in precompiled header
 
@@ -912,6 +915,8 @@ struct Configv
     char *deflibname;           // default library name
     enum LANG language;         // message language
     int errmax;                 // max error count
+
+    static unsigned sizeCheck();
 };
 
 struct Classsym;
@@ -1024,6 +1029,8 @@ union eve
             elem *Eleft;        // left child for OPddtor
             void *Edecl;        // VarDeclaration being constructed
         } ed;                   // OPdctor,OPddtor
+
+    static unsigned sizeCheck();
 };                              // variants for each type of elem
 
 // Symbols

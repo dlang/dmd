@@ -124,7 +124,7 @@ DOPT=
 # D Model flags
 DMODEL=
 # D Debug flags
-DDEBUG=-debug -g
+DDEBUG=-debug -g -unittest
 
 ##### Implementation variables (do not modify)
 
