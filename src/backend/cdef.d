@@ -679,6 +679,9 @@ struct Config
                                 // to near
     linkage_t linkage;          // default function call linkage
     EHmethod ehmethod;          // exception handling method
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Config.sizeof); }
 }
 
 enum THRESHMAX = 0xFFFF;
@@ -703,6 +706,9 @@ struct Configv
     char* deflibname;           // default library name
     LANG language;              // message language
     int errmax;                 // max error count
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Configv.sizeof); }
 }
 
 struct Classsym;
@@ -820,6 +826,9 @@ union eve
             elem* Eleft2;       // left child for OPddtor
             void* Edecl;        // VarDeclaration being constructed
         }                       // OPdctor,OPddtor
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == eve.sizeof); }
 }                               // variants for each type of elem
 
 // Symbols
