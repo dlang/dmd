@@ -313,7 +313,7 @@ $(GNAME IdentityExpression):
 )
 
     $(P The $(D is) compares for identity.
-        To compare for not identity, use $(D e1 !is e2).
+        To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
         go through the usual conversions to bring them to a common type before
         comparison.
