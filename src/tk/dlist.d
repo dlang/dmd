@@ -18,7 +18,7 @@
 
 module tk.dlist;
 
-extern (C):
+extern (C++):
 
 /* **************** TYPEDEFS AND DEFINES ****************** */
 

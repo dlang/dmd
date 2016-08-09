@@ -158,7 +158,9 @@ GLUE_SRCS=irstate.d toctype.d gluelayer.d todt.d
 
 BACK_HDRS=$C/bcomplex.d $C/cdef.d $C/cgcv.d $C/dt.d $C/oper.d $C/ty.d $C/type.d
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
+TK_HDRS= $(TK)/dlist.d
+
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj e2ir.obj tocsym.obj \
@@ -226,7 +228,6 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 # Toolkit
 TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
-	$(TK)\dlist.d \
 	$(TKSRCC)
 
 # Root package
