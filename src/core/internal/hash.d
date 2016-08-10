@@ -529,5 +529,5 @@ pure nothrow @safe @nogc unittest
 
     enum test_str = "Sample string";
     enum size_t hashVal = ctfeHash(test_str);
-    assert(hashVal == bytesHash(test_str.ptr, test_str.length));
+    assert(hashVal == bytesHash(&test_str[0], test_str.length));
 }
