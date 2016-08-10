@@ -1421,8 +1421,8 @@ $(GNAME Constraint):
 
 $(H2 $(LNAME2 limitations, Limitations))
 
-    $(P Templates cannot be used to add non-static members or
-        virtual functions to classes.
+    $(P Templates cannot be used to add non-static fields or
+        virtual functions to classes or interfaces.
         For example:
 
         ------
@@ -1430,7 +1430,7 @@ $(H2 $(LNAME2 limitations, Limitations))
         {
             template TBar(T)
             {
-                T xx;               // becomes a static member of Foo
+                T xx;               // becomes a static field of Foo
                 int func(T) { ... } // non-virtual
 
                 static T yy;                        // Ok
@@ -1438,16 +1438,6 @@ $(H2 $(LNAME2 limitations, Limitations))
             }
         }
         ------
-    )
-
-    $(P Templates cannot be declared inside functions.
-    )
-
-    $(P Templates cannot add functions to interfaces:
-
-        ---
-        interface TestInterface { void tpl(T)(); }   // error
-        ---
     )
 )
 
