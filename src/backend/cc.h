@@ -177,11 +177,11 @@ typedef Symbol Funcsym;
 struct elem;
 #if !MARS
 typedef struct MACRO macro_t;
-typedef struct BLKLST blklst;
 #endif
 typedef list_t symlist_t;       /* list of pointers to Symbols          */
 struct symtab_t;
 struct code;
+struct blklst;
 
 extern Config config;
 
@@ -339,7 +339,7 @@ extern Pstate pstate;
 
 typedef struct Cstate
 {
-    struct BLKLST *CSfilblk;    // current source file we are parsing
+    blklst *CSfilblk;           // current source file we are parsing
     Symbol *CSlinkage;          // table of forward referenced linkage pragmas
     list_t CSlist_freelist;     // free list for list package
     symtab_t *CSpsymtab;        // pointer to current Symbol table
@@ -729,7 +729,7 @@ struct func_t
     elem *Fbaseinit;            /* list of member initializers (meminit_t) */
                                 /* this field has meaning only for      */
                                 /* functions which are constructors     */
-    struct token_t *Fbody;      /* if deferred parse, this is the list  */
+    token_t *Fbody;             // if deferred parse, this is the list
                                 /* of tokens that make up the function  */
                                 /* body                                 */
                                 // also used if SCfunctempl, SCftexpspec
@@ -737,7 +737,7 @@ struct func_t
     union
     {
         Symbol *Ftempl;         // if Finstance this is the template that generated it
-        struct Thunk *Fthunk;   // !=NULL if this function is actually a thunk
+        Thunk *Fthunk;          // !=NULL if this function is actually a thunk
     };
     Funcsym *Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
@@ -805,10 +805,10 @@ const baseclass_flags_t BCFpmask = BCFpublic | BCFprotected | BCFprivate;
  * Base classes are a list of these.
  */
 
-typedef struct BASECLASS
+struct baseclass_t
 {
     Classsym         *BCbase;           // base class Symbol
-    struct BASECLASS *BCnext;           // next base class
+    baseclass_t      *BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
     unsigned short    BCvbtbloff;       // for BCFvirtual, offset from start of
                                         //     vbtbl[] to entry for this virtual base.
@@ -822,9 +822,9 @@ typedef struct BASECLASS
     Classsym         *BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
 #if TX86
-    struct BASECLASS *BCpbase;          // parent base, NULL if did not come from a parent
+    baseclass_t      *BCpbase;          // parent base, NULL if did not come from a parent
 #endif
-} baseclass_t;
+};
 
 #define baseclass_malloc()      ((baseclass_t *)mem_fmalloc(sizeof(baseclass_t)))
 #define baseclass_free(b)       ((void)(b))
@@ -940,7 +940,7 @@ struct template_t
 {
     symlist_t     TMinstances;  // list of Symbols that are instances
     param_t      *TMptpl;       // template-parameter-list
-    struct token_t *TMbody;     // tokens making up class body
+    token_t      *TMbody;     // tokens making up class body
     unsigned TMsequence;        // sequence number at point of definition
     list_t TMmemberfuncs;       // templates for member functions (list of TMF's)
     list_t TMexplicit;          // list of TME's: primary member template explicit specializations
