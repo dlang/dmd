@@ -874,7 +874,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                  *   for (T[] tmp = a[], size_t key = tmp.length; key--; )
                  *   { T value = tmp[k]; body }
                  */
-                Identifier id = Identifier.generateId("__r");
+                auto id = Identifier.generateId("__r");
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
                 VarDeclaration tmp;
                 if (fs.aggr.op == TOKarrayliteral &&
@@ -882,7 +882,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     auto ale = cast(ArrayLiteralExp)fs.aggr;
                     size_t edim = ale.elements ? ale.elements.dim : 0;
-                    fs.aggr.type = tab.nextOf().sarrayOf(edim);
+                    auto telem = (*fs.parameters)[dim - 1].type;
+
+                    // Bugzilla 12936: if telem has been specified explicitly,
+                    // converting array literal elements to telem might make it @nogc.
+                    fs.aggr = fs.aggr.implicitCastTo(sc, telem.sarrayOf(edim));
+                    if (fs.aggr.op == TOKerror)
+                        goto Lerror2;
 
                     // for (T[edim] tmp = a, ...)
                     tmp = new VarDeclaration(loc, fs.aggr.type, id, ie);
