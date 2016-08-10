@@ -846,6 +846,7 @@ alias SYMFLGS = uint;
  * Storage classes
  */
 
+alias SC = int;
 enum
 {
     SCunde,           // undefined
