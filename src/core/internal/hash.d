@@ -432,8 +432,9 @@ version(AnyX86)
     }
 }
 
-@trusted pure nothrow @nogc
-size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
+
+@system pure nothrow @nogc
+size_t bytesHash(const(void)* buf, size_t len, size_t seed)
 {
     static uint rotl32(uint n)(in uint x) pure nothrow @safe @nogc
     {
@@ -520,14 +521,14 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
 }
 
 //  Check that bytesHash works with CTFE
-pure nothrow @safe @nogc unittest
+pure nothrow @system @nogc unittest
 {
     size_t ctfeHash(string x)
     {
-        return bytesHash(x.ptr, x.length);
+        return bytesHash(x.ptr, x.length, 0);
     }
 
     enum test_str = "Sample string";
     enum size_t hashVal = ctfeHash(test_str);
-    assert(hashVal == bytesHash(&test_str[0], test_str.length));
+    assert(hashVal == bytesHash(&test_str[0], test_str.length, 0));
 }
