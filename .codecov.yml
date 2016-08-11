@@ -5,6 +5,7 @@ codecov:
   # DAutoTester and auto-tester are not in the default list
   ci:
     - !travis
+  bot: dlang-bot
 
 coverage:
   precision: 3
