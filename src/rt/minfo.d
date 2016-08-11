@@ -58,12 +58,13 @@ struct ModuleGroup
     // target modules are involved in a cycle.
     //
     // The delegate is a helper to map module info pointers to index into the modules array
-    private void genCyclePath(ref int[] cyclePath, int srcidx, int targetidx,
+    private int[] genCyclePath(int srcidx, int targetidx,
             scope int delegate(immutable(ModuleInfo)*) findModule)
     {
         import core.bitop : bt, btc, bts;
 
         // set up all the arrays. Use the GC, we are going to exit anyway.
+        int[] cyclePath;
         int[] distance;
         int[][] edges;
         distance.length = _modules.length;
@@ -171,6 +172,7 @@ struct ModuleGroup
         // now get back.
         shortest(targetidx, srcidx);
 
+        return cyclePath;
     }
 
     /******************************
@@ -342,8 +344,7 @@ struct ModuleGroup
 
                 string errmsg = "Cyclic dependency between module "
                     ~ cycleMod.name ~ " and " ~ current.name ~ EOL;
-                int[] cyclePath;
-                genCyclePath(cyclePath, cycleIdx, cast(int) curidx, &findModule);
+                auto cyclePath = genCyclePath(cycleIdx, cast(int) curidx, &findModule);
 
                 foreach (midx; cyclePath[0 .. $ - 1])
                 {
