@@ -19,6 +19,8 @@
 module tk.dlist;
 
 extern (C++):
+nothrow:
+@nogc:
 
 /* **************** TYPEDEFS AND DEFINES ****************** */
 

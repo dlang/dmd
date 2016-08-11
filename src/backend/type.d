@@ -10,7 +10,9 @@
 
 module ddmd.backend.type;
 
+import ddmd.backend.cdef;
 import ddmd.backend.ty;
+import tk.dlist;
 
 extern (C++):
 @nogc:
@@ -29,8 +31,6 @@ alias targ_size_t = ulong;
 
 struct PARAM;
 struct Classsym;
-struct LIST;
-alias list_t = LIST*;
 alias type = TYPE;
 
 type* type_fake(tym_t);
