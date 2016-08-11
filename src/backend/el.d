@@ -1,34 +1,35 @@
-// Copyright (C) 1985-1995 by Symantec
-// Copyright (C) 2000-2016 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1985-1995 by Symantec
+ *              Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     backendlicense.txt
+ * Source:      $(DMDSRC backend/_el.d)
  */
+
+module ddmd.backend.el;
+
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+import ddmd.backend.type;
+
+import ddmd.backend.cc : Symbol;
+
+extern (C++):
+@nogc:
+nothrow:
 
 /* Routines to handle elems.                            */
 
-#if __DMC__
-#pragma once
-#endif
-
-#ifndef EL_H
-#define EL_H    1
-
-struct TYPE;
-
-extern char PARSER;
-
-typedef unsigned char eflags_t;
+alias ubyte eflags_t;
 enum
 {
     EFLAGS_variadic = 1,   // variadic function call
-};
+}
 
-typedef unsigned pef_flags_t;
+alias uint pef_flags_t;
 enum
 {
     PEFnotlvalue    = 1,       // although elem may look like
@@ -38,9 +39,9 @@ enum
     PEFaddrmem      = 0x40,    // address of member
     PEFdependent    = 0x80,    // value-dependent
     PEFmember       = 0x100,   // was a class member access
-};
+}
 
-typedef unsigned char nflags_t;
+alias ubyte nflags_t;
 enum
 {
     NFLli     = 1,     // loop invariant
@@ -49,7 +50,7 @@ enum
     NFLaecp   = 0x10,  // AE or CP or VBE expression
     NFLdelcse = 0x40,  // this is not the generating CSE
     NFLtouns  = 0x80,  // relational operator was changed from signed to unsigned
-};
+}
 
 /******************************************
  * Elems:
@@ -60,80 +61,71 @@ enum
 
 struct elem
 {
-#ifdef DEBUG
-    unsigned short      id;
-#define IDelem 0x4C45   // 'EL'
-#define elem_debug(e) assert((e)->id == IDelem)
-#else
-#define elem_debug(e)
-#endif
+    debug ushort      id;
+    enum IDelem = 0x4C45;   // 'EL'
+    //elem_debug(e) assert((e)->id == IDelem)
 
-    unsigned char Eoper;        // operator (OPxxxx)
-    unsigned char Ecount;       // # of parents of this elem - 1,
-                                // always 0 until CSE elimination is done
+    ubyte Eoper;        // operator (OPxxxx)
+    ubyte Ecount;       // # of parents of this elem - 1,
+                        // always 0 until CSE elimination is done
     eflags_t Eflags;
 
-    union eve EV;               // variants for each type of elem
+    eve EV;             // variants for each type of elem
     union
     {
         // PARSER
         struct
         {
-            pef_flags_t PEFflags_;
-            #define PEFflags _EU._EP.PEFflags_
-            Symbol *Emember_;                   // if PEFmember, this is the member
-            #define Emember _EU._EP.Emember_
-        }_EP;
+            pef_flags_t PEFflags;
+            Symbol* Emember;       // if PEFmember, this is the member
+        }
 
         // OPTIMIZER
         struct
         {
-            tym_t Ety_;                 // data type (TYxxxx)
-            #define Ety _EU._EO.Ety_
-            unsigned Eexp_;             // index into expnod[]
-            #define Eexp _EU._EO.Eexp_
+            tym_t Ety;         // data type (TYxxxx)
+            uint Eexp;         // index into expnod[]
 
             // These flags are all temporary markers, used once and then
             // thrown away.
-            nflags_t Nflags_;           // NFLxxx
-            #define Nflags _EU._EO.Nflags_
+            nflags_t Nflags;   // NFLxxx
 
             // MARS
-            unsigned char Ejty_;        // original Mars type
-            #define Ejty _EU._EO.Ejty_
-        }_EO;
+            ubyte Ejty;        // original Mars type
+        }
 
         // CODGEN
         struct
         {
             // Ety2: Must be in same position as Ety!
-            tym_t Ety2_;                // data type (TYxxxx)
-            unsigned char Ecomsub_;     // number of remaining references to
-                                        // this common subexp (used to determine
-                                        // first, intermediate, and last references
-                                        // to a CSE)
-            #define Ecomsub _EU._EC.Ecomsub_
-        }_EC;
-    }_EU;
+            tym_t Ety2;        // data type (TYxxxx)
+            ubyte Ecomsub;     // number of remaining references to
+                               // this common subexp (used to determine
+                               // first, intermediate, and last references
+                               // to a CSE)
+        }
+    }
 
-    TYPE *ET;                   // pointer to type of elem if TYstruct | TYarray
-    Srcpos Esrcpos;             // source file position
-};
+    type *ET;            // pointer to type of elem if TYstruct | TYarray
+    Srcpos Esrcpos;      // source file position
+}
 
-//inline tym_t typemask(elem *e) { return (!MARS && PARSER) ? (e)->ET->Tty : (e)->Ety; }
-#define typemask(e)    ((!MARS && PARSER) ? (e)->ET->Tty : (e)->Ety )
+version (MARS)
+    tym_t typemask(elem* e) { return e.Ety; }
+else
+    tym_t typemask(elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
 
-inline enum FL el_fl(elem *e) { return (enum FL)e->EV.sp.Vsym->Sfl; }
+//FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
 
-#define Eoffset         EV.sp.Voffset
-#define Esymnum         EV.sp.Vsymnum
+//#define Eoffset         EV.sp.Voffset
+//#define Esymnum         EV.sp.Vsymnum
 
-#define list_elem(list) ((elem *) list_ptr(list))
-#define list_setelem(list,ptr) list_ptr(list) = (elem *)(ptr)
-#define cnst(e) ((e)->Eoper == OPconst) /* Determine if elem is a constant */
-#define E1        EV.eop.Eleft          /* left child                   */
-#define E2        EV.eop.Eright         /* right child                  */
-#define Erd       EV.sp.spu.Erd         // reaching definition
+//#define list_elem(list) ((elem *) list_ptr(list))
+//#define list_setelem(list,ptr) list_ptr(list) = (elem *)(ptr)
+//#define cnst(e) ((e)->Eoper == OPconst) /* Determine if elem is a constant */
+//#define E1        EV.eop.Eleft          /* left child                   */
+//#define E2        EV.eop.Eright         /* right child                  */
+//#define Erd       EV.sp.spu.Erd         // reaching definition
 
 void el_init();
 void el_reset();
@@ -175,10 +167,10 @@ int el_match5(elem *,elem *);
 int el_appears(elem *e,Symbol *s);
 Symbol *el_basesym(elem *e);
 int el_anydef(elem *ed, elem *e);
-elem *el_bint(unsigned,type *,elem *,elem *);
-elem *el_unat(unsigned,type *,elem *);
-elem *el_bin(unsigned,tym_t,elem *,elem *);
-elem *el_una(unsigned,tym_t,elem *);
+elem *el_bint(uint,type *,elem *,elem *);
+elem *el_unat(uint,type *,elem *);
+elem *el_bin(uint,tym_t,elem *,elem *);
+elem *el_una(uint,tym_t,elem *);
 elem *el_longt(type *,targ_llong);
 Symbol *el_alloc_localgot();
 elem *el_var(Symbol *);
@@ -204,27 +196,26 @@ elem *el_const(tym_t, eve *);
 elem *el_test(tym_t, eve *);
 elem ** el_parent(elem *,elem **);
 
-#ifdef DEBUG
-void el_check(elem *);
-#else
-#define el_check(e)     ((void)0)
-#endif
+//#ifdef DEBUG
+//void el_check(elem *);
+//#else
+//#define el_check(e)     ((void)0)
+//#endif
 
 elem *el_convfloat(elem *);
 elem *el_convstring(elem *);
 elem *el_convert(elem *e);
 int el_isdependent(elem *);
-unsigned el_alignsize(elem *);
+uint el_alignsize(elem *);
 
-size_t el_opN(elem *e, unsigned op);
-void el_opArray(elem ***parray, elem *e, unsigned op);
-void el_opFree(elem *e, unsigned op);
-elem *el_opCombine(elem **args, size_t length, unsigned op, unsigned ty);
+size_t el_opN(elem *e, uint op);
+void el_opArray(elem ***parray, elem *e, uint op);
+void el_opFree(elem *e, uint op);
+elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
 
 void elem_print(elem *);
 void elem_print_const(elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);
 
-#endif
 
