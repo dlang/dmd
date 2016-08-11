@@ -1,4 +1,7 @@
 # https://github.com/codecov/support/blob/master/codecov.yml
+codecov:
+  bot: dlang-bot
+
 coverage:
   precision: 2
   round: down
