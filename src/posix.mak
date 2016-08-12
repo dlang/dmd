@@ -66,7 +66,8 @@ ifeq (,$(AUTO_BOOTSTRAP))
   HOST_DMD_RUN:=$(HOST_DMD)
 else
   # Auto-bootstrapping, will download dmd automatically
-  HOST_DMD_VER=2.068.2 # keep in sync with other occurences of that variable, e.g. in circleci.sh
+  # keep in sync with other occurences of that variable, e.g. in circleci.sh
+  HOST_DMD_VER=2.068.2
   HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
   # dmd.2.068.2.osx.zip or dmd.2.068.2.linux.tar.xz
   HOST_DMD_BASENAME=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),)
