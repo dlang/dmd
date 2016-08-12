@@ -74,6 +74,11 @@ void doTest(ModuleInfo* moduleInfo, ref bool ret)
 
 shared static this()
 {
+    version(D_Coverage)
+    {
+        import core.runtime : dmd_coverSetMerge;
+        dmd_coverSetMerge(true);
+    }
     Runtime.moduleUnitTester = &tester;
 
     debug mode = "debug";
@@ -85,9 +90,4 @@ shared static this()
 
 void main()
 {
-    version(D_Coverage)
-    {
-        import core.runtime : dmd_coverSetMerge;
-        dmd_coverSetMerge(true);
-    }
 }
