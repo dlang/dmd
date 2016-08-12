@@ -75,10 +75,14 @@ struct TYPE
         Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
                             // TYenum,TYvtshape: tag symbol
         char* Tident;       // TYident: identifier
-        TYPE* Tkey;         // typtr: key type for associative arrays
+        type* Tkey;         // typtr: key type for associative arrays
     }
 
     list_t Texcspec;        // tyfunc(): list of types of exception specification
+
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == TYPE.sizeof); }
 }
 
 

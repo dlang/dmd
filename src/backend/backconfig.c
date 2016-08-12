@@ -443,7 +443,15 @@ void util_set64()
     TYdarray = TYucent;
 }
 
+// cc.d
+
+// cdef.d
 unsigned Config::sizeCheck() { return sizeof(Config); }
 unsigned Configv::sizeCheck() { return sizeof(Configv); }
 unsigned eve::sizeCheck() { return sizeof(eve); }
+
+// el.d
+
+// type.d
+unsigned TYPE::sizeCheck() { return sizeof(type); }
 
