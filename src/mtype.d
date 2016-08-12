@@ -9834,7 +9834,9 @@ extern (C++) final class TypeSlice : TypeNext
                 if (!(i1 <= i2 && i2 <= td.objects.dim))
                 {
                     error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td.objects.dim);
-                    goto Ldefault;
+                    *ps = null;
+                    *pt = Type.terror;
+                    return;
                 }
 
                 if (i1 == 0 && i2 == td.objects.dim)
