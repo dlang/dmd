@@ -4654,6 +4654,7 @@ extern (C++) final class TypeSArray : TypeArray
 
     override d_uns64 size(Loc loc)
     {
+        //printf("TypeSArray::size()\n");
         dinteger_t sz;
         if (!dim)
             return Type.size(loc);
@@ -4664,10 +4665,12 @@ extern (C++) final class TypeSArray : TypeArray
             if (overflow)
                 goto Loverflow;
         }
+        if (sz > uint.max)
+            goto Loverflow;
         return sz;
 
     Loverflow:
-        error(loc, "index %lld overflow for static array", cast(long)sz);
+        error(loc, "static array %s size overflowed to %lld", toChars(), cast(long)sz);
         return SIZE_INVALID;
     }
 
@@ -4759,7 +4762,7 @@ extern (C++) final class TypeSArray : TypeArray
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-                if (mulu(tbn.size(loc), d2, overflow) >= 0x1000000 || overflow) // put a 'reasonable' limit on it
+                if (mulu(tbn.size(loc), d2, overflow) >= 0x100_0000 || overflow) // put a 'reasonable' limit on it
                     goto Loverflow;
             }
         }
