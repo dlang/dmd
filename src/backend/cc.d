@@ -151,7 +151,6 @@ struct elem;
 struct blklst;
 //#endif
 //typedef list_t symlist_t;       /* list of pointers to Symbols          */
-//struct symtab_t;
 struct code;
 alias symlist_t = list_t;
 alias vec_t = size_t*;
@@ -547,7 +546,9 @@ block* list_block(list_t lst) { return cast(block*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
 
-enum BC {
+alias BC = int;
+enum
+{
     BCgoto      = 1,    // goto Bsucc block
     BCiftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
     BCret       = 3,    // return (no return value)
