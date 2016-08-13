@@ -67,6 +67,62 @@ else version (CRuntime_Bionic)
     ///
     enum int FP_ILOGBNAN      = int.max;
 }
+else version (CRuntime_Glibc)
+{
+    version (X86)
+    {
+        ///
+        enum int FP_ILOGB0        = int.min;
+        ///
+        enum int FP_ILOGBNAN      = int.min;
+    }
+    else version (X86_64)
+    {
+        ///
+        enum int FP_ILOGB0        = int.min;
+        ///
+        enum int FP_ILOGBNAN      = int.min;
+    }
+    else version (ARM)
+    {
+        ///
+        enum int FP_ILOGB0        = -2147483647;
+        ///
+        enum int FP_ILOGBNAN      = 2147483647;
+    }
+    else version (AArch64)
+    {
+        ///
+        enum int FP_ILOGB0        = -2147483647;
+        ///
+        enum int FP_ILOGBNAN      = 2147483647;
+    }
+    else version (MIPS64)
+    {
+        ///
+        enum int FP_ILOGB0        = -2147483647;
+        ///
+        enum int FP_ILOGBNAN      = 2147483647;
+    }
+    else version (PPC)
+    {
+        ///
+        enum int FP_ILOGB0        = -2147483647;
+        ///
+        enum int FP_ILOGBNAN      = 2147483647;
+    }
+    else version (PPC64)
+    {
+        ///
+        enum int FP_ILOGB0        = -2147483647;
+        ///
+        enum int FP_ILOGBNAN      = 2147483647;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+}
 else
 {
     ///
