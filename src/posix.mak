@@ -237,7 +237,7 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype gluelayer todt)
+GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype gluelayer todt dtocsym)
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 

@@ -11,7 +11,7 @@
 
 /* Header for cgcv.c    */
 
-module backend.cgcv;
+module ddmd.backend.cgcv;
 
 extern (C++):
 @nogc:
