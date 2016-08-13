@@ -2380,7 +2380,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(ReturnStatement rs)
     {
-        //printf("ReturnStatement::semantic() %s\n", toChars());
+        //printf("ReturnStatement.semantic() %s\n", rs.toChars());
 
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         if (fd.fes)
@@ -2476,6 +2476,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             rs.exp = Expression.extractLast(rs.exp, &e0);
             if (rs.exp.op == TOKcall)
                 rs.exp = valueNoDtor(rs.exp);
+
+            if (e0)
+                e0 = e0.optimize(WANTvalue);
 
             /* Void-return function can have void typed expression
              * on return statement.
