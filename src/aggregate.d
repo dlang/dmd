@@ -328,12 +328,12 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     abstract void finalizeSize();
 
-    override final uint size(Loc loc)
+    override final d_uns64 size(Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        determineSize(loc);
+        bool ok = determineSize(loc);
         //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        return structsize;
+        return ok ? structsize : SIZE_INVALID;
     }
 
     /***************************************

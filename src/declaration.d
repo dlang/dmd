@@ -174,10 +174,10 @@ extern (C++) abstract class Declaration : Dsymbol
         return "declaration";
     }
 
-    override final uint size(Loc loc)
+    override final d_uns64 size(Loc loc)
     {
         assert(type);
-        return cast(uint)type.size();
+        return type.size();
     }
 
     /*************************************

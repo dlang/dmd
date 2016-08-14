@@ -786,10 +786,14 @@ extern (C++) class Dsymbol : RootObject
         return false;
     }
 
-    uint size(Loc loc)
+    /*********************************
+     * Returns:
+     *  SIZE_INVALID when the size cannot be determined
+     */
+    d_uns64 size(Loc loc)
     {
         error("Dsymbol '%s' has no size", toChars());
-        return 0;
+        return SIZE_INVALID;
     }
 
     bool isforwardRef()
