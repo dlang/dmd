@@ -151,7 +151,6 @@ struct elem;
 struct blklst;
 //#endif
 //typedef list_t symlist_t;       /* list of pointers to Symbols          */
-//struct symtab_t;
 struct code;
 alias symlist_t = list_t;
 alias vec_t = size_t*;
@@ -192,6 +191,9 @@ struct Srcpos
 //#endif
 
     void print(const(char)* func);
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Srcpos.sizeof); }
 }
 
 //#include "token.h"
@@ -302,13 +304,16 @@ struct Pstate
     int STdefaultargumentexpression;    // parsing default argument expression
     block *STbtry;              // current try block
     block *STgotolist;          // threaded goto scoping list
-    long STtdbtimestamp;        // timestamp of tdb file
+    int STtdbtimestamp;         // timestamp of tdb file
     Symbol *STlastfunc;         // last function symbol parsed by ext_def()
 
     // For "point of definition" vs "point of instantiation" template name lookup
     uint STsequence;            // sequence number (Ssequence) of next Symbol
     uint STmaxsequence;         // won't find Symbols with STsequence larger
                                 // than STmaxsequence
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Pstate.sizeof); }
 }
 
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
@@ -332,6 +337,9 @@ struct Cstate
 //    void **CSphx;               // pointer to HX data block
 //#endif
     char* modname;              // module unique identifier
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Cstate.sizeof); }
 }
 
 extern __gshared Cstate cstate;
@@ -383,6 +391,9 @@ struct Blockx
     ClassDeclaration classdec;
     Declaration member;         // member we're compiling for
     Module _module;             // module we're in
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Blockx.sizeof); }
   }
 }
 
@@ -541,13 +552,18 @@ struct block
     int numSucc()                    { return list_nitems(this.Bsucc); }
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
 //    void setNthSucc(int n, block *b) { list_ptr(list_nth(Bsucc, n)) = b; }
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == block.sizeof); }
 }
 
 block* list_block(list_t lst) { return cast(block*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
 
-enum BC {
+alias BC = int;
+enum
+{
     BCgoto      = 1,    // goto Bsucc block
     BCiftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
     BCret       = 3,    // return (no return value)
@@ -715,6 +731,9 @@ struct func_t
         uint LSDAoffset;        // ELFOBJ: offset in LSDA segment of the LSDA data for this function
         Symbol* LSDAsym;        // MACHOBJ: GCC_except_table%d
     }
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == func_t.sizeof); }
 }
 
 //func_t* func_calloc() { return cast(func_t *) mem_fcalloc(func_t.sizeof); }
@@ -771,6 +790,9 @@ struct baseclass_t
     Classsym*         BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
     baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == baseclass_t.sizeof); }
 }
 
 //baseclass_t* baseclass_malloc() { return cast(baseclass_t*) mem_fmalloc(baseclass_t.sizeof); }
@@ -905,6 +927,9 @@ struct template_t
                                 // classes of this template will be friends of
     list_t TMnestedfriends;     // list of TMNF's
     int TMflags2;               // !=0 means dummy template created by template_createargtab()
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == template_t.sizeof); }
 }
 
 /***********************************
@@ -1052,6 +1077,9 @@ struct struct_t
                                 // It is NULL for the
                                 // primary template class (since it would be
                                 // identical to Sarglist).
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == struct_t.sizeof); }
 }
 
 //struct_t* struct_calloc() { return cast(struct_t*) mem_fcalloc(struct_t.sizeof); }
@@ -1290,6 +1318,9 @@ struct Symbol
 
     int needThis();             // !=0 if symbol needs a 'this' pointer
     bool Sisdead(bool anyiasm); // if variable is not referenced
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Symbol.sizeof); }
 }
 
 // Class, struct or union
@@ -1382,6 +1413,9 @@ struct param_t
     uint length();              // number of parameters in list
     void print();               // print this param_t
     void print_list();          // print this list of param_t's
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == param_t.sizeof); }
 }
 
 /**************************************
@@ -1560,6 +1594,9 @@ struct Declar
     param_t *ptal;
     bool explicitSpecialization;
     int hasExcSpec;             // has exception specification
+
+    static uint sizeCheck();
+    unittest { assert(sizeCheck() == Declar.sizeof); }
 }
 
 extern __gshared Declar gdeclar;
