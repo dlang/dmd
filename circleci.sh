@@ -51,7 +51,7 @@ install_deps() {
 }
 
 coverage() {
-    if [ -n ${CIRCLE_PR_NUMBER:-} ]; then
+    if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
         local base_branch=$(curl -fsSL https://api.github.com/repos/dlang/dmd/pulls/$CIRCLE_PR_NUMBER | jq -r '.base.ref')
     else
         local base_branch=$CIRCLE_BRANCH
