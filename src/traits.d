@@ -134,11 +134,21 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
         return new ErrorExp();
     }
 
-    d_uns64 sz = t.size(e.loc);
+    d_uns64 sz;
     if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
         sz = (cast(TypeClass)t).sym.AggregateDeclaration.size(e.loc);
+    else
+        sz = t.size(e.loc);
+    if (sz == SIZE_INVALID)
+        return new ErrorExp();
 
-    d_uns64 sz_size_t = Type.tsize_t.size(e.loc);
+    const sz_size_t = Type.tsize_t.size(e.loc);
+    if (sz > sz.max - sz_size_t)
+    {
+        error(e.loc, "size overflow for type %s", t.toChars());
+        return new ErrorExp();
+    }
+
     d_uns64 bitsPerWord = sz_size_t * 8;
     d_uns64 cntptr = (sz + sz_size_t - 1) / sz_size_t;
     d_uns64 cntdata = (cntptr + bitsPerWord - 1) / bitsPerWord;
@@ -199,6 +209,8 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
         {
             d_uns64 arrayoff = offset;
             d_uns64 nextsize = t.next.size();
+            if (nextsize == SIZE_INVALID)
+                error = true;
             d_uns64 dim = t.dim.toInteger();
             for (d_uns64 i = 0; i < dim; i++)
             {
@@ -323,6 +335,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
         Array!(d_uns64)* data;
         d_uns64 offset;
         d_uns64 sz_size_t;
+        bool error;
     }
 
     scope PointerBitmapVisitor pbv = new PointerBitmapVisitor(&data, sz_size_t);
@@ -330,6 +343,8 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
         pbv.visitClass(cast(TypeClass)t);
     else
         t.accept(pbv);
+    if (pbv.error)
+        return new ErrorExp();
 
     auto exps = new Expressions();
     exps.push(new IntegerExp(e.loc, sz, Type.tsize_t));
