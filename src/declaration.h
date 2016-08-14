@@ -126,7 +126,7 @@ public:
 
     void semantic(Scope *sc);
     const char *kind();
-    unsigned size(Loc loc);
+    d_uns64 size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);

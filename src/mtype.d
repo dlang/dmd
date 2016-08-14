@@ -59,6 +59,9 @@ enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 extern (C++) __gshared int Tsize_t = Tuns32;
 extern (C++) __gshared int Tptrdiff_t = Tint32;
 
+enum SIZE_INVALID = (~cast(d_uns64)0);   // error return from size() functions
+
+
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto
  */
@@ -949,8 +952,6 @@ extern (C++) abstract class Type : RootObject
         tptrdiff_t = basic[Tptrdiff_t];
         thash_t = tsize_t;
     }
-
-    enum SIZE_INVALID = (~cast(d_uns64)0);
 
     final d_uns64 size()
     {
