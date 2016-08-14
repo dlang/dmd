@@ -541,20 +541,24 @@ extern (C++) final class EnumMember : VarDeclaration
     override void semantic(Scope* sc)
     {
         //printf("EnumMember::semantic() %s\n", toChars());
+
+        void errorReturn()
+        {
+            errors = true;
+            semanticRun = PASSsemanticdone;
+        }
+
         if (errors || semanticRun >= PASSsemanticdone)
             return;
         if (semanticRun == PASSsemantic)
         {
             error("circular reference to enum member");
-        Lerrors:
-            errors = true;
-            semanticRun = PASSsemanticdone;
-            return;
+            return errorReturn();
         }
         assert(ed);
         ed.semantic(sc);
         if (ed.errors)
-            goto Lerrors;
+            return errorReturn();
         if (errors || semanticRun >= PASSsemanticdone)
             return;
 
@@ -586,14 +590,14 @@ extern (C++) final class EnumMember : VarDeclaration
             e = resolveProperties(sc, e);
             e = e.ctfeInterpret();
             if (e.op == TOKerror)
-                goto Lerrors;
+                return errorReturn();
             if (first && !ed.memtype && !ed.isAnonymous())
             {
                 ed.memtype = e.type;
                 if (ed.memtype.ty == Terror)
                 {
                     ed.errors = true;
-                    goto Lerrors;
+                    return errorReturn();
                 }
                 if (ed.memtype.ty != Terror)
                 {
@@ -619,7 +623,7 @@ extern (C++) final class EnumMember : VarDeclaration
                     if (ed.errors)
                     {
                         ed.memtype = Type.terror;
-                        goto Lerrors;
+                        return errorReturn();
                     }
                 }
             }
@@ -694,7 +698,7 @@ extern (C++) final class EnumMember : VarDeclaration
             if (emprev.semanticRun < PASSsemanticdone) // if forward reference
                 emprev.semantic(emprev._scope); // resolve it
             if (emprev.errors)
-                goto Lerrors;
+                return errorReturn();
 
             Expression eprev = emprev.value;
             Type tprev = eprev.type.equals(ed.type) ? ed.memtype : eprev.type;
@@ -713,7 +717,7 @@ extern (C++) final class EnumMember : VarDeclaration
             {
                 error("initialization with (%s.%s + 1) causes overflow for type '%s'",
                     emprev.ed.toChars(), emprev.toChars(), ed.memtype.toChars());
-                goto Lerrors;
+                return errorReturn();
             }
 
             // Now set e to (eprev + 1)
@@ -732,7 +736,7 @@ extern (C++) final class EnumMember : VarDeclaration
             }
 
             if (e.op == TOKerror)
-                goto Lerrors;
+                return errorReturn();
             if (e.type.isfloating())
             {
                 // Check that e != eprev (not always true for floats)
@@ -742,7 +746,7 @@ extern (C++) final class EnumMember : VarDeclaration
                 if (etest.toInteger())
                 {
                     error("has inexact value, due to loss of precision");
-                    goto Lerrors;
+                    return errorReturn();
                 }
             }
             value = e;
