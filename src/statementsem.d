@@ -1341,8 +1341,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                     auto exps = new Expressions();
                     exps.push(fs.aggr);
-                    size_t keysize = cast(size_t)taa.index.size();
-                    keysize = (keysize + (cast(size_t)Target.ptrsize - 1)) & ~(cast(size_t)Target.ptrsize - 1);
+                    auto keysize = taa.index.size();
+                    if (keysize == SIZE_INVALID)
+                        goto Lerror2;
+                    assert(keysize < keysize.max - Target.ptrsize);
+                    keysize = (keysize + (Target.ptrsize - 1)) & ~(Target.ptrsize - 1);
                     // paint delegate argument to the type runtime expects
                     if (!fldeTy[i].equals(flde.type))
                     {
