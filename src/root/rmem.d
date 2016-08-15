@@ -194,6 +194,14 @@ else
             return cast(Object)p;
         }
 
+        version (LDC)
+        {
+            extern (C) Object _d_allocclass(const ClassInfo ci) nothrow
+            {
+                return cast(Object)allocmemory(ci.init.length);
+            }
+        }
+
         extern (C) void* _d_newitemT(TypeInfo ti) nothrow
         {
             auto p = allocmemory(ti.tsize);
