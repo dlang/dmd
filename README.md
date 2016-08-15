@@ -1,6 +1,11 @@
 DRuntime: Runtime Library for the D Programming Language
 ========================================================
 
+[![GitHub tag](https://img.shields.io/github/tag/dlang/druntime.svg?maxAge=86400)](#)
+[![Build Status](https://travis-ci.org/dlang/druntime.svg?branch=master)](https://travis-ci.org/dlang/druntime)
+[![Codecov](https://img.shields.io/codecov/c/github/dlang/druntime.svg?maxAge=86400)](https://codecov.io/gh/dlang/druntime)
+[![Issue Stats](http://www.issuestats.com/github/dlang/druntime/badge/pr)](http://www.issuestats.com/github/dlang/druntime)
+
 This is DRuntime. It is the low-level runtime library
 backing the D programming language.
 
