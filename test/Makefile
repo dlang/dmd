@@ -87,7 +87,15 @@ ifeq (freebsd,$(OS))
 else
     SHELL=/bin/bash
 endif
-QUIET=@
+
+# can be used to toggle more verbose output
+ifeq (0, $(QUIET))
+	QUIET:=
+else
+	QUIET:=@
+endif
+export QUIET
+
 export RESULTS_DIR=test_results
 export MODEL
 export REQUIRED_ARGS=

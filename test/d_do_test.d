@@ -16,26 +16,29 @@ import core.sys.posix.sys.wait;
 
 void usage()
 {
-    write("d_do_test <input_dir> <test_name> <test_extension>\n"
-          "\n"
-          "   input_dir: one of: compilable, fail_compilation, runnable\n"
-          "   test_name: basename of test case to run\n"
-          "   test_extension: one of: d, html, or sh\n"
-          "\n"
-          "   example: d_do_test runnable pi d\n"
-          "\n"
-          "   relevant environment variables:\n"
-          "      ARGS:          set to execute all combinations of\n"
-          "      REQUIRED_ARGS: arguments always passed to the compiler\n"
-          "      DMD:           compiler to use, ex: ../src/dmd\n"
-          "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          "      OS:            win32, win64, linux, freebsd, osx\n"
-          "      RESULTS_DIR:   base directory for test results\n"
-          "   windows vs non-windows portability env vars:\n"
-          "      DSEP:          \\\\ or /\n"
-          "      SEP:           \\ or /\n"
-          "      OBJ:          .obj or .o\n"
-          "      EXE:          .exe or <null>\n");
+    write("d_do_test <input_dir> <test_name> <test_extension>\n",
+          "\n",
+          "   input_dir: one of: compilable, fail_compilation, runnable\n",
+          "   test_name: basename of test case to run\n",
+          "   test_extension: one of: d, html, or sh\n",
+          "\n",
+          "   example: d_do_test runnable pi d\n",
+          "\n",
+          "   relevant environment variables:\n",
+          "      ARGS:               set to execute all combinations of\n",
+          "      REQUIRED_ARGS:      arguments always passed to the compiler\n",
+          "      DMD:                compiler to use, ex: ../src/dmd\n",
+          "      CC:                 C++ compiler to use, ex: dmc, g++\n",
+          "      OS:                 win32, win64, linux, freebsd, osx\n",
+          "      RESULTS_DIR:        base directory for test results\n",
+          "      DMD_TEST_COVERAGE   omits the linking and running of all tests\n",
+          "      QUIET               less verbose if set\n",
+          "\n",
+          "   windows vs non-windows portability env vars:\n",
+          "      DSEP:               \\\\ or /\n",
+          "      SEP:                \\ or /\n",
+          "      OBJ:                .obj or .o\n",
+          "      EXE:                .exe or <null>\n");
 }
 
 enum TestMode
@@ -284,8 +287,13 @@ string genTempFilename(string result_path)
     return a.data;
 }
 
+// Additional log output
+static bool isVerbose;
+
 int system(string command)
 {
+    if (isVerbose)
+        stderr.writefln("Executing: %s", command);
     static import core.stdc.stdlib;
     if (!command) return core.stdc.stdlib.system(null);
     const commandz = toStringz(command);
@@ -435,20 +443,28 @@ int main(string[] args)
     string test_extension = args[3];
 
     EnvData envData;
-    envData.all_args      = environment.get("ARGS");
-    envData.results_dir   = environment.get("RESULTS_DIR");
-    envData.sep           = environment.get("SEP");
-    envData.dsep          = environment.get("DSEP");
-    envData.obj           = environment.get("OBJ");
-    envData.exe           = environment.get("EXE");
-    envData.os            = environment.get("OS");
-    envData.dmd           = replace(environment.get("DMD"), "/", envData.sep);
-    envData.compiler      = "dmd"; //should be replaced for other compilers
-    envData.ccompiler     = environment.get("CC");
-    envData.model         = environment.get("MODEL");
-    envData.required_args = environment.get("REQUIRED_ARGS");
-    envData.dobjc         = environment.get("D_OBJC") == "1";
-    envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
+    envData.all_args       = environment.get("ARGS");
+    envData.results_dir    = environment.get("RESULTS_DIR");
+    envData.sep            = environment.get("SEP");
+    envData.dsep           = environment.get("DSEP");
+    envData.obj            = environment.get("OBJ");
+    envData.exe            = environment.get("EXE");
+    envData.os             = environment.get("OS");
+    envData.dmd            = replace(environment.get("DMD"), "/", envData.sep);
+    envData.compiler       = "dmd"; //should be replaced for other compilers
+    envData.ccompiler      = environment.get("CC");
+    envData.model          = environment.get("MODEL");
+    envData.required_args  = environment.get("REQUIRED_ARGS");
+    envData.dobjc          = environment.get("D_OBJC") == "1";
+    envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
+
+    // if QUIET is set (or not 0), the script will be less verbose
+    // the Makefile sets QUIET by default
+    if (environment.get("QUIET"))
+    {
+        auto qEnv = environment.get("QUIET");
+        isVerbose = qEnv == "0" || qEnv.length == 0;
+    }
 
     string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
