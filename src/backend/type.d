@@ -11,18 +11,19 @@
 module ddmd.backend.type;
 
 import ddmd.backend.cdef;
+import ddmd.backend.cc : Symbol;
+import ddmd.backend.el : elem;
 import ddmd.backend.ty;
+
 import tk.dlist;
 
 extern (C++):
 @nogc:
 nothrow:
 
-struct Symbol;
 struct code;
 struct block;
 struct Blockx;
-struct elem;
 
 // type.h
 
@@ -30,7 +31,6 @@ alias mangle_t = ubyte;
 alias targ_size_t = ulong;
 
 struct PARAM;
-struct Classsym;
 alias type = TYPE;
 
 type* type_fake(tym_t);

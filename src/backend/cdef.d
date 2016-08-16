@@ -11,9 +11,20 @@
 
 module ddmd.backend.cdef;
 
+import ddmd.backend.cc: Classsym, Symbol;
+import ddmd.backend.el;
+
+import tk.dlist;
+
 extern (C++):
 @nogc:
 nothrow:
+
+//struct Classsym;
+//struct Symbol;
+//struct LIST;
+struct param_t;
+
 
 //
 //      Attributes
@@ -710,12 +721,6 @@ struct Configv
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Configv.sizeof); }
 }
-
-struct Classsym;
-struct Symbol;
-struct LIST;
-struct elem;
-struct param_t;
 
 alias reg_t = ubyte;            // register number
 alias regm_t = uint;            // Register mask type

@@ -13,14 +13,14 @@
 
 module ddmd.backend.cgcv;
 
+import ddmd.backend.cc : Classsym, Symbol;
+import ddmd.backend.type;
+import tk.dlist;
+
 extern (C++):
 @nogc:
 nothrow:
 
-struct Symbol;
-struct Classsym;
-struct type;
-struct LIST;
 alias LIST* symlist_t;
 
 extern char* ftdbname;

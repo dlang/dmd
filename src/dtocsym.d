@@ -30,6 +30,7 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.target;
@@ -40,26 +41,28 @@ import ddmd.irstate;
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
+import ddmd.backend.dt;
 import ddmd.backend.type;
-//import ddmd.backend.global;
+import ddmd.backend.global;
 import ddmd.backend.oper;
 import ddmd.backend.cgcv;
 
 extern (C++):
 
-/+
 
-Classsym *fake_classsym(Identifier *id);
-type *Type_toCtype(Type *t);
-void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder* dtb);
-void Expression_toDt(Expression *e, DtBuilder* dtb);
-void cpp_type_info_ptr_toDt(ClassDeclaration *cd, DtBuilder* dtb);
-Symbol *toInitializer(AggregateDeclaration *ad);
-const char *cppTypeInfoMangle(Dsymbol *cd);
+Classsym *fake_classsym(Identifier id);
+type *Type_toCtype(Type t);
+void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, DtBuilder dtb);
+void Expression_toDt(Expression e, DtBuilder dtb);
+void cpp_type_info_ptr_toDt(ClassDeclaration cd, DtBuilder dtb);
+Symbol *toInitializer(AggregateDeclaration ad);
+const(char) *cppTypeInfoMangle(Dsymbol cd);
 
 /*************************************
  * Helper
  */
+
+/+
 
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix)
 {

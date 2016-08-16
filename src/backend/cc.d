@@ -14,6 +14,7 @@ module ddmd.backend.cc;
 import tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.type;
+import ddmd.backend.el;
 
 extern (C++):
 @nogc:
@@ -145,7 +146,6 @@ struct dt_t;
 //typedef struct TYPE type;
 //typedef struct Symbol symbol;
 alias Funcsym = Symbol;
-struct elem;
 //#if !MARS
 //typedef struct MACRO macro_t;
 struct blklst;
@@ -371,9 +371,9 @@ else
  *      in a function. startblock heads the list.
  */
 
-alias void* ClassDeclaration;
-alias void* Declaration;
-alias void* Module;
+alias void* ClassDeclaration_;
+alias void* Declaration_;
+alias void* Module_;
 
 struct Blockx
 {
@@ -388,9 +388,9 @@ struct Blockx
     uint flags;                 // value to OR into Bflags
     block* tryblock;            // current enclosing try block
     elem* init;                 // static initializer
-    ClassDeclaration classdec;
-    Declaration member;         // member we're compiling for
-    Module _module;             // module we're in
+    ClassDeclaration_ classdec;
+    Declaration_ member;        // member we're compiling for
+    Module_ _module;            // module we're in
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Blockx.sizeof); }

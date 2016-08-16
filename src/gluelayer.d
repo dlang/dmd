@@ -56,12 +56,12 @@ version (NoBackend)
 else
 {
     import ddmd.backend.type;
+    import ddmd.backend.el : elem;
 
     alias Symbol = ddmd.backend.type.Symbol;
     alias code = ddmd.backend.type.code;
     alias block = ddmd.backend.type.block;
     alias Blockx = ddmd.backend.type.Blockx;
-    alias elem = ddmd.backend.type.elem;
     alias type = ddmd.backend.type.type;
 
     extern (C++)
