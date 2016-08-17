@@ -760,6 +760,7 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
  * Returns:
  *      Symbol of cd's rtti type info
  */
+#if 0
 Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
 {
     const char *id = cppTypeInfoMangle(cd);
@@ -772,3 +773,4 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
     s->Stype = t;
     return s;
 }
+#endif

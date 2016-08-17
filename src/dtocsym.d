@@ -47,6 +47,7 @@ import ddmd.backend.type;
 import ddmd.backend.global;
 import ddmd.backend.oper;
 import ddmd.backend.cgcv;
+import ddmd.backend.ty;
 
 extern (C++):
 
@@ -758,6 +759,7 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
     }
     return cd->cpp_type_info_ptr_sym;
 }
++/
 
 /**********************************
  * Generate Symbol of C++ type info for C++ class cd.
@@ -766,17 +768,16 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
  * Returns:
  *      Symbol of cd's rtti type info
  */
-Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
+Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
 {
-    const char *id = cppTypeInfoMangle(cd);
-    Symbol* s = symbol_calloc(id, strlen(id));
-    s->Sclass = SCextern;
-    s->Sfl = FLextern;          // C++ code will provide the definition
-    s->Sflags |= SFLnodebug;
-    TYPE *t = type_fake(TYnptr);
-    t->Tcount++;
-    s->Stype = t;
+    const id = cppTypeInfoMangle(cd);
+    auto s = symbol_calloc(id, strlen(id));
+    s.Sclass = SCextern;
+    s.Sfl = FLextern;          // C++ code will provide the definition
+    s.Sflags |= SFLnodebug;
+    auto t = type_fake(TYnptr);
+    t.Tcount++;
+    s.Stype = t;
     return s;
 }
 
-+/

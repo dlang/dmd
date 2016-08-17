@@ -1424,7 +1424,8 @@ struct param_t
  * These should be combined with storage classes.
  */
 
-enum FL
+alias FL = int;
+enum
 {
     // Change this, update debug.c too
     FLunde,
