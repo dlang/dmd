@@ -267,7 +267,7 @@ symbol * symbol_calloc(const char *id)
     return symbol_calloc(id, strlen(id));
 }
 
-symbol * symbol_calloc(const char *id, size_t len)
+symbol * symbol_calloc(const char *id, unsigned len)
 {   symbol *s;
 
     //printf("sizeof(symbol)=%d, sizeof(s->Sident)=%d, len=%d\n",sizeof(symbol),sizeof(s->Sident),(int)len);

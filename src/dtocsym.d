@@ -31,6 +31,7 @@ import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.identifier;
+import ddmd.id;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.target;
@@ -728,6 +729,7 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     outdata(s);
     return cre->value->sym;
 }
++/
 
 /**************************************
  * For C++ class cd, generate an instance of __cpp_type_info_ptr
@@ -737,29 +739,28 @@ Symbol* toSymbol(ClassReferenceExp *cre)
  * Returns:
  *      symbol of instance of __cpp_type_info_ptr
  */
-Symbol* toSymbolCpp(ClassDeclaration *cd)
+Symbol* toSymbolCpp(ClassDeclaration cd)
 {
-    assert(cd->isCPPclass());
+    assert(cd.isCPPclass());
 
     /* For the symbol std::exception, the type info is _ZTISt9exception
      */
-    if (!cd->cpp_type_info_ptr_sym)
+    if (!cd.cpp_type_info_ptr_sym)
     {
-        static Symbol *scpp;
+        __gshared Symbol *scpp;
         if (!scpp)
-            scpp = fake_classsym(Id::cpp_type_info_ptr);
-        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp->Stype, "");
-        s->Sfl = FLdata;
-        s->Sflags |= SFLnodebug;
-        DtBuilder dtb;
-        cpp_type_info_ptr_toDt(cd, &dtb);
-        s->Sdt = dtb.finish();
+            scpp = fake_classsym(Id.cpp_type_info_ptr);
+        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SCcomdat, scpp.Stype, "");
+        s.Sfl = FLdata;
+        s.Sflags |= SFLnodebug;
+        scope DtBuilder dtb = new DtBuilder();
+        cpp_type_info_ptr_toDt(cd, dtb);
+        s.Sdt = dtb.finish();
         outdata(s);
-        cd->cpp_type_info_ptr_sym = s;
+        cd.cpp_type_info_ptr_sym = s;
     }
-    return cd->cpp_type_info_ptr_sym;
+    return cd.cpp_type_info_ptr_sym;
 }
-+/
 
 /**********************************
  * Generate Symbol of C++ type info for C++ class cd.
@@ -771,7 +772,7 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
 Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
 {
     const id = cppTypeInfoMangle(cd);
-    auto s = symbol_calloc(id, strlen(id));
+    auto s = symbol_calloc(id, cast(uint)strlen(id));
     s.Sclass = SCextern;
     s.Sfl = FLextern;          // C++ code will provide the definition
     s.Sflags |= SFLnodebug;

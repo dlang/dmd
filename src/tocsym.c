@@ -45,7 +45,7 @@
 
 typedef Array<struct Symbol *> Symbols;
 
-Classsym *fake_classsym(Identifier *id);
+Symbol *fake_classsym(Identifier *id);
 type *Type_toCtype(Type *t);
 void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder* dtb);
 void Expression_toDt(Expression *e, DtBuilder* dtb);
@@ -512,7 +512,7 @@ Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
  * Fake a struct symbol.
  */
 
-Classsym *fake_classsym(Identifier *id)
+Symbol *fake_classsym(Identifier *id)
 {
     TYPE *t = type_struct_class(id->toChars(),8,0,
         NULL,NULL,
@@ -555,7 +555,7 @@ Symbol *toInitializer(AggregateDeclaration *ad)
 {
     if (!ad->sinit)
     {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
+        Symbol *stag = fake_classsym(Id::ClassInfo);
         Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
@@ -571,7 +571,7 @@ Symbol *toInitializer(EnumDeclaration *ed)
 {
     if (!ed->sinit)
     {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
+        Symbol *stag = fake_classsym(Id::ClassInfo);
         Identifier *ident_save = ed->ident;
         if (!ed->ident)
             ed->ident = Identifier::generateId("__enum");
@@ -730,6 +730,7 @@ Symbol* toSymbol(ClassReferenceExp *cre)
  * Returns:
  *      symbol of instance of __cpp_type_info_ptr
  */
+#if 0
 Symbol* toSymbolCpp(ClassDeclaration *cd)
 {
     assert(cd->isCPPclass());
@@ -760,7 +761,6 @@ Symbol* toSymbolCpp(ClassDeclaration *cd)
  * Returns:
  *      Symbol of cd's rtti type info
  */
-#if 0
 Symbol *toSymbolCppTypeInfo(ClassDeclaration *cd)
 {
     const char *id = cppTypeInfoMangle(cd);
