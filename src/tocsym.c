@@ -704,6 +704,7 @@ Symbol* toSymbol(StructLiteralExp *sle)
     return sle->sym;
 }
 
+#if 0
 Symbol* toSymbol(ClassReferenceExp *cre)
 {
     if (cre->value->sym) return cre->value->sym;
@@ -721,8 +722,6 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     outdata(s);
     return cre->value->sym;
 }
-
-#if 0
 
 /**************************************
  * For C++ class cd, generate an instance of __cpp_type_info_ptr

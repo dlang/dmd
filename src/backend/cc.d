@@ -188,7 +188,7 @@ struct Srcpos
         }
     }
 //#if M_UNIX
-//    short Sfilnum;              // file number
+    short Sfilnum;              // file number
 //#endif
 
     void print(const(char)* func);
@@ -360,10 +360,10 @@ enum
 //  done on it, so it is stack and register variables.)
 //char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
-version (Windows)
+//version (Windows)
     alias char enum_SC;
-else
-    alias SC enum_SC;
+//else
+//    alias SC enum_SC;
 
 
 /******************************************
@@ -1274,7 +1274,7 @@ struct Symbol
     }
 
 //#if TARGET_OSX
-//    targ_size_t Slocalgotoffset;
+    targ_size_t Slocalgotoffset;
 //#endif
 
     enum_SC Sclass;             // storage class (SCxxxx)

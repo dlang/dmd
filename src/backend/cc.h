@@ -210,9 +210,9 @@ struct Srcpos
         return sp;
     }
 #endif
-#if M_UNIX
+//#if M_UNIX
     short Sfilnum;              // file number
-#endif
+//#endif
 
     void print(const char *func);
 
@@ -372,11 +372,11 @@ enum
 //  done on it, so it is stack and register variables.)
 #define symbol_isintab(s)       (sytab[(s)->Sclass] & SCSS)
 
-#if defined(__DMC__) || defined(_MSC_VER)
+//#if defined(__DMC__) || defined(_MSC_VER)
 typedef char enum_SC;
-#else
-typedef enum SC enum_SC;
-#endif
+//#else
+//typedef enum SC enum_SC;
+//#endif
 
 /******************************************
  * Basic blocks:
@@ -1324,9 +1324,9 @@ struct Symbol
     const char *prettyIdent;    // the symbol identifer as the user sees it
 #endif
 
-#if TARGET_OSX
+//#if TARGET_OSX
     targ_size_t Slocalgotoffset;
-#endif
+//#endif
 
     enum_SC Sclass;             // storage class (SCxxxx)
     char Sfl;                   // flavor (FLxxxx)

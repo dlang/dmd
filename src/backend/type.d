@@ -77,6 +77,8 @@ struct TYPE
     }
 
     list_t Texcspec;        // tyfunc(): list of types of exception specification
+    Symbol *Ttypedef;       // if this type came from a typedef, this is
+                            // the typedef symbol
 
 
     static uint sizeCheck();
