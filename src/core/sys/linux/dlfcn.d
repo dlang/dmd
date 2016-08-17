@@ -265,7 +265,7 @@ static if (__USE_GNU)
         void* dli_saddr;
     }
 
-    int dladdr(void* __address, Dl_info* __info);
+    int dladdr(in void* __address, Dl_info* __info);
     int dladdr1(void* __address, Dl_info* __info, void** __extra_info, int __flags);
 
     enum

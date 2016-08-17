@@ -120,7 +120,7 @@ version( CRuntime_Glibc )
 
     deprecated("Please use core.sys.linux.dlfcn for non-POSIX extensions")
     {
-        int   dladdr(void* addr, Dl_info* info);
+        int   dladdr(in void* addr, Dl_info* info);
         void* dlvsym(void* handle, in char* symbol, in char* version_);
 
         struct Dl_info
