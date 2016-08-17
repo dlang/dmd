@@ -297,7 +297,7 @@ symbol * symbol_name(const char *name,int sclass,type *t)
     return symbol_name(name, strlen(name), sclass, t);
 }
 
-symbol * symbol_name(const char *name, size_t len, int sclass, type *t)
+symbol * symbol_name(const char *name, unsigned len, int sclass, type *t)
 {
     type_debug(t);
     symbol *s = symbol_calloc(name, len);

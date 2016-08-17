@@ -12,7 +12,7 @@ module ddmd.toctype;
 
 import core.stdc.stdlib;
 
-import ddmd.backend.cc : Classsym;
+import ddmd.backend.cc : Classsym, Symbol;
 import ddmd.backend.ty;
 import ddmd.backend.type;
 

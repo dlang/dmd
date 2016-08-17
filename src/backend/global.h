@@ -21,27 +21,27 @@
 
 #include        "obj.h"
 
-extern char debuga;            /* cg - watch assignaddr()              */
-extern char debugb;            /* watch block optimization             */
-extern char debugc;            /* watch code generated                 */
-extern char debugd;            /* watch debug information generated    */
-extern char debuge;            // dump eh info
-extern char debugf;            /* trees after dooptim                  */
-extern char debugg;            /* trees for code generator             */
-extern char debugo;            // watch optimizer
-extern char debugr;            // watch register allocation
-extern char debugs;            /* watch common subexp eliminator       */
-extern char debugt;            /* do test points                       */
+extern char debuga;             // cg - watch assignaddr()
+extern char debugb;             // watch block optimization
+extern char debugc;             // watch code generated
+extern char debugd;             // watch debug information generated
+extern char debuge;             // dump eh info
+extern char debugf;             // trees after dooptim
+extern char debugg;             // trees for code generator
+extern char debugo;             // watch optimizer
+extern char debugr;             // watch register allocation
+extern char debugs;             // watch common subexp eliminator
+extern char debugt;             // do test points
 extern char debugu;
-extern char debugw;            /* watch progress                       */
-extern char debugx;            /* suppress predefined CPP stuff        */
-extern char debugy;            /* watch output to il buffer            */
+extern char debugw;             // watch progress
+extern char debugx;             // suppress predefined CPP stuff
+extern char debugy;             // watch output to il buffer
 
 #define CR '\r'                 // Used because the MPW version of the compiler warps
 #define LF '\n'                 // \n into \r and \r into \n.  The translator version
                                 // does not and this causes problems with the compilation
                                 // with the translator
-#define CR_STR  "\r"
+#define CR_STR "\r"
 #define LF_STR "\n"
 
 struct seg_data;
@@ -63,23 +63,23 @@ extern Config config;                  // precompiled part of configuration
 extern Configv configv;                // non-ph part of configuration
 extern char sytab[];
 
-extern volatile int controlc_saw;      /* a control C was seen         */
-extern unsigned maxblks;               /* array max for all block stuff                */
-extern unsigned numblks;               /* number of basic blocks (if optimized) */
-extern block *startblock;              /* beginning block of function  */
+extern volatile int controlc_saw;      // a control C was seen
+extern unsigned maxblks;               // array max for all block stuff
+extern unsigned numblks;               // number of basic blocks (if optimized)
+extern block *startblock;              // beginning block of function
 
-extern block **dfo;                    /* array of depth first order   */
-extern unsigned dfotop;                /* # of items in dfo[]          */
-extern block **labelarr;               /* dynamically allocated array, index is label #*/
-extern unsigned labelmax;              /* size of labelarr[]                           */
-extern unsigned labeltop;              /* # of used entries in labelarr[]              */
-extern block *curblock;                /* current block being read in                  */
+extern block **dfo;                    // array of depth first order
+extern unsigned dfotop;                // # of items in dfo[]
+extern block **labelarr;               // dynamically allocated array, index is label #
+extern unsigned labelmax;              // size of labelarr[]
+extern unsigned labeltop;              // # of used entries in labelarr[]
+extern block *curblock;                // current block being read in
 extern block *block_last;
 
 extern int errcnt;
 extern regm_t fregsaved;
 
-extern tym_t pointertype;              /* default data pointer type */
+extern tym_t pointertype;              // default data pointer type
 
 // cg.c
 extern Symbol *localgot;
@@ -220,7 +220,9 @@ void err_override(Symbol *sfbase,Symbol *sfder);
 void err_notamember(const char *id, Classsym *s, Symbol *alternate = NULL);
 
 /* exp.c */
-elem *expression(),*const_exp(),*assign_exp();
+elem *expression();
+elem *const_exp();
+elem *assign_exp();
 elem *exp_simplecast(type *);
 
 /* file.c */
@@ -240,12 +242,12 @@ char *file_nettranslate(const char *filename,const char *mode);
 char *file_unique();
 
 /* from msc.c */
-type *newpointer(type *),
-     *newpointer_share(type *),
-     *reftoptr(type *t),
-     *newref(type *),
-     *topointer(type *),
-     *type_ptr(elem *, type *);
+type *newpointer(type *);
+type *newpointer_share(type *);
+type *reftoptr(type *t);
+type *newref(type *);
+type *topointer(type *);
+type *type_ptr(elem *, type *);
 int type_chksize(unsigned long);
 tym_t tym_conv(type *);
 type * type_arrayroot(type *);
@@ -322,7 +324,7 @@ char *symbol_ident(Symbol *s);
 Symbol *symbol_calloc(const char *id);
 Symbol *symbol_calloc(const char *id, size_t len);
 Symbol *symbol_name(const char *name, int sclass, type *t);
-Symbol *symbol_name(const char *name, size_t len, int sclass, type *t);
+Symbol *symbol_name(const char *name, unsigned len, int sclass, type *t);
 Symbol *symbol_generate(int sclass, type *t);
 Symbol *symbol_genauto(type *t);
 Symbol *symbol_genauto(elem *e);
@@ -344,8 +346,8 @@ int baseclass_nitems(baseclass_t *b);
 void symbol_free(Symbol *s);
 SYMIDX symbol_add(Symbol *s);
 void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
-Symbol * symbol_copy(Symbol *s);
-Symbol * symbol_searchlist(symlist_t sl, const char *vident);
+Symbol *symbol_copy(Symbol *s);
+Symbol *symbol_searchlist(symlist_t sl, const char *vident);
 void symbol_reset(Symbol *s);
 
 // cg87.c
@@ -386,9 +388,9 @@ extern unsigned bc_goal[BCMAX];
 block *block_calloc();
 void block_init();
 void block_term();
-void block_next(Blockx *bctx,enum BC bc,block *bn);
-block *block_goto(Blockx *bctx,enum BC bc,block *bn);
-void block_next(enum BC,block *);
+void block_next(BC,block *);
+void block_next(Blockx *bctx,BC bc,block *bn);
+block *block_goto(Blockx *bctx,BC bc,block *bn);
 void block_setlabel(unsigned lbl);
 void block_goto();
 void block_goto(block *);
@@ -415,7 +417,7 @@ void compdfo();
 /* debug.c */
 extern const char *regstring[];
 
-void WRclass(enum SC c);
+void WRclass(SC c);
 void WRTYxx(tym_t t);
 void WROP(unsigned oper);
 void WRBC(unsigned bc);
@@ -425,7 +427,7 @@ void WRblocklist(list_t bl);
 void WReqn(elem *e);
 void WRfunc();
 void WRdefnod();
-void WRFL(enum FL);
+void WRFL(FL);
 char *sym_ident(SYMIDX si);
 
 /* cgelem.c     */
@@ -452,11 +454,11 @@ void optfunc();
 #if !MARS
 extern Srcfiles srcfiles;
 Sfile **filename_indirect(Sfile *sf);
-Sfile *filename_search( const char *name );
-Sfile *filename_add( const char *name );
-void filename_hydrate( Srcfiles *fn );
-void filename_dehydrate( Srcfiles *fn );
-void filename_merge( Srcfiles *fn );
+Sfile *filename_search(const char *name);
+Sfile *filename_add(const char *name);
+void filename_hydrate(Srcfiles *fn);
+void filename_dehydrate(Srcfiles *fn);
+void filename_merge(Srcfiles *fn);
 void filename_mergefl(Sfile *sf);
 void filename_translate(Srcpos *);
 void filename_free();
@@ -490,7 +492,7 @@ void dwarf_CFA_args_size(size_t sz);
 elem *exp_isconst();
 elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const char *);
-void  lnx_funcdecl(Symbol *,enum SC,enum_SC,int);
+void  lnx_funcdecl(Symbol *,SC,enum_SC,int);
 int   lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int *pattrtype);
 
 #endif /* GLOBAL_H */

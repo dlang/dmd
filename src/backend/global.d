@@ -330,7 +330,7 @@ char *symbol_ident(Symbol *s);
 Symbol *symbol_calloc(const(char)* id);
 Symbol *symbol_calloc(const(char)* id, size_t len);
 Symbol *symbol_name(const(char)* name, int sclass, type *t);
-Symbol *symbol_name(const(char)* name, size_t len, int sclass, type *t);
+Symbol *symbol_name(const(char)* name, uint len, int sclass, type *t);
 Symbol *symbol_generate(int sclass, type *t);
 Symbol *symbol_genauto(type *t);
 Symbol *symbol_genauto(elem *e);

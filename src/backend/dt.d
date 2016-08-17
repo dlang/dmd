@@ -10,6 +10,7 @@
 
 module ddmd.backend.dt;
 
+import ddmd.backend.cc;
 import ddmd.backend.ty;
 import ddmd.backend.type;
 

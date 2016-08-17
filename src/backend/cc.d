@@ -15,6 +15,7 @@ import tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.type;
 import ddmd.backend.el;
+import ddmd.backend.dt;
 
 extern (C++):
 @nogc:
@@ -142,7 +143,7 @@ struct token_t;
 //struct Nspacesym;
 //struct Outbuffer;
 //struct Aliassym;
-struct dt_t;
+//struct dt_t;
 //typedef struct TYPE type;
 //typedef struct Symbol symbol;
 alias Funcsym = Symbol;

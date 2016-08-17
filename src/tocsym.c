@@ -58,6 +58,10 @@ const char *cppTypeInfoMangle(Dsymbol *cd);
  */
 
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix)
+#if 1
+;
+extern Symbol *scc;
+#else
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
 
@@ -95,6 +99,7 @@ Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const ch
 }
 
 static Classsym *scc;
+#endif
 
 /*************************************
  */

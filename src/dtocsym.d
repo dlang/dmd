@@ -38,6 +38,7 @@ import ddmd.tokens;
 import ddmd.typinf;
 import ddmd.visitor;
 import ddmd.irstate;
+import ddmd.dmangle;
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
@@ -62,46 +63,49 @@ const(char) *cppTypeInfoMangle(Dsymbol cd);
  * Helper
  */
 
-/+
-
-Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix)
+Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
+    import core.stdc.stdlib : malloc, free;
+    import ddmd.root.outbuffer : OutBuffer;
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
     size_t nlen = buf.offset;
-    const char *n = buf.peekString();
+    const(char)* n = buf.peekString();
     assert(n);
 
+    import core.stdc.string : strlen;
     size_t prefixlen = strlen(prefix);
     size_t suffixlen = strlen(suffix);
-    size_t idlen = 2 + nlen + sizeof(size_t) * 3 + prefixlen + suffixlen + 1;
+    size_t idlen = 2 + nlen + size_t.sizeof * 3 + prefixlen + suffixlen + 1;
 
-    char idbuf[64];
-    char *id = idbuf;
-    if (idlen > sizeof(idbuf))
+    char[64] idbuf;
+    char *id = &idbuf[0];
+    if (idlen > idbuf.sizeof)
     {
-        id = (char *)malloc(idlen);
+        id = cast(char *)malloc(idlen);
         assert(id);
     }
 
     int nwritten = sprintf(id,"_D%.*s%d%.*s%.*s",
-        (int)nlen, n,
-        (int)prefixlen, (int)prefixlen, prefix,
-        (int)suffixlen, suffix);
-    assert((unsigned)nwritten < idlen);         // nwritten does not include the terminating 0 char
+        cast(int)nlen, n,
+        cast(int)prefixlen, cast(int)prefixlen, prefix,
+        cast(int)suffixlen, suffix);
+    assert(cast(uint)nwritten < idlen);         // nwritten does not include the terminating 0 char
 
     Symbol *s = symbol_name(id, nwritten, sclass, t);
 
-    if (id != idbuf)
+    if (id != &idbuf[0])
         free(id);
 
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;
 }
 
-static Classsym *scc;
+__gshared Symbol *scc;
+
+/+
 
 /*************************************
  */

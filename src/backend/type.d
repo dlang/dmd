@@ -11,7 +11,7 @@
 module ddmd.backend.type;
 
 import ddmd.backend.cdef;
-import ddmd.backend.cc : Symbol;
+import ddmd.backend.cc : block, Blockx, Classsym, Symbol;
 import ddmd.backend.el : elem;
 import ddmd.backend.ty;
 
@@ -22,8 +22,6 @@ extern (C++):
 nothrow:
 
 struct code;
-struct block;
-struct Blockx;
 
 // type.h
 
