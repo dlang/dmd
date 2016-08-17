@@ -682,6 +682,8 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
         return s;
 }
 
+#if 0
+
 /*****************************************************/
 /*                   CTFE stuff                      */
 /*****************************************************/
@@ -704,7 +706,6 @@ Symbol* toSymbol(StructLiteralExp *sle)
     return sle->sym;
 }
 
-#if 0
 Symbol* toSymbol(ClassReferenceExp *cre)
 {
     if (cre->value->sym) return cre->value->sym;

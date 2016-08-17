@@ -689,29 +689,30 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
         sarray.push(s);                         // remember it
         return s;
 }
++/
 
 /*****************************************************/
 /*                   CTFE stuff                      */
 /*****************************************************/
 
-Symbol* toSymbol(StructLiteralExp *sle)
+Symbol* toSymbol(StructLiteralExp sle)
 {
-    if (sle->sym) return sle->sym;
-    TYPE *t = type_alloc(TYint);
-    t->Tcount++;
-    Symbol *s = symbol_calloc("internal", 8);
-    s->Sclass = SCstatic;
-    s->Sfl = FLextern;
-    s->Sflags |= SFLnodebug;
-    s->Stype = t;
-    sle->sym = s;
-    DtBuilder dtb;
-    Expression_toDt(sle, &dtb);
-    s->Sdt = dtb.finish();
+    if (sle.sym)
+        return sle.sym;
+    auto t = type_alloc(TYint);
+    t.Tcount++;
+    auto s = symbol_calloc("internal", 8);
+    s.Sclass = SCstatic;
+    s.Sfl = FLextern;
+    s.Sflags |= SFLnodebug;
+    s.Stype = t;
+    sle.sym = s;
+    scope DtBuilder dtb = new DtBuilder();
+    Expression_toDt(sle, dtb);
+    s.Sdt = dtb.finish();
     outdata(s);
-    return sle->sym;
+    return sle.sym;
 }
-+/
 
 Symbol* toSymbol(ClassReferenceExp cre)
 {
