@@ -640,6 +640,7 @@ Symbol *toModuleArray(Module *m)
     }
     return m->marray;
 }
++/
 
 /********************************************
  * Determine the right symbol to look up
@@ -649,47 +650,42 @@ Symbol *toModuleArray(Module *m)
  *              1       add value signature
  */
 
-Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
+Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 {
-#ifdef DEBUG
-        assert((flags & ~1) == 0);
-#endif
+    assert((flags & ~1) == 0);
 
-        // Dumb linear symbol table - should use associative array!
-        static Symbols sarray;
+    // Dumb linear symbol table - should use associative array!
+    __gshared Symbol*[] sarray;
 
-        //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
-        char *id = (char *)alloca(3 + strlen(func) + 1);
-        int idlen = sprintf(id, "_aa%s", func);
+    //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
+    import core.stdc.stdlib : alloca;
+    auto id = cast(char *)alloca(3 + strlen(func) + 1);
+    const idlen = sprintf(id, "_aa%s", func);
 
-        // See if symbol is already in sarray
-        for (size_t i = 0; i < sarray.dim; i++)
+    // See if symbol is already in sarray
+    foreach (i; 0 .. sarray.length)
+    {
+        auto s = sarray[i];
+        if (strcmp(id, s.Sident.ptr) == 0)
         {
-            Symbol *s = sarray[i];
-            if (strcmp(id, s->Sident) == 0)
-            {
-#ifdef DEBUG
-                assert(s);
-#endif
-                return s;                       // use existing Symbol
-            }
+            return s;                       // use existing Symbol
         }
+    }
 
-        // Create new Symbol
+    // Create new Symbol
 
-        Symbol *s = symbol_calloc(id, idlen);
-        s->Sclass = SCextern;
-        s->Ssymnum = -1;
-        symbol_func(s);
+    auto s = symbol_calloc(id, idlen);
+    s.Sclass = SCextern;
+    s.Ssymnum = -1;
+    symbol_func(s);
 
-        type *t = type_function(TYnfunc, NULL, 0, false, Type_toCtype(taa->next));
-        t->Tmangle = mTYman_c;
-        s->Stype = t;
+    auto t = type_function(TYnfunc, null, 0, false, Type_toCtype(taa.next));
+    t.Tmangle = mTYman_c;
+    s.Stype = t;
 
-        sarray.push(s);                         // remember it
-        return s;
+    sarray ~= s;                         // remember it
+    return s;
 }
-+/
 
 /*****************************************************/
 /*                   CTFE stuff                      */

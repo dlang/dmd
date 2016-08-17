@@ -633,6 +633,8 @@ Symbol *toModuleArray(Module *m)
     return m->marray;
 }
 
+#if 0
+
 /********************************************
  * Determine the right symbol to look up
  * an associative array element.
@@ -681,8 +683,6 @@ Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags)
         sarray.push(s);                         // remember it
         return s;
 }
-
-#if 0
 
 /*****************************************************/
 /*                   CTFE stuff                      */
