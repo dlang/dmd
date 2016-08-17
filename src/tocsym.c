@@ -722,6 +722,8 @@ Symbol* toSymbol(ClassReferenceExp *cre)
     return cre->value->sym;
 }
 
+#if 0
+
 /**************************************
  * For C++ class cd, generate an instance of __cpp_type_info_ptr
  * and populate it with a pointer to the C++ type info.
@@ -730,7 +732,6 @@ Symbol* toSymbol(ClassReferenceExp *cre)
  * Returns:
  *      symbol of instance of __cpp_type_info_ptr
  */
-#if 0
 Symbol* toSymbolCpp(ClassDeclaration *cd)
 {
     assert(cd->isCPPclass());

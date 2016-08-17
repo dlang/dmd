@@ -1624,43 +1624,35 @@ extern __gshared Declar gdeclar;
  *      DTcoff          offset into code segment
  */
 
-//struct dt_t
-//{
-//    dt_t *DTnext;                       // next in list
-//    char dt;                            // type (DTxxxx)
-//    unsigned char Dty;                  // pointer type
-//    unsigned char DTn;                  // DTibytes: number of bytes
-//    union
-//    {
-//        struct                          // DTibytes
-//        {
-//            #define DTibytesMax (sizeof(char *) + sizeof(unsigned) + sizeof(int) + sizeof(targ_size_t))
-//            char DTdata_[DTibytesMax];  // data
-//            #define DTdata _DU._DI.DTdata_
-//        }_DI;
-//        targ_size_t DTazeros_;          // DTazeros,DTcommon,DTsymsize
-//        #define DTazeros _DU.DTazeros_
-//        struct                          // DTabytes
-//        {
-//            char *DTpbytes_;            // pointer to the bytes
-//            #define DTpbytes _DU._DN.DTpbytes_
-//            unsigned DTnbytes_;         // # of bytes
-//            #define DTnbytes _DU._DN.DTnbytes_
-//            int DTseg_;                 // segment it went into
-//            #define DTseg _DU._DN.DTseg_
-//            targ_size_t DTabytes_;              // offset of abytes for DTabytes
-//            #define DTabytes _DU._DN.DTabytes_
-//        }_DN;
-//        struct                          // DTxoff
-//        {
-//            symbol *DTsym_;             // symbol pointer
-//            #define DTsym _DU._DS.DTsym_
-//            targ_size_t DToffset_;      // offset from symbol
-//            #define DToffset _DU._DS.DToffset_
-//        }_DS;
-//    }_DU;
-//};
-//
+struct dt_t
+{
+    dt_t *DTnext;                       // next in list
+    char dt;                            // type (DTxxxx)
+    ubyte Dty;                          // pointer type
+    ubyte DTn;                          // DTibytes: number of bytes
+    union
+    {
+        struct                          // DTibytes
+        {
+            enum DTibytesMax = (char*).sizeof + uint.sizeof + int.sizeof + targ_size_t.sizeof;
+            byte[DTibytesMax] DTdata;   // data
+        }
+        targ_size_t DTazeros;           // DTazeros,DTcommon,DTsymsize
+        struct                          // DTabytes
+        {
+            byte *DTpbytes;             // pointer to the bytes
+            uint DTnbytes;              // # of bytes
+            int DTseg;                  // segment it went into
+            targ_size_t DTabytes;       // offset of abytes for DTabytes
+        }
+        struct                          // DTxoff
+        {
+            Symbol *DTsym;              // symbol pointer
+            targ_size_t DToffset;       // offset from symbol
+        }
+    }
+}
+
 //enum
 //{
 //    DT_abytes = 0,

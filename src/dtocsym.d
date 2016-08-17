@@ -712,22 +712,23 @@ Symbol* toSymbol(StructLiteralExp *sle)
     return sle->sym;
 }
 
-Symbol* toSymbol(ClassReferenceExp *cre)
+Symbol* toSymbol(ClassReferenceExp cre)
 {
-    if (cre->value->sym) return cre->value->sym;
-    TYPE *t = type_alloc(TYint);
-    t->Tcount++;
-    Symbol *s = symbol_calloc("internal", 8);
-    s->Sclass = SCstatic;
-    s->Sfl = FLextern;
-    s->Sflags |= SFLnodebug;
-    s->Stype = t;
-    cre->value->sym = s;
-    DtBuilder dtb;
-    ClassReferenceExp_toInstanceDt(cre, &dtb);
-    s->Sdt = dtb.finish();
+    if (cre.value.sym)
+        return cre.value.sym;
+    auto t = type_alloc(TYint);
+    t.Tcount++;
+    auto s = symbol_calloc("internal", 8);
+    s.Sclass = SCstatic;
+    s.Sfl = FLextern;
+    s.Sflags |= SFLnodebug;
+    s.Stype = t;
+    cre.value.sym = s;
+    scope DtBuilder dtb = new DtBuilder();
+    ClassReferenceExp_toInstanceDt(cre, dtb);
+    s.Sdt = dtb.finish();
     outdata(s);
-    return cre->value->sym;
+    return cre.value.sym;
 }
 +/
 

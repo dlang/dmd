@@ -16,7 +16,7 @@ import ddmd.backend.type;
 
 //struct Symbol;
 //alias uint tym_t;
-struct dt_t;
+//struct dt_t;
 
 nothrow:
 @nogc:
