@@ -1270,7 +1270,7 @@ struct Symbol
     }
     version (MARS)
     {
-        const char *prettyIdent;    // the symbol identifer as the user sees it
+        const(char)* prettyIdent;   // the symbol identifer as the user sees it
     }
 
 //#if TARGET_OSX

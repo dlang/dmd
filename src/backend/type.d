@@ -61,12 +61,8 @@ alias targ_size_t = ulong;
 struct PARAM;
 alias type = TYPE;
 
-type* type_fake(tym_t);
 void type_incCount(type* t);
 void type_setIdent(type* t, char* ident);
-
-type* type_alloc(tym_t);
-type* type_allocn(tym_t, type* tn);
 
 type* type_pointer(type* tnext);
 type* type_dyn_array(type* tnext);
@@ -122,5 +118,18 @@ static if (__VERSION__ <= 2066)
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
 
+//targ_size_t type_size(type *);
+uint type_alignsize(type *);
 uint type_paramsize(type *t);
+type *type_alloc(tym_t);
+type *type_alloc_template(Symbol *s);
+type *type_allocn(tym_t,type *tn);
+type *type_allocmemptr(Classsym *stag,type *tn);
+type *type_fake(tym_t);
+type *type_setty(type **,uint);
+type *type_settype(type **pt, type *t);
+type *type_setmangle(type **pt,mangle_t mangle);
+type *type_setcv(type **pt,tym_t cv);
+int type_embed(type *t,type *u);
+int type_isvla(type *t);
 

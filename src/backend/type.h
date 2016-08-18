@@ -177,7 +177,7 @@ type *type_alloc_template(symbol *s);
 type *type_allocn(tym_t,type *tn);
 type *type_allocmemptr(Classsym *stag,type *tn);
 type *type_fake(tym_t);
-type *type_setty(type **,long);
+type *type_setty(type **,unsigned);
 type *type_settype(type **pt, type *t);
 type *type_setmangle(type **pt,mangle_t mangle);
 type *type_setcv(type **pt,tym_t cv);

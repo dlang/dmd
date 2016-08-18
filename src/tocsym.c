@@ -104,6 +104,7 @@ static Classsym *scc;
 /*************************************
  */
 
+#if 0
 Symbol *toSymbol(Dsymbol *s)
 {
     class ToSymbol : public Visitor
@@ -439,6 +440,7 @@ Symbol *toSymbol(Dsymbol *s)
     s->csym = v.result;
     return v.result;
 }
+#endif
 
 #if 0
 

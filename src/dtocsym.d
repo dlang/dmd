@@ -108,127 +108,127 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
 
 __gshared Symbol *scc;
 
-/+
-
 /*************************************
  */
 
-Symbol *toSymbol(Dsymbol *s)
+Symbol *toSymbol(Dsymbol s)
 {
-    class ToSymbol : public Visitor
+    extern (C++) static final class ToSymbol : Visitor
     {
-    public:
+        alias visit = super.visit;
+
         Symbol *result;
 
-        ToSymbol()
+        this()
         {
-            result = NULL;
+            result = null;
         }
 
-        void visit(Dsymbol *s)
+        override void visit(Dsymbol s)
         {
-            printf("Dsymbol::toSymbol() '%s', kind = '%s'\n", s->toChars(), s->kind());
+            printf("Dsymbol.toSymbol() '%s', kind = '%s'\n", s.toChars(), s.kind());
             assert(0);          // BUG: implement
         }
 
-        void visit(SymbolDeclaration *sd)
+        override void visit(SymbolDeclaration sd)
         {
-            result = toInitializer(sd->dsym);
+            result = toInitializer(sd.dsym);
         }
 
-        void visit(VarDeclaration *vd)
+        override void visit(VarDeclaration vd)
         {
-            //printf("VarDeclaration::toSymbol(%s)\n", vd->toChars());
-            assert(!vd->needThis());
+            //printf("VarDeclaration.toSymbol(%s)\n", vd.toChars());
+            assert(!vd.needThis());
 
             Symbol *s;
-            if (vd->isDataseg())
+            if (vd.isDataseg())
             {
+                import ddmd.root.outbuffer : OutBuffer;
                 OutBuffer buf;
                 mangleToBuffer(vd, &buf);
-                size_t length = buf.offset;
-                const char *id = buf.peekString();
-                s = symbol_calloc(id, length);
+                const length = buf.offset;
+                const id = buf.peekString();
+                s = symbol_calloc(id, cast(uint)length);
             }
             else
             {
-                const char *id = vd->ident->toChars();
-                s = symbol_calloc(id, strlen(id));
+                const id = vd.ident.toChars();
+                s = symbol_calloc(id, cast(uint)strlen(id));
             }
-            s->Salignment = vd->alignment;
-            if (vd->storage_class & STCtemp)
-                s->Sflags |= SFLartifical;
+            s.Salignment = vd.alignment;
+            if (vd.storage_class & STCtemp)
+                s.Sflags |= SFLartifical;
 
             TYPE *t;
-            if (vd->storage_class & (STCout | STCref))
+            if (vd.storage_class & (STCout | STCref))
             {
-                t = type_allocn(TYnref, Type_toCtype(vd->type));
-                t->Tcount++;
+                t = type_allocn(TYnref, Type_toCtype(vd.type));
+                t.Tcount++;
             }
-            else if (vd->storage_class & STClazy)
+            else if (vd.storage_class & STClazy)
             {
-                if (config.exe == EX_WIN64 && vd->isParameter())
+                if (config.exe == EX_WIN64 && vd.isParameter())
                     t = type_fake(TYnptr);
                 else
                     t = type_fake(TYdelegate);          // Tdelegate as C type
-                t->Tcount++;
+                t.Tcount++;
             }
-            else if (vd->isParameter())
+            else if (vd.isParameter())
             {
-                if (config.exe == EX_WIN64 && vd->type->size(Loc()) > REGSIZE)
+                if (config.exe == EX_WIN64 && vd.type.size(Loc()) > _tysize[TYnptr])
                 {
-                    t = type_allocn(TYnref, Type_toCtype(vd->type));
-                    t->Tcount++;
+                    t = type_allocn(TYnref, Type_toCtype(vd.type));
+                    t.Tcount++;
                 }
                 else
                 {
-                    t = Type_toCtype(vd->type);
-                    t->Tcount++;
+                    t = Type_toCtype(vd.type);
+                    t.Tcount++;
                 }
             }
             else
             {
-                t = Type_toCtype(vd->type);
-                t->Tcount++;
+                t = Type_toCtype(vd.type);
+                t.Tcount++;
             }
 
-            if (vd->isDataseg())
+            if (vd.isDataseg())
             {
-                if (vd->isThreadlocal() && !(vd->storage_class & STCtemp))
+                if (vd.isThreadlocal() && !(vd.storage_class & STCtemp))
                 {
                     /* Thread local storage
                      */
-                    TYPE *ts = t;
-                    ts->Tcount++;   // make sure a different t is allocated
-                    type_setty(&t, t->Tty | mTYthread);
-                    ts->Tcount--;
+                    auto ts = t;
+                    ts.Tcount++;   // make sure a different t is allocated
+                    type_setty(&t, t.Tty | mTYthread);
+                    ts.Tcount--;
 
-                    if (config.objfmt == OBJ_MACH && I64)
-                        s->Salignment = 2;
+                    if (config.objfmt == OBJ_MACH && _tysize[TYnptr] == 8)
+                        s.Salignment = 2;
 
                     if (global.params.vtls)
                     {
-                        const char *p = vd->loc.toChars();
-                        fprintf(global.stdmsg, "%s: %s is thread local\n", p ? p : "", vd->toChars());
+                        const(char)* p = vd.loc.toChars();
+                        fprintf(global.stdmsg, "%s: %s is thread local\n", p ? p : "", vd.toChars());
                         if (p)
-                            mem.xfree((void*)p);
+                            mem.xfree(cast(void*)p);
                     }
                 }
-                s->Sclass = SCextern;
-                s->Sfl = FLextern;
+                s.Sclass = SCextern;
+                s.Sfl = FLextern;
                 /* if it's global or static, then it needs to have a qualified but unmangled name.
                  * This gives some explanation of the separation in treating name mangling.
                  * It applies to PDB format, but should apply to CV as PDB derives from CV.
                  *    http://msdn.microsoft.com/en-us/library/ff553493(VS.85).aspx
                  */
-                s->prettyIdent = vd->toPrettyChars(true);
+                s.prettyIdent = vd.toPrettyChars(true);
             }
             else
             {
-                s->Sclass = SCauto;
-                s->Sfl = FLauto;
+                s.Sclass = SCauto;
+                s.Sfl = FLauto;
 
-                if (vd->nestedrefs.dim)
+                if (vd.nestedrefs.dim)
                 {
                     /* Symbol is accessed by a nested function. Make sure
                      * it is not put in a register, and that the optimizer
@@ -236,17 +236,17 @@ Symbol *toSymbol(Dsymbol *s)
                      * dereferences.
                      */
                     //printf("\tnested ref, not register\n");
-                    type_setcv(&t, t->Tty | mTYvolatile);
+                    type_setcv(&t, t.Tty | mTYvolatile);
                 }
             }
 
-            if (vd->storage_class & STCvolatile)
+            if (vd.storage_class & STCvolatile)
             {
-                type_setcv(&t, t->Tty | mTYvolatile);
+                type_setcv(&t, t.Tty | mTYvolatile);
             }
 
             mangle_t m = 0;
-            switch (vd->linkage)
+            switch (vd.linkage)
             {
                 case LINKwindows:
                     m = global.params.is64bit ? mTYman_c : mTYman_std;
@@ -265,131 +265,131 @@ Symbol *toSymbol(Dsymbol *s)
                     m = mTYman_d;
                     break;
                 case LINKcpp:
-                    s->Sflags |= SFLpublic;
+                    s.Sflags |= SFLpublic;
                     m = mTYman_d;
                     break;
                 default:
                     printf("linkage = %d, vd = %s %s @ [%s]\n",
-                        vd->linkage, vd->kind(), vd->toChars(), vd->loc.toChars());
+                        vd.linkage, vd.kind(), vd.toChars(), vd.loc.toChars());
                     assert(0);
             }
 
             type_setmangle(&t, m);
-            s->Stype = t;
+            s.Stype = t;
 
-            s->lnoscopestart = vd->loc.linnum;
-            s->lnoscopeend = vd->endlinnum;
+            s.lnoscopestart = vd.loc.linnum;
+            s.lnoscopeend = vd.endlinnum;
             result = s;
         }
 
-        void visit(TypeInfoDeclaration *tid)
+        override void visit(TypeInfoDeclaration tid)
         {
-            //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", tid->toChars(), tid->linkage);
-            assert(tid->tinfo->ty != Terror);
-            visit((VarDeclaration *)tid);
+            //printf("TypeInfoDeclaration.toSymbol(%s), linkage = %d\n", tid.toChars(), tid.linkage);
+            assert(tid.tinfo.ty != Terror);
+            visit(cast(VarDeclaration)tid);
         }
 
-        void visit(TypeInfoClassDeclaration *ticd)
+        override void visit(TypeInfoClassDeclaration ticd)
         {
-            //printf("TypeInfoClassDeclaration::toSymbol(%s), linkage = %d\n", ticd->toChars(), ticd->linkage);
-            assert(ticd->tinfo->ty == Tclass);
-            TypeClass *tc = (TypeClass *)ticd->tinfo;
-            tc->sym->accept(this);
+            //printf("TypeInfoClassDeclaration.toSymbol(%s), linkage = %d\n", ticd.toChars(), ticd.linkage);
+            assert(ticd.tinfo.ty == Tclass);
+            auto tc = cast(TypeClass)ticd.tinfo;
+            tc.sym.accept(this);
         }
 
-        void visit(FuncAliasDeclaration *fad)
+        override void visit(FuncAliasDeclaration fad)
         {
-            fad->funcalias->accept(this);
+            fad.funcalias.accept(this);
         }
 
-        void visit(FuncDeclaration *fd)
+        override void visit(FuncDeclaration fd)
         {
-            const char *id = mangleExact(fd);
+            const(char)* id = mangleExact(fd);
 
-            //printf("FuncDeclaration::toSymbol(%s %s)\n", fd->kind(), fd->toChars());
+            //printf("FuncDeclaration.toSymbol(%s %s)\n", fd.kind(), fd.toChars());
             //printf("\tid = '%s'\n", id);
-            //printf("\ttype = %s\n", fd->type->toChars());
-            Symbol *s = symbol_calloc(id, strlen(id));
+            //printf("\ttype = %s\n", fd.type.toChars());
+            auto s = symbol_calloc(id, cast(uint)strlen(id));
 
-            s->prettyIdent = fd->toPrettyChars(true);
-            s->Sclass = SCglobal;
+            s.prettyIdent = fd.toPrettyChars(true);
+            s.Sclass = SCglobal;
             symbol_func(s);
-            func_t *f = s->Sfunc;
-            if (fd->isVirtual() && fd->vtblIndex != -1)
-                f->Fflags |= Fvirtual;
-            else if (fd->isMember2() && fd->isStatic())
-                f->Fflags |= Fstatic;
-            f->Fstartline.Slinnum = fd->loc.linnum;
-            f->Fstartline.Scharnum = fd->loc.charnum;
-            f->Fstartline.Sfilename = (char *)fd->loc.filename;
-            if (fd->endloc.linnum)
+            func_t *f = s.Sfunc;
+            if (fd.isVirtual() && fd.vtblIndex != -1)
+                f.Fflags |= Fvirtual;
+            else if (fd.isMember2() && fd.isStatic())
+                f.Fflags |= Fstatic;
+            f.Fstartline.Slinnum = fd.loc.linnum;
+            f.Fstartline.Scharnum = fd.loc.charnum;
+            f.Fstartline.Sfilename = cast(char *)fd.loc.filename;
+            if (fd.endloc.linnum)
             {
-                f->Fendline.Slinnum = fd->endloc.linnum;
-                f->Fendline.Scharnum = fd->endloc.charnum;
-                f->Fendline.Sfilename = (char *)fd->endloc.filename;
+                f.Fendline.Slinnum = fd.endloc.linnum;
+                f.Fendline.Scharnum = fd.endloc.charnum;
+                f.Fendline.Sfilename = cast(char *)fd.endloc.filename;
             }
             else
             {
-                f->Fendline.Slinnum = fd->loc.linnum;
-                f->Fendline.Scharnum = fd->loc.charnum;
-                f->Fendline.Sfilename = (char *)fd->loc.filename;
+                f.Fendline.Slinnum = fd.loc.linnum;
+                f.Fendline.Scharnum = fd.loc.charnum;
+                f.Fendline.Sfilename = cast(char *)fd.loc.filename;
             }
-            TYPE *t = Type_toCtype(fd->type);
+            auto t = Type_toCtype(fd.type);
 
-            mangle_t msave = t->Tmangle;
-            if (fd->isMain())
+            const msave = t.Tmangle;
+            if (fd.isMain())
             {
-                t->Tty = TYnfunc;
-                t->Tmangle = mTYman_c;
+                t.Tty = TYnfunc;
+                t.Tmangle = mTYman_c;
             }
             else
             {
-                switch (fd->linkage)
+                switch (fd.linkage)
                 {
                     case LINKwindows:
-                        t->Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
+                        t.Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
                         break;
 
                     case LINKpascal:
-                        t->Tty = TYnpfunc;
-                        t->Tmangle = mTYman_pas;
+                        t.Tty = TYnpfunc;
+                        t.Tmangle = mTYman_pas;
                         break;
 
                     case LINKc:
                     case LINKobjc:
-                        t->Tmangle = mTYman_c;
+                        t.Tmangle = mTYman_c;
                         break;
 
                     case LINKd:
-                        t->Tmangle = mTYman_d;
+                        t.Tmangle = mTYman_d;
                         break;
                     case LINKcpp:
-                        s->Sflags |= SFLpublic;
-                        if (fd->isThis() && !global.params.is64bit && global.params.isWindows)
+                        s.Sflags |= SFLpublic;
+                        if (fd.isThis() && !global.params.is64bit && global.params.isWindows)
                         {
-                            if (((TypeFunction *)fd->type)->varargs == 1)
+                            if ((cast(TypeFunction)fd.type).varargs == 1)
                             {
-                                t->Tty = TYnfunc;
+                                t.Tty = TYnfunc;
                             }
                             else
                             {
-                                t->Tty = TYmfunc;
+                                t.Tty = TYmfunc;
                             }
                         }
-                        t->Tmangle = mTYman_d;
+                        t.Tmangle = mTYman_d;
                         break;
                     default:
-                        printf("linkage = %d\n", fd->linkage);
+                        printf("linkage = %d\n", fd.linkage);
                         assert(0);
                 }
             }
 
             if (msave)
-                assert(msave == t->Tmangle);
-            //printf("Tty = %x, mangle = x%x\n", t->Tty, t->Tmangle);
-            t->Tcount++;
-            s->Stype = t;
-            //s->Sfielddef = this;
+                assert(msave == t.Tmangle);
+            //printf("Tty = %x, mangle = x%x\n", t.Tty, t.Tmangle);
+            t.Tcount++;
+            s.Stype = t;
+            //s.Sfielddef = this;
 
             result = s;
         }
@@ -398,14 +398,14 @@ Symbol *toSymbol(Dsymbol *s)
          * Create the "ClassInfo" symbol
          */
 
-        void visit(ClassDeclaration *cd)
+        override void visit(ClassDeclaration cd)
         {
             if (!scc)
-                scc = fake_classsym(Id::ClassInfo);
+                scc = fake_classsym(Id.ClassInfo);
 
-            Symbol *s = toSymbolX(cd, "__Class", SCextern, scc->Stype, "Z");
-            s->Sfl = FLextern;
-            s->Sflags |= SFLnodebug;
+            auto s = toSymbolX(cd, "__Class", SCextern, scc.Stype, "Z");
+            s.Sfl = FLextern;
+            s.Sflags |= SFLnodebug;
             result = s;
         }
 
@@ -413,14 +413,14 @@ Symbol *toSymbol(Dsymbol *s)
          * Create the "InterfaceInfo" symbol
          */
 
-        void visit(InterfaceDeclaration *id)
+        override void visit(InterfaceDeclaration id)
         {
             if (!scc)
-                scc = fake_classsym(Id::ClassInfo);
+                scc = fake_classsym(Id.ClassInfo);
 
-            Symbol *s = toSymbolX(id, "__Interface", SCextern, scc->Stype, "Z");
-            s->Sfl = FLextern;
-            s->Sflags |= SFLnodebug;
+            auto s = toSymbolX(id, "__Interface", SCextern, scc.Stype, "Z");
+            s.Sfl = FLextern;
+            s.Sflags |= SFLnodebug;
             result = s;
         }
 
@@ -428,37 +428,34 @@ Symbol *toSymbol(Dsymbol *s)
          * Create the "ModuleInfo" symbol
          */
 
-        void visit(Module *m)
+        override void visit(Module m)
         {
             if (!scc)
-                scc = fake_classsym(Id::ClassInfo);
+                scc = fake_classsym(Id.ClassInfo);
 
-            Symbol *s = toSymbolX(m, "__ModuleInfo", SCextern, scc->Stype, "Z");
-            s->Sfl = FLextern;
-            s->Sflags |= SFLnodebug;
+            auto s = toSymbolX(m, "__ModuleInfo", SCextern, scc.Stype, "Z");
+            s.Sfl = FLextern;
+            s.Sflags |= SFLnodebug;
             result = s;
         }
-    };
+    }
 
-    if (s->csym)
-        return s->csym;
+    if (s.csym)
+        return s.csym;
 
-    ToSymbol v;
-    s->accept(&v);
-    s->csym = v.result;
+    scope ToSymbol v = new ToSymbol();
+    s.accept(v);
+    s.csym = v.result;
     return v.result;
 }
 
-+/
-
-Symbol *toSymbol(Dsymbol ds);
 
 /*************************************
  */
 
 private Symbol *toImport(Symbol *sym)
 {
-    //printf("Dsymbol::toImport('%s')\n", sym.Sident);
+    //printf("Dsymbol.toImport('%s')\n", sym.Sident);
     char *n = sym.Sident.ptr;
     import core.stdc.stdlib : alloca;
     char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);

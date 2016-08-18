@@ -825,7 +825,7 @@ elem *type_vla_fix(type **pt)
  * Modify the tym_t field of a type.
  */
 
-type *type_setty(type **pt,long newty)
+type *type_setty(type **pt,unsigned newty)
 {   type *t;
 
     t = *pt;
