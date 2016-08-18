@@ -533,66 +533,68 @@ Classsym *fake_classsym(Identifier *id)
     t->Tmangle = mTYman_d;
     return t->Ttag;
 }
++/
 
 /*************************************
  * This is accessible via the ClassData, but since it is frequently
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
 
-Symbol *toVtblSymbol(ClassDeclaration *cd)
+Symbol *toSymbol(Dsymbol ds);
+
+Symbol *toVtblSymbol(ClassDeclaration cd)
 {
-    if (!cd->vtblsym)
+    if (!cd.vtblsym)
     {
-        if (!cd->csym)
+        if (!cd.csym)
             toSymbol(cd);
 
-        TYPE *t = type_allocn(TYnptr | mTYconst, tsvoid);
-        t->Tmangle = mTYman_d;
-        Symbol *s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
-        s->Sflags |= SFLnodebug;
-        s->Sfl = FLextern;
-        cd->vtblsym = s;
+        auto t = type_allocn(TYnptr | mTYconst, tstypes[TYvoid]);
+        t.Tmangle = mTYman_d;
+        auto s = toSymbolX(cd, "__vtbl", SCextern, t, "Z");
+        s.Sflags |= SFLnodebug;
+        s.Sfl = FLextern;
+        cd.vtblsym = s;
     }
-    return cd->vtblsym;
+    return cd.vtblsym;
 }
 
 /**********************************
  * Create the static initializer for the struct/class.
  */
 
-Symbol *toInitializer(AggregateDeclaration *ad)
+Symbol *toInitializer(AggregateDeclaration ad)
 {
-    if (!ad->sinit)
+    if (!ad.sinit)
     {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Symbol *s = toSymbolX(ad, "__init", SCextern, stag->Stype, "Z");
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        StructDeclaration *sd = ad->isStructDeclaration();
+        auto stag = fake_classsym(Id.ClassInfo);
+        auto s = toSymbolX(ad, "__init", SCextern, stag.Stype, "Z");
+        s.Sfl = FLextern;
+        s.Sflags |= SFLnodebug;
+        auto sd = ad.isStructDeclaration();
         if (sd)
-            s->Salignment = sd->alignment;
-        ad->sinit = s;
+            s.Salignment = sd.alignment;
+        ad.sinit = s;
     }
-    return ad->sinit;
+    return ad.sinit;
 }
 
-Symbol *toInitializer(EnumDeclaration *ed)
+Symbol *toInitializer(EnumDeclaration ed)
 {
-    if (!ed->sinit)
+    if (!ed.sinit)
     {
-        Classsym *stag = fake_classsym(Id::ClassInfo);
-        Identifier *ident_save = ed->ident;
-        if (!ed->ident)
-            ed->ident = Identifier::generateId("__enum");
-        Symbol *s = toSymbolX(ed, "__init", SCextern, stag->Stype, "Z");
-        ed->ident = ident_save;
-        s->Sfl = FLextern;
-        s->Sflags |= SFLnodebug;
-        ed->sinit = s;
+        auto stag = fake_classsym(Id.ClassInfo);
+        auto ident_save = ed.ident;
+        if (!ed.ident)
+            ed.ident = Identifier.generateId("__enum");
+        auto s = toSymbolX(ed, "__init", SCextern, stag.Stype, "Z");
+        ed.ident = ident_save;
+        s.Sfl = FLextern;
+        s.Sflags |= SFLnodebug;
+        ed.sinit = s;
     }
-    return ed->sinit;
+    return ed.sinit;
 }
-+/
 
 
 /******************************************
@@ -602,7 +604,7 @@ Symbol *toModuleAssert(Module m)
 {
     if (!m.massert)
     {
-        auto t = type_function(TYjfunc, null, 0, false, ddmd.backend.type.tstypes[TYvoid]);
+        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_d;
 
         m.massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");

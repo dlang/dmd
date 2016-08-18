@@ -525,6 +525,8 @@ Symbol *fake_classsym(Identifier *id)
     return t->Ttag;
 }
 
+#if 0
+
 /*************************************
  * This is accessible via the ClassData, but since it is frequently
  * needed directly (like for rtti comparisons), make it directly accessible.
@@ -584,8 +586,6 @@ Symbol *toInitializer(EnumDeclaration *ed)
     return ed->sinit;
 }
 
-
-#if 0
 
 /******************************************
  */
