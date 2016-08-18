@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2016 by Digital Mars
+ * Copyright (c) 1999-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -20,7 +20,9 @@
 #include        <string.h>
 #include        <time.h>
 #include        <assert.h>
+#if __DMC__
 #include        <limits.h>
+#endif
 
 
 // D compiler
@@ -107,7 +109,7 @@ struct ASM_STATE
     Scope *sc;
 };
 
-static ASM_STATE asmstate;
+ASM_STATE asmstate;
 
 static Token *asmtok;
 static TOK tok_value;
@@ -126,12 +128,12 @@ struct REG
     unsigned char val;
     opflag_t ty;
 
-    bool isSIL_DIL_BPL_SPL() const;
+    bool isSIL_DIL_BPL_SPL();
 };
 
-static const REG regFp =      { "ST", 0, _st };
+static REG regFp =      { "ST", 0, _st };
 
-static const REG aregFp[] =
+static REG aregFp[] =
 {
     { "ST(0)", 0, _sti },
     { "ST(1)", 1, _sti },
@@ -142,42 +144,38 @@ static const REG aregFp[] =
     { "ST(6)", 6, _sti },
     { "ST(7)", 7, _sti }
 };
+#define _AL             0
+#define _AH             4
+#define _AX             0
+#define _EAX            0
+#define _BL             3
+#define _BH             7
+#define _BX             3
+#define _EBX            3
+#define _CL             1
+#define _CH             5
+#define _CX             1
+#define _ECX            1
+#define _DL             2
+#define _DH             6
+#define _DX             2
+#define _EDX            2
+#define _BP             5
+#define _EBP            5
+#define _SP             4
+#define _ESP            4
+#define _DI             7
+#define _EDI            7
+#define _SI             6
+#define _ESI            6
+#define _ES             0
+#define _CS             1
+#define _SS             2
+#define _DS             3
+#define _GS             5
+#define _FS             4
 
-enum // the x86 CPU numbers for these registers
-{
-    _AL           = 0,
-    _AH           = 4,
-    _AX           = 0,
-    _EAX          = 0,
-    _BL           = 3,
-    _BH           = 7,
-    _BX           = 3,
-    _EBX          = 3,
-    _CL           = 1,
-    _CH           = 5,
-    _CX           = 1,
-    _ECX          = 1,
-    _DL           = 2,
-    _DH           = 6,
-    _DX           = 2,
-    _EDX          = 2,
-    _BP           = 5,
-    _EBP          = 5,
-    _SP           = 4,
-    _ESP          = 4,
-    _DI           = 7,
-    _EDI          = 7,
-    _SI           = 6,
-    _ESI          = 6,
-    _ES           = 0,
-    _CS           = 1,
-    _SS           = 2,
-    _DS           = 3,
-    _GS           = 5,
-    _FS           = 4,
-};
-
-static const REG regtab[] =
+static REG regtab[] =
 {
     {"AL",   _AL,    _r8 | _al},
     {"AH",   _AH,    _r8},
@@ -244,58 +242,56 @@ static const REG regtab[] =
     {"XMM7", 7,      _xmm},
 };
 
-enum // 64 bit only registers
-{
-    _RAX  = 0,
-    _RBX  = 3,
-    _RCX  = 1,
-    _RDX  = 2,
-    _RSI  = 6,
-    _RDI  = 7,
-    _RBP  = 5,
-    _RSP  = 4,
-    _R8   = 8,
-    _R9   = 9,
-    _R10  = 10,
-    _R11  = 11,
-    _R12  = 12,
-    _R13  = 13,
-    _R14  = 14,
-    _R15  = 15,
+// 64 bit only registers
+#define _RAX    0
+#define _RBX    3
+#define _RCX    1
+#define _RDX    2
+#define _RSI    6
+#define _RDI    7
+#define _RBP    5
+#define _RSP    4
+#define _R8     8
+#define _R9     9
+#define _R10    10
+#define _R11    11
+#define _R12    12
+#define _R13    13
+#define _R14    14
+#define _R15    15
 
-    _R8D  = 8,
-    _R9D  = 9,
-    _R10D = 10,
-    _R11D = 11,
-    _R12D = 12,
-    _R13D = 13,
-    _R14D = 14,
-    _R15D = 15,
+#define _R8D    8
+#define _R9D    9
+#define _R10D   10
+#define _R11D   11
+#define _R12D   12
+#define _R13D   13
+#define _R14D   14
+#define _R15D   15
 
-    _R8W  = 8,
-    _R9W  = 9,
-    _R10W = 10,
-    _R11W = 11,
-    _R12W = 12,
-    _R13W = 13,
-    _R14W = 13,
-    _R15W = 15,
+#define _R8W    8
+#define _R9W    9
+#define _R10W   10
+#define _R11W   11
+#define _R12W   12
+#define _R13W   13
+#define _R14W   13
+#define _R15W   15
 
-    _SIL  = 6,
-    _DIL  = 7,
-    _BPL  = 5,
-    _SPL  = 4,
-    _R8B  = 8,
-    _R9B  = 9,
-    _R10B = 10,
-    _R11B = 11,
-    _R12B = 12,
-    _R13B = 13,
-    _R14B = 14,
-    _R15B = 15,
-};
+#define _SIL    6
+#define _DIL    7
+#define _BPL    5
+#define _SPL    4
+#define _R8B    8
+#define _R9B    9
+#define _R10B   10
+#define _R11B   11
+#define _R12B   12
+#define _R13B   13
+#define _R14B   14
+#define _R15B   15
 
-static const REG regtab64[] =
+static REG regtab64[] =
 {
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},
@@ -372,7 +368,7 @@ static const REG regtab64[] =
     {"YMM15", 15,    _ymm},
 };
 
-bool REG::isSIL_DIL_BPL_SPL() const
+bool REG::isSIL_DIL_BPL_SPL()
 {
     // Be careful as these have the same val's as AH CH DH BH
     return ty == _r8 &&
@@ -392,10 +388,10 @@ enum ASM_JUMPTYPE
 
 struct OPND
 {
-    const REG *base;        // if plain register
-    const REG *pregDisp1;   // if [register1]
-    const REG *pregDisp2;
-    const REG *segreg;      // if segment override
+    REG *base;              // if plain register
+    REG *pregDisp1;         // if [register1]
+    REG *pregDisp2;
+    REG *segreg;            // if segment override
     bool bOffset;           // if 'offset' keyword
     bool bSeg;              // if 'segment' keyword
     bool bPtr;              // if 'ptr' keyword
@@ -403,7 +399,7 @@ struct OPND
     opflag_t usFlags;
     Dsymbol *s;
     targ_llong disp;
-    real_t real;
+    longdouble real;
     Type *ptype;
     ASM_JUMPTYPE ajt;
 
@@ -425,14 +421,10 @@ static OPND *asm_add_exp();
 static OPND *asm_and_exp();
 static OPND *asm_cond_exp();
 static opflag_t asm_determine_operand_flags(OPND *popnd);
-static code *asm_genloc(Loc loc, code *c);
-static int asm_getnum();
+code *asm_genloc(Loc loc, code *c);
+int asm_getnum();
 
 static void asmerr(const char *, ...);
-
-#if __DMC__
-#pragma SC noreturn(asmerr)
-#endif
 
 static OPND *asm_equal_exp();
 static OPND *asm_inc_or_exp();
@@ -471,7 +463,7 @@ static code *asm_da_parse(OP *pop);
 /*******************************
  */
 
-static void asm_chktok(TOK toknum, const char *msg)
+static bool asm_chktok(TOK toknum, const char *msg)
 {
     if (tok_value == toknum)
         asm_token();                    // scan past token
@@ -481,7 +473,9 @@ static void asm_chktok(TOK toknum, const char *msg)
          * But when this happens when a ';' was hit.
          */
         asmerr(msg, asmtok ? asmtok->toChars() : ";");
+        return false;
     }
+    return true;
 }
 
 
@@ -498,6 +492,7 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     opflag_t opflags2 = 0;
     opflag_t opflags3 = 0;
     opflag_t opflags4 = 0;
+    bool    bFake = false;
     bool    bInvalid64bit = false;
 
     bool   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = false;
@@ -512,6 +507,8 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     else
     {
         popnd1->usFlags = opflags1 = asm_determine_operand_flags(popnd1);
+        if (!opflags1)
+            return ((PTRNTAB) {NULL});
         if (!popnd2)
         {
             usNumops = 1;
@@ -519,6 +516,8 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         else
         {
             popnd2->usFlags = opflags2 = asm_determine_operand_flags(popnd2);
+            if (!opflags2)
+                return ((PTRNTAB) {NULL});
             if (!popnd3)
             {
                 usNumops = 2;
@@ -526,6 +525,8 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
             else
             {
                 popnd3->usFlags = opflags3 = asm_determine_operand_flags(popnd3);
+                if (!opflags3)
+                    return ((PTRNTAB) {NULL});
                 if (!popnd4)
                 {
                     usNumops = 3;
@@ -533,6 +534,8 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
                 else
                 {
                     popnd4->usFlags = opflags4 = asm_determine_operand_flags(popnd4);
+                    if (!opflags4)
+                        return ((PTRNTAB) {NULL});
                     usNumops = 4;
                 }
             }
@@ -546,6 +549,7 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     {
 PARAM_ERROR:
         asmerr("%u operands found for %s instead of the expected %u", usNumops, asm_opstr(pop), usActual);
+        return ((PTRNTAB) {NULL});
     }
     if (usActual < usNumops)
         *pusNumops = usActual;
@@ -561,7 +565,10 @@ RETRY:
     {
         case 0:
             if (global.params.is64bit && (pop->ptb.pptb0->usFlags & _i64_bit))
+            {
                 asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
+                return ((PTRNTAB) {NULL});
+            }
 
             if ((asmstate.ucItype == ITopt ||
                  asmstate.ucItype == ITfloat) &&
@@ -659,6 +666,7 @@ TYPE_SIZE_ERROR:
                         if (bRetry && popnd1->s && !popnd1->s->isLabel())
                         {
                             asmerr("label expected", popnd1->s->toChars());
+                            return ((PTRNTAB) {NULL});
                         }
 
                         popnd1->usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
@@ -685,6 +693,7 @@ TYPE_SIZE_ERROR:
                         asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
                     else
                         asmerr("bad type/size of operands '%s'", asm_opstr(pop));
+                    return ((PTRNTAB) {NULL});
                 }
                 bRetry = true;
                 goto RETRY;
@@ -704,7 +713,10 @@ TYPE_SIZE_ERROR:
                 //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
                 //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
                 if (global.params.is64bit && (table2->usFlags & _i64_bit))
+                {
                     asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));
+                    return ((PTRNTAB) {NULL});
+                }
 
                 bMatch1 = asm_match_flags(opflags1, table2->usOp1);
                 bMatch2 = asm_match_flags(opflags2, table2->usOp2);
@@ -713,48 +725,25 @@ TYPE_SIZE_ERROR:
                 {
                     //printf("match\n");
 
-                    /* Don't match if implicit sign-extension will
-                     * change the value of the immediate operand
+                    /* If they both match and the first op in the table is not AL
+                     * or size of 8 and the second is immediate 8,
+                     * then check to see if the constant
+                     * is a signed 8 bit constant.  If so, then do not match, otherwise match
                      */
-                    if (!bRetry && ASM_GET_aopty(table2->usOp2) == _imm)
+                    if (!bRetry &&
+                        !((ASM_GET_uSizemask(table2->usOp1) & _8) ||
+                          (ASM_GET_uRegmask(table2->usOp1) & _al)) &&
+                        (ASM_GET_aopty(table2->usOp2) == _imm) &&
+                        (ASM_GET_uSizemask(table2->usOp2) & _8))
                     {
-                        int op1size = ASM_GET_uSizemask(table2->usOp1);
-                        if (!op1size) // implicit register operand
-                        {
-                            switch (ASM_GET_uRegmask(table2->usOp1))
-                            {
-                                case ASM_GET_uRegmask(_al):
-                                case ASM_GET_uRegmask(_cl): op1size = _8; break;
-                                case ASM_GET_uRegmask(_ax):
-                                case ASM_GET_uRegmask(_dx): op1size = _16; break;
-                                case ASM_GET_uRegmask(_eax): op1size = _32; break;
-                                case ASM_GET_uRegmask(_rax): op1size = _64; break;
-                                default:
-                                    assert(0);
-                            }
-                        }
-                        if (op1size > ASM_GET_uSizemask(table2->usOp2))
-                        {
-                            switch(ASM_GET_uSizemask(table2->usOp2))
-                            {
-                                case _8:
-                                    if (popnd2->disp > SCHAR_MAX)
-                                        continue;
-                                    break;
-                                case _16:
-                                    if (popnd2->disp > SHRT_MAX)
-                                        continue;
-                                    break;
-                                case _32:
-                                    if (popnd2->disp > INT_MAX)
-                                        continue;
-                                    break;
-                                default:
-                                    assert(0);
-                            }
-                        }
+
+                        if (popnd2->disp <= SCHAR_MAX)
+                            break;
+                        else
+                            bFake = true;
                     }
-                    break;
+                    else
+                        break;
                 }
                 if (asmstate.ucItype == ITopt ||
                     asmstate.ucItype == ITfloat)
@@ -996,9 +985,10 @@ TYPE_SIZE_ERROR:
         }
     }
 RETURN_IT:
-    if (bRetry)
+    if (bRetry && !bFake)
     {
         asmerr("bad type/size of operands '%s'", asm_opstr(pop));
+        return ((PTRNTAB) {NULL});
     }
     return ptbRet;
 }
@@ -1080,7 +1070,10 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
 
     // If specified 'offset' or 'segment' but no symbol
     if ((popnd->bOffset || popnd->bSeg) && !popnd->s)
+    {
         error(asmstate.loc, "specified 'offset' or 'segment' but no symbol");
+        return 0;
+    }
 
     if (asmstate.ucItype == ITfloat)
         return asm_determine_float_flags(popnd);
@@ -1097,7 +1090,11 @@ static opflag_t asm_determine_operand_flags(OPND *popnd)
     if (ds && ds->storage_class & STClazy)
         sz = _anysize;
     else
+    {
         sz = asm_type_size((ds && ds->storage_class & (STCout | STCref)) ? popnd->ptype->pointerTo() : popnd->ptype);
+        if (!sz)
+            return 0;
+    }
     if (popnd->pregDisp1 && !popnd->base)
     {
         if (ps && ps->isLabel() && sz == _anysize)
@@ -1229,7 +1226,7 @@ static code *asm_emit(Loc loc,
     OPND *popndTmp = NULL;
     ASM_OPERAND_TYPE    aoptyTmp;
     unsigned  uSizemaskTmp;
-    const REG *pregSegment;
+    REG     *pregSegment;
     code    *pcPrefix = NULL;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
     ASM_MODIFIERS       amod1 = _normal, amod2 = _normal;
@@ -1281,7 +1278,10 @@ static code *asm_emit(Loc loc,
     asmstate.statement->regs |= asm_modify_regs(ptb, popnd1, popnd2);
 
     if (ptb.pptb0->usFlags & _64_bit && !global.params.is64bit)
+    {
         error(asmstate.loc, "use -m64 to compile 64 bit instructions");
+        return NULL;
+    }
 
     if (global.params.is64bit && (ptb.pptb0->usFlags & _64_bit))
     {
@@ -1379,7 +1379,10 @@ static code *asm_emit(Loc loc,
                 if (pregSegment->val != usDefaultseg)
                 {
                     if (asmstate.ucItype == ITjump)
+                    {
                         error(asmstate.loc, "Cannot generate a segment prefix for a branching instruction");
+                        return NULL;
+                    }
                     else
                         switch (pregSegment->val)
                         {
@@ -1430,21 +1433,23 @@ static code *asm_emit(Loc loc,
 
             if ((aoptyTable1 == _m || aoptyTable1 == _rm) &&
                 aoptyTable2 == _reg)
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd1, popnd2);
+                    popnd1, popnd2))
+                    return NULL;
             else if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd2, popnd1);
+                    popnd2, popnd1))
+                    return NULL;
             else
                 assert(!usNumops); // no operands
 
@@ -1460,13 +1465,14 @@ static code *asm_emit(Loc loc,
         case VEX_NDD:
             pc->Ivex.vvvv = ~popnd1->base->val;
 
-            asm_make_modrm_byte(
+            if (!asm_make_modrm_byte(
 #ifdef DEBUG
                 auchOpcode, &usIdx,
 #endif
                 pc,
                 ptb.pptb1->usFlags,
-                popnd2, NULL);
+                popnd2, NULL));
+                return NULL;
 
             if (usNumops == 3)
             {
@@ -1481,34 +1487,37 @@ static code *asm_emit(Loc loc,
             assert(usNumops == 3);
             pc->Ivex.vvvv = ~popnd2->base->val;
 
-            asm_make_modrm_byte(
+            if (!asm_make_modrm_byte(
 #ifdef DEBUG
                 auchOpcode, &usIdx,
 #endif
                 pc,
                 ptb.pptb1->usFlags,
-                popnd3, popnd1);
+                popnd3, popnd1))
+                return NULL;
             break;
 
         case VEX_NDS:
             pc->Ivex.vvvv = ~popnd2->base->val;
 
             if (aoptyTable1 == _m || aoptyTable1 == _rm)
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd1, popnd3);
+                    popnd1, popnd3))
+                    return NULL;
             else
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd3, popnd1);
+                    popnd3, popnd1))
+                    return NULL;
 
             if (usNumops == 4)
             {
@@ -1698,13 +1707,14 @@ L3: ;
             }
             else
             {
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd1, NULL);
+                    popnd1, NULL))
+                    return NULL;
             }
             popndTmp = popnd1;
             aoptyTmp = aoptyTable1;
@@ -1717,7 +1727,10 @@ L1:
                 if (popndTmp->bSeg)
                 {
                     if (!(d && d->isDataseg()))
+                    {
                         asmerr("bad addr mode");
+                        return NULL;
+                    }
                 }
                 switch (uSizemaskTmp)
                 {
@@ -1790,23 +1803,25 @@ L1:
                 ptb.pptb0->usOpcode == 0x660F7E     // MOVD _rm32,_xmm
                )
             {
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd1, popnd2);
+                    popnd1, popnd2))
+                    return NULL;
             }
             else
             {
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd2, popnd1);
+                    popnd2, popnd1))
+                    return NULL;
             }
             popndTmp = popnd1;
             aoptyTmp = aoptyTable1;
@@ -1871,23 +1886,25 @@ L1:
                      ptb.pptb0->usOpcode == MOVDQ2Q ||
                      ptb.pptb0->usOpcode == 0x0FD7)
             {
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd2, popnd1);
+                    popnd2, popnd1))
+                    return NULL;
             }
             else
             {
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd1, popnd2);
+                    popnd1, popnd2))
+                    return NULL;
 
             }
             if (aoptyTable1 == _imm)
@@ -1913,13 +1930,14 @@ L1:
             usOpcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
            )
         {
-            asm_make_modrm_byte(
+            if (!asm_make_modrm_byte(
 #ifdef DEBUG
                 auchOpcode, &usIdx,
 #endif
                 pc,
                 ptb.pptb1->usFlags,
-                popnd2, popnd1);
+                popnd2, popnd1))
+                return NULL;
         popndTmp = popnd3;
         aoptyTmp = aoptyTable3;
         uSizemaskTmp = uSizemaskTable3;
@@ -1966,13 +1984,14 @@ L1:
 #endif
             }
             else
-                asm_make_modrm_byte(
+                if (!asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd1, popnd2);
+                    popnd1, popnd2))
+                    return NULL;
 
             popndTmp = popnd3;
             aoptyTmp = aoptyTable3;
@@ -2024,11 +2043,19 @@ L2:
  * Prepend line number to c.
  */
 
-static code *asm_genloc(Loc loc, code *c)
+code *asm_genloc(Loc loc, code *c)
 {
     if (global.params.symdebug)
     {
-        c = cat(genlinnum(NULL, Srcpos::create(loc.filename, loc.linnum, loc.charnum)), c);
+        code *pcLin;
+        Srcpos srcpos;
+
+        memset(&srcpos, 0, sizeof(srcpos));
+        srcpos.Slinnum = loc.linnum;
+        srcpos.Scharnum = loc.charnum;
+        srcpos.Sfilename = (char *)loc.filename;
+        pcLin = genlinnum(NULL, srcpos);
+        c = cat(pcLin, c);
     }
     return c;
 }
@@ -2037,15 +2064,12 @@ static code *asm_genloc(Loc loc, code *c)
 /*******************************
  */
 
-struct AsmErr {};
 static void asmerr(const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
     verror(asmstate.loc, format, ap);
     va_end(ap);
-
-    throw AsmErr();
 }
 
 /*******************************
@@ -2105,7 +2129,7 @@ static bool asm_isNonZeroInt(OPND *o)
 /*******************************
  */
 
-static bool asm_is_fpreg(const char *szReg)
+static bool asm_is_fpreg(char *szReg)
 {
 #if 1
     return(szReg[0] == 'S' &&
@@ -2304,7 +2328,7 @@ ILLEGAL_ADDRESS_ERROR:
 /***************************************
  */
 
-static void asm_merge_symbol(OPND *o1, Dsymbol *s)
+static bool asm_merge_symbol(OPND *o1, Dsymbol *s)
 {
     VarDeclaration *v;
     EnumMember *em;
@@ -2315,7 +2339,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
     if (s->isLabel())
     {
         o1->s = s;
-        return;
+        return true;
     }
 
     v = s->isVarDeclaration();
@@ -2329,6 +2353,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
         if (!v->isDataseg() && v->parent != asmstate.sc->parent && v->parent)
         {
             asmerr("uplevel nested reference to variable %s", v->toChars());
+            return false;
         }
 #endif
         if (v->isField())
@@ -2337,25 +2362,31 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
             goto L2;
         }
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
-            !v->type->isfloating() && v->type->ty != Tvector && v->_init)
+            !v->type->isfloating() && v->_init)
         {
             ExpInitializer *ei = v->_init->isExpInitializer();
             if (ei)
             {
                 o1->disp = ei->exp->toInteger();
-                return;
+                return true;
             }
         }
         if (v->isThreadlocal())
+        {
             error(asmstate.loc, "cannot directly load TLS variable '%s'", v->toChars());
+            return false;
+        }
         else if (v->isDataseg() && global.params.pic)
+        {
             error(asmstate.loc, "cannot directly load global variable '%s' with PIC code", v->toChars());
+            return false;
+        }
     }
     em = s->isEnumMember();
     if (em)
     {
         o1->disp = em->value()->toInteger();
-        return;
+        return true;
     }
     o1->s = s;  // a C identifier
 L2:
@@ -2363,20 +2394,25 @@ L2:
     if (!d)
     {
         asmerr("%s %s is not a declaration", s->kind(), s->toChars());
+        return false;
     }
     else if (d->getType())
+    {
         asmerr("cannot use type %s as an operand", d->getType()->toChars());
+        return false;
+    }
     else if (d->isTupleDeclaration())
         ;
     else
         o1->ptype = d->type->toBasetype();
+    return true;
 }
 
 /****************************
  * Fill in the modregrm and sib bytes of code.
  */
 
-static void asm_make_modrm_byte(
+static bool asm_make_modrm_byte(
 #ifdef DEBUG
         unsigned char *puchOpcode, unsigned *pusIdx,
 #endif
@@ -2550,7 +2586,10 @@ static void asm_make_modrm_byte(
             if (d->isDataseg() || d->isCodeseg())
             {
                 if (!global.params.is64bit && amod == _addr16)
+                {
                     error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
+                    return false;
+                }
                 goto DATA_REF;
             }
             mrmb.rm = BPRM;
@@ -2612,6 +2651,7 @@ static void asm_make_modrm_byte(
 
                 default:
                     asmerr("bad 16 bit index address mode");
+                    return false;
             }
             #undef X
             #undef Y
@@ -2653,13 +2693,19 @@ static void asm_make_modrm_byte(
             if (popnd->pregDisp2)
             {
                 if (popnd->pregDisp2->val == _ESP)
+                {
                     error(asmstate.loc, "ESP cannot be scaled index register");
+                    return false;
+                }
             }
             else
             {
                 if (popnd->uchMultiplier &&
                     popnd->pregDisp1->val ==_ESP)
+                {
                     error(asmstate.loc, "ESP cannot be scaled index register");
+                    return false;
+                }
                 bDisp = true;
             }
 
@@ -2684,7 +2730,10 @@ static void asm_make_modrm_byte(
                     if (popnd->pregDisp2)
                     {
                         if (popnd->pregDisp2->val != _EBP)
+                        {
                             error(asmstate.loc, "EBP cannot be base register");
+                            return false;
+                        }
                     }
                     else
                     {
@@ -2737,7 +2786,7 @@ static void asm_make_modrm_byte(
 
                 default:
                     error(asmstate.loc, "scale factor must be one of 0,1,2,4,8");
-                    break;
+                    return false;
             }
         }
         else
@@ -2745,7 +2794,10 @@ static void asm_make_modrm_byte(
             unsigned rm;
 
             if (popnd->uchMultiplier)
+            {
                 error(asmstate.loc, "scale factor not allowed");
+                return false;
+            }
             switch (popnd->pregDisp1->val & (NUM_MASKR | NUM_MASK))
             {
                 case _EBP:
@@ -2761,7 +2813,7 @@ static void asm_make_modrm_byte(
                 case _ESP:
                     error(asmstate.loc, "[ESP] addressing mode not allowed");
                     rm = 0;                     // no uninitialized data
-                    break;
+                    return false;
 
                 default:
                     rm = popnd->pregDisp1->val & NUM_MASK;
@@ -2864,6 +2916,7 @@ static void asm_make_modrm_byte(
 
         }
     }
+    return true;
 }
 
 /*******************************
@@ -3317,7 +3370,7 @@ static void asm_output_popnd(OPND *popnd)
 /*******************************
  */
 
-static const REG *asm_reg_lookup(const char *s)
+static REG *asm_reg_lookup(char *s)
 {
     int i;
 
@@ -3366,7 +3419,7 @@ static void asm_token_trans(Token *tok)
         if (tok_value == TOKidentifier)
         {
             size_t len;
-            const char *id;
+            char *id;
 
             id = tok->ident->toChars();
             len = strlen(id);
@@ -3393,7 +3446,7 @@ static unsigned asm_type_size(Type * ptype)
     {
         switch ((int)ptype->size())
         {
-            case 0:     asmerr("bad type/size of operands '%s'", "0 size");    break;
+            case 0:     u = 0; asmerr("bad type/size of operands '%s'", "0 size");    break;
             case 1:     u = _8;         break;
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
@@ -3424,21 +3477,32 @@ static unsigned asm_type_size(Type * ptype)
 
 static code *asm_da_parse(OP *pop)
 {
-    CodeBuilder cb;
+    code *clst = NULL;
+
     while (1)
     {
         if (tok_value == TOKidentifier)
         {
             LabelDsymbol *label = asmstate.sc->func->searchLabel(asmtok->ident);
             if (!label)
+            {
                 error(asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
+                return NULL;
+            }
 
-            if (global.params.symdebug)
-                cb.genlinnum(Srcpos::create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
-            cb.genasm(label);
+            code *c = code_calloc();
+            c->Iop = ASM;
+            c->Iflags = CFaddrsize;
+            c->IFL1 = FLblockoff;
+            c->IEVlsym1 = label;
+            c = asm_genloc(asmstate.loc, c);
+            clst = cat(clst,c);
         }
         else
+        {
             error(asmstate.loc, "label expected as argument to DA pseudo-op"); // illegal addressing mode
+            return NULL;
+        }
         asm_token();
         if (tok_value != TOKcomma)
             break;
@@ -3448,7 +3512,7 @@ static code *asm_da_parse(OP *pop)
     asmstate.statement->regs |= mES|ALLREGS;
     asmstate.bReturnax = true;
 
-    return cb.finish();
+    return clst;
 }
 
 /*******************************************
@@ -3457,6 +3521,9 @@ static code *asm_da_parse(OP *pop)
 
 static code *asm_db_parse(OP *pop)
 {
+    size_t usSize;
+    size_t usMaxbytes;
+    size_t usBytes;
     union DT
     {
         targ_ullong ul;
@@ -3465,26 +3532,27 @@ static code *asm_db_parse(OP *pop)
         targ_ldouble ld;
         char value[10];
     } dt;
+    code *c;
+    unsigned op;
+    static unsigned char opsize[] = { 1,2,4,8,4,8,10 };
 
-    static const unsigned char opsize[] = { 1,2,4,8,4,8,10 };
+    op = pop->usNumops & ITSIZE;
+    usSize = opsize[op];
 
-    unsigned op = pop->usNumops & ITSIZE;
-    size_t usSize = opsize[op];
-
-    size_t usBytes = 0;
-    size_t usMaxbytes = 0;
-    char *bytes = NULL;
+    usBytes = 0;
+    usMaxbytes = 0;
+    c = code_calloc();
+    c->Iop = ASM;
 
     while (1)
     {
         size_t len;
         unsigned char *q;
-        unsigned char *qstart = NULL;
 
         if (usBytes+usSize > usMaxbytes)
         {
             usMaxbytes = usBytes + usSize + 10;
-            bytes = (char *)mem_realloc(bytes, usMaxbytes);
+            c->IEV1.as.bytes = (char *)mem_realloc(c->IEV1.as.bytes,usMaxbytes);
         }
         switch (tok_value)
         {
@@ -3510,6 +3578,7 @@ static code *asm_db_parse(OP *pop)
                         break;
                     default:
                         asmerr("floating point expected");
+                        return NULL;
                 }
                 goto L2;
 
@@ -3519,21 +3588,22 @@ static code *asm_db_parse(OP *pop)
                 switch (op)
                 {
                     case OPdf:
-                        dt.f = asmtok->floatvalue;
+                        dt.f = asmtok->float80value;
                         break;
                     case OPdd:
-                        dt.d = asmtok->floatvalue;
+                        dt.d = asmtok->float80value;
                         break;
                     case OPde:
-                        dt.ld = asmtok->floatvalue;
+                        dt.ld = asmtok->float80value;
                         break;
                     default:
                         asmerr("integer expected");
+                        return NULL;
                 }
                 goto L2;
 
             L2:
-                memcpy(bytes + usBytes, &dt, usSize);
+                memcpy(c->IEV1.as.bytes + usBytes,&dt,usSize);
                 usBytes += usSize;
                 break;
 
@@ -3544,10 +3614,11 @@ static code *asm_db_parse(OP *pop)
                 if (len)
                 {
                     usMaxbytes += len * usSize;
-                    bytes = (char *)mem_realloc(bytes, usMaxbytes);
-                    memcpy(bytes + usBytes, asmtok->ustring, len);
+                    c->IEV1.as.bytes =
+                        (char *)mem_realloc(c->IEV1.as.bytes,usMaxbytes);
+                    memcpy(c->IEV1.as.bytes + usBytes,asmtok->ustring,len);
 
-                    char *p = bytes + usBytes;
+                    char *p = c->IEV1.as.bytes + usBytes;
                     for (size_t i = 0; i < len; i++)
                     {
                         // Be careful that this works
@@ -3557,13 +3628,19 @@ static code *asm_db_parse(OP *pop)
                             case OPdb:
                                 *p = (unsigned char)*q;
                                 if (*p != *q)
+                                {
                                     asmerr("character is truncated");
+                                    return NULL;
+                                }
                                 break;
 
                             case OPds:
                                 *(short *)p = *(unsigned char *)q;
                                 if (*(short *)p != *q)
+                                {
                                     asmerr("character is truncated");
+                                    return NULL;
+                                }
                                 break;
 
                             case OPdi:
@@ -3573,17 +3650,13 @@ static code *asm_db_parse(OP *pop)
 
                             default:
                                 asmerr("floating point expected");
+                                return NULL;
                         }
                         q++;
                         p += usSize;
                     }
 
                     usBytes += len * usSize;
-                }
-                if (qstart)
-                {
-                    mem_free(qstart);
-                    qstart = NULL;
                 }
                 break;
 
@@ -3614,20 +3687,15 @@ static code *asm_db_parse(OP *pop)
                             break;
                         default:
                             asmerr("integer expected");
+                            return NULL;
                     }
                     goto L2;
                 }
                 else if (e->op == TOKstring)
                 {
                     StringExp *se = (StringExp *)e;
-                    len = se->numberOfCodeUnits();
-                    q = (unsigned char *)se->toPtr();
-                    if (!q)
-                    {
-                        qstart = (unsigned char *)mem_malloc(len * se->sz);
-                        se->writeTo(qstart, false);
-                        q = qstart;
-                    }
+                    q = (unsigned char *)se->string;
+                    len = se->len;
                     goto L3;
                 }
                 goto Ldefault;
@@ -3636,8 +3704,9 @@ static code *asm_db_parse(OP *pop)
             default:
             Ldefault:
                 asmerr("constant initializer expected");          // constant initializer
-                break;
+                return NULL;
         }
+        c->IEV1.as.len = usBytes;
 
         asm_token();
         if (tok_value != TOKcomma)
@@ -3645,12 +3714,7 @@ static code *asm_db_parse(OP *pop)
         asm_token();
     }
 
-    CodeBuilder cb;
-    if (global.params.symdebug)
-        cb.genlinnum(Srcpos::create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
-    cb.genasm(bytes, usBytes);
-    code *c = cb.finish();
-    mem_free(bytes);
+    c = asm_genloc(asmstate.loc, c);
 
     asmstate.statement->regs |= /* mES| */ ALLREGS;
     asmstate.bReturnax = true;
@@ -3662,7 +3726,7 @@ static code *asm_db_parse(OP *pop)
  * Parse and get integer expression.
  */
 
-static int asm_getnum()
+long long asm_getnum()
 {
     int v;
     dinteger_t i;
@@ -3687,13 +3751,16 @@ static int asm_getnum()
             i = e->toInteger();
             v = (int) i;
             if (v != i)
+            {
                 asmerr("integer expected");
+                return -1L;
+            }
             break;
         }
         default:
             asmerr("integer expected");
             v = 0;              // no uninitialized values
-            break;
+            return -1L;
     }
     asm_token();
     return v;
@@ -3708,12 +3775,16 @@ static OPND *asm_cond_exp()
 
     //printf("asm_cond_exp()\n");
     o1 = asm_log_or_exp();
+    if (!o1) return NULL;
     if (tok_value == TOKquestion)
     {
         asm_token();
         o2 = asm_cond_exp();
-        asm_chktok(TOKcolon,"colon");
+        if (!o2) return NULL;
+        if (!asm_chktok(TOKcolon,"colon"))
+            return NULL;
         o3 = asm_cond_exp();
+        if (!o3) return NULL;
         o1 = (o1->disp) ? o2 : o3;
     }
     return o1;
@@ -3727,14 +3798,19 @@ static OPND *asm_log_or_exp()
     OPND *o1,*o2;
 
     o1 = asm_log_and_exp();
+    if (!o1) return NULL;
     while (tok_value == TOKoror)
     {
         asm_token();
         o2 = asm_log_and_exp();
+        if (!o2) return NULL;
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp = o1->disp || o2->disp;
         else
+        {
             asmerr("bad integral operand");
+            return NULL;
+        }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -3749,14 +3825,19 @@ static OPND *asm_log_and_exp()
     OPND *o1,*o2;
 
     o1 = asm_inc_or_exp();
+    if (!o1) return NULL;
     while (tok_value == TOKandand)
     {
         asm_token();
         o2 = asm_inc_or_exp();
+        if (!o2) return NULL;
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp = o1->disp && o2->disp;
         else
+        {
             asmerr("bad integral operand");
+            return NULL;
+        }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -3771,14 +3852,19 @@ static OPND *asm_inc_or_exp()
     OPND *o1,*o2;
 
     o1 = asm_xor_exp();
+    if (!o1) return NULL;
     while (tok_value == TOKor)
     {
         asm_token();
         o2 = asm_xor_exp();
+        if (!o2) return NULL;
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp |= o2->disp;
         else
+        {
             asmerr("bad integral operand");
+            return NULL;
+        }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -3793,14 +3879,19 @@ static OPND *asm_xor_exp()
     OPND *o1,*o2;
 
     o1 = asm_and_exp();
+    if (!o1) return NULL;
     while (tok_value == TOKxor)
     {
         asm_token();
         o2 = asm_and_exp();
+        if (!o2) return NULL;
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp ^= o2->disp;
         else
+        {
             asmerr("bad integral operand");
+            return NULL;
+        }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -3815,14 +3906,19 @@ static OPND *asm_and_exp()
     OPND *o1,*o2;
 
     o1 = asm_equal_exp();
+    if (!o1) return NULL;
     while (tok_value == TOKand)
     {
         asm_token();
         o2 = asm_equal_exp();
+        if (!o2) return NULL;
         if (asm_isint(o1) && asm_isint(o2))
             o1->disp &= o2->disp;
         else
+        {
             asmerr("bad integral operand");
+            return NULL;
+        }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -3837,6 +3933,7 @@ static OPND *asm_equal_exp()
     OPND *o1,*o2;
 
     o1 = asm_rel_exp();
+    if (!o1) return NULL;
     while (1)
     {
         switch (tok_value)
@@ -3844,10 +3941,14 @@ static OPND *asm_equal_exp()
             case TOKequal:
                 asm_token();
                 o2 = asm_rel_exp();
+                if (!o2) return NULL;
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp = o1->disp == o2->disp;
                 else
+                {
                     asmerr("bad integral operand");
+                    return NULL;
+                }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -3855,10 +3956,14 @@ static OPND *asm_equal_exp()
             case TOKnotequal:
                 asm_token();
                 o2 = asm_rel_exp();
+                if (!o2) return NULL;
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp = o1->disp != o2->disp;
                 else
+                {
                     asmerr("bad integral operand");
+                    return NULL;
+                }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -3878,6 +3983,7 @@ static OPND *asm_rel_exp()
     TOK tok_save;
 
     o1 = asm_shift_exp();
+    if (!o1) return NULL;
     while (1)
     {
         switch (tok_value)
@@ -3889,6 +3995,7 @@ static OPND *asm_rel_exp()
                 tok_save = tok_value;
                 asm_token();
                 o2 = asm_shift_exp();
+                if (!o2) return NULL;
                 if (asm_isint(o1) && asm_isint(o2))
                 {
                     switch (tok_save)
@@ -3910,7 +4017,10 @@ static OPND *asm_rel_exp()
                     }
                 }
                 else
+                {
                     asmerr("bad integral operand");
+                    return NULL;
+                }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -3930,11 +4040,13 @@ static OPND *asm_shift_exp()
     TOK tk;
 
     o1 = asm_add_exp();
+    if (!o1) return NULL;
     while (tok_value == TOKshl || tok_value == TOKshr || tok_value == TOKushr)
     {
         tk = tok_value;
         asm_token();
         o2 = asm_add_exp();
+        if (!o2) return NULL;
         if (asm_isint(o1) && asm_isint(o2))
         {
             if (tk == TOKshl)
@@ -3945,7 +4057,10 @@ static OPND *asm_shift_exp()
                 o1->disp >>= o2->disp;
         }
         else
+        {
             asmerr("bad integral operand");
+            return NULL;
+        }
         o2->disp = 0;
         o1 = asm_merge_opnds(o1, o2);
     }
@@ -3960,6 +4075,7 @@ static OPND *asm_add_exp()
     OPND *o1,*o2;
 
     o1 = asm_mul_exp();
+    if (!o1) return NULL;
     while (1)
     {
         switch (tok_value)
@@ -3967,18 +4083,20 @@ static OPND *asm_add_exp()
             case TOKadd:
                 asm_token();
                 o2 = asm_mul_exp();
+                if (!o2) return NULL;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
 
             case TOKmin:
                 asm_token();
                 o2 = asm_mul_exp();
+                if (!o2) return NULL;
                 if (asm_isint(o1) && asm_isint(o2))
                 {
                     o1->disp -= o2->disp;
                     o2->disp = 0;
                 }
-                else
+                else if (o2)
                     o2->disp = - o2->disp;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -3999,6 +4117,7 @@ static OPND *asm_mul_exp()
 
     //printf("+asm_mul_exp()\n");
     o1 = asm_br_exp();
+    if (!o1) return NULL;
     while (1)
     {
         switch (tok_value)
@@ -4006,6 +4125,13 @@ static OPND *asm_mul_exp()
             case TOKmul:
                 asm_token();
                 o2 = asm_br_exp();
+
+                if (!o2)
+                {
+                    asmerr("bad operand"); // TOKmul is always binary
+                    return NULL;
+                }
+
 #ifdef EXTRA_DEBUG
                 printf("Star  o1.isint=%d, o2.isint=%d, lbra_seen=%d\n",
                     asm_isint(o1), asm_isint(o2), asm_TKlbra_seen );
@@ -4033,7 +4159,10 @@ static OPND *asm_mul_exp()
                 else if (asm_isint(o1) && asm_isint(o2))
                     o1->disp *= o2->disp;
                 else
+                {
                     asmerr("bad operand");
+                    return NULL;
+                }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4041,10 +4170,14 @@ static OPND *asm_mul_exp()
             case TOKdiv:
                 asm_token();
                 o2 = asm_br_exp();
+                if (!o2) return NULL;
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp /= o2->disp;
                 else
+                {
                     asmerr("bad integral operand");
+                    return NULL;
+                }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4052,10 +4185,14 @@ static OPND *asm_mul_exp()
             case TOKmod:
                 asm_token();
                 o2 = asm_br_exp();
+                if (!o2) return NULL;
                 if (asm_isint(o1) && asm_isint(o2))
                     o1->disp %= o2->disp;
                 else
+                {
                     asmerr("bad integral operand");
+                    return NULL;
+                }
                 o2->disp = 0;
                 o1 = asm_merge_opnds(o1, o2);
                 break;
@@ -4076,6 +4213,7 @@ static OPND *asm_br_exp()
 
     //printf("asm_br_exp()\n");
     o1 = asm_una_exp();
+    if (!o1) return NULL;
     while (1)
     {
         switch (tok_value)
@@ -4088,8 +4226,10 @@ static OPND *asm_br_exp()
                 asm_token();
                 asm_TKlbra_seen++;
                 o2 = asm_cond_exp();
+                if (!o2) return NULL;
                 asm_TKlbra_seen--;
-                asm_chktok(TOKrbracket,"] expected instead of '%s'");
+                if (!asm_chktok(TOKrbracket,"] expected instead of '%s'"))
+                    return NULL;
 #ifdef EXTRA_DEBUG
                 printf("Saw a right bracket\n");
 #endif
@@ -4097,6 +4237,7 @@ static OPND *asm_br_exp()
                 if (tok_value == TOKidentifier)
                 {
                     o2 = asm_una_exp();
+                    if (!o2) return NULL;
                     o1 = asm_merge_opnds(o1, o2);
                 }
                 break;
@@ -4122,11 +4263,13 @@ static OPND *asm_una_exp()
         case TOKadd:
             asm_token();
             o1 = asm_una_exp();
+            if (!o1) return NULL;
             break;
 
         case TOKmin:
             asm_token();
             o1 = asm_una_exp();
+            if (!o1) return NULL;
             if (asm_isint(o1))
                 o1->disp = -o1->disp;
             break;
@@ -4134,6 +4277,7 @@ static OPND *asm_una_exp()
         case TOKnot:
             asm_token();
             o1 = asm_una_exp();
+            if (!o1) return NULL;
             if (asm_isint(o1))
                 o1->disp = !o1->disp;
             break;
@@ -4141,6 +4285,7 @@ static OPND *asm_una_exp()
         case TOKtilde:
             asm_token();
             o1 = asm_una_exp();
+            if (!o1) return NULL;
             if (asm_isint(o1))
                 o1->disp = ~o1->disp;
             break;
@@ -4158,7 +4303,7 @@ static OPND *asm_una_exp()
                 fixdeclar(ptype);/* fix declarator               */
                 type_free(ptypeSpec);/* the declar() function
                                     allocates the typespec again */
-                chktok(TOKrparen,") expected instead of '%s'");
+                chktok(TOKrparen, ") expected instead of '%s'");
                 ptype->Tcount--;
                 goto CAST_REF;
             }
@@ -4166,6 +4311,7 @@ static OPND *asm_una_exp()
             {
                 type_free(ptypeSpec);
                 o1 = asm_cond_exp();
+                if (!o1) return NULL;
                 chktok(TOKrparen, ") expected instead of '%s'");
             }
             break;
@@ -4188,7 +4334,10 @@ static OPND *asm_una_exp()
                 o1->bOffset = true;
             }
             else
+            {
                 o1 = asm_primary_exp();
+                if (!o1) return NULL;
+            }
             break;
 
         case ASMTKseg:
@@ -4217,7 +4366,8 @@ static OPND *asm_una_exp()
             ajt = ASM_JUMPTYPE_FAR;
 JUMP_REF:
             asm_token();
-            asm_chktok((TOK) ASMTKptr, "ptr expected");
+            if (!asm_chktok((TOK) ASMTKptr, "ptr expected"))
+                return NULL;
 JUMP_REF2:
             o1 = asm_cond_exp();
             if (!o1)
@@ -4247,7 +4397,8 @@ JUMP_REF2:
 TYPE_REF:
             bPtr = true;
             asm_token();
-            asm_chktok((TOK) ASMTKptr, "ptr expected");
+            if (!asm_chktok((TOK) ASMTKptr, "ptr expected"))
+                return NULL;
             o1 = asm_cond_exp();
             if (!o1)
                 o1 = new OPND();
@@ -4257,6 +4408,7 @@ TYPE_REF:
 
         default:
             o1 = asm_primary_exp();
+            if (!o1) return NULL;
             break;
     }
     return o1;
@@ -4272,7 +4424,7 @@ static OPND *asm_primary_exp()
     Dsymbol *s;
     Dsymbol *scopesym;
 
-    const REG *regp;
+    REG *regp;
 
     switch (tok_value)
     {
@@ -4301,6 +4453,7 @@ static OPND *asm_primary_exp()
                     o1->segreg = regp;
                     asm_token();
                     o2 = asm_cond_exp();
+                    if (!o2) return NULL;
                     if (o2->s && o2->s->isLabel())
                         o2->segreg = NULL; // The segment register was specified explicitly.
                     o1 = asm_merge_opnds(o1, o2);
@@ -4309,7 +4462,10 @@ static OPND *asm_primary_exp()
                 {
                     // should be a register
                     if (o1->pregDisp1)
+                    {
                         asmerr("bad operand");
+                        return NULL;
+                    }
                     else
                         o1->pregDisp1 = regp;
                 }
@@ -4318,7 +4474,10 @@ static OPND *asm_primary_exp()
                     if (o1->base == NULL)
                         o1->base = regp;
                     else
+                    {
                         asmerr("bad operand");
+                        return NULL;
+                    }
                 }
                 break;
             }
@@ -4334,12 +4493,17 @@ static OPND *asm_primary_exp()
                     {
                         unsigned n = (unsigned)asmtok->uns64value;
                         if (n > 7)
+                        {
                             asmerr("bad operand");
+                            return NULL;
+                        }
                         else
                             o1->base = &(aregFp[n]);
                     }
-                    asm_chktok(TOKint32v, "integer expected");
-                    asm_chktok(TOKrparen, ") expected instead of '%s'");
+                    if (!asm_chktok(TOKint32v, "integer expected"))
+                        return NULL;
+                    if (!asm_chktok(TOKrparen, ") expected instead of '%s'"))
+                        return NULL;
                 }
                 else
                     o1->base = &regFp;
@@ -4380,7 +4544,7 @@ static OPND *asm_primary_exp()
                         else
                         {
                             asmerr("identifier expected");
-                            break;
+                            return NULL;
                         }
                     }
                     Scope *sc = asmstate.sc->startCTFE();
@@ -4403,6 +4567,7 @@ static OPND *asm_primary_exp()
                         else
                         {
                             asmerr("bad type/size of operands '%s'", e->toChars());
+                            return NULL;
                         }
                     }
                     else if (e->op == TOKvar)
@@ -4413,10 +4578,12 @@ static OPND *asm_primary_exp()
                     else
                     {
                         asmerr("bad type/size of operands '%s'", e->toChars());
+                        return NULL;
                     }
                 }
 
-                asm_merge_symbol(o1,s);
+                if (!asm_merge_symbol(o1,s))
+                    return NULL;
 
                 /* This attempts to answer the question: is
                  *  char[8] foo;
@@ -4464,21 +4631,21 @@ static OPND *asm_primary_exp()
 
         case TOKfloat32v:
             o1 = new OPND();
-            o1->real = asmtok->floatvalue;
+            o1->real = asmtok->float80value;
             o1->ptype = Type::tfloat32;
             asm_token();
             break;
 
         case TOKfloat64v:
             o1 = new OPND();
-            o1->real = asmtok->floatvalue;
+            o1->real = asmtok->float80value;
             o1->ptype = Type::tfloat64;
             asm_token();
             break;
 
         case TOKfloat80v:
             o1 = new OPND();
-            o1->real = asmtok->floatvalue;
+            o1->real = asmtok->float80value;
             o1->ptype = Type::tfloat80;
             asm_token();
             break;
@@ -4512,7 +4679,6 @@ void iasm_term()
 
 /**********************************
  * Return mask of registers used by block bp.
- * Called from back end.
  */
 
 regm_t iasm_regs(block *bp)
@@ -4529,7 +4695,7 @@ regm_t iasm_regs(block *bp)
 
 /************************ AsmStatement ***************************************/
 
-static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
+static Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
@@ -4592,9 +4758,14 @@ static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
         case TOKalign:
         {
             asm_token();
-            unsigned align = asm_getnum();
-            if (ispow2(align) == -1)
+            long long align = asm_getnum();
+            if (align == -1L)
+                return NULL;
+            if (ispow2((unsigned) align) == -1)
+            {
                 asmerr("align %d must be a power of 2", align);
+                return NULL;
+            }
             else
                 s->asmalign = align;
             break;
@@ -4628,10 +4799,14 @@ static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
                 {
                     case ITdata:
                         s->asmcode = asm_db_parse(o);
+                        if (!s->asmcode)
+                            return NULL;
                         goto AFTER_EMIT;
 
                     case ITaddr:
                         s->asmcode = asm_da_parse(o);
+                        if (!s->asmcode)
+                            return NULL;
                         goto AFTER_EMIT;
                 }
             }
@@ -4652,11 +4827,15 @@ static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
                 asm_token();
                 o4 = asm_cond_exp();
             }
+            if (!(o1 && o2 && o3 && o4))
+                return NULL;
+
             // match opcode and operands in ptrntab to verify legal inst and
             // generate
 
             ptb = asm_classify(o, o1, o2, o3, o4, &usNumops);
-            assert(ptb.pptb0);
+            if (!ptb.pptb0)
+                return NULL;
 
             //
             // The Multiply instruction takes 3 operands, but if only 2 are seen
@@ -4677,6 +4856,8 @@ static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
                 // assumed 2 operands.
 
                 ptb = asm_classify(o, o1, o2, o3, o4, &usNumops);
+                if (!ptb.pptb0)
+                    return NULL;
             }
 #if 0
             else if (asmstate.ucItype == ITshift && (ptb.pptb2->usOp2 == 0 ||
@@ -4688,12 +4869,13 @@ static Statement* asmSemanticImpl(AsmStatement *s, Scope *sc)
             }
 #endif
             s->asmcode = asm_emit(s->loc, usNumops, ptb, o, o1, o2, o3, o4);
+            if (!s->asmcode) return NULL;
             break;
 
         default:
         OPCODE_EXPECTED:
             asmerr("opcode expected, not %s", asmtok->toChars());
-            break;
+            return NULL;
     }
 
 AFTER_EMIT:
@@ -4705,16 +4887,8 @@ AFTER_EMIT:
     if (tok_value != TOKeof)
     {
         asmerr("end of instruction expected, not '%s'", asmtok->toChars());  // end of line expected
+        return NULL;
     }
     //return asmstate.bReturnax;
     return s;
-}
-
-Statement* asmSemantic(AsmStatement *s, Scope *sc)
-{
-    try {
-        return asmSemanticImpl(s, sc);
-    } catch (AsmErr) {
-        return NULL; // somehow this just works
-    }
 }
