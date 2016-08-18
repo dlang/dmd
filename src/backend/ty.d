@@ -294,7 +294,7 @@ uint tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
 uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066):
+static if (__VERSION__ <= 2066)
     private enum computeEnumValue = TYMAX;
 
 /* Array to give the 'relaxed' type for relaxed type checking   */

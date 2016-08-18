@@ -303,8 +303,8 @@ inline int rel_unord(int op)     { return _rel_unord    [(int)(op) - RELOPMIN]; 
 
 extern "C" // https://issues.dlang.org/show_bug.cgi?id=16359
 {
-extern const unsigned char optab1[OPMAX],optab2[OPMAX],optab3[OPMAX];
-extern const unsigned char opcost[OPMAX];
+extern unsigned char optab1[OPMAX],optab2[OPMAX],optab3[OPMAX];
+extern unsigned char opcost[OPMAX];
 }
 
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */

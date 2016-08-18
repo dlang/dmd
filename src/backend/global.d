@@ -390,7 +390,7 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 
 /* blockopt.c */
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066):
+static if (__VERSION__ <= 2066)
     private enum computeEnumValue = BCMAX;
 extern __gshared uint[BCMAX] bc_goal;
 

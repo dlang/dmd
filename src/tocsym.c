@@ -585,6 +585,8 @@ Symbol *toInitializer(EnumDeclaration *ed)
 }
 
 
+#if 0
+
 /******************************************
  */
 
@@ -632,8 +634,6 @@ Symbol *toModuleArray(Module *m)
     }
     return m->marray;
 }
-
-#if 0
 
 /********************************************
  * Determine the right symbol to look up

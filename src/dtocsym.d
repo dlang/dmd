@@ -23,6 +23,7 @@ import ddmd.ctfeexpr;
 import ddmd.declaration;
 import ddmd.dclass;
 import ddmd.denum;
+import ddmd.dmodule;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
@@ -591,56 +592,56 @@ Symbol *toInitializer(EnumDeclaration *ed)
     }
     return ed->sinit;
 }
-
-
-/******************************************
- */
-
-Symbol *toModuleAssert(Module *m)
-{
-    if (!m->massert)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
-
-        m->massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
-        m->massert->Sfl = FLextern;
-        m->massert->Sflags |= SFLnodebug | SFLexit;
-    }
-    return m->massert;
-}
-
-Symbol *toModuleUnittest(Module *m)
-{
-    if (!m->munittest)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
-
-        m->munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
-        m->munittest->Sfl = FLextern;
-        m->munittest->Sflags |= SFLnodebug;
-    }
-    return m->munittest;
-}
-
-/******************************************
- */
-
-Symbol *toModuleArray(Module *m)
-{
-    if (!m->marray)
-    {
-        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_d;
-
-        m->marray = toSymbolX(m, "__array", SCextern, t, "Z");
-        m->marray->Sfl = FLextern;
-        m->marray->Sflags |= SFLnodebug | SFLexit;
-    }
-    return m->marray;
-}
 +/
+
+
+/******************************************
+ */
+
+Symbol *toModuleAssert(Module m)
+{
+    if (!m.massert)
+    {
+        auto t = type_function(TYjfunc, null, 0, false, ddmd.backend.type.tstypes[TYvoid]);
+        t.Tmangle = mTYman_d;
+
+        m.massert = toSymbolX(m, "__assert", SCextern, t, "FiZv");
+        m.massert.Sfl = FLextern;
+        m.massert.Sflags |= SFLnodebug | SFLexit;
+    }
+    return m.massert;
+}
+
+Symbol *toModuleUnittest(Module m)
+{
+    if (!m.munittest)
+    {
+        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
+        t.Tmangle = mTYman_d;
+
+        m.munittest = toSymbolX(m, "__unittest_fail", SCextern, t, "FiZv");
+        m.munittest.Sfl = FLextern;
+        m.munittest.Sflags |= SFLnodebug;
+    }
+    return m.munittest;
+}
+
+/******************************************
+ */
+
+Symbol *toModuleArray(Module m)
+{
+    if (!m.marray)
+    {
+        auto t = type_function(TYjfunc, null, 0, false, tstypes[TYvoid]);
+        t.Tmangle = mTYman_d;
+
+        m.marray = toSymbolX(m, "__array", SCextern, t, "Z");
+        m.marray.Sfl = FLextern;
+        m.marray.Sflags |= SFLnodebug | SFLexit;
+    }
+    return m.marray;
+}
 
 /********************************************
  * Determine the right symbol to look up
