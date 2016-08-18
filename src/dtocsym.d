@@ -489,30 +489,33 @@ static Symbol *toImport(Symbol *sym)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Dsymbol *ds)
+Symbol *toImport(Dsymbol ds)
 {
-    if (!ds->isym)
+    if (!ds.isym)
     {
-        if (!ds->csym)
-            ds->csym = toSymbol(ds);
-        ds->isym = toImport(ds->csym);
+        if (!ds.csym)
+            ds.csym = toSymbol(ds);
+        ds.isym = toImport(ds.csym);
     }
-    return ds->isym;
+    return ds.isym;
 }
++/
+
+Symbol *toSymbol(Dsymbol ds);
 
 /*************************************
  * Thunks adjust the incoming 'this' pointer by 'offset'.
  */
 
-Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
+Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
 {
     Symbol *s = toSymbol(fd);
     if (!offset)
         return s;
 
-    Symbol *sthunk = symbol_generate(SCstatic, fd->csym->Stype);
-    sthunk->Sflags |= SFLimplem;
-    cod3_thunk(sthunk, fd->csym, 0, TYnptr, -offset, -1, 0);
+    auto sthunk = symbol_generate(SCstatic, fd.csym.Stype);
+    sthunk.Sflags |= SFLimplem;
+    cod3_thunk(sthunk, fd.csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;
 }
 
@@ -521,26 +524,23 @@ Symbol *toThunkSymbol(FuncDeclaration *fd, int offset)
  * Fake a struct symbol.
  */
 
-Classsym *fake_classsym(Identifier *id)
+Classsym *fake_classsym(Identifier id)
 {
-    TYPE *t = type_struct_class(id->toChars(),8,0,
-        NULL,NULL,
+    auto t = type_struct_class(id.toChars(),8,0,
+        null,null,
         false, false, true);
 
-    t->Ttag->Sstruct->Sflags = STRglobal;
-    t->Tflags |= TFsizeunknown | TFforward;
-    assert(t->Tmangle == 0);
-    t->Tmangle = mTYman_d;
-    return t->Ttag;
+    t.Ttag.Sstruct.Sflags = STRglobal;
+    t.Tflags |= TFsizeunknown | TFforward;
+    assert(t.Tmangle == 0);
+    t.Tmangle = mTYman_d;
+    return t.Ttag;
 }
-+/
 
 /*************************************
  * This is accessible via the ClassData, but since it is frequently
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
-
-Symbol *toSymbol(Dsymbol ds);
 
 Symbol *toVtblSymbol(ClassDeclaration cd)
 {

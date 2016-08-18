@@ -367,7 +367,7 @@ void objfile_term();
 
 /* cod3.c */
 void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
-        targ_size_t d,int i,targ_size_t d2);
+        unsigned d,int i,unsigned d2);
 
 /* out.c */
 void outfilename(char *name,int linnum);

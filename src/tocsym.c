@@ -491,6 +491,7 @@ Symbol *toImport(Dsymbol *ds)
     return ds->isym;
 }
 
+#if 0
 /*************************************
  * Thunks adjust the incoming 'this' pointer by 'offset'.
  */
@@ -524,8 +525,6 @@ Symbol *fake_classsym(Identifier *id)
     t->Tmangle = mTYman_d;
     return t->Ttag;
 }
-
-#if 0
 
 /*************************************
  * This is accessible via the ClassData, but since it is frequently
