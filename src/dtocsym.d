@@ -449,23 +449,28 @@ Symbol *toSymbol(Dsymbol *s)
     return v.result;
 }
 
++/
+
+Symbol *toSymbol(Dsymbol ds);
+
 /*************************************
  */
 
-static Symbol *toImport(Symbol *sym)
+private Symbol *toImport(Symbol *sym)
 {
-    //printf("Dsymbol::toImport('%s')\n", sym->Sident);
-    char *n = sym->Sident;
-    char *id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
+    //printf("Dsymbol::toImport('%s')\n", sym.Sident);
+    char *n = sym.Sident.ptr;
+    import core.stdc.stdlib : alloca;
+    char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);
     int idlen;
-    if (sym->Stype->Tmangle == mTYman_std && tyfunc(sym->Stype->Tty))
+    if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
         if (config.exe == EX_WIN64)
             idlen = sprintf(id,"__imp_%s",n);
         else
-            idlen = sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
+            idlen = sprintf(id,"_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
-    else if (sym->Stype->Tmangle == mTYman_d)
+    else if (sym.Stype.Tmangle == mTYman_d)
     {
         idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp_%s",n);
     }
@@ -473,15 +478,15 @@ static Symbol *toImport(Symbol *sym)
     {
         idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
     }
-    type *t = type_alloc(TYnptr | mTYconst);
-    t->Tnext = sym->Stype;
-    t->Tnext->Tcount++;
-    t->Tmangle = mTYman_c;
-    t->Tcount++;
-    Symbol *s = symbol_calloc(id, idlen);
-    s->Stype = t;
-    s->Sclass = SCextern;
-    s->Sfl = FLextern;
+    auto t = type_alloc(TYnptr | mTYconst);
+    t.Tnext = sym.Stype;
+    t.Tnext.Tcount++;
+    t.Tmangle = mTYman_c;
+    t.Tcount++;
+    auto s = symbol_calloc(id, idlen);
+    s.Stype = t;
+    s.Sclass = SCextern;
+    s.Sfl = FLextern;
     return s;
 }
 
@@ -499,9 +504,6 @@ Symbol *toImport(Dsymbol ds)
     }
     return ds.isym;
 }
-+/
-
-Symbol *toSymbol(Dsymbol ds);
 
 /*************************************
  * Thunks adjust the incoming 'this' pointer by 'offset'.

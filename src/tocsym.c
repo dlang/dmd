@@ -440,6 +440,8 @@ Symbol *toSymbol(Dsymbol *s)
     return v.result;
 }
 
+#if 0
+
 /*************************************
  */
 
@@ -491,7 +493,6 @@ Symbol *toImport(Dsymbol *ds)
     return ds->isym;
 }
 
-#if 0
 /*************************************
  * Thunks adjust the incoming 'this' pointer by 'offset'.
  */

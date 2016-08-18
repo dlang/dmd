@@ -122,3 +122,5 @@ static if (__VERSION__ <= 2066)
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
 
+uint type_paramsize(type *t);
+

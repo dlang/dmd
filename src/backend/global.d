@@ -66,7 +66,7 @@ extern __gshared
     char OPTIMIZER,PARSER;
     symtab_t globsym;
 
-    Config config;                  // precompiled part of configuration
+//    Config config;                  // precompiled part of configuration
     Configv configv;                // non-ph part of configuration
 //    char[SCMAX] sytab;
 
