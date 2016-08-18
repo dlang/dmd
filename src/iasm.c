@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2013 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -4695,7 +4695,7 @@ regm_t iasm_regs(block *bp)
 
 /************************ AsmStatement ***************************************/
 
-static Statement* asmSemantic(AsmStatement *s, Scope *sc)
+Statement* asmSemantic(AsmStatement *s, Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
