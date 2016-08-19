@@ -286,9 +286,12 @@ class TypeInfo
     null if none. */
     @property inout(TypeInfo) next() nothrow pure inout @nogc { return null; }
 
-    /** Return default initializer.  If the type should be initialized to all
-    zeros, an array with a null ptr and a length equal to the type size will be
-    returned. */
+    /**
+     * Return default initializer.  If the type should be initialized to all
+     * zeros, an array with a null ptr and a length equal to the type size will
+     * be returned. For static arrays, this returns the default initializer for
+     * a single element of the array, use `tsize` to get the correct size.
+     */
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
     /// $(RED Scheduled for deprecation.) Please use `initializer` instead.
