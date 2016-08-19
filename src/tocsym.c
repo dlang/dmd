@@ -48,6 +48,7 @@ typedef Array<struct Symbol *> Symbols;
 Classsym *fake_classsym(Identifier *id);
 type *Type_toCtype(Type *t);
 void ClassReferenceExp_toInstanceDt(ClassReferenceExp *ce, DtBuilder* dtb);
+void AssocArrayLiteralExp_toDt(AssocArrayLiteralExp *aale, DtBuilder* dtb);
 void Expression_toDt(Expression *e, DtBuilder* dtb);
 void cpp_type_info_ptr_toDt(ClassDeclaration *cd, DtBuilder* dtb);
 Symbol *toInitializer(AggregateDeclaration *ad);
@@ -697,6 +698,24 @@ Symbol* toSymbol(StructLiteralExp *sle)
     s->Sdt = dtb.finish();
     outdata(s);
     return sle->sym;
+}
+
+Symbol* toSymbol(AssocArrayLiteralExp *aale)
+{
+    if (aale->sym) return aale->sym;
+    TYPE *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    aale->sym = s;
+    DtBuilder dtb;
+    AssocArrayLiteralExp_toDt(aale, &dtb);
+    s->Sdt = dtb.finish();
+    outdata(s);
+    return aale->sym;
 }
 
 Symbol* toSymbol(ClassReferenceExp *cre)

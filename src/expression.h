@@ -415,6 +415,7 @@ public:
     Expressions *keys;
     Expressions *values;
     OwnedBy ownedByCtfe;
+    Symbol *sym;
 
     bool equals(RootObject *o);
     Expression *syntaxCopy();

@@ -5296,6 +5296,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     Expressions* keys;
     Expressions* values;
     OwnedBy ownedByCtfe = OWNEDcode;
+    Symbol* sym;
 
     extern (D) this(Loc loc, Expressions* keys, Expressions* values)
     {
