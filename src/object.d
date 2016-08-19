@@ -282,12 +282,13 @@ class TypeInfo
         }
     }
 
-    /// Get TypeInfo for 'next' type, as defined by what kind of type this is,
-    /// null if none.
+    /** Get TypeInfo for 'next' type, as defined by what kind of type this is,
+    null if none. */
     @property inout(TypeInfo) next() nothrow pure inout @nogc { return null; }
 
-    /// Return default initializer.  If the type should be initialized to all zeros,
-    /// an array with a null ptr and a length equal to the type size will be returned.
+    /** Return default initializer.  If the type should be initialized to all
+    zeros, an array with a null ptr and a length equal to the type size will be
+    returned. */
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
     /// $(RED Scheduled for deprecation.) Please use `initializer` instead.
@@ -297,8 +298,8 @@ class TypeInfo
     /* Planned for 2.074: Remove init, making way for the init type property,
     fixing issue 12233. */
 
-    /// Get flags for type: 1 means GC should scan for pointers,
-    /// 2 means arg of this type is passed in XMM register
+    /** Get flags for type: 1 means GC should scan for pointers,
+    2 means arg of this type is passed in XMM register */
     @property uint flags() nothrow pure const @safe @nogc { return 0; }
 
     /// Get type information on the contents of the type; null if not available
@@ -1798,8 +1799,8 @@ class Error : Throwable
         bypassedException = null;
     }
 
-    /// The first $(D Exception) which was bypassed when this Error was thrown,
-    /// or $(D null) if no $(D Exception)s were pending.
+    /** The first $(D Exception) which was bypassed when this Error was thrown,
+    or $(D null) if no $(D Exception)s were pending. */
     Throwable   bypassedException;
 }
 
