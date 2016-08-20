@@ -214,6 +214,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     BaseClasses* vtblInterfaces;
 
     // the ClassInfo object for this ClassDeclaration
+    // Note: finally we can remove this.
     TypeInfoClassDeclaration vclassinfo;
 
     bool com;           // true if this is a COM class (meaning it derives from IUnknown)
@@ -363,6 +364,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                         error("%s", msg);
                     Type.typeinfovector = this;
                 }
+            }
+            if (id == Id.ClassInfo)
+            {
+                if (!inObject)
+                    error("%s", msg);
+                Type.cdClassInfo = this;
             }
 
             if (id == Id.Object)

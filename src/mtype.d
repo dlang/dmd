@@ -51,6 +51,7 @@ import ddmd.root.stringtable;
 import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typinf;
 import ddmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
@@ -563,6 +564,7 @@ extern (C++) abstract class Type : RootObject
     extern (C++) static __gshared ClassDeclaration typeinfoinvariant;
     extern (C++) static __gshared ClassDeclaration typeinfoshared;
     extern (C++) static __gshared ClassDeclaration typeinfowild;
+    extern (C++) static __gshared ClassDeclaration cdClassInfo;
 
     extern (C++) static __gshared TemplateDeclaration rtinfo;
 
@@ -9109,16 +9111,25 @@ extern (C++) final class TypeClass : Type
 
             if (ident == Id.classinfo)
             {
-                assert(Type.typeinfoclass);
-                Type t = Type.typeinfoclass.type;
+                Type t = Type.cdClassInfo
+                    ? getTypeInfoType(sym.type, sc) // TypeInfo_(Class|Interface)
+                    : Type.typeinfoclass.type;      // TypeInfo_Class
                 if (e.op == TOKtype || e.op == TOKdottype)
                 {
                     /* For type.classinfo, we know the classinfo
                      * at compile time.
                      */
-                    if (!sym.vclassinfo)
-                        sym.vclassinfo = new TypeInfoClassDeclaration(sym.type);
-                    e = new VarExp(e.loc, sym.vclassinfo);
+                    if (Type.cdClassInfo)
+                    {
+                        assert(sym.type.vtinfo);
+                        e = new VarExp(e.loc, sym.type.vtinfo);
+                    }
+                    else
+                    {
+                        if (!sym.vclassinfo)
+                            sym.vclassinfo = new TypeInfoClassDeclaration(sym.type);
+                        e = new VarExp(e.loc, sym.vclassinfo);
+                    }
                     e = e.addressOf();
                     e.type = t; // do this so we don't get redundant dereference
                 }

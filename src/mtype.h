@@ -221,6 +221,7 @@ public:
     static ClassDeclaration *typeinfoinvariant;
     static ClassDeclaration *typeinfoshared;
     static ClassDeclaration *typeinfowild;
+    static ClassDeclaration *cdClassInfo;
 
     static TemplateDeclaration *rtinfo;
 
