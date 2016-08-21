@@ -34,6 +34,7 @@ headers.
 #include <stdio.h>
 #include <assert.h>
 #include <exception>
+#include <cstdarg>
 
 /**************************************/
 
