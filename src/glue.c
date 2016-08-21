@@ -1390,10 +1390,11 @@ bool onlyOneMain(Loc loc)
         const char *msg = "";
         if (global.params.addMain)
             msg = ", -main switch added another main()";
-        const char *othermain = "";
+        const char *otherMainNames = "";
         if (config.exe == EX_WIN32 || config.exe == EX_WIN64)
-            othermain = "/WinMain/DllMain";
-        error(lastLoc, "only one main%s allowed%s", othermain, msg);
+            otherMainNames = "/WinMain/DllMain";
+        error(loc, "only one main%s allowed%s. Previously found main at %s",
+            otherMainNames, msg, lastLoc.toChars());
         return false;
     }
     lastLoc = loc;
