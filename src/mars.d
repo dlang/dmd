@@ -130,14 +130,14 @@ Where:
   -gs              always emit stack frame
   -gx              add stack stomp code
   -H               generate 'header' file
-  -Hd<directory>   write 'header' file to directory
-  -Hf<filename>    write 'header' file to filename
+  -Hd=<directory>  write 'header' file to directory
+  -Hf=<filename>   write 'header' file to filename
   --help           print help and exit
-  -I<directory>    look for imports also in directory
+  -I=<directory>   look for imports also in directory
   -ignore          ignore unsupported pragmas
   -inline          do function inlining
-  -J<directory>    look for string imports also in directory
-  -L<linkerflag>   pass linkerflag to link
+  -J=<directory>   look for string imports also in directory
+  -L=<linkerflag>  pass linkerflag to link
   -lib             generate library rather than object files
   -m32             generate 32 bit code" ~
   "%s" /* placeholder for m32mscoff */ ~ "
@@ -148,8 +148,8 @@ Where:
   -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
   -O               optimize
   -o-              do not write object file
-  -od<directory>   write object & library files to directory
-  -of<filename>    name output file to filename
+  -od=<directory>  write object & library files to directory
+  -of=<filename>   name output file to filename
   -op              preserve source path for output files
   -profile         profile runtime performance of generated code
   -profile=gc      profile runtime allocations
@@ -169,7 +169,7 @@ Where:
   -w               warnings as errors (compilation will halt)
   -wi              warnings as messages (compilation will continue)
   -X               generate JSON file
-  -Xf<filename>    write JSON file to filename
+  -Xf=<filename>   write JSON file to filename
 ", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
 }
 
@@ -620,7 +620,7 @@ Language changes listed by -transition=id:
                 case 'd':
                     if (!p[3])
                         goto Lnoarg;
-                    path = p + 3;
+                    path = p + 3 + (p[3] == '=');
                     version (Windows)
                     {
                         path = toWinPath(path);
@@ -630,7 +630,7 @@ Language changes listed by -transition=id:
                 case 'f':
                     if (!p[3])
                         goto Lnoarg;
-                    path = p + 3;
+                    path = p + 3 + (p[3] == '=');
                     version (Windows)
                     {
                         path = toWinPath(path);
@@ -657,12 +657,12 @@ Language changes listed by -transition=id:
                 case 'd':
                     if (!p[3])
                         goto Lnoarg;
-                    global.params.docdir = p + 3;
+                    global.params.docdir = p + 3 + (p[3] == '=');
                     break;
                 case 'f':
                     if (!p[3])
                         goto Lnoarg;
-                    global.params.docname = p + 3;
+                    global.params.docname = p + 3 + (p[3] == '=');
                     break;
                 case 0:
                     break;
@@ -678,12 +678,12 @@ Language changes listed by -transition=id:
                 case 'd':
                     if (!p[3])
                         goto Lnoarg;
-                    global.params.hdrdir = p + 3;
+                    global.params.hdrdir = p + 3 + (p[3] == '=');
                     break;
                 case 'f':
                     if (!p[3])
                         goto Lnoarg;
-                    global.params.hdrname = p + 3;
+                    global.params.hdrname = p + 3 + (p[3] == '=');
                     break;
                 case 0:
                     break;
@@ -699,7 +699,7 @@ Language changes listed by -transition=id:
                 case 'f':
                     if (!p[3])
                         goto Lnoarg;
-                    global.params.jsonfilename = p + 3;
+                    global.params.jsonfilename = p + 3 + (p[3] == '=');
                     break;
                 case 0:
                     break;
@@ -764,13 +764,13 @@ Language changes listed by -transition=id:
             {
                 if (!global.params.imppath)
                     global.params.imppath = new Strings();
-                global.params.imppath.push(p + 2);
+                global.params.imppath.push(p + 2 + (p[2] == '='));
             }
             else if (p[1] == 'J')
             {
                 if (!global.params.fileImppath)
                     global.params.fileImppath = new Strings();
-                global.params.fileImppath.push(p + 2);
+                global.params.fileImppath.push(p + 2 + (p[2] == '='));
             }
             else if (memcmp(p + 1, cast(char*)"debug", 5) == 0 && p[6] != 'l')
             {
@@ -847,7 +847,7 @@ Language changes listed by -transition=id:
                 global.params.debugy = true;
             else if (p[1] == 'L')
             {
-                global.params.linkswitches.push(p + 2);
+                global.params.linkswitches.push(p + 2 + (p[2] == '='));
             }
             else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0)
             {
