@@ -15498,6 +15498,8 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
+    EqualExp ate;
+
     extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);

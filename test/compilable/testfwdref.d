@@ -714,3 +714,98 @@ struct Stmt15726b(T)
 }
 
 Con15726b!int x15726b;
+
+/***************************************************/
+// 16013
+
+struct Impl16013a
+{
+    S16013a _payload;
+}
+
+struct S16013a
+{
+    RC16013a s;
+}
+
+struct RC16013a
+{
+    void opAssign(RC16013a rhs)
+    {}
+    void opAssign(S16013a rhs)
+    {}
+
+    S16013a rcPayload()
+    {
+        return S16013a.init;
+    }
+    alias rcPayload this;
+}
+
+static assert(Impl16013a.sizeof == S16013a.sizeof);
+static assert(S16013a.sizeof == RC16013a.sizeof);
+static assert(RC16013a.sizeof == 1);
+
+// ----
+
+S16013b s16013b;
+
+struct RC16013b
+{
+    void opAssign(RC16013b rhs) {}
+    void opAssign(S16013b rhs) {}
+
+    S16013b refCountedPayload() { return S16013b.init; }
+    alias refCountedPayload this;
+}
+
+struct S16013b
+{
+    RC16013b s;
+}
+
+/***************************************************/
+// 16012
+
+void emplace16012(S16012* chunk) { *chunk = S16012.init; }
+
+struct RC16012()
+{
+    struct RCStore
+    {
+        struct Impl { S16012 _payload; }
+
+        Impl* _impl;
+
+        void initialize()
+        {
+            _impl = new Impl;
+            emplace16012(&_impl._payload);
+        }
+    }
+
+    RCStore _store;
+
+    void opAssign(typeof(this) rhs) {}
+    void opAssign(S16012 rhs) {}
+
+    ref S16012 rcPayload()
+    {
+        if (_store._impl is null)
+            _store.initialize();
+        return _store._impl._payload;
+    }
+
+    alias rcPayload this;
+}
+
+struct S16012
+{
+    size_t x;
+    RC16012!() s;
+}
+
+static assert(S16012.sizeof == size_t.sizeof + (void*).sizeof);
+static assert(RC16012!().sizeof == (void*).sizeof);
+static assert(RC16012!().RCStore.sizeof == (void*).sizeof);
+static assert(RC16012!().RCStore.Impl.sizeof == S16012.sizeof);
