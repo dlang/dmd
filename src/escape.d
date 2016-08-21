@@ -26,7 +26,133 @@ import ddmd.tokens;
 import ddmd.visitor;
 import ddmd.arraytypes;
 
+/****************************************
+ * Given an AssignExp, determine if the lvalue will cause
+ * the contents of the rvalue to escape.
+ * Print error messages when these are detected.
+ * Infer 'scope' for the lvalue where possible, in order
+ * to eliminate the error.
+ * Params:
+ *      sc = used to determine current function and module
+ *      ae = AssignExp to check for any pointers to the stack
+ *      gag = do not print error messages
+ * Returns:
+ *      true if pointers to the stack can escape via assignment
+ */
+bool checkAssignEscape(Scope* sc, Expression e, bool gag)
+{
+    if (e.op != TOKassign && e.op != TOKblit)
+        return false;
+    auto ae = cast(AssignExp)e;
+    Expression e1 = ae.e1;
+    Expression e2 = ae.e2;
 
+    if (!e1.type.hasPointers())
+        return false;
+
+    if (e1.op == TOKslice)
+        return false;
+
+    VarDeclarations byref, byvalue;
+    Expressions byexp;
+
+    escapeByValue(e2, &byref, &byvalue, &byexp);
+
+    if (!byref.dim && !byvalue.dim && !byexp.dim)
+        return false;
+
+    VarDeclaration va;
+    if (e1.op == TOKvar)
+        va = (cast(VarExp)e1).var.isVarDeclaration();
+
+    bool result = false;
+    foreach (VarDeclaration v; byvalue)
+    {
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if (v.isScope())
+        {
+            if (va && !va.isDataseg())
+            {
+                if (!va.isScope())
+                    va.storage_class |= STCscope;
+                continue;
+            }
+            if (sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(ae.loc, "scope variable %s assigned to non-scope %s", v.toChars(), e1.toChars());
+                result = true;
+            }
+        }
+        else if (v.storage_class & STCvariadic && p == sc.func)
+        {
+            Type tb = v.type.toBasetype();
+            if (tb.ty == Tarray || tb.ty == Tsarray)
+            {
+                if (va && !va.isDataseg())
+                {
+                    if (!va.isScope())
+                        va.storage_class |= STCscope;
+                    continue;
+                }
+                if (sc.func.setUnsafe())
+                {
+                    if (!gag)
+                        error(ae.loc, "variadic variable %s assigned to non-scope %s", v.toChars(), e1.toChars());
+                    result = true;
+                }
+            }
+        }
+    }
+
+    foreach (VarDeclaration v; byref)
+    {
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if ((v.storage_class & (STCref | STCout)) == 0 && p == sc.func)
+        {
+            if (va && !va.isDataseg())
+            {
+                if (!va.isScope())
+                    va.storage_class |= STCscope;
+                continue;
+            }
+            if (sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(ae.loc, "reference to local variable %s assigned to non-scope %s", v.toChars(), e1.toChars());
+                result = true;
+            }
+            continue;
+        }
+    }
+
+    foreach (Expression er; byexp)
+    {
+        if (va && !va.isDataseg())
+        {
+            if (!va.isScope())
+                va.storage_class |= STCscope;
+            continue;
+        }
+        if (sc.func.setUnsafe())
+        {
+            if (!gag)
+                error(er.loc, "reference to stack allocated value returned by %s assigned to non-scope %s",
+                    er.toChars(), e1.toChars());
+            result = true;
+        }
+    }
+
+    return false;
+}
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the

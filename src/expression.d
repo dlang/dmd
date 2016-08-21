@@ -41,6 +41,7 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
+import ddmd.escape;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -13500,7 +13501,9 @@ extern (C++) class AssignExp : BinExp
 
         type = e1.type;
         assert(type);
-        return op == TOKassign ? reorderSettingAAElem(sc) : this;
+        auto result = op == TOKassign ? reorderSettingAAElem(sc) : this;
+        checkAssignEscape(sc, result, false);
+        return result;
     }
 
     override final bool isLvalue()
