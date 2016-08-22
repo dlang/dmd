@@ -6247,9 +6247,6 @@ extern (C++) final class TypeFunction : TypeNext
                         fparam.storageClass |= STCscope;        // 'return' implies 'scope'
                         if (tf.isref)
                         {
-                            error(loc, "parameter %s is 'return' but function returns 'ref'",
-                                fparam.ident ? fparam.ident.toChars() : "");
-                            errors = true;
                         }
                         else if (tf.next && !tf.next.hasPointers())
                         {
