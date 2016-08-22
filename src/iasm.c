@@ -413,6 +413,8 @@ struct OPND
     }
 };
 
+static OPND* const emptyOPND = (OPND*)(-1);
+
 //
 // Exported functions called from the compiler
 //
@@ -506,7 +508,7 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     // How many arguments are there?  the parser is strictly left to right
     // so this should work.
 
-    if (!popnd1)
+    if (popnd1 == emptyOPND)
     {
         usNumops = 0;
     }
@@ -515,7 +517,7 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         popnd1->usFlags = opflags1 = asm_determine_operand_flags(popnd1);
         if (!opflags1)
             return ptbNull;
-        if (!popnd2)
+        if (popnd2 == emptyOPND)
         {
             usNumops = 1;
         }
@@ -524,7 +526,7 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
             popnd2->usFlags = opflags2 = asm_determine_operand_flags(popnd2);
             if (!opflags2)
                 return ptbNull;
-            if (!popnd3)
+            if (popnd3 == emptyOPND)
             {
                 usNumops = 2;
             }
@@ -533,7 +535,7 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
                 popnd3->usFlags = opflags3 = asm_determine_operand_flags(popnd3);
                 if (!opflags3)
                     return ptbNull;
-                if (!popnd4)
+                if (popnd4 == emptyOPND)
                 {
                     usNumops = 3;
                 }
@@ -641,14 +643,14 @@ RETRY:
                 if (debuga)
                 {
                     printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                             asm_output_popnd(popnd1);
-                    if (popnd2)
+                    if (popnd2 != emptyOPND)
                     {
                             printf(",");
                             asm_output_popnd(popnd2);
                     }
-                    if (popnd3)
+                    if (popnd3 != emptyOPND)
                     {
                             printf(",");
                             asm_output_popnd(popnd3);
@@ -656,7 +658,7 @@ RETRY:
                     printf("\n");
 
                     printf("OPCODE mism = ");
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                         asm_output_flags(popnd1->usFlags);
                     else
                         printf("NONE");
@@ -664,7 +666,7 @@ RETRY:
                 }
 #endif
 TYPE_SIZE_ERROR:
-                if (popnd1 && ASM_GET_aopty(popnd1->usFlags) != _reg)
+                if (popnd1 != emptyOPND && ASM_GET_aopty(popnd1->usFlags) != _reg)
                 {
                     opflags1 = popnd1->usFlags |= _anysize;
                     if (asmstate.ucItype == ITjump)
@@ -679,14 +681,14 @@ TYPE_SIZE_ERROR:
                                 _fanysize);
                     }
                 }
-                if (popnd2 && ASM_GET_aopty(popnd2->usFlags) != _reg)
+                if (popnd2 != emptyOPND && ASM_GET_aopty(popnd2->usFlags) != _reg)
                 {
                     opflags2 = popnd2->usFlags |= (_anysize);
                     if (asmstate.ucItype == ITjump)
                         popnd2->usFlags |= CONSTRUCT_FLAGS(0, 0, 0,
                                 _fanysize);
                 }
-                if (popnd3 && ASM_GET_aopty(popnd3->usFlags) != _reg)
+                if (popnd3 != emptyOPND && ASM_GET_aopty(popnd3->usFlags) != _reg)
                 {
                     opflags3 = popnd3->usFlags |= (_anysize);
                     if (asmstate.ucItype == ITjump)
@@ -695,7 +697,7 @@ TYPE_SIZE_ERROR:
                 }
                 if (bRetry)
                 {
-                    if(bInvalid64bit)
+                    if (bInvalid64bit)
                         asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
                     else
                         asmerr("bad type/size of operands '%s'", asm_opstr(pop));
@@ -810,14 +812,14 @@ TYPE_SIZE_ERROR:
                 if (debuga)
                 {
                     printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                         asm_output_popnd(popnd1);
-                    if (popnd2)
+                    if (popnd2 != emptyOPND)
                     {
                         printf(",");
                         asm_output_popnd(popnd2);
                     }
-                    if (popnd3)
+                    if (popnd3 != emptyOPND)
                     {
                         printf(",");
                         asm_output_popnd(popnd3);
@@ -825,12 +827,12 @@ TYPE_SIZE_ERROR:
                     printf("\n");
 
                     printf("OPCODE mismatch = ");
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                         asm_output_flags(popnd1->usFlags);
                     else
                         printf("NONE");
                     printf( " Op2 = ");
-                    if (popnd2)
+                    if (popnd2 != emptyOPND)
                         asm_output_flags(popnd2->usFlags);
                     else
                         printf("NONE");
@@ -884,14 +886,14 @@ TYPE_SIZE_ERROR:
                 if (debuga)
                 {
                     printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                         asm_output_popnd(popnd1);
-                    if (popnd2)
+                    if (popnd2 != emptyOPND)
                     {
                         printf(",");
                         asm_output_popnd(popnd2);
                     }
-                    if (popnd3)
+                    if (popnd3 != emptyOPND)
                     {
                         printf(",");
                         asm_output_popnd(popnd3);
@@ -899,16 +901,16 @@ TYPE_SIZE_ERROR:
                     printf("\n");
 
                     printf("OPCODE mismatch = ");
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                         asm_output_flags(popnd1->usFlags);
                     else
                         printf("NONE");
                     printf( " Op2 = ");
-                    if (popnd2)
+                    if (popnd2 != emptyOPND)
                         asm_output_flags(popnd2->usFlags);
                     else
                         printf("NONE");
-                    if (popnd3)
+                    if (popnd3 != emptyOPND)
                         asm_output_flags(popnd3->usFlags);
                     printf("\n");
                 }
@@ -965,19 +967,19 @@ TYPE_SIZE_ERROR:
                 if (debuga)
                 {
                     printf("\t%s\t", asm_opstr(pop));
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                         asm_output_popnd(popnd1);
-                    if (popnd2)
+                    if (popnd2 != emptyOPND)
                     {
                         printf(",");
                         asm_output_popnd(popnd2);
                     }
-                    if (popnd3)
+                    if (popnd3 != emptyOPND)
                     {
                         printf(",");
                         asm_output_popnd(popnd3);
                     }
-                    if (popnd4)
+                    if (popnd4 != emptyOPND)
                     {
                         printf(",");
                         asm_output_popnd(popnd4);
@@ -985,22 +987,22 @@ TYPE_SIZE_ERROR:
                     printf("\n");
 
                     printf("OPCODE mismatch = ");
-                    if (popnd1)
+                    if (popnd1 != emptyOPND)
                         asm_output_flags(popnd1->usFlags);
                     else
                         printf("NONE");
                     printf( " Op2 = ");
-                    if (popnd2)
+                    if (popnd2 != emptyOPND)
                         asm_output_flags(popnd2->usFlags);
                     else
                         printf("NONE");
                     printf( " Op3 = ");
-                    if (popnd3)
+                    if (popnd3 != emptyOPND)
                         asm_output_flags(popnd3->usFlags);
                     else
                         printf("NONE");
                     printf( " Op4 = ");
-                    if (popnd4)
+                    if (popnd4 != emptyOPND)
                         asm_output_flags(popnd4->usFlags);
                     else
                         printf("NONE");
@@ -1249,7 +1251,7 @@ static code *asm_emit(Loc loc,
     unsigned char *puc;
     unsigned usDefaultseg;
     code *pc = NULL;
-    OPND *popndTmp = NULL;
+    OPND *popndTmp = emptyOPND;
     ASM_OPERAND_TYPE    aoptyTmp;
     unsigned  uSizemaskTmp;
     const REG *pregSegment;
@@ -1265,7 +1267,7 @@ static code *asm_emit(Loc loc,
 
     pc = code_calloc();
     pc->Iflags |= CFpsw;            // assume we want to keep the flags
-    if (popnd1)
+    if (popnd1 != emptyOPND)
     {
         //aopty1 = ASM_GET_aopty(popnd1->usFlags);
         amod1 = ASM_GET_amod(popnd1->usFlags);
@@ -1276,7 +1278,7 @@ static code *asm_emit(Loc loc,
         uRegmaskTable1 = ASM_GET_uRegmask(ptb.pptb1->usOp1);
 
     }
-    if (popnd2)
+    if (popnd2 != emptyOPND)
     {
 #if 0
         printf("\nasm_emit:\nop: ");
@@ -1293,7 +1295,7 @@ static code *asm_emit(Loc loc,
         amodTable2 = ASM_GET_amod(ptb.pptb2->usOp2);
         uRegmaskTable2 = ASM_GET_uRegmask(ptb.pptb2->usOp2);
     }
-    if (popnd3)
+    if (popnd3 != emptyOPND)
     {
         //aopty3 = ASM_GET_aopty(popnd3->usFlags);
 
@@ -1386,7 +1388,7 @@ static code *asm_emit(Loc loc,
                 }
             }
             if (((pregSegment = (popndTmp = popnd1)->segreg) != NULL) ||
-                    ((popndTmp = popnd2) != NULL &&
+                    ((popndTmp = popnd2) != emptyOPND &&
                     (pregSegment = popndTmp->segreg) != NULL)
               )
             {
@@ -1491,7 +1493,7 @@ static code *asm_emit(Loc loc,
 #endif
                 pc,
                 ptb.pptb1->usFlags,
-                popnd2, NULL))
+                popnd2, emptyOPND))
                 return NULL;
 
             if (usNumops == 3)
@@ -1583,7 +1585,7 @@ static code *asm_emit(Loc loc,
         }
         pc->Iflags |= CFvex;
         emit(pc->Ivex.op);
-        if (popndTmp)
+        if (popndTmp != emptyOPND)
             goto L1;
         goto L2;
     }
@@ -1670,7 +1672,7 @@ L3: ;
 
     // If CALL, Jxx or LOOPx to a symbolic location
     if (/*asmstate.ucItype == ITjump &&*/
-        popnd1 && popnd1->s && popnd1->s->isLabel())
+        popnd1 != emptyOPND && popnd1->s && popnd1->s->isLabel())
     {
         Dsymbol *s = popnd1->s;
         if (s == asmstate.psDollar)
@@ -1733,7 +1735,7 @@ L3: ;
 #endif
                     pc,
                     ptb.pptb1->usFlags,
-                    popnd1, NULL))
+                    popnd1, emptyOPND))
                     return NULL;
             }
             popndTmp = popnd1;
@@ -2039,14 +2041,14 @@ L2:
             printf("  %02X", auchOpcode[u]);
 
         printf("\t%s\t", asm_opstr(pop));
-        if (popnd1)
+        if (popnd1 != emptyOPND)
             asm_output_popnd(popnd1);
-        if (popnd2)
+        if (popnd2 != emptyOPND)
         {
             printf(",");
             asm_output_popnd(popnd2);
         }
-        if (popnd3)
+        if (popnd3 != emptyOPND)
         {
             printf(",");
             asm_output_popnd(popnd3);
@@ -2170,16 +2172,16 @@ static OPND *asm_merge_opnds(OPND *o1, OPND *o2)
     if (debuga)
     {
         printf("asm_merge_opnds(o1 = ");
-        if (o1) asm_output_popnd(o1);
+        if (o1 != emptyOPND) asm_output_popnd(o1);
         printf(", o2 = ");
-        if (o2) asm_output_popnd(o2);
+        if (o2 != emptyOPND) asm_output_popnd(o2);
         printf(")\n");
     }
 #endif
-    if (!o1)
-            return o2;
-    if (!o2)
-            return o1;
+    if (o1 == emptyOPND)
+        return o2;
+    if (o2 == emptyOPND)
+        return o1;
 #ifdef EXTRA_DEBUG
     printf("Combining Operands: mult1 = %d, mult2 = %d",
             o1->uchMultiplier, o2->uchMultiplier);
@@ -2477,7 +2479,7 @@ static bool asm_make_modrm_byte(
     printf("asm_make_modrm_byte(usFlags = x%x)\n", usFlags);
     printf("op1: ");
     asm_output_flags(popnd->usFlags);
-    if (popnd2)
+    if (popnd2 != emptyOPND)
     {
         printf(" op2: ");
         asm_output_flags(popnd2->usFlags);
@@ -2830,7 +2832,7 @@ static bool asm_make_modrm_byte(
         else
             bOffsetsym = true;
     }
-    if (popnd2 && !mrmb.reg &&
+    if (popnd2 != emptyOPND && !mrmb.reg &&
         asmstate.ucItype != ITshift &&
         (ASM_GET_aopty(popnd2->usFlags) == _reg  ||
          ASM_GET_amod(popnd2->usFlags) == _rseg ||
@@ -2923,14 +2925,14 @@ static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
         usRet |= mDX;
         break;
     case _mod2:
-        if (popnd2)
-            usRet |= asm_modify_regs(ptb, popnd2, NULL);
+        if (popnd2 != emptyOPND)
+            usRet |= asm_modify_regs(ptb, popnd2, emptyOPND);
         break;
     case _modax:
         usRet |= mAX;
         break;
     case _modnot1:
-        popnd1 = NULL;
+        popnd1 = emptyOPND;
         break;
     case _modaxdx:
         usRet |= (mAX | mDX);
@@ -2955,7 +2957,7 @@ static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
         break;
     case _modsinot1:
         usRet |= mSI;
-        popnd1 = NULL;
+        popnd1 = emptyOPND;
         break;
     case _modcxr11:
         usRet |= (mCX | mR11);
@@ -2964,7 +2966,7 @@ static regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
         usRet |= mXMM0;
         break;
     }
-    if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg)
+    if (popnd1 != emptyOPND && ASM_GET_aopty(popnd1->usFlags) == _reg)
     {
         switch (ASM_GET_amod(popnd1->usFlags))
         {
@@ -3307,6 +3309,8 @@ static void asm_output_flags(opflag_t opflags)
 
 static void asm_output_popnd(OPND *popnd)
 {
+    if (popnd == emptyOPND)
+        return;
     if (popnd->segreg)
             printf("%s:", popnd->segreg->regstr);
 
@@ -4232,7 +4236,7 @@ static OPND *asm_br_exp()
                 o2 = asm_cond_exp();
                 if (!o2) return NULL;
                 asm_TKlbra_seen--;
-                if (!asm_chktok(TOKrbracket,"] expected instead of '%s'"))
+                if (!asm_chktok(TOKrbracket, "] expected instead of '%s'"))
                     return NULL;
 #ifdef EXTRA_DEBUG
                 printf("Saw a right bracket\n");
@@ -4334,7 +4338,8 @@ static OPND *asm_una_exp()
             Loffset:
                 asm_token();
                 o1 = asm_cond_exp();
-                if (!o1)
+                if (!o1) return NULL;
+                if (o1 == emptyOPND)
                     o1 = new OPND();
                 o1->bOffset = true;
             }
@@ -4348,7 +4353,8 @@ static OPND *asm_una_exp()
         case ASMTKseg:
             asm_token();
             o1 = asm_cond_exp();
-            if (!o1)
+            if (!o1) return NULL;
+            if (o1 == emptyOPND)
                 o1 = new OPND();
             o1->bSeg = true;
             break;
@@ -4375,7 +4381,8 @@ JUMP_REF:
                 return NULL;
 JUMP_REF2:
             o1 = asm_cond_exp();
-            if (!o1)
+            if (!o1) return NULL;
+            if (o1 == emptyOPND)
                 o1 = new OPND();
             o1->ajt= ajt;
             break;
@@ -4405,7 +4412,8 @@ TYPE_REF:
             if (!asm_chktok((TOK) ASMTKptr, "ptr expected"))
                 return NULL;
             o1 = asm_cond_exp();
-            if (!o1)
+            if (!o1) return NULL;
+            if (o1 == emptyOPND)
                 o1 = new OPND();
             o1->ptype = ptype;
             o1->bPtr = bPtr;
@@ -4425,8 +4433,8 @@ TYPE_REF:
 /** Returns NULL on failure. */
 static OPND *asm_primary_exp()
 {
-    OPND *o1 = NULL;
-    OPND *o2 = NULL;
+    OPND *o1 = emptyOPND;
+    OPND *o2 = emptyOPND;
     Dsymbol *s;
     Dsymbol *scopesym;
 
@@ -4708,7 +4716,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     //printf("AsmStatement::semantic()\n");
 
     OP *o;
-    OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
+    OPND *o1 = emptyOPND, *o2 = emptyOPND, *o3 = emptyOPND, *o4 = emptyOPND;
     PTRNTAB ptb;
     unsigned usNumops;
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
@@ -4820,23 +4828,25 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
             }
             // get the first part of an expr
             o1 = asm_cond_exp();
+            if (!o1) return NULL;
             if (tok_value == TOKcomma)
             {
                 asm_token();
                 o2 = asm_cond_exp();
+                if (!o2) return NULL;
             }
             if (tok_value == TOKcomma)
             {
                 asm_token();
                 o3 = asm_cond_exp();
+                if (!o3) return NULL;
             }
             if (tok_value == TOKcomma)
             {
                 asm_token();
                 o4 = asm_cond_exp();
+                if (!o4) return NULL;
             }
-            if (!(o1 && o2 && o3 && o4))
-                return NULL;
 
             // match opcode and operands in ptrntab to verify legal inst and
             // generate
@@ -4872,7 +4882,7 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
                     (ptb.pptb2->usOp2 & _cl)))
             {
                 delete o2;
-                o2 = NULL;
+                o2 = emptyOPND;
                 usNumops = 1;
             }
 #endif
