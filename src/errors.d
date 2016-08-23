@@ -170,6 +170,18 @@ extern (C++) void warning(const ref Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
+extern (C++) void warning(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
+{
+    Loc loc;
+    loc.filename = filename;
+    loc.linnum = linnum;
+    loc.charnum = charnum;
+    va_list ap;
+    va_start(ap, format);
+    vwarning(loc, format, ap);
+    va_end(ap);
+}
+
 extern (C++) void warningSupplemental(const ref Loc loc, const(char)* format, ...)
 {
     va_list ap;
