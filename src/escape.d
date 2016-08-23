@@ -742,6 +742,17 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
                             Parameter p = Parameter.getNth(tf.parameters, i - j);
                             if ((p.storageClass & (STCout | STCref)) && (p.storageClass & STCreturn))
                                 arg.accept(this);
+                            else if ((p.storageClass & STCscope) && (p.storageClass & STCreturn))
+                            {
+                                if (arg.op == TOKdelegate)
+                                {
+                                    DelegateExp de = cast(DelegateExp)arg;
+                                    if (de.func.isNested())
+                                        byexp.push(de);
+                                }
+                                else
+                                    escapeByValue(arg, byref, byvalue, byexp);
+                            }
                         }
                     }
                 }
@@ -752,6 +763,11 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
                     if (dve.var.storage_class & STCreturn || tf.isreturn)
                         dve.e1.accept(this);
                 }
+                // If it's a delegate, check it too
+                if (e.e1.op == TOKvar && t1.ty == Tdelegate)
+                {
+                    escapeByValue(e.e1, byref, byvalue, byexp);
+                }
             }
             else
                 byexp.push(e);
@@ -761,4 +777,5 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
     scope EscapeRefVisitor v = new EscapeRefVisitor(byref, byvalue, byexp);
     e.accept(v);
 }
+
 
