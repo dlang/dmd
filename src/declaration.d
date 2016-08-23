@@ -1109,6 +1109,8 @@ extern (C++) class VarDeclaration : Declaration
             sc2.pop();
         }
         //printf(" semantic type = %s\n", type ? type->toChars() : "null");
+        if (type.ty == Terror)
+            errors = true;
 
         type.checkDeprecated(loc, sc);
         linkage = sc.linkage;
@@ -1526,17 +1528,20 @@ extern (C++) class VarDeclaration : Declaration
             error("manifest constants must have initializers");
 
         bool isBlit = false;
+        d_uns64 sz;
         if (!_init &&
             !sc.inunion &&
             !(storage_class & (STCstatic | STCgshared | STCextern)) &&
             fd &&
             (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) ||
              (storage_class & STCout)) &&
-            type.size() != 0)
+            (sz = type.size()) != 0)
         {
             // Provide a default initializer
 
             //printf("Providing default initializer for '%s'\n", toChars());
+            if (sz == SIZE_INVALID && type.ty != Terror)
+                error("size of type %s is invalid", type.toChars());
 
             Type tv = type;
             while (tv.ty == Tsarray)    // Don't skip Tenum
@@ -1858,7 +1863,9 @@ extern (C++) class VarDeclaration : Declaration
         if (t.ty == Terror)
             return;
 
-        uint memsize = cast(uint)t.size(loc);       // size of member
+        const sz = t.size(loc);
+        assert(sz != SIZE_INVALID && sz < uint.max);
+        uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = Target.fieldalign(t);   // size of member for alignment purposes
         offset = AggregateDeclaration.placeField(
             poffset,
@@ -2049,8 +2056,11 @@ extern (C++) class VarDeclaration : Declaration
 
     final bool isOverlappedWith(VarDeclaration v)
     {
-        return (  offset < v.offset + v.type.size() &&
-                v.offset <   offset +   type.size());
+        const vsz = v.type.size();
+        const tsz = type.size();
+        assert(vsz != SIZE_INVALID && tsz != SIZE_INVALID);
+        return    offset < v.offset + vsz &&
+                v.offset <   offset + tsz;
     }
 
     override final bool hasPointers()
@@ -2096,7 +2106,12 @@ extern (C++) class VarDeclaration : Declaration
         if (tv.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
-            if (!sd.dtor || !type.size())
+            if (!sd.dtor)
+                return null;
+
+            const sz = type.size();
+            assert(sz != SIZE_INVALID);
+            if (!sz)
                 return null;
 
             if (type.toBasetype().ty == Tstruct)
@@ -2118,7 +2133,9 @@ extern (C++) class VarDeclaration : Declaration
                 // _ArrayDtor(v[0 .. n])
                 e = new VarExp(loc, this);
 
-                uinteger_t n = type.size() / sd.type.size();
+                const sdsz = sd.type.size();
+                assert(sdsz != SIZE_INVALID && sdsz != 0);
+                const n = sz / sdsz;
                 e = new SliceExp(loc, e, new IntegerExp(loc, 0, Type.tsize_t), new IntegerExp(loc, n, Type.tsize_t));
 
                 // Prevent redundant bounds check
