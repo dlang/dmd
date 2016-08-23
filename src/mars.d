@@ -1506,7 +1506,7 @@ Language changes listed by -transition=id:
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
         }
-        if (!global.errors && modules.dim)
+        if (!(global.errors || global.warnings) && modules.dim)
         {
             obj_end(library, modules[0].objfile);
         }
@@ -1524,14 +1524,14 @@ Language changes listed by -transition=id:
                 genObjFile(entrypoint, global.params.multiobj);
             obj_end(library, m.objfile);
             obj_write_deferred(library);
-            if (global.errors && !global.params.lib)
+            if ((global.errors || global.warnings) && !global.params.lib)
                 m.deleteObjFile();
         }
     }
-    if (global.params.lib && !global.errors)
+    if (global.params.lib && !(global.errors || global.warnings))
         library.write();
     backend_term();
-    if (global.errors)
+    if (global.errors || global.warnings)
         fatal();
     int status = EXIT_SUCCESS;
     if (!global.params.objfiles.dim)
