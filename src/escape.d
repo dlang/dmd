@@ -53,12 +53,11 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     if (e1.op == TOKslice)
         return false;
 
-    VarDeclarations byref, byvalue;
-    Expressions byexp;
+    EscapeByResults er;
 
-    escapeByValue(e2, &byref, &byvalue, &byexp);
+    escapeByValue(e2, &er);
 
-    if (!byref.dim && !byvalue.dim && !byexp.dim)
+    if (!er.byref.dim && !er.byvalue.dim && !er.byexp.dim)
         return false;
 
     VarDeclaration va;
@@ -66,7 +65,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         va = (cast(VarExp)e1).var.isVarDeclaration();
 
     bool result = false;
-    foreach (VarDeclaration v; byvalue)
+    foreach (VarDeclaration v; er.byvalue)
     {
         if (v.isDataseg())
             continue;
@@ -109,7 +108,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         }
     }
 
-    foreach (VarDeclaration v; byref)
+    foreach (VarDeclaration v; er.byref)
     {
         if (v.isDataseg())
             continue;
@@ -134,7 +133,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         }
     }
 
-    foreach (Expression er; byexp)
+    foreach (Expression ee; er.byexp)
     {
         if (va && !va.isDataseg())
         {
@@ -145,8 +144,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         if (sc.func.setUnsafe())
         {
             if (!gag)
-                error(er.loc, "reference to stack allocated value returned by %s assigned to non-scope %s",
-                    er.toChars(), e1.toChars());
+                error(ee.loc, "reference to stack allocated value returned by %s assigned to non-scope %s",
+                    ee.toChars(), e1.toChars());
             result = true;
         }
     }
@@ -195,19 +194,18 @@ bool checkEscapeRef(Scope* sc, Expression e, bool gag)
 
 private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
-    VarDeclarations byref, byvalue;
-    Expressions byexp;
+    EscapeByResults er;
 
     if (refs)
-        escapeByRef(e, &byref, &byvalue, &byexp);
+        escapeByRef(e, &er);
     else
-        escapeByValue(e, &byref, &byvalue, &byexp);
+        escapeByValue(e, &er);
 
-    if (!byref.dim && !byvalue.dim && !byexp.dim)
+    if (!er.byref.dim && !er.byvalue.dim && !er.byexp.dim)
         return false;
 
     bool result = false;
-    foreach (VarDeclaration v; byvalue)
+    foreach (VarDeclaration v; er.byvalue)
     {
         if (v.isDataseg())
             continue;
@@ -249,7 +247,7 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         }
     }
 
-    foreach (VarDeclaration v; byref)
+    foreach (VarDeclaration v; er.byref)
     {
         if (v.isDataseg())
             continue;
@@ -306,10 +304,10 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         }
     }
 
-    foreach (Expression er; byexp)
+    foreach (Expression ee; er.byexp)
     {
         if (!gag)
-            error(er.loc, "escaping reference to stack allocated value returned by %s", er.toChars());
+            error(ee.loc, "escaping reference to stack allocated value returned by %s", ee.toChars());
         result = true;
     }
 
@@ -378,26 +376,20 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
  *
  * Params:
  *      e = expression to be returned by value
- *      byref = array into which variables being returned by ref are inserted
- *      byvalue = array into which variables with values containing pointers are inserted
- *      byexp = array into which temporaries being returned by ref are inserted
+ *      er = where to place collected data
  */
-private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations* byvalue, Expressions* byexp)
+private void escapeByValue(Expression e, EscapeByResults* er)
 {
     //printf("[%s] checkEscape, e = %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
     {
         alias visit = super.visit;
     public:
-        VarDeclarations* byref;
-        VarDeclarations* byvalue;
-        Expressions* byexp;
+        EscapeByResults* er;
 
-        extern (D) this(VarDeclarations* byref, VarDeclarations* byvalue, Expressions* byexp)
+        extern (D) this(EscapeByResults* er)
         {
-            this.byref = byref;
-            this.byvalue = byvalue;
-            this.byexp = byexp;
+            this.er = er;
         }
 
         override void visit(Expression e)
@@ -406,21 +398,21 @@ private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations
 
         override void visit(AddrExp e)
         {
-            escapeByRef(e.e1, byref, byvalue, byexp);
+            escapeByRef(e.e1, er);
         }
 
         override void visit(SymOffExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
-                byref.push(v);
+                er.byref.push(v);
         }
 
         override void visit(VarExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
-                byvalue.push(v);
+                er.byvalue.push(v);
         }
 
         override void visit(TupleExp e)
@@ -476,7 +468,7 @@ private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
             {
-                escapeByRef(e.e1, byref, byvalue, byexp);
+                escapeByRef(e.e1, er);
             }
         }
 
@@ -492,14 +484,14 @@ private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations
                         return;
                     if (v.storage_class & STCvariadic)
                     {
-                        byvalue.push(v);
+                        er.byvalue.push(v);
                         return;
                     }
                 }
             }
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tsarray)
-                escapeByRef(e.e1, byref, byvalue, byexp);
+                escapeByRef(e.e1, er);
             else
                 e.e1.accept(this);
         }
@@ -577,7 +569,7 @@ private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations
         }
     }
 
-    scope EscapeVisitor v = new EscapeVisitor(byref, byvalue, byexp);
+    scope EscapeVisitor v = new EscapeVisitor(er);
     e.accept(v);
 }
 
@@ -597,25 +589,19 @@ private void escapeByValue(Expression e, VarDeclarations* byref, VarDeclarations
  *
  * Params:
  *      e = expression to be returned by 'ref'
- *      byref = array into which variables being returned by ref are inserted
- *      byvalue = array into which variables with values containing pointers are inserted
- *      byexp = array into which temporaries being returned by ref are inserted
+ *      er = where to place collected data
  */
-private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *byvalue, Expressions* byexp)
+private void escapeByRef(Expression e, EscapeByResults* er)
 {
     extern (C++) final class EscapeRefVisitor : Visitor
     {
         alias visit = super.visit;
     public:
-        VarDeclarations* byref;
-        VarDeclarations* byvalue;
-        Expressions* byexp;
+        EscapeByResults* er;
 
-        extern (D) this(VarDeclarations* byref, VarDeclarations* byvalue, Expressions* byexp)
+        extern (D) this(EscapeByResults* er)
         {
-            this.byref = byref;
-            this.byvalue = byvalue;
-            this.byexp = byexp;
+            this.er = er;
         }
 
         override void visit(Expression e)
@@ -641,7 +627,7 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
                     }
                 }
                 else
-                    byref.push(v);
+                    er.byref.push(v);
             }
         }
 
@@ -649,12 +635,12 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
         {
             auto v = e.var.isVarDeclaration();
             if (v)
-                byref.push(v);
+                er.byref.push(v);
         }
 
         override void visit(PtrExp e)
         {
-            escapeByValue(e.e1, byref, byvalue, byexp);
+            escapeByValue(e.e1, er);
         }
 
         override void visit(IndexExp e)
@@ -667,7 +653,7 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
                 {
                     if (v && v.storage_class & STCvariadic)
                     {
-                        byref.push(v);
+                        er.byref.push(v);
                         return;
                     }
                 }
@@ -678,7 +664,7 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
             }
             else if (tb.ty == Tarray)
             {
-                escapeByValue(e.e1, byref, byvalue, byexp);
+                escapeByValue(e.e1, er);
             }
         }
 
@@ -686,7 +672,7 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
         {
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tclass)
-                escapeByValue(e.e1, byref, byvalue, byexp);
+                escapeByValue(e.e1, er);
             else
                 e.e1.accept(this);
         }
@@ -748,10 +734,10 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
                                 {
                                     DelegateExp de = cast(DelegateExp)arg;
                                     if (de.func.isNested())
-                                        byexp.push(de);
+                                        er.byexp.push(de);
                                 }
                                 else
-                                    escapeByValue(arg, byref, byvalue, byexp);
+                                    escapeByValue(arg, er);
                             }
                         }
                     }
@@ -766,16 +752,25 @@ private void escapeByRef(Expression e, VarDeclarations* byref, VarDeclarations *
                 // If it's a delegate, check it too
                 if (e.e1.op == TOKvar && t1.ty == Tdelegate)
                 {
-                    escapeByValue(e.e1, byref, byvalue, byexp);
+                    escapeByValue(e.e1, er);
                 }
             }
             else
-                byexp.push(e);
+                er.byexp.push(e);
         }
     }
 
-    scope EscapeRefVisitor v = new EscapeRefVisitor(byref, byvalue, byexp);
+    scope EscapeRefVisitor v = new EscapeRefVisitor(er);
     e.accept(v);
 }
 
 
+/************************************
+ * Aggregate the data collected by the escapeBy??() functions.
+ */
+private struct EscapeByResults
+{
+    VarDeclarations byref;      // array into which variables being returned by ref are inserted
+    VarDeclarations byvalue;    // array into which variables with values containing pointers are inserted
+    Expressions byexp;          // array into which temporaries being returned by ref are inserted
+}
