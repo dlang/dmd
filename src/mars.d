@@ -1484,11 +1484,13 @@ Language changes listed by -transition=id:
     }
     if (!global.errors && global.params.doDocComments)
     {
+        auto wc = global.warnings; // save warning count
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module m = modules[i];
             gendocfile(m);
         }
+        global.warnings = wc; // ddoc is allowed to bypass the -w flag apparently
     }
     if (!global.params.obj)
     {
