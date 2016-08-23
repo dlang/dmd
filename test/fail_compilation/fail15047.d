@@ -17,7 +17,6 @@ fail_compilation/fail15047.d(29): Warning: variable a used before set
 
 
 
-
 void one() {
     int a = void;
     int b = a;
