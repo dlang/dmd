@@ -2498,7 +2498,7 @@ extern (C++) abstract class Type : RootObject
     /***************************************
      * Calculate built-in properties which just the type is necessary.
      *
-     * If flag == 1, don't report "not a property" error and just return NULL.
+     * If flag & 1, don't report "not a property" error and just return NULL.
      */
     Expression getProperty(Loc loc, Identifier ident, int flag)
     {
@@ -2575,7 +2575,7 @@ extern (C++) abstract class Type : RootObject
     /***************************************
      * Access the members of the object e. This type is same as e->type.
      *
-     * If flag == 1, don't report "not a property" error and just return NULL.
+     * If flag & 1, don't report "not a property" error and just return NULL.
      */
     Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
@@ -2632,10 +2632,10 @@ extern (C++) abstract class Type : RootObject
             e = new StringExp(e.loc, cast(char*)s);
         }
         else
-            e = getProperty(e.loc, ident, flag);
+            e = getProperty(e.loc, ident, flag & 1);
 
     Lreturn:
-        if (!flag || e)
+        if (!(flag & 1) || e)
             e = e.semantic(sc);
         return e;
     }
@@ -2652,7 +2652,7 @@ extern (C++) abstract class Type : RootObject
      * Figures out what to do with an undefined member reference
      * for classes and structs.
      *
-     * If flag == 1, don't report "not a property" error and just return NULL.
+     * If flag & 1, don't report "not a property" error and just return NULL.
      */
     final Expression noMember(Scope* sc, Expression e, Identifier ident, int flag)
     {
@@ -2705,13 +2705,13 @@ extern (C++) abstract class Type : RootObject
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
                 dti.ti.tempdecl = td;
                 /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
-                 * It should be gagged if flag != 0.
+                 * It should be gagged if flag & 1.
                  * e.g.
-                 *  tempalte opDispatch(name) if (isValid!name) { ... }
+                 *  template opDispatch(name) if (isValid!name) { ... }
                  */
-                uint errors = flag ? global.startGagging() : 0;
+                uint errors = flag & 1 ? global.startGagging() : 0;
                 e = dti.semanticY(sc, 0);
-                if (flag && global.endGagging(errors))
+                if (flag & 1 && global.endGagging(errors))
                     e = null;
                 return e;
             }
@@ -2725,7 +2725,7 @@ extern (C++) abstract class Type : RootObject
                  */
                 e = resolveAliasThis(sc, e);
                 auto die = new DotIdExp(e.loc, e, ident);
-                return die.semanticY(sc, flag);
+                return die.semanticY(sc, flag & 1);
             }
         }
         return Type.dotExp(sc, e, ident, flag);
@@ -4095,7 +4095,7 @@ extern (C++) final class TypeBasic : Type
         {
             return Type.dotExp(sc, e, ident, flag);
         }
-        if (!flag || e)
+        if (!(flag & 1) || e)
             e = e.semantic(sc);
         return e;
     }
@@ -4611,7 +4611,7 @@ extern (C++) class TypeArray : TypeNext
         {
             e = Type.dotExp(sc, e, ident, flag);
         }
-        if (!flag || e)
+        if (!(flag & 1) || e)
             e = e.semantic(sc);
         return e;
 
@@ -4918,7 +4918,7 @@ extern (C++) final class TypeSArray : TypeArray
         {
             e = TypeArray.dotExp(sc, e, ident, flag);
         }
-        if (!flag || e)
+        if (!(flag & 1) || e)
             e = e.semantic(sc);
         return e;
     }
@@ -8177,7 +8177,7 @@ extern (C++) final class TypeStruct : Type
 
         // Bugzilla 14010
         if (ident == Id._mangleof)
-            return getProperty(e.loc, ident, flag);
+            return getProperty(e.loc, ident, flag & 1);
 
         /* If e.tupleof
          */
@@ -8733,13 +8733,13 @@ extern (C++) final class TypeEnum : Type
         }
         // Bugzilla 14010
         if (ident == Id._mangleof)
-            return getProperty(e.loc, ident, flag);
+            return getProperty(e.loc, ident, flag & 1);
 
         if (sym._scope)
             sym.semantic(sym._scope);
         if (!sym.members)
         {
-            if (!flag)
+            if (!(flag & 1))
             {
                 sym.error("is forward referenced when looking for '%s'", ident.toChars());
                 e = new ErrorExp();
@@ -8754,11 +8754,11 @@ extern (C++) final class TypeEnum : Type
         {
             if (ident == Id.max || ident == Id.min || ident == Id._init)
             {
-                return getProperty(e.loc, ident, flag);
+                return getProperty(e.loc, ident, flag & 1);
             }
 
             Expression res = sym.getMemtype(Loc()).dotExp(sc, e, ident, 1);
-            if (flag != 1 && !res)
+            if (!(flag & 1) && !res)
             {
                 if (auto ns = sym.search_correct(ident))
                     e.error("no property '%s' for type '%s'. Did you mean '%s.%s' ?", ident.toChars(), toChars(), toChars(),
@@ -9221,7 +9221,7 @@ extern (C++) final class TypeClass : Type
                 return dve;
             }
 
-            return noMember(sc, e, ident, flag);
+            return noMember(sc, e, ident, flag & 1);
         }
         if (!symbolIsVisible(sc, s))
         {
