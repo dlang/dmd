@@ -2495,7 +2495,7 @@ static bool asm_make_modrm_byte(
     {
         Declaration *d = s->isDeclaration();
 
-        if (amod == _fn16 && aopty == _rel && popnd2)
+        if (amod == _fn16 && aopty == _rel && popnd2 != emptyOPND)
         {
             aopty = _m;
             goto L1;
@@ -3468,7 +3468,6 @@ static unsigned asm_type_size(Type * ptype)
  *              for optimizer.
  */
 
-/** Returns NULL on failure. */
 static code *asm_da_parse(OP *pop)
 {
     CodeBuilder cb;
