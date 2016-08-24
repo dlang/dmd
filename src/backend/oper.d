@@ -308,7 +308,9 @@ int convidx(OPER op) { return op - CNVOPMIN; }
 static if (__VERSION__ <= 2066):
     private enum computeEnumValue = OPMAX;
 
-extern __gshared ubyte[OPMAX] optab1, optab2, optab3;
+extern __gshared ubyte[OPMAX] optab1;
+extern __gshared ubyte[OPMAX] optab2;
+extern __gshared ubyte[OPMAX] optab3;
 extern __gshared ubyte[OPMAX] opcost;
 
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */

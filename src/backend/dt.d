@@ -10,12 +10,13 @@
 
 module ddmd.backend.dt;
 
+import ddmd.backend.cc;
 import ddmd.backend.ty;
 import ddmd.backend.type;
 
 //struct Symbol;
 //alias uint tym_t;
-struct dt_t;
+//struct dt_t;
 
 nothrow:
 @nogc:

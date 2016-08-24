@@ -38,6 +38,7 @@ import ddmd.tokens;
 import ddmd.typinf;
 import ddmd.visitor;
 
+import ddmd.backend.cc;
 import ddmd.backend.dt;
 
 /* A dt_t is a simple structure representing data to be added

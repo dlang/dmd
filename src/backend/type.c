@@ -215,7 +215,7 @@ L1:
  * Note that hidden parameters do not contribute to size.
  */
 
-targ_size_t type_paramsize(type *t)
+unsigned type_paramsize(type *t)
 {
     targ_size_t sz = 0;
     if (tyfunc(t->Tty))
@@ -825,7 +825,7 @@ elem *type_vla_fix(type **pt)
  * Modify the tym_t field of a type.
  */
 
-type *type_setty(type **pt,long newty)
+type *type_setty(type **pt,unsigned newty)
 {   type *t;
 
     t = *pt;

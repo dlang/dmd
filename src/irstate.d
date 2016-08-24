@@ -20,6 +20,9 @@ import ddmd.statement;
 import ddmd.globals;
 import ddmd.mtype;
 
+import ddmd.backend.cc;
+import ddmd.backend.el;
+
 extern (C++) struct Label;
 
 /***********************************************************

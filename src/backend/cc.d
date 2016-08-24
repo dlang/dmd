@@ -14,6 +14,8 @@ module ddmd.backend.cc;
 import tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
 import ddmd.backend.type;
+import ddmd.backend.el;
+import ddmd.backend.dt;
 
 extern (C++):
 @nogc:
@@ -141,11 +143,10 @@ struct token_t;
 //struct Nspacesym;
 //struct Outbuffer;
 //struct Aliassym;
-struct dt_t;
+//struct dt_t;
 //typedef struct TYPE type;
 //typedef struct Symbol symbol;
 alias Funcsym = Symbol;
-struct elem;
 //#if !MARS
 //typedef struct MACRO macro_t;
 struct blklst;
@@ -187,7 +188,7 @@ struct Srcpos
         }
     }
 //#if M_UNIX
-//    short Sfilnum;              // file number
+    short Sfilnum;              // file number
 //#endif
 
     void print(const(char)* func);
@@ -359,10 +360,10 @@ enum
 //  done on it, so it is stack and register variables.)
 //char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
-version (Windows)
+//version (Windows)
     alias char enum_SC;
-else
-    alias SC enum_SC;
+//else
+//    alias SC enum_SC;
 
 
 /******************************************
@@ -371,9 +372,9 @@ else
  *      in a function. startblock heads the list.
  */
 
-alias void* ClassDeclaration;
-alias void* Declaration;
-alias void* Module;
+alias void* ClassDeclaration_;
+alias void* Declaration_;
+alias void* Module_;
 
 struct Blockx
 {
@@ -388,9 +389,9 @@ struct Blockx
     uint flags;                 // value to OR into Bflags
     block* tryblock;            // current enclosing try block
     elem* init;                 // static initializer
-    ClassDeclaration classdec;
-    Declaration member;         // member we're compiling for
-    Module _module;             // module we're in
+    ClassDeclaration_ classdec;
+    Declaration_ member;        // member we're compiling for
+    Module_ _module;            // module we're in
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Blockx.sizeof); }
@@ -1269,11 +1270,11 @@ struct Symbol
     }
     version (MARS)
     {
-        const char *prettyIdent;    // the symbol identifer as the user sees it
+        const(char)* prettyIdent;   // the symbol identifer as the user sees it
     }
 
 //#if TARGET_OSX
-//    targ_size_t Slocalgotoffset;
+    targ_size_t Slocalgotoffset;
 //#endif
 
     enum_SC Sclass;             // storage class (SCxxxx)
@@ -1423,7 +1424,8 @@ struct param_t
  * These should be combined with storage classes.
  */
 
-enum FL
+alias FL = int;
+enum
 {
     // Change this, update debug.c too
     FLunde,
@@ -1622,43 +1624,35 @@ extern __gshared Declar gdeclar;
  *      DTcoff          offset into code segment
  */
 
-//struct dt_t
-//{
-//    dt_t *DTnext;                       // next in list
-//    char dt;                            // type (DTxxxx)
-//    unsigned char Dty;                  // pointer type
-//    unsigned char DTn;                  // DTibytes: number of bytes
-//    union
-//    {
-//        struct                          // DTibytes
-//        {
-//            #define DTibytesMax (sizeof(char *) + sizeof(unsigned) + sizeof(int) + sizeof(targ_size_t))
-//            char DTdata_[DTibytesMax];  // data
-//            #define DTdata _DU._DI.DTdata_
-//        }_DI;
-//        targ_size_t DTazeros_;          // DTazeros,DTcommon,DTsymsize
-//        #define DTazeros _DU.DTazeros_
-//        struct                          // DTabytes
-//        {
-//            char *DTpbytes_;            // pointer to the bytes
-//            #define DTpbytes _DU._DN.DTpbytes_
-//            unsigned DTnbytes_;         // # of bytes
-//            #define DTnbytes _DU._DN.DTnbytes_
-//            int DTseg_;                 // segment it went into
-//            #define DTseg _DU._DN.DTseg_
-//            targ_size_t DTabytes_;              // offset of abytes for DTabytes
-//            #define DTabytes _DU._DN.DTabytes_
-//        }_DN;
-//        struct                          // DTxoff
-//        {
-//            symbol *DTsym_;             // symbol pointer
-//            #define DTsym _DU._DS.DTsym_
-//            targ_size_t DToffset_;      // offset from symbol
-//            #define DToffset _DU._DS.DToffset_
-//        }_DS;
-//    }_DU;
-//};
-//
+struct dt_t
+{
+    dt_t *DTnext;                       // next in list
+    char dt;                            // type (DTxxxx)
+    ubyte Dty;                          // pointer type
+    ubyte DTn;                          // DTibytes: number of bytes
+    union
+    {
+        struct                          // DTibytes
+        {
+            enum DTibytesMax = (char*).sizeof + uint.sizeof + int.sizeof + targ_size_t.sizeof;
+            byte[DTibytesMax] DTdata;   // data
+        }
+        targ_size_t DTazeros;           // DTazeros,DTcommon,DTsymsize
+        struct                          // DTabytes
+        {
+            byte *DTpbytes;             // pointer to the bytes
+            uint DTnbytes;              // # of bytes
+            int DTseg;                  // segment it went into
+            targ_size_t DTabytes;       // offset of abytes for DTabytes
+        }
+        struct                          // DTxoff
+        {
+            Symbol *DTsym;              // symbol pointer
+            targ_size_t DToffset;       // offset from symbol
+        }
+    }
+}
+
 //enum
 //{
 //    DT_abytes = 0,

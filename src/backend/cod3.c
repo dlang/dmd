@@ -4138,8 +4138,8 @@ code* gen_spill_reg(Symbol* s, bool toreg)
  *      i       offset into vtbl[]
  */
 
-void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
-        targ_size_t d,int i,targ_size_t d2)
+void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
+        unsigned d,int i,unsigned d2)
 {   code *c,*c1;
     targ_size_t thunkoffset;
     tym_t thunkty;

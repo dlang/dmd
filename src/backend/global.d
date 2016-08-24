@@ -66,7 +66,7 @@ extern __gshared
     char OPTIMIZER,PARSER;
     symtab_t globsym;
 
-    Config config;                  // precompiled part of configuration
+//    Config config;                  // precompiled part of configuration
     Configv configv;                // non-ph part of configuration
 //    char[SCMAX] sytab;
 
@@ -328,9 +328,9 @@ void symbol_print(Symbol *s);
 void symbol_term();
 char *symbol_ident(Symbol *s);
 Symbol *symbol_calloc(const(char)* id);
-Symbol *symbol_calloc(const(char)* id, size_t len);
+Symbol *symbol_calloc(const(char)* id, uint len);
 Symbol *symbol_name(const(char)* name, int sclass, type *t);
-Symbol *symbol_name(const(char)* name, size_t len, int sclass, type *t);
+Symbol *symbol_name(const(char)* name, uint len, int sclass, type *t);
 Symbol *symbol_generate(int sclass, type *t);
 Symbol *symbol_genauto(type *t);
 Symbol *symbol_genauto(elem *e);
@@ -373,7 +373,7 @@ void objfile_term();
 
 /* cod3.c */
 void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
-        targ_size_t d,int i,targ_size_t d2);
+        uint d,int i,uint d2);
 
 /* out.c */
 void outfilename(char *name,int linnum);
@@ -390,7 +390,7 @@ Symbol *out_readonly_sym(tym_t ty, void *p, int len);
 
 /* blockopt.c */
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066):
+static if (__VERSION__ <= 2066)
     private enum computeEnumValue = BCMAX;
 extern __gshared uint[BCMAX] bc_goal;
 
