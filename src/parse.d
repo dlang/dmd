@@ -5484,7 +5484,7 @@ final class Parser : Lexer
                 check(TOKlparen);
                 if (token.value != TOKidentifier)
                 {
-                    error("pragma(identifier expected");
+                    error("pragma(identifier) expected");
                     goto Lerror;
                 }
                 ident = token.ident;
