@@ -41,11 +41,13 @@ import ddmd.arraytypes;
  */
 bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 {
-    if (e.op != TOKassign && e.op != TOKblit)
+    //printf("checkAssignEscape(e: %s)\n", e.toChars());
+    if (e.op != TOKassign && e.op != TOKblit && e.op != TOKconstruct)
         return false;
     auto ae = cast(AssignExp)e;
     Expression e1 = ae.e1;
     Expression e2 = ae.e2;
+    //printf("type = %s, %d\n", e1.type.toChars(), e1.type.hasPointers());
 
     if (!e1.type.hasPointers())
         return false;
@@ -57,12 +59,20 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     escapeByValue(e2, &er);
 
-    if (!er.byref.dim && !er.byvalue.dim && !er.byexp.dim)
+    if (!er.byref.dim && !er.byvalue.dim && !er.byfunc.dim && !er.byexp.dim)
         return false;
 
     VarDeclaration va;
+    while (e1.op == TOKdotvar)
+        e1 = (cast(DotVarExp)e1).e1;
     if (e1.op == TOKvar)
         va = (cast(VarExp)e1).var.isVarDeclaration();
+    else if (e1.op == TOKthis)
+        va = (cast(ThisExp)e1).var.isVarDeclaration();
+
+    bool inferScope = false;
+    if (sc.func && sc.func.type && sc.func.type.ty == Tfunction)
+        inferScope = (cast(TypeFunction)sc.func.type).trust != TRUSTsystem;
 
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
@@ -76,7 +86,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         {
             if (va && !va.isDataseg())
             {
-                if (!va.isScope())
+                if (!va.isScope() && inferScope)
                     va.storage_class |= STCscope;
                 continue;
             }
@@ -94,7 +104,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             {
                 if (va && !va.isDataseg())
                 {
-                    if (!va.isScope())
+                    if (!va.isScope() && inferScope)
                         va.storage_class |= STCscope;
                     continue;
                 }
@@ -119,7 +129,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         {
             if (va && !va.isDataseg())
             {
-                if (!va.isScope())
+                if (!va.isScope() && inferScope &&
+                    va.type.toBasetype().ty != Tclass)  // scope classes are special
                     va.storage_class |= STCscope;
                 continue;
             }
@@ -133,11 +144,47 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         }
     }
 
+    foreach (FuncDeclaration fd; er.byfunc)
+    {
+        //printf("fd = %s, %d\n", fd.toChars(), fd.tookAddressOf);
+        VarDeclarations vars;
+        findAllOuterAccessedVariables(fd, &vars);
+
+        foreach (v; vars)
+        {
+            //printf("v = %s\n", v.toChars());
+            if (v.isDataseg())
+                continue;
+
+            Dsymbol p = v.toParent2();
+
+            if ((v.storage_class & (STCref | STCout | STCscope)) && p == sc.func)
+            {
+                if (va && !va.isDataseg())
+                {
+                    /* Don't infer STCscope for va, because then a closure
+                     * won't be generated for sc.func.
+                     */
+                    //if (!va.isScope() && inferScope)
+                        //va.storage_class |= STCscope;
+                    continue;
+                }
+                if (sc.func.setUnsafe())
+                {
+                    if (!gag)
+                        error(ae.loc, "reference to local %s assigned to non-scope %s in @safe code", v.toChars(), e1.toChars());
+                    result = true;
+                }
+                continue;
+            }
+        }
+    }
+
     foreach (Expression ee; er.byexp)
     {
         if (va && !va.isDataseg())
         {
-            if (!va.isScope())
+            if (!va.isScope() && inferScope)
                 va.storage_class |= STCscope;
             continue;
         }
@@ -415,6 +462,17 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 er.byvalue.push(v);
         }
 
+        override void visit(DelegateExp e)
+        {
+            er.byfunc.push(e.func);
+        }
+
+        override void visit(FuncExp e)
+        {
+            if (e.fd.tok == TOKdelegate)
+                er.byfunc.push(e.fd);
+        }
+
         override void visit(TupleExp e)
         {
             if (e.exps.dim)
@@ -470,6 +528,8 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             {
                 escapeByRef(e.e1, er);
             }
+            else
+                e.e1.accept(this);
         }
 
         override void visit(SliceExp e)
@@ -772,5 +832,35 @@ private struct EscapeByResults
 {
     VarDeclarations byref;      // array into which variables being returned by ref are inserted
     VarDeclarations byvalue;    // array into which variables with values containing pointers are inserted
+    FuncDeclarations byfunc;    // nested functions that are turned into delegates
     Expressions byexp;          // array into which temporaries being returned by ref are inserted
+}
+
+/*************************
+ * Find all variables accessed by this delegate that are
+ * in functions enclosing it.
+ * Params:
+ *      fd = function
+ *      vars = array to append found variables to
+ */
+void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* vars)
+{
+    for (auto p = fd.parent; p; p = p.parent)
+    {
+        auto fdp = p.isFuncDeclaration();
+        if (fdp)
+        {
+            foreach (v; fdp.closureVars)
+            {
+                foreach (const fdv; v.nestedrefs)
+                {
+                    if (fdv == fd)
+                    {
+                        //printf("accessed: %s, type %s\n", v.toChars(), v.type.toChars());
+                        vars.push(v);
+                    }
+                }
+            }
+        }
+    }
 }
