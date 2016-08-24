@@ -8,12 +8,54 @@ $(BUGSTITLE Compiler Changes,
 )
 
 $(BUGSTITLE Language Changes,
+    $(LI $(RELATIVE_LINK2 traits-members-visibility, The `allMembers` and `derivedMembers` traits now only return visible symbols.))
 )
 
 $(BUGSTITLE Compiler Changes,
 )
 
 $(BUGSTITLE Language Changes,
+    $(LI $(LNAME2 traits-members-visibility, The `allMembers` and `derivedMembers` traits now only return visible symbols.))
+
+    $(P Since changing the protection system from access to visibility checks
+        (see $(DDSUBLINK changelog/2.071.0, dip22, DIP22)), using the
+        $(DDSUBLINK spec/traits, getMember, `getMember`) traits would often
+        result in nonsense deprecation warnings for invisible (private) symbols
+        in $(DDSUBLINK spec/traits, allMembers, `allMembers`) or
+        $(DDSUBLINK spec/traits, derivedMembers, `derivedMembers`). As the symbols
+        weren't accessible before and are now invisible, the implementation of the
+        traits was changed to no longer list those.
+    )
+
+    $(P To ease updating existing code, the old behavior can be restored using the -transition=import
+        compiler switch.
+    )
+
+    $(P In case you want a template from a library to return private members,
+        you can mixin the template into the instantiation scope. Note that it's
+        possible to mixin normal templates even though they're not declared as
+        mixin template.
+    )
+
+    $(P Example:)
+    ---
+    import std.traits;
+    enum UDA;
+    struct S
+    {
+        @UDA int visible;
+        @UDA private int invisible;
+    }
+    // only returns symbols visible from std.traits
+    static assert(getSymbolsByUDA!(S, UDA).length == 1);
+    // mixin the template instantiation, using a name to avoid namespace pollution
+    mixin getSymbolsByUDA!(S, UDA) symbols;
+    // as the template is instantiated in the current scope, it can see private members
+    static assert(symbols.getSymbolsByUDA.length == 2);
+    ---
+
+    $(P See also $(BUGZILLA 15907))
+    )
 )
 
 Macros:
@@ -34,3 +76,4 @@ Macros:
     DMDPR = $(PULL_REQUEST dmd,$1)
 
     BOOKTABLE = <table><caption>$1</caption>$+</table>
+    DDSUBLINK=$(LINK2 //dlang.org/$1.html#$2, $3)
