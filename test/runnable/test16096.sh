@@ -17,4 +17,4 @@ ${RESULTS_DIR}/runnable/test16096
 
 rm ${dir}/{test16096a.a,test16096}
 
-echo Success >${output_file}
+echo Success > "$output_file"
