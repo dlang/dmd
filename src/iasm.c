@@ -2699,11 +2699,15 @@ static bool asm_make_modrm_byte(
                  popnd->uchMultiplier ||
                  (popnd->pregDisp1->val & NUM_MASK) == _ESP)
         {
-            if (popnd->pregDisp2 && popnd->pregDisp2->val == _ESP)
-                error(asmstate.loc, "ESP cannot be scaled index register");
+            if (popnd->pregDisp2)
+            {
+                if (popnd->pregDisp2->val == _ESP)
+                    error(asmstate.loc, "ESP cannot be scaled index register");
+            }
             else
             {
-                if (popnd->uchMultiplier && popnd->pregDisp1->val ==_ESP)
+                if (popnd->uchMultiplier &&
+                    popnd->pregDisp1->val ==_ESP)
                     error(asmstate.loc, "ESP cannot be scaled index register");
                 bDisp = true;
             }
@@ -2726,8 +2730,11 @@ static bool asm_make_modrm_byte(
                     if (debuga)
                         printf("Resetting the mod to 0\n");
 #endif
-                    if (popnd->pregDisp2 && popnd->pregDisp2->val != _EBP)
-                        error(asmstate.loc, "EBP cannot be base register");
+                    if (popnd->pregDisp2)
+                    {
+                        if (popnd->pregDisp2->val != _EBP)
+                            error(asmstate.loc, "EBP cannot be base register");
+                    }
                     else
                     {
                         mrmb.mod = 0x0;
