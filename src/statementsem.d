@@ -3379,6 +3379,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (!(cast(AsmStatement) s).asmcode)
                     s = null; // empty statement
             }
+            else
+                s = null;
         }
 
         assert(sc.func);
