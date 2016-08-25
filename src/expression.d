@@ -510,7 +510,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
-        if (v && ve.checkPurity(sc, v))
+        if (v && Expression.checkPurity(ve.loc, sc, v))
             return new ErrorExp();
     }
     if (e2)
@@ -1447,21 +1447,26 @@ extern (C++) Expression doCopyOrMove(Scope *sc, Expression e)
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
- *      1. implicitly convert argument to the corresponding parameter type
- *      2. add default arguments for any missing arguments
- *      3. do default promotions on arguments corresponding to ...
- *      4. add hidden _arguments[] argument
- *      5. call copy constructor for struct value arguments
- * Input:
- *      tf      type of the function
- *      fd      the function being called, NULL if called indirectly
- * Output:
- *      *prettype return type of function
- *      *peprefix expression to execute before arguments[] are evaluated, NULL if none
+ *  1. implicitly convert argument to the corresponding parameter type
+ *  2. add default arguments for any missing arguments
+ *  3. do default promotions on arguments corresponding to ...
+ *  4. add hidden _arguments[] argument
+ *  5. call copy constructor for struct value arguments
+ * Params:
+ *  sc        = scope
+ *  tf        = type of the function
+ *  tthis     = type of this expression
+ *  arguments = function arguments
+ *  fd        = the function being called, null if called indirectly
+ *  prettype  = pointer to variable where the determined return type will be set
+ *  peprefix  = pointer to variable where the expression to execute
+ *              before arguments[] are evaluated, null if none
  * Returns:
- *      true    errors happened
+ *  `true` errors happened. Otherwise *prettype and *peprefix will also be set.
  */
-extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
+extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf,
+    Type tthis, Expressions* arguments, FuncDeclaration fd,
+    Type* prettype, Expression* peprefix)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -1476,23 +1481,11 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
 
     if (nargs > nparams && tf.varargs == 0)
     {
-        error(loc, "expected %llu arguments, not %llu for non-variadic function type %s", cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
+        error(loc, "expected %llu arguments, not %llu for non-variadic function type %s",
+            cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
         return true;
     }
 
-    // If inferring return type, and semantic3() needs to be run if not already run
-    if (!tf.next && fd.inferRetType)
-    {
-        fd.functionSemantic();
-    }
-    else if (fd && fd.parent)
-    {
-        TemplateInstance ti = fd.parent.isTemplateInstance();
-        if (ti && ti.tempdecl)
-        {
-            fd.functionSemantic3();
-        }
-    }
     bool isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
 
     size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
@@ -1650,50 +1643,6 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         }
         if (done)
             break;
-    }
-    if ((wildmatch == MODmutable || wildmatch == MODimmutable) && tf.next.hasWild() && (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
-    {
-        if (fd)
-        {
-            /* If the called function may return the reference to
-             * outer inout data, it should be rejected.
-             *
-             * void foo(ref inout(int) x) {
-             *   ref inout(int) bar(inout(int)) { return x; }
-             *   struct S { ref inout(int) bar() inout { return x; } }
-             *   bar(int.init) = 1;  // bad!
-             *   S().bar() = 1;      // bad!
-             * }
-             */
-            Dsymbol s = null;
-            if (fd.isThis() || fd.isNested())
-                s = fd.toParent2();
-            for (; s; s = s.toParent2())
-            {
-                if (auto ad = s.isAggregateDeclaration())
-                {
-                    if (ad.isNested())
-                        continue;
-                    break;
-                }
-                if (auto ff = s.isFuncDeclaration())
-                {
-                    if ((cast(TypeFunction)ff.type).iswild)
-                        goto Linouterr;
-
-                    if (ff.isNested() || ff.isThis())
-                        continue;
-                }
-                break;
-            }
-        }
-        else if (tf.isWild())
-        {
-        Linouterr:
-            const(char)* s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
-            error(loc, "modify inout to %s is not allowed inside inout function", s);
-            return true;
-        }
     }
 
     assert(nargs >= nparams);
@@ -2039,7 +1988,104 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         arguments.insert(0, e);
     }
 
+    err |= (olderrors != global.errors);
+
+    // If inferring return type, and semantic3() needs to be run if not already run.
+    if (fd)
+    {
+        auto ti = fd.toParent().isTemplateInstance();
+        if (ti && ti.semanticRun >= PASSsemanticdone)
+        {
+            ti.semantic3(null);
+            if (ti.errors)
+                return true;
+
+            if (fd.type.nextOf())
+            {
+                // Workaround for compilable/test9209.d
+            }
+            else if (fd.checkForwardRef(loc))
+                return true;
+        }
+        else
+        {
+            if (!fd.functionSemantic())
+                return true;
+            if (fd.checkForwardRef(loc))
+                return true;
+        }
+
+        if (fd.ident == Id.assign &&
+            (fd.storage_class & STCinference) &&
+            (fd.storage_class & STCdisable))
+        {
+            fd.checkDeprecated(loc, sc);
+            return true;
+        }
+
+        if (fd.checkNestedReference(sc, loc))
+            return true;
+
+        assert(fd.type.ty == Tfunction);
+        tf = cast(TypeFunction)fd.type;
+
+        // TODO: Converting errors in these checks to an ErrorExp will hide
+        // nothrow errors.
+        Expression.checkPurity(loc, sc, fd);
+        Expression.checkSafety(loc, sc, fd);
+        Expression.checkNogc(loc, sc, fd);
+    }
+
     Type tret = tf.next;
+    assert(tret);
+
+    if ((wildmatch == MODmutable || wildmatch == MODimmutable) &&
+        tret.hasWild() &&
+        (tf.isref || !tret.implicitConvTo(tret.immutableOf())))
+    {
+        if (fd)
+        {
+            /* If the called function may return the reference to
+             * outer inout data, it should be rejected.
+             *
+             * void foo(ref inout(int) x) {
+             *   ref inout(int) bar(inout(int)) { return x; }
+             *   struct S { ref inout(int) bar() inout { return x; } }
+             *   bar(int.init) = 1;  // bad!
+             *   S().bar() = 1;      // bad!
+             * }
+             */
+            Dsymbol s = null;
+            if (fd.isThis() || fd.isNested())
+                s = fd.toParent2();
+            for (; s; s = s.toParent2())
+            {
+                if (auto ad = s.isAggregateDeclaration())
+                {
+                    if (ad.isNested())
+                        continue;
+                    break;
+                }
+                if (auto ff = s.isFuncDeclaration())
+                {
+                    if ((cast(TypeFunction)ff.type).iswild)
+                        goto Linouterr;
+
+                    if (ff.isNested() || ff.isThis())
+                        continue;
+                }
+                break;
+            }
+        }
+        else if (tf.isWild())
+        {
+        Linouterr:
+            const(char)* s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
+            error(loc, "modify inout to %s is not allowed inside inout function", s);
+            return true;
+        }
+    }
+
     if (isCtorCall)
     {
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
@@ -2064,7 +2110,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         }
         tret = tthis;
     }
-    else if (wildmatch && tret)
+    else if (wildmatch)
     {
         /* Adjust function return type based on wildmatch
          */
@@ -2073,7 +2119,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     }
     *prettype = tret;
     *peprefix = eprefix;
-    return (err || olderrors != global.errors);
+    return err;
 }
 
 /****************************************************************/
@@ -2964,7 +3010,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other pure functions.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, FuncDeclaration f)
+    static bool checkPurity(Loc loc, Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -3042,7 +3088,7 @@ extern (C++) abstract class Expression : RootObject
             FuncDeclaration ff = outerfunc;
             if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
             {
-                error("pure %s '%s' cannot call impure %s '%s'",
+                .error(loc, "pure %s '%s' cannot call impure %s '%s'",
                     ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
@@ -3055,7 +3101,7 @@ extern (C++) abstract class Expression : RootObject
      * Check for purity and safety violations.
      * Returns true if error occurs.
      */
-    final bool checkPurity(Scope* sc, VarDeclaration v)
+    static bool checkPurity(Loc loc, Scope* sc, VarDeclaration v)
     {
         //printf("v = %s %s\n", v->type->toChars(), v->toChars());
         /* Look for purity and safety violations when accessing variable v
@@ -3105,7 +3151,7 @@ extern (C++) abstract class Expression : RootObject
                     break;
                 if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
                 {
-                    error("pure %s '%s' cannot access mutable static data '%s'",
+                    .error(loc, "pure %s '%s' cannot access mutable static data '%s'",
                         ff.kind(), ff.toPrettyChars(), v.toChars());
                     err = true;
                     break;
@@ -3155,7 +3201,7 @@ extern (C++) abstract class Expression : RootObject
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                        .error(loc, "pure immutable %s '%s' cannot access mutable data '%s'",
                             ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
@@ -3166,7 +3212,7 @@ extern (C++) abstract class Expression : RootObject
                 {
                     if (ff.type.isImmutable())
                     {
-                        error("pure immutable %s '%s' cannot access mutable data '%s'",
+                        .error(loc, "pure immutable %s '%s' cannot access mutable data '%s'",
                             ff.kind(), ff.toPrettyChars(), v.toChars());
                         err = true;
                         break;
@@ -3183,7 +3229,7 @@ extern (C++) abstract class Expression : RootObject
         {
             if (sc.func.setUnsafe())
             {
-                error("safe %s '%s' cannot access __gshared data '%s'",
+                .error(loc, "safe %s '%s' cannot access __gshared data '%s'",
                     sc.func.kind(), sc.func.toChars(), v.toChars());
                 err = true;
             }
@@ -3198,7 +3244,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call @safe or @trusted functions.
      * Returns true if error occurs.
      */
-    final bool checkSafety(Scope* sc, FuncDeclaration f)
+    static bool checkSafety(Loc loc, Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -3215,7 +3261,7 @@ extern (C++) abstract class Expression : RootObject
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("@safe %s '%s' cannot call @system %s '%s'",
+                .error(loc, "@safe %s '%s' cannot call @system %s '%s'",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
@@ -3229,7 +3275,7 @@ extern (C++) abstract class Expression : RootObject
      * we can only call other @nogc functions.
      * Returns true if error occurs.
      */
-    final bool checkNogc(Scope* sc, FuncDeclaration f)
+    static bool checkNogc(Loc loc, Scope* sc, FuncDeclaration f)
     {
         if (!sc.func)
             return false;
@@ -3246,7 +3292,7 @@ extern (C++) abstract class Expression : RootObject
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                .error(loc, "@nogc %s '%s' cannot call non-@nogc %s '%s'",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }
@@ -3275,10 +3321,10 @@ extern (C++) abstract class Expression : RootObject
                     return true;
                 }
                 //checkDeprecated(sc, sd->postblit);        // necessary?
-                checkPurity(sc, sd.postblit);
-                checkSafety(sc, sd.postblit);
-                checkNogc(sc, sd.postblit);
                 //checkAccess(sd, loc, sc, sd->postblit);   // necessary?
+                checkPurity(loc, sc, sd.postblit);
+                checkSafety(loc, sc, sd.postblit);
+                checkNogc(loc, sc, sd.postblit);
                 return false;
             }
         }
@@ -3300,6 +3346,19 @@ extern (C++) abstract class Expression : RootObject
                 return true;
             }
         }
+
+        bool hasOverloads;
+        if (auto fd = isFuncAddress(this, &hasOverloads))
+        {
+            /* TODO: Today an ambiguity of overloaded function address is not error.
+             * Instead, lexically first found function is used.
+             * See bugzilla 1983.
+             */
+            //assert(!hasOverloads);
+            if (fd.checkNestedReference(sc, loc))
+                return true;
+        }
+
         return false;
     }
 
@@ -6180,10 +6239,8 @@ extern (C++) final class NewExp : Expression
                 FuncDeclaration f = resolveFuncCall(loc, sc, cd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
                     return new ErrorExp();
+
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -6208,10 +6265,8 @@ extern (C++) final class NewExp : Expression
                 FuncDeclaration f = resolveFuncCall(loc, sc, cd.ctor, null, tb, arguments, 0);
                 if (!f || f.errors)
                     return new ErrorExp();
+
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(cd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -6258,10 +6313,8 @@ extern (C++) final class NewExp : Expression
                 FuncDeclaration f = resolveFuncCall(loc, sc, sd.aggNew, null, tb, newargs);
                 if (!f || f.errors)
                     return new ErrorExp();
+
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -6287,9 +6340,6 @@ extern (C++) final class NewExp : Expression
                 if (!f || f.errors)
                     return new ErrorExp();
                 checkDeprecated(sc, f);
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
                 checkAccess(sd, loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -6516,8 +6566,6 @@ extern (C++) final class SymOffExp : SymbolExp
         }
         else if (auto f = var.isFuncDeclaration())
         {
-            if (f.checkNestedReference(sc, loc))
-                return new ErrorExp();
         }
 
         return this;
@@ -6578,9 +6626,13 @@ extern (C++) final class VarExp : SymbolExp
         }
         if (auto fd = var.isFuncDeclaration())
         {
-            //printf("L%d fd = %s\n", __LINE__, f->toChars());
-            if (!fd.functionSemantic())
-                return new ErrorExp();
+            //printf("L%d [%s] fd = %s\n", __LINE__, loc.toChars(), fd.toChars());
+            if (fd.semanticRun == PASSinit && fd._scope)
+            {
+                fd.semantic(fd._scope);
+                if (fd.errors)
+                    return new ErrorExp();
+            }
         }
 
         if (!type)
@@ -6605,11 +6657,6 @@ extern (C++) final class VarExp : SymbolExp
         }
         else if (auto fd = var.isFuncDeclaration())
         {
-            // TODO: If fd isn't yet resolved its overload, the checkNestedReference
-            // call would cause incorrect validation.
-            // Maybe here should be moved in CallExp, or AddrExp for functions.
-            if (fd.checkNestedReference(sc, loc))
-                return new ErrorExp();
         }
         else if (auto od = var.isOverDeclaration())
         {
@@ -6877,7 +6924,7 @@ extern (C++) final class FuncExp : Expression
             }
 
             // Type is a "delegate to" or "pointer to" the function literal
-            if ((fd.isNested() && fd.tok == TOKdelegate) || (tok == TOKreserved && fd.treq && fd.treq.ty == Tdelegate))
+            if (fd.tok == TOKdelegate)
             {
                 type = new TypeDelegate(fd.type);
                 type = type.semantic(loc, sc);
@@ -6889,21 +6936,6 @@ extern (C++) final class FuncExp : Expression
                 type = new TypePointer(fd.type);
                 type = type.semantic(loc, sc);
                 //type = fd->type->pointerTo();
-
-                /* A lambda expression deduced to function pointer might become
-                 * to a delegate literal implicitly.
-                 *
-                 *   auto foo(void function() fp) { return 1; }
-                 *   assert(foo({}) == 1);
-                 *
-                 * So, should keep fd->tok == TOKreserve if fd->treq == NULL.
-                 */
-                if (fd.treq && fd.treq.ty == Tpointer)
-                {
-                    // change to non-nested
-                    fd.tok = TOKfunction;
-                    fd.vthis = null;
-                }
             }
             fd.tookAddressOf++;
         }
@@ -7114,6 +7146,18 @@ extern (C++) final class FuncExp : Expression
             {
                 (*presult) = cast(FuncExp)copy();
                 (*presult).type = to;
+
+                if (to.ty == Tdelegate)
+                {
+                    (*presult).tok = TOKdelegate;
+                    (*presult).fd.tok = TOKdelegate;
+                }
+                else
+                {
+                    (*presult).tok = TOKfunction;
+                    (*presult).fd.tok = TOKfunction;
+                    (*presult).fd.vthis = null;
+                }
 
                 // Bugzilla 12508: Tweak function body for covariant returns.
                 (*presult).fd.modifyReturns(sc, tof.next);
@@ -9053,8 +9097,12 @@ extern (C++) final class DotVarExp : UnaExp
         if (FuncDeclaration fd = var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
-            if (!fd.functionSemantic())
-                return new ErrorExp();
+            if (fd.semanticRun == PASSinit && fd._scope)
+            {
+                fd.semantic(fd._scope);
+                if (fd.errors)
+                    return new ErrorExp();
+            }
 
             /* Bugzilla 13843: If fd obviously has no overloads, we should
              * normalize AST, and it will give a chance to wrap fd with FuncExp.
@@ -9782,7 +9830,7 @@ extern (C++) final class CallExp : UnaExp
                     ve.type = t.semantic(loc, sc);
                 }
                 VarDeclaration v = ve.var.isVarDeclaration();
-                if (v && ve.checkPurity(sc, v))
+                if (v && checkPurity(ve.loc, sc, v))
                     return new ErrorExp();
             }
 
@@ -10025,10 +10073,8 @@ extern (C++) final class CallExp : UnaExp
             }
 
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             checkAccess(loc, sc, ue.e1, f);
+
             if (!f.needThis())
             {
                 e1 = Expression.combine(ue.e1, new VarExp(loc, f, false));
@@ -10117,10 +10163,8 @@ extern (C++) final class CallExp : UnaExp
                 f = resolveFuncCall(loc, sc, cd.baseClass.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
+
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             checkAccess(loc, sc, null, f);
 
             e1 = new DotVarExp(e1.loc, e1, f, false);
@@ -10155,10 +10199,8 @@ extern (C++) final class CallExp : UnaExp
                 f = resolveFuncCall(loc, sc, ad.ctor, null, tthis, arguments, 0);
             if (!f || f.errors)
                 return new ErrorExp();
+
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             //checkAccess(loc, sc, NULL, f);    // necessary?
 
             e1 = new DotVarExp(e1.loc, e1, f, false);
@@ -10260,7 +10302,8 @@ extern (C++) final class CallExp : UnaExp
                     }
                     else if (isNeedThisScope(sc, f))
                     {
-                        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+                        if (f.functionSemantic()) // get exact attributes to show them in message
+                            error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
                         return new ErrorExp();
                     }
                 }
@@ -10288,15 +10331,7 @@ extern (C++) final class CallExp : UnaExp
                 return new ErrorExp();
             }
             // Purity and safety check should run after testing arguments matching
-            if (f)
-            {
-                checkPurity(sc, f);
-                checkSafety(sc, f);
-                checkNogc(sc, f);
-                if (f.checkNestedReference(sc, loc))
-                    return new ErrorExp();
-            }
-            else if (sc.func && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
+            if (!f && sc.func && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
             {
                 bool err = false;
                 if (!tf.purity && !(sc.flags & SCOPEdebug) && sc.func.setImpure())
@@ -10362,10 +10397,6 @@ extern (C++) final class CallExp : UnaExp
 
             if (f.needThis())
             {
-                // Change the ancestor lambdas to delegate before hasThis(sc) call.
-                if (f.checkNestedReference(sc, loc))
-                    return new ErrorExp();
-
                 if (hasThis(sc))
                 {
                     // Supply an implicit 'this', as in
@@ -10377,18 +10408,14 @@ extern (C++) final class CallExp : UnaExp
                 }
                 else if (isNeedThisScope(sc, f))
                 {
-                    error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
+                    if (f.functionSemantic()) // get exact attributes to show them in message
+                        error("need 'this' for '%s' of type '%s'", f.toChars(), f.type.toChars());
                     return new ErrorExp();
                 }
             }
 
             checkDeprecated(sc, f);
-            checkPurity(sc, f);
-            checkSafety(sc, f);
-            checkNogc(sc, f);
             checkAccess(loc, sc, null, f);
-            if (f.checkNestedReference(sc, loc))
-                return new ErrorExp();
 
             ethis = null;
             tthis = null;
@@ -10401,6 +10428,7 @@ extern (C++) final class CallExp : UnaExp
             t1 = f.type;
         }
         assert(t1.ty == Tfunction);
+        assert(!f || f.type.equals(t1));
 
         Expression argprefix;
         if (!arguments)
@@ -10408,11 +10436,12 @@ extern (C++) final class CallExp : UnaExp
         if (functionParameters(loc, sc, cast(TypeFunction)t1, tthis, arguments, f, &type, &argprefix))
             return new ErrorExp();
 
-        if (!type)
+        if (f)
         {
-            e1 = e1org; // Bugzilla 10922, avoid recursive expression printing
-            error("forward reference to inferred return type of function call '%s'", toChars());
-            return new ErrorExp();
+            t1 = e1.type.toBasetype();
+            if (t1.ty == Tfunction)
+                e1.type = f.type;   // feedback
+                // todo: e1 may be CommaExp, it should be handled for healthy AST.
         }
 
         if (f && f.tintro)
@@ -10674,7 +10703,7 @@ extern (C++) final class AddrExp : UnaExp
                     }
                 }
 
-                ve.checkPurity(sc, v);
+                checkPurity(ve.loc, sc, v);
             }
             FuncDeclaration f = ve.var.isFuncDeclaration();
             if (f)
@@ -11122,15 +11151,15 @@ extern (C++) final class DeleteExp : UnaExp
         {
             if (ad.dtor)
             {
-                err |= checkPurity(sc, ad.dtor);
-                err |= checkSafety(sc, ad.dtor);
-                err |= checkNogc(sc, ad.dtor);
+                err |= checkPurity(loc, sc, ad.dtor);
+                err |= checkSafety(loc, sc, ad.dtor);
+                err |= checkNogc(loc, sc, ad.dtor);
             }
             if (ad.aggDelete && tb.ty != Tarray)
             {
-                err |= checkPurity(sc, ad.aggDelete);
-                err |= checkSafety(sc, ad.aggDelete);
-                err |= checkNogc(sc, ad.aggDelete);
+                err |= checkPurity(loc, sc, ad.aggDelete);
+                err |= checkSafety(loc, sc, ad.aggDelete);
+                err |= checkNogc(loc, sc, ad.aggDelete);
             }
             if (err)
                 return new ErrorExp();

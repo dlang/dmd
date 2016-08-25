@@ -2769,7 +2769,10 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             sc = td_best._scope; // workaround for Type.aliasthisOf
 
         auto ti = new TemplateInstance(loc, td_best, ti_best.tiargs);
-        ti.semantic(sc, fargs);
+        auto sc2 = sc.push();
+        sc2.func = null;    // Doesn't instantiate function body yet.
+        ti.semantic(sc2, fargs);
+        sc2.pop();
 
         m.lastf = ti.toAlias().isFuncDeclaration();
         if (!m.lastf)
@@ -7437,22 +7440,22 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (ea.op == TOKfunction)
                 {
                     FuncExp fe = cast(FuncExp)ea;
+
                     /* A function literal, that is passed to template and
-                     * already semanticed as function pointer, never requires
-                     * outer frame. So convert it to global function is valid.
+                     * already semanticed as function pointer, never be
+                     * convertible to delegate inside template body. For example:
+                     *
+                     * void foo(alias f)() {
+                     *     auto dg1 = cast(int delegate(int))((int a) => 1); // OK
+                     *     auto dg2 = cast(int delegate(int))f;              // NG
+                     * }
+                     * void bar() { foo!((int a) => 1)(); }
                      */
                     if (fe.fd.tok == TOKreserved && fe.type.ty == Tpointer)
                     {
                         // change to non-nested
                         fe.fd.tok = TOKfunction;
                         fe.fd.vthis = null;
-                    }
-                    else if (fe.td)
-                    {
-                        /* If template argument is a template lambda,
-                         * get template declaration itself. */
-                        //sa = fe.td;
-                        //goto Ldsym;
                     }
                 }
                 if (ea.op == TOKdotvar)
