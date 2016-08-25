@@ -234,7 +234,7 @@ void dooptab()
 #undef X1
 
         f = fopen("optab.c","w");
-        fprintf(f,"extern \"C\" unsigned char optab1[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" { unsigned char optab1[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -242,8 +242,8 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
-        fprintf(f,"extern \"C\" unsigned char optab2[OPMAX] =\n\t{");
+        fprintf(f,"\t}; }\n");
+        fprintf(f,"extern \"C\" { unsigned char optab2[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -251,8 +251,8 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
-        fprintf(f,"extern \"C\" unsigned char optab3[OPMAX] =\n\t{");
+        fprintf(f,"\t}; }\n");
+        fprintf(f,"extern \"C\" { unsigned char optab3[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -260,9 +260,9 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
+        fprintf(f,"\t}; }\n");
 
-        fprintf(f,"extern \"C\" unsigned char opcost[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" { unsigned char opcost[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -270,7 +270,7 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
+        fprintf(f,"\t}; }\n");
 
         doreltables(f);
         fclose(f);
