@@ -368,6 +368,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             ds._body = ds._body.semanticScope(sc, ds, ds);
         sc.noctor--;
 
+        if (ds.condition.op == TOKdotid)
+            (cast(DotIdExp)ds.condition).noderef = true;
+
         // check in syntax level
         ds.condition = checkAssignmentAsCondition(ds.condition);
 
@@ -436,6 +439,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         sc.noctor++;
         if (fs.condition)
         {
+            if (fs.condition.op == TOKdotid)
+                (cast(DotIdExp)fs.condition).noderef = true;
+
             // check in syntax level
             fs.condition = checkAssignmentAsCondition(fs.condition);
 
@@ -1727,6 +1733,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         }
         else
         {
+            if (ifs.condition.op == TOKdotid)
+                (cast(DotIdExp)ifs.condition).noderef = true;
+
             ifs.condition = ifs.condition.semantic(scd);
             ifs.condition = resolveProperties(scd, ifs.condition);
             ifs.condition = ifs.condition.addDtorHook(scd);

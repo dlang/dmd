@@ -7824,6 +7824,18 @@ extern (C++) class UnaExp : Expression
         return null;
     }
 
+    /*********************
+     * Mark the operand as will never be dereferenced,
+     * which is useful info for @safe checks.
+     * Do before semantic() on operands rewrites them.
+     */
+    final void setNoderefOperand()
+    {
+        if (e1.op == TOKdotid)
+            (cast(DotIdExp)e1).noderef = true;
+
+    }
+
     override final Expression resolveLoc(Loc loc, Scope* sc)
     {
         e1 = e1.resolveLoc(loc, sc);
@@ -8086,6 +8098,20 @@ extern (C++) abstract class BinExp : Expression
         bool r1 = e1.checkArithmetic();
         bool r2 = e2.checkArithmetic();
         return (r1 || r2);
+    }
+
+    /*********************
+     * Mark the operands as will never be dereferenced,
+     * which is useful info for @safe checks.
+     * Do before semantic() on operands rewrites them.
+     */
+    final void setNoderefOperands()
+    {
+        if (e1.op == TOKdotid)
+            (cast(DotIdExp)e1).noderef = true;
+        if (e2.op == TOKdotid)
+            (cast(DotIdExp)e2).noderef = true;
+
     }
 
     final Expression reorderSettingAAElem(Scope* sc)
@@ -8484,6 +8510,7 @@ extern (C++) final class AssertExp : UnaExp
 extern (C++) final class DotIdExp : UnaExp
 {
     Identifier ident;
+    bool noderef;       // true if the result of the expression will never be dereferenced
 
     extern (D) this(Loc loc, Expression e, Identifier ident)
     {
@@ -8525,7 +8552,7 @@ extern (C++) final class DotIdExp : UnaExp
         return e;
     }
 
-    // Run sematnic in e1
+    // Run semantic in e1
     Expression semanticX(Scope* sc)
     {
         //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
@@ -8578,7 +8605,7 @@ extern (C++) final class DotIdExp : UnaExp
         if (e1.op == TOKvar && e1.type.toBasetype().ty == Tsarray && ident == Id.length)
         {
             // bypass checkPurity
-            return e1.type.dotExp(sc, e1, ident, 0);
+            return e1.type.dotExp(sc, e1, ident, noderef ? 2 : 0);
         }
 
         if (e1.op == TOKdot)
@@ -8897,13 +8924,13 @@ extern (C++) final class DotIdExp : UnaExp
                 return null;
             e = new PtrExp(loc, e1);
             e = e.semantic(sc);
-            return e.type.dotExp(sc, e, ident, flag);
+            return e.type.dotExp(sc, e, ident, flag | (noderef ? 2 : 0));
         }
         else
         {
             if (e1.op == TOKtype || e1.op == TOKtemplate)
                 flag = 0;
-            e = e1.type.dotExp(sc, e1, ident, flag);
+            e = e1.type.dotExp(sc, e1, ident, flag | (noderef ? 2 : 0));
             if (!flag || e)
                 e = e.semantic(sc);
             return e;
@@ -10963,6 +10990,8 @@ extern (C++) final class NotExp : UnaExp
         if (type)
             return this;
 
+        setNoderefOperand();
+
         // Note there is no operator overload
         if (Expression ex = unaSemantic(sc))
             return ex;
@@ -11173,6 +11202,9 @@ extern (C++) final class CastExp : UnaExp
             to = to.semantic(loc, sc);
             if (to == Type.terror)
                 return new ErrorExp();
+
+            if (!to.hasPointers())
+                setNoderefOperand();
 
             // When e1 is a template lambda, this cast may instantiate it with
             // the type 'to'.
@@ -15101,6 +15133,8 @@ extern (C++) final class OrOrExp : BinExp
         if (type)
             return this;
 
+        setNoderefOperands();
+
         // same as for AndAnd
         e1 = e1.semantic(sc);
         e1 = resolveProperties(sc, e1);
@@ -15175,6 +15209,8 @@ extern (C++) final class AndAndExp : BinExp
     {
         if (type)
             return this;
+
+        setNoderefOperands();
 
         // same as for OrOr
         e1 = e1.semantic(sc);
@@ -15254,6 +15290,8 @@ extern (C++) final class CmpExp : BinExp
         }
         if (type)
             return this;
+
+        setNoderefOperands();
 
         if (Expression ex = binSemanticProp(sc))
             return ex;
@@ -15510,6 +15548,8 @@ extern (C++) final class EqualExp : BinExp
         if (type)
             return this;
 
+        setNoderefOperands();
+
         if (auto e = binSemanticProp(sc))
             return e;
         if (e1.op == TOKtype || e2.op == TOKtype)
@@ -15588,6 +15628,8 @@ extern (C++) final class IdentityExp : BinExp
         if (type)
             return this;
 
+        setNoderefOperands();
+
         if (auto e = binSemanticProp(sc))
             return e;
 
@@ -15645,6 +15687,9 @@ extern (C++) final class CondExp : BinExp
         }
         if (type)
             return this;
+
+        if (econd.op == TOKdotid)
+            (cast(DotIdExp)econd).noderef = true;
 
         Expression ec = econd.semantic(sc);
         ec = resolveProperties(sc, ec);
