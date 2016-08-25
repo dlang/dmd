@@ -8605,7 +8605,7 @@ extern (C++) final class DotIdExp : UnaExp
         if (e1.op == TOKvar && e1.type.toBasetype().ty == Tsarray && ident == Id.length)
         {
             // bypass checkPurity
-            return e1.type.dotExp(sc, e1, ident, noderef ? 2 : 0);
+            return e1.type.dotExp(sc, e1, ident, noderef ? Type.DotExpFlag.noDeref : 0);
         }
 
         if (e1.op == TOKdot)
@@ -8924,13 +8924,13 @@ extern (C++) final class DotIdExp : UnaExp
                 return null;
             e = new PtrExp(loc, e1);
             e = e.semantic(sc);
-            return e.type.dotExp(sc, e, ident, flag | (noderef ? 2 : 0));
+            return e.type.dotExp(sc, e, ident, flag | (noderef ? Type.DotExpFlag.noDeref : 0));
         }
         else
         {
             if (e1.op == TOKtype || e1.op == TOKtemplate)
                 flag = 0;
-            e = e1.type.dotExp(sc, e1, ident, flag | (noderef ? 2 : 0));
+            e = e1.type.dotExp(sc, e1, ident, flag | (noderef ? Type.DotExpFlag.noDeref : 0));
             if (!flag || e)
                 e = e.semantic(sc);
             return e;
