@@ -21,12 +21,11 @@ enum
     BP      = 5,
     SI      = 6,
     DI      = 7,
-};
 
 #define PICREG  BX
 
-enum // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
-{
+    // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
+
     R8       = 8,
     R9       = 9,
     R10      = 10,
@@ -35,10 +34,7 @@ enum // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
     R13      = 13,
     R14      = 14,
     R15      = 15,
-};
 
-enum
-{
     XMM0    = 16,
     XMM1    = 17,
     XMM2    = 18,
