@@ -11329,7 +11329,9 @@ extern (C++) final class CastExp : UnaExp
 
             if (tob.ty == Tarray && t1b.ty == Tsarray) // Bugzilla 12502
                 t1b = t1b.nextOf().arrayOf();
-            if (tob.ty == Tarray && t1b.ty == Tarray)
+
+            if (tob.ty == Tarray   && t1b.ty == Tarray ||
+                tob.ty == Tpointer && t1b.ty == Tpointer)
             {
                 Type tobn = tob.nextOf().toBasetype();
                 Type t1bn = t1b.nextOf().toBasetype();
@@ -11341,33 +11343,30 @@ extern (C++) final class CastExp : UnaExp
                  *  ai[0] = 7;
                  *  *api[0] crash!
                  */
-                if (t1bn.ty == Tvoid && tobn.isMutable() && ex.op != TOKarrayliteral)
-                    goto Lunsafe;
-
-                if (!tobn.hasPointers() && MODimplicitConv(t1bn.mod, tobn.mod))
-                    goto Lsafe;
-            }
-            if (tob.ty == Tpointer && t1b.ty == Tpointer)
-            {
-                Type tobn = tob.nextOf().toBasetype();
-                Type t1bn = t1b.nextOf().toBasetype();
-
-                /* From void* to anything mutable is unsafe because:
-                 *  int** ppi;
-                 *  void* pv = ppi;
-                 *  int* pi = cast(int*) pv;
-                 *  *pi = 7;
-                 *  **ppi crash!
-                 */
                 if (t1bn.ty == Tvoid && tobn.isMutable())
+                {
+                    if (tob.ty == Tarray && ex.op == TOKarrayliteral)
+                        goto Lsafe;
+                    goto Lunsafe;
+                }
+
+                // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
+                if (tobn.ty == Tstruct && !(cast(TypeStruct)tobn).sym.members ||
+                    t1bn.ty == Tstruct && !(cast(TypeStruct)t1bn).sym.members)
                     goto Lunsafe;
 
-                // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
-                bool sfwrd = tobn.ty == Tstruct && !(cast(TypeStruct)tobn).sym.members ||
-                             t1bn.ty == Tstruct && !(cast(TypeStruct)t1bn).sym.members;
-                if (!sfwrd && !tobn.hasPointers() &&
+                const t1pointers = t1bn.hasPointers();
+                const topointers = tobn.hasPointers();
+
+                if (t1pointers && !topointers && tobn.isMutable())
+                    goto Lunsafe;
+
+                if (!t1pointers && topointers)
+                    goto Lunsafe;
+
+                if (!topointers &&
                     tobn.ty != Tfunction && t1bn.ty != Tfunction &&
-                    tobn.size() <= t1bn.size() &&
+                    (tob.ty == Tarray || tobn.size() <= t1bn.size()) &&
                     MODimplicitConv(t1bn.mod, tobn.mod))
                 {
                     goto Lsafe;
