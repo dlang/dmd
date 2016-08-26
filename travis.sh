@@ -51,7 +51,7 @@ test() {
 # test dmd
 test_dmd() {
     # test fewer compiler argument permutations for PRs to reduce CI load
-    if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+    if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_OS_NAME" == "linux"  ]; then
         make -j$N -C test MODEL=$MODEL # all ARGS by default
     else
         make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
