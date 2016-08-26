@@ -2572,10 +2572,21 @@ extern (C++) abstract class Type : RootObject
         return e;
     }
 
+    /****************
+     * dotExp() bit flags
+     */
+    enum DotExpFlag
+    {
+        gag     = 1,    // don't report "not a property" error and just return null
+        noDeref = 2,    // the use of the expression will not attempt a dereference
+    }
+
     /***************************************
      * Access the members of the object e. This type is same as e->type.
-     *
-     * If flag & 1, don't report "not a property" error and just return NULL.
+     * Params:
+     *  flag = DotExpFlag bit flags
+     * Returns:
+     *  resulting expression with e.ident resolved
      */
     Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
@@ -2632,10 +2643,10 @@ extern (C++) abstract class Type : RootObject
             e = new StringExp(e.loc, cast(char*)s);
         }
         else
-            e = getProperty(e.loc, ident, flag & 1);
+            e = getProperty(e.loc, ident, flag & DotExpFlag.gag);
 
     Lreturn:
-        if (!(flag & 1) || e)
+        if (!(flag & DotExpFlag.gag) || e)
             e = e.semantic(sc);
         return e;
     }
@@ -7140,6 +7151,11 @@ extern (C++) final class TypeDelegate : TypeNext
         }
         else if (ident == Id.funcptr)
         {
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
+            {
+                e.error("%s.funcptr cannot be used in @safe code", e.toChars());
+                return new ErrorExp();
+            }
             e = new DelegateFuncptrExp(e.loc, e);
             e = e.semantic(sc);
         }
