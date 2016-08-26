@@ -72,7 +72,7 @@
   <debuglevel>0</debuglevel>
   <debugids />
   <versionlevel>0</versionlevel>
-  <versionids />
+  <versionids>MARS</versionids>
   <dump_source>0</dump_source>
   <mapverbosity>0</mapverbosity>
   <createImplib>0</createImplib>
@@ -174,7 +174,7 @@
   <debuglevel>0</debuglevel>
   <debugids />
   <versionlevel>0</versionlevel>
-  <versionids />
+  <versionids>MARS</versionids>
   <dump_source>0</dump_source>
   <mapverbosity>0</mapverbosity>
   <createImplib>0</createImplib>
@@ -276,7 +276,7 @@
   <debuglevel>0</debuglevel>
   <debugids />
   <versionlevel>0</versionlevel>
-  <versionids />
+  <versionids>MARS</versionids>
   <dump_source>0</dump_source>
   <mapverbosity>0</mapverbosity>
   <createImplib>0</createImplib>
@@ -378,7 +378,7 @@
   <debuglevel>0</debuglevel>
   <debugids />
   <versionlevel>0</versionlevel>
-  <versionids />
+  <versionids>MARS</versionids>
   <dump_source>0</dump_source>
   <mapverbosity>0</mapverbosity>
   <createImplib>0</createImplib>
@@ -436,7 +436,16 @@
   </Folder>
   <Folder name="src">
    <Folder name="backend">
+    <File path="..\backend\bcomplex.d" />
+    <File path="..\backend\cc.d" />
+    <File path="..\backend\cdef.d" />
+    <File path="..\backend\cgcv.d" />
     <File path="..\backend\dt.d" />
+    <File path="..\backend\el.d" />
+    <File path="..\backend\global.d" />
+    <File path="..\backend\oper.d" />
+    <File path="..\backend\ty.d" />
+    <File path="..\backend\type.d" />
    </Folder>
    <Folder name="root">
     <File path="..\root\aav.d" />
@@ -453,6 +462,9 @@
     <File path="..\root\speller.d" />
     <File path="..\root\stringtable.d" />
    </Folder>
+   <Folder name="tk">
+    <File path="..\tk\dlist.d" />
+   </Folder>
    <File path="..\access.d" />
    <File path="..\aggregate.d" />
    <File path="..\aliasthis.d" />
@@ -461,7 +473,6 @@
    <File path="..\arrayop.d" />
    <File path="..\arraytypes.d" />
    <File path="..\attrib.d" />
-   <File path="..\backend.d" />
    <File path="..\boostlicense.txt" />
    <File path="..\builtin.d" />
    <File path="..\canthrow.d" />
@@ -528,6 +539,7 @@
    <File path="..\statementsem.d" />
    <File path="..\staticassert.d" />
    <File path="..\target.d" />
+   <File path="..\tocsym.d" />
    <File path="..\toctype.d" />
    <File path="..\todt.d" />
    <File path="..\tokens.d" />

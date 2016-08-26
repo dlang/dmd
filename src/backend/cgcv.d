@@ -58,7 +58,7 @@ struct Cgcv
     int FD_code;        // frame for references to code
 }
 
-__gshared Cgcv cgcv;
+extern __gshared Cgcv cgcv;
 
 debtyp_t* debtyp_alloc(uint length);
 int cv_stringbytes(const(char)* name);

@@ -42,9 +42,6 @@
     <ClCompile Include="..\tk.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\tocsym.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\tocvdebug.c">
       <Filter>src</Filter>
     </ClCompile>
