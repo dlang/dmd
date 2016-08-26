@@ -13,6 +13,7 @@ module ddmd.expression;
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
+
 import ddmd.access;
 import ddmd.aggregate;
 import ddmd.aliasthis;
@@ -59,6 +60,7 @@ import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
+import ddmd.safe;
 import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
@@ -79,71 +81,6 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
 {
     memcpy(p, cast(void*)e, e.size);
 }
-
-/*************************************************************
- * Check for unsafe access in @safe code:
- * 1. read overlapped pointers
- * 2. write misaligned pointers
- * 3. write overlapped storage classes
- * Print error if unsafe.
- * Params:
- *      sc = scope
- *      e = expression to check
- *      readonly = if access is read-only
- *      printmsg = print error message if true
- * Returns:
- *      true if error
- */
-
-private bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
-{
-    if (e.op != TOKdotvar)
-        return false;
-    DotVarExp dve = cast(DotVarExp)e;
-    if (VarDeclaration v = dve.var.isVarDeclaration())
-    {
-        if (sc.intypeof || !sc.func || !sc.func.isSafeBypassingInference())
-            return false;
-
-        auto ad = v.toParent2().isAggregateDeclaration();
-        if (!ad)
-            return false;
-
-        if (v.overlapped && v.type.hasPointers() && sc.func.setUnsafe())
-        {
-            if (printmsg)
-                e.error("field %s.%s cannot access pointers in @safe code that overlap other fields",
-                    ad.toChars(), v.toChars());
-            return true;
-        }
-
-        if (readonly || !e.type.isMutable())
-            return false;
-
-        if (v.type.hasPointers() && v.type.toBasetype().ty != Tstruct)
-        {
-            if ((ad.type.alignment() < Target.ptrsize ||
-                 (v.offset & (Target.ptrsize - 1))) &&
-                sc.func.setUnsafe())
-            {
-                if (printmsg)
-                    e.error("field %s.%s cannot modify misaligned pointers in @safe code",
-                        ad.toChars(), v.toChars());
-                return true;
-            }
-        }
-
-        if (v.overlapUnsafe && sc.func.setUnsafe())
-        {
-             if (printmsg)
-                 e.error("field %s.%s cannot modify fields in @safe code that overlap fields with other storage classes",
-                    ad.toChars(), v.toChars());
-             return true;
-        }
-    }
-    return false;
-}
-
 
 /*************************************************************
  * Given var, we need to get the
@@ -11299,89 +11236,14 @@ extern (C++) final class CastExp : UnaExp
             return ex;
 
         // Check for unsafe casts
-        if (sc.func && !sc.intypeof)
+        if (sc.func && !sc.intypeof &&
+            !isSafeCast(ex, t1b, tob) &&
+            sc.func.setUnsafe())
         {
-            // Disallow unsafe casts
-
-            // Implicit conversions are always safe
-            if (t1b.implicitConvTo(tob))
-                goto Lsafe;
-
-            if (!tob.hasPointers())
-                goto Lsafe;
-
-            if (tob.ty == Tclass && t1b.ty == Tclass)
-            {
-                ClassDeclaration cdfrom = t1b.isClassHandle();
-                ClassDeclaration cdto = tob.isClassHandle();
-
-                int offset;
-                if (!cdfrom.isBaseOf(cdto, &offset))
-                    goto Lunsafe;
-
-                if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
-                    goto Lunsafe;
-
-                if (!MODimplicitConv(t1b.mod, tob.mod))
-                    goto Lunsafe;
-                goto Lsafe;
-            }
-
-            if (tob.ty == Tarray && t1b.ty == Tsarray) // Bugzilla 12502
-                t1b = t1b.nextOf().arrayOf();
-
-            if (tob.ty == Tarray   && t1b.ty == Tarray ||
-                tob.ty == Tpointer && t1b.ty == Tpointer)
-            {
-                Type tobn = tob.nextOf().toBasetype();
-                Type t1bn = t1b.nextOf().toBasetype();
-
-                /* From void[] to anything mutable is unsafe because:
-                 *  int*[] api;
-                 *  void[] av = api;
-                 *  int[] ai = cast(int[]) av;
-                 *  ai[0] = 7;
-                 *  *api[0] crash!
-                 */
-                if (t1bn.ty == Tvoid && tobn.isMutable())
-                {
-                    if (tob.ty == Tarray && ex.op == TOKarrayliteral)
-                        goto Lsafe;
-                    goto Lunsafe;
-                }
-
-                // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
-                if (tobn.ty == Tstruct && !(cast(TypeStruct)tobn).sym.members ||
-                    t1bn.ty == Tstruct && !(cast(TypeStruct)t1bn).sym.members)
-                    goto Lunsafe;
-
-                const t1pointers = t1bn.hasPointers();
-                const topointers = tobn.hasPointers();
-
-                if (t1pointers && !topointers && tobn.isMutable())
-                    goto Lunsafe;
-
-                if (!t1pointers && topointers)
-                    goto Lunsafe;
-
-                if (!topointers &&
-                    tobn.ty != Tfunction && t1bn.ty != Tfunction &&
-                    (tob.ty == Tarray || tobn.size() <= t1bn.size()) &&
-                    MODimplicitConv(t1bn.mod, tobn.mod))
-                {
-                    goto Lsafe;
-                }
-            }
-
-        Lunsafe:
-            if (sc.func.setUnsafe())
-            {
-                error("cast from %s to %s not allowed in safe code", e1.type.toChars(), to.toChars());
-                return new ErrorExp();
-            }
+            error("cast from %s to %s not allowed in safe code", e1.type.toChars(), to.toChars());
+            return new ErrorExp();
         }
 
-    Lsafe:
         return ex;
     }
 
