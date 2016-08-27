@@ -67,7 +67,11 @@ static Outbuffer *reset_symbuf; // Keep pointers to reset symbols
 #define LCFD32pointer           (LOCATsegrel | 0x2C00)
 #define LCFD16pointer           (LOCATsegrel | 0x0C00)
 
+#if MARS
+extern Cgcv cgcv; // already declared in cgcv.d
+#else
 Cgcv cgcv;
+#endif
 
 STATIC void cv3_symdes ( unsigned char *p , unsigned next );
 STATIC unsigned cv3_paramlist ( type *t , unsigned nparam );
