@@ -1439,9 +1439,6 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
     return seg;
 }
 
-extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
-extern void fatal();
-
 /********************************************
  * Add new scnhdr.
  * Returns:
