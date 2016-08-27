@@ -3151,23 +3151,17 @@ extern (C++) abstract class Expression : RootObject
                 FuncDeclaration ff = s.isFuncDeclaration();
                 if (!ff)
                     break;
-                if (ff.isNested())
+                if (ff.isNested() || ff.isThis())
                 {
-                    if (ff.type.isImmutable())
+                    if (ff.type.isImmutable() ||
+                        ff.type.isShared() && !MODimplicitConv(ff.type.mod, v.type.mod))
                     {
-                        error("pure immutable %s '%s' cannot access mutable data '%s'",
-                            ff.kind(), ff.toPrettyChars(), v.toChars());
-                        err = true;
-                        break;
-                    }
-                    continue;
-                }
-                if (ff.isThis())
-                {
-                    if (ff.type.isImmutable())
-                    {
-                        error("pure immutable %s '%s' cannot access mutable data '%s'",
-                            ff.kind(), ff.toPrettyChars(), v.toChars());
+                        OutBuffer ffbuf;
+                        OutBuffer vbuf;
+                        MODMatchToBuffer(&ffbuf, ff.type.mod, v.type.mod);
+                        MODMatchToBuffer(&vbuf, v.type.mod, ff.type.mod);
+                        error("%s%s '%s' cannot access %sdata '%s'",
+                            ffbuf.peekString(), ff.kind(), ff.toPrettyChars(), vbuf.peekString(), v.toChars());
                         err = true;
                         break;
                     }
