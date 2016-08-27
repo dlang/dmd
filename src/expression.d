@@ -9467,6 +9467,19 @@ extern (C++) final class DelegateExp : UnaExp
         AggregateDeclaration ad = f.toParent().isAggregateDeclaration();
         if (f.needThis())
             e1 = getRightThis(loc, sc, ad, e1, f);
+        if (f.type.ty == Tfunction)
+        {
+            TypeFunction tf = cast(TypeFunction)f.type;
+            if (!MODimplicitConv(e1.type.mod, f.type.mod))
+            {
+                OutBuffer thisBuf, funcBuf;
+                MODMatchToBuffer(&thisBuf, e1.type.mod, tf.mod);
+                MODMatchToBuffer(&funcBuf, tf.mod, e1.type.mod);
+                error("%smethod %s is not callable using a %s%s",
+                    funcBuf.peekString(), f.toPrettyChars(), thisBuf.peekString(), e1.toChars());
+                return new ErrorExp();
+            }
+        }
         if (ad && ad.isClassDeclaration() && ad.type != e1.type)
         {
             // A downcast is required for interfaces, see Bugzilla 3706
@@ -10637,7 +10650,7 @@ extern (C++) final class AddrExp : UnaExp
             FuncDeclaration f = dve.var.isFuncDeclaration();
             if (f)
             {
-                f = f.toAliasFunc(); // FIXME, should see overlods - Bugzilla 1983
+                f = f.toAliasFunc(); // FIXME, should see overloads - Bugzilla 1983
                 if (!dve.hasOverloads)
                     f.tookAddressOf++;
 
