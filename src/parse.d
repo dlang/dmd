@@ -1384,7 +1384,7 @@ final class Parser : Lexer
             *pudas = UserAttributeDeclaration.concat(*pudas, udas);
         }
         else
-            error("valid attributes are @property, @safe, @trusted, @system, @disable");
+            error("valid attributes are @property, @safe, @trusted, @system, @disable, @nogc");
         return stc;
     }
 
