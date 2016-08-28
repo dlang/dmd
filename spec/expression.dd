@@ -326,8 +326,8 @@ $(GNAME IdentityExpression):
         $(D is).
     )
 
-    $(P For struct objects, identity is defined as the bits in the
-        struct being identical.
+    $(P For struct objects and floating point values, identity is defined as the
+        bits in the operands being identical.
     )
 
     $(P For static and dynamic arrays, identity is defined as referring
