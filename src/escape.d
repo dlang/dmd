@@ -27,6 +27,126 @@ import ddmd.visitor;
 import ddmd.arraytypes;
 
 /****************************************
+ * Function parameter param is being initialized to arg,
+ * and params may escape.
+ * Detect if scoped values can escape this way.
+ * Print error messages when these are detected.
+ * Params:
+ *      sc = used to determine current function and module
+ *      par = function parameter
+ *      arg = initializer for param
+ *      gag = do not print error messages
+ * Returns:
+ *      true if pointers to the stack can escape via assignment
+ */
+bool checkParamArgumentEscape(Scope* sc, Parameter par, Expression arg, bool gag)
+{
+    //printf("checkParamArgumentEscape(arg: %s)\n", arg.toChars());
+    //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
+
+    if (!arg.type.hasPointers())
+        return false;
+
+    EscapeByResults er;
+
+    escapeByValue(arg, &er);
+
+    if (!er.byref.dim && !er.byvalue.dim && !er.byfunc.dim && !er.byexp.dim)
+        return false;
+
+    bool result = false;
+    foreach (VarDeclaration v; er.byvalue)
+    {
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if (v.isScope())
+        {
+            if (sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(arg.loc, "scope variable %s assigned to non-scope parameter %s", v.toChars(), par.toChars());
+                result = true;
+            }
+        }
+        else if (v.storage_class & STCvariadic && p == sc.func)
+        {
+            Type tb = v.type.toBasetype();
+            if (tb.ty == Tarray || tb.ty == Tsarray)
+            {
+                if (sc.func.setUnsafe())
+                {
+                    if (!gag)
+                        error(arg.loc, "variadic variable %s assigned to non-scope parameter %s", v.toChars(), par.toChars());
+                    result = true;
+                }
+            }
+        }
+    }
+
+    foreach (VarDeclaration v; er.byref)
+    {
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if ((v.storage_class & (STCref | STCout)) == 0 && p == sc.func)
+        {
+            if (sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(arg.loc, "reference to local variable %s assigned to non-scope parameter %s", v.toChars(), par.toChars());
+                result = true;
+            }
+            continue;
+        }
+    }
+
+    foreach (FuncDeclaration fd; er.byfunc)
+    {
+        //printf("fd = %s, %d\n", fd.toChars(), fd.tookAddressOf);
+        VarDeclarations vars;
+        findAllOuterAccessedVariables(fd, &vars);
+
+        foreach (v; vars)
+        {
+            //printf("v = %s\n", v.toChars());
+            if (v.isDataseg())
+                continue;
+
+            Dsymbol p = v.toParent2();
+
+            if ((v.storage_class & (STCref | STCout | STCscope)) && p == sc.func)
+            {
+                if (sc.func.setUnsafe())
+                {
+                    if (!gag)
+                        error(arg.loc, "reference to local %s assigned to non-scope parameter %s in @safe code", v.toChars(), par.toChars());
+                    result = true;
+                }
+                continue;
+            }
+        }
+    }
+
+    foreach (Expression ee; er.byexp)
+    {
+        if (sc.func.setUnsafe())
+        {
+            if (!gag)
+                error(ee.loc, "reference to stack allocated value returned by %s assigned to non-scope parameter %s",
+                    ee.toChars(), par.toChars());
+            result = true;
+        }
+    }
+
+    return result;
+}
+
+/****************************************
  * Given an AssignExp, determine if the lvalue will cause
  * the contents of the rvalue to escape.
  * Print error messages when these are detected.
@@ -197,7 +317,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         }
     }
 
-    return false;
+    return result;
 }
 
 /************************************

@@ -80,3 +80,25 @@ struct HTTP
     }
 }
 
+/***********************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(96): Error: reference to local variable sa assigned to non-scope parameter a
+---
+*/
+// https://issues.dlang.org/show_bug.cgi?id=8838
+
+int[] foo8() @safe
+{
+    int[5] sa;
+    return bar8(sa);
+}
+
+int[] bar8(int[] a) @safe
+{
+    return a;
+}
+
+

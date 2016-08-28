@@ -1691,11 +1691,17 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             //printf("arg: %s\n", arg->toChars());
             //printf("type: %s\n", arg->type->toChars());
 
-            /* Look for arguments that cannot 'escape' from the called
-             * function.
-             */
-            if (!tf.parameterEscapes(p))
+            if (tf.parameterEscapes(p))
             {
+                /* Argument value can escape from the called function.
+                 * Check arg to see it matters.
+                 */
+                err |= checkParamArgumentEscape(sc, p, arg, false);
+            }
+            else
+            {
+                /* Argument value cannot escape from the called function.
+                 */
                 Expression a = arg;
                 if (a.op == TOKcast)
                     a = (cast(CastExp)a).e1;
