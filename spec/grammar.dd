@@ -516,6 +516,7 @@ $(GNAME TraitsArgument):
 $(GRAMMAR
 $(GNAME SpecialKeyword):
     $(D $(LINK2 traits.html#specialkeywords, __FILE__))
+    $(D $(LINK2 traits.html#specialkeywords, __FILE_FULL_PATH__))
     $(D $(LINK2 traits.html#specialkeywords, __MODULE__))
     $(D $(LINK2 traits.html#specialkeywords, __LINE__))
     $(D $(LINK2 traits.html#specialkeywords, __FUNCTION__))
