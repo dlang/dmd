@@ -187,11 +187,23 @@ $(H2 $(LNAME2 classes, Classes))
     classes and interfaces are not rooted in $(CODE Object) and cannot be used
     with $(CODE typeid).)
     
-    $(P When mapping a D $(CODE class) onto a C++ $(CODE struct),
+    $(P D structs and classes have different semantics whereas C++ structs and 
+    classes are basically the same. The use of a D struct or class depends on
+    the C++ implementation and not on the used C++ keyword.
+    When mapping a D $(CODE class) onto a C++ $(CODE struct),
     use $(CODE extern(C++, struct)) to avoid linking problems with C++ compilers
     (notably MSVC) that distinguish between C++'s $(CODE class) and $(CODE struct)
     when mangling. Conversely, use $(CODE extern(C++, class)) to map a D
     $(CODE struct) onto a C++ $(CODE class).)
+
+    $(P $(CODE extern(C++, class)) and $(CODE extern(C++, struct)) can be combined
+    with C++ namespaces:)
+---
+extern (C++, struct) extern (C++, foo)
+class Bar
+{
+}
+---
 
 $(H3 Using C++ Classes From D)
 

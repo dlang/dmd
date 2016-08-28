@@ -1614,6 +1614,7 @@ $(GRAMMAR
 $(GNAME LinkageAttribute):
     $(D extern) $(D $(LPAREN)) $(GLINK LinkageType) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C++), $(GLINK IdentifierList) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C++), $(GLINK CppAggregateType) $(D $(RPAREN))
 
 $(GNAME LinkageType):
     $(D C)
@@ -1623,6 +1624,11 @@ $(GNAME LinkageType):
     $(D Pascal)
     $(D System)
     $(D Objective-C)
+)
+
+$(GNAME CppAggregateType):
+    $(D class)
+    $(D struct)
 )
 
 $(GRAMMAR
