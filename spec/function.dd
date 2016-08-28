@@ -1186,6 +1186,8 @@ extern (C) int def(...); // error, must have at least one parameter
         functions like $(D printf).
     )
 
+    $(P C-style variadic functions cannot be marked as $(D @safe).)
+
     $(P Access to variadic arguments is done using the standard library
     module $(D core.stdc.stdarg).
     )
@@ -1327,6 +1329,8 @@ Foo
 Bar
         0x00870FD0
 ------
+
+    $(P D-style variadic functions cannot be marked as $(D @safe).)
 
 
 $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
