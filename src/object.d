@@ -3294,7 +3294,7 @@ unittest
 }
 
 /// Provide the .dup array property.
-@property auto dup(T)(T[] a)
+@property auto dup(T)(scope T[] a)
     if (!is(const(T) : T))
 {
     import core.internal.traits : Unconst;
@@ -3310,7 +3310,7 @@ unittest
 
 /// ditto
 // const overload to support implicit conversion to immutable (unique result, see DIP29)
-@property T[] dup(T)(const(T)[] a)
+@property T[] dup(T)(scope const(T)[] a)
     if (is(const(T) : T))
 {
     // wrap unsafe _dup in @trusted to preserve @safe postblit
@@ -3321,14 +3321,14 @@ unittest
 }
 
 /// ditto
-@property T[] dup(T:void)(const(T)[] a) @trusted
+@property T[] dup(T:void)(scope const(T)[] a) @trusted
 {
     if (__ctfe) assert(0, "Cannot dup a void[] array at compile time.");
     return cast(T[])_rawDup(a);
 }
 
 /// Provide the .idup array property.
-@property immutable(T)[] idup(T)(T[] a)
+@property immutable(T)[] idup(T)(scope T[] a)
 {
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
@@ -3341,17 +3341,17 @@ unittest
 }
 
 /// ditto
-@property immutable(T)[] idup(T:void)(const(T)[] a)
+@property immutable(T)[] idup(T:void)(scope const(T)[] a)
 {
     return a.dup;
 }
 
-private U[] _trustedDup(T, U)(T[] a) @trusted
+private U[] _trustedDup(T, U)(scope T[] a) @trusted
 {
     return _dup!(T, U)(a);
 }
 
-private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
+private U[] _dup(T, U)(scope T[] a) // pure nothrow depends on postblit
 {
     if (__ctfe)
     {
@@ -3369,7 +3369,7 @@ private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
 
 private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
 
-private inout(T)[] _rawDup(T)(inout(T)[] a)
+private inout(T)[] _rawDup(T)(scope inout(T)[] a)
 {
     import core.stdc.string : memcpy;
 
