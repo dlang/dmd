@@ -3947,8 +3947,9 @@ extern (C++) class IdentifierExp : Expression
         {
             if (sc.flags & SCOPEctfe)
             {
-                error("variable __ctfe cannot be read at compile time");
-                return new ErrorExp();
+                //error("variable __ctfe cannot be read at compile time");
+                //return new ErrorExp();
+                return new IntegerExp(loc, global.ctfeInProgress != 0, Type.tbool);
             }
 
             // Create the magic __ctfe bool variable

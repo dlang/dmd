@@ -7634,10 +7634,9 @@ extern (C++) final class TypeIdentifier : TypeQualified
         }
         if (ident == Id.ctfe)
         {
-            error(loc, "variable __ctfe cannot be read at compile time");
-            *pe = null;
+            *pe = new IntegerExp(loc, global.ctfeInProgress != 0, Type.tbool);
             *ps = null;
-            *pt = Type.terror;
+            *pt = null;
             return;
         }
 
