@@ -1,14 +1,15 @@
 /*
+REQUIRED_ARGS: -transition=safe
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(22): Error: scope variable p may not be returned
-fail_compilation/retscope.d(32): Error: escaping reference to local variable j
-fail_compilation/retscope.d(45): Error: scope variable p assigned to non-scope q
-fail_compilation/retscope.d(47): Error: cannot take address of local i in @safe function test2
-fail_compilation/retscope.d(47): Error: reference to local variable i assigned to non-scope q
-fail_compilation/retscope.d(48): Error: variadic variable a assigned to non-scope b
-fail_compilation/retscope.d(49): Error: reference to stack allocated value returned by (*fp2)() assigned to non-scope q
+fail_compilation/retscope.d(23): Error: scope variable p may not be returned
+fail_compilation/retscope.d(33): Error: escaping reference to local variable j
+fail_compilation/retscope.d(46): Error: scope variable p assigned to non-scope q
+fail_compilation/retscope.d(48): Error: cannot take address of local i in @safe function test2
+fail_compilation/retscope.d(48): Error: reference to local variable i assigned to non-scope q
+fail_compilation/retscope.d(49): Error: variadic variable a assigned to non-scope b
+fail_compilation/retscope.d(50): Error: reference to stack allocated value returned by (*fp2)() assigned to non-scope q
 ---
 */
 
@@ -54,8 +55,8 @@ void test2(scope int* p, int[] a ...) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(75): Error: function retscope.HTTP.Impl.onReceive is @nogc yet allocates closures with the GC
-fail_compilation/retscope.d(77):        retscope.HTTP.Impl.onReceive.__lambda1 closes over variable this at fail_compilation/retscope.d(75)
+fail_compilation/retscope.d(76): Error: function retscope.HTTP.Impl.onReceive is @nogc yet allocates closures with the GC
+fail_compilation/retscope.d(78):        retscope.HTTP.Impl.onReceive.__lambda1 closes over variable this at fail_compilation/retscope.d(76)
 ---
 */
 
@@ -85,7 +86,7 @@ struct HTTP
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(96): Error: reference to local variable sa assigned to non-scope parameter a
+fail_compilation/retscope.d(97): Error: reference to local variable sa assigned to non-scope parameter a
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=8838
@@ -101,4 +102,25 @@ int[] bar8(int[] a) @safe
     return a;
 }
 
+
+/*************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(124): Error: escaping reference to local variable tmp
+---
+*/
+
+char[] foo9(char[] a) @safe pure nothrow @nogc
+{
+    return a;
+}
+
+char[] bar9() @safe
+{
+    char[20] tmp;
+    foo9(tmp);          // ok
+    return foo9(tmp);   // error
+}
 

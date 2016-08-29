@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS:
+REQUIRED_ARGS: -transition=safe
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---

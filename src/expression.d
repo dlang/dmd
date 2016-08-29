@@ -1694,9 +1694,10 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             if (tf.parameterEscapes(p))
             {
                 /* Argument value can escape from the called function.
-                 * Check arg to see it matters.
+                 * Check arg to see if it matters.
                  */
-                err |= checkParamArgumentEscape(sc, p, arg, false);
+                if (global.params.safe)
+                    err |= checkParamArgumentEscape(sc, p, arg, false);
             }
             else
             {

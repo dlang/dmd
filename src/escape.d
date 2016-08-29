@@ -734,7 +734,8 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                     if (i - j < nparams && i >= j)
                     {
                         Parameter p = Parameter.getNth(tf.parameters, i - j);
-                        if ((p.storageClass & (STCscope)) && (p.storageClass & STCreturn))
+                        const stc = tf.parameterStorageClass(p);
+                        if ((stc & (STCscope)) && (stc & STCreturn))
                             arg.accept(this);
                     }
                 }
@@ -906,9 +907,10 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                         if (i - j < nparams && i >= j)
                         {
                             Parameter p = Parameter.getNth(tf.parameters, i - j);
-                            if ((p.storageClass & (STCout | STCref)) && (p.storageClass & STCreturn))
+                            const stc = tf.parameterStorageClass(p);
+                            if ((stc & (STCout | STCref)) && (stc & STCreturn))
                                 arg.accept(this);
-                            else if ((p.storageClass & STCscope) && (p.storageClass & STCreturn))
+                            else if ((stc & STCscope) && (stc & STCreturn))
                             {
                                 if (arg.op == TOKdelegate)
                                 {
