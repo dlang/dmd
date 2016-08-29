@@ -955,7 +955,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 vd->error("size overflow");
                 return;
             }
-            
+
             unsigned sz = (unsigned)sz64;
 
             Dsymbol *parent = vd->toParent();

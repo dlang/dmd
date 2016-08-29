@@ -4764,7 +4764,7 @@ extern (C++) final class TypeSArray : TypeArray
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-                
+
                 auto static_arr_size = mulu(tbn.size(loc), d2, overflow);
 
                 if (overflow)
