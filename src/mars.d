@@ -541,6 +541,7 @@ Language changes listed by -transition=id:
   =complex,14488 list all usages of complex or imaginary types
   =field,3449    list all non-mutable fields which occupy an object instance
   =import,10378  revert to single phase name lookup
+  =safe          implement enhanced @safe checking
   =tls           list all variables going into thread local storage
 ");
                         exit(EXIT_SUCCESS);
@@ -589,6 +590,9 @@ Language changes listed by -transition=id:
                             break;
                         case "import":
                             global.params.bug10378 = true;
+                            break;
+                        case "safe":
+                            global.params.safe = true;
                             break;
                         case "tls":
                             global.params.vtls = true;

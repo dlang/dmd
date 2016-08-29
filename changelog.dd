@@ -24,6 +24,7 @@ $(BUGSTITLE Compiler Changes,
     $(LI $(RELATIVE_LINK2 deferred_alias, Analysis for aliases in imported modules is deferred.))
     $(LI $(RELATIVE_LINK2 native_tls_osx, Native TLS on OS X 64 bit.))
     $(LI $(RELATIVE_LINK2 __FILE_FULL_PATH__, Special keyword replaced by the source file's absolute file name.)
+    $(LI $(RELATIVE_LINK2 dash_safe, Add -transition=safe switch.))
 )
 
 $(BUGSTITLE Language Changes,
@@ -174,6 +175,10 @@ $(BUGSTITLE Compiler Changes,
             }
         }
         ---
+    )
+
+    $(LI $(LNAME2 dash_safe, Add -transition=safe switch.)
+	$(P Enables enhanced @safe checking, which will break some existing code.)
     )
 )
 
