@@ -3945,19 +3945,7 @@ extern (C++) class IdentifierExp : Expression
 
         if (ident == Id.ctfe)
         {
-            if (sc.flags & SCOPEctfe)
-            {
-                //error("variable __ctfe cannot be read at compile time");
-                //return new ErrorExp();
-                return new IntegerExp(loc, global.ctfeInProgress != 0, Type.tbool);
-            }
-
-            // Create the magic __ctfe bool variable
-            auto vd = new VarDeclaration(loc, Type.tbool, Id.ctfe, null);
-            vd.storage_class |= STCtemp;
-            Expression e = new VarExp(loc, vd);
-            e = e.semantic(sc);
-            return e;
+            return new IntegerExp(loc, global.ctfeInProgress != 0, Type.tbool);
         }
 
         const(char)* n = importHint(ident.toChars());
