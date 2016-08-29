@@ -6,7 +6,7 @@ void main()
 bool ctfeFun()
 {
 	static assert(__ctfe, "ctfeFun should only be used at ctfe");
-	return __ctfe;
+	return true;
 }
 
 static assert(ctfeFun());
