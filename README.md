@@ -3,8 +3,8 @@ dmd
 
 [![GitHub tag](https://img.shields.io/github/tag/dlang/dmd.svg?maxAge=86400)](#)
 [![Build Status](https://travis-ci.org/dlang/dmd.svg?branch=master)](https://travis-ci.org/dlang/dmd)
-[![Codecov](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](#)
-[![Issue Stats](http://www.issuestats.com/github/dlang/dmd/badge/pr)](http://www.issuestats.com/github/dlang/dmd)
+[![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](#)
+[![Issue Stats](https://img.shields.io/issuestats/p/github/dlang/dmd.svg?maxAge=2592000)](http://www.issuestats.com/github/dlang/dmd)
 
 dmd is the reference compiler for the D programming language.
 
