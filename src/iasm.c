@@ -428,7 +428,7 @@ static OPND *asm_and_exp();
 static OPND *asm_cond_exp();
 static opflag_t asm_determine_operand_flags(OPND *popnd);
 static code *asm_genloc(Loc loc, code *c);
-static long long asm_getnum();
+static int asm_getnum();
 
 static void asmerr(const char *, ...);
 
@@ -3727,8 +3727,9 @@ static code *asm_db_parse(OP *pop)
  * Parse and get integer expression.
  */
 
-/** Returns -1L on failure. */
-static long long asm_getnum()
+/** Returns -1 on failure, but could also return -1 on success.
+Failure is reported via incrementation of the global error count in the 'error()' function */
+static int asm_getnum()
 {
     int v;
     dinteger_t i;
@@ -3754,15 +3755,15 @@ static long long asm_getnum()
             v = (int) i;
             if (v != i)
             {
-                asmerr("integer expected");
-                return -1L;
+                error(asmstate.loc, "integer expected");
+                return -1;
             }
             break;
         }
         default:
-            asmerr("integer expected");
+            error(asmstate.loc, "integer expected");
             v = 0;              // no uninitialized values
-            return -1L;
+            return -1;
     }
     asm_token();
     return v;
@@ -4793,9 +4794,7 @@ AsmStatement* asmSemantic(AsmStatement *s, Scope *sc)
         case TOKalign:
         {
             asm_token();
-            long long align = asm_getnum();
-            if (align == -1L)
-                return NULL;
+            int align = asm_getnum();
             if (ispow2((unsigned) align) == -1)
             {
                 asmerr("align %d must be a power of 2", align);
