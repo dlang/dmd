@@ -1,4 +1,4 @@
-dmd
+DMD
 ===
 
 [![GitHub tag](https://img.shields.io/github/tag/dlang/dmd.svg?maxAge=86400)](#)
@@ -6,7 +6,7 @@ dmd
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](#)
 [![Issue Stats](https://img.shields.io/issuestats/p/github/dlang/dmd.svg?maxAge=2592000)](http://www.issuestats.com/github/dlang/dmd)
 
-dmd is the reference compiler for the D programming language.
+DMD is the reference compiler for the D programming language.
 
 To report a problem or browse the list of open bugs, please visit the
 [bug tracker](http://issues.dlang.org/).
