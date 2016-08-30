@@ -3323,8 +3323,8 @@ unittest
 /// ditto
 @property T[] dup(T:void)(scope const(T)[] a) @trusted
 {
-    if (__ctfe) assert(0, "Cannot dup a void[] array at compile time.");
-    return cast(T[])_rawDup(a);
+    import core.internal.traits : Unconst;
+    return _dup!(const(T), Unconst!T)(a);
 }
 
 /// Provide the .idup array property.
@@ -3355,28 +3355,30 @@ private U[] _dup(T, U)(scope T[] a) // pure nothrow depends on postblit
 {
     if (__ctfe)
     {
-        U[] res;
-        foreach (ref e; a)
-            res ~= e;
-        return res;
+        static if (is(T : void))
+            assert(0, "Cannot dup a void[] array at compile time.");
+        else
+        {
+            U[] res;
+            foreach (ref e; a)
+                res ~= e;
+            return res;
+        }
     }
 
-    a = _rawDup(a);
-    auto res = *cast(typeof(return)*)&a;
-    _doPostblit(res);
+    import core.stdc.string : memcpy;
+
+    void[] arr = _d_newarrayU(typeid(T[]), a.length);
+    memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
+    auto res = *cast(U[]*)&arr;
+
+    static if (!is(T : void))
+        _doPostblit(res);
     return res;
 }
 
 private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
 
-private inout(T)[] _rawDup(T)(scope inout(T)[] a)
-{
-    import core.stdc.string : memcpy;
-
-    void[] arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(arr.ptr, cast(void*)a.ptr, T.sizeof * a.length);
-    return *cast(inout(T)[]*)&arr;
-}
 
 private template _PostBlitType(T)
 {
