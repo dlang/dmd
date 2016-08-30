@@ -3378,16 +3378,13 @@ private inout(T)[] _rawDup(T)(scope inout(T)[] a)
     return *cast(inout(T)[]*)&arr;
 }
 
-private template _PostBlitType(T)
-{
-    // assume that ref T and void* are equivalent in abi level.
-    static if (is(T == struct))
-        alias _PostBlitType = typeof(function (ref T t){ T a = t; });
-    else
-        alias _PostBlitType = typeof(delegate (ref T t){ T a = t; });
-}
-
-// Returns null, or a delegate to call postblit of T
+/**************
+ * Get the postblit for type T.
+ * Returns:
+ *      null if no postblit is necessary
+ *      function pointer for struct postblits
+ *      delegate for class postblits
+ */
 private auto _getPostblit(T)() @trusted pure nothrow @nogc
 {
     // infer static postblit type, run postblit if any
@@ -3395,11 +3392,13 @@ private auto _getPostblit(T)() @trusted pure nothrow @nogc
     {
         import core.internal.traits : Unqual;
         // use typeid(Unqual!T) here to skip TypeInfo_Const/Shared/...
-        return cast(_PostBlitType!T)typeid(Unqual!T).xpostblit;
+        alias _PostBlitType = typeof(function (ref T t){ T a = t; });
+        return cast(_PostBlitType)typeid(Unqual!T).xpostblit;
     }
     else if ((&typeid(T).postblit).funcptr !is &TypeInfo.postblit)
     {
-        return cast(_PostBlitType!T)&typeid(T).postblit;
+        alias _PostBlitType = typeof(delegate (ref T t){ T a = t; });
+        return cast(_PostBlitType)&typeid(T).postblit;
     }
     else
         return null;
