@@ -46,11 +46,12 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
 
+/// Inline Status
 enum ILS : int
 {
-    ILSuninitialized,       // not computed yet
-    ILSno,                  // cannot inline
-    ILSyes,                 // can inline
+    ILSuninitialized,       /// not computed yet
+    ILSno,                  /// cannot inline
+    ILSyes,                 /// can inline
 }
 
 alias ILSuninitialized = ILS.ILSuninitialized;
@@ -59,16 +60,16 @@ alias ILSyes = ILS.ILSyes;
 
 enum BUILTIN : int
 {
-    BUILTINunknown = -1,    // not known if this is a builtin
-    BUILTINno,              // this is not a builtin
-    BUILTINyes,             // this is a builtin
+    BUILTINunknown = -1,    /// not known if this is a builtin
+    BUILTINno,              /// this is not a builtin
+    BUILTINyes,             /// this is a builtin
 }
 
 alias BUILTINunknown = BUILTIN.BUILTINunknown;
 alias BUILTINno = BUILTIN.BUILTINno;
 alias BUILTINyes = BUILTIN.BUILTINyes;
 
-/* A visitor to walk entire statements and provides ability to replace any sub-statements.
+/** A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
 extern (C++) class StatementRewriteWalker : Visitor
 {
@@ -389,102 +390,104 @@ public:
     }
 }
 
-enum FUNCFLAGpurityInprocess  = 1;      // working on determining purity
-enum FUNCFLAGsafetyInprocess  = 2;      // working on determining safety
-enum FUNCFLAGnothrowInprocess = 4;      // working on determining nothrow
-enum FUNCFLAGnogcInprocess    = 8;      // working on determining @nogc
-enum FUNCFLAGreturnInprocess  = 0x10;   // working on inferring 'return' for parameters
-enum FUNCFLAGinlineScanned    = 0x20;   // function has been scanned for inline possibilities
+enum FUNCFLAGpurityInprocess  = 1;      /// working on determining purity
+enum FUNCFLAGsafetyInprocess  = 2;      /// working on determining safety
+enum FUNCFLAGnothrowInprocess = 4;      /// working on determining nothrow
+enum FUNCFLAGnogcInprocess    = 8;      /// working on determining @nogc
+enum FUNCFLAGreturnInprocess  = 0x10;   /// working on inferring 'return' for parameters
+enum FUNCFLAGinlineScanned    = 0x20;   /// function has been scanned for inline possibilities
 
 
 /***********************************************************
  */
 extern (C++) class FuncDeclaration : Declaration
 {
-    Types* fthrows;                     // Array of Type's of exceptions (not used)
-    Statement frequire;
-    Statement fensure;
-    Statement fbody;
+    Types* fthrows;                     /// Array of Type's of exceptions (not used)
+    Statement frequire;                 /// in contract body
+    Statement fensure;                  /// out contract body
+    Statement fbody;                    /// function body
 
-    FuncDeclarations foverrides;        // functions this function overrides
-    FuncDeclaration fdrequire;          // function that does the in contract
-    FuncDeclaration fdensure;           // function that does the out contract
+    FuncDeclarations foverrides;        /// functions this function overrides
+    FuncDeclaration fdrequire;          /// function that does the in contract
+    FuncDeclaration fdensure;           /// function that does the out contract
 
-    const(char)* mangleString;          // mangled symbol created from mangleExact()
+    const(char)* mangleString;          /// mangled symbol created from mangleExact()
 
-    Identifier outId;                   // identifier for out statement
-    VarDeclaration vresult;             // variable corresponding to outId
-    LabelDsymbol returnLabel;           // where the return goes
+    Identifier outId;                   /// identifier for out statement
+    VarDeclaration vresult;             /// variable corresponding to outId
+    LabelDsymbol returnLabel;           /// where the return goes
 
     // used to prevent symbols in different
     // scopes from having the same name
     DsymbolTable localsymtab;
-    VarDeclaration vthis;               // 'this' parameter (member and nested)
-    VarDeclaration v_arguments;         // '_arguments' parameter
+    VarDeclaration vthis;               /// 'this' parameter (member and nested)
+    VarDeclaration v_arguments;         /// '_arguments' parameter
     Objc_FuncDeclaration objc;
 
-    VarDeclaration v_argptr;            // '_argptr' variable
-    VarDeclarations* parameters;        // Array of VarDeclaration's for parameters
-    DsymbolTable labtab;                // statement label symbol table
-    Dsymbol overnext;                   // next in overload list
-    FuncDeclaration overnext0;          // next in overload list (only used during IFTI)
-    Loc endloc;                         // location of closing curly bracket
-    int vtblIndex = -1;                 // for member functions, index into vtbl[]
-    bool naked;                         // true if naked
-    bool generated;                     // true if function was generated by the compiler rather than
-                                        // supplied by the user
+    VarDeclaration v_argptr;            /// '_argptr' variable
+    VarDeclarations* parameters;        /// Array of VarDeclaration's for parameters
+    DsymbolTable labtab;                /// statement label symbol table
+    Dsymbol overnext;                   /// next in overload list
+    FuncDeclaration overnext0;          /// next in overload list (only used during IFTI)
+    Loc endloc;                         /// location of closing curly bracket
+    int vtblIndex = -1;                 /// for member functions, index into vtbl[]
+    bool naked;                         /// true if naked
+    bool generated;                     /// true if function was generated by the compiler rather than
+                                        /// supplied by the user
     ILS inlineStatusStmt = ILSuninitialized;
     ILS inlineStatusExp = ILSuninitialized;
     PINLINE inlining = PINLINEdefault;
 
-    CompiledCtfeFunction* ctfeCode;     // Compiled code for interpreter
-    int inlineNest;                     // !=0 if nested inline
-    bool isArrayOp;                     // true if array operation
-    // true if errors in semantic3 this function's frame ptr
-    bool semantic3Errors;
-    ForeachStatement fes;               // if foreach body, this is the foreach
-    BaseClass* interfaceVirtual;        // if virtual, but only appears in base interface vtbl[]
-    bool introducing;                   // true if 'introducing' function
-    // if !=NULL, then this is the type
-    // of the 'introducing' function
-    // this one is overriding
+    CompiledCtfeFunction* ctfeCode;     /// Compiled code for interpreter (not actually)
+    int inlineNest;                     /// !=0 if nested inline
+    bool isArrayOp;                     /// true if array operation
+
+    bool semantic3Errors;               /// true if errors in semantic3 this function's frame ptr
+    ForeachStatement fes;               /// if foreach body, this is the foreach
+    BaseClass* interfaceVirtual;        /// if virtual, but only appears in base interface vtbl[]
+    bool introducing;                   /// true if 'introducing' function
+    /** if !=NULL, then this is the type
+    of the 'introducing' function
+    this one is overriding
+    */
     Type tintro;
-    bool inferRetType;                  // true if return type is to be inferred
-    StorageClass storage_class2;        // storage class for template onemember's
+
+    bool inferRetType;                  /// true if return type is to be inferred
+    StorageClass storage_class2;        /// storage class for template onemember's
 
     // Things that should really go into Scope
 
-    // 1 if there's a return exp; statement
-    // 2 if there's a throw statement
-    // 4 if there's an assert(0)
-    // 8 if there's inline asm
+    /// 1 if there's a return exp; statement
+    /// 2 if there's a throw statement
+    /// 4 if there's an assert(0)
+    /// 8 if there's inline asm
     int hasReturnExp;
 
     // Support for NRVO (named return value optimization)
-    bool nrvo_can = true;               // true means we can do it
-    VarDeclaration nrvo_var;            // variable to replace with shidden
-    Symbol* shidden;                    // hidden pointer passed to function
+    bool nrvo_can = true;               /// true means we can do NRVO
+    VarDeclaration nrvo_var;            /// variable to replace with shidden
+    Symbol* shidden;                    /// hidden pointer passed to function
 
     ReturnStatements* returns;
 
-    GotoStatements* gotos;              // Gotos with forward references
+    GotoStatements* gotos;              /// Gotos with forward references
 
-    // set if this is a known, builtin function we can evaluate at compile time
+    /// set if this is a known, builtin function we can evaluate at compile time
     BUILTIN builtin = BUILTINunknown;
 
-    // set if someone took the address of this function
+    /// set if someone took the address of this function
     int tookAddressOf;
 
     bool requiresClosure;               // this function needs a closure
 
-    // local variables in this function which are referenced by nested functions
+    /// local variables in this function which are referenced by nested functions
     VarDeclarations closureVars;
-    // Sibling nested functions which called this one
+    /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 
     FuncDeclarations *inlinedNestedCallees;
 
-    uint flags;                         // FUNCFLAGxxxxx
+    uint flags;                         /// FUNCFLAGxxxxx
 
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
@@ -520,7 +523,7 @@ extern (C++) class FuncDeclaration : Declaration
         return f;
     }
 
-    // Do the semantic analysis on the external interface to the function.
+    /// Do the semantic analysis on the external interface to the function.
     override void semantic(Scope* sc)
     {
         TypeFunction f;

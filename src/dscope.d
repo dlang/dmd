@@ -78,64 +78,63 @@ extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool must
     return true;
 }
 
-enum CSXthis_ctor       = 0x01;     // called this()
-enum CSXsuper_ctor      = 0x02;     // called super()
-enum CSXthis            = 0x04;     // referenced this
-enum CSXsuper           = 0x08;     // referenced super
-enum CSXlabel           = 0x10;     // seen a label
-enum CSXreturn          = 0x20;     // seen a return statement
-enum CSXany_ctor        = 0x40;     // either this() or super() was called
-enum CSXhalt            = 0x80;     // assert(0)
+enum CSXthis_ctor       = 0x01;     /// called this()
+enum CSXsuper_ctor      = 0x02;     /// called super()
+enum CSXthis            = 0x04;     /// referenced this
+enum CSXsuper           = 0x08;     /// referenced super
+enum CSXlabel           = 0x10;     /// seen a label
+enum CSXreturn          = 0x20;     /// seen a return statement
+enum CSXany_ctor        = 0x40;     /// either this() or super() was called
+enum CSXhalt            = 0x80;     /// assert(0)
 
 // Flags that would not be inherited beyond scope nesting
-enum SCOPEctor          = 0x0001;   // constructor type
-enum SCOPEnoaccesscheck = 0x0002;   // don't do access checks
-enum SCOPEcondition     = 0x0004;   // inside static if/assert condition
-enum SCOPEdebug         = 0x0008;   // inside debug conditional
+enum SCOPEctor          = 0x0001;   /// constructor type
+enum SCOPEnoaccesscheck = 0x0002;   /// don't do access checks
+enum SCOPEcondition     = 0x0004;   /// inside static if/assert condition
+enum SCOPEdebug         = 0x0008;   /// inside debug conditional
 
 // Flags that would be inherited beyond scope nesting
-enum SCOPEconstraint    = 0x0010;   // inside template constraint
-enum SCOPEinvariant     = 0x0020;   // inside invariant code
-enum SCOPErequire       = 0x0040;   // inside in contract code
-enum SCOPEensure        = 0x0060;   // inside out contract code
-enum SCOPEcontract      = 0x0060;   // [mask] we're inside contract code
-enum SCOPEctfe          = 0x0080;   // inside a ctfe-only expression
-enum SCOPEcompile       = 0x0100;   // inside __traits(compile)
-enum SCOPEfree          = 0x8000;   // is on free list
+enum SCOPEconstraint    = 0x0010;   /// inside template constraint
+enum SCOPEinvariant     = 0x0020;   /// inside invariant code
+enum SCOPErequire       = 0x0040;   /// inside in contract code
+enum SCOPEensure        = 0x0060;   /// inside out contract code
+enum SCOPEcontract      = 0x0060;   /// [mask] we're inside contract code
+enum SCOPEctfe          = 0x0080;   /// inside a ctfe-only expression
+enum SCOPEcompile       = 0x0100;   /// inside __traits(compile)
+enum SCOPEfree          = 0x8000;   /// is on free list
 
-enum SCOPEfullinst      = 0x10000;  // fully instantiate templates
+enum SCOPEfullinst      = 0x10000;  /// fully instantiate templates
 
 struct Scope
 {
-    Scope* enclosing;               // enclosing Scope
+    Scope* enclosing;               /// enclosing Scope
 
-    Module _module;                 // Root module
-    ScopeDsymbol scopesym;          // current symbol
-    ScopeDsymbol sds;               // if in static if, and declaring new symbols,
-                                    // sds gets the addMember()
-    FuncDeclaration func;           // function we are in
-    Dsymbol parent;                 // parent to use
-    LabelStatement slabel;          // enclosing labelled statement
-    SwitchStatement sw;             // enclosing switch statement
-    TryFinallyStatement tf;         // enclosing try finally statement
-    OnScopeStatement os;            // enclosing scope(xxx) statement
-    Statement sbreak;               // enclosing statement that supports "break"
-    Statement scontinue;            // enclosing statement that supports "continue"
-    ForeachStatement fes;           // if nested function for ForeachStatement, this is it
-    Scope* callsc;                  // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    int inunion;                    // we're processing members of a union
-    int nofree;                     // set if shouldn't free it
-    int noctor;                     // set if constructor calls aren't allowed
-    int intypeof;                   // in typeof(exp)
-    VarDeclaration lastVar;         // Previous symbol used to prevent goto-skips-init
+    Module _module;                 /// Root module
+    ScopeDsymbol scopesym;          /// current symbol
+    ScopeDsymbol sds;               /// if in static if, and declaring new symbols, sds gets the addMember()
+    FuncDeclaration func;           /// function we are in
+    Dsymbol parent;                 /// parent to use
+    LabelStatement slabel;          /// enclosing labelled statement
+    SwitchStatement sw;             /// enclosing switch statement
+    TryFinallyStatement tf;         /// enclosing try finally statement
+    OnScopeStatement os;            /// enclosing scope(xxx) statement
+    Statement sbreak;               /// enclosing statement that supports "break"
+    Statement scontinue;            /// enclosing statement that supports "continue"
+    ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
+    Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
+    int inunion;                    /// we're processing members of a union
+    int nofree;                     /// set if shouldn't free it
+    int noctor;                     /// set if constructor calls aren't allowed
+    int intypeof;                   /// in typeof(exp)
+    VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
 
     /* If  minst && !tinst, it's in definitely non-speculative scope (eg. module member scope).
      * If !minst && !tinst, it's in definitely speculative scope (eg. template constraint).
      * If  minst &&  tinst, it's in instantiated code scope without speculation.
      * If !minst &&  tinst, it's in instantiated code scope with speculation.
      */
-    Module minst;                   // root module where the instantiated templates should belong to
-    TemplateInstance tinst;         // enclosing template instance
+    Module minst;                   /// root module where the instantiated templates should belong to
+    TemplateInstance tinst;         /// enclosing template instance
 
     // primitive flow analysis for constructors
     uint callSuper;
@@ -144,34 +143,34 @@ struct Scope
     uint* fieldinit;
     size_t fieldinit_dim;
 
-    // alignment for struct members
+    /// alignment for struct members
     AlignDeclaration aligndecl;
 
-    // linkage for external functions
+    /// linkage for external functions
     LINK linkage = LINKd;
 
-    // mangle type
+    /// mangle type
     CPPMANGLE cppmangle = CPPMANGLE.def;
 
-    // inlining strategy for functions
+    /// inlining strategy for functions
     PINLINE inlining = PINLINEdefault;
 
-    // protection for class members
+    /// protection for class members
     Prot protection = Prot(PROTpublic);
-    int explicitProtection;         // set if in an explicit protection attribute
+    int explicitProtection;         /// set if in an explicit protection attribute
 
-    StorageClass stc;               // storage class
+    StorageClass stc;               /// storage class
 
-    DeprecatedDeclaration depdecl;  // customized deprecation message
+    DeprecatedDeclaration depdecl;  /// customized deprecation message
 
     uint flags;
 
     // user defined attributes
     UserAttributeDeclaration userAttribDecl;
 
-    DocComment* lastdc;        // documentation comment for last symbol at this scope
-    uint[void*] anchorCounts;  // lookup duplicate anchor name count
-    Identifier prevAnchor;     // qualified symbol name of last doc anchor
+    DocComment* lastdc;        /// documentation comment for last symbol at this scope
+    uint[void*] anchorCounts;  /// lookup duplicate anchor name count
+    Identifier prevAnchor;     /// qualified symbol name of last doc anchor
 
     extern (C++) static __gshared Scope* freelist;
 
