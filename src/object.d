@@ -3323,12 +3323,6 @@ unittest
         return _dup!(const(T), T)(a);
 }
 
-/// ditto
-@property T[] dup(T:void)(scope const(T)[] a) @trusted
-{
-    import core.internal.traits : Unconst;
-    return _dup!(const(T), Unconst!T)(a);
-}
 
 /// Provide the .idup array property.
 @property immutable(T)[] idup(T)(scope T[] a)
