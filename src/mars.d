@@ -1574,6 +1574,7 @@ int main()
 {
     import core.memory;
     import core.runtime;
+    import core.exception;
 
     version (GC)
     {
@@ -1603,6 +1604,24 @@ int main()
         dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
     }
+
+    assertHandler = (string file, size_t line, string msg) nothrow {
+        import ddmd.errors;
+        import core.stdc.stdio;
+
+        fprintf(stderr, "Fatal failure on line %d in file '%s'",
+            line, file.ptr);
+
+        if (msg.length)
+            fprintf(stderr, ": %s\n", msg.ptr);
+        else
+            fprintf(stderr, "\n");
+
+        fprintf(stderr, "This is a compiler bug, please report it via " ~
+            "https://issues.dlang.org/enter_bug.cgi\n");
+
+        exit(EXIT_FAILURE);
+    };
 
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv);
