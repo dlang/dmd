@@ -70,7 +70,10 @@ struct elem
                         // always 0 until CSE elimination is done
     eflags_t Eflags;
 
-    eve EV;             // variants for each type of elem
+    version (OSX) // workaround https://issues.dlang.org/show_bug.cgi?id=16466
+        align(16) eve EV; // variants for each type of elem
+    else
+        eve EV;           // variants for each type of elem
     union
     {
         // PARSER
@@ -182,7 +185,7 @@ elem *el_ptr_offset(Symbol *s,targ_size_t offset);
 void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);
 
-elem *el_long(tym_t,targ_llong);
+extern (C) elem *el_long(tym_t,targ_llong);
 
 int ERTOL(elem *);
 int el_noreturn(elem *);
