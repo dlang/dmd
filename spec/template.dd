@@ -868,19 +868,55 @@ $(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
 
 $(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
 
-    $(P If a template has exactly one member in it, and the name of that
-        member is the same as the template name, that member is assumed
-        to be referred to in a template instantiation:
+    $(P If a template contains members whose the name is the same as the
+        template identifier and if the type or the parameters type of these
+        members include at least all the template parameters then these members
+        are assumed to be referred to in a template instantiation:
 
         ------
-        template $(CODE_HIGHLIGHT Foo)(T)
+        template foo(T)
         {
-            T Foo; // declare variable Foo of type T
+            T foo; // declare variable foo of type T
         }
 
-        void test()
+        void main()
         {
-            Foo!(int) = 6; // instead of Foo!(int).Foo
+            foo!(int) = 6; // instead of foo!(int).foo
+        }
+        ------
+
+        Using functions and more types than the template:
+
+        ------
+        template foo(S, T)
+        {
+            // each member contains all the template parameters
+            void foo(S s, T t) {}
+            void foo(S s, T t, string) {}
+        }
+
+        void main()
+        {
+            foo(1, 2, "test"); // foo!(int, int).foo(1, 2, "test")
+            foo(1, 2); // foo!(int, int).foo(1, 2)
+        }
+        ------
+
+        When the template parameters must be deduced, the eponymous members
+        can't rely on a $(LINK2 version.html#StaticIfCondition, `static if`)
+        condition since the deduction relies on how the in members are used:
+
+        ------
+        template foo(T)
+        {
+            static if (is(T)) // T is not yet known...
+                void foo(T t) {} // T is deduced from the member usage
+        }
+
+        void main()
+        {
+            foo(0); // Error: cannot deduce function from argument types
+            foo!int(0); // Ok since no deduction necessary
         }
         ------
     )
