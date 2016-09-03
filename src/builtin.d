@@ -183,9 +183,19 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
     return new RealExp(loc, result, arg0.type);
 }
 
+extern (C++) Expression builtin_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    import std.stdio : fprintf;
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKstring);
+    auto se = cast(StringExp)arg0;
+    fprintf(global.stdmsg, "%.*s".ptr, se.len, se.string);
+    return null;
+}
+
 public extern (C++) void builtin_init()
 {
-    builtins._init(47);
+    builtins._init(49);
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
@@ -281,6 +291,8 @@ public extern (C++) void builtin_init()
     // @safe @nogc pure nothrow int function(ulong)
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
+    // void function(const string)
+    add_builtin("_D6object13__ctfeWriteFxAyaZv", &builtin_ctfeWrite);
 }
 
 /**********************************
