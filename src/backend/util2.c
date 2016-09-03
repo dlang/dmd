@@ -54,6 +54,8 @@ void util_assert(const char *file, int line)
 {
     fflush(stdout);
     printf("Internal error: %s %d\n",file,line);
+    printf("This is a compiler bug, please report it via "
+        "https://issues.dlang.org/enter_bug.cgi\n");
     err_exit();
 #if __clang__
     __builtin_unreachable();
