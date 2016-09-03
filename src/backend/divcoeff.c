@@ -11,7 +11,9 @@ Source: https://github.com/dlang/dmd/blob/master/src/backend/divcoeff.c
  */
 
 #include <stdio.h>
-#include <assert.h>
+
+static char __file__[] = __FILE__; /* for tassert.h */
+#include "tassert.h"
 
 typedef unsigned long long ullong;
 
