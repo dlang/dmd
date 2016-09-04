@@ -935,9 +935,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 }
                 if (sm.isTypeInfoDeclaration()) // Bugzilla 15177
                     return 0;
-                import ddmd.access : symbolIsVisible;
-                if (!global.params.bug10378 && !symbolIsVisible(sc, sm))
-                    return 0;
 
                 //printf("\t%s\n", sm->ident->toChars());
 
