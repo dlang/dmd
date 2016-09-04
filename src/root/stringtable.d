@@ -250,7 +250,8 @@ nothrow:
         for (size_t i = hash & (tabledim - 1), j = 1;; ++j)
         {
             const(StringValue)* sv;
-            if (!table[i].vptr || table[i].hash == hash && (sv = getValue(table[i].vptr)).length == length && .memcmp(s, sv.toDchars(), length) == 0)
+            auto vptr = table[i].vptr;
+            if (!vptr || table[i].hash == hash && (sv = getValue(vptr)).length == length && .memcmp(s, sv.toDchars(), length) == 0)
                 return i;
             i = (i + j) & (tabledim - 1);
         }
