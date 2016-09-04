@@ -112,6 +112,7 @@ struct Param
     bool allInst;           // generate code for all template instantiations
     bool check10378;        // check for issues transitioning to 10738
     bool bug10378;          // use pre-bugzilla 10378 search strategy
+    bool safe;              // use enhanced @safe checking
 
     BOUNDSCHECK useArrayBounds;
 
