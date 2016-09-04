@@ -25,6 +25,17 @@ import ddmd.tokens;
 
 private:
 
+/**
+ * Handler for evaluating builtins during CTFE.
+ *
+ * Params:
+ *  loc = The call location, for error reporting.
+ *  fd = The callee declaration, e.g. to disambiguate between different overloads
+ *       in a single handler (LDC).
+ *  arguments = The function call arguments.
+ * Returns:
+ *  An Expression containing the return value of the call.
+ */
 extern (C++) alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
 
 __gshared StringTable builtins;
