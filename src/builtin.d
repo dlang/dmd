@@ -25,7 +25,18 @@ import ddmd.tokens;
 
 private:
 
-extern (C++) alias builtin_fp = Expression function(Loc loc, Expressions* arguments);
+/**
+ * Handler for evaluating builtins during CTFE.
+ *
+ * Params:
+ *  loc = The call location, for error reporting.
+ *  fd = The callee declaration, e.g. to disambiguate between different overloads
+ *       in a single handler (LDC).
+ *  arguments = The function call arguments.
+ * Returns:
+ *  An Expression containing the return value of the call.
+ */
+extern (C++) alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
 
 __gshared StringTable builtins;
 
@@ -41,47 +52,47 @@ builtin_fp builtin_lookup(const(char)* mangle)
     return null;
 }
 
-extern (C++) Expression eval_unimp(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_unimp(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     return null;
 }
 
-extern (C++) Expression eval_sin(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_sin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
     return new RealExp(loc, CTFloat.sin(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_cos(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_cos(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
     return new RealExp(loc, CTFloat.cos(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_tan(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_tan(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
     return new RealExp(loc, CTFloat.tan(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_sqrt(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_sqrt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
     return new RealExp(loc, CTFloat.sqrt(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_fabs(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_fabs(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
     return new RealExp(loc, CTFloat.fabs(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_bsf(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKint64);
@@ -98,7 +109,7 @@ extern (C++) Expression eval_bsf(Loc loc, Expressions* arguments)
     return new IntegerExp(loc, k, Type.tint32);
 }
 
-extern (C++) Expression eval_bsr(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKint64);
@@ -113,7 +124,7 @@ extern (C++) Expression eval_bsr(Loc loc, Expressions* arguments)
     return new IntegerExp(loc, k, Type.tint32);
 }
 
-extern (C++) Expression eval_bswap(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKint64);
@@ -132,7 +143,7 @@ extern (C++) Expression eval_bswap(Loc loc, Expressions* arguments)
     return new IntegerExp(loc, n, arg0.type);
 }
 
-extern (C++) Expression eval_popcnt(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKint64);
@@ -146,7 +157,7 @@ extern (C++) Expression eval_popcnt(Loc loc, Expressions* arguments)
     return new IntegerExp(loc, cnt, arg0.type);
 }
 
-extern (C++) Expression eval_yl2x(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
@@ -159,7 +170,7 @@ extern (C++) Expression eval_yl2x(Loc loc, Expressions* arguments)
     return new RealExp(loc, result, arg0.type);
 }
 
-extern (C++) Expression eval_yl2xp1(Loc loc, Expressions* arguments)
+extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOKfloat64);
@@ -296,7 +307,7 @@ public extern (C++) Expression eval_builtin(Loc loc, FuncDeclaration fd, Express
     {
         builtin_fp fp = builtin_lookup(mangleExact(fd));
         assert(fp);
-        return fp(loc, arguments);
+        return fp(loc, fd, arguments);
     }
     return null;
 }
