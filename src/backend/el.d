@@ -111,9 +111,9 @@ struct elem
 }
 
 version (MARS)
-    tym_t typemask(elem* e) { return e.Ety; }
-else
     tym_t typemask(elem* e) { return PARSER ? e.ET.Tty : e.Ety; }
+else
+    tym_t typemask(elem* e) { return e.Ety; }
 
 //FL el_fl(elem *e) { return cast(FL)e.EV.Vsym.Sfl; }
 
