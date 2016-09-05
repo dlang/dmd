@@ -4923,6 +4923,11 @@ extern (C++) final class TypeSArray : TypeArray
                 e.error("%s is not an expression", e.toChars());
                 return new ErrorExp();
             }
+            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && global.params.safe)
+            {
+                e.error("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                return new ErrorExp();
+            }
             e = e.castTo(sc, e.type.nextOf().pointerTo());
         }
         else
@@ -5214,6 +5219,11 @@ extern (C++) final class TypeDArray : TypeArray
         }
         else if (ident == Id.ptr)
         {
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && global.params.safe)
+            {
+                e.error("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                return new ErrorExp();
+            }
             e = e.castTo(sc, next.pointerTo());
             return e;
         }

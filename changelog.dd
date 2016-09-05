@@ -179,6 +179,9 @@ $(BUGSTITLE Compiler Changes,
 
     $(LI $(LNAME2 dash_safe, Add -transition=safe switch.)
 	$(P Enables enhanced `@safe` checking, which will break some existing code.)
+	$(UL
+	$(LI Prevents dereferencing `array.ptr` because that bypasses array bounds check.)
+	)
     )
 )
 
