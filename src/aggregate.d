@@ -605,7 +605,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
         if (alignment == STRUCTALIGN_DEFAULT)
         {
-            if (global.params.is64bit && memalignsize == 16)
+            if ((global.params.is64bit || global.params.isOSX) && memalignsize == 16)
             {
             }
             else if (8 < memalignsize)
