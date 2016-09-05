@@ -11,6 +11,8 @@
 module ddmd.aggregate;
 
 import core.stdc.stdio;
+import core.checkedint;
+
 import ddmd.arraytypes;
 import ddmd.gluelayer;
 import ddmd.declaration;
@@ -595,6 +597,15 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         structalign_t alignment, uint* paggsize, uint* paggalignsize, bool isunion)
     {
         uint ofs = *nextoffset;
+
+        // Ensure no overflow
+        bool overflow;
+        const sz = addu(memsize,
+                        alignment == STRUCTALIGN_DEFAULT ? memalignsize : alignment,
+                        overflow);
+        const sum = addu(ofs, sz, overflow);
+        if (overflow) assert(0);
+
         alignmember(alignment, memalignsize, &ofs);
         uint memoffset = ofs;
         ofs += memsize;
