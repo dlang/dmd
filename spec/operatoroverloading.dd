@@ -202,6 +202,8 @@ $(H3 Overloading Slice Unary Operators)
 
 $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
 
+    $(P To define how one type can be cast to another, define the 
+      `opCast` template method, which is used as follows:)
 	$(TABLE2 Cast Operators,
 	$(THEAD $(I op), $(I rewrite))
 	$(TROW
@@ -210,6 +212,9 @@ $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
 	)
 	)
 
+    $(P Note that `opCast` is only ever used with an explicit `cast`
+        expression, except in the case of boolean operations (see next
+        section))
 
 $(H3 Boolean Operations)
 
