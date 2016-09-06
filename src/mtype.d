@@ -4754,7 +4754,7 @@ extern (C++) final class TypeSArray : TypeArray
             Type tbx = tbn.baseElemOf();
             if (tbx.ty == Tstruct && !(cast(TypeStruct)tbx).sym.members || tbx.ty == Tenum && !(cast(TypeEnum)tbx).sym.members)
             {
-                /* To avoid meaningess error message, skip the total size limit check
+                /* To avoid meaningless error message, skip the total size limit check
                  * when the bottom of element type is opaque.
                  */
             }
@@ -4764,11 +4764,13 @@ extern (C++) final class TypeSArray : TypeArray
                  * run on them for the size, since they may be forward referenced.
                  */
                 bool overflow = false;
-
                 auto static_arr_size = mulu(tbn.size(loc), d2, overflow);
 
-                if (overflow)
-                    goto Loverflow;
+                if (overflow || static_arr_size > int.max)
+                {
+                    error(loc, "%s size %llu * %llu exceeds size limit `int.max` (2GiB - 1) for static array", toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1);
+                    goto Lerror;
+                }
             }
         }
         switch (tbn.ty)
