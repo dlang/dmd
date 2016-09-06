@@ -475,12 +475,15 @@ void genObjFile(Module *m, bool multiobj)
         m->ssharedctor = callFuncsAndGates(m, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
         m->sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
         m->stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
+
+        if (m->doppelganger && global.params.isWindows)
+            genModuleInfo(m);
     }
 
     /* Always generate module info, because of templates and -cov.
      * But module info needs the runtime library, so disable it for betterC.
      */
-    if (!global.params.betterC /*|| needModuleInfo()*/)
+    if (!global.params.betterC && !global.params.isWindows /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     if (!m->doppelganger)
