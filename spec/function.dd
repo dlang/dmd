@@ -872,15 +872,13 @@ void main()
 
 $(H4 $(LNAME2 inline-functions, Inline Functions))
 
-        $(P There is no inline keyword. The compiler makes the decision whether to
-        inline a function or not, analogously to the register keyword no
-        longer being relevant to a
-        compiler's decisions on enregistering variables.
-        (There is no register keyword either.))
-
-        $(P If a $(GLINK2 expression, FunctionLiteral) is immediately called,
-        its inlining would be enforced normally.)
-
+        $(P The compiler makes the decision whether to inline a function or not. 
+        This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`),
+        assuming that the compiler implements it, which is not mandatory.)
+        
+        $(P Note that any $(GLINK2 expression, FunctionLiteral) should be inlined
+        when used in its declaration scope.
+        )
 
 $(H3 $(LNAME2 function-overloading, Function Overloading))
 
