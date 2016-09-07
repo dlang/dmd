@@ -480,20 +480,21 @@ void genObjFile(Module *m, bool multiobj)
             genModuleInfo(m);
     }
 
-    /* Always generate module info, because of templates and -cov.
-     * But module info needs the runtime library, so disable it for betterC.
-     */
-    if (!global.params.betterC && !global.params.isWindows /*|| needModuleInfo()*/)
-        genModuleInfo(m);
-
-    if (!m->doppelganger)
+    if (!global.params.betterC)
     {
-       /* Always generate helper functions b/c of later templates instantiations
-        * with different -release/-debug/-boundscheck/-unittest flags.
-        */
-       if (!global.params.betterC)
-           genhelpers(m);
+        if (m->doppelganger)
+        {
+            if (!global.params.isWindows)
+                genModuleInfo(m);
+        }
+        else
+        {
+            genModuleInfo(m);
+            genhelpers(m);
+        }
     }
+    else
+        objc_Module_genmoduleinfo_classes();
 
     objmod->termfile();
 }
