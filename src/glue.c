@@ -476,28 +476,25 @@ void genObjFile(Module *m, bool multiobj)
         m->sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
         m->stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
 
-        if (m->doppelganger)
+        if (m->doppelganger && global.params.isWindows)
             genModuleInfo(m);
     }
 
-    if (m->doppelganger)
-    {
-        objc_Module_genmoduleinfo_classes();
-        objmod->termfile();
-        return;
-    }
-
-    /* Always generate module info, because of templates and -cov.
-     * But module info needs the runtime library, so disable it for betterC.
-     */
-    if (!global.params.betterC /*|| needModuleInfo()*/)
-        genModuleInfo(m);
-
-    /* Always generate helper functions b/c of later templates instantiations
-     * with different -release/-debug/-boundscheck/-unittest flags.
-     */
     if (!global.params.betterC)
-        genhelpers(m);
+    {
+        if (m->doppelganger)
+        {
+            if (!global.params.isWindows)
+                genModuleInfo(m);
+        }
+        else
+        {
+            genModuleInfo(m);
+            genhelpers(m);
+        }
+    }
+    else
+        objc_Module_genmoduleinfo_classes();
 
     objmod->termfile();
 }
