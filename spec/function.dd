@@ -2217,8 +2217,9 @@ $(H3 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         $(DDSUBLINK spec/template, function-templates, function template)s, since their function bodies
         are always present, infer the
         $(RELATIVE_LINK2 pure-functions, $(D pure)),
-        $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)), and
-        $(RELATIVE_LINK2 safe-functions, $(D @safe)) attributes unless
+        $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)),
+        $(RELATIVE_LINK2 safe-functions, $(D @safe)), and
+        $(LINK2 attribute.html#nogc, $(D @nogc)) attributes unless
         specifically overridden.
         )
 
