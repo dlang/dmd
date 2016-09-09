@@ -1625,7 +1625,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     // https://issues.dlang.org/show_bug.cgi?id=12876
                     // Optimize argument to allow CT-known length matching
                     farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
-                    //printf("farg = %s %s\n", farg.type.toChars(), fargtoChars());
+                    //printf("farg = %s %s\n", farg.type.toChars(), farg.toChars());
 
                     RootObject oarg = farg;
                     if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
@@ -2501,6 +2501,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
 
     int applyTemplate(TemplateDeclaration td)
     {
+        //printf("applyTemplate()\n");
         // skip duplicates
         if (td == td_best)
             return 0;
@@ -3675,7 +3676,15 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 {
                     Parameter a = Parameter.getNth(t.parameters, i);
                     Parameter ap = Parameter.getNth(tp.parameters, i);
-                    if (a.storageClass != ap.storageClass || !deduceType(a.type, sc, ap.type, parameters, dedtypes))
+
+                    enum stc = STCref | STCin | STCout | STClazy;
+                    if ((a.storageClass & stc) != (ap.storageClass & stc) ||
+                        // We can add scope, but not subtract it
+                        (!(a.storageClass & STCscope) && (ap.storageClass & STCscope)) ||
+                        // We can subtract return, but not add it
+                        ((a.storageClass & STCreturn) && !(ap.storageClass & STCreturn)) ||
+
+                        !deduceType(a.type, sc, ap.type, parameters, dedtypes))
                     {
                         result = MATCHnomatch;
                         return;

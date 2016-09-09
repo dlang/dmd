@@ -2863,8 +2863,8 @@ final class Parser : Lexer
                         // if stc is not a power of 2
                         if (stc & (stc - 1) && !(stc == (STCin | STCref)))
                             error("incompatible parameter storage classes");
-                        if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
-                            error("scope cannot be ref or out");
+                        //if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
+                            //error("scope cannot be ref or out");
 
                         Token* t;
                         if (tpl && token.value == TOKidentifier && (t = peek(&token), (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot)))

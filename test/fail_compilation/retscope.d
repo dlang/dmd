@@ -86,7 +86,7 @@ struct HTTP
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(97): Error: reference to local variable sa assigned to non-scope parameter a
+fail_compilation/retscope.d(97): Error: reference to local variable sa assigned to non-scope parameter a calling retscope.bar8
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=8838

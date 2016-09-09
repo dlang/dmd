@@ -1697,7 +1697,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                  * Check arg to see if it matters.
                  */
                 if (global.params.safe)
-                    err |= checkParamArgumentEscape(sc, p, arg, false);
+                    err |= checkParamArgumentEscape(sc, fd, p, arg, false);
             }
             else
             {

@@ -27,8 +27,8 @@ import ddmd.visitor;
 import ddmd.arraytypes;
 
 /****************************************
- * Function parameter param is being initialized to arg,
- * and params may escape.
+ * Function parameter par is being initialized to arg,
+ * and par may escape.
  * Detect if scoped values can escape this way.
  * Print error messages when these are detected.
  * Params:
@@ -39,9 +39,9 @@ import ddmd.arraytypes;
  * Returns:
  *      true if pointers to the stack can escape via assignment
  */
-bool checkParamArgumentEscape(Scope* sc, Parameter par, Expression arg, bool gag)
+bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Expression arg, bool gag)
 {
-    //printf("checkParamArgumentEscape(arg: %s)\n", arg.toChars());
+    //printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg.toChars(), par.toChars());
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
 
     if (!arg.type.hasPointers())
@@ -55,6 +55,20 @@ bool checkParamArgumentEscape(Scope* sc, Parameter par, Expression arg, bool gag
         return false;
 
     bool result = false;
+
+    /* 'v' is assigned unsafely to 'par'
+     */
+    void unsafeAssign(VarDeclaration v, const char* desc)
+    {
+        if (sc.func.setUnsafe())
+        {
+            if (!gag)
+                error(arg.loc, "%s %s assigned to non-scope parameter %s calling %s",
+                    desc, v.toChars(), par.toChars(), fdc ? fdc.toPrettyChars() : "indirectly");
+            result = true;
+        }
+    }
+
     foreach (VarDeclaration v; er.byvalue)
     {
         if (v.isDataseg())
@@ -62,26 +76,18 @@ bool checkParamArgumentEscape(Scope* sc, Parameter par, Expression arg, bool gag
 
         Dsymbol p = v.toParent2();
 
+        v.storage_class &= ~STCmaybescope;
+
         if (v.isScope())
         {
-            if (sc.func.setUnsafe())
-            {
-                if (!gag)
-                    error(arg.loc, "scope variable %s assigned to non-scope parameter %s", v.toChars(), par.toChars());
-                result = true;
-            }
+            unsafeAssign(v, "scope variable");
         }
         else if (v.storage_class & STCvariadic && p == sc.func)
         {
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
-                if (sc.func.setUnsafe())
-                {
-                    if (!gag)
-                        error(arg.loc, "variadic variable %s assigned to non-scope parameter %s", v.toChars(), par.toChars());
-                    result = true;
-                }
+                unsafeAssign(v, "variadic variable");
             }
         }
     }
@@ -93,14 +99,11 @@ bool checkParamArgumentEscape(Scope* sc, Parameter par, Expression arg, bool gag
 
         Dsymbol p = v.toParent2();
 
+        v.storage_class &= ~STCmaybescope;
+
         if ((v.storage_class & (STCref | STCout)) == 0 && p == sc.func)
         {
-            if (sc.func.setUnsafe())
-            {
-                if (!gag)
-                    error(arg.loc, "reference to local variable %s assigned to non-scope parameter %s", v.toChars(), par.toChars());
-                result = true;
-            }
+            unsafeAssign(v, "reference to local variable");
             continue;
         }
     }
@@ -119,14 +122,11 @@ bool checkParamArgumentEscape(Scope* sc, Parameter par, Expression arg, bool gag
 
             Dsymbol p = v.toParent2();
 
+            v.storage_class &= ~STCmaybescope;
+
             if ((v.storage_class & (STCref | STCout | STCscope)) && p == sc.func)
             {
-                if (sc.func.setUnsafe())
-                {
-                    if (!gag)
-                        error(arg.loc, "reference to local %s assigned to non-scope parameter %s in @safe code", v.toChars(), par.toChars());
-                    result = true;
-                }
+                unsafeAssign(v, "reference to local");
                 continue;
             }
         }
@@ -202,6 +202,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         Dsymbol p = v.toParent2();
 
+        if (!(va && va.isScope()))
+            v.storage_class &= ~STCmaybescope;
+
         if (v.isScope())
         {
             if (va && !va.isDataseg())
@@ -245,6 +248,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         Dsymbol p = v.toParent2();
 
+        if (!(va && va.isScope()))
+            v.storage_class &= ~STCmaybescope;
+
         if ((v.storage_class & (STCref | STCout)) == 0 && p == sc.func)
         {
             if (va && !va.isDataseg())
@@ -277,6 +283,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 continue;
 
             Dsymbol p = v.toParent2();
+
+            if (!(va && va.isScope()))
+                v.storage_class &= ~STCmaybescope;
 
             if ((v.storage_class & (STCref | STCout | STCscope)) && p == sc.func)
             {

@@ -396,6 +396,7 @@ enum FUNCFLAGnothrowInprocess = 4;      /// working on determining nothrow
 enum FUNCFLAGnogcInprocess    = 8;      /// working on determining @nogc
 enum FUNCFLAGreturnInprocess  = 0x10;   /// working on inferring 'return' for parameters
 enum FUNCFLAGinlineScanned    = 0x20;   /// function has been scanned for inline possibilities
+enum FUNCFLAGinferScope       = 0x40;   /// infer 'scope' for parameters
 
 
 /***********************************************************
@@ -1560,6 +1561,8 @@ extern (C++) class FuncDeclaration : Declaration
                     stc |= STCparameter;
                     if (f.varargs == 2 && i + 1 == nparams)
                         stc |= STCvariadic;
+                    if (flags & FUNCFLAGinferScope)
+                        stc |= STCmaybescope;
                     stc |= fparam.storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                     v.storage_class = stc;
                     v.semantic(sc2);
@@ -2218,7 +2221,26 @@ extern (C++) class FuncDeclaration : Declaration
             f.isnogc = true;
         }
 
-        flags &= ~FUNCFLAGreturnInprocess;
+        flags &= ~(FUNCFLAGreturnInprocess | FUNCFLAGinferScope);
+
+        // Infer STCscope
+        if (parameters)
+        {
+            size_t nfparams = Parameter.dim(f.parameters);
+            assert(nfparams == parameters.dim);
+            foreach (u, v; *parameters)
+            {
+                if (v.storage_class & STCmaybescope)
+                {
+                    //printf("Inferring scope for %s\n", v.toChars());
+                    Parameter p = Parameter.getNth(f.parameters, u);
+                    v.storage_class &= ~STCmaybescope;
+                    v.storage_class |= STCscope;
+                    p.storageClass |= STCscope;
+                    assert(!(p.storageClass & STCmaybescope));
+                }
+            }
+        }
 
         // reset deco to apply inference result to mangled name
         if (f != type)
@@ -3095,6 +3117,10 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (!isVirtual() || introducing)
             flags |= FUNCFLAGreturnInprocess;
+
+        // Initialize for inferring STCscope
+        if (global.params.safe)
+            flags |= FUNCFLAGinferScope;
     }
 
     final PURE isPure()
@@ -3542,14 +3568,14 @@ extern (C++) class FuncDeclaration : Declaration
         for (size_t i = 0; i < closureVars.dim; i++)
         {
             VarDeclaration v = closureVars[i];
-            //printf("\tv = %s\n", v->toChars());
+            //printf("\tv = %s\n", v.toChars());
 
             for (size_t j = 0; j < v.nestedrefs.dim; j++)
             {
                 FuncDeclaration f = v.nestedrefs[j];
                 assert(f != this);
 
-                //printf("\t\tf = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
+                //printf("\t\tf = %p, %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f, f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
 
                 /* Look to see if f escapes. We consider all parents of f within
                  * this, and also all siblings which call f; if any of them escape,
@@ -3563,7 +3589,7 @@ extern (C++) class FuncDeclaration : Declaration
                         continue;
                     if (fx.isThis() || fx.tookAddressOf)
                     {
-                        //printf("\t\tfx = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", fx->toChars(), fx->isVirtual(), fx->isThis(), fx->tookAddressOf);
+                        //printf("\t\tfx = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", fx.toChars(), fx.isVirtual(), fx.isThis(), fx.tookAddressOf);
 
                         /* Mark as needing closure any functions between this and f
                          */
@@ -3596,17 +3622,17 @@ extern (C++) class FuncDeclaration : Declaration
             Type tret = (cast(TypeFunction)type).next;
             assert(tret);
             tret = tret.toBasetype();
-            //printf("\t\treturning %s\n", tret->toChars());
+            //printf("\t\treturning %s\n", tret.toChars());
             if (tret.ty == Tclass || tret.ty == Tstruct)
             {
                 Dsymbol st = tret.toDsymbol(null);
-                //printf("\t\treturning class/struct %s\n", tret->toChars());
+                //printf("\t\treturning class/struct %s\n", tret.toChars());
                 for (Dsymbol s = st.parent; s; s = s.parent)
                 {
-                    //printf("\t\t\tparent = %s %s\n", s->kind(), s->toChars());
+                    //printf("\t\t\tparent = %s %s\n", s.kind(), s.toChars());
                     if (s == this)
                     {
-                        //printf("\t\treturning local %s\n", st->toChars());
+                        //printf("\t\treturning local %s\n", st.toChars());
                         goto Lyes;
                     }
                 }
