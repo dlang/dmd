@@ -5,56 +5,122 @@ $(COMMENT Pending changelog for 2.071. This will get copied to dlang.org and
 )
 
 $(BUGSTITLE Compiler Changes,
+    $(LI $(RELATIVE_LINK2 imports-313, Import access checks for fully qualified names were fixed.))
+    $(LI $(RELATIVE_LINK2 imports-314, Protection for selective and renamed imports were fixed.))
 )
 
 $(BUGSTITLE Language Changes,
-    $(LI $(RELATIVE_LINK2 traits-members-visibility, The `allMembers` and `derivedMembers` traits now only return visible symbols.))
+    $(LI $(RELATIVE_LINK2 extended-deprecated, Manifest constant can now be used for deprecation message.))
+    $(LI $(RELATIVE_LINK2 import-lookup, Imports no longer hide locals declared in outer scopes.))
+    $(LI $(RELATIVE_LINK2 dip22, Private symbols are no longer visible in other modules.))
 )
 
 $(BUGSTITLE Compiler Changes,
+    $(LI $(LNAME2 imports-313, Import access checks for fully qualified names were fixed.)
+
+    $(P It is no longer possible to bypass private imports by using fully qualified names, e.g.
+        the following example will fail with `package std.range is not accessible here`.
+    )
+
+    ---
+    import std.algorithm;
+
+    static assert(std.range.isForwardRange!string);
+    ---
+
+    $(P To ease updating existing code, the old behavior was retained but deprecated.
+    )
+    )
+
+    $(LI $(LNAME2 imports-314, Protection for selective and renamed imports were fixed.)
+
+    $(P It is no longer possible to use private selective or renamed imports in another module, e.g.
+        the following example will fail with `a.File is not visible from module b`.
+    )
+
+    ---
+    module a;
+    import std.stdio : File; // imports are private by default
+    ---
+    ---
+    module b;
+    import a;
+
+    File f; // File is private
+    ---
+
+    $(P To ease updating existing code, the old behavior was retained but deprecated.
+        This fix relies on the visibility changes introduced with $(RELATIVE_LINK2 dip22, DIP22).
+    )
+    )
 )
 
 $(BUGSTITLE Language Changes,
-    $(LI $(LNAME2 traits-members-visibility, The `allMembers` and `derivedMembers` traits now only return visible symbols.))
+    $(LI $(LNAME2 extended-deprecated, Manifest constant can now be used for deprecation message.)
 
-    $(P Since changing the protection system from access to visibility checks
-        (see $(DDSUBLINK changelog/2.071.0, dip22, DIP22)), using the
-        $(DDSUBLINK spec/traits, getMember, `getMember`) traits would often
-        result in nonsense deprecation warnings for invisible (private) symbols
-        in $(DDSUBLINK spec/traits, allMembers, `allMembers`) or
-        $(DDSUBLINK spec/traits, derivedMembers, `derivedMembers`). As the symbols
-        weren't accessible before and are now invisible, the implementation of the
-        traits was changed to no longer list those.
-    )
-
-    $(P To ease updating existing code, the old behavior can be restored using the -transition=import
-        compiler switch.
-    )
-
-    $(P In case you want a template from a library to return private members,
-        you can mixin the template into the instantiation scope. Note that it's
-        possible to mixin normal templates even though they're not declared as
-        mixin template.
-    )
-
+    $(P Manifest constants (enum, static immutable) can now be used for deprecation message, as well as concatenated strings.)
     $(P Example:)
     ---
-    import std.traits;
-    enum UDA;
-    struct S
-    {
-        @UDA int visible;
-        @UDA private int invisible;
-    }
-    // only returns symbols visible from std.traits
-    static assert(getSymbolsByUDA!(S, UDA).length == 1);
-    // mixin the template instantiation, using a name to avoid namespace pollution
-    mixin getSymbolsByUDA!(S, UDA) symbols;
-    // as the template is instantiated in the current scope, it can see private members
-    static assert(symbols.getSymbolsByUDA.length == 2);
-    ---
+    string generateMessage() { return "Some deprecation message"; }
+    enum DepMsg = generateMessage();
 
-    $(P See also $(BUGZILLA 15907))
+    deprecated(DepMsg) class Foo {}
+    deprecated("Some long deprecation " ~ "message") class Bar {}
+    ---
+    )
+
+    $(LI $(LNAME2 import-lookup, Imports no longer hide locals declared in outer scopes.)
+
+    $(P These changes were made to the name lookup algorithm:
+
+        $(OL
+            $(LI Lookup for unqualified names is change from one pass to two pass. The first
+            pass goes through the scopes but does not check import declarations. If not found,
+            the second pass goes through the scopes and only looks at import declarations.
+            )
+            $(LI Qualified name lookups, base class lookups, and WithStatement lookups no longer
+            search import declarations, unless a module is the subject of the lookup, where the
+            behavior remains as before.
+            )
+        )
+    )
+
+    $(P This can break existing code, although reliance on the previous behavior tends to be
+        unintended, and fixing it improves the comprehensibility of the code. Breakage tends
+        to take the form of a symbol now being flagged as undefined. Fixing the breakage can
+        be done by fully qualifying the name, or adding an alias to the import declaration.
+    )
+
+    $(P The old lookup behavior can be restored using the -transition=import
+        compiler switch.  With -transition=checkimports the compiler will issue
+        deprecation warnings when the old and new lookup find different
+        symbols.
+        You can combine both switches to use the old lookup and still get
+        deprecation warnings.
+    )
+
+    $(P See also $(BUGZILLA 10378))
+    )
+
+    $(LI $(LNAME2 dip22, Private symbols are no longer visible in other modules.)
+
+    $(P Protection (private, package, protected) is now already enforced during
+        symbol lookup in order to resolve any conflicts between private and
+        public symbols that could occur with the old access check scheme.
+    )
+
+    $(P The visibility of overloaded symbols with mixed protection is determined
+        by the most visibile member, but additional access check against the exact
+        symbol is performed after overload resolution.
+    )
+
+    $(P To ease updating existing code, a deprecated search for invisible symbols will be performed.
+        For the the old lookup behavior (using the -transition=import or -transition=checkimports compiler switch)
+        symbol visibility is ignored.
+        All existing access checks remain active during the deprecation phase.
+    )
+
+    $(P See also $(LINK2 http://wiki.dlang.org/DIP22, DIP22))
     )
 )
 
@@ -76,4 +142,3 @@ Macros:
     DMDPR = $(PULL_REQUEST dmd,$1)
 
     BOOKTABLE = <table><caption>$1</caption>$+</table>
-    DDSUBLINK=$(LINK2 //dlang.org/$1.html#$2, $3)
