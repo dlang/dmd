@@ -124,3 +124,18 @@ char[] bar9() @safe
     return foo9(tmp);   // error
 }
 
+/*************************************************/
+
+
+struct S10
+{
+    static int opApply(int delegate(S10*) dg);
+}
+
+S10* test10()
+{
+    foreach (S10* m; S10)
+        return m;
+    return null;
+}
+

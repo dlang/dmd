@@ -3677,13 +3677,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     Parameter a = Parameter.getNth(t.parameters, i);
                     Parameter ap = Parameter.getNth(tp.parameters, i);
 
-                    enum stc = STCref | STCin | STCout | STClazy;
-                    if ((a.storageClass & stc) != (ap.storageClass & stc) ||
-                        // We can add scope, but not subtract it
-                        (!(a.storageClass & STCscope) && (ap.storageClass & STCscope)) ||
-                        // We can subtract return, but not add it
-                        ((a.storageClass & STCreturn) && !(ap.storageClass & STCreturn)) ||
-
+                    if (!a.isCovariant(ap) ||
                         !deduceType(a.type, sc, ap.type, parameters, dedtypes))
                     {
                         result = MATCHnomatch;

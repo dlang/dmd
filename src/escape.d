@@ -210,7 +210,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             if (va && !va.isDataseg())
             {
                 if (!va.isScope() && inferScope)
+                {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STCscope;
+                }
                 continue;
             }
             if (sc.func.setUnsafe())
@@ -228,7 +230,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (va && !va.isDataseg())
                 {
                     if (!va.isScope() && inferScope)
+                    {   //printf("inferring scope for %s\n", va.toChars());
                         va.storage_class |= STCscope;
+                    }
                     continue;
                 }
                 if (sc.func.setUnsafe())
@@ -257,7 +261,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             {
                 if (!va.isScope() && inferScope &&
                     va.type.toBasetype().ty != Tclass)  // scope classes are special
+                {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STCscope;
+                }
                 continue;
             }
             if (sc.func.setUnsafe())
@@ -314,7 +320,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         if (va && !va.isDataseg())
         {
             if (!va.isScope() && inferScope)
+            {   //printf("inferring scope for %s\n", va.toChars());
                 va.storage_class |= STCscope;
+            }
             continue;
         }
         if (sc.func.setUnsafe())
@@ -401,10 +409,19 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     continue;
                 }
             }
-            if (sc._module && sc._module.isRoot())
+            if (sc._module && sc._module.isRoot() &&
+                /* This case comes up when the ReturnStatement of a __foreachbody is
+                 * checked for escapes by the caller of __foreachbody. Skip it.
+                 *
+                 * struct S { static int opApply(int delegate(S*) dg); }
+                 * S* foo() {
+                 *    foreach (S* s; S) // create __foreachbody for body of foreach
+                 *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
+                 *    return null; }
+                 */
+                !(!refs && p.parent == sc.func))
             {
                 // Only look for errors if in module listed on command line
-
                 if (!gag)
                     error(e.loc, "scope variable %s may not be returned", v.toChars());
                 result = true;

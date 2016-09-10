@@ -700,15 +700,7 @@ extern (C++) abstract class Type : RootObject
                 {
                     goto Ldistinct;
                 }
-                const(StorageClass) sc = STCref | STCin | STCout | STClazy;
-                if ((fparam1.storageClass & sc) != (fparam2.storageClass & sc))
-                    inoutmismatch = 1;
-                // We can add scope, but not subtract it
-                if (!(fparam1.storageClass & STCscope) && (fparam2.storageClass & STCscope))
-                    inoutmismatch = 1;
-                // We can subtract return, but not add it
-                if ((fparam1.storageClass & STCreturn) && !(fparam2.storageClass & STCreturn))
-                    inoutmismatch = 1;
+                inoutmismatch = !fparam1.isCovariant(fparam2);
             }
         }
         else if (t1.parameters != t2.parameters)
@@ -6281,7 +6273,11 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 if (fparam.storageClass & STCscope && !fparam.type.hasPointers())
-                    fparam.storageClass &= ~(STCreturn | STCscope);
+                {
+                    fparam.storageClass &= ~STCscope;
+                    if (!(fparam.storageClass & STCref))
+                        fparam.storageClass &= ~STCreturn;
+                }
 
                 if (t.hasWild())
                 {
@@ -7165,9 +7161,9 @@ extern (C++) final class TypeDelegate : TypeNext
 
     override MATCH implicitConvTo(Type to)
     {
-        //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
+        //printf("TypeDelegate.implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
-        //printf("to  : %s\n", to->toChars());
+        //printf("to  : %s\n", to.toChars());
         if (this == to)
             return MATCHexact;
 
@@ -10217,5 +10213,26 @@ extern (C++) final class Parameter : RootObject
     override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "__anonymous_param";
+    }
+
+    /*********************************
+     * Compute covariance of parameters `this` and `p`
+     * as determined by the storage classes of both.
+     * Params:
+     *  p = Parameter to compare with
+     * Returns:
+     *  true = `this` can be used in place of `p`
+     *  false = nope
+     */
+    final bool isCovariant(const Parameter p) const pure nothrow @nogc @safe
+    {
+        enum stc = STCref | STCin | STCout | STClazy;
+        return !((this.storageClass & stc) != (p.storageClass & stc) ||
+
+                // We can add scope, but not subtract it
+                (!(this.storageClass & STCscope) && (p.storageClass & STCscope)) ||
+
+                // We can subtract return, but not add it
+                ((this.storageClass & STCreturn) && !(p.storageClass & STCreturn)));
     }
 }
