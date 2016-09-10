@@ -1543,16 +1543,7 @@ final class Parser : Lexer
             goto Lerr;
         }
         else
-        {
-            nextToken();
-            decldefs = parseDeclDefs(0);
-            if (token.value != TOKrcurly)
-            {
-                error("template member expected");
-                goto Lerr;
-            }
-            nextToken();
-        }
+            decldefs = parseBlock(null);
 
         tempdecl = new TemplateDeclaration(loc, id, tpl, constraint, decldefs, ismixin);
         return tempdecl;
