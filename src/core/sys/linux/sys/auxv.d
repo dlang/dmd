@@ -13,7 +13,50 @@ extern (C):
 
 c_ulong getauxval(c_ulong type) nothrow pure @nogc @system;
 
-version(PPC)
+version(ARM)
+{
+  // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/arm/bits/hwcap.h
+
+  enum HWCAP_ARM_SWP                      = 1;
+  enum HWCAP_ARM_HALF                     = 2;
+  enum HWCAP_ARM_THUMB                    = 4;
+  enum HWCAP_ARM_26BIT                    = 8;
+  enum HWCAP_ARM_FAST_MULT                = 16;
+  enum HWCAP_ARM_FPA                      = 32;
+  enum HWCAP_ARM_VFP                      = 64;
+  enum HWCAP_ARM_EDSP                     = 128;
+  enum HWCAP_ARM_JAVA                     = 256;
+  enum HWCAP_ARM_IWMMXT                   = 512;
+  enum HWCAP_ARM_CRUNCH                   = 1024;
+  enum HWCAP_ARM_THUMBEE                  = 2048;
+  enum HWCAP_ARM_NEON                     = 4096;
+  enum HWCAP_ARM_VFPv3                    = 8192;
+  enum HWCAP_ARM_VFPv3D16                 = 16384;
+  enum HWCAP_ARM_TLS                      = 32768;
+  enum HWCAP_ARM_VFPv4                    = 65536;
+  enum HWCAP_ARM_IDIVA                    = 131072;
+  enum HWCAP_ARM_IDIVT                    = 262144;
+  enum HWCAP_ARM_VFPD32                   = 524288;
+  enum HWCAP_ARM_LPAE                     = 1048576;
+  enum HWCAP_ARM_EVTSTRM                  = 2097152;
+}
+else version(AArch64)
+{
+  // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/aarch64/bits/hwcap.h
+
+  enum HWCAP_FP                           = 1;
+  enum HWCAP_ASIMD                        = 2;
+  enum HWCAP_EVTSTRM                      = 4;
+  enum HWCAP_AES                          = 8;
+  enum HWCAP_PMULL                        = 16;
+  enum HWCAP_SHA1                         = 32;
+  enum HWCAP_SHA2                         = 64;
+  enum HWCAP_CRC32                        = 128;
+  enum HWCAP_ATOMICS                      = 256;
+  enum HWCAP_FPHP                         = 512;
+  enum HWCAP_ASIMDHP                      = 1024;
+}
+else version(PPC)
 {
   // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/bits/hwcap.h
 
@@ -160,4 +203,21 @@ else version(SPARC64)
   enum HWCAP_SPARC_PAUSE                  = 0x01000000;
   enum HWCAP_SPARC_CBCOND                 = 0x02000000;
   enum HWCAP_SPARC_CRYPTO                 = 0x04000000;
+}
+else version(SystemZ)
+{
+  // See https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/hwcap.h
+
+  enum HWCAP_S390_ESAN3                   = 1;
+  enum HWCAP_S390_ZARCH                   = 2;
+  enum HWCAP_S390_STFLE                   = 4;
+  enum HWCAP_S390_MSA                     = 8;
+  enum HWCAP_S390_LDISP                   = 16;
+  enum HWCAP_S390_EIMM                    = 32;
+  enum HWCAP_S390_DFP                     = 64;
+  enum HWCAP_S390_HPAGE                   = 128;
+  enum HWCAP_S390_ETF3EH                  = 256;
+  enum HWCAP_S390_HIGH_GPRS               = 512;
+  enum HWCAP_S390_TE                      = 1024;
+  enum HWCAP_S390_VX                      = 2048;
 }
