@@ -4909,6 +4909,24 @@ public:
             fd = (cast(VarExp)ecall).var.isFuncDeclaration();
             assert(fd);
 
+            import ddmd.root.ctfloat;
+            static if (CTFloat.pow_supported)
+            {
+                if (fd.ident == Id._pow && e.arguments.dim == 2)
+                {
+                    auto base = (*e.arguments)[0].toReal();
+                    auto exp = (*e.arguments)[1].toReal();
+
+                    if (e.type.ty == Tfloat80 || e.type.ty == Tfloat64 || e.type.ty == Tfloat32)
+                        result = new RealExp(e.loc, CTFloat.pow(base, exp), e.type);
+                    else if (e.type.isintegral())
+                        result = new IntegerExp(e.loc, cast(long)CTFloat.pow(base, exp), e.type);
+                    
+
+                    return ;
+                }
+            }
+
             if (fd.ident == Id._ArrayPostblit || fd.ident == Id._ArrayDtor)
             {
                 assert(e.arguments.dim == 1);
