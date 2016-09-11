@@ -14612,9 +14612,9 @@ extern (C++) final class PowExp : BinExp
         //printf("PowExp::semantic() %s\n", toChars());
         if (Expression ex = binSemanticProp(sc))
             return ex;
-        Expression e = op_overload(sc);
-        if (e)
-            return e;
+
+        if (Expression ex = op_overload(sc))
+            return ex;
 
         if (Expression ex = typeCombine(this, sc))
             return ex;
@@ -14633,11 +14633,34 @@ extern (C++) final class PowExp : BinExp
         if (checkArithmeticBin())
             return new ErrorExp();
 
+        return rewritePowHack(this, sc);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/**
+ This function tries to simplify and rewrite ^^-expressions 
+ a ^^ (2 || 3) turns into (a*a) or (a*a*a) respectivly 
+ a ^^ b turns into std.math.pow(a,b)
+ (This is a rather nasty hack and should be replace by using builtins
+  or something similar)
+*/
+private static Expression rewritePowHack(PowExp powexp, Scope* sc)
+{
+        auto loc = powexp.loc;
+        auto e1 = powexp.e1;
+        auto e2 = powexp.e2;
+        Expression e = powexp;
+
         // For built-in numeric types, there are several cases.
         // TODO: backend support, especially for  e1 ^^ 2.
 
         // First, attempt to fold the expression.
-        e = optimize(WANTvalue);
+        e = e.optimize(WANTvalue);
         if (e.op != TOKpow)
         {
             e = e.semantic(sc);
@@ -14677,10 +14700,11 @@ extern (C++) final class PowExp : BinExp
             //fatal();
             // Leave handling of PowExp to the backend, or throw
             // an error gracefully if no backend support exists.
-            if (Expression ex = typeCombine(this, sc))
+            if (Expression ex = typeCombine(powexp, sc))
                 return ex;
-            return this;
+            return powexp;
         }
+
         e = new ScopeExp(loc, mmath);
 
         if (e2.op == TOKfloat64 && e2.toReal() == CTFloat.half)
@@ -14693,14 +14717,9 @@ extern (C++) final class PowExp : BinExp
             // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
             e = new CallExp(loc, new DotIdExp(loc, e, Id._pow), e1, e2);
         }
+
         e = e.semantic(sc);
         return e;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
 }
 
 extern (C++) Module loadStdMath()
