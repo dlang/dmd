@@ -25,6 +25,7 @@ $(BUGSTITLE Compiler Changes,
     $(LI $(RELATIVE_LINK2 native_tls_osx, Native TLS on OS X 64 bit.))
     $(LI $(RELATIVE_LINK2 __FILE_FULL_PATH__, Special keyword replaced by the source file's absolute file name.)
     $(LI $(RELATIVE_LINK2 dash_safe, Add -transition=safe switch.))
+    $(LI $(RELATIVE_LINK2 dash_verrors_spec, Add `-verrors=spec` switch.))
 )
 
 $(BUGSTITLE Language Changes,
@@ -182,6 +183,22 @@ $(BUGSTITLE Compiler Changes,
 	$(UL
 	$(LI Prevents dereferencing `array.ptr` because that bypasses array bounds check.)
 	)
+    )
+
+    $(LI $(LNAME2 dash_verrors_spec, Add `-verrors=spec` switch.)
+        $(P Shows errors from speculative compiles such as:)
+        ---
+        void foo(int i)
+        {
+            int p;
+            bool b = __traits(compiles, { p = &i; });
+        }
+        ---
+        $(P that are normally not shown:)
+        ---
+        (spec:1) test.d(13): Error: cannot implicitly convert expression (& i) of type int* to int
+        ---
+        $(P The number after `spec:` is the nesting of the speculative compiles.)
     )
 )
 

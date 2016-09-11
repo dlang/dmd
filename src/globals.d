@@ -113,6 +113,7 @@ struct Param
     bool check10378;        // check for issues transitioning to 10738
     bool bug10378;          // use pre-bugzilla 10378 search strategy
     bool safe;              // use enhanced @safe checking
+    bool showGaggedErrors;  // print gagged errors anyway
 
     BOUNDSCHECK useArrayBounds;
 

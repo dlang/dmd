@@ -161,6 +161,7 @@ Where:
   -v               verbose
   -vcolumns        print character (column) numbers in diagnostics
   -verrors=<num>   limit the number of error messages (0 means unlimited)
+  -verrors=spec    show errors from speculative compiles such as __traits(compiles,...)
   -vgc             list all gc allocations including hidden ones
   -vtls            list all variables going into thread local storage
   --version        print compiler version and exit
@@ -522,6 +523,10 @@ private int tryMain(size_t argc, const(char)** argv)
                     if (*p || errno || num > INT_MAX)
                         goto Lerror;
                     global.errorLimit = cast(uint)num;
+                }
+                else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
+                {
+                    global.params.showGaggedErrors = true;
                 }
                 else
                     goto Lerror;
