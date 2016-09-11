@@ -247,11 +247,11 @@ private bool match(RootObject o1, RootObject o2)
     }
 
     s1 = isDsymbol(o1);
-    s2 = s1 ? isDsymbol(o2) : null;
+    s2 = (s1 ? isDsymbol(o2) : null);
 
-    if (auto e1 = s1 ? .getValue(s1) : .getValue(isExpression(o1)))
+    if (auto e1 = (s1 ? .getValue(s1) : .getValue(isExpression(o1))))
     {
-        auto e2 = s2 ? .getValue(s2) : .getValue(isExpression(o2));
+        auto e2 = (s2 ? .getValue(s2) : .getValue(isExpression(o2)));
         if (!e2)
             goto Lnomatch;
 
