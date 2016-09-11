@@ -6,6 +6,9 @@ TESTS:=link load linkD linkDR loadDR host finalize
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414
 TESTS+=link_mod_collision load_mod_collision
 
+EXPORT_DYNAMIC=$(if $(findstring $(OS),linux freebsd),-L--export-dynamic,)
+NO_AS_NEEDED=$(if $(findstring $(OS),linux freebsd),-L--no-as-needed,)
+
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
@@ -56,11 +59,11 @@ $(ROOT)/host: $(SRC)/host.c $(ROOT)/plugin1.so $(ROOT)/plugin2.so
 
 $(ROOT)/link_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
 #	use no-as-needed to enforce linking of unused lib.so
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L--no-as-needed -L$(ROOT)/lib.so
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(NO_AS_NEEDED) -L$(ROOT)/lib.so
 
 $(ROOT)/load_mod_collision: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
 #	use export dynamic so that Module in exe can interposes Module in lib.so
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL) -L--export-dynamic
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL) $(EXPORT_DYNAMIC)
 
 $(ROOT)/liblinkdep.so: $(ROOT)/lib.so
 $(ROOT)/liblinkdep.so: DFLAGS+=-L$(ROOT)/lib.so
