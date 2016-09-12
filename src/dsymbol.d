@@ -928,19 +928,12 @@ extern (C++) class Dsymbol : RootObject
                 }
                 if (*ps)
                 {
-                    static bool isOverloadableAlias(Dsymbol s)
-                    {
-                        auto ad = s.isAliasDeclaration();
-                        return ad && ad.aliassym && ad.aliassym.isOverloadable();
-                    }
-
                     assert(ident);
                     if (!(*ps).ident || !(*ps).ident.equals(ident))
                         continue;
                     if (!s)
                         s = *ps;
-                    else if ((   s .isOverloadable() || isOverloadableAlias(  s)) &&
-                             ((*ps).isOverloadable() || isOverloadableAlias(*ps)))
+                    else if (s.isOverloadable() && (*ps).isOverloadable())
                     {
                         // keep head of overload set
                         FuncDeclaration f1 = s.isFuncDeclaration();
