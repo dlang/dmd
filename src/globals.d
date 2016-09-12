@@ -110,6 +110,7 @@ struct Param
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
+    bool bc_ctfe;           // use bytecode engine
     bool check10378;        // check for issues transitioning to 10738
     bool bug10378;          // use pre-bugzilla 10378 search strategy
     bool safe;              // use enhanced @safe checking
