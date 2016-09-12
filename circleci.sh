@@ -30,8 +30,7 @@ clone() {
 
 install_deps() {
     if [ $MODEL -eq 32 ]; then
-        sudo apt-get update
-        sudo apt-get install g++-multilib
+        sudo aptitude install g++-multilib --assume-yes --quiet=2
     fi
 
     for i in {0..4}; do
