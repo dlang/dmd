@@ -801,7 +801,6 @@ $(H2 $(GNAME allMembers))
 	A tuple of string literals is returned, each of which
 	is the name of a member of that type combined with all
 	of the members of the base classes (if the type is a class).
-        Only members visible in the current scope are listed.
 	No name is repeated.
 	Builtin properties are not included.
 	)
@@ -834,7 +833,6 @@ $(H2 $(GNAME derivedMembers))
 	a type or an expression of type.
 	A tuple of string literals is returned, each of which
 	is the name of a member of that type.
-        Only members visible in the current scope are listed.
 	No name is repeated.
 	Base class member names are not included.
 	Builtin properties are not included.
