@@ -203,7 +203,7 @@ version( CRuntime_Glibc )
     enum TIMER_ABSTIME          = 0x01;
 
     alias int clockid_t;
-    alias int timer_t;
+    alias void* timer_t;
 
     int clock_getres(clockid_t, timespec*);
     int clock_gettime(clockid_t, timespec*);
