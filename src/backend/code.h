@@ -736,7 +736,10 @@ struct CodeBuilder
      */
     code *last()
     {
-        return (code *)((char *)pTail - offsetof(code, next));
+        // g++ and clang++ complain about offsetof() because of the code::code() constructor.
+        // return (code *)((char *)pTail - offsetof(code, next));
+        // So do our own.
+        return (code *)((char *)pTail - ((char*)&(*pTail)->next - (char*)*pTail));
     }
 };
 
