@@ -9,7 +9,7 @@ module rt.util.container.array;
 
 static import common = rt.util.container.common;
 
-import core.exception : onOutOfMemoryError;
+import core.exception : onOutOfMemoryErrorNoGC;
 
 struct Array(T)
 {
@@ -47,7 +47,7 @@ nothrow:
             _length = nlength;
         }
         else
-            onOutOfMemoryError();
+            onOutOfMemoryErrorNoGC();
 
     }
 
@@ -103,7 +103,7 @@ nothrow:
             back = val;
         }
         else
-            onOutOfMemoryError();
+            onOutOfMemoryErrorNoGC();
     }
 
     void popBack()
