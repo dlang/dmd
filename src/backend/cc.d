@@ -1572,6 +1572,20 @@ extern __gshared EEcontext eecontext;
 //
 //extern Symbol *rtlsym[RTLSYM_MAX];
 
+enum
+{
+    RTLSYM_ALLOCMEMORY = 59,
+    RTLSYM_MAX = 147
+}
+
+// Workaround 2.066.x bug by resolving the RTLSYM_MAX value before using it as dimension.
+static if (__VERSION__ <= 2066)
+    private enum computeEnumValue = RTLSYM_MAX;
+
+extern __gshared Symbol*[RTLSYM_MAX] rtlsym;
+Symbol *getRtlsym(int i) { return rtlsym[i]; }
+
+
 // Different goals for el_optimize()
 alias uint goal_t;
 enum

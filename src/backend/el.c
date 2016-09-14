@@ -891,6 +891,8 @@ elem * el_longt(type *t,targ_llong val)
   return e;
 }
 
+extern "C" // necessary because D <=> C++ mangling of "long long" is not consistent across memory models
+{
 elem * el_long(tym_t t,targ_llong val)
 { elem *e;
 
@@ -922,6 +924,7 @@ elem * el_long(tym_t t,targ_llong val)
             break;
   }
   return e;
+}
 }
 
 /*******************************

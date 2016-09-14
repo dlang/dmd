@@ -190,7 +190,10 @@ elem *el_ptr_offset(Symbol *s,targ_size_t offset);
 void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);
 
+extern "C"
+{
 elem *el_long(tym_t,targ_llong);
+}
 
 int ERTOL(elem *);
 int el_noreturn(elem *);
