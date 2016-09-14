@@ -420,41 +420,41 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         return isTypeX(t => t.isintegral() || t.isfloating());
     }
-    if (e.ident == Id.isFloating)
+    else if (e.ident == Id.isFloating)
     {
         return isTypeX(t => t.isfloating());
     }
-    if (e.ident == Id.isIntegral)
+    else if (e.ident == Id.isIntegral)
     {
         return isTypeX(t => t.isintegral());
     }
-    if (e.ident == Id.isScalar)
+    else if (e.ident == Id.isScalar)
     {
         return isTypeX(t => t.isscalar());
     }
-    if (e.ident == Id.isUnsigned)
+    else if (e.ident == Id.isUnsigned)
     {
         return isTypeX(t => t.isunsigned());
     }
-    if (e.ident == Id.isAssociativeArray)
+    else if (e.ident == Id.isAssociativeArray)
     {
         return isTypeX(t => t.toBasetype().ty == Taarray);
     }
-    if (e.ident == Id.isStaticArray)
+    else if (e.ident == Id.isStaticArray)
     {
         return isTypeX(t => t.toBasetype().ty == Tsarray);
     }
-    if (e.ident == Id.isAbstractClass)
+    else if (e.ident == Id.isAbstractClass)
     {
         return isTypeX(t => t.toBasetype().ty == Tclass &&
                             (cast(TypeClass)t.toBasetype()).sym.isAbstract());
     }
-    if (e.ident == Id.isFinalClass)
+    else if (e.ident == Id.isFinalClass)
     {
         return isTypeX(t => t.toBasetype().ty == Tclass &&
                             ((cast(TypeClass)t.toBasetype()).sym.storage_class & STCfinal) != 0);
     }
-    if (e.ident == Id.isTemplate)
+    else if (e.ident == Id.isTemplate)
     {
         return isDsymX((s)
         {
@@ -464,7 +464,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 sm => sm.isTemplateDeclaration() !is null) != 0;
         });
     }
-    if (e.ident == Id.isPOD)
+    else if (e.ident == Id.isPOD)
     {
         if (dim != 1)
             return dimError(1);
@@ -488,7 +488,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         goto Ltrue;
     }
-    if (e.ident == Id.isNested)
+    else if (e.ident == Id.isNested)
     {
         if (dim != 1)
             return dimError(1);
@@ -516,43 +516,43 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         e.error("aggregate or function expected instead of '%s'", o.toChars());
         return new ErrorExp();
     }
-    if (e.ident == Id.isAbstractFunction)
+    else if (e.ident == Id.isAbstractFunction)
     {
         return isFuncX(f => f.isAbstract());
     }
-    if (e.ident == Id.isVirtualFunction)
+    else if (e.ident == Id.isVirtualFunction)
     {
         return isFuncX(f => f.isVirtual());
     }
-    if (e.ident == Id.isVirtualMethod)
+    else if (e.ident == Id.isVirtualMethod)
     {
         return isFuncX(f => f.isVirtualMethod());
     }
-    if (e.ident == Id.isFinalFunction)
+    else if (e.ident == Id.isFinalFunction)
     {
         return isFuncX(f => f.isFinalFunc());
     }
-    if (e.ident == Id.isOverrideFunction)
+    else if (e.ident == Id.isOverrideFunction)
     {
         return isFuncX(f => f.isOverride());
     }
-    if (e.ident == Id.isStaticFunction)
+    else if (e.ident == Id.isStaticFunction)
     {
         return isFuncX(f => !f.needThis() && !f.isNested());
     }
-    if (e.ident == Id.isRef)
+    else if (e.ident == Id.isRef)
     {
         return isDeclX(d => d.isRef());
     }
-    if (e.ident == Id.isOut)
+    else if (e.ident == Id.isOut)
     {
         return isDeclX(d => d.isOut());
     }
-    if (e.ident == Id.isLazy)
+    else if (e.ident == Id.isLazy)
     {
         return isDeclX(d => (d.storage_class & STClazy) != 0);
     }
-    if (e.ident == Id.identifier)
+    else if (e.ident == Id.identifier)
     {
         // Get identifier for symbol as a string literal
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
@@ -585,7 +585,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, cast(char*)id.toChars());
         return se.semantic(sc);
     }
-    if (e.ident == Id.getProtection)
+    else if (e.ident == Id.getProtection)
     {
         if (dim != 1)
             return dimError(1);
@@ -613,7 +613,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, cast(char*)protName);
         return se.semantic(sc);
     }
-    if (e.ident == Id.parent)
+    else if (e.ident == Id.parent)
     {
         if (dim != 1)
             return dimError(1);
@@ -652,7 +652,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return DsymbolExp.resolve(e.loc, sc, s, false);
     }
-    if (e.ident == Id.hasMember ||
+    else if (e.ident == Id.hasMember ||
         e.ident == Id.getMember ||
         e.ident == Id.getOverloads ||
         e.ident == Id.getVirtualMethods ||
@@ -763,7 +763,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     return 0;
                 if (e.ident == Id.getVirtualFunctions && !fd.isVirtual())
                     return 0;
-                if (e.ident == Id.getVirtualMethods && !fd.isVirtualMethod())
+                else if (e.ident == Id.getVirtualMethods && !fd.isVirtualMethod())
                     return 0;
 
                 auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
@@ -782,7 +782,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         else
             assert(0);
     }
-    if (e.ident == Id.classInstanceSize)
+    else if (e.ident == Id.classInstanceSize)
     {
         if (dim != 1)
             return dimError(1);
@@ -807,7 +807,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         return new IntegerExp(e.loc, cd.structsize, Type.tsize_t);
     }
-    if (e.ident == Id.getAliasThis)
+    else if (e.ident == Id.getAliasThis)
     {
         if (dim != 1)
             return dimError(1);
@@ -828,7 +828,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         ex = ex.semantic(sc);
         return ex;
     }
-    if (e.ident == Id.getAttributes)
+    else if (e.ident == Id.getAttributes)
     {
         if (dim != 1)
             return dimError(1);
@@ -860,7 +860,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.semantic(sc);
     }
-    if (e.ident == Id.getFunctionAttributes)
+    else if (e.ident == Id.getFunctionAttributes)
     {
         // extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
         if (dim != 1)
@@ -901,7 +901,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, mods);
         return tup.semantic(sc);
     }
-    if (e.ident == Id.allMembers ||
+    else if (e.ident == Id.allMembers ||
         e.ident == Id.derivedMembers)
     {
         if (dim != 1)
@@ -1014,7 +1014,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         ex = ex.semantic(sc);
         return ex;
     }
-    if (e.ident == Id.compiles)
+    else if (e.ident == Id.compiles)
     {
         /* Determine if all the objects - types, expressions, or symbols -
          * compile without error
@@ -1071,7 +1071,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         goto Ltrue;
     }
-    if (e.ident == Id.isSame)
+    else if (e.ident == Id.isSame)
     {
         /* Determine if two symbols are the same
          */
@@ -1126,7 +1126,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         else
             goto Lfalse;
     }
-    if (e.ident == Id.getUnitTests)
+    else if (e.ident == Id.getUnitTests)
     {
         if (dim != 1)
             return dimError(1);
@@ -1187,7 +1187,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto te = new TupleExp(e.loc, exps);
         return te.semantic(sc);
     }
-    if (e.ident == Id.getVirtualIndex)
+    else if (e.ident == Id.getVirtualIndex)
     {
         if (dim != 1)
             return dimError(1);
@@ -1205,7 +1205,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         fd = fd.toAliasFunc(); // Neccessary to support multiple overloads.
         return new IntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
     }
-    if (e.ident == Id.getPointerBitmap)
+    else if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
     }
