@@ -7876,6 +7876,20 @@ void test16233()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16466
+
+void test16466()
+{
+    static struct S
+    {
+        real r;
+    }
+    real r;
+    printf("S.alignof: %x, r.alignof: %x\n", S.alignof, r.alignof);
+    assert(S.alignof == r.alignof);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -8192,6 +8206,7 @@ int main()
     test15369();
     test15638();
     test16233();
+    test16466();
 
     printf("Success\n");
     return 0;
