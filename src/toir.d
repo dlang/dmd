@@ -24,9 +24,9 @@ import ddmd.backend.dt;
 import ddmd.backend.el;
 import ddmd.backend.global;
 import ddmd.backend.oper;
+import ddmd.backend.rtlsym;
 import ddmd.backend.ty;
 import ddmd.backend.type;
-//import ddmd.backend.cgcv;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
@@ -760,6 +760,7 @@ void setClosureVarOffset(FuncDeclaration fd)
  */
 void buildClosure(FuncDeclaration fd, IRState *irs)
 {
+    //printf("buildClosure(fd = %s)\n", fd.toChars());
     if (fd.needsClosure())
     {
         setClosureVarOffset(fd);
