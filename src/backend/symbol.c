@@ -2278,6 +2278,7 @@ void symbol_reset(Symbol *s)
     s->Sxtrnnum = 0;
     s->Stypidx = 0;
     s->Sflags &= ~(STRoutdef | SFLweak);
+    s->Sdw_ref_idx = 0;
     if (s->Sclass == SCglobal || s->Sclass == SCcomdat ||
         s->Sfl == FLudata || s->Sclass == SCstatic)
     {   s->Sclass = SCextern;
