@@ -597,9 +597,9 @@ $(H4 Foreach over Structs and Classes with opApply)
     )
 
         --------------
-        int opApply(int delegate(ref Type [, ...]) dg);
+        int opApply(scope int delegate(ref Type [, ...]) dg);
 
-        int opApplyReverse(int delegate(ref Type [, ...]) dg);
+        int opApplyReverse(scope int delegate(ref Type [, ...]) dg);
         --------------
 
     $(P where $(I Type) matches the $(I Type) used in the $(I ForeachType)
@@ -626,7 +626,7 @@ $(H4 Foreach over Structs and Classes with opApply)
         {
             uint[2] array;
 
-            int opApply(int delegate(ref uint) dg)
+            int opApply(scope int delegate(ref uint) dg)
             {
                 int result = 0;
 
@@ -664,6 +664,12 @@ $(CONSOLE
 73
 82
 )
+    $(P The `scope` storage class on the $(I dg) parameter means that the parameter's value does
+    not escape the scope of the $(I opApply) function (an example would be assigning $(I dg) to a
+    global). If it cannot be statically guaranteed that $(I dg) does not escape, a closure may
+    be allocated for it on the heap instead of the stack.
+    Best practice is to annotate delegate parameters with `scope` when possible.
+    )
 
     $(P $(LEGACY_LNAME2 opApply, op-apply, $(I opApply)) can also be a templated function,
         which will infer the types of parameters based on the $(I ForeachStatement).
