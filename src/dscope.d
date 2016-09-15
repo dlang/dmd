@@ -569,6 +569,18 @@ struct Scope
      */
     extern (C++) static void deprecation10378(Loc loc, Dsymbol sold, Dsymbol snew)
     {
+        // Bugzilla 15857
+        //
+        // The overloadset found via the new lookup rules is either
+        // equal or a subset of the overloadset found via the old
+        // lookup rules, so it suffices to compare the dimension to
+        // check for equality.
+        OverloadSet osold, osnew;
+        if (sold && (osold = sold.isOverloadSet()) !is null &&
+            snew && (osnew = snew.isOverloadSet()) !is null &&
+            osold.a.dim == osnew.a.dim)
+            return;
+
         OutBuffer buf;
         buf.writestring("local import search method found ");
         if (sold)
