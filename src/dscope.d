@@ -583,12 +583,16 @@ struct Scope
 
         OutBuffer buf;
         buf.writestring("local import search method found ");
-        if (sold)
+        if (osold)
+            buf.printf("%s %s (%d overloads)", sold.kind(), sold.toPrettyChars(), cast(int) osold.a.dim);
+        else if (sold)
             buf.printf("%s %s", sold.kind(), sold.toPrettyChars());
         else
             buf.writestring("nothing");
         buf.writestring(" instead of ");
-        if (snew)
+        if (osnew)
+            buf.printf("%s %s (%d overloads)", snew.kind(), snew.toPrettyChars(), cast(int) osnew.a.dim);
+        else if (snew)
             buf.printf("%s %s", snew.kind(), snew.toPrettyChars());
         else
             buf.writestring("nothing");
