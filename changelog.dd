@@ -181,6 +181,8 @@ $(BUGSTITLE Compiler Changes,
 	$(P Enables enhanced `@safe` checking, which will break some existing code.)
 	$(UL
 	$(LI Prevents dereferencing `array.ptr` because that bypasses array bounds check.)
+	$(LI Assumes opApply delegate parameter escapes unless marked `scope`. Escaping
+          delegates often require a GC allocated closure.)
 	)
     )
 )
