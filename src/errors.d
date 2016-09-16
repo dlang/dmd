@@ -230,8 +230,11 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     }
     else
     {
-        //fprintf(stderr, "(gag:%d) ", global.gag);
-        //verrorPrint(loc, COLOR_RED, header, format, ap, p1, p2);
+        if (global.params.showGaggedErrors)
+        {
+            fprintf(stderr, "(spec:%d) ", global.gag);
+            verrorPrint(loc, COLOR_MAGENTA, header, format, ap, p1, p2);
+        }
         global.gaggedErrors++;
     }
 }
@@ -239,8 +242,16 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
 // Doesn't increase error count, doesn't print "Error:".
 extern (C++) void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
 {
-    if (!global.gag)
-        verrorPrint(loc, COLOR_RED, "       ", format, ap);
+    COLOR color;
+    if (global.gag)
+    {
+        if (!global.params.showGaggedErrors)
+            return;
+        color = COLOR_MAGENTA;
+    }
+    else
+        color = COLOR_RED;
+    verrorPrint(loc, color, "       ", format, ap);
 }
 
 extern (C++) void vwarning(const ref Loc loc, const(char)* format, va_list ap)
