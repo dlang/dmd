@@ -85,7 +85,9 @@ class Object
     }
 
     /**
-     * Returns !=0 if this object does have the same contents as obj.
+     * Test whether $(D this) is equal to $(D o).
+     * The default implementation only compares by identity (using the $(D is) operator).
+     * Generally, overrides for $(D opEquals) should attempt to compare objects by their contents.
      */
     bool opEquals(Object o)
     {
