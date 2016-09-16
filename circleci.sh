@@ -32,7 +32,11 @@ install_deps() {
     if [ $MODEL -eq 32 ]; then
         # To verify gcc-multilibs...
         sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F76221572C52609D
-        sudo aptitude install g++-multilib --assume-yes --quiet=2
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        sudo apt-get update
+        sudo aptitude install gcc-multilib g++-multilib --assume-yes --quiet=2
+        update-alternatives --query c++
+        update-alternatives --query g++
     fi
 
     for i in {0..4}; do
