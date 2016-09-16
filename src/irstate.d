@@ -227,13 +227,13 @@ struct IRState
         bool result;
         switch (global.params.useArrayBounds)
         {
-        case BOUNDSCHECKoff:
+        case BoundsCheck.off:
             result = false;
             break;
-        case BOUNDSCHECKon:
+        case BoundsCheck.on:
             result = true;
             break;
-        case BOUNDSCHECKsafeonly:
+        case BoundsCheck.safeonly:
             {
                 result = false;
                 FuncDeclaration fd = getFunc();
