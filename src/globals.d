@@ -37,18 +37,14 @@ enum TARGET_OPENBSD = xversion!`OpenBSD`;
 enum TARGET_SOLARIS = xversion!`Solaris`;
 enum TARGET_WINDOS  = xversion!`Windows`;
 
-enum BOUNDSCHECK : int
+/// Define what bounds check will be performed by the compiler
+enum BoundsCheck : int
 {
-    BOUNDSCHECKdefault,     // initial value
-    BOUNDSCHECKoff,         // never do bounds checking
-    BOUNDSCHECKon,          // always do bounds checking
-    BOUNDSCHECKsafeonly,    // do bounds checking only in @safe functions
+    default_,    /// initial value
+    off,         /// never do bounds checking
+    on,          /// always do bounds checking
+    safeonly,    /// do bounds checking only in @safe functions
 }
-
-alias BOUNDSCHECKdefault = BOUNDSCHECK.BOUNDSCHECKdefault;
-alias BOUNDSCHECKoff = BOUNDSCHECK.BOUNDSCHECKoff;
-alias BOUNDSCHECKon = BOUNDSCHECK.BOUNDSCHECKon;
-alias BOUNDSCHECKsafeonly = BOUNDSCHECK.BOUNDSCHECKsafeonly;
 
 // Put command line switches in here
 struct Param
@@ -115,7 +111,7 @@ struct Param
     bool safe;              // use enhanced @safe checking
     bool showGaggedErrors;  // print gagged errors anyway
 
-    BOUNDSCHECK useArrayBounds;
+    BoundsCheck useArrayBounds;
 
     const(char)* argv0;                 // program name
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules

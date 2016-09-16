@@ -286,7 +286,7 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.useInvariants = true;
     global.params.useIn = true;
     global.params.useOut = true;
-    global.params.useArrayBounds = BOUNDSCHECKdefault; // set correct value later
+    global.params.useArrayBounds = BoundsCheck.default_; // set correct value later
     global.params.useSwitchError = true;
     global.params.useInline = false;
     global.params.obj = true;
@@ -742,7 +742,7 @@ Language changes listed by -transition=id:
                 global.params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
-                global.params.useArrayBounds = BOUNDSCHECKoff;
+                global.params.useArrayBounds = BoundsCheck.off;
             }
             else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0)
             {
@@ -752,15 +752,15 @@ Language changes listed by -transition=id:
                 {
                     if (strcmp(p + 13, "on") == 0)
                     {
-                        global.params.useArrayBounds = BOUNDSCHECKon;
+                        global.params.useArrayBounds = BoundsCheck.on;
                     }
                     else if (strcmp(p + 13, "safeonly") == 0)
                     {
-                        global.params.useArrayBounds = BOUNDSCHECKsafeonly;
+                        global.params.useArrayBounds = BoundsCheck.safeonly;
                     }
                     else if (strcmp(p + 13, "off") == 0)
                     {
-                        global.params.useArrayBounds = BOUNDSCHECKoff;
+                        global.params.useArrayBounds = BoundsCheck.off;
                     }
                     else
                         goto Lerror;
@@ -1009,10 +1009,10 @@ Language changes listed by -transition=id:
         if (global.params.lib && global.params.dll)
             error(Loc(), "cannot mix -lib and -shared");
     }
-    if (global.params.useArrayBounds == BOUNDSCHECKdefault)
+    if (global.params.useArrayBounds == BoundsCheck.default_)
     {
         // Set the real default value
-        global.params.useArrayBounds = global.params.release ? BOUNDSCHECKsafeonly : BOUNDSCHECKon;
+        global.params.useArrayBounds = global.params.release ? BoundsCheck.safeonly : BoundsCheck.on;
     }
     if (global.params.release)
     {
@@ -1939,7 +1939,7 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (global.params.useAssert)
         VersionCondition.addPredefinedGlobalIdent("assert");
-    if (global.params.useArrayBounds == BOUNDSCHECKoff)
+    if (global.params.useArrayBounds == BoundsCheck.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 }
