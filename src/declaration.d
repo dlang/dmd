@@ -874,7 +874,9 @@ extern (C++) final class AliasDeclaration : Declaration
 
     override bool isOverloadable()
     {
-        return aliassym && aliassym.isOverloadable();
+        // assume overloadable until alias is resolved
+        return semanticRun < PASSsemanticdone ||
+            aliassym && aliassym.isOverloadable();
     }
 
     override inout(AliasDeclaration) isAliasDeclaration() inout

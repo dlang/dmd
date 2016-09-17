@@ -556,34 +556,39 @@ private Dsymbol mostVisibleOverload(Dsymbol s)
         // private void name(int) {}
         else if (auto ad = s.isAliasDeclaration())
         {
-            /* This is a bit messy due to the complicated implementation of
-             * alias.  Aliases aren't overloadable themselves, but if their
-             * Aliasee is overloadable they can be converted to an overloadable
-             * alias.
-             *
-             * This is done by replacing the Aliasee w/ FuncAliasDeclaration
-             * (for functions) or OverDeclaration (for templates) which are
-             * simply overloadable aliases w/ weird names.
-             *
-             * Usually aliases should not be resolved for visibility checking
-             * b/c public aliases to private symbols are public. But for the
-             * overloadable alias situation, the Alias (_ad_) has been moved
-             * into it's own Aliasee, leaving a shell that we peel away here.
-             */
             assert(ad.isOverloadable, "Non overloadable Aliasee in overload list");
-            auto aliasee = ad.toAlias();
-            if (aliasee.isFuncAliasDeclaration || aliasee.isOverDeclaration)
-                next = aliasee;
+            // Yet unresolved aliases store overloads in overnext.
+            if (ad.semanticRun < PASSsemanticdone)
+                next = ad.overnext;
             else
             {
-                /* A simple alias can be at the end of a function or template overload chain.
-                 * It can't have further overloads b/c it would have been
-                 * converted to an overloadable alias.
+                /* This is a bit messy due to the complicated implementation of
+                 * alias.  Aliases aren't overloadable themselves, but if their
+                 * Aliasee is overloadable they can be converted to an overloadable
+                 * alias.
+                 *
+                 * This is done by replacing the Aliasee w/ FuncAliasDeclaration
+                 * (for functions) or OverDeclaration (for templates) which are
+                 * simply overloadable aliases w/ weird names.
+                 *
+                 * Usually aliases should not be resolved for visibility checking
+                 * b/c public aliases to private symbols are public. But for the
+                 * overloadable alias situation, the Alias (_ad_) has been moved
+                 * into it's own Aliasee, leaving a shell that we peel away here.
                  */
-                assert(ad.overnext is null, "Unresolved overload of alias");
-                break;
+                auto aliasee = ad.toAlias();
+                if (aliasee.isFuncAliasDeclaration || aliasee.isOverDeclaration)
+                    next = aliasee;
+                else
+                {
+                    /* A simple alias can be at the end of a function or template overload chain.
+                     * It can't have further overloads b/c it would have been
+                     * converted to an overloadable alias.
+                     */
+                    assert(ad.overnext is null, "Unresolved overload of alias");
+                    break;
+                }
             }
-
             // handled by ddmd.func.overloadApply for unknown reason
             assert(next !is ad); // should not alias itself
             assert(next !is fstart); // should not alias the overload list itself
