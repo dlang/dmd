@@ -1,153 +1,172 @@
-
-/* Compiler implementation of the D programming language
- * Copyright (c) 1999-2016 by Digital Mars
- * All Rights Reserved
- * written by Walter Bright
- * http://www.digitalmars.com
- * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/glue.c
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_glue.d, _glue.d)
  */
 
-#include <stdio.h>
-#include <stddef.h>
-#include <time.h>
-#include <assert.h>
+module ddmd.glue;
 
-#include "mars.h"
-#include "module.h"
-#include "mtype.h"
-#include "declaration.h"
-#include "statement.h"
-#include "enum.h"
-#include "aggregate.h"
-#include "init.h"
-#include "attrib.h"
-#include "id.h"
-#include "import.h"
-#include "template.h"
-#include "target.h"
+import core.stdc.stdio;
+import core.stdc.string;
+import core.stdc.stdlib;
 
-#include "rmem.h"
-#include "cc.h"
-#include "global.h"
-#include "oper.h"
-#include "code.h"
-#include "type.h"
-#include "dt.h"
-#include "cgcv.h"
-#include "outbuf.h"
-#include "irstate.h"
+import ddmd.root.array;
+import ddmd.root.file;
+import ddmd.root.filename;
+import ddmd.root.outbuffer;
+import ddmd.root.rmem;
+
+import ddmd.backend.cdef;
+import ddmd.backend.cc;
+import ddmd.backend.code;
+import ddmd.backend.dt;
+import ddmd.backend.el;
+import ddmd.backend.global;
+import ddmd.backend.obj;
+import ddmd.backend.oper;
+import ddmd.backend.outbuf;
+import ddmd.backend.rtlsym;
+import ddmd.backend.ty;
+import ddmd.backend.type;
+
+import ddmd.aggregate;
+import ddmd.arraytypes;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.dmangle;
+import ddmd.dmodule;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.errors;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.globals;
+import ddmd.identifier;
+import ddmd.id;
+import ddmd.irstate;
+import ddmd.lib;
+import ddmd.mtype;
+import ddmd.statement;
+import ddmd.target;
+
+extern (C++):
 
 void clearStringTab();
-RET retStyle(TypeFunction *tf);
+RET retStyle(TypeFunction tf);
 
-elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
-void Statement_toIR(Statement *s, IRState *irs);
+elem *addressElem(elem *e, Type t, bool alwaysCopy = false);
+void Statement_toIR(Statement s, IRState *irs);
 void insertFinallyBlockCalls(block *startblock);
-elem *toEfilename(Module *m);
-Symbol *toSymbol(Dsymbol *s);
-void buildClosure(FuncDeclaration *fd, IRState *irs);
-Symbol *toStringSymbol(const char *str, size_t len, size_t pad);
+elem *toEfilename(Module m);
+Symbol *toSymbol(Dsymbol s);
+void buildClosure(FuncDeclaration fd, IRState *irs);
+Symbol *toStringSymbol(const(char)* str, size_t len, size_t pad);
 
-typedef Array<symbol *> symbols;
+alias symbols = Array!(Symbol*);
 Dsymbols *Dsymbols_create();
 Expressions *Expressions_create();
-type *Type_toCtype(Type *t);
-void toObjFile(Dsymbol *ds, bool multiobj);
-void genModuleInfo(Module *m);
-void genObjFile(Module *m, bool multiobj);
+type *Type_toCtype(Type t);
+void toObjFile(Dsymbol ds, bool multiobj);
+void genModuleInfo(Module m);
+void genObjFile(Module m, bool multiobj);
 void objc_Module_genmoduleinfo_classes();
-Symbol *toModuleAssert(Module *m);
-Symbol *toModuleUnittest(Module *m);
-Symbol *toModuleArray(Module *m);
-Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
-static void genhelpers(Module *m);
+Symbol *toModuleAssert(Module m);
+Symbol *toModuleUnittest(Module m);
+Symbol *toModuleArray(Module m);
+Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(char)* suffix);
 
-class Library;
-void addObjectToLibrary(Library *lib, const char *module_name, const unsigned char *buf, size_t buflen);
+void writeFile(Loc loc, File *f);
+void ensurePathToNameExists(Loc loc, const(char)* name);
 
-elem *eictor;
-symbol *ictorlocalgot;
-symbols sctors;
-StaticDtorDeclarations ectorgates;
-symbols sdtors;
-symbols stests;
+//extern
+__gshared
+{
+    elem *eictor;
+    Symbol *ictorlocalgot;
+    symbols sctors;
+    StaticDtorDeclarations ectorgates;
+    symbols sdtors;
+    symbols stests;
 
-symbols ssharedctors;
-SharedStaticDtorDeclarations esharedctorgates;
-symbols sshareddtors;
+    symbols ssharedctors;
+    SharedStaticDtorDeclarations esharedctorgates;
+    symbols sshareddtors;
 
-char *lastmname;
+    char *lastmname;
+}
 
-bool onlyOneMain(Loc loc);
 
 /**************************************
  * Append s to list of object files to generate later.
  */
 
-Dsymbols obj_symbols_towrite;
+__gshared Dsymbols obj_symbols_towrite;
 
-void obj_append(Dsymbol *s)
+void obj_append(Dsymbol s)
 {
-    //printf("deferred: %s\n", s->toChars());
+    //printf("deferred: %s\n", s.toChars());
     obj_symbols_towrite.push(s);
 }
 
-void obj_write_deferred(Library *library)
+void obj_write_deferred(Library library)
 {
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
     {
-        Dsymbol *s = obj_symbols_towrite[i];
-        Module *m = s->getModule();
+        Dsymbol s = obj_symbols_towrite[i];
+        Module m = s.getModule();
 
         char *mname;
         if (m)
         {
-            mname = (char*)m->srcfile->toChars();
+            mname = cast(char*)m.srcfile.toChars();
             lastmname = mname;
         }
         else
         {
-            //mname = s->ident->toChars();
+            //mname = s.ident.toChars();
             mname = lastmname;
             assert(mname);
         }
 
         obj_start(mname);
 
-        static int count;
+        __gshared int count;
         count++;                // sequence for generating names
 
         /* Create a module that's a doppelganger of m, with just
          * enough to be able to create the moduleinfo.
          */
         OutBuffer idbuf;
-        idbuf.printf("%s.%d", m ? m->ident->toChars() : mname, count);
+        idbuf.printf("%s.%d", m ? m.ident.toChars() : mname, count);
         char *idstr = idbuf.peekString();
 
         if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
             //  so output it into it's own object file without ModuleInfo
-            objmod->initfile(idstr, NULL, mname);
+            objmod.initfile(idstr, null, mname);
             toObjFile(s, false);
-            objmod->termfile();
+            objmod.termfile();
         }
         else
         {
-            idbuf.data = NULL;
-            Identifier *id = Identifier::create(idstr);
+            idbuf.data = null;
+            Identifier id = Identifier.create(idstr);
 
-            Module *md = Module::create(mname, id, 0, 0);
-            md->members = Dsymbols_create();
-            md->members->push(s);   // its only 'member' is s
-            md->doppelganger = 1;       // identify this module as doppelganger
-            md->md = m->md;
-            md->aimports.push(m);       // it only 'imports' m
-            md->massert = m->massert;
-            md->munittest = m->munittest;
-            md->marray = m->marray;
+            Module md = Module.create(mname, id, 0, 0);
+            md.members = Dsymbols_create();
+            md.members.push(s);   // its only 'member' is s
+            md.doppelganger = 1;       // identify this module as doppelganger
+            md.md = m.md;
+            md.aimports.push(m);       // it only 'imports' m
+            md.massert = m.massert;
+            md.munittest = m.munittest;
+            md.marray = m.marray;
 
             genObjFile(md, false);
         }
@@ -155,55 +174,56 @@ void obj_write_deferred(Library *library)
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
-        const char *fname = FileName::removeExt(mname);
+        const(char)* fname = FileName.removeExt(mname);
         OutBuffer namebuf;
-        unsigned hash = 0;
-        for (const char *p = s->toChars(); *p; p++)
+        uint hash = 0;
+        for (const(char)* p = s.toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
-        FileName::free((char *)fname);
+        FileName.free(cast(char *)fname);
         fname = namebuf.extractString();
 
         //printf("writing '%s'\n", fname);
-        File *objfile = File::create(fname);
+        File *objfile = File.create(fname);
         obj_end(library, objfile);
     }
     obj_symbols_towrite.dim = 0;
 }
 
+
 /***********************************************
  * Generate function that calls array of functions and gates.
  */
 
-symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ectorgates,
-        const char *id)
+Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ectorgates,
+        const(char)* id)
 {
-    symbol *sctor = NULL;
+    Symbol *sctor = null;
 
-    if ((sctors && sctors->dim) ||
-        (ectorgates && ectorgates->dim))
+    if ((sctors && sctors.dim) ||
+        (ectorgates && ectorgates.dim))
     {
-        static type *t;
+        __gshared type *t;
         if (!t)
         {
             /* t will be the type of the functions generated:
              *      extern (C) void func();
              */
-            t = type_function(TYnfunc, NULL, 0, false, tsvoid);
-            t->Tmangle = mTYman_c;
+            t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+            t.Tmangle = mTYman_c;
         }
 
-        localgot = NULL;
+        localgot = null;
         sctor = toSymbolX(m, id, SCglobal, t, "FZv");
-        cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
-        elem *ector = NULL;
+        cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
+        elem *ector = null;
 
         if (ectorgates)
         {
-            for (size_t i = 0; i < ectorgates->dim; i++)
-            {   StaticDtorDeclaration *f = (*ectorgates)[i];
+            for (size_t i = 0; i < ectorgates.dim; i++)
+            {   StaticDtorDeclaration f = (*ectorgates)[i];
 
-                Symbol *s = toSymbol(f->vgate);
+                Symbol *s = toSymbol(f.vgate);
                 elem *e = el_var(s);
                 e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
                 ector = el_combine(ector, e);
@@ -212,18 +232,18 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
 
         if (sctors)
         {
-            for (size_t i = 0; i < sctors->dim; i++)
-            {   symbol *s = (*sctors)[i];
+            for (size_t i = 0; i < sctors.dim; i++)
+            {   Symbol *s = (*sctors)[i];
                 elem *e = el_una(OPucall, TYvoid, el_var(s));
                 ector = el_combine(ector, e);
             }
         }
 
         block *b = block_calloc();
-        b->BC = BCret;
-        b->Belem = ector;
-        sctor->Sfunc->Fstartline.Sfilename = m->arg;
-        sctor->Sfunc->Fstartblock = b;
+        b.BC = BCret;
+        b.Belem = ector;
+        sctor.Sfunc.Fstartline.Sfilename = m.arg;
+        sctor.Sfunc.Fstartblock = b;
         writefunc(sctor);
     }
     return sctor;
@@ -233,7 +253,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
  * Prepare for generating obj file.
  */
 
-Outbuffer objbuf;
+__gshared Outbuffer objbuf;
 
 void obj_start(char *srcfile)
 {
@@ -242,58 +262,62 @@ void obj_start(char *srcfile)
     rtlsym_reset();
     clearStringTab();
 
-#if TARGET_WINDOS
-    // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
-    assert(objbuf.size() == 0);
-    objmod = global.params.mscoff ? MsCoffObj::init(&objbuf, srcfile, NULL)
-                                  :       Obj::init(&objbuf, srcfile, NULL);
-#else
-    objmod = Obj::init(&objbuf, srcfile, NULL);
-#endif
+    version (Windows)
+    {
+        // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
+        assert(objbuf.size() == 0);
+        objmod = global.params.mscoff ? MsCoffObj.init(&objbuf, srcfile, null)
+                                      :       Obj.init(&objbuf, srcfile, null);
+    }
+    else
+    {
+        objmod = Obj.init(&objbuf, srcfile, null);
+    }
 
     el_reset();
     cg87_reset();
     out_reset();
 }
 
-void obj_end(Library *library, File *objfile)
+
+void obj_end(Library library, File *objfile)
 {
-    const char *objfilename = objfile->name->toChars();
-    objmod->term(objfilename);
-    delete objmod;
-    objmod = NULL;
+    const(char)* objfilename = objfile.name.toChars();
+    objmod.term(objfilename);
+    //delete objmod;
+    objmod = null;
 
     if (library)
     {
         // Transfer image to library
-        addObjectToLibrary(library, objfilename, objbuf.buf, objbuf.p - objbuf.buf);
-        objbuf.buf = NULL;
+        library.addObject(objfilename, objbuf.buf[0 .. objbuf.p - objbuf.buf]);
+        objbuf.buf = null;
     }
     else
     {
         // Transfer image to file
-        objfile->setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
-        objbuf.buf = NULL;
+        objfile.setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
+        objbuf.buf = null;
 
         ensurePathToNameExists(Loc(), objfilename);
 
         //printf("write obj %s\n", objfilename);
         writeFile(Loc(), objfile);
     }
-    objbuf.pend = NULL;
-    objbuf.p = NULL;
+    objbuf.pend = null;
+    objbuf.p = null;
     objbuf.len = 0;
     objbuf.inc = 0;
 }
 
-bool obj_includelib(const char *name)
+bool obj_includelib(const(char)* name)
 {
-    return objmod->includelib(name);
+    return objmod.includelib(name);
 }
 
 void obj_startaddress(Symbol *s)
 {
-    return objmod->startaddress(s);
+    return objmod.startaddress(s);
 }
 
 
@@ -301,21 +325,21 @@ void obj_startaddress(Symbol *s)
  * Generate .obj file for Module.
  */
 
-void genObjFile(Module *m, bool multiobj)
+void genObjFile(Module m, bool multiobj)
 {
-    //EEcontext *ee = env->getEEcontext();
+    //EEcontext *ee = env.getEEcontext();
 
-    //printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, m->toChars());
+    //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
 
-    if (m->ident == Id::entrypoint)
+    if (m.ident == Id.entrypoint)
     {
         bool v = global.params.verbose;
         global.params.verbose = false;
 
-        for (size_t i = 0; i < m->members->dim; i++)
+        for (size_t i = 0; i < m.members.dim; i++)
         {
-            Dsymbol *member = (*m->members)[i];
-            //printf("toObjFile %s %s\n", member->kind(), member->toChars());
+            Dsymbol member = (*m.members)[i];
+            //printf("toObjFile %s %s\n", member.kind(), member.toChars());
             toObjFile(member, global.params.multiobj);
         }
 
@@ -323,12 +347,12 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
-    lastmname = (char*)m->srcfile->toChars();
+    lastmname = cast(char*)m.srcfile.toChars();
 
-    objmod->initfile(lastmname, NULL, m->toPrettyChars());
+    objmod.initfile(lastmname, null, m.toPrettyChars());
 
-    eictor = NULL;
-    ictorlocalgot = NULL;
+    eictor = null;
+    ictorlocalgot = null;
     sctors.setDim(0);
     ectorgates.setDim(0);
     sdtors.setDim(0);
@@ -337,31 +361,31 @@ void genObjFile(Module *m, bool multiobj)
     sshareddtors.setDim(0);
     stests.setDim(0);
 
-    if (m->doppelganger)
+    if (m.doppelganger)
     {
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *mod = m->aimports[0];
+        Module mod = m.aimports[0];
         assert(mod);
-        if (mod->sictor || mod->sctor || mod->sdtor || mod->ssharedctor || mod->sshareddtor)
+        if (mod.sictor || mod.sctor || mod.sdtor || mod.ssharedctor || mod.sshareddtor)
         {
             Symbol *s = toSymbol(mod);
             //objextern(s);
-            //if (!s->Sxtrnnum) objextdef(s->Sident);
-            if (!s->Sxtrnnum)
+            //if (!s.Sxtrnnum) objextdef(s.Sident);
+            if (!s.Sxtrnnum)
             {
-                //printf("%s\n", s->Sident);
-#if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
-                objextdef(s->Sident);
-#else
+                //printf("%s\n", s.Sident);
+//#if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
+//                objextdef(s.Sident);
+//#else
                 Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
-                sref->Sfl = FLdata;
-                DtBuilder dtb;
+                sref.Sfl = FLdata;
+                scope dtb = new DtBuilder();
                 dtb.xoff(s, 0, TYnptr);
-                sref->Sdt = dtb.finish();
+                sref.Sdt = dtb.finish();
                 outdata(sref);
-#endif
+//#endif
             }
         }
     }
@@ -371,26 +395,26 @@ void genObjFile(Module *m, bool multiobj)
         /* Create coverage identifier:
          *  private uint[numlines] __coverage;
          */
-        m->cov = symbol_calloc("__coverage");
-        m->cov->Stype = type_fake(TYint);
-        m->cov->Stype->Tmangle = mTYman_c;
-        m->cov->Stype->Tcount++;
-        m->cov->Sclass = SCstatic;
-        m->cov->Sfl = FLdata;
+        m.cov = symbol_calloc("__coverage");
+        m.cov.Stype = type_fake(TYint);
+        m.cov.Stype.Tmangle = mTYman_c;
+        m.cov.Stype.Tcount++;
+        m.cov.Sclass = SCstatic;
+        m.cov.Sfl = FLdata;
 
-        DtBuilder dtb;
-        dtb.nzeros(4 * m->numlines);
-        m->cov->Sdt = dtb.finish();
+        scope dtb = new DtBuilder();
+        dtb.nzeros(4 * m.numlines);
+        m.cov.Sdt = dtb.finish();
 
-        outdata(m->cov);
+        outdata(m.cov);
 
-        m->covb = (unsigned *)calloc((m->numlines + 32) / 32, sizeof(*m->covb));
+        m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
     }
 
-    for (size_t i = 0; i < m->members->dim; i++)
+    for (size_t i = 0; i < m.members.dim; i++)
     {
-        Dsymbol *member = (*m->members)[i];
-        //printf("toObjFile %s %s\n", member->kind(), member->toChars());
+        Dsymbol member = (*m.members)[i];
+        //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
     }
 
@@ -400,19 +424,19 @@ void genObjFile(Module *m, bool multiobj)
          *  private bit[numlines] __bcoverage;
          */
         Symbol *bcov = symbol_calloc("__bcoverage");
-        bcov->Stype = type_fake(TYuint);
-        bcov->Stype->Tcount++;
-        bcov->Sclass = SCstatic;
-        bcov->Sfl = FLdata;
+        bcov.Stype = type_fake(TYuint);
+        bcov.Stype.Tcount++;
+        bcov.Sclass = SCstatic;
+        bcov.Sfl = FLdata;
 
-        DtBuilder dtb;
-        dtb.nbytes((m->numlines + 32) / 32 * sizeof(*m->covb), (char *)m->covb);
-        bcov->Sdt = dtb.finish();
+        scope dtb = new DtBuilder();
+        dtb.nbytes((m.numlines + 32) / 32 * (*m.covb).sizeof, cast(char *)m.covb);
+        bcov.Sdt = dtb.finish();
 
         outdata(bcov);
 
-        free(m->covb);
-        m->covb = NULL;
+        free(m.covb);
+        m.covb = null;
 
         /* Generate:
          *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
@@ -422,32 +446,32 @@ void genObjFile(Module *m, bool multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
-        t->Tmangle = mTYman_c;
+        type *t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+        t.Tmangle = mTYman_c;
 
-        m->sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
-        cstate.CSpsymtab = &m->sictor->Sfunc->Flocsym;
+        m.sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
+        cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
         localgot = ictorlocalgot;
 
-        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(m->cov));
-        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m->numlines), el_ptr(bcov));
+        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
+        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
         if (config.exe == EX_WIN64)
         {
-            ecov  = addressElem(ecov,  Type::tvoid->arrayOf(), false);
-            ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
+            ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
+            ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
         }
 
         elem *efilename = toEfilename(m);
         if (config.exe == EX_WIN64)
-            efilename = addressElem(efilename, Type::tstring, true);
+            efilename = addressElem(efilename, Type.tstring, true);
 
         elem *e = el_params(
                       el_long(TYuchar, global.params.covPercent),
                       ecov,
                       ebcov,
                       efilename,
-                      NULL);
+                      null);
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DCOVER2)), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
@@ -462,28 +486,28 @@ void genObjFile(Module *m, bool multiobj)
             localgot = ictorlocalgot;
 
             block *b = block_calloc();
-            b->BC = BCret;
-            b->Belem = eictor;
-            m->sictor->Sfunc->Fstartline.Sfilename = m->arg;
-            m->sictor->Sfunc->Fstartblock = b;
-            writefunc(m->sictor);
+            b.BC = BCret;
+            b.Belem = eictor;
+            m.sictor.Sfunc.Fstartline.Sfilename = m.arg;
+            m.sictor.Sfunc.Fstartblock = b;
+            writefunc(m.sictor);
         }
 
-        m->sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
-        m->sdtor = callFuncsAndGates(m, &sdtors, NULL, "__moddtor");
+        m.sctor = callFuncsAndGates(m, &sctors, &ectorgates, "__modctor");
+        m.sdtor = callFuncsAndGates(m, &sdtors, null, "__moddtor");
 
-        m->ssharedctor = callFuncsAndGates(m, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
-        m->sshareddtor = callFuncsAndGates(m, &sshareddtors, NULL, "__modshareddtor");
-        m->stest = callFuncsAndGates(m, &stests, NULL, "__modtest");
+        m.ssharedctor = callFuncsAndGates(m, &ssharedctors, cast(StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
+        m.sshareddtor = callFuncsAndGates(m, &sshareddtors, null, "__modshareddtor");
+        m.stest = callFuncsAndGates(m, &stests, null, "__modtest");
 
-        if (m->doppelganger)
+        if (m.doppelganger)
             genModuleInfo(m);
     }
 
-    if (m->doppelganger)
+    if (m.doppelganger)
     {
         objc_Module_genmoduleinfo_classes();
-        objmod->termfile();
+        objmod.termfile();
         return;
     }
 
@@ -499,17 +523,18 @@ void genObjFile(Module *m, bool multiobj)
     if (!global.params.betterC)
         genhelpers(m);
 
-    objmod->termfile();
+    objmod.termfile();
 }
 
-static void genhelpers(Module *m)
+
+private void genhelpers(Module m)
 {
     // If module assert
     for (int i = 0; i < 3; i++)
     {
         Symbol *ma;
-        unsigned rt;
-        unsigned bc;
+        uint rt;
+        uint bc;
         switch (i)
         {
             case 0:     ma = toModuleArray(m);    rt = RTLSYM_DARRAY;     bc = BCexit; break;
@@ -521,22 +546,21 @@ static void genhelpers(Module *m)
         if (!ma)
             continue;
 
-
-        localgot = NULL;
+        localgot = null;
 
         // Call dassert(filename, line)
         // Get sole parameter, linnum
         Symbol *sp = symbol_calloc("linnum");
-        sp->Stype = type_fake(TYint);
-        sp->Stype->Tcount++;
-        sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+        sp.Stype = type_fake(TYint);
+        sp.Stype.Tcount++;
+        sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
 
-        FuncParamRegs fpr(TYjfunc);
-        fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
+        FuncParamRegs fpr = FuncParamRegs.create(TYjfunc);
+        fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2);
 
-        sp->Sflags &= ~SFLspill;
-        sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
-        cstate.CSpsymtab = &ma->Sfunc->Flocsym;
+        sp.Sflags &= ~SFLspill;
+        sp.Sfl = (sp.Sclass == SCshadowreg) ? FLpara : FLfast;
+        cstate.CSpsymtab = &ma.Sfunc.Flocsym;
         symbol_add(sp);
 
         elem *elinnum = el_var(sp);
@@ -544,19 +568,19 @@ static void genhelpers(Module *m)
 
         elem *efilename = toEfilename(m);
         if (config.exe == EX_WIN64)
-            efilename = addressElem(efilename, Type::tstring, true);
+            efilename = addressElem(efilename, Type.tstring, true);
 
         elem *e = el_var(getRtlsym(rt));
         e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
         block *b = block_calloc();
-        b->BC = bc;
-        b->Belem = e;
-        ma->Sfunc->Fstartline.Sfilename = m->arg;
-        ma->Sfunc->Fstartblock = b;
-        ma->Sclass = SCglobal;
-        ma->Sfl = 0;
-        ma->Sflags |= getRtlsym(rt)->Sflags & SFLexit;
+        b.BC = cast(ubyte)bc;
+        b.Belem = e;
+        ma.Sfunc.Fstartline.Sfilename = m.arg;
+        ma.Sfunc.Fstartblock = b;
+        ma.Sclass = SCglobal;
+        ma.Sfl = 0;
+        ma.Sflags |= getRtlsym(rt).Sflags & SFLexit;
         writefunc(ma);
     }
 }
@@ -564,14 +588,14 @@ static void genhelpers(Module *m)
 /**************************************
  * Search for a druntime array op
  */
-bool isDruntimeArrayOp(Identifier *ident)
+bool isDruntimeArrayOp(Identifier ident)
 {
     /* Some of the array op functions are written as library functions,
      * presumably to optimize them with special CPU vector instructions.
      * List those library functions here, in alpha order.
      */
-    static const char *libArrayopFuncs[] =
-    {
+    __gshared const(char)*[143] libArrayopFuncs =
+    [
         "_arrayExpSliceAddass_a",
         "_arrayExpSliceAddass_d",
         "_arrayExpSliceAddass_f",           // T[]+=T
@@ -731,141 +755,145 @@ bool isDruntimeArrayOp(Identifier *ident)
         "_arraySliceSliceMulass_t",
         "_arraySliceSliceMulass_u",
         "_arraySliceSliceMulass_w",
-    };
-    const char *name = ident->toChars();
-    int i = binary(name, libArrayopFuncs, sizeof(libArrayopFuncs) / sizeof(char *));
+    ];
+    const(char)* name = ident.toChars();
+    int i = binary(name, libArrayopFuncs.ptr, libArrayopFuncs.length);
     if (i != -1)
         return true;
 
-#ifdef DEBUG    // Make sure our array is alphabetized
-    for (i = 0; i < sizeof(libArrayopFuncs) / sizeof(char *); i++)
+    debug    // Make sure our array is alphabetized
     {
-        if (strcmp(name, libArrayopFuncs[i]) == 0)
-            assert(0);
+        for (i = 0; i < libArrayopFuncs.length; i++)
+        {
+            if (strcmp(name, libArrayopFuncs[i]) == 0)
+                assert(0);
+        }
     }
-#endif
     return false;
 }
 
+
 /* ================================================================== */
 
-UnitTestDeclaration *needsDeferredNested(FuncDeclaration *fd)
+UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 {
-    while (fd && fd->isNested())
+    while (fd && fd.isNested())
     {
-        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
+        FuncDeclaration fdp = fd.toParent2().isFuncDeclaration();
         if (!fdp)
             break;
-        if (UnitTestDeclaration *udp = fdp->isUnitTestDeclaration())
-            return udp->semanticRun < PASSobj ? udp : NULL;
+        if (UnitTestDeclaration udp = fdp.isUnitTestDeclaration())
+            return udp.semanticRun < PASSobj ? udp : null;
         fd = fdp;
     }
-    return NULL;
+    return null;
 }
 
-void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
+
+void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 {
-    ClassDeclaration *cd = fd->parent->isClassDeclaration();
-    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", fd, fd->parent->toChars(), fd->toChars());
+    ClassDeclaration cd = fd.parent.isClassDeclaration();
+    //printf("FuncDeclaration.toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
 
-    //if (type) printf("type = %s\n", type->toChars());
-#if 0
-    //printf("line = %d\n", getWhere() / LINEINC);
-    EEcontext *ee = env->getEEcontext();
-    if (ee->EEcompile == 2)
+    //if (type) printf("type = %s\n", type.toChars());
+    version (none)
     {
-        if (ee->EElinnum < (getWhere() / LINEINC) ||
-            ee->EElinnum > (endwhere / LINEINC)
-           )
-            return;             // don't compile this function
-        ee->EEfunc = toSymbol(this);
+        //printf("line = %d\n", getWhere() / LINEINC);
+        EEcontext *ee = env.getEEcontext();
+        if (ee.EEcompile == 2)
+        {
+            if (ee.EElinnum < (getWhere() / LINEINC) ||
+                ee.EElinnum > (endwhere / LINEINC)
+               )
+                return;             // don't compile this function
+            ee.EEfunc = toSymbol(this);
+        }
     }
-#endif
 
-    if (fd->semanticRun >= PASSobj) // if toObjFile() already run
+    if (fd.semanticRun >= PASSobj) // if toObjFile() already run
         return;
 
-    if (fd->type && fd->type->ty == Tfunction && ((TypeFunction *)fd->type)->next == NULL)
+    if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next is null)
         return;
 
     // If errors occurred compiling it, such as bugzilla 6118
-    if (fd->type && fd->type->ty == Tfunction && ((TypeFunction *)fd->type)->next->ty == Terror)
+    if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next.ty == Terror)
         return;
 
-    if (fd->semantic3Errors)
+    if (fd.semantic3Errors)
         return;
 
     if (global.errors)
         return;
 
-    if (!fd->fbody)
+    if (!fd.fbody)
         return;
 
-    UnitTestDeclaration *ud = fd->isUnitTestDeclaration();
+    UnitTestDeclaration ud = fd.isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
 
-    if (multiobj && !fd->isStaticDtorDeclaration() && !fd->isStaticCtorDeclaration())
+    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration())
     {
         obj_append(fd);
         return;
     }
 
-    if (fd->semanticRun == PASSsemanticdone)
+    if (fd.semanticRun == PASSsemanticdone)
     {
         /* What happened is this function failed semantic3() with errors,
          * but the errors were gagged.
          * Try to reproduce those errors, and then fail.
          */
-        fd->error("errors compiling the function");
+        fd.error("errors compiling the function");
         return;
     }
-    assert(fd->semanticRun == PASSsemantic3done);
-    assert(fd->ident != Id::empty);
+    assert(fd.semanticRun == PASSsemantic3done);
+    assert(fd.ident != Id.empty);
 
-    for (FuncDeclaration *fd2 = fd; fd2; )
+    for (FuncDeclaration fd2 = fd; fd2; )
     {
-        if (fd2->inNonRoot())
+        if (fd2.inNonRoot())
             return;
-        if (fd2->isNested())
-            fd2 = fd2->toParent2()->isFuncDeclaration();
+        if (fd2.isNested())
+            fd2 = fd2.toParent2().isFuncDeclaration();
         else
             break;
     }
 
-    if (UnitTestDeclaration *udp = needsDeferredNested(fd))
+    if (UnitTestDeclaration udp = needsDeferredNested(fd))
     {
         /* Can't do unittest's out of order, they are order dependent in that their
          * execution is done in lexical order.
          */
-        udp->deferredNested.push(fd);
-        //printf("%s @[%s]\n\t--> pushed to unittest @[%s]\n",
-        //    fd->toPrettyChars(), fd->loc.toChars(), udp->loc.toChars());
+        udp.deferredNested.push(fd);
+        //printf("%s @[%s]\n\t-. pushed to unittest @[%s]\n",
+        //    fd.toPrettyChars(), fd.loc.toChars(), udp.loc.toChars());
         return;
     }
 
-    if (fd->isArrayOp && isDruntimeArrayOp(fd->ident))
+    if (fd.isArrayOp && isDruntimeArrayOp(fd.ident))
     {
         // Implementation is in druntime
         return;
     }
 
     // start code generation
-    fd->semanticRun = PASSobj;
+    fd.semanticRun = PASSobj;
 
     if (global.params.verbose)
-        fprintf(global.stdmsg, "function  %s\n", fd->toPrettyChars());
+        fprintf(global.stdmsg, "function  %s\n", fd.toPrettyChars());
 
     Symbol *s = toSymbol(fd);
-    func_t *f = s->Sfunc;
+    func_t *f = s.Sfunc;
 
     // tunnel type of "this" to debug info generation
-    if (AggregateDeclaration* ad = fd->parent->isAggregateDeclaration())
+    if (AggregateDeclaration ad = fd.parent.isAggregateDeclaration())
     {
-        ::type* t = Type_toCtype(ad->getType());
+        .type* t = Type_toCtype(ad.getType());
         if (cd)
-            t = t->Tnext; // skip reference
-        f->Fclass = (Classsym *)t;
+            t = t.Tnext; // skip reference
+        f.Fclass = cast(Classsym *)t;
     }
 
     /* This is done so that the 'this' pointer on the stack is the same
@@ -873,229 +901,225 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
      * function can call the nested fdensure or fdrequire of its overridden function
      * and the stack offsets are the same.
      */
-    if (fd->isVirtual() && (fd->fensure || fd->frequire))
-        f->Fflags3 |= Ffakeeh;
+    if (fd.isVirtual() && (fd.fensure || fd.frequire))
+        f.Fflags3 |= Ffakeeh;
 
-#if TARGET_OSX
-    s->Sclass = SCcomdat;
-#else
-    s->Sclass = SCglobal;
-#endif
-    for (Dsymbol *p = fd->parent; p; p = p->parent)
+    s.Sclass = global.params.isOSX ? SCcomdat : SCglobal;
+    for (Dsymbol p = fd.parent; p; p = p.parent)
     {
-        if (p->isTemplateInstance())
+        if (p.isTemplateInstance())
         {
-            s->Sclass = SCcomdat;
+            s.Sclass = SCcomdat;
             break;
         }
     }
 
     /* Vector operations should be comdat's
      */
-    if (fd->isArrayOp)
-        s->Sclass = SCcomdat;
+    if (fd.isArrayOp)
+        s.Sclass = SCcomdat;
 
-    if (fd->inlinedNestedCallees)
+    if (fd.inlinedNestedCallees)
     {
         /* Bugzilla 15333: If fd contains inlined expressions that come from
          * nested function bodies, the enclosing of the functions must be
          * generated first, in order to calculate correct frame pointer offset.
          */
-        for (size_t i = 0; i < fd->inlinedNestedCallees->dim; i++)
+        for (size_t i = 0; i < fd.inlinedNestedCallees.dim; i++)
         {
-            FuncDeclaration *f = (*fd->inlinedNestedCallees)[i];
-            FuncDeclaration *fp = f->toParent2()->isFuncDeclaration();;
-            if (fp && fp->semanticRun < PASSobj)
+            FuncDeclaration fdc = (*fd.inlinedNestedCallees)[i];
+            FuncDeclaration fp = fdc.toParent2().isFuncDeclaration();
+            if (fp && fp.semanticRun < PASSobj)
             {
                 toObjFile(fp, multiobj);
             }
         }
     }
 
-    if (fd->isNested())
+    if (fd.isNested())
     {
         //if (!(config.flags3 & CFG3pic))
-        //    s->Sclass = SCstatic;
-        f->Fflags3 |= Fnested;
+        //    s.Sclass = SCstatic;
+        f.Fflags3 |= Fnested;
 
         /* The enclosing function must have its code generated first,
          * in order to calculate correct frame pointer offset.
          */
-        FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
-        if (fdp && fdp->semanticRun < PASSobj)
+        FuncDeclaration fdp = fd.toParent2().isFuncDeclaration();
+        if (fdp && fdp.semanticRun < PASSobj)
         {
             toObjFile(fdp, multiobj);
         }
     }
     else
     {
-        const char *libname = (global.params.symdebug)
+        const(char)* libname = (global.params.symdebug)
                                 ? global.params.debuglibname
                                 : global.params.defaultlibname;
 
         // Pull in RTL startup code (but only once)
-        if (fd->isMain() && onlyOneMain(fd->loc))
+        if (fd.isMain() && onlyOneMain(fd.loc))
         {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            objmod->external_def("_main");
-            objmod->ehsections();   // initialize exception handling sections
-#endif
-            if (global.params.mscoff)
+            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+                global.params.isOpenBSD || global.params.isSolaris)
             {
-                objmod->external_def("main");
-                objmod->ehsections();   // initialize exception handling sections
+                objmod.external_def("_main");
+                objmod.ehsections();   // initialize exception handling sections
+            }
+            else if (global.params.mscoff)
+            {
+                objmod.external_def("main");
+                objmod.ehsections();   // initialize exception handling sections
             }
             else if (config.exe == EX_WIN32)
             {
-                objmod->external_def("_main");
-                objmod->external_def("__acrtused_con");
+                objmod.external_def("_main");
+                objmod.external_def("__acrtused_con");
             }
-            objmod->includelib(libname);
-            s->Sclass = SCglobal;
+            objmod.includelib(libname);
+            s.Sclass = SCglobal;
         }
-        else if (strcmp(s->Sident, "main") == 0 && fd->linkage == LINKc)
+        else if (strcmp(s.Sident.ptr, "main") == 0 && fd.linkage == LINKc)
         {
             if (global.params.mscoff)
             {
-                objmod->includelib("LIBCMT");
-                objmod->includelib("OLDNAMES");
+                objmod.includelib("LIBCMT");
+                objmod.includelib("OLDNAMES");
             }
             else if (config.exe == EX_WIN32)
             {
-                objmod->external_def("__acrtused_con");        // bring in C startup code
-                objmod->includelib("snn.lib");          // bring in C runtime library
+                objmod.external_def("__acrtused_con");        // bring in C startup code
+                objmod.includelib("snn.lib");          // bring in C runtime library
             }
-            s->Sclass = SCglobal;
+            s.Sclass = SCglobal;
         }
-#if TARGET_WINDOS
-        else if (fd->isWinMain() && onlyOneMain(fd->loc))
+        else if (global.params.isWindows && fd.isWinMain() && onlyOneMain(fd.loc))
         {
             if (global.params.mscoff)
             {
-                objmod->includelib("uuid");
-                objmod->includelib("LIBCMT");
-                objmod->includelib("OLDNAMES");
-                objmod->ehsections();   // initialize exception handling sections
+                objmod.includelib("uuid");
+                objmod.includelib("LIBCMT");
+                objmod.includelib("OLDNAMES");
+                objmod.ehsections();   // initialize exception handling sections
             }
             else
             {
-                objmod->external_def("__acrtused");
+                objmod.external_def("__acrtused");
             }
-            objmod->includelib(libname);
-            s->Sclass = SCglobal;
+            objmod.includelib(libname);
+            s.Sclass = SCglobal;
         }
 
         // Pull in RTL startup code
-        else if (fd->isDllMain() && onlyOneMain(fd->loc))
+        else if (global.params.isWindows && fd.isDllMain() && onlyOneMain(fd.loc))
         {
             if (global.params.mscoff)
             {
-                objmod->includelib("uuid");
-                objmod->includelib("LIBCMT");
-                objmod->includelib("OLDNAMES");
-                objmod->ehsections();   // initialize exception handling sections
+                objmod.includelib("uuid");
+                objmod.includelib("LIBCMT");
+                objmod.includelib("OLDNAMES");
+                objmod.ehsections();   // initialize exception handling sections
             }
             else
             {
-                objmod->external_def("__acrtused_dll");
+                objmod.external_def("__acrtused_dll");
             }
-            objmod->includelib(libname);
-            s->Sclass = SCglobal;
+            objmod.includelib(libname);
+            s.Sclass = SCglobal;
         }
-#endif
     }
 
     symtab_t *symtabsave = cstate.CSpsymtab;
-    cstate.CSpsymtab = &f->Flocsym;
+    cstate.CSpsymtab = &f.Flocsym;
 
     // Find module m for this function
-    Module *m = NULL;
-    for (Dsymbol *p = fd->parent; p; p = p->parent)
+    Module m = null;
+    for (Dsymbol p = fd.parent; p; p = p.parent)
     {
-        m = p->isModule();
+        m = p.isModule();
         if (m)
             break;
     }
 
-    IRState irs(m, fd);
+    IRState irs = IRState(m, fd);
     Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
-    void *labels = NULL;
+    Label*[void*] labels = null;
     irs.labels = &labels;
 
-    symbol *shidden = NULL;
-    Symbol *sthis = NULL;
-    tym_t tyf = tybasic(s->Stype->Tty);
+    Symbol *shidden = null;
+    Symbol *sthis = null;
+    tym_t tyf = tybasic(s.Stype.Tty);
     //printf("linkage = %d, tyf = x%x\n", linkage, tyf);
-    int reverse = tyrevfunc(s->Stype->Tty);
+    int reverse = tyrevfunc(s.Stype.Tty);
 
-    assert(fd->type->ty == Tfunction);
-    TypeFunction *tf = (TypeFunction *)fd->type;
+    assert(fd.type.ty == Tfunction);
+    TypeFunction tf = cast(TypeFunction)fd.type;
     RET retmethod = retStyle(tf);
     if (retmethod == RETstack)
     {
         // If function returns a struct, put a pointer to that
         // as the first argument
-        ::type *thidden = Type_toCtype(tf->next->pointerTo());
-        char hiddenparam[5+4+1];
-        static int hiddenparami;    // how many we've generated so far
+        .type *thidden = Type_toCtype(tf.next.pointerTo());
+        char[5+4+1] hiddenparam = void;
+        __gshared int hiddenparami;    // how many we've generated so far
 
-        sprintf(hiddenparam,"__HID%d",++hiddenparami);
-        shidden = symbol_name(hiddenparam,SCparameter,thidden);
-        shidden->Sflags |= SFLtrue | SFLfree;
-        if (fd->nrvo_can && fd->nrvo_var && fd->nrvo_var->nestedrefs.dim)
-            type_setcv(&shidden->Stype, shidden->Stype->Tty | mTYvolatile);
+        sprintf(hiddenparam.ptr,"__HID%d",++hiddenparami);
+        shidden = symbol_name(hiddenparam.ptr,SCparameter,thidden);
+        shidden.Sflags |= SFLtrue | SFLfree;
+        if (fd.nrvo_can && fd.nrvo_var && fd.nrvo_var.nestedrefs.dim)
+            type_setcv(&shidden.Stype, shidden.Stype.Tty | mTYvolatile);
         irs.shidden = shidden;
-        fd->shidden = shidden;
+        fd.shidden = shidden;
     }
     else
     {
         // Register return style cannot make nrvo.
         // Auto functions keep the nrvo_can flag up to here,
         // so we should eliminate it before entering backend.
-        fd->nrvo_can = 0;
+        fd.nrvo_can = 0;
     }
 
-    if (fd->vthis)
+    if (fd.vthis)
     {
-        assert(!fd->vthis->csym);
-        sthis = toSymbol(fd->vthis);
+        assert(!fd.vthis.csym);
+        sthis = toSymbol(fd.vthis);
         irs.sthis = sthis;
-        if (!(f->Fflags3 & Fnested))
-            f->Fflags3 |= Fmember;
+        if (!(f.Fflags3 & Fnested))
+            f.Fflags3 |= Fmember;
     }
 
     // Estimate number of parameters, pi
-    size_t pi = (fd->v_arguments != NULL);
-    if (fd->parameters)
-        pi += fd->parameters->dim;
+    size_t pi = (fd.v_arguments !is null);
+    if (fd.parameters)
+        pi += fd.parameters.dim;
 
     // Create a temporary buffer, params[], to hold function parameters
-    Symbol *paramsbuf[10];
-    Symbol **params = paramsbuf;    // allocate on stack if possible
-    if (pi + 2 > 10)                // allow extra 2 for sthis and shidden
+    Symbol*[10] paramsbuf = void;
+    Symbol **params = paramsbuf.ptr;    // allocate on stack if possible
+    if (pi + 2 > paramsbuf.length)      // allow extra 2 for sthis and shidden
     {
-        params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
+        params = cast(Symbol **)malloc((pi + 2) * (Symbol *).sizeof);
         assert(params);
     }
 
     // Get the actual number of parameters, pi, and fill in the params[]
     pi = 0;
-    if (fd->v_arguments)
+    if (fd.v_arguments)
     {
-        params[pi] = toSymbol(fd->v_arguments);
+        params[pi] = toSymbol(fd.v_arguments);
         pi += 1;
     }
-    if (fd->parameters)
+    if (fd.parameters)
     {
-        for (size_t i = 0; i < fd->parameters->dim; i++)
+        for (size_t i = 0; i < fd.parameters.dim; i++)
         {
-            VarDeclaration *v = (*fd->parameters)[i];
-            //printf("param[%d] = %p, %s\n", i, v, v->toChars());
-            assert(!v->csym);
+            VarDeclaration v = (*fd.parameters)[i];
+            //printf("param[%d] = %p, %s\n", i, v, v.toChars());
+            assert(!v.csym);
             params[pi + i] = toSymbol(v);
         }
-        pi += fd->parameters->dim;
+        pi += fd.parameters.dim;
     }
 
     if (reverse)
@@ -1111,33 +1135,31 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
 
     if (shidden)
     {
-#if 0
         // shidden becomes last parameter
-        params[pi] = shidden;
-#else
+        //params[pi] = shidden;
+
         // shidden becomes first parameter
-        memmove(params + 1, params, pi * sizeof(params[0]));
+        memmove(params + 1, params, pi * (params[0]).sizeof);
         params[0] = shidden;
-#endif
+
         pi++;
     }
 
 
     if (sthis)
     {
-#if 0
         // sthis becomes last parameter
-        params[pi] = sthis;
-#else
+        //params[pi] = sthis;
+
         // sthis becomes first parameter
-        memmove(params + 1, params, pi * sizeof(params[0]));
+        memmove(params + 1, params, pi * (params[0]).sizeof);
         params[0] = sthis;
-#endif
+
         pi++;
     }
 
     if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-         fd->linkage != LINKd && shidden && sthis)
+         fd.linkage != LINKd && shidden && sthis)
     {
         /* swap shidden and sthis
          */
@@ -1149,68 +1171,67 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     for (size_t i = 0; i < pi; i++)
     {
         Symbol *sp = params[i];
-        sp->Sclass = SCparameter;
-        sp->Sflags &= ~SFLspill;
-        sp->Sfl = FLpara;
+        sp.Sclass = SCparameter;
+        sp.Sflags &= ~SFLspill;
+        sp.Sfl = FLpara;
         symbol_add(sp);
     }
 
     // Determine register assignments
     if (pi)
     {
-        FuncParamRegs fpr(tyf);
+        FuncParamRegs fpr = FuncParamRegs.create(tyf);
 
         for (size_t i = 0; i < pi; i++)
         {
             Symbol *sp = params[i];
-            if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
+            if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
-                sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
-                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
+                sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
+                sp.Sfl = (sp.Sclass == SCshadowreg) ? FLpara : FLfast;
             }
         }
     }
 
     // Done with params
-    if (params != paramsbuf)
+    if (params != paramsbuf.ptr)
         free(params);
-    params = NULL;
+    params = null;
 
-    if (fd->fbody)
+    if (fd.fbody)
     {
-        localgot = NULL;
+        localgot = null;
 
-        Statement *sbody = fd->fbody;
+        Statement sbody = fd.fbody;
 
         Blockx bx;
-        memset(&bx,0,sizeof(bx));
         bx.startblock = block_calloc();
         bx.curblock = bx.startblock;
         bx.funcsym = s;
         bx.scope_index = -1;
-        bx.classdec = cd;
-        bx.member = fd;
-        bx.module = fd->getModule();
+        bx.classdec = cast(void*)cd;
+        bx.member = cast(void*)fd;
+        bx._module = cast(void*)fd.getModule();
         irs.blx = &bx;
 
         // Initialize argptr
-        if (fd->v_argptr)
+        if (fd.v_argptr)
         {
             // Declare va_argsave
             if (global.params.is64bit &&
                 !global.params.isWindows)
             {
-                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, NULL, NULL, false, false, true);
+                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true);
                 // The backend will pick this up by name
-                Symbol *s = symbol_name("__va_argsave", SCauto, t);
-                s->Stype->Tty |= mTYvolatile;
-                symbol_add(s);
+                Symbol *sv = symbol_name("__va_argsave", SCauto, t);
+                sv.Stype.Tty |= mTYvolatile;
+                symbol_add(sv);
             }
 
-            Symbol *s = toSymbol(fd->v_argptr);
-            symbol_add(s);
-            elem *e = el_una(OPva_start, TYnptr, el_ptr(s));
-            block_appendexp(irs.blx->curblock, e);
+            Symbol *sa = toSymbol(fd.v_argptr);
+            symbol_add(sa);
+            elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
+            block_appendexp(irs.blx.curblock, e);
         }
 
         /* Doing this in semantic3() caused all kinds of problems:
@@ -1218,7 +1239,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
          * 2. impact on function inlining
          * 3. what to do when writing out .di files, or other pretty printing
          */
-        if (global.params.trace && !fd->isCMain())
+        if (global.params.trace && !fd.isCMain())
         {
             /* The profiler requires TLS, and TLS may not be set up yet when C main()
              * gets control (i.e. OSX), leading to a crash.
@@ -1230,105 +1251,105 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
              *   finally
              *     _c_trace_epi();
              */
-            StringExp *se = StringExp::create(Loc(), s->Sident);
-            se->type = Type::tstring;
-            se->type = se->type->semantic(Loc(), NULL);
+            StringExp se = StringExp.create(Loc(), s.Sident.ptr);
+            se.type = Type.tstring;
+            se.type = se.type.semantic(Loc(), null);
             Expressions *exps = Expressions_create();
-            exps->push(se);
-            FuncDeclaration *fdpro = FuncDeclaration::genCfunc(NULL, Type::tvoid, "trace_pro");
-            Expression *ec = VarExp::create(Loc(), fdpro);
-            Expression *e = CallExp::create(Loc(), ec, exps);
-            e->type = Type::tvoid;
-            Statement *sp = ExpStatement::create(fd->loc, e);
+            exps.push(se);
+            FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
+            Expression ec = VarExp.create(Loc(), fdpro);
+            Expression e = CallExp.create(Loc(), ec, exps);
+            e.type = Type.tvoid;
+            Statement sp = ExpStatement.create(fd.loc, e);
 
-            FuncDeclaration *fdepi = FuncDeclaration::genCfunc(NULL, Type::tvoid, "_c_trace_epi");
-            ec = VarExp::create(Loc(), fdepi);
-            e = CallExp::create(Loc(), ec);
-            e->type = Type::tvoid;
-            Statement *sf = ExpStatement::create(fd->loc, e);
+            FuncDeclaration fdepi = FuncDeclaration.genCfunc(null, Type.tvoid, "_c_trace_epi");
+            ec = VarExp.create(Loc(), fdepi);
+            e = CallExp.create(Loc(), ec);
+            e.type = Type.tvoid;
+            Statement sf = ExpStatement.create(fd.loc, e);
 
-            Statement *stf;
-            if (sbody->blockExit(fd, false) == BEfallthru)
-                stf = CompoundStatement::create(Loc(), sbody, sf);
+            Statement stf;
+            if (sbody.blockExit(fd, false) == BEfallthru)
+                stf = CompoundStatement.create(Loc(), sbody, sf);
             else
-                stf = TryFinallyStatement::create(Loc(), sbody, sf);
-            sbody = CompoundStatement::create(Loc(), sp, stf);
+                stf = TryFinallyStatement.create(Loc(), sbody, sf);
+            sbody = CompoundStatement.create(Loc(), sp, stf);
         }
 
-        if (fd->interfaceVirtual)
+        if (fd.interfaceVirtual)
         {
             // Adjust the 'this' pointer instead of using a thunk
             assert(irs.sthis);
             elem *ethis = el_var(irs.sthis);
-            elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd->interfaceVirtual->offset));
-            block_appendexp(irs.blx->curblock, e);
+            elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
+            block_appendexp(irs.blx.curblock, e);
         }
 
         buildClosure(fd, &irs);
 
-        if (config.ehmethod == EH_WIN32 && fd->isSynchronized() && cd &&
-            !fd->isStatic() && !sbody->usesEH() && !global.params.trace)
+        if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
+            !fd.isStatic() && !sbody.usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
              * which is a little shorter than the more general EH frame.
              */
-            s->Sfunc->Fflags3 |= Fjmonitor;
+            s.Sfunc.Fflags3 |= Fjmonitor;
         }
 
         Statement_toIR(sbody, &irs);
-        bx.curblock->BC = BCret;
+        bx.curblock.BC = BCret;
 
-        f->Fstartblock = bx.startblock;
+        f.Fstartblock = bx.startblock;
 //      einit = el_combine(einit,bx.init);
 
-        if (fd->isCtorDeclaration())
+        if (fd.isCtorDeclaration())
         {
             assert(sthis);
-            for (block *b = f->Fstartblock; b; b = b->Bnext)
+            for (block *b = f.Fstartblock; b; b = b.Bnext)
             {
-                if (b->BC == BCret)
+                if (b.BC == BCret)
                 {
-                    b->BC = BCretexp;
-                    b->Belem = el_combine(b->Belem, el_var(sthis));
+                    b.BC = BCretexp;
+                    b.Belem = el_combine(b.Belem, el_var(sthis));
                 }
             }
         }
-        insertFinallyBlockCalls(f->Fstartblock);
+        insertFinallyBlockCalls(f.Fstartblock);
     }
 
     // If static constructor
-    if (fd->isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
+    if (fd.isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
         ssharedctors.push(s);
     }
-    else if (fd->isStaticCtorDeclaration())
+    else if (fd.isStaticCtorDeclaration())
     {
         sctors.push(s);
     }
 
     // If static destructor
-    if (fd->isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
+    if (fd.isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
     {
-        SharedStaticDtorDeclaration *f = fd->isSharedStaticDtorDeclaration();
-        assert(f);
-        if (f->vgate)
+        SharedStaticDtorDeclaration fs = fd.isSharedStaticDtorDeclaration();
+        assert(fs);
+        if (fs.vgate)
         {
             /* Increment destructor's vgate at construction time
              */
-            esharedctorgates.push(f);
+            esharedctorgates.push(fs);
         }
 
         sshareddtors.shift(s);
     }
-    else if (fd->isStaticDtorDeclaration())
+    else if (fd.isStaticDtorDeclaration())
     {
-        StaticDtorDeclaration *f = fd->isStaticDtorDeclaration();
-        assert(f);
-        if (f->vgate)
+        StaticDtorDeclaration fs = fd.isStaticDtorDeclaration();
+        assert(fs);
+        if (fs.vgate)
         {
             /* Increment destructor's vgate at construction time
              */
-            ectorgates.push(f);
+            ectorgates.push(fs);
         }
 
         sdtors.shift(s);
@@ -1351,46 +1372,49 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
 
-    if (fd->isExport())
-        objmod->export_symbol(s, Para.offset);
+    if (fd.isExport())
+        objmod.export_symbol(s, cast(uint)Para.offset);
 
-    for (size_t i = 0; i < irs.deferToObj->dim; i++)
+    for (size_t i = 0; i < irs.deferToObj.dim; i++)
     {
-        Dsymbol *s = (*irs.deferToObj)[i];
-        toObjFile(s, false);
+        Dsymbol sd = (*irs.deferToObj)[i];
+        toObjFile(sd, false);
     }
 
     if (ud)
     {
-        for (size_t i = 0; i < ud->deferredNested.dim; i++)
+        for (size_t i = 0; i < ud.deferredNested.dim; i++)
         {
-            FuncDeclaration *fd = ud->deferredNested[i];
-            toObjFile(fd, false);
+            FuncDeclaration fdn = ud.deferredNested[i];
+            toObjFile(fdn, false);
         }
     }
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    // A hack to get a pointer to this function put in the .dtors segment
-    if (fd->ident && memcmp(fd->ident->toChars(), "_STD", 4) == 0)
-        objmod->staticdtor(s);
-#endif
+    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris)
+    {
+        // A hack to get a pointer to this function put in the .dtors segment
+        if (fd.ident && memcmp(fd.ident.toChars(), "_STD".ptr, 4) == 0)
+            objmod.staticdtor(s);
+    }
+
     if (irs.startaddress)
     {
         //printf("Setting start address\n");
-        objmod->startaddress(irs.startaddress);
+        objmod.startaddress(irs.startaddress);
     }
 }
 
+
 bool onlyOneMain(Loc loc)
 {
-    static Loc lastLoc;
-    static bool hasMain = false;
+    __gshared Loc lastLoc;
+    __gshared bool hasMain = false;
     if (hasMain)
     {
-        const char *msg = "";
+        const(char)* msg = "";
         if (global.params.addMain)
             msg = ", -main switch added another main()";
-        const char *otherMainNames = "";
+        const(char)* otherMainNames = "";
         if (config.exe == EX_WIN32 || config.exe == EX_WIN64)
             otherMainNames = "/WinMain/DllMain";
         error(loc, "only one main%s allowed%s. Previously found main at %s",
@@ -1408,10 +1432,10 @@ bool onlyOneMain(Loc loc)
  * Return back end type corresponding to D front end type.
  */
 
-unsigned totym(Type *tx)
+uint totym(Type tx)
 {
-    unsigned t;
-    switch (tx->ty)
+    uint t;
+    switch (tx.ty)
     {
         case Tvoid:     t = TYvoid;     break;
         case Tint8:     t = TYschar;    break;
@@ -1434,13 +1458,9 @@ unsigned totym(Type *tx)
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
         case Twchar:    t = TYwchar_t;  break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        case Tdchar:    t = TYdchar;    break;
-#else
         case Tdchar:
-            t = (global.params.symdebug == 1) ? TYdchar : TYulong;
+            t = (global.params.symdebug == 1 || !global.params.isWindows) ? TYdchar : TYulong;
             break;
-#endif
 
         case Taarray:   t = TYaarray;   break;
         case Tclass:
@@ -1452,20 +1472,18 @@ unsigned totym(Type *tx)
 
         case Tstruct:
             t = TYstruct;
-            if (tx->toDsymbol(NULL)->ident == Id::__c_long_double)
+            if (tx.toDsymbol(null).ident == Id.__c_long_double)
                 t = TYdouble;
             break;
 
         case Tenum:
-            t = totym(tx->toBasetype());
+            t = totym(tx.toBasetype());
             break;
 
         case Tident:
         case Ttypeof:
-#ifdef DEBUG
-            printf("ty = %d, '%s'\n", tx->ty, tx->toChars());
-#endif
-            error(Loc(), "forward reference of %s", tx->toChars());
+            //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
+            error(Loc(), "forward reference of %s", tx.toChars());
             t = TYint;
             break;
 
@@ -1475,9 +1493,9 @@ unsigned totym(Type *tx)
 
         case Tvector:
         {
-            TypeVector *tv = (TypeVector *)tx;
-            TypeBasic *tb = tv->elementType();
-            switch (tb->ty)
+            TypeVector tv = cast(TypeVector)tx;
+            TypeBasic tb = tv.elementType();
+            switch (tb.ty)
             {
                 case Tvoid:
                 case Tint8:     t = TYschar16;  break;
@@ -1492,7 +1510,6 @@ unsigned totym(Type *tx)
                 case Tfloat64:  t = TYdouble2;  break;
                 default:
                     assert(0);
-                    break;
             }
             assert(global.params.is64bit || global.params.isOSX);
             break;
@@ -1500,17 +1517,17 @@ unsigned totym(Type *tx)
 
         case Tfunction:
         {
-            TypeFunction *tf = (TypeFunction *)tx;
-            switch (tf->linkage)
+            TypeFunction tf = cast(TypeFunction)tx;
+            switch (tf.linkage)
             {
                 case LINKwindows:
                     if (global.params.is64bit)
                         goto Lc;
-                    t = (tf->varargs == 1) ? TYnfunc : TYnsfunc;
+                    t = (tf.varargs == 1) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINKpascal:
-                    t = (tf->varargs == 1) ? TYnfunc : TYnpfunc;
+                    t = (tf.varargs == 1) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINKc:
@@ -1518,34 +1535,32 @@ unsigned totym(Type *tx)
                 case LINKobjc:
                 Lc:
                     t = TYnfunc;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                    if (I32 && retStyle(tf) == RETstack)
+                    if (global.params.isWindows)
+                    {
+                    }
+                    else if (!global.params.is64bit && retStyle(tf) == RETstack)
                         t = TYhfunc;
-#endif
                     break;
 
                 case LINKd:
-                    t = (tf->varargs == 1) ? TYnfunc : TYjfunc;
+                    t = (tf.varargs == 1) ? TYnfunc : TYjfunc;
                     break;
 
                 default:
-                    printf("linkage = %d\n", tf->linkage);
+                    printf("linkage = %d\n", tf.linkage);
                     assert(0);
             }
-            if (tf->isnothrow)
+            if (tf.isnothrow)
                 t |= mTYnothrow;
             return t;
         }
         default:
-#ifdef DEBUG
-            printf("ty = %d, '%s'\n", tx->ty, tx->toChars());
-            halt();
-#endif
+            //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
             assert(0);
     }
 
     // Add modifiers
-    switch (tx->mod)
+    switch (tx.mod)
     {
         case 0:
             break;
@@ -1575,32 +1590,32 @@ unsigned totym(Type *tx)
 /**************************************
  */
 
-Symbol *toSymbol(Type *t)
+Symbol *toSymbol(Type t)
 {
-    if (t->ty == Tclass)
+    if (t.ty == Tclass)
     {
-        return toSymbol(((TypeClass *)t)->sym);
+        return toSymbol((cast(TypeClass)t).sym);
     }
     assert(0);
-    return NULL;
 }
+
 
 /**************************************
  * Generate elem that is a dynamic array slice of the module file name.
  */
 
-elem *toEfilename(Module *m)
+elem *toEfilename(Module m)
 {
-    //printf("toEfilename(%s)\n", m->toChars());
-    const char *id = m->srcfile->toChars();
+    //printf("toEfilename(%s)\n", m.toChars());
+    const(char)* id = m.srcfile.toChars();
     size_t len = strlen(id);
 
-    if (!m->sfilename)
+    if (!m.sfilename)
     {
         // Put out as a static array
-        m->sfilename = toStringSymbol(id, len, 1);
+        m.sfilename = toStringSymbol(id, len, 1);
     }
 
     // Turn static array into dynamic array
-    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
+    return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
 }
