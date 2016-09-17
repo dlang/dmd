@@ -318,10 +318,13 @@ private int arrayObjectMatch(Objects* oa1, Objects* oa2)
         return 1;
     if (oa1.dim != oa2.dim)
         return 0;
-    for (size_t j = 0; j < oa1.dim; j++)
+    immutable oa1dim = oa1.dim;
+    auto oa1d = (*oa1).data;
+    auto oa2d = (*oa2).data;
+    for (size_t j = 0; j < oa1dim; j++)
     {
-        RootObject o1 = (*oa1)[j];
-        RootObject o2 = (*oa2)[j];
+        RootObject o1 = oa1d[j];
+        RootObject o2 = oa2d[j];
         if (!match(o1, o2))
         {
             return 0;
