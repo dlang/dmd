@@ -1314,7 +1314,7 @@ void Obj::lzext(Symbol *s1,Symbol *s2)
  * Output an alias definition record.
  */
 
-void Obj::alias(const char *n1,const char *n2)
+void Obj::_alias(const char *n1,const char *n2)
 {   unsigned len;
     char *buffer;
 
@@ -2160,7 +2160,7 @@ STATIC int obj_newfarseg(targ_size_t size,int classidx)
  * Convert reference to imported name.
  */
 
-void Obj::import(elem *e)
+void Obj::_import(elem *e)
 {
 #if MARS
     assert(0);
@@ -3014,7 +3014,7 @@ STATIC Ledatarec *ledata_new(int seg,targ_size_t offset)
 
 void Obj::write_byte(seg_data *pseg, unsigned byte)
 {
-    Obj::byte(pseg->SDseg, pseg->SDoffset, byte);
+    Obj::_byte(pseg->SDseg, pseg->SDoffset, byte);
     pseg->SDoffset++;
 }
 
@@ -3022,7 +3022,7 @@ void Obj::write_byte(seg_data *pseg, unsigned byte)
  * Output byte to object file.
  */
 
-void Obj::byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
 {   unsigned i;
 
     Ledatarec *lr = SegData[seg]->ledata;
@@ -3090,7 +3090,7 @@ unsigned Obj::bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
      )
     {
         while (nbytes)
-        {   Obj::byte(seg,offset,*(char *)p);
+        {   Obj::_byte(seg,offset,*(char *)p);
             offset++;
             p = ((char *)p) + 1;
             nbytes--;
@@ -3195,7 +3195,7 @@ L1:     ;
  *              idx2 = target datum
  */
 
-void Obj::write_long(int seg,targ_size_t offset,unsigned long data,
+void Obj::write_long(int seg,targ_size_t offset,unsigned data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
 {
     unsigned sz = tysize(TYfptr);
@@ -3655,7 +3655,7 @@ void Obj::far16thunk(Symbol *s)
     //------------------------------------------
     // Output the 16 bit thunk
 
-    Obj::byte(obj.code16segi,obj.CODE16offset++,0x9A);       //      CALLF   function
+    Obj::_byte(obj.code16segi,obj.CODE16offset++,0x9A);       //      CALLF   function
 
     // Make function external
     idx = Obj::external(s);                         // use Pascal name mangling
@@ -3696,6 +3696,10 @@ symbol *Obj::tlv_bootstrap()
     // specific for Mach-O
     assert(0);
     return NULL;
+}
+
+void Obj::gotref(Symbol *s)
+{
 }
 
 #endif

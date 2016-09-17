@@ -1605,9 +1605,9 @@ segidx_t MsCoffObj::seg_debugT()
  * Output an alias definition record.
  */
 
-void MsCoffObj::alias(const char *n1,const char *n2)
+void MsCoffObj::_alias(const char *n1,const char *n2)
 {
-    //printf("MsCoffObj::alias(%s,%s)\n",n1,n2);
+    //printf("MsCoffObj::_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
     unsigned len;
@@ -1963,18 +1963,18 @@ void MsCoffObj::lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
 
 void MsCoffObj::write_byte(seg_data *pseg, unsigned byte)
 {
-    MsCoffObj::byte(pseg->SDseg, pseg->SDoffset, byte);
+    MsCoffObj::_byte(pseg->SDseg, pseg->SDoffset, byte);
 }
 
 /************************************
  * Output byte to object file.
  */
 
-void MsCoffObj::byte(segidx_t seg,targ_size_t offset,unsigned byte)
+void MsCoffObj::_byte(segidx_t seg,targ_size_t offset,unsigned byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
-    //dbg_printf("MsCoffObj::byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
+    //dbg_printf("MsCoffObj::_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
     buf->setsize(offset);
     buf->writeByte(byte);
     if (save > offset+1)
