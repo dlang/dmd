@@ -455,8 +455,15 @@ typedef short           targ_short;
 typedef unsigned short  targ_ushort;
 typedef int             targ_long;
 typedef unsigned        targ_ulong;
+
+#ifdef __UINT64_TYPE__
+typedef  __INT64_TYPE__ targ_llong;
+typedef __UINT64_TYPE__ targ_ullong;
+#else
 typedef long long       targ_llong;
 typedef unsigned long long      targ_ullong;
+#endif
+
 typedef float           targ_float;
 typedef double          targ_double;
 typedef longdouble      targ_ldouble;

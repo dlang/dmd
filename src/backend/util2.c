@@ -280,7 +280,7 @@ int binary(const char *p, size_t len, const char ** table, int high)
  * If c is a power of 2, return that power else -1.
  */
 
-int ispow2(unsigned long long c)
+int ispow2(targ_ullong c)
 {       int i;
 
         if (c == 0 || (c & (c - 1)))

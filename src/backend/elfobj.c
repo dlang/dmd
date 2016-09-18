@@ -1969,9 +1969,9 @@ seg_data *Obj::tlsseg_data()
  * Output an alias definition record.
  */
 
-void Obj::alias(const char *n1,const char *n2)
+void Obj::_alias(const char *n1,const char *n2)
 {
-    dbg_printf("Obj::alias(%s,%s)\n",n1,n2);
+    dbg_printf("Obj::_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
     char *buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
@@ -2389,18 +2389,18 @@ void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
 
 void Obj::write_byte(seg_data *pseg, unsigned byte)
 {
-    Obj::byte(pseg->SDseg, pseg->SDoffset, byte);
+    Obj::_byte(pseg->SDseg, pseg->SDoffset, byte);
 }
 
 /************************************
  * Output byte to object file.
  */
 
-void Obj::byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
-    //dbg_printf("Obj::byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
+    //dbg_printf("Obj::_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
     buf->setsize(offset);
     buf->writeByte(byte);
     if (save > offset+1)

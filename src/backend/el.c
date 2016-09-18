@@ -1701,7 +1701,7 @@ elem * el_var(symbol *s)
 #if TARGET_WINDOS
         switch (t->Tty & (mTYimport | mTYthread))
         {   case mTYimport:
-                Obj::import(e);
+                Obj::_import(e);
                 break;
             case mTYthread:
         /*
