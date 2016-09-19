@@ -1715,6 +1715,7 @@ extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
 
 extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
 {
+    //printf("inferAggregate(%s)\n", fes.aggr.toChars());
     Identifier idapply = (fes.op == TOKforeach) ? Id.apply : Id.applyReverse;
     Identifier idfront = (fes.op == TOKforeach) ? Id.Ffront : Id.Fback;
     int sliced = 0;
@@ -1724,7 +1725,10 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
     AggregateDeclaration ad;
     while (1)
     {
-        if (!aggr.type)
+        aggr = aggr.semantic(sc);
+        aggr = resolveProperties(sc, aggr);
+        aggr = aggr.optimize(WANTvalue);
+        if (!aggr.type || aggr.op == TOKerror)
             goto Lerr;
         tab = aggr.type.toBasetype();
         switch (tab.ty)

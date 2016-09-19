@@ -505,6 +505,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             return setError();
         Expression oaggr = fs.aggr;
         if (fs.aggr.type && fs.aggr.type.toBasetype().ty == Tstruct &&
+            (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
             fs.aggr.op != TOKtype && !fs.aggr.isLvalue())
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
@@ -3537,7 +3538,9 @@ Statement semanticNoScope(Statement s, Scope* sc)
 // Same as semanticNoScope(), but do create a new scope
 Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scontinue)
 {
-    Scope* scd = sc.push();
+    auto sym = new ScopeDsymbol();
+    sym.parent = sc.scopesym;
+    Scope* scd = sc.push(sym);
     if (sbreak)
         scd.sbreak = sbreak;
     if (scontinue)
