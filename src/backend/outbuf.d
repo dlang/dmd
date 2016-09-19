@@ -1,87 +1,78 @@
-// Copyright (C) 1994-1998 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
-// All Rights Reserved
-// http://www.digitalmars.com
-// Written by Walter Bright
-/*
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 1994-1998 by Symantec
+ *              Copyright (c) 2000-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     backendlicense.txt
+ * Source:      $(DMDSRC backend/_outbuf.d)
  */
 
-//#pragma once
+module ddmd.backend.outbuf;
 
-#include        <string.h>
-
-#include <stddef.h>     // for size_t
-
-#if __APPLE__ && __i386__
-    /* size_t is 'unsigned long', which makes it mangle differently
-     * than D's 'uint'
-     */
-    typedef unsigned d_size_t;
-#else
-    typedef size_t d_size_t;
-#endif
+import core.stdc.string;
 
 // Output buffer
 
 // (This used to be called OutBuffer, we renamed it to avoid name conflicts with Mars.)
 
+extern (C++):
+
 struct Outbuffer
 {
-    unsigned char *buf;         // the buffer itself
-    unsigned char *pend;        // pointer past the end of the buffer
-    unsigned char *p;           // current position in buffer
-    unsigned len;               // size of buffer
-    unsigned inc;               // default increment size
-    unsigned char *origbuf;     // external buffer
+    ubyte *buf;         // the buffer itself
+    ubyte *pend;        // pointer past the end of the buffer
+    ubyte *p;           // current position in buffer
+    uint len;           // size of buffer
+    uint inc;           // default increment size
+    ubyte *origbuf;     // external buffer
 
-    Outbuffer();
+    //this();
 
-    Outbuffer(d_size_t incx) : buf(NULL), pend(NULL), p(NULL), len(0), inc(incx), origbuf(NULL) { }
+    this(size_t incx); // : buf(null), pend(null), p(null), len(0), inc(incx), origbuf(null) { }
 
-    Outbuffer(unsigned char *bufx, d_size_t bufxlen, unsigned incx) :
-        buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
+    this(ubyte *bufx, size_t bufxlen, uint incx);
+        //: buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
 
-    ~Outbuffer();
+    //~this();
 
     void reset();
 
     // Reserve nbytes in buffer
-    void reserve(d_size_t nbytes)
+    void reserve(size_t nbytes)
     {
         if (pend - p < nbytes)
             enlarge(nbytes);
     }
 
     // Reserve nbytes in buffer
-    void enlarge(d_size_t nbytes);
+    void enlarge(size_t nbytes);
 
     // Write n zeros; return pointer to start of zeros
-    void *writezeros(d_size_t n);
+    void *writezeros(size_t n);
 
     // Position buffer to accept the specified number of bytes at offset
-    void position(d_size_t offset, d_size_t nbytes);
+    void position(size_t offset, size_t nbytes);
 
     // Write an array to the buffer, no reserve check
-    void writen(const void *b, d_size_t len)
+    void writen(const void *b, size_t len)
     {
         memcpy(p,b,len);
         p += len;
     }
 
     // Clear bytes, no reserve check
-    void clearn(d_size_t len)
+    void clearn(size_t len)
     {
-        for (d_size_t i = 0; i < len; i++)
+        for (size_t i = 0; i < len; i++)
             *p++ = 0;
     }
 
     // Write an array to the buffer.
-    void write(const void *b, d_size_t len);
+    void write(const(void)* b, size_t len);
 
-    void write(Outbuffer *b) { write(b->buf,b->p - b->buf); }
+    void write(Outbuffer *b) { write(b.buf,b.p - b.buf); }
 
     /**
      * Flushes the stream. This will write any buffered
@@ -104,7 +95,7 @@ struct Outbuffer
     {
         if (pend == p)
             reserve(1);
-        *p++ = v;
+        *p++ = cast(ubyte)v;
     }
 
     /**
@@ -112,12 +103,15 @@ struct Outbuffer
      */
     void writeWordn(int v)
     {
-#if _WIN32
-        *(unsigned short *)p = v;
-#else
-        p[0] = v;
-        p[1] = v >> 8;
-#endif
+        version (LittleEndian)
+        {
+            *cast(ushort *)p = cast(ushort)v;
+        }
+        else
+        {
+            p[0] = v;
+            p[1] = v >> 8;
+        }
         p += 2;
     }
 
@@ -139,14 +133,9 @@ struct Outbuffer
     {
         if (pend - p < 2)
             reserve(2);
-#if 0
-        p[0] = ((unsigned char *)&v)[1];
-        p[1] = v;
-#else
-        unsigned char *q = p;
-        q[0] = v >> 8;
-        q[1] = v;
-#endif
+        ubyte *q = p;
+        q[0] = cast(ubyte)(v >> 8);
+        q[1] = cast(ubyte)v;
         p += 2;
     }
 
@@ -166,7 +155,7 @@ struct Outbuffer
     /**
      * Writes a 64 bit long.
      */
-    void write64(long long v);
+    void write64(long v);
 
     /**
      * Writes a 32 bit float.
@@ -180,28 +169,28 @@ struct Outbuffer
 
     void write(const char *s);
 
-    void write(const unsigned char *s);
+    void write(const ubyte *s);
 
     void writeString(const char *s);
 
     void prependBytes(const char *s);
 
-    void prepend(const void *b, d_size_t len);
+    void prepend(const void *b, size_t len);
 
     void bracket(char c1,char c2);
 
     /**
      * Returns the number of bytes written.
      */
-    d_size_t size()
+    size_t size()
     {
         return p - buf;
     }
 
     char *toString();
-    void setsize(d_size_t size);
+    void setsize(size_t size);
 
     void writesLEB128(int value);
-    void writeuLEB128(unsigned value);
+    void writeuLEB128(uint value);
 
-};
+}
