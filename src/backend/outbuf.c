@@ -57,10 +57,10 @@ void Outbuffer::reset()
 }
 
 // Enlarge buffer size so there's at least nbytes available
-void Outbuffer::enlarge(size_t nbytes)
+void Outbuffer::enlarge(d_size_t nbytes)
 {
-    size_t oldlen = len;
-    size_t used = p - buf;
+    d_size_t oldlen = len;
+    d_size_t used = p - buf;
 
     if (inc > nbytes)
     {
@@ -115,7 +115,7 @@ void Outbuffer::enlarge(size_t nbytes)
  *      offset = specified location
  *      nbytes = number of bytes to be written at offset
  */
-void Outbuffer::position(size_t offset, size_t nbytes)
+void Outbuffer::position(d_size_t offset, d_size_t nbytes)
 {
     if (offset + nbytes > len)
     {
@@ -131,7 +131,7 @@ void Outbuffer::position(size_t offset, size_t nbytes)
 }
 
 // Write an array to the buffer.
-void Outbuffer::write(const void *b, size_t len)
+void Outbuffer::write(const void *b, d_size_t len)
 {
     if (pend - p < len)
         reserve(len);
@@ -140,7 +140,7 @@ void Outbuffer::write(const void *b, size_t len)
 }
 
 // Write n zeros to the buffer.
-void *Outbuffer::writezeros(size_t len)
+void *Outbuffer::writezeros(d_size_t len)
 {
     if (pend - p < len)
         reserve(len);
@@ -229,7 +229,7 @@ void Outbuffer::prependBytes(const char *s)
     prepend(s, strlen(s));
 }
 
-void Outbuffer::prepend(const void *b, size_t len)
+void Outbuffer::prepend(const void *b, d_size_t len)
 {
     reserve(len);
     memmove(buf + len,buf,p - buf);
@@ -265,7 +265,7 @@ char *Outbuffer::toString()
  * Set current size of buffer.
  */
 
-void Outbuffer::setsize(size_t size)
+void Outbuffer::setsize(d_size_t size)
 {
     p = buf + size;
 #if DEBUG
