@@ -2597,6 +2597,11 @@ void fillParameters(elem *e, Parameter *parameters, int *pi)
 /***********************************
  * tyf: type of the function
  */
+FuncParamRegs FuncParamRegs::create(tym_t tyf)
+{
+    return FuncParamRegs(tyf);
+}
+
 FuncParamRegs::FuncParamRegs(tym_t tyf)
 {
     this->tyf = tyf;
