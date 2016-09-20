@@ -460,10 +460,10 @@ newdelete.o: %.o: $(ROOT)/%.c posix.mak
 ######################################################
 
 install: all
+	mkdir -p $(INSTALL_DIR)/bin
+	cp dmd $(INSTALL_DIR)/bin/dmd
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
-	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
-	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
-	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
+	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/bin/dmd.conf
 	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
 	cp boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
