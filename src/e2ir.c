@@ -54,7 +54,7 @@ Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
 elem *toElemDtor(Expression *e, IRState *irs);
 elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles);
-Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+Symbol *toStringSymbol(const char *str, d_size_t len, d_size_t sz);
 Symbol *toStringSymbol(StringExp *se);
 void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toModuleAssert(Module *m);
@@ -5646,7 +5646,7 @@ elem *toElemDtor(Expression *e, IRState *irs)
  *      Symbol
  */
 
-Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
+Symbol *toStringSymbol(const char *str, d_size_t len, d_size_t sz)
 {
     //printf("toStringSymbol() %p\n", stringTab);
     StringValue *sv = stringTab->update(str, len * sz);

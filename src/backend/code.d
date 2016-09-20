@@ -16,6 +16,24 @@ import ddmd.backend.type;
 
 extern (C++):
 
+/************************************
+ * Local sections on the stack
+ */
+struct LocalSection
+{
+    targ_size_t offset;         // offset of section from frame pointer
+    targ_size_t size;           // size of section
+    int alignment;              // alignment size
+
+    void init()                 // initialize
+    {   offset = 0;
+        size = 0;
+        alignment = 0;
+    }
+}
+
+extern __gshared LocalSection Para;
+
 /**************************************************/
 
 /* Allocate registers to function parameters
@@ -38,3 +56,5 @@ struct FuncParamRegs
     const(ubyte)* argregs;      // map to gp register
     const(ubyte)* floatregs;    // map to fp register
 }
+
+
