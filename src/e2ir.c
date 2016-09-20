@@ -5599,7 +5599,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             {
                 /* Expensive to copy, to take a pointer to it instead
                  */
-                elem *ep = el_una(OPaddr, TYnptr, erx);
+                elem *ep = addressElem(erx, Type::tvoidptr);
                 elem *e = el_same(&ep);
                 ep = el_combine(ep, edtors);
                 ep = el_combine(ep, e);

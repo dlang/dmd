@@ -1573,6 +1573,24 @@ void test79()
 
 /***************************************************/
 
+struct NoDtortest11763 {}
+
+struct HasDtortest11763
+{
+    NoDtortest11763 func()
+    {
+        return NoDtortest11763();
+    }
+    ~this() {}
+}
+
+void test11763()
+{
+    HasDtortest11763().func();
+}
+
+/***************************************************/
+
 void test6317()
 {
     int b = 12345;
