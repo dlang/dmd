@@ -302,6 +302,46 @@ struct Runtime
      *
      * Params:
      *  h = The new unit tester.  Set to null to use the default unit tester.
+     * 
+     * Example:
+     * ---------
+     * version(unittest)
+     * static this()
+     * {
+     *     import core.runtime;
+     *     Runtime.moduleUnitTester = &customModuleUnitTester;
+     * }
+     * 
+     * bool customModuleUnitTester()
+     * {
+     *     import std.stdio;
+     *     writeln("Using customModuleUnitTester");
+     * 
+     *     // Do the same thing as the default moduleUnitTester:
+     *     size_t failed = 0;
+     *     foreach( m; ModuleInfo )
+     *     {
+     *         if( m )
+     *         {
+     *             auto fp = m.unitTest;
+     * 
+     *             if( fp )
+     *             {
+     *                 try
+     *                 {
+     *                     fp();
+     *                 }
+     *                 catch( Throwable e )
+     *                 {
+     *                     writeln(e);
+     *                     failed++;
+     *                 }
+     *             }
+     *         }
+     *     }
+     *     return failed == 0;
+     * }
+     * ---------
      */
     static @property void moduleUnitTester( ModuleUnitTester h )
     {
