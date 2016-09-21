@@ -740,6 +740,11 @@ Language changes listed by -transition=id:
                 global.params.release = true;
             else if (strcmp(p + 1, "betterC") == 0)
                 global.params.betterC = true;
+            else if (strcmp(p + 1, "bc-ctfe") == 0)
+            {
+                global.params.bc_ctfe = true;
+                warning(Loc(), "-bc-ctfe is unimplemented at the moment");
+            }
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
                 global.params.useArrayBounds = BOUNDSCHECKoff;
