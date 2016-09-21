@@ -259,7 +259,9 @@ void chkunass(elem *);
 void chknoabstract(type *);
 targ_llong msc_getnum();
 targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-targ_size_t align(targ_size_t,targ_size_t);
+//targ_size_t align(targ_size_t,targ_size_t);
+targ_size_t _align(targ_size_t,targ_size_t);
+#define align(a, b) _align(a, b)
 
 /* nteh.c */
 unsigned char *nteh_context_string();
