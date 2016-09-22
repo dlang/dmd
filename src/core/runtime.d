@@ -305,33 +305,34 @@ struct Runtime
      *
      * Example:
      * ---------
-     * version(unittest)
-     * static this()
+     * version (unittest) static this()
      * {
      *     import core.runtime;
+     *
      *     Runtime.moduleUnitTester = &customModuleUnitTester;
      * }
      *
      * bool customModuleUnitTester()
      * {
      *     import std.stdio;
+     *
      *     writeln("Using customModuleUnitTester");
      *
      *     // Do the same thing as the default moduleUnitTester:
      *     size_t failed = 0;
-     *     foreach( m; ModuleInfo )
+     *     foreach (m; ModuleInfo)
      *     {
-     *         if( m )
+     *         if (m)
      *         {
      *             auto fp = m.unitTest;
      *
-     *             if( fp )
+     *             if (fp)
      *             {
      *                 try
      *                 {
      *                     fp();
      *                 }
-     *                 catch( Throwable e )
+     *                 catch (Throwable e)
      *                 {
      *                     writeln(e);
      *                     failed++;
