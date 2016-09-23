@@ -51,7 +51,7 @@ clone() {
 }
 
 coverage() {
-    if [ -n ${CIRCLE_PR_NUMBER:-} ]; then
+    if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
         local base_branch=$(curl -fsSL https://api.github.com/repos/dlang/$CIRCLE_PROJECT_REPONAME/pulls/$CIRCLE_PR_NUMBER | jq -r '.base.ref')
     else
         local base_branch=$CIRCLE_BRANCH
