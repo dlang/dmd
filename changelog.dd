@@ -5,9 +5,36 @@ $(COMMENT Pending changelog for 2.073. This will get copied to dlang.org and
 )
 
 $(BUGSTITLE Library Changes,
+
+$(LI $(RELATIVE_LINK2 gc-runtimeswitch-added, A switch for selecting
+the GC implementation at runtime was added.))
+
+$(LI $(RELATIVE_LINK2 manualgc-added, A GC implementation allowing manual
+memory management was added.))
+
 )
 
 $(BUGSTITLE Library Changes,
+
+$(LI $(LNAME2 gc-runtimeswitch-added, A runtime switch for selecting
+the GC implementation was added.)
+
+    $(P This allows the possibility of having more than one GC implementation
+    and allowing users to select the right one based on their needs.
+    )
+)
+
+$(LI $(LNAME2 manualgc-added, A GC implementation allowing manual
+memory management was added.)
+
+    $(P As part of allowing multiple GC implementations to exist and to be
+    selected at runtime, gcstub was refactored to be a selectable
+    implementation. It is usable in applications which do not rely on a garbage
+    collector to clean up memory (ie. when dynamic array resizing is not used,
+    and all memory allocated with 'new' is freed deterministically with
+    'delete').
+    )
+)
 )
 
 Macros:
