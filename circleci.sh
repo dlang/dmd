@@ -56,8 +56,15 @@ coverage() {
         local base_branch=$CIRCLE_BRANCH
     fi
 
-    clone https://github.com/dlang/druntime.git ../druntime $base_branch
-    clone https://github.com/dlang/phobos.git ../phobos $base_branch
+    for proj in druntime phobos; do
+        if [ $base_branch != master ] && [ $base_branch != stable ] &&
+               ! curl -fsSLI https://api.github.com/repos/dlang/$proj/branches/$base_branch; then
+            # use master as fallback for other repos to test feature branches
+            clone https://github.com/dlang/$proj.git ../$proj master
+        else
+            clone https://github.com/dlang/$proj.git ../$proj $base_branch
+        fi
+    done
 
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
