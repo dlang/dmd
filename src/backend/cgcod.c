@@ -2292,20 +2292,23 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     code* c = CNIL;
     if (*pretregs == 0) goto done;        /* no possible side effects anyway */
 
-    if (tyfloating(e->Ety) && config.inline8087)
+    /* First construct a mask, emask, of all the registers that
+     * have the right contents.
+     */
+    emask = 0;
+    for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
+    {
+        //dbg_printf("regcon.cse.value[%d] = %p\n",i,regcon.cse.value[i]);
+        if (regcon.cse.value[i] == e)   // if contents are right
+                emask |= mask[i];       // turn on bit for reg
+    }
+    emask &= regcon.cse.mval;                     // make sure all bits are valid
+
+    if (emask & XMMREGS && *pretregs == mPSW)
+        ;
+    else if (tyfloating(e->Ety) && config.inline8087)
         return comsub87(e,pretregs);
 
-  /* First construct a mask, emask, of all the registers that   */
-  /* have the right contents.                                   */
-
-  emask = 0;
-  for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
-  {
-        //dbg_printf("regcon.cse.value[%d] = %p\n",i,regcon.cse.value[i]);
-        if (regcon.cse.value[i] == e)   /* if contents are right        */
-                emask |= mask[i];       /* turn on bit for reg          */
-  }
-  emask &= regcon.cse.mval;                     /* make sure all bits are valid */
 
   /* create mask of what's in csextab[] */
   csemask = 0;
