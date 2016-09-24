@@ -58,8 +58,15 @@ test_dmd() {
     fi
 }
 
-clone https://github.com/dlang/druntime.git ../druntime $TRAVIS_BRANCH
-clone https://github.com/dlang/phobos.git ../phobos $TRAVIS_BRANCH
+for proj in druntime phobos; do
+    if [ $TRAVIS_BRANCH != master ] && [ $TRAVIS_BRANCH != stable ] &&
+           ! curl -fsSLI https://api.github.com/repos/dlang/$proj/branches/$TRAVIS_BRANCH; then
+        # use master as fallback for other repos to test feature branches
+        clone https://github.com/dlang/$proj.git ../$proj master
+    else
+        clone https://github.com/dlang/$proj.git ../$proj $TRAVIS_BRANCH
+    fi
+done
 
 build
 test
