@@ -43,19 +43,19 @@ cdouble[1] a3;
 cdouble[1] b3;
 
 cdouble[] concat3() {
-	return a3~b3;
+        return a3~b3;
 }
 
 void test3()
 {
-	a3[]=0.5+1.0i;
-	b3[]=0.5+3.0i;
+        a3[]=0.5+1.0i;
+        b3[]=0.5+3.0i;
 
-	cdouble[] arr=concat3();
+        cdouble[] arr=concat3();
 
-	assert(arr.length==2);
-	assert(arr[0]==0.5+1.0i);
-	assert(arr[1]==0.5+3.0i);
+        assert(arr.length==2);
+        assert(arr[0]==0.5+1.0i);
+        assert(arr[1]==0.5+3.0i);
 }
 
 /***************************************/
@@ -64,52 +64,52 @@ creal[1] a4;
 creal[1] b4;
 
 creal[] concat4() {
-	return a4~b4;
+        return a4~b4;
 }
 
 void test4()
 {
-	a4[]=0.5+1.0i;
-	b4[]=0.5+3.0i;
+        a4[]=0.5+1.0i;
+        b4[]=0.5+3.0i;
 
-	creal[] arr=concat4();
+        creal[] arr=concat4();
 
-	assert(arr.length==2);
-	assert(arr[0]==0.5+1.0i);
-	assert(arr[1]==0.5+3.0i);
+        assert(arr.length==2);
+        assert(arr[0]==0.5+1.0i);
+        assert(arr[1]==0.5+3.0i);
 }
 
 /***************************************/
 
 void test5()
 {
-	ifloat i=1.0fi;
-//	i += 2.2;
-//	assert(i == 1i);
+        ifloat i=1.0fi;
+//      i += 2.2;
+//      assert(i == 1i);
 }
 
 /***************************************/
 
 void test6()
 {
-	float i=1.0f;
-//	i /= 2.2fi;
-//	assert(i == 0);
+        float i=1.0f;
+//      i /= 2.2fi;
+//      assert(i == 0);
 }
 
 /***************************************/
 
 void test7()
 {
-	creal x=1.0i+2.0;
-	creal[] arr;
+        creal x=1.0i+2.0;
+        creal[] arr;
 
-	arr = arr ~ x;
-	assert(arr.length==1);
-	assert(arr[0]==1.0i+2.0);
+        arr = arr ~ x;
+        assert(arr.length==1);
+        assert(arr[0]==1.0i+2.0);
 
-	x=0.0i+5.0;
-	assert(arr[0]==1.0i+2.0);
+        x=0.0i+5.0;
+        assert(arr[0]==1.0i+2.0);
 }
 
 /****************************************/
@@ -240,8 +240,8 @@ void test13()
 {
         ireal a = 5i;
         ireal b = a % 2;
-	writeln(b);
-	assert(b == 1i);
+        writeln(b);
+        assert(b == 1i);
 }
 
 /***************************************/

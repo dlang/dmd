@@ -6,21 +6,21 @@ import core.stdc.stdio;
 template Foo(T)
 {
     static if (is(T : int))
-	alias T t1;
+        alias T t1;
 
     static if (T.sizeof == 4)
-	alias T t2;
+        alias T t2;
 
     static if (is(T U : int))
-	alias U t3;
+        alias U t3;
 
     static if (is(T* V : V*))
-	alias V t4;
+        alias V t4;
 
     static if (is(T W))
-	alias W t5;
+        alias W t5;
     else
-	alias char t5;
+        alias char t5;
 
     static if (is(T* X : X*))
     {
@@ -56,21 +56,21 @@ void test2()
     alias int T;
 
     static if (is(T : int))
-	alias T t1;
+        alias T t1;
 
     static if (T.sizeof == 4)
-	alias T t2;
+        alias T t2;
 
     static if (is(T U : int))
-	alias U t3;
+        alias U t3;
 
     static if (is(T* V : V*))
-	alias V t4;
+        alias V t4;
 
     static if (is(T W))
-	alias W t5;
+        alias W t5;
     else
-	alias char t5;
+        alias char t5;
 
     static if (is(T* X : X*))
     {
@@ -100,36 +100,36 @@ void test2()
 void test3()
 {
     static if (is(short : int))
-    {	printf("1\n");
+    {   printf("1\n");
     }
     else
-	assert(0);
+        assert(0);
     static if (is(short == int))
-	assert(0);
+        assert(0);
     static if (is(int == int))
-    {	printf("3\n");
+    {   printf("3\n");
     }
     else
-	assert(0);
+        assert(0);
 }
 
 /*********************************************************/
 
 template TValue(int i:1)
 {
-	pragma(msg,"last instantiation!!!");
-	const int TValue = 1;
+        pragma(msg,"last instantiation!!!");
+        const int TValue = 1;
 }
 
 template TValue(int i)
-{	
-	pragma(msg,"instantiating...");
-	const int TValue = i * TValue!(i-1);
+{
+        pragma(msg,"instantiating...");
+        const int TValue = i * TValue!(i-1);
 }
 
 void test4()
 {
-	assert(TValue!(3) == 6);
+        assert(TValue!(3) == 6);
 }
 
 /*********************************************************/
@@ -153,7 +153,7 @@ template foo6(alias V)
 {
     int foo6()
     {
-	return V;
+        return V;
     }
 }
 
@@ -161,7 +161,7 @@ class bar6(alias V)
 {
     int abc()
     {
-	return V;
+        return V;
     }
 }
 
@@ -187,8 +187,8 @@ template Bind7(alias dg)
 {
     int Bind7()
     {
-	dg('c');
-	return 0;
+        dg('c');
+        return 0;
     }
 }
 
@@ -208,9 +208,9 @@ void test7()
 template sum8(real x)
 {
     static if (x <= 1.0L){
-	    const real sum8 = x;
+            const real sum8 = x;
     }else{
-	    const real sum8 = x + sum8!(x - 1.0L);
+            const real sum8 = x + sum8!(x - 1.0L);
     }
 }
 
@@ -219,7 +219,7 @@ void test8()
     real x = sum8!(3.0L);
 
     if(x != 6.0L){
-	    assert(0);
+            assert(0);
     }
 }
 

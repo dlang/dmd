@@ -11,7 +11,7 @@ template TFoo1(T,U)
 {
     int foo(T t, U u)
     {
-	return 3;
+        return 3;
     }
 }
 
@@ -51,8 +51,8 @@ template TFoo3(T,U)
 {
     class Bar
     {
-	T x = 4;
-	U y;
+        T x = 4;
+        U y;
     }
 }
 
@@ -116,12 +116,12 @@ template TtoUx(T, U)
 {
     T toUx(U[] s)
     {
-	uint v = 0;
+        uint v = 0;
 
-	if (v != cast(T)v)
-	    return 3;
+        if (v != cast(T)v)
+            return 3;
 
-	return cast(T)v;
+        return cast(T)v;
     }
 
 }
@@ -140,12 +140,12 @@ template TtoUx6(T, U)
 {
     T toUx(U[] s)
     {
-	uint v = 0;
+        uint v = 0;
 
-	if (v != cast(T)v)
-	    return 3;
+        if (v != cast(T)v)
+            return 3;
 
-	return cast(T)v;
+        return cast(T)v;
     }
 
 }
@@ -473,9 +473,9 @@ template TFoo21(T : A21, U : T*)
 {
     void test()
     {
-	assert(T.sizeof == B21.sizeof);
-	U u;
-	abc21(u);
+        assert(T.sizeof == B21.sizeof);
+        U u;
+        abc21(u);
     }
 }
 
@@ -491,13 +491,13 @@ void test21()
 template Bug22(T : Object) {
     int print() {
         printf("Bug22(T : Object).print()\r\n");
-	return 1;
+        return 1;
     }
 }
 template Bug22(T) {
     int print() {
         printf("Bug22(T).print()\r\n");
-	return 2;
+        return 2;
     }
 }
 template TTest22(T) {
@@ -563,7 +563,7 @@ template TList24(T)
     }
     class List
     {
-	Node m_first = null;
+        Node m_first = null;
     }
 }
 
@@ -579,29 +579,29 @@ template TList25(T)
 {
     class Node
     {
-	Node prev;
-	Node next;
-	T Value;
+        Node prev;
+        Node next;
+        T Value;
     }
     class List
     {
-	Node m_first = null;
-	Node m_last = null;
-	void AddFront(T _Value)
-	{
-	    Node cur = new Node;
-	    with (cur)
-	    {
-		next = m_first;
-		prev = null;
-		Value = _Value;
-		if (next !is null)
-		    next.prev = cur;
-	    }
-	    m_first = null;
-	    if (m_last is null)
-		m_last = cur;
-	}
+        Node m_first = null;
+        Node m_last = null;
+        void AddFront(T _Value)
+        {
+            Node cur = new Node;
+            with (cur)
+            {
+                next = m_first;
+                prev = null;
+                Value = _Value;
+                if (next !is null)
+                    next.prev = cur;
+            }
+            m_first = null;
+            if (m_last is null)
+                m_last = cur;
+        }
     }
 }
 
@@ -612,7 +612,7 @@ void test25()
   UIntList list;
   UIntNode node;
   for (int i = 1; i <= 10; i++)
-	{} //list.AddFront(i);
+        {} //list.AddFront(i);
 }
 
 
@@ -744,21 +744,21 @@ template TCopy30(T)
 {
     void copy(out T to, T from)
     {
-	to = from;
+        to = from;
     }
 }
 
-template TCopy30(T : string) 
+template TCopy30(T : string)
 {
     void copy(out string to, in string from)
     {
-	printf("Specialization\n");
-	to = from; 
+        printf("Specialization\n");
+        to = from;
     }
 }
 
 void test30()
-{ 
+{
     int i = 0;
     float f = 0;
     string s;
@@ -766,7 +766,7 @@ void test30()
     alias TCopy30!(int) copyint;
     alias TCopy30!(string) copystr;
 
-    copyint.copy(i, 3); 
+    copyint.copy(i, 3);
     printf("%d\n", i);
     assert(i == 3);
 
@@ -781,7 +781,7 @@ import std.string;
 
 template Foo31(alias X)
 {
-	alias X.toStringz y;
+        alias X.toStringz y;
 }
 
 void test31()
@@ -883,7 +883,7 @@ template Bar36(T)
 {
     class Bar36
     {
-	static T x;
+        static T x;
     };
 }
 
@@ -994,7 +994,7 @@ void test43()
 {
 
   int i = factor43!(3).value;
-  
+
   printf("%d\n",i);
   assert(i == 6);
 }
@@ -1066,12 +1066,12 @@ void test44()
 /******************************************/
 
 template factor45(int n)
-{ 
+{
     int value()
     {
-	if (n==0 || n==1)
-	    return 1;
-	return n * factor45!(n-1).value();
+        if (n==0 || n==1)
+            return 1;
+        return n * factor45!(n-1).value();
     }
 }
 
@@ -1079,7 +1079,7 @@ template factor45(int n : 0)
 {
     int value()
     {
-	return 1;
+        return 1;
     }
 }
 
@@ -1087,7 +1087,7 @@ template factor45(int n : 1)
 {
     int value()
     {
-	return 1;
+        return 1;
     }
 }
 
@@ -1124,7 +1124,7 @@ template sqrt47(int n, int lo, int hi)
     enum { mid = (lo + hi + 1) / 2 }
 
     enum { result = (n < mid * mid) ? sqrt47!(n, lo, mid - 1).result
-				    : sqrt47!(n, mid, hi).result }
+                                    : sqrt47!(n, mid, hi).result }
 }
 
 template sqrt47(int n, int lo, int hi : lo)
@@ -1153,7 +1153,7 @@ class Foo48 (T)
 
     class Inner (U)
     {
-	alias U Type;
+        alias U Type;
     };
 };
 
@@ -1181,15 +1181,15 @@ struct Foo49(T)
 {
     static Foo49 bar(T c1)
     {
-	Foo49 rtn; // Error here
-	return rtn;
+        Foo49 rtn; // Error here
+        return rtn;
     }
 }
 
 void test49()
 {
     alias Foo49!(double) vector;
-  
+
     vector.bar(1);
 }
 
@@ -1217,7 +1217,7 @@ struct Foo50(T)
 void test50()
 {
   alias Foo50!(double) vector;
-    
+
   vector xAxis = vector.bar(1);
 }
 
@@ -1247,7 +1247,7 @@ struct Foo51(T)
 void test51()
 {
   alias Foo51!(double) vector;
-    
+
   vector xAxis = vector.bar(1);
 }
 
@@ -1292,11 +1292,11 @@ class Foo53
 {
     template tmethod (T)
     {
-	public static void tmethod (T param)
-	{
-	    printf("param = %d\n", param);
-	    assert(param == 42);
-	}
+        public static void tmethod (T param)
+        {
+            printf("param = %d\n", param);
+            assert(param == 42);
+        }
     }
 }
 
@@ -1333,11 +1333,11 @@ template T55(S)
 {
     struct Foo55
     {
-	static Foo55 test(Foo55 f)
-	{
-	    Foo55 a = f;
-	    return f;
-	}
+        static Foo55 test(Foo55 f)
+        {
+            Foo55 a = f;
+            return f;
+        }
     }
 }
 
@@ -1427,30 +1427,30 @@ class A60
 
 template B60(T, U = short)
 {
-	struct Thing
-	{
-		T	t;
-		U	u;
-	};
+        struct Thing
+        {
+                T       t;
+                U       u;
+        };
 }
 
 template C60(T, U = A60)
 {
-	class C60
-		: U
-	{}
+        class C60
+                : U
+        {}
 
-	class C2
-	{};
+        class C2
+        {};
 }
 
 void test60()
 {
-	B60!(int, long).Thing	thing1;
-	B60!(int).Thing		thing2;
+        B60!(int, long).Thing   thing1;
+        B60!(int).Thing         thing2;
 
-	printf("thing1.sizeof: %u\n", thing1.sizeof);
-	printf("thing2.sizeof: %u\n", thing2.sizeof);
+        printf("thing1.sizeof: %u\n", thing1.sizeof);
+        printf("thing2.sizeof: %u\n", thing2.sizeof);
 
         version (Win32)
             assert(thing1.sizeof == 16);
@@ -1460,12 +1460,12 @@ void test60()
             assert(thing1.sizeof == 16);
         else
             assert(thing1.sizeof == 12);
-	assert(thing2.sizeof == 8);
+        assert(thing2.sizeof == 8);
 
-	C60!(int /*,A60*/ )	container1;
+        C60!(int /*,A60*/ )     container1;
 
-	printf("container1.sizeof: %u\n", container1.sizeof);
-	assert(container1.sizeof == (void*).sizeof);
+        printf("container1.sizeof: %u\n", container1.sizeof);
+        assert(container1.sizeof == (void*).sizeof);
 }
 
 /******************************************/
@@ -1476,7 +1476,7 @@ struct Foo61
 
     template Bar(T)
     {
-	T abc() { return a; }
+        T abc() { return a; }
     }
 
     int def() { return 4; }
@@ -1507,7 +1507,7 @@ class Foo62(T)
 {
     template Bar(T)
     {
-	int func() { return 3; }
+        int func() { return 3; }
     }
 }
 
@@ -1524,13 +1524,13 @@ class Foo63(T)
 {
     template Bar(T)
     {
-	int func() { this.def(); return 3; }
-	int func2() { return 4; }
+        int func() { this.def(); return 3; }
+        int func2() { return 4; }
     }
 
     void def()
     {
-	assert(Bar!(T).func2() == 4);
+        assert(Bar!(T).func2() == 4);
     }
 }
 
@@ -1546,7 +1546,7 @@ void test63()
 
 struct XVector(qfloat)
 {
-    qfloat x;qfloat y;qfloat z;  
+    qfloat x;qfloat y;qfloat z;
 
     static int opCall (qfloat x, qfloat y, qfloat z) { return 8; }
 }
@@ -1571,8 +1571,8 @@ struct Foo65
 
     size_t test()
     {
-	value_type[] e = new value_type[length];
-	return e.length;
+        value_type[] e = new value_type[length];
+        return e.length;
     }
 }
 
@@ -1587,22 +1587,22 @@ void test65()
 
 class Thing66
 {
-	template print(T2)
-	{
-		void print(T2 t)
-		{
-		    printf("t = %d\n", t);
-		    assert(t == 10);
-		}
-	}
+        template print(T2)
+        {
+                void print(T2 t)
+                {
+                    printf("t = %d\n", t);
+                    assert(t == 10);
+                }
+        }
 }
 
 
 void test66()
 {
-	Thing66 thing = new Thing66;
+        Thing66 thing = new Thing66;
 
-	thing.print!(int)(10);
+        thing.print!(int)(10);
 }
 
 /******************************************/
@@ -1611,8 +1611,8 @@ template Foo67(alias T)
 {
     void Foo67()
     {
-	printf("T = '%.*s'\n", T.length, T.ptr);
-	assert(T == "hello");
+        printf("T = '%.*s'\n", T.length, T.ptr);
+        assert(T == "hello");
     }
 }
 
@@ -1632,12 +1632,12 @@ template T68(int a) {
 
 void test68()
 {
-	int i;
+        int i;
 
-	i = T68!(4>1?4:1).vec[0];
-	assert(i == 0);
-	i = T68!(4==1?1:(1==1?4:(4>1?1:4))).vec[0];
-	assert(i == 0);
+        i = T68!(4>1?4:1).vec[0];
+        assert(i == 0);
+        i = T68!(4==1?1:(1==1?4:(4>1?1:4))).vec[0];
+        assert(i == 0);
 }
 
 /******************************************/
@@ -1690,7 +1690,7 @@ template temptt70(alias func)
 {
    void temp()
    {
-	func();
+        func();
    }
 }
 
@@ -1732,8 +1732,8 @@ template foo72(T)
 {
     char[] foo72(T d)
     {
-	uint sz = typeof(d[0]).sizeof * 2;
-	return null;
+        uint sz = typeof(d[0]).sizeof * 2;
+        return null;
     }
 }
 
@@ -1823,7 +1823,7 @@ class Lope(T) : Iterable!(T)
 {
   Indian!(T) foo()
   {
-	return new Corn!(T);
+        return new Corn!(T);
   }
 }
 
@@ -1832,7 +1832,7 @@ class Corn(T) : Indian!(T)
 }
 
 void test76()
-{ 
+{
   Lope!(int) x = new Lope!(int);
 }
 
@@ -1845,17 +1845,17 @@ class RawFile
 
 class Stream : RawFile
 {
-	template readLineT(T) { bool readLineT()
-	{
-		if (super)
-			return false;
-		return true;
-	}}
+        template readLineT(T) { bool readLineT()
+        {
+                if (super)
+                        return false;
+                return true;
+        }}
 
-	bool readLine()
-	{
-		return readLineT!(int)();
-	}
+        bool readLine()
+        {
+                return readLineT!(int)();
+        }
 }
 
 void test77()
@@ -1874,8 +1874,8 @@ template WhatFour(U,V,X,Y)
 {
     int func(Four!(U,V,X,Y) four)
     {
-	printf("general template\n");
-	return 1;
+        printf("general template\n");
+        return 1;
     }
 }
 
@@ -1883,8 +1883,8 @@ template WhatFour(U:int,V,X,Y)
 {
     int func(Four!(int,V,X,Y) four)
     {
-	printf("specialization:: first int\n");
-	return 2;
+        printf("specialization:: first int\n");
+        return 2;
     }
 }
 
@@ -1892,8 +1892,8 @@ template WhatFour(U,V:U,X,Y:X)
 {
     int func(Four!(U,U,X,X) four)
     {
-	printf("specialization:: first two equal, second two equal\n");
-	return 3;
+        printf("specialization:: first two equal, second two equal\n");
+        return 3;
     }
 }
 
@@ -1933,16 +1933,16 @@ specialization:: first int
 // http://www.digitalmars.com/pnews/read.php?server=news.digitalmars.com&group=digitalmars.D.bugs&artnum=2117
 
 class Conversion(T,U){
-	alias char Small;
-	class Big{
-		char[2] dummy;
-	}
-	static Small Test(U u);
-	static Big Test(...);
-	static T MakeT();
-	enum {
-		exists = (Test(MakeT())).sizeof == (Small).sizeof
-	}
+        alias char Small;
+        class Big{
+                char[2] dummy;
+        }
+        static Small Test(U u);
+        static Big Test(...);
+        static T MakeT();
+        enum {
+                exists = (Test(MakeT())).sizeof == (Small).sizeof
+        }
 }
 
 void variadicDummy(...){
@@ -1950,7 +1950,7 @@ void variadicDummy(...){
 
 void test79()
 {
-	variadicDummy(Conversion!(double,int).exists);
+        variadicDummy(Conversion!(double,int).exists);
 }
 
 /******************************************/

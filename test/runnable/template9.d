@@ -2599,8 +2599,8 @@ void test9885()
     }
     W!(int,int[]).woo(1,2,3);
     W!(int,int[2]).woo(1,2,3);
-    static assert(!__traits(compiles, W!(int,int,int).woo(1,2,3)));	// int... <- 2
-    static assert(!__traits(compiles, W!(int,int).woo(1,2)));		// int... <- 2
+    static assert(!__traits(compiles, W!(int,int,int).woo(1,2,3)));     // int... <- 2
+    static assert(!__traits(compiles, W!(int,int).woo(1,2)));           // int... <- 2
     static assert(!__traits(compiles, W!(int,int[2]).woo(1,2)));    // int[2]... <- 2
 
     R!().roo(1, "", []);

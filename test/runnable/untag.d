@@ -61,7 +61,7 @@ void untag(string txt, string filename) {
             currentParagraph ~= c;
         }
     }
-    
+
     void writeWords(string s) {
         if (bug == 0) {
             foreach (dchar c; s) {
@@ -74,7 +74,7 @@ void untag(string txt, string filename) {
             currentParagraph = currentParagraph ~ s;
         }
     }
-    
+
     // Parse the content
     while (!txt.empty) {
         size_t i = 0;

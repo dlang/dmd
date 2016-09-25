@@ -436,16 +436,16 @@ void test8128()
 /* ================================ */
 
 class C8635{
-	int x;
-	this(int x)
-	{
-		this.x = x;
-	}
+        int x;
+        this(int x)
+        {
+                this.x = x;
+        }
 }
 void test8635()
 {
-	assert(new C8635(2).x==2);
-	assert(new C8635(3).x==3);
+        assert(new C8635(2).x==2);
+        assert(new C8635(3).x==3);
 }
 
 /* ================================ */

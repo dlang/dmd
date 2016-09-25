@@ -33,7 +33,7 @@ void test1()
     version (Win64)
     { }
     else
-	assert(tan(f) == tan(6.8L));
+        assert(tan(f) == tan(6.8L));
     static assert(approxEqual(tan(6.8L), 0x1.22fd752af75cd08cp-1));
 }
 
