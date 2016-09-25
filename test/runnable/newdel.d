@@ -10,35 +10,35 @@ class Foo
     static uint flags;
 
     new(size_t sz, int x)
-    {	void* p;
+    {   void* p;
 
-	printf("Foo.new(sz = %d, x = %d)\n", sz, x);
-	assert(sz == Foo.classinfo.init.length);
-	assert(x == 5);
+        printf("Foo.new(sz = %d, x = %d)\n", sz, x);
+        assert(sz == Foo.classinfo.init.length);
+        assert(x == 5);
 
-	p = core.stdc.stdlib.malloc(sz);
-	flags |= 4;
-	return p;
+        p = core.stdc.stdlib.malloc(sz);
+        flags |= 4;
+        return p;
     }
 
     this()
     {
-	printf("this() %p\n", this);
-	a = 36;
+        printf("this() %p\n", this);
+        a = 36;
     }
 
     ~this()
     {
-	printf("~this() %p\n", this);
-	a = -5;
-	flags |= 1;
+        printf("~this() %p\n", this);
+        a = -5;
+        flags |= 1;
     }
 
     delete(void* p)
     {
-	printf("delete %p\n", p);
-	free(p);
-	flags |= 2;
+        printf("delete %p\n", p);
+        free(p);
+        flags |= 2;
     }
 
     int a = 3;
@@ -68,22 +68,22 @@ struct Foo2
     static uint flags;
 
     new(size_t sz, int x)
-    {	void* p;
+    {   void* p;
 
-	printf("Foo2.new(sz = %d, x = %d)\n", sz, x);
-	assert(sz == Foo2.sizeof);
-	assert(x == 5);
+        printf("Foo2.new(sz = %d, x = %d)\n", sz, x);
+        assert(sz == Foo2.sizeof);
+        assert(x == 5);
 
-	p = core.stdc.stdlib.malloc(sz);
-	flags |= 4;
-	return p;
+        p = core.stdc.stdlib.malloc(sz);
+        flags |= 4;
+        return p;
     }
 
     delete(void *p)
     {
-	printf("p = %p\n", p);
-	flags |= 2;
-	core.stdc.stdlib.free(p);
+        printf("p = %p\n", p);
+        flags |= 2;
+        core.stdc.stdlib.free(p);
     }
 }
 

@@ -6,16 +6,16 @@ import imports.inline2a;
 
 class Foo
 {
-	this ()
-	{
-		Primes.lookup(2);	
-	}
+        this ()
+        {
+                Primes.lookup(2);
+        }
 }
 
 
 int main()
 {
-	Primes.lookup(2);
-	return 0;
+        Primes.lookup(2);
+        return 0;
 }
 

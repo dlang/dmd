@@ -102,9 +102,9 @@ void test6()
 
 enum
 {
-	foo7 = 1,
-	long bar7 = 2,
-	abc7,
+        foo7 = 1,
+        long bar7 = 2,
+        abc7,
 }
 
 enum x7 = 3;
@@ -116,7 +116,7 @@ void test7()
     assert(is(typeof(bar7) == long));
     assert(is(typeof(abc7) == long));
     assert(abc7 == 3L);
-} 
+}
 
 /***********************************/
 
@@ -124,7 +124,7 @@ enum E8 : real { a, b }
 
 /***********************************/
 
-struct S7379 
+struct S7379
 {
 
     enum ENUM

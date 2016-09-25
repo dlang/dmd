@@ -9,7 +9,7 @@ class A1
     union
     {
         struct
-	{
+        {
             int x;
             public int y;
         }
@@ -21,7 +21,7 @@ class A2
 {
     struct
     {
-	int x;
+        int x;
         public int y;
     }
 }
@@ -30,7 +30,7 @@ class A3
 {
     union
     {
-	int x;
+        int x;
         public int y;
     }
 }
@@ -63,7 +63,7 @@ struct A4
     union
     {
         struct
-	{
+        {
             int x = 13;
         }
         int y;
@@ -112,12 +112,12 @@ void test6()
   {
     void i6(float j)
     {
-	m6 = j;
+        m6 = j;
     }
 
     void g()
     {
-	i6 = 1;
+        i6 = 1;
     }
     g();
   }
@@ -140,7 +140,7 @@ const int b2 = a2 - 1;
 
 const int c1 = 50*50;
 const int c2 = (a1-1)*(a2-1);
-const int c3 = b1*b2; 
+const int c3 = b1*b2;
 
 int[4*c1]  array1;  // illegal!
 int[4*c2]  array2;  // illegal!
@@ -172,8 +172,8 @@ struct Foo8
 {
     static Foo8 bar()
     {
-	Foo8 res;
-	return res;
+        Foo8 res;
+        return res;
     }
 }
 
@@ -225,11 +225,11 @@ void test11()
     int i=1;
     switch(i)
     {
-	case 1:
-	    break;
+        case 1:
+            break;
 
-	default:
-	    break;
+        default:
+            break;
     }
 }
 
@@ -272,7 +272,7 @@ void write14(bool[] c)
 {
     printf("[%2d]: ", c.length);
     foreach (bool x; c)
-	printf("%d,", x);
+        printf("%d,", x);
     printf("\n");
 }
 
@@ -308,24 +308,24 @@ void test14()
 
 void test15()
 {
-	bool[] b;
-	bool[] c;
+        bool[] b;
+        bool[] c;
 
-	b.length = 10;
-	c = b[0..4];
-	c[] = true;
+        b.length = 10;
+        c = b[0..4];
+        c[] = true;
 
-	assert(b[0] == true);
-	assert(b[1] == true);
-	assert(b[2] == true);
-	assert(b[3] == true);
+        assert(b[0] == true);
+        assert(b[1] == true);
+        assert(b[2] == true);
+        assert(b[3] == true);
 
-	assert(b[4] == false);
-	assert(b[5] == false);
-	assert(b[6] == false);
-	assert(b[7] == false);
-	assert(b[8] == false);
-	assert(b[9] == false);
+        assert(b[4] == false);
+        assert(b[5] == false);
+        assert(b[6] == false);
+        assert(b[7] == false);
+        assert(b[8] == false);
+        assert(b[9] == false);
 }
 
 /*****************************************/
@@ -334,17 +334,17 @@ int y16;
 
 class C16
 {
-	new(size_t size, byte blah){
-		void* v = (new byte[C16.classinfo.init.length]).ptr;
-		y16 = 1;
-		assert(blah == 3);
-		return v;
-	}
-	int x;
-	this()
-	{
-	    x = 4;
-	}
+        new(size_t size, byte blah){
+                void* v = (new byte[C16.classinfo.init.length]).ptr;
+                y16 = 1;
+                assert(blah == 3);
+                return v;
+        }
+        int x;
+        this()
+        {
+            x = 4;
+        }
 }
 
 void test16()
@@ -472,11 +472,11 @@ void test21()
 void test22()
 {
     struct foo1 { int a; int b; int c; }
-    
+
     class foo2
     {
         foo1[] x;
-        
+
         foo1 fooret(foo1 foo2)
         {
             x.length = 9;
@@ -610,25 +610,25 @@ void test31()
 
 template Foo33(T, int L)
 {
-	T[L] arr;
-	class Bar {
-		int before = 6;
-		T[L] arr;
-		int after = 7;
-	}
+        T[L] arr;
+        class Bar {
+                int before = 6;
+                T[L] arr;
+                int after = 7;
+        }
 }
 
 void test33()
 {
-	alias Foo33!(int, 100) foo;
-	foreach (int x; foo.arr)
-		assert(x == int.init);
+        alias Foo33!(int, 100) foo;
+        foreach (int x; foo.arr)
+                assert(x == int.init);
 
-	foo.Bar bar = new foo.Bar();
-	foreach (int x; bar.arr)
-	{	//printf("%d\n", x);
-		assert(x == int.init);
-	}
+        foo.Bar bar = new foo.Bar();
+        foreach (int x; bar.arr)
+        {       //printf("%d\n", x);
+                assert(x == int.init);
+        }
 }
 
 
@@ -636,21 +636,21 @@ void test33()
 
 void test34()
 {
-	bool[1] a;
-	bool[1] b;
+        bool[1] a;
+        bool[1] b;
 
-	bool[] concat() {
-		return a~b;
-	}
+        bool[] concat() {
+                return a~b;
+        }
 
-	a[]=0;
-	b[]=1;
+        a[]=0;
+        b[]=1;
 
-	bool[] arr=concat();
+        bool[] arr=concat();
 
-	assert(arr.length==2);
-	assert(arr[0]==0);
-	assert(arr[1]==1);
+        assert(arr.length==2);
+        assert(arr[0]==0);
+        assert(arr[1]==1);
 }
 
 /*****************************************/
@@ -670,56 +670,56 @@ void test35()
 
 void test36()
 {
-	int[] a;
-	a.length = 2;
-	a[0]=1;
-	a[1]=2;
-	
-	int[] b;
-	b.length = 1;
-	b[0]=3;
-	
-	a~=b;
-	
-	assert(a.length==3);
-	assert(a[0]==1);
-	assert(a[1]==2);
-	assert(a[2]==3);
-	
-	assert(b.length==1);
-	assert(b[0]==3);
+        int[] a;
+        a.length = 2;
+        a[0]=1;
+        a[1]=2;
+
+        int[] b;
+        b.length = 1;
+        b[0]=3;
+
+        a~=b;
+
+        assert(a.length==3);
+        assert(a[0]==1);
+        assert(a[1]==2);
+        assert(a[2]==3);
+
+        assert(b.length==1);
+        assert(b[0]==3);
 }
 
 /*****************************************/
 
 struct Range{
-	int width(){
-		return 1;
-	}
+        int width(){
+                return 1;
+        }
 }
 
 class Container {
-	Range opIndex(int i){
-		return data[i];
-	}
-    
-	Range[2] data;
+        Range opIndex(int i){
+                return data[i];
+        }
+
+        Range[2] data;
 }
 
 void test37()
 {
-	Container ranges=new Container;
+        Container ranges=new Container;
 
-// fails with -inline  
-//	assert(ranges[0].width() == 1);
+// fails with -inline
+//      assert(ranges[0].width() == 1);
 }
 
 /*****************************************/
 
 void test38()
 {
-	uint mask = (uint.max >> 1);
-	assert(mask == (uint.max >> 1));
+        uint mask = (uint.max >> 1);
+        assert(mask == (uint.max >> 1));
 }
 
 
@@ -727,38 +727,38 @@ void test38()
 
 void test39()
 {
-	char[] a;
-	char[] r;
+        char[] a;
+        char[] r;
 
-	a = "abcd".dup;
-	r = a.reverse;
-	assert(r=="dcba");
-	assert(r.ptr==a.ptr);
+        a = "abcd".dup;
+        r = a.reverse;
+        assert(r=="dcba");
+        assert(r.ptr==a.ptr);
 
-	a = "-\U000000A1\U00000901\U0000FFEE\U00010000\U000FFFFD_".dup;
-	r = a.reverse;
-	assert(r == "_\U000FFFFD\U00010000\U0000FFEE\U00000901\U000000A1-");
-	assert(a.ptr==r.ptr);
+        a = "-\U000000A1\U00000901\U0000FFEE\U00010000\U000FFFFD_".dup;
+        r = a.reverse;
+        assert(r == "_\U000FFFFD\U00010000\U0000FFEE\U00000901\U000000A1-");
+        assert(a.ptr==r.ptr);
 }
 
 /*****************************************/
 
 void test40()
 {
-	wchar[] a;
-	wchar[] r;
+        wchar[] a;
+        wchar[] r;
 
-	a = "abcd"w.dup;
-	a = a.dup;
-	r = a.reverse;
-	assert(r=="dcba");
-	assert(r.ptr==a.ptr);
+        a = "abcd"w.dup;
+        a = a.dup;
+        r = a.reverse;
+        assert(r=="dcba");
+        assert(r.ptr==a.ptr);
 
-	a = "-\U000000A1\U00000901\U0000FFEE\U00010000\U000FFFFD_"w.dup;
-	a = a.dup;
-	r = a.reverse;
-	assert(r == "_\U000FFFFD\U00010000\U0000FFEE\U00000901\U000000A1-");
-	assert(a.ptr==r.ptr);
+        a = "-\U000000A1\U00000901\U0000FFEE\U00010000\U000FFFFD_"w.dup;
+        a = a.dup;
+        r = a.reverse;
+        assert(r == "_\U000FFFFD\U00010000\U0000FFEE\U00000901\U000000A1-");
+        assert(a.ptr==r.ptr);
 }
 
 /*****************************************/
@@ -772,55 +772,55 @@ void test41()
 
 void test42()
 {
-	static ubyte[] master = [
-		0xE3u, 0x83u, 0xAFu, 0xE3u, 0x83u, 0xADu, 0xE3u, 0x82u,
-		0xB9u, 0xEFu, 0xBDu, 0x97u
-	];
+        static ubyte[] master = [
+                0xE3u, 0x83u, 0xAFu, 0xE3u, 0x83u, 0xADu, 0xE3u, 0x82u,
+                0xB9u, 0xEFu, 0xBDu, 0x97u
+        ];
 
-	string string1 =  "ワロスｗ";
-	string string2 = r"ワロスｗ";
-	string string3 =  `ワロスｗ`;
-	string string4 = x"E3 83 AF E3 83 AD E3 82 B9 EF BD 97";
+        string string1 =  "ワロスｗ";
+        string string2 = r"ワロスｗ";
+        string string3 =  `ワロスｗ`;
+        string string4 = x"E3 83 AF E3 83 AD E3 82 B9 EF BD 97";
 
-	assert(string1.length==master.length);
+        assert(string1.length==master.length);
 
-	for(int i=0; i<master.length; i++){
-		assert(string1[i]==master[i]);
-	}
+        for(int i=0; i<master.length; i++){
+                assert(string1[i]==master[i]);
+        }
 
-	assert(string2.length==master.length);
+        assert(string2.length==master.length);
 
-	for(int i=0; i<master.length; i++){
-		assert(string2[i]==master[i]);
-	}
+        for(int i=0; i<master.length; i++){
+                assert(string2[i]==master[i]);
+        }
 
-	assert(string3.length==master.length);
+        assert(string3.length==master.length);
 
-	for(int i=0; i<master.length; i++){
-		assert(string3[i]==master[i]);
-	}
+        for(int i=0; i<master.length; i++){
+                assert(string3[i]==master[i]);
+        }
 
-	assert(string4.length==master.length);
+        assert(string4.length==master.length);
 
-	for(int i=0; i<master.length; i++){
-		assert(string4[i]==master[i]);
-	}
+        for(int i=0; i<master.length; i++){
+                assert(string4[i]==master[i]);
+        }
 }
-	
+
 /*****************************************/
 
 struct S43
 {
-	int i=1;
+        int i=1;
 }
 
 static S43[3] s= [ 1: { 2 } ];
 
 void test43()
 {
-	assert(s[0].i==1);
-	assert(s[1].i==2);
-	assert(s[2].i==1);
+        assert(s[0].i==1);
+        assert(s[1].i==2);
+        assert(s[2].i==1);
 }
 
 /*****************************************/
@@ -955,7 +955,7 @@ void test49()
     int[10] a = void;
     foreach (int x; a)
     {
-	printf("\tx = %d\n", x);
+        printf("\tx = %d\n", x);
     }
 }
 
@@ -978,13 +978,13 @@ void test51()
     printf("qwert.sizeof = %d\n", qwert.sizeof);
 
     for (int i = 0; i < 3; i++)
-	for (int j = 0; j < 9; j++)
-	    assert(qwert[i][j] == false);
+        for (int j = 0; j < 9; j++)
+            assert(qwert[i][j] == false);
 
     version (D_Bits)
-	assert(qwert.sizeof == 12);
+        assert(qwert.sizeof == 12);
     else
-	assert(qwert.sizeof == 27);
+        assert(qwert.sizeof == 27);
 
     qwert[0][3] = true;
     qwert[0][5] = true;
@@ -994,15 +994,15 @@ void test51()
 
     for (int i = 0; i < 3; i++)
     {
-	assert(qwert[i][0] == false);
-	assert(qwert[i][1] == false);
-	assert(qwert[i][2] == false);
-	assert(qwert[i][3] == true);
-	assert(qwert[i][4] == false);
-	assert(qwert[i][5] == true);
-	assert(qwert[i][6] == false);
-	assert(qwert[i][7] == true);
-	assert(qwert[i][8] == false);
+        assert(qwert[i][0] == false);
+        assert(qwert[i][1] == false);
+        assert(qwert[i][2] == false);
+        assert(qwert[i][3] == true);
+        assert(qwert[i][4] == false);
+        assert(qwert[i][5] == true);
+        assert(qwert[i][6] == false);
+        assert(qwert[i][7] == true);
+        assert(qwert[i][8] == false);
     }
 }
 
@@ -1059,19 +1059,19 @@ struct S54
 {
     static S54 foo()
     {
-	S54 s; 
-	with (s) {} // bug
-	return s;
+        S54 s;
+        with (s) {} // bug
+        return s;
     }
 
     static S54 bar()
     {
-	return S54.foo() * S54.foo();
+        return S54.foo() * S54.foo();
     }
 
     S54 opMul(S54 s)
     {
-	return s;
+        return s;
     }
 }
 
@@ -1108,16 +1108,16 @@ void test56()
 
     for (int i = 0; i < 4; i++)
     {
-	assert(a[i] == 'a');
-	assert(b[i] == 'a');
+        assert(a[i] == 'a');
+        assert(b[i] == 'a');
     }
 
     a[] = b[] = 'b';
 
     for (int i = 0; i < 4; i++)
     {
-	assert(a[i] == 'b');
-	assert(b[i] == 'b');
+        assert(a[i] == 'b');
+        assert(b[i] == 'b');
     }
 
 }
@@ -1127,13 +1127,13 @@ void test56()
 
 void test57()
 {
-	char[] a;
-	char[] b;
+        char[] a;
+        char[] b;
 
-	a = a ~ 'x';
-	assert(a == "x");
-	b = 'c' ~ a ~ 'b';
-	assert(b == "cxb");
+        a = a ~ 'x';
+        assert(a == "x");
+        b = 'c' ~ a ~ 'b';
+        assert(b == "cxb");
 }
 
 
@@ -1200,12 +1200,12 @@ class C60
 
     static this()
     {
-	x = 5;
+        x = 5;
     }
 
     this()
     {
-	y = 7;
+        y = 7;
     }
 }
 
@@ -1235,11 +1235,11 @@ void foo61(real[] arr)
 
     for (size_t j = i; j >= i; j -= i)
     {
-	// interesting results follow from this:
-	printf("%d ", i);
-	// it prints a _lot_ of ones
+        // interesting results follow from this:
+        printf("%d ", i);
+        // it prints a _lot_ of ones
 
-	arr[j] = arr[j - i];
+        arr[j] = arr[j - i];
     }
 }
 
@@ -1249,7 +1249,7 @@ void test61()
     array.length = 2; // whatever, as long as it's more than 1
 
     foreach (ref real i; array)
-	i = 1; // just something
+        i = 1; // just something
 
     foo61(array);
 }

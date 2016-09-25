@@ -16,25 +16,25 @@ class bar : foo
   extern (C)
     int testc(int i)
     {
-	printf("foo.testc(%p)\n", this);
-	assert(x == 47);
-	return i + x;
+        printf("foo.testc(%p)\n", this);
+        assert(x == 47);
+        return i + x;
     }
 
   extern (Windows)
     int testw(int i)
     {
-	printf("foo.testw(%p)\n", this);
-	assert(x == 47);
-	return i + x;
+        printf("foo.testw(%p)\n", this);
+        assert(x == 47);
+        return i + x;
     }
 
   extern (D)
     int testd(int i)
     {
-	printf("foo.testd(%p)\n", this);
-	assert(x == 47);
-	return i + x;
+        printf("foo.testd(%p)\n", this);
+        assert(x == 47);
+        return i + x;
     }
 }
 

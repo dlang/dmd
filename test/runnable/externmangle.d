@@ -153,7 +153,7 @@ final class Test37
     {
         return new Test37;
     }
-    
+
     bool test()
     {
         return true;
@@ -282,18 +282,18 @@ void main()
     assert(testlongmangle(1, 2, 3, 4) == 10);
     assert(test31 == [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]);
     assert(test32 == null);
-    
+
     auto ee = Expression.create(42);
     extern(C++) static int efun(Expression e, void* p)
     {
         return cast(int)(cast(size_t)p ^ e.getType());
     }
-    
+
     extern(C++) static int efun2(Expression e, void* p)
     {
         return cast(int)(cast(size_t)p * e.getType());
     }
-    
+
     auto test33 = ee.apply(&efun, &efun2, cast(void*)&Expression.create);
     assert(test33 == cast(int)(cast(size_t)cast(void*)&Expression.create ^ 42) * cast(int)(cast(size_t)cast(void*)&Expression.create * 42));
     Expression.dispose(ee);

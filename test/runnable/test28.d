@@ -165,10 +165,10 @@ void test10()
     if (1)
     {
         foo10( new class() CBase10
-	       {
+               {
                     this() { super(); }
                }
-	     );
+             );
     }
     return;
 }
@@ -178,15 +178,15 @@ void test10()
 struct Foo11
 {
     static
-	int func(T)(T a) { assert(a == 1); return 0; }
+        int func(T)(T a) { assert(a == 1); return 0; }
 }
 
 void test11()
 {
-	auto a = Foo11.init.func(1);
-	a = Foo11.init.func!(int)(1);
-	a = Foo11.func(1);
-	a = Foo11.func!(int)(1);
+        auto a = Foo11.init.func(1);
+        a = Foo11.init.func!(int)(1);
+        a = Foo11.func(1);
+        a = Foo11.func!(int)(1);
 }
 
 /*******************************************/
@@ -205,10 +205,10 @@ void test12()
 template check( char ch1, char ch2)
 {
     const bool check = ch1 == ch2;
-}        
+}
 
-void test13() 
-{ 
+void test13()
+{
         const char[] s = "123+456" ;
         assert(check!( '+', s[3] ) == true);
 }
@@ -226,7 +226,7 @@ void test14()
 
 void func15(...)
 in {
-    writefln("Arguments len = %d\n", _arguments.length); 
+    writefln("Arguments len = %d\n", _arguments.length);
     assert(_arguments.length == 2);
 }
 body {
@@ -260,11 +260,11 @@ class Pinky : Pen {
 
 class Printer {
     void vprint(Pen obj) {
-	assert(obj.foo() == 1 || obj.foo() == 2);
+        assert(obj.foo() == 1 || obj.foo() == 2);
     }
 
     C print(C)(C obj) {
-	assert(obj.foo() == 1 || obj.foo() == 2);
+        assert(obj.foo() == 1 || obj.foo() == 2);
         return obj;
     }
 
@@ -277,17 +277,17 @@ void test18()
     p.print(new Penfold);
     with (p)
     {
-	vprint(new Pinky);
-	vprint(new Penfold);
+        vprint(new Pinky);
+        vprint(new Penfold);
 
-	print!(Pinky)(new Pinky);
-	print!(Penfold)(new Penfold);
+        print!(Pinky)(new Pinky);
+        print!(Penfold)(new Penfold);
 
-	p.print(new Pinky);
-	p.print(new Penfold);
+        p.print(new Pinky);
+        p.print(new Penfold);
 
-	print(new Pinky);
-	print(new Penfold);
+        print(new Pinky);
+        print(new Penfold);
     }
 }
 
@@ -325,31 +325,31 @@ class T : U {}
 
 void test20()
 {
-	T*   ptr;
-	T[2] sar;
-	T[]  dar;
+        T*   ptr;
+        T[2] sar;
+        T[]  dar;
 
-	// all of the following should work according to the "Implicit
-	// Conversions" section of the spec
+        // all of the following should work according to the "Implicit
+        // Conversions" section of the spec
 
-	tPtr(ptr);
-	tPtr(sar.ptr);
-	tPtr(dar.ptr);
-	tDar(sar);
+        tPtr(ptr);
+        tPtr(sar.ptr);
+        tPtr(dar.ptr);
+        tDar(sar);
 
-//	uPtr(ptr);	// T* => U*
-//	uPtr(sar);	// T[2] => U*
-//	uPtr(dar);	// T[] => U*
-//	uSar(sar);	// T[2] => U[2]
-//	uDar(sar);	// T[2] => U[]
+//      uPtr(ptr);      // T* => U*
+//      uPtr(sar);      // T[2] => U*
+//      uPtr(dar);      // T[] => U*
+//      uSar(sar);      // T[2] => U[2]
+//      uDar(sar);      // T[2] => U[]
 
-	uDar(dar);	// T[] => const(U)[]
-	vPtr(ptr);	// T* => void*
-	vPtr(sar.ptr);
-	vPtr(dar.ptr);
+        uDar(dar);      // T[] => const(U)[]
+        vPtr(ptr);      // T* => void*
+        vPtr(sar.ptr);
+        vPtr(dar.ptr);
 
-	vDar(sar);
-	vDar(dar);	// works, but T[] => void[] isn't mentioned in the spec
+        vDar(sar);
+        vDar(dar);      // works, but T[] => void[] isn't mentioned in the spec
 }
 
 void tPtr(T*t){}
@@ -391,7 +391,7 @@ void test22()
     int i;
 
     if ((Foo22!(char)).init == (Foo22!(char)).init)
-	i = 1;
+        i = 1;
     assert(i == 1);
 }
 
@@ -438,9 +438,9 @@ struct Foo26
     int a;
 
     static Foo26 opCall(int i)
-    {	Foo26 f;
-	f.a += i;
-	return f;
+    {   Foo26 f;
+        f.a += i;
+        return f;
     }
 }
 
@@ -462,7 +462,7 @@ struct S27
 
     void opAssign(int i)
     {
-	x = i + 1;
+        x = i + 1;
     }
 }
 
@@ -471,7 +471,7 @@ void test27()
     S27 s;
     s = 1;
     assert(s.x == 2);
-} 
+}
 
 /*******************************************/
 
@@ -481,7 +481,7 @@ class C28
 
     void opAssign(int i)
     {
-	x = i + 1;
+        x = i + 1;
     }
 }
 
@@ -491,7 +491,7 @@ void test28()
 //    C28 s = new C28;
 //    s = 1;
 //    assert(s.x == 2);
-} 
+}
 
 /*******************************************/
 
@@ -499,9 +499,9 @@ struct S29
 {
     static S29 opCall(int v)
     {
-	S29 result;
-	result.v = v;
-	return result;
+        S29 result;
+        result.v = v;
+        return result;
     }
     int a;
     int v;
@@ -527,16 +527,16 @@ struct S30
 {
     static S30 opCall(int v)
     {
-	S30 result;
+        S30 result;
 
-	void bar()
-	{
-	    result.v += 1;
-	}
+        void bar()
+        {
+            result.v += 1;
+        }
 
-	result.v = v;
-	bar();
-	return result;
+        result.v = v;
+        bar();
+        return result;
     }
     int a;
     int v;
@@ -562,21 +562,21 @@ struct S31
 {
     static void abc(S31 *r)
     {
-	r.v += 1;
+        r.v += 1;
     }
 
     static S31 opCall(int v)
     {
-	S31 result;
+        S31 result;
 
-	void bar()
-	{
-	    abc(&result);
-	}
+        void bar()
+        {
+            abc(&result);
+        }
 
-	result.v = v;
-	bar();
-	return result;
+        result.v = v;
+        bar();
+        return result;
     }
     int a;
     int v;
@@ -603,8 +603,8 @@ struct T32
 {
     int opApply(int delegate(ref int i) dg)
     {
-	int i;
-	return dg(i);
+        int i;
+        return dg(i);
     }
 }
 
@@ -612,21 +612,21 @@ struct S32
 {
     static void abc(S32 *r)
     {
-	r.v += 1;
+        r.v += 1;
     }
 
     static S32 opCall(int v)
     {
-	S32 result;
-	T32 t;
+        S32 result;
+        T32 t;
 
-	result.v = v;
-	foreach (i; t)
-	{
-	    result.v += 1;
-	    break;
-	}
-	return result;
+        result.v = v;
+        foreach (i; t)
+        {
+            result.v += 1;
+            break;
+        }
+        return result;
     }
     int a;
     int v;
@@ -684,13 +684,13 @@ template a34(string name, T...)
 {
     string a34(string name,T t)
     {
-	string localchar;
-	foreach (a34; T)
-	{
-	    writefln(`hello`);
-	    localchar ~= a34.mangleof;
-	}
-	return localchar;
+        string localchar;
+        foreach (a34; T)
+        {
+            writefln(`hello`);
+            localchar ~= a34.mangleof;
+        }
+        return localchar;
     }
 }
 
@@ -705,7 +705,7 @@ template a35(string name, T...)
 {
     int a35(M...)(M m)
     {
-	return 3;
+        return 3;
     }
 }
 
@@ -718,13 +718,13 @@ void test35()
 
 template a36(AnotherT,string name,T...){
     AnotherT a36(M...)(M){
-	AnotherT localchar;
-	foreach(a;T)
-	{
-	    writefln(`hello`);
-	    localchar~=a.mangleof;
-	}
-	return cast(AnotherT)localchar;
+        AnotherT localchar;
+        foreach(a;T)
+        {
+            writefln(`hello`);
+            localchar~=a.mangleof;
+        }
+        return cast(AnotherT)localchar;
     }
 }
 
@@ -779,8 +779,8 @@ void test39()
 {
     void print(string[] strs)
     {
-	writeln(strs);
-	assert(format("%s", strs) == `["Matt", "Andrew"]`);
+        writeln(strs);
+        assert(format("%s", strs) == `["Matt", "Andrew"]`);
     }
 
     print(["Matt", "Andrew"]);
@@ -792,17 +792,17 @@ void test40()
 {
     class C
     {
-	Object propName()
-	{
-	    return this;
-	}
+        Object propName()
+        {
+            return this;
+        }
     }
 
     auto c = new C;
 
     with (c.propName)
     {
-	writeln(toString());
+        writeln(toString());
     }
 
     auto foo = c.propName;
@@ -833,7 +833,7 @@ void test41()
 
 /*******************************************/
 
-void test42() 
+void test42()
 {
     struct X { int x; }
 
@@ -851,9 +851,9 @@ struct A43
 
     void foo()
     {
-	// This will either print garbage or throw a UTF exception.
-	// But if never_called() is commented out, then it will work.
-	writefln("%s", MY_CONST_STRING);
+        // This will either print garbage or throw a UTF exception.
+        // But if never_called() is commented out, then it will work.
+        writefln("%s", MY_CONST_STRING);
     }
 }
 
@@ -878,9 +878,9 @@ class A44
 
     this()
     {
-	// This will either print garbage or throw a UTF exception.
-	// But if never_called() is commented out, then it will work.
-	writefln("%s", MY_CONST_STRING);
+        // This will either print garbage or throw a UTF exception.
+        // But if never_called() is commented out, then it will work.
+        writefln("%s", MY_CONST_STRING);
     }
 }
 
@@ -902,7 +902,7 @@ class C45
 {
     void func(lazy size_t x)
     {
-	(new C45).func(super.toHash());
+        (new C45).func(super.toHash());
     }
 }
 
@@ -999,36 +999,36 @@ void test52()
 
 enum: int
 {
-	AF_INET53 =       2,
-	PF_INET53 =       AF_INET53,
+        AF_INET53 =       2,
+        PF_INET53 =       AF_INET53,
 }
 
 enum: int
 {
-	SOCK_STREAM53 =     1,
+        SOCK_STREAM53 =     1,
 }
 
 struct sockaddr_in53
 {
-	int sin_family = AF_INET53;
+        int sin_family = AF_INET53;
 }
 
 enum AddressFamily53: int
 {
-	INET =       AF_INET53,
+        INET =       AF_INET53,
 }
 
 enum SocketType53: int
 {
-	STREAM =     SOCK_STREAM53,
+        STREAM =     SOCK_STREAM53,
 }
 
 
 class Socket53
 {
-	this(AddressFamily53 af, SocketType53 type)
-	{
-	}
+        this(AddressFamily53 af, SocketType53 type)
+        {
+        }
 }
 
 void test53()
@@ -1051,14 +1051,14 @@ void test54()
 
 void test55()
 {
-	float[][] a = new float [][](1, 1);
+        float[][] a = new float [][](1, 1);
 
-	if((a.length != 1) || (a[0].length != 1)){
-		assert(0);
-	}
-	if (a[0][0] == a[0][0]){
-		assert(0);
-	}
+        if((a.length != 1) || (a[0].length != 1)){
+                assert(0);
+        }
+        if (a[0][0] == a[0][0]){
+                assert(0);
+        }
 }
 
 /*******************************************/
@@ -1067,9 +1067,9 @@ void test58()
 {
     struct S
     {
-	int i;
-	int[4] bar = 4;
-	float[4] abc;
+        int i;
+        int[4] bar = 4;
+        float[4] abc;
     }
 
     static S a = {i: 1};
@@ -1165,7 +1165,7 @@ struct Vector62
       ret.z = z*s;
       return ret;
     }
-} 
+}
 
 /*******************************************/
 
@@ -1193,7 +1193,7 @@ void test63()
     writeln(d.x);
     writeln(d.y);
     assert(d.x == 3 && d.y == -1);
-} 
+}
 
 /*******************************************/
 

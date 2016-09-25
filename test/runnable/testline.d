@@ -10,15 +10,15 @@ import std.stdio;
 import core.exception;
 
 int main(){
-	try{
-		#line 1 ""
-		assert(0);
-	}catch(AssertError o){
-		checkFileSpec(o);
-		return 0;
-	}
+        try{
+                #line 1 ""
+                assert(0);
+        }catch(AssertError o){
+                checkFileSpec(o);
+                return 0;
+        }
 
-	assert(0);
+        assert(0);
 }
 
 import std.stdio;
@@ -29,15 +29,15 @@ import std.stdio;
  *       "blah blah "filename" blah blah"
  */
 void checkFileSpec(Object o){
-	string str=o.toString();
+        string str=o.toString();
 
-	int start;
-	for(start=0; start<str.length; start++){
-		if(str[start]=='('){
-			break;
-		}
-	}
+        int start;
+        for(start=0; start<str.length; start++){
+                if(str[start]=='('){
+                        break;
+                }
+        }
 
 writeln(str);
-	assert(str[start .. start+3]=="(1)");
+        assert(str[start .. start+3]=="(1)");
 }
