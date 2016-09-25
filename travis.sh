@@ -2,6 +2,13 @@
 
 set -uexo pipefail
 
+if [ "$TRAVIS_OS_NAME" == osx ]; then
+    profile="vm_stat"
+else
+    profile="vmstat -s"
+fi
+date && $profile
+
 # add missing cc link in gdc-4.9.3 download
 if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
     ln -s gcc $(dirname $(which gdc))/cc
@@ -69,7 +76,12 @@ for proj in druntime phobos; do
 done
 
 build
+date && $profile
 test
+date && $profile
 rebuild
+date && $profile
 rebuild
+date && $profile
 test_dmd
+date && $profile
