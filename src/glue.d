@@ -529,22 +529,10 @@ void genObjFile(Module m, bool multiobj)
 
 private void genhelpers(Module m)
 {
-    // If module assert
-    for (int i = 0; i < 3; i++)
+    static void genhelper(Module m, Symbol* ma, uint rt, uint bc)
     {
-        Symbol *ma;
-        uint rt;
-        uint bc;
-        switch (i)
-        {
-            case 0:     ma = toModuleArray(m);    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = toModuleAssert(m);   rt = RTLSYM_DASSERT;    bc = BCexit; break;
-            case 2:     ma = toModuleUnittest(m); rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
-            default:    assert(0);
-        }
-
         if (!ma)
-            continue;
+            return;
 
         localgot = null;
 
@@ -565,7 +553,6 @@ private void genhelpers(Module m)
 
         elem *elinnum = el_var(sp);
 
-
         elem *efilename = toEfilename(m);
         if (config.exe == EX_WIN64)
             efilename = addressElem(efilename, Type.tstring, true);
@@ -583,6 +570,10 @@ private void genhelpers(Module m)
         ma.Sflags |= getRtlsym(rt).Sflags & SFLexit;
         writefunc(ma);
     }
+
+    genhelper(m, toModuleArray(m),    RTLSYM_DARRAY,    BCexit);
+    genhelper(m, toModuleAssert(m),   RTLSYM_DASSERT,   BCexit);
+    genhelper(m, toModuleUnittest(m), RTLSYM_DUNITTEST, BCret);
 }
 
 /**************************************
