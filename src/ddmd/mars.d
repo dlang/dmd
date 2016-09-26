@@ -1033,6 +1033,8 @@ Language changes listed by -transition=id:
                     goto Lnoarg;
                 }
             }
+            else if (p[1] == '\0')
+                files.push("__stdin.d");
             else
             {
             Lerror:
