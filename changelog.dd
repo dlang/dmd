@@ -18,6 +18,8 @@ $(BUGSTITLE Language Changes,
     )
 
     $(LI $(RELATIVE_LINK2 align_by_ctfe, Align attribute can be used with CTFEable expression.))
+
+    $(LI $(RELATIVE_LINK2 deprecated_implicit_cat, Implicit string concatenation is deprecated.))
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -201,6 +203,22 @@ $(BUGSTITLE Compiler Changes,
         (spec:1) test.d(13): Error: cannot implicitly convert expression (& i) of type int* to int
         ---
         $(P The number after `spec:` is the nesting of the speculative compiles.)
+    )
+
+    $(LI $(LNAME2 deprecated_implicit_cat, Implicit string concatenation is deprecated.)
+
+    $(P Implicit concatenation of string literal is a very early feature that is now supplanted
+        by the concatenation operator ('~'), the later being more explicit.)
+
+    $(P It could result in hard to spot bug, where one missed a coma in an array expression:)
+
+        ---
+        void foo ()
+        {
+          string[] arr = [ "Hello", "buggy" "World" ];
+          assert(arr.length = 3); // Fail, the length of the array is 2 and the content is [ "Hello", "buggyWorld" ]
+        }
+        ---
     )
 )
 
