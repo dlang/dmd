@@ -1420,7 +1420,15 @@ extern (C++) class FuncDeclaration : Declaration
 
             // Establish function scope
             auto ss = new ScopeDsymbol();
-            ss.parent = sc.scopesym;
+            // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
+            for (auto scx = sc; ; scx = scx.enclosing)
+            {
+                if (scx.scopesym)
+                {
+                    ss.parent = scx.scopesym;
+                    break;
+                }
+            }
             ss.loc = loc;
             ss.endlinnum = endloc.linnum;
             Scope* sc2 = sc.push(ss);
