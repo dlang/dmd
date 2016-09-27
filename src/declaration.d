@@ -1016,6 +1016,8 @@ extern (C++) class VarDeclaration : Declaration
 {
     Initializer _init;
     uint offset;
+    uint sequenceNumber;            // order the variables are declared
+    __gshared uint nextSequenceNumber;   // the counter for sequenceNumber
     FuncDeclarations nestedrefs;    // referenced by these lexically nested functions
     bool isargptr;                  // if parameter that _argptr points to
     structalign_t alignment;
@@ -1048,7 +1050,7 @@ extern (C++) class VarDeclaration : Declaration
     final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STCundefined)
     {
         super(id);
-        //printf("VarDeclaration('%s')\n", id->toChars());
+        //printf("VarDeclaration('%s')\n", id.toChars());
         assert(id);
         debug
         {
@@ -1058,12 +1060,14 @@ extern (C++) class VarDeclaration : Declaration
                 //*(char*)0=0;
             }
         }
+
         assert(type || _init);
         this.type = type;
         this._init = _init;
         this.loc = loc;
         ctfeAdrOnStack = -1;
         this.storage_class = storage_class;
+        sequenceNumber = ++nextSequenceNumber;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -2405,6 +2409,19 @@ extern (C++) class VarDeclaration : Declaration
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    /**********************************
+     * Determine if `this` has a lifetime that lasts past
+     * the destruction of `v`
+     * Params:
+     *  v = variable to test against
+     * Returns:
+     *  true if it does
+     */
+    final bool enclosesLifetimeOf(VarDeclaration v) const pure
+    {
+        return sequenceNumber < v.sequenceNumber;
     }
 }
 

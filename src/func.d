@@ -743,10 +743,9 @@ extern (C++) class FuncDeclaration : Declaration
         if ((storage_class & STCauto) && !f.isref && !inferRetType)
             error("storage class 'auto' has no effect if return type is not inferred");
 
-        /* Functions can only be 'scope' if they have a 'this' that is a pointer, not a ref
+        /* Functions can only be 'scope' if they have a 'this'
          */
-        if (f.isscope && !isNested() &&
-            !(ad && ad.isClassDeclaration()))
+        if (f.isscope && !isNested() && !ad)
         {
             error("functions cannot be scope");
         }

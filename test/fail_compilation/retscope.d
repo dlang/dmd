@@ -7,11 +7,11 @@ fail_compilation/retscope.d(23): Error: scope variable p may not be returned
 fail_compilation/retscope.d(33): Error: escaping reference to local variable j
 fail_compilation/retscope.d(46): Error: scope variable p assigned to non-scope q
 fail_compilation/retscope.d(48): Error: cannot take address of local i in @safe function test2
-fail_compilation/retscope.d(48): Error: reference to local variable i assigned to non-scope q
 fail_compilation/retscope.d(49): Error: variadic variable a assigned to non-scope b
 fail_compilation/retscope.d(50): Error: reference to stack allocated value returned by (*fp2)() assigned to non-scope q
 ---
 */
+
 
 
 
@@ -126,6 +126,12 @@ char[] bar9() @safe
 
 /*************************************************/
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(143): To enforce @safe compiler allocates a closure unless the opApply() uses 'scope'
+---
+*/
 
 struct S10
 {
@@ -144,7 +150,7 @@ S10* test10()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(153): Error: scope variable this may not be returned
+fail_compilation/retscope.d(159): Error: scope variable this may not be returned
 ---
 */
 
@@ -153,4 +159,22 @@ class C11
     @safe C11 foo() scope { return this; }
 }
 
+
+/****************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(178): Error: address of variable i assigned to p with longer lifetime
+---
+*/
+
+
+
+void foo11() @safe
+{
+    int[] p;
+    int[3] i;
+    p = i[];
+}
 
