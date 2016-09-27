@@ -18,6 +18,8 @@ $(BUGSTITLE Language Changes,
     )
 
     $(LI $(RELATIVE_LINK2 align_by_ctfe, Align attribute can be used with CTFEable expression.))
+    $(LI $(RELATIVE_LINK2 __traits(fullyQualifiedName), $D(__traits(fullyQualifiedName)) will give the fullyQualified name of a symbol as long as it is not a type.))
+
 )
 
 $(BUGSTITLE Compiler Changes,
@@ -201,6 +203,19 @@ $(BUGSTITLE Compiler Changes,
         (spec:1) test.d(13): Error: cannot implicitly convert expression (& i) of type int* to int
         ---
         $(P The number after `spec:` is the nesting of the speculative compiles.)
+    )
+
+    $(LI $(LNAME2 __traits(fullyQualifiedName), $D(__traits(fullyQualifiedName)) will give the fullyQualified name of a symbol as long as it is not a type.)
+        $(P
+            The fullyQualifiedName trait evaluates to a compiletime string which represents the fullyQualifiedName of the symbol given
+            Currently this does not work for types. But it will be added soon 
+        )
+        $(P Example:)
+        ---
+        import std.algorithm;
+        pragma(msg, __traits(fullyQualifiedName, find));
+        // this will output "std.algorithm.searching.find";
+        ---
     )
 )
 

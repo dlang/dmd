@@ -316,6 +316,7 @@ Msgtable[] msgtable =
     { "bswap" },
 
     // Traits
+    { "fullyQualifiedName" },
     { "isAbstractClass" },
     { "isArithmetic" },
     { "isAssociativeArray" },
