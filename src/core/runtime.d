@@ -305,7 +305,7 @@ struct Runtime
      *
      * Example:
      * ---------
-     * version (unittest) static this()
+     * version (unittest) shared static this()
      * {
      *     import core.runtime;
      *
