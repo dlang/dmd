@@ -139,3 +139,18 @@ S10* test10()
     return null;
 }
 
+/************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(153): Error: scope variable this may not be returned
+---
+*/
+
+class C11
+{
+    @safe C11 foo() scope { return this; }
+}
+
+

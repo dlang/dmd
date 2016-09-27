@@ -5418,6 +5418,7 @@ extern (C++) final class TypeAArray : TypeArray
                 sd.semantic(null);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
+            //printf("AA = %s, key: xeq = %p, xerreq = %p xhash = %p\n", toChars(), sd.xeq, sd.xerreq, sd.xhash);
             if (sd.xeq && sd.xeq._scope && sd.xeq.semanticRun < PASSsemantic3done)
             {
                 uint errors = global.startGagging();
@@ -5426,7 +5427,6 @@ extern (C++) final class TypeAArray : TypeArray
                     sd.xeq = sd.xerreq;
             }
 
-            //printf("AA = %s, key: xeq = %p, xhash = %p\n", toChars(), sd->xeq, sd->xhash);
             const(char)* s = (index.toBasetype().ty != Tstruct) ? "bottom of " : "";
             if (!sd.xeq)
             {

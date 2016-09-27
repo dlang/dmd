@@ -608,6 +608,13 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 er.byvalue.push(v);
         }
 
+        override void visit(ThisExp e)
+        {
+            VarDeclaration v = e.var.isVarDeclaration();
+            if (v)
+                er.byvalue.push(v);
+        }
+
         override void visit(DelegateExp e)
         {
             er.byfunc.push(e.func);
