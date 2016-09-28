@@ -67,7 +67,7 @@ test_dmd() {
 
 for proj in druntime phobos; do
     if [ $TRAVIS_BRANCH != master ] && [ $TRAVIS_BRANCH != stable ] &&
-           ! curl -fsSLI https://api.github.com/repos/dlang/$proj/branches/$TRAVIS_BRANCH; then
+           ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $TRAVIS_BRANCH > /dev/null; then
         # use master as fallback for other repos to test feature branches
         clone https://github.com/dlang/$proj.git ../$proj master
     else
