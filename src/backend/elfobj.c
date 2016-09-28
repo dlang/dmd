@@ -1608,25 +1608,7 @@ void Obj::funcptr(Symbol *s)
 
 void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 {
-    //dbg_printf("Obj::ehtables(%s) \n",sfunc->Sident);
-
-    symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
-    symbol_keep(ehtab_entry);
-
-    // needs to be writeable for PIC code, see Bugzilla 13117
-    const int shf_flags = SHF_ALLOC | SHF_WRITE;
-    const int seg = ElfObj::getsegment("deh", NULL, SHT_PROGBITS, shf_flags, NPTRSIZE);
-    ehtab_entry->Sseg = seg;
-    Outbuffer *buf = SegData[seg]->SDbuf;
-    ehtab_entry->Stype->Tmangle = mTYman_c;
-    ehsym->Stype->Tmangle = mTYman_c;
-
-    assert(sfunc->Sxtrnnum && sfunc->Sseg);
-    assert(ehsym->Sxtrnnum && ehsym->Sseg);
-    const unsigned relinfo = I64 ?  R_X86_64_64 : R_386_32;
-    ElfObj::writerel(seg, buf->size(), relinfo, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
-    ElfObj::writerel(seg, buf->size(), relinfo, MAP_SEG2SYMIDX(ehsym->Sseg), ehsym->Soffset);
-    buf->write(&sfunc->Ssize, NPTRSIZE);
+    assert(0);                  // converted to Dwarf EH debug format
 }
 
 /*********************************************
@@ -3149,21 +3131,13 @@ static void obj_rtinit()
 #if TX86
     // section start/stop symbols are defined by the linker (http://www.airs.com/blog/archives/56)
     // make the symbols hidden so that each DSO gets it's own brackets
-    IDXSYM deh_beg, deh_end, minfo_beg, minfo_end, dso_rec;
+    IDXSYM minfo_beg, minfo_end, dso_rec;
     IDXSTR namidx;
     int seg;
 
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
     const int shf_flags = SHF_ALLOC | SHF_WRITE;
-
-    namidx = Obj::addstr(symtab_strings,"__start_deh");
-    deh_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
-
-    ElfObj::getsegment("deh", NULL, SHT_PROGBITS, shf_flags, NPTRSIZE);
-
-    namidx = Obj::addstr(symtab_strings,"__stop_deh");
-    deh_end = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
 
     namidx = Obj::addstr(symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
@@ -3206,7 +3180,6 @@ static void obj_rtinit()
          *     size_t                version;
          *     DSORec               *dso_rec;
          *     void   *minfo_beg, *minfo_end;
-         *     void       *deh_beg, *deh_end;
          * } DSO;
          *
          * Generate the following function as a COMDAT so there's only one per DSO:
@@ -3214,10 +3187,6 @@ static void obj_rtinit()
          *      push    EBP
          *      mov     EBP,ESP
          *      sub     ESP,align
-         *      lea     RAX,deh_end[RIP]
-         *      push    RAX
-         *      lea     RAX,deh_beg[RIP]
-         *      push    RAX
          *      lea     RAX,minfo_end[RIP]
          *      push    RAX
          *      lea     RAX,minfo_beg[RIP]
@@ -3310,7 +3279,7 @@ static void obj_rtinit()
         else
             reltype = I64 ? R_X86_64_32 : R_386_32;
 
-        const IDXSYM syms[] = {dso_rec, minfo_beg, minfo_end, deh_beg, deh_end};
+        const IDXSYM syms[] = {dso_rec, minfo_beg, minfo_end};
 
         for (size_t i = sizeof(syms) / sizeof(syms[0]); i--; )
         {
