@@ -7192,6 +7192,7 @@ final class Parser : Lexer
                 auto postfix = token.postfix;
                 while (1)
                 {
+                    const prev = token;
                     nextToken();
                     if (token.value == TOKstring || token.value == TOKxstring)
                     {
@@ -7201,6 +7202,9 @@ final class Parser : Lexer
                                 error("mismatched string literal postfixes '%c' and '%c'", postfix, token.postfix);
                             postfix = token.postfix;
                         }
+
+                        deprecation("Implicit string concatenation is deprecated, use %s ~ %s instead",
+                                    prev.toChars(), token.toChars());
 
                         const len1 = len;
                         const len2 = token.len;
