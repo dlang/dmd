@@ -527,9 +527,9 @@ code *comsub87(elem *e,regm_t *pretregs)
             c = push87();
             c = genf2(c,0xD9,0xC0 + i); // FLD ST(i)
             if (*pretregs & XMMREGS)
-                c = cat(c,fixresult87(e,mST0,pretregs));
-            else
                 c = cat(c,fixresult(e,mST0,pretregs));
+            else
+                c = cat(c,fixresult87(e,mST0,pretregs));
         }
         else
             // Reload
