@@ -568,7 +568,14 @@ extern (C++) final class EnumMember : VarDeclaration
         protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
         linkage = LINKd;
         storage_class = STCmanifest;
-        userAttribDecl = ed.isAnonymous() ? ed.userAttribDecl : null;
+
+        if(ed.isAnonymous())
+        {
+            if(userAttribDecl)
+                userAttribDecl.userAttribDecl = ed.userAttribDecl;
+            else
+                userAttribDecl = ed.userAttribDecl;
+        }
 
         semanticRun = PASSsemantic;
 
