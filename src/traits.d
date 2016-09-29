@@ -595,80 +595,12 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
+    bool hasError;
 
-        Dsymbol s = getDsymbol(o);
+        auto fqn = getFqn(e.loc, sc, o, hasError);
 
-        uint pointerIndirectionCount;
-        const(char)[] fqn;
-
-        if (!s) if (auto t = o.getType())
-        {
-            while(t.ty == Tpointer && t.nextOf)
-            {
-                pointerIndirectionCount++;
-                t = t.nextOf;
-            }
-
-            if (auto tb = t.isTypeBasic())
-            {
-                fqn = tb.dstring[0 .. strlen(tb.dstring)];
-                goto Lreturn;
-            }
-
-            s = t.toDsymbol(sc);
-        }
-
-        if (!s || !s.ident)
-        {
-            e.error("argument %s has no name", o.toChars());
+    if (hasError)
             return new ErrorExp();
-        }
-
-        if (auto fd = s.isFuncDeclaration()) // Bugzilla 8943
-            s = fd.toAliasFunc();
-        fqn = (!s.isTemplateInstance ? s.ident.toString : "");
-
-        while(s && (!s.isModule() || s.isModule().toParent()))
-        {
-            if (s.isTemplateInstance)
-            {
-                auto ti = s.isTemplateInstance();
-                const(char)[] tiargString = "(";
-                foreach(ta;*ti.tiargs)
-                {
-                    tiargString ~= ta.toChars[0 .. strlen(ta.toChars)] ~ ", ";
-                }
-                auto td = ti.tempdecl.isTemplateDeclaration;
-                assert(td);
-
-                fqn = td.ident.toString ~ "!" ~ tiargString[0 .. $-2] ~ ")" ~ (
-                    td.onemember
-                    ? fqn[td.onemember.ident.toString.length .. $]
-                    : (fqn.length ? "." : "") ~ fqn
-                );
-
-                s = s.toParent();
-                fqn = s.ident.toString ~ "." ~ fqn;
-                continue;
-            }
-            if (s.toParent() && s.toParent().isTemplateInstance())
-            {
-                 s = s.toParent();
-                 continue;
-            }
-
-            s = s.toParent();
-            if (s)
-            {
-                assert(s.ident);
-                fqn = s.ident.toString ~ "." ~ fqn;
-            }
-        }
-    Lreturn :
-        foreach(_; 0 .. pointerIndirectionCount)
-        {
-            fqn ~= "*";
-        }
 
         auto se = new StringExp(e.loc, cast(char*)fqn.ptr, fqn.length);
         return se.semantic(sc);
@@ -1320,4 +1252,95 @@ Lfalse:
 
 Ltrue:
     return new IntegerExp(e.loc, 1, Type.tbool);
+}
+
+import ddmd.root.rootobject;
+
+const(char)[] getFqn(Loc loc, Scope *sc, RootObject o, ref bool hasError)
+{
+        if (hasError)
+           return "";
+
+        const(char)[] fqn;
+
+        Dsymbol s = getDsymbol(o);
+
+        uint pointerIndirectionCount;
+
+        if (!s) if (auto t = o.getType())
+        {
+            while(t.ty == Tpointer && t.nextOf)
+            {
+                pointerIndirectionCount++;
+                t = t.nextOf;
+            }
+
+            if (auto tb = t.isTypeBasic())
+            {
+                fqn = tb.dstring[0 .. strlen(tb.dstring)];
+                goto Lreturn;
+            }
+
+            s = t.toDsymbol(sc);
+        }
+
+        if (!s || !s.ident)
+        {
+            loc.error("argument %s has no name", o.toChars());
+            hasError = true;
+            return "";
+        }
+
+        if (auto fd = s.isFuncDeclaration()) // Bugzilla 8943
+            s = fd.toAliasFunc();
+        fqn = (!s.isTemplateInstance ? s.ident.toString : "");
+
+        while(s && (!s.isModule() || s.isModule().toParent()))
+        {
+            if (auto ti = s.isTemplateInstance)
+            {
+                const(char)[] tiargString = "(";
+                foreach(ta;*ti.tiargs)
+                {
+                    import ddmd.dtemplate : isDsymbol;
+                    if (ta.isDsymbol() || ta.isType())
+                        tiargString ~= getFqn(loc, sc, ta, hasError) ~ ", ";
+                    else
+                        tiargString ~= ta.toChars[0 .. strlen(ta.toChars)] ~ ", ";
+                }
+
+
+                auto td = ti.tempdecl.isTemplateDeclaration;
+                assert(td);
+
+                fqn = td.ident.toString ~ "!" ~ tiargString[0 .. $-2] ~ ")" ~ (
+                    td.onemember
+                    ? fqn[td.onemember.ident.toString.length .. $]
+                    : (fqn.length ? "." : "") ~ fqn
+                );
+
+                s = s.toParent();
+                fqn = s.ident.toString ~ "." ~ fqn;
+                continue;
+            }
+            if (s.toParent() && s.toParent().isTemplateInstance())
+            {
+                 s = s.toParent();
+                 continue;
+            }
+
+            s = s.toParent();
+            if (s)
+            {
+                assert(s.ident);
+                fqn = s.ident.toString ~ "." ~ fqn;
+            }
+        }
+    Lreturn :
+        foreach(_; 0 .. pointerIndirectionCount)
+        {
+            fqn ~= "*";
+        }
+
+    return fqn;
 }
