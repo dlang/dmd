@@ -1211,7 +1211,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         irs.blx = &bx;
 
         // Initialize argptr
-        if (fd.v_argptr)
+        if (fd.v_argptr && !fd.naked)
         {
             // Declare va_argsave
             if (global.params.is64bit &&

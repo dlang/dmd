@@ -4786,6 +4786,18 @@ void test5012()
 
 /****************************************************/
 
+import core.vararg;
+extern(C) void func16400(int, ...) {
+    asm {naked; ret;};
+}
+
+void test16400()
+{
+    assert(*(cast(ubyte*) &func16400) == 0xc3); // ret
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm.d\n");
@@ -4855,6 +4867,7 @@ int main()
     test59();
     test60();
     test9866();
+    test16400();
   }
     printf("Success\n");
     return 0;

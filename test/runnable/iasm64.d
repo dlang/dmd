@@ -6701,6 +6701,18 @@ L1:     pop     RAX;
 
 /****************************************************/
 
+import core.vararg;
+extern(C) void func16400(int, ...) {
+    asm {naked; ret;};
+}
+
+void test16400()
+{
+    assert(*(cast(ubyte*) &func16400) == 0xc3); // ret
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm64.d\n");
@@ -6774,6 +6786,7 @@ int main()
     test12968();
     test15999();
     testconst();
+    test16400();
 
     printf("Success\n");
     return 0;
