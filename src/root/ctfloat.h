@@ -33,6 +33,10 @@ struct CTFloat
     static bool isIdentical(real_t a, real_t b);
     static bool isNaN(real_t r);
     static bool isSNaN(real_t r);
+    /// converts real to float bug preserves signaling NaNs
+    static float toFloatPrec(real_t r);
+    /// converts real to double but preserves signaling NaNs
+    static double toDoublePrec(real_t r);
     static bool isInfinity(real_t r);
 
     static real_t parse(const char *literal, bool *isOutOfRange = NULL);
