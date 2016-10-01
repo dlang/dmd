@@ -1,15 +1,10 @@
 /**
- * This module contains the default hash implementation.
+ * The default hash implementation.
  *
- * Copyright: Copyright Sean Kelly 2009 - 2009.
+ * Copyright: Copyright Sean Kelly 2009 - 2016.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
- */
-
-/*          Copyright Sean Kelly 2009 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
+ * Source: $(DRUNTIMESRC src/rt/util/_hash.d)
  */
 module rt.util.hash;
 
@@ -22,8 +17,8 @@ version( AnyX86 )
     version = HasUnalignedOps;
 
 
-@trusted pure nothrow
-size_t hashOf( const (void)* buf, size_t len, size_t seed = 0 )
+@trusted pure nothrow @nogc
+size_t hashOf( const(void)[] buf, size_t seed )
 {
     /*
      * This is Paul Hsieh's SuperFastHash algorithm, described here:
@@ -31,7 +26,7 @@ size_t hashOf( const (void)* buf, size_t len, size_t seed = 0 )
      * It is protected by the following open source license:
      *   http://www.azillionmonkeys.com/qed/weblicense.html
      */
-    static uint get16bits( const (ubyte)* x ) pure nothrow
+    static uint get16bits( const (ubyte)* x ) pure nothrow @nogc
     {
         // CTFE doesn't support casting ubyte* -> ushort*, so revert to
         // per-byte access when in CTFE.
@@ -46,14 +41,14 @@ size_t hashOf( const (void)* buf, size_t len, size_t seed = 0 )
 
     // NOTE: SuperFastHash normally starts with a zero hash value.  The seed
     //       value was incorporated to allow chaining.
-    auto data = cast(const (ubyte)*) buf;
+    auto data = cast(const(ubyte)*) buf.ptr;
+    auto len = buf.length;
     auto hash = seed;
-    int  rem;
 
-    if( len <= 0 || data is null )
+    if( len == 0 || data is null )
         return 0;
 
-    rem = len & 3;
+    int rem = len & 3;
     len >>= 2;
 
     for( ; len > 0; len-- )
@@ -95,15 +90,18 @@ size_t hashOf( const (void)* buf, size_t len, size_t seed = 0 )
     return hash;
 }
 
-// Check that hashOf works with CTFE
 unittest
 {
-    size_t ctfeHash(string x)
-    {
-        return hashOf(x.ptr, x.length);
-    }
-
     enum test_str = "Sample string";
-    enum size_t hashVal = ctfeHash(test_str);
-    assert(hashVal == hashOf(test_str.ptr, test_str.length));
+    size_t hashval = hashOf(test_str, 5);
+
+    //import core.stdc.stdio;
+    //printf("hashval = %lld\n", cast(long)hashval);
+
+    if (hashval.sizeof == 4)
+        assert(hashval == 528740845);
+    else if (hashval.sizeof == 8)
+        assert(hashval == 8106800467257150594L);
+    else
+        assert(0);
 }

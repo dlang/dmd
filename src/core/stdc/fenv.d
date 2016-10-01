@@ -14,6 +14,15 @@
 
 module core.stdc.fenv;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 extern (C):
 @system:
 nothrow:
@@ -153,7 +162,7 @@ else version( CRuntime_Microsoft )
 
     alias fexcept_t = uint;
 }
-else version ( OSX )
+else version ( Darwin )
 {
     version ( BigEndian )
     {
@@ -186,6 +195,22 @@ else version ( FreeBSD )
     }
 
     alias ushort fexcept_t;
+}
+else version ( OpenBSD )
+{
+    struct fenv_t
+    {
+        struct __x87
+        {
+            uint    __control;
+            uint    __status;
+            uint    __tag;
+            uint[4] __others;
+        }
+    }
+    uint __mxcsr;
+
+    alias fexcept_t = uint;
 }
 else version( CRuntime_Bionic )
 {
@@ -289,13 +314,19 @@ else version( CRuntime_Microsoft )
     ///
     enum FE_DFL_ENV = &_Fenv0;
 }
-else version( OSX )
+else version( Darwin )
 {
     private extern __gshared fenv_t _FE_DFL_ENV;
     ///
     enum FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( FreeBSD )
+{
+    private extern const fenv_t __fe_dfl_env;
+    ///
+    enum FE_DFL_ENV = &__fe_dfl_env;
+}
+else version( OpenBSD )
 {
     private extern const fenv_t __fe_dfl_env;
     ///

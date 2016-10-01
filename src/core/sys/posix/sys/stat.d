@@ -19,6 +19,15 @@ private import core.stdc.stdint;
 private import core.sys.posix.time;     // for timespec
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C) nothrow @nogc:
 
@@ -629,8 +638,15 @@ version( CRuntime_Glibc )
         extern bool S_TYPEISSEM( stat_t* buf ) { return false; }
         extern bool S_TYPEISSHM( stat_t* buf ) { return false; }
     }
+
+    enum UTIME_NOW = 0x3fffffff;
+    enum UTIME_OMIT = 0x3ffffffe;
+
+    int utimensat(int dirfd, const char *pathname,
+        ref const(timespec)[2] times, int flags);
+    int futimens(int fd, ref const(timespec)[2] times);
 }
-else version( OSX )
+else version( Darwin )
 {
     // _DARWIN_FEATURE_64_BIT_INODE stat is default for Mac OSX >10.5 and is
     // only meaningful type for other OS X/Darwin variants (e.g. iOS).
@@ -775,6 +791,17 @@ else version( FreeBSD )
     extern (D) bool S_ISREG( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
+
+    enum UTIME_NOW = -1;
+    enum UTIME_OMIT = -2;
+
+    // Since FreeBSD 11:
+    version (none)
+    {
+        int utimensat(int dirfd, const char *pathname,
+            ref const(timespec)[2] times, int flags);
+        int futimens(int fd, ref const(timespec)[2] times);
+    }
 }
 else version (Solaris)
 {
@@ -1092,13 +1119,22 @@ else version (Solaris)
         }
     }
 }
-else version( OSX )
+else version( Darwin )
 {
     // OS X maintains backwards compatibility with older binaries using 32-bit
     // inode functions by appending $INODE64 to newer 64-bit inode functions.
-    pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
-    pragma(mangle, "lstat$INODE64") int lstat(in char*, stat_t*);
-    pragma(mangle, "stat$INODE64")  int stat(in char*, stat_t*);
+    version( OSX )
+    {
+        pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
+        pragma(mangle, "lstat$INODE64") int lstat(in char*, stat_t*);
+        pragma(mangle, "stat$INODE64")  int stat(in char*, stat_t*);
+    }
+    else
+    {
+        int fstat(int, stat_t*);
+        int lstat(in char*, stat_t*);
+        int stat(in char*, stat_t*);
+    }
 }
 else version( FreeBSD )
 {
@@ -1149,7 +1185,7 @@ version( CRuntime_Glibc )
 
     int mknod(in char*, mode_t, dev_t);
 }
-else version( OSX )
+else version( Darwin )
 {
     enum S_IFMT     = 0xF000; // octal 0170000
     enum S_IFBLK    = 0x6000; // octal 0060000

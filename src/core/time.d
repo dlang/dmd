@@ -45,12 +45,12 @@
     )
     $(TR $(TD $(B To $(LREF Duration)))
      $(TD -)
-     $(TD $(D tickDuration.)$(SXREF conv, to)$(D !Duration()))
+     $(TD $(D tickDuration.)$(REF_SHORT to, std,conv)$(D !Duration()))
      $(TD -)
      $(TD $(D dur!"msecs"(5)) or $(D 5.msecs()))
     )
     $(TR $(TD $(B To $(LREF TickDuration)))
-     $(TD $(D duration.)$(SXREF conv, to)$(D !TickDuration()))
+     $(TD $(D duration.)$(REF_SHORT to, std,conv)$(D !TickDuration()))
      $(TD -)
      $(TD -)
      $(TD $(D TickDuration.from!"msecs"(msecs)))
@@ -74,7 +74,6 @@
     Source:    $(DRUNTIMESRC core/_time.d)
     Macros:
     NBSP=&nbsp;
-    SXREF=<a href="std_$1.html#$2">$(D $2)</a>
  +/
 module core.time;
 
@@ -94,12 +93,21 @@ import core.sys.posix.time;
 import core.sys.posix.sys.time;
 }
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 //This probably should be moved somewhere else in druntime which
-//is OSX-specific.
-version(OSX)
+//is Darwin-specific.
+version(Darwin)
 {
 
-public import core.sys.osx.mach.kern_return;
+public import core.sys.darwin.mach.kern_return;
 
 extern(C) nothrow @nogc
 {
@@ -140,7 +148,7 @@ version(unittest) T copy(T)(T t)
     $(D ClockType), whereas with $(D std.datetime.Clock.currTime), its a runtime
     argument, since in the case of the monotonic time, the type of the clock
     affects the resolution of a $(LREF MonoTimeImpl) object, whereas with
-    $(XREF datetime, SysTime), its resolution is always hecto-nanoseconds
+    $(REF SysTime, std,datetime), its resolution is always hecto-nanoseconds
     regardless of the source of the time.
 
     $(D ClockType.normal), $(D ClockType.coarse), and $(D ClockType.precise)
@@ -277,7 +285,7 @@ else version(Windows) enum ClockType
     precise = 3,
     second = 6,
 }
-else version(OSX) enum ClockType
+else version(Darwin) enum ClockType
 {
     normal = 0,
     coarse = 2,
@@ -405,7 +413,7 @@ unittest
     (e.g. 22 days or 700 seconds).
 
     It is used when representing a duration of time - such as how long to
-    sleep with $(CXREF thread, Thread.sleep).
+    sleep with $(REF Thread.sleep, core,thread).
 
     In std.datetime, it is also used as the result of various arithmetic
     operations on time points.
@@ -418,9 +426,9 @@ unittest
     between months or years and smaller units without a specific date. So,
     nothing uses $(D Duration)s when dealing with months or years. Rather,
     functions specific to months and years are defined. For instance,
-    $(XREF datetime, Date) has $(D add!"years") and $(D add!"months") for adding
+    $(REF Date, std,datetime) has $(D add!"years") and $(D add!"months") for adding
     years and months rather than creating a Duration of years or months and
-    adding that to a $(XREF datetime, Date). But Duration is used when dealing
+    adding that to a $(REF Date, std,datetime). But Duration is used when dealing
     with weeks or smaller.
 
     Examples:
@@ -1039,7 +1047,7 @@ public:
         Returns a $(LREF TickDuration) with the same number of hnsecs as this
         $(D Duration).
         Note that the conventional way to convert between $(D Duration) and
-        $(D TickDuration) is using $(XREF conv, to), e.g.:
+        $(D TickDuration) is using $(REF to, std,conv), e.g.:
         $(D duration.to!TickDuration())
       +/
     TickDuration opCast(T)() const nothrow @nogc
@@ -1408,230 +1416,6 @@ public:
                 assert(result.seconds == -2);
                 assert(result.nsecs == -123456700);
             }
-        }
-    }
-
-
-    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
-    deprecated("Please use split instead. get was too frequently confused for total.")
-    long get(string units)() const nothrow @nogc
-        if(units == "weeks" ||
-           units == "days" ||
-           units == "hours" ||
-           units == "minutes" ||
-           units == "seconds")
-    {
-        static if(units == "weeks")
-            return getUnitsFromHNSecs!"weeks"(_hnsecs);
-        else
-        {
-            immutable hnsecs = removeUnitsFromHNSecs!(nextLargerTimeUnits!units)(_hnsecs);
-            return getUnitsFromHNSecs!units(hnsecs);
-        }
-    }
-
-    ///
-    deprecated unittest
-    {
-        assert(dur!"weeks"(12).get!"weeks" == 12);
-        assert(dur!"weeks"(12).get!"days" == 0);
-
-        assert(dur!"days"(13).get!"weeks" == 1);
-        assert(dur!"days"(13).get!"days" == 6);
-
-        assert(dur!"hours"(49).get!"days" == 2);
-        assert(dur!"hours"(49).get!"hours" == 1);
-    }
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"weeks"(12)).get!"weeks" == 12);
-            assert((cast(D)dur!"weeks"(12)).get!"days" == 0);
-
-            assert((cast(D)dur!"days"(13)).get!"weeks" == 1);
-            assert((cast(D)dur!"days"(13)).get!"days" == 6);
-
-            assert((cast(D)dur!"hours"(49)).get!"days" == 2);
-            assert((cast(D)dur!"hours"(49)).get!"hours" == 1);
-        }
-    }
-
-
-    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
-    deprecated(`Please use split instead. The functions which wrapped get were too frequently confused with total.`)
-    @property long weeks() const nothrow @nogc
-    {
-        return get!"weeks"();
-    }
-
-    ///
-    deprecated unittest
-    {
-        assert(dur!"weeks"(12).weeks == 12);
-        assert(dur!"days"(13).weeks == 1);
-    }
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"weeks"(12)).weeks == 12);
-            assert((cast(D)dur!"days"(13)).weeks == 1);
-        }
-    }
-
-
-    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
-    deprecated(`Please use split instead. days was too frequently confused for total!"days".`)
-    @property long days() const nothrow @nogc
-    {
-        return get!"days"();
-    }
-
-    ///
-    deprecated unittest
-    {
-        assert(dur!"weeks"(12).days == 0);
-        assert(dur!"days"(13).days == 6);
-        assert(dur!"hours"(49).days == 2);
-    }
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"weeks"(12)).days == 0);
-            assert((cast(D)dur!"days"(13)).days == 6);
-            assert((cast(D)dur!"hours"(49)).days == 2);
-        }
-    }
-
-
-    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
-    deprecated(`Please use split instead. hours was too frequently confused for total!"hours".`)
-    @property long hours() const nothrow @nogc
-    {
-        return get!"hours"();
-    }
-
-    ///
-    deprecated unittest
-    {
-        assert(dur!"days"(8).hours == 0);
-        assert(dur!"hours"(49).hours == 1);
-        assert(dur!"minutes"(121).hours == 2);
-    }
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"days"(8)).hours == 0);
-            assert((cast(D)dur!"hours"(49)).hours == 1);
-            assert((cast(D)dur!"minutes"(121)).hours == 2);
-        }
-    }
-
-
-    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
-    deprecated(`Please use split instead. minutes was too frequently confused for total!"minutes".`)
-    @property long minutes() const nothrow @nogc
-    {
-        return get!"minutes"();
-    }
-
-    ///
-    deprecated unittest
-    {
-        assert(dur!"hours"(47).minutes == 0);
-        assert(dur!"minutes"(127).minutes == 7);
-        assert(dur!"seconds"(121).minutes == 2);
-    }
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"hours"(47)).minutes == 0);
-            assert((cast(D)dur!"minutes"(127)).minutes == 7);
-            assert((cast(D)dur!"seconds"(121)).minutes == 2);
-        }
-    }
-
-
-    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
-    deprecated(`Please use split instead. seconds was too frequently confused for total!"seconds".`)
-    @property long seconds() const nothrow @nogc
-    {
-        return get!"seconds"();
-    }
-
-    ///
-    deprecated unittest
-    {
-        assert(dur!"minutes"(47).seconds == 0);
-        assert(dur!"seconds"(127).seconds == 7);
-        assert(dur!"msecs"(1217).seconds == 1);
-    }
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"minutes"(47)).seconds == 0);
-            assert((cast(D)dur!"seconds"(127)).seconds == 7);
-            assert((cast(D)dur!"msecs"(1217)).seconds == 1);
-        }
-    }
-
-
-    // Explicitly undocumented. It will be removed in August 2016. @@@DEPRECATED_2016-08@@@
-    deprecated(`Please use split instead.`)
-    @property FracSec fracSec() const nothrow
-    {
-        try
-        {
-            immutable hnsecs = removeUnitsFromHNSecs!("seconds")(_hnsecs);
-
-            return FracSec.from!"hnsecs"(hnsecs);
-        }
-        catch(Exception e)
-            assert(0, "FracSec.from!\"hnsecs\"() threw.");
-    }
-
-    ///
-    deprecated unittest
-    {
-        assert(dur!"msecs"(1000).fracSec == FracSec.from!"msecs"(0));
-        assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
-        assert(dur!"usecs"(43).fracSec == FracSec.from!"usecs"(43));
-        assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
-        assert(dur!"nsecs"(62_127).fracSec == FracSec.from!"nsecs"(62_100));
-
-        assert(dur!"msecs"(-1000).fracSec == FracSec.from!"msecs"(-0));
-        assert(dur!"msecs"(-1217).fracSec == FracSec.from!"msecs"(-217));
-        assert(dur!"usecs"(-43).fracSec == FracSec.from!"usecs"(-43));
-        assert(dur!"hnsecs"(-50_007).fracSec == FracSec.from!"hnsecs"(-50_007));
-        assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
-    }
-
-    deprecated unittest
-    {
-        foreach(D; _TypeTuple!(const Duration, immutable Duration))
-        {
-            assert((cast(D)dur!"msecs"(1000)).fracSec == FracSec.from!"msecs"(0));
-            assert((cast(D)dur!"msecs"(1217)).fracSec == FracSec.from!"msecs"(217));
-            assert((cast(D)dur!"usecs"(43)).fracSec == FracSec.from!"usecs"(43));
-            assert((cast(D)dur!"hnsecs"(50_007)).fracSec == FracSec.from!"hnsecs"(50_007));
-            assert((cast(D)dur!"nsecs"(62_127)).fracSec == FracSec.from!"nsecs"(62_100));
-
-            assert((cast(D)dur!"msecs"(-1000)).fracSec == FracSec.from!"msecs"(-0));
-            assert((cast(D)dur!"msecs"(-1217)).fracSec == FracSec.from!"msecs"(-217));
-            assert((cast(D)dur!"usecs"(-43)).fracSec == FracSec.from!"usecs"(-43));
-            assert((cast(D)dur!"hnsecs"(-50_007)).fracSec == FracSec.from!"hnsecs"(-50_007));
-            assert((cast(D)dur!"nsecs"(-62_127)).fracSec == FracSec.from!"nsecs"(-62_100));
         }
     }
 
@@ -2139,7 +1923,7 @@ alias MonoTime = MonoTimeImpl!(ClockType.normal);
 
     A monotonic clock is one which always goes forward and never moves
     backwards, unlike the system's wall clock time (as represented by
-    $(XREF datetime, SysTime)). The system's wall clock time can be adjusted
+    $(REF SysTime, std,datetime)). The system's wall clock time can be adjusted
     by the user or by the system itself via services such as NTP, so it is
     unreliable to use the wall clock time for timing. Timers which use the wall
     clock time could easily end up never going off due to changes made to the
@@ -2150,7 +1934,7 @@ alias MonoTime = MonoTimeImpl!(ClockType.normal);
     high precision timing.
 
     So, MonoTime should be used for anything involving timers and timing,
-    whereas $(XREF datetime, SysTime) should be used when the wall clock time
+    whereas $(REF SysTime, std,datetime) should be used when the wall clock time
     is required.
 
     The monotonic clock has no relation to wall clock time. Rather, it holds
@@ -2198,7 +1982,7 @@ struct MonoTimeImpl(ClockType clockType)
                              " is not supported by MonoTimeImpl on this system.");
         }
     }
-    else version(OSX)
+    else version(Darwin)
     {
         static if(clockType != ClockType.coarse &&
                   clockType != ClockType.normal &&
@@ -2262,7 +2046,7 @@ struct MonoTimeImpl(ClockType clockType)
             }
             return MonoTimeImpl(ticks);
         }
-        else version(OSX)
+        else version(Darwin)
             return MonoTimeImpl(mach_absolute_time());
         else version(Posix)
         {
@@ -2380,7 +2164,7 @@ auto before = MonoTime.currTime;
 // do stuff
 auto after = MonoTime.currTime;
 auto timeElapsed = after - before;
-assert(before + timeElapsed == after).
+assert(before + timeElapsed == after);
 --------------------
 
             This is generally fine, and by its very nature, converting from
@@ -2631,7 +2415,7 @@ extern(C) void _d_initMonoTime()
             }
         }
     }
-    else version(OSX)
+    else version(Darwin)
     {
         immutable long ticksPerSecond = machTicksPerSecond();
         foreach(i, typeStr; __traits(allMembers, ClockType))
@@ -2938,7 +2722,7 @@ struct TickDuration
             if(QueryPerformanceFrequency(cast(long*)&ticksPerSec) == 0)
                 ticksPerSec = 0;
         }
-        else version(OSX)
+        else version(Darwin)
         {
             ticksPerSec = machTicksPerSecond();
         }
@@ -3084,7 +2868,7 @@ struct TickDuration
         Returns a $(LREF Duration) with the same number of hnsecs as this
         $(D TickDuration).
         Note that the conventional way to convert between $(D TickDuration)
-        and $(D Duration) is using $(XREF conv, to), e.g.:
+        and $(D Duration) is using $(REF to, std,conv), e.g.:
         $(D tickDuration.to!Duration())
       +/
     Duration opCast(T)() @safe const pure nothrow @nogc
@@ -3493,7 +3277,7 @@ struct TickDuration
 
             return TickDuration(ticks);
         }
-        else version(OSX)
+        else version(Darwin)
         {
             static if(is(typeof(mach_absolute_time)))
                 return TickDuration(cast(long)mach_absolute_time());
@@ -3697,12 +3481,12 @@ unittest
     It holds hnsecs internally, but you can create it using either milliseconds,
     microseconds, or hnsecs. What it does is allow for a simple way to set or
     adjust the fractional seconds portion of a $(D Duration) or a
-    $(XREF datetime, SysTime) without having to worry about whether you're
+    $(REF SysTime, std,datetime) without having to worry about whether you're
     dealing with milliseconds, microseconds, or hnsecs.
 
     $(D FracSec)'s functions which take time unit strings do accept
     $(D "nsecs"), but because the resolution of $(D Duration) and
-    $(XREF datetime, SysTime) is hnsecs, you don't actually get precision higher
+    $(REF SysTime, std,datetime) is hnsecs, you don't actually get precision higher
     than hnsecs. $(D "nsecs") is accepted merely for convenience. Any values
     given as nsecs will be converted to hnsecs using $(D convert) (which uses
     truncating division when converting to smaller units).
@@ -4669,7 +4453,7 @@ unittest
     static assert(!__traits(compiles, nextLargerTimeUnits!"years"));
 }
 
-version(OSX)
+version(Darwin)
 long machTicksPerSecond()
 {
     // Be optimistic that ticksPerSecond (1e9*denom/numer) is integral. So far
@@ -4730,7 +4514,7 @@ unittest
     assert(aStr == "-0.337", aStr);
 }
 
-version(unittest) const(char)* numToStringz()(long value) @safe pure nothrow
+version(unittest) const(char)* numToStringz()(long value) @trusted pure nothrow
 {
     return (signedToTempString(value, 10) ~ "\0").ptr;
 }

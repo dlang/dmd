@@ -70,14 +70,21 @@ unittest
  *      The bit number of the first bit set.
  *      The return value is undefined if v is zero.
  */
-int bsf(size_t v) pure;
+int bsf(uint v) pure
+{
+    static if (size_t.sizeof == ulong.sizeof)
+    {
+        pragma(inline, true);
+        return bsf(cast(ulong) v);
+    }
+    else
+        return softBsf!uint(v);
+}
 
 /// ditto
 int bsf(ulong v) pure
 {
-    static if (size_t.sizeof == ulong.sizeof)
-        return bsf(cast(size_t) v);
-    else static if (size_t.sizeof == uint.sizeof)
+    static if (size_t.sizeof == uint.sizeof)
     {
         const sv = Split64(v);
         return (sv.lo == 0)?
@@ -85,7 +92,7 @@ int bsf(ulong v) pure
             bsf(sv.lo);
     }
     else
-        static assert(false);
+        return softBsf!ulong(v);
 }
 
 ///
@@ -110,14 +117,21 @@ unittest
  *      The bit number of the first bit set.
  *      The return value is undefined if v is zero.
  */
-int bsr(size_t v) pure;
+int bsr(uint v) pure
+{
+    static if (size_t.sizeof == ulong.sizeof)
+    {
+        pragma(inline, true);
+        return bsr(cast(ulong) v);
+    }
+    else
+        return softBsr!uint(v);
+}
 
 /// ditto
 int bsr(ulong v) pure
 {
-    static if (size_t.sizeof == ulong.sizeof)
-        return bsr(cast(size_t) v);
-    else static if (size_t.sizeof == uint.sizeof)
+    static if (size_t.sizeof == uint.sizeof)
     {
         const sv = Split64(v);
         return (sv.hi == 0)?
@@ -125,7 +139,7 @@ int bsr(ulong v) pure
             bsr(sv.hi) + 32;
     }
     else
-        static assert(false);
+        return softBsr!ulong(v);
 }
 
 ///
@@ -140,6 +154,110 @@ unittest
     // Make sure bsr() is available at CTFE
     enum test_ctfe = bsr(ulong.max);
     assert(test_ctfe == 63);
+}
+
+private alias softBsf(N) = softScan!(N, true);
+private alias softBsr(N) = softScan!(N, false);
+
+/* Shared software fallback implementation for bit scan foward and reverse.
+
+If forward is true, bsf is computed (the index of the first set bit).
+If forward is false, bsr is computed (the index of the last set bit).
+
+-1 is returned if no bits are set (v == 0).
+*/
+private int softScan(N, bool forward)(N v) pure
+    if(is(N == uint) || is(N == ulong))
+{
+    // bsf() and bsr() are officially undefined for v == 0.
+    if (!v)
+        return -1;
+
+    // This is essentially an unrolled binary search:
+    enum mask(ulong lo) = forward ? cast(N) lo : cast(N)~lo;
+    enum inc(int up) = forward ? up : -up;
+
+    N x;
+    int ret;
+    static if (is(N == ulong))
+    {
+        x = v & mask!0x0000_0000_FFFF_FFFFL;
+        if (x)
+        {
+            v = x;
+            ret = forward ? 0 : 63;
+        }
+        else
+            ret = forward ? 32 : 31;
+
+        x = v & mask!0x0000_FFFF_0000_FFFFL;
+        if (x)
+            v = x;
+        else
+            ret += inc!16;
+    }
+    else static if (is(N == uint))
+    {
+        x = v & mask!0x0000_FFFF;
+        if (x)
+        {
+            v = x;
+            ret = forward ? 0 : 31;
+        }
+        else
+            ret = forward ? 16 : 15;
+    }
+    else
+        static assert(false);
+
+    x = v & mask!0x00FF_00FF_00FF_00FFL;
+    if (x)
+        v = x;
+    else
+        ret += inc!8;
+
+    x = v & mask!0x0F0F_0F0F_0F0F_0F0FL;
+    if (x)
+        v = x;
+    else
+        ret += inc!4;
+
+    x = v & mask!0x3333_3333_3333_3333L;
+    if (x)
+        v = x;
+    else
+        ret += inc!2;
+
+    x = v & mask!0x5555_5555_5555_5555L;
+    if (!x)
+        ret += inc!1;
+
+    return ret;
+}
+
+unittest
+{
+    assert(softBsf!uint(0u) == -1);
+    assert(softBsr!uint(0u) == -1);
+    assert(softBsf!ulong(0uL) == -1);
+    assert(softBsr!ulong(0uL) == -1);
+
+    assert(softBsf!uint(0x0031_A000) == 13);
+    assert(softBsr!uint(0x0031_A000) == 21);
+    assert(softBsf!ulong(0x0000_0001_8000_0000L) == 31);
+    assert(softBsr!ulong(0x0000_0001_8000_0000L) == 32);
+
+    foreach (b; 0 .. 64)
+    {
+        if(b < 32)
+        {
+            assert(softBsf!uint(1u << b) == b);
+            assert(softBsr!uint(1u << b) == b);
+        }
+
+        assert(softBsf!ulong(1uL << b) == b);
+        assert(softBsr!ulong(1uL << b) == b);
+    }
 }
 
 /**
@@ -235,6 +353,143 @@ int bts(size_t* p, size_t bitnum) pure @system;
     assert(btr(array.ptr, 35));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
+}
+
+/**
+ * Range over bit set. Each element is the bit number that is set.
+ *
+ * This is more efficient than testing each bit in a sparsely populated bit
+ * set. Note that the first bit in the bit set would be bit 0.
+ */
+struct BitRange
+{
+    /// Number of bits in each size_t
+    enum bitsPerWord = size_t.sizeof * 8;
+
+    private
+    {
+        const(size_t)*bits; // points at next word of bits to check
+        size_t cur; // needed to allow searching bits using bsf
+        size_t idx; // index of current set bit
+        size_t len; // number of bits in the bit set.
+    }
+    @nogc nothrow pure:
+
+    /**
+     * Construct a BitRange.
+     *
+     * Params:
+     *   bitarr - The array of bits to iterate over
+     *   numBits - The total number of valid bits in the given bit array
+     */
+    this(const(size_t)* bitarr, size_t numBits) @system
+    {
+        bits = bitarr;
+        len = numBits;
+        if (len)
+        {
+            // prime the first bit
+            cur = *bits++ ^ 1;
+            popFront();
+        }
+    }
+
+    /// Range functions
+    size_t front()
+    {
+        assert(!empty);
+        return idx;
+    }
+
+    /// ditto
+    bool empty() const
+    {
+        return idx >= len;
+    }
+
+    /// ditto
+    void popFront() @system
+    {
+        // clear the current bit
+        auto curbit = idx % bitsPerWord;
+        cur ^= size_t(1) << curbit;
+        if(!cur)
+        {
+            // find next size_t with set bit
+            idx -= curbit;
+            while (!cur)
+            {
+                if ((idx += bitsPerWord) >= len)
+                    // now empty
+                    return;
+                cur = *bits++;
+            }
+            idx += bsf(cur);
+        }
+        else
+        {
+            idx += bsf(cur) - curbit;
+        }
+    }
+}
+
+///
+@system unittest
+{
+    import core.stdc.stdlib : malloc, free;
+    import core.stdc.string : memset;
+
+    // initialize a bit array
+    enum nBytes = (100 + BitRange.bitsPerWord - 1) / 8;
+    size_t *bitArr = cast(size_t *)malloc(nBytes);
+    scope(exit) free(bitArr);
+    memset(bitArr, 0, nBytes);
+
+    // set some bits
+    bts(bitArr, 48);
+    bts(bitArr, 24);
+    bts(bitArr, 95);
+    bts(bitArr, 78);
+
+    enum sum = 48 + 24 + 95 + 78;
+
+    // iterate
+    size_t testSum;
+    size_t nBits;
+    foreach(b; BitRange(bitArr, 100))
+    {
+        testSum += b;
+        ++nBits;
+    }
+
+    assert(testSum == sum);
+    assert(nBits == 4);
+}
+
+@system unittest
+{
+    void testIt(size_t numBits, size_t[] bitsToTest...)
+    {
+        import core.stdc.stdlib : malloc, free;
+        import core.stdc.string : memset;
+        immutable numBytes = (numBits + size_t.sizeof * 8 - 1) / 8;
+        size_t* bitArr = cast(size_t *)malloc(numBytes);
+        scope(exit) free(bitArr);
+        memset(bitArr, 0, numBytes);
+        foreach(b; bitsToTest)
+            bts(bitArr, b);
+        auto br = BitRange(bitArr, numBits);
+        foreach(b; bitsToTest)
+        {
+            assert(!br.empty);
+            assert(b == br.front);
+            br.popFront();
+        }
+        assert(br.empty);
+    }
+
+    testIt(100, 0, 1, 31, 63, 85);
+    testIt(100, 6, 45, 89, 92, 99);
 }
 
 /**

@@ -17,6 +17,15 @@ module core.sys.posix.pwd;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for gid_t, uid_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 nothrow:
@@ -52,7 +61,7 @@ version( CRuntime_Glibc )
         char*   pw_shell;
     }
 }
-else version( OSX )
+else version( Darwin )
 {
     struct passwd
     {
@@ -83,6 +92,22 @@ else version( FreeBSD )
         char*   pw_shell;       /* default shell */
         time_t  pw_expire;      /* account expiration */
         int pw_fields;      /* internal: fields filled in */
+    }
+}
+else version( OpenBSD )
+{
+    struct passwd
+    {
+        char*   pw_name;        /* user name */
+        char*   pw_passwd;      /* encrypted password */
+        uid_t   pw_uid;         /* user uid */
+        gid_t   pw_gid;         /* user gid */
+        time_t  pw_change;      /* password change time */
+        char*   pw_class;       /* user access class */
+        char*   pw_gecos;       /* Honeywell login info */
+        char*   pw_dir;     /* home directory */
+        char*   pw_shell;       /* default shell */
+        time_t  pw_expire;      /* account expiration */
     }
 }
 else version (Solaris)
@@ -133,12 +158,17 @@ version( CRuntime_Glibc )
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version( OSX )
+else version( Darwin )
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version( FreeBSD )
+{
+    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
+}
+else version( OpenBSD )
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
@@ -171,13 +201,19 @@ version( CRuntime_Glibc )
     passwd* getpwent();
     void    setpwent();
 }
-else version ( OSX )
+else version ( Darwin )
 {
     void    endpwent();
     passwd* getpwent();
     void    setpwent();
 }
 else version ( FreeBSD )
+{
+    void    endpwent();
+    passwd* getpwent();
+    void    setpwent();
+}
+else version ( OpenBSD )
 {
     void    endpwent();
     passwd* getpwent();

@@ -227,11 +227,14 @@ alias TypeDef!(HANDLE) HRASCONN;
 alias HRASCONN* LPHRASCONN;
 
 struct RASCONNW {
+align(4):
     DWORD dwSize;
     HRASCONN hrasconn;
+    align {
     WCHAR[RAS_MaxEntryName + 1] szEntryName;
     WCHAR[RAS_MaxDeviceType + 1] szDeviceType;
     WCHAR[RAS_MaxDeviceName + 1] szDeviceName;
+    }
     //static if (_WIN32_WINNT >= 0x401) {
         WCHAR[MAX_PATH] szPhonebook;
         DWORD dwSubEntry;
@@ -247,11 +250,14 @@ struct RASCONNW {
 alias RASCONNW* LPRASCONNW;
 
 struct RASCONNA {
+align(4):
     DWORD dwSize;
     HRASCONN hrasconn;
+    align {
     CHAR[RAS_MaxEntryName + 1] szEntryName;
     CHAR[RAS_MaxDeviceType + 1] szDeviceType;
     CHAR[RAS_MaxDeviceName + 1] szDeviceName;
+    }
     //static if (_WIN32_WINNT >= 0x401) {
         CHAR[MAX_PATH] szPhonebook;
         DWORD dwSubEntry;
@@ -291,13 +297,16 @@ struct RASCONNSTATUSA {
 alias RASCONNSTATUSA* LPRASCONNSTATUSA;
 
 struct RASDIALPARAMSW {
+align(4):
     DWORD dwSize;
+align {
     WCHAR[RAS_MaxEntryName + 1] szEntryName;
     WCHAR[RAS_MaxPhoneNumber + 1] szPhoneNumber;
     WCHAR[RAS_MaxCallbackNumber + 1] szCallbackNumber;
     WCHAR[UNLEN + 1] szUserName;
     WCHAR[PWLEN + 1] szPassword;
     WCHAR[DNLEN + 1] szDomain;
+}
     static if (_WIN32_WINNT >= 0x401) {
         DWORD dwSubEntry;
         ULONG_PTR dwCallbackId;
@@ -306,13 +315,16 @@ struct RASDIALPARAMSW {
 alias RASDIALPARAMSW* LPRASDIALPARAMSW;
 
 struct RASDIALPARAMSA{
+align(4):
     DWORD dwSize;
+align {
     CHAR[RAS_MaxEntryName + 1] szEntryName;
     CHAR[RAS_MaxPhoneNumber + 1] szPhoneNumber;
     CHAR[RAS_MaxCallbackNumber + 1] szCallbackNumber;
     CHAR[UNLEN + 1] szUserName;
     CHAR[PWLEN + 1] szPassword;
     CHAR[DNLEN + 1] szDomain;
+}
     static if (_WIN32_WINNT >= 0x401) {
         DWORD dwSubEntry;
         ULONG_PTR dwCallbackId;
@@ -322,12 +334,14 @@ alias RASDIALPARAMSA* LPRASDIALPARAMSA;
 
 //static if (_WIN32_WINNT >= 0x500) {
     struct RASEAPINFO {
+    align(4):
         DWORD dwSizeofEapInfo;
         BYTE *pbEapInfo;
     }
 //}
 
 struct RASDIALEXTENSIONS {
+align(4):
     DWORD dwSize;
     DWORD dwfOptions;
     HWND hwndParent;
@@ -625,6 +639,7 @@ alias RASENTRYA* LPRASENTRYA;
 
 //static if (_WIN32_WINNT >= 0x401) {
     struct RASADPARAMS {
+    align(4):
         DWORD dwSize;
         HWND hwndOwner;
         DWORD dwFlags;
@@ -808,52 +823,53 @@ alias RASENTRYNAME* LPRASENTRYNAME;
 //}
 
 /* Callback prototypes */
-deprecated {
-    alias BOOL function (HWND, LPSTR, DWORD, LPDWORD) ORASADFUNC;
-}
+extern (Windows) { /* WINAPI */
+    deprecated {
+        alias BOOL function (HWND, LPSTR, DWORD, LPDWORD) ORASADFUNC;
+    }
 
-alias void function (UINT, RASCONNSTATE, DWORD) RASDIALFUNC;
-alias void function(HRASCONN, UINT, RASCONNSTATE, DWORD, DWORD) RASDIALFUNC1;
-alias DWORD function (ULONG_PTR, DWORD, HRASCONN, UINT,
-RASCONNSTATE, DWORD, DWORD) RASDIALFUNC2;
+    alias void function (UINT, RASCONNSTATE, DWORD) RASDIALFUNC;
+    alias void function(HRASCONN, UINT, RASCONNSTATE, DWORD, DWORD) RASDIALFUNC1;
+    alias DWORD function (ULONG_PTR, DWORD, HRASCONN, UINT,
+    RASCONNSTATE, DWORD, DWORD) RASDIALFUNC2;
 
-/* External functions */
-DWORD RasDialA(LPRASDIALEXTENSIONS, LPCSTR, LPRASDIALPARAMSA, DWORD, LPVOID, LPHRASCONN);
-DWORD RasDialW(LPRASDIALEXTENSIONS, LPCWSTR, LPRASDIALPARAMSW, DWORD, LPVOID, LPHRASCONN);
-DWORD RasEnumConnectionsA(LPRASCONNA, LPDWORD, LPDWORD);
-DWORD RasEnumConnectionsW(LPRASCONNW, LPDWORD, LPDWORD);
-DWORD RasEnumEntriesA(LPCSTR, LPCSTR, LPRASENTRYNAMEA, LPDWORD, LPDWORD);
-DWORD RasEnumEntriesW(LPCWSTR, LPCWSTR, LPRASENTRYNAMEW, LPDWORD, LPDWORD);
-DWORD RasGetConnectStatusA(HRASCONN, LPRASCONNSTATUSA);
-DWORD RasGetConnectStatusW(HRASCONN, LPRASCONNSTATUSW);
-DWORD RasGetErrorStringA(UINT, LPSTR, DWORD);
-DWORD RasGetErrorStringW(UINT, LPWSTR, DWORD);
-DWORD RasHangUpA(HRASCONN);
-DWORD RasHangUpW(HRASCONN);
-DWORD RasGetProjectionInfoA(HRASCONN, RASPROJECTION, LPVOID, LPDWORD);
-DWORD RasGetProjectionInfoW(HRASCONN, RASPROJECTION, LPVOID, LPDWORD);
-DWORD RasCreatePhonebookEntryA(HWND, LPCSTR);
-DWORD RasCreatePhonebookEntryW(HWND, LPCWSTR);
-DWORD RasEditPhonebookEntryA(HWND, LPCSTR, LPCSTR);
-DWORD RasEditPhonebookEntryW(HWND, LPCWSTR, LPCWSTR);
-DWORD RasSetEntryDialParamsA(LPCSTR, LPRASDIALPARAMSA, BOOL);
-DWORD RasSetEntryDialParamsW(LPCWSTR, LPRASDIALPARAMSW, BOOL);
-DWORD RasGetEntryDialParamsA(LPCSTR, LPRASDIALPARAMSA, LPBOOL);
-DWORD RasGetEntryDialParamsW(LPCWSTR, LPRASDIALPARAMSW, LPBOOL);
-DWORD RasEnumDevicesA(LPRASDEVINFOA, LPDWORD, LPDWORD);
-DWORD RasEnumDevicesW(LPRASDEVINFOW, LPDWORD, LPDWORD);
-DWORD RasGetCountryInfoA(LPRASCTRYINFOA, LPDWORD);
-DWORD RasGetCountryInfoW(LPRASCTRYINFOW, LPDWORD);
-DWORD RasGetEntryPropertiesA(LPCSTR, LPCSTR, LPRASENTRYA, LPDWORD, LPBYTE, LPDWORD);
-DWORD RasGetEntryPropertiesW(LPCWSTR, LPCWSTR, LPRASENTRYW, LPDWORD, LPBYTE, LPDWORD);
-DWORD RasSetEntryPropertiesA(LPCSTR, LPCSTR, LPRASENTRYA, DWORD, LPBYTE, DWORD);
-DWORD RasSetEntryPropertiesW(LPCWSTR, LPCWSTR, LPRASENTRYW, DWORD, LPBYTE, DWORD);
-DWORD RasRenameEntryA(LPCSTR, LPCSTR, LPCSTR);
-DWORD RasRenameEntryW(LPCWSTR, LPCWSTR, LPCWSTR);
-DWORD RasDeleteEntryA(LPCSTR, LPCSTR);
-DWORD RasDeleteEntryW(LPCWSTR, LPCWSTR);
-DWORD RasValidateEntryNameA(LPCSTR, LPCSTR);
-DWORD RasValidateEntryNameW(LPCWSTR, LPCWSTR);
+    /* External functions */
+    DWORD RasDialA(LPRASDIALEXTENSIONS, LPCSTR, LPRASDIALPARAMSA, DWORD, LPVOID, LPHRASCONN);
+    DWORD RasDialW(LPRASDIALEXTENSIONS, LPCWSTR, LPRASDIALPARAMSW, DWORD, LPVOID, LPHRASCONN);
+    DWORD RasEnumConnectionsA(LPRASCONNA, LPDWORD, LPDWORD);
+    DWORD RasEnumConnectionsW(LPRASCONNW, LPDWORD, LPDWORD);
+    DWORD RasEnumEntriesA(LPCSTR, LPCSTR, LPRASENTRYNAMEA, LPDWORD, LPDWORD);
+    DWORD RasEnumEntriesW(LPCWSTR, LPCWSTR, LPRASENTRYNAMEW, LPDWORD, LPDWORD);
+    DWORD RasGetConnectStatusA(HRASCONN, LPRASCONNSTATUSA);
+    DWORD RasGetConnectStatusW(HRASCONN, LPRASCONNSTATUSW);
+    DWORD RasGetErrorStringA(UINT, LPSTR, DWORD);
+    DWORD RasGetErrorStringW(UINT, LPWSTR, DWORD);
+    DWORD RasHangUpA(HRASCONN);
+    DWORD RasHangUpW(HRASCONN);
+    DWORD RasGetProjectionInfoA(HRASCONN, RASPROJECTION, LPVOID, LPDWORD);
+    DWORD RasGetProjectionInfoW(HRASCONN, RASPROJECTION, LPVOID, LPDWORD);
+    DWORD RasCreatePhonebookEntryA(HWND, LPCSTR);
+    DWORD RasCreatePhonebookEntryW(HWND, LPCWSTR);
+    DWORD RasEditPhonebookEntryA(HWND, LPCSTR, LPCSTR);
+    DWORD RasEditPhonebookEntryW(HWND, LPCWSTR, LPCWSTR);
+    DWORD RasSetEntryDialParamsA(LPCSTR, LPRASDIALPARAMSA, BOOL);
+    DWORD RasSetEntryDialParamsW(LPCWSTR, LPRASDIALPARAMSW, BOOL);
+    DWORD RasGetEntryDialParamsA(LPCSTR, LPRASDIALPARAMSA, LPBOOL);
+    DWORD RasGetEntryDialParamsW(LPCWSTR, LPRASDIALPARAMSW, LPBOOL);
+    DWORD RasEnumDevicesA(LPRASDEVINFOA, LPDWORD, LPDWORD);
+    DWORD RasEnumDevicesW(LPRASDEVINFOW, LPDWORD, LPDWORD);
+    DWORD RasGetCountryInfoA(LPRASCTRYINFOA, LPDWORD);
+    DWORD RasGetCountryInfoW(LPRASCTRYINFOW, LPDWORD);
+    DWORD RasGetEntryPropertiesA(LPCSTR, LPCSTR, LPRASENTRYA, LPDWORD, LPBYTE, LPDWORD);
+    DWORD RasGetEntryPropertiesW(LPCWSTR, LPCWSTR, LPRASENTRYW, LPDWORD, LPBYTE, LPDWORD);
+    DWORD RasSetEntryPropertiesA(LPCSTR, LPCSTR, LPRASENTRYA, DWORD, LPBYTE, DWORD);
+    DWORD RasSetEntryPropertiesW(LPCWSTR, LPCWSTR, LPRASENTRYW, DWORD, LPBYTE, DWORD);
+    DWORD RasRenameEntryA(LPCSTR, LPCSTR, LPCSTR);
+    DWORD RasRenameEntryW(LPCWSTR, LPCWSTR, LPCWSTR);
+    DWORD RasDeleteEntryA(LPCSTR, LPCSTR);
+    DWORD RasDeleteEntryW(LPCWSTR, LPCWSTR);
+    DWORD RasValidateEntryNameA(LPCSTR, LPCSTR);
+    DWORD RasValidateEntryNameW(LPCWSTR, LPCWSTR);
 
 //static if(_WIN32_WINNT >= 0x401) {
     alias BOOL function(LPSTR, LPSTR, LPRASADPARAMS, LPDWORD) RASADFUNCA;
@@ -911,6 +927,7 @@ static if (_WIN32_WINNT >= 0x500) {
     void RasFreeEapUserIdentityW(LPRASEAPUSERIDENTITYW);
     void RasFreeEapUserIdentityA(LPRASEAPUSERIDENTITYA);
 }
+} // extern (Windows)
 
 
 /* UNICODE defines for functions */

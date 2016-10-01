@@ -78,7 +78,7 @@ struct DSO
 
     @property immutable(FuncTable)[] ehTables() const
     {
-        return _ehTables[];
+        return null;
     }
 
     @property inout(void[])[] gcRanges() inout
@@ -94,7 +94,6 @@ private:
         assert(_tlsMod || !_tlsSize);
     }
 
-    immutable(FuncTable)[] _ehTables;
     ModuleGroup _moduleGroup;
     Array!(void[]) _gcRanges;
     size_t _tlsMod;
@@ -149,7 +148,10 @@ version (Shared)
 
     void finiTLSRanges(Array!(ThreadDSO)* tdsos)
     {
-        tdsos.reset();
+        // Nothing to do here. tdsos used to point to the _loadedDSOs instance
+        // in the dying thread's TLS segment and as such is not valid anymore.
+        // The memory for the array contents was already reclaimed in
+        // cleanupLoadedLibraries().
     }
 
     void scanTLSRanges(Array!(ThreadDSO)* tdsos, scope ScanDG dg) nothrow
@@ -219,6 +221,8 @@ version (Shared)
             for (; tdso._addCnt > 0; --tdso._addCnt)
                 .dlclose(handle);
         }
+
+        // Free the memory for the array contents.
         _loadedDSOs.reset();
     }
 }
@@ -329,7 +333,6 @@ struct CompilerDSOData
     size_t _version;                                       // currently 1
     void** _slot;                                          // can be used to store runtime data
     immutable(object.ModuleInfo*)* _minfo_beg, _minfo_end; // array of modules in this object file
-    immutable(rt.deh.FuncTable)* _deh_beg, _deh_end;       // array of exception handling data
 }
 
 T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }
@@ -355,7 +358,6 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         *data._slot = pdso; // store backlink in library record
 
         pdso._moduleGroup = ModuleGroup(toRange(data._minfo_beg, data._minfo_end));
-        pdso._ehTables = toRange(data._deh_beg, data._deh_end);
 
         dl_phdr_info info = void;
         findDSOInfoForAddr(data._slot, &info) || assert(0);

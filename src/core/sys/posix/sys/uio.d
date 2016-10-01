@@ -17,6 +17,15 @@ module core.sys.posix.sys.uio;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for ssize_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C) nothrow @nogc:
 
@@ -48,7 +57,7 @@ version( CRuntime_Glibc )
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
 }
-else version( OSX )
+else version( Darwin )
 {
     struct iovec
     {

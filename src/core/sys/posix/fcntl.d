@@ -19,6 +19,15 @@ private import core.stdc.stdint;
 public import core.sys.posix.sys.types; // for off_t, mode_t
 public import core.sys.posix.sys.stat;  // for S_IFMT, etc.
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 
@@ -258,8 +267,11 @@ version( CRuntime_Glibc )
         int   creat(in char*, mode_t);
         int   open(in char*, int, ...);
     }
+
+    enum AT_SYMLINK_NOFOLLOW = 0x100;
+    enum AT_FDCWD = -100;
 }
-else version( OSX )
+else version( Darwin )
 {
     enum F_DUPFD        = 0;
     enum F_GETFD        = 1;
@@ -366,6 +378,78 @@ else version( FreeBSD )
 
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
+
+    enum AT_SYMLINK_NOFOLLOW = 0x200;
+    enum AT_FDCWD = -100;
+}
+else version( OpenBSD )
+{
+    enum F_DUPFD        = 0;
+    enum F_GETFD        = 1;
+    enum F_SETFD        = 2;
+    enum F_GETFL        = 3;
+    enum F_SETFL        = 4;
+    enum F_GETOWN       = 5;
+    enum F_SETOWN       = 6;
+    enum F_GETLK        = 7;
+    enum F_SETLK        = 8;
+    enum F_SETLKW       = 9;
+    enum F_DUPFD_CLOEXEC= 10;
+    enum F_ISATTY       = 11;
+
+    enum FD_CLOEXEC     = 1;
+
+    enum F_RDLCK        = 1;
+    enum F_UNLCK        = 2;
+    enum F_WRLCK        = 3;
+
+    enum O_CREAT        = 0x0200;
+    enum O_EXCL         = 0x0800;
+    enum O_NOCTTY       = 0x8000;
+    enum O_TRUNC        = 0x0400;
+
+    enum O_RDONLY       = 0x0000;
+    enum O_WRONLY       = 0x0001;
+    enum O_RDWR         = 0x0002;
+    enum O_ACCMODE      = 0x0003;
+    enum O_SHLOCK       = 0x0010;
+    enum O_EXLOCK       = 0x0020;
+    enum O_ASYNC        = 0x0040;
+    enum O_FSYNC        = 0x0080;
+    enum O_NOFOLLOW     = 0x0100;
+
+    enum O_NONBLOCK     = 0x0004;
+    enum O_APPEND       = 0x0008;
+    enum O_SYNC         = 0x0080;
+    enum O_DSYNC        = O_SYNC;
+    enum O_RSYNC        = O_SYNC;
+
+    enum O_CLOEXEC      = 0x10000;
+    enum O_DIRECTORY    = 0x20000;
+
+    enum LOCK_SH        = 0x01;
+    enum LOCK_EX        = 0x02;
+    enum LOCK_NB        = 0x04;
+    enum LOCK_UN        = 0x08;
+
+    struct flock
+    {
+        off_t   l_start;
+        off_t   l_len;
+        pid_t   l_pid;
+        short   l_type;
+        short   l_whence;
+    }
+
+    int creat(in char*, mode_t);
+    int open(in char*, int, ...);
+
+    enum AT_FDCWD            = -100;
+
+    enum AT_EACCESS          = 0x01;
+    enum AT_SYMLINK_NOFOLLOW = 0x02;
+    enum AT_SYMLINK_FOLLOW   = 0x04;
+    enum AT_REMOVEDIR        = 0x08;
 }
 else version (Solaris)
 {

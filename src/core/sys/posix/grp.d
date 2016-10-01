@@ -17,6 +17,15 @@ module core.sys.posix.grp;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for gid_t, uid_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 nothrow:
@@ -48,7 +57,7 @@ version( CRuntime_Glibc )
         char**  gr_mem;
     }
 }
-else version( OSX )
+else version( Darwin )
 {
     struct group
     {
@@ -59,6 +68,16 @@ else version( OSX )
     }
 }
 else version( FreeBSD )
+{
+    struct group
+    {
+        char*   gr_name;
+        char*   gr_passwd;
+        gid_t   gr_gid;
+        char**  gr_mem;
+    }
+}
+else version( OpenBSD )
 {
     struct group
     {
@@ -109,12 +128,17 @@ version( CRuntime_Glibc )
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
-else version( OSX )
+else version( Darwin )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version( FreeBSD )
+{
+    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrgid_r(gid_t, group*, char*, size_t, group**);
+}
+else version( OpenBSD )
 {
     int getgrnam_r(in char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
@@ -147,13 +171,19 @@ version( CRuntime_Glibc )
     @trusted void endgrent();
     @trusted void setgrent();
 }
-else version( OSX )
+else version( Darwin )
 {
     group* getgrent();
     @trusted void endgrent();
     @trusted void setgrent();
 }
 else version( FreeBSD )
+{
+    group* getgrent();
+    @trusted void endgrent();
+    @trusted void setgrent();
+}
+else version( OpenBSD )
 {
     group* getgrent();
     @trusted void endgrent();

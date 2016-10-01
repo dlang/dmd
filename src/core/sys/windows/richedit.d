@@ -388,22 +388,25 @@ struct COMPCOLOR {
 }
 
 extern (Windows) {
-    alias DWORD function(DWORD,PBYTE,LONG,LONG*) EDITSTREAMCALLBACK;
+    alias DWORD function(DWORD_PTR,PBYTE,LONG,LONG*) EDITSTREAMCALLBACK;
 }
 
 struct EDITSTREAM {
-    DWORD dwCookie;
+align(4):
+    DWORD_PTR dwCookie;
     DWORD dwError;
     EDITSTREAMCALLBACK pfnCallback;
 }
 
 struct ENCORRECTTEXT {
+align(4):
     NMHDR nmhdr;
     CHARRANGE chrg;
     WORD seltyp;
 }
 
 struct ENDROPFILES {
+align(4):
     NMHDR nmhdr;
     HANDLE hDrop;
     LONG cp;
@@ -411,6 +414,7 @@ struct ENDROPFILES {
 }
 
 struct ENLINK {
+align(4):
     NMHDR nmhdr;
     UINT msg;
     WPARAM wParam;
@@ -419,6 +423,7 @@ struct ENLINK {
 }
 
 struct ENOLEOPFAILED {
+align(4):
     NMHDR nmhdr;
     LONG iob;
     LONG lOper;
@@ -426,6 +431,7 @@ struct ENOLEOPFAILED {
 }
 
 struct ENPROTECTED {
+align(4):
     NMHDR nmhdr;
     UINT msg;
     WPARAM wParam;
@@ -435,6 +441,7 @@ struct ENPROTECTED {
 alias ENPROTECTED* LPENPROTECTED;
 
 struct ENSAVECLIPBOARD {
+align(4):
     NMHDR nmhdr;
     LONG cObjectCount;
     LONG cch;
@@ -471,6 +478,7 @@ struct FORMATRANGE {
 }
 
 struct MSGFILTER {
+align(4):
     NMHDR nmhdr;
     UINT msg;
     WPARAM wParam;
@@ -539,16 +547,19 @@ struct REQRESIZE {
 }
 
 struct REPASTESPECIAL {
+align(4):
     DWORD dwAspect;
-    DWORD dwParam;
+    DWORD_PTR dwParam;
 }
 
 struct PUNCTUATION {
+align(4):
     UINT iSize;
     LPSTR szPunctuation;
 }
 
 struct GETTEXTEX {
+align(4):
     DWORD cb;
     DWORD flags;
     UINT codepage;
@@ -573,6 +584,7 @@ enum GTL_NUMCHARS = 8;
 enum GTL_NUMBYTES = 16;
 
 struct GETTEXTLENGTHEX {
+align(4):
     DWORD flags;
     UINT codepage;
 }

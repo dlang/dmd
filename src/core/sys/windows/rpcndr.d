@@ -74,9 +74,9 @@ enum cbNDRContext=20;
 //MACRO #define _midl_unma2( p, cast ) *(( cast *)p)++
 //MACRO #define _midl_unma3( p, cast ) *(( cast *)p)++
 //MACRO #define _midl_unma4( p, cast ) *(( cast *)p)++
-//MACRO #define _midl_fa2( p ) (p = (RPC_BUFPTR )((unsigned long)(p+1) & 0xfffffffe))
-//MACRO #define _midl_fa4( p ) (p = (RPC_BUFPTR )((unsigned long)(p+3) & 0xfffffffc))
-//MACRO #define _midl_fa8( p ) (p = (RPC_BUFPTR )((unsigned long)(p+7) & 0xfffffff8))
+//MACRO #define _midl_fa2( p ) (p = (RPC_BUFPTR )((LONG_PTR)(p+1) & 0xffffffff_fffffffe))
+//MACRO #define _midl_fa4( p ) (p = (RPC_BUFPTR )((LONG_PTR)(p+3) & 0xffffffff_fffffffc))
+//MACRO #define _midl_fa8( p ) (p = (RPC_BUFPTR )((LONG_PTR)(p+7) & 0xffffffff_fffffff8))
 //MACRO #define _midl_addp( p, n ) (p += n)
 //MACRO #define _midl_marsh_lhs( p, cast ) *(*( cast **)&p)++
 //MACRO #define _midl_marsh_up( mp, p ) *(*(unsigned long **)&mp)++ = (unsigned long)p
@@ -92,7 +92,7 @@ enum cbNDRContext=20;
 //MACRO #define NdrUnMarshSCtxtHdl(pc, p,drep) (pc = NdrSContextUnMarshall(p,drep ))
 //MACRO #define NdrMarshSCtxtHdl(pc,p,rd) (NdrSContextMarshall((NDR_SCONTEXT)pc,p, (NDR_RUNDOWN)rd)
 
-//MACRO #define NdrFieldOffset(s,f) (long)(& (((s *)0)->f))
+//MACRO #define NdrFieldOffset(s,f) (LONG_PTR)(& (((s *)0)->f))
 //MACRO #define NdrFieldPad(s,f,p,t) (NdrFieldOffset(s,f) - NdrFieldOffset(s,p) - sizeof(t))
 //MACRO #define NdrFcShort(s) (unsigned char)(s & 0xff), (unsigned char)(s >> 8)
 //MACRO #define NdrFcLong(s) (unsigned char)(s & 0xff), (unsigned char)((s & 0x0000ff00) >> 8), (unsigned char)((s & 0x00ff0000) >> 16), (unsigned char)(s >> 24)
@@ -180,7 +180,7 @@ struct MIDL_STUB_MESSAGE {
     ubyte *PointerBufferMark;
     ubyte fBufferValid;
     ubyte Unused;
-    uint MaxCount;
+    ULONG_PTR MaxCount;
     uint Offset;
     uint ActualCount;
     void* function (uint) pfnAllocate;
@@ -210,7 +210,7 @@ const(_MIDL_STUB_DESC)* StubDesc;
     uint * SizePtrLengthArray;
     void* pArgQueue;
     uint dwStubPhase;
-    uint[5] w2kReserved;
+    INT_PTR[5] w2kReserved;
 }
 alias MIDL_STUB_MESSAGE * PMIDL_STUB_MESSAGE;
 
@@ -337,7 +337,7 @@ alias MIDL_STUBLESS_PROXY_INFO *PMIDL_STUBLESS_PROXY_INFO;
 
 union CLIENT_CALL_RETURN {
     void *Pointer;
-    int Simple;
+    LONG_PTR Simple;
 }
 
 enum XLAT_SIDE {
@@ -353,16 +353,19 @@ struct FULL_PTR_TO_REFID_ELEMENT {
 alias FULL_PTR_TO_REFID_ELEMENT * PFULL_PTR_TO_REFID_ELEMENT;
 
 struct FULL_PTR_XLAT_TABLES {
-    struct RefIdToPointer {
+    struct _RefIdToPointer {
         void **XlatTable;
         ubyte *StateTable;
         uint NumberOfEntries;
     }
-    struct PointerToRefId {
+    void* RefIdToPointer;
+    struct _PointerToRefId {
         PFULL_PTR_TO_REFID_ELEMENT *XlatTable;
         uint NumberOfBuckets;
         uint HashMask;
     }
+    void* PointerToRefId;
+
     uint NextRefId;
     XLAT_SIDE XlatSide;
 }

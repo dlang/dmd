@@ -237,11 +237,12 @@ SRCS=\
 	\
 	src\gc\bits.d \
 	src\gc\config.d \
-	src\gc\gc.d \
+	src\gc\gcinterface.d \
 	src\gc\os.d \
 	src\gc\pooltable.d \
 	src\gc\proxy.d \
-	src\gc\stats.d \
+	src\gc\impl\conservative\gc.d \
+	src\gc\impl\manual\gc.d \
 	\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \
@@ -280,7 +281,8 @@ SRCS=\
 	src\rt\sections.d \
 	src\rt\sections_android.d \
 	src\rt\sections_elf_shared.d \
-	src\rt\sections_osx.d \
+	src\rt\sections_osx_x86.d \
+	src\rt\sections_osx_x86_64.d \
 	src\rt\sections_solaris.d \
 	src\rt\sections_win32.d \
 	src\rt\sections_win64.d \
@@ -330,6 +332,7 @@ SRCS=\
 	src\rt\typeinfo\ti_int.d \
 	src\rt\typeinfo\ti_ireal.d \
 	src\rt\typeinfo\ti_long.d \
+	src\rt\typeinfo\ti_n.d \
 	src\rt\typeinfo\ti_ptr.d \
 	src\rt\typeinfo\ti_real.d \
 	src\rt\typeinfo\ti_short.d \

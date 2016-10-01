@@ -1383,12 +1383,12 @@ struct REG_TZI_FORMAT {
 struct MEMORYSTATUS {
     DWORD dwLength;
     DWORD dwMemoryLoad;
-    DWORD dwTotalPhys;
-    DWORD dwAvailPhys;
-    DWORD dwTotalPageFile;
-    DWORD dwAvailPageFile;
-    DWORD dwTotalVirtual;
-    DWORD dwAvailVirtual;
+    SIZE_T dwTotalPhys;
+    SIZE_T dwAvailPhys;
+    SIZE_T dwTotalPageFile;
+    SIZE_T dwAvailPageFile;
+    SIZE_T dwTotalVirtual;
+    SIZE_T dwAvailVirtual;
 }
 alias MEMORYSTATUS* LPMEMORYSTATUS;
 
@@ -1470,16 +1470,18 @@ struct PROCESS_HEAP_ENTRY {
     BYTE  iRegionIndex;
     WORD  wFlags;
     union {
-        struct Block {
+        struct _Block {
             HANDLE   hMem;
             DWORD[3] dwReserved;
         }
-        struct Region {
+        _Block Block;
+        struct _Region {
             DWORD    dwCommittedSize;
             DWORD    dwUnCommittedSize;
             LPVOID   lpFirstBlock;
             LPVOID   lpLastBlock;
         }
+        _Region Region;
     }
 }
 alias PROCESS_HEAP_ENTRY* LPPROCESS_HEAP_ENTRY;
@@ -1586,12 +1588,12 @@ extern (Windows) {
         DWORD, DWORD, HANDLE, HANDLE, LPVOID)  LPPROGRESS_ROUTINE;
     alias void function(PVOID) LPFIBER_START_ROUTINE;
 
-    alias BOOL function(HMODULE, LPCSTR, LPCSTR, WORD, LONG) ENUMRESLANGPROCA;
-    alias BOOL function(HMODULE, LPCWSTR, LPCWSTR, WORD, LONG) ENUMRESLANGPROCW;
-    alias BOOL function(HMODULE, LPCSTR, LPSTR, LONG) ENUMRESNAMEPROCA;
-    alias BOOL function(HMODULE, LPCWSTR, LPWSTR, LONG) ENUMRESNAMEPROCW;
-    alias BOOL function(HMODULE, LPSTR, LONG) ENUMRESTYPEPROCA;
-    alias BOOL function(HMODULE, LPWSTR, LONG) ENUMRESTYPEPROCW;
+    alias BOOL function(HMODULE, LPCSTR, LPCSTR, WORD, LONG_PTR) ENUMRESLANGPROCA;
+    alias BOOL function(HMODULE, LPCWSTR, LPCWSTR, WORD, LONG_PTR) ENUMRESLANGPROCW;
+    alias BOOL function(HMODULE, LPCSTR, LPSTR, LONG_PTR) ENUMRESNAMEPROCA;
+    alias BOOL function(HMODULE, LPCWSTR, LPWSTR, LONG_PTR) ENUMRESNAMEPROCW;
+    alias BOOL function(HMODULE, LPSTR, LONG_PTR) ENUMRESTYPEPROCA;
+    alias BOOL function(HMODULE, LPWSTR, LONG_PTR) ENUMRESTYPEPROCW;
     alias void function(DWORD, DWORD, LPOVERLAPPED) LPOVERLAPPED_COMPLETION_ROUTINE;
     alias LONG function(LPEXCEPTION_POINTERS) PTOP_LEVEL_EXCEPTION_FILTER;
     alias PTOP_LEVEL_EXCEPTION_FILTER LPTOP_LEVEL_EXCEPTION_FILTER;
@@ -1730,7 +1732,7 @@ extern (Windows) nothrow @nogc {
     BOOL CreateProcessW(LPCWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, PVOID, LPCWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION);
     HANDLE CreateSemaphoreA(LPSECURITY_ATTRIBUTES, LONG, LONG, LPCSTR) @trusted;
     HANDLE CreateSemaphoreW(LPSECURITY_ATTRIBUTES, LONG, LONG, LPCWSTR) @trusted;
-    HANDLE CreateThread(LPSECURITY_ATTRIBUTES, DWORD, LPTHREAD_START_ROUTINE, PVOID, DWORD, PDWORD);
+    HANDLE CreateThread(LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, PVOID, DWORD, PDWORD);
     BOOL DebugActiveProcess(DWORD);
     void DebugBreak();
     ATOM DeleteAtom(ATOM);
@@ -1776,7 +1778,7 @@ extern (Windows) nothrow @nogc {
     HRSRC FindResourceExA(HINSTANCE, LPCSTR, LPCSTR, WORD);
     HRSRC FindResourceExW(HINSTANCE, LPCWSTR, LPCWSTR, WORD);
     BOOL FlushFileBuffers(HANDLE);
-    BOOL FlushInstructionCache(HANDLE, PCVOID, DWORD);
+    BOOL FlushInstructionCache(HANDLE, PCVOID, SIZE_T);
     DWORD FormatMessageA(DWORD, PCVOID, DWORD, DWORD, LPSTR, DWORD, va_list*);
     DWORD FormatMessageW(DWORD, PCVOID, DWORD, DWORD, LPWSTR, DWORD, va_list*);
     BOOL FreeEnvironmentStringsA(LPSTR);
@@ -1861,7 +1863,7 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
     BOOL GetPrivateProfileStructA(LPCSTR, LPCSTR, LPVOID, UINT, LPCSTR);
     BOOL GetPrivateProfileStructW(LPCWSTR, LPCWSTR, LPVOID, UINT, LPCWSTR);
     FARPROC GetProcAddress(HMODULE, LPCSTR); // 1st param wrongly HINSTANCE in MinGW
-    BOOL GetProcessAffinityMask(HANDLE, PDWORD, PDWORD);
+    BOOL GetProcessAffinityMask(HANDLE, PDWORD_PTR, PDWORD_PTR);
     DWORD GetProcessVersion(DWORD);
     UINT GetProfileIntA(LPCSTR, LPCSTR, INT);
     UINT GetProfileIntW(LPCWSTR, LPCWSTR, INT);
@@ -1967,7 +1969,7 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
     BOOL QueryPerformanceCounter(PLARGE_INTEGER);
     BOOL QueryPerformanceFrequency(PLARGE_INTEGER);
     DWORD QueueUserAPC(PAPCFUNC, HANDLE, ULONG_PTR);
-    void RaiseException(DWORD, DWORD, DWORD, const(DWORD)*);
+    void RaiseException(DWORD, DWORD, DWORD, const(ULONG_PTR)*);
     BOOL ReadFile(HANDLE, PVOID, DWORD, PDWORD, LPOVERLAPPED);
     BOOL ReadFileEx(HANDLE, PVOID, DWORD, LPOVERLAPPED, LPOVERLAPPED_COMPLETION_ROUTINE);
     BOOL ReadProcessMemory(HANDLE, PCVOID, PVOID, SIZE_T, SIZE_T*);
@@ -2024,7 +2026,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     BOOL SetPriorityClass(HANDLE, DWORD);
     BOOL SetStdHandle(DWORD, HANDLE);
     BOOL SetSystemTime(const(SYSTEMTIME)*);
-    DWORD SetThreadAffinityMask(HANDLE, DWORD);
+    DWORD_PTR SetThreadAffinityMask(HANDLE, DWORD_PTR);
     BOOL SetThreadContext(HANDLE, const(CONTEXT)*);
     BOOL SetThreadPriority(HANDLE, int);
     BOOL SetTimeZoneInformation(const(TIME_ZONE_INFORMATION)*);
@@ -2102,7 +2104,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     HLOCAL LocalHandle(LPCVOID);
     PVOID LocalLock(HLOCAL);
     HLOCAL LocalReAlloc(HLOCAL, SIZE_T, UINT);
-    UINT LocalSize(HLOCAL);
+    SIZE_T LocalSize(HLOCAL);
     BOOL LocalUnlock(HLOCAL);
     PVOID VirtualAlloc(PVOID, SIZE_T, DWORD, DWORD);
     PVOID VirtualAllocEx(HANDLE, PVOID, SIZE_T, DWORD, DWORD);
@@ -2171,7 +2173,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     BOOL CreatePrivateObjectSecurity(PSECURITY_DESCRIPTOR, PSECURITY_DESCRIPTOR, PSECURITY_DESCRIPTOR*, BOOL, HANDLE, PGENERIC_MAPPING);
     BOOL CreateProcessAsUserA(HANDLE, LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, PVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
     BOOL CreateProcessAsUserW(HANDLE, LPCWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, PVOID, LPCWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION);
-    HANDLE CreateRemoteThread(HANDLE, LPSECURITY_ATTRIBUTES, DWORD, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD);
+    HANDLE CreateRemoteThread(HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD);
     DWORD CreateTapePartition(HANDLE, DWORD, DWORD, DWORD);
     BOOL DefineDosDeviceA(DWORD, LPCSTR, LPCSTR);
     BOOL DefineDosDeviceW(DWORD, LPCWSTR, LPCWSTR);
@@ -2292,7 +2294,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     BOOL SetHandleInformation(HANDLE, DWORD, DWORD);
     BOOL SetKernelObjectSecurity(HANDLE, SECURITY_INFORMATION, PSECURITY_DESCRIPTOR);
     BOOL SetPrivateObjectSecurity(SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSECURITY_DESCRIPTOR*, PGENERIC_MAPPING, HANDLE);
-    BOOL SetProcessAffinityMask(HANDLE, DWORD);
+    BOOL SetProcessAffinityMask(HANDLE, DWORD_PTR);
     BOOL SetProcessPriorityBoost(HANDLE, BOOL);
     BOOL SetProcessShutdownParameters(DWORD, DWORD);
     BOOL SetProcessWorkingSetSize(HANDLE, SIZE_T, SIZE_T);

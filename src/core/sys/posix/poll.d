@@ -16,6 +16,15 @@ module core.sys.posix.poll;
 
 private import core.sys.posix.config;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 nothrow:
@@ -75,7 +84,7 @@ version( CRuntime_Glibc )
 
     int poll(pollfd*, nfds_t, int);
 }
-else version( OSX )
+else version( Darwin )
 {
     struct pollfd
     {
@@ -133,6 +142,37 @@ else version( FreeBSD )
         //POLLATTRIB  = 0x0400,
         //POLLNLINK   = 0x0800,
         //POLLWRITE   = 0x1000,
+        POLLERR     = 0x0008,
+        POLLHUP     = 0x0010,
+        POLLNVAL    = 0x0020,
+
+        POLLSTANDARD = (POLLIN|POLLPRI|POLLOUT|POLLRDNORM|POLLRDBAND|
+        POLLWRBAND|POLLERR|POLLHUP|POLLNVAL)
+    }
+
+    int poll(pollfd*, nfds_t, int);
+}
+else version( OpenBSD )
+{
+    alias uint nfds_t;
+
+    struct pollfd
+    {
+        int     fd;
+        short   events;
+        short   revents;
+    };
+
+    enum
+    {
+        POLLIN      = 0x0001,
+        POLLPRI     = 0x0002,
+        POLLOUT     = 0x0004,
+        POLLRDNORM  = 0x0040,
+        POLLNORM    = POLLRDNORM,
+        POLLWRNORM  = POLLOUT,
+        POLLRDBAND  = 0x0080,
+        POLLWRBAND  = 0x0100,
         POLLERR     = 0x0008,
         POLLHUP     = 0x0010,
         POLLNVAL    = 0x0020,

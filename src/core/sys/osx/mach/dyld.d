@@ -1,4 +1,7 @@
 /**
+ * $(RED Deprecated. Use $(D core.sys.darwin.mach.dyld) instead. This module
+ *       will be removed in June 2018.)
+ *
  * Copyright: Copyright Digital Mars 2010.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Jacob Carlborg
@@ -12,16 +15,4 @@
  */
 module core.sys.osx.mach.dyld;
 
-version (OSX):
-extern (C):
-
-public import core.stdc.stdint; // for intptr_t
-public import core.sys.osx.mach.loader;
-
-uint         _dyld_image_count();
-const(char)* _dyld_get_image_name(uint image_index);
-mach_header* _dyld_get_image_header(uint image_index);
-void         _dyld_register_func_for_add_image(void function(in mach_header* mh, intptr_t vmaddr_slide));
-void         _dyld_register_func_for_remove_image(void function(in mach_header* mh, intptr_t vmaddr_slide));
-
-
+public import core.sys.darwin.mach.dyld;

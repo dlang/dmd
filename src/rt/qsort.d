@@ -18,6 +18,15 @@ module rt.qsort;
 
 private import core.stdc.stdlib;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (CRuntime_Glibc)
 {
     alias extern (C) int function(const void *, const void *, void *) Cmp;
@@ -48,7 +57,7 @@ else version (FreeBSD)
         return a;
     }
 }
-else version (OSX)
+else version (Darwin)
 {
     alias extern (C) int function(void *, const void *, const void *) Cmp;
     extern (C) void qsort_r(void *base, size_t nmemb, size_t size, void *thunk, Cmp cmp);

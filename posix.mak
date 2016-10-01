@@ -28,10 +28,12 @@ DOCDIR=doc
 IMPDIR=import
 
 OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
+OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov,)
 
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
 	DOTLIB:=.a
+	export MACOSX_DEPLOYMENT_TARGET=10.7
 else
 	DOTDLL:=.so
 	DOTLIB:=.a
@@ -51,7 +53,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -dip25 $(MODEL_FLAG) $(OPTIONAL_PIC)
+UDFLAGS:=-conf= -Isrc -Iimport -w -dip25 $(MODEL_FLAG) $(OPTIONAL_PIC) $(OPTIONAL_COVERAGE)
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
@@ -90,6 +92,12 @@ SRCS:=$(subst \,/,$(SRCS))
 
 OBJS= $(ROOT)/errno_c.o $(ROOT)/bss_section.o $(ROOT)/threadasm.o
 
+ifeq ($(OS),osx)
+ifeq ($(MODEL), 64)
+	OBJS+=$(ROOT)/osx_tls.o
+endif
+endif
+
 # build with shared library support
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
 
@@ -119,6 +127,9 @@ $(DOCDIR)/core_%.html : src/core/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_stdcpp_%.html : src/core/stdcpp/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
@@ -292,6 +303,11 @@ clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 
 test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
+
+# Submission to Druntime are required to conform to the DStyle
+# The tests below automate some, but not all parts of the DStyle guidelines.
+# See: http://dlang.org/dstyle.html
+style: checkwhitespace
 
 .PHONY : auto-tester-build
 auto-tester-build: target checkwhitespace

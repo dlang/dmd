@@ -2,19 +2,12 @@
  * Forms the symbols available to all D programs. Includes Object, which is
  * the root of the class object hierarchy.  This module is implicitly
  * imported.
- * Macros:
- *      WIKI = Object
  *
  * Copyright: Copyright Digital Mars 2000 - 2011.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  */
 
-/*          Copyright Digital Mars 2000 - 2011.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module object;
 
 private
@@ -92,7 +85,9 @@ class Object
     }
 
     /**
-     * Returns !=0 if this object does have the same contents as obj.
+     * Test whether $(D this) is equal to $(D o).
+     * The default implementation only compares by identity (using the $(D is) operator).
+     * Generally, overrides for $(D opEquals) should attempt to compare objects by their contents.
      */
     bool opEquals(Object o)
     {
@@ -216,11 +211,11 @@ class TypeInfo
     {
         import core.internal.traits : externDFunc;
         alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                    size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
+                                    size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
         try
         {
             auto data = this.toString();
-            return hashOf(data.ptr, data.length, 0);
+            return hashOf(data, 0);
         }
         catch (Throwable)
         {
@@ -257,7 +252,15 @@ class TypeInfo
         return ti && this.toString() == ti.toString();
     }
 
-    /// Returns a hash of the instance of a type.
+    /**
+     * Computes a hash of the instance of a type.
+     * Params:
+     *    p = pointer to start of instance of the type
+     * Returns:
+     *    the hash
+     * Bugs:
+     *    fix https://issues.dlang.org/show_bug.cgi?id=12516 e.g. by changing this to a truly safe interface.
+     */
     size_t getHash(in void* p) @trusted nothrow const { return cast(size_t)p; }
 
     /// Compares two instances for equality.
@@ -281,23 +284,27 @@ class TypeInfo
         }
     }
 
-    /// Get TypeInfo for 'next' type, as defined by what kind of type this is,
-    /// null if none.
+    /** Get TypeInfo for 'next' type, as defined by what kind of type this is,
+    null if none. */
     @property inout(TypeInfo) next() nothrow pure inout @nogc { return null; }
 
-    /// Return default initializer.  If the type should be initialized to all zeros,
-    /// an array with a null ptr and a length equal to the type size will be returned.
+    /**
+     * Return default initializer.  If the type should be initialized to all
+     * zeros, an array with a null ptr and a length equal to the type size will
+     * be returned. For static arrays, this returns the default initializer for
+     * a single element of the array, use `tsize` to get the correct size.
+     */
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
     /// $(RED Scheduled for deprecation.) Please use `initializer` instead.
-    alias init = initializer; // added in 2.070, to stay in 2.071
-    version(none) deprecated alias init = initializer; // planned for 2.072
+    deprecated("Please use initializer instead.") alias init = initializer;
+        // since 2.072
     version(none) @disable static const(void)[] init(); // planned for 2.073
     /* Planned for 2.074: Remove init, making way for the init type property,
     fixing issue 12233. */
 
-    /// Get flags for type: 1 means GC should scan for pointers,
-    /// 2 means arg of this type is passed in XMM register
+    /** Get flags for type: 1 means GC should scan for pointers,
+    2 means arg of this type is passed in XMM register */
     @property uint flags() nothrow pure const @safe @nogc { return 0; }
 
     /// Get type information on the contents of the type; null if not available
@@ -1103,7 +1110,7 @@ class TypeInfo_Struct : TypeInfo
                     this.initializer().length == s.initializer().length;
     }
 
-    override size_t getHash(in void* p) @safe pure nothrow const
+    override size_t getHash(in void* p) @trusted pure nothrow const
     {
         assert(p);
         if (xtoHash)
@@ -1114,8 +1121,8 @@ class TypeInfo_Struct : TypeInfo
         {
             import core.internal.traits : externDFunc;
             alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                        size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
-            return hashOf(p, initializer().length, 0);
+                                        size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
+            return hashOf(p[0 .. initializer().length], 0);
         }
     }
 
@@ -1797,8 +1804,8 @@ class Error : Throwable
         bypassedException = null;
     }
 
-    /// The first $(D Exception) which was bypassed when this Error was thrown,
-    /// or $(D null) if no $(D Exception)s were pending.
+    /** The first $(D Exception) which was bypassed when this Error was thrown,
+    or $(D null) if no $(D Exception)s were pending. */
     Throwable   bypassedException;
 }
 
@@ -2119,7 +2126,7 @@ pure nothrow unittest
     }
 }
 
-pure /*nothrow @@@BUG5555@@@*/ unittest
+pure /*nothrow */ unittest
 {
     auto a = [ 1:"one", 2:"two", 3:"three" ];
     auto b = a.dup;
@@ -2471,7 +2478,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
 
     struct InnerMiddle {}
 
-    version(none) // @@@BUG@@@ 14242
+    version(none) // https://issues.dlang.org/show_bug.cgi?id=14242
     struct InnerElement
     {
         static char counter = '1';
@@ -2505,7 +2512,7 @@ void _postblitRecurse(E, size_t n)(ref E[n] arr)
         char[] s;
         InnerTop top;
         InnerMiddle middle;
-        version(none) InnerElement[3] array; // @@@BUG@@@ 14242
+        version(none) InnerElement[3] array; // https://issues.dlang.org/show_bug.cgi?id=14242
         int a;
         InnerBottom bottom;
         ~this() @safe nothrow pure { order ~= "destroy outer"; }
@@ -2581,7 +2588,7 @@ unittest
 }
 
 // Test handling of fixed-length arrays
-// Separate from first test because of @@@BUG@@@ 14242
+// Separate from first test because of https://issues.dlang.org/show_bug.cgi?id=14242
 unittest
 {
     string[] order;
@@ -2624,7 +2631,7 @@ unittest
 }
 
 // Test handling of failed postblit
-// Not nothrow or @safe because of @@@BUG@@@ 14242
+// Not nothrow or @safe because of https://issues.dlang.org/show_bug.cgi?id=14242
 /+ nothrow @safe +/ unittest
 {
     static class FailedPostblitException : Exception { this() nothrow @safe { super(null); } }
@@ -2943,12 +2950,12 @@ private
  *
  * Note: The capacity of a slice may be impacted by operations on other slices.
  */
-@property size_t capacity(T)(T[] arr) pure nothrow
+@property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
 }
 ///
-unittest
+@safe unittest
 {
     //Static array slice: no capacity
     int[4] sarray = [1, 2, 3, 4];
@@ -3078,7 +3085,7 @@ unittest
     arr = arr[0 .. 1].assumeSafeAppend(); //pass by value
 }
 
-//@@@10574@@@
+// https://issues.dlang.org/show_bug.cgi?id=10574
 unittest
 {
     int[] a;
@@ -3169,7 +3176,7 @@ struct Test
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
-    return core.internal.hash.hashOf(arg, seed);
+    return core.internal.hash.hashOf((cast(void*)&arg)[0 .. T.sizeof], seed);
 }
 
 bool _xopEquals(in void*, in void*)
@@ -3181,9 +3188,12 @@ bool _xopCmp(in void*, in void*)
 {
     throw new Error("TypeInfo.compare is not implemented");
 }
-
-void __ctfeWrite(T...)(auto ref T) {}
-void __ctfeWriteln(T...)(auto ref T values) { __ctfeWrite(values, "\n"); }
+void __ctfeWrite(const string s) {}
+void __ctfeWriteln(const string s)
+{
+  __ctfeWrite(s);
+  __ctfeWrite("\n");
+}
 
 /******************************************
  * Create RTInfo for type T
@@ -3240,9 +3250,9 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
 
     import core.internal.traits : externDFunc;
     alias hashOf = externDFunc!("rt.util.hash.hashOf",
-                                size_t function(const(void)*, size_t, size_t) @trusted pure nothrow);
+                                size_t function(const(void)[], size_t) @trusted pure nothrow @nogc);
     if(!hasCustomToHash(element))
-        return hashOf(ptr, elementSize * count, 0);
+        return hashOf(ptr[0 .. elementSize * count], 0);
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)
@@ -3251,7 +3261,7 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
 }
 
 
-// @@@BUG5835@@@ tests:
+// Tests ensure TypeInfo_Array.getHash  uses element hash functions instead of hashing array data
 
 unittest
 {
@@ -3262,7 +3272,7 @@ unittest
         override hash_t toHash() { return 0; }
     }
     C[] a1 = [new C(11)], a2 = [new C(12)];
-    assert(typeid(C[]).getHash(&a1) == typeid(C[]).getHash(&a2)); // fails
+    assert(typeid(C[]).getHash(&a1) == typeid(C[]).getHash(&a2));
 }
 
 unittest
@@ -3273,7 +3283,7 @@ unittest
         hash_t toHash() const @safe nothrow { return 0; }
     }
     S[] a1 = [S(11)], a2 = [S(12)];
-    assert(typeid(S[]).getHash(&a1) == typeid(S[]).getHash(&a2)); // fails
+    assert(typeid(S[]).getHash(&a1) == typeid(S[]).getHash(&a2));
 }
 
 @safe unittest
@@ -3288,11 +3298,11 @@ unittest
     }
 
     int[S[]] aa = [[S(11)] : 13];
-    assert(aa[[S(12)]] == 13); // fails
+    assert(aa[[S(12)]] == 13);
 }
 
 /// Provide the .dup array property.
-@property auto dup(T)(T[] a)
+@property auto dup(T)(scope T[] a)
     if (!is(const(T) : T))
 {
     import core.internal.traits : Unconst;
@@ -3308,7 +3318,7 @@ unittest
 
 /// ditto
 // const overload to support implicit conversion to immutable (unique result, see DIP29)
-@property T[] dup(T)(const(T)[] a)
+@property T[] dup(T)(scope const(T)[] a)
     if (is(const(T) : T))
 {
     // wrap unsafe _dup in @trusted to preserve @safe postblit
@@ -3318,15 +3328,9 @@ unittest
         return _dup!(const(T), T)(a);
 }
 
-/// ditto
-@property T[] dup(T:void)(const(T)[] a) @trusted
-{
-    if (__ctfe) assert(0, "Cannot dup a void[] array at compile time.");
-    return cast(T[])_rawDup(a);
-}
 
 /// Provide the .idup array property.
-@property immutable(T)[] idup(T)(T[] a)
+@property immutable(T)[] idup(T)(scope T[] a)
 {
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
@@ -3339,53 +3343,52 @@ unittest
 }
 
 /// ditto
-@property immutable(T)[] idup(T:void)(const(T)[] a)
+@property immutable(T)[] idup(T:void)(scope const(T)[] a)
 {
     return a.dup;
 }
 
-private U[] _trustedDup(T, U)(T[] a) @trusted
+private U[] _trustedDup(T, U)(scope T[] a) @trusted
 {
     return _dup!(T, U)(a);
 }
 
-private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
+private U[] _dup(T, U)(scope T[] a) // pure nothrow depends on postblit
 {
     if (__ctfe)
     {
-        U[] res;
-        foreach (ref e; a)
-            res ~= e;
-        return res;
+        static if (is(T : void))
+            assert(0, "Cannot dup a void[] array at compile time.");
+        else
+        {
+            U[] res;
+            foreach (ref e; a)
+                res ~= e;
+            return res;
+        }
     }
 
-    a = _rawDup(a);
-    auto res = *cast(typeof(return)*)&a;
-    _doPostblit(res);
+    import core.stdc.string : memcpy;
+
+    void[] arr = _d_newarrayU(typeid(T[]), a.length);
+    memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
+    auto res = *cast(U[]*)&arr;
+
+    static if (!is(T : void))
+        _doPostblit(res);
     return res;
 }
 
 private extern (C) void[] _d_newarrayU(const TypeInfo ti, size_t length) pure nothrow;
 
-private inout(T)[] _rawDup(T)(inout(T)[] a)
-{
-    import core.stdc.string : memcpy;
 
-    void[] arr = _d_newarrayU(typeid(T[]), a.length);
-    memcpy(arr.ptr, cast(void*)a.ptr, T.sizeof * a.length);
-    return *cast(inout(T)[]*)&arr;
-}
-
-private template _PostBlitType(T)
-{
-    // assume that ref T and void* are equivalent in abi level.
-    static if (is(T == struct))
-        alias _PostBlitType = typeof(function (ref T t){ T a = t; });
-    else
-        alias _PostBlitType = typeof(delegate (ref T t){ T a = t; });
-}
-
-// Returns null, or a delegate to call postblit of T
+/**************
+ * Get the postblit for type T.
+ * Returns:
+ *      null if no postblit is necessary
+ *      function pointer for struct postblits
+ *      delegate for class postblits
+ */
 private auto _getPostblit(T)() @trusted pure nothrow @nogc
 {
     // infer static postblit type, run postblit if any
@@ -3393,11 +3396,13 @@ private auto _getPostblit(T)() @trusted pure nothrow @nogc
     {
         import core.internal.traits : Unqual;
         // use typeid(Unqual!T) here to skip TypeInfo_Const/Shared/...
-        return cast(_PostBlitType!T)typeid(Unqual!T).xpostblit;
+        alias _PostBlitType = typeof(function (ref T t){ T a = t; });
+        return cast(_PostBlitType)typeid(Unqual!T).xpostblit;
     }
     else if ((&typeid(T).postblit).funcptr !is &TypeInfo.postblit)
     {
-        return cast(_PostBlitType!T)&typeid(T).postblit;
+        alias _PostBlitType = typeof(delegate (ref T t){ T a = t; });
+        return cast(_PostBlitType)&typeid(T).postblit;
     }
     else
         return null;

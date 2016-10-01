@@ -18,25 +18,21 @@ mixin DECLARE_HANDLE!("HACMDRIVERID");
 mixin DECLARE_HANDLE!("HACMDRIVER");
 alias HACMDRIVER* LPHACMDRIVER;
 
-/* Comment from MinGW
-    found through experimentation
- */
 enum size_t
     ACMDRIVERDETAILS_SHORTNAME_CHARS =  32,
     ACMDRIVERDETAILS_LONGNAME_CHARS  = 128,
     ACMDRIVERDETAILS_COPYRIGHT_CHARS =  80,
-    ACMDRIVERDETAILS_LICENSING_CHARS = 128;
+    ACMDRIVERDETAILS_LICENSING_CHARS = 128,
+    ACMDRIVERDETAILS_FEATURES_CHARS  = 512;
 
-/* Comment from MinGW
-    I don't know the right values for these macros
- */
 enum size_t
-    ACMFORMATDETAILS_FORMAT_CHARS       = 256,
-    ACMFORMATTAGDETAILS_FORMATTAG_CHARS = 256,
-    ACMDRIVERDETAILS_FEATURES_CHARS     = 256;
+    ACMFORMATDETAILS_FORMAT_CHARS       = 128,
+    ACMFORMATTAGDETAILS_FORMATTAG_CHARS = 48;
+
+align(1):
 
 struct ACMFORMATDETAILSA {
-    DWORD          cbStruct = ACMFORMATDETAILSA.sizeof;  // are they?
+    DWORD          cbStruct = ACMFORMATDETAILSA.sizeof;
     DWORD          dwFormatIndex;
     DWORD          dwFormatTag;
     DWORD          fdwSupport;
@@ -80,6 +76,7 @@ struct ACMFORMATTAGDETAILSW {
 alias ACMFORMATTAGDETAILSW* LPACMFORMATTAGDETAILSW;
 
 struct ACMDRIVERDETAILSA {
+align(1):
     DWORD  cbStruct = ACMDRIVERDETAILSA.sizeof;
     FOURCC fccType;
     FOURCC fccComp;
@@ -100,6 +97,7 @@ struct ACMDRIVERDETAILSA {
 alias ACMDRIVERDETAILSA* LPACMDRIVERDETAILSA;
 
 struct ACMDRIVERDETAILSW {
+align(1):
     DWORD  cbStruct = ACMDRIVERDETAILSW.sizeof;
     FOURCC fccType;
     FOURCC fccComp;

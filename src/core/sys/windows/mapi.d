@@ -74,8 +74,10 @@ enum MAPI_UNREAD            = 0x0001;
 enum MAPI_RECEIPT_REQUESTED = 0x0002;
 enum MAPI_SENT              = 0x0004;
 
-alias uint FLAGS, LHANDLE;
-alias uint* LPLHANDLE, LPULONG;
+alias uint FLAGS;
+alias uint* LPULONG;
+alias ULONG_PTR LHANDLE;
+alias ULONG_PTR* LPLHANDLE;
 
 struct MapiRecipDesc {
     ULONG  ulReserved;
@@ -123,46 +125,46 @@ struct MapiMessage {
 alias MapiMessage* lpMapiMessage;
 
 extern (Pascal) {
-    ULONG MAPILogon(ULONG, LPSTR, LPSTR, FLAGS, ULONG, LPLHANDLE);
-    ULONG MAPISendMail(LHANDLE, ULONG, lpMapiMessage, FLAGS, ULONG);
-    ULONG MAPISendDocuments(ULONG, LPSTR, LPSTR, LPSTR, ULONG);
-    ULONG MAPIReadMail(LHANDLE, ULONG, LPSTR, FLAGS, ULONG, lpMapiMessage*);
-    ULONG MAPIFindNext(LHANDLE, ULONG, LPSTR, LPSTR, FLAGS, ULONG, LPSTR);
-    ULONG MAPIResolveName(LHANDLE, ULONG, LPSTR, FLAGS, ULONG,
+    ULONG MAPILogon(ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPLHANDLE);
+    ULONG MAPISendMail(LHANDLE, ULONG_PTR, lpMapiMessage, FLAGS, ULONG);
+    ULONG MAPISendDocuments(ULONG_PTR, LPSTR, LPSTR, LPSTR, ULONG);
+    ULONG MAPIReadMail(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG, lpMapiMessage*);
+    ULONG MAPIFindNext(LHANDLE, ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPSTR);
+    ULONG MAPIResolveName(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG,
       lpMapiRecipDesc*);
-    ULONG MAPIAddress(LHANDLE, ULONG, LPSTR, ULONG, LPSTR, ULONG,
+    ULONG MAPIAddress(LHANDLE, ULONG_PTR, LPSTR, ULONG, LPSTR, ULONG,
       lpMapiRecipDesc, FLAGS, ULONG, LPULONG, lpMapiRecipDesc*);
     ULONG MAPIFreeBuffer(LPVOID);
-    ULONG MAPIDetails(LHANDLE, ULONG, lpMapiRecipDesc, FLAGS, ULONG);
-    ULONG MAPISaveMail(LHANDLE, ULONG, lpMapiMessage lpszMessage, FLAGS,
+    ULONG MAPIDetails(LHANDLE, ULONG_PTR, lpMapiRecipDesc, FLAGS, ULONG);
+    ULONG MAPISaveMail(LHANDLE, ULONG_PTR, lpMapiMessage lpszMessage, FLAGS,
       ULONG, LPSTR);
-    ULONG MAPIDeleteMail(LHANDLE lpSession, ULONG, LPSTR, FLAGS, ULONG);
-    ULONG MAPILogoff(LHANDLE, ULONG, FLAGS, ULONG);
+    ULONG MAPIDeleteMail(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG);
+    ULONG MAPILogoff(LHANDLE, ULONG_PTR, FLAGS, ULONG);
     // Netscape extensions
     ULONG MAPIGetNetscapeVersion();
     ULONG MAPI_NSCP_SynchronizeClient(LHANDLE, ULONG);
 
     // Handles for use with GetProcAddress
-    alias ULONG function(ULONG, LPSTR, LPSTR, FLAGS, ULONG, LPLHANDLE)
+    alias ULONG function(ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPLHANDLE)
       LPMAPILOGON;
-    alias ULONG function(LHANDLE, ULONG, lpMapiMessage, FLAGS, ULONG)
+    alias ULONG function(LHANDLE, ULONG_PTR, lpMapiMessage, FLAGS, ULONG)
       LPMAPISENDMAIL;
-    alias ULONG function(ULONG, LPSTR, LPSTR, LPSTR, ULONG)
+    alias ULONG function(ULONG_PTR, LPSTR, LPSTR, LPSTR, ULONG)
       LPMAPISENDDOCUMENTS;
-    alias ULONG function(LHANDLE, ULONG, LPSTR, FLAGS, ULONG, lpMapiMessage*)
+    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG, lpMapiMessage*)
       LPMAPIREADMAIL;
-    alias ULONG function(LHANDLE, ULONG, LPSTR, LPSTR, FLAGS, ULONG, LPSTR)
+    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, LPSTR, FLAGS, ULONG, LPSTR)
       LPMAPIFINDNEXT;
-    alias ULONG function(LHANDLE, ULONG, LPSTR, FLAGS, ULONG,
+    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG,
       lpMapiRecipDesc*) LPMAPIRESOLVENAME;
-    alias ULONG function(LHANDLE, ULONG, LPSTR, ULONG, LPSTR, ULONG,
+    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, ULONG, LPSTR, ULONG,
       lpMapiRecipDesc, FLAGS, ULONG, LPULONG, lpMapiRecipDesc*) LPMAPIADDRESS;
     alias ULONG function(LPVOID lpv) LPMAPIFREEBUFFER;
-    alias ULONG function(LHANDLE, ULONG, lpMapiRecipDesc, FLAGS, ULONG)
+    alias ULONG function(LHANDLE, ULONG_PTR, lpMapiRecipDesc, FLAGS, ULONG)
       LPMAPIDETAILS;
-    alias ULONG function(LHANDLE, ULONG, lpMapiMessage, FLAGS, ULONG, LPSTR)
+    alias ULONG function(LHANDLE, ULONG_PTR, lpMapiMessage, FLAGS, ULONG, LPSTR)
       LPMAPISAVEMAIL;
-    alias ULONG function(LHANDLE lpSession, ULONG, LPSTR, FLAGS, ULONG)
+    alias ULONG function(LHANDLE, ULONG_PTR, LPSTR, FLAGS, ULONG)
       LPMAPIDELETEMAIL;
-    alias ULONG function(LHANDLE, ULONG, FLAGS, ULONG) LPMAPILOGOFF;
+    alias ULONG function(LHANDLE, ULONG_PTR, FLAGS, ULONG) LPMAPILOGOFF;
 }

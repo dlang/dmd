@@ -208,6 +208,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\stdc
 	mkdir $(IMPDIR)\core\stdcpp
 	mkdir $(IMPDIR)\core\internal
+	mkdir $(IMPDIR)\core\sys\darwin\mach
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\sys
 	mkdir $(IMPDIR)\core\sys\osx\mach
@@ -354,16 +355,61 @@ $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\darwin\execinfo.d : src\core\sys\darwin\execinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\pthread.d : src\core\sys\darwin\pthread.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\mach\dyld.d : src\core\sys\darwin\mach\dyld.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\mach\getsect.d : src\core\sys\darwin\mach\getsect.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\mach\kern_return.d : src\core\sys\darwin\mach\kern_return.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\mach\loader.d : src\core\sys\darwin\mach\loader.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\mach\port.d : src\core\sys\darwin\mach\port.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\mach\semaphore.d : src\core\sys\darwin\mach\semaphore.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\mach\thread_act.d : src\core\sys\darwin\mach\thread_act.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\sys\cdefs.d : src\core\sys\darwin\sys\cdefs.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\sys\event.d : src\core\sys\darwin\sys\event.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\sys\mman.d : src\core\sys\darwin\sys\mman.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\freebsd\pthread_np.d : src\core\sys\freebsd\pthread_np.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\freebsd\time.d : src\core\sys\freebsd\time.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\cdefs.d : src\core\sys\freebsd\sys\cdefs.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\_bitset.d : src\core\sys\freebsd\sys\_bitset.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\_cpuset.d : src\core\sys\freebsd\sys\_cpuset.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\elf.d : src\core\sys\freebsd\sys\elf.d
@@ -426,6 +472,9 @@ $(IMPDIR)\core\sys\linux\tipc.d : src\core\sys\linux\tipc.d
 $(IMPDIR)\core\sys\linux\unistd.d : src\core\sys\linux\unistd.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
 	copy $** $@
 
@@ -442,6 +491,9 @@ $(IMPDIR)\core\sys\linux\sys\sysinfo.d : src\core\sys\linux\sys\sysinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
@@ -540,6 +592,12 @@ $(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
 $(IMPDIR)\core\sys\posix\syslog.d : src\core\sys\posix\syslog.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\sys\filio.d : src\core\sys\posix\sys\filio.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\ioccom.d : src\core\sys\posix\sys\ioccom.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\sys\ioctl.d : src\core\sys\posix\sys\ioctl.d
 	copy $** $@
 
@@ -565,6 +623,9 @@ $(IMPDIR)\core\sys\posix\sys\stat.d : src\core\sys\posix\sys\stat.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\statvfs.d : src\core\sys\posix\sys\statvfs.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\ttycom.d : src\core\sys\posix\sys\ttycom.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\time.d : src\core\sys\posix\sys\time.d

@@ -1,25 +1,34 @@
 /**
  * Written in the D programming language.
- * This module provides OSX-specific support for sections.
+ * This module provides OS X x86 specific support for sections.
  *
- * Copyright: Copyright Digital Mars 2008 - 2012.
+ * Copyright: Copyright Digital Mars 2008 - 2016.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
- * Authors:   Walter Bright, Sean Kelly, Martin Nowak
- * Source: $(DRUNTIMESRC src/rt/_sections_osx.d)
+ * Authors: Walter Bright, Sean Kelly, Martin Nowak, Jacob Carlborg
+ * Source: $(DRUNTIMESRC src/rt/_sections_osx_x86.d)
  */
+module rt.sections_osx_x86;
 
-module rt.sections_osx;
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
 
-version(OSX):
+version(Darwin):
+version(X86):
 
 // debug = PRINTF;
 import core.stdc.stdio;
 import core.stdc.string, core.stdc.stdlib;
 import core.sys.posix.pthread;
-import core.sys.osx.mach.dyld;
-import core.sys.osx.mach.getsect;
+import core.sys.darwin.mach.dyld;
+import core.sys.darwin.mach.getsect;
 import rt.deh, rt.minfo;
 import rt.util.container.array;
 
@@ -180,7 +189,6 @@ ref void[] getTLSBlockAlloc()
     return *pary;
 }
 
-
 __gshared SectionGroup _sections;
 
 extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
@@ -199,12 +207,12 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
         // take the sections from the last static image which is the executable
         if (_isRuntimeInitialized)
         {
-            fprintf(stderr, "Loading shared libraries isn't yet supported on OSX.\n");
+            fprintf(stderr, "Loading shared libraries isn't yet supported on Darwin.\n");
             return;
         }
         else if (_sections.modules.ptr !is null)
         {
-            fprintf(stderr, "Shared libraries are not yet supported on OSX.\n");
+            fprintf(stderr, "Shared libraries are not yet supported on Darwin.\n");
         }
 
         debug(PRINTF) printf("  minfodata\n");
@@ -254,22 +262,8 @@ static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
 {
-    version (X86)
-    {
-        assert(header.magic == MH_MAGIC);
-        auto sect = getsectbynamefromheader(header,
-                                            segmentName,
-                                            sectionName);
-    }
-    else version (X86_64)
-    {
-        assert(header.magic == MH_MAGIC_64);
-        auto sect = getsectbynamefromheader_64(cast(mach_header_64*)header,
-                                            segmentName,
-                                            sectionName);
-    }
-    else
-        static assert(0, "unimplemented");
+    assert(header.magic == MH_MAGIC);
+    auto sect = getsectbynamefromheader(header, segmentName, sectionName);
 
     if (sect !is null && sect.size > 0)
         return (cast(ubyte*)sect.addr + slide)[0 .. cast(size_t)sect.size];

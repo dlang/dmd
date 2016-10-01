@@ -37,7 +37,9 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && __traits
 }
 
 //dynamic array hash
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T))
+size_t hashOf(T)(auto ref T val, size_t seed = 0)
+if (!is(T == enum) && !is(T : typeof(null)) && is(T S: S[]) && !__traits(isStaticArray, T)
+    && !is(T == struct) && !is(T == class) && !is(T == union))
 {
     alias ElementType = typeof(val[0]);
     static if (is(ElementType == interface) || is(ElementType == class) ||
@@ -91,7 +93,9 @@ size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T : t
 
 //Pointers hash. CTFE unsupported if not null
 @trusted nothrow pure
-size_t hashOf(T)(auto ref T val, size_t seed = 0) if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null)))
+size_t hashOf(T)(auto ref T val, size_t seed = 0)
+if (!is(T == enum) && is(T V : V*) && !is(T : typeof(null))
+    && !is(T == struct) && !is(T == class) && !is(T == union))
 {
     if(__ctfe)
     {
@@ -387,6 +391,27 @@ unittest
 }
 
 
+unittest // issue 15111
+{
+    void testAlias(T)()
+    {
+        static struct Foo
+        {
+            T t;
+            alias t this;
+        }
+        Foo foo;
+        static assert(is(typeof(hashOf(foo))));
+    }
+    // was fixed
+    testAlias!(int[]);
+    testAlias!(int*);
+    // was not affected
+    testAlias!int;
+    testAlias!(void delegate());
+    testAlias!(string[string]);
+    testAlias!(int[8]);
+}
 
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
@@ -407,10 +432,11 @@ version(AnyX86)
     }
 }
 
-@trusted pure nothrow
-size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
+
+@system pure nothrow @nogc
+size_t bytesHash(const(void)* buf, size_t len, size_t seed)
 {
-    static uint rotl32(uint n)(in uint x) pure nothrow @safe
+    static uint rotl32(uint n)(in uint x) pure nothrow @safe @nogc
     {
         return (x << n) | (x >> (32 - n));
     }
@@ -418,7 +444,7 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
     //-----------------------------------------------------------------------------
     // Block read - if your platform needs to do endian-swapping or can only
     // handle aligned reads, do the conversion here
-    static uint get32bits(const (ubyte)* x) pure nothrow
+    static uint get32bits(const (ubyte)* x) pure nothrow @nogc
     {
         //Compiler can optimize this code to simple *cast(uint*)x if it possible.
         version(HasUnalignedOps)
@@ -438,7 +464,7 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
 
     //-----------------------------------------------------------------------------
     // Finalization mix - force all bits of a hash block to avalanche
-    static uint fmix32(uint h) pure nothrow @safe
+    static uint fmix32(uint h) pure nothrow @safe @nogc
     {
         h ^= h >> 16;
         h *= 0x85ebca6b;
@@ -495,14 +521,14 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed = 0)
 }
 
 //  Check that bytesHash works with CTFE
-unittest
+pure nothrow @system @nogc unittest
 {
     size_t ctfeHash(string x)
     {
-        return bytesHash(x.ptr, x.length);
+        return bytesHash(x.ptr, x.length, 0);
     }
 
     enum test_str = "Sample string";
     enum size_t hashVal = ctfeHash(test_str);
-    assert(hashVal == bytesHash(test_str.ptr, test_str.length));
+    assert(hashVal == bytesHash(&test_str[0], test_str.length, 0));
 }

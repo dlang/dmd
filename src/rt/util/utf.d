@@ -12,23 +12,16 @@
  *      $(LINK2 http://en.wikipedia.org/wiki/Unicode, Wikipedia)<br>
  *      $(LINK http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8)<br>
  *      $(LINK http://anubis.dkuug.dk/JTC1/SC2/WG2/docs/n1335)
- * Macros:
- *      WIKI = Phobos/StdUtf
  *
- * Copyright: Copyright Digital Mars 2003 - 2009.
+ * Copyright: Copyright Digital Mars 2003 - 2016.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
+ * Source:    $(DRUNTIMESRC src/rt/util/_utf.d)
  */
 
-/*          Copyright Digital Mars 2003 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.util.utf;
 
-
-extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ );
+extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ ) @safe pure;
 
 /*******************************
  * Test if c is a valid UTF-32 character.
@@ -40,6 +33,7 @@ extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, 
  * Returns: true if it is, false if not.
  */
 
+@safe @nogc pure nothrow
 bool isValidDchar(dchar c)
 {
     /* Note: FFFE and FFFF are specifically permitted by the
@@ -89,6 +83,7 @@ static immutable UTF8stride =
  *      The number of bytes in the UTF-8 sequence or
  *      0xFF meaning s[i] is not the start of of UTF-8 sequence.
  */
+@safe @nogc pure nothrow
 uint stride(in char[] s, size_t i)
 {
     return UTF8stride[s[i]];
@@ -98,6 +93,7 @@ uint stride(in char[] s, size_t i)
  * stride() returns the length of a UTF-16 sequence starting at index i
  * in string s.
  */
+@safe @nogc pure nothrow
 uint stride(in wchar[] s, size_t i)
 {   uint u = s[i];
     return 1 + (u >= 0xD800 && u <= 0xDBFF);
@@ -108,6 +104,7 @@ uint stride(in wchar[] s, size_t i)
  * in string s.
  * Returns: The return value will always be 1.
  */
+@safe @nogc pure nothrow
 uint stride(in dchar[] s, size_t i)
 {
     return 1;
@@ -118,7 +115,7 @@ uint stride(in dchar[] s, size_t i)
  * and assuming that index i is at the start of a UTF character,
  * determine the number of UCS characters up to that index i.
  */
-
+@safe pure
 size_t toUCSindex(in char[] s, size_t i)
 {
     size_t n;
@@ -137,6 +134,7 @@ size_t toUCSindex(in char[] s, size_t i)
 }
 
 /** ditto */
+@safe pure
 size_t toUCSindex(in wchar[] s, size_t i)
 {
     size_t n;
@@ -155,6 +153,7 @@ size_t toUCSindex(in wchar[] s, size_t i)
 }
 
 /** ditto */
+@safe @nogc pure nothrow
 size_t toUCSindex(in dchar[] s, size_t i)
 {
     return i;
@@ -163,7 +162,7 @@ size_t toUCSindex(in dchar[] s, size_t i)
 /******************************************
  * Given a UCS index n into an array of characters s[], return the UTF index.
  */
-
+@safe pure
 size_t toUTFindex(in char[] s, size_t n)
 {
     size_t i;
@@ -179,6 +178,7 @@ size_t toUTFindex(in char[] s, size_t n)
 }
 
 /** ditto */
+@safe @nogc pure nothrow
 size_t toUTFindex(in wchar[] s, size_t n)
 {
     size_t i;
@@ -192,6 +192,7 @@ size_t toUTFindex(in wchar[] s, size_t n)
 }
 
 /** ditto */
+@safe @nogc pure nothrow
 size_t toUTFindex(in dchar[] s, size_t n)
 {
     return n;
@@ -204,6 +205,7 @@ size_t toUTFindex(in dchar[] s, size_t n)
  * decoded character. If the character is not well formed, a UtfException is
  * thrown and idx remains unchanged.
  */
+@safe pure
 dchar decode(in char[] s, ref size_t idx)
     in
     {
@@ -344,7 +346,7 @@ unittest
 }
 
 /** ditto */
-
+@safe pure
 dchar decode(in wchar[] s, ref size_t idx)
     in
     {
@@ -402,7 +404,7 @@ dchar decode(in wchar[] s, ref size_t idx)
     }
 
 /** ditto */
-
+@safe pure
 dchar decode(in dchar[] s, ref size_t idx)
     in
     {
@@ -429,6 +431,7 @@ dchar decode(in dchar[] s, ref size_t idx)
 /*******************************
  * Encodes character c and appends it to array s[].
  */
+@safe pure nothrow
 void encode(ref char[] s, dchar c)
     in
     {
@@ -497,7 +500,7 @@ unittest
 }
 
 /** ditto */
-
+@safe pure nothrow
 void encode(ref wchar[] s, dchar c)
     in
     {
@@ -523,6 +526,7 @@ void encode(ref wchar[] s, dchar c)
     }
 
 /** ditto */
+@safe pure nothrow
 void encode(ref dchar[] s, dchar c)
     in
     {
@@ -537,7 +541,7 @@ void encode(ref dchar[] s, dchar c)
 Returns the code length of $(D c) in the encoding using $(D C) as a
 code point. The code is returned in character count, not in bytes.
  */
-
+@safe pure nothrow @nogc
 ubyte codeLength(C)(dchar c)
 {
     static if (C.sizeof == 1)
@@ -566,6 +570,7 @@ Checks to see if string is well formed or not. $(D S) can be an array
  of $(D char), $(D wchar), or $(D dchar). Throws a $(D UtfException)
  if it is not. Use to check all untrusted input for correctness.
  */
+@safe pure
 void validate(S)(in S s)
 {
     auto len = s.length;
@@ -577,7 +582,8 @@ void validate(S)(in S s)
 
 /* =================== Conversion to UTF8 ======================= */
 
-char[] toUTF8(return out char[4] buf, dchar c)
+@safe pure nothrow @nogc
+char[] toUTF8(char[] buf, dchar c)
     in
     {
         assert(isValidDchar(c));
@@ -616,6 +622,7 @@ char[] toUTF8(return out char[4] buf, dchar c)
 /*******************
  * Encodes string s into UTF-8 and returns the encoded string.
  */
+@safe pure nothrow
 string toUTF8(string s)
     in
     {
@@ -627,6 +634,7 @@ string toUTF8(string s)
     }
 
 /** ditto */
+@trusted pure
 string toUTF8(in wchar[] s)
 {
     char[] r;
@@ -654,6 +662,7 @@ string toUTF8(in wchar[] s)
 }
 
 /** ditto */
+@trusted pure
 string toUTF8(in dchar[] s)
 {
     char[] r;
@@ -682,7 +691,8 @@ string toUTF8(in dchar[] s)
 
 /* =================== Conversion to UTF16 ======================= */
 
-wchar[] toUTF16(return out wchar[2] buf, dchar c)
+@safe pure nothrow @nogc
+wchar[] toUTF16(wchar[] buf, dchar c)
     in
     {
         assert(isValidDchar(c));
@@ -707,6 +717,7 @@ wchar[] toUTF16(return out wchar[2] buf, dchar c)
  * toUTF16z() is suitable for calling the 'W' functions in the Win32 API that take
  * an LPWSTR or LPCWSTR argument.
  */
+@trusted pure
 wstring toUTF16(in char[] s)
 {
     wchar[] r;
@@ -733,6 +744,7 @@ wstring toUTF16(in char[] s)
 
 alias const(wchar)* wptr;
 /** ditto */
+@safe pure
 wptr toUTF16z(in char[] s)
 {
     wchar[] r;
@@ -755,10 +767,11 @@ wptr toUTF16z(in char[] s)
         }
     }
     r ~= '\000';
-    return r.ptr;
+    return &r[0];
 }
 
 /** ditto */
+@safe pure nothrow
 wstring toUTF16(wstring s)
     in
     {
@@ -770,6 +783,7 @@ wstring toUTF16(wstring s)
     }
 
 /** ditto */
+@trusted pure nothrow
 wstring toUTF16(in dchar[] s)
 {
     wchar[] r;
@@ -789,6 +803,7 @@ wstring toUTF16(in dchar[] s)
 /*****
  * Encodes string s into UTF-32 and returns the encoded string.
  */
+@trusted pure
 dstring toUTF32(in char[] s)
 {
     dchar[] r;
@@ -809,6 +824,7 @@ dstring toUTF32(in char[] s)
 }
 
 /** ditto */
+@trusted pure
 dstring toUTF32(in wchar[] s)
 {
     dchar[] r;
@@ -829,6 +845,7 @@ dstring toUTF32(in wchar[] s)
 }
 
 /** ditto */
+@safe pure nothrow
 dstring toUTF32(dstring s)
     in
     {

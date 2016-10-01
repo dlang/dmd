@@ -1020,7 +1020,7 @@ public import core.stdc.stdio : SEEK_SET, SEEK_CUR, SEEK_END;
 
 alias DWORD MCIERROR;
 alias UINT MCIDEVICEID;
-alias UINT function (MCIDEVICEID, DWORD) YIELDPROC;
+extern(Windows) alias UINT function (MCIDEVICEID, DWORD) YIELDPROC;
 alias UINT MMVERSION;
 alias UINT MMRESULT;
 
@@ -1031,7 +1031,7 @@ struct MMTIME {
         DWORD sample;
         DWORD cb;
         DWORD ticks;
-        struct smpte {
+        struct _smpte {
             BYTE hour;
             BYTE min;
             BYTE sec;
@@ -1040,9 +1040,11 @@ struct MMTIME {
             BYTE dummy;
             BYTE[2] pad;
         };
-        struct midi {
+        _smpte smpte;
+        struct _midi {
             DWORD songptrpos;
         }
+        _midi midi;
     }
 }
 alias MMTIME* PMMTIME, LPMMTIME;
@@ -1050,6 +1052,7 @@ alias MMTIME* PMMTIME, LPMMTIME;
 alias TypeDef!(HANDLE) HDRVR;
 
 struct DRVCONFIGINFO {
+align(1):
     DWORD dwDCISize;
     LPCWSTR lpszDCISectionName;
     LPCWSTR lpszDCIAliasName;
@@ -1057,6 +1060,7 @@ struct DRVCONFIGINFO {
 alias DRVCONFIGINFO * PDRVCONFIGINFO, LPDRVCONFIGINFO;
 
 struct DRVCONFIGINFOEX {
+align(1):
     DWORD dwDCISize;
     LPCWSTR lpszDCISectionName;
     LPCWSTR lpszDCIAliasName;
@@ -1067,8 +1071,8 @@ alias DRVCONFIGINFOEX* PDRVCONFIGINFOEX, LPDRVCONFIGINFOEX;
 extern(Windows):
 
 /+FIXME: I couldn't find these in MSDN.
-alias void function (HDRVR, UINT, DWORD, DWORD, DWORD) DRVCALLBACK;
-LRESULT DRIVERPROC (DWORD, HDRVR, UINT, LPARAM, LPARAM);
+alias void function (HDRVR, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) DRVCALLBACK;
+LRESULT DRIVERPROC (DWORD_PTR, HDRVR, UINT, LPARAM, LPARAM);
 alias DRVCALLBACK* LPDRVCALLBACK, PDRVCALLBACK;
 
 alias DRVCALLBACK WAVECALLBACK;
@@ -1090,11 +1094,11 @@ struct WAVEHDR {
     LPSTR lpData;
     DWORD dwBufferLength;
     DWORD dwBytesRecorded;
-    DWORD dwUser;
+    DWORD_PTR dwUser;
     DWORD dwFlags;
     DWORD dwLoops;
     WAVEHDR *lpNext;
-    DWORD reserved;
+    DWORD_PTR reserved;
 }
 alias WAVEHDR* PWAVEHDR, LPWAVEHDR;
 
@@ -1231,15 +1235,16 @@ struct MIDIINCAPSW {
 alias MIDIINCAPSW* PMIDIINCAPSW, LPMIDIINCAPSW;
 
 struct MIDIHDR {
+align(1):
     LPSTR lpData;
     DWORD dwBufferLength;
     DWORD dwBytesRecorded;
-    DWORD dwUser;
+    DWORD_PTR dwUser;
     DWORD dwFlags;
     MIDIHDR *lpNext;
-    DWORD reserved;
+    DWORD_PTR reserved;
     DWORD dwOffset;
-    DWORD[8] dwReserved;
+    DWORD_PTR[8] dwReserved;
 }
 alias MIDIHDR* PMIDIHDR, LPMIDIHDR;
 
@@ -1317,19 +1322,20 @@ struct MIXERCAPSW {
 alias MIXERCAPSW* PMIXERCAPSW, LPMIXERCAPSW;
 
 struct MIXERLINEA {
+align(1):
     DWORD cbStruct;
     DWORD dwDestination;
     DWORD dwSource;
     DWORD dwLineID;
     DWORD fdwLine;
-    DWORD dwUser;
+    DWORD_PTR dwUser;
     DWORD dwComponentType;
     DWORD cChannels;
     DWORD cConnections;
     DWORD cControls;
     CHAR[MIXER_SHORT_NAME_CHARS] szShortName;
     CHAR[MIXER_LONG_NAME_CHARS] szName;
-    struct Target {
+    struct _Target {
         DWORD dwType;
         DWORD dwDeviceID;
         WORD wMid;
@@ -1337,23 +1343,25 @@ struct MIXERLINEA {
         MMVERSION vDriverVersion;
         CHAR[MAXPNAMELEN] szPname;
     }
+    _Target Target;
 }
 alias MIXERLINEA* PMIXERLINEA, LPMIXERLINEA;
 
 struct MIXERLINEW {
+align(1):
     DWORD cbStruct;
     DWORD dwDestination;
     DWORD dwSource;
     DWORD dwLineID;
     DWORD fdwLine;
-    DWORD dwUser;
+    DWORD_PTR dwUser;
     DWORD dwComponentType;
     DWORD cChannels;
     DWORD cConnections;
     DWORD cControls;
     WCHAR[MIXER_SHORT_NAME_CHARS] szShortName;
     WCHAR[MIXER_LONG_NAME_CHARS] szName;
-    struct Target {
+    struct _Target {
         DWORD dwType;
         DWORD dwDeviceID;
         WORD wMid;
@@ -1361,6 +1369,7 @@ struct MIXERLINEW {
         MMVERSION vDriverVersion;
         WCHAR[MAXPNAMELEN] szPname;
     }
+    _Target Target;
 }
 alias MIXERLINEW* PMIXERLINEW, LPMIXERLINEW;
 
@@ -1424,6 +1433,7 @@ struct MIXERCONTROLW {
 alias MIXERCONTROLW* PMIXERCONTROLW, LPMIXERCONTROLW;
 
 struct MIXERLINECONTROLSA {
+align(1):
     DWORD cbStruct;
     DWORD dwLineID;
     union {
@@ -1437,6 +1447,7 @@ struct MIXERLINECONTROLSA {
 alias MIXERLINECONTROLSA* PMIXERLINECONTROLSA, LPMIXERLINECONTROLSA;
 
 struct MIXERLINECONTROLSW {
+align(1):
     DWORD cbStruct;
     DWORD dwLineID;
     union {
@@ -1450,6 +1461,7 @@ struct MIXERLINECONTROLSW {
 alias MIXERLINECONTROLSW* PMIXERLINECONTROLSW, LPMIXERLINECONTROLSW;
 
 struct MIXERCONTROLDETAILS {
+align(1):
     DWORD cbStruct;
     DWORD dwControlID;
     DWORD cChannels;
@@ -1491,7 +1503,7 @@ struct MIXERCONTROLDETAILS_UNSIGNED {
 }
 alias MIXERCONTROLDETAILS_UNSIGNED* PMIXERCONTROLDETAILS_UNSIGNED, LPMIXERCONTROLDETAILS_UNSIGNED;
 
-alias void function (UINT, UINT, DWORD, DWORD, DWORD) LPTIMECALLBACK;
+alias void function (UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) LPTIMECALLBACK;
 
 struct TIMECAPS {
     UINT wPeriodMin;
@@ -1588,6 +1600,7 @@ alias TypeDef!(HANDLE) HMMIO;
 alias LRESULT function (LPSTR, UINT, LPARAM, LPARAM) LPMMIOPROC;
 
 struct MMIOINFO {
+align(1):
     DWORD dwFlags;
     FOURCC fccIOProc;
     LPMMIOPROC pIOProc;
@@ -1619,12 +1632,13 @@ alias MMCKINFO* PMMCKINFO, LPMMCKINFO;
 alias const(MMCKINFO)* LPCMMCKINFO;
 
 struct MCI_GENERIC_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
 }
 alias MCI_GENERIC_PARMS* PMCI_GENERIC_PARMS, LPMCI_GENERIC_PARMS;
 
 struct MCI_OPEN_PARMSA {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCSTR lpstrDeviceType;
     LPCSTR lpstrElementName;
@@ -1633,7 +1647,8 @@ struct MCI_OPEN_PARMSA {
 alias MCI_OPEN_PARMSA* PMCI_OPEN_PARMSA, LPMCI_OPEN_PARMSA;
 
 struct MCI_OPEN_PARMSW {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCWSTR lpstrDeviceType;
     LPCWSTR lpstrElementName;
@@ -1642,49 +1657,49 @@ struct MCI_OPEN_PARMSW {
 alias MCI_OPEN_PARMSW* PMCI_OPEN_PARMSW, LPMCI_OPEN_PARMSW;
 
 struct MCI_PLAY_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwFrom;
     DWORD dwTo;
 }
 alias MCI_PLAY_PARMS* PMCI_PLAY_PARMS, LPMCI_PLAY_PARMS;
 
 struct MCI_SEEK_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwTo;
 }
 alias MCI_SEEK_PARMS* PMCI_SEEK_PARMS, LPMCI_SEEK_PARMS;
 
 struct MCI_STATUS_PARMS {
-    DWORD dwCallback;
-    DWORD dwReturn;
+    DWORD_PTR dwCallback;
+    DWORD_PTR dwReturn;
     DWORD dwItem;
     DWORD dwTrack;
 }
 alias MCI_STATUS_PARMS* PMCI_STATUS_PARMS, LPMCI_STATUS_PARMS;
 
 struct MCI_INFO_PARMSA {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPSTR lpstrReturn;
     DWORD dwRetSize;
 }
 alias MCI_INFO_PARMSA* LPMCI_INFO_PARMSA;
 
 struct MCI_INFO_PARMSW {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPWSTR lpstrReturn;
     DWORD dwRetSize;
 }
 alias MCI_INFO_PARMSW* LPMCI_INFO_PARMSW;
 
 struct MCI_GETDEVCAPS_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwReturn;
     DWORD dwItem;
 }
 alias MCI_GETDEVCAPS_PARMS* PMCI_GETDEVCAPS_PARMS, LPMCI_GETDEVCAPS_PARMS;
 
 struct MCI_SYSINFO_PARMSA {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPSTR lpstrReturn;
     DWORD dwRetSize;
     DWORD dwNumber;
@@ -1693,7 +1708,7 @@ struct MCI_SYSINFO_PARMSA {
 alias MCI_SYSINFO_PARMSA* PMCI_SYSINFO_PARMSA, LPMCI_SYSINFO_PARMSA;
 
 struct MCI_SYSINFO_PARMSW {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPWSTR lpstrReturn;
     DWORD dwRetSize;
     DWORD dwNumber;
@@ -1702,52 +1717,53 @@ struct MCI_SYSINFO_PARMSW {
 alias MCI_SYSINFO_PARMSW* PMCI_SYSINFO_PARMSW, LPMCI_SYSINFO_PARMSW;
 
 struct MCI_SET_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwTimeFormat;
     DWORD dwAudio;
 }
 alias MCI_SET_PARMS* PMCI_SET_PARMS, LPMCI_SET_PARMS;
 
 struct MCI_BREAK_PARMS {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     int nVirtKey;
     HWND hwndBreak;
 }
 alias MCI_BREAK_PARMS* PMCI_BREAK_PARMS, LPMCI_BREAK_PARMS;
 
 struct MCI_SAVE_PARMSA {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCSTR lpfilename;
 }
 alias MCI_SAVE_PARMSA* PMCI_SAVE_PARMSA, LPMCI_SAVE_PARMSA;
 
 struct MCI_SAVE_PARMSW {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCWSTR lpfilename;
 }
 alias MCI_SAVE_PARMSW* PMCI_SAVE_PARMSW, LPMCI_SAVE_PARMSW;
 
 struct MCI_LOAD_PARMSA {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCSTR lpfilename;
 }
 alias MCI_LOAD_PARMSA* PMCI_LOAD_PARMSA, LPMCI_LOAD_PARMSA;
 
 struct MCI_LOAD_PARMSW {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCWSTR lpfilename;
 }
 alias MCI_LOAD_PARMSW* PMCI_LOAD_PARMSW, LPMCI_LOAD_PARMSW;
 
 struct MCI_RECORD_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwFrom;
     DWORD dwTo;
 }
 alias MCI_RECORD_PARMS* LPMCI_RECORD_PARMS;
 
 struct MCI_VD_PLAY_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwFrom;
     DWORD dwTo;
     DWORD dwSpeed;
@@ -1755,25 +1771,26 @@ struct MCI_VD_PLAY_PARMS {
 alias MCI_VD_PLAY_PARMS* PMCI_VD_PLAY_PARMS, LPMCI_VD_PLAY_PARMS;
 
 struct MCI_VD_STEP_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwFrames;
 }
 alias MCI_VD_STEP_PARMS* PMCI_VD_STEP_PARMS, LPMCI_VD_STEP_PARMS;
 
 struct MCI_VD_ESCAPE_PARMSA {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCSTR lpstrCommand;
 }
 alias MCI_VD_ESCAPE_PARMSA* PMCI_VD_ESCAPE_PARMSA, LPMCI_VD_ESCAPE_PARMSA;
 
 struct MCI_VD_ESCAPE_PARMSW {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCWSTR lpstrCommand;
 }
 alias MCI_VD_ESCAPE_PARMSW* PMCI_VD_ESCAPE_PARMSW, LPMCI_VD_ESCAPE_PARMSW;
 
 struct MCI_WAVE_OPEN_PARMSA {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCSTR lpstrDeviceType;
     LPCSTR lpstrElementName;
@@ -1783,7 +1800,8 @@ struct MCI_WAVE_OPEN_PARMSA {
 alias MCI_WAVE_OPEN_PARMSA* PMCI_WAVE_OPEN_PARMSA, LPMCI_WAVE_OPEN_PARMSA;
 
 struct MCI_WAVE_OPEN_PARMSW {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCWSTR lpstrDeviceType;
     LPCWSTR lpstrElementName;
@@ -1793,14 +1811,14 @@ struct MCI_WAVE_OPEN_PARMSW {
 alias MCI_WAVE_OPEN_PARMSW* PMCI_WAVE_OPEN_PARMSW, LPMCI_WAVE_OPEN_PARMSW;
 
 struct MCI_WAVE_DELETE_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwFrom;
     DWORD dwTo;
 }
 alias MCI_WAVE_DELETE_PARMS* PMCI_WAVE_DELETE_PARMS, LPMCI_WAVE_DELETE_PARMS;
 
 struct MCI_WAVE_SET_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwTimeFormat;
     DWORD dwAudio;
     UINT wInput;
@@ -1824,7 +1842,7 @@ HDRVR OpenDriver(LPCWSTR, LPCWSTR, LONG);
 LRESULT SendDriverMessage(HDRVR, UINT, LONG, LONG);
 HMODULE DrvGetModuleHandle(HDRVR);
 HMODULE GetDriverModuleHandle(HDRVR);
-LRESULT DefDriverProc(DWORD, HDRVR, UINT, LPARAM, LPARAM);
+LRESULT DefDriverProc(DWORD_PTR, HDRVR, UINT, LPARAM, LPARAM);
 UINT mmsystemGetVersion();
 // FIXME: I believe this next line is a mistake
 //alias OutputDebugString OutputDebugStr;
@@ -1833,13 +1851,13 @@ BOOL sndPlaySoundW(LPCWSTR, UINT);
 BOOL PlaySoundA(LPCSTR, HMODULE, DWORD);
 BOOL PlaySoundW(LPCWSTR, HMODULE, DWORD);
 UINT waveOutGetNumDevs();
-MMRESULT waveOutGetDevCapsA(UINT, LPWAVEOUTCAPSA, UINT);
-MMRESULT waveOutGetDevCapsW(UINT, LPWAVEOUTCAPSW, UINT);
+MMRESULT waveOutGetDevCapsA(UINT_PTR, LPWAVEOUTCAPSA, UINT);
+MMRESULT waveOutGetDevCapsW(UINT_PTR, LPWAVEOUTCAPSW, UINT);
 MMRESULT waveOutGetVolume(HWAVEOUT, PDWORD);
 MMRESULT waveOutSetVolume(HWAVEOUT, DWORD);
 MMRESULT waveOutGetErrorTextA(MMRESULT, LPSTR, UINT);
 MMRESULT waveOutGetErrorTextW(MMRESULT, LPWSTR, UINT);
-MMRESULT waveOutOpen(LPHWAVEOUT, UINT, LPCWAVEFORMATEX, DWORD, DWORD, DWORD);
+MMRESULT waveOutOpen(LPHWAVEOUT, UINT, LPCWAVEFORMATEX, DWORD_PTR, DWORD_PTR, DWORD);
 MMRESULT waveOutClose(HWAVEOUT);
 MMRESULT waveOutPrepareHeader(HWAVEOUT, LPWAVEHDR, UINT);
 MMRESULT waveOutUnprepareHeader(HWAVEOUT, LPWAVEHDR, UINT);
@@ -1854,13 +1872,13 @@ MMRESULT waveOutSetPitch(HWAVEOUT, DWORD);
 MMRESULT waveOutGetPlaybackRate(HWAVEOUT, PDWORD);
 MMRESULT waveOutSetPlaybackRate(HWAVEOUT, DWORD);
 MMRESULT waveOutGetID(HWAVEOUT, LPUINT);
-MMRESULT waveOutMessage(HWAVEOUT, UINT, DWORD, DWORD);
+MMRESULT waveOutMessage(HWAVEOUT, UINT, DWORD_PTR, DWORD_PTR);
 UINT waveInGetNumDevs();
-MMRESULT waveInGetDevCapsA(UINT, LPWAVEINCAPSA, UINT);
-MMRESULT waveInGetDevCapsW(UINT, LPWAVEINCAPSW, UINT);
+MMRESULT waveInGetDevCapsA(UINT_PTR, LPWAVEINCAPSA, UINT);
+MMRESULT waveInGetDevCapsW(UINT_PTR, LPWAVEINCAPSW, UINT);
 MMRESULT waveInGetErrorTextA(MMRESULT, LPSTR, UINT);
 MMRESULT waveInGetErrorTextW(MMRESULT, LPWSTR, UINT);
-MMRESULT waveInOpen(LPHWAVEIN, UINT, LPCWAVEFORMATEX, DWORD, DWORD, DWORD);
+MMRESULT waveInOpen(LPHWAVEIN, UINT, LPCWAVEFORMATEX, DWORD_PTR, DWORD_PTR, DWORD);
 MMRESULT waveInClose(HWAVEIN);
 MMRESULT waveInPrepareHeader(HWAVEIN, LPWAVEHDR, UINT);
 MMRESULT waveInUnprepareHeader(HWAVEIN, LPWAVEHDR, UINT);
@@ -1870,9 +1888,9 @@ MMRESULT waveInStop(HWAVEIN);
 MMRESULT waveInReset(HWAVEIN);
 MMRESULT waveInGetPosition(HWAVEIN, LPMMTIME, UINT);
 MMRESULT waveInGetID(HWAVEIN, LPUINT);
-MMRESULT waveInMessage(HWAVEIN, UINT, DWORD, DWORD);
+MMRESULT waveInMessage(HWAVEIN, UINT, DWORD_PTR, DWORD_PTR);
 UINT midiOutGetNumDevs();
-MMRESULT midiStreamOpen(LPHMIDISTRM, LPUINT, DWORD, DWORD, DWORD, DWORD);
+MMRESULT midiStreamOpen(LPHMIDISTRM, LPUINT, DWORD, DWORD_PTR, DWORD_PTR, DWORD);
 MMRESULT midiStreamClose(HMIDISTRM);
 MMRESULT midiStreamProperty(HMIDISTRM, LPBYTE, DWORD);
 MMRESULT midiStreamPosition(HMIDISTRM, LPMMTIME, UINT);
@@ -1882,13 +1900,13 @@ MMRESULT midiStreamRestart(HMIDISTRM);
 MMRESULT midiStreamStop(HMIDISTRM);
 MMRESULT midiConnect(HMIDI, HMIDIOUT, PVOID);
 MMRESULT midiDisconnect(HMIDI, HMIDIOUT, PVOID);
-MMRESULT midiOutGetDevCapsA(UINT, LPMIDIOUTCAPSA, UINT);
-MMRESULT midiOutGetDevCapsW(UINT, LPMIDIOUTCAPSW, UINT);
+MMRESULT midiOutGetDevCapsA(UINT_PTR, LPMIDIOUTCAPSA, UINT);
+MMRESULT midiOutGetDevCapsW(UINT_PTR, LPMIDIOUTCAPSW, UINT);
 MMRESULT midiOutGetVolume(HMIDIOUT, PDWORD);
 MMRESULT midiOutSetVolume(HMIDIOUT, DWORD);
 MMRESULT midiOutGetErrorTextA(MMRESULT, LPSTR, UINT);
 MMRESULT midiOutGetErrorTextW(MMRESULT, LPWSTR, UINT);
-MMRESULT midiOutOpen(LPHMIDIOUT, UINT, DWORD, DWORD, DWORD);
+MMRESULT midiOutOpen(LPHMIDIOUT, UINT, DWORD_PTR, DWORD_PTR, DWORD);
 MMRESULT midiOutClose(HMIDIOUT);
 MMRESULT midiOutPrepareHeader(HMIDIOUT, LPMIDIHDR, UINT);
 MMRESULT midiOutUnprepareHeader(HMIDIOUT, LPMIDIHDR, UINT);
@@ -1898,13 +1916,13 @@ MMRESULT midiOutReset(HMIDIOUT);
 MMRESULT midiOutCachePatches(HMIDIOUT, UINT, LPWORD, UINT);
 MMRESULT midiOutCacheDrumPatches(HMIDIOUT, UINT, LPWORD, UINT);
 MMRESULT midiOutGetID(HMIDIOUT, LPUINT);
-MMRESULT midiOutMessage(HMIDIOUT, UINT, DWORD, DWORD);
+MMRESULT midiOutMessage(HMIDIOUT, UINT, DWORD_PTR, DWORD_PTR);
 UINT midiInGetNumDevs();
-MMRESULT midiInGetDevCapsA(UINT, LPMIDIINCAPSA, UINT);
-MMRESULT midiInGetDevCapsW(UINT, LPMIDIINCAPSW, UINT);
+MMRESULT midiInGetDevCapsA(UINT_PTR, LPMIDIINCAPSA, UINT);
+MMRESULT midiInGetDevCapsW(UINT_PTR, LPMIDIINCAPSW, UINT);
 MMRESULT midiInGetErrorTextA(MMRESULT, LPSTR, UINT);
 MMRESULT midiInGetErrorTextW(MMRESULT, LPWSTR, UINT);
-MMRESULT midiInOpen(LPHMIDIIN, UINT, DWORD, DWORD, DWORD);
+MMRESULT midiInOpen(LPHMIDIIN, UINT, DWORD_PTR, DWORD_PTR, DWORD);
 MMRESULT midiInClose(HMIDIIN);
 MMRESULT midiInPrepareHeader(HMIDIIN, LPMIDIHDR, UINT);
 MMRESULT midiInUnprepareHeader(HMIDIIN, LPMIDIHDR, UINT);
@@ -1913,19 +1931,19 @@ MMRESULT midiInStart(HMIDIIN);
 MMRESULT midiInStop(HMIDIIN);
 MMRESULT midiInReset(HMIDIIN);
 MMRESULT midiInGetID(HMIDIIN, LPUINT);
-MMRESULT midiInMessage(HMIDIIN, UINT, DWORD, DWORD);
+MMRESULT midiInMessage(HMIDIIN, UINT, DWORD_PTR, DWORD_PTR);
 UINT auxGetNumDevs();
-MMRESULT auxGetDevCapsA(UINT, LPAUXCAPSA, UINT);
-MMRESULT auxGetDevCapsW(UINT, LPAUXCAPSW, UINT);
+MMRESULT auxGetDevCapsA(UINT_PTR, LPAUXCAPSA, UINT);
+MMRESULT auxGetDevCapsW(UINT_PTR, LPAUXCAPSW, UINT);
 MMRESULT auxSetVolume(UINT, DWORD);
 MMRESULT auxGetVolume(UINT, PDWORD);
-MMRESULT auxOutMessage(UINT, UINT, DWORD, DWORD);
+MMRESULT auxOutMessage(UINT, UINT, DWORD_PTR, DWORD_PTR);
 UINT mixerGetNumDevs();
-MMRESULT mixerGetDevCapsA(UINT, LPMIXERCAPSA, UINT);
-MMRESULT mixerGetDevCapsW(UINT, LPMIXERCAPSW, UINT);
-MMRESULT mixerOpen(LPHMIXER, UINT, DWORD, DWORD, DWORD);
+MMRESULT mixerGetDevCapsA(UINT_PTR, LPMIXERCAPSA, UINT);
+MMRESULT mixerGetDevCapsW(UINT_PTR, LPMIXERCAPSW, UINT);
+MMRESULT mixerOpen(LPHMIXER, UINT, DWORD_PTR, DWORD_PTR, DWORD);
 MMRESULT mixerClose(HMIXER);
-DWORD mixerMessage(HMIXER, UINT, DWORD, DWORD);
+DWORD mixerMessage(HMIXER, UINT, DWORD_PTR, DWORD_PTR);
 MMRESULT mixerGetLineInfoA(HMIXEROBJ, LPMIXERLINEA, DWORD);
 MMRESULT mixerGetLineInfoW(HMIXEROBJ, LPMIXERLINEW, DWORD);
 MMRESULT mixerGetID(HMIXEROBJ, PUINT, DWORD);
@@ -1936,14 +1954,14 @@ MMRESULT mixerGetControlDetailsW(HMIXEROBJ, LPMIXERCONTROLDETAILS, DWORD);
 MMRESULT mixerSetControlDetails(HMIXEROBJ, LPMIXERCONTROLDETAILS, DWORD);
 MMRESULT timeGetSystemTime(LPMMTIME, UINT);
 DWORD timeGetTime();
-MMRESULT timeSetEvent(UINT, UINT, LPTIMECALLBACK, DWORD, UINT);
+MMRESULT timeSetEvent(UINT, UINT, LPTIMECALLBACK, DWORD_PTR, UINT);
 MMRESULT timeKillEvent(UINT);
 MMRESULT timeGetDevCaps(LPTIMECAPS, UINT);
 MMRESULT timeBeginPeriod(UINT);
 MMRESULT timeEndPeriod(UINT);
 UINT joyGetNumDevs();
-MMRESULT joyGetDevCapsA(UINT, LPJOYCAPSA, UINT);
-MMRESULT joyGetDevCapsW(UINT, LPJOYCAPSW, UINT);
+MMRESULT joyGetDevCapsA(UINT_PTR, LPJOYCAPSA, UINT);
+MMRESULT joyGetDevCapsW(UINT_PTR, LPJOYCAPSW, UINT);
 MMRESULT joyGetPos(UINT, LPJOYINFO);
 MMRESULT joyGetPosEx(UINT, LPJOYINFOEX);
 MMRESULT joyGetThreshold(UINT, LPUINT);
@@ -1971,8 +1989,8 @@ LRESULT mmioSendMessage(HMMIO, UINT, LPARAM, LPARAM);
 MMRESULT mmioDescend(HMMIO, LPMMCKINFO, const(MMCKINFO)*, UINT);
 MMRESULT mmioAscend(HMMIO, LPMMCKINFO, UINT);
 MMRESULT mmioCreateChunk(HMMIO, LPMMCKINFO, UINT);
-MCIERROR mciSendCommandA(MCIDEVICEID, UINT, DWORD, DWORD);
-MCIERROR mciSendCommandW(MCIDEVICEID, UINT, DWORD, DWORD);
+MCIERROR mciSendCommandA(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
+MCIERROR mciSendCommandW(MCIDEVICEID, UINT, DWORD_PTR, DWORD_PTR);
 MCIERROR mciSendStringA(LPCSTR, LPSTR, UINT, HWND);
 MCIERROR mciSendStringW(LPCWSTR, LPWSTR, UINT, HWND);
 MCIDEVICEID mciGetDeviceIDA(LPCSTR);
@@ -1986,7 +2004,7 @@ HTASK mciGetCreatorTask(MCIDEVICEID);
 YIELDPROC mciGetYieldProc(MCIDEVICEID, PDWORD);
 
 struct MCI_SEQ_SET_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwTimeFormat;
     DWORD dwAudio;
     DWORD dwTempo;
@@ -1998,7 +2016,8 @@ struct MCI_SEQ_SET_PARMS {
 alias MCI_SEQ_SET_PARMS* PMCI_SEQ_SET_PARMS, LPMCI_SEQ_SET_PARMS;
 
 struct MCI_ANIM_OPEN_PARMSA {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCSTR lpstrDeviceType;
     LPCSTR lpstrElementName;
@@ -2009,7 +2028,8 @@ struct MCI_ANIM_OPEN_PARMSA {
 alias MCI_ANIM_OPEN_PARMSA* PMCI_ANIM_OPEN_PARMSA, LPMCI_ANIM_OPEN_PARMSA;
 
 struct MCI_ANIM_OPEN_PARMSW {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCWSTR lpstrDeviceType;
     LPCWSTR lpstrElementName;
@@ -2020,7 +2040,7 @@ struct MCI_ANIM_OPEN_PARMSW {
 alias MCI_ANIM_OPEN_PARMSW* PMCI_ANIM_OPEN_PARMSW, LPMCI_ANIM_OPEN_PARMSW;
 
 struct MCI_ANIM_PLAY_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwFrom;
     DWORD dwTo;
     DWORD dwSpeed;
@@ -2028,13 +2048,14 @@ struct MCI_ANIM_PLAY_PARMS {
 alias MCI_ANIM_PLAY_PARMS* PMCI_ANIM_PLAY_PARMS, LPMCI_ANIM_PLAY_PARMS;
 
 struct MCI_ANIM_STEP_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     DWORD dwFrames;
 }
 alias MCI_ANIM_STEP_PARMS* PMCI_ANIM_STEP_PARMS, LPMCI_ANIM_STEP_PARMS;
 
 struct MCI_ANIM_WINDOW_PARMSA {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     HWND hWnd;
     UINT nCmdShow;
     LPCSTR lpstrText;
@@ -2042,7 +2063,8 @@ struct MCI_ANIM_WINDOW_PARMSA {
 alias MCI_ANIM_WINDOW_PARMSA* PMCI_ANIM_WINDOW_PARMSA, LPMCI_ANIM_WINDOW_PARMSA;
 
 struct MCI_ANIM_WINDOW_PARMSW {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     HWND hWnd;
     UINT nCmdShow;
     LPCWSTR lpstrText;
@@ -2050,7 +2072,7 @@ struct MCI_ANIM_WINDOW_PARMSW {
 alias MCI_ANIM_WINDOW_PARMSW* PMCI_ANIM_WINDOW_PARMSW, LPMCI_ANIM_WINDOW_PARMSW;
 
 struct MCI_ANIM_RECT_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     //#ifdef MCI_USE_OFFEXT
     //  POINT ptOffset;
     //  POINT ptExtent;
@@ -2061,14 +2083,15 @@ struct MCI_ANIM_RECT_PARMS {
 alias MCI_ANIM_RECT_PARMS* PMCI_ANIM_RECT_PARMS, LPMCI_ANIM_RECT_PARMS;
 
 struct MCI_ANIM_UPDATE_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     RECT rc;
     HDC hDC;
 }
 alias MCI_ANIM_UPDATE_PARMS* PMCI_ANIM_UPDATE_PARMS, LPMCI_ANIM_UPDATE_PARMS;
 
 struct MCI_OVLY_OPEN_PARMSA {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCSTR lpstrDeviceType;
     LPCSTR lpstrElementName;
@@ -2079,7 +2102,8 @@ struct MCI_OVLY_OPEN_PARMSA {
 alias MCI_OVLY_OPEN_PARMSA* PMCI_OVLY_OPEN_PARMSA, LPMCI_OVLY_OPEN_PARMSA;
 
 struct MCI_OVLY_OPEN_PARMSW {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     MCIDEVICEID wDeviceID;
     LPCWSTR lpstrDeviceType;
     LPCWSTR lpstrElementName;
@@ -2090,7 +2114,8 @@ struct MCI_OVLY_OPEN_PARMSW {
 alias MCI_OVLY_OPEN_PARMSW* PMCI_OVLY_OPEN_PARMSW, LPMCI_OVLY_OPEN_PARMSW;
 
 struct MCI_OVLY_WINDOW_PARMSA {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     HWND hWnd;
     UINT nCmdShow;
     LPCSTR lpstrText;
@@ -2098,7 +2123,8 @@ struct MCI_OVLY_WINDOW_PARMSA {
 alias MCI_OVLY_WINDOW_PARMSA* PMCI_OVLY_WINDOW_PARMSA, LPMCI_OVLY_WINDOW_PARMSA;
 
 struct MCI_OVLY_WINDOW_PARMSW {
-    DWORD dwCallback;
+align(1):
+    DWORD_PTR dwCallback;
     HWND hWnd;
     UINT nCmdShow;
     LPCWSTR lpstrText;
@@ -2106,7 +2132,7 @@ struct MCI_OVLY_WINDOW_PARMSW {
 alias MCI_OVLY_WINDOW_PARMSW* PMCI_OVLY_WINDOW_PARMSW, LPMCI_OVLY_WINDOW_PARMSW;
 
 struct MCI_OVLY_RECT_PARMS {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     //#ifdef MCI_USE_OFFEXT
     //  POINT ptOffset;
     //  POINT ptExtent;
@@ -2117,28 +2143,28 @@ struct MCI_OVLY_RECT_PARMS {
 alias MCI_OVLY_RECT_PARMS* PMCI_OVLY_RECT_PARMS, LPMCI_OVLY_RECT_PARMS;
 
 struct MCI_OVLY_SAVE_PARMSA {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCSTR lpfilename;
     RECT rc;
 }
 alias MCI_OVLY_SAVE_PARMSA* PMCI_OVLY_SAVE_PARMSA, LPMCI_OVLY_SAVE_PARMSA;
 
 struct MCI_OVLY_SAVE_PARMSW {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCWSTR lpfilename;
     RECT rc;
 }
 alias MCI_OVLY_SAVE_PARMSW* PMCI_OVLY_SAVE_PARMSW, LPMCI_OVLY_SAVE_PARMSW;
 
 struct MCI_OVLY_LOAD_PARMSA {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCSTR lpfilename;
     RECT rc;
 }
 alias MCI_OVLY_LOAD_PARMSA* PMCI_OVLY_LOAD_PARMSA, LPMCI_OVLY_LOAD_PARMSA;
 
 struct MCI_OVLY_LOAD_PARMSW {
-    DWORD dwCallback;
+    DWORD_PTR dwCallback;
     LPCWSTR lpfilename;
     RECT rc;
 }

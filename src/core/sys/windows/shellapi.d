@@ -190,7 +190,7 @@ enum SHERB_NOSOUND        = 4;
 alias WORD FILEOP_FLAGS, PRINTEROP_FLAGS;
 mixin DECLARE_HANDLE!("HDROP");
 
-align(2):
+//align(2): // 1 in Win32, default in Win64
 
 struct APPBARDATA {
     DWORD  cbSize = APPBARDATA.sizeof;
@@ -294,24 +294,34 @@ struct SHELLEXECUTEINFOW {
 }
 alias SHELLEXECUTEINFOW* LPSHELLEXECUTEINFOW;
 
-struct SHFILEOPSTRUCTA {
+align(1) struct SHFILEOPSTRUCTA {
+align(1):
     HWND         hwnd;
     UINT         wFunc;
+    version (Win64)
+        WORD     _padding1;
     LPCSTR       pFrom;
     LPCSTR       pTo;
     FILEOP_FLAGS fFlags;
+    version (Win64)
+        DWORD     _padding2;
     BOOL         fAnyOperationsAborted;
     PVOID        hNameMappings;
     LPCSTR       lpszProgressTitle;
 }
 alias SHFILEOPSTRUCTA* LPSHFILEOPSTRUCTA;
 
-struct SHFILEOPSTRUCTW {
+align(1) struct SHFILEOPSTRUCTW {
+align(1):
     HWND         hwnd;
     UINT         wFunc;
+    version (Win64)
+        DWORD     _padding1;
     LPCWSTR      pFrom;
     LPCWSTR      pTo;
     FILEOP_FLAGS fFlags;
+    version (Win64)
+        WORD     _padding2;
     BOOL         fAnyOperationsAborted;
     PVOID        hNameMappings;
     LPCWSTR      lpszProgressTitle;
@@ -335,7 +345,10 @@ struct SHFILEINFOW {
 }
 
 align(1) struct SHQUERYRBINFO {
+align(1):
     DWORD cbSize = SHQUERYRBINFO.sizeof;
+    version (Win64)
+        DWORD _padding;
     long  i64Size;
     long  i64NumItems;
 }
@@ -357,7 +370,7 @@ extern (Windows) nothrow @nogc {
     UINT ExtractIconExW(LPCWSTR, int, HICON*, HICON*, UINT);
     HINSTANCE FindExecutableA(LPCSTR, LPCSTR, LPSTR);
     HINSTANCE FindExecutableW(LPCWSTR, LPCWSTR, LPWSTR);
-    UINT SHAppBarMessage(DWORD, PAPPBARDATA);
+    UINT_PTR SHAppBarMessage(DWORD, PAPPBARDATA);
     BOOL Shell_NotifyIconA(DWORD, PNOTIFYICONDATAA);
     BOOL Shell_NotifyIconW(DWORD, PNOTIFYICONDATAW);
     int ShellAboutA(HWND, LPCSTR, LPCSTR, HICON);
@@ -369,8 +382,8 @@ extern (Windows) nothrow @nogc {
     int SHFileOperationA(LPSHFILEOPSTRUCTA);
     int SHFileOperationW(LPSHFILEOPSTRUCTW);
     void SHFreeNameMappings(HANDLE);
-    DWORD SHGetFileInfoA(LPCSTR, DWORD, SHFILEINFOA*, UINT, UINT);
-    DWORD SHGetFileInfoW(LPCWSTR, DWORD, SHFILEINFOW*, UINT, UINT);
+    DWORD_PTR SHGetFileInfoA(LPCSTR, DWORD, SHFILEINFOA*, UINT, UINT);
+    DWORD_PTR SHGetFileInfoW(LPCWSTR, DWORD, SHFILEINFOW*, UINT, UINT);
     HRESULT SHQueryRecycleBinA(LPCSTR,  LPSHQUERYRBINFO);
     HRESULT SHQueryRecycleBinW(LPCWSTR,  LPSHQUERYRBINFO);
     HRESULT SHEmptyRecycleBinA(HWND, LPCSTR, DWORD);

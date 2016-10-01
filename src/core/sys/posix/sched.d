@@ -19,6 +19,15 @@ private import core.sys.posix.config;
 public import core.sys.posix.time;
 public import core.sys.posix.sys.types;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 nothrow:
@@ -60,7 +69,7 @@ version( CRuntime_Glibc )
     enum SCHED_RR       = 2;
     //SCHED_SPORADIC (SS|TSP)
 }
-else version( OSX )
+else version( Darwin )
 {
     enum SCHED_OTHER    = 1;
     enum SCHED_FIFO     = 4;
@@ -76,6 +85,17 @@ else version( OSX )
     }
 }
 else version( FreeBSD )
+{
+    struct sched_param
+    {
+        int sched_priority;
+    }
+
+    enum SCHED_FIFO     = 1;
+    enum SCHED_OTHER    = 2;
+    enum SCHED_RR       = 3;
+}
+else version( OpenBSD )
 {
     struct sched_param
     {
@@ -136,11 +156,15 @@ version( CRuntime_Glibc )
 {
     int sched_yield();
 }
-else version( OSX )
+else version( Darwin )
 {
     int sched_yield();
 }
 else version( FreeBSD )
+{
+    int sched_yield();
+}
+else version( OpenBSD )
 {
     int sched_yield();
 }
@@ -172,13 +196,19 @@ version( CRuntime_Glibc )
     int sched_get_priority_min(int);
     int sched_rr_get_interval(pid_t, timespec*);
 }
-else version( OSX )
+else version( Darwin )
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);
     //int sched_rr_get_interval(pid_t, timespec*); // FIXME: unavailable?
 }
 else version( FreeBSD )
+{
+    int sched_get_priority_min(int);
+    int sched_get_priority_max(int);
+    int sched_rr_get_interval(pid_t, timespec*);
+}
+else version( OpenBSD )
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);

@@ -1,7 +1,7 @@
 /**
 * Contains the garbage collector configuration.
 *
-* Copyright: Copyright Digital Mars 2014
+* Copyright: Copyright Digital Mars 2016
 * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
 */
 
@@ -20,12 +20,13 @@ extern extern(C) __gshared bool rt_envvars_enabled;
 extern extern(C) __gshared bool rt_cmdline_enabled;
 extern extern(C) __gshared string[] rt_options;
 
+__gshared Config config;
+
 struct Config
 {
     bool disable;            // start disabled
     ubyte profile;           // enable profiling with summary when terminating program
-    bool precise;            // enable precise scanning
-    bool concurrent;         // enable concurrent collection
+    string gc = "conservative"; // select gc implementation conservative|manual
 
     size_t initReserve;      // initial reserve (MB)
     size_t minPoolSize = 1;  // initial and minimum pool size (MB)
@@ -61,8 +62,7 @@ struct Config
         string s = "GC options are specified as white space separated assignments:
     disable:0|1    - start disabled (%d)
     profile:0|1|2  - enable profiling with summary when terminating program (%d)
-    precise:0|1    - enable precise scanning (not implemented yet)
-    concurrent:0|1 - enable concurrent collection (not implemented yet)
+    gc:conservative|manual - select gc implementation (default = conservative)
 
     initReserve:N  - initial memory to reserve in MB (%lld)
     minPoolSize:N  - initial and minimum pool size in MB (%lld)
@@ -74,7 +74,7 @@ struct Config
                cast(long)maxPoolSize, cast(long)incPoolSize, heapSizeFactor);
     }
 
-    bool parseOptions(const(char)[] opt)
+    bool parseOptions(string opt)
     {
         opt = skip!isspace(opt);
         while (opt.length)
@@ -138,7 +138,7 @@ inout(char)[] find(alias pred)(inout(char)[] str)
     return null;
 }
 
-bool parse(T:size_t)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res)
 in { assert(str.length); }
 body
 {
@@ -155,7 +155,7 @@ body
     return true;
 }
 
-bool parse(T:bool)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref bool res)
 in { assert(str.length); }
 body
 {
@@ -169,7 +169,7 @@ body
     return true;
 }
 
-bool parse(T:float)(const(char)[] optname, ref const(char)[] str, ref T res)
+bool parse(const(char)[] optname, ref inout(char)[] str, ref float res)
 in { assert(str.length); }
 body
 {
@@ -183,6 +183,18 @@ body
     if (sscanf(str.ptr, fmt.ptr, &res, &nscanned) < 1)
         return parseError("a float", optname, str);
     str = str[nscanned .. $];
+    return true;
+}
+
+bool parse(const(char)[] optname, ref inout(char)[] str, ref inout(char)[] res)
+in { assert(str.length); }
+body
+{
+    auto tail = str.find!(c => c == ':' || c == '=' || c == ' ');
+    res = str[0 .. $ - tail.length];
+    if (!res.length)
+        return parseError("an identifier", optname, str);
+    str = tail;
     return true;
 }
 
@@ -245,4 +257,11 @@ unittest
     assert(conf.parseOptions("help"));
     assert(conf.parseOptions("help profile:1"));
     assert(conf.parseOptions("help profile:1 help"));
+
+    assert(conf.parseOptions("gc:manual") && conf.gc == "manual");
+    assert(conf.parseOptions("gc:my-gc~modified") && conf.gc == "my-gc~modified");
+    assert(conf.parseOptions("gc:conservative help profile:1") && conf.gc == "conservative" && conf.profile == 1);
+
+    // the config parse doesn't know all available GC names, so should accept unknown ones
+    assert(conf.parseOptions("gc:whatever"));
 }

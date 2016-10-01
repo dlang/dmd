@@ -20,6 +20,15 @@ public import core.sys.posix.netinet.in_; // for in_port_t, in_addr_t
 public import core.sys.posix.sys.types;   // for ino_t
 public import core.sys.posix.sys.socket;  // for socklen_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 nothrow:
@@ -219,7 +228,7 @@ version( CRuntime_Glibc )
     enum EAI_SYSTEM         = -11;
     enum EAI_OVERFLOW       = -12;
 }
-else version( OSX )
+else version( Darwin )
 {
     struct hostent
     {
@@ -386,6 +395,97 @@ else version( FreeBSD )
     enum EAI_SOCKTYPE       = 10;
     enum EAI_SYSTEM         = 11;
     enum EAI_OVERFLOW       = 14;
+}
+else version( OpenBSD )
+{
+    struct hostent
+    {
+        char*     h_name;
+        char**    h_aliases;
+        int       h_addrtype;
+        int       h_length;
+        char**    h_addr_list;
+        extern (D) char* h_addr() @property { return h_addr_list[0]; } // non-standard
+    }
+
+    struct netent
+    {
+        char*     n_name;
+        char**    n_aliases;
+        int       n_addrtype;
+        in_addr_t n_net;
+    }
+
+    struct protoent
+    {
+        char*     p_name;
+        char**    p_aliases;
+        int       p_proto;
+    }
+
+    struct servent
+    {
+        char*     s_name;
+        char**    s_aliases;
+        int       s_port;
+        char*     s_proto;
+    }
+
+    enum IPPORT_RESERVED = 1024;
+
+    //h_errno
+
+    enum NETDB_INTERNAL = -1;
+    enum NETDB_SUCCESS  = 0;
+    enum HOST_NOT_FOUND = 1;
+    enum NO_DATA        = 4;
+    enum NO_RECOVERY    = 3;
+    enum TRY_AGAIN      = 2;
+
+    struct addrinfo
+    {
+        int         ai_flags;
+        int         ai_family;
+        int         ai_socktype;
+        int         ai_protocol;
+        socklen_t   ai_addrlen;
+        char*       ai_canonname;
+        sockaddr*   ai_addr;
+        addrinfo*   ai_next;
+    }
+
+    enum AI_PASSIVE         = 0x1;
+    enum AI_CANONNAME       = 0x2;
+    enum AI_NUMERICHOST     = 0x4;
+    enum AI_EXT             = 0x8;
+    enum AI_NUMERICSERV     = 0x10;
+    enum AI_FQDN            = 0x20;
+    enum AI_ADDRCONFIG      = 0x40;
+    enum AI_MASK            = AI_PASSIVE | AI_CANONNAME | AI_NUMERICHOST | AI_NUMERICSERV | AI_FQDN | AI_ADDRCONFIG;
+
+    enum NI_NUMERICHOST     = 1;
+    enum NI_NUMERICSERV     = 2;
+    enum NI_NOFQDN          = 4;
+    enum NI_NAMEREQD        = 8;
+    enum NI_DGRAM           = 16;
+    //enum NI_NUMERICSCOPE    = 32;
+    enum NI_MAXHOST         = 256; // non-standard
+    enum NI_MAXSERV         = 32;  // non-standard
+
+    enum EAI_NONAME         = -1;
+    enum EAI_BADFLAGS       = -2;
+    enum EAI_AGAIN          = -3;
+    enum EAI_FAIL           = -4;
+    enum EAI_NODATA         = -5;
+    enum EAI_FAMILY         = -6;
+    enum EAI_SOCKTYPE       = -7;
+    enum EAI_SERVICE        = -8;
+    enum EAI_ADDRFAMILY     = -9;
+    enum EAI_MEMORY         = -10;
+    enum EAI_SYSTEM         = -11;
+    enum EAI_BADHINTS       = -12;
+    enum EAI_PROTOCOL       = -13;
+    enum EAI_OVERFLOW       = -14;
 }
 else version (Solaris)
 {

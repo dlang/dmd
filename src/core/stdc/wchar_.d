@@ -40,6 +40,30 @@ version( CRuntime_Glibc )
         ___value __value;
     }
 }
+else version (OpenBSD)
+{
+    union __mbstate_t
+    {
+        char[128] __mbstate8;
+        int64_t   __mbstateL;
+    }
+    alias mbstate_t = __mbstate_t;
+}
+else version (Solaris)
+{
+    ///
+    struct __mbstate_t
+    {
+        version (D_LP64)
+        {
+            long[4] __filler;
+        }
+        else
+        {
+            int[6] __filler;
+        }
+    }
+}
 else
 {
     ///

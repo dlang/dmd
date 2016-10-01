@@ -82,7 +82,7 @@ else version (CRuntime_Microsoft)
 
           private:
             void* pdata;
-            char _name[1];
+            char[1] _name;
             //this(const type_info rhs);
             //type_info operator=(const type_info rhs);
         }
@@ -133,14 +133,14 @@ else version (CRuntime_Glibc)
         {
             this();
             //~this();
-            const(char)* what() const;
+            override const(char)* what() const;
         }
 
         class bad_typeid : core.stdcpp.exception.std.exception
         {
             this();
             //~this();
-            const(char)* what() const;
+            override const(char)* what() const;
         }
     }
 }

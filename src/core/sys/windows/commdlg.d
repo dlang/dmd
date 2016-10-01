@@ -302,7 +302,7 @@ alias UINT_PTR function (HWND, UINT, WPARAM, LPARAM) nothrow
     LPPAGEPAINTHOOK, LPPAGESETUPHOOK, LPSETUPHOOKPROC, LPPRINTHOOKPROC;
 }
 
-align (1):
+//align (1): // 1 in Win32, default in Win64
 
 struct CHOOSECOLORA {
     DWORD        lStructSize = CHOOSECOLORA.sizeof;
@@ -330,7 +330,7 @@ struct CHOOSECOLORW {
 }
 alias CHOOSECOLORW* LPCHOOSECOLORW;
 
-align (4) struct CHOOSEFONTA {
+struct CHOOSEFONTA {
     DWORD        lStructSize = CHOOSEFONTA.sizeof;
     HWND         hwndOwner;
     HDC          hDC;
@@ -344,13 +344,13 @@ align (4) struct CHOOSEFONTA {
     HINSTANCE    hInstance;
     LPSTR        lpszStyle;
     WORD         nFontType;
-    //WORD         ___MISSING_ALIGNMENT__;
+    WORD         ___MISSING_ALIGNMENT__;
     INT          nSizeMin;
     INT          nSizeMax;
 }
 alias CHOOSEFONTA* LPCHOOSEFONTA;
 
-align (4) struct CHOOSEFONTW {
+struct CHOOSEFONTW {
     DWORD        lStructSize = CHOOSEFONTW.sizeof;
     HWND         hwndOwner;
     HDC          hDC;
@@ -364,7 +364,7 @@ align (4) struct CHOOSEFONTW {
     HINSTANCE    hInstance;
     LPWSTR       lpszStyle;
     WORD         nFontType;
-    //WORD         ___MISSING_ALIGNMENT__;
+    WORD         ___MISSING_ALIGNMENT__;
     INT          nSizeMin;
     INT          nSizeMax;
 }
@@ -520,8 +520,11 @@ struct PAGESETUPDLGW {
 }
 alias PAGESETUPDLGW* LPPAGESETUPDLGW;
 
-struct PRINTDLGA {
+align (1) struct PRINTDLGA {
+align(1):
     DWORD           lStructSize = PRINTDLGA.sizeof;
+    version (Win64)
+        DWORD       padding1;
     HWND            hwndOwner;
     HANDLE          hDevMode;
     HANDLE          hDevNames;
@@ -532,6 +535,8 @@ struct PRINTDLGA {
     WORD            nMinPage;
     WORD            nMaxPage;
     WORD            nCopies;
+    version (Win64)
+        WORD        padding2;
     HINSTANCE       hInstance;
     LPARAM          lCustData;
     LPPRINTHOOKPROC lpfnPrintHook;
@@ -543,8 +548,11 @@ struct PRINTDLGA {
 }
 alias PRINTDLGA* LPPRINTDLGA;
 
-struct PRINTDLGW {
+align (1) struct PRINTDLGW {
+align(1):
     DWORD           lStructSize = PRINTDLGW.sizeof;
+    version (Win64)
+        DWORD       padding1;
     HWND            hwndOwner;
     HANDLE          hDevMode;
     HANDLE          hDevNames;
@@ -555,6 +563,8 @@ struct PRINTDLGW {
     WORD            nMinPage;
     WORD            nMaxPage;
     WORD            nCopies;
+    version (Win64)
+        WORD        padding2;
     HINSTANCE       hInstance;
     LPARAM          lCustData;
     LPPRINTHOOKPROC lpfnPrintHook;

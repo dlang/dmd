@@ -16,6 +16,15 @@ module core.sys.posix.dlfcn;
 
 private import core.sys.posix.config;
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C):
 nothrow:
@@ -111,7 +120,7 @@ version( CRuntime_Glibc )
 
     deprecated("Please use core.sys.linux.dlfcn for non-POSIX extensions")
     {
-        int   dladdr(void* addr, Dl_info* info);
+        int   dladdr(in void* addr, Dl_info* info);
         void* dlvsym(void* handle, in char* symbol, in char* version_);
 
         struct Dl_info
@@ -123,7 +132,7 @@ version( CRuntime_Glibc )
         }
     }
 }
-else version( OSX )
+else version( Darwin )
 {
     enum RTLD_LAZY      = 0x00001;
     enum RTLD_NOW       = 0x00002;
@@ -145,6 +154,27 @@ else version( OSX )
     }
 }
 else version( FreeBSD )
+{
+    enum RTLD_LAZY      = 1;
+    enum RTLD_NOW       = 2;
+    enum RTLD_GLOBAL    = 0x100;
+    enum RTLD_LOCAL     = 0;
+
+    int   dlclose(void*);
+    char* dlerror();
+    void* dlopen(in char*, int);
+    void* dlsym(void*, in char*);
+    int   dladdr(const(void)* addr, Dl_info* info);
+
+    struct Dl_info
+    {
+        const(char)* dli_fname;
+        void*        dli_fbase;
+        const(char)* dli_sname;
+        void*        dli_saddr;
+    }
+}
+else version( OpenBSD )
 {
     enum RTLD_LAZY      = 1;
     enum RTLD_NOW       = 2;

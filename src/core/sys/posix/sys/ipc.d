@@ -17,6 +17,15 @@ module core.sys.posix.sys.ipc;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for uid_t, gid_t, mode_t, key_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 version (Posix):
 extern (C) nothrow @nogc:
 
@@ -75,7 +84,7 @@ version( CRuntime_Glibc )
 
     key_t ftok(in char*, int);
 }
-else version( OSX )
+else version( Darwin )
 {
 
 }

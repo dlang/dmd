@@ -141,8 +141,12 @@ struct WINHTTP_CERTIFICATE_INFO {
 }
 
 // This structure is only defined #if _WS2DEF_ defined (from <ws2def.h>) - per Windows SDK
+align(4)
 struct WINHTTP_CONNECTION_INFO {
+align(4):
     DWORD cbSize;
+    version (Win64)
+        DWORD _padding; // cheap trick without the alignment switch over this file
     SOCKADDR_STORAGE LocalAddress;
     SOCKADDR_STORAGE RemoteAddress;
 }
@@ -654,7 +658,7 @@ enum : DWORD {
     ERROR_WINHTTP_CONNECTION_ERROR       = (WINHTTP_ERROR_BASE + 30),
     ERROR_WINHTTP_RESEND_REQUEST         = (WINHTTP_ERROR_BASE + 32),
 
-    ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED = (WINHTTP_ERROR_BASE, + 44),
+    ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED = (WINHTTP_ERROR_BASE + 44),
 
     ERROR_WINHTTP_CANNOT_CALL_BEFORE_OPEN = (WINHTTP_ERROR_BASE + 100),
     ERROR_WINHTTP_CANNOT_CALL_BEFORE_SEND = (WINHTTP_ERROR_BASE + 101),

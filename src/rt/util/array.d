@@ -10,27 +10,28 @@ module rt.util.array;
 
 
 import core.internal.string;
+import core.stdc.stdint;
 
 
 @safe /* pure dmd @@@BUG11461@@@ */ nothrow:
 
-void enforceTypedArraysConformable(T)(in char[] action,
-    in T[] a1, in T[] a2, in bool allowOverlap = false)
+void enforceTypedArraysConformable(T)(const char[] action,
+    const T[] a1, const T[] a2, in bool allowOverlap = false)
 {
     _enforceSameLength(action, a1.length, a2.length);
     if(!allowOverlap)
-        _enforceNoOverlap(action, a1.ptr, a2.ptr, T.sizeof * a1.length);
+        _enforceNoOverlap(action, arrayToPtr(a1), arrayToPtr(a2), T.sizeof * a1.length);
 }
 
-void enforceRawArraysConformable(in char[] action, in size_t elementSize,
-    in void[] a1, in void[] a2, in bool allowOverlap = false)
+void enforceRawArraysConformable(const char[] action, in size_t elementSize,
+    const void[] a1, const void[] a2, in bool allowOverlap = false)
 {
     _enforceSameLength(action, a1.length, a2.length);
     if(!allowOverlap)
-        _enforceNoOverlap(action, a1.ptr, a2.ptr, elementSize * a1.length);
+        _enforceNoOverlap(action, arrayToPtr(a1), arrayToPtr(a2), elementSize * a1.length);
 }
 
-private void _enforceSameLength(in char[] action,
+private void _enforceSameLength(const char[] action,
     in size_t length1, in size_t length2)
 {
     if(length1 == length2)
@@ -46,10 +47,10 @@ private void _enforceSameLength(in char[] action,
     throw new Error(msg);
 }
 
-private void _enforceNoOverlap(in char[] action,
-    in void* ptr1, in void* ptr2, in size_t bytes)
+private void _enforceNoOverlap(const char[] action,
+    uintptr_t ptr1, uintptr_t ptr2, in size_t bytes)
 {
-    const size_t d = ptr1 > ptr2 ? ptr1 - ptr2 : ptr2 - ptr1;
+    const d = ptr1 > ptr2 ? ptr1 - ptr2 : ptr2 - ptr1;
     if(d >= bytes)
         return;
     const overlappedBytes = bytes - d;
@@ -62,4 +63,10 @@ private void _enforceNoOverlap(in char[] action,
     msg ~= " byte(s) overlap of ";
     msg ~= bytes.unsignedToTempString(tmpBuff, 10);
     throw new Error(msg);
+}
+
+private uintptr_t arrayToPtr(const void[] array) @trusted
+{
+    // Ok because the user will never dereference the pointer
+    return cast(uintptr_t)array.ptr;
 }

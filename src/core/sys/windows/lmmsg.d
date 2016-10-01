@@ -14,7 +14,7 @@ private import core.sys.windows.lmcons, core.sys.windows.windef, core.sys.window
 
 static assert (_WIN32_WINNT >= 0x501,
     "core.sys.windows.lmmsg is available only if version WindowsXP, Windows2003 "
-    "or WindowsVista is set");
+    ~ "or WindowsVista is set");
 
 enum MSGNAME_NOT_FORWARDED  = 0;
 enum MSGNAME_FORWARDED_TO   = 4;

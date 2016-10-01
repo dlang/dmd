@@ -13,18 +13,7 @@ version (Windows):
 import core.sys.windows.winbase, core.sys.windows.windef;
 private import core.sys.windows.basetyps, core.sys.windows.w32api;
 
-// FIXME: clean up Windows version support
-
-version (Win32_Winsock2) pragma(msg,
- "Version Win32_Winsock2 is deprecated; Winsock2 is now imported by default");
-
-// Pull in Winsock1 if the user has put "Win32_Winsock1" on the compile
-// line; otherwise, default to Winsock2.
-version (Win32_Winsock1) {
-    import core.sys.windows.winsock;
-} else {
-    import core.sys.windows.winsock2;
-}
+import core.sys.windows.winsock2;
 
 //static if (_WIN32_WINNT >= 0x500) {
     enum {
@@ -111,87 +100,91 @@ extern(Windows) {
     /* WinNT3.51+
        ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/acceptex_2.htm */
     alias BOOL function(SOCKET, SOCKET, PVOID, DWORD, DWORD, DWORD, LPDWORD, LPOVERLAPPED) LPFN_ACCEPTEX;
-enum GUID WSAID_ACCEPTEX = {0xb5367df1,0xcbac,0x11cf,[0x95,0xca,0x00,0x80,0x5f,0x48,0xa1,0x92]};
+    const GUID WSAID_ACCEPTEX = {0xb5367df1,0xcbac,0x11cf,[0x95,0xca,0x00,0x80,0x5f,0x48,0xa1,0x92]};
 
     alias BOOL function(SOCKET, SOCKADDR*, int, PVOID, DWORD, LPDWORD, LPOVERLAPPED) LPFN_CONNECTEX;
-enum GUID WSAID_CONNECTEX = {0x25a207b9,0xddf3,0x4660,[0x8e,0xe9,0x76,0xe5,0x8c,0x74,0x06,0x3e]};
+    const GUID WSAID_CONNECTEX = {0x25a207b9,0xddf3,0x4660,[0x8e,0xe9,0x76,0xe5,0x8c,0x74,0x06,0x3e]};
 }
 
-version(Win32_Winsock1) {
-} else {
-    static if (_WIN32_WINNT > 0x501) {
-        /*  These appear to be constants for the TRANSMIT_PACKETS_ELEMENT
-         *  structure below, so I've given them the same minimum version
-         */
-        enum {
-            TP_ELEMENT_FILE   = 1,
-            TP_ELEMENT_MEMORY = 2,
-            TP_ELEMENT_EOP    = 4
+static if (_WIN32_WINNT > 0x501) {
+    /*  These appear to be constants for the TRANSMIT_PACKETS_ELEMENT
+     *  structure below, so I've given them the same minimum version
+     */
+    enum {
+        TP_ELEMENT_FILE   = 1,
+        TP_ELEMENT_MEMORY = 2,
+        TP_ELEMENT_EOP    = 4
+    }
+
+    /*  WinXP+, Srv2k3+
+     *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/transmit_packets_element_2.htm
+     */
+    struct TRANSMIT_PACKETS_ELEMENT {
+        ULONG dwElFlags;
+        ULONG cLength;
+        union {
+            struct {
+                LARGE_INTEGER nFileOffset;
+                HANDLE        hFile;
+            }
+            PVOID pBuffer;
         }
+    }
+
+    struct WSABUF {
+        ULONG len;
+        CHAR* buf;
+    }
+
+    alias WSABUF* LPWSABUF;
+
+    /*  WinXP+, Server2003+:
+     *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsamsg_2.htm
+     */
+    struct WSAMSG {
+        LPSOCKADDR name;
+        INT        namelen;
+        LPWSABUF   lpBuffers;
+        DWORD      dwBufferCount;
+        WSABUF     Control;
+        DWORD      dwFlags;
+    }
+
+    alias WSAMSG* PWSAMSG, LPWSAMSG;
+
+    /* According to MSDN docs, the WSAMSG.Control buffer starts with a
+       cmsghdr header of the following form.  See also RFC 2292. */
+    /* DK: Confirmed.  So I suppose these should get the same version as
+       WSAMSG... */
+    struct WSACMSGHDR {
+        SIZE_T cmsg_len;
+        INT  cmsg_level;
+        INT  cmsg_type;
+        // followed by UCHAR cmsg_data[];
+    }
+
+    /* TODO: Standard Posix.1g macros as per RFC 2292, with WSA_uglification. */
+    /* DK: MinGW doesn't define these, and neither does the MSDN docs.  Might have
+       to actually look up RFC 2292... */
+    /+
+    #if 0
+    #define WSA_CMSG_FIRSTHDR(mhdr)
+    #define WSA_CMSG_NXTHDR(mhdr, cmsg)
+    #define WSA_CMSG_SPACE(length)
+    #define WSA_CMSG_LEN(length)
+    #endif
+    +/
+
+    extern(Windows)
+    {
+        /*  WinXP+, Srv2k3+
+         *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/disconnectex_2.htm
+         */
+        BOOL DisconnectEx(SOCKET, LPOVERLAPPED, DWORD, DWORD);
 
         /*  WinXP+, Srv2k3+
-         *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/transmit_packets_element_2.htm
+         *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsarecvmsg_2.htm
          */
-        struct TRANSMIT_PACKETS_ELEMENT {
-            ULONG dwElFlags;
-            ULONG cLength;
-            union {
-                struct {
-                    LARGE_INTEGER nFileOffset;
-                    HANDLE        hFile;
-                }
-                PVOID pBuffer;
-            }
-        }
-
-        /*  WinXP+, Server2003+:
-         *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsamsg_2.htm
-         */
-        struct WSAMSG {
-            LPSOCKADDR name;
-            INT        namelen;
-            LPWSABUF   lpBuffers;
-            DWORD      dwBufferCount;
-            WSABUF     Control;
-            DWORD      dwFlags;
-        }
-
-        alias WSAMSG* PWSAMSG, LPWSAMSG;
-
-        /* According to MSDN docs, the WSAMSG.Control buffer starts with a
-           cmsghdr header of the following form.  See also RFC 2292. */
-        /* DK: Confirmed.  So I suppose these should get the same version as
-           WSAMSG... */
-        struct WSACMSGHDR {
-            UINT cmsg_len;
-            INT  cmsg_level;
-            INT  cmsg_type;
-            // followed by UCHAR cmsg_data[];
-        }
-
-        /* TODO: Standard Posix.1g macros as per RFC 2292, with WSA_uglification. */
-        /* DK: MinGW doesn't define these, and neither does the MSDN docs.  Might have
-           to actually look up RFC 2292... */
-        /+
-        #if 0
-        #define WSA_CMSG_FIRSTHDR(mhdr)
-        #define WSA_CMSG_NXTHDR(mhdr, cmsg)
-        #define WSA_CMSG_SPACE(length)
-        #define WSA_CMSG_LEN(length)
-        #endif
-        +/
-
-        extern(Windows)
-        {
-            /*  WinXP+, Srv2k3+
-             *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/disconnectex_2.htm
-             */
-            BOOL DisconnectEx(SOCKET, LPOVERLAPPED, DWORD, DWORD);
-
-            /*  WinXP+, Srv2k3+
-             *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsarecvmsg_2.htm
-             */
-            int WSARecvMsg(SOCKET, LPWSAMSG, LPDWORD, LPWSAOVERLAPPED, LPWSAOVERLAPPED_COMPLETION_ROUTINE);
-        }
+        int WSARecvMsg(SOCKET, LPWSAMSG, LPDWORD, LPWSAOVERLAPPED, LPWSAOVERLAPPED_COMPLETION_ROUTINE);
     }
 }

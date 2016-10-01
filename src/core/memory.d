@@ -31,7 +31,7 @@
         $(LI Maintain another reference to that same data in another thread that the
         GC does know about.)
         $(LI Disable GC collection cycles while that thread is active with $(LREF disable)/$(LREF enable).)
-        $(LI Register the thread with the GC using $(CXREF thread, thread_attachThis)/$(CXREF thread, thread_detachThis).)
+        $(LI Register the thread with the GC using $(REF thread_attachThis, core,thread)/$(REF thread_detachThis, core,thread).)
         )
    )
    )
@@ -138,11 +138,12 @@ private
     }
 
     extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
+    extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
 
-    extern (C) void gc_addRoot( in void* p ) nothrow;
+    extern (C) void gc_addRoot( in void* p ) nothrow @nogc;
     extern (C) void gc_addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
 
-    extern (C) void gc_removeRoot( in void* p ) nothrow;
+    extern (C) void gc_removeRoot( in void* p ) nothrow @nogc;
     extern (C) void gc_removeRange( in void* p ) nothrow @nogc;
     extern (C) void gc_runFinalizers( in void[] segment );
 
@@ -157,6 +158,17 @@ private
 struct GC
 {
     @disable this();
+
+    /**
+     * Aggregation of GC stats to be exposed via public API
+     */
+    static struct Stats
+    {
+        /// number of used bytes on the GC heap (might only get updated after a collection)
+        size_t usedSize;
+        /// number of free bytes on the GC heap (might only get updated after a collection)
+        size_t freeSize;
+    }
 
     /**
      * Enables automatic garbage collection behavior if collections have
@@ -659,6 +671,14 @@ struct GC
         return gc_query( p );
     }
 
+    /**
+     * Returns runtime stats for currently active GC implementation
+     * See `core.memory.GC.Stats` for list of available metrics.
+     */
+    static Stats stats() nothrow
+    {
+        return gc_stats();
+    }
 
     /**
      * Adds an internal root pointing to the GC memory block referenced by p.
@@ -705,7 +725,7 @@ struct GC
      * }
      * ---
      */
-    static void addRoot( in void* p ) nothrow /* FIXME pure */
+    static void addRoot( in void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_addRoot( p );
     }
@@ -719,7 +739,7 @@ struct GC
      * Params:
      *  p = A pointer into a GC-managed memory block or null.
      */
-    static void removeRoot( in void* p ) nothrow /* FIXME pure */
+    static void removeRoot( in void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_removeRoot( p );
     }

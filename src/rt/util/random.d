@@ -8,14 +8,17 @@ module rt.util.random;
 
 struct Rand48
 {
-nothrow:
     private ulong rng_state;
+
+@safe @nogc nothrow:
 
     void defaultSeed()
     {
         import ctime = core.stdc.time : time;
         seed(cast(uint)ctime.time(null));
     }
+
+pure:
 
     void seed(uint seedval)
     {
@@ -24,19 +27,19 @@ nothrow:
         popFront();
     }
 
-    auto opCall() @nogc
+    auto opCall()
     {
         auto result = front;
         popFront();
         return result;
     }
 
-    @property uint front() @nogc
+    @property uint front()
     {
         return cast(uint)(rng_state >> 16);
     }
 
-    void popFront() @nogc
+    void popFront()
     {
         immutable ulong a = 25214903917;
         immutable ulong c = 11;

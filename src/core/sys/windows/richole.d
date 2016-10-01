@@ -13,7 +13,7 @@ private import core.sys.windows.objfwd, core.sys.windows.objidl, core.sys.window
   core.sys.windows.windef;
 private import core.sys.windows.richedit; // for CHARRANGE
 
-align(4):
+//align(4):
 
 enum ULONG
     REO_GETOBJ_NO_INTERFACES = 0,

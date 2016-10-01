@@ -53,9 +53,9 @@ void runTests(Config cfg)
     string[string] extra_sources;
     auto re = regex(cfg.pattern, "g");
     auto self = buildPath(".", "runbench.d");
-    foreach(DirEntry src; dirEntries(".", SpanMode.depth))
+    foreach(DirEntry src; dirEntries(".", "*.d", SpanMode.depth))
     {
-        if (!src.isFile || !endsWith(src.name, ".d") || src.name == self)
+        if (!src.isFile || src.name == self || src.name.withExtension(".ignore").exists)
             continue;
 
         string mainsrc = extraSourceOf(src.name);

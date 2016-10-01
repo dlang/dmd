@@ -2465,7 +2465,7 @@ alias EMRBITBLT* PEMRBITBLT;
 struct LOGBRUSH {
     UINT     lbStyle;
     COLORREF lbColor;
-    LONG     lbHatch;
+    ULONG_PTR lbHatch;
 }
 alias TypeDef!(LOGBRUSH) PATTERN;
 alias LOGBRUSH* PLOGBRUSH, NPLOGBRUSH, LPLOGBRUSH;
@@ -2550,7 +2550,7 @@ alias EMRPIXELFORMAT* PEMRPIXELFORMAT;
 struct EMRCREATECOLORSPACE {
     EMR emr;
     DWORD ihCS;
-    LOGCOLORSPACE lcs;
+    LOGCOLORSPACEA lcs; // ANSI version
 }
 alias EMRCREATECOLORSPACE* PEMRCREATECOLORSPACE;
 
@@ -2770,11 +2770,22 @@ struct EXTLOGPEN {
     UINT elpWidth;
     UINT elpBrushStyle;
     COLORREF elpColor;
-    LONG elpHatch;
+    ULONG_PTR elpHatch;
     DWORD elpNumEntries;
     DWORD[1] elpStyleEntry;
 }
 alias EXTLOGPEN* PEXTLOGPEN, NPEXTLOGPEN, LPEXTLOGPEN;
+
+struct EXTLOGPEN32 {
+    UINT elpPenStyle;
+    UINT elpWidth;
+    UINT elpBrushStyle;
+    COLORREF elpColor;
+    ULONG elpHatch;
+    DWORD elpNumEntries;
+    DWORD[1] elpStyleEntry;
+}
+alias EXTLOGPEN32* PEXTLOGPEN32, NPEXTLOGPEN32, LPEXTLOGPEN32;
 
 struct EMREXTCREATEPEN {
     EMR emr;
@@ -2783,7 +2794,7 @@ struct EMREXTCREATEPEN {
     DWORD cbBmi;
     DWORD offBits;
     DWORD cbBits;
-    EXTLOGPEN elp;
+    EXTLOGPEN32 elp;
 }
 alias EMREXTCREATEPEN* PEMREXTCREATEPEN;
 
@@ -3871,8 +3882,10 @@ enum MM_MAX_AXES_NAMELEN = 16;
     }
     alias ENUMLOGFONTEXDVW* PENUMLOGFONTEXDVW, LPENUMLOGFONTEXDVW;
 
+extern(Windows) nothrow @nogc {
     HFONT CreateFontIndirectExA(const(ENUMLOGFONTEXDVA)*);
     HFONT CreateFontIndirectExW(const(ENUMLOGFONTEXDVW)*);
+}
     version (Unicode)
         alias CreateFontIndirectExW CreateFontIndirectEx;
     else
@@ -3945,19 +3958,19 @@ alias DRAWPATRECT* PDRAWPATRECT;
 
 // ---------
 // Callbacks
-
-alias BOOL function (HDC, int) ABORTPROC;
-alias int function (HDC, HANDLETABLE*, METARECORD*, int, LPARAM) MFENUMPROC;
-alias int function (HDC, HANDLETABLE*, const(ENHMETARECORD)*, int, LPARAM) ENHMFENUMPROC;
-alias int function (const(LOGFONTA)*, const(TEXTMETRICA)*, DWORD, LPARAM) FONTENUMPROCA, OLDFONTENUMPROCA;
-alias int function (const(LOGFONTW)*, const(TEXTMETRICW)*, DWORD, LPARAM) FONTENUMPROCW, OLDFONTENUMPROCW;
-alias int function (LPSTR, LPARAM) ICMENUMPROCA;
-alias int function (LPWSTR, LPARAM) ICMENUMPROCW;
-alias void function (LPVOID, LPARAM) GOBJENUMPROC;
-alias void function (int, int, LPARAM) LINEDDAPROC;
-alias UINT function (HWND, HMODULE, LPDEVMODEA, LPSTR, LPSTR, LPDEVMODEA, LPSTR, UINT) LPFNDEVMODE;
-alias DWORD function (LPSTR, LPSTR, UINT, LPSTR, LPDEVMODEA) LPFNDEVCAPS;
-
+extern (Windows) {
+    alias BOOL function (HDC, int) ABORTPROC;
+    alias int function (HDC, HANDLETABLE*, METARECORD*, int, LPARAM) MFENUMPROC;
+    alias int function (HDC, HANDLETABLE*, const(ENHMETARECORD)*, int, LPARAM) ENHMFENUMPROC;
+    alias int function (const(LOGFONTA)*, const(TEXTMETRICA)*, DWORD, LPARAM) FONTENUMPROCA, OLDFONTENUMPROCA;
+    alias int function (const(LOGFONTW)*, const(TEXTMETRICW)*, DWORD, LPARAM) FONTENUMPROCW, OLDFONTENUMPROCW;
+    alias int function (LPSTR, LPARAM) ICMENUMPROCA;
+    alias int function (LPWSTR, LPARAM) ICMENUMPROCW;
+    alias void function (LPVOID, LPARAM) GOBJENUMPROC;
+    alias void function (int, int, LPARAM) LINEDDAPROC;
+    alias UINT function (HWND, HMODULE, LPDEVMODEA, LPSTR, LPSTR, LPDEVMODEA, LPSTR, UINT) LPFNDEVMODE;
+    alias DWORD function (LPSTR, LPSTR, UINT, LPSTR, LPDEVMODEA) LPFNDEVCAPS;
+}
 
 // ---------
 // C Macros.

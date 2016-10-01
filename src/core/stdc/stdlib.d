@@ -17,6 +17,15 @@ module core.stdc.stdlib;
 private import core.stdc.config;
 public import core.stdc.stddef; // for wchar_t
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
 extern (C):
 @system:
 
@@ -64,8 +73,9 @@ enum MB_CUR_MAX   = 1;
 ///
 version(Windows)      enum RAND_MAX = 0x7fff;
 else version(CRuntime_Glibc)  enum RAND_MAX = 0x7fffffff;
-else version(OSX)     enum RAND_MAX = 0x7fffffff;
+else version(Darwin)  enum RAND_MAX = 0x7fffffff;
 else version(FreeBSD) enum RAND_MAX = 0x7fffffff;
+else version(OpenBSD) enum RAND_MAX = 0x7fffffff;
 else version(Solaris) enum RAND_MAX = 0x7fff;
 else version(CRuntime_Bionic) enum RAND_MAX = 0x7fffffff;
 else static assert( false, "Unsupported platform" );

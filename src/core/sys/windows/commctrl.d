@@ -2850,7 +2850,9 @@ static if (_WIN32_IE >= 0x400) {
     }
     alias NMIPADDRESS* LPNMIPADDRESS;
 
+    align (1)
     struct NMLVKEYDOWN {
+    align (1):
         NMHDR hdr;
         WORD  wVKey;
         UINT  flags;
@@ -2865,9 +2867,11 @@ static if (_WIN32_IE >= 0x400) {
     }
     alias NMPGCALCSIZE* LPNMPGCALCSIZE;
 
+    align (1)
     struct NMPGSCROLL {
+    align (1):
         NMHDR hdr;
-        BOOL  fwKeys;
+        WORD  fwKeys;   // Note: this should be WORD if MSDN document says wrong
         RECT  rcParent;
         int   iDir;
         int   iXpos;
@@ -3249,7 +3253,7 @@ struct NMCUSTOMDRAW {
     DWORD  dwDrawStage;
     HDC    hdc;
     RECT   rc;
-    DWORD  dwItemSpec;
+    DWORD_PTR dwItemSpec;
     UINT   uItemState;
     LPARAM lItemlParam;
 }
@@ -3869,7 +3873,7 @@ static if (_WIN32_WINNT >= 0x501) {
     }
     alias LVINSERTGROUPSORTED* PLVINSERTGROUPSORTED;
 
-    alias int function(INT, INT, VOID*) PFNLVGROUPCOMPARE;
+    extern (Windows) alias int function(INT, INT, VOID*) PFNLVGROUPCOMPARE;
 
     struct LVSETINFOTIP {
         UINT    cbSize = LVSETINFOTIP.sizeof;
@@ -3923,7 +3927,7 @@ static if (_WIN32_WINNT >= 0x600) {
     }
 }
 
-alias int function(LPARAM, LPARAM, LPARAM) PFNLVCOMPARE;
+extern (Windows) alias int function(LPARAM, LPARAM, LPARAM) PFNLVCOMPARE;
 
 struct NMLISTVIEW {
     NMHDR  hdr;
@@ -3956,7 +3960,9 @@ struct NMLVDISPINFOW {
 alias NMLVDISPINFOW* LPNMLVDISPINFOW;
 alias NMLVDISPINFOW LV_DISPINFOW;
 
+align (1)
 struct LV_KEYDOWN {
+align (1):
     NMHDR hdr;
     WORD  wVKey;
     UINT  flags;
@@ -4084,7 +4090,7 @@ static if (_WIN32_WINNT >= 0x600) {
     }
 }
 
-alias int function(LPARAM, LPARAM, LPARAM) PFNTVCOMPARE;
+extern (Windows) alias int function(LPARAM, LPARAM, LPARAM) PFNTVCOMPARE;
 struct TVSORTCB {
     HTREEITEM    hParent;
     PFNTVCOMPARE lpfnCompare;
@@ -4147,7 +4153,9 @@ static if (_WIN32_IE >= 0x400) {
     alias NMTVGETINFOTIPW* LPNMTVGETINFOTIPW;
 }
 
+align (1)
 struct TV_KEYDOWN {
+align (1):
     NMHDR hdr;
     WORD  wVKey;
     UINT  flags;
@@ -4224,7 +4232,9 @@ struct TCHITTESTINFO {
 alias TCHITTESTINFO* LPTCHITTESTINFO, LPTC_HITTESTINFO;
 alias TCHITTESTINFO TC_HITTESTINFO;
 
+align (1)
 struct TC_KEYDOWN {
+align (1):
     NMHDR hdr;
     WORD wVKey;
     UINT flags;
@@ -4893,9 +4903,11 @@ version (Unicode) {
 }
 
 
+extern (Windows) {
 alias INT function(PVOID, PVOID) PFNDPAENUMCALLBACK;
 alias INT function(PVOID, PVOID) PFNDSAENUMCALLBACK;
 alias INT function(PVOID, PVOID, LPARAM) PFNDPACOMPARE;
+}
 
 static if (_WIN32_WINNT >= 0x501) {
     extern (Windows)
@@ -4929,13 +4941,15 @@ uint INDEXTOOVERLAYMASK(uint i) { return i << 8; }
 uint INDEXTOSTATEIMAGEMASK(uint i) { return i << 12; }
 
 template HANDLE_WM_NOTIFY(R) {
-    R HANDLE_WM_NOTIFY(HWND hwnd, WPARAM wParam, LPARAM lParam,
-          R function(HWND, int, NMHDR*) fn) {
+    private alias _prm_HANDLE_WM_NOTIFY = extern (Windows)
+        R function(HWND, int, NMHDR*); // to inject linkage type
+    R HANDLE_WM_NOTIFY(HWND hwnd, WPARAM wParam, LPARAM lParam, _prm_HANDLE_WM_NOTIFY fn) {
         return fn(hwnd, wParam, cast(NMHDR*) lParam);
     }
 }
-int FORWARD_WM_NOTIFY(HWND hwnd, int idFrom, NMHDR* pnmhdr,
-      int function(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) fn) {
+private alias _prm_FORWARD_WM_NOTIFY = extern (Windows)
+    LRESULT function(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam); // to inject linkage type
+LRESULT FORWARD_WM_NOTIFY(HWND hwnd, int idFrom, NMHDR* pnmhdr, _prm_FORWARD_WM_NOTIFY fn) {
     return fn(hwnd, WM_NOTIFY, idFrom, cast(LPARAM) pnmhdr);
 }
 
@@ -5302,8 +5316,9 @@ int ListView_FindItem(HWND w, int i, const(LV_FINDINFO)* p) {
 }
 
 BOOL ListView_GetItemRect(HWND w, int i, LPRECT p, int c) {
-    return cast(BOOL) SendMessage(w, LVM_GETITEMRECT, i, p ?
-      (p.left = c, cast(LPARAM) p) : 0);
+    if (p)
+        p.left = c;
+    return cast(BOOL) SendMessage(w, LVM_GETITEMRECT, i, cast(LPARAM) p);
 }
 
 BOOL ListView_SetItemPosition(HWND w, int i, int x, int y) {
@@ -6024,8 +6039,12 @@ static if (_WIN32_IE >= 0x300) {
     }
 
     BOOL ListView_GetSubItemRect(HWND w, int i, int isi, int c, LPRECT p) {
-        return cast(BOOL) SendMessage(w, LVM_GETSUBITEMRECT, i,
-          p ? (p.left = c, p.top = isi, cast(LPARAM) p) : 0);
+        if (p)
+        {
+            p.left = c;
+            p.top = isi;
+        }
+        return cast(BOOL) SendMessage(w, LVM_GETSUBITEMRECT, i, cast(LPARAM) p);
     }
 
     HCURSOR ListView_SetHotCursor(HWND w, HCURSOR c) {

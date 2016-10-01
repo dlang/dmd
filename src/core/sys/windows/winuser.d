@@ -2598,15 +2598,15 @@ struct COMPAREITEMSTRUCT {
     UINT  CtlID;
     HWND  hwndItem;
     UINT  itemID1;
-    DWORD itemData1;
+    ULONG_PTR itemData1;
     UINT  itemID2;
-    DWORD itemData2;
+    ULONG_PTR itemData2;
     DWORD dwLocaleId;
 }
 alias COMPAREITEMSTRUCT* LPCOMPAREITEMSTRUCT;
 
 struct COPYDATASTRUCT {
-    DWORD dwData;
+    ULONG_PTR dwData;
     DWORD cbData;
     PVOID lpData;
 }
@@ -2653,7 +2653,7 @@ struct DELETEITEMSTRUCT {
     UINT CtlID;
     UINT itemID;
     HWND hwndItem;
-    UINT itemData;
+    ULONG_PTR itemData;
 }
 alias DELETEITEMSTRUCT* PDELETEITEMSTRUCT, LPDELETEITEMSTRUCT;
 
@@ -2692,7 +2692,7 @@ struct DRAWITEMSTRUCT {
     HWND  hwndItem;
     HDC   hDC;
     RECT  rcItem;
-    DWORD itemData;
+    ULONG_PTR itemData;
 }
 alias DRAWITEMSTRUCT* LPDRAWITEMSTRUCT, PDRAWITEMSTRUCT;
 
@@ -2877,7 +2877,7 @@ struct HELPINFO {
     int iContextType;
     int iCtrlId;
     HANDLE hItemHandle;
-    DWORD dwContextId;
+    DWORD_PTR dwContextId;
     POINT MousePos;
 }
 alias HELPINFO* LPHELPINFO;
@@ -2890,7 +2890,7 @@ struct MSGBOXPARAMSA {
     LPCSTR lpszCaption;
     DWORD dwStyle;
     LPCSTR lpszIcon;
-    DWORD dwContextHelpId;
+    DWORD_PTR dwContextHelpId;
     MSGBOXCALLBACK lpfnMsgBoxCallback;
     DWORD dwLanguageId;
 }
@@ -2904,7 +2904,7 @@ struct MSGBOXPARAMSW {
     LPCWSTR lpszCaption;
     DWORD dwStyle;
     LPCWSTR lpszIcon;
-    DWORD dwContextHelpId;
+    DWORD_PTR dwContextHelpId;
     MSGBOXCALLBACK lpfnMsgBoxCallback;
     DWORD dwLanguageId;
 }
@@ -3084,7 +3084,7 @@ struct MOUSEHOOKSTRUCT {
     POINT pt;
     HWND hwnd;
     UINT wHitTestCode;
-    DWORD dwExtraInfo;
+    ULONG_PTR dwExtraInfo;
 }
 alias MOUSEHOOKSTRUCT* LPMOUSEHOOKSTRUCT, PMOUSEHOOKSTRUCT;
 
@@ -3176,7 +3176,7 @@ struct MEASUREITEMSTRUCT {
     UINT itemID;
     UINT itemWidth;
     UINT itemHeight;
-    DWORD itemData;
+    ULONG_PTR itemData;
 }
 alias MEASUREITEMSTRUCT* PMEASUREITEMSTRUCT, LPMEASUREITEMSTRUCT;
 
@@ -3184,7 +3184,7 @@ struct DROPSTRUCT {
     HWND hwndSource;
     HWND hwndSink;
     DWORD wFmt;
-    DWORD dwData;
+    ULONG_PTR dwData;
     POINT ptDrop;
     DWORD dwControlData;
 }
@@ -3362,7 +3362,7 @@ struct KBDLLHOOKSTRUCT {
     DWORD scanCode;
     DWORD flags;
     DWORD time;
-    DWORD dwExtraInfo;
+    ULONG_PTR dwExtraInfo;
 }
 alias KBDLLHOOKSTRUCT* LPKBDLLHOOKSTRUCT, PKBDLLHOOKSTRUCT;
 
@@ -3412,11 +3412,11 @@ struct INPUT {
 alias INPUT* PINPUT, LPINPUT;
 
 static if (_WIN32_WINNT >= 0x501) {
-    struct BSMINFO {
+    align(4) struct BSMINFO {
         UINT  cbSize = this.sizeof;
         HDESK hdesk;
         HWND  hwnd;
-        LUID  luid;
+align(4) LUID  luid;
     }
     alias BSMINFO* PBSMINFO;
 
@@ -3730,7 +3730,7 @@ BOOL DlgDirSelectComboBoxExW(HWND, LPWSTR, int, int);
 BOOL DlgDirSelectExA(HWND, LPSTR, int, int);
 BOOL DlgDirSelectExW(HWND, LPWSTR, int, int);
 BOOL DragDetect(HWND, POINT);
-DWORD DragObject(HWND, HWND, UINT, DWORD, HCURSOR);
+DWORD DragObject(HWND, HWND, UINT, ULONG_PTR, HCURSOR);
 BOOL DrawAnimatedRects(HWND, int, LPCRECT, LPCRECT);
 BOOL DrawCaption(HWND, HDC, LPCRECT, UINT);
 BOOL DrawEdge(HDC, LPRECT, UINT, UINT);
@@ -3943,7 +3943,7 @@ BOOL IsWindowEnabled(HWND);
 BOOL IsWindowUnicode(HWND);
 BOOL IsWindowVisible(HWND);
 BOOL IsZoomed(HWND);
-void keybd_event(BYTE, BYTE, DWORD, DWORD);
+void keybd_event(BYTE, BYTE, DWORD, ULONG_PTR);
 BOOL KillTimer(HWND, UINT_PTR);
 HACCEL LoadAcceleratorsA(HINSTANCE, LPCSTR);
 HACCEL LoadAcceleratorsW(HINSTANCE, LPCWSTR);
@@ -4036,8 +4036,8 @@ int ScrollWindowEx(HWND, int, int, LPCRECT, LPCRECT, HRGN, LPRECT, UINT);
 LONG SendDlgItemMessageA(HWND, int, UINT, WPARAM, LPARAM);
 LONG SendDlgItemMessageW(HWND, int, UINT, WPARAM, LPARAM);
 LRESULT SendMessageA(HWND, UINT, WPARAM, LPARAM);
-BOOL SendMessageCallbackA(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, DWORD);
-BOOL SendMessageCallbackW(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, DWORD);
+BOOL SendMessageCallbackA(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, ULONG_PTR);
+BOOL SendMessageCallbackW(HWND, UINT, WPARAM, LPARAM, SENDASYNCPROC, ULONG_PTR);
 LRESULT SendMessageTimeoutA(HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD);
 LRESULT SendMessageTimeoutW(HWND, UINT, WPARAM, LPARAM, UINT, UINT, PDWORD);
 LRESULT SendMessageW(HWND, UINT, WPARAM, LPARAM);
@@ -4144,8 +4144,8 @@ BOOL WaitMessage();
 HWND WindowFromDC(HDC hDC);
 HWND WindowFromPoint(POINT);
 UINT WinExec(LPCSTR, UINT);
-BOOL WinHelpA(HWND, LPCSTR, UINT, DWORD);
-BOOL WinHelpW(HWND, LPCWSTR, UINT, DWORD);
+BOOL WinHelpA(HWND, LPCSTR, UINT, ULONG_PTR);
+BOOL WinHelpW(HWND, LPCWSTR, UINT, ULONG_PTR);
 
 extern (C) {
     int wsprintfA(LPSTR, LPCSTR, ...);
@@ -4423,9 +4423,9 @@ int BroadcastSystemMessageW(DWORD, LPDWORD, UINT, WPARAM, LPARAM);
 UINT SendInput(UINT, LPINPUT, int);
 BOOL EnumDisplayMonitors(HDC, LPCRECT, MONITORENUMPROC, LPARAM);
 BOOL GetMonitorInfoA(HMONITOR, LPMONITORINFO);
-BOOL GetMonitorInfoA(HMONITOR, LPMONITORINFOEXA);
+extern(D) BOOL GetMonitorInfoA(HMONITOR m, LPMONITORINFOEXA mi) { return GetMonitorInfoA(m, cast(LPMONITORINFO)mi); }
 BOOL GetMonitorInfoW(HMONITOR, LPMONITORINFO);
-BOOL GetMonitorInfoW(HMONITOR, LPMONITORINFOEXW);
+extern(D) BOOL GetMonitorInfoW(HMONITOR m, LPMONITORINFOEXW mi) { return GetMonitorInfoW(m, cast(LPMONITORINFO)mi); }
 HMONITOR MonitorFromPoint(POINT, DWORD);
 HMONITOR MonitorFromRect(LPCRECT, DWORD);
 HMONITOR MonitorFromWindow(HWND, DWORD);
@@ -4476,11 +4476,19 @@ static if (_WIN32_WINNT >= 0x501) {
 }
 
 version (Win64) {
+    ULONG_PTR GetClassLongPtrA(HWND, int);
+    ULONG_PTR GetClassLongPtrW(HWND, int);
+    ULONG_PTR SetClassLongPtrA(HWND, int, LONG_PTR);
+    ULONG_PTR SetClassLongPtrW(HWND, int, LONG_PTR);
     LONG_PTR GetWindowLongPtrA(HWND, int);
     LONG_PTR GetWindowLongPtrW(HWND, int);
     LONG_PTR SetWindowLongPtrA(HWND, int, LONG_PTR);
     LONG_PTR SetWindowLongPtrW(HWND, int, LONG_PTR);
 } else {
+    alias GetClassLongA GetClassLongPtrA;
+    alias GetClassLongW GetClassLongPtrW;
+    alias SetClassLongA SetClassLongPtrA;
+    alias SetClassLongW SetClassLongPtrW;
     alias GetWindowLongA GetWindowLongPtrA;
     alias GetWindowLongW GetWindowLongPtrW;
     alias SetWindowLongA SetWindowLongPtrA;
@@ -4567,6 +4575,7 @@ version(Unicode) {
     alias GetClassInfoW GetClassInfo;
     alias GetClassInfoExW GetClassInfoEx;
     alias GetClassLongW GetClassLong;
+    alias GetClassLongPtrW GetClassLongPtr;
     alias GetClassNameW GetClassName;
     alias GetClipboardFormatNameW GetClipboardFormatName;
     alias GetDlgItemTextW GetDlgItemText;
@@ -4632,6 +4641,7 @@ version(Unicode) {
     alias SendMessageTimeoutW SendMessageTimeout;
     alias SendNotifyMessageW SendNotifyMessage;
     alias SetClassLongW SetClassLong;
+    alias SetClassLongPtrW SetClassLongPtr;
     alias SetDlgItemTextW SetDlgItemText;
     alias SetMenuItemInfoW SetMenuItemInfo;
     alias SetPropW SetProp;
@@ -4736,6 +4746,7 @@ version(Unicode) {
     alias GetClassInfoA GetClassInfo;
     alias GetClassInfoExA GetClassInfoEx;
     alias GetClassLongA GetClassLong;
+    alias GetClassLongPtrA GetClassLongPtr;
     alias GetClassNameA GetClassName;
     alias GetClipboardFormatNameA GetClipboardFormatName;
     alias GetDlgItemTextA GetDlgItemText;
@@ -4801,6 +4812,7 @@ version(Unicode) {
     alias SendMessageTimeoutA SendMessageTimeout;
     alias SendNotifyMessageA SendNotifyMessage;
     alias SetClassLongA SetClassLong;
+    alias SetClassLongPtrA SetClassLongPtr;
     alias SetDlgItemTextA SetDlgItemText;
     alias SetMenuItemInfoA SetMenuItemInfo;
     alias SetPropA SetProp;

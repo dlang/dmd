@@ -9,6 +9,8 @@ module rt.util.container.array;
 
 static import common = rt.util.container.common;
 
+import core.exception : onOutOfMemoryErrorNoGC;
+
 struct Array(T)
 {
 nothrow:
@@ -31,12 +33,22 @@ nothrow:
 
     @property void length(size_t nlength)
     {
-        if (nlength < length)
-            foreach (ref val; _ptr[nlength .. length]) common.destroy(val);
-        _ptr = cast(T*)common.xrealloc(_ptr, nlength * T.sizeof);
-        if (nlength > length)
-            foreach (ref val; _ptr[length .. nlength]) common.initialize(val);
-        _length = nlength;
+        import core.checkedint : mulu;
+
+        bool overflow = false;
+        size_t reqsize = mulu(T.sizeof, nlength, overflow);
+        if (!overflow)
+        {
+            if (nlength < _length)
+                foreach (ref val; _ptr[nlength .. _length]) common.destroy(val);
+            _ptr = cast(T*)common.xrealloc(_ptr, reqsize);
+            if (nlength > _length)
+                foreach (ref val; _ptr[_length .. nlength]) common.initialize(val);
+            _length = nlength;
+        }
+        else
+            onOutOfMemoryErrorNoGC();
+
     }
 
     @property bool empty() const
@@ -81,8 +93,17 @@ nothrow:
 
     void insertBack()(auto ref T val)
     {
-        length = length + 1;
-        back = val;
+        import core.checkedint : addu;
+
+        bool overflow = false;
+        size_t newlength = addu(length, 1, overflow);
+        if (!overflow)
+        {
+            length = newlength;
+            back = val;
+        }
+        else
+            onOutOfMemoryErrorNoGC();
     }
 
     void popBack()
@@ -107,6 +128,11 @@ nothrow:
         immutable len = _length;
         _length = other._length;
         other._length = len;
+    }
+
+    invariant
+    {
+        assert(!_ptr == !_length);
     }
 
 private:
@@ -180,4 +206,27 @@ unittest
     assert(cnt == 1);
     ary.popBack();
     assert(cnt == 0);
+}
+
+unittest
+{
+    import core.exception;
+    try
+    {
+        // Overflow ary.length.
+        auto ary = Array!size_t(cast(size_t*)0xdeadbeef, -1);
+        ary.insertBack(0);
+    }
+    catch(OutOfMemoryError)
+    {
+    }
+    try
+    {
+        // Overflow requested memory size for common.xrealloc().
+        auto ary = Array!size_t(cast(size_t*)0xdeadbeef, -2);
+        ary.insertBack(0);
+    }
+    catch(OutOfMemoryError)
+    {
+    }
 }
