@@ -25,7 +25,7 @@ $(GNAME TemplateParameter):
     $(GLINK TemplateTypeParameter)
     $(GLINK TemplateValueParameter)
     $(GLINK TemplateAliasParameter)
-    $(GLINK TemplateTupleParameter)
+    $(GLINK TemplateSequenceParameter)
     $(GLINK TemplateThisParameter)
 )
 
@@ -36,14 +36,14 @@ $(GNAME TemplateParameter):
         functions, and other templates.
     )
 
-    $(P Template parameters can be types, values, symbols, or tuples.
+    $(P Template parameters can be types, values, symbols, or sequences.
         Types can be any type.
         Value parameters must be of an integral type, floating point
         type, or string type and
         specializations for them must resolve to an integral constant,
         floating point constant, null, or a string literal.
         Symbols can be any non-local symbol.
-        Tuples are a sequence of 0 or more types, values or symbols.
+        Sequences can contain zero or more types, values or symbols.
     )
 
     $(P Template parameter specializations
@@ -528,12 +528,36 @@ $(GNAME TemplateAliasParameterDefault):
 )
 
     $(P Alias parameters enable templates to be parameterized with
-        any type of D symbol, including global names, local names,
-        module names, template names, and template instance names.
+        almost any kind of D symbol, including user-defined type names,
+        global names, local names, module names, template names, and
+        template instance names.
         Literals can also be used as arguments to alias parameters.
     )
 
+    $(P $(B Examples:))
+
     $(UL
+        $(LI User-defined type names
+
+        ------
+        class Foo
+        {
+            static int p;
+        }
+
+        template Bar(alias T)
+        {
+            alias q = T.p;
+        }
+
+        void test()
+        {
+            alias bar = Bar!(Foo);
+            bar.q = 3;  // sets Foo.p to 3
+        }
+        ------
+        )
+
         $(LI Global names
 
         ------
@@ -551,27 +575,6 @@ $(GNAME TemplateAliasParameterDefault):
             static int y;
             alias abc = Foo!(y);
             *abc.p = 3;       // set y to 3
-        }
-        ------
-        )
-
-        $(LI Type names
-
-        ------
-        class Foo
-        {
-            static int p;
-        }
-
-        template Bar(alias T)
-        {
-            alias q = T.p;
-        }
-
-        void test()
-        {
-            alias bar = Bar!(Foo);
-            bar.q = 3;  // sets Foo.p to 3
         }
         ------
         )
@@ -617,7 +620,7 @@ $(GNAME TemplateAliasParameterDefault):
         ------
         )
 
-        $(LI Template alias names
+        $(LI Template instance names
 
         ------
         int x;
@@ -703,43 +706,45 @@ $(H3 $(LNAME2 alias_parameter_specialization, Specialization))
         ------
     )
 
-$(H2 $(LNAME2 variadic-templates, Template Tuple Parameters))
+$(H2 $(LNAME2 variadic-templates, Template Sequence Parameters))
 
 $(GRAMMAR
-$(GNAME TemplateTupleParameter):
+$(GNAME TemplateSequenceParameter):
     $(I Identifier) $(D ...)
 )
 
     $(P If the last template parameter in the $(I TemplateParameterList)
-        is declared as a $(I TemplateTupleParameter),
+        is declared as a $(I TemplateSequenceParameter),
         it is a match with any trailing template arguments.
-        The sequence of arguments form a $(I Tuple).
-        A $(I Tuple) is not a type, an expression, or a symbol.
-        It is a sequence of any mix of types, expressions or symbols.
+        Such a sequence of arguments can be defined using the template
+        $(REF AliasSeq, std,meta) and will thus henceforth
+        be referred to by that name for clarity.
+        An $(I AliasSeq) is not itself a type, value, or symbol.
+        It is a compile-time sequence of any mix of types, values or symbols.
     )
 
-    $(P A $(I Tuple) whose elements consist entirely of types is
-        called a $(I TypeTuple).
-        A $(I Tuple) whose elements consist entirely of expressions is
-        called an $(I ExpressionTuple).
+    $(P An $(I AliasSeq) whose elements consist entirely of types is
+        called a type sequence or $(I TypeSeq).
+        An $(I AliasSeq) whose elements consist entirely of values is
+        called a value sequence or $(I ValueSeq).
     )
 
-    $(P A $(I Tuple) can be used as an argument list to instantiate
+    $(P An $(I AliasSeq) can be used as an argument list to instantiate
         another template, or as the list of parameters for a function.
 
         ---
-        template Print(args...)
+        template print(args...)
         {
             void print()
             {
-                writeln("args are ", args); // args is an ExpressionTuple
+                writeln("args are ", args); // args is a ValueSeq
             }
         }
 
-        template Write(Args...)
+        template write(Args...)
         {
-            void write(Args args) // Args is a TypeTuple
-                                  // args is an ExpressionTuple
+            void write(Args args) // Args is a TypeSeq
+                                  // args is a ValueSeq
             {
                 writeln("args are ", args);
             }
@@ -747,25 +752,23 @@ $(GNAME TemplateTupleParameter):
 
         void main()
         {
-            Print!(1,'a',6.8).print();                    // prints: args are 1a6.8
-            Write!(int, char, double).write(1, 'a', 6.8); // prints: args are 1a6.8
+            print!(1,'a',6.8).print();                    // prints: args are 1a6.8
+            write!(int, char, double).write(1, 'a', 6.8); // prints: args are 1a6.8
         }
         ---
     )
 
-    $(P The number of elements in a $(I Tuple) can be retrieved with
+    $(P The number of elements in an $(I AliasSeq) can be retrieved with
         the $(D .length) property. The $(I n)th element can be retrieved
-        by indexing the $(I Tuple) with [$(I n)],
-        and sub tuples can be created
-        with the slicing syntax.
+        by indexing the $(I AliasSeq) with [$(I n)],
+        and sub-sequences are denoted by the slicing syntax.
     )
 
-    $(P $(I Tuple)s are static compile time entities, there is no way
-        to dynamically change, add, or remove elements.
+    $(P $(I AliasSeq)-s are static compile-time entities, there is no way
+        to dynamically change, add, or remove elements either at compile-time or run-time.
     )
 
-    $(P Template tuples can be deduced from the types of
-        the trailing parameters
+    $(P Type sequences can be deduced from the trailing parameters
         of an implicitly instantiated function template:
 
         ---
@@ -795,7 +798,7 @@ a
 )
     )
 
-    $(P Template tuples can also be deduced from the type of a delegate
+    $(P Type sequences can also be deduced from the type of a delegate
         or function parameter list passed as a function argument:
 
         ----
@@ -804,7 +807,7 @@ a
         /* Partially applies a delegate by tying its first argument to a particular value.
          * R = return type
          * T = first argument type
-         * Args = TypeTuple of remaining argument types
+         * Args = TypeSeq of remaining argument types
          */
         R delegate(Args) partial(R, T, Args...)(R delegate(T, Args) dg, T first)
         {
@@ -823,14 +826,14 @@ a
             writefln("%d", plus_two(6, 8)); // prints 16
         }
         ----
-        See also: $(FULL_XREF functional, partial)
+        See also: $(REF partial, std,functional)
     )
 
 $(H3 $(LNAME2 variadic_template_specialization, Specialization))
 
-    $(P If both a template with a tuple parameter and a template
-        without a tuple parameter exactly match a template instantiation,
-        the template without a $(I TemplateTupleParameter) is selected.
+    $(P If both a template with a sequence parameter and a template
+        without a sequence parameter exactly match a template instantiation,
+        the template without a $(I TemplateSequenceParameter) is selected.
 
         ----
         template Foo(T)         { pragma(msg, "1"); }   // #1
@@ -863,21 +866,57 @@ $(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
         ------
     )
 
-$(H2 $(LNAME2 implicit_template_properties, Implicit Template Properties))
+$(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
 
-    $(P If a template has exactly one member in it, and the name of that
-        member is the same as the template name, that member is assumed
-        to be referred to in a template instantiation:
+    $(P If a template contains members whose the name is the same as the
+        template identifier and if the type or the parameters type of these
+        members include at least all the template parameters then these members
+        are assumed to be referred to in a template instantiation:
 
         ------
-        template $(CODE_HIGHLIGHT Foo)(T)
+        template foo(T)
         {
-            T Foo; // declare variable Foo of type T
+            T foo; // declare variable foo of type T
         }
 
-        void test()
+        void main()
         {
-            Foo!(int) = 6; // instead of Foo!(int).Foo
+            foo!(int) = 6; // instead of foo!(int).foo
+        }
+        ------
+
+        Using functions and more types than the template:
+
+        ------
+        template foo(S, T)
+        {
+            // each member contains all the template parameters
+            void foo(S s, T t) {}
+            void foo(S s, T t, string) {}
+        }
+
+        void main()
+        {
+            foo(1, 2, "test"); // foo!(int, int).foo(1, 2, "test")
+            foo(1, 2); // foo!(int, int).foo(1, 2)
+        }
+        ------
+
+        When the template parameters must be deduced, the eponymous members
+        can't rely on a $(LINK2 version.html#StaticIfCondition, `static if`)
+        condition since the deduction relies on how the in members are used:
+
+        ------
+        template foo(T)
+        {
+            static if (is(T)) // T is not yet known...
+                void foo(T t) {} // T is deduced from the member usage
+        }
+
+        void main()
+        {
+            foo(0); // Error: cannot deduce function from argument types
+            foo!int(0); // Ok since no deduction necessary
         }
         ------
     )
@@ -1368,7 +1407,7 @@ $(H2 $(LNAME2 recursive_templates, Recursive Templates))
         ------
     )
 
-$(H2 $(LNAME2 template_cosntraints, Template Constraints))
+$(H2 $(LNAME2 template_constraints, Template Constraints))
 
 $(GRAMMAR
 $(GNAME Constraint):
@@ -1394,16 +1433,32 @@ $(GNAME Constraint):
             ...
         }
         ...
-        foo!(3)();  // ok, matches
-        foo!(4)();  // error, no match
+        foo!(3)();  // OK, matches
+        foo!(4)();  // Error, no match
         ---
     )
 
+    $(P Template constraints can be used with aggregate types (structs, classes, unions).
+        Constraints are effectively used with library module "std.traits":
+
+        ---
+        import std.traits;
+
+        struct Bar(T)
+            if (isIntegral!T)
+        {
+            ...
+        }
+        ...
+        auto x = Bar!int;       // OK, int is an integral type
+        auto y = Bar!double;    // Error, double does not satisfy constraint
+        ---
+    )
 
 $(H2 $(LNAME2 limitations, Limitations))
 
-    $(P Templates cannot be used to add non-static members or
-        virtual functions to classes.
+    $(P Templates cannot be used to add non-static fields or
+        virtual functions to classes or interfaces.
         For example:
 
         ------
@@ -1411,7 +1466,7 @@ $(H2 $(LNAME2 limitations, Limitations))
         {
             template TBar(T)
             {
-                T xx;               // becomes a static member of Foo
+                T xx;               // becomes a static field of Foo
                 int func(T) { ... } // non-virtual
 
                 static T yy;                        // Ok
@@ -1420,19 +1475,8 @@ $(H2 $(LNAME2 limitations, Limitations))
         }
         ------
     )
-
-    $(P Templates cannot be declared inside functions.
-    )
-
-    $(P Templates cannot add functions to interfaces:
-
-        ---
-        interface TestInterface { void tpl(T)(); }   // error
-        ---
-    )
 )
 
 Macros:
         TITLE=Templates
-        WIKI=Template
         _=

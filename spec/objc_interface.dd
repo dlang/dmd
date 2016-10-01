@@ -216,7 +216,7 @@ $(SPEC_S Interfacing to Objective-C,
     ---
 
     $(P
-        For more information see the $(LINK2 https://developer.apple.com/library/ios/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html, reference documentation)
+        For more information see the $(LINK2 https://developer.apple.com/library/mac/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html, reference documentation)
         and the `ld` man page.
 
     )

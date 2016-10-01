@@ -284,9 +284,11 @@ $(GNAME EqualExpression):
     )
 
     $(P For class objects, the $(D ==) and $(D !=)
-        operators compare the
-        contents of the objects. Therefore, comparing against
-        $(D null) is invalid, as $(D null) has no contents.
+        operators are intended to compare the contents of the objects,
+        however an appropriate $(D opEquals) override must be defined for this to work.
+        The default $(D opEquals) provided by the root $(D Object) class is
+        equivalent to the $(D is) operator.
+        Comparing against $(D null) is invalid, as $(D null) has no contents.
         Use the $(D is) and $(D !is) operators instead.
 
         ---
@@ -313,7 +315,7 @@ $(GNAME IdentityExpression):
 )
 
     $(P The $(D is) compares for identity.
-        To compare for not identity, use $(D e1 !is e2).
+        To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
         go through the usual conversions to bring them to a common type before
         comparison.
@@ -324,8 +326,8 @@ $(GNAME IdentityExpression):
         $(D is).
     )
 
-    $(P For struct objects, identity is defined as the bits in the
-        struct being identical.
+    $(P For struct objects and floating point values, identity is defined as the
+        bits in the operands being identical.
     )
 
     $(P For static and dynamic arrays, identity is defined as referring
@@ -557,9 +559,14 @@ $(GNAME AddExpression):
     )
 
     $(P If both operands are pointers, and the operator is $(D +),
-        then it is illegal. For $(D -), the pointers are subtracted and the
+        then it is illegal.
+    )
+
+    $(P If both operands are pointers, and the operator is $(D -),
+        the pointers are subtracted and the
         result is divided by the size of the type pointed to by the
         operands. It is an error if the pointers point to different types.
+        The type of the result is $(D ptrdiff_t).
     )
 
     $(P If both operands are of integral types and an overflow or underflow
@@ -578,7 +585,7 @@ $(GNAME CatExpression):
 )
 
     $(P A $(I CatExpression) concatenates arrays, producing
-        a dynmaic array with the result. The arrays must be
+        a dynamic array with the result. The arrays must be
         arrays of the same element type. If one operand is an array
         and the other is of that array's element type, that element
         is converted to an array of length 1 of that element,
@@ -1043,7 +1050,7 @@ $(GNAME Slice):
         -------------
 
         If both $(CODE a) and $(CODE b) are integers (may be constant-folded),
-        the slice expression can be convered to a static array type
+        the slice expression can be converted to a static array type
         $(D T[b - a]).
 
         -------------
@@ -1246,7 +1253,7 @@ $(GNAME StringLiterals):
 
     $(P By default, a string literal is typed as a dynamic array, but the element
         count is known at compile time. So all string literals can be
-        implicitly convered to static array types.
+        implicitly converted to static array types.
 
         -------------
         void foo(char[2] a)
@@ -1299,7 +1306,7 @@ $(GNAME ArrayLiteral):
 
     $(P By default, an array literal is typed as a dynamic array, but the element
         count is known at compile time. So all array literals can be
-        implicitly convered to static array types.
+        implicitly converted to static array types.
 
         -------------
         void foo(long[2] a)
@@ -2145,7 +2152,6 @@ $(H3 $(LNAME2 associativity, Associativity and Commutativity))
 
 Macros:
         TITLE=Expressions
-        WIKI=Expression
         IDENTIFIER=$(GLINK2 lex, Identifier)
         _=
 

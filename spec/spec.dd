@@ -1,7 +1,6 @@
 Ddoc
 
 $(TOC Table of Contents,
-
 	$(P This is the specification for the D Programming Language.
 	For more information see $(AHTTP dlang.org, dlang.org).)
 
@@ -28,7 +27,7 @@ $(TOC Table of Contents,
 		$(A class.html, Classes),
 		$(A interface.html, Interfaces),
 		$(A enum.html, Enums),
-		$(A const3.html, Const and Immutable),
+		$(A const3.html, Type Qualifiers),
 		$(A function.html, Functions),
 		$(A operatoroverloading.html, Operator Overloading),
 		$(A template.html, Templates),
@@ -55,4 +54,3 @@ $(TOC Table of Contents,
 
 Macros:
         TITLE=Table of Contents
-        WIKI=TOC

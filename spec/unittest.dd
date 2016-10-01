@@ -207,6 +207,5 @@ $(H3 $(LNAME2 versioning, Versioning))
 
 Macros:
 	TITLE=Unit Tests
-	WIKI=UnitTests
 	_=
 

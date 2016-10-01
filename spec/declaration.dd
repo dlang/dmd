@@ -621,7 +621,7 @@ $(H3 $(LNAME2 global_static_init, Global and Static Initializers))
 $(H3 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
 	$(P D draws a distinction between a type qualifer and a storage class.)
-	
+
 	$(P A $(I type qualifier) creates a derived type from an existing base
 	type, and the resulting type may be used to create multiple instances
 	of that type.)
@@ -697,7 +697,7 @@ void main()
     // variables, because the 'ref' only applies to the return value itself,
     // not to any subsequent variable created from it:
     auto x = func2();
-    static assert(typeof(x) == int); // N.B.: *not* ref(int);
+    static assert(is(typeof(x) == int)); // N.B.: *not* ref(int);
                                      // there is no such type as ref(int).
     x++;
     assert(x == 3);
@@ -742,7 +742,6 @@ struct S
 
 Macros:
         TITLE=Declarations
-        WIKI=Declaration
         ASSIGNEXPRESSION=$(GLINK2 expression, AssignExpression)
         EXPRESSION=$(GLINK2 expression, Expression)
         VEXPRESSION=$(ASSIGNEXPRESSION)

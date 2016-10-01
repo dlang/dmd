@@ -516,6 +516,7 @@ $(GNAME TraitsArgument):
 $(GRAMMAR
 $(GNAME SpecialKeyword):
     $(D $(LINK2 traits.html#specialkeywords, __FILE__))
+    $(D $(LINK2 traits.html#specialkeywords, __FILE_FULL_PATH__))
     $(D $(LINK2 traits.html#specialkeywords, __MODULE__))
     $(D $(LINK2 traits.html#specialkeywords, __LINE__))
     $(D $(LINK2 traits.html#specialkeywords, __FUNCTION__))
@@ -779,12 +780,8 @@ $(GNAME TryStatement):
     $(D try) $(PSSCOPE) $(GLINK FinallyStatement)
 
 $(GNAME Catches):
-    $(GLINK LastCatch)
     $(GLINK Catch)
     $(GLINK Catch) $(I Catches)
-
-$(GNAME LastCatch):
-    $(D catch) $(PS0)
 
 $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
@@ -1617,6 +1614,7 @@ $(GRAMMAR
 $(GNAME LinkageAttribute):
     $(D extern) $(D $(LPAREN)) $(GLINK LinkageType) $(D $(RPAREN))
     $(D extern) $(D $(LPAREN)) $(D C++), $(GLINK IdentifierList) $(D $(RPAREN))
+    $(D extern) $(D $(LPAREN)) $(D C++), $(GLINK CppAggregateType) $(D $(RPAREN))
 
 $(GNAME LinkageType):
     $(D C)
@@ -1628,10 +1626,15 @@ $(GNAME LinkageType):
     $(D Objective-C)
 )
 
+$(GNAME CppAggregateType):
+    $(D class)
+    $(D struct)
+)
+
 $(GRAMMAR
 $(GNAME AlignAttribute):
     $(D align)
-    $(D align) $(D $(LPAREN)) $(GLINK_LEX IntegerLiteral) $(D $(RPAREN))
+    $(D align) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
 )
 
 $(GRAMMAR
@@ -1822,7 +1825,6 @@ $(GNAME MixinDeclaration):
 
 Macros:
         TITLE=D Grammar
-        WIKI=Grammar
         IDENTIFIER=$(GLINK Identifier)
         EXPRESSION=$(GLINK Expression)
         ASSIGNEXPRESSION=$(GLINK AssignExpression)

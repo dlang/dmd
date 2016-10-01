@@ -25,7 +25,7 @@ $(SUBNAV_TEMPLATE
             $(ROOT_DIR)spec/class.html, Classes,
             $(ROOT_DIR)spec/interface.html, Interfaces,
             $(ROOT_DIR)spec/enum.html, Enums,
-            $(ROOT_DIR)spec/const3.html, Const and Immutable,
+            $(ROOT_DIR)spec/const3.html, Type Qualifiers,
             $(ROOT_DIR)spec/function.html, Functions,
             $(ROOT_DIR)spec/operatoroverloading.html, Operator Overloading,
             $(ROOT_DIR)spec/template.html, Templates,

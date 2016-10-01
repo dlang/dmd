@@ -202,6 +202,8 @@ $(H3 Overloading Slice Unary Operators)
 
 $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
 
+    $(P To define how one type can be cast to another, define the 
+      `opCast` template method, which is used as follows:)
 	$(TABLE2 Cast Operators,
 	$(THEAD $(I op), $(I rewrite))
 	$(TROW
@@ -210,6 +212,9 @@ $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
 	)
 	)
 
+    $(P Note that `opCast` is only ever used with an explicit `cast`
+        expression, except in the case of boolean operations (see next
+        section))
 
 $(H3 Boolean Operations)
 
@@ -297,8 +302,8 @@ $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
 	be linear. For example, one may define an ordering on sets via the
 	subset relation, such that $(D x < y) is true if $(D x) is a (strict)
 	subset of $(D y). If $(D x) and $(D y) are disjoint sets, then neither
-	$(D x < y) nor $(D y < x) holds, but that does not imply that 
-	$(D x == y). Thus, it is insufficient to determine equality purely based on 
+	$(D x < y) nor $(D y < x) holds, but that does not imply that
+	$(D x == y). Thus, it is insufficient to determine equality purely based on
 	$(D opCmp) alone. For this reason, $(D opCmp) is only used for the
 	inequality operators $(D <), $(D <=), $(D >=), and $(D >). The equality
 	operators $(D ==) and $(D !=) always employ $(D opEquals) instead.)
@@ -513,9 +518,9 @@ $(H3 $(LNAME2 static-opcall, Static opCall))
     }
     ---
 
-	$(P Note: $(D static opCall) can be used to simulate struct 
-	constructors with no arguments, but this is not recommended 
-	practice. Instead, the preferred solution is to use a factory 
+	$(P Note: $(D static opCall) can be used to simulate struct
+	constructors with no arguments, but this is not recommended
+	practice. Instead, the preferred solution is to use a factory
 	function to create struct instances.
 	)
 
@@ -869,7 +874,7 @@ void test()
 	in which case it is passed directly as the corresponding argument $(I
 	c)$(SUBSCRIPT i) to $(D opIndex); or it can be a slice expression of
 	the form $(I x)$(SUBSCRIPT i)$(D ..)$(I y)$(SUBSCRIPT i), in which case
-	the corresponding argument $(I c)$(SUBSCRIPT i) to $(D opIndex) is 
+	the corresponding argument $(I c)$(SUBSCRIPT i) to $(D opIndex) is
 	$(D arr.opSlice!i$(LPAREN))$(I x)$(SUBSCRIPT i)$(D , )$(I y)$(SUBSCRIPT i)$(D $(RPAREN)). Namely:
 	)
 
@@ -1067,7 +1072,7 @@ void main()
 
 $(H2 $(LEGACY_LNAME2 Old-Style, old-style, D1 style operator overloading))
 
-	$(P 
+	$(P
         While the preferred style for operator overloading is to use the above
         mechanisms, the $(LINK2 http://digitalmars.com/d/1.0/operatoroverloading.html, D1 operator overload mechanisms)
         are still allowed. There is no guarantee that these mechanisms will be
@@ -1077,7 +1082,6 @@ $(H2 $(LEGACY_LNAME2 Old-Style, old-style, D1 style operator overloading))
 
 Macros:
 	TITLE=Operator Overloading
-	WIKI=OperatorOverloading
 	ARGUMENTS=$(I b)$(SUBSCRIPT 1), $(I b)$(SUBSCRIPT 2), ... $(I b)$(SUBSCRIPT n)
 	ARGUMENTS2=$(I c)$(SUBSCRIPT 1), $(I c)$(SUBSCRIPT 2), ... $(I c)$(SUBSCRIPT n)
 	SLICE=$(I i)..$(I j)

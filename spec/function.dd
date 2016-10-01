@@ -115,6 +115,7 @@ $(GNAME MemberFunctionAttribute):
     $(D const)
     $(D immutable)
     $(D inout)
+    $(D return)
     $(D shared)
     $(GLINK FunctionAttribute)
 )
@@ -432,7 +433,7 @@ $(H4 $(LNAME2 optional-parenthesis, Optional Parentheses))
         {
             foo();      // OK
             foo;        // also OK
-        fun;    // OK
+            fun;        // OK
 
             int[] arr;
             arr.bar();  // OK
@@ -504,7 +505,7 @@ $(H4 $(LNAME2 property-functions, Property Functions))
     being the value it is set to.
     )
 
-    $(P Simple getter and setter properties can be written using $(LINK2 pseudo-member, UFCS).
+    $(P Simple getter and setter properties can be written using $(RELATIVE_LINK2 pseudo-member, UFCS).
     These can be enhanced with the additon of the $(D @property) attribute to the function, which
     adds the following behaviors:
     )
@@ -871,15 +872,13 @@ void main()
 
 $(H4 $(LNAME2 inline-functions, Inline Functions))
 
-        $(P There is no inline keyword. The compiler makes the decision whether to
-        inline a function or not, analogously to the register keyword no
-        longer being relevant to a
-        compiler's decisions on enregistering variables.
-        (There is no register keyword either.))
-
-        $(P If a $(GLINK2 expression, FunctionLiteral) is immediately called,
-        its inlining would be enforced normally.)
-
+        $(P The compiler makes the decision whether to inline a function or not. 
+        This decision may be controlled by $(LINK2 pragma.html#inline, `pragma(inline)`),
+        assuming that the compiler implements it, which is not mandatory.)
+        
+        $(P Note that any $(GLINK2 expression, FunctionLiteral) should be inlined
+        when used in its declaration scope.
+        )
 
 $(H3 $(LNAME2 function-overloading, Function Overloading))
 
@@ -1053,7 +1052,8 @@ int foo(in int x, out int y, ref int z, int q);
 
     $(TROW $(D ref),   parameter is passed by reference)
     $(TROW $(D scope), references in the parameter
-    cannot be escaped (e.g. assigned to a global variable))
+    cannot be escaped (e.g. assigned to a global variable).
+    Ignored for parameters with no references)
     $(TROW $(D lazy), argument is evaluated by the called function and not by the caller)
         $(TROW $(D const), argument is implicitly converted to a const type)
     $(TROW $(D immutable), argument is implicitly converted to an immutable type)
@@ -1184,6 +1184,8 @@ extern (C) int def(...); // error, must have at least one parameter
         functions like $(D printf).
     )
 
+    $(P C-style variadic functions cannot be marked as $(D @safe).)
+
     $(P Access to variadic arguments is done using the standard library
     module $(D core.stdc.stdarg).
     )
@@ -1200,16 +1202,7 @@ void foo(int x, int y, ...)
 {
     va_list args;
 
-    version (X86)
-        va_start(args, y);  // y is the last named parameter
-    else
-    version (Win64)
-        va_start(args, y);  // ditto
-    else
-    version (X86_64)
-        va_start(args, __va_argsave);
-    else
-    static assert(0, "Platform not supported.");
+    va_start(args, y);  // y is the last named parameter
 
     int z;
     va_arg(args, z);  // z is set to 5
@@ -1334,6 +1327,8 @@ Foo
 Bar
         0x00870FD0
 ------
+
+    $(P D-style variadic functions cannot be marked as $(D @safe).)
 
 
 $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
@@ -1482,11 +1477,6 @@ $(H3 $(LEGACY_LNAME2 Local Variables, local-variables, Local Variables))
         but since it is always a bug, it should be an error.
         )
 
-        $(P It is an error to declare a local variable that is never referred to.
-        Dead variables, like anachronistic dead code, are just a source of
-        confusion for maintenance programmers.
-        )
-
         $(P It is an error to declare a local variable that hides another local
         variable in the same function:
         )
@@ -1558,7 +1548,7 @@ void main()
 }
 ---
 
-$(H3 $(LNAME2 variadicnested, Nested Functions))
+$(H3 $(LNAME2 nested, Nested Functions))
 
         $(P Functions may be nested within other functions:)
 
@@ -2227,8 +2217,9 @@ $(H3 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         $(DDSUBLINK spec/template, function-templates, function template)s, since their function bodies
         are always present, infer the
         $(RELATIVE_LINK2 pure-functions, $(D pure)),
-        $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)), and
-        $(RELATIVE_LINK2 safe-functions, $(D @safe)) attributes unless
+        $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)),
+        $(RELATIVE_LINK2 safe-functions, $(D @safe)), and
+        $(LINK2 attribute.html#nogc, $(D @nogc)) attributes unless
         specifically overridden.
         )
 
@@ -2265,7 +2256,7 @@ $(H3 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
     $(P This provides a way to add functions to a class externally as if they were
     public final member functions, which enables
-    $(WEB www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
+    $(HTTP www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
     function chaining and component programming).
     )
 
@@ -2360,5 +2351,4 @@ $(H3 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
 
 Macros:
         TITLE=Functions
-        WIKI=Function
         ASSIGNEXPRESSION=$(GLINK2 expression, AssignExpression)

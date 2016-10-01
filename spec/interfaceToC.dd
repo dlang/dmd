@@ -25,7 +25,7 @@ $(H2 $(LNAME2 calling_c_functions, Calling C Functions))
 	)
 
 ------
-extern (C) int strcmp(char* string1, char* string2);
+extern (C) int strcmp(const char* string1, const char* string2);
 ------
 
 	$(P and then it can be called within D code in the obvious way:)
@@ -363,4 +363,3 @@ Macros:
     TROW3PLUS=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3) $4))
 	TD2=$(MULTICOL_CELL 2, $0)
 	TITLE=Interfacing to C
-	WIKI=InterfaceToC
