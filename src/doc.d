@@ -402,6 +402,8 @@ D_PARAM   = $(I $0)
 
 DDOC_COMMENT   = <!-- $0 -->
 DDOC_MEMBER    = $0
+DDOC_MEMBER_HEADER =
+DDOC_HEADER_ANCHOR =
 DDOC_DECL      = $(DT $(BIG $0))
 DDOC_DECL_DD   = $(DD $0)
 DDOC_DITTO     = $(BR)$0
@@ -753,18 +755,19 @@ extern (C++) static Scope* skipNonQualScopes(Scope* sc)
     return sc;
 }
 
-extern (C++) static bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc)
+extern (C++) static bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc, bool includeParent)
 {
     if (!s || s.isPackage() || s.isModule())
         return false;
     // Add parent names first
     bool dot = false;
-    if (s.parent)
-        dot = emitAnchorName(buf, s.parent, sc);
-    else if (sc)
-        dot = emitAnchorName(buf, sc.scopesym, skipNonQualScopes(sc.enclosing));
+    auto eponymousParent = getEponymousParent(s);
+    if (includeParent && s.parent || eponymousParent)
+        dot = emitAnchorName(buf, s.parent, sc, includeParent);
+    else if (includeParent && sc)
+        dot = emitAnchorName(buf, sc.scopesym, skipNonQualScopes(sc.enclosing), includeParent);
     // Eponymous template members can share the parent anchor name
-    if (getEponymousParent(s))
+    if (eponymousParent)
         return dot;
     if (dot)
         buf.writeByte('.');
@@ -783,40 +786,59 @@ extern (C++) static bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc)
     return true;
 }
 
-extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc)
+extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc, bool forHeader = false)
 {
     Identifier ident;
     {
         OutBuffer anc;
-        emitAnchorName(&anc, s, skipNonQualScopes(sc));
+        emitAnchorName(&anc, s, skipNonQualScopes(sc), true);
         ident = Identifier.idPool(anc.peekSlice());
     }
 
     auto pcount = cast(void*)ident in sc.anchorCounts;
     typeof(*pcount) count;
-    if (pcount)
+    if (!forHeader)
     {
-        // Existing anchor,
-        // don't write an anchor for matching consecutive ditto symbols
-        TemplateDeclaration td = getEponymousParent(s);
-        if (sc.prevAnchor == ident && sc.lastdc && (isDitto(s.comment) || (td && isDitto(td.comment))))
-            return;
+        if (pcount)
+        {
+            // Existing anchor,
+            // don't write an anchor for matching consecutive ditto symbols
+            TemplateDeclaration td = getEponymousParent(s);
+            if (sc.prevAnchor == ident && sc.lastdc && (isDitto(s.comment) || (td && isDitto(td.comment))))
+                return;
 
-        count = ++*pcount;
-    }
-    else
-    {
-        sc.anchorCounts[cast(void*)ident] = 1;
-        count = 1;
+            count = ++*pcount;
+        }
+        else
+        {
+            sc.anchorCounts[cast(void*)ident] = 1;
+            count = 1;
+        }
     }
 
     // cache anchor name
     sc.prevAnchor = ident;
-    buf.writestring("$(DDOC_ANCHOR ");
-    buf.writestring(ident.toChars());
+    auto macroName = forHeader ? "DDOC_HEADER_ANCHOR" : "DDOC_ANCHOR";
+    auto symbolName = ident.toString();
+    buf.printf("$(%.*s %.*s", cast(int) macroName.length, macroName.ptr,
+        cast(int) symbolName.length, symbolName.ptr);
     // only append count once there's a duplicate
     if (count > 1)
         buf.printf(".%u", count);
+
+    if (forHeader)
+    {
+        Identifier shortIdent;
+        {
+            OutBuffer anc;
+            emitAnchorName(&anc, s, skipNonQualScopes(sc), false);
+            shortIdent = Identifier.idPool(anc.peekSlice());
+        }
+
+        auto shortName = shortIdent.toString();
+        buf.printf(", %.*s", cast(int) shortName.length, shortName.ptr);
+    }
+
     buf.writeByte(')');
 }
 
@@ -963,7 +985,17 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             // Put previous doc comment if exists
             if (DocComment* dc = sc.lastdc)
             {
+                assert(dc.a.dim > 0, "Expects at least one declaration for a" ~
+                    "documentation comment");
+
+                auto symbol = dc.a[0];
+                auto symbolName = symbol.ident.toString;
+
                 buf.writestring("$(DDOC_MEMBER");
+                buf.writestring("$(DDOC_MEMBER_HEADER");
+                emitAnchor(buf, symbol, sc, true);
+                buf.writeByte(')');
+
                 // Put the declaration signatures as the document 'title'
                 buf.writestring(ddoc_decl_s);
                 for (size_t i = 0; i < dc.a.dim; i++)
