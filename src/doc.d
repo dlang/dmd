@@ -401,6 +401,7 @@ D_PSYMBOL = $(U $0)
 D_PARAM   = $(I $0)
 
 DDOC_COMMENT   = <!-- $0 -->
+DDOC_MEMBER    = $0
 DDOC_DECL      = $(DT $(BIG $0))
 DDOC_DECL_DD   = $(DD $0)
 DDOC_DITTO     = $(BR)$0
@@ -962,6 +963,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             // Put previous doc comment if exists
             if (DocComment* dc = sc.lastdc)
             {
+                buf.writestring("$(DDOC_MEMBER");
                 // Put the declaration signatures as the document 'title'
                 buf.writestring(ddoc_decl_s);
                 for (size_t i = 0; i < dc.a.dim; i++)
@@ -995,6 +997,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         emitMemberComments(sds, buf, sc);
                 }
                 buf.writestring(ddoc_decl_dd_e);
+                buf.writeByte(')');
                 //printf("buf.2 = [[%.*s]]\n", buf->offset - o0, buf->data + o0);
             }
             if (s)
