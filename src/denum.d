@@ -1,30 +1,28 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _denum.d)
+ */
 
 module ddmd.denum;
 
 import core.stdc.stdio;
-import ddmd.access;
 import ddmd.gluelayer;
 import ddmd.declaration;
 import ddmd.dmodule;
-import ddmd.doc;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.root.outbuffer;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -32,7 +30,6 @@ import ddmd.visitor;
  */
 extern (C++) final class EnumDeclaration : ScopeDsymbol
 {
-public:
     /* The separate, and distinct, cases are:
      *  1. enum { ... }
      *  2. enum : memtype { ... }
@@ -340,9 +337,14 @@ public:
     }
 
     /******************************
-     * Get the value of the .max/.min property as an Expression
-     * Input:
-     *      id      Id::max or Id::min
+     * Get the value of the .max/.min property as an Expression.
+     * Lazily computes the value and caches it in maxval/minval.
+     * Reports any errors.
+     * Params:
+     *      loc = location to use for error messages
+     *      id = Id::max or Id::min
+     * Returns:
+     *      corresponding value of .max/.min
      */
     Expression getMaxMinValue(Loc loc, Identifier id)
     {
@@ -351,10 +353,16 @@ public:
 
         Expression* pval = (id == Id.max) ? &maxval : &minval;
 
+        Expression errorReturn()
+        {
+            *pval = new ErrorExp();
+            return *pval;
+        }
+
         if (inuse)
         {
             error(loc, "recursive definition of .%s property", id.toChars());
-            goto Lerrors;
+            return errorReturn();
         }
         if (*pval)
             goto Ldone;
@@ -362,16 +370,16 @@ public:
         if (_scope)
             semantic(_scope);
         if (errors)
-            goto Lerrors;
+            return errorReturn();
         if (semanticRun == PASSinit || !members)
         {
             error("is forward referenced looking for .%s", id.toChars());
-            goto Lerrors;
+            return errorReturn();
         }
         if (!(memtype && memtype.isintegral()))
         {
             error(loc, "has no .%s property because base type %s is not an integral type", id.toChars(), memtype ? memtype.toChars() : "");
-            goto Lerrors;
+            return errorReturn();
         }
 
         for (size_t i = 0; i < members.dim; i++)
@@ -380,7 +388,7 @@ public:
             if (!em)
                 continue;
             if (em.errors)
-                goto Lerrors;
+                return errorReturn();
 
             Expression e = em.value;
             if (first)
@@ -410,19 +418,13 @@ public:
             }
         }
     Ldone:
+        Expression e = *pval;
+        if (e.op != TOKerror)
         {
-            Expression e = *pval;
-            if (e.op != TOKerror)
-            {
-                e = e.copy();
-                e.loc = loc;
-            }
-            return e;
+            e = e.copy();
+            e.loc = loc;
         }
-
-    Lerrors:
-        *pval = new ErrorExp();
-        return *pval;
+        return e;
     }
 
     Expression getDefaultValue(Loc loc)
@@ -502,7 +504,6 @@ public:
  */
 extern (C++) final class EnumMember : VarDeclaration
 {
-public:
     /* Can take the following forms:
      *  1. id
      *  2. id = value
@@ -540,20 +541,24 @@ public:
     override void semantic(Scope* sc)
     {
         //printf("EnumMember::semantic() %s\n", toChars());
+
+        void errorReturn()
+        {
+            errors = true;
+            semanticRun = PASSsemanticdone;
+        }
+
         if (errors || semanticRun >= PASSsemanticdone)
             return;
         if (semanticRun == PASSsemantic)
         {
             error("circular reference to enum member");
-        Lerrors:
-            errors = true;
-            semanticRun = PASSsemanticdone;
-            return;
+            return errorReturn();
         }
         assert(ed);
         ed.semantic(sc);
         if (ed.errors)
-            goto Lerrors;
+            return errorReturn();
         if (errors || semanticRun >= PASSsemanticdone)
             return;
 
@@ -585,14 +590,14 @@ public:
             e = resolveProperties(sc, e);
             e = e.ctfeInterpret();
             if (e.op == TOKerror)
-                goto Lerrors;
+                return errorReturn();
             if (first && !ed.memtype && !ed.isAnonymous())
             {
                 ed.memtype = e.type;
                 if (ed.memtype.ty == Terror)
                 {
                     ed.errors = true;
-                    goto Lerrors;
+                    return errorReturn();
                 }
                 if (ed.memtype.ty != Terror)
                 {
@@ -618,7 +623,7 @@ public:
                     if (ed.errors)
                     {
                         ed.memtype = Type.terror;
-                        goto Lerrors;
+                        return errorReturn();
                     }
                 }
             }
@@ -632,7 +637,10 @@ public:
                 origValue = e;
 
                 if (!ed.isAnonymous())
+                {
                     e = e.castTo(sc, ed.type);
+                    e = e.ctfeInterpret();
+                }
             }
             else if (origType)
             {
@@ -664,7 +672,10 @@ public:
             origValue = e;
 
             if (!ed.isAnonymous())
+            {
                 e = e.castTo(sc, ed.type);
+                e = e.ctfeInterpret();
+            }
             value = e;
         }
         else
@@ -687,7 +698,7 @@ public:
             if (emprev.semanticRun < PASSsemanticdone) // if forward reference
                 emprev.semantic(emprev._scope); // resolve it
             if (emprev.errors)
-                goto Lerrors;
+                return errorReturn();
 
             Expression eprev = emprev.value;
             Type tprev = eprev.type.equals(ed.type) ? ed.memtype : eprev.type;
@@ -706,7 +717,7 @@ public:
             {
                 error("initialization with (%s.%s + 1) causes overflow for type '%s'",
                     emprev.ed.toChars(), emprev.toChars(), ed.memtype.toChars());
-                goto Lerrors;
+                return errorReturn();
             }
 
             // Now set e to (eprev + 1)
@@ -725,7 +736,7 @@ public:
             }
 
             if (e.op == TOKerror)
-                goto Lerrors;
+                return errorReturn();
             if (e.type.isfloating())
             {
                 // Check that e != eprev (not always true for floats)
@@ -735,7 +746,7 @@ public:
                 if (etest.toInteger())
                 {
                     error("has inexact value, due to loss of precision");
-                    goto Lerrors;
+                    return errorReturn();
                 }
             }
             value = e;

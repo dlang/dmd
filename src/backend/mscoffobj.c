@@ -5,7 +5,7 @@
 // http://www.digitalmars.com
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
-// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/mscoffobj.c
+// https://github.com/dlang/dmd/blob/master/src/backend/mscoffobj.c
 
 
 #if MARS
@@ -1439,9 +1439,6 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
     return seg;
 }
 
-extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
-extern void fatal();
-
 /********************************************
  * Add new scnhdr.
  * Returns:
@@ -1520,6 +1517,13 @@ seg_data *MsCoffObj::tlsseg_bss()
     /* No thread local bss for MS-COFF
      */
     return MsCoffObj::tlsseg();
+}
+
+seg_data *MsCoffObj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
 }
 
 /*************************************
@@ -1601,9 +1605,9 @@ segidx_t MsCoffObj::seg_debugT()
  * Output an alias definition record.
  */
 
-void MsCoffObj::alias(const char *n1,const char *n2)
+void MsCoffObj::_alias(const char *n1,const char *n2)
 {
-    //printf("MsCoffObj::alias(%s,%s)\n",n1,n2);
+    //printf("MsCoffObj::_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
     unsigned len;
@@ -1959,18 +1963,18 @@ void MsCoffObj::lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
 
 void MsCoffObj::write_byte(seg_data *pseg, unsigned byte)
 {
-    MsCoffObj::byte(pseg->SDseg, pseg->SDoffset, byte);
+    MsCoffObj::_byte(pseg->SDseg, pseg->SDoffset, byte);
 }
 
 /************************************
  * Output byte to object file.
  */
 
-void MsCoffObj::byte(segidx_t seg,targ_size_t offset,unsigned byte)
+void MsCoffObj::_byte(segidx_t seg,targ_size_t offset,unsigned byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
-    //dbg_printf("MsCoffObj::byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
+    //dbg_printf("MsCoffObj::_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
     buf->setsize(offset);
     buf->writeByte(byte);
     if (save > offset+1)
@@ -2373,6 +2377,12 @@ void MsCoffObj::setcodeseg(int seg)
     cseg = seg;
 }
 
+symbol *MsCoffObj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 #endif
 #endif

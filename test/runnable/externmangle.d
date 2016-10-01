@@ -153,7 +153,7 @@ final class Test37
     {
         return new Test37;
     }
-    
+
     bool test()
     {
         return true;
@@ -168,6 +168,62 @@ interface Test38
      public static Test38 create();
      public static void dispose(ref Test38);
 }
+
+extern(C++) int test39cpp(C2!char, S2!(int)*);
+
+extern(C++, class)
+struct S1
+{
+    private int val;
+    static S1* init(int);
+    int value();
+}
+
+extern(C++, class)
+struct S2(T)
+{
+    private T val;
+    static S2!T* init(int);
+    T value();
+}
+
+extern(C++, struct)
+class C1
+{
+    const(char)* data;
+
+    static C1 init(const(char)* p);
+    const(char)* getDataCPP();
+    extern(C++) const(char)* getDataD()
+    {
+        return data;
+    }
+}
+
+extern(C++, struct)
+class C2(T)
+{
+    const(T)* data;
+
+    static C2!T init(const(T)* p);
+    const(T)* getData();
+}
+
+void test39()
+{
+    S1* s1 = S1.init(42);
+    assert(s1.value == 42);
+    assert(S2!int.init(43).value == 43);
+    const(char)* ptr = "test".ptr;
+    C1 c1 = C1.init(ptr);
+    assert(c1.getDataCPP() == ptr);
+    assert(c1.getDataD() == ptr);
+    C2!char c2 = C2!char.init(ptr);
+    assert(c2.getData() == ptr);
+    auto result = test39cpp(c2, S2!int.init(43));
+    assert(result == 0);
+}
+
 
 void main()
 {
@@ -226,18 +282,18 @@ void main()
     assert(testlongmangle(1, 2, 3, 4) == 10);
     assert(test31 == [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]);
     assert(test32 == null);
-    
+
     auto ee = Expression.create(42);
     extern(C++) static int efun(Expression e, void* p)
     {
         return cast(int)(cast(size_t)p ^ e.getType());
     }
-    
+
     extern(C++) static int efun2(Expression e, void* p)
     {
         return cast(int)(cast(size_t)p * e.getType());
     }
-    
+
     auto test33 = ee.apply(&efun, &efun2, cast(void*)&Expression.create);
     assert(test33 == cast(int)(cast(size_t)cast(void*)&Expression.create ^ 42) * cast(int)(cast(size_t)cast(void*)&Expression.create * 42));
     Expression.dispose(ee);
@@ -254,4 +310,5 @@ void main()
     auto t38 = Test38.create();
     assert(t38.test(1, 2, 3) == 1);
     Test38.dispose(t38);
+    test39();
 }

@@ -23,6 +23,9 @@
 #include        "cgcv.h"
 #include        "cv4.h"
 #include        "global.h"
+#if MARS
+#include        "varstats.h"
+#endif
 #if SCPP
 #include        "parser.h"
 #include        "cpp.h"
@@ -64,7 +67,11 @@ static Outbuffer *reset_symbuf; // Keep pointers to reset symbols
 #define LCFD32pointer           (LOCATsegrel | 0x2C00)
 #define LCFD16pointer           (LOCATsegrel | 0x0C00)
 
+#if MARS
+extern Cgcv cgcv; // already declared in cgcv.d
+#else
 Cgcv cgcv;
+#endif
 
 STATIC void cv3_symdes ( unsigned char *p , unsigned next );
 STATIC unsigned cv3_paramlist ( type *t , unsigned nparam );
@@ -566,7 +573,7 @@ void cv_init()
  * Return number of bytes required to store a numeric leaf.
  */
 
-unsigned cv4_numericbytes(targ_size_t value)
+unsigned cv4_numericbytes(unsigned value)
 {   unsigned u;
 
     if (value < 0x8000)
@@ -583,7 +590,7 @@ unsigned cv4_numericbytes(targ_size_t value)
  * Must use exact same number of bytes as cv4_numericbytes().
  */
 
-void cv4_storenumeric(unsigned char *p,targ_size_t value)
+void cv4_storenumeric(unsigned char *p, unsigned value)
 {
     if (value < 0x8000)
         TOWORD(p,value);
@@ -1855,7 +1862,7 @@ L1:
                         // The visual studio debugger gets confused with pointers to arrays, emit a reference instead.
                         // This especially happens when passing arrays as function arguments because 64bit ABI demands
                         // passing structs > 8 byte as pointers.
-                        if((config.flags2 & CFG2gms) && t->Tnext && t->Tnext->Tty == TYdarray)
+                        if((config.flags2 & CFG2gms) && t->Tnext && tybasic(t->Tnext->Tty) == TYdarray)
                             TOLONG(d->data + 6,attribute | 0x20);
                         else
                         {
@@ -2113,7 +2120,7 @@ L1:
                 typidx = cv4_enum(t->Ttag);
             else
 #endif
-                typidx = dttab4[t->Tnext->Tty];
+                typidx = dttab4[tybasic(t->Tnext->Tty)];
             break;
 
 #if SCPP
@@ -2540,22 +2547,66 @@ STATIC void cv4_func(Funcsym *s)
     int endarg;
 
     cv4_outsym(s);              // put out function symbol
+#if MARS
+    static Funcsym* sfunc;
+    static int cntOpenBlocks;
+    sfunc = s;
+    cntOpenBlocks = 0;
+
+    struct cv4
+    {
+        // record for CV record S_BLOCK32
+        struct block32_data
+        {
+            unsigned short len;
+            unsigned short id;
+            unsigned int pParent;
+            unsigned int pEnd;
+            unsigned int length;
+            unsigned int offset;
+            unsigned short seg;
+            unsigned char name[2];
+        };
+
+        static void endArgs()
+        {
+            static unsigned short endargs[] = { 2, S_ENDARG };
+            objmod->write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
+        }
+        static void beginBlock(int offset, int length)
+        {
+            if (++cntOpenBlocks >= 255)
+                return; // optlink does not like more than 255 scope blocks
+
+            unsigned soffset = Offset(DEBSYM);
+            // parent and end to be filled by linker
+            block32_data block32 = { sizeof(block32_data) - 2, S_BLOCK32, 0, 0, length, 0, 0, { 0, '\0' } };
+            objmod->write_bytes(SegData[DEBSYM], sizeof(block32), &block32);
+            size_t offOffset = (char*)&block32.offset - (char*)&block32;
+            objmod->reftoident(DEBSYM, soffset + offOffset, sfunc, offset + sfunc->Soffset, CFseg | CFoff);
+        }
+        static void endBlock()
+        {
+            if (cntOpenBlocks-- >= 255)
+                return; // optlink does not like more than 255 scope blocks
+
+            static unsigned short endargs[] = { 2, S_END };
+            objmod->write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
+        }
+    };
+
+    varStats.writeSymbolTable(&globsym, &cv4_outsym, &cv4::endArgs, &cv4::beginBlock, &cv4::endBlock);
+#else
+    symtab_t* symtab = &globsym;
 
     // Put out local symbols
     endarg = 0;
-    for (si = 0; si < globsym.top; si++)
+    for (si = 0; si < symtab->top; si++)
     {   //printf("globsym.tab[%d] = %p\n",si,globsym.tab[si]);
-        symbol *sa = globsym.tab[si];
-#if MARS
-        if (endarg == 0 && sa->Sclass != SCparameter && sa->Sclass != SCfastpar)
-        {   static unsigned short endargs[] = { 2,S_ENDARG };
-
-            objmod->write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
-            endarg = 1;
-        }
-#endif
+        symbol *sa = symtab->tab[si];
         cv4_outsym(sa);
     }
+#endif
 
     // Put out function return record
     if (1)

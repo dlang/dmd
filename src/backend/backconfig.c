@@ -49,8 +49,7 @@ void out_config_init(
                         // 1: D
                         // 2: fake it with C symbolic debug info
         bool alwaysframe,       // always create standard function frame
-        bool stackstomp,        // add stack stomping code
-        bool dwarfeh            // use Dwarf eh
+        bool stackstomp         // add stack stomping code
         )
 {
 #if MARS
@@ -122,7 +121,7 @@ void out_config_init(
     else
     {
         config.exe = EX_OSX;
-        config.ehmethod = EH_DM;
+        config.ehmethod = EH_DWARF;
     }
     config.flags |= CFGnoebp;
     if (!exe)
@@ -299,13 +298,13 @@ void out_config_debug(
 void util_set16()
 {
     // The default is 16 bits
-    tysize[TYldouble] = 10;
-    tysize[TYildouble] = 10;
-    tysize[TYcldouble] = 20;
+    _tysize[TYldouble] = 10;
+    _tysize[TYildouble] = 10;
+    _tysize[TYcldouble] = 20;
 
-    tyalignsize[TYldouble] = 2;
-    tyalignsize[TYildouble] = 2;
-    tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYldouble] = 2;
+    _tyalignsize[TYildouble] = 2;
+    _tyalignsize[TYcldouble] = 2;
 }
 
 /*******************************
@@ -321,56 +320,56 @@ void util_set32()
     tyequiv[TYint] = TYlong;
     tyequiv[TYuint] = TYulong;
 
-    tysize[TYenum] = LONGSIZE;
-    tysize[TYint ] = LONGSIZE;
-    tysize[TYuint] = LONGSIZE;
-    tysize[TYnullptr] = LONGSIZE;
-    tysize[TYnptr] = LONGSIZE;
-    tysize[TYnref] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-    tysize[TYldouble] = 12;
-    tysize[TYildouble] = 12;
-    tysize[TYcldouble] = 24;
+    _tysize[TYenum] = LONGSIZE;
+    _tysize[TYint ] = LONGSIZE;
+    _tysize[TYuint] = LONGSIZE;
+    _tysize[TYnullptr] = LONGSIZE;
+    _tysize[TYnptr] = LONGSIZE;
+    _tysize[TYnref] = LONGSIZE;
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    _tysize[TYldouble] = 12;
+    _tysize[TYildouble] = 12;
+    _tysize[TYcldouble] = 24;
 #elif TARGET_OSX
-    tysize[TYldouble] = 16;
-    tysize[TYildouble] = 16;
-    tysize[TYcldouble] = 32;
+    _tysize[TYldouble] = 16;
+    _tysize[TYildouble] = 16;
+    _tysize[TYcldouble] = 32;
 #elif TARGET_WINDOS
-    tysize[TYldouble] = 10;
-    tysize[TYildouble] = 10;
-    tysize[TYcldouble] = 20;
+    _tysize[TYldouble] = 10;
+    _tysize[TYildouble] = 10;
+    _tysize[TYcldouble] = 20;
 #else
     assert(0);
 #endif
-    tysize[TYsptr] = LONGSIZE;
-    tysize[TYcptr] = LONGSIZE;
-    tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
-    tysize[TYvptr] = 6;     // tysize[x] == tysize[TYfptr] so don't set
-    tysize[TYfref] = 6;     // tysize[TYfptr] to tysize[TYnptr]
+    _tysize[TYsptr] = LONGSIZE;
+    _tysize[TYcptr] = LONGSIZE;
+    _tysize[TYfptr] = 6;     // NOTE: There are codgen test that check
+    _tysize[TYvptr] = 6;     // _tysize[x] == _tysize[TYfptr] so don't set
+    _tysize[TYfref] = 6;     // _tysize[TYfptr] to _tysize[TYnptr]
 
-    tyalignsize[TYenum] = LONGSIZE;
-    tyalignsize[TYint ] = LONGSIZE;
-    tyalignsize[TYuint] = LONGSIZE;
-    tyalignsize[TYnullptr] = LONGSIZE;
-    tyalignsize[TYnref] = LONGSIZE;
-    tyalignsize[TYnptr] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-    tyalignsize[TYldouble] = 4;
-    tyalignsize[TYildouble] = 4;
-    tyalignsize[TYcldouble] = 4;
+    _tyalignsize[TYenum] = LONGSIZE;
+    _tyalignsize[TYint ] = LONGSIZE;
+    _tyalignsize[TYuint] = LONGSIZE;
+    _tyalignsize[TYnullptr] = LONGSIZE;
+    _tyalignsize[TYnref] = LONGSIZE;
+    _tyalignsize[TYnptr] = LONGSIZE;
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    _tyalignsize[TYldouble] = 4;
+    _tyalignsize[TYildouble] = 4;
+    _tyalignsize[TYcldouble] = 4;
 #elif TARGET_OSX
-    tyalignsize[TYldouble] = 16;
-    tyalignsize[TYildouble] = 16;
-    tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYldouble] = 16;
+    _tyalignsize[TYildouble] = 16;
+    _tyalignsize[TYcldouble] = 16;
 #elif TARGET_WINDOS
-    tyalignsize[TYldouble] = 2;
-    tyalignsize[TYildouble] = 2;
-    tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYldouble] = 2;
+    _tyalignsize[TYildouble] = 2;
+    _tyalignsize[TYcldouble] = 2;
 #else
     assert(0);
 #endif
-    tyalignsize[TYsptr] = LONGSIZE;
-    tyalignsize[TYcptr] = LONGSIZE;
+    _tyalignsize[TYsptr] = LONGSIZE;
+    _tyalignsize[TYcptr] = LONGSIZE;
 }
 
 /*******************************
@@ -386,58 +385,86 @@ void util_set64()
     tyequiv[TYint] = TYlong;
     tyequiv[TYuint] = TYulong;
 
-    tysize[TYenum] = LONGSIZE;
-    tysize[TYint ] = LONGSIZE;
-    tysize[TYuint] = LONGSIZE;
-    tysize[TYnullptr] = 8;
-    tysize[TYnptr] = 8;
-    tysize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS || TARGET_OSX
-    tysize[TYldouble] = 16;
-    tysize[TYildouble] = 16;
-    tysize[TYcldouble] = 32;
+    _tysize[TYenum] = LONGSIZE;
+    _tysize[TYint ] = LONGSIZE;
+    _tysize[TYuint] = LONGSIZE;
+    _tysize[TYnullptr] = 8;
+    _tysize[TYnptr] = 8;
+    _tysize[TYnref] = 8;
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
+    _tysize[TYldouble] = 16;
+    _tysize[TYildouble] = 16;
+    _tysize[TYcldouble] = 32;
 #elif TARGET_WINDOS
-    tysize[TYldouble] = 10;
-    tysize[TYildouble] = 10;
-    tysize[TYcldouble] = 20;
+    _tysize[TYldouble] = 10;
+    _tysize[TYildouble] = 10;
+    _tysize[TYcldouble] = 20;
 #else
     assert(0);
 #endif
-    tysize[TYsptr] = 8;
-    tysize[TYcptr] = 8;
-    tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
-    tysize[TYvptr] = 10;    // tysize[x] == tysize[TYfptr] so don't set
-    tysize[TYfref] = 10;    // tysize[TYfptr] to tysize[TYnptr]
+    _tysize[TYsptr] = 8;
+    _tysize[TYcptr] = 8;
+    _tysize[TYfptr] = 10;    // NOTE: There are codgen test that check
+    _tysize[TYvptr] = 10;    // _tysize[x] == _tysize[TYfptr] so don't set
+    _tysize[TYfref] = 10;    // _tysize[TYfptr] to _tysize[TYnptr]
 
-    tyalignsize[TYenum] = LONGSIZE;
-    tyalignsize[TYint ] = LONGSIZE;
-    tyalignsize[TYuint] = LONGSIZE;
-    tyalignsize[TYnullptr] = 8;
-    tyalignsize[TYnptr] = 8;
-    tyalignsize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-    tyalignsize[TYldouble] = 16;
-    tyalignsize[TYildouble] = 16;
-    tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYenum] = LONGSIZE;
+    _tyalignsize[TYint ] = LONGSIZE;
+    _tyalignsize[TYuint] = LONGSIZE;
+    _tyalignsize[TYnullptr] = 8;
+    _tyalignsize[TYnptr] = 8;
+    _tyalignsize[TYnref] = 8;
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    _tyalignsize[TYldouble] = 16;
+    _tyalignsize[TYildouble] = 16;
+    _tyalignsize[TYcldouble] = 16;
 #elif TARGET_OSX
-    tyalignsize[TYldouble] = 16;
-    tyalignsize[TYildouble] = 16;
-    tyalignsize[TYcldouble] = 16;
+    _tyalignsize[TYldouble] = 16;
+    _tyalignsize[TYildouble] = 16;
+    _tyalignsize[TYcldouble] = 16;
 #elif TARGET_WINDOS
-    tyalignsize[TYldouble] = 2;
-    tyalignsize[TYildouble] = 2;
-    tyalignsize[TYcldouble] = 2;
+    _tyalignsize[TYldouble] = 2;
+    _tyalignsize[TYildouble] = 2;
+    _tyalignsize[TYcldouble] = 2;
 #else
     assert(0);
 #endif
-    tyalignsize[TYsptr] = 8;
-    tyalignsize[TYcptr] = 8;
-    tyalignsize[TYfptr] = 8;
-    tyalignsize[TYvptr] = 8;
-    tyalignsize[TYfref] = 8;
+    _tyalignsize[TYsptr] = 8;
+    _tyalignsize[TYcptr] = 8;
+    _tyalignsize[TYfptr] = 8;
+    _tyalignsize[TYvptr] = 8;
+    _tyalignsize[TYfref] = 8;
     tytab[TYjfunc] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
 
     TYptrdiff = TYllong;
     TYsize = TYullong;
     TYsize_t = TYullong;
+    TYdelegate = TYcent;
+    TYdarray = TYucent;
 }
+
+// cc.d
+unsigned Srcpos::sizeCheck() { return sizeof(Srcpos); }
+unsigned Pstate::sizeCheck() { return sizeof(Pstate); }
+unsigned Cstate::sizeCheck() { return sizeof(Cstate); }
+unsigned Blockx::sizeCheck() { return sizeof(Blockx); }
+unsigned block::sizeCheck()  { return sizeof(block);  }
+unsigned func_t::sizeCheck() { return sizeof(func_t); }
+unsigned baseclass_t::sizeCheck() { return sizeof(baseclass_t); }
+unsigned template_t::sizeCheck() { return sizeof(template_t); }
+unsigned struct_t::sizeCheck() { return sizeof(struct_t); }
+unsigned Symbol::sizeCheck() { return sizeof(Symbol); }
+unsigned param_t::sizeCheck() { return sizeof(param_t); }
+unsigned Declar::sizeCheck() { return sizeof(Declar); }
+unsigned dt_t::sizeCheck() { return sizeof(dt_t); }
+
+// cdef.d
+unsigned Config::sizeCheck() { return sizeof(Config); }
+unsigned Configv::sizeCheck() { return sizeof(Configv); }
+unsigned eve::sizeCheck() { return sizeof(eve); }
+
+// el.d
+
+// type.d
+unsigned TYPE::sizeCheck() { return sizeof(type); }
+

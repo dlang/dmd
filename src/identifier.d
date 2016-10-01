@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _identifier.d)
+ */
 
 module ddmd.identifier;
 
@@ -23,22 +25,30 @@ import ddmd.utf;
  */
 extern (C++) final class Identifier : RootObject
 {
-public:
-    int value;
-    const(char)* string;
-    size_t len;
+private:
+    const int value;
+    const char* string;
+    const size_t len;
 
-    extern (D) this(const(char)* string, int value)
+public:
+
+    extern (D) this(const(char)* string, size_t length, int value)
     {
         //printf("Identifier('%s', %d)\n", string, value);
         this.string = string;
         this.value = value;
-        this.len = strlen(string);
+        this.len = length;
     }
 
-    static Identifier create(const(char)* string, int value)
+    extern (D) this(const(char)* string)
     {
-        return new Identifier(string, value);
+        //printf("Identifier('%s', %d)\n", string, value);
+        this(string, strlen(string), TOKidentifier);
+    }
+
+    static Identifier create(const(char)* string)
+    {
+        return new Identifier(string);
     }
 
     override bool equals(RootObject o) const
@@ -59,6 +69,16 @@ public:
     override const(char)* toChars() const
     {
         return string;
+    }
+
+    extern (D) final const(char)[] toString() const
+    {
+        return string[0 .. len];
+    }
+
+    final int getValue() const
+    {
+        return value;
     }
 
     const(char)* toHChars2() const
@@ -129,9 +149,18 @@ public:
         Identifier id = cast(Identifier)sv.ptrvalue;
         if (!id)
         {
-            id = new Identifier(sv.toDchars(), TOKidentifier);
+            id = new Identifier(sv.toDchars(), len, TOKidentifier);
             sv.ptrvalue = cast(char*)id;
         }
+        return id;
+    }
+
+    extern (D) static Identifier idPool(const(char)* s, size_t len, int value)
+    {
+        auto sv = stringtable.insert(s, len, null);
+        assert(sv);
+        auto id = new Identifier(sv.toDchars(), len, value);
+        sv.ptrvalue = cast(char*)id;
         return id;
     }
 
@@ -140,7 +169,7 @@ public:
      * Returns:
      *      0       invalid
      */
-    final static bool isValidIdentifier(const(char)* p)
+    static bool isValidIdentifier(const(char)* p)
     {
         size_t len;
         size_t idx;
@@ -166,7 +195,7 @@ public:
 
     static Identifier lookup(const(char)* s, size_t len)
     {
-        StringValue* sv = stringtable.lookup(s, len);
+        auto sv = stringtable.lookup(s, len);
         if (!sv)
             return null;
         return cast(Identifier)sv.ptrvalue;

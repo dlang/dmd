@@ -132,7 +132,7 @@ enum OPER
         OPnuge,
         OPnug,
         OPnue,
-
+#define RELOPMAX        ((int)OPnue + 1 - RELOPMIN)
 #define rel_toktoop(tk) ((enum OPER)((int)tk - (int)TKle + (int)OPle))
 
 /***************** End of relational operators ******************/
@@ -251,23 +251,23 @@ enum OPER
 
         OPMAX                   /* 1 past last operator         */
 };
-typedef enum OPER OPER;         /* needed for optabgen          */
 
 /************************************
  * Determine things about relational operators.
  */
 
-extern unsigned char rel_not[];
-extern unsigned char rel_swap[];
-extern unsigned char rel_integral[];
-extern unsigned char rel_exception[];
-extern unsigned char rel_unord[];
+extern unsigned char
+        _rel_not[RELOPMAX],
+        _rel_swap[RELOPMAX],
+        _rel_integral[RELOPMAX],
+        _rel_exception[RELOPMAX],
+        _rel_unord[RELOPMAX];
 
-#define rel_not(op)             rel_not[(int)(op) - RELOPMIN]
-#define rel_swap(op)            rel_swap[(int)(op) - RELOPMIN]
-#define rel_integral(op)        rel_integral[(int)(op) - RELOPMIN]
-#define rel_exception(op)       rel_exception[(int)(op) - RELOPMIN]
-#define rel_unord(op)           rel_unord[(int)(op) - RELOPMIN]
+inline int rel_not(int op)       { return _rel_not      [(int)(op) - RELOPMIN]; }
+inline int rel_swap(int op)      { return _rel_swap     [(int)(op) - RELOPMIN]; }
+inline int rel_integral(int op)  { return _rel_integral [(int)(op) - RELOPMIN]; }
+inline int rel_exception(int op) { return _rel_exception[(int)(op) - RELOPMIN]; }
+inline int rel_unord(int op)     { return _rel_unord    [(int)(op) - RELOPMIN]; }
 
 
 /**********************************
@@ -301,61 +301,73 @@ extern unsigned char rel_unord[];
  *      OTboolnop       operation is a nop if boolean result is desired
  */
 
-extern const unsigned char optab1[OPMAX],optab2[OPMAX],optab3[OPMAX];
-extern const unsigned char opcost[OPMAX];
+extern "C" // https://issues.dlang.org/show_bug.cgi?id=16359
+{
+extern unsigned char optab1[OPMAX],optab2[OPMAX],optab3[OPMAX];
+extern unsigned char opcost[OPMAX];
+}
 
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */
-#define _OTbinary       1
-#define _OTunary        2
-#define _OTcommut       4
-#define _OTassoc        8
-#define _OTsideff       0x10
-#define _OTeop0e        0x20
-#define _OTeop00        0x40
-#define _OTeop1e        0x80
+enum
+{
+    _OTbinary       = 1,
+    _OTunary        = 2,
+    _OTcommut       = 4,
+    _OTassoc        = 8,
+    _OTsideff       = 0x10,
+    _OTeop0e        = 0x20,
+    _OTeop00        = 0x40,
+    _OTeop1e        = 0x80,
+};
 
 /* optab2[]     */
-#define _OTlogical      1
-#define _OTwid          2
-#define _OTcall         4
-#define _OTrtol         8
-#define _OTassign       0x10
-#define _OTdef          0x20
-#define _OTae           0x40
+enum
+{
+    _OTlogical      = 1,
+    _OTwid          = 2,
+    _OTcall         = 4,
+    _OTrtol         = 8,
+    _OTassign       = 0x10,
+    _OTdef          = 0x20,
+    _OTae           = 0x40,
+};
 
 // optab3[]
-#define _OTboolnop      1
+enum
+{
+    _OTboolnop      = 1,
+};
 
-#define OTbinary(op)    (optab1[op]&_OTbinary)
-#define OTunary(op)     (optab1[op]&_OTunary)
-#define OTleaf(op)      (!(optab1[op]&(_OTunary|_OTbinary)))
-#define OTcommut(op)    (optab1[op]&_OTcommut)
-#define OTassoc(op)     (optab1[op]&_OTassoc)
-#define OTassign(op)    (optab2[op]&_OTassign)
-#define OTpost(op)      ((op) == OPpostinc || (op) == OPpostdec)
-#define OTeop0e(op)     (optab1[op]&_OTeop0e)
-#define OTeop00(op)     (optab1[op]&_OTeop00)
-#define OTeop1e(op)     (optab1[op]&_OTeop1e)
-#define OTsideff(op)    (optab1[op]&_OTsideff)
-#define OTconv(op)      ((op) >= CNVOPMIN && (op) <= CNVOPMAX)
-#define OTlogical(op)   (optab2[op]&_OTlogical)
-#define OTwid(op)       (optab2[op]&_OTwid)
-#define OTopeq(op)      ((op) >= OPaddass && (op) <= OPashrass)
-#define OTop(op)        ((op) >= OPadd && (op) <= OPor)
-#define OTcall(op)      (optab2[op]&_OTcall)
-#define OTrtol(op)      (optab2[op]&_OTrtol)
-#define OTrel(op)       ((op) >= OPle && (op) <= OPnue)
-#define OTrel2(op)      ((op) >= OPle && (op) <= OPge)
-#define OTdef(op)       (optab2[op]&_OTdef)
-#define OTae(op)        (optab2[op]&_OTae)
-#define OTboolnop(op)   (optab3[op]&_OTboolnop)
-#define OTcalldef(op)   (OTcall(op) || (op) == OPstrcpy || (op) == OPstrcat || (op) == OPmemcpy)
+inline unsigned char OTbinary(unsigned op)    { return optab1[op] & _OTbinary; }
+inline unsigned char OTunary(unsigned op)     { return optab1[op] & _OTunary; }
+inline bool          OTleaf(unsigned op)      { return !(optab1[op] & (_OTunary|_OTbinary)); }
+inline unsigned char OTcommut(unsigned op)    { return optab1[op] & _OTcommut; }
+inline unsigned char OTassoc(unsigned op)     { return optab1[op] & _OTassoc; }
+inline unsigned char OTassign(unsigned op)    { return optab2[op]&_OTassign; }
+inline bool          OTpost(unsigned op)      { return op == OPpostinc || op == OPpostdec; }
+inline unsigned char OTeop0e(unsigned op)     { return optab1[op] & _OTeop0e; }
+inline unsigned char OTeop00(unsigned op)     { return optab1[op] & _OTeop00; }
+inline unsigned char OTeop1e(unsigned op)     { return optab1[op] & _OTeop1e; }
+inline unsigned char OTsideff(unsigned op)    { return optab1[op] & _OTsideff; }
+inline bool          OTconv(unsigned op)      { return op >= CNVOPMIN && op <= CNVOPMAX; }
+inline unsigned char OTlogical(unsigned op)   { return optab2[op] & _OTlogical; }
+inline unsigned char OTwid(unsigned op)       { return optab2[op] & _OTwid; }
+inline bool          OTopeq(unsigned op)      { return op >= OPaddass && op <= OPashrass; }
+inline bool          OTop(unsigned op)        { return op >= OPadd && op <= OPor; }
+inline unsigned char OTcall(unsigned op)      { return optab2[op] & _OTcall; }
+inline unsigned char OTrtol(unsigned op)      { return optab2[op] & _OTrtol; }
+inline bool          OTrel(unsigned op)       { return op >= OPle && op <= OPnue; }
+inline bool          OTrel2(unsigned op)      { return op >= OPle && op <= OPge; }
+inline unsigned char OTdef(unsigned op)       { return optab2[op] & _OTdef; }
+inline unsigned char OTae(unsigned op)        { return optab2[op] & _OTae; }
+inline unsigned char OTboolnop(unsigned op)   { return optab3[op] & _OTboolnop; }
+inline bool          OTcalldef(unsigned op)   { return OTcall(op) || op == OPstrcpy || op == OPstrcat || op == OPmemcpy; }
 
 /* Convert op= to op    */
-#define opeqtoop(opx)   ((opx) - OPaddass + OPadd)
+inline int opeqtoop(int opx)   { return opx - OPaddass + OPadd; }
 
 /* Convert op to op=    */
-#define optoopeq(opx)   ((opx) - OPadd + OPaddass)
+inline int optoopeq(int opx)   { return opx - OPadd + OPaddass; }
 
 /***************************
  * Determine properties of an elem.

@@ -6,8 +6,8 @@
 #
 #    run_tests:          run all tests
 #    run_runnable_tests:         run just the runnable tests
-#    run_compilable_tests:       run just the runnable tests
-#    run_fail_compilation_tests: run just the runnable tests
+#    run_compilable_tests:       run just the compilable tests
+#    run_fail_compilation_tests: run just the fail compilation tests
 #
 #    quick:              run all tests with no default permuted args
 #                        (individual test specified options still honored)
@@ -31,7 +31,8 @@
 #                        default: (none). Test files with this variable will be ignored unless
 #                        the D_OBJC environment variable is set to "1"
 #
-#   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
+#   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
+#                        An empty set means only one permutation with no arguments.
 #                        default: the make variable ARGS (see below)
 #
 #   TEST_OUTPUT:         the output is expected from the compilation (if the
@@ -92,7 +93,7 @@ export MODEL
 export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
-export ARGS=-inline -release -g -O -unittest
+export ARGS=-inline -release -g -O
 export DMD=../src/dmd.exe
 export EXE=.exe
 export OBJ=.obj
@@ -104,7 +105,7 @@ PHOBOS_PATH=..\..\phobos
 export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
 else
-export ARGS=-inline -release -g -O -unittest -fPIC
+export ARGS=-inline -release -g -O -fPIC
 export DMD=../src/dmd
 export EXE=
 export OBJ=.o
@@ -113,7 +114,13 @@ export SEP=/
 
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
-export DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+# link against shared libraries (defaults to true on supported platforms, can be overriden w/ make SHARED=0)
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+ifeq (1,$(SHARED))
+DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+endif
+export DFLAGS
 endif
 
 ifeq ($(OS),osx)
@@ -121,6 +128,8 @@ ifeq ($(MODEL),64)
 export D_OBJC=1
 endif
 endif
+
+export DMD_TEST_COVERAGE=
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))

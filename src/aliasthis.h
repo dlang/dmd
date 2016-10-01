@@ -6,7 +6,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/aliasthis.h
+ * https://github.com/dlang/dmd/blob/master/src/aliasthis.h
  */
 
 #ifndef DMD_ALIASTHIS_H
@@ -26,8 +26,6 @@ class AliasThis : public Dsymbol
 public:
    // alias Identifier this;
     Identifier *ident;
-
-    AliasThis(Loc loc, Identifier *ident);
 
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);

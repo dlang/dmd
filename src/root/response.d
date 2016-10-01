@@ -1,27 +1,24 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
- *
- * Expose a function to expand response files (files starting with '@').
- * For more details, see $(D response_expand)'s documentation.
+ * Compiler implementation of the D programming language
+ * http://dlang.org
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:
- * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2015 by Digital Mars, All Rights Reserved
- *
- * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- *
- * License:
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+ * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ *            Some portions copyright (c) 1994-1995 by Symantec
+ * Authors:   Walter Bright, http://www.digitalmars.com
+ * License:   This source file is made available for personal use
+ *            only. The license is in backendlicense.txt
+ *            For any other uses, please contact Digital Mars.
+ * Source:    $(DMDSRC root/_response.d)
  */
 
 module ddmd.root.response;
 
-import core.stdc.stdio, core.stdc.stdlib, core.stdc.string;
-import ddmd.root.file, ddmd.root.filename;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import ddmd.root.file;
+import ddmd.root.filename;
 
 /*********************************
  * #include <stdlib.h>

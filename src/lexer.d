@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _lexer.d)
+ */
 
 module ddmd.lexer;
 
@@ -20,11 +22,10 @@ import ddmd.errors;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.root.longdouble;
+import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
 import ddmd.root.rmem;
-import ddmd.root.stringtable;
 import ddmd.tokens;
 import ddmd.utf;
 
@@ -144,7 +145,6 @@ unittest
  */
 class Lexer
 {
-public:
     __gshared OutBuffer stringbuffer;
 
     Loc scanloc;            // for error messages
@@ -277,19 +277,16 @@ public:
             case '\v':
             case '\f':
                 p++;
-                continue;
-                // skip white space
+                continue; // skip white space
             case '\r':
                 p++;
                 if (*p != '\n') // if CR stands by itself
                     endOfLine();
-                continue;
-                // skip white space
+                continue; // skip white space
             case '\n':
                 p++;
                 endOfLine();
-                continue;
-                // skip white space
+                continue; // skip white space
             case '0':
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
                 {
@@ -426,7 +423,7 @@ public:
                     }
                     Identifier id = Identifier.idPool(cast(char*)t.ptr, p - t.ptr);
                     t.ident = id;
-                    t.value = cast(TOK)id.value;
+                    t.value = cast(TOK)id.getValue();
                     anyToken = 1;
                     if (*t.ptr == '_') // if special identifier token
                     {
@@ -481,8 +478,7 @@ public:
                                 else if (c == '.')
                                 {
                                     if (point)
-                                        break;
-                                    // ignore everything after second '.'
+                                        break; // ignore everything after second '.'
                                     point = true;
                                     major = minor;
                                     minor = 0;
@@ -568,8 +564,7 @@ public:
                         getDocComment(t, lastLine == startLoc.linnum);
                     }
                     continue;
-                case '/':
-                    // do // style comments
+                case '/': // do // style comments
                     startLoc = loc();
                     while (1)
                     {
@@ -1251,8 +1246,7 @@ public:
                 break;
             case '\r':
                 if (*p == '\n')
-                    continue;
-                // ignore
+                    continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
                 break;
@@ -1366,7 +1360,7 @@ public:
     /**************************************
      * Lex delimited strings:
      *      q"(foo(xxx))"   // "foo(xxx)"
-     *      q"[foo(]"       // "foo("
+     *      q"[foo$(LPAREN)]"       // "foo$(LPAREN)"
      *      q"/foo]/"       // "foo]"
      *      q"HERE
      *      foo
@@ -1409,8 +1403,7 @@ public:
                 break;
             case '\r':
                 if (*p == '\n')
-                    continue;
-                // ignore
+                    continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 goto Lnextline;
             case 0:
@@ -1524,7 +1517,7 @@ public:
     /**************************************
      * Lex delimited strings:
      *      q{ foo(xxx) } // " foo(xxx) "
-     *      q{foo(}       // "foo("
+     *      q{foo$(LPAREN)}       // "foo$(LPAREN)"
      *      q{{foo}"}"}   // "{foo}"}""
      * Input:
      *      p is on the q
@@ -1592,8 +1585,7 @@ public:
                 break;
             case '\r':
                 if (*p == '\n')
-                    continue;
-                // ignore
+                    continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
                 break;
@@ -1631,7 +1623,7 @@ public:
      */
     final TOK charConstant(Token* t)
     {
-        auto tk = TOKcharv;
+        TOK tk = TOKcharv;
         //printf("Lexer::charConstant\n");
         p++;
         dchar c = *p++;
@@ -1759,13 +1751,10 @@ public:
                 break;
             case '.':
                 if (p[1] == '.')
-                    goto Ldone;
-                // if ".."
+                    goto Ldone; // if ".."
                 if (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80)
-                    goto Ldone;
-                // if ".identifier" or ".unicode"
-                goto Lreal;
-                // '.' is part of current token
+                    goto Ldone; // if ".identifier" or ".unicode"
+                goto Lreal; // '.' is part of current token
             case 'i':
             case 'f':
             case 'F':
@@ -1850,13 +1839,10 @@ public:
                 goto Ldone;
             case '.':
                 if (p[1] == '.')
-                    goto Ldone;
-                // if ".."
+                    goto Ldone; // if ".."
                 if (base == 10 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
-                    goto Ldone;
-                // if ".identifier" or ".unicode"
-                goto Lreal;
-                // otherwise as part of a floating point literal
+                    goto Ldone; // if ".identifier" or ".unicode"
+                goto Lreal; // otherwise as part of a floating point literal
             case 'p':
             case 'P':
             case 'i':
@@ -2099,24 +2085,18 @@ public:
         stringbuffer.writeByte(0);
         auto sbufptr = cast(const(char)*)stringbuffer.data;
         TOK result;
-        t.float80value = Port.strtold(sbufptr, null);
-        errno = 0;
+        bool isOutOfRange = false;
+        t.floatvalue = CTFloat.parse(sbufptr, &isOutOfRange);
         switch (*p)
         {
         case 'F':
         case 'f':
-            // Only interested in errno return
-            cast(void)Port.strtof(sbufptr, null);
+            isOutOfRange = (isOutOfRange || Port.isFloat32LiteralOutOfRange(sbufptr));
             result = TOKfloat32v;
             p++;
             break;
         default:
-            /* Should do our own strtod(), since dmc and linux gcc
-             * accept 2.22507e-308, while apple gcc will only take
-             * 2.22508e-308. Not sure who is right.
-             */
-            // Only interested in errno return
-            cast(void)Port.strtod(sbufptr, null);
+            isOutOfRange = (isOutOfRange || Port.isFloat64LiteralOutOfRange(sbufptr));
             result = TOKfloat64v;
             break;
         case 'l':
@@ -2147,7 +2127,8 @@ public:
                 break;
             }
         }
-        if (errno == ERANGE)
+        const isLong = (result == TOKfloat80v || result == TOKimaginary80v);
+        if (isOutOfRange && !isLong)
         {
             const char* suffix = (result == TOKfloat32v || result == TOKimaginary32v) ? "f" : "";
             error(scanloc, "number '%s%s' is not representable", sbufptr, suffix);
@@ -2254,8 +2235,7 @@ public:
             case '\v':
             case '\f':
                 p++;
-                continue;
-                // skip white space
+                continue; // skip white space
             case '_':
                 if (memcmp(p, "__FILE__".ptr, 8) == 0)
                 {
@@ -2401,6 +2381,16 @@ public:
          * Canonicalize it into buf[].
          */
         OutBuffer buf;
+
+        void trimTrailingWhitespace()
+        {
+            const s = buf.peekSlice();
+            auto len = s.length;
+            while (len && (s[len - 1] == ' ' || s[len - 1] == '\t'))
+                --len;
+            buf.setsize(len);
+        }
+
         for (; q < qend; q++)
         {
             char c = *q;
@@ -2413,8 +2403,7 @@ public:
                     linestart = 0;
                     /* Trim preceding whitespace up to preceding \n
                      */
-                    while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-                        buf.offset--;
+                    trimTrailingWhitespace();
                     continue;
                 }
                 break;
@@ -2423,8 +2412,7 @@ public:
                 break;
             case '\r':
                 if (q[1] == '\n')
-                    continue;
-                // skip the \r
+                    continue; // skip the \r
                 goto Lnewline;
             default:
                 if (c == 226)
@@ -2445,38 +2433,35 @@ public:
                 linestart = 1;
                 /* Trim trailing whitespace
                  */
-                while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-                    buf.offset--;
+                trimTrailingWhitespace();
                 break;
             }
             buf.writeByte(c);
         }
         /* Trim trailing whitespace (if the last line does not have newline)
          */
-        if (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-        {
-            while (buf.offset && (buf.data[buf.offset - 1] == ' ' || buf.data[buf.offset - 1] == '\t'))
-                buf.offset--;
-        }
+        trimTrailingWhitespace();
+
         // Always end with a newline
-        if (!buf.offset || buf.data[buf.offset - 1] != '\n')
+        const s = buf.peekSlice();
+        if (s.length == 0 || s[$ - 1] != '\n')
             buf.writeByte('\n');
-        buf.writeByte(0);
+
         // It's a line comment if the start of the doc comment comes
         // after other non-whitespace on the same line.
-        const(char)** dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
+        auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, cast(const(char)*)buf.data);
+            *dc = combineComments(*dc, buf.peekString());
         else
-            *dc = cast(const(char)*)buf.extractData();
+            *dc = buf.extractString();
     }
 
     /********************************************
      * Combine two document comments into one,
      * separated by a newline.
      */
-    final static const(char)* combineComments(const(char)* c1, const(char)* c2)
+    static const(char)* combineComments(const(char)* c1, const(char)* c2)
     {
         //printf("Lexer::combineComments('%s', '%s')\n", c1, c2);
         auto c = c2;

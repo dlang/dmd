@@ -1,15 +1,23 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the D programming language
+ * http://dlang.org
+ *
+ * Copyright: Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:   Walter Bright, http://www.digitalmars.com
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:    $(DMDSRC root/_file.d)
+ */
 
 module ddmd.root.file;
 
-import core.stdc.errno, core.stdc.stdio, core.stdc.stdlib, core.stdc.string, core.sys.posix.fcntl, core.sys.posix.sys.types, core.sys.posix.unistd, core.sys.posix.utime, core.sys.windows.windows;
-import ddmd.root.array, ddmd.root.filename, ddmd.root.rmem;
+import core.stdc.errno;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.sys.posix.fcntl;
+import core.sys.posix.unistd;
+import core.sys.windows.windows;
+import ddmd.root.filename;
+import ddmd.root.rmem;
 
 version (Windows) alias WIN32_FIND_DATAA = WIN32_FIND_DATA;
 
@@ -22,6 +30,7 @@ struct File
     size_t len; // amount of data in buffer[]
     const(FileName)* name; // name of our file
 
+nothrow:
     extern (D) this(const(char)* n)
     {
         _ref = 0;
@@ -57,7 +66,7 @@ struct File
         }
     }
 
-    extern (C++) const(char)* toChars()
+    extern (C++) const(char)* toChars() pure
     {
         return name.toChars();
     }

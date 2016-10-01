@@ -268,6 +268,26 @@ void test9109()
 }
 
 /*********************************************************/
+// 15835
+
+class C15835 {}
+
+string fun15835(lazy string s)
+{
+    return s;
+}
+
+void test15835()
+{
+    auto c = new C15835;
+    auto s = typeid(c).name;
+    assert(fun15835(typeid(c).name) == s);
+
+    auto a = [c];
+    assert(fun15835(typeid(a[0]).name) == s);
+}
+
+/*********************************************************/
 
 int main()
 {
@@ -283,6 +303,7 @@ int main()
     test5750b();
     test6682();
     test9109();
+    test15835();
 
     printf("Success\n");
     return 0;

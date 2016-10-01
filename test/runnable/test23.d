@@ -15,16 +15,16 @@ struct S
 {
     int opSliceAssign(int v, size_t i, size_t j)
     {
-	assert(v == 5);
-	assert(i == 9);
-	assert(j == 10);
-	return 3;
+        assert(v == 5);
+        assert(i == 9);
+        assert(j == 10);
+        return 3;
     }
 
     int opSliceAssign(int v)
     {
-	assert(v == 6);
-	return 11;
+        assert(v == 6);
+        return 11;
     }
 }
 
@@ -51,18 +51,18 @@ void test2()
 void test3()
 {
     size_t border = 8;
-    
+
     for(ulong i = 0; i < border; i++)
     {
-	ulong test = 1;
-	test <<= i;
-	double r = test;
-	ulong result = cast(ulong)r;
+        ulong test = 1;
+        test <<= i;
+        double r = test;
+        ulong result = cast(ulong)r;
 
-	if (result != test)
-	{
-	    assert(0);
-	}
+        if (result != test)
+        {
+            assert(0);
+        }
     }
 }
 
@@ -94,34 +94,34 @@ struct Foo6
 
     static int[] farray()
     {
-	printf("farray\n");
-	assert(x == 0);
-	x++;
-	return new int[6];
+        printf("farray\n");
+        assert(x == 0);
+        x++;
+        return new int[6];
     }
 
     static int flwr()
     {
-	printf("flwr\n");
-	assert(x == 1);
-	x++;
-	return 2;
+        printf("flwr\n");
+        assert(x == 1);
+        x++;
+        return 2;
     }
 
     static int fupr()
     {
-	printf("fupr\n");
-	assert(x == 2);
-	x++;
-	return 1;
+        printf("fupr\n");
+        assert(x == 2);
+        x++;
+        return 1;
     }
 }
 
 void test6()
 {
     int[] yuiop;
-    yuiop = 
-	Foo6.farray()[Foo6.flwr() .. $ - Foo6.fupr()] = 3;
+    yuiop =
+        Foo6.farray()[Foo6.flwr() .. $ - Foo6.fupr()] = 3;
     assert(Foo6.x == 3);
     assert(yuiop.length == 3);
     assert(yuiop[0] == 3);
@@ -145,18 +145,18 @@ void test7()
 /*******************************************/
 
 void test8()
-{   
+{
    real [5][5] m = 1;
    m[1][1..3] = 2;
 
    for (size_t i = 0; i < 5; i++)
-	for (size_t j = 0; j < 5; j++)
-	{
-	    if (i == 1 && (j >= 1 && j < 3))
-		assert(m[i][j] == 2);
-	    else
-		assert(m[i][j] == 1);
-	}
+        for (size_t j = 0; j < 5; j++)
+        {
+            if (i == 1 && (j >= 1 && j < 3))
+                assert(m[i][j] == 2);
+            else
+                assert(m[i][j] == 1);
+        }
 }
 
 /*******************************************/
@@ -177,7 +177,7 @@ struct StructOf
 
     template refx()
     {
-	alias val refx;
+        alias val refx;
     }
 }
 
@@ -227,7 +227,7 @@ void test11()
 {
     Foo11 fooIt = new Foo11();
     if (fooIt !is null)
-	writefln("fooIt should be valid");
+        writefln("fooIt should be valid");
     fooIt.f.foo();
     writefln("it worked");
 }
@@ -250,7 +250,7 @@ struct B12 {
 void test12()
 {
         A12 a;
-	printf("%d\n", A12.sizeof);
+        printf("%d\n", A12.sizeof);
         assert(A12.sizeof == 12);
 }
 
@@ -301,27 +301,27 @@ void test14()
 
 class A15
 {
-	int a = 3;
+        int a = 3;
 
         class B
         {
-	    void bar()
-	    {
-		assert(a == 3);
-	    }
+            void bar()
+            {
+                assert(a == 3);
+            }
         }
 
         void fork()
         {
-		assert(a == 3);
+                assert(a == 3);
                 B b = new B();  // This is okay
-		b.bar();
+                b.bar();
 
                 void knife()
                 {
-			assert(a == 3);
+                        assert(a == 3);
                         B b = new B();  // No 'this' for nested class B
-			b.bar();
+                        b.bar();
                 }
         }
 }
@@ -335,23 +335,23 @@ void test15()
 /*******************************************/
 
 creal x16;
-    
+
 void foo16()
 {
-	x16 = -x16;
+        x16 = -x16;
 }
 
 void bar16()
 {
-	return foo16();
+        return foo16();
 }
 
 void test16()
 {
-	x16 = 2.0L + 0.0Li;
-	bar16();
-	assert(x16 == -2.0L + 0.0Li);
-} 
+        x16 = 2.0L + 0.0Li;
+        bar16();
+        assert(x16 == -2.0L + 0.0Li);
+}
 
 /*******************************************/
 
@@ -363,13 +363,13 @@ void test17()
     else
     {
         const f = 1.2f;
-	float g = void;
+        float g = void;
 
         asm{
-                fld f;	// doesn't work with PIC
-		fstp g;
+                fld f;  // doesn't work with PIC
+                fstp g;
         }
-	assert(g == 1.2f);
+        assert(g == 1.2f);
     }
 }
 
@@ -397,7 +397,7 @@ struct STRUCTA19
 struct STRUCTB19
 {
   int a;
-} 
+}
 
 void test19()
 {
@@ -452,7 +452,7 @@ class Foo21
 
         bool bar ()
         { return true; }
-} 
+}
 
 void test21()
 {
@@ -499,7 +499,7 @@ struct Ag
 
         with(a) fnp = &func;
     }
-} 
+}
 
 class Ah
 {
@@ -516,7 +516,7 @@ class Ah
 
         with(a) fnp = &func;
     }
-} 
+}
 
 void test23()
 {
@@ -545,11 +545,11 @@ void test25()
   assert(cast(char[])str1 == "123456"c);
 
   auto str2 = cast(wchar[3])("789abc"c);
-  writefln("str2: ", (cast(char[])str2).length , " : ", (cast(char[])str2)); 
+  writefln("str2: ", (cast(char[])str2).length , " : ", (cast(char[])str2));
   assert(cast(char[])str2 == "789abc"c);
 
   auto str3 = cast(wchar[3])("defghi");
-  writefln("str3: ", (cast(char[])str3).length , " : ", (cast(char[])str3)); 
+  writefln("str3: ", (cast(char[])str3).length , " : ", (cast(char[])str3));
   assert(cast(char[])str3 == "d\000e\000f\000"c);
 }
 
@@ -576,21 +576,21 @@ class A27
 
     class B
     {
-	this()
-	{
-	    assert(am == 3);
-	}
+        this()
+        {
+            assert(am == 3);
+        }
     }
 
     void fork()
     {
-	B b = new B();  // This is okay
+        B b = new B();  // This is okay
 
-	void knife()
-	{
-		B b = new B();  // No 'this' for nested class B
-		assert(am == 3);
-	}
+        void knife()
+        {
+                B b = new B();  // No 'this' for nested class B
+                assert(am == 3);
+        }
     }
 }
 
@@ -612,26 +612,26 @@ uint intRes()
 
 void test28()
 {
-	auto s = std.string.format("%s", "abc123"[intRes() % $] );
+        auto s = std.string.format("%s", "abc123"[intRes() % $] );
         writefln( "%s", s );
-	assert(s == "2");
+        assert(s == "2");
 
-	static const char[] foo = "abc123";
-	s = std.string.format("%s", foo[intRes() % $] );
-	assert(s == "2");
+        static const char[] foo = "abc123";
+        s = std.string.format("%s", foo[intRes() % $] );
+        assert(s == "2");
 
 
-	static string bar = "abc123";
-	s = std.string.format("%s", bar[intRes() % $] );
-	assert(s == "2");
+        static string bar = "abc123";
+        s = std.string.format("%s", bar[intRes() % $] );
+        assert(s == "2");
 
-	const char[] abc = "abc123";
-	s = std.string.format("%s", abc[intRes() % $] );
-	assert(s == "2");
+        const char[] abc = "abc123";
+        s = std.string.format("%s", abc[intRes() % $] );
+        assert(s == "2");
 
-	string def = "abc123";
-	s = std.string.format("%s", def[intRes() % $] );
-	assert(s == "2");
+        string def = "abc123";
+        s = std.string.format("%s", def[intRes() % $] );
+        assert(s == "2");
 }
 
 /*******************************************/
@@ -690,16 +690,16 @@ class Foo32
 
     new (size_t sz)
     {
-	void* p = core.stdc.stdlib.malloc(sz);
-	printf("new(sz = %d) = %p\n", sz, p);
-	ps = p;
+        void* p = core.stdc.stdlib.malloc(sz);
+        printf("new(sz = %d) = %p\n", sz, p);
+        ps = p;
         return p;
     }
 
     delete(void* p)
     {
-	printf("delete(p = %p)\n", p);
-	assert(p == ps);
+        printf("delete(p = %p)\n", p);
+        assert(p == ps);
         if (p) core.stdc.stdlib.free(p);
     }
 }
@@ -722,18 +722,18 @@ class Foo33
 
     new (size_t sz, int i)
     {
-	void* p = core.stdc.stdlib.malloc(sz);
-	printf("new(sz = %d) = %p\n", sz, p);
-	ps = p;
+        void* p = core.stdc.stdlib.malloc(sz);
+        printf("new(sz = %d) = %p\n", sz, p);
+        ps = p;
         return p;
     }
 
     delete(void* p)
     {
-	printf("delete(p = %p)\n", p);
-	assert(p == ps);
+        printf("delete(p = %p)\n", p);
+        assert(p == ps);
         if (p) core.stdc.stdlib.free(p);
-	del += 1;
+        del += 1;
     }
 }
 
@@ -807,13 +807,13 @@ in
 {
     static void checkParameters()
     {
-	return;
+        return;
     }
 
     checkParameters();
 }
 body
-{        
+{
 }
 
 /*******************************************/
@@ -823,14 +823,14 @@ void delegate() foo39()
         return &(new class
         {
 
-		int a;
+                int a;
 
-		this() { a = 3; }
+                this() { a = 3; }
 
                 void dg()
                 {
                         writefln("delegate!");
-			assert(a == 3);
+                        assert(a == 3);
                 }
         }).dg;
 }
@@ -865,120 +865,120 @@ void test40()
 
 int foo41(string s)
 {
-	short shift = cast(short)(s.length * 3);
-	int answer;
+        short shift = cast(short)(s.length * 3);
+        int answer;
 
-	for (size_t i = 0; i < s.length; i++){
-		answer = s[i] << shift;
-	}
+        for (size_t i = 0; i < s.length; i++){
+                answer = s[i] << shift;
+        }
 
-	return answer;
+        return answer;
 }
 
 void test41()
 {
-	if(foo41("\u0001") != 8){
-		assert(0);
-	}
+        if(foo41("\u0001") != 8){
+                assert(0);
+        }
 }
 
 /*******************************************/
 
 struct S42
 {
-	int i;
+        int i;
 
-	static S42 foo(int x){
-		S42 s;
+        static S42 foo(int x){
+                S42 s;
 
-		s.i = x;
+                s.i = x;
 
-		return s;
-	}
+                return s;
+        }
 }
 
 void test42()
 {
-	S42[] s;
+        S42[] s;
 
-	s = s ~ S42.foo(6);
-	s = s ~ S42.foo(1);
+        s = s ~ S42.foo(6);
+        s = s ~ S42.foo(1);
 
-	if(s.length != 2){
-		assert(0);
-	}
-	if(s[0].i != 6){
-		assert(0);
-	}
-	if(s[1].i != 1){
-		assert(0);
-	}
+        if(s.length != 2){
+                assert(0);
+        }
+        if(s[0].i != 6){
+                assert(0);
+        }
+        if(s[1].i != 1){
+                assert(0);
+        }
 }
 
 /*******************************************/
 
 struct S43
 {
-	int i,j;
+        int i,j;
 
-	static S43 foo(int x){
-		S43 s;
+        static S43 foo(int x){
+                S43 s;
 
-		s.i = x;
+                s.i = x;
 
-		return s;
-	}
+                return s;
+        }
 }
 
 void test43()
 {
-	S43[] s;
+        S43[] s;
 
-	s = s ~ S43.foo(6);
-	s = s ~ S43.foo(1);
+        s = s ~ S43.foo(6);
+        s = s ~ S43.foo(1);
 
-	if(s.length != 2){
-		assert(0);
-	}
-	if(s[0].i != 6){
-		assert(0);
-	}
-	if(s[1].i != 1){
-		assert(0);
-	}
+        if(s.length != 2){
+                assert(0);
+        }
+        if(s[0].i != 6){
+                assert(0);
+        }
+        if(s[1].i != 1){
+                assert(0);
+        }
 }
 
 /*******************************************/
 
 struct S44
 {
-	int i,j,k;
+        int i,j,k;
 
-	static S44 foo(int x){
-		S44 s;
+        static S44 foo(int x){
+                S44 s;
 
-		s.i = x;
+                s.i = x;
 
-		return s;
-	}
+                return s;
+        }
 }
 
 void test44()
 {
-	S44[] s;
+        S44[] s;
 
-	s = s ~ S44.foo(6);
-	s = s ~ S44.foo(1);
+        s = s ~ S44.foo(6);
+        s = s ~ S44.foo(1);
 
-	if(s.length != 2){
-		assert(0);
-	}
-	if(s[0].i != 6){
-		assert(0);
-	}
-	if(s[1].i != 1){
-		assert(0);
-	}
+        if(s.length != 2){
+                assert(0);
+        }
+        if(s[0].i != 6){
+                assert(0);
+        }
+        if(s[1].i != 1){
+                assert(0);
+        }
 }
 
 /*******************************************/
@@ -1009,7 +1009,7 @@ struct st46
 {
     template t1()
     {
-	template t2(int n2) { }
+        template t2(int n2) { }
     }
 }
 
@@ -1026,8 +1026,8 @@ struct A47
     static int y;
     void opSliceAssign(int x)
     {
-	printf("x = %d\n", x);
-	y = x;
+        printf("x = %d\n", x);
+        y = x;
     }
     A47 d() { return this; }
 }
@@ -1074,8 +1074,8 @@ void test50()
     int res = 0;
     for(int i = 0; i < 10; i++)
     {
-	res = res + x - y;
-	foo50(res);
+        res = res + x - y;
+        foo50(res);
     }
 }
 
@@ -1109,21 +1109,21 @@ void test54()
     assert(data.length == 1);
     foreach (ref foo; data)
     {
-	assert(foo.length == 500);
-	foreach (ref u; foo)
-	{   //printf("u = %u\n", u);
-	    assert(u == 0);
-	    u = 23;
-	}
+        assert(foo.length == 500);
+        foreach (ref u; foo)
+        {   //printf("u = %u\n", u);
+            assert(u == 0);
+            u = 23;
+        }
     }
     foreach (ref foo; data)
     {
-	assert(foo.length == 500);
-	foreach (u; foo)
-	{   assert(u == 23);
-	    auto v = u;
-	    v = 23;
-	}
+        assert(foo.length == 500);
+        foreach (u; foo)
+        {   assert(u == 23);
+            auto v = u;
+            v = 23;
+        }
     }
 }
 
@@ -1157,9 +1157,9 @@ void test56()
                 foo = "hi";
                 d.foo = "hi";
                 bar = "hi";
-		assert(foo == "hi");
-		assert(d.foo == "hi");
-		assert(bar == "hi");
+                assert(foo == "hi");
+                assert(d.foo == "hi");
+                assert(bar == "hi");
         }
 }
 
@@ -1170,7 +1170,7 @@ bool[void[]] reg57;
 void addToReg57(const(void)[] a, int b, bool v)
 {
     if (!v)
-	writefln("X");
+        writefln("X");
     auto key = a~(cast(void*)&b)[0..4];
     reg57[cast(immutable(void)[])key] = v;
     writefln("OK");
@@ -1207,7 +1207,7 @@ struct S59
 {
     string toString()
     {
-	return "foo";
+        return "foo";
     }
 }
 
@@ -1285,23 +1285,23 @@ void test63()
         arr = [1] ~ 2;
 
         // runtime crash, the length == 1
-	printf("%d\n", arr.length);
-	assert (arr.length == 2);
-	assert(arr[0] == 1);
-	assert(arr[1] == 2);
+        printf("%d\n", arr.length);
+        assert (arr.length == 2);
+        assert(arr[0] == 1);
+        assert(arr[1] == 2);
 
-	arr = 2 ~ [1];
-	assert(arr.length == 2);
-	assert(arr[0] == 2);
-	assert(arr[1] == 1);
+        arr = 2 ~ [1];
+        assert(arr.length == 2);
+        assert(arr[0] == 2);
+        assert(arr[1] == 1);
 
-	arr = [2, 3] ~ [1];
-	assert(arr.length == 3);
-	assert(arr[0] == 2);
-	assert(arr[1] == 3);
-	assert(arr[2] == 1);
+        arr = [2, 3] ~ [1];
+        assert(arr.length == 3);
+        assert(arr[0] == 2);
+        assert(arr[1] == 3);
+        assert(arr[2] == 1);
 
-	foo63([1] ~ 2, 2 ~ [1], [1,2] ~ [3,4,5]);
+        foo63([1] ~ 2, 2 ~ [1], [1,2] ~ [3,4,5]);
 }
 
 /*******************************************/
@@ -1314,19 +1314,19 @@ void test64()
 
     foreach_reverse(v; x)
     {
-	writeln(v);
-	assert(j == v);
-	j--;
+        writeln(v);
+        assert(j == v);
+        j--;
     }
     assert(j == 0);
 
     j = 4;
     foreach_reverse(i, v; x)
     {
-	writefln("[%s] = %s", i, v);
-	assert(i + 1 == j);
-	assert(j == v);
-	j--;
+        writefln("[%s] = %s", i, v);
+        assert(i + 1 == j);
+        assert(j == v);
+        j--;
     }
     assert(j == 0);
     printf("-test64()\n");
@@ -1398,7 +1398,7 @@ void test69()
     assert(n.t == 2);
     writefln("nobug2 %d", n2.t);
     assert(n2.t == 3);
-} 
+}
 
 /*******************************************/
 
@@ -1447,10 +1447,10 @@ void test71()
     assert(D71.cnt == 1);
     for (scope E71 e = new E71(); i < 5; i++)
     {
-	assert(D71.cnt == 1);
-	assert(E71.cnt == 1);
-	scope c = new C71();
-	assert(C71.cnt == 1);
+        assert(D71.cnt == 1);
+        assert(E71.cnt == 1);
+        scope c = new C71();
+        assert(C71.cnt == 1);
     }
     assert(C71.cnt == 0);
     assert(E71.cnt == 0);
@@ -1466,14 +1466,14 @@ size_t getLength(int[] arr) { return arr.length; }
 
 void test13237()
 {
-	int[] arr = [0];
-	immutable size_t len = getLength(arr);
+        int[] arr = [0];
+        immutable size_t len = getLength(arr);
 
-	arr.length--;
+        arr.length--;
 
-	assert(len == 1); // ok
-	if (len) { auto l = len; }
-	assert(len == 1); // len cannot be changed, but produces Assertion failure with "-O -inline"
+        assert(len == 1); // ok
+        if (len) { auto l = len; }
+        assert(len == 1); // len cannot be changed, but produces Assertion failure with "-O -inline"
 }
 
 /*******************************************/

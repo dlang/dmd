@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2013 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -20,9 +20,7 @@
 #include        <string.h>
 #include        <time.h>
 #include        <assert.h>
-#if __DMC__
 #include        <limits.h>
-#endif
 
 
 // D compiler
@@ -109,7 +107,7 @@ struct ASM_STATE
     Scope *sc;
 };
 
-ASM_STATE asmstate;
+static ASM_STATE asmstate;
 
 static Token *asmtok;
 static TOK tok_value;
@@ -128,12 +126,12 @@ struct REG
     unsigned char val;
     opflag_t ty;
 
-    bool isSIL_DIL_BPL_SPL();
+    bool isSIL_DIL_BPL_SPL() const;
 };
 
-static REG regFp =      { "ST", 0, _st };
+static const REG regFp =      { "ST", 0, _st };
 
-static REG aregFp[] =
+static const REG aregFp[] =
 {
     { "ST(0)", 0, _sti },
     { "ST(1)", 1, _sti },
@@ -144,38 +142,42 @@ static REG aregFp[] =
     { "ST(6)", 6, _sti },
     { "ST(7)", 7, _sti }
 };
-#define _AL             0
-#define _AH             4
-#define _AX             0
-#define _EAX            0
-#define _BL             3
-#define _BH             7
-#define _BX             3
-#define _EBX            3
-#define _CL             1
-#define _CH             5
-#define _CX             1
-#define _ECX            1
-#define _DL             2
-#define _DH             6
-#define _DX             2
-#define _EDX            2
-#define _BP             5
-#define _EBP            5
-#define _SP             4
-#define _ESP            4
-#define _DI             7
-#define _EDI            7
-#define _SI             6
-#define _ESI            6
-#define _ES             0
-#define _CS             1
-#define _SS             2
-#define _DS             3
-#define _GS             5
-#define _FS             4
 
-static REG regtab[] =
+enum // the x86 CPU numbers for these registers
+{
+    _AL           = 0,
+    _AH           = 4,
+    _AX           = 0,
+    _EAX          = 0,
+    _BL           = 3,
+    _BH           = 7,
+    _BX           = 3,
+    _EBX          = 3,
+    _CL           = 1,
+    _CH           = 5,
+    _CX           = 1,
+    _ECX          = 1,
+    _DL           = 2,
+    _DH           = 6,
+    _DX           = 2,
+    _EDX          = 2,
+    _BP           = 5,
+    _EBP          = 5,
+    _SP           = 4,
+    _ESP          = 4,
+    _DI           = 7,
+    _EDI          = 7,
+    _SI           = 6,
+    _ESI          = 6,
+    _ES           = 0,
+    _CS           = 1,
+    _SS           = 2,
+    _DS           = 3,
+    _GS           = 5,
+    _FS           = 4,
+};
+
+static const REG regtab[] =
 {
     {"AL",   _AL,    _r8 | _al},
     {"AH",   _AH,    _r8},
@@ -242,56 +244,58 @@ static REG regtab[] =
     {"XMM7", 7,      _xmm},
 };
 
-// 64 bit only registers
-#define _RAX    0
-#define _RBX    3
-#define _RCX    1
-#define _RDX    2
-#define _RSI    6
-#define _RDI    7
-#define _RBP    5
-#define _RSP    4
-#define _R8     8
-#define _R9     9
-#define _R10    10
-#define _R11    11
-#define _R12    12
-#define _R13    13
-#define _R14    14
-#define _R15    15
+enum // 64 bit only registers
+{
+    _RAX  = 0,
+    _RBX  = 3,
+    _RCX  = 1,
+    _RDX  = 2,
+    _RSI  = 6,
+    _RDI  = 7,
+    _RBP  = 5,
+    _RSP  = 4,
+    _R8   = 8,
+    _R9   = 9,
+    _R10  = 10,
+    _R11  = 11,
+    _R12  = 12,
+    _R13  = 13,
+    _R14  = 14,
+    _R15  = 15,
 
-#define _R8D    8
-#define _R9D    9
-#define _R10D   10
-#define _R11D   11
-#define _R12D   12
-#define _R13D   13
-#define _R14D   14
-#define _R15D   15
+    _R8D  = 8,
+    _R9D  = 9,
+    _R10D = 10,
+    _R11D = 11,
+    _R12D = 12,
+    _R13D = 13,
+    _R14D = 14,
+    _R15D = 15,
 
-#define _R8W    8
-#define _R9W    9
-#define _R10W   10
-#define _R11W   11
-#define _R12W   12
-#define _R13W   13
-#define _R14W   13
-#define _R15W   15
+    _R8W  = 8,
+    _R9W  = 9,
+    _R10W = 10,
+    _R11W = 11,
+    _R12W = 12,
+    _R13W = 13,
+    _R14W = 13,
+    _R15W = 15,
 
-#define _SIL    6
-#define _DIL    7
-#define _BPL    5
-#define _SPL    4
-#define _R8B    8
-#define _R9B    9
-#define _R10B   10
-#define _R11B   11
-#define _R12B   12
-#define _R13B   13
-#define _R14B   14
-#define _R15B   15
+    _SIL  = 6,
+    _DIL  = 7,
+    _BPL  = 5,
+    _SPL  = 4,
+    _R8B  = 8,
+    _R9B  = 9,
+    _R10B = 10,
+    _R11B = 11,
+    _R12B = 12,
+    _R13B = 13,
+    _R14B = 14,
+    _R15B = 15,
+};
 
-static REG regtab64[] =
+static const REG regtab64[] =
 {
     {"RAX",  _RAX,   _r64 | _rax},
     {"RBX",  _RBX,   _r64},
@@ -368,7 +372,7 @@ static REG regtab64[] =
     {"YMM15", 15,    _ymm},
 };
 
-bool REG::isSIL_DIL_BPL_SPL()
+bool REG::isSIL_DIL_BPL_SPL() const
 {
     // Be careful as these have the same val's as AH CH DH BH
     return ty == _r8 &&
@@ -388,10 +392,10 @@ enum ASM_JUMPTYPE
 
 struct OPND
 {
-    REG *base;              // if plain register
-    REG *pregDisp1;         // if [register1]
-    REG *pregDisp2;
-    REG *segreg;            // if segment override
+    const REG *base;        // if plain register
+    const REG *pregDisp1;   // if [register1]
+    const REG *pregDisp2;
+    const REG *segreg;      // if segment override
     bool bOffset;           // if 'offset' keyword
     bool bSeg;              // if 'segment' keyword
     bool bPtr;              // if 'ptr' keyword
@@ -399,7 +403,7 @@ struct OPND
     opflag_t usFlags;
     Dsymbol *s;
     targ_llong disp;
-    longdouble real;
+    real_t real;
     Type *ptype;
     ASM_JUMPTYPE ajt;
 
@@ -421,8 +425,8 @@ static OPND *asm_add_exp();
 static OPND *asm_and_exp();
 static OPND *asm_cond_exp();
 static opflag_t asm_determine_operand_flags(OPND *popnd);
-code *asm_genloc(Loc loc, code *c);
-int asm_getnum();
+static code *asm_genloc(Loc loc, code *c);
+static int asm_getnum();
 
 static void asmerr(const char *, ...);
 
@@ -494,7 +498,6 @@ static PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
     opflag_t opflags2 = 0;
     opflag_t opflags3 = 0;
     opflag_t opflags4 = 0;
-    bool    bFake = false;
     bool    bInvalid64bit = false;
 
     bool   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = false;
@@ -710,25 +713,48 @@ TYPE_SIZE_ERROR:
                 {
                     //printf("match\n");
 
-                    /* If they both match and the first op in the table is not AL
-                     * or size of 8 and the second is immediate 8,
-                     * then check to see if the constant
-                     * is a signed 8 bit constant.  If so, then do not match, otherwise match
+                    /* Don't match if implicit sign-extension will
+                     * change the value of the immediate operand
                      */
-                    if (!bRetry &&
-                        !((ASM_GET_uSizemask(table2->usOp1) & _8) ||
-                          (ASM_GET_uRegmask(table2->usOp1) & _al)) &&
-                        (ASM_GET_aopty(table2->usOp2) == _imm) &&
-                        (ASM_GET_uSizemask(table2->usOp2) & _8))
+                    if (!bRetry && ASM_GET_aopty(table2->usOp2) == _imm)
                     {
-
-                        if (popnd2->disp <= SCHAR_MAX)
-                            break;
-                        else
-                            bFake = true;
+                        int op1size = ASM_GET_uSizemask(table2->usOp1);
+                        if (!op1size) // implicit register operand
+                        {
+                            switch (ASM_GET_uRegmask(table2->usOp1))
+                            {
+                                case ASM_GET_uRegmask(_al):
+                                case ASM_GET_uRegmask(_cl): op1size = _8; break;
+                                case ASM_GET_uRegmask(_ax):
+                                case ASM_GET_uRegmask(_dx): op1size = _16; break;
+                                case ASM_GET_uRegmask(_eax): op1size = _32; break;
+                                case ASM_GET_uRegmask(_rax): op1size = _64; break;
+                                default:
+                                    assert(0);
+                            }
+                        }
+                        if (op1size > ASM_GET_uSizemask(table2->usOp2))
+                        {
+                            switch(ASM_GET_uSizemask(table2->usOp2))
+                            {
+                                case _8:
+                                    if (popnd2->disp > SCHAR_MAX)
+                                        continue;
+                                    break;
+                                case _16:
+                                    if (popnd2->disp > SHRT_MAX)
+                                        continue;
+                                    break;
+                                case _32:
+                                    if (popnd2->disp > INT_MAX)
+                                        continue;
+                                    break;
+                                default:
+                                    assert(0);
+                            }
+                        }
                     }
-                    else
-                        break;
+                    break;
                 }
                 if (asmstate.ucItype == ITopt ||
                     asmstate.ucItype == ITfloat)
@@ -970,7 +996,7 @@ TYPE_SIZE_ERROR:
         }
     }
 RETURN_IT:
-    if (bRetry && !bFake)
+    if (bRetry)
     {
         asmerr("bad type/size of operands '%s'", asm_opstr(pop));
     }
@@ -1203,7 +1229,7 @@ static code *asm_emit(Loc loc,
     OPND *popndTmp = NULL;
     ASM_OPERAND_TYPE    aoptyTmp;
     unsigned  uSizemaskTmp;
-    REG     *pregSegment;
+    const REG *pregSegment;
     code    *pcPrefix = NULL;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
     ASM_MODIFIERS       amod1 = _normal, amod2 = _normal;
@@ -1998,19 +2024,11 @@ L2:
  * Prepend line number to c.
  */
 
-code *asm_genloc(Loc loc, code *c)
+static code *asm_genloc(Loc loc, code *c)
 {
     if (global.params.symdebug)
     {
-        code *pcLin;
-        Srcpos srcpos;
-
-        memset(&srcpos, 0, sizeof(srcpos));
-        srcpos.Slinnum = loc.linnum;
-        srcpos.Scharnum = loc.charnum;
-        srcpos.Sfilename = (char *)loc.filename;
-        pcLin = genlinnum(NULL, srcpos);
-        c = cat(pcLin, c);
+        c = cat(genlinnum(NULL, Srcpos::create(loc.filename, loc.linnum, loc.charnum)), c);
     }
     return c;
 }
@@ -2086,7 +2104,7 @@ static bool asm_isNonZeroInt(OPND *o)
 /*******************************
  */
 
-static bool asm_is_fpreg(char *szReg)
+static bool asm_is_fpreg(const char *szReg)
 {
 #if 1
     return(szReg[0] == 'S' &&
@@ -2318,7 +2336,7 @@ static void asm_merge_symbol(OPND *o1, Dsymbol *s)
             goto L2;
         }
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) &&
-            !v->type->isfloating() && v->_init)
+            !v->type->isfloating() && v->type->ty != Tvector && v->_init)
         {
             ExpInitializer *ei = v->_init->isExpInitializer();
             if (ei)
@@ -3298,7 +3316,7 @@ static void asm_output_popnd(OPND *popnd)
 /*******************************
  */
 
-static REG *asm_reg_lookup(char *s)
+static const REG *asm_reg_lookup(const char *s)
 {
     int i;
 
@@ -3347,7 +3365,7 @@ static void asm_token_trans(Token *tok)
         if (tok_value == TOKidentifier)
         {
             size_t len;
-            char *id;
+            const char *id;
 
             id = tok->ident->toChars();
             len = strlen(id);
@@ -3405,8 +3423,7 @@ static unsigned asm_type_size(Type * ptype)
 
 static code *asm_da_parse(OP *pop)
 {
-    code *clst = NULL;
-
+    CodeBuilder cb;
     while (1)
     {
         if (tok_value == TOKidentifier)
@@ -3415,13 +3432,9 @@ static code *asm_da_parse(OP *pop)
             if (!label)
                 error(asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
 
-            code *c = code_calloc();
-            c->Iop = ASM;
-            c->Iflags = CFaddrsize;
-            c->IFL1 = FLblockoff;
-            c->IEVlsym1 = label;
-            c = asm_genloc(asmstate.loc, c);
-            clst = cat(clst,c);
+            if (global.params.symdebug)
+                cb.genlinnum(Srcpos::create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
+            cb.genasm(label);
         }
         else
             error(asmstate.loc, "label expected as argument to DA pseudo-op"); // illegal addressing mode
@@ -3434,7 +3447,7 @@ static code *asm_da_parse(OP *pop)
     asmstate.statement->regs |= mES|ALLREGS;
     asmstate.bReturnax = true;
 
-    return clst;
+    return cb.finish();
 }
 
 /*******************************************
@@ -3443,9 +3456,6 @@ static code *asm_da_parse(OP *pop)
 
 static code *asm_db_parse(OP *pop)
 {
-    size_t usSize;
-    size_t usMaxbytes;
-    size_t usBytes;
     union DT
     {
         targ_ullong ul;
@@ -3454,17 +3464,15 @@ static code *asm_db_parse(OP *pop)
         targ_ldouble ld;
         char value[10];
     } dt;
-    code *c;
-    unsigned op;
-    static unsigned char opsize[] = { 1,2,4,8,4,8,10 };
 
-    op = pop->usNumops & ITSIZE;
-    usSize = opsize[op];
+    static const unsigned char opsize[] = { 1,2,4,8,4,8,10 };
 
-    usBytes = 0;
-    usMaxbytes = 0;
-    c = code_calloc();
-    c->Iop = ASM;
+    unsigned op = pop->usNumops & ITSIZE;
+    size_t usSize = opsize[op];
+
+    size_t usBytes = 0;
+    size_t usMaxbytes = 0;
+    char *bytes = NULL;
 
     while (1)
     {
@@ -3475,7 +3483,7 @@ static code *asm_db_parse(OP *pop)
         if (usBytes+usSize > usMaxbytes)
         {
             usMaxbytes = usBytes + usSize + 10;
-            c->IEV1.as.bytes = (char *)mem_realloc(c->IEV1.as.bytes,usMaxbytes);
+            bytes = (char *)mem_realloc(bytes, usMaxbytes);
         }
         switch (tok_value)
         {
@@ -3510,13 +3518,13 @@ static code *asm_db_parse(OP *pop)
                 switch (op)
                 {
                     case OPdf:
-                        dt.f = asmtok->float80value;
+                        dt.f = asmtok->floatvalue;
                         break;
                     case OPdd:
-                        dt.d = asmtok->float80value;
+                        dt.d = asmtok->floatvalue;
                         break;
                     case OPde:
-                        dt.ld = asmtok->float80value;
+                        dt.ld = asmtok->floatvalue;
                         break;
                     default:
                         asmerr("integer expected");
@@ -3524,7 +3532,7 @@ static code *asm_db_parse(OP *pop)
                 goto L2;
 
             L2:
-                memcpy(c->IEV1.as.bytes + usBytes,&dt,usSize);
+                memcpy(bytes + usBytes, &dt, usSize);
                 usBytes += usSize;
                 break;
 
@@ -3535,11 +3543,10 @@ static code *asm_db_parse(OP *pop)
                 if (len)
                 {
                     usMaxbytes += len * usSize;
-                    c->IEV1.as.bytes =
-                        (char *)mem_realloc(c->IEV1.as.bytes,usMaxbytes);
-                    memcpy(c->IEV1.as.bytes + usBytes,asmtok->ustring,len);
+                    bytes = (char *)mem_realloc(bytes, usMaxbytes);
+                    memcpy(bytes + usBytes, asmtok->ustring, len);
 
-                    char *p = c->IEV1.as.bytes + usBytes;
+                    char *p = bytes + usBytes;
                     for (size_t i = 0; i < len; i++)
                     {
                         // Be careful that this works
@@ -3630,7 +3637,6 @@ static code *asm_db_parse(OP *pop)
                 asmerr("constant initializer expected");          // constant initializer
                 break;
         }
-        c->IEV1.as.len = usBytes;
 
         asm_token();
         if (tok_value != TOKcomma)
@@ -3638,7 +3644,12 @@ static code *asm_db_parse(OP *pop)
         asm_token();
     }
 
-    c = asm_genloc(asmstate.loc, c);
+    CodeBuilder cb;
+    if (global.params.symdebug)
+        cb.genlinnum(Srcpos::create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
+    cb.genasm(bytes, usBytes);
+    code *c = cb.finish();
+    mem_free(bytes);
 
     asmstate.statement->regs |= /* mES| */ ALLREGS;
     asmstate.bReturnax = true;
@@ -3650,7 +3661,7 @@ static code *asm_db_parse(OP *pop)
  * Parse and get integer expression.
  */
 
-int asm_getnum()
+static int asm_getnum()
 {
     int v;
     dinteger_t i;
@@ -4260,7 +4271,7 @@ static OPND *asm_primary_exp()
     Dsymbol *s;
     Dsymbol *scopesym;
 
-    REG *regp;
+    const REG *regp;
 
     switch (tok_value)
     {
@@ -4452,21 +4463,21 @@ static OPND *asm_primary_exp()
 
         case TOKfloat32v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat32;
             asm_token();
             break;
 
         case TOKfloat64v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat64;
             asm_token();
             break;
 
         case TOKfloat80v:
             o1 = new OPND();
-            o1->real = asmtok->float80value;
+            o1->real = asmtok->floatvalue;
             o1->ptype = Type::tfloat80;
             asm_token();
             break;
@@ -4500,6 +4511,7 @@ void iasm_term()
 
 /**********************************
  * Return mask of registers used by block bp.
+ * Called from back end.
  */
 
 regm_t iasm_regs(block *bp)

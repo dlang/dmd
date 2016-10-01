@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/enum.h
+ * https://github.com/dlang/dmd/blob/master/src/enum.h
  */
 
 #ifndef DMD_ENUM_H
@@ -49,7 +49,6 @@ public:
     bool added;
     int inuse;
 
-    EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
@@ -89,7 +88,6 @@ public:
 
     EnumDeclaration *ed;
 
-    EnumMember(Loc loc, Identifier *id, Expression *value, Type *origType);
     Dsymbol *syntaxCopy(Dsymbol *s);
     const char *kind();
     void semantic(Scope *sc);

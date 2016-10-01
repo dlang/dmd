@@ -101,14 +101,7 @@ regm_t msavereg;        // Mask of registers that we would like to save.
                         // they are temporaries (set by scodelem())
 regm_t mfuncreg;        // Mask of registers preserved by a function
 
-#if __DMC__
-extern "C" {
-// make sure it isn't merged with ALLREGS
-regm_t __cdecl allregs;         // ALLREGS optionally including mBP
-}
-#else
 regm_t allregs;                // ALLREGS optionally including mBP
-#endif
 
 int dfoidx;                     /* which block we are in                */
 struct CSE *csextab = NULL;     /* CSE table (allocated for each function) */
@@ -147,7 +140,7 @@ void codgen()
     tym_t functy = tybasic(funcsym_p->ty());
     cod3_initregs();
     allregs = ALLREGS;
-    pass = PASSinit;
+    pass = PASSinitial;
     Alloca.init();
     anyiasm = 0;
 
@@ -155,7 +148,7 @@ tryagain:
     #ifdef DEBUG
     if (debugr)
         printf("------------------ PASS%s -----------------\n",
-            (pass == PASSinit) ? "init" : ((pass == PASSreg) ? "reg" : "final"));
+            (pass == PASSinitial) ? "init" : ((pass == PASSreg) ? "reg" : "final"));
     #endif
     lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
 
@@ -782,7 +775,7 @@ Lagain:
 
     CSoff = alignsection(Alloca.offset - cstop * REGSIZE, REGSIZE, bias);
 
-    NDPoff = alignsection(CSoff - NDP::savetop * tysize[TYldouble], REGSIZE, bias);
+    NDPoff = alignsection(CSoff - NDP::savetop * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;
@@ -1835,7 +1828,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         }
 #endif
         tym = tybasic(tym);
-        unsigned size = tysize[tym];
+        unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
         regm_t retregs = *pretregs;
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
@@ -2171,7 +2164,7 @@ bool cssave(elem *e,regm_t regm,unsigned opsflag)
             return false;
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
-        regm &= mBP | ALLREGS | mES;    /* just to be sure              */
+        regm &= mBP | ALLREGS | mES | XMMREGS;    /* just to be sure              */
 
 #if 0
         /* Do not register CSEs if they are register variables and      */
@@ -2299,20 +2292,23 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     code* c = CNIL;
     if (*pretregs == 0) goto done;        /* no possible side effects anyway */
 
-    if (tyfloating(e->Ety) && config.inline8087)
+    /* First construct a mask, emask, of all the registers that
+     * have the right contents.
+     */
+    emask = 0;
+    for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
+    {
+        //dbg_printf("regcon.cse.value[%d] = %p\n",i,regcon.cse.value[i]);
+        if (regcon.cse.value[i] == e)   // if contents are right
+                emask |= mask[i];       // turn on bit for reg
+    }
+    emask &= regcon.cse.mval;                     // make sure all bits are valid
+
+    if (emask & XMMREGS && *pretregs == mPSW)
+        ;
+    else if (tyfloating(e->Ety) && config.inline8087)
         return comsub87(e,pretregs);
 
-  /* First construct a mask, emask, of all the registers that   */
-  /* have the right contents.                                   */
-
-  emask = 0;
-  for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
-  {
-        //dbg_printf("regcon.cse.value[%d] = %p\n",i,regcon.cse.value[i]);
-        if (regcon.cse.value[i] == e)   /* if contents are right        */
-                emask |= mask[i];       /* turn on bit for reg          */
-  }
-  emask &= regcon.cse.mval;                     /* make sure all bits are valid */
 
   /* create mask of what's in csextab[] */
   csemask = 0;
@@ -2334,7 +2330,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
 #endif
 
   tym = tybasic(e->Ety);
-  sz = tysize[tym];
+  sz = _tysize[tym];
   byte = sz == 1;
 
   if (sz <= REGSIZE || tyvector(tym))                   // if data will fit in one register
@@ -2595,7 +2591,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
         if (e->Ecount)                          /* if common subexp     */
         {
             /* if no return value       */
-            if ((*pretregs & (mSTACK | mES | ALLREGS | mBP)) == 0)
+            if ((*pretregs & (mSTACK | mES | ALLREGS | mBP | XMMREGS)) == 0)
             {   if (tysize(e->Ety) == 1)
                     *pretregs |= BYTEREGS;
                 else if (tybasic(e->Ety) == TYdouble || tybasic(e->Ety) == TYdouble_alias)

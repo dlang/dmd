@@ -1,15 +1,16 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _opover.d)
+ */
 
 module ddmd.opover;
 
 import core.stdc.stdio;
-import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
@@ -43,22 +44,14 @@ extern (C++) bool isCommutative(TOK op)
     case TOKand:
     case TOKor:
     case TOKxor:
-        // EqualExp
+    // EqualExp
     case TOKequal:
     case TOKnotequal:
-        // CmpExp
+    // CmpExp
     case TOKlt:
     case TOKle:
     case TOKgt:
     case TOKge:
-    case TOKunord:
-    case TOKlg:
-    case TOKleg:
-    case TOKule:
-    case TOKul:
-    case TOKuge:
-    case TOKug:
-    case TOKue:
         return true;
     default:
         break;
@@ -1020,25 +1013,6 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         case TOKge:
                             e.op = TOKle;
                             break;
-                            // Floating point compares
-                        case TOKule:
-                            e.op = TOKuge;
-                            break;
-                        case TOKul:
-                            e.op = TOKug;
-                            break;
-                        case TOKuge:
-                            e.op = TOKule;
-                            break;
-                        case TOKug:
-                            e.op = TOKul;
-                            break;
-                            // These are symmetric
-                        case TOKunord:
-                        case TOKlg:
-                        case TOKleg:
-                        case TOKue:
-                            break;
                         default:
                             break;
                         }
@@ -1657,20 +1631,6 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             case TOKge:
                 e.op = TOKle;
                 break;
-                // Floating point compares
-            case TOKule:
-                e.op = TOKuge;
-                break;
-            case TOKul:
-                e.op = TOKug;
-                break;
-            case TOKuge:
-                e.op = TOKule;
-                break;
-            case TOKug:
-                e.op = TOKul;
-                break;
-                // The rest are symmetric
             default:
                 break;
             }
@@ -1977,8 +1937,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             break;
         }
     default:
-        break;
-        // ignore error, caught later
+        break; // ignore error, caught later
     }
     return true;
 }
@@ -2053,11 +2012,9 @@ extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* paramet
      */
     nparams = Parameter.dim(tf.parameters);
     if (nparams == 0 || tf.varargs)
-        goto Lnomatch;
-    // not enough parameters
+        goto Lnomatch; // not enough parameters
     if (parameters.dim != nparams)
-        goto Lnomatch;
-    // not enough parameters
+        goto Lnomatch; // not enough parameters
     for (size_t u = 0; u < nparams; u++)
     {
         p = (*parameters)[u];

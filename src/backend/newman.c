@@ -654,7 +654,7 @@ char *template_mangle(symbol *s,param_t *arglist)
                     {   case TYfloat:   ni = FLOATSIZE;  c = 'F'; goto L1;
                         case TYdouble_alias:
                         case TYdouble:  ni = DOUBLESIZE; c = 'D'; goto L1;
-                        case TYldouble: ni = tysize[TYldouble]; c = 'L'; goto L1;
+                        case TYldouble: ni = tysize(TYldouble); c = 'L'; goto L1;
                         L1:
                             if (NEWTEMPMANGLE)
                                 CHAR('$');

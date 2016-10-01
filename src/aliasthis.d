@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _aliasthis.d)
+ */
 
 module ddmd.aliasthis;
 
@@ -15,13 +17,10 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
-import ddmd.func;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.opover;
-import ddmd.root.outbuffer;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -30,7 +29,6 @@ import ddmd.visitor;
  */
 extern (C++) final class AliasThis : Dsymbol
 {
-public:
     Identifier ident;
 
     extern (D) this(Loc loc, Identifier ident)

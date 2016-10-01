@@ -9,14 +9,10 @@
  * For any other uses, please contact Digital Mars.
  */
 
-#if __cplusplus && TX86
-extern "C" {
-#endif
+#include <stddef.h>
 
-#if MARS
-class LabelDsymbol;
-class Declaration;
-#endif
+class LabelDsymbol;             // D only
+class Declaration;              // D only
 
 typedef int segidx_t;           // index into SegData[]
 
@@ -47,18 +43,19 @@ union evc
         targ_size_t Voffset;    // offset from symbol
         symbol  *Vsym;          // pointer to symbol table (FLfunc,FLextern)
     } sp;
-#if MARS
+
     struct
     {
         targ_size_t Voffset;    // offset from symbol
         Declaration *Vsym;      // pointer to D symbol table
     } dsp;
+
     struct
     {
         targ_size_t Voffset;    // offset from symbol
-        LabelDsymbol *Vsym;     // pointer to Label
+        LabelDsymbol *Vsym;     // pointer to D Label
     } lab;
-#endif
+
     struct
     {   size_t len;
         char *bytes;
@@ -83,6 +80,7 @@ void code_term();
 
 code *code_chunk_alloc();
 extern code *code_list;
+
 inline code *code_malloc()
 {
     //printf("code %d\n", sizeof(code));
@@ -158,16 +156,19 @@ struct LocalSection
 
 extern unsigned usednteh;
 
-#define NTEH_try        1       // used _try statement
-#define NTEH_except     2       // used _except statement
-#define NTEHexcspec     4       // had C++ exception specification
-#define NTEHcleanup     8       // destructors need to be called
-#define NTEHtry         0x10    // had C++ try statement
-#define NTEHcpp         (NTEHexcspec | NTEHcleanup | NTEHtry)
-#define EHcleanup       0x20    // has destructors in the 'code' instructions
-#define EHtry           0x40    // has BCtry or BC_try blocks
-#define NTEHjmonitor    0x80    // uses Mars monitor
-#define NTEHpassthru    0x100
+enum
+{
+    NTEH_try        = 1,      // used _try statement
+    NTEH_except     = 2,      // used _except statement
+    NTEHexcspec     = 4,      // had C++ exception specification
+    NTEHcleanup     = 8,      // destructors need to be called
+    NTEHtry         = 0x10,   // had C++ try statement
+    NTEHcpp         = (NTEHexcspec | NTEHcleanup | NTEHtry),
+    EHcleanup       = 0x20,   // has destructors in the 'code' instructions
+    EHtry           = 0x40,   // has BCtry or BC_try blocks
+    NTEHjmonitor    = 0x80,   // uses Mars monitor
+    NTEHpassthru    = 0x100,
+};
 
 /********************** Code Generator State ***************/
 
@@ -213,9 +214,12 @@ extern  targ_size_t localgotoffset;
 
 /* cgcod.c */
 extern int pass;
-#define PASSinit        0       // initial pass through code generator
-#define PASSreg         1       // register assignment pass
-#define PASSfinal       2       // final pass
+enum
+{
+    PASSinitial,        // initial pass through code generator
+    PASSreg,         // register assignment pass
+    PASSfinal,       // final pass
+};
 
 extern  int dfoidx;
 extern  struct CSE *csextab;
@@ -604,7 +608,8 @@ struct seg_data
     IDXSEC               SDshtidx;      // section header table index
     Outbuffer           *SDbuf;         // buffer to hold data
     Outbuffer           *SDrel;         // buffer to hold relocation info
-#if 1 //ELFOBJ
+
+    //ELFOBJ
     IDXSYM               SDsymidx;      // each section is in the symbol table
     IDXSEC               SDrelidx;      // section header for relocation info
     targ_size_t          SDrelmaxoff;   // maximum offset encountered
@@ -613,7 +618,6 @@ struct seg_data
     IDXSEC               SDshtidxout;   // final section header table index
     Symbol              *SDsym;         // if !=NULL, comdat symbol
     segidx_t             SDassocseg;    // for COMDATs, if !=0, this is the "associated" segment
-#endif
 
     unsigned            SDaranges_offset;       // if !=0, offset in .debug_aranges
 
@@ -652,6 +656,7 @@ extern seg_data **SegData;
 struct FuncParamRegs
 {
     FuncParamRegs(tym_t tyf);
+    static FuncParamRegs create(tym_t tyf);
 
     int alloc(type *t, tym_t ty, unsigned char *reg1, unsigned char *reg2);
 
@@ -660,8 +665,8 @@ struct FuncParamRegs
     int i;                      // ith parameter
     int regcnt;                 // how many general purpose registers are allocated
     int xmmcnt;                 // how many fp registers are allocated
-    size_t numintegerregs;      // number of gp registers that can be allocated
-    size_t numfloatregs;        // number of fp registers that can be allocated
+    unsigned numintegerregs;    // number of gp registers that can be allocated
+    unsigned numfloatregs;      // number of fp registers that can be allocated
     const unsigned char* argregs;       // map to gp register
     const unsigned char* floatregs;     // map to fp register
 };
@@ -681,19 +686,62 @@ inline regm_t Symbol::Spregm()
  *      value.
  */
 
-#if 1
 inline void regimmed_set(int reg, targ_size_t e)
 {
     regcon.immed.value[reg] = e;
     regcon.immed.mval |= 1 << (reg);
     //printf("regimmed_set %s %d\n", regm_str(mask[reg]), (int)e);
 }
-#else
-#define regimmed_set(reg,e) \
-        (regcon.immed.value[reg] = (e),regcon.immed.mval |= 1 << (reg))
-#endif
 
-#if __cplusplus && TX86
-}
-#endif
+
+struct CodeBuilder
+{
+  private:
+
+    code *head;
+    code **pTail;
+
+  public:
+    CodeBuilder() { head = NULL; pTail = &head; }
+    CodeBuilder(code *c);
+    code *finish() { return head; }
+
+    void append(CodeBuilder& cdb);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4);
+    void append(CodeBuilder& cdb1, CodeBuilder& cdb2, CodeBuilder& cdb3, CodeBuilder& cdb4, CodeBuilder& cdb5);
+
+    void append(code *c);
+
+    void gen(code *cs);
+    void gen1(unsigned op);
+    void gen2(unsigned op, unsigned rm);
+    void gen2sib(unsigned op, unsigned rm, unsigned sib);
+    void genasm(char *s, unsigned slen);
+    void genasm(LabelDsymbol *label);
+    void genasm(block *label);
+    void gencsi(unsigned op, unsigned rm, unsigned FL2, SYMIDX si);
+    void gencs(unsigned op, unsigned rm, unsigned FL2, symbol *s);
+    void genc2(unsigned op, unsigned rm, targ_size_t EV2);
+    void genc1(unsigned op, unsigned rm, unsigned FL1, targ_size_t EV1);
+    void genc(unsigned op, unsigned rm, unsigned FL1, targ_size_t EV1, unsigned FL2, targ_size_t EV2);
+    void genlinnum(Srcpos);
+    void genadjesp(int offset);
+    void genadjfpu(int offset);
+    void gennop();
+
+    /*****************
+     * Returns:
+     *  code that pTail points to
+     */
+    code *last()
+    {
+        // g++ and clang++ complain about offsetof() because of the code::code() constructor.
+        // return (code *)((char *)pTail - offsetof(code, next));
+        // So do our own.
+        return (code *)((char *)pTail - ((char*)&(*pTail)->next - (char*)*pTail));
+    }
+};
+
 

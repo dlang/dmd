@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _libelf.d)
+ */
 
 module ddmd.libelf;
 
@@ -12,36 +14,36 @@ import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.stdio;
-import core.stdc.stdarg;
 import core.sys.posix.sys.stat;
 import core.sys.posix.unistd;
+
 import ddmd.globals;
 import ddmd.lib;
+import ddmd.utils;
+
 import ddmd.root.array;
 import ddmd.root.file;
-import ddmd.root.outbuffer;
-import ddmd.root.stringtable;
 import ddmd.root.filename;
+import ddmd.root.outbuffer;
 import ddmd.root.port;
-import ddmd.mars;
+import ddmd.root.rmem;
+import ddmd.root.stringtable;
+
 import ddmd.scanelf;
-import ddmd.errors;
 
 enum LOG = false;
 
 struct ElfObjSymbol
 {
-    char* name;
+    const(char)[] name;
     ElfObjModule* om;
 }
 
 alias ElfObjModules = Array!(ElfObjModule*);
 alias ElfObjSymbols = Array!(ElfObjSymbol*);
 
-extern (C++) final class LibElf : Library
+final class LibElf : Library
 {
-public:
-    File* libfile;
     ElfObjModules objmodules; // ElfObjModule[]
     ElfObjSymbols objsymbols; // ElfObjSymbol[]
     StringTable tab;
@@ -51,41 +53,13 @@ public:
         tab._init(14000);
     }
 
-    /***********************************
-     * Set the library file name based on the output directory
-     * and the filename.
-     * Add default library file name extension.
-     */
-    override void setFilename(const(char)* dir, const(char)* filename)
-    {
-        static if (LOG)
-        {
-            printf("LibElf::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
-        }
-        const(char)* arg = filename;
-        if (!arg || !*arg)
-        {
-            // Generate lib file name from first obj name
-            const(char)* n = (*global.params.objfiles)[0];
-            n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
-        }
-        if (!FileName.absolute(arg))
-            arg = FileName.combine(dir, arg);
-        const(char)* libfilename = FileName.defaultExt(arg, global.lib_ext);
-        libfile = File.create(libfilename);
-        loc.filename = libfile.name.toChars();
-        loc.linnum = 0;
-        loc.charnum = 0;
-    }
-
     /***************************************
      * Add object module or library to the library.
      * Examine the buffer to see which it is.
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, void* buf, size_t buflen)
+    override void addObject(const(char)* module_name, const ubyte[] buffer)
     {
         if (!module_name)
             module_name = "";
@@ -93,7 +67,15 @@ public:
         {
             printf("LibElf::addObject(%s)\n", module_name);
         }
+
+        void corrupt(int reason)
+        {
+            error("corrupt ELF object module %s %d", module_name, reason);
+        }
+
         int fromfile = 0;
+        auto buf = buffer.ptr;
+        auto buflen = buffer.length;
         if (!buf)
         {
             assert(module_name[0]);
@@ -111,9 +93,7 @@ public:
             {
                 printf("buf = %p, buflen = %d\n", buf, buflen);
             }
-        Lcorrupt:
-            error("corrupt object module %s %d", module_name, reason);
-            return;
+            return corrupt(__LINE__);
         }
         if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
         {
@@ -134,51 +114,33 @@ public:
             while (offset < buflen)
             {
                 if (offset + ElfLibHeader.sizeof >= buflen)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 ElfLibHeader* header = cast(ElfLibHeader*)(cast(ubyte*)buf + offset);
                 offset += ElfLibHeader.sizeof;
                 char* endptr = null;
                 uint size = cast(uint)strtoul(header.file_size.ptr, &endptr, 10);
                 if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 if (offset + size > buflen)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 if (header.object_name[0] == '/' && header.object_name[1] == ' ')
                 {
                     /* Instead of rescanning the object modules we pull from a
                      * library, just use the already created symbol table.
                      */
                     if (symtab)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt;
-                    }
+                        return corrupt(__LINE__);
                     symtab = cast(char*)buf + offset;
                     symtab_size = size;
                     if (size < 4)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt;
-                    }
+                        return corrupt(__LINE__);
                 }
                 else if (header.object_name[0] == '/' && header.object_name[1] == '/')
                 {
                     /* This is the file name table, save it for later.
                      */
                     if (filenametab)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt;
-                    }
+                        return corrupt(__LINE__);
                     filenametab = cast(char*)buf + offset;
                     filenametab_size = size;
                 }
@@ -197,39 +159,35 @@ public:
                         for (i = 0; 1; i++)
                         {
                             if (foff + i >= filenametab_size)
-                            {
-                                reason = 7;
-                                goto Lcorrupt;
-                            }
+                                return corrupt(__LINE__);
                             char c = filenametab[foff + i];
                             if (c == '/')
                                 break;
                         }
-                        om.name = cast(char*)malloc(i + 1);
-                        assert(om.name);
-                        memcpy(om.name, filenametab + foff, i);
-                        om.name[i] = 0;
+                        auto n = cast(char*)malloc(i + 1);
+                        assert(n);
+                        memcpy(n, filenametab + foff, i);
+                        n[i] = 0;
+                        om.name = n[0 .. i];
                     }
                     else
                     {
                         /* Pick short name out of header
                          */
-                        om.name = cast(char*)malloc(ELF_OBJECT_NAME_SIZE);
-                        assert(om.name);
+                        auto n = cast(char*)malloc(ELF_OBJECT_NAME_SIZE);
+                        assert(n);
                         for (int i = 0; 1; i++)
                         {
                             if (i == ELF_OBJECT_NAME_SIZE)
-                            {
-                                reason = __LINE__;
-                                goto Lcorrupt;
-                            }
+                                return corrupt(__LINE__);
                             char c = header.object_name[i];
                             if (c == '/')
                             {
-                                om.name[i] = 0;
+                                n[i] = 0;
+                                om.name = n[0 .. i];
                                 break;
                             }
-                            om.name[i] = c;
+                            n[i] = c;
                         }
                     }
                     om.name_offset = -1;
@@ -243,10 +201,7 @@ public:
                 offset += (size + 1) & ~1;
             }
             if (offset != buflen)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             /* Scan the library's symbol table, and insert it into our own.
              * We use this instead of rescanning the object module, because
              * the library's creator may have a different idea of what symbols
@@ -256,36 +211,26 @@ public:
             uint nsymbols = Port.readlongBE(symtab);
             char* s = symtab + 4 + nsymbols * 4;
             if (4 + nsymbols * (4 + 1) > symtab_size)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             for (uint i = 0; i < nsymbols; i++)
             {
-                char* name = s;
-                s += strlen(name) + 1;
+                const(char)[] name = s[0 .. strlen(s)];
+                s += name.length + 1;
                 if (s - symtab > symtab_size)
-                {
-                    reason = __LINE__;
-                    goto Lcorrupt;
-                }
+                    return corrupt(__LINE__);
                 uint moff = Port.readlongBE(symtab + 4 + i * 4);
-                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name);
+                //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name.ptr);
                 for (uint m = mstart; 1; m++)
                 {
                     if (m == objmodules.dim)
-                    {
-                        reason = __LINE__;
-                        goto Lcorrupt;
-                        // didn't find it
-                    }
+                        return corrupt(__LINE__);  // didn't find it
                     ElfObjModule* om = objmodules[m];
                     //printf("\t%x\n", (char *)om->base - (char *)buf);
                     if (moff + ElfLibHeader.sizeof == cast(char*)om.base - cast(char*)buf)
                     {
                         addSymbol(om, name, 1);
-                        //                  if (mstart == m)
-                        //                      mstart++;
+                        //if (mstart == m)
+                        //    mstart++;
                         break;
                     }
                 }
@@ -298,7 +243,8 @@ public:
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        om.name = cast(char*)FileName.name(module_name); // remove path, but not extension
+        auto n = cast(char*)FileName.name(module_name); // remove path, but not extension
+        om.name = n[0 .. strlen(n)];
         om.name_offset = -1;
         om.scan = 1;
         if (fromfile)
@@ -306,10 +252,7 @@ public:
             stat_t statbuf;
             int i = stat(module_name, &statbuf);
             if (i == -1) // error, errno is set
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;
             om.user_id = statbuf.st_uid;
             om.group_id = statbuf.st_gid;
@@ -338,46 +281,29 @@ public:
     }
 
     /*****************************************************************************/
-    override void addLibrary(void* buf, size_t buflen)
-    {
-        addObject(null, buf, buflen);
-    }
 
-    override void write()
-    {
-        if (global.params.verbose)
-            fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());
-        OutBuffer libbuf;
-        WriteLibToBuffer(&libbuf);
-        // Transfer image to file
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc(), libfile.name.toChars());
-        writeFile(Loc(), libfile);
-    }
-
-    void addSymbol(ElfObjModule* om, char* name, int pickAny = 0)
+    void addSymbol(ElfObjModule* om, const(char)[] name, int pickAny = 0)
     {
         static if (LOG)
         {
-            printf("LibElf::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
+            printf("LibElf::addSymbol(%s, %s, %d)\n", om.name.ptr, name.ptr, pickAny);
         }
-        StringValue* s = tab.insert(name, strlen(name));
+        StringValue* s = tab.insert(name.ptr, name.length, null);
         if (!s)
         {
             // already in table
             if (!pickAny)
             {
-                s = tab.lookup(name, strlen(name));
+                s = tab.lookup(name.ptr, name.length);
                 assert(s);
                 ElfObjSymbol* os = cast(ElfObjSymbol*)s.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                error("multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
             }
         }
         else
         {
             auto os = new ElfObjSymbol();
-            os.name = strdup(name);
+            os.name = xarraydup(name);
             os.om = om;
             s.ptrvalue = cast(void*)os;
             objsymbols.push(os);
@@ -393,27 +319,15 @@ private:
     {
         static if (LOG)
         {
-            printf("LibElf::scanObjModule(%s)\n", om.name);
+            printf("LibElf::scanObjModule(%s)\n", om.name.ptr);
         }
-        struct Context
+
+        extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            LibElf lib;
-            ElfObjModule* om;
-
-            extern (D) this(LibElf lib, ElfObjModule* om)
-            {
-                this.lib = lib;
-                this.om = om;
-            }
-
-            extern (C++) static void addSymbol(void* pctx, char* name, int pickAny)
-            {
-                (cast(Context*)pctx).lib.addSymbol((cast(Context*)pctx).om, name, pickAny);
-            }
+            this.addSymbol(om, name, pickAny);
         }
 
-        auto ctx = Context(this, om);
-        scanElfObjModule(&ctx, &Context.addSymbol, om.base, om.length, om.name, loc);
+        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
     }
 
     /*****************************************************************************/
@@ -426,7 +340,7 @@ private:
      *      dictionary
      *      object modules...
      */
-    void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void WriteLibToBuffer(OutBuffer* libbuf)
     {
         static if (LOG)
         {
@@ -448,7 +362,7 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             ElfObjModule* om = objmodules[i];
-            size_t len = strlen(om.name);
+            size_t len = om.name.length;
             if (len >= ELF_OBJECT_NAME_SIZE)
             {
                 om.name_offset = noffset;
@@ -466,7 +380,7 @@ private:
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             ElfObjSymbol* os = objsymbols[i];
-            moffset += 4 + strlen(os.name) + 1;
+            moffset += 4 + os.name.length + 1;
         }
         uint hoffset = moffset;
         static if (LOG)
@@ -491,7 +405,7 @@ private:
         om.base = null;
         om.length = cast(uint)(hoffset - (8 + ElfLibHeader.sizeof));
         om.offset = 8;
-        om.name = cast(char*)"";
+        om.name = "";
         .time(&om.file_time);
         om.user_id = 0;
         om.group_id = 0;
@@ -563,16 +477,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-
-    void error(const(char)* format, ...)
-    {
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-    Loc loc;
 }
 
 extern (C++) Library LibElf_factory()
@@ -587,7 +491,7 @@ struct ElfObjModule
     ubyte* base; // where are we holding it in memory
     uint length; // in bytes
     uint offset; // offset from start of library
-    char* name; // module name (file name)
+    const(char)[] name; // module name (file name) with terminating 0
     int name_offset; // if not -1, offset into string table of name
     time_t file_time; // file time
     uint user_id;
@@ -624,9 +528,9 @@ extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
         // "name/           1423563789  5000  5000  100640  3068      `\n"
         //  |^^^^^^^^^^^^^^^|^^^^^^^^^^^|^^^^^|^^^^^|^^^^^^^|^^^^^^^^^|^^
         //        name       file_time   u_id gr_id  fmode    fsize   trailer
-        len = snprintf(buffer, ElfLibHeader.sizeof, "%-16s%-12llu%-6u%-6u%-8o%-10u`", om.name, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
+        len = snprintf(buffer, ElfLibHeader.sizeof, "%-16s%-12llu%-6u%-6u%-8o%-10u`", om.name.ptr, cast(long)om.file_time, om.user_id, om.group_id, om.file_mode, om.length);
         // adding '/' after the name field
-        const(size_t) name_length = strlen(om.name);
+        const(size_t) name_length = om.name.length;
         assert(name_length < ELF_OBJECT_NAME_SIZE);
         buffer[name_length] = '/';
     }

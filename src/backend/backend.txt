@@ -8,7 +8,6 @@ bcomplex.h      header for our own complex numbers
 blockopt.c      manage and simple optimizations on graphs of basic blocks
 cc.h            main header file for back end
 cdef.h          configuration
-cdeflnx.h       configuration for linux
 cg.c            global variables for code generator
 cg87.c          x87 FPU code generation
 cgcod.c         main loop for code generator

@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2015 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/mars.h
+ * https://github.com/dlang/dmd/blob/master/src/mars.h
  */
 
 #ifndef DMD_GLOBALS_H
@@ -16,7 +16,7 @@
 #pragma once
 #endif
 
-#include "longdouble.h"
+#include "ctfloat.h"
 #include "outbuffer.h"
 #include "filename.h"
 
@@ -62,6 +62,7 @@ struct Param
     bool isFreeBSD;     // generate code for FreeBSD
     bool isOpenBSD;     // generate code for OpenBSD
     bool isSolaris;     // generate code for Solaris
+    bool hasObjectiveC; // target supports Objective-C
     bool mscoff;        // for Win32: write COFF object files instead of OMF
     // 0: don't allow use of deprecated features
     // 1: silently allow use of deprecated features
@@ -92,9 +93,10 @@ struct Param
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
-    bool dwarfeh;       // generate dwarf eh exception handling
     bool check10378;    // check for issues transitioning to 10738
     bool bug10378;      // use pre-bugzilla 10378 search strategy
+    bool safe;          // use enhanced @safe checking
+    bool showGaggedErrors;  // print gagged errors anyway
 
     BOUNDSCHECK useArrayBounds;
 
@@ -113,6 +115,7 @@ struct Param
     bool doHdrGeneration;  // process embedded documentation comments
     const char *hdrdir;    // write 'header' file to docdir directory
     const char *hdrname;   // write 'header' file to docname
+    bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
     bool doJsonGeneration;    // write JSON file
     const char *jsonfilename; // write JSON file to jsonfilename
@@ -239,12 +242,6 @@ typedef uint32_t                d_uns32;
 typedef int64_t                 d_int64;
 typedef uint64_t                d_uns64;
 
-typedef float                   d_float32;
-typedef double                  d_float64;
-typedef longdouble              d_float80;
-
-typedef longdouble real_t;
-
 // Represents a D [ ] array
 template<typename T>
 struct DArray
@@ -282,6 +279,13 @@ enum LINK
     LINKwindows,
     LINKpascal,
     LINKobjc,
+};
+
+enum CPPMANGLE
+{
+    def,
+    asStruct,
+    asClass,
 };
 
 enum DYNCAST

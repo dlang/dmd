@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/tocvdebug.c
+ * https://github.com/dlang/dmd/blob/master/src/tocvdebug.c
  */
 
 #include <stdio.h>
@@ -55,11 +55,11 @@ int cvMember(Dsymbol *s, unsigned char *p);
  * Convert D protection attribute to cv attribute.
  */
 
-unsigned PROTtoATTR(Prot prot)
+unsigned PROTtoATTR(PROTKIND prot)
 {
     unsigned attribute;
 
-    switch (prot.kind)
+    switch (prot)
     {
         case PROTprivate:       attribute = 1;  break;
         case PROTpackage:       attribute = 2;  break;
@@ -677,7 +677,7 @@ void toDebug(ClassDeclaration *cd)
             {
                 BaseClass *bc = (*cd->baseclasses)[i];
                 idx_t typidx = cv4_typidx(Type_toCtype(bc->sym->type)->Tnext);
-                unsigned attribute = PROTtoATTR(bc->protection);
+                unsigned attribute = PROTtoATTR(PROTpublic);
 
                 unsigned elementlen;
                 switch (config.fulltypes)
@@ -777,7 +777,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
         {
         }
 
-        void cvMemberCommon(Dsymbol *s, char *id, idx_t typidx)
+        void cvMemberCommon(Dsymbol *s, const char *id, idx_t typidx)
         {
             if (!p)
                 result = cv_stringbytes(id);
@@ -841,7 +841,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             if (!fd->type)                  // if not compiled in,
                 return;               // skip it
 
-            char *id = fd->toChars();
+            const char *id = fd->toChars();
 
             if (!p)
             {
@@ -867,7 +867,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
                 q += 2;
         //      for (s = sf; s; s = s->Sfunc->Foversym)
                 {
-                    unsigned attribute = PROTtoATTR(fd->prot());
+                    unsigned attribute = PROTtoATTR(fd->prot().kind);
 
                     /* 0*4 vanilla method
                      * 1*4 virtual method
@@ -953,7 +953,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             if (vd->type->toBasetype()->ty == Ttuple)
                 return;
 
-            char *id = vd->toChars();
+            const char *id = vd->toChars();
 
             if (!p)
             {
@@ -975,7 +975,7 @@ int cvMember(Dsymbol *s, unsigned char *p)
             else
             {
                 idx_t typidx = cv_typidx(Type_toCtype(vd->type));
-                unsigned attribute = PROTtoATTR(vd->prot());
+                unsigned attribute = PROTtoATTR(vd->prot().kind);
                 assert((attribute & ~3) == 0);
                 switch (config.fulltypes)
                 {

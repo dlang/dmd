@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -o-
+// REQUIRED_ARGS: -o- -d
 
 struct S1 { int v; }
 struct S2 { int* p; }
@@ -7,14 +7,14 @@ class C { int v; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(32): Error: escaping reference to local x
+fail_compilation/fail13902.d(32): Error: escaping reference to local variable x
 fail_compilation/fail13902.d(33): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(38): Error: escaping reference to local sa1
+fail_compilation/fail13902.d(38): Error: escaping reference to local variable sa1
 fail_compilation/fail13902.d(39): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(40): Error: escaping reference to local x
-fail_compilation/fail13902.d(41): Error: escaping reference to local x
-fail_compilation/fail13902.d(42): Error: escaping reference to local x
-fail_compilation/fail13902.d(45): Error: escaping reference to local y
+fail_compilation/fail13902.d(40): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(41): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(42): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(45): Error: escaping reference to local variable y
 ---
 */
 int* testEscape1()
@@ -50,14 +50,14 @@ int* testEscape1()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(75): Error: escaping reference to local x
+fail_compilation/fail13902.d(75): Error: escaping reference to local variable x
 fail_compilation/fail13902.d(76): Error: escaping reference to local variable s1
-fail_compilation/fail13902.d(81): Error: escaping reference to local sa1
+fail_compilation/fail13902.d(81): Error: escaping reference to local variable sa1
 fail_compilation/fail13902.d(82): Error: escaping reference to local variable sa2
-fail_compilation/fail13902.d(83): Error: escaping reference to local x
-fail_compilation/fail13902.d(84): Error: escaping reference to local x
-fail_compilation/fail13902.d(85): Error: escaping reference to local x
-fail_compilation/fail13902.d(88): Error: escaping reference to local y
+fail_compilation/fail13902.d(83): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(84): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(85): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(88): Error: escaping reference to local variable y
 ---
 */
 int* testEscape2(
@@ -287,8 +287,8 @@ ref int testEscapeRef2(
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(294): Error: escaping reference to local x
-fail_compilation/fail13902.d(295): Error: escaping reference to local x
+fail_compilation/fail13902.d(294): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(295): Error: escaping reference to local variable x
 ---
 */
 int*[]  testArrayLiteral1() { int x; return [&x]; }
@@ -297,8 +297,8 @@ int*[1] testArrayLiteral2() { int x; return [&x]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(304): Error: escaping reference to local x
-fail_compilation/fail13902.d(305): Error: escaping reference to local x
+fail_compilation/fail13902.d(304): Error: escaping reference to local variable x
+fail_compilation/fail13902.d(305): Error: escaping reference to local variable x
 ---
 */
 S2  testStructLiteral1() { int x; return     S2(&x); }
@@ -317,8 +317,8 @@ int[] testSlice2() { int[3] sa; int n; return sa[n..2][1..2]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(324): Error: escaping reference to the payload of variadic parameter vda
-fail_compilation/fail13902.d(325): Error: escaping reference to the payload of variadic parameter vda
+fail_compilation/fail13902.d(324): Error: escaping reference to local variable vda
+fail_compilation/fail13902.d(325): Error: escaping reference to variadic parameter vda
 ---
 */
 ref int testDynamicArrayVariadic1(int[] vda...) { return vda[0]; }
@@ -328,8 +328,8 @@ int[3]  testDynamicArrayVariadic3(int[] vda...) { return vda[0..3]; }   // no er
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(335): Error: escaping reference to the payload of variadic parameter vsa
-fail_compilation/fail13902.d(336): Error: escaping reference to the payload of variadic parameter vsa
+fail_compilation/fail13902.d(335): Error: escaping reference to local variable vsa
+fail_compilation/fail13902.d(336): Error: escaping reference to variadic parameter vsa
 ---
 */
 ref int testStaticArrayVariadic1(int[3] vsa...) { return vsa[0]; }

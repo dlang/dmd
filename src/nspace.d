@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _nspace.d)
+ */
 
 module ddmd.nspace;
 
@@ -13,9 +15,7 @@ import ddmd.arraytypes;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.identifier;
-import ddmd.root.outbuffer;
 import ddmd.visitor;
 import core.stdc.stdio;
 
@@ -27,7 +27,6 @@ private enum LOG = false;
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
-public:
     extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
     {
         super(ident);

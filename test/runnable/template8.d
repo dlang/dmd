@@ -24,7 +24,7 @@ private string CreateAccessors(
     }
     else
     {
-        static const 
+        static const
             maskAllElse = ((1uL << len) - 1u) << offset,
             maskMyself = ~maskAllElse,
             signBitCheck = 1uL << (len - 1),
@@ -51,7 +51,7 @@ private string CreateAccessors(
                 ~ toStringSfx(offset) ~ ";";
             static if (T.min < 0)
             {
-                result ~= "if (result >= " ~ toStringSfx(signBitCheck) 
+                result ~= "if (result >= " ~ toStringSfx(signBitCheck)
                     ~ ") result |= " ~ toStringSfx(extendSign) ~ ";";
             }
             result ~= " return cast(" ~ T.stringof ~ ") result;}";

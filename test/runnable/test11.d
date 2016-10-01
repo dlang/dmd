@@ -213,7 +213,7 @@ int x12;
 void foo12(out Size12 sz)
 {
   sz.width = 2;
-  
+
   if(sz.width == 2)
     x12 = 1;
 }
@@ -222,7 +222,7 @@ void foo12(out Size12 sz)
 void test12()
 {
   Size12 sz;
-  
+
   foo12(sz);
   assert(x12 == 1);
   assert(sz.width == 2);
@@ -233,7 +233,7 @@ void test12()
 
 interface D13
 {
-    void setHostFrame();     
+    void setHostFrame();
 }
 
 class A13 : D13
@@ -241,8 +241,8 @@ class A13 : D13
     void setHostFrame()
     {
     }
-  
-    char         group; 
+
+    char         group;
 }
 
 
@@ -485,7 +485,7 @@ void test24()
       return true;
     }
   }
-  
+
   Test t;
   assert(t.bar(3));
 }
@@ -530,7 +530,7 @@ struct NODE27 {
     shared(NODE27) *next;
 }
 
-static shared NODE27 nodetbl[3] = 
+static shared NODE27 nodetbl[3] =
 [
     {   0,cast(shared(NODE27)*)nodetbl + 1},
     {   0,cast(shared(NODE27)*)nodetbl + 2},
@@ -572,9 +572,9 @@ void test28()
 void test29()
 {
   int[immutable(byte)[]] foo;
-  
+
   static immutable(byte)[] bar = [ 65, 66, 67 ];
-  
+
   foo[bar] = 1;
   assert(foo[bar] == 1);
 }
@@ -858,13 +858,13 @@ void test44()
    case "asdf":
      printf("asdf\n");
      break;
- 
+
 
    case "jkl":
      printf("jkl\n");
      assert(0);
      break;
- 
+
 
    default:
      printf("default\n");
@@ -905,20 +905,6 @@ void test46()
         x = 3;
     }
     assert(f.x == 3);
-}
-
-/**************************************/
-
-void test47()
-{
-    assert(0 <>=  1);
-    assert(0 <>   1);
-    assert(!(0 !<>= 1));
-    assert(!(0 !<>  1));
-    assert(!(0 !<=  1));
-    assert(!(0 !<   1));
-    assert(0 !>=  1);
-    assert(0 !>   1);
 }
 
 /**************************************/
@@ -1380,7 +1366,6 @@ int main(string[] argv)
     test44();
     test45();
     test46();
-    test47();
     test48();
     test49();
     test50();

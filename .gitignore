@@ -28,6 +28,7 @@ trace.def
 trace.log
 Makefile
 src/magicport/magicport
+src/SYSCONFDIR.imp
 
 # Visual Studio files
 *.exe
@@ -39,6 +40,7 @@ src/vcbuild/x64
 *.sdf
 *.opensdf
 *.user
+*.ilk
 ipch
 
 # Xcode files
@@ -49,6 +51,7 @@ dmd.xcodeproj/
 # Output files
 src/*.bak
 src/*.lib
+src/*.lst
 tags
 
 # OSX

@@ -59,7 +59,7 @@ targ_size_t type_size(type *t)
         dbg_printf("tyb = x%lx\n",(long)tyb);
 #endif
     assert(tyb < TYMAX);
-    s = tysize[tyb];
+    s = _tysize[tyb];
     if (s == (targ_size_t) -1)
     {
         switch (tyb)
@@ -93,7 +93,7 @@ targ_size_t type_size(type *t)
                 }
                 if (t->Tflags & TFvla)
                 {
-                    s = tysize[pointertype];
+                    s = _tysize[pointertype];
                     break;
                 }
                 s = type_size(t->Tnext);
@@ -215,7 +215,7 @@ L1:
  * Note that hidden parameters do not contribute to size.
  */
 
-targ_size_t type_paramsize(type *t)
+unsigned type_paramsize(type *t)
 {
     targ_size_t sz = 0;
     if (tyfunc(t->Tty))
@@ -825,7 +825,7 @@ elem *type_vla_fix(type **pt)
  * Modify the tym_t field of a type.
  */
 
-type *type_setty(type **pt,long newty)
+type *type_setty(type **pt,unsigned newty)
 {   type *t;
 
     t = *pt;

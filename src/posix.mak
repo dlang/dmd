@@ -27,7 +27,7 @@ TK=tk
 ROOT=root
 
 ifeq (osx,$(OS))
-    export MACOSX_DEPLOYMENT_TARGET=10.3
+    export MACOSX_DEPLOYMENT_TARGET=10.7
 endif
 
 HOST_CXX=c++
@@ -66,6 +66,7 @@ ifeq (,$(AUTO_BOOTSTRAP))
   HOST_DMD_RUN:=$(HOST_DMD)
 else
   # Auto-bootstrapping, will download dmd automatically
+  # Keep var below in sync with other occurrences of that variable, e.g. in circleci.sh
   HOST_DMD_VER=2.068.2
   HOST_DMD_ROOT=/tmp/.host_dmd-$(HOST_DMD_VER)
   # dmd.2.068.2.osx.zip or dmd.2.068.2.linux.tar.xz
@@ -145,7 +146,7 @@ CXXFLAGS += \
     -std=gnu++98
 endif
 # Default D compiler flags for all source files
-DFLAGS=
+DFLAGS= -version=MARS
 # Enable D warnings
 DFLAGS += -wi
 
@@ -183,6 +184,9 @@ endif
 ifdef ENABLE_PROFILE
 DFLAGS  += -profile
 endif
+ifdef ENABLE_COVERAGE
+DFLAGS  += -cov
+endif
 
 # Uniqe extra flags if necessary
 DMD_FLAGS  := -I$(ROOT) -Wuninitialized
@@ -205,7 +209,7 @@ FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
 	globals hdrgen id identifier impcnvtab imphint init inline intrange	\
 	json lexer lib link mars mtype nogc nspace opover optimize parse sapply	\
 	sideeffect statement staticassert target tokens traits utf visitor	\
-	typinf)
+	typinf utils statementsem safe)
 
 ifeq ($(D_OBJC),1)
 	FRONT_SRCS += objc.d
@@ -213,12 +217,12 @@ else
 	FRONT_SRCS += objc_stubs.d
 endif
 
-ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array file filename	\
-	longdouble man outbuffer port response rmem rootobject speller	\
+ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
+	filename man outbuffer port response rmem rootobject speller \
 	stringtable))
 
-GLUE_OBJS = glue.o msc.o s2ir.o todt.o e2ir.o tocsym.o toobj.o \
-	toir.o iasm.o
+GLUE_OBJS = s2ir.o e2ir.o toobj.o \
+	iasm.o
 
 
 ifeq ($(D_OBJC),1)
@@ -233,19 +237,19 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d,backend irstate toelfdebug toctype gluelayer)
+GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc)
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS)
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
 	blockopt.o cg.o type.o dt.o \
 	debug.o code.o ee.o symbol.o \
-	cgcod.o cod5.o outbuf.o \
+	cgcod.o cod5.o outbuf.o compress.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	divcoeff.o dwarf.o dwarfeh.o \
+	divcoeff.o dwarf.o dwarfeh.o varstats.o \
 	ph2.o util2.o eh.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
@@ -258,21 +262,27 @@ endif
 SRC = win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h idgen.d	\
-	import.h init.h intrange.h json.h lexer.h lib.h macro.h	\
-	mars.h module.h mtype.h nspace.h objc.h parse.h                         \
+	import.h init.h intrange.h json.h lexer.h \
+	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d         \
 	$(DMD_SRCS)
 
-ROOT_SRC = $(addprefix $(ROOT)/, array.h file.h filename.h		\
-	longdouble.h newdelete.c object.h outbuffer.h port.h rmem.h	\
-	root.h stringtable.h)
+ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
+	longdouble.h newdelete.c object.h outbuffer.h port.h \
+	rmem.h root.h stringtable.h)
 
-GLUE_SRC = glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
-	toobj.c tocvdebug.c toir.h toir.c \
+GLUE_SRC = s2ir.c e2ir.c \
+	toobj.c tocvdebug.c toir.h \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
+
+BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/dt.d $C/el.d $C/global.d \
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d \
+	$C/ty.d $C/type.d
+
+TK_HDRS= $(TK)/dlist.d
 
 BACK_SRC = \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
@@ -280,7 +290,7 @@ BACK_SRC = \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
 	$C/bcomplex.c $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
 	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
-	$C/cgreg.c $C/var.c $C/strtold.c \
+	$C/compress.c $C/cgreg.c $C/var.c $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
 	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
 	$C/evalu8.c $C/go.c $C/gflow.c $C/gdag.c \
@@ -293,6 +303,7 @@ BACK_SRC = \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
+	$C/varstats.c $C/varstats.h \
 	$C/md5.c $C/md5.h \
 	$C/ph2.c $C/util2.c $C/dwarfeh.c \
 	$(TARGET_CH)
@@ -481,9 +492,9 @@ zip:
 
 ifneq ($(DOCDIR),)
 html: $(DOCDIR)/.generated
-$(DOCDIR)/.generated: $(DMD_SRCS) $(ROOT_SRCS) $(HOST_DMD_PATH)
+$(DOCDIR)/.generated: $(DMD_SRCS) $(ROOT_SRCS) $(HOST_DMD_PATH) project.ddoc
 	$(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J. -c -Dd$(DOCDIR)\
-	  $(DFLAGS) $(DOCFMT) $(DMD_SRCS) $(ROOT_SRCS)
+	  $(DFLAGS) project.ddoc $(DOCFMT) $(DMD_SRCS) $(ROOT_SRCS)
 	touch $@
 endif
 

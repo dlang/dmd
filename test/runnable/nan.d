@@ -22,36 +22,36 @@ bool b;
 
 bool test()
 {
-	real r1 = real.nan;
-	real r2 = 1;
-	b = (r1 != r2); assert(b);
-	b = (r1 == r2); assert(!b);
-	b = (r1 <  r2); assert(!b);
-	b = (r1 >  r2); assert(!b);
-	b = (r1 <= r2); assert(!b);
-	b = (r1 >= r2); assert(!b);
+        real r1 = real.nan;
+        real r2 = 1;
+        b = (r1 != r2); assert(b);
+        b = (r1 == r2); assert(!b);
+        b = (r1 <  r2); assert(!b);
+        b = (r1 >  r2); assert(!b);
+        b = (r1 <= r2); assert(!b);
+        b = (r1 >= r2); assert(!b);
 
-	double d1 = double.nan;
-	double d2 = 1;
-	b = (d1 != d2); assert(b);
-	b = (d1 == d2); assert(!b);
-	b = (d1 <  d2); assert(!b);
-	b = (d1 >  d2); assert(!b);
-	b = (d1 <= d2); assert(!b);
-	b = (d1 >= d2); assert(!b);
+        double d1 = double.nan;
+        double d2 = 1;
+        b = (d1 != d2); assert(b);
+        b = (d1 == d2); assert(!b);
+        b = (d1 <  d2); assert(!b);
+        b = (d1 >  d2); assert(!b);
+        b = (d1 <= d2); assert(!b);
+        b = (d1 >= d2); assert(!b);
 
-	float f1 = float.nan;
-	float f2 = 1;
-	b = (f1 != f2); assert(b);
-	b = (f1 == f2); assert(!b);
-	b = (f1 <  f2); assert(!b);
-	b = (f1 >  f2); assert(!b);
-	b = (f1 <= f2); assert(!b);
-	b = (f1 >= f2); assert(!b);
-	return true;
+        float f1 = float.nan;
+        float f2 = 1;
+        b = (f1 != f2); assert(b);
+        b = (f1 == f2); assert(!b);
+        b = (f1 <  f2); assert(!b);
+        b = (f1 >  f2); assert(!b);
+        b = (f1 <= f2); assert(!b);
+        b = (f1 >= f2); assert(!b);
+        return true;
 }
 
 void main()
 {
-	assert(test());
+        assert(test());
 }

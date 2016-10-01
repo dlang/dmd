@@ -239,6 +239,7 @@ void test2c()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+    v1 = v1 * 3;
 
     //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
     static assert(!__traits(compiles, cast(byte)v1));       // 1byte
@@ -1032,22 +1033,34 @@ float4 test5(float4 a, float4 b)
 
     a = __simd_sto(XMM.STOSS, a, b);
     a = __simd_sto(XMM.STOSD, a, b);
+    a = __simd_sto(XMM.STOD, a, b);
+    a = __simd_sto(XMM.STOQ, a, b);
     a = __simd_sto(XMM.STOAPS, a, b);
     a = __simd_sto(XMM.STOAPD, a, b);
     a = __simd_sto(XMM.STODQA, a, b);
-    //a = __simd_sto(XMM.STOD, a, b);
-    a = __simd_sto(XMM.STOQ, a, b);
+    a = __simd_sto(XMM.STOUPS, a, b);
+    a = __simd_sto(XMM.STOUPD, a, b);
+    a = __simd_sto(XMM.STODQU, a, b);
+    a = __simd_sto(XMM.STOHPD, a, b);
+    a = __simd_sto(XMM.STOHPS, a, b);
+    a = __simd_sto(XMM.STOLPD, a, b);
+    a = __simd_sto(XMM.STOLPS, a, b);
 
     a = __simd(XMM.LODSS, a);
     a = __simd(XMM.LODSD, a);
     a = __simd(XMM.LODAPS, a);
     a = __simd(XMM.LODAPD, a);
     a = __simd(XMM.LODDQA, a);
-    //a = __simd(XMM.LODD, a);
-    a = __simd(XMM.LODQ, a);
-
+    a = __simd(XMM.LODUPS, a);
+    a = __simd(XMM.LODUPD, a);
     a = __simd(XMM.LODDQU, a);
-    a = __simd_sto(XMM.STODQU, a, b);
+    a = __simd(XMM.LODD, a);
+    a = __simd(XMM.LODQ, a);
+    a = __simd(XMM.LODHPD, a);
+    a = __simd(XMM.LODHPS, a);
+    a = __simd(XMM.LODLPD, a);
+    a = __simd(XMM.LODLPS, a);
+
     //MOVDQ2Q  = 0xF20FD6,        // MOVDQ2Q mmx, xmm          F2 0F D6 /r
 /+
     LODHPD   = 0x660F16,        // MOVHPD xmm, mem64         66 0F 16 /r
@@ -1386,7 +1399,7 @@ void foo13988(double[] arr)
 {
     static ulong repr(double d) { return *cast(ulong*)&d; }
     foreach (x; arr)
-	assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
+        assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
 }
 
 
@@ -1408,6 +1421,39 @@ void test15123()
     {
         auto x = V.init;
     }
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15144
+
+void test15144()
+{
+        enum      ubyte16 csXMM1 = ['a','b','c',0,0,0,0,0];
+        __gshared ubyte16 csXMM2 = ['a','b','c',0,0,0,0,0];
+        immutable ubyte16 csXMM3 = ['a','b','c',0,0,0,0,0];
+        version (D_PIC)
+        {
+        }
+        else
+        {
+            asm @nogc nothrow
+            {
+                movdqa      XMM0, [csXMM1];
+                movdqa      XMM0, [csXMM2];
+                movdqa      XMM0, [csXMM3];
+            }
+        }
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=11585
+
+ubyte16 test11585(ubyte16* d)
+{
+    ubyte16 a;
+    if (d is null) return a;
+
+    return __simd(XMM.PCMPEQB, *d, *d);
 }
 
 /*****************************************/

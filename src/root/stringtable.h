@@ -1,10 +1,10 @@
 
-/* Copyright (c) 1999-2014 by Digital Mars
+/* Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/D-Programming-Language/dmd/blob/master/src/root/stringtable.h
+ * https://github.com/dlang/dmd/blob/master/src/root/stringtable.h
  */
 
 #ifndef STRINGTABLE_H
@@ -51,15 +51,7 @@ public:
     ~StringTable();
 
     StringValue *lookup(const char *s, d_size_t len);
-    StringValue *insert(const char *s, d_size_t len);
     StringValue *update(const char *s, d_size_t len);
-    int apply(int (*fp)(StringValue *));
-
-private:
-    uint32_t allocValue(const char *p, d_size_t length);
-    StringValue *getValue(uint32_t validx);
-    size_t findSlot(hash_t hash, const char *s, d_size_t len);
-    void grow();
 };
 
 #endif

@@ -6,7 +6,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/objc.h
+ * https://github.com/dlang/dmd/blob/master/src/objc.h
  */
 
 #ifndef DMD_OBJC_H
@@ -32,7 +32,7 @@ struct ObjcSelector
     size_t stringlen;
     size_t paramCount;
 
-    static void init();
+    static void _init();
 
     ObjcSelector(const char *sv, size_t len, size_t pcount);
 

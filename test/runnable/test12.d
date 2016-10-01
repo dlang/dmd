@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
 
 extern(C) int printf(const char*, ...);
 extern(C) int sprintf(char*, const char*, ...);
@@ -148,20 +149,20 @@ void test3()
 int[] fun(int i)
     in
     {
-	assert(i > 0);
+        assert(i > 0);
     }
     out (result)
     {
-	assert(result[0] == 2);
+        assert(result[0] == 2);
     }
     body
     {
-	char result;
-	int[] res = new int[10];
-	res[] = i;
-	int isZero = (result == 0xFF);
-	assert(isZero);
-	return res;
+        char result;
+        int[] res = new int[10];
+        res[] = i;
+        int isZero = (result == 0xFF);
+        assert(isZero);
+        return res;
     }
 
 void test4()
@@ -234,8 +235,8 @@ void test9()
     struct B { }
     B bar (ref int p)
     {
-	B b;
-	return b;
+        B b;
+        return b;
     }
 }
 
@@ -316,12 +317,12 @@ class A13
 
 void test13()
 {
-	A13 a = new A13();
-	int i;
-	i = a.opShl(cast(string)"");
-	assert(i == 2);
-	i = a << cast(string)"";
-	assert(i == 2);
+        A13 a = new A13();
+        int i;
+        i = a.opShl(cast(string)"");
+        assert(i == 2);
+        i = a << cast(string)"";
+        assert(i == 2);
 }
 
 /**************************************/
@@ -505,14 +506,14 @@ void test22()
 /**************************************/
 
 interface A23 { void x(); }
-class B23 : A23 { void x() { } }            
+class B23 : A23 { void x() { } }
 class C23 : B23 { uint y = 12345678; }
 
 void stest23(A23 a)
 {
     synchronized (a)
     {
-    }      
+    }
 }
 
 void test23()
@@ -557,7 +558,7 @@ char rot13(char ret)
 void test25()
 {
     foreach (char c; "hello World\n")
-	printf("%c %c\n", c, rot13(c));
+        printf("%c %c\n", c, rot13(c));
     assert(rot13('h') == 'u');
     assert(rot13('o') == 'b');
     assert(rot13('W') == 'J');
@@ -610,7 +611,7 @@ void test28()
 class Foo28 : Throwable
 {
   private:
-	this() { super(""); }
+        this() { super(""); }
 }
 
 /**************************************/
@@ -678,7 +679,7 @@ class Qwert32
 {
     struct
     {
-	int yuiop = 13;
+        int yuiop = 13;
     }
     int asdfg = 42;
 
@@ -736,13 +737,13 @@ void test34()
 
 private static extern (C)
 {
-	shared char* function () uloc_getDefault;
+        shared char* function () uloc_getDefault;
 }
 
 
 static shared void**[] targets =
     [
-	cast(shared(void*)*) &uloc_getDefault,
+        cast(shared(void*)*) &uloc_getDefault,
     ];
 
 void test35()
@@ -798,7 +799,7 @@ struct MyStruct
 {
     StructAlias* MyStruct()
     {
-	return null;
+        return null;
     }
 }
 
@@ -814,10 +815,10 @@ class Foo38
 {
     static void display_name()
     {
-	printf("%.*s\n", Object.classinfo.name.length, Object.classinfo.name.ptr);
-	assert(Object.classinfo.name == "object.Object");
-	assert(super.classinfo.name == "object.Object");
-	assert(this.classinfo.name == "test12.Foo38");
+        printf("%.*s\n", Object.classinfo.name.length, Object.classinfo.name.ptr);
+        assert(Object.classinfo.name == "object.Object");
+        assert(super.classinfo.name == "object.Object");
+        assert(this.classinfo.name == "test12.Foo38");
     }
 }
 
@@ -853,7 +854,7 @@ class C40
 
     static int foo()
     {
-	return this.x;
+        return this.x;
     }
 }
 
@@ -923,12 +924,12 @@ struct PropTable
 
     Value* get(Value* key)
     {
-	Property *p;
+        Property *p;
 
-	p = *key in table;
-	p = &table[*key];
-	table.remove(*key);
-	return null;
+        p = *key in table;
+        p = &table[*key];
+        table.remove(*key);
+        return null;
     }
 
 }
@@ -948,7 +949,7 @@ struct Shell
 
     const int opCmp(ref const Shell s)
     {
-	return std.algorithm.cmp(this.str, s.str);
+        return std.algorithm.cmp(this.str, s.str);
     }
 }
 
@@ -964,7 +965,7 @@ void test45()
 
     foreach (Shell s; a)
     {
-	printf("%.*s\n", s.str.length, s.str.ptr);
+        printf("%.*s\n", s.str.length, s.str.ptr);
     }
 
     assert(a[0].str == "betty");
@@ -979,7 +980,7 @@ class A46
     char foo() { return 'a'; }
 }
 
-class B46 : A46 
+class B46 : A46
 {
 }
 
@@ -988,7 +989,7 @@ class C46 : B46
     override char foo() { return 'c'; }
     char bar()
     {
-	return B46.foo();
+        return B46.foo();
     }
 }
 
@@ -1032,7 +1033,7 @@ void test48()
     foo48[] arr;
     foreach(foo48 a; arr)
     {
-	bar48();
+        bar48();
     }
 }
 
@@ -1049,13 +1050,13 @@ void test49()
 
 void test50()
 {
-	S50!() s;
-	assert(s.i == int.sizeof);
+        S50!() s;
+        assert(s.i == int.sizeof);
 }
 
 struct S50()
 {
-	int i=f50(0).sizeof;
+        int i=f50(0).sizeof;
 }
 
 int f50(...);
@@ -1064,21 +1065,21 @@ int f50(...);
 
 enum Enum51
 {
-	A,
-	B,
-	C
+        A,
+        B,
+        C
 }
 
 struct Struct51
 {
-	Enum51 e;
+        Enum51 e;
 }
 
 void test51()
 {
-	Struct51 s;
-	assert(s.e == Enum51.A);
-	assert(s.e == 0);
+        Struct51 s;
+        assert(s.e == Enum51.A);
+        assert(s.e == 0);
 }
 
 /**************************************/
@@ -1196,32 +1197,32 @@ void test57()
 
 void test58()
 {
-	int label=1;
-	if (0)
-	{
+        int label=1;
+        if (0)
+        {
 label:
-	    int label2=2;
-	    assert(label2==2);		
-	}
-	else
-	{
-	    assert(label==1);
-	    goto label;
-	}
-	assert(label==1);
+            int label2=2;
+            assert(label2==2);
+        }
+        else
+        {
+            assert(label==1);
+            goto label;
+        }
+        assert(label==1);
 }
 
 /**************************************/
 
 void test59()
 {
-	if(0){
+        if(0){
 label:
-		return;
-	}else{
-		goto label;
-	}
-	assert(0);
+                return;
+        }else{
+                goto label;
+        }
+        assert(0);
 }
 
 /**************************************/

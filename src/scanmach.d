@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _scanmach.d)
+ */
 
 module ddmd.scanmach;
 
@@ -17,35 +19,37 @@ import ddmd.errors;
 enum LOG = false;
 
 /*****************************************
- * Reads an object module from base[0..buflen] and passes the names
+ * Reads an object module from base[] and passes the names
  * of any exported symbols to (*pAddSymbol)().
- * Input:
- *      pctx            context pointer, pass to *pAddSymbol
- *      pAddSymbol      function to pass the names to
- *      base[0..buflen] contains contents of object module
- *      module_name     name of the object module (used for error messages)
- *      loc             location to use for error printing
+ * Params:
+ *      pAddSymbol =  function to pass the names to
+ *      base =        array of contents of object module
+ *      module_name = name of the object module (used for error messages)
+ *      loc =         location to use for error printing
  */
-extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
+        const(ubyte)[] base, const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
         printf("scanMachObjModule(%s)\n", module_name);
     }
-    ubyte* buf = cast(ubyte*)base;
-    int reason = 0;
+
+    void corrupt(int reason)
+    {
+        error(loc, "corrupt Mach-O object module %s %d", module_name, reason);
+    }
+
+    const buf = base.ptr;
+    const buflen = base.length;
     uint32_t ncmds;
     mach_header* header = cast(mach_header*)buf;
     mach_header_64* header64 = null;
     /* First do sanity checks on object file
      */
     if (buflen < mach_header.sizeof)
-    {
-        reason = __LINE__;
-    Lcorrupt:
-        error(loc, "Mach-O object module %s corrupt, %d", module_name, reason);
-        return;
-    }
+        return corrupt(__LINE__);
+
     if (header.magic == MH_MAGIC)
     {
         if (header.cputype != CPU_TYPE_I386)
@@ -59,17 +63,14 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
         ncmds = header.ncmds;
     }
     else if (header.magic == MH_MAGIC_64)
     {
         header64 = cast(mach_header_64*)buf;
         if (buflen < mach_header_64.sizeof)
-            goto Lcorrupt;
+            return corrupt(__LINE__);
         if (header64.cputype != CPU_TYPE_X86_64)
         {
             error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
@@ -81,17 +82,12 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
         ncmds = header64.ncmds;
     }
     else
-    {
-        reason = __LINE__;
-        goto Lcorrupt;
-    }
+        return corrupt(__LINE__);
+
     segment_command* segment_commands = null;
     segment_command_64* segment_commands64 = null;
     symtab_command* symtab_commands = null;
@@ -126,24 +122,21 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
         // Get pointer to string table
         char* strtab = cast(char*)buf + symtab_commands.stroff;
         if (buflen < symtab_commands.stroff + symtab_commands.strsize)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
+
         if (header.magic == MH_MAGIC_64)
         {
             // Get pointer to symbol table
             nlist_64* symtab = cast(nlist_64*)(cast(char*)buf + symtab_commands.symoff);
             if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist_64.sizeof)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist_64* s = symtab + i;
-                char* name = strtab + s.n_strx;
+                const(char)* name = strtab + s.n_strx;
+                const namelen = strlen(name);
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h
@@ -164,13 +157,13 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                     {
                     case N_UNDF:
                         if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_ABS:
                         break;
                     case N_SECT:
                         if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_PBUD:
                         break;
@@ -187,15 +180,14 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
             // Get pointer to symbol table
             nlist* symtab = cast(nlist*)(cast(char*)buf + symtab_commands.symoff);
             if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist.sizeof)
-            {
-                reason = __LINE__;
-                goto Lcorrupt;
-            }
+                return corrupt(__LINE__);
+
             // For each symbol
             for (int i = 0; i < symtab_commands.nsyms; i++)
             {
                 nlist* s = symtab + i;
-                char* name = strtab + s.n_strx;
+                const(char)* name = strtab + s.n_strx;
+                const namelen = strlen(name);
                 if (s.n_type & N_STAB)
                 {
                     // values in /usr/include/mach-o/stab.h
@@ -216,13 +208,13 @@ extern (C++) void scanMachObjModule(void* pctx, void function(void* pctx, char* 
                     {
                     case N_UNDF:
                         if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_ABS:
                         break;
                     case N_SECT:
                         if (s.n_type & N_EXT) /*&& !(s->n_desc & N_REF_TO_WEAK)*/
-                            (*pAddSymbol)(pctx, name, 1);
+                            pAddSymbol(name[0 .. namelen], 1);
                         break;
                     case N_PBUD:
                         break;

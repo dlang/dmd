@@ -1,8 +1,9 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2016 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
+// https://github.com/dlang/dmd/blob/master/src/backend/cdef.h
 /*
  * This source file is made available for personal use
  * only. The license is in backendlicense.txt
@@ -210,26 +211,43 @@ One and only one of these macros must be set by the makefile:
 
 char *strupr(char *);
 
+#include <stddef.h>     // for size_t
+
+#if __APPLE__ && __i386__
+    /* size_t is 'unsigned long', which makes it mangle differently
+     * than D's 'uint'
+     */
+    typedef unsigned d_size_t;
+#else
+    typedef size_t d_size_t;
+#endif
+
+
 //
 //      Attributes
 //
 
 //      Types of attributes
-#define ATTR_LINKMOD    0x0001  // link modifier
-#define ATTR_TYPEMOD    0x0002  // basic type modifier
-#define ATTR_FUNCINFO   0x0004  // function information
-#define ATTR_DATAINFO   0x0008  // data information
-#define ATTR_TRANSU     0x0010  // transparent union
-#define ATTR_IGNORED    0x0020  // attribute can be ignored
-#define ATTR_WARNING    0x0040  // attribute was ignored
-#define ATTR_SEGMENT    0x0080  // segment secified
-
+enum
+{
+    ATTR_LINKMOD    = 1,     // link modifier
+    ATTR_TYPEMOD    = 2,     // basic type modifier
+    ATTR_FUNCINFO   = 4,     // function information
+    ATTR_DATAINFO   = 8,     // data information
+    ATTR_TRANSU     = 0x10,  // transparent union
+    ATTR_IGNORED    = 0x20,  // attribute can be ignored
+    ATTR_WARNING    = 0x40,  // attribute was ignored
+    ATTR_SEGMENT    = 0x80,  // segment secified
+};
 
 //      attribute location in code
-#define ALOC_DECSTART   0x001   // start of declaration
-#define ALOC_SYMDEF     0x002   // symbol defined
-#define ALOC_PARAM      0x004   // follows function parameter
-#define ALOC_FUNC       0x008   // follows function declaration
+enum
+{
+    ALOC_DECSTART   = 1,   // start of declaration
+    ALOC_SYMDEF     = 2,   // symbol defined
+    ALOC_PARAM      = 4,   // follows function parameter
+    ALOC_FUNC       = 8,   // follows function declaration
+};
 
 #define ATTR_LINK_MODIFIERS (mTYconst|mTYvolatile|mTYcdecl|mTYstdcall)
 #define ATTR_CAN_IGNORE(a) \
@@ -283,15 +301,18 @@ typedef long double longdouble;
 #define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
-#define H_NONE          1       // no hydration/dehydration necessary
-#define H_BIT0          2       // bit 0 of the pointer determines if pointer
-                                // is dehydrated, an offset is added to
-                                // hydrate it
-#define H_OFFSET        4       // the address range of the pointer determines
-                                // if pointer is dehydrated, and an offset is
-                                // added to hydrate it. No dehydration necessary.
-#define H_COMPLEX       8       // dehydrated pointers have bit 0 set, hydrated
-                                // pointers are in non-contiguous buffers
+enum
+{
+    H_NONE    = 1,       // no hydration/dehydration necessary
+    H_BIT0    = 2,       // bit 0 of the pointer determines if pointer
+                         // is dehydrated, an offset is added to
+                         // hydrate it
+    H_OFFSET  = 4,       // the address range of the pointer determines
+                         // if pointer is dehydrated, and an offset is
+                         // added to hydrate it. No dehydration necessary.
+    H_COMPLEX = 8,       // dehydrated pointers have bit 0 set, hydrated
+                         // pointers are in non-contiguous buffers
+};
 
 // Do we need hydration code
 #define HYDRATE         (H_STYLE & (H_BIT0 | H_OFFSET | H_COMPLEX))
@@ -446,8 +467,18 @@ typedef short           targ_short;
 typedef unsigned short  targ_ushort;
 typedef int             targ_long;
 typedef unsigned        targ_ulong;
-typedef long long       targ_llong;
-typedef unsigned long long      targ_ullong;
+
+#if defined(__UINT64_TYPE__)
+typedef __INT64_TYPE__     targ_llong;
+typedef __UINT64_TYPE__    targ_ullong;
+#elif defined(__UINTMAX_TYPE__)
+typedef __INTMAX_TYPE__    targ_llong;
+typedef __UINTMAX_TYPE__   targ_ullong;
+#else
+typedef long long          targ_llong;
+typedef unsigned long long targ_ullong;
+#endif
+
 typedef float           targ_float;
 typedef double          targ_double;
 typedef longdouble      targ_ldouble;
@@ -459,21 +490,23 @@ typedef int             targ_int;
 typedef unsigned        targ_uns;
 
 /* Sizes of base data types in bytes */
+enum
+{
+    CHARSIZE       = 1,
+    SHORTSIZE      = 2,
+    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
+    LONGSIZE       = 4,
+    LLONGSIZE      = 8,
+    CENTSIZE       = 16,
+    FLOATSIZE      = 4,
+    DOUBLESIZE     = 8,
+    TMAXSIZE       = 16,      // largest size a constant can be
+};
 
-#define CHARSIZE        1
-#define SHORTSIZE       2
-#define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
-#define LONGSIZE        4
-#define LLONGSIZE       8
-#define CENTSIZE        16
-#define FLOATSIZE       4
-#define DOUBLESIZE      8
-#define TMAXSIZE        16      // largest size a constant can be
-
-#define intsize         tysize[TYint]
-#define REGSIZE         tysize[TYnptr]
-#define NPTRSIZE        tysize[TYnptr]
-#define FPTRSIZE        tysize[TYfptr]
+#define intsize         _tysize[TYint]
+#define REGSIZE         _tysize[TYnptr]
+#define NPTRSIZE        _tysize[TYnptr]
+#define FPTRSIZE        _tysize[TYfptr]
 #define REGMASK         0xFFFF
 
 // targ_llong is also used to store host pointers, so it should have at least their size
@@ -489,14 +522,8 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
    (Some features may no longer work the old way when compiled out,
     I don't test the old ways once the new way is set.)
  */
-#define THUNKS          1       /* use thunks for virtual functions     */
-#define SEPNEWDEL       1       // new/delete are not called within the ctor/dtor,
-                                // they are separate
-#define UNICODE         1       // support Unicode (wchar_t is unsigned short)
-#define DLCMSGS         0       // if 1, have all messages in a file
 #define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
 #define USEDLLSHELL     _WINDLL
-#define FARCLASSES      1       // support near/far classes
 #define MFUNC           (I32) //0 && config.exe == EX_WIN32)       // member functions are TYmfunc
 #define CV3             0       // 1 means support CV3 debug format
 
@@ -517,18 +544,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 
 #define TOOLKIT_H
 
-/* Masks so we can easily check size */
-#define CHARMASK        (0xFFL)
-#define SHORTMASK       (0xFFFFL)
-#define INTMASK         SHORTMASK
-#define LONGMASK        0xFFFFFFFF
-
-/* Common constants often checked for */
-#define LLONGMASK       0xFFFFFFFFFFFFFFFFLL
-#define ZEROLL          0LL
-#define MINLL           0x8000000000000000LL
-#define MAXLL           0x7FFFFFFFFFFFFFFFLL
-
 #define Smodel 0        /* 64k code, 64k data, or flat model           */
 
 #ifndef MEMMODELS
@@ -543,35 +558,29 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #endif
 
 /* Segments     */
-#define CODE    1       /* code segment                 */
-#define DATA    2       /* initialized data             */
-#define CDATA   3       /* constant data                */
-#define UDATA   4       /* uninitialized data           */
-#define CDATAREL 5      /* constant data with relocs    */
-#define UNKNOWN -1      /* unknown segment              */
-#define DGROUPIDX 1     /* group index of DGROUP        */
+enum
+{
+    CODE      = 1,     // code segment
+    DATA      = 2,     // initialized data
+    CDATA     = 3,     // constant data
+    UDATA     = 4,     // uninitialized data
+    CDATAREL  = 5,     // constant data with relocs
+    UNKNOWN   = -1,    // unknown segment
+    DGROUPIDX = 1,     // group index of DGROUP
+};
 
 #define REGMAX  29      // registers are numbered 0..10
 
 typedef unsigned        tym_t;          // data type big enough for type masks
 typedef int             SYMIDX;         // symbol table index
 
-#if 0
-#if defined(__DMC__) && __DMC__ < 0x81e
-typedef int bool;
-#endif
-#define bool int
-#endif
-
 #define _chkstack()     (void)0
 
-/* For 32 bit compilations, we don't need far keyword   */
-#if 1
+// Don't need these anymore
 #define far
 #define _far
 #define __far
 #define __cs
-#endif
 
 #if _WINDLL
 /* We reference the required Windows-1252 encoding of the copyright symbol
@@ -584,15 +593,15 @@ typedef int bool;
 #define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001 Digital Mars"
 #else
 #ifdef DEBUG
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
 #if __linux__
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
 Written by Walter Bright"
 #endif
 #endif
@@ -603,7 +612,7 @@ Written by Walter Bright"
  */
 
 /* Linkage type         */
-typedef enum LINKAGE
+enum linkage_t
 {
     LINK_C,                     /* C style                              */
     LINK_CPP,                   /* C++ style                            */
@@ -613,7 +622,7 @@ typedef enum LINKAGE
     LINK_STDCALL,
     LINK_D,                     // D code
     LINK_MAXDIM                 /* array dimension                      */
-} linkage_t;
+};
 
 /**********************************
  * Exception handling method
@@ -628,61 +637,262 @@ enum EHmethod
     EH_DWARF,                   // Dwarf method
 };
 
+// CPU target
+typedef char cpu_target_t;
+enum
+{
+    TARGET_8086             = 0,
+    TARGET_80286            = 2,
+    TARGET_80386            = 3,
+    TARGET_80486            = 4,
+    TARGET_Pentium          = 5,
+    TARGET_PentiumMMX       = 6,
+    TARGET_PentiumPro       = 7,
+    TARGET_PentiumII        = 8,
+};
+
+// Symbolic debug info
+typedef char symbolic_debug_t;
+enum
+{
+    CVNONE    = 0,           // No symbolic info
+    CVOLD     = 1,           // Codeview 1 symbolic info
+    CV4       = 2,           // Codeview 4 symbolic info
+    CVSYM     = 3,           // Symantec format
+    CVTDB     = 4,           // Symantec format written to file
+    CVDWARF_C = 5,           // Dwarf in C format
+    CVDWARF_D = 6,           // Dwarf in D format
+    CVSTABS   = 7,           // Elf Stabs in C format
+    CV8       = 8,           // Codeview 8 symbolic info
+};
+
+// Windows code gen flags
+typedef unsigned windows_flags_t;
+enum
+{
+    WFwindows    = 1,      // generating code for Windows app or DLL
+    WFdll        = 2,      // generating code for Windows DLL
+    WFincbp      = 4,      // mark far stack frame with inc BP / dec BP
+    WFloadds     = 8,      // assume __loadds for all functions
+    WFexpdef     = 0x10,   // generate export definition records for
+                           // exported functions
+    WFss         = 0x20,   // load DS from SS
+    WFreduced    = 0x40,   // skip DS load for non-exported functions
+    WFdgroup     = 0x80,   // load DS from DGROUP
+    WFexport     = 0x100,  // assume __export for all far functions
+    WFds         = 0x200,  // load DS from DS
+    WFmacros     = 0x400,  // define predefined windows macros
+    WFssneds     = 0x800,  // SS != DS
+    WFthunk      = 0x1000, // use fixups instead of direct ref to CS
+    WFsaveds     = 0x2000, // use push/pop DS for far functions
+    WFdsnedgroup = 0x4000, // DS != DGROUP
+    WFexe        = 0x8000, // generating code for Windows EXE
+};
+
+// Object file format
+typedef unsigned objfmt_t;
+enum
+{
+    OBJ_OMF         = 1,
+    OBJ_MSCOFF      = 2,
+    OBJ_ELF         = 4,
+    OBJ_MACH        = 8,
+};
+
+// Executable file format
+typedef unsigned exefmt_t;
+enum
+{
+    EX_DOSX         = 1,       // DOSX 386 program
+    EX_ZPM          = 2,       // ZPM 286 program
+    EX_RATIONAL     = 4,       // RATIONAL 286 program
+    EX_PHARLAP      = 8,       // PHARLAP 386 program
+    EX_COM          = 0x10,    // MSDOS .COM program
+//  EX_WIN16        = 0x20,    // Windows 3.x 16 bit program (no longer supported)
+    EX_OS2          = 0x40,    // OS/2 2.0 32 bit program
+    EX_OS1          = 0x80,    // OS/2 1.x 16 bit program
+    EX_WIN32        = 0x100,
+    EX_MZ           = 0x200,   // MSDOS real mode program
+    EX_XENIX        = 0x400,
+    EX_SCOUNIX      = 0x800,
+    EX_UNIXSVR4     = 0x1000,
+    EX_LINUX        = 0x2000,
+    EX_WIN64        = 0x4000,  // AMD64 and Windows (64 bit mode)
+    EX_LINUX64      = 0x8000,  // AMD64 and Linux (64 bit mode)
+    EX_OSX          = 0x10000,
+    EX_OSX64        = 0x20000,
+    EX_FREEBSD      = 0x40000,
+    EX_FREEBSD64    = 0x80000,
+    EX_SOLARIS      = 0x100000,
+    EX_SOLARIS64    = 0x200000,
+    EX_OPENBSD      = 0x400000,
+    EX_OPENBSD64    = 0x800000,
+};
+
+
+// All flat memory models (no segment registers)
+const exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
+                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
+                         EX_OPENBSD | EX_OPENBSD64 |
+                         EX_SOLARIS | EX_SOLARIS64;
+
+// All DOS executable types
+const exefmt_t EX_dos =  EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP |
+                         EX_COM | EX_MZ /*| EX_WIN16*/;
+
+typedef unsigned config_flags_t;
+enum
+{
+    CFGuchar        = 1,       // chars are unsigned
+    CFGsegs         = 2,       // new code seg for each far func
+    CFGtrace        = 4,       // output trace functions
+    CFGglobal       = 8,       // make all static functions global
+    CFGstack        = 0x10,    // add stack overflow checking
+    CFGalwaysframe  = 0x20,    // always generate stack frame
+    CFGnoebp        = 0x40,    // do not use EBP as general purpose register
+    CFGromable      = 0x80,    // put switch tables in code segment
+    CFGeasyomf      = 0x100,   // generate Pharlap Easy-OMF format
+    CFGfarvtbls     = 0x200,   // store vtables in far segments
+    CFGnoinlines    = 0x400,   // do not inline functions
+    CFGnowarning    = 0x800,   // disable warnings
+};
+
+typedef unsigned config_flags2_t;
+enum
+{
+    CFG2comdat      = 1,       // use initialized common blocks
+    CFG2nodeflib    = 2,       // no default library imbedded in OBJ file
+    CFG2browse      = 4,       // generate browse records
+    CFG2dyntyping   = 8,       // generate dynamic typing information
+    CFG2fulltypes   = 0x10,    // don't optimize CV4 class info
+    CFG2warniserr   = 0x20,    // treat warnings as errors
+    CFG2phauto      = 0x40,    // automatic precompiled headers
+    CFG2phuse       = 0x80,    // use precompiled headers
+    CFG2phgen       = 0x100,   // generate precompiled header
+    CFG2once        = 0x200,   // only include header files once
+    CFG2hdrdebug    = 0x400,   // generate debug info for header
+    CFG2phautoy     = 0x800,   // fast build precompiled headers
+    CFG2noobj       = 0x1000,  // we are not generating a .OBJ file
+    CFG2noerrmax    = 0x2000,  // no error count maximum
+    CFG2expand      = 0x4000,  // expanded output to list file
+    CFG2stomp       = 0x8000,  // enable stack stomping code
+    CFG2gms         = 0x10000, // optimize debug symbols for microsoft debuggers
+};
+
+typedef unsigned config_flags3_t;
+enum
+{
+    CFG3ju          = 1,       // char == unsigned char
+    CFG3eh          = 2,       // generate exception handling stuff
+    CFG3strcod      = 4,       // strings are placed in code segment
+    CFG3eseqds      = 8,       // ES == DS at all times
+    CFG3ptrchk      = 0x10,    // generate pointer validation code
+    CFG3strictproto = 0x20,    // strict prototyping
+    CFG3autoproto   = 0x40,    // auto prototyping
+    CFG3rtti        = 0x80,    // add RTTI support
+    CFG3relax       = 0x100,   // relaxed type checking (C only)
+    CFG3cpp         = 0x200,   // C++ compile
+    CFG3igninc      = 0x400,   // ignore standard include directory
+    CFG3mars        = 0x800,   // use mars libs and headers
+    CFG3nofar       = 0x1000,  // ignore __far and __huge keywords
+    CFG3noline      = 0x2000,  // do not output #line directives
+    CFG3comment     = 0x4000,  // leave comments in preprocessed output
+    CFG3cppcomment  = 0x8000,  // allow C++ style comments
+    CFG3wkfloat     = 0x10000, // make floating point references weak externs
+    CFG3digraphs    = 0x20000, // support ANSI C++ digraphs
+    CFG3semirelax   = 0x40000, // moderate relaxed type checking (non-Windows targets)
+    CFG3pic         = 0x80000, // position independent code
+};
+
+typedef unsigned config_flags4_t;
+enum
+{
+    CFG4speed            = 1,          // optimized for speed
+    CFG4space            = 2,          // optimized for space
+    CFG4allcomdat        = 4,          // place all functions in COMDATs
+    CFG4fastfloat        = 8,          // fast floating point (-ff)
+    CFG4fdivcall         = 0x10,       // make function call for FDIV opcodes
+    CFG4tempinst         = 0x20,       // instantiate templates for undefined functions
+    CFG4oldstdmangle     = 0x40,       // do stdcall mangling without @
+    CFG4pascal           = 0x80,       // default to pascal linkage
+    CFG4stdcall          = 0x100,      // default to std calling convention
+    CFG4cacheph          = 0x200,      // cache precompiled headers in memory
+    CFG4alternate        = 0x400,      // if alternate digraph tokens
+    CFG4bool             = 0x800,      // support 'bool' as basic type
+    CFG4wchar_t          = 0x1000,     // support 'wchar_t' as basic type
+    CFG4notempexp        = 0x2000,     // no instantiation of template functions
+    CFG4anew             = 0x4000,     // allow operator new[] and delete[] overloading
+    CFG4oldtmangle       = 0x8000,     // use old template name mangling
+    CFG4dllrtl           = 0x10000,    // link with DLL RTL
+    CFG4noemptybaseopt   = 0x20000,    // turn off empty base class optimization
+    CFG4nowchar_t        = 0x40000,    // use unsigned short name mangling for wchar_t
+    CFG4forscope         = 0x80000,    // new C++ for scoping rules
+    CFG4warnccast        = 0x100000,   // warn about C style casts
+    CFG4adl              = 0x200000,   // argument dependent lookup
+    CFG4enumoverload     = 0x400000,   // enum overloading
+    CFG4implicitfromvoid = 0x800000,   // allow implicit cast from void* to T*
+    CFG4dependent        = 0x1000000,  // dependent / non-dependent lookup
+    CFG4wchar_is_long    = 0x2000000,  // wchar_t is 4 bytes
+    CFG4underscore       = 0x4000000,  // prepend _ for C mangling
+};
+
+const config_flags4_t CFG4optimized  = CFG4speed | CFG4space;
+const config_flags4_t CFG4stackalign = CFG4speed;       // align stack to 8 bytes
+
+typedef unsigned config_flags5_t;
+enum
+{
+    CFG5debug       = 1,      // compile in __debug code
+    CFG5in          = 2,      // compile in __in code
+    CFG5out         = 4,      // compile in __out code
+    CFG5invariant   = 8,      // compile in __invariant code
+};
+
+/* CFGX: flags ignored in precompiled headers
+ * CFGY: flags copied from precompiled headers into current config
+ */
+const config_flags_t CFGX   = CFGnowarning;
+const config_flags2_t CFGX2 = CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto |
+                              CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax |
+                              CFG2expand | CFG2nodeflib | CFG2stomp | CFG2gms;
+const config_flags3_t CFGX3 = CFG3strcod | CFG3ptrchk;
+const config_flags4_t CFGX4 = CFG4optimized | CFG4fastfloat | CFG4fdivcall |
+                              CFG4tempinst | CFG4cacheph | CFG4notempexp |
+                              CFG4stackalign | CFG4dependent;
+
+const config_flags4_t CFGY4 = CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl |
+                              CFG4enumoverload | CFG4implicitfromvoid |
+                              CFG4wchar_is_long | CFG4underscore;
+
+// Configuration flags for HTOD executable
+typedef unsigned htod_flags_t;
+enum
+{
+    HTODFinclude    = 1,      // -hi drill down into #include files
+    HTODFsysinclude = 2,      // -hs drill down into system #include files
+    HTODFtypedef    = 4,      // -ht drill down into typedefs
+    HTODFcdecl      = 8,      // -hc skip C declarations as comments
+};
+
 // This part of the configuration is saved in the precompiled header for use
 // in comparing to make sure it hasn't changed.
 
 struct Config
 {
     char language;              // 'C' = C, 'D' = C++
-//#define CPP (config.language == 'D')
     char version[8];            // = VERSION
     char exetype[3];            // distinguish exe types so PH
                                 // files are distinct (= SUFFIX)
 
-    char target_cpu;            // instruction selection
-    char target_scheduler;      // instruction scheduling (normally same as selection)
-#define TARGET_8086             0
-#define TARGET_80286            2
-#define TARGET_80386            3
-#define TARGET_80486            4
-#define TARGET_Pentium          5
-#define TARGET_PentiumMMX       6
-#define TARGET_PentiumPro       7
-#define TARGET_PentiumII        8
-#define TARGET_AMD64            9       (32 or 64 bit mode)
+    cpu_target_t target_cpu;       // instruction selection
+    cpu_target_t target_scheduler; // instruction scheduling (normally same as selection)
 
     short versionint;           // intermediate file version (= VERSIONINT)
     int defstructalign;         // struct alignment specified by command line
     short hxversion;            // HX version number
-    char fulltypes;
-#define CVNONE  0               // No symbolic info
-#define CVOLD   1               // Codeview 1 symbolic info
-#define CV4     2               // Codeview 4 symbolic info
-#define CVSYM   3               // Symantec format
-#define CVTDB   4               // Symantec format written to file
-#define CVDWARF_C 5             // Dwarf in C format
-#define CVDWARF_D 6             // Dwarf in D format
-#define CVSTABS 7               // Elf Stabs in C format
-#define CV8     8               // Codeview 8 symbolic info
+    symbolic_debug_t fulltypes; // format of symbolic debug info
 
-    unsigned wflags;            // flags for Windows code generation
-#       define WFwindows 1      // generating code for Windows app or DLL
-#       define WFdll     2      // generating code for Windows DLL
-#       define WFincbp   4      // mark far stack frame with inc BP / dec BP
-#       define WFloadds  8      // assume __loadds for all functions
-#       define WFexpdef  0x10   // generate export definition records for
-                                // exported functions
-#       define WFss      0x20   // load DS from SS
-#       define WFreduced 0x40   // skip DS load for non-exported functions
-#       define WFdgroup  0x80   // load DS from DGROUP
-#       define WFexport  0x100  // assume __export for all far functions
-#       define WFds      0x200  // load DS from DS
-#       define WFmacros  0x400  // define predefined windows macros
-#       define WFssneds  0x800  // SS != DS
-#       define WFthunk   0x1000 // use fixups instead of direct ref to CS
-#       define WFsaveds  0x2000 // use push/pop DS for far functions
-#       define WFdsnedgroup 0x4000      // DS != DGROUP
-#       define WFexe     0x8000 // generating code for Windows EXE
+    windows_flags_t wflags;     // flags for Windows code generation
 
     bool fpxmmregs;             // use XMM registers for floating point
     char inline8087;            /* 0:   emulator
@@ -690,162 +900,16 @@ struct Config
                                    2:   fast inline 8087 code
                                  */
     short memmodel;             // 0:S,X,N,F, 1:M, 2:C, 3:L, 4:V
-    unsigned objfmt;            // target object format
-#define OBJ_OMF         1
-#define OBJ_MSCOFF      2
-#define OBJ_ELF         4
-#define OBJ_MACH        8
-    unsigned exe;               // target operating system
-#define EX_DOSX         1       // DOSX 386 program
-#define EX_ZPM          2       // ZPM 286 program
-#define EX_RATIONAL     4       // RATIONAL 286 program
-#define EX_PHARLAP      8       // PHARLAP 386 program
-#define EX_COM          0x10    // MSDOS .COM program
-//#define EX_WIN16      0x20    // Windows 3.x 16 bit program
-#define EX_OS2          0x40    // OS/2 2.0 32 bit program
-#define EX_OS1          0x80    // OS/2 1.x 16 bit program
-#define EX_WIN32        0x100
-#define EX_MZ           0x200   // MSDOS real mode program
-#define EX_XENIX        0x400
-#define EX_SCOUNIX      0x800
-#define EX_UNIXSVR4     0x1000
-#define EX_LINUX        0x2000
-#define EX_WIN64        0x4000  // AMD64 and Windows (64 bit mode)
-#define EX_LINUX64      0x8000  // AMD64 and Linux (64 bit mode)
-#define EX_OSX          0x10000
-#define EX_OSX64        0x20000
-#define EX_FREEBSD      0x40000
-#define EX_FREEBSD64    0x80000
-#define EX_SOLARIS      0x100000
-#define EX_SOLARIS64    0x200000
-#define EX_OPENBSD      0x400000
-#define EX_OPENBSD64    0x800000
+    objfmt_t objfmt;            // target object format
+    exefmt_t exe;               // target operating system
 
-#define EX_flat         (EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
-                         EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
-                         EX_OPENBSD | EX_OPENBSD64 | \
-                         EX_SOLARIS | EX_SOLARIS64)
-#define EX_dos          (EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP | \
-                         EX_COM | EX_MZ /*| EX_WIN16*/)
+    config_flags_t  flags;
+    config_flags2_t flags2;
+    config_flags3_t flags3;
+    config_flags4_t flags4;
+    config_flags5_t flags5;
 
-/* CFGX: flags ignored in precompiled headers
- * CFGY: flags copied from precompiled headers into current config
- */
-    unsigned flags;
-#define CFGuchar        1       // chars are unsigned
-#define CFGsegs         2       // new code seg for each far func
-#define CFGtrace        4       // output trace functions
-#define CFGglobal       8       // make all static functions global
-#define CFGstack        0x20    // add stack overflow checking
-#define CFGalwaysframe  0x40    // always generate stack frame
-#define CFGnoebp        0x80    // do not use EBP as general purpose register
-#define CFGromable      0x100   // put switch tables in code segment
-#define CFGeasyomf      0x200   // generate Pharlap Easy-OMF format
-#define CFGfarvtbls     0x800   // store vtables in far segments
-#define CFGnoinlines    0x1000  // do not inline functions
-#define CFGnowarning    0x8000  // disable warnings
-#define CFGX    (CFGnowarning)
-    unsigned flags2;
-#define CFG2comdat      1       // use initialized common blocks
-#define CFG2nodeflib    2       // no default library imbedded in OBJ file
-#define CFG2browse      4       // generate browse records
-#define CFG2dyntyping   8       // generate dynamic typing information
-#define CFG2fulltypes   0x10    // don't optimize CV4 class info
-#define CFG2warniserr   0x20    // treat warnings as errors
-#define CFG2phauto      0x40    // automatic precompiled headers
-#define CFG2phuse       0x80    // use precompiled headers
-#define CFG2phgen       0x100   // generate precompiled header
-#define CFG2once        0x200   // only include header files once
-#define CFG2hdrdebug    0x400   // generate debug info for header
-#define CFG2phautoy     0x800   // fast build precompiled headers
-#define CFG2noobj       0x1000  // we are not generating a .OBJ file
-#define CFG2noerrmax    0x4000  // no error count maximum
-#define CFG2expand      0x8000  // expanded output to list file
-#define CFG2stomp       0x20000 // enable stack stomping code
-#define CFG2gms         0x40000 // optimize debug symbols for microsoft debuggers
-#define CFGX2   (CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto | \
-                 CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax | \
-                 CFG2expand | CFG2nodeflib | CFG2stomp | CFG2gms)
-    unsigned flags3;
-#define CFG3ju          1       // char == unsigned char
-#define CFG3eh          4       // generate exception handling stuff
-#define CFG3strcod      8       // strings are placed in code segment
-#define CFG3eseqds      0x10    // ES == DS at all times
-#define CFG3ptrchk      0x20    // generate pointer validation code
-#define CFG3strictproto 0x40    // strict prototyping
-#define CFG3autoproto   0x80    // auto prototyping
-#define CFG3rtti        0x100   // add RTTI support
-#define CFG3relax       0x200   // relaxed type checking (C only)
-#define CFG3cpp         0x400   // C++ compile
-#define CFG3igninc      0x800   // ignore standard include directory
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define CFG3mars        0x1000  // use mars libs and headers
-#define NO_FAR          (TRUE)  // always ignore __far and __huge keywords
-#else
-#define CFG3nofar       0x1000  // ignore __far and __huge keywords
-#define NO_FAR          (config.flags3 & CFG3nofar)
-#endif
-#define CFG3noline      0x2000  // do not output #line directives
-#define CFG3comment     0x4000  // leave comments in preprocessed output
-#define CFG3cppcomment  0x8000  // allow C++ style comments
-#define CFG3wkfloat     0x10000 // make floating point references weak externs
-#define CFG3digraphs    0x20000 // support ANSI C++ digraphs
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define CFG3semirelax   0x40000 // moderate relaxed type checking
-#endif
-#define CFG3pic         0x80000 // position independent code
-#define CFGX3   (CFG3strcod | CFG3ptrchk)
-
-    unsigned flags4;
-#define CFG4speed       1       // optimized for speed
-#define CFG4space       2       // optimized for space
-#define CFG4optimized   (CFG4speed | CFG4space)
-#define CFG4allcomdat   4       // place all functions in COMDATs
-#define CFG4fastfloat   8       // fast floating point (-ff)
-#define CFG4fdivcall    0x10    // make function call for FDIV opcodes
-#define CFG4tempinst    0x20    // instantiate templates for undefined functions
-#define CFG4oldstdmangle 0x40   // do stdcall mangling without @
-#define CFG4pascal      0x80    // default to pascal linkage
-#define CFG4stdcall     0x100   // default to std calling convention
-#define CFG4cacheph     0x200   // cache precompiled headers in memory
-#define CFG4alternate   0x400   // if alternate digraph tokens
-#define CFG4bool        0x800   // support 'bool' as basic type
-#define CFG4wchar_t     0x1000  // support 'wchar_t' as basic type
-#define CFG4notempexp   0x2000  // no instantiation of template functions
-#define CFG4anew        0x4000  // allow operator new[] and delete[] overloading
-#define CFG4oldtmangle  0x8000  // use old template name mangling
-#define CFG4dllrtl      0x10000 // link with DLL RTL
-#define CFG4noemptybaseopt 0x40000      // turn off empty base class optimization
-#define CFG4stackalign  CFG4speed       // align stack to 8 bytes
-#define CFG4nowchar_t   0x80000 // use unsigned short name mangling for wchar_t
-#define CFG4forscope    0x100000 // new C++ for scoping rules
-#define CFG4warnccast   0x200000 // warn about C style casts
-#define CFG4adl         0x400000 // argument dependent lookup
-#define CFG4enumoverload 0x800000 // enum overloading
-#define CFG4implicitfromvoid 0x1000000  // allow implicit cast from void* to T*
-#define CFG4dependent        0x2000000  // dependent / non-dependent lookup
-#define CFG4wchar_is_long    0x4000000  // wchar_t is 4 bytes
-#define CFG4underscore       0x8000000  // prepend _ for C mangling
-#define CFGX4           (CFG4optimized | CFG4fastfloat | CFG4fdivcall | \
-                         CFG4tempinst | CFG4cacheph | CFG4notempexp | \
-                         CFG4stackalign | CFG4dependent)
-#define CFGY4           (CFG4nowchar_t | CFG4noemptybaseopt | CFG4adl | \
-                         CFG4enumoverload | CFG4implicitfromvoid | \
-                         CFG4wchar_is_long | CFG4underscore)
-
-    unsigned flags5;
-#define CFG5debug       1       // compile in __debug code
-#define CFG5in          2       // compile in __in code
-#define CFG5out         4       // compile in __out code
-#define CFG5invariant   8       // compile in __invariant code
-
-#if HTOD
-    unsigned htodFlags;         // configuration for htod
-#define HTODFinclude    1       // -hi drill down into #include files
-#define HTODFsysinclude 2       // -hs drill down into system #include files
-#define HTODFtypedef    4       // -ht drill down into typedefs
-#define HTODFcdecl      8       // -hc skip C declarations as comments
-#endif
+    htod_flags_t htodFlags;     // configuration for htod
     char ansi_c;                // strict ANSI C
                                 // 89 for ANSI C89, 99 for ANSI C99
     char asian_char;            /* 0: normal, 1: Japanese, 2: Chinese   */
@@ -854,13 +918,16 @@ struct Config
                                 // be far (16 bit models only)
 #define THRESHMAX 0xFFFF        // if threshold == THRESHMAX, all data defaults
                                 // to near
-    enum LINKAGE linkage;       // default function call linkage
-    enum EHmethod ehmethod;     // exception handling method
+    linkage_t linkage;          // default function call linkage
+    EHmethod ehmethod;          // exception handling method
+
+    static unsigned sizeCheck();
 };
+
 
 // Configuration that is not saved in precompiled header
 
-typedef struct Configv
+struct Configv
 {
     char addlinenumbers;        // put line number info in .OBJ file
     char verbose;               // 0: compile quietly (no messages)
@@ -870,7 +937,9 @@ typedef struct Configv
     char *deflibname;           // default library name
     enum LANG language;         // message language
     int errmax;                 // max error count
-} Configv;
+
+    static unsigned sizeCheck();
+};
 
 struct Classsym;
 struct Symbol;
@@ -954,7 +1023,7 @@ union eve
             targ_size_t Voffset;// offset from symbol
             Symbol *Vsym;       // pointer to symbol table
             union
-            {   struct PARAM *Vtal;     // template-argument-list for SCfunctempl,
+            {   struct param_t *Vtal;     // template-argument-list for SCfunctempl,
                                 // used only to transmit it to cpp_overload()
                 LIST *Erd;      // OPvar: reaching definitions
             } spu;
@@ -982,6 +1051,8 @@ union eve
             elem *Eleft;        // left child for OPddtor
             void *Edecl;        // VarDeclaration being constructed
         } ed;                   // OPdctor,OPddtor
+
+    static unsigned sizeCheck();
 };                              // variants for each type of elem
 
 // Symbols
@@ -1057,20 +1128,6 @@ enum SC {
         SCMAX           // array dimension
     #undef X
 };
-
-#define TAG_ARGUMENTS
-
-/*******************************
- * Swap two integers.
- */
-
-inline void swap(int *a,int *b)
-{ int tmp;
-
-  tmp = *a;
-  *a = *b;
-  *b = tmp;
-}
 
 
 #endif /* CDEF_H */

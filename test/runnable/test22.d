@@ -37,7 +37,7 @@ void test1()
     float y21=randx();
 
     float tmp=(
-    x20*x21 + y10*y10 + y10*y11 + y11*y11 + 
+    x20*x21 + y10*y10 + y10*y11 + y11*y11 +
     y11*y20 + y20*y20 + y10*y21 + y11*y21 +
     y21*y21);
     assert(tmp > 0);
@@ -47,17 +47,17 @@ void test1()
 
 void test2()
 {
-	double x10=randx();
-	double x11=randx();
-	double x20=randx();
-	double x21=randx();
-	double y10=randx();
-	double y11=randx();
-	double y20=randx();
-	double y21=randx();
+        double x10=randx();
+        double x11=randx();
+        double x20=randx();
+        double x21=randx();
+        double y10=randx();
+        double y11=randx();
+        double y20=randx();
+        double y21=randx();
 
     double tmp=(
-    x20*x21 + y10*y10 + y10*y11 + y11*y11 + 
+    x20*x21 + y10*y10 + y10*y11 + y11*y11 +
     y11*y20 + y20*y20 + y10*y21 + y11*y21 +
     y21*y21);
     assert(tmp > 0);
@@ -77,7 +77,7 @@ void test3()
     real y21=randx();
 
     real tmp=(
-    x20*x21 + y10*y10 + y10*y11 + y11*y11 + 
+    x20*x21 + y10*y10 + y10*y11 + y11*y11 +
     y11*y20 + y20*y20 + y10*y21 + y11*y21 +
     y21*y21);
     assert(tmp > 0);
@@ -86,19 +86,19 @@ void test3()
 /*************************************/
 
 void test4()
-{    
-     printf("main() : (-128 >= 0)=%s, (-128 <= 0)=%s\n", 
+{
+     printf("main() : (-128 >= 0)=%s, (-128 <= 0)=%s\n",
               cast(char*)(-128 >= 0 ? "true" : "false"),
-              cast(char*)(-128 <= 0 ?  "true" : "false"));     
+              cast(char*)(-128 <= 0 ?  "true" : "false"));
 
-     printf("main() : (128 >= 0)=%s, (128 <= 0)=%s\n", 
+     printf("main() : (128 >= 0)=%s, (128 <= 0)=%s\n",
               cast(char*)(128 >= 0 ? "true" : "false"),
               cast(char*)(128 <= 0 ?  "true" : "false"));
-              
+
      assert((-128 >= 0 ? "true" : "false") == "false"),
-     assert((-128 <= 0 ? "true" : "false") == "true");     
+     assert((-128 <= 0 ? "true" : "false") == "true");
      assert((+128 >= 0 ? "true" : "false") == "true"),
-     assert((+128 <= 0 ? "true" : "false") == "false");     
+     assert((+128 <= 0 ? "true" : "false") == "false");
 }
 
 
@@ -183,10 +183,10 @@ class A9
 {
     this(int[] params ...)
     {
-	for (int i = 0; i < params.length; i++)
-	{
-	    assert(params[i] == i + 1);
-	}
+        for (int i = 0; i < params.length; i++)
+        {
+            assert(params[i] == i + 1);
+        }
     }
 }
 
@@ -199,9 +199,9 @@ class B9
 
     private void init()
     {
-	A9 test1 = new A9(1, 2, 3);
-	A9 test2 = new A9(1, 2, 3, 4);
-	int[3] arg; A9 test3 = new A9((arg[0]=1, arg[1]=2, arg[2]=3, arg));
+        A9 test1 = new A9(1, 2, 3);
+        A9 test2 = new A9(1, 2, 3, 4);
+        int[3] arg; A9 test3 = new A9((arg[0]=1, arg[1]=2, arg[2]=3, arg));
     }
 }
 
@@ -307,7 +307,7 @@ void test14()
 /*************************************/
 
 ireal x15;
-    
+
 void foo15()
 {
     x15 = -x15;
@@ -323,12 +323,12 @@ void test15()
     x15=2i;
     bar15();
     assert(x15==-2i);
-} 
+}
 
 /*************************************/
 
 real x16;
-    
+
 void foo16()
 {
     x16 = -x16;
@@ -388,7 +388,7 @@ class DP
   private:
     void I(char[] p)
     {
-	I(p[1..p.length]);
+        I(p[1..p.length]);
     }
 }
 
@@ -437,15 +437,15 @@ void test22()
 
     foreach(creal d; params)
     {
-	creal prod = d;
+        creal prod = d;
 
-	printf("prod = %Lf + %Lfi\n", prod.re, prod.im);
-	for(int i; i<2; i++)
-	{
-	    sums[i] += prod;
-	    prod *= d;
-	}
-	sums[2] += prod;
+        printf("prod = %Lf + %Lfi\n", prod.re, prod.im);
+        for(int i; i<2; i++)
+        {
+            sums[i] += prod;
+            prod *= d;
+        }
+        sums[2] += prod;
     }
 
     printf("sums[0] = %Lf + %Lfi", sums[0].re, sums[0].im);
@@ -598,7 +598,7 @@ void test28()
 void test29()
 {
     ulong a = 10_000_000_000_000_000,
-	  b =  1_000_000_000_000_000;
+          b =  1_000_000_000_000_000;
 
     printf("test29\n%lx\n%lx\n%lx\n", a, b, a / b);
     assert((a / b) == 10);
@@ -661,7 +661,7 @@ struct particle
 
     float xg;     /* X Gravity       */
     float yg;     /* Y Gravity       */
-} 
+}
 
 particle particles[10000];
 
@@ -675,7 +675,7 @@ class Foo33
 {
     template foo()
     {
-	int foo() { return 6; }
+        int foo() { return 6; }
     }
 }
 
@@ -683,10 +683,10 @@ class Foo33
 void test33()
 {
     Foo33 f = new Foo33;
-	
+
     assert(f.foo!()() == 6);
     with (f)
-	assert(foo!()() == 6);
+        assert(foo!()() == 6);
 }
 
 /*************************************/
@@ -757,40 +757,40 @@ void test37()
 
 void test38()
 {
-	auto s=`hello`;
-	assert(s.length==5);
-	assert(s[0]=='h');
-	assert(s[1]=='e');
-	assert(s[2]=='l');
-	assert(s[3]=='l');
-	assert(s[4]=='o');
+        auto s=`hello`;
+        assert(s.length==5);
+        assert(s[0]=='h');
+        assert(s[1]=='e');
+        assert(s[2]=='l');
+        assert(s[3]=='l');
+        assert(s[4]=='o');
 }
 
 /*************************************/
 
 void test39()
 {
-	int value=1;
-	string key = "eins";
-	int[char[]] array;
-	
-	array[key]=value;
-	int* ptr = key in array;
-	
-	assert(value == *ptr);
+        int value=1;
+        string key = "eins";
+        int[char[]] array;
+
+        array[key]=value;
+        int* ptr = key in array;
+
+        assert(value == *ptr);
 }
 
 /*************************************/
 
 void test40()
 {
-	auto s=r"hello";
-	assert(s.length==5);
-	assert(s[0]=='h');
-	assert(s[1]=='e');
-	assert(s[2]=='l');
-	assert(s[3]=='l');
-	assert(s[4]=='o');
+        auto s=r"hello";
+        assert(s.length==5);
+        assert(s[0]=='h');
+        assert(s[1]=='e');
+        assert(s[2]=='l');
+        assert(s[3]=='l');
+        assert(s[4]=='o');
 }
 
 /*************************************/
@@ -799,25 +799,25 @@ void test41()
 {
     version (Windows)
     {
-	version(D_InlineAsm){
-		double a = 1.2;
-		double b = 0.2;
-		double c = 1.4;
-		
-		asm{
-			movq XMM0, a;
-			movq XMM1, b;
-			addsd XMM1, XMM0;
-			movq c, XMM1;
-		}
-		
-		a += b;
-		
-		b = a-c;
-		b = (b>0) ? b : (-1 * b);
-		
-		assert(b < b.epsilon*4);
-	}
+        version(D_InlineAsm){
+                double a = 1.2;
+                double b = 0.2;
+                double c = 1.4;
+
+                asm{
+                        movq XMM0, a;
+                        movq XMM1, b;
+                        addsd XMM1, XMM0;
+                        movq c, XMM1;
+                }
+
+                a += b;
+
+                b = a-c;
+                b = (b>0) ? b : (-1 * b);
+
+                assert(b < b.epsilon*4);
+        }
     }
 }
 
@@ -924,36 +924,36 @@ body
 {
     version (D_InlineAsm_X86)
     {
-	version (linux)
-	{
-	asm     // assembler by W. Bright
-	{
-	    // EDX = (A.length - 1) * real.sizeof
-	    mov     ECX,A[EBP]          ; // ECX = A.length
-	    dec     ECX                 ;
-	    lea     EDX,[ECX][ECX*8]    ;
-	    add     EDX,ECX             ;
-	    add     EDX,ECX             ;
-	    add     EDX,ECX             ;
-	    add     EDX,A+4[EBP]        ;
-	    fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
-	    jecxz   return_ST           ;
-	    fld     x[EBP]              ; // ST0 = x
-	    fxch    ST(1)               ; // ST1 = x, ST0 = r
-	    align   4                   ;
+        version (linux)
+        {
+        asm     // assembler by W. Bright
+        {
+            // EDX = (A.length - 1) * real.sizeof
+            mov     ECX,A[EBP]          ; // ECX = A.length
+            dec     ECX                 ;
+            lea     EDX,[ECX][ECX*8]    ;
+            add     EDX,ECX             ;
+            add     EDX,ECX             ;
+            add     EDX,ECX             ;
+            add     EDX,A+4[EBP]        ;
+            fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
+            jecxz   return_ST           ;
+            fld     x[EBP]              ; // ST0 = x
+            fxch    ST(1)               ; // ST1 = x, ST0 = r
+            align   4                   ;
     L2:     fmul    ST,ST(1)            ; // r *= x
-	    fld     real ptr -12[EDX]   ;
-	    sub     EDX,12              ; // deg--
-	    faddp   ST(1),ST            ;
-	    dec     ECX                 ;
-	    jne     L2                  ;
-	    fxch    ST(1)               ; // ST1 = r, ST0 = x
-	    fstp    ST(0)               ; // dump x
-	    align   4                   ;
+            fld     real ptr -12[EDX]   ;
+            sub     EDX,12              ; // deg--
+            faddp   ST(1),ST            ;
+            dec     ECX                 ;
+            jne     L2                  ;
+            fxch    ST(1)               ; // ST1 = r, ST0 = x
+            fstp    ST(0)               ; // dump x
+            align   4                   ;
     return_ST:                          ;
-	    ;
-	}
-	}
+            ;
+        }
+        }
         else version (OSX)
         {
             asm // assembler by W. Bright
@@ -982,99 +982,99 @@ body
                 ;
             }
         }
-	else version (FreeBSD)
-	{
-	asm     // assembler by W. Bright
-	{
-	    // EDX = (A.length - 1) * real.sizeof
-	    mov     ECX,A[EBP]          ; // ECX = A.length
-	    dec     ECX                 ;
-	    lea     EDX,[ECX][ECX*8]    ;
-	    add     EDX,ECX             ;
-	    add     EDX,ECX             ;
-	    add     EDX,ECX             ;
-	    add     EDX,A+4[EBP]        ;
-	    fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
-	    jecxz   return_ST           ;
-	    fld     x[EBP]              ; // ST0 = x
-	    fxch    ST(1)               ; // ST1 = x, ST0 = r
-	    align   4                   ;
+        else version (FreeBSD)
+        {
+        asm     // assembler by W. Bright
+        {
+            // EDX = (A.length - 1) * real.sizeof
+            mov     ECX,A[EBP]          ; // ECX = A.length
+            dec     ECX                 ;
+            lea     EDX,[ECX][ECX*8]    ;
+            add     EDX,ECX             ;
+            add     EDX,ECX             ;
+            add     EDX,ECX             ;
+            add     EDX,A+4[EBP]        ;
+            fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
+            jecxz   return_ST           ;
+            fld     x[EBP]              ; // ST0 = x
+            fxch    ST(1)               ; // ST1 = x, ST0 = r
+            align   4                   ;
     L2:     fmul    ST,ST(1)            ; // r *= x
-	    fld     real ptr -12[EDX]   ;
-	    sub     EDX,12              ; // deg--
-	    faddp   ST(1),ST            ;
-	    dec     ECX                 ;
-	    jne     L2                  ;
-	    fxch    ST(1)               ; // ST1 = r, ST0 = x
-	    fstp    ST(0)               ; // dump x
-	    align   4                   ;
+            fld     real ptr -12[EDX]   ;
+            sub     EDX,12              ; // deg--
+            faddp   ST(1),ST            ;
+            dec     ECX                 ;
+            jne     L2                  ;
+            fxch    ST(1)               ; // ST1 = r, ST0 = x
+            fstp    ST(0)               ; // dump x
+            align   4                   ;
     return_ST:                          ;
-	    ;
-	}
-	}
-	else version (Solaris)
-	{
-	asm     // assembler by W. Bright
-	{
-	    // EDX = (A.length - 1) * real.sizeof
-	    mov     ECX,A[EBP]          ; // ECX = A.length
-	    dec     ECX                 ;
-	    lea     EDX,[ECX][ECX*8]    ;
-	    add     EDX,ECX             ;
-	    add     EDX,ECX             ;
-	    add     EDX,ECX             ;
-	    add     EDX,A+4[EBP]        ;
-	    fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
-	    jecxz   return_ST           ;
-	    fld     x[EBP]              ; // ST0 = x
-	    fxch    ST(1)               ; // ST1 = x, ST0 = r
-	    align   4                   ;
+            ;
+        }
+        }
+        else version (Solaris)
+        {
+        asm     // assembler by W. Bright
+        {
+            // EDX = (A.length - 1) * real.sizeof
+            mov     ECX,A[EBP]          ; // ECX = A.length
+            dec     ECX                 ;
+            lea     EDX,[ECX][ECX*8]    ;
+            add     EDX,ECX             ;
+            add     EDX,ECX             ;
+            add     EDX,ECX             ;
+            add     EDX,A+4[EBP]        ;
+            fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
+            jecxz   return_ST           ;
+            fld     x[EBP]              ; // ST0 = x
+            fxch    ST(1)               ; // ST1 = x, ST0 = r
+            align   4                   ;
     L2:     fmul    ST,ST(1)            ; // r *= x
-	    fld     real ptr -12[EDX]   ;
-	    sub     EDX,12              ; // deg--
-	    faddp   ST(1),ST            ;
-	    dec     ECX                 ;
-	    jne     L2                  ;
-	    fxch    ST(1)               ; // ST1 = r, ST0 = x
-	    fstp    ST(0)               ; // dump x
-	    align   4                   ;
+            fld     real ptr -12[EDX]   ;
+            sub     EDX,12              ; // deg--
+            faddp   ST(1),ST            ;
+            dec     ECX                 ;
+            jne     L2                  ;
+            fxch    ST(1)               ; // ST1 = r, ST0 = x
+            fstp    ST(0)               ; // dump x
+            align   4                   ;
     return_ST:                          ;
-	    ;
-	}
-	}
-	else
-	{
-	asm     // assembler by W. Bright
-	{
-	    // EDX = (A.length - 1) * real.sizeof
-	    mov     ECX,A[EBP]          ; // ECX = A.length
-	    dec     ECX                 ;
-	    lea     EDX,[ECX][ECX*8]    ;
-	    add     EDX,ECX             ;
-	    add     EDX,A+4[EBP]        ;
-	    fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
-	    jecxz   return_ST           ;
-	    fld     x[EBP]              ; // ST0 = x
-	    fxch    ST(1)               ; // ST1 = x, ST0 = r
-	    align   4                   ;
+            ;
+        }
+        }
+        else
+        {
+        asm     // assembler by W. Bright
+        {
+            // EDX = (A.length - 1) * real.sizeof
+            mov     ECX,A[EBP]          ; // ECX = A.length
+            dec     ECX                 ;
+            lea     EDX,[ECX][ECX*8]    ;
+            add     EDX,ECX             ;
+            add     EDX,A+4[EBP]        ;
+            fld     real ptr [EDX]      ; // ST0 = coeff[ECX]
+            jecxz   return_ST           ;
+            fld     x[EBP]              ; // ST0 = x
+            fxch    ST(1)               ; // ST1 = x, ST0 = r
+            align   4                   ;
     L2:     fmul    ST,ST(1)            ; // r *= x
-	    fld     real ptr -10[EDX]   ;
-	    sub     EDX,10              ; // deg--
-	    faddp   ST(1),ST            ;
-	    dec     ECX                 ;
-	    jne     L2                  ;
-	    fxch    ST(1)               ; // ST1 = r, ST0 = x
-	    fstp    ST(0)               ; // dump x
-	    align   4                   ;
+            fld     real ptr -10[EDX]   ;
+            sub     EDX,10              ; // deg--
+            faddp   ST(1),ST            ;
+            dec     ECX                 ;
+            jne     L2                  ;
+            fxch    ST(1)               ; // ST1 = r, ST0 = x
+            fstp    ST(0)               ; // dump x
+            align   4                   ;
     return_ST:                          ;
-	    ;
-	}
-	}
+            ;
+        }
+        }
     }
     else
     {
-	printf("Sorry, you don't seem to have InlineAsm_X86\n");
-	return 0;
+        printf("Sorry, you don't seem to have InlineAsm_X86\n");
+        return 0;
     }
 }
 
@@ -1089,8 +1089,8 @@ body
     real r = A[i];
     while (--i >= 0)
     {
-	r *= x;
-	r += A[i];
+        r *= x;
+        r += A[i];
     }
     return r;
 }
@@ -1150,25 +1150,25 @@ void test50()
 {
     if (auto x = 1)
     {
-	assert(typeid(typeof(x)) == typeid(int));
-	assert(x == 1);
+        assert(typeid(typeof(x)) == typeid(int));
+        assert(x == 1);
     }
     else
-	assert(0);
+        assert(0);
 
     if (int x = 1)
     {
-	assert(typeid(typeof(x)) == typeid(int));
-	assert(x == 1);
+        assert(typeid(typeof(x)) == typeid(int));
+        assert(x == 1);
     }
     else
-	assert(0);
+        assert(0);
 
     if (1)
     {
     }
     else
-	assert(0);
+        assert(0);
 }
 
 /*************************************/
@@ -1198,7 +1198,7 @@ void test51()
 alias int function (int) x52;
 
 template T52(string str){
-	const int T52 = 1;
+        const int T52 = 1;
 }
 
 static assert(T52!(x52.mangleof));
@@ -1212,34 +1212,34 @@ import std.stdio;
 import core.stdc.stdarg;
 
 void myfunc(int a1, ...) {
-	va_list argument_list;
-	TypeInfo argument_type;
-	string sa; int ia; double da;
-	writefln("%d variable arguments", _arguments.length);
-	writefln("argument types %s", _arguments);
-	va_start(argument_list, a1);
-	for (int i = 0; i < _arguments.length; ) {
-		if ((argument_type=_arguments[i++]) == typeid(string)) {
-			va_arg(argument_list, sa);
-			writefln("%d) string arg = '%s', length %d", i+1, sa.length<=20? sa : "?", sa.length);
-		} else if (argument_type == typeid(int)) {
-			va_arg(argument_list, ia);
-			writefln("%d) int arg = %d", i+1, ia);
-		} else if (argument_type == typeid(double)) {
-			va_arg(argument_list, da);
-			writefln("%d) double arg = %f", i+1, da);
-		} else {
-			throw new Exception("invalid argument type");
-		}
-	}
-	va_end(argument_list);
+        va_list argument_list;
+        TypeInfo argument_type;
+        string sa; int ia; double da;
+        writefln("%d variable arguments", _arguments.length);
+        writefln("argument types %s", _arguments);
+        va_start(argument_list, a1);
+        for (int i = 0; i < _arguments.length; ) {
+                if ((argument_type=_arguments[i++]) == typeid(string)) {
+                        va_arg(argument_list, sa);
+                        writefln("%d) string arg = '%s', length %d", i+1, sa.length<=20? sa : "?", sa.length);
+                } else if (argument_type == typeid(int)) {
+                        va_arg(argument_list, ia);
+                        writefln("%d) int arg = %d", i+1, ia);
+                } else if (argument_type == typeid(double)) {
+                        va_arg(argument_list, da);
+                        writefln("%d) double arg = %f", i+1, da);
+                } else {
+                        throw new Exception("invalid argument type");
+                }
+        }
+        va_end(argument_list);
 }
 
 void test6758() {
-	myfunc(1, 2, 3, 4, 5, 6, 7, 8, "9", "10");				// Fails.
-	myfunc(1, 2.0, 3, 4, 5, 6, 7, 8, "9", "10");			// Works OK.
-	myfunc(1, 2, 3, 4, 5, 6, 7, "8", "9", "10");			// Works OK.
-	myfunc(1, "2", 3, 4, 5, 6, 7, 8, "9", "10");			// Works OK.
+        myfunc(1, 2, 3, 4, 5, 6, 7, 8, "9", "10");                              // Fails.
+        myfunc(1, 2.0, 3, 4, 5, 6, 7, 8, "9", "10");                    // Works OK.
+        myfunc(1, 2, 3, 4, 5, 6, 7, "8", "9", "10");                    // Works OK.
+        myfunc(1, "2", 3, 4, 5, 6, 7, 8, "9", "10");                    // Works OK.
 }
 
 

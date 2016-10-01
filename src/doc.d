@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _doc.d)
+ */
 
 module ddmd.doc;
 
@@ -32,7 +34,6 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.lexer;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.root.array;
 import ddmd.root.file;
@@ -42,6 +43,7 @@ import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.tokens;
 import ddmd.utf;
+import ddmd.utils;
 import ddmd.visitor;
 
 struct Escape
@@ -86,7 +88,6 @@ struct Escape
  */
 extern (C++) class Section
 {
-public:
     const(char)* name;
     size_t namelen;
     const(char)* _body;
@@ -152,7 +153,6 @@ public:
  */
 extern (C++) final class ParamSection : Section
 {
-public:
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);
@@ -221,6 +221,12 @@ public:
                     {
                         size_t o = buf.offset;
                         Parameter fparam = isFunctionParameter(a, namestart, namelen);
+                        if (!fparam)
+                        {
+                            // Comments on a template might refer to function parameters within.
+                            // Search the parameters of nested eponymous functions (with the same name.)
+                            fparam = isEponymousFunctionParameter(a, namestart, namelen);
+                        }
                         bool isCVariadic = isCVariadicParameter(a, namestart, namelen);
                         if (isCVariadic)
                         {
@@ -299,7 +305,6 @@ public:
  */
 extern (C++) final class MacroSection : Section
 {
-public:
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
@@ -491,7 +496,7 @@ extern (C++) void gendocfile(Module m)
             mbuf.write(file.buffer, file.len);
         }
     }
-    DocComment.parseMacros(&m.escapetable, &m.macrotable, cast(char*)mbuf.data, mbuf.offset);
+    DocComment.parseMacros(&m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(sc, m, m.comment);
     dc.pmacrotable = &m.macrotable;
@@ -501,7 +506,7 @@ extern (C++) void gendocfile(Module m)
     // Set the title to be the name of the module
     {
         const(char)* p = m.toPrettyChars();
-        Macro.define(&m.macrotable, cast(char*)"TITLE", 5, cast(char*)p, strlen(p));
+        Macro.define(&m.macrotable, "TITLE", p[0 .. strlen(p)]);
     }
     // Set time macros
     {
@@ -509,17 +514,17 @@ extern (C++) void gendocfile(Module m)
         time(&t);
         char* p = ctime(&t);
         p = mem.xstrdup(p);
-        Macro.define(&m.macrotable, cast(char*)"DATETIME", 8, p, strlen(p));
-        Macro.define(&m.macrotable, cast(char*)"YEAR", 4, p + 20, 4);
+        Macro.define(&m.macrotable, "DATETIME", p[0 .. strlen(p)]);
+        Macro.define(&m.macrotable, "YEAR", p[20 .. 20 + 4]);
     }
     const srcfilename = m.srcfile.toChars();
-    Macro.define(&m.macrotable, "SRCFILENAME", 11, srcfilename, strlen(srcfilename));
+    Macro.define(&m.macrotable, "SRCFILENAME", srcfilename[0 .. strlen(srcfilename)]);
     const docfilename = m.docfile.toChars();
-    Macro.define(&m.macrotable, "DOCFILENAME", 11, docfilename, strlen(docfilename));
+    Macro.define(&m.macrotable, "DOCFILENAME", docfilename[0 .. strlen(docfilename)]);
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
-        Macro.define(&m.macrotable, cast(char*)"COPYRIGHT", 9, dc.copyright._body, dc.copyright.bodylen);
+        Macro.define(&m.macrotable, "COPYRIGHT", dc.copyright._body[0 .. dc.copyright.bodylen]);
     }
     if (m.isDocFile)
     {
@@ -543,7 +548,7 @@ extern (C++) void gendocfile(Module m)
         emitMemberComments(m, &buf, sc);
     }
     //printf("BODY= '%.*s'\n", buf.offset, buf.data);
-    Macro.define(&m.macrotable, cast(char*)"BODY", 4, cast(char*)buf.data, buf.offset);
+    Macro.define(&m.macrotable, "BODY", buf.peekSlice());
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
     size_t end = buf2.offset;
@@ -554,13 +559,14 @@ extern (C++) void gendocfile(Module m)
          * and make CR-LF the newline.
          */
         {
+            const slice = buf2.peekSlice();
             buf.setsize(0);
-            buf.reserve(buf2.offset);
-            char* p = cast(char*)buf2.data;
-            for (size_t j = 0; j < buf2.offset; j++)
+            buf.reserve(slice.length);
+            auto p = slice.ptr;
+            for (size_t j = 0; j < slice.length; j++)
             {
                 char c = p[j];
-                if (c == 0xFF && j + 1 < buf2.offset)
+                if (c == 0xFF && j + 1 < slice.length)
                 {
                     j++;
                     continue;
@@ -570,7 +576,7 @@ extern (C++) void gendocfile(Module m)
                 else if (c == '\r')
                 {
                     buf.writestring("\r\n");
-                    if (j + 1 < buf2.offset && p[j + 1] == '\n')
+                    if (j + 1 < slice.length && p[j + 1] == '\n')
                     {
                         j++;
                     }
@@ -581,7 +587,7 @@ extern (C++) void gendocfile(Module m)
         }
         // Transfer image to file
         assert(m.docfile);
-        m.docfile.setbuffer(buf.data, buf.offset);
+        m.docfile.setbuffer(cast(void*)buf.peekSlice().ptr, buf.peekSlice().length);
         m.docfile._ref = 1;
         ensurePathToNameExists(Loc(), m.docfile.toChars());
         writeFile(m.loc, m.docfile);
@@ -629,17 +635,17 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
         {
         case '$':
             buf.remove(u, 1);
-            buf.insert(u, cast(const(char)*)"$(DOLLAR)", 9);
+            buf.insert(u, "$(DOLLAR)");
             u += 8;
             break;
         case '(':
             buf.remove(u, 1); //remove the (
-            buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
+            buf.insert(u, "$(LPAREN)"); //insert this instead
             u += 8; //skip over newly inserted macro
             break;
         case ')':
             buf.remove(u, 1); //remove the )
-            buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
+            buf.insert(u, "$(RPAREN)"); //insert this instead
             u += 8; //skip over newly inserted macro
             break;
         default:
@@ -675,7 +681,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                     //stray ')'
                     warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output. Use $(RPAREN) instead for unpaired right parentheses.");
                     buf.remove(u, 1); //remove the )
-                    buf.insert(u, cast(const(char)*)"$(RPAREN)", 9); //insert this instead
+                    buf.insert(u, "$(RPAREN)"); //insert this instead
                     u += 8; //skip over newly inserted macro
                 }
                 else
@@ -725,7 +731,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                     //stray '('
                     warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output. Use $(LPAREN) instead for unpaired left parentheses.");
                     buf.remove(u, 1); //remove the (
-                    buf.insert(u, cast(const(char)*)"$(LPAREN)", 9); //insert this instead
+                    buf.insert(u, "$(LPAREN)"); //insert this instead
                 }
                 else
                     par_open--;
@@ -806,7 +812,7 @@ extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc)
     // cache anchor name
     sc.prevAnchor = ident;
     buf.writestring("$(DDOC_ANCHOR ");
-    buf.writestring(ident.string);
+    buf.writestring(ident.toChars());
     // only append count once there's a duplicate
     if (count > 1)
         buf.printf(".%u", count);
@@ -1001,8 +1007,8 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(Declaration d)
         {
-            //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", d, d->toChars(), d->comment);
-            //printf("type = %p\n", d->type);
+            //printf("Declaration::emitComment(%p '%s'), comment = '%s'\n", d, d.toChars(), d.comment);
+            //printf("type = %p\n", d.type);
             const(char)* com = d.comment;
             if (TemplateDeclaration td = getEponymousParent(d))
             {
@@ -1416,8 +1422,6 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             for (size_t i = 0; i < cd.baseclasses.dim; i++)
             {
                 BaseClass* bc = (*cd.baseclasses)[i];
-                if (bc.protection.kind == PROTprivate)
-                    continue;
                 if (bc.sym && bc.sym.ident == Id.Object)
                     continue;
                 if (any)
@@ -1427,7 +1431,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writestring(": ");
                     any = 1;
                 }
-                emitProtection(buf, bc.protection);
+                emitProtection(buf, Prot(PROTpublic));
                 if (bc.sym)
                 {
                     buf.printf("$(DDOC_PSUPER_SYMBOL %s)", bc.sym.toPrettyChars());
@@ -1542,8 +1546,7 @@ struct DocComment
                     if (isIdStart(p))
                         break;
                     if (namelen)
-                        goto Ltext;
-                    // continuation of prev macro
+                        goto Ltext; // continuation of prev macro
                     goto Lskipline;
                 }
                 break;
@@ -1569,8 +1572,7 @@ struct DocComment
             if (*p != '=')
             {
                 if (namelen)
-                    goto Ltext;
-                // continuation of prev macro
+                    goto Ltext; // continuation of prev macro
                 goto Lskipline;
             }
             p++;
@@ -1584,7 +1586,7 @@ struct DocComment
                 if (icmp("ESCAPES", namestart, namelen) == 0)
                     parseEscapes(pescapetable, textstart, textlen);
                 else
-                    Macro.define(pmacrotable, namestart, namelen, textstart, textlen);
+                    Macro.define(pmacrotable, namestart[0 ..namelen], textstart[0 .. textlen]);
                 namelen = 0;
                 if (p >= pend)
                     break;
@@ -1609,8 +1611,7 @@ struct DocComment
         }
     Ldone:
         if (namelen)
-            goto L1;
-        // write out last one
+            goto L1; // write out last one
     }
 
     /**************************************
@@ -1924,11 +1925,12 @@ extern (C++) const(char)* skipwhitespace(const(char)* p)
  */
 extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
 {
-    while (i < buf.offset)
+    const slice = buf.peekSlice();
+    while (i < slice.length)
     {
         dchar c;
         size_t oi = i;
-        if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
+        if (utf_decodeChar(slice.ptr, slice.length, i, c))
         {
             /* Ignore UTF errors, but still consume input
              */
@@ -1952,11 +1954,12 @@ extern (C++) size_t skiptoident(OutBuffer* buf, size_t i)
  */
 extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
 {
-    while (i < buf.offset)
+    const slice = buf.peekSlice();
+    while (i < slice.length)
     {
         dchar c;
         size_t oi = i;
-        if (utf_decodeChar(cast(char*)buf.data, buf.offset, i, c))
+        if (utf_decodeChar(slice.ptr, slice.length, i, c))
         {
             /* Ignore UTF errors, but still consume input
              */
@@ -1984,30 +1987,30 @@ extern (C++) size_t skippastident(OutBuffer* buf, size_t i)
  */
 extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
 {
-    size_t length = buf.offset - i;
-    char* p = cast(char*)&buf.data[i];
+    const slice = buf.peekSlice()[i .. $];
     size_t j;
-    uint sawdot = 0;
-    if (length > 7 && Port.memicmp(p, "http://", 7) == 0)
+    bool sawdot = false;
+    if (slice.length > 7 && Port.memicmp(slice.ptr, "http://", 7) == 0)
     {
         j = 7;
     }
-    else if (length > 8 && Port.memicmp(p, "https://", 8) == 0)
+    else if (slice.length > 8 && Port.memicmp(slice.ptr, "https://", 8) == 0)
     {
         j = 8;
     }
     else
         goto Lno;
-    for (; j < length; j++)
+    for (; j < slice.length; j++)
     {
-        char c = p[j];
+        const c = slice[j];
         if (isalnum(c))
             continue;
-        if (c == '-' || c == '_' || c == '?' || c == '=' || c == '%' || c == '&' || c == '/' || c == '+' || c == '#' || c == '~')
+        if (c == '-' || c == '_' || c == '?' || c == '=' || c == '%' ||
+            c == '&' || c == '/' || c == '+' || c == '#' || c == '~')
             continue;
         if (c == '.')
         {
-            sawdot = 1;
+            sawdot = true;
             continue;
         }
         break;
@@ -2033,12 +2036,12 @@ extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 
 /****************************************************
  */
-extern (C++) bool isKeyword(char* p, size_t len)
+extern (C++) bool isKeyword(const(char)* p, size_t len)
 {
-    static __gshared const(char)** table = ["true", "false", "null", null];
-    for (int i = 0; table[i]; i++)
+    immutable string[3] table = ["true", "false", "null"];
+    foreach (s; table)
     {
-        if (cmp(table[i], p, len) == 0)
+        if (cmp(s.ptr, p, len) == 0)
             return true;
     }
     return false;
@@ -2062,21 +2065,81 @@ extern (C++) TypeFunction isTypeFunction(Dsymbol s)
 
 /****************************************************
  */
+private Parameter isFunctionParameter(Dsymbol s, const(char)* p, size_t len)
+{
+    TypeFunction tf = isTypeFunction(s);
+    if (tf && tf.parameters)
+    {
+        for (size_t k = 0; k < tf.parameters.dim; k++)
+        {
+            Parameter fparam = (*tf.parameters)[k];
+            if (fparam.ident && cmp(fparam.ident.toChars(), p, len) == 0)
+            {
+                return fparam;
+            }
+        }
+    }
+    return null;
+}
+
+/****************************************************
+ */
 extern (C++) Parameter isFunctionParameter(Dsymbols* a, const(char)* p, size_t len)
 {
     for (size_t i = 0; i < a.dim; i++)
     {
-        TypeFunction tf = isTypeFunction((*a)[i]);
-        if (tf && tf.parameters)
+        Parameter fparam = isFunctionParameter((*a)[i], p, len);
+        if (fparam)
         {
-            for (size_t k = 0; k < tf.parameters.dim; k++)
+            return fparam;
+        }
+    }
+    return null;
+}
+
+/****************************************************
+ */
+private Parameter isEponymousFunctionParameter(Dsymbols *a, const(char) *p, size_t len)
+{
+    for (size_t i = 0; i < a.dim; i++)
+    {
+        TemplateDeclaration td = (*a)[i].isTemplateDeclaration();
+        if (td && td.onemember)
+        {
+            /* Case 1: we refer to a template declaration inside the template
+
+               /// ...ddoc...
+               template case1(T) {
+                 void case1(R)() {}
+               }
+             */
+            td = td.onemember.isTemplateDeclaration();
+        }
+        if (!td)
+        {
+            /* Case 2: we're an alias to a template declaration
+
+               /// ...ddoc...
+               alias case2 = case1!int;
+             */
+            AliasDeclaration ad = (*a)[i].isAliasDeclaration();
+            if (ad && ad.aliassym)
             {
-                Parameter fparam = (*tf.parameters)[k];
-                if (fparam.ident && cmp(fparam.ident.toChars(), p, len) == 0)
+                td = ad.aliassym.isTemplateDeclaration();
+            }
+        }
+        while (td)
+        {
+            Dsymbol sym = getEponymousMember(td);
+            if (sym)
+            {
+                Parameter fparam = isFunctionParameter(sym, p, len);
+                if (fparam)
                 {
                     return fparam;
                 }
             }
+            td = td.overnext;
         }
     }
     return null;
@@ -2088,7 +2151,10 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
 {
     for (size_t i = 0; i < a.dim; i++)
     {
-        TemplateDeclaration td = getEponymousParent((*a)[i]);
+        TemplateDeclaration td = (*a)[i].isTemplateDeclaration();
+        // Check for the parent, if the current symbol is not a template declaration.
+        if (!td)
+            td = getEponymousParent((*a)[i]);
         if (td && td.origParameters)
         {
             for (size_t k = 0; k < td.origParameters.dim; k++)
@@ -2108,9 +2174,9 @@ extern (C++) TemplateParameter isTemplateParameter(Dsymbols* a, const(char)* p, 
  * Return true if str is a reserved symbol name
  * that starts with a double underscore.
  */
-extern (C++) bool isReservedName(char* str, size_t len)
+extern (C++) bool isReservedName(const(char)* str, size_t len)
 {
-    static __gshared const(char)** table =
+    immutable string[] table =
     [
         "__ctor",
         "__dtor",
@@ -2143,13 +2209,10 @@ extern (C++) bool isReservedName(char* str, size_t len)
         "__LOCAL_SIZE",
         "___tls_get_addr",
         "__entrypoint",
-        "__va_argsave_t",
-        "__va_argsave",
-        null
     ];
-    for (int i = 0; table[i]; i++)
+    foreach (s; table)
     {
-        if (cmp(table[i], str, len) == 0)
+        if (cmp(s.ptr, str, len) == 0)
             return true;
     }
     return false;
@@ -2194,8 +2257,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!sc._module.isDocFile && !inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                static __gshared const(char)* blankline = "$(DDOC_BLANKLINE)\n";
-                i = buf.insert(i, blankline, strlen(blankline));
+                immutable blankline = "$(DDOC_BLANKLINE)\n";
+                i = buf.insert(i, blankline);
             }
             leadingBlank = 1;
             iLineStart = i + 1;
@@ -2205,8 +2268,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 leadingBlank = 0;
                 if (inCode)
                     break;
-                char* p = cast(char*)&buf.data[i];
-                const(char)* se = sc._module.escapetable.escapeChar('<');
+                const slice = buf.peekSlice();
+                auto p = &slice[i];
+                const se = sc._module.escapetable.escapeChar('<');
                 if (se && strcmp(se, "&lt;") == 0)
                 {
                     // Generating HTML
@@ -2217,7 +2281,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         p += 4;
                         while (1)
                         {
-                            if (j == buf.offset)
+                            if (j == slice.length)
                                 goto L1;
                             if (p[0] == '-' && p[1] == '-' && p[2] == '>')
                             {
@@ -2236,7 +2300,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         p += 2;
                         while (1)
                         {
-                            if (j == buf.offset)
+                            if (j == slice.length)
                                 break;
                             if (p[0] == '>')
                             {
@@ -2253,7 +2317,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // Replace '<' with '&lt;' character entity
                 if (se)
                 {
-                    size_t len = strlen(se);
+                    const len = strlen(se);
                     buf.remove(i, 1);
                     i = buf.insert(i, se, len);
                     i--; // point to ';'
@@ -2303,14 +2367,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     inBacktick = 0;
                     inCode = 0;
                     OutBuffer codebuf;
-                    codebuf.write(buf.data + iCodeStart + 1, i - (iCodeStart + 1));
+                    codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
-                    static __gshared const(char)* pre = "$(DDOC_BACKQUOTED ";
-                    i = buf.insert(iCodeStart, pre, strlen(pre));
-                    i = buf.insert(i, cast(char*)codebuf.data, codebuf.offset);
-                    i = buf.insert(i, cast(char*)")", 1);
+                    immutable pre = "$(DDOC_BACKQUOTED ";
+                    i = buf.insert(iCodeStart, pre);
+                    i = buf.insert(i, codebuf.peekSlice());
+                    i = buf.insert(i, ")");
                     i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
                 }
@@ -2404,8 +2468,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                     highlightCode2(sc, a, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart);
-                    i = buf.insert(iCodeStart, codebuf.data, codebuf.offset);
-                    i = buf.insert(i, cast(const(char)*)")\n", 2);
+                    i = buf.insert(iCodeStart, codebuf.peekSlice());
+                    i = buf.insert(i, ")\n");
                     i -= 2; // in next loop, c should be '\n'
                 }
                 else
@@ -2424,7 +2488,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             leadingBlank = 0;
             if (sc._module.isDocFile || inCode)
                 break;
-            char* start = cast(char*)buf.data + i;
+            const start = cast(char*)buf.data + i;
             if (isIdStart(start))
             {
                 size_t j = skippastident(buf, i);
@@ -2441,7 +2505,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 size_t len = j - i;
                 // leading '_' means no highlight unless it's a reserved symbol name
-                if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.size - 1 || !isReservedName(start, len)))
+                if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.offset - 1 || !isReservedName(start, len)))
                 {
                     buf.remove(i, 1);
                     i = j - 1;
@@ -2480,7 +2544,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbol s, OutBuffer* buf, size_t off
     //printf("highlightCode(s = %s '%s')\n", s->kind(), s->toChars());
     OutBuffer ancbuf;
     emitAnchor(&ancbuf, s, sc);
-    buf.insert(offset, cast(char*)ancbuf.data, ancbuf.offset);
+    buf.insert(offset, ancbuf.peekSlice());
     offset += ancbuf.offset;
     Dsymbols a;
     a.push(s);
@@ -2567,15 +2631,15 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 parametersBuf.writeByte(')');
 
-                const(char*) templateParams = parametersBuf.extractString();
-                size_t templateParamsLen = strlen(templateParams);
+                const templateParams = parametersBuf.peekString();
+                const templateParamsLen = parametersBuf.peekSlice().length;
 
                 //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
 
                 if (cmp(templateParams, start, templateParamsLen) == 0)
                 {
-                    static immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
-                    size_t paramListEnd = buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")") - 1;
+                    immutable templateParamListMacro = "$(DDOC_TEMPLATE_PARAM_LIST ";
+                    buf.bracket(i, templateParamListMacro.ptr, i + templateParamsLen, ")");
 
                     // We have the parameter list. While we're here we might
                     // as well wrap the parameters themselves as well
@@ -2584,7 +2648,7 @@ extern (C++) void highlightCode(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // template param list
                     i += templateParamListMacro.length + 1;
 
-                    foreach (size_t len; paramLens)
+                    foreach (const len; paramLens)
                     {
                         i = buf.bracket(i, "$(DDOC_TEMPLATE_PARAM ", i + len, ")");
                         // increment two here for space + comma

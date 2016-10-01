@@ -65,7 +65,7 @@ static char __file__[] = __FILE__;      // for tassert.h
 #define MATCH_SECTION 1
 
 #define DEST_LEN (IDMAX + IDOHD + 1)
-char *obj_mangle2(Symbol *s,char *dest);
+char *obj_mangle2(Symbol *s,char *dest, size_t *destlen);
 
 #if MARS
 // C++ name mangling is handled by front end
@@ -407,18 +407,18 @@ static IDXSTR elf_addmangled(Symbol *s)
 {
     //printf("elf_addmangled(%s)\n", s->Sident);
     char dest[DEST_LEN];
-    char *destr;
-    const char *name;
-    int len;
-    IDXSTR namidx;
 
-    namidx = symtab_strings->size();
-    destr = obj_mangle2(s, dest);
-    name = destr;
+    IDXSTR namidx = symtab_strings->size();
+    size_t len;
+    char *destr = obj_mangle2(s, dest, &len);
+    const char *name = destr;
     if (CPP && name[0] == '_' && name[1] == '_')
     {
         if (strncmp(name,"__ct__",6) == 0)
+        {
             name += 4;
+            len -= 4;
+        }
 #if 0
         switch(name[2])
         {
@@ -445,10 +445,12 @@ static IDXSTR elf_addmangled(Symbol *s)
 #endif
     }
     else if (tyfunc(s->ty()) && s->Sfunc && s->Sfunc->Fredirect)
+    {
         name = s->Sfunc->Fredirect;
-    len = strlen(name);
+        len = strlen(name);
+    }
     symtab_strings->reserve(len+1);
-    strcpy((char *)symtab_strings->p,name);
+    memcpy((char *)symtab_strings->p, name, len + 1);
     symtab_strings->setsize(namidx+len+1);
     if (destr != dest)                  // if we resized result
         mem_free(destr);
@@ -1955,14 +1957,21 @@ seg_data *Obj::tlsseg_bss()
     return SegData[seg_tlsseg_bss];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
+
 
 /*******************************
  * Output an alias definition record.
  */
 
-void Obj::alias(const char *n1,const char *n2)
+void Obj::_alias(const char *n1,const char *n2)
 {
-    dbg_printf("Obj::alias(%s,%s)\n",n1,n2);
+    dbg_printf("Obj::_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
     char *buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
@@ -1986,7 +1995,7 @@ char *unsstr(unsigned value)
  *      mangled name
  */
 
-char *obj_mangle2(Symbol *s,char *dest)
+char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
 {
     char *name;
 
@@ -2028,13 +2037,14 @@ char *obj_mangle2(Symbol *s,char *dest)
             {
                 char *pstr = unsstr(type_paramsize(s->Stype));
                 size_t pstrlen = strlen(pstr);
-                size_t destlen = len + 1 + pstrlen + 1;
+                size_t dlen = len + 1 + pstrlen;
 
-                if (destlen > DEST_LEN)
-                    dest = (char *)mem_malloc(destlen);
+                if (dlen >= DEST_LEN)
+                    dest = (char *)mem_malloc(dlen + 1);
                 memcpy(dest,name,len);
                 dest[len] = '@';
                 memcpy(dest + 1 + len, pstr, pstrlen + 1);
+                len = dlen;
                 break;
             }
         case mTYman_cpp:
@@ -2056,6 +2066,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             assert(0);
     }
     //dbg_printf("\t %s\n",dest);
+    *destlen = len;
     return dest;
 }
 
@@ -2378,18 +2389,18 @@ void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
 
 void Obj::write_byte(seg_data *pseg, unsigned byte)
 {
-    Obj::byte(pseg->SDseg, pseg->SDoffset, byte);
+    Obj::_byte(pseg->SDseg, pseg->SDoffset, byte);
 }
 
 /************************************
  * Output byte to object file.
  */
 
-void Obj::byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
-    //dbg_printf("Obj::byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
+    //dbg_printf("Obj::_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
     buf->setsize(offset);
     buf->writeByte(byte);
     if (save > offset+1)
@@ -3502,6 +3513,13 @@ void Obj::gotref(symbol *s)
         default:
             break;
     }
+}
+
+symbol *Obj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
 }
 
 /******************************************

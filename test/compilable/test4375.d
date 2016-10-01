@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -unittest
 // 4375: disallow dangling else
 
 void main() {

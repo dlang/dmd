@@ -1,11 +1,11 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2013 by Digital Mars
+// Copyright (c) 1999-2016 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
-// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/dwarf.c
+// https://github.com/dlang/dmd/blob/master/src/backend/dwarf.c
 
 // Emit Dwarf symbolic debug info
 
@@ -2483,7 +2483,7 @@ unsigned dwarf_typidx(type *t)
             // vector length stored as subrange type
             code = dwarf_abbrev_code(abbrevSubRange, sizeof(abbrevSubRange));
             infobuf->writeuLEB128(code);        // DW_TAG_subrange_type
-            unsigned char dim = tysize[tybasic(t->Tty)] / tysize[tybasic(tbase->Tty)];
+            unsigned char dim = tysize(t->Tty) / tysize(tbase->Tty);
             infobuf->writeByte(dim - 1);        // DW_AT_upper_bound
 
             infobuf->writeByte(0);              // no more children

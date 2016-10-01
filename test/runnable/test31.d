@@ -5,7 +5,7 @@
 import imports.test31a;
 
 class Foo {
-    mixin Baz!();  
+    mixin Baz!();
 
     void testfunc() {
         privfunc(); // Error: .privfunc is private

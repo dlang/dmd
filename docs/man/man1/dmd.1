@@ -11,17 +11,29 @@ Compiles source code written in the D programming language.
 D source files to compile
 .IP file.di
 D interface files
-.IP file.o  
+.IP file.o
 Object files to link in
 .IP file.a
 Library files to link in
 .IP @cmdfile
 A file to read more command-line arguments from,
 which may contain # single-line comments
+.IP -allinst
+Generate code for all template instantiations
+.IP -betterC
+Omit generating some runtime information and helper functions
+.IP -boundscheck=[on|safeonly|off]
+bounds checks on, in @safe only, or off
 .IP -c
 Compile only, do not link
+.IP -color[=on|off]
+Force colored console output on or off
+.IP -conf=path
+Use config file at path
 .IP -cov
 Include code coverage analysis
+.IP -cov=nnn
+Require at least nnn% code coverage
 .IP -D
 Generate documentation
 .IP -Dd\fIdocdir\fR
@@ -56,6 +68,8 @@ Write module dependencies to
 .I filename
 .IP -fPIC
 Generate position independent code.
+.IP -dip25
+Implement http://wiki.dlang.org/DIP25 (experimental)
 .IP -g
 Add symbolic debug info.
 .IP -gc
@@ -63,6 +77,8 @@ Add symbolic debug info in C format (for older
 \fBgdb\fR's.)
 .IP -gs
 Always emit stack frame.
+.IP -gx
+Add stack stomp code.
 .IP -H
 Generate D interface file.
 .IP -Hd\fIdir\fR
@@ -98,10 +114,16 @@ Pass
 to the linker, for example, -M
 .IP -lib
 Generate a library rather than object files
+.IP -m32
+Generate 32 bit code
+.IP -m64
+Generate 64 bit code
 .IP -man
 Open web browser on manual page
 .IP -map
 Generate linker .map file
+.IP -noboundscheck
+No array bounds checking (deprecated, use -boundscheck=off)
 .IP -O
 Optimize
 .IP -o-
@@ -123,6 +145,8 @@ name.
 will leave it on.
 .IP -profile
 Profile the runtime performance of the generated code
+.IP -profile=\fgc\f
+Profile runtime allocations
 .IP -property
 Enforce property syntax
 .IP -quiet
@@ -135,30 +159,40 @@ Compile, link, and run the program
 with the rest of the command line, \fI args...\fR, as the
 arguments to the program. No .o or executable file is left
 behind.
+.IP -shared
+Generate shared library (DLL)
+.IP -transition=id
+With language change identified by 'id'
+.IP -transition=?
+List all language changes
 .IP -unittest
 Compile in unittest code
 .IP -v
 verbose
+.IP -vcolumns
+Print character (column) numbers in diagnostics
+.IP -verrors=num
+Limit the number of error messages (0 means unlimited)
+.IP -verrors=spec
+Show error messages from speculative compiles, such as __traits(compiles, ...)
+.IP -vgc
+List all gc allocations including hidden ones
+.IP -vtls
+List all variables going into thread local storage
 .IP -version=\fIlevel\fR
 compile in version code >=
 .I level
 .IP -version=\fIident\fR
 compile in version code identified by
 .I ident
-.IP -vtls
-List all variables going into thread local storage
 .IP -w
-Enable warnings
+Warnings as errors (compilation will halt)
 .IP -wi
-Enable informational warnings
-.IP -m32
-Compile to 32 bit code.
-.IP -m64
-Compile to 64 bit code.
+Warnings as messages (compilation will continue)
 .IP -X
 Generate JSON file.
 .IP -Xf\fIfilename\fR
-Write JSON file to 
+Write JSON file to
 .I filename
 .SH LINKING
 Linking is done directly by the
@@ -205,7 +239,7 @@ does it. I don't know if this is an issue or not.
 .PP
 The compiler sometimes gets the line number wrong on an error.
 .SH AUTHOR
-Copyright (c) 1999-2009 by Digital Mars written by Walter Bright
+Copyright (c) 1999-2016 by Digital Mars written by Walter Bright
 .SH "ONLINE DOCUMENTATION"
 .UR http://www.digitalmars.com/d/index.html
 http://www.digitalmars.com/d/index.html

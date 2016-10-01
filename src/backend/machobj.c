@@ -5,7 +5,7 @@
 // http://www.digitalmars.com
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
-// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/machobj.c
+// https://github.com/dlang/dmd/blob/master/src/backend/machobj.c
 
 
 #if SCPP || MARS
@@ -59,6 +59,7 @@
 #define X86_64_RELOC_SIGNED_1           6
 #define X86_64_RELOC_SIGNED_2           7
 #define X86_64_RELOC_SIGNED_4           8
+#define X86_64_RELOC_TLV                9 // for thread local variables
 
 static Outbuffer *fobjbuf;
 
@@ -81,6 +82,7 @@ extern int eh_frame_seg;            // segment of __eh_frame
  */
 
 symbol *GOTsym; // global offset table reference
+symbol *tlv_bootstrap_sym;
 
 symbol *Obj::getGOTsym()
 {
@@ -195,8 +197,29 @@ int seg_data::isCode()
 seg_data **SegData;
 int seg_count;
 int seg_max;
+
+/**
+ * Section index for the __thread_vars/__tls_data section.
+ *
+ * This section is used for the variable symbol for TLS variables.
+ */
 int seg_tlsseg = UNKNOWN;
+
+/**
+ * Section index for the __thread_bss section.
+ *
+ * This section is used for the data symbol ($tlv$init) for TLS variables
+ * without an initializer.
+ */
 int seg_tlsseg_bss = UNKNOWN;
+
+/**
+ * Section index for the __thread_data section.
+ *
+ * This section is used for the data symbol ($tlv$init) for TLS variables
+ * with an initializer.
+ */
+int seg_tlsseg_data = UNKNOWN;
 
 /*******************************************************
  * Because the Mach-O relocations cannot be computed until after
@@ -425,14 +448,16 @@ int Obj::data_readonly(char *p, int len)
 Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 {
     //printf("Obj::init()\n");
-    MachObj *obj = new MachObj();
+    MachObj *obj = I64 ? new MachObj64() : new MachObj();
 
     cseg = CODE;
     fobjbuf = objbuf;
 
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
+    seg_tlsseg_data = UNKNOWN;
     GOTsym = NULL;
+    tlv_bootstrap_sym = NULL;
 
     // Initialize buffers
 
@@ -816,7 +841,7 @@ void Obj::term(const char *objfilename)
                     continue;
 
                 int align = 1 << psechdr->align;
-                while (align < pseg->SDalignment)
+                while (psechdr->align > 0 && align < pseg->SDalignment)
                 {
                     psechdr->align += 1;
                     align <<= 1;
@@ -854,7 +879,7 @@ void Obj::term(const char *objfilename)
                     continue;
 
                 int align = 1 << psechdr->align;
-                while (align < pseg->SDalignment)
+                while (psechdr->align > 0 && align < pseg->SDalignment)
                 {
                     psechdr->align += 1;
                     align <<= 1;
@@ -971,7 +996,6 @@ void Obj::term(const char *objfilename)
                             int targ_address = SecHdrTab[SegData[s->Sseg]->SDshtidx].addr + s->Soffset;
                             int fixup_address = psechdr->addr + r->offset;
 
-                            int32_t *p = patchAddr(seg, r->offset);
                             srel.r_scattered = 1;
                             srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
                             srel.r_address = r->offset;
@@ -989,6 +1013,7 @@ void Obj::term(const char *objfilename)
                             foffset += sizeof(srel);
                             ++nreloc;
 
+                            int32_t *p = patchAddr(seg, r->offset);
                             *p += targ_address - fixup_address;
                             continue;
                         }
@@ -1012,7 +1037,9 @@ void Obj::term(const char *objfilename)
                                 s->Sclass == SCcomdat ||
                                 s->Sclass == SCglobal)
                             {
-                                if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal || s->Sclass == SCcomdat || s->Sclass == SCcomdef) && r->rtype == RELaddr)
+                                if (I64 && (s->ty() & mTYLINK) == mTYthread && r->rtype == RELaddr)
+                                    rel.r_type = X86_64_RELOC_TLV;
+                                else if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal || s->Sclass == SCcomdat || s->Sclass == SCcomdef) && r->rtype == RELaddr)
                                 {
                                     rel.r_type = X86_64_RELOC_GOT_LOAD;
                                     if (seg == eh_frame_seg ||
@@ -1113,24 +1140,20 @@ void Obj::term(const char *objfilename)
                 }
                 else if (r->rtype == RELaddr && pseg->isCode())
                 {
-                    int32_t *p = NULL;
-                    int32_t *p64 = NULL;
-                    if (I64)
-                        p64 = patchAddr64(seg, r->offset);
-                    else
-                        p = patchAddr(seg, r->offset);
                     srel.r_scattered = 1;
 
                     srel.r_address = r->offset;
                     srel.r_length = 2;
                     if (I64)
                     {
+                        int32_t *p64 = patchAddr64(seg, r->offset);
                         srel.r_type = X86_64_RELOC_GOT;
                         srel.r_value = SecHdrTab64[SegData[r->targseg]->SDshtidx].addr + *p64;
                         //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].addr, *p, srel.r_value);
                     }
                     else
                     {
+                        int32_t *p = patchAddr(seg, r->offset);
                         srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
                         srel.r_value = SecHdrTab[SegData[r->targseg]->SDshtidx].addr + *p;
                         //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].addr, *p, srel.r_value);
@@ -1167,14 +1190,14 @@ void Obj::term(const char *objfilename)
                     // Recalc due to possible realloc of fobjbuf->buf
                     if (I64)
                     {
-                        p64 = patchAddr64(seg, r->offset);
+                        int32_t *p64 = patchAddr64(seg, r->offset);
                         //printf("address = x%x, p64 = %p *p64 = x%llx\n", r->offset, p64, *p64);
                         *p64 += SecHdrTab64[SegData[r->targseg]->SDshtidx].addr -
                               (SecHdrTab64[pseg->SDshtidx].addr + r->funcsym->Slocalgotoffset + NPTRSIZE);
                     }
                     else
                     {
-                        p = patchAddr(seg, r->offset);
+                        int32_t *p = patchAddr(seg, r->offset);
                         //printf("address = x%x, p = %p *p = x%x\n", r->offset, p, *p);
                         if (r->funcsym)
                             *p += SecHdrTab[SegData[r->targseg]->SDshtidx].addr -
@@ -1757,7 +1780,10 @@ int Obj::comdat(Symbol *s)
     {
         s->Sfl = FLtlsdata;
         align = 4;
-        s->Sseg = MachObj::getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
+        if (I64)
+            s->Sseg = tlsseg()->SDseg;
+        else
+            s->Sseg = MachObj::getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
         Obj::data_start(s, 1 << align, s->Sseg);
     }
     else
@@ -1924,7 +1950,7 @@ int Obj::codeseg(char *name,int suffix)
 }
 
 /*********************************
- * Define segments for Thread Local Storage.
+ * Define segments for Thread Local Storage for 32bit.
  * Output:
  *      seg_tlsseg      set to segment number for TLS segment.
  * Returns:
@@ -1934,12 +1960,10 @@ int Obj::codeseg(char *name,int suffix)
 seg_data *Obj::tlsseg()
 {
     //printf("Obj::tlsseg(\n");
+    assert(I32);
 
     if (seg_tlsseg == UNKNOWN)
-    {
-        int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        seg_tlsseg = MachObj::getsegment("__tls_data", "__DATA", align, S_REGULAR);
-    }
+        seg_tlsseg = MachObj::getsegment("__tls_data", "__DATA", 2, S_REGULAR);
     return SegData[seg_tlsseg];
 }
 
@@ -1954,20 +1978,41 @@ seg_data *Obj::tlsseg()
 
 seg_data *Obj::tlsseg_bss()
 {
-    /* Because Mach-O does not support tls, it's easier to support
-     * if we have all the tls in one segment.
+    assert(I32);
+
+    /* Because DMD does not support native tls for Mach-O 32bit,
+     * it's easier to support if we have all the tls in one segment.
      */
     return Obj::tlsseg();
 }
 
+/*********************************
+ * Define segments for Thread Local Storage data.
+ * Output:
+ *      seg_tlsseg_data    set to segment number for TLS data segment.
+ * Returns:
+ *      segment for TLS data segment
+ */
+
+seg_data *Obj::tlsseg_data()
+{
+    //printf("Obj::tlsseg_data(\n");
+    assert(I64);
+
+    // The alignment should actually be alignment of the largest variable in
+    // the section, but this seems to work anyway.
+    if (seg_tlsseg_data == UNKNOWN)
+        seg_tlsseg_data = MachObj::getsegment("__thread_data", "__DATA", 4, S_THREAD_LOCAL_REGULAR);
+    return SegData[seg_tlsseg_data];
+}
 
 /*******************************
  * Output an alias definition record.
  */
 
-void Obj::alias(const char *n1,const char *n2)
+void Obj::_alias(const char *n1,const char *n2)
 {
-    //printf("Obj::alias(%s,%s)\n",n1,n2);
+    //printf("Obj::_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
     unsigned len;
@@ -2096,7 +2141,7 @@ int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
 
-    //printf("Obj::data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
+    //printf("Obj::data_start(%s,size %llu,seg %d)\n",sdata->Sident,datasize,seg);
     //symbol_print(sdata);
 
     assert(sdata->Sseg);
@@ -2311,18 +2356,18 @@ void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
 
 void Obj::write_byte(seg_data *pseg, unsigned byte)
 {
-    Obj::byte(pseg->SDseg, pseg->SDoffset, byte);
+    Obj::_byte(pseg->SDseg, pseg->SDoffset, byte);
 }
 
 /************************************
  * Output byte to object file.
  */
 
-void Obj::byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
-    //dbg_printf("Obj::byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
+    //dbg_printf("Obj::_byte(seg=%d, offset=x%lx, byte=x%x)\n",seg,offset,byte);
     buf->setsize(offset);
     buf->writeByte(byte);
     if (save > offset+1)
@@ -2359,7 +2404,7 @@ unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (buf == NULL)
     {
-        //dbg_printf("Obj::bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
+        //dbg_printf("Obj::bytes(seg=%d, offset=x%llx, nbytes=%d, p=%p)\n", seg, offset, nbytes, p);
         //raise(SIGSEGV);
 if (!buf) halt();
         assert(buf != NULL);
@@ -2800,6 +2845,57 @@ void Obj::gotref(symbol *s)
         default:
             break;
     }
+}
+
+/**
+ * Returns the symbol for the __tlv_bootstrap function.
+ *
+ * This function is used in the implementation of native thread local storage.
+ * It's used as a placeholder in the TLV descriptors. The dynamic linker will
+ * replace the placeholder with a real function at load time.
+ */
+symbol *Obj::tlv_bootstrap()
+{
+    if (!tlv_bootstrap_sym)
+        tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
+    return tlv_bootstrap_sym;
+}
+
+
+/*********************************
+ * Define segments for Thread Local Storage variables.
+ * Output:
+ *      seg_tlsseg      set to segment number for TLS variables segment.
+ * Returns:
+ *      segment for TLS variables segment
+ */
+
+seg_data *MachObj64::tlsseg()
+{
+    //printf("MachObj64::tlsseg(\n");
+
+    if (seg_tlsseg == UNKNOWN)
+        seg_tlsseg = MachObj::getsegment("__thread_vars", "__DATA", 0, S_THREAD_LOCAL_VARIABLES);
+    return SegData[seg_tlsseg];
+}
+
+/*********************************
+ * Define segments for Thread Local Storage.
+ * Output:
+ *      seg_tlsseg_bss  set to segment number for TLS data segment.
+ * Returns:
+ *      segment for TLS segment
+ */
+
+seg_data *MachObj64::tlsseg_bss()
+{
+    //printf("MachObj64::tlsseg_bss(\n");
+
+    // The alignment should actually be alignment of the largest variable in
+    // the section, but this seems to work anyway.
+    if (seg_tlsseg_bss == UNKNOWN)
+        seg_tlsseg_bss = MachObj::getsegment("__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
+    return SegData[seg_tlsseg_bss];
 }
 
 /******************************************

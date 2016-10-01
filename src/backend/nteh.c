@@ -117,39 +117,40 @@ void nteh_gentables()
      *  handler address
      */
     unsigned fsize = 4;             // target size of function pointer
-    dt_t **pdt = &s->Sdt;
+    DtBuilder dtb;
     int sz = 0;                     // size so far
 
     for (block *b = startblock; b; b = b->Bnext)
     {
         if (b->BC == BC_try)
-        {   dt_t *dt;
+        {
             block *bhandler;
 
-            pdt = dtdword(pdt,b->Blast_index);  // parent index
+            dtb.dword(b->Blast_index);  // parent index
 
             // If try-finally
-            if (list_nitems(b->Bsucc) == 2)
+            if (b->numSucc() == 2)
             {
-                pdt = dtdword(pdt,0);           // filter address
-                bhandler = list_block(list_next(b->Bsucc));
+                dtb.dword(0);           // filter address
+                bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
-                bhandler = list_block(bhandler->Bsucc);
+                bhandler = bhandler->nthSucc(0);
             }
             else // try-except
             {
-                bhandler = list_block(list_next(b->Bsucc));
+                bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_filter);
-                pdt = dtcoff(pdt,bhandler->Boffset);    // filter address
-                bhandler = list_block(list_next(list_next(b->Bsucc)));
+                dtb.coff(bhandler->Boffset);    // filter address
+                bhandler = b->nthSucc(2);
                 assert(bhandler->BC == BC_except);
             }
-            pdt = dtcoff(pdt,bhandler->Boffset);        // handler address
+            dtb.coff(bhandler->Boffset);        // handler address
             sz += 4 + fsize * 2;
         }
     }
     assert(sz != 0);
+    s->Sdt = dtb.finish();
 #endif
 
     outdata(s);                 // output the scope table
@@ -307,8 +308,6 @@ void nteh_usevars()
 code *nteh_prolog()
 {
     code cs;
-    code *c1;
-    code *c;
 
     if (usednteh & NTEHpassthru)
     {
@@ -337,12 +336,14 @@ code *nteh_prolog()
 
 //    useregs(mAX);                     // What is this for?
 
+    CodeBuilder cdb1;
+
     cs.Iop = 0x68;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vint = -1;
-    c1 = gen(CNIL,&cs);                 // PUSH -1
+    cdb1.gen(&cs);                 // PUSH -1
 
     if (MARS || (usednteh & NTEHcpp))
     {
@@ -359,13 +360,14 @@ code *nteh_prolog()
         cs.IFL2 = FLextern;
         cs.IEVsym2 = nteh_scopetable();
         cs.IEVoffset2 = 0;
-        c1 = gen(c1,&cs);                       // PUSH &scope_table
+        cdb1.gen(&cs);                       // PUSH &scope_table
 
         cs.IFL2 = FLextern;
         cs.IEVsym2 = getRtlsym(RTLSYM_EXCEPT_HANDLER3);
         makeitextern(getRtlsym(RTLSYM_EXCEPT_HANDLER3));
     }
-    c = gen(NULL,&cs);                          // PUSH &__except_handler3
+    CodeBuilder cdb2;
+    cdb2.gen(&cs);                          // PUSH &__except_handler3
 
     if (config.exe == EX_WIN32)
     {
@@ -378,7 +380,7 @@ code *nteh_prolog()
         cs.IFL1 = FLextern;
         cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
         cs.IEVoffset1 = 0;
-        gen(c,&cs);                             // PUSH FS:__except_list
+        cdb2.gen(&cs);                             // PUSH FS:__except_list
     #else
         useregs(mDX);
         cs.Iop = 0x8B;
@@ -388,18 +390,19 @@ code *nteh_prolog()
         cs.IFL1 = FLextern;
         cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
         cs.IEVoffset1 = 0;
-        gen(c1,&cs);                            // MOV EDX,FS:__except_list
+        cdb1.gen(&cs);                            // MOV EDX,FS:__except_list
 
-        gen1(c,0x50 + DX);                      // PUSH EDX
+        cdb2.gen1(0x50 + DX);                      // PUSH EDX
     #endif
         cs.Iop = 0x89;
         NEWREG(cs.Irm,SP);
-        gen(c,&cs);                             // MOV FS:__except_list,ESP
+        cdb2.gen(&cs);                             // MOV FS:__except_list,ESP
     }
 
-    c = cod3_stackadj(c, 8);
+    CodeBuilder cdb3(cod3_stackadj(NULL, 8));
 
-    return cat(c1,c);
+    cdb1.append(cdb2, cdb3);
+    return cdb1.finish();
 }
 
 /*********************************
@@ -416,7 +419,7 @@ code *nteh_epilog()
         mov     FS:__except_list,ECX
      */
     code cs;
-    code *c;
+    CodeBuilder cdb;
     unsigned reg;
 
 #if MARS
@@ -433,7 +436,7 @@ code *nteh_epilog()
     cs.IFL1 = FLconst;
     // EBP offset of __context.prev
     cs.IEV1.Vint = nteh_EBPoffset_prev();
-    c = gen(CNIL,&cs);
+    cdb.gen(&cs);
 
     cs.Iop = 0x89;
     cs.Irm = modregrm(0,reg,BPRM);
@@ -441,7 +444,8 @@ code *nteh_epilog()
     cs.IFL1 = FLextern;
     cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
     cs.IEVoffset1 = 0;
-    return gen(c,&cs);
+    cdb.gen(&cs);
+    return cdb.finish();
 }
 
 /**************************
@@ -449,8 +453,8 @@ code *nteh_epilog()
  */
 
 code *nteh_setsp(int op)
-{   code cs;
-
+{
+    code cs;
     cs.Iop = op;
     cs.Irm = modregrm(2,SP,BPRM);
     cs.Iflags = 0;
@@ -458,7 +462,9 @@ code *nteh_setsp(int op)
     cs.IFL1 = FLconst;
     // EBP offset of __context.esp
     cs.IEV1.Vint = nteh_EBPoffset_esp();
-    return gen(CNIL,&cs);               // MOV ESP,__context[EBP].esp
+    CodeBuilder cdb;
+    cdb.gen(&cs);               // MOV ESP,__context[EBP].esp
+    return cdb.finish();
 }
 
 /****************************
@@ -466,11 +472,11 @@ code *nteh_setsp(int op)
  */
 
 code *nteh_filter(block *b)
-{   code *c;
+{
     code cs;
+    CodeBuilder cdb;
 
     assert(b->BC == BC_filter);
-    c = CNIL;
     if (b->Bflags & BFLehcode)          // if referenced __ecode
     {
         /* Generate:
@@ -480,7 +486,7 @@ code *nteh_filter(block *b)
                 mov     __ecode[EBP],EAX
          */
 
-        c = getregs(mAX);
+        cdb.append(getregs(mAX));
 
         cs.Iop = 0x8B;
         cs.Irm = modregrm(2,AX,BPRM);
@@ -489,18 +495,20 @@ code *nteh_filter(block *b)
         cs.IFL1 = FLconst;
         // EBP offset of __context.info
         cs.IEV1.Vint = nteh_EBPoffset_info();
-        c = gen(c,&cs);                 // MOV EAX,__context[EBP].info
+        cdb.gen(&cs);                 // MOV EAX,__context[EBP].info
+
         cs.Irm = modregrm(0,AX,0);
-        gen(c,&cs);                     // MOV EAX,[EAX]
-        gen(c,&cs);                     // MOV EAX,[EAX]
+        cdb.gen(&cs);                     // MOV EAX,[EAX]
+        cdb.gen(&cs);                     // MOV EAX,[EAX]
+
         cs.Iop = 0x89;
         cs.Irm = modregrm(2,AX,BPRM);
         cs.IFL1 = FLauto;
         cs.IEVsym1 = nteh_ecodesym();
         cs.IEVoffset1 = 0;
-        gen(c,&cs);                     // MOV __ecode[EBP],EAX
+        cdb.gen(&cs);                     // MOV __ecode[EBP],EAX
     }
-    return c;
+    return cdb.finish();
 }
 
 /*******************************
@@ -516,13 +524,15 @@ void nteh_framehandler(symbol *scopetable)
     if (scopetable)
     {
         symbol_debug(scopetable);
-        code *c = gencs(NULL,0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
+        CodeBuilder cdb;
+        cdb.gencs(0xB8+AX,0,FLextern,scopetable);  // MOV EAX,&scope_table
 #if MARS
-        gencs(c,0xE9,0,FLfunc,getRtlsym(RTLSYM_D_HANDLER));      // JMP _d_framehandler
+        cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM_D_HANDLER));      // JMP _d_framehandler
 #else
-        gencs(c,0xE9,0,FLfunc,getRtlsym(RTLSYM_CPP_HANDLER));    // JMP __cpp_framehandler
+        cdb.gencs(0xE9,0,FLfunc,getRtlsym(RTLSYM_CPP_HANDLER));    // JMP __cpp_framehandler
 #endif
 
+        code *c = cdb.finish();
         pinholeopt(c,NULL);
         codout(c);
         code_free(c);
@@ -540,15 +550,16 @@ code *nteh_patchindex(code* c, int sindex)
 }
 
 code *nteh_gensindex(int sindex)
-{   code *c;
-
+{
     if (config.exe != EX_WIN32)
         return NULL;
 
     // Generate:
     //  MOV     -4[EBP],sindex
 
-    c = genc(NULL,0xC7,modregrm(1,0,BP),FLconst,(targ_uns)nteh_EBPoffset_sindex(),FLconst,sindex);      // 7 bytes long
+    CodeBuilder cdb;
+    cdb.genc(0xC7,modregrm(1,0,BP),FLconst,(targ_uns)nteh_EBPoffset_sindex(),FLconst,sindex);      // 7 bytes long
+    code *c = cdb.finish();
     c->Iflags |= CFvolatile;
 #ifdef DEBUG
     //assert(GENSINDEXSIZE == calccodsize(c));
@@ -562,12 +573,11 @@ code *nteh_gensindex(int sindex)
 
 code *cdsetjmp(elem *e,regm_t *pretregs)
 {   code cs;
-    code *c;
     regm_t retregs;
     unsigned stackpushsave;
     unsigned flag;
 
-    c = NULL;
+    CodeBuilder cdb;
     stackpushsave = stackpush;
 #if SCPP
     if (CPP && (funcsym_p->Sfunc->Fflags3 & Fcppeh || usednteh & NTEHcpp))
@@ -590,14 +600,14 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
         if (!s)
             goto L1;
 
-        c = gencs(c,0x68,0,FLextern,s);                 // PUSH &scope_table
+        cdb.gencs(0x68,0,FLextern,s);                 // PUSH &scope_table
         stackpush += 4;
-        genadjesp(c,4);
+        cdb.genadjesp(4);
 
-        c = genc1(c,0xFF,modregrm(1,6,BP),FLconst,(targ_uns)-4);
+        cdb.genc1(0xFF,modregrm(1,6,BP),FLconst,(targ_uns)-4);
                                                 // PUSH trylevel
         stackpush += 4;
-        genadjesp(c,4);
+        cdb.genadjesp(4);
 
         cs.Iop = 0x68;
         cs.Iflags = CFoff;
@@ -605,9 +615,9 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
         cs.IFL2 = FLextern;
         cs.IEVsym2 = getRtlsym(RTLSYM_CPP_LONGJMP);
         cs.IEVoffset2 = 0;
-        c = gen(c,&cs);                         // PUSH &_cpp_longjmp_unwind
+        cdb.gen(&cs);                         // PUSH &_cpp_longjmp_unwind
         stackpush += 4;
-        genadjesp(c,4);
+        cdb.genadjesp(4);
 
         flag = 3;
     }
@@ -636,9 +646,9 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
         cs.IFL1 = FLbprel;
         cs.IEVsym1 = nteh_contextsym();
         cs.IEVoffset1 = sindex_off;
-        c = gen(c,&cs);                 // PUSH scope_index
+        cdb.gen(&cs);                 // PUSH scope_index
         stackpush += 4;
-        genadjesp(c,4);
+        cdb.genadjesp(4);
 
         cs.Iop = 0x68;
         cs.Iflags = CFoff;
@@ -646,9 +656,9 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
         cs.IFL2 = FLextern;
         cs.IEVsym2 = getRtlsym(RTLSYM_LONGJMP);
         cs.IEVoffset2 = 0;
-        c = gen(c,&cs);                 // PUSH &_seh_longjmp_unwind
+        cdb.gen(&cs);                 // PUSH &_seh_longjmp_unwind
         stackpush += 4;
-        genadjesp(c,4);
+        cdb.genadjesp(4);
 
         flag = 2;
     }
@@ -667,21 +677,22 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
     cs.Irex = 0;
     cs.IFL2 = FLconst;
     cs.IEV2.Vint = flag;
-    c = gen(c,&cs);                     // PUSH flag
+    cdb.gen(&cs);                     // PUSH flag
     stackpush += 4;
-    genadjesp(c,4);
+    cdb.genadjesp(4);
 
-    c = cat(c,pushParams(e->E1,REGSIZE));
+    cdb.append(pushParams(e->E1,REGSIZE));
 
-    c = cat(c,getregs(~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES)));
-    gencs(c,0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3
+    cdb.append(getregs(~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES)));
+    cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3
 
-    c = cod3_stackadj(c, -(stackpush - stackpushsave));
-    genadjesp(c,-(stackpush - stackpushsave));
+    cdb.append(cod3_stackadj(NULL, -(stackpush - stackpushsave)));
+    cdb.genadjesp(-(stackpush - stackpushsave));
 
     stackpush = stackpushsave;
     retregs = regmask(e->Ety, TYnfunc);
-    return cat(c,fixresult(e,retregs,pretregs));
+    cdb.append(fixresult(e,retregs,pretregs));
+    return cdb.finish();
 }
 
 /****************************************
@@ -690,10 +701,8 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
  */
 
 code *nteh_unwind(regm_t retregs,unsigned index)
-{   code *c;
+{
     code cs;
-    code *cs1;
-    code *cs2;
     regm_t desregs;
     int reg;
     int local_unwind;
@@ -711,9 +720,11 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     local_unwind = RTLSYM_LOCAL_UNWIND2;
 #endif
     desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
+    code *cs1;
+    code *cs2;
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
-    c = getregs(desregs);
+    CodeBuilder cdb(getregs(desregs));
 
     cs.Iop = 0x8D;
     cs.Irm = modregrm(2,reg,BPRM);
@@ -722,24 +733,26 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     cs.IFL1 = FLconst;
     // EBP offset of __context.prev
     cs.IEV1.Vint = nteh_EBPoffset_prev();
-    c = gen(c,&cs);                             // LEA  ECX,contextsym
+    cdb.gen(&cs);                             // LEA  ECX,contextsym
 
-    genc2(c,0x68,0,index);                      // PUSH index
-    gen1(c,0x50 + reg);                         // PUSH ECX
+    cdb.genc2(0x68,0,index);                      // PUSH index
+    cdb.gen1(0x50 + reg);                         // PUSH ECX
 
 #if MARS
-    //gencs(c,0xB8+AX,0,FLextern,nteh_scopetable());    // MOV EAX,&scope_table
-    gencs(c,0x68,0,FLextern,nteh_scopetable());         // PUSH &scope_table
+    //cdb.gencs(0xB8+AX,0,FLextern,nteh_scopetable());    // MOV EAX,&scope_table
+    cdb.gencs(0x68,0,FLextern,nteh_scopetable());         // PUSH &scope_table
 
-    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
-    cod3_stackadj(c, -12);
+    cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
+    cdb.append(cod3_stackadj(NULL, -12));
 #else
-    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
-    cod3_stackadj(c, -8);
+    cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
+    cdb.append(cod3_stackadj(NULL, -8));
 #endif
 
-    c = cat4(cs1,c,cs2,NULL);
-    return c;
+    CodeBuilder cdb1(cs1);
+    CodeBuilder cdb2(cs2);
+    cdb1.append(cdb, cdb2);
+    return cdb1.finish();
 }
 
 /****************************************
@@ -750,9 +763,7 @@ code *nteh_unwind(regm_t retregs,unsigned index)
 #if 0 // Replaced with inline calls to __finally blocks
 
 code *linux_unwind(regm_t retregs,unsigned index)
-{   code *c;
-    code *cs1;
-    code *cs2;
+{
     int i;
     regm_t desregs;
     int reg;
@@ -771,23 +782,27 @@ code *linux_unwind(regm_t retregs,unsigned index)
     local_unwind = RTLSYM_LOCAL_UNWIND2;
 #endif
     desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
+    code *cs1;
+    code *cs2;
     gensaverestore(retregs & desregs,&cs1,&cs2);
 
-    c = getregs(desregs);
-    c = genc2(c,0x68,0,index);                  // PUSH index
+    CodeBuilder cdb(getregs(desregs));
+    cdb.genc2(0x68,0,index);                  // PUSH index
 
 #if MARS
-//    gencs(c,0x68,0,FLextern,nteh_scopetable());               // PUSH &scope_table
+//    cdb.gencs(0x68,0,FLextern,nteh_scopetable());               // PUSH &scope_table
 
-    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
-    cod3_stackadj(c, -4);
+    cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
+    cdb.append(cod3_stackadj(NULL, -4));
 #else
-    gencs(c,0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
-    cod3_stackadj(c, -8);
+    cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
+    cdb.append(cod3_stackadj(NULL, -8));
 #endif
 
-    c = cat4(cs1,c,cs2,NULL);
-    return c;
+    CodeBuilder cdb1(cs1);
+    CodeBuilder cdb2(cs2);
+    cdb1.append(cdb, cdb2);
+    return cdb1.finish();
 }
 
 #endif
@@ -807,47 +822,30 @@ code *nteh_monitor_prolog(Symbol *shandle)
      *  MOV     FS:__except_list,ESP
      *  CALL    _d_monitor_prolog
      */
-    code *c1 = NULL;
-    code *c;
-    code cs;
-    Symbol *s;
-    regm_t desregs;
+    CodeBuilder cdb1;
+    CodeBuilder cdb;
 
     assert(config.exe == EX_WIN32);    // BUG: figure out how to implement for other EX's
 
     if (shandle->Sclass == SCfastpar)
     {   assert(shandle->Spreg != DX);
         assert(shandle->Spreg2 == NOREG);
-        c = gen1(NULL,0x50 + shandle->Spreg);   // PUSH shandle
+        cdb.gen1(0x50 + shandle->Spreg);   // PUSH shandle
     }
     else
     {
         // PUSH shandle
-#if 0
-        c = genc1(NULL,0xFF,modregrm(2,6,4),FLconst,4 * (1 + needframe) + shandle->Soffset + localsize);
-        c->Isib = modregrm(0,4,SP);
-#else
         useregs(mCX);
-        c = genc1(NULL,0x8B,modregrm(2,CX,4),FLconst,4 * (1 + needframe) + shandle->Soffset + localsize);
-        c->Isib = modregrm(0,4,SP);
-        gen1(c,0x50 + CX);                      // PUSH ECX
-#endif
+        cdb.genc1(0x8B,modregrm(2,CX,4),FLconst,4 * (1 + needframe) + shandle->Soffset + localsize);
+        cdb.last()->Isib = modregrm(0,4,SP);
+        cdb.gen1(0x50 + CX);                      // PUSH ECX
     }
 
-    s = getRtlsym(RTLSYM_MONITOR_HANDLER);
-    c = gencs(c,0x68,0,FLextern,s);             // PUSH offset _d_monitor_handler
-    makeitextern(s);
+    Symbol *smh = getRtlsym(RTLSYM_MONITOR_HANDLER);
+    cdb.gencs(0x68,0,FLextern,smh);             // PUSH offset _d_monitor_handler
+    makeitextern(smh);
 
-#if 0
-    cs.Iop = 0xFF;
-    cs.Irm = modregrm(0,6,BPRM);
-    cs.Iflags = CFfs;
-    cs.Irex = 0;
-    cs.IFL1 = FLextern;
-    cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
-    cs.IEVoffset1 = 0;
-    gen(c,&cs);                         // PUSH FS:__except_list
-#else
+    code cs;
     useregs(mDX);
     cs.Iop = 0x8B;
     cs.Irm = modregrm(0,DX,BPRM);
@@ -856,21 +854,21 @@ code *nteh_monitor_prolog(Symbol *shandle)
     cs.IFL1 = FLextern;
     cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
     cs.IEVoffset1 = 0;
-    c1 = gen(c1,&cs);                   // MOV EDX,FS:__except_list
+    cdb1.gen(&cs);                   // MOV EDX,FS:__except_list
 
-    gen1(c,0x50 + DX);                  // PUSH EDX
-#endif
+    cdb.gen1(0x50 + DX);                  // PUSH EDX
 
-    s = getRtlsym(RTLSYM_MONITOR_PROLOG);
-    desregs = ~s->Sregsaved & ALLREGS;
-    c = cat(c,getregs(desregs));
-    c = gencs(c,0xE8,0,FLfunc,s);       // CALL _d_monitor_prolog
+    Symbol *s = getRtlsym(RTLSYM_MONITOR_PROLOG);
+    regm_t desregs = ~s->Sregsaved & ALLREGS;
+    cdb.append(getregs(desregs));
+    cdb.gencs(0xE8,0,FLfunc,s);       // CALL _d_monitor_prolog
 
     cs.Iop = 0x89;
     NEWREG(cs.Irm,SP);
-    gen(c,&cs);                         // MOV FS:__except_list,ESP
+    cdb.gen(&cs);                         // MOV FS:__except_list,ESP
 
-    return cat(c1,c);
+    cdb1.append(cdb);
+    return cdb1.finish();
 }
 
 #endif
@@ -889,24 +887,24 @@ code *nteh_monitor_epilog(regm_t retregs)
      *  CALL    _d_monitor_epilog
      *  POP     FS:__except_list
      */
-    code cs;
-    code *c;
-    code *cs1;
-    code *cs2;
-    code *cpop;
-    regm_t desregs;
-    Symbol *s;
 
     assert(config.exe == EX_WIN32);    // BUG: figure out how to implement for other EX's
 
-    s = getRtlsym(RTLSYM_MONITOR_EPILOG);
+    Symbol *s = getRtlsym(RTLSYM_MONITOR_EPILOG);
     //desregs = ~s->Sregsaved & ALLREGS;
-    desregs = 0;
-    gensaverestore(retregs & desregs,&cs1,&cs2);
+    regm_t desregs = 0;
+    code *cs1;
+    code *cs2;
+    gensaverestore(retregs& desregs,&cs1,&cs2);
 
-    c = getregs(desregs);
-    c = gencs(c,0xE8,0,FLfunc,s);               // CALL __d_monitor_epilog
+    CodeBuilder cdb(getregs(desregs));
+    cdb.gencs(0xE8,0,FLfunc,s);               // CALL __d_monitor_epilog
 
+    CodeBuilder cdb1(cs1);
+    CodeBuilder cdb2(cs2);
+    cdb1.append(cdb, cdb2);
+
+    code cs;
     cs.Iop = 0x8F;
     cs.Irm = modregrm(0,0,BPRM);
     cs.Iflags = CFfs;
@@ -914,10 +912,9 @@ code *nteh_monitor_epilog(regm_t retregs)
     cs.IFL1 = FLextern;
     cs.IEVsym1 = getRtlsym(RTLSYM_EXCEPT_LIST);
     cs.IEVoffset1 = 0;
-    cpop = gen(NULL,&cs);                       // POP FS:__except_list
+    cdb1.gen(&cs);                       // POP FS:__except_list
 
-    c = cat4(cs1,c,cs2,cpop);
-    return c;
+    return cdb1.finish();
 }
 
 #endif

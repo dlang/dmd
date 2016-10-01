@@ -93,18 +93,18 @@ void test2456b()
     scope(success)
     {
         try {}
-        catch {}    // NG
+        catch (Throwable) {}    // NG
     }
 
     scope(failure)
     {
         try {}
-        catch {}    // OK
+        catch (Throwable) {}    // OK
     }
 
     scope(exit)
     {
         try {}
-        catch {}    // NG
+        catch (Throwable) {}    // NG
     }
 }

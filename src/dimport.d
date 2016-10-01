@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _dimport.d)
+ */
 
 module ddmd.dimport;
 
@@ -12,7 +14,6 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import ddmd.arraytypes;
-import ddmd.attrib;
 import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
@@ -23,16 +24,15 @@ import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
+import ddmd.utils;
 import ddmd.visitor;
 
 /***********************************************************
  */
 extern (C++) final class Import : Dsymbol
 {
-public:
     /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
      */
     Identifiers* packages;  // array of Identifier's representing packages
@@ -189,8 +189,8 @@ public:
             mod = Module.load(loc, packages, id);
             if (mod)
             {
-                dst.insert(id, mod); // id may be different from mod.ident,
-                // if so then insert alias
+                // id may be different from mod.ident, if so then insert alias
+                dst.insert(id, mod);
             }
         }
         if (mod && !mod.importedFrom)
@@ -283,12 +283,13 @@ public:
                 scopesym.addAccessiblePackage(mod, protection); // d
             }
 
-            mod.semantic();
+            mod.semantic(null);
             if (mod.needmoduleinfo)
             {
                 //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
                 sc._module.needmoduleinfo = 1;
             }
+
             sc = sc.push(mod);
             sc.protection = protection;
             for (size_t i = 0; i < aliasdecls.dim; i++)
@@ -298,6 +299,9 @@ public:
                 if (mod.search(loc, names[i]))
                 {
                     ad.semantic(sc);
+                    // If the import declaration is in non-root module,
+                    // analysis of the aliased symbol is deferred.
+                    // Therefore, don't see the ad.aliassym or ad.type here.
                 }
                 else
                 {
@@ -311,9 +315,12 @@ public:
             }
             sc = sc.pop();
         }
+
         // object self-imports itself, so skip that (Bugzilla 7547)
         // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
-        if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) && sc._module.ident != Id.entrypoint && strcmp(sc._module.ident.string, "__main") != 0)
+        if (global.params.moduleDeps !is null && !(id == Id.object && sc._module.ident == Id.object) &&
+            sc._module.ident != Id.entrypoint &&
+            strcmp(sc._module.ident.toChars(), "__main") != 0)
         {
             /* The grammar of the file is:
              *      ImportDeclaration
@@ -388,11 +395,12 @@ public:
         //printf("Import::semantic2('%s')\n", toChars());
         if (mod)
         {
-            mod.semantic2();
+            mod.semantic2(null);
             if (mod.needmoduleinfo)
             {
                 //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                sc._module.needmoduleinfo = 1;
+                if (sc)
+                    sc._module.needmoduleinfo = 1;
             }
         }
     }
@@ -454,7 +462,7 @@ public:
         {
             load(null);
             mod.importAll(null);
-            mod.semantic();
+            mod.semantic(null);
         }
         // Forward it to the package/module
         return pkg.search(loc, ident, flags);

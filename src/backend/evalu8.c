@@ -92,12 +92,13 @@ extern void error(const char *filename, unsigned linnum, unsigned charnum, const
 
     static int testFE()
     {
-        return _status87() & 0x3F;
+        return (ld_statusfpu() | _statusfp()) & 0x3F;
     }
 
     static void clearFE()
     {
-        _clear87();
+        _clearfp();
+        ld_clearfpu();
     }
 #else
     #define HAVE_FLOAT_EXCEPT 0
@@ -1032,7 +1033,7 @@ elem * evalu8(elem *e, goal_t goal)
 
             default:
                 if (intsize == 2 &&
-                    tyfv(tym) && tysize[tym2] == 2)
+                    tyfv(tym) && _tysize[tym2] == 2)
                     e->EV.Vllong = (l1 & 0xFFFF0000) |
                         (targ_ushort) ((targ_ushort) l1 - i2);
                 else if (tyintegral(tym) || typtr(tym))
@@ -1572,7 +1573,7 @@ elem * evalu8(elem *e, goal_t goal)
 #endif
 
     case OPpair:
-        switch (tysize[tym])
+        switch (_tysize[tym])
         {
             case 2:
                 e->EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);

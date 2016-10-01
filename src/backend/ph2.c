@@ -1,11 +1,11 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2016 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
-// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/ph2.c
+// https://github.com/dlang/dmd/blob/master/src/backend/ph2.c
 
 #include        <stdio.h>
 #include        <time.h>

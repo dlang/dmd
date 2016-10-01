@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail329.d(39): Deprecation: implicitly overriding base class method fail329.A.foo with fail329.B.foo deprecated; add 'override' attribute
-fail_compilation/fail329.d(29): Error: variable fail329.A.foo.__ensure.result cannot modify result 'result' in contract
+fail_compilation/fail329.d(28): Error: variable fail329.A.foo.__ensure.result cannot modify result 'result' in contract
 ---
 */
 
@@ -36,7 +35,7 @@ class A
 
 class B : A
 {
-    int foo(int i)
+    override int foo(int i)
     in
     {
         float f;

@@ -30,6 +30,8 @@
 #include        "md5.h"
 
 #if MARS
+#include        "varstats.h"
+
 struct Loc
 {
     char *filename;
@@ -336,7 +338,6 @@ STATIC void outextdata();
 STATIC void outpubdata();
 STATIC Ledatarec *ledata_new(int seg,targ_size_t offset);
 
-char *id_compress(char *id, int idlen);
 
 /*******************************
  * Output an object file data record.
@@ -850,6 +851,10 @@ void Obj::term(const char *objfilename)
 
 void Obj::linnum(Srcpos srcpos,targ_size_t offset)
 {
+#if MARS
+    varStats.recordLineOffset(srcpos, offset);
+#endif
+
     unsigned linnum = srcpos.Slinnum;
 
 #if 0
@@ -1309,7 +1314,7 @@ void Obj::lzext(Symbol *s1,Symbol *s2)
  * Output an alias definition record.
  */
 
-void Obj::alias(const char *n1,const char *n2)
+void Obj::_alias(const char *n1,const char *n2)
 {   unsigned len;
     char *buffer;
 
@@ -1739,7 +1744,7 @@ void Obj::funcptr(Symbol *s)
 
     // Put out segment definition record
     // size is NPTRSIZE or FPTRSIZE
-    objsegdef(dsegattr,(i & 2) + tysize[TYnptr],obj.lnameidx + 1,DATACLASS);
+    objsegdef(dsegattr,(i & 2) + tysize(TYnptr),obj.lnameidx + 1,DATACLASS);
     seg_data *pseg = getsegment();
     pseg->segidx = obj.segidx;
     Obj::reftoident(pseg->SDseg,0,s,0,0);     // put out function pointer
@@ -2060,6 +2065,12 @@ seg_data *Obj::tlsseg()
     return SegData[obj.tlssegi];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+    return NULL;
+}
 
 /********************************
  * Define a far data segment.
@@ -2149,7 +2160,7 @@ STATIC int obj_newfarseg(targ_size_t size,int classidx)
  * Convert reference to imported name.
  */
 
-void Obj::import(elem *e)
+void Obj::_import(elem *e)
 {
 #if MARS
     assert(0);
@@ -2250,8 +2261,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
         size_t len2;
 
         // Attempt to compress the name
-        name2 = id_compress(name, len);
-        len2  = strlen(name2);
+        name2 = id_compress(name, len, &len2);
 #if MARS
         if (len2 > LIBIDMAX)            // still too long
         {
@@ -2423,6 +2433,10 @@ void Obj::func_start(Symbol *sfunc)
     symbol_debug(sfunc);
     sfunc->Sseg = cseg;             // current code seg
     sfunc->Soffset = Coffset;       // offset of start of function
+
+#if MARS
+    varStats.startFunction();
+#endif
 }
 
 /*******************************
@@ -3000,7 +3014,7 @@ STATIC Ledatarec *ledata_new(int seg,targ_size_t offset)
 
 void Obj::write_byte(seg_data *pseg, unsigned byte)
 {
-    Obj::byte(pseg->SDseg, pseg->SDoffset, byte);
+    Obj::_byte(pseg->SDseg, pseg->SDoffset, byte);
     pseg->SDoffset++;
 }
 
@@ -3008,7 +3022,7 @@ void Obj::write_byte(seg_data *pseg, unsigned byte)
  * Output byte to object file.
  */
 
-void Obj::byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::_byte(int seg,targ_size_t offset,unsigned byte)
 {   unsigned i;
 
     Ledatarec *lr = SegData[seg]->ledata;
@@ -3076,7 +3090,7 @@ unsigned Obj::bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
      )
     {
         while (nbytes)
-        {   Obj::byte(seg,offset,*(char *)p);
+        {   Obj::_byte(seg,offset,*(char *)p);
             offset++;
             p = ((char *)p) + 1;
             nbytes--;
@@ -3114,14 +3128,14 @@ void Obj::ledata(int seg,targ_size_t offset,targ_size_t data,
 {   unsigned i;
     unsigned size;                      // number of bytes to output
 
-    unsigned ptrsize = tysize[TYfptr];
+    unsigned ptrsize = tysize(TYfptr);
 
     if ((lcfd & LOCxx) == obj.LOCpointer)
         size = ptrsize;
     else if ((lcfd & LOCxx) == LOCbase)
         size = 2;
     else
-        size = tysize[TYnptr];
+        size = tysize(TYnptr);
 
     Ledatarec *lr = SegData[seg]->ledata;
     if (!lr)
@@ -3162,7 +3176,7 @@ L1:     ;
     else
         TOLONG(lr->data + i,data);
     if (size == ptrsize)         // if doing a seg:offset pair
-        TOWORD(lr->data + i + tysize[TYnptr],0);        // segment portion
+        TOWORD(lr->data + i + tysize(TYnptr),0);        // segment portion
     addfixup(lr, offset - lr->offset,lcfd,idx1,idx2);
 }
 
@@ -3181,10 +3195,10 @@ L1:     ;
  *              idx2 = target datum
  */
 
-void Obj::write_long(int seg,targ_size_t offset,unsigned long data,
+void Obj::write_long(int seg,targ_size_t offset,unsigned data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
 {
-    unsigned sz = tysize[TYfptr];
+    unsigned sz = tysize(TYfptr);
     Ledatarec *lr = SegData[seg]->ledata;
     if (!lr)
          lr = ledata_new(seg, offset);
@@ -3378,7 +3392,7 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                           && !(flags & CFselfrel))
                             ? LOCloader_resolved : obj.LOCoffset;
                 }
-                numbytes = tysize[TYnptr];
+                numbytes = tysize(TYnptr);
                 break;
             case CFseg:
                 lc = LOCbase;
@@ -3386,7 +3400,7 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                 break;
             case CFoff | CFseg:
                 lc = obj.LOCpointer;
-                numbytes = tysize[TYfptr];
+                numbytes = tysize(TYfptr);
                 break;
         }
         break;
@@ -3641,7 +3655,7 @@ void Obj::far16thunk(Symbol *s)
     //------------------------------------------
     // Output the 16 bit thunk
 
-    Obj::byte(obj.code16segi,obj.CODE16offset++,0x9A);       //      CALLF   function
+    Obj::_byte(obj.code16segi,obj.CODE16offset++,0x9A);       //      CALLF   function
 
     // Make function external
     idx = Obj::external(s);                         // use Pascal name mangling
@@ -3677,105 +3691,15 @@ void Obj::fltused()
     }
 }
 
-
-/****************************************
- * Find longest match of pattern[] in dict[].
- */
-
-static int longest_match(char *dict, int dlen, char *pattern, int plen,
-        int *pmatchoff, int *pmatchlen)
+symbol *Obj::tlv_bootstrap()
 {
-    int matchlen = 0;
-    int matchoff;
-
-    int i;
-    int j;
-
-    for (i = 0; i < dlen; i++)
-    {
-        if (dict[i] == pattern[0])
-        {
-            for (j = 1; 1; j++)
-            {
-                if (i + j == dlen || j == plen)
-                    break;
-                if (dict[i + j] != pattern[j])
-                    break;
-            }
-            if (j >= matchlen)
-            {
-                matchlen = j;
-                matchoff = i;
-            }
-        }
-    }
-
-    if (matchlen > 1)
-    {
-        *pmatchlen = matchlen;
-        *pmatchoff = matchoff;
-        return 1;                       // found a match
-    }
-    return 0;                           // no match
+    // specific for Mach-O
+    assert(0);
+    return NULL;
 }
 
-/******************************************
- * Compress an identifier.
- * Format: if ASCII, then it's just the char
- *      if high bit set, then it's a length/offset pair
- * Returns:
- *      malloc'd compressed identifier
- */
-
-char *id_compress(char *id, int idlen)
+void Obj::gotref(Symbol *s)
 {
-    int i;
-    int count = 0;
-    char *p;
-
-    p = (char *)malloc(idlen + 1);
-    for (i = 0; i < idlen; i++)
-    {
-        int matchoff;
-        int matchlen;
-
-        int j = 0;
-        if (i > 1023)
-            j = i - 1023;
-
-        if (longest_match(id + j, i - j, id + i, idlen - i, &matchoff, &matchlen))
-        {   int off;
-
-            matchoff += j;
-            off = i - matchoff;
-            //printf("matchoff = %3d, matchlen = %2d, off = %d\n", matchoff, matchlen, off);
-            assert(off >= matchlen);
-
-            if (off <= 8 && matchlen <= 8)
-            {
-                p[count] = 0xC0 | ((off - 1) << 3) | (matchlen - 1);
-                count++;
-                i += matchlen - 1;
-                continue;
-            }
-            else if (matchlen > 2 && off < 1024)
-            {
-                if (matchlen >= 1024)
-                    matchlen = 1023;    // longest representable match
-                p[count + 0] = 0x80 | ((matchlen >> 4) & 0x38) | ((off >> 7) & 7);
-                p[count + 1] = 0x80 | matchlen;
-                p[count + 2] = 0x80 | off;
-                count += 3;
-                i += matchlen - 1;
-                continue;
-            }
-        }
-        p[count] = id[i];
-        count++;
-    }
-    p[count] = 0;
-    //printf("old size = %d, new size = %d\n", idlen, count);
-    return p;
 }
 
 #endif

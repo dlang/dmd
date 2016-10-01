@@ -154,7 +154,7 @@ STATIC void rdgenkill()
         /*      The elems are in dfo order.                     */
         /*      go.defnod[]s consist of a elem pointer and a pointer */
         /*      to the enclosing block.                         */
-        go.defnod = (dn *) util_calloc(sizeof(dn),go.deftop);
+        go.defnod = (DefNode *) util_calloc(sizeof(DefNode),go.deftop);
         deftopsave = go.deftop;
         go.deftop = 0;
         for (i = 0; i < dfotop; i++)
@@ -396,7 +396,7 @@ STATIC void flowaecp()
 
                 assert(bl);     // it must have predecessors
                 bp = list_block(bl);
-                if (bp->BC == BCiftrue && list_block(bp->Bsucc) != b)
+                if (bp->BC == BCiftrue && bp->nthSucc(0) != b)
                     vec_copy(b->Bin,bp->Bout2);
                 else
                     vec_copy(b->Bin,bp->Bout);
@@ -405,7 +405,7 @@ STATIC void flowaecp()
                     if (!bl)
                         break;
                     bp = list_block(bl);
-                    if (bp->BC == BCiftrue && list_block(bp->Bsucc) != b)
+                    if (bp->BC == BCiftrue && bp->nthSucc(0) != b)
                         vec_andass(b->Bin,bp->Bout2);
                     else
                         vec_andass(b->Bin,bp->Bout);
@@ -1370,7 +1370,9 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
                         t->EV.sp.Voffset == 0 &&
                         tsz == type_size(s->Stype)
                        )
-                    {   assert((unsigned)s->Ssymnum < globsym.top);
+                    {
+                        // printf("%s\n", s->Sident);
+                        assert((unsigned)s->Ssymnum < globsym.top);
                         vec_setbit(s->Ssymnum,KILL);
                     }
                 }

@@ -276,13 +276,8 @@ extern  list_t
         list_prev (list_t,list_t),
         list_inlist (list_t,void *),
         list_copy (list_t);
-#if __DMC__
-extern  int __pascal list_nitems (list_t),
-        list_equal (list_t,list_t);
-#else
 extern  int list_nitems (list_t),
         list_equal (list_t,list_t);
-#endif
 
 #ifdef __cplusplus
 void list_free(list_t *l); // { list_free(l,FPNULL); }

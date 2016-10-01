@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/template.h
+ * https://github.com/dlang/dmd/blob/master/src/template.h
  */
 
 #ifndef DMD_TEMPLATE_H
@@ -49,7 +49,7 @@ public:
     // kludge for template.isType()
     int dyncast() { return DYNCAST_TUPLE; }
 
-    char *toChars() { return objects.toChars(); }
+    const char *toChars() { return objects.toChars(); }
 };
 
 struct TemplatePrevious
@@ -68,8 +68,7 @@ public:
     Expression *constraint;
 
     // Hash table to look up TemplateInstance's of this TemplateDeclaration
-    Array<TemplateInstances *> buckets;
-    size_t numinstances;                // number of instances in the hash table
+    void *instances;
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
@@ -84,14 +83,12 @@ public:
 
     TemplatePrevious *previous;         // threaded list of previous instantiation attempts on stack
 
-    TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-        Expression *constraint, Dsymbols *decldefs, bool ismixin = false, bool literal = false);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind();
-    char *toChars();
+    const char *toChars();
 
     Prot prot();
 
@@ -142,8 +139,6 @@ public:
      */
     bool dependent;
 
-    TemplateParameter(Loc loc, Identifier *ident);
-
     virtual TemplateTypeParameter  *isTemplateTypeParameter();
     virtual TemplateValueParameter *isTemplateValueParameter();
     virtual TemplateAliasParameter *isTemplateAliasParameter();
@@ -180,8 +175,6 @@ public:
 
     static Type *tdummy;
 
-    TemplateTypeParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
-
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
@@ -201,8 +194,6 @@ public:
 class TemplateThisParameter : public TemplateTypeParameter
 {
 public:
-    TemplateThisParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
-
     TemplateThisParameter *isTemplateThisParameter();
     TemplateParameter *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
@@ -219,8 +210,6 @@ public:
     Expression *defaultValue;
 
     static AA *edummies;
-
-    TemplateValueParameter(Loc loc, Identifier *ident, Type *valType, Expression *specValue, Expression *defaultValue);
 
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
@@ -247,8 +236,6 @@ public:
 
     static Dsymbol *sdummy;
 
-    TemplateAliasParameter(Loc loc, Identifier *ident, Type *specType, RootObject *specAlias, RootObject *defaultAlias);
-
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
@@ -268,8 +255,6 @@ public:
 class TemplateTupleParameter : public TemplateParameter
 {
 public:
-    TemplateTupleParameter(Loc loc, Identifier *ident);
-
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);
@@ -313,10 +298,12 @@ public:
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor
     bool gagged;                        // if the instantiation is done with error gagging
-    hash_t hash;                        // cached result of hashCode()
+    hash_t hash;                        // cached result of toHash()
     Expressions *fargs;                 // for function template, these are the function arguments
 
     TemplateInstances* deferred;
+
+    Module *memberOf;                   // if !null, then this TemplateInstance appears in memberOf.members[]
 
     // Used to determine the instance needs code generation.
     // Note that these are inaccurate until semantic analysis phase completed.
@@ -324,8 +311,6 @@ public:
     TemplateInstance *tnext;            // non-first instantiated instances
     Module *minst;                      // the top module that instantiated this instance
 
-    TemplateInstance(Loc loc, Identifier *temp_id);
-    TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc, Expressions *fargs);
@@ -335,12 +320,12 @@ public:
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    char *toChars();
+    const char *toChars();
     char* toPrettyCharsHelper();
     void printInstantiationTrace();
     Identifier *getIdent();
     int compare(RootObject *o);
-    hash_t hashCode();
+    hash_t toHash();
 
     bool needsCodegen();
 
@@ -368,7 +353,6 @@ class TemplateMixin : public TemplateInstance
 public:
     TypeQualified *tqual;
 
-    TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
@@ -378,7 +362,7 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    char *toChars();
+    const char *toChars();
 
     bool findTempDecl(Scope *sc);
 

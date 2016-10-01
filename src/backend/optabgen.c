@@ -234,7 +234,7 @@ void dooptab()
 #undef X1
 
         f = fopen("optab.c","w");
-        fprintf(f,"const unsigned char optab1[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" { unsigned char optab1[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -242,8 +242,8 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
-        fprintf(f,"const unsigned char optab2[OPMAX] =\n\t{");
+        fprintf(f,"\t}; }\n");
+        fprintf(f,"extern \"C\" { unsigned char optab2[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -251,8 +251,8 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
-        fprintf(f,"const unsigned char optab3[OPMAX] =\n\t{");
+        fprintf(f,"\t}; }\n");
+        fprintf(f,"extern \"C\" { unsigned char optab3[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -260,9 +260,9 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
+        fprintf(f,"\t}; }\n");
 
-        fprintf(f,"const unsigned char opcost[OPMAX] =\n\t{");
+        fprintf(f,"extern \"C\" { unsigned char opcost[OPMAX] =\n\t{");
         for (i = 0; i < OPMAX; i++)
         {       if ((i & 7) == 0)
                         fprintf(f,"\n\t");
@@ -270,7 +270,7 @@ void dooptab()
                 if (i != OPMAX - 1)
                         fprintf(f,",");
         }
-        fprintf(f,"\t};\n");
+        fprintf(f,"\t}; }\n");
 
         doreltables(f);
         fclose(f);
@@ -338,7 +338,7 @@ void doreltables(FILE *f)
             rel_unord    [j] = reltables[i].unord;
         }
 
-    fprintf(f,"unsigned char rel_not[] =\n{ ");
+    fprintf(f,"unsigned char _rel_not[] =\n{ ");
     for (i = 0; i < arraysize(rel_not); i++)
     {   fprintf(f,"0x%02x,",rel_not[i]);
         if ((i & 7) == 7 && i < arraysize(rel_not) - 1)
@@ -346,7 +346,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_swap[] =\n{ ");
+    fprintf(f,"unsigned char _rel_swap[] =\n{ ");
     for (i = 0; i < arraysize(rel_swap); i++)
     {   fprintf(f,"0x%02x,",rel_swap[i]);
         if ((i & 7) == 7 && i < arraysize(rel_swap) - 1)
@@ -354,7 +354,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_integral[] =\n{ ");
+    fprintf(f,"unsigned char _rel_integral[] =\n{ ");
     for (i = 0; i < arraysize(rel_integral); i++)
     {   fprintf(f,"0x%02x,",rel_integral[i]);
         if ((i & 7) == 7 && i < arraysize(rel_integral) - 1)
@@ -362,7 +362,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_exception[] =\n{ ");
+    fprintf(f,"unsigned char _rel_exception[] =\n{ ");
     for (i = 0; i < arraysize(rel_exception); i++)
     {   fprintf(f,"0x%02x,",rel_exception[i]);
         if ((i & 7) == 7 && i < arraysize(rel_exception) - 1)
@@ -370,7 +370,7 @@ void doreltables(FILE *f)
     }
     fprintf(f,"\n};\n");
 
-    fprintf(f,"unsigned char rel_unord[] =\n{ ");
+    fprintf(f,"unsigned char _rel_unord[] =\n{ ");
     for (i = 0; i < arraysize(rel_unord); i++)
     {   fprintf(f,"0x%02x,",rel_unord[i]);
         if ((i & 7) == 7 && i < arraysize(rel_unord) - 1)
@@ -897,7 +897,7 @@ void dotytab()
     static tym_t tytouns[64 * 4];
     static tym_t _tyrelax[TYMAX];
     static tym_t _tyequiv[TYMAX];
-    static signed char tysize[64 * 4];
+    static signed char _tysize[64 * 4];
     static const char *tystring[TYMAX];
     static unsigned char dttab[TYMAX];
     static unsigned short dttab4[TYMAX];
@@ -960,7 +960,7 @@ void dotytab()
     for (i = 0; i < arraysize(typetab); i++)
     {   tytouns[typetab[i].ty] = typetab[i].unsty;
     }
-    fprintf(f,"const tym_t tytouns[] =\n{ ");
+    fprintf(f,"tym_t tytouns[] =\n{ ");
     for (i = 0; i < arraysize(tytouns); i++)
     {   fprintf(f,"0x%02x,",tytouns[i]);
         if ((i & 7) == 7 && i < arraysize(tytouns) - 1)
@@ -969,19 +969,19 @@ void dotytab()
     fprintf(f,"\n};\n");
 
     for (i = 0; i < arraysize(typetab); i++)
-    {   tysize[typetab[i].ty | 0x00] = typetab[i].size;
-        /*printf("tysize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
+    {   _tysize[typetab[i].ty | 0x00] = typetab[i].size;
+        /*printf("_tysize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
-    fprintf(f,"signed char tysize[] =\n{ ");
-    for (i = 0; i < arraysize(tysize); i++)
-    {   fprintf(f,"%d,",tysize[i]);
-        if ((i & 7) == 7 && i < arraysize(tysize) - 1)
+    fprintf(f,"signed char _tysize[] =\n{ ");
+    for (i = 0; i < arraysize(_tysize); i++)
+    {   fprintf(f,"%d,",_tysize[i]);
+        if ((i & 7) == 7 && i < arraysize(_tysize) - 1)
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n};\n");
 
-    for (i = 0; i < arraysize(tysize); i++)
-        tysize[i] = 0;
+    for (i = 0; i < arraysize(_tysize); i++)
+        _tysize[i] = 0;
     for (i = 0; i < arraysize(typetab); i++)
     {   signed char sz = typetab[i].size;
         switch (typetab[i].ty)
@@ -1005,13 +1005,13 @@ void dotytab()
                 sz = 8;
                 break;
         }
-        tysize[typetab[i].ty | 0x00] = sz;
-        /*printf("tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
+        _tysize[typetab[i].ty | 0x00] = sz;
+        /*printf("_tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
-    fprintf(f,"signed char tyalignsize[] =\n{ ");
-    for (i = 0; i < arraysize(tysize); i++)
-    {   fprintf(f,"%d,",tysize[i]);
-        if ((i & 7) == 7 && i < arraysize(tysize) - 1)
+    fprintf(f,"signed char _tyalignsize[] =\n{ ");
+    for (i = 0; i < arraysize(_tysize); i++)
+    {   fprintf(f,"%d,",_tysize[i]);
+        if ((i & 7) == 7 && i < arraysize(_tysize) - 1)
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n};\n");

@@ -5,7 +5,7 @@
 // http://www.digitalmars.com
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
-// https://github.com/D-Programming-Language/dmd/blob/master/src/backend/pdata.c
+// https://github.com/dlang/dmd/blob/master/src/backend/pdata.c
 
 // This module generates the .pdata and .xdata sections for Win64
 
@@ -39,6 +39,8 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 Symbol *win64_unwind(Symbol *sf);
 dt_t *unwind_data();
 
+#define ALLOCA_LIMIT 0x10000
+
 /**********************************
  * The .pdata section is used on Win64 by the VS debugger and dbghelp to get information
  * to walk the stack and unwind exceptions.
@@ -59,7 +61,7 @@ void win64_pdata(Symbol *sf)
 
     // Generate the pdata name, which is $pdata$funcname
     size_t sflen = strlen(sf->Sident);
-    char *pdata_name = (char *)alloca(7 + sflen + 1);
+    char *pdata_name = (char *)(sflen < ALLOCA_LIMIT ? alloca(7 + sflen + 1) : malloc(7 + sflen + 1));
     assert(pdata_name);
     memcpy(pdata_name, "$pdata$", 7);
     memcpy(pdata_name + 7, sf->Sident, sflen + 1);      // include terminating 0
@@ -76,14 +78,17 @@ void win64_pdata(Symbol *sf)
      *  3. pointer to unwind data
      */
 
-    dt_t **pdt = &spdata->Sdt;
-    pdt = dtxoff(pdt,sf,0,TYint);       // Note the TYint, these are 32 bit fixups
-    pdt = dtxoff(pdt,sf,retoffset + retsize,TYint);
-    pdt = dtxoff(pdt,sunwind,0,TYint);
+    DtBuilder dtb;
+    dtb.xoff(sf,0,TYint);       // Note the TYint, these are 32 bit fixups
+    dtb.xoff(sf,retoffset + retsize,TYint);
+    dtb.xoff(sunwind,0,TYint);
+    spdata->Sdt = dtb.finish();
 
     spdata->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_pdata_comdat(sf) : MsCoffObj::seg_pdata();
     spdata->Salignment = 4;
     outdata(spdata);
+
+    if (sflen >= ALLOCA_LIMIT) free(pdata_name);
 }
 
 /**************************************************
@@ -98,7 +103,7 @@ Symbol *win64_unwind(Symbol *sf)
 {
     // Generate the unwind name, which is $unwind$funcname
     size_t sflen = strlen(sf->Sident);
-    char *unwind_name = (char *)alloca(8 + sflen + 1);
+    char *unwind_name = (char *)(sflen < ALLOCA_LIMIT ? alloca(8 + sflen + 1) : malloc(8 + sflen + 1));
     assert(unwind_name);
     memcpy(unwind_name, "$unwind$", 8);
     memcpy(unwind_name + 8, sf->Sident, sflen + 1);     // include terminating 0
@@ -111,6 +116,8 @@ Symbol *win64_unwind(Symbol *sf)
     sunwind->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_xdata_comdat(sf) : MsCoffObj::seg_xdata();
     sunwind->Salignment = 1;
     outdata(sunwind);
+
+    if (sflen >= ALLOCA_LIMIT) free(unwind_name);
     return sunwind;
 }
 
@@ -260,10 +267,9 @@ dt_t *unwind_data()
     ui.UnwindCode[ui.CountOfCodes-1].op.UnwindOp = UWOP_PUSH_NONVOL;
     ui.UnwindCode[ui.CountOfCodes-1].op.OpInfo = BP;
 
-    dt_t *dt = NULL;
-    dt_t **pdt = &dt;
-    pdt = dtnbytes(pdt,4 + ((ui.CountOfCodes + 1) & ~1) * 2,(char *)&ui);
-    return dt;
+    DtBuilder dtb;
+    dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,(char *)&ui);
+    return dtb.finish();
 }
 
 #endif

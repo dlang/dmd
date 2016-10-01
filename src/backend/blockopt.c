@@ -162,7 +162,7 @@ block *block_goto(Blockx *bx,enum BC bc,block *bn)
 
     b = bx->curblock;
     block_next(bx,bc,bn);
-    list_append(&b->Bsucc,bx->curblock);
+    b->appendSucc(bx->curblock);
     return bx->curblock;
 }
 
@@ -190,7 +190,7 @@ void block_goto(block *bgoto,block *bnew)
     enum BC bc;
 
     assert(bgoto);
-    list_append(&(curblock->Bsucc),bgoto);
+    curblock->appendSucc(bgoto);
     if (curblock->Bcode)        // If there is already code in the block
                                 // then this is an ASM block
             bc = BCasm;
@@ -669,8 +669,8 @@ void brcombine()
             if (bc == BCiftrue)
             {   unsigned char bc2;
 
-                b2 = list_block(b->Bsucc);
-                b3 = list_block(list_next(b->Bsucc));
+                b2 = b->nthSucc(0);
+                b3 = b->nthSucc(1);
 
                 if (list_next(b2->Bpred))       // if more than one predecessor
                     continue;
@@ -683,7 +683,7 @@ void brcombine()
 
                 bc2 = b2->BC;
                 if (bc2 == BCgoto &&
-                    b3 == list_block(b2->Bsucc))
+                    b3 == b2->nthSucc(0))
                 {
                     b->BC = BCgoto;
                     if (b2->Belem)
@@ -731,11 +731,11 @@ void brcombine()
                 }
                 else if (bc2 == BCgoto &&
                          b3->BC == BCgoto &&
-                         list_block(b2->Bsucc) == list_block(b3->Bsucc))
+                         b2->nthSucc(0) == b3->nthSucc(0))
                 {   elem *e;
                     block *bsucc;
 
-                    bsucc = list_block(b2->Bsucc);
+                    bsucc = b2->nthSucc(0);
                     if (b2->Belem)
                     {
                         if (PARSER)
@@ -782,7 +782,7 @@ void brcombine()
                     b3->Belem = NULL;
                     list_free(&b->Bsucc,FPNULL);
 
-                    list_append(&b->Bsucc,bsucc);
+                    b->appendSucc(bsucc);
                     list_append(&bsucc->Bpred,b);
 
                     list_free(&(b2->Bpred),FPNULL);
@@ -799,7 +799,7 @@ void brcombine()
             }
             else if (bc == BCgoto && PARSER)
             {
-                b2 = list_block(b->Bsucc);
+                b2 = b->nthSucc(0);
                 if (!list_next(b2->Bpred) && b2->BC != BCasm    // if b is only parent
                     && b2 != startblock
                     && b2->BC != BCtry
@@ -892,13 +892,13 @@ STATIC void bropt()
                         if (iftrue(n))          /* if elem is TRUE      */
                         {
                             // select first succ
-                            db = list_block(list_next(b->Bsucc));
+                            db = b->nthSucc(1);
                             goto L1;
                         }
                         else if (iffalse(n))
                         {
                             // select second succ
-                            db = list_block(b->Bsucc);
+                            db = b->nthSucc(0);
 
                             L1: list_subtract(&(b->Bsucc),db);
                                 list_subtract(&(db->Bpred),b);
@@ -910,10 +910,10 @@ STATIC void bropt()
                         }
 
                         /* Look for both destinations being the same    */
-                        else if (list_block(b->Bsucc) ==
-                                 list_block(list_next(b->Bsucc)))
+                        else if (b->nthSucc(0) ==
+                                 b->nthSucc(1))
                         {       b->BC = BCgoto;
-                                db = list_block(b->Bsucc);
+                                db = b->nthSucc(0);
                                 list_subtract(&(b->Bsucc),db);
                                 list_subtract(&(db->Bpred),b);
                                 cmes("CHANGE: if (e) goto L1; else goto L1;\n");
@@ -947,7 +947,7 @@ STATIC void bropt()
                                 i++;            /* next case            */
                         }
                         /* the ith entry in Bsucc is the one we want    */
-                        db = list_block(list_nth(b->Bsucc,i));
+                        db = b->nthSucc(i);
                         /* delete predecessors of successors (!)        */
                         for (bl = b->Bsucc; bl; bl = list_next(bl))
                             if (i--)            // if not ith successor
@@ -959,7 +959,7 @@ STATIC void bropt()
 
                         /* dump old successor list and create a new one */
                         list_free(&b->Bsucc,FPNULL);
-                        list_append(&b->Bsucc,db);
+                        b->appendSucc(db);
                         b->BC = BCgoto;
                         b->Belem = doptelem(b->Belem,GOALnone | GOALagain);
                         cmes("CHANGE: switch (const)\n");
@@ -999,7 +999,7 @@ STATIC void brrear()
                                 b->Btry == bt->Btry &&
 #endif
 #if NTEXCEPTIONS
-                                bt->Btry == list_block(bt->Bsucc)->Btry &&
+                                bt->Btry == bt->nthSucc(0)->Btry &&
 #endif
                                 (OPTIMIZER || !(bt->Bsrcpos.Slinnum && configv.addlinenumbers)) &&
                                ++iter < 10)
@@ -1032,13 +1032,13 @@ STATIC void brrear()
                 if (b->BC == BCiftrue || b->BC == BCiffalse)
                 {       block *bif,*belse;
 
-                        bif = list_block(b->Bsucc);
-                        belse = list_block(list_next(b->Bsucc));
+                        bif = b->nthSucc(0);
+                        belse = b->nthSucc(1);
 
                         if (bif == b->Bnext)
                         {       b->BC ^= BCiffalse ^ BCiftrue;  /* toggle */
-                                list_ptr(b->Bsucc) = belse;
-                                list_ptr(list_next(b->Bsucc)) = bif;
+                                b->setNthSucc(0, belse);
+                                b->setNthSucc(1, bif);
                                 b->Bflags |= bif->Bflags & BFLvisited;
                                 cmes("if (e) L1 else L2\n");
                         }

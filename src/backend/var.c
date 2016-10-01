@@ -21,6 +21,9 @@
 #include        "go.h"
 #include        "ty.h"
 #include        "code.h"
+#if MARS
+#include        "varstats.h"
+#endif
 #if SPP || SCPP
 #include        "parser.h"
 #endif
@@ -39,6 +42,9 @@ char dbcs;                      // current double byte character set
 int TYptrdiff = TYint;
 int TYsize = TYuint;
 int TYsize_t = TYuint;
+int TYaarray = TYnptr;
+int TYdelegate = TYllong;
+int TYdarray = TYullong;
 
 char debuga,debugb,debugc,debugd,debuge,debugf,debugr,debugs,debugt,debugu,debugw,debugx,debugy;
 
@@ -92,9 +98,6 @@ mangle_t varmangletab[LINK_MAXDIM] =
     mTYman_pas,mTYman_for,mTYman_sys,mTYman_std,mTYman_d
 };
 #endif
-
-targ_size_t     dsout = 0;      /* # of bytes actually output to data   */
-                                /* segment, used to pad for alignment   */
 
 /* File variables: */
 
@@ -192,7 +195,7 @@ unsigned
                         /* dfoblks <= numblks <= maxblks                */
          numcse;        /* number of common subexpressions              */
 
-struct Go go;
+GlobalOptimizer go;
 
 /* From debug.c */
 #if DEBUG
@@ -207,3 +210,7 @@ const char *regstring[32] = {"AX","CX","DX","BX","SP","BP","SI","DI",
 type *chartype;                 /* default 'char' type                  */
 
 Obj *objmod = NULL;
+
+#if MARS
+VarStatistics varStats;
+#endif

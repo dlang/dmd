@@ -1,28 +1,28 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _link.d)
+ */
 
 module ddmd.link;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
-import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.stdio;
 import core.sys.posix.stdlib;
-import core.sys.posix.sys.wait;
 import core.sys.posix.unistd;
 import ddmd.errors;
 import ddmd.globals;
-import ddmd.mars;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.rmem;
+import ddmd.utils;
 
 version (Posix) extern (C) int pipe(int*);
 version (Windows) extern (C) int putenv(const char*);
@@ -31,19 +31,10 @@ version (Windows) extern (C) int spawnl(int, const char*, const char*, const cha
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
 version (CRuntime_Microsoft) extern (Windows) uint GetShortPathNameA(const char* lpszLongPath, char* lpszShortPath, uint cchBuffer);
 
-static if (__linux__ || __APPLE__)
-{
-    enum HAS_POSIX_SPAWN = 1;
-}
-else
-{
-    enum HAS_POSIX_SPAWN = 0;
-}
-
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
-extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
+private void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
 {
     /* Loop and see if we need to quote
      */
@@ -64,12 +55,12 @@ extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename, size_t le
     buf.write(filename, len);
 }
 
-extern (C++) void writeFilename(OutBuffer* buf, const(char)* filename)
+private void writeFilename(OutBuffer* buf, const(char)* filename)
 {
     writeFilename(buf, filename, strlen(filename));
 }
 
-static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+version (Posix)
 {
     /*****************************
      * As it forwards the linker error message to stderr, checks for the presence
@@ -80,7 +71,7 @@ static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
      *     -1 if there is an IO error
      *      0 otherwise
      */
-    extern (C++) int findNoMainError(int fd)
+    private int findNoMainError(int fd)
     {
         version (OSX)
         {
@@ -126,7 +117,7 @@ static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 /*****************************
  * Run the linker.  Return status of execution.
  */
-extern (C++) int runLINK()
+public int runLINK()
 {
     version (Windows)
     {
@@ -439,7 +430,7 @@ extern (C++) int runLINK()
             return status;
         }
     }
-    else static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+    else version (Posix)
     {
         pid_t childpid;
         int status;
@@ -457,7 +448,7 @@ extern (C++) int runLINK()
             if (global.params.dll)
                 argv.push("-dynamiclib");
         }
-        else static if (__linux__ || __FreeBSD__ || __OpenBSD__ || __sun)
+        else version (Posix)
         {
             if (global.params.dll)
                 argv.push("-shared");
@@ -672,7 +663,7 @@ extern (C++) int runLINK()
                 argv.push(buf);
             }
         }
-        //    argv.push("-ldruntime");
+        //argv.push("-ldruntime");
         argv.push("-lpthread");
         argv.push("-lm");
         version (linux)
@@ -727,7 +718,7 @@ extern (C++) int runLINK()
                 }
                 else
                 {
-                    printf("--- errorlevel %d\n", status);
+                    error(Loc(), "linker exited with status %d", status);
                     if (nme == 1)
                         error(Loc(), "no main function specified");
                 }
@@ -735,29 +726,18 @@ extern (C++) int runLINK()
         }
         else if (WIFSIGNALED(status))
         {
-            printf("--- killed by signal %d\n", WTERMSIG(status));
+            error(Loc(), "linker killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
     }
     else
     {
-        printf("Linking is not yet supported for this version of DMD.\n");
+        error(Loc(), "linking is not yet supported for this version of DMD.");
         return -1;
     }
 }
 
-/**********************************
- * Delete generated EXE file.
- */
-extern (C++) void deleteExeFile()
-{
-    if (global.params.exefile)
-    {
-        //printf("deleteExeFile() %s\n", global.params.exefile);
-        remove(global.params.exefile);
-    }
-}
 
 /******************************
  * Execute a rule.  Return the status.
@@ -766,7 +746,7 @@ extern (C++) void deleteExeFile()
  */
 version (Windows)
 {
-    extern (C++) int executecmd(const(char)* cmd, const(char)* args)
+    private int executecmd(const(char)* cmd, const(char)* args)
     {
         int status;
         size_t len;
@@ -809,14 +789,14 @@ version (Windows)
             // spawnlp returns intptr_t in some systems, not int
             status = spawnlp(0, cmd, cmd, args, null);
         }
-        //    if (global.params.verbose)
-        //      fprintf(global.stdmsg, "\n");
+        //if (global.params.verbose)
+        //    fprintf(global.stdmsg, "\n");
         if (status)
         {
             if (status == -1)
-                printf("Can't run '%s', check PATH\n", cmd);
+                error(Loc(), "can't run '%s', check PATH", cmd);
             else
-                printf("--- errorlevel %d\n", status);
+                error(Loc(), "linker exited with status %d", cmd, status);
         }
         return status;
     }
@@ -831,7 +811,7 @@ version (Windows)
  */
 version (Windows)
 {
-    extern (C++) int executearg0(const(char)* cmd, const(char)* args)
+    private int executearg0(const(char)* cmd, const(char)* args)
     {
         const(char)* file;
         const(char)* argv0 = global.params.argv0;
@@ -850,7 +830,7 @@ version (Windows)
  * Run the compiled program.
  * Return exit status.
  */
-extern (C++) int runProgram()
+public int runProgram()
 {
     //printf("runProgram()\n");
     if (global.params.verbose)
@@ -889,7 +869,7 @@ extern (C++) int runProgram()
         // spawnlp returns intptr_t in some systems, not int
         return spawnv(0, ex, argv.tdata());
     }
-    else static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+    else version (Posix)
     {
         pid_t childpid;
         int status;
@@ -914,7 +894,7 @@ extern (C++) int runProgram()
         }
         else if (WIFSIGNALED(status))
         {
-            printf("--- killed by signal %d\n", WTERMSIG(status));
+            error(Loc(), "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
@@ -930,7 +910,7 @@ version (Windows)
     /*****************************
      * Detect whether the link will grab libraries from VS 2015 or later
      */
-    extern (C++) bool detectVS14(const(char)* cmdline)
+    private bool detectVS14(const(char)* cmdline)
     {
         auto libpaths = new Strings();
         // grab library folders passed on the command line

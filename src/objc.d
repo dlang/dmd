@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _objc.d)
+ */
 
 module ddmd.objc;
 
@@ -79,21 +81,22 @@ struct ObjcSelector
         OutBuffer buf;
         size_t pcount = 0;
         TypeFunction ftype = cast(TypeFunction)fdecl.type;
+        const id = fdecl.ident.toString();
         // Special case: property setter
         if (ftype.isproperty && ftype.parameters && ftype.parameters.dim == 1)
         {
             // rewrite "identifier" as "setIdentifier"
-            char firstChar = fdecl.ident.string[0];
+            char firstChar = id[0];
             if (firstChar >= 'a' && firstChar <= 'z')
                 firstChar = cast(char)(firstChar - 'a' + 'A');
             buf.writestring("set");
             buf.writeByte(firstChar);
-            buf.write(fdecl.ident.string + 1, fdecl.ident.len - 1);
+            buf.write(id.ptr + 1, id.length - 1);
             buf.writeByte(':');
             goto Lcomplete;
         }
         // write identifier in selector
-        buf.write(fdecl.ident.string, fdecl.ident.len);
+        buf.write(id.ptr, id.length);
         // add mangled type and colon for each parameter
         if (ftype.parameters && ftype.parameters.dim)
         {
@@ -141,13 +144,21 @@ struct Objc_FuncDeclaration
 // MARK: semantic
 extern (C++) void objc_ClassDeclaration_semantic_PASSinit_LINKobjc(ClassDeclaration cd)
 {
-    cd.objc.objc = true;
+    if (global.params.hasObjectiveC)
+        cd.objc.objc = true;
+    else
+        cd.error("Objective-C classes not supported");
 }
 
 extern (C++) void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration id, Scope* sc)
 {
     if (sc.linkage == LINKobjc)
-        id.objc.objc = true;
+    {
+        if (global.params.hasObjectiveC)
+            id.objc.objc = true;
+        else
+            id.error("Objective-C interfaces not supported");
+    }
 }
 
 // MARK: semantic
@@ -217,7 +228,11 @@ extern (C++) void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration fd)
 // MARK: init
 extern (C++) void objc_tryMain_dObjc()
 {
-    VersionCondition.addPredefinedGlobalIdent("D_ObjectiveC");
+    if (global.params.isOSX && global.params.is64bit)
+    {
+        global.params.hasObjectiveC = true;
+        VersionCondition.addPredefinedGlobalIdent("D_ObjectiveC");
+    }
 }
 
 extern (C++) void objc_tryMain_init()

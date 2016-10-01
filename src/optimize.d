@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _optimize.d)
+ */
 
 module ddmd.optimize;
 
@@ -18,7 +20,7 @@ import ddmd.expression;
 import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
-import ddmd.root.longdouble;
+import ddmd.root.ctfloat;
 import ddmd.sideeffect;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -188,6 +190,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             this.keepLvalue = keepLvalue;
         }
 
+        void error()
+        {
+            ret = new ErrorExp();
+        }
+
         bool expOptimize(ref Expression e, int flags, bool keepLvalue = false)
         {
             if (!e)
@@ -317,16 +324,6 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        override void visit(BoolExp e)
-        {
-            if (unaOptimize(e, result))
-                return;
-            if (e.e1.isConst() == 1)
-            {
-                ret = Bool(e.type, e.e1).copy();
-            }
-        }
-
         override void visit(SymOffExp e)
         {
             assert(e.var);
@@ -388,10 +385,19 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                         if (index < 0 || index >= dim)
                         {
                             e.error("array index %lld is out of bounds [0..%lld]", index, dim);
-                            ret = new ErrorExp();
-                            return;
+                            return error();
                         }
-                        ret = new SymOffExp(e.loc, ve.var, index * ts.nextOf().size());
+
+                        import core.checkedint : mulu;
+                        bool overflow;
+                        const offset = mulu(index, ts.nextOf().size(e.loc), overflow);
+                        if (overflow)
+                        {
+                            e.error("array offset overflow");
+                            return error();
+                        }
+
+                        ret = new SymOffExp(e.loc, ve.var, offset);
                         ret.type = e.type;
                         return;
                     }
@@ -540,16 +546,26 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 // infinite loop because of Expression::implicitCastTo()
                 return; // no change
             }
-            if ((e.e1.op == TOKstring || e.e1.op == TOKarrayliteral) && (e.type.ty == Tpointer || e.type.ty == Tarray) && e.e1.type.toBasetype().nextOf().size() == e.type.nextOf().size())
+            if ((e.e1.op == TOKstring || e.e1.op == TOKarrayliteral) &&
+                (e.type.ty == Tpointer || e.type.ty == Tarray))
             {
-                // Bugzilla 12937: If target type is void array, trying to paint
-                // e->e1 with that type will cause infinite recursive optimization.
-                if (e.type.nextOf().ty == Tvoid)
+                const esz  = e.type.nextOf().size(e.loc);
+                const e1sz = e.e1.type.toBasetype().nextOf().size(e.e1.loc);
+                if (esz == SIZE_INVALID || e1sz == SIZE_INVALID)
+                    return error();
+
+                if (e1sz == esz)
+                {
+                    // Bugzilla 12937: If target type is void array, trying to paint
+                    // e->e1 with that type will cause infinite recursive optimization.
+                    if (e.type.nextOf().ty == Tvoid)
+                        return;
+                    ret = e.e1.castTo(null, e.type);
+                    //printf(" returning1 %s\n", ret->toChars());
                     return;
-                ret = e.e1.castTo(null, e.type);
-                //printf(" returning1 %s\n", ret->toChars());
-                return;
+                }
             }
+
             if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCHconst)
             {
                 //printf(" returning2 %s\n", e->e1->toChars());
@@ -593,9 +609,16 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             {
                 if (e.e1.op == TOKsymoff)
                 {
-                    if (e.type.size() == e.e1.type.size() && e.type.toBasetype().ty != Tsarray)
+                    if (e.type.toBasetype().ty != Tsarray)
                     {
-                        goto L1;
+                        const esz = e.type.size(e.loc);
+                        const e1sz = e.e1.type.size(e.e1.loc);
+                        if (esz == SIZE_INVALID ||
+                            e1sz == SIZE_INVALID)
+                            return error();
+
+                        if (esz == e1sz)
+                            goto L1;
                     }
                     return;
                 }
@@ -622,12 +645,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 if (e.e2.isConst() == 1)
                 {
                     sinteger_t i2 = e.e2.toInteger();
-                    d_uns64 sz = e.e1.type.size() * 8;
+                    d_uns64 sz = e.e1.type.size(e.e1.loc);
+                    assert(sz != SIZE_INVALID);
+                    sz *= 8;
                     if (i2 < 0 || i2 >= sz)
                     {
                         e.error("shift assign by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);
-                        ret = new ErrorExp();
-                        return;
+                        return error();
                     }
                 }
             }
@@ -697,12 +721,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e2.isConst() == 1)
             {
                 sinteger_t i2 = e.e2.toInteger();
-                d_uns64 sz = e.e1.type.size() * 8;
+                d_uns64 sz = e.e1.type.size(e.e1.loc);
+                assert(sz != SIZE_INVALID);
+                sz *= 8;
                 if (i2 < 0 || i2 >= sz)
                 {
                     e.error("shift by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);
-                    ret = new ErrorExp();
-                    return;
+                    return error();
                 }
                 if (e.e1.isConst() == 1)
                     ret = (*shift)(e.loc, e.type, e.e1, e.e2).copy();
@@ -756,7 +781,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (binOptimize(e, result))
                 return;
             // Replace 1 ^^ x or 1.0^^x by (x, 1)
-            if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) || (e.e1.op == TOKfloat64 && e.e1.toReal() == 1.0))
+            if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) || (e.e1.op == TOKfloat64 && e.e1.toReal() == CTFloat.one))
             {
                 ret = new CommaExp(e.loc, e.e2, e.e1);
                 return;
@@ -770,33 +795,32 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             }
             // Replace x ^^ 0 or x^^0.0 by (x, 1)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 0) || (e.e2.op == TOKfloat64 && e.e2.toReal() == 0.0))
+            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 0) || (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.zero))
             {
                 if (e.e1.type.isintegral())
                     ret = new IntegerExp(e.loc, 1, e.e1.type);
                 else
-                    ret = new RealExp(e.loc, ldouble(1.0), e.e1.type);
+                    ret = new RealExp(e.loc, CTFloat.one, e.e1.type);
                 ret = new CommaExp(e.loc, e.e1, ret);
                 return;
             }
             // Replace x ^^ 1 or x^^1.0 by (x)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 1) || (e.e2.op == TOKfloat64 && e.e2.toReal() == 1.0))
+            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 1) || (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.one))
             {
                 ret = e.e1;
                 return;
             }
             // Replace x ^^ -1.0 by (1.0 / x)
-            if ((e.e2.op == TOKfloat64 && e.e2.toReal() == -1.0))
+            if (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.minusone)
             {
-                ret = new DivExp(e.loc, new RealExp(e.loc, ldouble(1.0), e.e2.type), e.e1);
+                ret = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, e.e2.type), e.e1);
                 return;
             }
             // All other negative integral powers are illegal
             if (e.e1.type.isintegral() && (e.e2.op == TOKint64) && cast(sinteger_t)e.e2.toInteger() < 0)
             {
                 e.error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
-                ret = new ErrorExp();
-                return;
+                return error();
             }
             // If e2 *could* have been an integer, make it one.
             if (e.e2.op == TOKfloat64)
@@ -808,8 +832,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     // https://issues.dlang.org/show_bug.cgi?id=14952
                     // This can be removed once compiling with DMD 2.068 or
                     // older is no longer supported.
-                    d_float80 r = e.e2.toReal();
-                    if (r == cast(sinteger_t)r)
+                    const r = e.e2.toReal();
+                    if (r == real_t(cast(sinteger_t)r))
                         e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
                 }
                 else
@@ -1040,7 +1064,10 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     if (e.type.toBasetype().ty == Tvoid)
                         ret = e.e2;
                     else
-                        ret = new BoolExp(e.loc, e.e2, e.type);
+                    {
+                        ret = new CastExp(e.loc, e.e2, e.type);
+                        ret.type = e.type;
+                    }
                 }
             }
         }
@@ -1078,7 +1105,10 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     if (e.type.toBasetype().ty == Tvoid)
                         ret = e.e2;
                     else
-                        ret = new BoolExp(e.loc, e.e2, e.type);
+                    {
+                        ret = new CastExp(e.loc, e.e2, e.type);
+                        ret.type = e.type;
+                    }
                 }
             }
         }

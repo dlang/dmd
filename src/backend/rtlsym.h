@@ -125,14 +125,11 @@ SYMBOL_MARS(ARRAYCTOR,     FLfunc,FREGSAVED,"_d_arrayctor", 0, t) \
 SYMBOL_MARS(ARRAYSETASSIGN, FLfunc,FREGSAVED,"_d_arraysetassign", 0, t) \
 SYMBOL_MARS(ARRAYSETCTOR,  FLfunc,FREGSAVED,"_d_arraysetctor", 0, t) \
 SYMBOL_MARS(ARRAYCAST,     FLfunc,FREGSAVED,"_d_arraycast", 0, t) \
-SYMBOL_MARS(ARRAYCAST_FROMBIT, FLfunc,FREGSAVED,"_d_arraycast_frombit", 0, t) \
 SYMBOL_MARS(ARRAYEQ,       FLfunc,FREGSAVED,"_adEq", 0, t) \
 SYMBOL_MARS(ARRAYEQ2,      FLfunc,FREGSAVED,"_adEq2", 0, t) \
-SYMBOL_MARS(ARRAYEQBIT,    FLfunc,FREGSAVED,"_adEqBit", 0, t) \
 SYMBOL_MARS(ARRAYCMP,      FLfunc,FREGSAVED,"_adCmp", 0, t) \
 SYMBOL_MARS(ARRAYCMP2,     FLfunc,FREGSAVED,"_adCmp2", 0, t) \
 SYMBOL_MARS(ARRAYCMPCHAR,  FLfunc,FREGSAVED,"_adCmpChar", 0, t) \
-SYMBOL_MARS(ARRAYCMPBIT,   FLfunc,FREGSAVED,"_adCmpBit", 0, t) \
 SYMBOL_MARS(OBJ_EQ,        FLfunc,FREGSAVED,"_d_obj_eq", 0, t) \
 SYMBOL_MARS(OBJ_CMP,       FLfunc,FREGSAVED,"_d_obj_cmp", 0, t) \
 \
@@ -142,11 +139,11 @@ SYMBOL_SCPP(CPP_HANDLER,  FLfunc,FREGSAVED,"_cpp_framehandler", 0, tsclib) \
 SYMBOL_MARS(D_HANDLER,  FLfunc,FREGSAVED,"_d_framehandler", 0, tsclib) \
 SYMBOL_MARS(D_LOCAL_UNWIND2, FLfunc,FREGSAVED,"_d_local_unwind2", 0, tsclib) \
 SYMBOL_SCPP(LOCAL_UNWIND2, FLfunc,FREGSAVED,"_local_unwind2", 0, tsclib) \
-SYMBOL_Z(UNWIND_RESUME, FLfunc,FREGSAVED,"_Unwind_Resume", SFLexit, tsclib) \
-SYMBOL_Z(PERSONALITY, FLfunc,FREGSAVED,"__dmd_personality_v0", 0, tsclib) \
-SYMBOL_Z(BEGIN_CATCH, FLfunc,FREGSAVED,"__dmd_begin_catch", 0, tsclib) \
-SYMBOL_Z(CXA_BEGIN_CATCH, FLfunc,FREGSAVED,"__cxa_begin_catch", 0, tsclib) \
-SYMBOL_Z(CXA_END_CATCH, FLfunc,FREGSAVED,"__cxa_end_catch", 0, tsclib) \
+SYMBOL_Z(UNWIND_RESUME, FLfunc,FREGSAVED,"_Unwind_Resume", SFLexit, t) \
+SYMBOL_Z(PERSONALITY, FLfunc,FREGSAVED,"__dmd_personality_v0", 0, t) \
+SYMBOL_Z(BEGIN_CATCH, FLfunc,FREGSAVED,"__dmd_begin_catch", 0, t) \
+SYMBOL_Z(CXA_BEGIN_CATCH, FLfunc,FREGSAVED,"__cxa_begin_catch", 0, t) \
+SYMBOL_Z(CXA_END_CATCH, FLfunc,FREGSAVED,"__cxa_end_catch", 0, t) \
 \
 SYMBOL_Z(TLS_INDEX, FLextern,0,"_tls_index",0,tsint) \
 SYMBOL_Z(TLS_ARRAY, FLextern,0,"_tls_array",0,tspvoid) \

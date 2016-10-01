@@ -1,8 +1,8 @@
-// REQUIRED_ARGS: -w
+// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11653.d(18): Warning: switch case fallthrough - use 'goto case;' if intended
+fail_compilation/fail11653.d(18): Error: switch case fallthrough - use 'goto case;' if intended
 ---
 */
 

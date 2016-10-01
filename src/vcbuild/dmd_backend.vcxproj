@@ -74,10 +74,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\backend\backconfig.c" />
+    <ClCompile Include="..\backend\compress.c" />
     <ClCompile Include="..\backend\cv8.c" />
     <ClCompile Include="..\backend\pdata.c" />
     <ClCompile Include="..\backend\ph2.c" />
     <ClCompile Include="..\backend\util2.c" />
+    <ClCompile Include="..\backend\varstats.c" />
     <ClCompile Include="..\e2ir.c" />
     <ClCompile Include="..\eh.c" />
     <ClCompile Include="..\glue.c" />
@@ -86,9 +88,7 @@
     <ClCompile Include="..\objc_glue_stubs.c" />
     <ClCompile Include="..\s2ir.c" />
     <ClCompile Include="..\tk.c" />
-    <ClCompile Include="..\tocsym.c" />
     <ClCompile Include="..\tocvdebug.c" />
-    <ClCompile Include="..\todt.c" />
     <ClCompile Include="..\toir.c" />
     <ClCompile Include="..\toobj.c" />
     <ClCompile Include="..\backend\aa.c" />
@@ -187,6 +187,7 @@ popd</Command>
     <ClInclude Include="..\aliasthis.h" />
     <ClInclude Include="..\arraytypes.h" />
     <ClInclude Include="..\attrib.h" />
+    <ClInclude Include="..\backend\varstats.h" />
     <ClInclude Include="..\complex_t.h" />
     <ClInclude Include="..\cond.h" />
     <ClInclude Include="..\declaration.h" />
@@ -203,7 +204,6 @@ popd</Command>
     <ClInclude Include="..\irstate.h" />
     <ClInclude Include="..\json.h" />
     <ClInclude Include="..\lib.h" />
-    <ClInclude Include="..\macro.h" />
     <ClInclude Include="..\mars.h" />
     <ClInclude Include="..\module.h" />
     <ClInclude Include="..\mtype.h" />
@@ -248,13 +248,12 @@ popd</Command>
     <ClInclude Include="..\tk\list.h" />
     <ClInclude Include="..\tk\mem.h" />
     <ClInclude Include="..\tk\vec.h" />
-    <ClInclude Include="..\root\aav.h" />
+    <ClInclude Include="..\root\ctfloat.h" />
     <ClInclude Include="..\root\longdouble.h" />
     <ClInclude Include="..\root\port.h" />
     <ClInclude Include="..\root\rmem.h" />
     <ClInclude Include="..\root\root.h" />
     <ClInclude Include="..\root\stringtable.h" />
-    <ClInclude Include="..\id.h" />
     <ClInclude Include="..\vcbuild\alloca.h" />
     <ClInclude Include="..\vcbuild\fenv.h" />
     <ClInclude Include="..\vcbuild\stdint.h" />

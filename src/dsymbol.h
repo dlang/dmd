@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/dsymbol.h
+ * https://github.com/dlang/dmd/blob/master/src/dsymbol.h
  */
 
 #ifndef DMD_DSYMBOL_H
@@ -83,8 +83,8 @@ struct Ungag
     ~Ungag() { global.gag = oldgag; }
 };
 
-const char *mangle(Dsymbol *s);
 const char *mangleExact(FuncDeclaration *fd);
+void mangleToBuffer(Dsymbol *s, OutBuffer* buf);
 
 enum PROTKIND
 {
@@ -166,13 +166,11 @@ public:
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
 
-    Dsymbol();
-    Dsymbol(Identifier *);
     static Dsymbol *create(Identifier *);
-    char *toChars();
+    const char *toChars();
     virtual char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc& getLoc();
-    char *locToChars();
+    const char *locToChars();
     bool equals(RootObject *o);
     bool isAnonymous();
     void error(Loc loc, const char *format, ...);
@@ -210,18 +208,17 @@ public:
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
-    virtual unsigned size(Loc loc);
+    virtual d_uns64 size(Loc loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
-    AggregateDeclaration *isAggregateMember();  // are we a member of an aggregate?
-    AggregateDeclaration *isAggregateMember2(); // are we a member of an aggregate?
-    ClassDeclaration *isClassMember();          // are we a member of a class?
     virtual bool isExport();                    // is Dsymbol exported?
     virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
     virtual bool isOverloadable();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
-    virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
+    AggregateDeclaration *isMember();           // is this a member of an AggregateDeclaration?
+    AggregateDeclaration *isMember2();          // is this a member of an AggregateDeclaration?
+    ClassDeclaration *isClassMember();          // is this a member of a ClassDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
     virtual Prot prot();
@@ -291,6 +288,7 @@ class ScopeDsymbol : public Dsymbol
 public:
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
+    unsigned endlinnum;         // the linnumber of the statement after the scope (0 if unknown)
 
 private:
     Dsymbols *importedScopes;   // imported Dsymbol's
@@ -299,8 +297,6 @@ private:
     BitArray accessiblePackages, privateAccessiblePackages;
 
 public:
-    ScopeDsymbol();
-    ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
@@ -327,7 +323,6 @@ class WithScopeSymbol : public ScopeDsymbol
 public:
     WithStatement *withstate;
 
-    WithScopeSymbol(WithStatement *withstate);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
@@ -344,9 +339,6 @@ public:
     TupleDeclaration *td;       // for tuples of objects
     Scope *sc;
 
-    ArrayScopeSymbol(Scope *sc, Expression *e);
-    ArrayScopeSymbol(Scope *sc, TypeTuple *t);
-    ArrayScopeSymbol(Scope *sc, TupleDeclaration *td);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
@@ -360,7 +352,6 @@ class OverloadSet : public Dsymbol
 public:
     Dsymbols a;         // array of Dsymbols
 
-    OverloadSet(Identifier *ident, OverloadSet *os = NULL);
     void push(Dsymbol *s);
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();
@@ -373,8 +364,6 @@ class DsymbolTable : public RootObject
 {
 public:
     AA *tab;
-
-    DsymbolTable();
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol *lookup(Identifier const * const ident);

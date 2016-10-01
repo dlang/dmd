@@ -27,18 +27,18 @@ struct S4b {          nothrow ~this() {}           nothrow delete(void* p) {} }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14486.d(44): Error: cannot use 'delete' in @nogc function 'fail14486.test1a'
+fail_compilation/fail14486.d(44): Error: delete c0 is not @safe but is used in @safe function test1a
 fail_compilation/fail14486.d(45): Error: pure function 'fail14486.test1a' cannot call impure destructor 'fail14486.C1a.~this'
-fail_compilation/fail14486.d(45): Error: safe function 'fail14486.test1a' cannot call system destructor 'fail14486.C1a.~this'
+fail_compilation/fail14486.d(45): Error: @safe function 'fail14486.test1a' cannot call @system destructor 'fail14486.C1a.~this'
 fail_compilation/fail14486.d(45): Error: @nogc function 'fail14486.test1a' cannot call non-@nogc destructor 'fail14486.C1a.~this'
 fail_compilation/fail14486.d(46): Error: pure function 'fail14486.test1a' cannot call impure destructor 'fail14486.C2a.~this'
-fail_compilation/fail14486.d(46): Error: safe function 'fail14486.test1a' cannot call system destructor 'fail14486.C2a.~this'
+fail_compilation/fail14486.d(46): Error: @safe function 'fail14486.test1a' cannot call @system destructor 'fail14486.C2a.~this'
 fail_compilation/fail14486.d(46): Error: @nogc function 'fail14486.test1a' cannot call non-@nogc destructor 'fail14486.C2a.~this'
 fail_compilation/fail14486.d(47): Error: pure function 'fail14486.test1a' cannot call impure deallocator 'fail14486.C3a.delete'
-fail_compilation/fail14486.d(47): Error: safe function 'fail14486.test1a' cannot call system deallocator 'fail14486.C3a.delete'
+fail_compilation/fail14486.d(47): Error: @safe function 'fail14486.test1a' cannot call @system deallocator 'fail14486.C3a.delete'
 fail_compilation/fail14486.d(47): Error: @nogc function 'fail14486.test1a' cannot call non-@nogc deallocator 'fail14486.C3a.delete'
----
-*/
+fail_compilation/fail14486.d(48): Error: delete c4 is not @safe but is used in @safe function test1a
+---*/
 void test1a() @nogc pure @safe
 {
     C0a   c0;  delete c0;   // error
@@ -54,7 +54,7 @@ TEST_OUTPUT:
 fail_compilation/fail14486.d(63): Error: destructor 'fail14486.C1b.~this' is not nothrow
 fail_compilation/fail14486.d(64): Error: destructor 'fail14486.C2b.~this' is not nothrow
 fail_compilation/fail14486.d(65): Error: deallocator 'fail14486.C3b.delete' is not nothrow
-fail_compilation/fail14486.d(60): Error: function 'fail14486.test1b' is nothrow yet may throw
+fail_compilation/fail14486.d(60): Error: nothrow function 'fail14486.test1b' may throw
 ---
 */
 void test1b() nothrow
@@ -69,15 +69,15 @@ void test1b() nothrow
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14486.d(86): Error: cannot use 'delete' in @nogc function 'fail14486.test2a'
+fail_compilation/fail14486.d(86): Error: delete s0 is not @safe but is used in @safe function test2a
 fail_compilation/fail14486.d(87): Error: pure function 'fail14486.test2a' cannot call impure destructor 'fail14486.S1a.~this'
-fail_compilation/fail14486.d(87): Error: safe function 'fail14486.test2a' cannot call system destructor 'fail14486.S1a.~this'
+fail_compilation/fail14486.d(87): Error: @safe function 'fail14486.test2a' cannot call @system destructor 'fail14486.S1a.~this'
 fail_compilation/fail14486.d(87): Error: @nogc function 'fail14486.test2a' cannot call non-@nogc destructor 'fail14486.S1a.~this'
 fail_compilation/fail14486.d(88): Error: pure function 'fail14486.test2a' cannot call impure destructor 'fail14486.S2a.~this'
-fail_compilation/fail14486.d(88): Error: safe function 'fail14486.test2a' cannot call system destructor 'fail14486.S2a.~this'
+fail_compilation/fail14486.d(88): Error: @safe function 'fail14486.test2a' cannot call @system destructor 'fail14486.S2a.~this'
 fail_compilation/fail14486.d(88): Error: @nogc function 'fail14486.test2a' cannot call non-@nogc destructor 'fail14486.S2a.~this'
 fail_compilation/fail14486.d(89): Error: pure function 'fail14486.test2a' cannot call impure deallocator 'fail14486.S3a.delete'
-fail_compilation/fail14486.d(89): Error: safe function 'fail14486.test2a' cannot call system deallocator 'fail14486.S3a.delete'
+fail_compilation/fail14486.d(89): Error: @safe function 'fail14486.test2a' cannot call @system deallocator 'fail14486.S3a.delete'
 fail_compilation/fail14486.d(89): Error: @nogc function 'fail14486.test2a' cannot call non-@nogc deallocator 'fail14486.S3a.delete'
 ---
 */
@@ -96,7 +96,7 @@ TEST_OUTPUT:
 fail_compilation/fail14486.d(105): Error: destructor 'fail14486.S1b.~this' is not nothrow
 fail_compilation/fail14486.d(106): Error: destructor 'fail14486.S2b.~this' is not nothrow
 fail_compilation/fail14486.d(107): Error: deallocator 'fail14486.S3b.delete' is not nothrow
-fail_compilation/fail14486.d(102): Error: function 'fail14486.test2b' is nothrow yet may throw
+fail_compilation/fail14486.d(102): Error: nothrow function 'fail14486.test2b' may throw
 ---
 */
 void test2b() nothrow
@@ -111,15 +111,15 @@ void test2b() nothrow
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14486.d(127): Error: cannot use 'delete' in @nogc function 'fail14486.test3a'
+fail_compilation/fail14486.d(127): Error: delete a0 is not @safe but is used in @safe function test3a
 fail_compilation/fail14486.d(128): Error: pure function 'fail14486.test3a' cannot call impure destructor 'fail14486.S1a.~this'
-fail_compilation/fail14486.d(128): Error: safe function 'fail14486.test3a' cannot call system destructor 'fail14486.S1a.~this'
+fail_compilation/fail14486.d(128): Error: @safe function 'fail14486.test3a' cannot call @system destructor 'fail14486.S1a.~this'
 fail_compilation/fail14486.d(128): Error: @nogc function 'fail14486.test3a' cannot call non-@nogc destructor 'fail14486.S1a.~this'
 fail_compilation/fail14486.d(129): Error: pure function 'fail14486.test3a' cannot call impure destructor 'fail14486.S2a.~this'
-fail_compilation/fail14486.d(129): Error: safe function 'fail14486.test3a' cannot call system destructor 'fail14486.S2a.~this'
+fail_compilation/fail14486.d(129): Error: @safe function 'fail14486.test3a' cannot call @system destructor 'fail14486.S2a.~this'
 fail_compilation/fail14486.d(129): Error: @nogc function 'fail14486.test3a' cannot call non-@nogc destructor 'fail14486.S2a.~this'
-fail_compilation/fail14486.d(130): Error: cannot use 'delete' in @nogc function 'fail14486.test3a'
-fail_compilation/fail14486.d(131): Error: cannot use 'delete' in @nogc function 'fail14486.test3a'
+fail_compilation/fail14486.d(130): Error: delete a3 is not @safe but is used in @safe function test3a
+fail_compilation/fail14486.d(131): Error: delete a4 is not @safe but is used in @safe function test3a
 ---
 */
 void test3a() @nogc pure @safe
@@ -136,7 +136,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail14486.d(145): Error: destructor 'fail14486.S1b.~this' is not nothrow
 fail_compilation/fail14486.d(146): Error: destructor 'fail14486.S2b.~this' is not nothrow
-fail_compilation/fail14486.d(142): Error: function 'fail14486.test3b' is nothrow yet may throw
+fail_compilation/fail14486.d(142): Error: nothrow function 'fail14486.test3b' may throw
 ---
 */
 void test3b() nothrow

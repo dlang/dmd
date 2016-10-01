@@ -1,49 +1,37 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _cond.d)
+ */
 
 module ddmd.cond;
 
 import core.stdc.string;
 import ddmd.arraytypes;
 import ddmd.dmodule;
-import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.identifier;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
+import ddmd.root.rootobject;
 import ddmd.tokens;
+import ddmd.utils;
 import ddmd.visitor;
+import ddmd.id;
 
-private __gshared Identifier idUnitTest;
-private __gshared Identifier idAssert;
-
-static this()
-{
-    const(char)* s;
-
-    s = Token.toChars(TOKunittest);
-    idUnitTest = Identifier.idPool(s, strlen(s));
-
-    s = Token.toChars(TOKassert);
-    idAssert   = Identifier.idPool(s, strlen(s));
-}
 
 /***********************************************************
  */
-extern (C++) class Condition
+extern (C++) abstract class Condition : RootObject
 {
-public:
     Loc loc;
     // 0: not computed yet
     // 1: include
@@ -74,7 +62,6 @@ public:
  */
 extern (C++) class DVCondition : Condition
 {
-public:
     uint level;
     Identifier ident;
     Module mod;
@@ -102,19 +89,63 @@ public:
  */
 extern (C++) final class DebugCondition : DVCondition
 {
-public:
+    /**
+     * Set the global debug level
+     *
+     * Only called from the driver
+     *
+     * Params:
+     *   level = Integer literal to set the global version to
+     */
     static void setGlobalLevel(uint level)
     {
         global.params.debuglevel = level;
     }
 
+
+    /**
+     * Add an user-supplied identifier to the list of global debug identifiers
+     *
+     * Can be called from either the driver or a `debug = Ident;` statement.
+     * Unlike version identifier, there isn't any reserved debug identifier
+     * so no validation takes place.
+     *
+     * Params:
+     *   ident = identifier to add
+     */
+    deprecated("Kept for C++ compat - Use the string overload instead")
     static void addGlobalIdent(const(char)* ident)
+    {
+        addGlobalIdent(ident[0 .. ident.strlen]);
+    }
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(string ident)
+    {
+        // Overload necessary for string literals
+        addGlobalIdent(cast(const(char)[])ident);
+    }
+
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(const(char)[] ident)
     {
         if (!global.params.debugids)
             global.params.debugids = new Strings();
         global.params.debugids.push(cast(char*)ident);
     }
 
+
+    /**
+     * Instantiate a new `DebugCondition`
+     *
+     * Params:
+     *   mod = Module this node belongs to
+     *   level = Minimum global level this condition needs to pass.
+     *           Only used if `ident` is `null`.
+     *   ident = Identifier required for this condition to pass.
+     *           If `null`, this conditiion will use an integer level.
+     */
     extern (D) this(Module mod, uint level, Identifier ident)
     {
         super(mod, level, ident);
@@ -160,21 +191,55 @@ public:
     {
         v.visit(this);
     }
+
+    override const(char)* toChars()
+    {
+        return ident ? ident.toChars() : "debug".ptr;
+    }
 }
 
-/***********************************************************
+/**
+ * Node to represent a version condition
+ *
+ * A version condition is of the form:
+ * ---
+ * version (Identifier)
+ * ---
+ * In user code.
+ * This class also provides means to add version identifier
+ * to the list of global (cross module) identifiers.
  */
 extern (C++) final class VersionCondition : DVCondition
 {
-public:
+    /**
+     * Set the global version level
+     *
+     * Only called from the driver
+     *
+     * Params:
+     *   level = Integer literal to set the global version to
+     */
     static void setGlobalLevel(uint level)
     {
         global.params.versionlevel = level;
     }
 
-    static bool isPredefined(const(char)* ident)
+    /**
+     * Check if a given version identifier is reserved.
+     *
+     * Reserved identifier are the one documented below or
+     * those starting with 'D_'.
+     *
+     * Params:
+     *   ident = identifier being checked
+     *
+     * Returns:
+     *   `true` if it is reserved, `false` otherwise
+     */
+    extern(D) private static bool isReserved(const(char)[] ident)
     {
-        static __gshared const(char)** reserved =
+        // This list doesn't include "D_*" versions, see the last return
+        static immutable string[] reserved =
         [
             "DigitalMars",
             "GNU",
@@ -202,6 +267,8 @@ public:
             "SysV4",
             "Hurd",
             "Android",
+            "PlayStation",
+            "PlayStation4",
             "Cygwin",
             "MinGW",
             "FreeStanding",
@@ -253,53 +320,108 @@ public:
             "CRuntime_DigitalMars",
             "CRuntime_Glibc",
             "CRuntime_Microsoft",
-            "D_Coverage",
-            "D_Ddoc",
-            "D_InlineAsm_X86",
-            "D_InlineAsm_X86_64",
-            "D_LP64",
-            "D_X32",
-            "D_HardFloat",
-            "D_SoftFloat",
-            "D_PIC",
-            "D_SIMD",
-            "D_Version2",
-            "D_NoBoundsChecks",
             "unittest",
             "assert",
             "all",
-            "none",
-            null
+            "none"
         ];
-        for (uint i = 0; reserved[i]; i++)
+        foreach (r; reserved)
         {
-            if (strcmp(ident, reserved[i]) == 0)
+            if (ident == r)
                 return true;
         }
-        if (ident[0] == 'D' && ident[1] == '_')
-            return true;
-        return false;
+        return (ident.length >= 2 && ident[0 .. 2] == "D_");
     }
 
-    static void checkPredefined(Loc loc, const(char)* ident)
+    /**
+     * Raises an error if a version identifier is reserved.
+     *
+     * Called when setting a version identifier, e.g. `-version=identifier`
+     * parameter to the compiler or `version = Foo` in user code.
+     *
+     * Params:
+     *   loc = Where the identifier is set
+     *   ident = identifier being checked (ident[$] must be '\0')
+     */
+    extern(D) static void checkReserved(Loc loc, const(char)[] ident)
     {
-        if (isPredefined(ident))
-            error(loc, "version identifier '%s' is reserved and cannot be set", ident);
+        if (isReserved(ident))
+            error(loc, "version identifier '%s' is reserved and cannot be set",
+                  ident.ptr);
     }
 
+    /**
+     * Add an user-supplied global identifier to the list
+     *
+     * Only called from the driver for `-version=Ident` parameters.
+     * Will raise an error if the identifier is reserved.
+     *
+     * Params:
+     *   ident = identifier to add
+     */
+    deprecated("Kept for C++ compat - Use the string overload instead")
     static void addGlobalIdent(const(char)* ident)
     {
-        checkPredefined(Loc(), ident);
+        addGlobalIdent(ident[0 .. ident.strlen]);
+    }
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(string ident)
+    {
+        // Overload necessary for string literals
+        addGlobalIdent(cast(const(char)[])ident);
+    }
+
+
+    /// Ditto
+    extern(D) static void addGlobalIdent(const(char)[] ident)
+    {
+        checkReserved(Loc(), ident);
         addPredefinedGlobalIdent(ident);
     }
 
+    /**
+     * Add any global identifier to the list, without checking
+     * if it's predefined
+     *
+     * Only called from the driver after platform detection,
+     * and internally.
+     *
+     * Params:
+     *   ident = identifier to add (ident[$] must be '\0')
+     */
+    deprecated("Kept for C++ compat - Use the string overload instead")
     static void addPredefinedGlobalIdent(const(char)* ident)
+    {
+        addPredefinedGlobalIdent(ident[0 .. ident.strlen]);
+    }
+
+    /// Ditto
+    extern(D) static void addPredefinedGlobalIdent(string ident)
+    {
+        // Forward: Overload necessary for string literal
+        addPredefinedGlobalIdent(cast(const(char)[])ident);
+    }
+
+
+    /// Ditto
+    extern(D) static void addPredefinedGlobalIdent(const(char)[] ident)
     {
         if (!global.params.versionids)
             global.params.versionids = new Strings();
         global.params.versionids.push(cast(char*)ident);
     }
 
+    /**
+     * Instantiate a new `VersionCondition`
+     *
+     * Params:
+     *   mod = Module this node belongs to
+     *   level = Minimum global level this condition needs to pass.
+     *           Only used if `ident` is `null`.
+     *   ident = Identifier required for this condition to pass.
+     *           If `null`, this conditiion will use an integer level.
+     */
     extern (D) this(Module mod, uint level, Identifier ident)
     {
         super(mod, level, ident);
@@ -332,7 +454,7 @@ public:
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
                 inc = 1;
             if (!definedInModule &&
-                (!ident || (!isPredefined(ident.toChars()) && ident != idUnitTest && ident != idAssert)))
+                (!ident || (!isReserved(ident.toString()) && ident != Id._unittest && ident != Id._assert)))
             {
                 printDepsConditional(sc, this, "depsVersion ");
             }
@@ -344,13 +466,17 @@ public:
     {
         v.visit(this);
     }
+
+    override const(char)* toChars()
+    {
+        return ident ? ident.toChars() : "version".ptr;
+    }
 }
 
 /***********************************************************
  */
 extern (C++) final class StaticIfCondition : Condition
 {
-public:
     Expression exp;
     int nest;           // limit circular dependencies
 
@@ -435,6 +561,11 @@ public:
     {
         v.visit(this);
     }
+
+    override const(char)* toChars()
+    {
+        return exp ? exp.toChars() : "static if".ptr;
+    }
 }
 
 extern (C++) int findCondition(Strings* ids, Identifier ident)
@@ -452,7 +583,7 @@ extern (C++) int findCondition(Strings* ids, Identifier ident)
 }
 
 // Helper for printing dependency information
-extern (C++) void printDepsConditional(Scope* sc, DVCondition condition, const(char)* depType)
+private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
 {
     if (!global.params.moduleDeps || global.params.moduleDepsFile)
         return;

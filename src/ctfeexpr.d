@@ -1,16 +1,17 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _ctfeexpr.d)
+ */
 
 module ddmd.ctfeexpr;
 
 import core.stdc.stdio;
 import core.stdc.string;
-import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.complex;
 import ddmd.constfold;
@@ -23,16 +24,12 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
-import ddmd.hdrgen;
-import ddmd.id;
 import ddmd.mtype;
-import ddmd.root.longdouble;
-import ddmd.root.outbuffer;
+import ddmd.root.ctfloat;
 import ddmd.root.port;
 import ddmd.root.rmem;
 import ddmd.target;
 import ddmd.tokens;
-import ddmd.utf;
 import ddmd.visitor;
 
 /***********************************************************
@@ -56,7 +53,6 @@ struct CtfeStatus
  */
 extern (C++) final class ClassReferenceExp : Expression
 {
-public:
     StructLiteralExp value;
 
     extern (D) this(Loc loc, StructLiteralExp lit, Type type)
@@ -70,18 +66,6 @@ public:
     ClassDeclaration originalClass()
     {
         return value.sd.isClassDeclaration();
-    }
-
-    VarDeclaration getFieldAt(uint index)
-    {
-        ClassDeclaration cd = originalClass();
-        uint fieldsSoFar = 0;
-        while (index - fieldsSoFar >= cd.fields.dim)
-        {
-            fieldsSoFar += cd.fields.dim;
-            cd = cd.baseClass;
-        }
-        return cd.fields[index - fieldsSoFar];
     }
 
     // Return index of the field, or -1 if not found
@@ -138,7 +122,6 @@ public:
  */
 extern (C++) final class VoidInitExp : Expression
 {
-public:
     VarDeclaration var;
 
     extern (D) this(VarDeclaration var, Type type)
@@ -177,7 +160,6 @@ extern (C++) int findFieldIndexByName(StructDeclaration sd, VarDeclaration v)
  */
 extern (C++) final class ThrownExceptionExp : Expression
 {
-public:
     ClassReferenceExp thrown;   // the thing being tossed
 
     extern (D) this(Loc loc, ClassReferenceExp victim)
@@ -217,7 +199,6 @@ public:
  */
 extern (C++) final class CTFEExp : Expression
 {
-public:
     extern (D) this(TOK tok)
     {
         super(Loc(), tok, __traits(classInstanceSize, CTFEExp));
@@ -981,8 +962,7 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
             break;
         case TOKidentity:
         case TOKequal:
-        case TOKnotidentity:
-            // 'cmp' gets inverted below
+        case TOKnotidentity: // 'cmp' gets inverted below
         case TOKnotequal:
             cmp = (null1 == null2);
             break;
@@ -996,8 +976,7 @@ extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, di
         {
         case TOKidentity:
         case TOKequal:
-        case TOKnotidentity:
-            // 'cmp' gets inverted below
+        case TOKnotidentity: // 'cmp' gets inverted below
         case TOKnotequal:
             cmp = 0;
             break;
@@ -1060,23 +1039,6 @@ private bool numCmp(N)(TOK op, N n1, N n2)
         return n1 > n2;
     case TOKge:
         return n1 >= n2;
-    case TOKleg:
-        return true;
-    case TOKlg:
-        return n1 != n2;
-
-    case TOKunord:
-        return false;
-    case TOKue:
-        return n1 == n2;
-    case TOKug:
-        return n1 > n2;
-    case TOKuge:
-        return n1 >= n2;
-    case TOKul:
-        return n1 < n2;
-    case TOKule:
-        return n1 <= n2;
 
     default:
         assert(0);
@@ -1105,7 +1067,7 @@ extern (C++) int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
 extern (C++) int realCmp(TOK op, real_t r1, real_t r2)
 {
     // Don't rely on compiler, handle NAN arguments separately
-    if (Port.isNan(r1) || Port.isNan(r2)) // if unordered
+    if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
     {
         switch (op)
         {
@@ -1113,17 +1075,7 @@ extern (C++) int realCmp(TOK op, real_t r1, real_t r2)
         case TOKle:
         case TOKgt:
         case TOKge:
-        case TOKleg:
-        case TOKlg:
             return 0;
-
-        case TOKunord:
-        case TOKue:
-        case TOKug:
-        case TOKuge:
-        case TOKul:
-        case TOKule:
-            return 1;
 
         default:
             assert(0);
@@ -1293,8 +1245,8 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     {
         return e1.toInteger() != e2.toInteger();
     }
-    real_t r1;
-    real_t r2;
+    real_t r1 = 0;
+    real_t r2 = 0;
     if (e1.type.isreal())
     {
         r1 = e1.toReal();
@@ -1306,7 +1258,7 @@ extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
         r1 = e1.toImaginary();
         r2 = e2.toImaginary();
     L1:
-        if (Port.isNan(r1) || Port.isNan(r2)) // if unordered
+        if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;
         }

@@ -84,7 +84,7 @@ static assert(TFoo2774!int.mangleof == "6mangle15__T8TFoo2774TiZ");
 void test2774()
 {
     int foo2774(int n) { return 0; }
-    static assert(foo2774.mangleof == "_D6mangle8test2774FZ7foo2774MFiZi");
+    static assert(foo2774.mangleof == "_D6mangle8test2774FZ7foo2774MFNaNbNiNfiZi");
 }
 
 /*******************************************/
@@ -462,7 +462,7 @@ void test12217(int)
     template X(T) {}
 
     static assert(    S.mangleof ==  "S6mangle9test12217FiZ1S");
-    static assert(  bar.mangleof == "_D6mangle9test12217FiZ3barMFZv");
+    static assert(  bar.mangleof == "_D6mangle9test12217FiZ3barMFNaNbNiNfZv");
     static assert(  var.mangleof == "_D6mangle9test12217FiZ3vari");
     static assert(X!int.mangleof ==   "6mangle9test12217FiZ8__T1XTiZ");
 }
@@ -537,6 +537,26 @@ void test12231()
     func12231c();
     func12231c!string();
 }
+
+/***************************************************/
+
+int test2a(scope int a) { return a; }
+
+static assert(test2a.mangleof == "_D6mangle6test2aFiZi");
+
+/***************************************************/
+
+class CC
+{
+    int* p;
+
+    int* member() scope
+    {
+        return p;
+    }
+}
+
+static assert(CC.member.mangleof == "_D6mangle2CC6memberMFMZPi");
 
 /***************************************************/
 

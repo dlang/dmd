@@ -572,6 +572,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
   {
         assert(!EOP(e));                /* can't handle this            */
         regm_t rm = regcon.cse.mval & ~regcon.cse.mops & ~regcon.mvar; // possible regs
+        if (op == 0xFF && reg == 6)
+            rm &= ~XMMREGS;             // can't PUSH an XMM register
         if (sz > REGSIZE)               // value is in 2 or 4 registers
         {
                 if (I16 && sz == 8)     // value is in 4 registers
@@ -1121,7 +1123,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          */
 
         if (!I16 && e1isadd && (!e1->Ecount || !e1free) &&
-            (tysize[e1ty] == REGSIZE || (I64 && tysize[e1ty] == 4)))
+            (_tysize[e1ty] == REGSIZE || (I64 && _tysize[e1ty] == 4)))
         {   code *c2;
             regm_t idxregs2;
             unsigned base,index;
@@ -1507,7 +1509,7 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
   tym = tybasic(tym);
   code *ce = CNIL;
   unsigned reg = findreg(regm);
-  unsigned sz = tysize[tym];
+  unsigned sz = _tysize[tym];
   if (sz == 1)
   {     assert(regm & BYTEREGS);
         ce = genregs(ce,0x84,reg,reg);        // TEST regL,regL
@@ -1666,7 +1668,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   }
 #endif
   c = CNIL;
-  sz = tysize[tym];
+  sz = _tysize[tym];
   if (sz == 1)
   {
         assert(retregs & BYTEREGS);
@@ -2595,6 +2597,11 @@ void fillParameters(elem *e, Parameter *parameters, int *pi)
 /***********************************
  * tyf: type of the function
  */
+FuncParamRegs FuncParamRegs::create(tym_t tyf)
+{
+    return FuncParamRegs(tyf);
+}
+
 FuncParamRegs::FuncParamRegs(tym_t tyf)
 {
     this->tyf = tyf;
@@ -3262,7 +3269,8 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
     regm_t retregs;
     symbol *s;
 
-    //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d)\n",e,regm_str(*pretregs),numpara,numalign);
+    //printf("%s ", funcsym_p->Sident);
+    //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(*pretregs),numpara,numalign,usefuncarg);
     calledafunc = 1;
     /* Determine if we need frame for function prolog/epilog    */
 #if TARGET_WINDOS
@@ -3493,9 +3501,17 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
     if (!usefuncarg)
     {
         // If stack needs cleanup
-        if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
-            (!typfunc(tym1) || config.exe == EX_WIN64) &&
-          !(s && s->Sflags & SFLexit))
+        if  (s && s->Sflags & SFLexit)
+        {
+            /* Function never returns, so don't need to generate stack
+             * cleanup code. But still need to log the stack cleanup
+             * as if it did return.
+             */
+            c = genadjesp(c,-(numpara + numalign));
+            stackpush -= numpara + numalign;
+        }
+        else if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
+            (!typfunc(tym1) || config.exe == EX_WIN64))
         {
             if (tym1 == TYhfunc)
             {   // Hidden parameter is popped off by the callee
@@ -3509,9 +3525,9 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,
         }
         else
         {
-            c = genadjesp(c,-numpara);
+            c = genadjesp(c,-numpara);  // popped off by the callee's 'RET numpara'
             stackpush -= numpara;
-            if (numalign)
+            if (numalign)               // callee doesn't know about alignment adjustment
                 c = genstackclean(c,numalign,retregs);
         }
     }
@@ -4108,7 +4124,7 @@ code *pushParams(elem *e,unsigned stackalign)
         s = e->EV.sp.Vsym;
         //if (sytab[s->Sclass] & SCSS && !I32)  // if variable is on stack
         //    needframe = TRUE;                 // then we need stack frame
-        if (tysize[tym] == tysize[TYfptr] &&
+        if (_tysize[tym] == tysize(TYfptr) &&
             (fl = s->Sfl) != FLfardata &&
             /* not a function that CS might not be the segment of       */
             (!((fl == FLfunc || s->ty() & mTYcs) &&
@@ -4137,7 +4153,7 @@ code *pushParams(elem *e,unsigned stackalign)
         if (config.target_cpu >= TARGET_80286 && !e->Ecount)
         {
             stackpush += sz;
-            if (tysize[tym] == tysize[TYfptr])
+            if (_tysize[tym] == tysize(TYfptr))
             {
                 /* PUSH SEG e   */
                 code *c1 = gencs(CNIL,0x68,0,FLextern,s);
@@ -4224,7 +4240,7 @@ code *pushParams(elem *e,unsigned stackalign)
             goto L2;
         }
 
-        assert(I64 || sz <= tysize[TYldouble]);
+        assert(I64 || sz <= tysize(TYldouble));
         int i = sz;
         if (!I16 && i == 2)
             flag = CFopsize;
@@ -4468,7 +4484,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 return cload87(e, pretregs);
         }
   }
-  sz = tysize[tym];
+  sz = _tysize[tym];
   cs.Iflags = 0;
   cs.Irex = 0;
   if (*pretregs == mPSW)
@@ -4569,7 +4585,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 c = cat(c,c1);
             }
         }
-        else if (sz == tysize[TYldouble])               // TYldouble
+        else if (sz == tysize(TYldouble))               // TYldouble
             return load87(e,0,pretregs,NULL,-1);
         else
         {

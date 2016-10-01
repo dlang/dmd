@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/init.h
+ * https://github.com/dlang/dmd/blob/master/src/init.h
  */
 
 #ifndef INIT_H
@@ -36,7 +36,6 @@ class Initializer : public RootObject
 public:
     Loc loc;
 
-    Initializer(Loc loc);
     virtual Initializer *syntaxCopy() = 0;
     static Initializers *arraySyntaxCopy(Initializers *ai);
 
@@ -48,7 +47,7 @@ public:
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret) = 0;
     virtual Expression *toExpression(Type *t = NULL) = 0;
-    char *toChars();
+    const char *toChars();
 
     virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
     virtual VoidInitializer    *isVoidInitializer() { return NULL; }
@@ -63,7 +62,6 @@ class VoidInitializer : public Initializer
 public:
     Type *type;         // type that this will initialize to
 
-    VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
@@ -76,7 +74,6 @@ public:
 class ErrorInitializer : public Initializer
 {
 public:
-    ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
@@ -92,7 +89,6 @@ public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
 
-    StructInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *inferType(Scope *sc);
@@ -108,11 +104,10 @@ class ArrayInitializer : public Initializer
 public:
     Expressions index;  // indices
     Initializers value; // of Initializer *'s
-    size_t dim;         // length of array being initialized
+    unsigned dim;       // length of array being initialized
     Type *type;         // type that array will be used to initialize
     bool sem;           // true if semantic() is run
 
-    ArrayInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray();
@@ -131,7 +126,6 @@ public:
     Expression *exp;
     bool expandTuples;
 
-    ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
     Initializer *inferType(Scope *sc);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);

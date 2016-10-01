@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
+// Copyright (c) 1999-2016 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,11 +12,9 @@ import core.stdc.stdio;
 import ddmd.aggregate;
 import ddmd.argtypes;
 import ddmd.arraytypes;
-import ddmd.gluelayer;
 import ddmd.clone;
 import ddmd.declaration;
 import ddmd.dmodule;
-import ddmd.doc;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
@@ -24,14 +22,10 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
-import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
-import ddmd.init;
 import ddmd.mtype;
 import ddmd.opover;
-import ddmd.root.outbuffer;
-import ddmd.statement;
 import ddmd.tokens;
 import ddmd.typinf;
 import ddmd.visitor;
@@ -220,7 +214,6 @@ alias ISPODfwd = StructPOD.ISPODfwd;
  */
 extern (C++) class StructDeclaration : AggregateDeclaration
 {
-public:
     int zeroInit;               // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasIdentityEquals;     // true if has identity opEquals
@@ -272,7 +265,6 @@ public:
 
         if (semanticRun >= PASSsemanticdone)
             return;
-        uint dprogress_save = Module.dprogress;
         int errors = global.errors;
 
         //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
@@ -296,7 +288,7 @@ public:
         type = type.semantic(loc, sc);
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeStruct)type).sym.isInstantiated();
+            auto ti = (cast(TypeStruct)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeStruct)type).sym = this;
         }
@@ -308,7 +300,7 @@ public:
         {
             protection = sc.protection;
 
-            alignment = sc.structalign;
+            alignment = sc.alignment();
 
             storage_class |= sc.stc;
             if (storage_class & STCdeprecated)
@@ -331,93 +323,58 @@ public:
             return;
         }
         if (!symtab)
+        {
             symtab = new DsymbolTable();
 
-        if (sizeok == SIZEOKnone) // if not already done the addMember step
-        {
             for (size_t i = 0; i < members.dim; i++)
             {
-                Dsymbol s = (*members)[i];
+                auto s = (*members)[i];
                 //printf("adding member '%s' to '%s'\n", s.toChars(), this.toChars());
                 s.addMember(sc, this);
             }
         }
 
-        Scope* sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        if (isUnionDeclaration())
-            sc2.inunion = 1;
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
-
-        if (sizeok == SIZEOKdone)
-            goto LafterSizeok;
-        sizeok = SIZEOKnone;
+        auto sc2 = newScope(sc);
 
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
         for (size_t i = 0; i < members.dim; i++)
         {
-            Dsymbol s = (*members)[i];
+            auto s = (*members)[i];
             //printf("struct: setScope %s %s\n", s.kind(), s.toChars());
             s.setScope(sc2);
         }
 
         for (size_t i = 0; i < members.dim; i++)
         {
-            Dsymbol s = (*members)[i];
+            auto s = (*members)[i];
             s.importAll(sc2);
         }
 
         for (size_t i = 0; i < members.dim; i++)
         {
-            Dsymbol s = (*members)[i];
+            auto s = (*members)[i];
             s.semantic(sc2);
         }
 
-        finalizeSize();
-
-        if (sizeok == SIZEOKfwd)
+        if (!determineFields())
         {
-            // semantic() failed because of forward references.
-            // Unwind what we did, and defer it for later
-            for (size_t i = 0; i < fields.dim; i++)
-            {
-                VarDeclaration v = fields[i];
-                v.offset = 0;
-            }
-            fields.setDim(0);
-            structsize = 0;
-            alignsize = 0;
-
+            assert(type.ty == Terror);
             sc2.pop();
-
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
-            Module.dprogress = dprogress_save;
-            //printf("\tdeferring %s\n", toChars());
             return;
         }
-
-        Module.dprogress++;
-        //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
-
-    LafterSizeok:
-        // The additions of special member functions should have its own
-        // sub-semantic analysis pass, and have to be deferred sometimes.
-        // See the case in compilable/test14838.d
-        for (size_t i = 0; i < fields.dim; i++)
+        /* Following special member functions creation needs semantic analysis
+         * completion of sub-structs in each field types. For example, buildDtor
+         * needs to check existence of elaborate dtor in type of each fields.
+         * See the case in compilable/test14838.d
+         */
+        foreach (v; fields)
         {
-            VarDeclaration v = fields[i];
             Type tb = v.type.baseElemOf();
             if (tb.ty != Tstruct)
                 continue;
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
 
@@ -435,7 +392,8 @@ public:
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
 
-        // this->ctor is already set in finalizeSize()
+        // Look for the constructor
+        ctor = searchCtor();
 
         dtor = buildDtor(this, sc2);
         postblit = buildPostBlit(this, sc2);
@@ -449,6 +407,10 @@ public:
 
         inv = buildInv(this, sc2);
 
+        Module.dprogress++;
+        semanticRun = PASSsemanticdone;
+        //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
         sc2.pop();
 
         if (ctor)
@@ -460,7 +422,7 @@ public:
                 sc = sc.push();
                 sc.tinst = null;
                 sc.minst = null;
-                FuncDeclaration fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
+                auto fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
                 sc = sc.pop();
                 global.endGagging(xerrors);
 
@@ -471,22 +433,6 @@ public:
                 }
             }
         }
-
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
-
-        TypeTuple tup = toArgTypes(type);
-        size_t dim = tup.arguments.dim;
-        if (dim >= 1)
-        {
-            assert(dim <= 2);
-            arg1type = (*tup.arguments)[0].type;
-            if (dim == 2)
-                arg2type = (*tup.arguments)[1].type;
-        }
-
-        if (sc.func)
-            semantic2(sc);
 
         if (global.errors != errors)
         {
@@ -588,9 +534,12 @@ public:
 
     override final void finalizeSize()
     {
-        //printf("StructDeclaration::finalizeSize() %s\n", toChars());
-        if (sizeok != SIZEOKnone)
-            return;
+        //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
+        assert(sizeok != SIZEOKdone);
+
+        //printf("+StructDeclaration::finalizeSize() %s, fields.dim = %d, sizeok = %d\n", toChars(), fields.dim, sizeok);
+
+        fields.setDim(0);   // workaround
 
         // Set the offsets of the fields and determine the size of the struct
         uint offset = 0;
@@ -600,7 +549,7 @@ public:
             Dsymbol s = (*members)[i];
             s.setFieldOffset(this, &offset, isunion);
         }
-        if (sizeok == SIZEOKfwd)
+        if (type.ty == Terror)
             return;
 
         // 0 sized struct's are set to 1 byte
@@ -617,56 +566,39 @@ public:
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
         else
             structsize = (structsize + alignment - 1) & ~(alignment - 1);
+
         sizeok = SIZEOKdone;
+
+        //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
 
         // Determine if struct is all zeros or not
         zeroInit = 1;
-        for (size_t i = 0; i < fields.dim; i++)
+        foreach (vd; fields)
         {
-            VarDeclaration vd = fields[i];
-            if (!vd.isDataseg())
+            if (vd._init)
             {
-                if (vd._init)
-                {
-                    // Should examine init to see if it is really all 0's
-                    zeroInit = 0;
-                    break;
-                }
-                else
-                {
-                    if (!vd.type.isZeroInit(loc))
-                    {
-                        zeroInit = 0;
-                        break;
-                    }
-                }
+                // Should examine init to see if it is really all 0's
+                zeroInit = 0;
+                break;
+            }
+            else if (!vd.type.isZeroInit(loc))
+            {
+                zeroInit = 0;
+                break;
             }
         }
 
-        // Look for the constructor, for the struct literal/constructor call expression
-        ctor = searchCtor();
-        if (ctor)
+        auto tt = toArgTypes(type);
+        size_t dim = tt.arguments.dim;
+        if (dim >= 1)
         {
-            // Finish all constructors semantics to determine this->noDefaultCtor.
-            struct SearchCtor
-            {
-                extern (C++) static int fp(Dsymbol s, void* ctxt)
-                {
-                    CtorDeclaration f = s.isCtorDeclaration();
-                    if (f && f.semanticRun == PASSinit)
-                        f.semantic(null);
-                    return 0;
-                }
-            }
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.apply(&SearchCtor.fp, null);
-            }
+            assert(dim <= 2);
+            arg1type = (*tt.arguments)[0].type;
+            if (dim == 2)
+                arg2type = (*tt.arguments)[1].type;
         }
     }
 
@@ -820,7 +752,6 @@ public:
  */
 extern (C++) final class UnionDeclaration : StructDeclaration
 {
-public:
     extern (D) this(Loc loc, Identifier id)
     {
         super(loc, id);

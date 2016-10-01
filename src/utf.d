@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _utf.d)
+ */
 
 module ddmd.utf;
 
@@ -12,18 +14,16 @@ nothrow pure @nogc:
 
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]
 /// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
-/// and non-characters (which end in 0xFFFE or 0xFFFF).
 bool utf_isValidDchar(dchar c)
 {
     // TODO: Whether non-char code points should be rejected is pending review
     // largest character code point
     if (c > 0x10FFFF)
         return false;
+    // 0xFFFE and 0xFFFF are valid for internal use, like Phobos std.utf.isValidDChar
+    // See also https://issues.dlang.org/show_bug.cgi?id=1357
     // surrogate pairs
     if (0xD800 <= c && c <= 0xDFFF)
-        return false;
-    // non-characters
-    if ((c & 0xFFFFFE) == 0x00FFFE)
         return false;
     return true;
 }
@@ -308,7 +308,15 @@ bool isUniAlpha(dchar c)
  */
 int utf_codeLengthChar(dchar c)
 {
-    return c <= 0x7F ? 1 : c <= 0x7FF ? 2 : c <= 0xFFFF ? 3 : c <= 0x10FFFF ? 4 : (assert(false), 6);
+    if (c <= 0x7F)
+        return 1;
+    if (c <= 0x7FF)
+        return 2;
+    if (c <= 0xFFFF)
+        return 3;
+    if (c <= 0x10FFFF)
+        return 4;
+    assert(false);
 }
 
 int utf_codeLengthWchar(dchar c)

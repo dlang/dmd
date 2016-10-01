@@ -1,12 +1,12 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/mars.h
+ * https://github.com/dlang/dmd/blob/master/src/mars.h
  */
 
 #ifndef DMD_MARS_H
@@ -77,7 +77,7 @@ struct OutBuffer;
 
 #include "globals.h"
 
-#include "longdouble.h"
+#include "ctfloat.h"
 
 #include "complex_t.h"
 
@@ -91,12 +91,13 @@ void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
+/// Utility functions used by both main and frontend.
 void readFile(Loc loc, File *f);
 void writeFile(Loc loc, File *f);
 void ensurePathToNameExists(Loc loc, const char *name);
 
 const char *importHint(const char *s);
-/// Little helper function for writting out deps.
+/// Little helper function for writing out deps.
 void escapePath(OutBuffer *buf, const char *fname);
 
 #endif /* DMD_MARS_H */

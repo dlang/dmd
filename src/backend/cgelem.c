@@ -34,6 +34,16 @@ STATIC elem * eldiv(elem *, goal_t goal);
 
 extern elem * evalu8(elem *, goal_t goal);
 
+/* Masks so we can easily check size */
+#define CHARMASK        (0xFFL)
+#define SHORTMASK       (0xFFFFL)
+#define INTMASK         SHORTMASK
+#define LONGMASK        0xFFFFFFFF
+
+/* Common constants often checked for */
+#define LLONGMASK       0xFFFFFFFFFFFFFFFFLL
+#define ZEROLL          0LL
+
 static bool again;
 
 /*****************************
@@ -848,9 +858,9 @@ L1:
             ety = tybasic(e->Ety);
             e11ty = tybasic(e1->E1->Ety);
             if (typtr(ety) && typtr(e11ty) &&
-                tysize[ety] != tysize[e11ty])
+                _tysize[ety] != _tysize[e11ty])
             {
-                e = el_una((tysize[ety] > tysize[e11ty]) ? OPnp_fp : OPoffset,
+                e = el_una((_tysize[ety] > _tysize[e11ty]) ? OPnp_fp : OPoffset,
                             e->Ety,e);
                 e->E1->Ety = e1->Ety;
             }
@@ -976,7 +986,7 @@ STATIC elem * elmul(elem *e, goal_t goal)
             }
         }
 
-        if (tyintegral(tym))
+        if (tyintegral(tym) && !tyvector(tym))
         {   int i;
 
             i = ispow2(el_tolong(e2));          /* check for power of 2 */
@@ -1923,7 +1933,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
 
                 /* Replace ((a relop b) ? 1 : 0) with (a relop b)       */
                 else if (OTrel(e1->Eoper) &&
-                    tysize(ty) <= tysize[TYint])
+                    tysize(ty) <= tysize(TYint))
                 {
                     if (i1 == 1 && i2 == 0)
                         e = el_selecte1(e);
@@ -1950,7 +1960,7 @@ STATIC elem * elcond(elem *e, goal_t goal)
                 {
                     if (tyfv(e1->Ety))
                     {
-                        if (tysize(e->Ety) == tysize[TYint])
+                        if (tysize(e->Ety) == tysize(TYint))
                         {
                             if (i1 == 1 && i2 == 0)
                             {   e->Eoper = OPbool;
@@ -2384,7 +2394,7 @@ STATIC elem * eloror(elem *e, goal_t goal)
             L2:
                 e->Eoper = OPcomma;
                 el_free(e->E2);
-                e->E2 = el_int(t,1);
+                e->E2 = el_long(t,1);
             }
         }
         else                            /* (x,0) || e2  =>  (x,0),(bool e2) */
@@ -2727,7 +2737,7 @@ STATIC elem * elandand(elem *e, goal_t goal)
             else
             {
                 el_free(e->E2);
-                e->E2 = el_int(e->Ety,0);
+                e->E2 = el_long(e->Ety,0);
             }
         }
     }
@@ -2803,8 +2813,8 @@ STATIC elem * elbit(elem *e, goal_t goal)
   e2->Ety = e->Ety;
 
   e->E1 = el_bin(OPshr,tym1,
-                el_bin(OPshl,tym1,e->E1,el_int(TYint,c)),
-                el_int(TYint,b));
+                el_bin(OPshl,tym1,e->E1,el_long(TYint,c)),
+                el_long(TYint,b));
 L1:
   return optelem(e,GOALvalue);               /* optimize result              */
 }
@@ -3541,7 +3551,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
                 el_bin(OPor,t,
                         el_bin(OPshl,t,
                                 (r2 = el_bin(OPand,t,r,el_long(t,m))),
-                                el_int(TYint,b)
+                                el_long(TYint,b)
                         ),
                         el_bin(OPand,t,
                                 (l2 = el_copytree(l)),
@@ -4013,7 +4023,7 @@ L1:
                 tym_t ty;
 
                 ty = tybasic(e2->Ety);
-                switch (tysize[ty])
+                switch (_tysize[ty])
                 {   case 1:     ty = TYschar;   break;
                     case 2:     ty = TYshort;   break;
                     default:    assert(0);
@@ -4077,7 +4087,7 @@ STATIC elem * elbool(elem *e, goal_t goal)
         {
             int i = boolres(e1) != 0;
             e->Eoper = OPcomma;
-            e->E2 = el_int(e->Ety,i);
+            e->E2 = el_long(e->Ety,i);
             e = optelem(e,GOALvalue);
             return e;
         }
@@ -4586,7 +4596,7 @@ STATIC elem * elshr(elem *e, goal_t goal)
             e->E1 = el_una(OPind,TYshort,
                         el_bin(OPadd,e1->E1->Ety,
                                 el_una(OPaddr,e1->E1->Ety,e1),
-                                el_int(TYint,SHORTSIZE)));
+                                el_long(TYint,SHORTSIZE)));
         L1:
             e->Eoper = tyuns(e1->Ety) ? OPu16_32 : OPs16_32;
             el_free(e2);
@@ -4614,7 +4624,7 @@ STATIC elem * elshr(elem *e, goal_t goal)
             e->E1 = el_una(OPind,TYlong,
                         el_bin(OPadd,e1->E1->Ety,
                                 el_una(OPaddr,e1->E1->Ety,e1),
-                                el_int(TYint,LONGSIZE)));
+                                el_long(TYint,LONGSIZE)));
         L2:
             e->Eoper = tyuns(e1->Ety) ? OPu32_64 : OPs32_64;
             el_free(e2);
@@ -4655,7 +4665,7 @@ elem *elmsw(elem *e, goal_t goal)
             e1 = el_una(OPind,ty,
                 el_bin(OPadd,e1->E1->Ety,
                     el_una(OPaddr,e1->E1->Ety,e1),
-                    el_int(TYint,LONGSIZE)));
+                    el_long(TYint,LONGSIZE)));
             e = optelem(e1,GOALvalue);
         }
         else
@@ -4680,7 +4690,7 @@ elem *elmsw(elem *e, goal_t goal)
             e1 = el_una(OPind,ty,
                 el_bin(OPadd,e1->E1->Ety,
                     el_una(OPaddr,e1->E1->Ety,e1),
-                    el_int(TYint,LLONGSIZE)));
+                    el_long(TYint,LLONGSIZE)));
             e = optelem(e1,GOALvalue);
         }
         else
@@ -4759,6 +4769,42 @@ STATIC elem * elclassinit(elem *e, goal_t goal)
 STATIC elem * elvalist(elem *e, goal_t goal)
 {
     assert(e->Eoper == OPva_start);
+
+    if (I32)
+    {
+        // (OPva_start &va)
+        // (OPeq (OPind E1) (OPptr lastNamed+T.sizeof))
+        //elem_print(e);
+
+        // Find last named parameter
+        symbol *lastNamed = NULL;
+        symbol *arguments_typeinfo = NULL;
+        for (SYMIDX si = 0; si < globsym.top; si++)
+        {
+            symbol *s = globsym.tab[si];
+
+            if (s->Sclass == SCparameter || s->Sclass == SCregpar)
+                lastNamed = s;
+            if (s->Sident[0] == '_' && strcmp(s->Sident, "_arguments_typeinfo") == 0)
+                arguments_typeinfo = s;
+        }
+
+        if (!lastNamed)
+            lastNamed = arguments_typeinfo;
+
+        e->Eoper = OPeq;
+        e->E1 = el_una(OPind, TYnptr, e->E1);
+        if (lastNamed)
+        {
+            e->E2 = el_ptr(lastNamed);
+            e->E2->EV.sp.Voffset = (type_size(lastNamed->Stype) + 3) & ~3;
+        }
+        else
+            e->E2 = el_long(TYnptr, 0);
+        // elem_print(e);
+
+        return e;
+    }
 
 #if TARGET_WINDOS
 

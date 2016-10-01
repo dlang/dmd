@@ -37,8 +37,14 @@ unsigned xmmoperator(tym_t tym, unsigned oper);
 
 bool isXMMstore(unsigned op)
 {
-    // Not very efficient
-    return op == STOSS || op == STOSD || op == STOAPS || op == STOAPD || op == STODQA || op == STOQ;
+    switch (op)
+    {
+    case STOSS: case STOAPS: case STOUPS:
+    case STOSD: case STOAPD: case STOUPD:
+    case STOD: case STOQ: case STODQA: case STODQU:
+    case STOHPD: case STOHPS: case STOLPD: case STOLPS: return true;
+    default: return false;
+    }
 }
 
 /*******************************************
@@ -112,7 +118,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
         {
             unsigned nretregs = XMMREGS & ~retregs;
             unsigned sreg; // hold sign bit
-            unsigned sz = tysize[tybasic(e1->Ety)];
+            unsigned sz = tysize(e1->Ety);
             c = cat(c,allocreg(&nretregs,&sreg,e2->Ety));
             targ_size_t signbit = 0x80000000;
             if (sz == 8)
@@ -403,7 +409,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
 {   elem *e1 = e->E1;
     elem *e2 = e->E2;
     tym_t ty1 = tybasic(e1->Ety);
-    unsigned sz1 = tysize[ty1];
+    unsigned sz1 = _tysize[ty1];
     regm_t rretregs = XMMREGS & ~*pretregs;
     if (!rretregs)
         rretregs = XMMREGS;
@@ -479,7 +485,7 @@ code *xmmneg(elem *e,regm_t *pretregs)
     //elem_print(e);
     assert(*pretregs);
     tym_t tyml = tybasic(e->E1->Ety);
-    int sz = tysize[tyml];
+    int sz = _tysize[tyml];
 
     regm_t retregs = *pretregs & XMMREGS;
     if (!retregs)
@@ -841,7 +847,7 @@ code *cdvector(elem *e, regm_t *pretregs)
     assert(!isXMMstore(op));
 #endif
     tym_t ty1 = tybasic(op1->Ety);
-    unsigned sz1 = tysize[ty1];
+    unsigned sz1 = _tysize[ty1];
 //    assert(sz1 == 16);       // float or double
 
     regm_t retregs;

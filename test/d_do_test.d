@@ -1,3 +1,4 @@
+#!/usr/bin/env rdmd
 module d_do_test;
 
 import std.algorithm;
@@ -16,25 +17,25 @@ import core.sys.posix.sys.wait;
 void usage()
 {
     write("d_do_test <input_dir> <test_name> <test_extension>\n"
-          "\n"
-          "   input_dir: one of: compilable, fail_compilation, runnable\n"
-          "   test_name: basename of test case to run\n"
-          "   test_extension: one of: d, html, or sh\n"
-          "\n"
-          "   example: d_do_test runnable pi d\n"
-          "\n"
-          "   relevant environment variables:\n"
-          "      ARGS:          set to execute all combinations of\n"
-          "      REQUIRED_ARGS: arguments always passed to the compiler\n"
-          "      DMD:           compiler to use, ex: ../src/dmd\n"
-          "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          "      OS:            win32, win64, linux, freebsd, osx\n"
-          "      RESULTS_DIR:   base directory for test results\n"
-          "   windows vs non-windows portability env vars:\n"
-          "      DSEP:          \\\\ or /\n"
-          "      SEP:           \\ or /\n"
-          "      OBJ:          .obj or .o\n"
-          "      EXE:          .exe or <null>\n");
+          ~ "\n"
+          ~ "   input_dir: one of: compilable, fail_compilation, runnable\n"
+          ~ "   test_name: basename of test case to run\n"
+          ~ "   test_extension: one of: d, html, or sh\n"
+          ~ "\n"
+          ~ "   example: d_do_test runnable pi d\n"
+          ~ "\n"
+          ~ "   relevant environment variables:\n"
+          ~ "      ARGS:          set to execute all combinations of\n"
+          ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
+          ~ "      DMD:           compiler to use, ex: ../src/dmd\n"
+          ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
+          ~ "      OS:            win32, win64, linux, freebsd, osx\n"
+          ~ "      RESULTS_DIR:   base directory for test results\n"
+          ~ "   windows vs non-windows portability env vars:\n"
+          ~ "      DSEP:          \\\\ or /\n"
+          ~ "      SEP:           \\ or /\n"
+          ~ "      OBJ:          .obj or .o\n"
+          ~ "      EXE:          .exe or <null>\n");
 }
 
 enum TestMode
@@ -80,6 +81,7 @@ struct EnvData
     string model;
     string required_args;
     bool dobjc;
+    bool coverage_build;
 }
 
 bool findTestParameter(string file, string token, ref string result)
@@ -170,7 +172,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
-        if (testArgs.mode != TestMode.FAIL_COMPILE)
+        if (testArgs.mode == TestMode.RUN)
             testArgs.permuteArgs = envData.all_args;
 
         string unittestJunk;
@@ -446,6 +448,7 @@ int main(string[] args)
     envData.model         = environment.get("MODEL");
     envData.required_args = environment.get("REQUIRED_ARGS");
     envData.dobjc         = environment.get("D_OBJC") == "1";
+    envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
@@ -464,6 +467,10 @@ int main(string[] args)
             writeln("input_dir must be one of 'compilable', 'fail_compilation', or 'runnable'");
             return 1;
     }
+
+    // running & linking costs time - for coverage builds we can save this
+    if (envData.coverage_build && testArgs.mode == TestMode.RUN)
+        testArgs.mode = TestMode.COMPILE;
 
     if (envData.ccompiler.empty)
     {
@@ -632,7 +639,7 @@ int main(string[] args)
 
             fThisRun.close();
 
-            if (testArgs.postScript)
+            if (testArgs.postScript && !envData.coverage_build)
             {
                 f.write("Executing post-test script: ");
                 string prefix = "";

@@ -16,9 +16,6 @@
     <Filter Include="src\gen">
       <UniqueIdentifier>{8f21dd4e-1670-48be-9a72-1dccf0c17166}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\generated">
-      <UniqueIdentifier>{6deaa83b-2b97-4159-a330-266507006483}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\vcbuild">
       <UniqueIdentifier>{5fa9d849-fc22-4664-bb36-8ed7e1bff041}</UniqueIdentifier>
     </Filter>
@@ -45,13 +42,7 @@
     <ClCompile Include="..\tk.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\tocsym.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\tocvdebug.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\todt.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\toir.c">
@@ -243,8 +234,14 @@
     <ClCompile Include="..\backend\pdata.c">
       <Filter>src\backend</Filter>
     </ClCompile>
+    <ClCompile Include="..\backend\varstats.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
     <ClCompile Include="..\objc_glue_stubs.c">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\backend\compress.c">
+      <Filter>src\backend</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -303,9 +300,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\lib.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\macro.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\mars.h">
@@ -416,6 +410,9 @@
     <ClInclude Include="..\backend\type.h">
       <Filter>src\backend</Filter>
     </ClInclude>
+    <ClInclude Include="..\backend\varstats.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
     <ClInclude Include="..\tk\filespec.h">
       <Filter>src\tk</Filter>
     </ClInclude>
@@ -428,7 +425,7 @@
     <ClInclude Include="..\tk\vec.h">
       <Filter>src\tk</Filter>
     </ClInclude>
-    <ClInclude Include="..\root\aav.h">
+    <ClInclude Include="..\root\ctfloat.h">
       <Filter>src\root</Filter>
     </ClInclude>
     <ClInclude Include="..\root\longdouble.h">
@@ -445,9 +442,6 @@
     </ClInclude>
     <ClInclude Include="..\root\stringtable.h">
       <Filter>src\root</Filter>
-    </ClInclude>
-    <ClInclude Include="..\id.h">
-      <Filter>src\generated</Filter>
     </ClInclude>
     <ClInclude Include="..\vcbuild\alloca.h">
       <Filter>src\vcbuild</Filter>

@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _scanmscoff.d)
+ */
 
 module ddmd.scanmscoff;
 
@@ -14,32 +16,34 @@ import ddmd.globals, ddmd.errors;
 enum LOG = false;
 
 /*****************************************
- * Reads an object module from base[0..buflen] and passes the names
+ * Reads an object module from base[] and passes the names
  * of any exported symbols to (*pAddSymbol)().
- * Input:
- *      pctx            context pointer, pass to *pAddSymbol
- *      pAddSymbol      function to pass the names to
- *      base[0..buflen] contains contents of object module
- *      module_name     name of the object module (used for error messages)
- *      loc             location to use for error printing
+ * Params:
+ *      pAddSymbol =  function to pass the names to
+ *      base =        array of contents of object module
+ *      module_name = name of the object module (used for error messages)
+ *      loc =         location to use for error printing
  */
-extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc)
+void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
+        const(ubyte)[] base, const(char)* module_name, Loc loc)
 {
     static if (LOG)
     {
         printf("scanMSCoffObjModule(%s)\n", module_name);
     }
-    ubyte* buf = cast(ubyte*)base;
-    int reason;
+
+    void corrupt(int reason)
+    {
+        error(loc, "corrupt MS-Coff object module %s %d", module_name, reason);
+    }
+
+    const buf = base.ptr;
+    const buflen = base.length;
     /* First do sanity checks on object file
      */
     if (buflen < BIGOBJ_HEADER.sizeof)
-    {
-        reason = __LINE__;
-    Lcorrupt:
-        error(loc, "MS-Coff object module %s is corrupt, %d", module_name, reason);
-        return;
-    }
+        return corrupt(__LINE__);
+
     BIGOBJ_HEADER* header = cast(BIGOBJ_HEADER*)buf;
     char is_old_coff = false;
     if (header.Sig2 != 0xFFFF && header.Version != 2)
@@ -79,17 +83,13 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
     }
     off += header.NumberOfSymbols * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
     if (off + 4 > buflen)
-    {
-        reason = __LINE__;
-        goto Lcorrupt;
-    }
+        return corrupt(__LINE__);
+
     uint string_len = *cast(uint*)(buf + off);
     char* string_table = cast(char*)(buf + off + 4);
     if (off + string_len > buflen)
-    {
-        reason = __LINE__;
-        goto Lcorrupt;
-    }
+        return corrupt(__LINE__);
+
     string_len -= 4;
     for (int i = 0; i < header.NumberOfSymbols; i++)
     {
@@ -102,10 +102,8 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         }
         off = header.PointerToSymbolTable + i * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
         if (off > buflen)
-        {
-            reason = __LINE__;
-            goto Lcorrupt;
-        }
+            return corrupt(__LINE__);
+
         n = cast(SymbolTable32*)(buf + off);
         if (is_old_coff)
         {
@@ -170,7 +168,7 @@ extern (C++) void scanMSCoffObjModule(void* pctx, void function(void* pctx, char
         default:
             continue;
         }
-        (*pAddSymbol)(pctx, p, 1);
+        pAddSymbol(p[0 .. strlen(p)], 1);
     }
 }
 

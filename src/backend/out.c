@@ -152,20 +152,15 @@ void outdata(symbol *s)
                 //printf("DT_nbytes %d\n", dt->DTnbytes);
                 datasize += dt->DTnbytes;
                 break;
-            case DT_symsize:
-#if MARS
-                assert(0);
-#else
-                dt->DTazeros = type_size(s->Stype);
-#endif
-                goto case_azeros;
+
             case DT_azeros:
                 /* A block of zeros
                  */
                 //printf("DT_azeros %d\n", dt->DTazeros);
             case_azeros:
                 datasize += dt->DTazeros;
-                if (dt == dtstart && !dt->DTnext && s->Sclass != SCcomdat)
+                if (dt == dtstart && !dt->DTnext && s->Sclass != SCcomdat &&
+                    (s->Sseg == UNKNOWN || s->Sseg <= UDATA))
                 {   /* first and only, so put in BSS segment
                      */
                     switch (ty & mTYLINK)
@@ -184,6 +179,8 @@ void outdata(symbol *s)
                             s->Sfl = FLcsdata;
                             break;
 #endif
+                        case mTYthreadData:
+                            assert(config.objfmt == OBJ_MACH && I64);
                         case mTYthread:
                         {   seg_data *pseg = objmod->tlsseg_bss();
                             s->Sseg = pseg->SDseg;
@@ -287,6 +284,17 @@ void outdata(symbol *s)
             s->Sfl = FLcsdata;
             break;
 #endif
+        case mTYthreadData:
+        {
+            assert(config.objfmt == OBJ_MACH && I64);
+
+            seg_data *pseg = objmod->tlsseg_data();
+            s->Sseg = pseg->SDseg;
+            objmod->data_start(s, datasize, s->Sseg);
+            seg = pseg->SDseg;
+            s->Sfl = FLtlsdata;
+            break;
+        }
         case mTYthread:
         {
             seg_data *pseg = objmod->tlsseg();
@@ -428,7 +436,9 @@ void outcommon(symbol *s,targ_size_t n)
             /* COMDEFs not supported in code segment
              * so put them out as initialized 0s
              */
-            dtnzeros(&s->Sdt,n);
+            DtBuilder dtb;
+            dtb.nzeros(n);
+            s->Sdt = dtb.finish();
             outdata(s);
 #if SCPP
             out_extdef(s);
@@ -447,7 +457,9 @@ void outcommon(symbol *s,targ_size_t n)
                  * so put them out as COMDATs with initialized 0s
                  */
                 s->Sclass = SCcomdat;
-                dtnzeros(&s->Sdt,n);
+                DtBuilder dtb;
+                dtb.nzeros(n);
+                s->Sdt = dtb.finish();
                 outdata(s);
 #if SCPP
                 if (config.objfmt == OBJ_OMF)
@@ -946,7 +958,7 @@ STATIC void writefunc2(symbol *sfunc)
             pb = &b->Bnext;
 
             *b = *bf;
-            assert(!b->Bsucc);
+            assert(b->numSucc() == 0);
             assert(!b->Bpred);
             b->Belem = el_copytree(b->Belem);
         }

@@ -1,19 +1,19 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/e2ir.c
+ * https://github.com/dlang/dmd/blob/master/src/e2ir.c
  */
 
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
 
-#include        "port.h"
+#include        "ctfloat.h"
 #include        "target.h"
 
 #include        "expression.h"
@@ -49,12 +49,12 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
 VarDeclarations *VarDeclarations_create();
 type *Type_toCtype(Type *t);
-elem *toElemDtor(Expression *e, IRState *irs);
 unsigned totym(Type *tx);
 Symbol *toSymbol(Dsymbol *s);
 elem *toElem(Expression *e, IRState *irs);
-dt_t **Expression_toDt(Expression *e, dt_t **pdt);
-Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
+elem *toElemDtor(Expression *e, IRState *irs);
+elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles);
+Symbol *toStringSymbol(const char *str, d_size_t len, d_size_t sz);
 Symbol *toStringSymbol(StringExp *se);
 void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toModuleAssert(Module *m);
@@ -329,8 +329,8 @@ elem *callfunc(Loc loc,
             assert((int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-if (I32) assert(tysize[TYnptr] == 4);
-            ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize[TYnptr]));
+if (I32) assert(tysize(TYnptr) == 4);
+            ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
         }
@@ -611,7 +611,7 @@ elem *array_toDarray(Type *t, elem *e)
             {
                 case OPconst:
                 {
-                    size_t len = tysize[tybasic(e->Ety)];
+                    size_t len = tysize(e->Ety);
                     elem *es = el_calloc();
                     es->Eoper = OPstring;
 
@@ -1278,7 +1278,7 @@ elem *toElem(Expression *e, IRState *irs)
                      * unfortunately also converts SNAN to QNAN.
                      */
                     c.Vfloat = re->value;
-                    if (Port::isSignallingNan(re->value))
+                    if (CTFloat::isSNaN(re->value))
                     {
                         // Put SNAN back
                         c.Vuns &= 0xFFBFFFFFL;
@@ -1291,7 +1291,7 @@ elem *toElem(Expression *e, IRState *irs)
                      * unfortunately also converts SNAN to QNAN.
                      */
                     c.Vdouble = re->value;
-                    if (Port::isSignallingNan(re->value))
+                    if (CTFloat::isSNaN(re->value))
                     {
                         // Put SNAN back
                         c.Vullong &= 0xFFF7FFFFFFFFFFFFULL;
@@ -1331,7 +1331,7 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 case TYcfloat:
                     c.Vcfloat.re = (float) re;
-                    if (Port::isSignallingNan(re))
+                    if (CTFloat::isSNaN(re))
                     {
                         union { float f; unsigned i; } u;
                         u.f = c.Vcfloat.re;
@@ -1339,7 +1339,7 @@ elem *toElem(Expression *e, IRState *irs)
                         c.Vcfloat.re = u.f;
                     }
                     c.Vcfloat.im = (float) im;
-                    if (Port::isSignallingNan(im))
+                    if (CTFloat::isSNaN(im))
                     {
                         union { float f; unsigned i; } u;
                         u.f = c.Vcfloat.im;
@@ -1350,7 +1350,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 case TYcdouble:
                     c.Vcdouble.re = (double) re;
-                    if (Port::isSignallingNan(re))
+                    if (CTFloat::isSNaN(re))
                     {
                         union { double d; unsigned long long i; } u;
                         u.d = c.Vcdouble.re;
@@ -1358,7 +1358,7 @@ elem *toElem(Expression *e, IRState *irs)
                         c.Vcdouble.re = u.d;
                     }
                     c.Vcdouble.im = (double) im;
-                    if (Port::isSignallingNan(re))
+                    if (CTFloat::isSNaN(re))
                     {
                         union { double d; unsigned long long i; } u;
                         u.d = c.Vcdouble.im;
@@ -1638,12 +1638,8 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    StructLiteralExp *se = StructLiteralExp::create(ne->loc, sd, ne->arguments, t);
-
-                    se->sym = ev->EV.sp.Vsym;
-                    se->fillHoles = false;
-
-                    ez = toElem(se, irs);
+                    StructLiteralExp *sle = StructLiteralExp::create(ne->loc, sd, ne->arguments, t);
+                    ez = toElemStructLit(sle, irs, TOKconstruct, ev->EV.sp.Vsym, false);
                 }
                 //elem_print(ex);
                 //elem_print(ey);
@@ -2176,15 +2172,6 @@ elem *toElem(Expression *e, IRState *irs)
                 case TOKequal:  eop = OPeqeq;   break;
                 case TOKnotequal: eop = OPne;   break;
 
-                // NCEG floating point compares
-                case TOKunord:  eop = OPunord;  break;
-                case TOKlg:     eop = OPlg;     break;
-                case TOKleg:    eop = OPleg;    break;
-                case TOKule:    eop = OPule;    break;
-                case TOKul:     eop = OPul;     break;
-                case TOKuge:    eop = OPuge;    break;
-                case TOKug:     eop = OPug;     break;
-                case TOKue:     eop = OPue;     break;
                 default:
                     ce->print();
                     assert(0);
@@ -2833,15 +2820,11 @@ elem *toElem(Expression *e, IRState *irs)
                     ex = e1->E1;
                 if (ae->e2->op == TOKstructliteral &&
                     ex->Eoper == OPvar && ex->EV.sp.Voffset == 0 &&
-                    ae->op == TOKconstruct)
+                    (ae->op == TOKconstruct || ae->op == TOKblit))
                 {
-                    StructLiteralExp *se = (StructLiteralExp *)ae->e2;
-
-                    se->sym = ex->EV.sp.Vsym;
-                    se->fillHoles = ae->op == TOKconstruct || ae->op == TOKblit;
-
+                    StructLiteralExp *sle = (StructLiteralExp *)ae->e2;
+                    e = toElemStructLit(sle, irs, ae->op, ex->EV.sp.Vsym, true);
                     el_free(e1);
-                    e = toElem(ae->e2, irs);
                     goto Lret;
                 }
 
@@ -3727,11 +3710,11 @@ elem *toElem(Expression *e, IRState *irs)
             //printf("AddrExp::toElem('%s')\n", ae->toChars());
             if (ae->e1->op == TOKstructliteral)
             {
-                StructLiteralExp *sl = (StructLiteralExp*)ae->e1;
+                StructLiteralExp *sle = (StructLiteralExp*)ae->e1;
                 //printf("AddrExp::toElem('%s') %d\n", ae->toChars(), ae);
-                //printf("StructLiteralExp(%p); origin:%p\n", sl, sl->origin);
-                //printf("sl->toSymbol() (%p)\n", sl->toSymbol());
-                elem *e = el_ptr(toSymbol(sl->origin));
+                //printf("StructLiteralExp(%p); origin:%p\n", sle, sle->origin);
+                //printf("sle->toSymbol() (%p)\n", sle->toSymbol());
+                elem *e = el_ptr(toSymbol(sle->origin));
                 e->ET = Type_toCtype(ae->type);
                 el_setLoc(e, ae->loc);
                 result = e;
@@ -3759,12 +3742,6 @@ elem *toElem(Expression *e, IRState *irs)
             }
             el_setLoc(e, pe->loc);
             result = e;
-        }
-
-        void visit(BoolExp *e)
-        {
-            elem *e1 = toElem(e->e1, irs);
-            result = el_una(OPbool, totym(e->type), e1);
         }
 
         void visit(DeleteExp *de)
@@ -3949,7 +3926,7 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     // e1 -> *(&e1 + 4)
                     e = el_una(OPaddr, TYnptr, e);
-                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize[TYnptr]));
+                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, tysize(TYnptr)));
                     e = el_una(OPind,totym(t),e);
                 }
                 else
@@ -3991,10 +3968,25 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (fsize != tsize)
                 {   // Array element sizes do not match, so we must adjust the dimensions
-                    if (config.exe == EX_WIN64)
-                        e = addressElem(e, t, true);
-                    elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), NULL);
-                    e = el_bin(OPcall, totym(ce->type), el_var(getRtlsym(RTLSYM_ARRAYCAST)), ep);
+                    if (fsize % tsize == 0)
+                    {
+                        // Set array dimension to (length * (fsize / tsize))
+                        // Generate pair(e.length * (fsize/tsize), es.ptr)
+
+                        elem *es = el_same(&e);
+
+                        elem *eptr = el_una(OPmsw, TYnptr, es);
+                        elem *elen = el_una(I64 ? OP128_64 : OP64_32, TYsize_t, e);
+                        elem *elen2 = el_bin(OPmul, TYsize_t, elen, el_long(TYsize_t, fsize / tsize));
+                        e = el_pair(totym(ce->type), elen2, eptr);
+                    }
+                    else
+                    {   // Runtime check needed in case arrays don't line up
+                        if (config.exe == EX_WIN64)
+                            e = addressElem(e, t, true);
+                        elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), NULL);
+                        e = el_bin(OPcall, totym(ce->type), el_var(getRtlsym(RTLSYM_ARRAYCAST)), ep);
+                    }
                 }
                 goto Lret;
             }
@@ -5271,255 +5263,10 @@ elem *toElem(Expression *e, IRState *irs)
             }
         }
 
-        /*******************************************
-         * Generate elem to zero fill contents of Symbol stmp
-         * from *poffset..offset2.
-         * May store anywhere from 0..maxoff, as this function
-         * tries to use aligned int stores whereever possible.
-         * Update *poffset to end of initialized hole; *poffset will be >= offset2.
-         */
-        static elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
-        {
-            elem *e = NULL;
-            int basealign = 1;
-
-            while (*poffset < offset2)
-            {
-                elem *e1;
-                if (tybasic(stmp->Stype->Tty) == TYnptr)
-                    e1 = el_var(stmp);
-                else
-                    e1 = el_ptr(stmp);
-                if (basealign)
-                    *poffset &= ~3;
-                basealign = 1;
-                size_t sz = maxoff - *poffset;
-                tym_t ty;
-                switch (sz)
-                {
-                    case 1: ty = TYchar;        break;
-                    case 2: ty = TYshort;       break;
-                    case 3:
-                        ty = TYshort;
-                        basealign = 0;
-                        break;
-                    default:
-                        ty = TYlong;
-                        // TODO: OPmemset is better if sz is much bigger than 4?
-                        break;
-                }
-                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, *poffset));
-                e1 = el_una(OPind, ty, e1);
-                e1 = el_bin(OPeq, ty, e1, el_long(ty, 0));
-                e = el_combine(e, e1);
-                *poffset += tysize[ty];
-            }
-            return e;
-        }
-
         void visit(StructLiteralExp *sle)
         {
             //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
-
-            if (sle->useStaticInit)
-            {
-                elem *e = el_var(toInitializer(sle->sd));
-                e->ET = Type_toCtype(sle->sd->type);
-                el_setLoc(e, sle->loc);
-
-                if (sle->sym)
-                {
-                    elem *ev = el_var(sle->sym);
-                    if (tybasic(ev->Ety) == TYnptr)
-                        ev = el_una(OPind, e->Ety, ev);
-                    ev->ET = e->ET;
-                    e = el_bin(OPstreq,e->Ety,ev,e);
-                    e->ET = ev->ET;
-
-                    //ev = el_var(sym);
-                    //ev->ET = e->ET;
-                    //e = el_combine(e, ev);
-                    el_setLoc(e, sle->loc);
-                }
-                result = e;
-                return;
-            }
-
-            // struct symbol to initialize with the literal
-            Symbol *stmp = sle->sym ? sle->sym : symbol_genauto(Type_toCtype(sle->sd->type));
-
-            elem *e = NULL;
-
-            /* If a field has explicit initializer (*sle->elements)[i] != NULL),
-             * any other overlapped fields won't have initializer. It's asserted by
-             * StructDeclaration::fill() function.
-             *
-             *  union U { int x; long y; }
-             *  U u1 = U(1);        // elements = [`1`, NULL]
-             *  U u2 = {y:2};       // elements = [NULL, `2`];
-             *  U u3 = U(1, 2);     // error
-             *  U u4 = {x:1, y:2};  // error
-             */
-            size_t dim = sle->elements ? sle->elements->dim : 0;
-            assert(dim <= sle->sd->fields.dim);
-
-            if (sle->fillHoles)
-            {
-                /* Initialize all alignment 'holes' to zero.
-                 * Do before initializing fields, as the hole filling process
-                 * can spill over into the fields.
-                 */
-                const size_t structsize = sle->sd->structsize;
-                size_t offset = 0;
-                //printf("-- %s - fillHoles, structsize = %d\n", sle->toChars(), structsize);
-                for (size_t i = 0; i < sle->sd->fields.dim && offset < structsize; )
-                {
-                    VarDeclaration *v = sle->sd->fields[i];
-
-                    /* If the field v has explicit initializer, [offset .. v->offset]
-                     * is a hole divided by the initializer.
-                     * However if the field size is zero (e.g. int[0] v;), we can merge
-                     * the two holes in the front and the back of the field v.
-                     */
-                    if (i < dim && (*sle->elements)[i] && v->type->size())
-                    {
-                        //if (offset != v->offset) printf("  1 fillHole, %d .. %d\n", offset, v->offset);
-                        e = el_combine(e, fillHole(stmp, &offset, v->offset, structsize));
-                        offset = v->offset + v->type->size();
-                        i++;
-                        continue;
-                    }
-                    if (!v->overlapped)
-                    {
-                        i++;
-                        continue;
-                    }
-
-                    /* AggregateDeclaration::fields holds the fields by the lexical order.
-                     * This code will minimize each hole sizes. For example:
-                     *
-                     *  struct S {
-                     *    union { uint f1; ushort f2; }   // f1: 0..4,  f2: 0..2
-                     *    union { uint f3; ulong f4; }    // f3: 8..12, f4: 8..16
-                     *  }
-                     *  S s = {f2:x, f3:y};     // filled holes: 2..8 and 12..16
-                     */
-                    size_t vend = sle->sd->fields.dim;
-                Lagain:
-                    size_t holeEnd = structsize;
-                    size_t offset2 = structsize;
-                    for (size_t j = i + 1; j < vend; j++)
-                    {
-                        VarDeclaration *vx = sle->sd->fields[j];
-                        if (!vx->overlapped)
-                        {
-                            vend = j;
-                            break;
-                        }
-                        if (j < dim && (*sle->elements)[j] && vx->type->size())
-                        {
-                            // Find the lowest end offset of the hole.
-                            if (offset <= vx->offset && vx->offset < holeEnd)
-                            {
-                                holeEnd = vx->offset;
-                                offset2 = vx->offset + vx->type->size();
-                            }
-                        }
-                    }
-                    if (holeEnd < structsize)
-                    {
-                        //if (offset != holeEnd) printf("  2 fillHole, %d .. %d\n", offset, holeEnd);
-                        e = el_combine(e, fillHole(stmp, &offset, holeEnd, structsize));
-                        offset = offset2;
-                        goto Lagain;
-                    }
-                    i = vend;
-                }
-                //if (offset != sle->sd->structsize) printf("  3 fillHole, %d .. %d\n", offset, sle->sd->structsize);
-                e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
-            }
-
-            // CTFE may fill the hidden pointer by NullExp.
-            {
-                for (size_t i = 0; i < dim; i++)
-                {
-                    Expression *el = (*sle->elements)[i];
-                    if (!el)
-                        continue;
-
-                    VarDeclaration *v = sle->sd->fields[i];
-                    assert(!v->isThisDeclaration() || el->op == TOKnull);
-
-                    elem *e1;
-                    if (tybasic(stmp->Stype->Tty) == TYnptr)
-                    {
-                        e1 = el_var(stmp);
-                    }
-                    else
-                    {
-                        e1 = el_ptr(stmp);
-                    }
-                    e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
-
-                    elem *ep = toElem(el, irs);
-
-                    Type *t1b = v->type->toBasetype();
-                    Type *t2b = el->type->toBasetype();
-                    if (t1b->ty == Tsarray)
-                    {
-                        if (t2b->implicitConvTo(t1b))
-                        {
-                            elem *esize = el_long(TYsize_t, t1b->size());
-                            ep = array_toPtr(el->type, ep);
-                            e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
-                        }
-                        else
-                        {
-                            elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
-                            e1 = setArray(e1, edim, t2b, ep, irs, TOKconstruct);
-                        }
-                    }
-                    else
-                    {
-                        tym_t ty = totym(v->type);
-                        e1 = el_una(OPind, ty, e1);
-                        if (tybasic(ty) == TYstruct)
-                            e1->ET = Type_toCtype(v->type);
-                        e1 = el_bin(OPeq, ty, e1, ep);
-                        if (tybasic(ty) == TYstruct)
-                        {
-                            e1->Eoper = OPstreq;
-                            e1->ET = Type_toCtype(v->type);
-                        }
-                    }
-                    e = el_combine(e, e1);
-                }
-            }
-
-            if (sle->sd->isNested() && dim != sle->sd->fields.dim)
-            {
-                // Initialize the hidden 'this' pointer
-                assert(sle->sd->fields.dim);
-
-                elem *e1;
-                if (tybasic(stmp->Stype->Tty) == TYnptr)
-                {
-                    e1 = el_var(stmp);
-                }
-                else
-                {
-                    e1 = el_ptr(stmp);
-                }
-                e1 = setEthis(sle->loc, irs, e1, sle->sd);
-
-                e = el_combine(e, e1);
-            }
-
-            elem *ev = el_var(stmp);
-            ev->ET = Type_toCtype(sle->sd->type);
-            e = el_combine(e, ev);
-            el_setLoc(e, sle->loc);
-            result = e;
+            result = toElemStructLit(sle, irs, TOKconstruct, sle->sym, true);
         }
 
         /*****************************************************/
@@ -5539,6 +5286,257 @@ elem *toElem(Expression *e, IRState *irs)
     ToElemVisitor v(irs);
     e->accept(&v);
     return v.result;
+}
+
+/*******************************************
+ * Generate elem to zero fill contents of Symbol stmp
+ * from *poffset..offset2.
+ * May store anywhere from 0..maxoff, as this function
+ * tries to use aligned int stores whereever possible.
+ * Update *poffset to end of initialized hole; *poffset will be >= offset2.
+ */
+elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
+{
+    elem *e = NULL;
+    int basealign = 1;
+
+    while (*poffset < offset2)
+    {
+        elem *e1;
+        if (tybasic(stmp->Stype->Tty) == TYnptr)
+            e1 = el_var(stmp);
+        else
+            e1 = el_ptr(stmp);
+        if (basealign)
+            *poffset &= ~3;
+        basealign = 1;
+        size_t sz = maxoff - *poffset;
+        tym_t ty;
+        switch (sz)
+        {
+            case 1: ty = TYchar;        break;
+            case 2: ty = TYshort;       break;
+            case 3:
+                ty = TYshort;
+                basealign = 0;
+                break;
+            default:
+                ty = TYlong;
+                // TODO: OPmemset is better if sz is much bigger than 4?
+                break;
+        }
+        e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, *poffset));
+        e1 = el_una(OPind, ty, e1);
+        e1 = el_bin(OPeq, ty, e1, el_long(ty, 0));
+        e = el_combine(e, e1);
+        *poffset += tysize(ty);
+    }
+    return e;
+}
+
+elem *toElemStructLit(StructLiteralExp *sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles)
+{
+    //printf("[%s] StructLiteralExp::toElem() %s\n", sle->loc.toChars(), sle->toChars());
+    //printf("\tblit = %s, sym = %p fillHoles = %d\n", op == TOKblit, sym, fillHoles);
+
+    if (sle->useStaticInit)
+    {
+        elem *e = el_var(toInitializer(sle->sd));
+        e->ET = Type_toCtype(sle->sd->type);
+        el_setLoc(e, sle->loc);
+
+        if (sym)
+        {
+            elem *ev = el_var(sym);
+            if (tybasic(ev->Ety) == TYnptr)
+                ev = el_una(OPind, e->Ety, ev);
+            ev->ET = e->ET;
+            e = el_bin(OPstreq,e->Ety,ev,e);
+            e->ET = ev->ET;
+
+            //ev = el_var(sym);
+            //ev->ET = e->ET;
+            //e = el_combine(e, ev);
+            el_setLoc(e, sle->loc);
+        }
+        return e;
+    }
+
+    // struct symbol to initialize with the literal
+    Symbol *stmp = sym ? sym : symbol_genauto(Type_toCtype(sle->sd->type));
+
+    elem *e = NULL;
+
+    /* If a field has explicit initializer (*sle->elements)[i] != NULL),
+     * any other overlapped fields won't have initializer. It's asserted by
+     * StructDeclaration::fill() function.
+     *
+     *  union U { int x; long y; }
+     *  U u1 = U(1);        // elements = [`1`, NULL]
+     *  U u2 = {y:2};       // elements = [NULL, `2`];
+     *  U u3 = U(1, 2);     // error
+     *  U u4 = {x:1, y:2};  // error
+     */
+    size_t dim = sle->elements ? sle->elements->dim : 0;
+    assert(dim <= sle->sd->fields.dim);
+
+    if (fillHoles)
+    {
+        /* Initialize all alignment 'holes' to zero.
+         * Do before initializing fields, as the hole filling process
+         * can spill over into the fields.
+         */
+        const size_t structsize = sle->sd->structsize;
+        size_t offset = 0;
+        //printf("-- %s - fillHoles, structsize = %d\n", sle->toChars(), structsize);
+        for (size_t i = 0; i < sle->sd->fields.dim && offset < structsize; )
+        {
+            VarDeclaration *v = sle->sd->fields[i];
+
+            /* If the field v has explicit initializer, [offset .. v->offset]
+             * is a hole divided by the initializer.
+             * However if the field size is zero (e.g. int[0] v;), we can merge
+             * the two holes in the front and the back of the field v.
+             */
+            if (i < dim && (*sle->elements)[i] && v->type->size())
+            {
+                //if (offset != v->offset) printf("  1 fillHole, %d .. %d\n", offset, v->offset);
+                e = el_combine(e, fillHole(stmp, &offset, v->offset, structsize));
+                offset = v->offset + v->type->size();
+                i++;
+                continue;
+            }
+            if (!v->overlapped)
+            {
+                i++;
+                continue;
+            }
+
+            /* AggregateDeclaration::fields holds the fields by the lexical order.
+             * This code will minimize each hole sizes. For example:
+             *
+             *  struct S {
+             *    union { uint f1; ushort f2; }   // f1: 0..4,  f2: 0..2
+             *    union { uint f3; ulong f4; }    // f3: 8..12, f4: 8..16
+             *  }
+             *  S s = {f2:x, f3:y};     // filled holes: 2..8 and 12..16
+             */
+            size_t vend = sle->sd->fields.dim;
+        Lagain:
+            size_t holeEnd = structsize;
+            size_t offset2 = structsize;
+            for (size_t j = i + 1; j < vend; j++)
+            {
+                VarDeclaration *vx = sle->sd->fields[j];
+                if (!vx->overlapped)
+                {
+                    vend = j;
+                    break;
+                }
+                if (j < dim && (*sle->elements)[j] && vx->type->size())
+                {
+                    // Find the lowest end offset of the hole.
+                    if (offset <= vx->offset && vx->offset < holeEnd)
+                    {
+                        holeEnd = vx->offset;
+                        offset2 = vx->offset + vx->type->size();
+                    }
+                }
+            }
+            if (holeEnd < structsize)
+            {
+                //if (offset != holeEnd) printf("  2 fillHole, %d .. %d\n", offset, holeEnd);
+                e = el_combine(e, fillHole(stmp, &offset, holeEnd, structsize));
+                offset = offset2;
+                goto Lagain;
+            }
+            i = vend;
+        }
+        //if (offset != sle->sd->structsize) printf("  3 fillHole, %d .. %d\n", offset, sle->sd->structsize);
+        e = el_combine(e, fillHole(stmp, &offset, sle->sd->structsize, sle->sd->structsize));
+    }
+
+    // CTFE may fill the hidden pointer by NullExp.
+    {
+        for (size_t i = 0; i < dim; i++)
+        {
+            Expression *el = (*sle->elements)[i];
+            if (!el)
+                continue;
+
+            VarDeclaration *v = sle->sd->fields[i];
+            assert(!v->isThisDeclaration() || el->op == TOKnull);
+
+            elem *e1;
+            if (tybasic(stmp->Stype->Tty) == TYnptr)
+            {
+                e1 = el_var(stmp);
+            }
+            else
+            {
+                e1 = el_ptr(stmp);
+            }
+            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+
+            elem *ep = toElem(el, irs);
+
+            Type *t1b = v->type->toBasetype();
+            Type *t2b = el->type->toBasetype();
+            if (t1b->ty == Tsarray)
+            {
+                if (t2b->implicitConvTo(t1b))
+                {
+                    elem *esize = el_long(TYsize_t, t1b->size());
+                    ep = array_toPtr(el->type, ep);
+                    e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
+                }
+                else
+                {
+                    elem *edim = el_long(TYsize_t, t1b->size() / t2b->size());
+                    e1 = setArray(e1, edim, t2b, ep, irs, op);
+                }
+            }
+            else
+            {
+                tym_t ty = totym(v->type);
+                e1 = el_una(OPind, ty, e1);
+                if (tybasic(ty) == TYstruct)
+                    e1->ET = Type_toCtype(v->type);
+                e1 = el_bin(OPeq, ty, e1, ep);
+                if (tybasic(ty) == TYstruct)
+                {
+                    e1->Eoper = OPstreq;
+                    e1->ET = Type_toCtype(v->type);
+                }
+            }
+            e = el_combine(e, e1);
+        }
+    }
+
+    if (sle->sd->isNested() && dim != sle->sd->fields.dim)
+    {
+        // Initialize the hidden 'this' pointer
+        assert(sle->sd->fields.dim);
+
+        elem *e1;
+        if (tybasic(stmp->Stype->Tty) == TYnptr)
+        {
+            e1 = el_var(stmp);
+        }
+        else
+        {
+            e1 = el_ptr(stmp);
+        }
+        e1 = setEthis(sle->loc, irs, e1, sle->sd);
+
+        e = el_combine(e, e1);
+    }
+
+    elem *ev = el_var(stmp);
+    ev->ET = Type_toCtype(sle->sd->type);
+    e = el_combine(e, ev);
+    el_setLoc(e, sle->loc);
+    return e;
 }
 
 /********************************************
@@ -5648,7 +5646,7 @@ elem *toElemDtor(Expression *e, IRState *irs)
  *      Symbol
  */
 
-Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
+Symbol *toStringSymbol(const char *str, d_size_t len, d_size_t sz)
 {
     //printf("toStringSymbol() %p\n", stringTab);
     StringValue *sv = stringTab->update(str, len * sz);
@@ -5656,9 +5654,12 @@ Symbol *toStringSymbol(const char *str, size_t len, size_t sz)
     {
         Symbol *si = symbol_generate(SCstatic,type_static_array(len * sz, tschar));
         si->Salignment = 1;
-        si->Sdt = NULL;
-        dt_t **pdt = dtnbytes(&si->Sdt, len * sz, str);
-        dtnzeros(pdt, sz);
+
+        DtBuilder dtb;
+        dtb.nbytes(len * sz, str);
+        dtb.nzeros(sz);
+        si->Sdt = dtb.finish();
+
         si->Sfl = FLdata;
         out_readonly(si);
         outdata(si);

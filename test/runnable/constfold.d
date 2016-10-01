@@ -90,30 +90,6 @@ static assert((5 > 6) == 0);
 static assert((5 >= 3) == 1);
 static assert((5 >= 5) == 1);
 static assert((5 >= 6) == 0);
-static assert((5 <>= 3) == 1);
-static assert((5 <>= 5) == 1);
-static assert((5 <>= 6) == 1);
-static assert((5 <> 3) == 1);
-static assert((5 <> 5) == 0);
-static assert((5 <> 6) == 1);
-static assert((5 !<>= 3) == 0);
-static assert((5 !<>= 5) == 0);
-static assert((5 !<>= 6) == 0);
-static assert((5 !<> 3) == 0);
-static assert((5 !<> 5) == 1);
-static assert((5 !<> 6) == 0);
-static assert((5 !<= 3) == 1);
-static assert((5 !<= 5) == 0);
-static assert((5 !<= 6) == 0);
-static assert((5 !< 3) == 1);
-static assert((5 !< 5) == 1);
-static assert((5 !< 6) == 0);
-static assert((5 !>= 3) == 0);
-static assert((5 !>= 5) == 0);
-static assert((5 !>= 6) == 1);
-static assert((5 !> 3) == 0);
-static assert((5 !> 5) == 1);
-static assert((5 !> 6) == 1);
 
 static assert((-5 < -3) == 1);
 static assert((-5 < -5) == 0);
@@ -127,30 +103,6 @@ static assert((-5 > -6) == 1);
 static assert((-5 >= -3) == 0);
 static assert((-5 >= -5) == 1);
 static assert((-5 >= -6) == 1);
-static assert((-5 <>= -3) == 1);
-static assert((-5 <>= -5) == 1);
-static assert((-5 <>= -6) == 1);
-static assert((-5 <> -3) == 1);
-static assert((-5 <> -5) == 0);
-static assert((-5 <> -6) == 1);
-static assert((-5 !<>= -3) == 0);
-static assert((-5 !<>= -5) == 0);
-static assert((-5 !<>= -6) == 0);
-static assert((-5 !<> -3) == 0);
-static assert((-5 !<> -5) == 1);
-static assert((-5 !<> -6) == 0);
-static assert((-5 !<= -3) == 0);
-static assert((-5 !<= -5) == 0);
-static assert((-5 !<= -6) == 1);
-static assert((-5 !< -3) == 0);
-static assert((-5 !< -5) == 1);
-static assert((-5 !< -6) == 1);
-static assert((-5 !>= -3) == 1);
-static assert((-5 !>= -5) == 0);
-static assert((-5 !>= -6) == 0);
-static assert((-5 !> -3) == 1);
-static assert((-5 !> -5) == 1);
-static assert((-5 !> -6) == 0);
 
 static assert((5u < 3u) == 0);
 static assert((5u < 5u) == 0);
@@ -164,134 +116,46 @@ static assert((5u > 6u) == 0);
 static assert((5u >= 3u) == 1);
 static assert((5u >= 5u) == 1);
 static assert((5u >= 6u) == 0);
-static assert((5u <>= 3u) == 1);
-static assert((5u <>= 5u) == 1);
-static assert((5u <>= 6u) == 1);
-static assert((5u <> 3u) == 1);
-static assert((5u <> 5u) == 0);
-static assert((5u <> 6u) == 1);
-static assert((5u !<>= 3u) == 0);
-static assert((5u !<>= 5u) == 0);
-static assert((5u !<>= 6u) == 0);
-static assert((5u !<> 3u) == 0);
-static assert((5u !<> 5u) == 1);
-static assert((5u !<> 6u) == 0);
-static assert((5u !<= 3u) == 1);
-static assert((5u !<= 5u) == 0);
-static assert((5u !<= 6u) == 0);
-static assert((5u !< 3u) == 1);
-static assert((5u !< 5u) == 1);
-static assert((5u !< 6u) == 0);
-static assert((5u !>= 3u) == 0);
-static assert((5u !>= 5u) == 0);
-static assert((5u !>= 6u) == 1);
-static assert((5u !> 3u) == 0);
-static assert((5u !> 5u) == 1);
-static assert((5u !> 6u) == 1);
 
 static assert((-5u < 3) == 0);
 static assert((-5u <= 3) == 0);
 static assert((-5u > 3) == 1);
 static assert((-5u >= 3) == 1);
-static assert((-5u <>= 3) == 1);
-static assert((-5u <> 3) == 1);
-static assert((-5u !<>= 3) == 0);
-static assert((-5u !<> 3) == 0);
-static assert((-5u !<= 3) == 1);
-static assert((-5u !< 3) == 1);
-static assert((-5u !>= 3) == 0);
-static assert((-5u !> 3) == 0);
 
 static assert((-5 < 3u) == 0);
 static assert((-5 <= 3u) == 0);
 static assert((-5 > 3u) == 1);
 static assert((-5 >= 3u) == 1);
-static assert((-5 <>= 3u) == 1);
-static assert((-5 <> 3u) == 1);
-static assert((-5 !<>= 3u) == 0);
-static assert((-5 !<> 3u) == 0);
-static assert((-5 !<= 3u) == 1);
-static assert((-5 !< 3u) == 1);
-static assert((-5 !>= 3u) == 0);
-static assert((-5 !> 3u) == 0);
 
 static assert((5.2 <    double.nan) == 0);
 static assert((5.2 <=   double.nan) == 0);
 static assert((5.2 >    double.nan) == 0);
 static assert((5.2 >=   double.nan) == 0);
-static assert((5.2 <>=  double.nan) == 0);
-static assert((5.2 <>   double.nan) == 0);
-static assert((5.2 !<>= double.nan) == 1);
-static assert((5.2 !<>  double.nan) == 1);
-static assert((5.2 !<=  double.nan) == 1);
-static assert((5.2 !<   double.nan) == 1);
-static assert((5.2 !>=  double.nan) == 1);
-static assert((5.2 !>   double.nan) == 1);
 
 static assert((double.nan <    6.2) == 0);
 static assert((double.nan <=   6.2) == 0);
 static assert((double.nan >    6.2) == 0);
 static assert((double.nan >=   6.2) == 0);
-static assert((double.nan <>=  6.2) == 0);
-static assert((double.nan <>   6.2) == 0);
-static assert((double.nan !<>= 6.2) == 1);
-static assert((double.nan !<>  6.2) == 1);
-static assert((double.nan !<=  6.2) == 1);
-static assert((double.nan !<   6.2) == 1);
-static assert((double.nan !>=  6.2) == 1);
-static assert((double.nan !>   6.2) == 1);
 
 static assert((double.nan <    double.nan) == 0);
 static assert((double.nan <=   double.nan) == 0);
 static assert((double.nan >    double.nan) == 0);
 static assert((double.nan >=   double.nan) == 0);
-static assert((double.nan <>=  double.nan) == 0);
-static assert((double.nan <>   double.nan) == 0);
-static assert((double.nan !<>= double.nan) == 1);
-static assert((double.nan !<>  double.nan) == 1);
-static assert((double.nan !<=  double.nan) == 1);
-static assert((double.nan !<   double.nan) == 1);
-static assert((double.nan !>=  double.nan) == 1);
-static assert((double.nan !>   double.nan) == 1);
 
 static assert((5.2 <    6.2) == 1);
 static assert((5.2 <=   6.2) == 1);
 static assert((5.2 >    6.2) == 0);
 static assert((5.2 >=   6.2) == 0);
-static assert((5.2 <>=  6.2) == 1);
-static assert((5.2 <>   6.2) == 1);
-static assert((5.2 !<>= 6.2) == 0);
-static assert((5.2 !<>  6.2) == 0);
-static assert((5.2 !<=  6.2) == 0);
-static assert((5.2 !<   6.2) == 0);
-static assert((5.2 !>=  6.2) == 1);
-static assert((5.2 !>   6.2) == 1);
 
 static assert((5.2 <    5.2) == 0);
 static assert((5.2 <=   5.2) == 1);
 static assert((5.2 >    5.2) == 0);
 static assert((5.2 >=   5.2) == 1);
-static assert((5.2 <>=  5.2) == 1);
-static assert((5.2 <>   5.2) == 0);
-static assert((5.2 !<>= 5.2) == 0);
-static assert((5.2 !<>  5.2) == 1);
-static assert((5.2 !<=  5.2) == 0);
-static assert((5.2 !<   5.2) == 1);
-static assert((5.2 !>=  5.2) == 0);
-static assert((5.2 !>   5.2) == 1);
 
 static assert((7.2 <    6.2) == 0);
 static assert((7.2 <=   6.2) == 0);
 static assert((7.2 >    6.2) == 1);
 static assert((7.2 >=   6.2) == 1);
-static assert((7.2 <>=  6.2) == 1);
-static assert((7.2 <>   6.2) == 1);
-static assert((7.2 !<>= 6.2) == 0);
-static assert((7.2 !<>  6.2) == 0);
-static assert((7.2 !<=  6.2) == 1);
-static assert((7.2 !<   6.2) == 1);
-static assert((7.2 !>=  6.2) == 0);
-static assert((7.2 !>   6.2) == 0);
 
 static assert((7.2i < 6.2i) == 0);
 
@@ -406,7 +270,7 @@ void test3()
 
      // should print "11111"
      writeln(signbit(n), signbit(m),
-	signbit(c.re), signbit(d.re), signbit(e.re));
+        signbit(c.re), signbit(d.re), signbit(e.re));
 
      assert(signbit(n) == 1);
      assert(signbit(m) == 1);
@@ -454,6 +318,7 @@ const double d7 = 4;
 
 static assert(!is(typeof(bug7(cast(long)e7))));
 static assert(!is(typeof(bug7(cast(long)s7))));
+version (LDC) {} else // cast in LDC undefined result w/ x > long.max
 static assert(!is(typeof(bug7(cast(long)3.256679e30))));
 
 static assert(is(typeof(bug7(cast(long)d7))));
@@ -771,6 +636,14 @@ void test14459()
     const char* s16 = "hi16";
     assert(p0 == s0);           // ok <- fails
 }
+
+/************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15607
+
+static immutable char[2][4] code_base = [ "??", 12 ];
+static assert(code_base[0] == "??");
+static assert(code_base[1] == [12, 12]);
+static assert(code_base[2] == typeof(code_base[2]).init);
 
 /************************************/
 

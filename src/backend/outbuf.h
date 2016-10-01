@@ -13,6 +13,17 @@
 
 #include        <string.h>
 
+#include <stddef.h>     // for size_t
+
+#if __APPLE__ && __i386__
+    /* size_t is 'unsigned long', which makes it mangle differently
+     * than D's 'uint'
+     */
+    typedef unsigned d_size_t;
+#else
+    typedef size_t d_size_t;
+#endif
+
 // Output buffer
 
 // (This used to be called OutBuffer, we renamed it to avoid name conflicts with Mars.)
@@ -28,9 +39,9 @@ struct Outbuffer
 
     Outbuffer();
 
-    Outbuffer(size_t incx) : buf(NULL), pend(NULL), p(NULL), len(0), inc(incx), origbuf(NULL) { }
+    Outbuffer(d_size_t incx) : buf(NULL), pend(NULL), p(NULL), len(0), inc(incx), origbuf(NULL) { }
 
-    Outbuffer(unsigned char *bufx, size_t bufxlen, unsigned incx) :
+    Outbuffer(unsigned char *bufx, d_size_t bufxlen, unsigned incx) :
         buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
 
     ~Outbuffer();
@@ -38,37 +49,37 @@ struct Outbuffer
     void reset();
 
     // Reserve nbytes in buffer
-    void reserve(size_t nbytes)
+    void reserve(d_size_t nbytes)
     {
         if (pend - p < nbytes)
             enlarge(nbytes);
     }
 
     // Reserve nbytes in buffer
-    void enlarge(size_t nbytes);
+    void enlarge(d_size_t nbytes);
 
     // Write n zeros; return pointer to start of zeros
-    void *writezeros(size_t n);
+    void *writezeros(d_size_t n);
 
     // Position buffer to accept the specified number of bytes at offset
-    void position(size_t offset, size_t nbytes);
+    void position(d_size_t offset, d_size_t nbytes);
 
     // Write an array to the buffer, no reserve check
-    void writen(const void *b, size_t len)
+    void writen(const void *b, d_size_t len)
     {
         memcpy(p,b,len);
         p += len;
     }
 
     // Clear bytes, no reserve check
-    void clearn(size_t len)
+    void clearn(d_size_t len)
     {
-        for (size_t i = 0; i < len; i++)
+        for (d_size_t i = 0; i < len; i++)
             *p++ = 0;
     }
 
     // Write an array to the buffer.
-    void write(const void *b, size_t len);
+    void write(const void *b, d_size_t len);
 
     void write(Outbuffer *b) { write(b->buf,b->p - b->buf); }
 
@@ -175,20 +186,20 @@ struct Outbuffer
 
     void prependBytes(const char *s);
 
-    void prepend(const void *b, size_t len);
+    void prepend(const void *b, d_size_t len);
 
     void bracket(char c1,char c2);
 
     /**
      * Returns the number of bytes written.
      */
-    size_t size()
+    d_size_t size()
     {
         return p - buf;
     }
 
     char *toString();
-    void setsize(size_t size);
+    void setsize(d_size_t size);
 
     void writesLEB128(int value);
     void writeuLEB128(unsigned value);

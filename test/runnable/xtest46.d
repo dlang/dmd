@@ -1,3 +1,5 @@
+// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+
 import std.stdio;
 import core.stdc.stdio;
 
@@ -4915,7 +4917,7 @@ static assert(is(typeof(S5933d.x) == FuncType5933));
 
 
 class C5933a { auto x() { return 0; } }
-static assert(is(typeof(&(new C5933b()).x) == int delegate() pure nothrow @nogc @safe));
+static assert(is(typeof(&(new C5933b()).x) == int delegate()));
 
 class C5933b { auto x() { return 0; } }
 //static assert(is(typeof((new C5933b()).x) == FuncType5933));
@@ -5052,8 +5054,11 @@ version(none)
     ucent issue785;
 }
 
-static assert(!is(cent) && !is(ucent));
-static assert(!__traits(compiles, { cent x; }));
+static assert(is(cent) && is(ucent) || !is(cent) && !is(ucent));
+static if (is(cent))
+  static assert(__traits(compiles, { cent x; }));
+else
+  static assert(!__traits(compiles, { cent x; }));
 
 /***************************************************/
 // 6847
@@ -5358,7 +5363,7 @@ void test6902()
     })));
 
     int f() pure nothrow { assert(0); }
-    alias int T() pure nothrow;
+    alias int T() pure nothrow @safe @nogc;
     static if(is(typeof(&f) DT == delegate))
     {
         static assert(is(DT* == T*));  // ok
@@ -6799,7 +6804,9 @@ void test9477()
             assert(order == 2);
         }
 
-    ubyte[64] a1, a2;
+    // need largest natural alignment to avoid unaligned access on
+    // some architectures, double in this case.
+    align(8) ubyte[64] a1, a2;
     foreach (T; Tuple9477!(void, ubyte, ushort, uint, ulong, char, wchar, dchar, float, double))
     {
         auto s1 = cast(T[])(a1[]);
@@ -7660,6 +7667,43 @@ void test15045()
 }
 
 /***************************************************/
+// 15116
+
+alias TypeTuple15116(T...) = T;
+
+template Mix15116()
+{
+    TypeTuple15116!(int, int) tup;
+}
+
+struct S15116
+{
+    mixin Mix15116 mix;
+}
+
+void test15116()
+{
+    S15116 s;
+    auto x1 = s.tup;        // OK
+    auto x2 = s.mix.tup;    // OK <- NG
+}
+
+/***************************************************/
+// 15117
+
+template Mix15117()
+{
+    int y = { typeof(this)* s; return s ? s.mix.y : 0; }();
+}
+
+struct S15117
+{
+    int x = { typeof(this)* s; return s ? s.x : 0; }(); // OK
+
+    mixin Mix15117 mix;     // OK <- NG
+}
+
+/***************************************************/
 // 15126
 
 struct Json15126
@@ -7807,6 +7851,42 @@ bool test16022()
     enum Type { Colon, Comma }
     Type type;
     return type == Type.Colon, type == Type.Comma;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16233
+
+enum valueConvertible(T1, T2) = blah;
+
+struct Checked(T, Hook)
+{
+    bool opEquals(U)(Checked!(U, Hook) rhs)
+    {
+        alias R = typeof(payload + rhs.payload);
+        static if (valueConvertible!(T, R))
+        {
+        }
+        return false;
+    }
+}
+
+void test16233()
+{
+    Checked!(Checked!(int, void), void) x1;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16466
+
+void test16466()
+{
+    static struct S
+    {
+        real r;
+    }
+    real r;
+    printf("S.alignof: %x, r.alignof: %x\n", S.alignof, r.alignof);
+    assert(S.alignof == r.alignof);
 }
 
 /***************************************************/
@@ -8125,6 +8205,8 @@ int main()
     test15141();
     test15369();
     test15638();
+    test16233();
+    test16466();
 
     printf("Success\n");
     return 0;

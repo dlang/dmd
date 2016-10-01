@@ -1,13 +1,11 @@
-/*
- * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2015 by Digital Mars
- * All Rights Reserved
- * http://www.digitalmars.com
- * Written by Walter Bright
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
  *
- * This source file is made available for personal use
- * only. The license is in backendlicense.txt
- * For any other uses, please contact Digital Mars.
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _libomf.d)
  */
 
 module ddmd.libomf;
@@ -15,16 +13,18 @@ module ddmd.libomf;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
-import core.stdc.stdarg;
+
 import ddmd.globals;
+import ddmd.utils;
 import ddmd.lib;
-import ddmd.mars;
+
 import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.stringtable;
-import ddmd.errors;
+
+import ddmd.scanomf;
 
 enum LOG = false;
 
@@ -37,21 +37,11 @@ struct OmfObjSymbol
 alias OmfObjModules = Array!(OmfObjModule*);
 alias OmfObjSymbols = Array!(OmfObjSymbol*);
 
-extern (C++) void scanOmfObjModule(void* pctx, void function(void* pctx, const(char)* name, int pickAny) pAddSymbol, void* base, size_t buflen, const(char)* module_name, Loc loc);
-
-extern (C++) bool scanOmfLib(void* pctx, void function(void* pctx, char* name, void* base, size_t length) pAddObjModule, void* buf, size_t buflen, uint pagesize);
-
-extern (C++) uint OMFObjSize(const(void)* base, uint length, const(char)* name);
-
-extern (C++) void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* name);
-
 extern (C) uint _rotl(uint value, int shift);
 extern (C) uint _rotr(uint value, int shift);
 
-extern (C++) final class LibOMF : Library
+final class LibOMF : Library
 {
-public:
-    File* libfile;
     OmfObjModules objmodules; // OmfObjModule[]
     OmfObjSymbols objsymbols; // OmfObjSymbol[]
     StringTable tab;
@@ -61,42 +51,26 @@ public:
         tab._init(14000);
     }
 
-    /***********************************
-     * Set the library file name based on the output directory
-     * and the filename.
-     * Add default library file name extension.
-     */
-    override void setFilename(const(char)* dir, const(char)* filename)
-    {
-        const(char)* arg = filename;
-        if (!arg || !*arg)
-        {
-            // Generate lib file name from first obj name
-            const(char)* n = (*global.params.objfiles)[0];
-            n = FileName.name(n);
-            arg = FileName.forceExt(n, global.lib_ext);
-        }
-        if (!FileName.absolute(arg))
-            arg = FileName.combine(dir, arg);
-        const(char)* libfilename = FileName.defaultExt(arg, global.lib_ext);
-        libfile = File.create(libfilename);
-        loc.filename = libfile.name.toChars();
-        loc.linnum = 0;
-        loc.charnum = 0;
-    }
-
     /***************************************
      * Add object module or library to the library.
      * Examine the buffer to see which it is.
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, void* buf, size_t buflen)
+    override void addObject(const(char)* module_name, const ubyte[] buffer)
     {
         static if (LOG)
         {
             printf("LibOMF::addObject(%s)\n", module_name ? module_name : "");
         }
+
+        void corrupt(int reason)
+        {
+            error("corrupt OMF object module %s %d", module_name, reason);
+        }
+
+        auto buf = buffer.ptr;
+        auto buflen = buffer.length;
         if (!buf)
         {
             assert(module_name);
@@ -125,11 +99,8 @@ public:
          * or something else.
          */
         if (buflen < (LibHeader).sizeof)
-        {
-        Lcorrupt:
-            error("corrupt object module");
-        }
-        LibHeader* lh = cast(LibHeader*)buf;
+            return corrupt(__LINE__);
+        const lh = cast(const(LibHeader)*)buf;
         if (lh.recTyp == 0xF0)
         {
             /* OMF library
@@ -137,9 +108,9 @@ public:
              */
             islibrary = 1;
             g_page_size = lh.pagesize + 3;
-            buf = cast(void*)(pstart + g_page_size);
+            buf = cast(ubyte*)(pstart + g_page_size);
             if (lh.lSymSeek > buflen || g_page_size > buflen)
-                goto Lcorrupt;
+                return corrupt(__LINE__);
             buflen = lh.lSymSeek - g_page_size;
         }
         else if (lh.recTyp == '!' && memcmp(lh, cast(char*)"!<arch>\n", 8) == 0)
@@ -152,97 +123,63 @@ public:
             // Not a library, assume OMF object module
             g_page_size = 16;
         }
-        struct Context
+        bool firstmodule = true;
+
+        void addOmfObjModule(char* name, void* base, size_t length)
         {
-            LibOMF lib;
-            ubyte* pstart;
-            uint pagesize;
-            bool firstmodule;
-            bool islibrary;
-            const(char)* module_name;
-
-            extern (D) this(LibOMF lib, ubyte* pstart, uint pagesize, bool islibrary, const(char)* module_name)
+            auto om = new OmfObjModule();
+            om.base = cast(ubyte*)base;
+            om.page = om.page = cast(ushort)((om.base - pstart) / g_page_size);
+            om.length = cast(uint)length;
+            /* Determine the name of the module
+             */
+            if (firstmodule && module_name && !islibrary)
             {
-                this.lib = lib;
-                this.pstart = pstart;
-                this.pagesize = pagesize;
-                this.firstmodule = true;
-                this.islibrary = islibrary;
-                this.module_name = module_name;
+                // Remove path and extension
+                auto n = strdup(FileName.name(module_name));
+                om.name = n[0 .. strlen(n)];
+                char* ext = cast(char*)FileName.ext(n);
+                if (ext)
+                    ext[-1] = 0;
             }
-
-            extern (C++) static void addOmfObjModule(void* pctx, char* name, void* base, size_t length)
+            else
             {
-                Context* ctx = cast(Context*)pctx;
-                auto om = new OmfObjModule();
-                om.base = cast(ubyte*)base;
-                om.page = om.page = cast(ushort)((om.base - ctx.pstart) / ctx.pagesize);
-                om.length = cast(uint)length;
-                /* Determine the name of the module
+                /* Use THEADR name as module name,
+                 * removing path and extension.
                  */
-                if (ctx.firstmodule && ctx.module_name && !ctx.islibrary)
-                {
-                    // Remove path and extension
-                    om.name = strdup(FileName.name(ctx.module_name));
-                    char* ext = cast(char*)FileName.ext(om.name);
-                    if (ext)
-                        ext[-1] = 0;
-                }
-                else
-                {
-                    /* Use THEADR name as module name,
-                     * removing path and extension.
-                     */
-                    om.name = strdup(FileName.name(name));
-                    char* ext = cast(char*)FileName.ext(om.name);
-                    if (ext)
-                        ext[-1] = 0;
-                }
-                ctx.firstmodule = false;
-                ctx.lib.objmodules.push(om);
+                auto n = strdup(FileName.name(name));
+                om.name = n[0 .. strlen(n)];
+                char* ext = cast(char*)FileName.ext(n);
+                if (ext)
+                    ext[-1] = 0;
             }
+            firstmodule = false;
+            this.objmodules.push(om);
         }
 
-        auto ctx = Context(this, pstart, g_page_size, islibrary, module_name);
-        if (scanOmfLib(&ctx, &Context.addOmfObjModule, buf, buflen, g_page_size))
-            goto Lcorrupt;
+        if (scanOmfLib(&addOmfObjModule, cast(void*)buf, buflen, g_page_size))
+            return corrupt(__LINE__);
     }
 
     /*****************************************************************************/
-    override void addLibrary(void* buf, size_t buflen)
-    {
-        addObject(null, buf, buflen);
-    }
-
-    override void write()
-    {
-        if (global.params.verbose)
-            fprintf(global.stdmsg, "library   %s\n", libfile.name.toChars());
-        OutBuffer libbuf;
-        WriteLibToBuffer(&libbuf);
-        // Transfer image to file
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc(), libfile.name.toChars());
-        writeFile(Loc(), libfile);
-    }
 
     void addSymbol(OmfObjModule* om, const(char)* name, int pickAny = 0)
     {
         static if (LOG)
         {
-            printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name, name, pickAny);
+            printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name.ptr, name, pickAny);
         }
-        StringValue* s = tab.insert(name, strlen(name));
+        const namelen = strlen(name);
+        StringValue* s = tab.insert(name, namelen, null);
         if (!s)
         {
             // already in table
             if (!pickAny)
             {
-                s = tab.lookup(name, strlen(name));
-                assert(s);
-                OmfObjSymbol* os = cast(OmfObjSymbol*)s.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name, name, os.om.name, os.name);
+                const s2 = tab.lookup(name, namelen);
+                assert(s2);
+                const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
+                error("multiple definition of %s: %s and %s: %s", om.name.ptr, name, os.om.name.ptr, os.name);
             }
         }
         else
@@ -264,27 +201,15 @@ private:
     {
         static if (LOG)
         {
-            printf("LibMSCoff::scanObjModule(%s)\n", om.name);
+            printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
-        struct Context
+
+        extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            LibOMF lib;
-            OmfObjModule* om;
-
-            extern (D) this(LibOMF lib, OmfObjModule* om)
-            {
-                this.lib = lib;
-                this.om = om;
-            }
-
-            extern (C++) static void addSymbol(void* pctx, const(char)* name, int pickAny)
-            {
-                (cast(Context*)pctx).lib.addSymbol((cast(Context*)pctx).om, name, pickAny);
-            }
+            this.addSymbol(om, name.ptr, pickAny);
         }
 
-        auto ctx = Context(this, om);
-        scanOmfObjModule(&ctx, &Context.addSymbol, om.base, om.length, om.name, loc);
+        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
     }
 
     /***********************************
@@ -306,7 +231,7 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
-            size_t len = strlen(om.name);
+            size_t len = om.name.length;
             if (len > 0xFF)
                 len += 2; // Digital Mars long name extension
             symSize += (len + 4 + 1) & ~1;
@@ -327,9 +252,9 @@ private:
             337, 347, 349, 353, 359, 367, 373, 379, 383, 389,
             397, 401, 409, 419, 421, 431, 433, 439, 443, 449,
             457, 461, 463, 467, 479, 487, 491, 499, 503, 509,
+            //521,523,541,547,
             0
         ];
-        //521,523,541,547,
         for (size_t i = 0; 1; i++)
         {
             if (primes[i] == 0)
@@ -367,27 +292,27 @@ private:
      */
     bool FillDict(ubyte* bucketsP, ushort ndicpages)
     {
-        enum LIBIDMAX = (512 - 0x25 - 3 - 4);
         // max size that will fit in dictionary
+        enum LIBIDMAX = (512 - 0x25 - 3 - 4);
         ubyte[4 + LIBIDMAX + 2 + 1] entry;
         //printf("FillDict()\n");
         // Add each of the module names
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             OmfObjModule* om = objmodules[i];
-            ushort n = cast(ushort)strlen(om.name);
+            ushort n = cast(ushort)om.name.length;
             if (n > 255)
             {
                 entry[0] = 0xFF;
                 entry[1] = 0;
                 *cast(ushort*)(entry.ptr + 2) = cast(ushort)(n + 1);
-                memcpy(entry.ptr + 4, om.name, n);
+                memcpy(entry.ptr + 4, om.name.ptr, n);
                 n += 3;
             }
             else
             {
                 entry[0] = cast(ubyte)(1 + n);
-                memcpy(entry.ptr + 1, om.name, n);
+                memcpy(entry.ptr + 1, om.name.ptr, n);
             }
             entry[n + 1] = '!';
             *(cast(ushort*)(n + 2 + entry.ptr)) = om.page;
@@ -435,7 +360,7 @@ private:
      *      dictionary header
      *      dictionary pages...
      */
-    void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void WriteLibToBuffer(OutBuffer* libbuf)
     {
         /* Scan each of the object modules for symbols
          * to go into the dictionary
@@ -468,7 +393,7 @@ private:
                     g_page_size *= 2;
                     goto Lagain;
                 }
-                offset += OMFObjSize(om.base, om.length, om.name);
+                offset += OMFObjSize(om.base, om.length, om.name.ptr);
                 // Round the size of the file up to the next page size
                 // by filling with 0s
                 uint n = (g_page_size - 1) & offset;
@@ -490,7 +415,7 @@ private:
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
-            writeOMFObj(libbuf, om.base, om.length, om.name);
+            writeOMFObj(libbuf, om.base, om.length, om.name.ptr);
             // Round the size of the file up to the next page size
             // by filling with 0s
             uint n = (g_page_size - 1) & libbuf.offset;
@@ -558,23 +483,6 @@ private:
         // Write library header at start of buffer
         memcpy(libbuf.data, &libHeader, (libHeader).sizeof);
     }
-
-    void error(const(char)* format, ...)
-    {
-        Loc loc;
-        if (libfile)
-        {
-            loc.filename = libfile.name.toChars();
-            loc.linnum = 0;
-            loc.charnum = 0;
-        }
-        va_list ap;
-        va_start(ap, format);
-        .verror(loc, format, ap);
-        va_end(ap);
-    }
-
-    Loc loc;
 }
 
 extern (C++) Library LibOMF_factory()
@@ -589,7 +497,7 @@ struct OmfObjModule
     ubyte* base; // where are we holding it in memory
     uint length; // in bytes
     ushort page; // page module starts in output file
-    char* name; // module name
+    const(char)[] name; // module name, with terminating 0
 }
 
 /*****************************************************************************/

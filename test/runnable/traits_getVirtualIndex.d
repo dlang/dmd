@@ -4,74 +4,74 @@ class VirtualIndexBase
 {
     protected int _foo;
 
-    int doubler() 
+    int doubler()
     {
         return foo * 2;
     }
 
-    @property int foo() const 
+    @property int foo() const
     {
         return _foo;
     }
 
-    @property void foo(int val) 
+    @property void foo(int val)
     {
         _foo = val;
     }
 
-    final void finalFunc() 
+    final void finalFunc()
     {
 
     }
 }
 
-class VirtualIndexDerived : VirtualIndexBase 
+class VirtualIndexDerived : VirtualIndexBase
 {
-    @property override int foo() const 
+    @property override int foo() const
     {
         return super.foo;
     }
 
-    @property override void foo(int val) 
+    @property override void foo(int val)
     {
         super.foo = val;
     }
 
-    @property @safe int foo() pure nothrow 
+    @property @safe int foo() pure nothrow
     {
         return _foo * 2;
     }
 
-    final void otherFinalFunc() 
+    final void otherFinalFunc()
     {
 
     }
 }
 
-final class VirtualIndexFinal : VirtualIndexDerived 
+final class VirtualIndexFinal : VirtualIndexDerived
 {
-    @property final override int foo() const 
+    @property final override int foo() const
     {
         return super.foo;
     }
 
-    @property final override void foo(int val) 
+    @property final override void foo(int val)
     {
         super.foo = val;
     }
 
-    @property @safe final override int foo() pure nothrow 
+    @property @safe final override int foo() pure nothrow
     {
         return super.foo;
     }
 }
 
-private @property ptrdiff_t getIndex(T, string m, size_t index = 0)() 
+private @property ptrdiff_t getIndex(T, string m, size_t index = 0)()
 {
     return __traits(getVirtualIndex, __traits(getOverloads, T, m)[index]);
 }
 
-void main() 
+void main()
 {
     ptrdiff_t doublerIndex = getIndex!(VirtualIndexBase, "doubler");
     assert(doublerIndex > 0);
@@ -90,7 +90,7 @@ void main()
     assert(getIndex!(VirtualIndexDerived, "otherFinalFunc") == -1);
     ptrdiff_t newOverloadIndex = getIndex!(VirtualIndexDerived, "foo", 2);
     assert(newOverloadIndex == secondIndex + 1);
-    foreach(i, overload; __traits(getOverloads, VirtualIndexFinal, "foo")) 
+    foreach(i, overload; __traits(getOverloads, VirtualIndexFinal, "foo"))
     {
         // It should still return the initial virtual index even if overridden to be final.
         ptrdiff_t finalOverrideIndex = getIndex!(VirtualIndexFinal, __traits(identifier, overload), i);

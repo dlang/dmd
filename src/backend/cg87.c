@@ -839,7 +839,7 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
     c1 = CNIL;
     c2 = CNIL;
     tym = tybasic(e->Ety);
-    sz = tysize[tym];
+    sz = _tysize[tym];
     //printf("tym = x%x, sz = %d\n", tym, sz);
 
     if (*pretregs & mST01)
@@ -2047,7 +2047,7 @@ code *eq87(elem *e,regm_t *pretregs)
         }
         cs.Irm |= modregrm(0,op2,0);            // OR in reg field
         c2 = gen(c2, &cs);
-        if (tysize[TYldouble] == 12)
+        if (tysize(TYldouble) == 12)
         {
         /* This deals with the fact that 10 byte reals really
          * occupy 12 bytes by zeroing the extra 2 bytes.
@@ -2063,7 +2063,7 @@ code *eq87(elem *e,regm_t *pretregs)
             c2 = gen(c2, &cs);
         }
         }
-        else if (tysize[TYldouble] == 16)
+        else if (tysize(TYldouble) == 16)
         {
         /* This deals with the fact that 10 byte reals really
          * occupy 16 bytes by zeroing the extra 6 bytes.
@@ -2167,7 +2167,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
         gen(c2, &cs);
         if (fxch)
             genf2(c2,0xD9,0xC8 + 1);            // FXCH ST(1)
-        if (tysize[TYldouble] == 12)
+        if (tysize(TYldouble) == 12)
         {
             if (op1 == 0xDB)
             {
@@ -2182,7 +2182,7 @@ code *complex_eq87(elem *e,regm_t *pretregs)
                 c2 = gen(c2, &cs);                  // MOV EA+22,0
             }
         }
-        if (tysize[TYldouble] == 16)
+        if (tysize(TYldouble) == 16)
         {
             if (op1 == 0xDB)
             {
@@ -2427,7 +2427,7 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
      */
 
     ty1 = tybasic(e->E1->Ety);
-    sz2 = tysize[ty1] / 2;
+    sz2 = _tysize[ty1] / 2;
 
     retregs = mST0;
     cr = codelem(e->E2,&retregs,FALSE);         // FLD E2
@@ -2503,7 +2503,7 @@ code *opass_complex87(elem *e,regm_t *pretregs)
     unsigned sz2;
 
     ty1 = tybasic(e->E1->Ety);
-    sz2 = tysize[ty1] / 2;
+    sz2 = _tysize[ty1] / 2;
     switch (e->Eoper)
     {   case OPpostinc:
         case OPaddass:  op = 0 << 3;            // FADD
@@ -2791,7 +2791,7 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     //printf("cdnegass87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     elem *e1 = e->E1;
     tym_t tyml = tybasic(e1->Ety);            // type of lvalue
-    int sz = tysize[tyml];
+    int sz = _tysize[tyml];
 
     cl = getlvalue87(&cs,e1,0);
 
@@ -2805,12 +2805,12 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     cr = modEA(&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
-    if (tysize[TYldouble] > 10)
+    if (tysize(TYldouble) > 10)
     {
         if (tyml == TYldouble || tyml == TYildouble)
             cs.IEVoffset1 += 10 - 1;
         else if (tyml == TYcldouble)
-            cs.IEVoffset1 += tysize[TYldouble] + 10 - 1;
+            cs.IEVoffset1 += tysize(TYldouble) + 10 - 1;
         else
             cs.IEVoffset1 += sz - 1;
     }
@@ -2894,7 +2894,7 @@ code *post87(elem *e,regm_t *pretregs)
         cl = cat(cl,push87());
         cl = gen(cl,&cs);               // FLD e->E1
         if (tycomplex(ty1))
-        {   unsigned sz = tysize[ty1] / 2;
+        {   unsigned sz = _tysize[ty1] / 2;
 
             cl = cat(cl,push87());
             cs.IEVoffset1 += sz;
@@ -3664,7 +3664,7 @@ code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
     c1 = CNIL;
     c2 = CNIL;
     tym = tybasic(e->Ety);
-    sz = tysize[tym];
+    sz = _tysize[tym];
 
     if (*pretregs == 0 && retregs == mST01)
     {
@@ -3818,7 +3818,7 @@ __body
     int i;
 
     //printf("cload87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-    sz = tysize[ty] / 2;
+    sz = _tysize[ty] / 2;
     memset(&cs, 0, sizeof(cs));
     if (ADDFWAIT())
         cs.Iflags = CFwait;

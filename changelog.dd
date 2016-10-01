@@ -1,126 +1,224 @@
 Ddoc
 
-$(COMMENT Pending changelog for 2.071. This will get copied to dlang.org and
+$(COMMENT Pending changelog for 2.072. This will get copied to dlang.org and
     cleared when master gets merged into stable.
 )
 
-$(BUGSTITLE Compiler Changes,
-    $(LI $(RELATIVE_LINK2 imports-313, Import access checks for fully qualified names were fixed.))
-    $(LI $(RELATIVE_LINK2 imports-314, Protection for selective and renamed imports were fixed.))
-)
-
 $(BUGSTITLE Language Changes,
-    $(LI $(RELATIVE_LINK2 extended-deprecated, Manifest constant can now be used for deprecation message.))
-    $(LI $(RELATIVE_LINK2 import-lookup, Imports no longer hide locals declared in outer scopes.))
-    $(LI $(RELATIVE_LINK2 dip22, Private symbols are no longer visible in other modules.))
-)
+    $(LI $(RELATIVE_LINK2 deprecated_commaexp, Using the result of a comma expression is deprecated.))
 
-$(BUGSTITLE Compiler Changes,
-    $(LI $(LNAME2 imports-313, Import access checks for fully qualified names were fixed.)
+    $(LI $(RELATIVE_LINK2 deprecated_implicit_catch, Implicit catch statement are deprecated.))
 
-    $(P It is no longer possible to bypass private imports by using fully qualified names, e.g.
-        the following example will fail with `package std.range is not accessible here`.
-    )
+    $(LI $(LNAME2 unrestricted_unions, Add Unrestricted Unions.)
 
-    ---
-    import std.algorithm;
-
-    static assert(std.range.isForwardRange!string);
-    ---
-
-    $(P To ease updating existing code, the old behavior was retained but deprecated.
-    )
-    )
-
-    $(LI $(LNAME2 imports-314, Protection for selective and renamed imports were fixed.)
-
-    $(P It is no longer possible to use private selective or renamed imports in another module, e.g.
-        the following example will fail with `a.File is not visible from module b`.
-    )
-
-    ---
-    module a;
-    import std.stdio : File; // imports are private by default
-    ---
-    ---
-    module b;
-    import a;
-
-    File f; // File is private
-    ---
-
-    $(P To ease updating existing code, the old behavior was retained but deprecated.
-        This fix relies on the visibility changes introduced with $(RELATIVE_LINK2 dip22, DIP22).
-    )
-    )
-)
-
-$(BUGSTITLE Language Changes,
-    $(LI $(LNAME2 extended-deprecated, Manifest constant can now be used for deprecation message.)
-
-    $(P Manifest constants (enum, static immutable) can now be used for deprecation message, as well as concatenated strings.)
-    $(P Example:)
-    ---
-    string generateMessage() { return "Some deprecation message"; }
-    enum DepMsg = generateMessage();
-
-    deprecated(DepMsg) class Foo {}
-    deprecated("Some long deprecation " ~ "message") class Bar {}
-    ---
-    )
-
-    $(LI $(LNAME2 import-lookup, Imports no longer hide locals declared in outer scopes.)
-
-    $(P These changes were made to the name lookup algorithm:
-
-        $(OL
-            $(LI Lookup for unqualified names is change from one pass to two pass. The first
-            pass goes through the scopes but does not check import declarations. If not found,
-            the second pass goes through the scopes and only looks at import declarations.
-            )
-            $(LI Qualified name lookups, base class lookups, and WithStatement lookups no longer
-            search import declarations, unless a module is the subject of the lookup, where the
-            behavior remains as before.
-            )
+        $(P
+             Unrestricted unions may have postblits, destructors, and invariants.
+             It is up to the programmer to call them appropriately.
         )
     )
 
-    $(P This can break existing code, although reliance on the previous behavior tends to be
-        unintended, and fixing it improves the comprehensibility of the code. Breakage tends
-        to take the form of a symbol now being flagged as undefined. Fixing the breakage can
-        be done by fully qualifying the name, or adding an alias to the import declaration.
+    $(LI $(RELATIVE_LINK2 align_by_ctfe, Align attribute can be used with CTFEable expression.))
+
+    $(LI $(RELATIVE_LINK2 deprecated_implicit_cat, Implicit string concatenation is deprecated.))
+)
+
+$(BUGSTITLE Compiler Changes,
+    $(LI $(RELATIVE_LINK2 deferred_alias, Analysis for aliases in imported modules is deferred.))
+    $(LI $(RELATIVE_LINK2 native_tls_osx, Native TLS on OS X 64 bit.))
+    $(LI $(RELATIVE_LINK2 __FILE_FULL_PATH__, Special keyword replaced by the source file's absolute file name.)
+    $(LI $(RELATIVE_LINK2 dash_safe, Add -transition=safe switch.))
+    $(LI $(RELATIVE_LINK2 dash_verrors_spec, Add `-verrors=spec` switch.))
+)
+
+$(BUGSTITLE Language Changes,
+    $(LI $(LNAME2 deprecated_commaexp, Using the result of a comma expression is deprecated.)
+
+    $(P Comma expressions expressions have proven to be a frequent source of confusion, and bug.
+        Using their result will now trigger a deprecation message.)
+
+    $(P Example:)
+
+        ---
+        module comma;
+
+        void main () {
+          size_t aggr;
+          MyContainerClass mc;
+          auto r1 = getRange!int, r2 = getRange!int;
+          // This is okay
+          for (; !r1.empty && r2.empty; r1.popFront, r2.popFront)
+            aggr += compute(r1.front, r2.front);
+          // This is not, as only the 3rd part (increment) allows commas
+          for (; !r1.empty, r2.empty; r1.popFront, r2.popFront)
+            aggr += compute(r1.front, r2.front);
+          // This is okay, the result is not used.
+          if (!mc)
+            mc = new MyContainerClass, mc.append(new Entry);
+          // But this is not
+          if (!mc)
+            mc = (aggr++, new MyContainerClass);
+        }
+        ---
     )
 
-    $(P The old lookup behavior can be restored using the -transition=import
-        compiler switch.  With -transition=checkimports the compiler will issue
-        deprecation warnings when the old and new lookup find different
-        symbols.
-        You can combine both switches to use the old lookup and still get
-        deprecation warnings.
+    $(LI $(LNAME2 deprecated_implicit_catch, Implicit catch statement are deprecated.)
+
+    $(P Implicit catch statement are catch statement without type specified.
+	They default to catching `Throwable`, which is something that should always be explicit.)
+
+    $(P Example:)
+
+        ---
+        int[] arr = new int[](10);
+        // This will throw a RangeError
+        try { arr[42]++; }
+        catch { writeln("An error was caught and ignored"); }
+	// The previous line is equivalent to:
+	// catch (Throwable) { writeln("An error was caught and ignored"); }
+        ---
     )
 
-    $(P See also $(BUGZILLA 10378))
+
+    $(LI $(LNAME2 align_by_ctfe, Align attribute can be used with CTFEable expression.)
+
+    $(P Example:)
+
+        ---
+        version (D_LP64)
+            enum n = 8;
+        else
+            enum n = 4;
+        align (n) struct Data
+        {
+        align (n == 8 ? 2 : 1):
+            ubyte[3] buffer;
+            int flags;
+        }
+
+        version (D_LP64)
+            static assert(Data.flags.offsetof == 4);
+        else
+            static assert(Data.flags.offsetof == 3);
+        ---
+    )
+)
+
+$(BUGSTITLE Compiler Changes,
+    $(LI $(LNAME2 deferred_alias, Analysis for aliases in imported modules is deferred.)
+
+    $(P Example:)
+
+        ---
+        module lib;
+        template ExpensiveApiImpl(int ver)
+        {
+            ...
+            void func() {}
+            pragma(msg, "instantiated ExpensiveApiImpl ", ver);
+        }
+        alias api1 = ExpensiveApiImpl!(1);
+        alias api2 = ExpensiveApiImpl!(2);
+        ---
+
+        ---
+        import lib;
+        void main()
+        {
+            // OK, prints "instantiated ExpensiveApiImpl 1"
+            api1.func();
+
+            // Don't print "instantiated ExpensiveApiImpl 2", because
+            // the alias name 'api2' is not used.
+        }
+        ---
     )
 
-    $(LI $(LNAME2 dip22, Private symbols are no longer visible in other modules.)
+    $(LI
+        $(LNAME2 native_tls_osx, Native TLS on OS X 64 bit.)
 
-    $(P Protection (private, package, protected) is now already enforced during
-        symbol lookup in order to resolve any conflicts between private and
-        public symbols that could occur with the old access check scheme.
+        $(P
+            The compiler has been updated to use native thread local storage
+            (TLS) on OS X when compiling for 64 bit. This means that it's
+            possible to to link with C/C++ TLS variables. This change is an ABI
+            breaking change and requires recompiling libraries.
+        )
+
+        $(P
+            The minimum required version of running the compiler and any
+            produced binary is now Mac OS X Lion (10.7).
+        )
+
+        $(P
+            Xcode 7.3 has a bug causing linker errors for some TLS variables.
+            Xcode 7.3.1 fixes this bug. Any version older than 7.3 works as well.
+        )
     )
 
-    $(P The visibility of overloaded symbols with mixed protection is determined
-        by the most visibile member, but additional access check against the exact
-        symbol is performed after overload resolution.
+    $(LI $(LNAME2 __FILE_FULL_PATH__, Special keyword replaced by the source file's absolute file name.)
+        $(P
+            The __FILE_FULL_PATH__ special keyword is replaced by the absolute path
+            of the current source file by the compiler.
+        )
+        $(P Example:)
+        ---
+        import std.stdio;
+        import std.path;
+        import std.file;
+        void main()
+        {
+            writeln("The main source file lives here: ", __FILE_FULL_PATH__);
+            writeln("The contents are:");
+            foreach(line; File(__FILE_FULL_PATH__, "r").byLine) {
+                writeln(line);
+            }
+            writeln();
+            writeln("Other files in the same directory are:");
+            foreach(entry; dirEntries(__FILE_FULL_PATH__.dirName, SpanMode.shallow)) {
+                writefln("  - %s", entry.name);
+            }
+        }
+        ---
     )
 
-    $(P To ease updating existing code, a deprecated search for invisible symbols will be performed.
-        For the the old lookup behavior (using the -transition=import or -transition=checkimports compiler switch)
-        symbol visibility is ignored.
-        All existing access checks remain active during the deprecation phase.
+    $(LI $(LNAME2 dash_safe, Add -transition=safe switch.)
+	$(P Enables enhanced `@safe` checking, which will break some existing code.)
+	$(UL
+	$(LI Prevents dereferencing `array.ptr` because that bypasses array bounds check.)
+	$(LI Assumes opApply delegate parameter escapes unless marked `scope`. Escaping
+          delegates often require a GC allocated closure.)
+	)
     )
 
-    $(P See also $(LINK2 http://wiki.dlang.org/DIP22, DIP22))
+    $(LI $(LNAME2 dash_verrors_spec, Add `-verrors=spec` switch.)
+        $(P Shows errors from speculative compiles such as:)
+        ---
+        void foo(int i)
+        {
+            int p;
+            bool b = __traits(compiles, { p = &i; });
+        }
+        ---
+        $(P that are normally not shown:)
+        ---
+        (spec:1) test.d(13): Error: cannot implicitly convert expression (& i) of type int* to int
+        ---
+        $(P The number after `spec:` is the nesting of the speculative compiles.)
+    )
+
+    $(LI $(LNAME2 deprecated_implicit_cat, Implicit string concatenation is deprecated.)
+
+    $(P Implicit concatenation of string literal is a very early feature that is now supplanted
+        by the concatenation operator ('~'), the later being more explicit.)
+
+    $(P It could result in hard to spot bug, where one missed a coma in an array expression:)
+
+        ---
+        void foo ()
+        {
+          string[] arr = [ "Hello", "buggy" "World" ];
+          assert(arr.length = 3); // Fail, the length of the array is 2 and the content is [ "Hello", "buggyWorld" ]
+        }
+        ---
     )
 )
 
@@ -133,12 +231,8 @@ Macros:
     RELATIVE_LINK2=<a href="#$1">$+</a>
     LNAME2=<a class="anchor" title="Permalink to this section" id="$1" href="#$1">$+</a>
 
-    STDMODREF = <a href="phobos/std_$1.html">$2</a>
-    XREF = <a href="phobos/std_$1.html#$2">$2</a>
-    CXREF = <a href="phobos/core_$1.html#$2">$2</a>
-
     BUGZILLA = <a href="https://issues.dlang.org/show_bug.cgi?id=$0">Bugzilla $0</a>
-    PULL_REQUEST = $(LINK2 https://github.com/D-Programming-Language/$1/pull/$2, $1#$2)
+    PULL_REQUEST = $(LINK2 https://github.com/dlang/$1/pull/$2, $1#$2)
     DMDPR = $(PULL_REQUEST dmd,$1)
 
     BOOKTABLE = <table><caption>$1</caption>$+</table>

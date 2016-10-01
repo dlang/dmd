@@ -1372,17 +1372,17 @@ void test_getFunctionAttributes()
     ref int ref_property() @property { return *(new int); }
     void safe_nothrow() @safe nothrow { }
 
-    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow", "@system"));
+    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
 
-    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("@property", "ref", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(&static_ref_property)) == tuple!("@property", "ref", "@system"));
+    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(&static_ref_property)) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
 
-    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("@property", "ref", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(&ref_property)) == tuple!("@property", "ref", "@system"));
+    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(&ref_property)) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
 
-    static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("nothrow", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(safe_nothrow)) == tuple!("nothrow", "@safe"));
+    static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(safe_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
 
     struct S2
     {

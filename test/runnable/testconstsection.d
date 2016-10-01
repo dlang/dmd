@@ -9,7 +9,7 @@ struct Range
 {
     const(void)* bot;
     const(void)* top; // consider inclusive
-    
+
     void addPtr(const(void)* p)
     {
         if (!bot || p < bot)
@@ -17,7 +17,7 @@ struct Range
         if (!top || p > top)
             top = p;
     }
-    
+
     bool intersect(Range other)
     {
         return (bot <= other.top && top >= other.bot);
@@ -35,7 +35,7 @@ void testStrings()
     static string local_tls_var = "tls_string";
     static __gshared string local_data_var = "data_string";
     static __gshared string local_bss_var;
-    
+
     tls.addPtr(&tls_var);
     tls.addPtr(&local_tls_var);
 

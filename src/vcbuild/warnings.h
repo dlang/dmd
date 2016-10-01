@@ -1,4 +1,4 @@
-#pragma warning(disable:4996) // This function or variable may be unsafe. 
+#pragma warning(disable:4996) // This function or variable may be unsafe.
 #pragma warning(disable:4127) // conditional expression is constant
 #pragma warning(disable:4101) // unreferenced local variable
 #pragma warning(disable:4100) // unreferenced formal parameter
@@ -25,7 +25,10 @@
 #pragma warning(disable:4060) // switch statement contains no 'case' or 'default' labels
 #pragma warning(disable:4099) // type name first seen using 'struct' now seen using 'class'
 #pragma warning(disable:4725) // instruction may be inaccurate on some Pentiums
- 
+#pragma warning(disable:4510) // 'CommaExp' : default constructor could not be generated
+#pragma warning(disable:4512) // 'CommaExp' : assignment operator could not be generated
+#pragma warning(disable:4610) // class 'CommaExp' can never be instantiated - user defined constructor required
+
 #ifdef _WIN64
 #pragma warning(disable:4366) // The result of the unary '&' operator may be unaligned
 #pragma warning(disable:4267) // conversion from 'size_t' to 'unsigned int', possible loss of data

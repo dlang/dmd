@@ -317,6 +317,55 @@ class D14351c : B14351
 }
 
 /***************************************************/
+// 14450
+
+struct S14450a      // non-template struct + non template ctors - OK
+{
+    int x;
+    this(int) { x = 1; }
+    this(int) immutable { x = 2; }
+}
+struct S14450b      // non-template struct + template ctors - OK
+{
+    int x;
+    this()(int) { x = 1; }
+    this()(int) immutable { x = 2; }
+}
+struct S14450c()    // template struct + non-template ctors - Error -> OK
+{
+    int x;
+    this(int) { x = 1; }
+    this(int) immutable { x = 2; }
+}
+struct S14450d()    // template struct + template ctors - OK
+{
+    int x;
+    this()(int) { x = 1; }
+    this()(int) immutable { x = 2; }
+}
+struct S14450e() // template struct + pure template ctors - Error -> OK
+{
+    int x;
+    this()(int) pure { x = 1; }
+    this()(int) pure immutable { x = 2; }
+}
+
+void test14450()
+{
+    { auto m = S14450a(1);    assert(m.x == 1); }
+    { auto m = S14450b(1);    assert(m.x == 1); }
+    { auto m = S14450c!()(1); assert(m.x == 1); }
+    { auto m = S14450d!()(1); assert(m.x == 1); }
+    { auto m = S14450e!()(1); assert(m.x == 1); }
+
+    { auto i = immutable S14450a(1);    assert(i.x == 2); }
+    { auto i = immutable S14450b(1);    assert(i.x == 2); }
+    { auto i = immutable S14450c!()(1); assert(i.x == 2); }
+    { auto i = immutable S14450d!()(1); assert(i.x == 2); }
+    { auto i = immutable S14450e!()(1); assert(i.x == 2); }
+}
+
+/***************************************************/
 // 14944
 
 static int[2] tbl14944;
@@ -334,6 +383,23 @@ static this()
 void test14944()
 {
     assert(tbl14944[0] == 1);
+}
+
+/***************************************************/
+// 15258 - a field initialization affects other overlapped fields
+
+class C15258
+{
+    this(const char* result)
+    {
+        this.result = result;
+    }
+
+    union
+    {
+        const char** results;
+        const char* result;
+    }
 }
 
 /***************************************************/
@@ -357,6 +423,7 @@ int main()
     test9665();
     test11246();
     test13515();
+    test14450();
     test14944();
     test15665();
 

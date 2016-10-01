@@ -1,10 +1,10 @@
 
-/* Copyright (c) 1999-2014 by Digital Mars
+/* Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/D-Programming-Language/dmd/blob/master/src/root/outbuffer.h
+ * https://github.com/dlang/dmd/blob/master/src/root/outbuffer.h
  */
 
 #ifndef OUTBUFFER_H
@@ -27,11 +27,13 @@ struct OutBuffer
 {
     unsigned char *data;
     size_t offset;
+private:
     size_t size;
 
-    int doindent;
     int level;
-    int notlinehead;
+    bool doindent;
+    bool notlinehead;
+public:
 
     OutBuffer()
     {
@@ -52,7 +54,7 @@ struct OutBuffer
     void reserve(size_t nbytes);
     void setsize(size_t size);
     void reset();
-    void write(const void *data, size_t nbytes);
+    void write(const void *data, d_size_t nbytes);
     void writebstring(utf8_t *string);
     void writestring(const char *string);
     void prependstring(const char *string);

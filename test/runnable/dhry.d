@@ -37,7 +37,7 @@
  *
  *  Collection of Results:
  *              Reinhold Weicker (address see above) and
- *              
+ *
  *              Rick Richardson
  *              PC Research. Inc.
  *              94 Apple Orchard Drive
@@ -285,7 +285,7 @@
  *       && (AND-THEN)          1            1.6
  *       |  (OR)                1            1.6
  *       !  (NOT)               2            3.2
- * 
+ *
  *                           --          -----
  *                           63          100.1
  *
@@ -363,7 +363,7 @@ alias char    Str_30 [StrLen];
 alias int     Arr_1_Dim [50];
 alias int     Arr_2_Dim [50] [50];
 
-struct record 
+struct record
 {
     record *Ptr_Comp;
     Enumeration    Discr;
@@ -373,17 +373,17 @@ struct record
                   int         Int_Comp;
                   char        Str_Comp [StrLen];
                   }
-	  V1 var_1;
+          V1 var_1;
           struct V2 {
                   Enumeration E_Comp_2;
                   char        Str_2_Comp [StrLen];
                   }
-	  V2 var_2;
+          V2 var_2;
           struct V3 {
                   char        Ch_1_Comp;
                   char        Ch_2_Comp;
                   }
-	  V3 var_3;
+          V3 var_3;
           }
     V variant;
 }
@@ -456,7 +456,7 @@ void main ()
   Ptr_Glob.Discr                       = Ident_1;
   Ptr_Glob.variant.var_1.Enum_Comp     = Ident_3;
   Ptr_Glob.variant.var_1.Int_Comp      = 40;
-//  strcpy (Ptr_Glob.variant.var_1.Str_Comp, 
+//  strcpy (Ptr_Glob.variant.var_1.Str_Comp,
 //          "DHRYSTONE PROGRAM, SOME STRING");
 //  strcpy (Str_1_Loc, "DHRYSTONE PROGRAM, 1'ST STRING");
   Ptr_Glob.variant.var_1.Str_Comp[] = "DHRYSTONE PROGRAM, SOME STRING";
@@ -485,9 +485,9 @@ void main ()
   /***************/
   /* Start timer */
   /***************/
- 
+
   Begin_Time = dtime();
-  
+
   for (Run_Index = 1; Run_Index <= Number_Of_Runs; ++Run_Index)
   {
 
@@ -604,7 +604,7 @@ void main ()
   }
   else
   {
-    Microseconds = User_Time * Mic_secs_Per_Second 
+    Microseconds = User_Time * Mic_secs_Per_Second
                         / cast(double) Number_Of_Runs;
     Dhrystones_Per_Second = cast(double) Number_Of_Runs / User_Time;
     Vax_Mips = Dhrystones_Per_Second / 1757.0;
@@ -617,8 +617,8 @@ void main ()
     printf ("%10.1lf \n", Dhrystones_Per_Second);
     printf ("VAX MIPS rating = %10.3lf \n",Vax_Mips);
     printf ("\n");
- 
-   /+ 
+
+   /+
   fprintf(Ap,"\n");
   fprintf(Ap,"Dhrystone Benchmark, Version 2.1 (Language: D)\n");
   fprintf(Ap,"%.*s\n",Reg_Define.length, Reg_Define.ptr);
@@ -627,9 +627,9 @@ void main ()
   fprintf(Ap,"VAX MIPS rating: %10.3lf\n",Vax_Mips);
   fclose(Ap);
   +/
-  
+
   }
-  
+
 }
 
 void Proc_1 (Rec_Pointer Ptr_Val_Par)
@@ -637,27 +637,27 @@ void Proc_1 (Rec_Pointer Ptr_Val_Par)
 
     /* executed once */
 {
-      Rec_Pointer Next_Record = Ptr_Val_Par.Ptr_Comp;  
+      Rec_Pointer Next_Record = Ptr_Val_Par.Ptr_Comp;
                                         /* == Ptr_Glob_Next */
   /* Local variable, initialized with Ptr_Val_Par.Ptr_Comp,    */
   /* corresponds to "rename" in Ada, "with" in Pascal           */
-  
+
   *Ptr_Val_Par.Ptr_Comp = *Ptr_Glob;
   Ptr_Val_Par.variant.var_1.Int_Comp = 5;
-  Next_Record.variant.var_1.Int_Comp 
+  Next_Record.variant.var_1.Int_Comp
         = Ptr_Val_Par.variant.var_1.Int_Comp;
   Next_Record.Ptr_Comp = Ptr_Val_Par.Ptr_Comp;
   Proc_3 (&Next_Record.Ptr_Comp);
-    /* Ptr_Val_Par.Ptr_Comp.Ptr_Comp 
+    /* Ptr_Val_Par.Ptr_Comp.Ptr_Comp
                         == Ptr_Glob.Ptr_Comp */
   if (Next_Record.Discr == Ident_1)
     /* then, executed */
   {
     Next_Record.variant.var_1.Int_Comp = 6;
-    Proc_6 (Ptr_Val_Par.variant.var_1.Enum_Comp, 
+    Proc_6 (Ptr_Val_Par.variant.var_1.Enum_Comp,
            &Next_Record.variant.var_1.Enum_Comp);
     Next_Record.Ptr_Comp = Ptr_Glob.Ptr_Comp;
-    Proc_7 (Next_Record.variant.var_1.Int_Comp, 10, 
+    Proc_7 (Next_Record.variant.var_1.Int_Comp, 10,
            &Next_Record.variant.var_1.Int_Comp);
   }
   else /* not executed */
@@ -729,10 +729,10 @@ void Proc_6 (Enumeration Enum_Val_Par, Enumeration *Enum_Ref_Par)
     *Enum_Ref_Par = Ident_4;
   final switch (Enum_Val_Par)
   {
-    case Ident_1: 
+    case Ident_1:
       *Enum_Ref_Par = Ident_1;
       break;
-    case Ident_2: 
+    case Ident_2:
       if (Int_Glob > 100)
         /* then */
       *Enum_Ref_Par = Ident_1;
@@ -742,7 +742,7 @@ void Proc_6 (Enumeration Enum_Val_Par, Enumeration *Enum_Ref_Par)
       *Enum_Ref_Par = Ident_2;
       break;
     case Ident_4: break;
-    case Ident_5: 
+    case Ident_5:
       *Enum_Ref_Par = Ident_3;
       break;
   } /* switch */
@@ -875,7 +875,7 @@ version (Windows)
      double q;
 
      q = cast(double)GetTickCount() * 1.0e-03;
-	    
+
      return q;
     }
 }
@@ -889,12 +889,12 @@ version (linux)
      double q;
 
      q = cast(double)time(null);
-	    
+
      return q;
     }
 }
 
-version (OSX)	// supplied by Anders F Bjorklund
+version (OSX)   // supplied by Anders F Bjorklund
 {
     import core.sys.posix.sys.time;
 
@@ -905,7 +905,7 @@ version (OSX)	// supplied by Anders F Bjorklund
 
      gettimeofday(&tv,null);
      q = cast(double)tv.tv_sec + cast(double)tv.tv_usec * 1.0e-6;
-     
+
      return q;
     }
 }

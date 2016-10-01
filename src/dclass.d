@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _dclass.d)
+ */
 
 module ddmd.dclass;
 
@@ -17,7 +19,6 @@ import ddmd.gluelayer;
 import ddmd.clone;
 import ddmd.declaration;
 import ddmd.dmodule;
-import ddmd.doc;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
@@ -29,19 +30,27 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.objc;
-import ddmd.root.outbuffer;
 import ddmd.root.rmem;
-import ddmd.root.rootobject;
 import ddmd.statement;
 import ddmd.target;
 import ddmd.visitor;
+
+enum Abstract : int
+{
+    ABSfwdref = 0,      // whether an abstract class is not yet computed
+    ABSyes,             // is abstract class
+    ABSno,              // is not abstract class
+}
+
+alias ABSfwdref = Abstract.ABSfwdref;
+alias ABSyes = Abstract.ABSyes;
+alias ABSno = Abstract.ABSno;
 
 /***********************************************************
  */
 struct BaseClass
 {
     Type type;          // (before semantic processing)
-    Prot protection;    // protection for the base interface
 
     ClassDeclaration sym;
     uint offset;        // 'this' pointer offset
@@ -53,11 +62,10 @@ struct BaseClass
     // are a copy of the InterfaceDeclaration.interfaces
     BaseClass[] baseInterfaces;
 
-    extern (D) this(Type type, Prot protection)
+    extern (D) this(Type type)
     {
         //printf("BaseClass(this = %p, '%s')\n", this, type.toChars());
         this.type = type;
-        this.protection = protection;
     }
 
     /****************************************
@@ -179,7 +187,6 @@ struct ClassFlags
  */
 extern (C++) class ClassDeclaration : AggregateDeclaration
 {
-public:
     extern (C++) __gshared
     {
         // Names found by reading object.d in druntime
@@ -212,7 +219,7 @@ public:
     bool com;           // true if this is a COM class (meaning it derives from IUnknown)
     bool cpp;           // true if this is a C++ interface
     bool isscope;       // true if this is a scope class
-    bool isabstract;    // true if abstract class
+    Abstract isabstract;
     int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
 
@@ -220,8 +227,12 @@ public:
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
-    final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, bool inObject = false)
+    final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
+        if (!id)
+            id = Identifier.generateId("__anonclass");
+        assert(id);
+
         super(loc, id);
 
         static __gshared const(char)* msg = "only object.d can define this reserved class name";
@@ -233,6 +244,8 @@ public:
         }
         else
             this.baseclasses = new BaseClasses();
+
+        this.members = members;
 
         //printf("ClassDeclaration(%s), dim = %d\n", id.toChars(), this.baseclasses.dim);
 
@@ -392,7 +405,7 @@ public:
         //printf("ClassDeclaration.syntaxCopy('%s')\n", toChars());
         ClassDeclaration cd =
             s ? cast(ClassDeclaration)s
-              : new ClassDeclaration(loc, ident, null);
+              : new ClassDeclaration(loc, ident, null, null, false);
 
         cd.storage_class |= storage_class;
 
@@ -400,11 +413,29 @@ public:
         for (size_t i = 0; i < cd.baseclasses.dim; i++)
         {
             BaseClass* b = (*this.baseclasses)[i];
-            auto b2 = new BaseClass(b.type.syntaxCopy(), b.protection);
+            auto b2 = new BaseClass(b.type.syntaxCopy());
             (*cd.baseclasses)[i] = b2;
         }
 
         return ScopeDsymbol.syntaxCopy(cd);
+    }
+
+    override Scope* newScope(Scope* sc)
+    {
+        auto sc2 = super.newScope(sc);
+        if (isCOMclass())
+        {
+            if (global.params.isWindows)
+                sc2.linkage = LINKwindows;
+            else
+            {
+                /* This enables us to use COM objects under Linux and
+                 * work with things like XPCOM
+                 */
+                sc2.linkage = LINKc;
+            }
+        }
+        return sc2;
     }
 
     override void semantic(Scope* sc)
@@ -417,7 +448,6 @@ public:
 
         if (semanticRun >= PASSsemanticdone)
             return;
-        uint dprogress_save = Module.dprogress;
         int errors = global.errors;
 
         //printf("+ClassDeclaration.semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -432,23 +462,16 @@ public:
 
         if (!parent)
         {
-            assert(sc.parent && (sc.func || !ident));
+            assert(sc.parent);
             parent = sc.parent;
-
-            if (!ident) // if anonymous class
-            {
-                const(char)* id = "__anonclass";
-                ident = Identifier.generateId(id);
-            }
         }
-        assert(parent && !isAnonymous());
 
         if (this.errors)
             type = Type.terror;
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeClass)type).sym.isInstantiated();
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
@@ -468,7 +491,7 @@ public:
             if (storage_class & STCscope)
                 isscope = true;
             if (storage_class & STCabstract)
-                isabstract = true;
+                isabstract = ABSyes;
 
             userAttribDecl = sc.userAttribDecl;
 
@@ -527,13 +550,12 @@ public:
                 if (tb.ty == Ttuple)
                 {
                     TypeTuple tup = cast(TypeTuple)tb;
-                    Prot protection = b.protection;
                     baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
                     for (size_t j = 0; j < dim; j++)
                     {
                         Parameter arg = Parameter.getNth(tup.arguments, j);
-                        b = new BaseClass(arg.type, protection);
+                        b = new BaseClass(arg.type);
                         baseclasses.insert(i + j, b);
                     }
                 }
@@ -678,7 +700,7 @@ public:
                 assert(t.ty == Tclass);
                 TypeClass tc = cast(TypeClass)t;
 
-                auto b = new BaseClass(tc, Prot(PROTpublic));
+                auto b = new BaseClass(tc);
                 baseclasses.shift(b);
 
                 baseClass = tc.sym;
@@ -736,38 +758,25 @@ public:
              */
             for (size_t i = 0; i < members.dim; i++)
             {
-                Dsymbol s = (*members)[i];
+                auto s = (*members)[i];
                 s.addMember(sc, this);
             }
 
-            Scope* sc2 = sc.push(this);
-            sc2.stc &= STCsafe | STCtrusted | STCsystem;
-            sc2.parent = this;
-            sc2.inunion = 0;
-            if (isCOMclass())
-            {
-                if (global.params.isWindows)
-                    sc2.linkage = LINKwindows;
-                else
-                    sc2.linkage = LINKc;
-            }
-            sc2.protection = Prot(PROTpublic);
-            sc2.explicitProtection = 0;
-            sc2.structalign = STRUCTALIGN_DEFAULT;
-            sc2.userAttribDecl = null;
+            auto sc2 = newScope(sc);
 
             /* Set scope so if there are forward references, we still might be able to
              * resolve individual members like enums.
              */
             for (size_t i = 0; i < members.dim; i++)
             {
-                Dsymbol s = (*members)[i];
+                auto s = (*members)[i];
                 //printf("[%d] setScope %s %s, sc2 = %p\n", i, s.kind(), s.toChars(), sc2);
                 s.setScope(sc2);
             }
 
             sc2.pop();
         }
+
         for (size_t i = 0; i < baseclasses.dim; i++)
         {
             BaseClass* b = (*baseclasses)[i];
@@ -846,35 +855,11 @@ public:
                 makeNested();
         }
 
-        // it might be determined already, by AggregateDeclaration.size().
-        if (sizeok != SIZEOKdone)
-            sizeok = SIZEOKnone;
+        auto sc2 = newScope(sc);
 
-        Scope* sc2 = sc.push(this);
-        //sc2.stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
-        //sc2.stc |= storage_class & STC_TYPECTOR;
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        sc2.inunion = 0;
-        if (isCOMclass())
+        for (size_t i = 0; i < members.dim; ++i)
         {
-            if (global.params.isWindows)
-                sc2.linkage = LINKwindows;
-            else
-            {
-                /* This enables us to use COM objects under Linux and
-                 * work with things like XPCOM
-                 */
-                sc2.linkage = LINKc;
-            }
-        }
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
-
-        foreach (s; *members)
-        {
+            auto s = (*members)[i];
             s.importAll(sc2);
         }
 
@@ -885,48 +870,21 @@ public:
             s.semantic(sc2);
         }
 
-        finalizeSize();
-
-        if (sizeok == SIZEOKfwd)
+        if (!determineFields())
         {
-            // semantic() failed due to forward references
-            // Unwind what we did, and defer it for later
-            foreach (v; fields)
-            {
-                v.offset = 0;
-            }
-            fields.setDim(0);
-            structsize = 0;
-            alignsize = 0;
-
+            assert(type == Type.terror);
             sc2.pop();
-
-            _scope = scx ? scx : sc.copy();
-            _scope.setNoFree();
-            _scope._module.addDeferredSemantic(this);
-            Module.dprogress = dprogress_save;
-            //printf("\tsemantic('%s') failed due to forward references\n", toChars());
             return;
         }
-
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
-        //printf("-ClassDeclaration.semantic(%s), type = %p\n", toChars(), type);
-        //members.print();
-
-    version (none)  // FIXME
-    {
-    LafterSizeok:
-        // The additions of special member functions should have its own
-        // sub-semantic analysis pass, and have to be deferred sometimes.
-        // See the case in compilable/test14838.d
-        for (size_t i = 0; i < fields.dim; i++)
+        /* Following special member functions creation needs semantic analysis
+         * completion of sub-structs in each field types.
+         */
+        foreach (v; fields)
         {
-            VarDeclaration v = fields[i];
             Type tb = v.type.baseElemOf();
             if (tb.ty != Tstruct)
                 continue;
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            auto sd = (cast(TypeStruct)tb).sym;
             if (sd.semanticRun >= PASSsemanticdone)
                 continue;
 
@@ -935,11 +893,9 @@ public:
             _scope = scx ? scx : sc.copy();
             _scope.setNoFree();
             _scope._module.addDeferredSemantic(this);
-
             //printf("\tdeferring %s\n", toChars());
             return;
         }
-    }
 
         /* Look for special member functions.
          * They must be in this class, not in a base class.
@@ -948,14 +904,14 @@ public:
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
         aggDelete = cast(DeleteDeclaration)search(Loc(), Id.classDelete);
 
-        // this.ctor is already set
+        // Look for the constructor
+        ctor = searchCtor();
 
         if (!ctor && noDefaultCtor)
         {
             // A class object is always created by constructor, so this check is legitimate.
-            for (size_t i = 0; i < fields.dim; i++)
+            foreach (v; fields)
             {
-                VarDeclaration v = fields[i];
                 if (v.storage_class & STCnodefaultctor)
                     .error(v.loc, "field %s must be initialized in constructor", v.toChars());
             }
@@ -966,21 +922,24 @@ public:
         //    this() { }
         if (!ctor && baseClass && baseClass.ctor)
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
+            auto fd = resolveFuncCall(loc, sc2, baseClass.ctor, null, null, null, 1);
             if (fd && !fd.errors)
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
-                TypeFunction btf = cast(TypeFunction)fd.type;
+                auto btf = cast(TypeFunction)fd.type;
                 auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
-                tf.purity = btf.purity;
+                tf.purity    = btf.purity;
                 tf.isnothrow = btf.isnothrow;
-                tf.isnogc = btf.isnogc;
-                tf.trust = btf.trust;
+                tf.isnogc    = btf.isnogc;
+                tf.trust     = btf.trust;
+
                 auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
                 ctor.fbody = new CompoundStatement(Loc(), new Statements());
+
                 members.push(ctor);
                 ctor.addMember(sc, this);
                 ctor.semantic(sc2);
+
                 this.ctor = ctor;
                 defaultCtor = ctor;
             }
@@ -993,13 +952,18 @@ public:
 
         dtor = buildDtor(this, sc2);
 
-        if (FuncDeclaration f = hasIdentityOpAssign(this, sc2))
+        if (auto f = hasIdentityOpAssign(this, sc2))
         {
             if (!(f.storage_class & STCdisable))
                 error(f.loc, "identity assignment operator overload is illegal");
         }
 
         inv = buildInv(this, sc2);
+
+        Module.dprogress++;
+        semanticRun = PASSsemanticdone;
+        //printf("-ClassDeclaration.semantic(%s), type = %p\n", toChars(), type);
+        //members.print();
 
         sc2.pop();
 
@@ -1014,13 +978,15 @@ public:
 
         // Verify fields of a synchronized class are not public
         if (storage_class & STCsynchronized)
-        foreach (vd; this.fields)
         {
-            if (!vd.isThisDeclaration() &&
-                !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+            foreach (vd; this.fields)
             {
-                vd.error("Field members of a synchronized class cannot be %s",
-                    protectionToChars(vd.prot().kind));
+                if (!vd.isThisDeclaration() &&
+                    !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+                {
+                    vd.error("Field members of a synchronized class cannot be %s",
+                        protectionToChars(vd.prot().kind));
+                }
             }
         }
 
@@ -1183,8 +1149,7 @@ public:
 
     final override void finalizeSize()
     {
-        if (sizeok != SIZEOKnone)
-            return;
+        assert(sizeok != SIZEOKdone);
 
         // Set the offsets of the fields and determine the size of the class
         if (baseClass)
@@ -1212,7 +1177,7 @@ public:
                 structsize += Target.ptrsize; // allow room for __monitor
         }
 
-        //printf("finalizeSize() %s\n", toChars());
+        //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
         size_t bi = 0;                  // index into vtblInterfaces[]
 
         /****
@@ -1232,10 +1197,15 @@ public:
 
             foreach (BaseClass* b; cd.interfaces)
             {
+                if (b.sym.sizeok != SIZEOKdone)
+                    b.sym.finalizeSize();
+                assert(b.sym.sizeok == SIZEOKdone);
+
                 if (!b.sym.alignsize)
                     b.sym.alignsize = Target.ptrsize;
                 alignmember(b.sym.alignsize, b.sym.alignsize, &offset);
                 assert(bi < vtblInterfaces.dim);
+
                 BaseClass* bv = (*vtblInterfaces)[bi];
                 if (b.sym.interfaces.length == 0)
                 {
@@ -1267,43 +1237,20 @@ public:
             return;
         }
 
+        // FIXME: Currently setFieldOffset functions need to increase fields
+        // to calculate each variable offsets. It can be improved later.
+        fields.setDim(0);
+
         uint offset = structsize;
         foreach (s; *members)
         {
             s.setFieldOffset(this, &offset, false);
         }
 
-        if (sizeok == SIZEOKfwd)
-            return;
-
         sizeok = SIZEOKdone;
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
-
-        // Look for the constructor
-        ctor = searchCtor();
-        if (ctor && ctor.toParent() != this)
-            ctor = null; // search() looks through ancestor classes
-        if (ctor)
-        {
-            // Finish all constructors semantics to determine this.noDefaultCtor.
-            struct SearchCtor
-            {
-                extern (C++) static int fp(Dsymbol s, void* ctxt)
-                {
-                    CtorDeclaration f = s.isCtorDeclaration();
-                    if (f && f.semanticRun == PASSinit)
-                        f.semantic(null);
-                    return 0;
-                }
-            }
-
-            foreach (s; *members)
-            {
-                s.apply(&SearchCtor.fp, null);
-            }
-        }
     }
 
     final bool isFuncHidden(FuncDeclaration fd)
@@ -1406,7 +1353,8 @@ public:
                     continue;
 
                 Lfd:
-                    fdmatch = fd, fdambig = null;
+                    fdmatch = fd;
+                    fdambig = null;
                     //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch.toChars(), fdmatch.type.toChars(), fdmatch.loc.toChars());
                     continue;
 
@@ -1467,18 +1415,52 @@ public:
      */
     final bool isAbstract()
     {
-        if (isabstract)
-            return true;
-        for (size_t i = 1; i < vtbl.dim; i++)
+        if (isabstract != ABSfwdref)
+            return isabstract == ABSyes;
+
+        /* Bugzilla 11169: Resolve forward references to all class member functions,
+         * and determine whether this class is abstract.
+         */
+        extern (C++) static int func(Dsymbol s, void* param)
         {
-            FuncDeclaration fd = vtbl[i].isFuncDeclaration();
-            //printf("\tvtbl[%d] = %p\n", i, fd);
-            if (!fd || fd.isAbstract())
+            auto fd = s.isFuncDeclaration();
+            if (!fd)
+                return 0;
+            if (fd.storage_class & STCstatic)
+                return 0;
+
+            if (fd._scope)
+                fd.semantic(null);
+
+            if (fd.isAbstract())
+                return 1;
+            return 0;
+        }
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            auto s = (*members)[i];
+            if (s.apply(&func, cast(void*)this))
             {
-                isabstract = true;
+                isabstract = ABSyes;
                 return true;
             }
         }
+
+        /* Iterate inherited member functions and check their abstract attribute.
+         */
+        for (size_t i = 1; i < vtbl.dim; i++)
+        {
+            auto fd = vtbl[i].isFuncDeclaration();
+            //if (fd) printf("\tvtbl[%d] = [%s] %s\n", i, fd.loc.toChars(), fd.toChars());
+            if (!fd || fd.isAbstract())
+            {
+                isabstract = ABSyes;
+                return true;
+            }
+        }
+
+        isabstract = ABSno;
         return false;
     }
 
@@ -1528,10 +1510,9 @@ public:
  */
 extern (C++) final class InterfaceDeclaration : ClassDeclaration
 {
-public:
     extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
     {
-        super(loc, id, baseclasses);
+        super(loc, id, baseclasses, null, false);
         if (id == Id.IUnknown) // IUnknown is the root of all COM interfaces
         {
             com = true;
@@ -1547,12 +1528,27 @@ public:
         return ClassDeclaration.syntaxCopy(id);
     }
 
+
+    override Scope* newScope(Scope* sc)
+    {
+        auto sc2 = super.newScope(sc);
+        if (com)
+            sc2.linkage = LINKwindows;
+        else if (cpp)
+            sc2.linkage = LINKcpp;
+        else if (objc.isInterface())
+            sc2.linkage = LINKobjc;
+        return sc2;
+    }
+
     override void semantic(Scope* sc)
     {
         //printf("InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
         if (semanticRun >= PASSsemanticdone)
             return;
         int errors = global.errors;
+
+        //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
 
         Scope* scx = null;
         if (_scope)
@@ -1574,7 +1570,7 @@ public:
         type = type.semantic(loc, sc);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
-            TemplateInstance ti = (cast(TypeClass)type).sym.isInstantiated();
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
             if (ti && isError(ti))
                 (cast(TypeClass)type).sym = this;
         }
@@ -1638,13 +1634,12 @@ public:
                 if (tb.ty == Ttuple)
                 {
                     TypeTuple tup = cast(TypeTuple)tb;
-                    Prot protection = b.protection;
                     baseclasses.remove(i);
                     size_t dim = Parameter.dim(tup.arguments);
                     for (size_t j = 0; j < dim; j++)
                     {
                         Parameter arg = Parameter.getNth(tup.arguments, j);
-                        b = new BaseClass(arg.type, protection);
+                        b = new BaseClass(arg.type);
                         baseclasses.insert(i + j, b);
                     }
                 }
@@ -1814,20 +1809,7 @@ public:
             s.addMember(sc, this);
         }
 
-        Scope* sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
-        sc2.parent = this;
-        sc2.inunion = 0;
-        if (com)
-            sc2.linkage = LINKwindows;
-        else if (cpp)
-            sc2.linkage = LINKcpp;
-        else if (this.objc.isInterface())
-            sc2.linkage = LINKobjc;
-        sc2.protection = Prot(PROTpublic);
-        sc2.explicitProtection = 0;
-        sc2.structalign = STRUCTALIGN_DEFAULT;
-        sc2.userAttribDecl = null;
+        auto sc2 = newScope(sc);
 
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
@@ -1851,20 +1833,18 @@ public:
             s.semantic(sc2);
         }
 
-        finalizeSize();
-
+        Module.dprogress++;
         semanticRun = PASSsemanticdone;
+        //printf("-InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+        //members.print();
+
+        sc2.pop();
 
         if (global.errors != errors)
         {
             // The type is no good.
             type = Type.terror;
         }
-
-        //members.print();
-        sc2.pop();
-
-        //printf("-InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
 
         version (none)
         {
@@ -1876,7 +1856,6 @@ public:
         }
         assert(type.ty != Tclass || (cast(TypeClass)type).sym == this);
     }
-
 
     /*******************************************
      * Determine if 'this' is a base class of cd.

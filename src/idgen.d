@@ -1,12 +1,11 @@
-
-/* Compiler implementation of the D programming language
- * Copyright (c) 1999-2014 by Digital Mars
- * All Rights Reserved
- * written by Walter Bright
- * http://www.digitalmars.com
- * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/D-Programming-Language/dmd/blob/master/src/idgen.c
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _idgen.d)
  */
 
 // Program to generate string files in d data structures.
@@ -17,7 +16,6 @@
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.stdc.string;
 
 struct Msgtable
 {
@@ -88,6 +86,8 @@ Msgtable[] msgtable =
     { "__c_ulong" },
     { "__c_long_double" },
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
+    { "_assert", "assert" },
+    { "_unittest", "unittest" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -291,8 +291,6 @@ Msgtable[] msgtable =
     { "entrypoint", "__entrypoint" },
 
     // varargs implementation
-    { "va_argsave_t", "__va_argsave_t" },
-    { "va_argsave", "__va_argsave" },
     { "va_start" },
 
     // Builtin functions

@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _visitor.d)
+ */
 
 module ddmd.visitor;
 
@@ -32,7 +34,6 @@ import ddmd.staticassert;
 
 extern (C++) class Visitor
 {
-public:
     void visit(Statement)
     {
         assert(0);
@@ -419,6 +420,11 @@ public:
     }
 
     void visit(LinkDeclaration s)
+    {
+        visit(cast(AttribDeclaration)s);
+    }
+
+    void visit(CPPMangleDeclaration s)
     {
         visit(cast(AttribDeclaration)s);
     }
@@ -1004,11 +1010,6 @@ public:
     }
 
     void visit(NotExp e)
-    {
-        visit(cast(UnaExp)e);
-    }
-
-    void visit(BoolExp e)
     {
         visit(cast(UnaExp)e);
     }

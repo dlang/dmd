@@ -164,8 +164,7 @@ enum LANG
 enum SC;
 struct Thunk;
 struct token_t;
-struct PARAM;
-typedef struct PARAM param_t;
+struct param_t;
 struct block;
 struct Classsym;
 struct Nspacesym;
@@ -175,21 +174,20 @@ struct dt_t;
 typedef struct TYPE type;
 typedef struct Symbol symbol;
 typedef Symbol Funcsym;
-//typedef Symbol Classsym;      // a Symbol that is an SCclass, SCstruct or SCunion
 struct elem;
 #if !MARS
 typedef struct MACRO macro_t;
-typedef struct BLKLST blklst;
 #endif
 typedef list_t symlist_t;       /* list of pointers to Symbols          */
-typedef struct SYMTAB_S symtab_t;
+struct symtab_t;
 struct code;
+struct blklst;
 
 extern Config config;
 
 /////////// Position in source file
 
-typedef struct Srcpos
+struct Srcpos
 {
     unsigned Slinnum;           // 0 means no info available
     unsigned Scharnum;
@@ -201,17 +199,61 @@ typedef struct Srcpos
 #if MARS
     const char *Sfilename;
     #define srcpos_name(p)      ((p)->Sfilename)
+
+    static Srcpos create(const char *filename, unsigned linnum, unsigned charnum)
+    {
+        // Cannot have constructor because Srcpos is used in a union
+        Srcpos sp;
+        sp.Sfilename = filename;
+        sp.Slinnum = linnum;
+        sp.Scharnum = charnum;
+        return sp;
+    }
 #endif
-#if M_UNIX
+//#if M_UNIX
     short Sfilnum;              // file number
-#endif
+//#endif
 
     void print(const char *func);
-} Srcpos;
+
+    static unsigned sizeCheck();
+};
 
 #ifndef TOKEN_H
 #include "token.h"
 #endif
+
+typedef unsigned stflags_t;
+enum
+{
+    PFLpreprocessor  = 1,       // in preprocessor
+    PFLmasm          = 2,       // in Microsoft-style inline assembler
+    PFLbasm          = 4,       // in Borland-style inline assembler
+    PFLsemi          = 8,       // ';' means start of comment
+//  PFLautogen       = 0x10,    // automatically generate HX ph file
+    PFLmftemp        = 0x20,    // if expanding member function template
+    PFLextdef        = 0x40,    // we had an external def
+    PFLhxwrote       = 0x80,    // already generated HX ph file
+    PFLhxdone        = 0x100,   // done with HX ph file
+#if TX86
+    PFLhxread        = 0x200,   // have read in an HX ph file
+    PFLhxgen         = 0x400,   // need to generate HX ph file
+    PFLphread        = 0x800,   // read a ph file
+    PFLcomdef        = 0x1000,  // had a common block
+    PFLmacdef        = 0x2000,  // defined a macro in the source code
+    PFLsymdef        = 0x4000,  // declared a global Symbol in the source
+    PFLinclude       = 0x8000,  // read a .h file
+    PFLmfc           = 0x10000, // something will affect MFC compatibility
+#endif
+};
+
+typedef char sthflags_t;
+enum
+{
+    FLAG_INPLACE    = 0,       // in place hydration
+    FLAG_HX         = 1,       // HX file hydration
+    FLAG_SYM        = 2,       // .SYM file hydration
+};
 
 /**********************************
  * Current 'state' of the compiler.
@@ -219,7 +261,7 @@ typedef struct Srcpos
  * This struct is saved/restored during function body parsing.
  */
 
-typedef struct Pstate
+struct Pstate
 {
     char STinopeq;              // if in n2_createopeq()
     char STinarglist;           // if !=0, then '>' is the end of a template
@@ -250,28 +292,10 @@ typedef struct Pstate
 
 #   define funcsym_p (pstate.STfuncsym_p)
 
-    unsigned STflags;
-#       define PFLpreprocessor  1       // in preprocessor
-#       define preprocessor     (pstate.STflags & PFLpreprocessor)
-#       define PFLmasm          2       // in Microsoft-style inline assembler
-#       define PFLbasm          4       // in Borland-style inline assembler
-#       define inline_asm       (pstate.STflags & (PFLmasm | PFLbasm))
-#       define PFLsemi          8       // ';' means start of comment
-//#     define PFLautogen       0x10    // automatically generate HX ph file
-#       define PFLmftemp        0x20    // if expanding member function template
-#       define PFLextdef        0x40    // we had an external def
-#       define PFLhxwrote       0x80    // already generated HX ph file
-#       define PFLhxdone        0x100   // done with HX ph file
-#if TX86
-#       define PFLhxread        0x200   // have read in an HX ph file
-#       define PFLhxgen         0x400   // need to generate HX ph file
-#       define PFLphread        0x800   // read a ph file
-#       define PFLcomdef        0x1000  // had a common block
-#       define PFLmacdef        0x2000  // defined a macro in the source code
-#       define PFLsymdef        0x4000  // declared a global Symbol in the source
-#       define PFLinclude       0x8000  // read a .h file
-#       define PFLmfc           0x10000 // something will affect MFC compatibility
-#endif
+    stflags_t STflags;
+    #define preprocessor     (pstate.STflags & PFLpreprocessor)
+    #define inline_asm       (pstate.STflags & (PFLmasm | PFLbasm))
+
 #if !MARS
     int STinparamlist;          // if != 0, then parser is in
                                 // function parameter list
@@ -282,10 +306,7 @@ typedef struct Pstate
 
 #if TX86
     // should probably be inside #if HYDRATE, but unclear for the dmc source
-    char SThflag;               // FLAG_XXXX: hydration flag
-#define FLAG_INPLACE    0       // in place hydration
-#define FLAG_HX         1       // HX file hydration
-#define FLAG_SYM        2       // .SYM file hydration
+    sthflags_t SThflag;         // FLAG_XXXX: hydration flag
 #endif
 
     Classsym *STclasssym;       // if in the scope of this class
@@ -295,7 +316,7 @@ typedef struct Pstate
     SYMIDX STmarksi;            // to determine if temporaries are created
     char STnoparse;             // add to classlist instead of parsing
     char STdeferparse;          // defer member func parse
-    enum SC STgclass;           // default function storage class
+    SC STgclass;                // default function storage class
     int STdefertemps;           // defer allocation of temps
     int STdeferaccesscheck;     // defer access check for members (BUG: it
                                 // never does get done later)
@@ -310,7 +331,9 @@ typedef struct Pstate
     unsigned STsequence;        // sequence number (Ssequence) of next Symbol
     unsigned STmaxsequence;     // won't find Symbols with STsequence larger
                                 // than STmaxsequence
-} Pstate;
+
+    static unsigned sizeCheck();
+};
 
 extern Pstate pstate;
 
@@ -318,9 +341,9 @@ extern Pstate pstate;
  * Global variables.
  */
 
-typedef struct Cstate
+struct Cstate
 {
-    struct BLKLST *CSfilblk;    // current source file we are parsing
+    blklst *CSfilblk;           // current source file we are parsing
     Symbol *CSlinkage;          // table of forward referenced linkage pragmas
     list_t CSlist_freelist;     // free list for list package
     symtab_t *CSpsymtab;        // pointer to current Symbol table
@@ -328,27 +351,32 @@ typedef struct Cstate
     void **CSphx;               // pointer to HX data block
 #endif
     char *modname;              // module unique identifier
-} Cstate;
+
+    static unsigned sizeCheck();
+};
 
 extern Cstate cstate;
 
 /* Bits for sytab[] that give characteristics of storage classes        */
-#define SCEXP   1       // valid inside expressions
-#define SCKEP   2       // Symbol should be kept even when function is done
-#define SCSCT   4       // storage class is valid for use in static ctor
-#define SCSS    8       // storage class is on the stack
-#define SCRD    0x10    // we can do reaching definitions on these
+enum
+{
+    SCEXP = 1,      // valid inside expressions
+    SCKEP = 2,      // Symbol should be kept even when function is done
+    SCSCT = 4,      // storage class is valid for use in static ctor
+    SCSS  = 8,      // storage class is on the stack
+    SCRD  = 0x10,   // we can do reaching definitions on these
+};
 
 // Determine if Symbol has a Ssymnum associated with it.
 // (That is, it is allocated on the stack or has live variable analysis
 //  done on it, so it is stack and register variables.)
 #define symbol_isintab(s)       (sytab[(s)->Sclass] & SCSS)
 
-#if defined(__DMC__) || defined(_MSC_VER)
+//#if defined(__DMC__) || defined(_MSC_VER)
 typedef char enum_SC;
-#else
-typedef enum SC enum_SC;
-#endif
+//#else
+//typedef enum SC enum_SC;
+//#endif
 
 /******************************************
  * Basic blocks:
@@ -378,9 +406,34 @@ struct Blockx
     Declaration *member;        // member we're compiling for
     Module *module;             // module we're in
 #endif
+
+    static unsigned sizeCheck();
 };
 
-typedef struct block
+typedef unsigned short bflags_t;
+enum
+{
+    BFLvisited       = 1,       // set if block is visited
+    BFLmark          = 2,       // set if block is visited
+    BFLjmpoptdone    = 4,       // set when no more jump optimizations
+                                //  are possible for this block
+    BFLnostackopt    = 8,       // set when stack elimination should not
+                                // be done
+#if NTEXCEPTIONS
+    BFLehcode        = 0x10,    // set when we need to load exception code
+    BFLunwind        = 0x1000,  // do local_unwind following block
+#endif
+    BFLnomerg        = 0x20,    // do not merge with other blocks
+    BFLprolog        = 0x80,    // generate function prolog
+    BFLepilog        = 0x100,   // generate function epilog
+    BFLrefparam      = 0x200,   // referenced parameter
+    BFLreflocal      = 0x400,   // referenced local
+    BFLoutsideprolog = 0x800,   // outside function prolog/epilog
+    BFLlabel         = 0x2000,  // block preceded by label
+    BFLvolatile      = 0x4000,  // block is volatile
+};
+
+struct block
 {
     union
     {
@@ -452,25 +505,7 @@ typedef struct block
 
     unsigned char Balign;       // alignment
 
-    unsigned short Bflags;              // flags (BFLxxxx)
-        #define BFLvisited    1         // set if block is visited
-        #define BFLmark       2         // set if block is visited
-        #define BFLjmpoptdone 4         // set when no more jump optimizations
-                                        //  are possible for this block
-        #define BFLnostackopt 8         // set when stack elimination should not
-                                        // be done
-#if NTEXCEPTIONS
-        #define BFLehcode     0x10      // set when we need to load exception code
-        #define BFLunwind     0x1000    // do local_unwind following block
-#endif
-        #define BFLnomerg      0x20     // do not merge with other blocks
-        #define BFLprolog      0x80     // generate function prolog
-        #define BFLepilog      0x100    // generate function epilog
-        #define BFLrefparam    0x200    // referenced parameter
-        #define BFLreflocal    0x400    // referenced local
-        #define BFLoutsideprolog 0x800  // outside function prolog/epilog
-        #define BFLlabel        0x2000  // block preceded by label
-        #define BFLvolatile     0x4000  // block is volatile
+    bflags_t    Bflags;              // flags (BFLxxxx)
     code        *Bcode;         // code generated for this block
 
     unsigned Bweight;           // relative number of times this block
@@ -564,7 +599,9 @@ typedef struct block
     int numSucc() { return list_nitems(this->Bsucc); }
     block *nthSucc(int n) { return (block *)list_ptr(list_nth(Bsucc, n)); }
     void setNthSucc(int n, block *b) { list_ptr(list_nth(Bsucc, n)) = b; }
-} block;
+
+    static unsigned sizeCheck();
+};
 
 #define list_block(l)   ((block *) list_ptr(l))
 
@@ -611,14 +648,71 @@ enum BC {
  * Functions
  */
 
-typedef struct SYMTAB_S
+struct symtab_t
 {
     SYMIDX top;                 // 1 past end
     SYMIDX symmax;              // max # of entries in tab[] possible
     Symbol **tab;               // local Symbol table
-} symtab_t;
+};
 
-typedef struct FUNC_S
+typedef unsigned func_flags_t;
+enum
+{
+    Fpending    = 1,           // if function has been queued for being written
+    Foutput     = 2,           // if function has been written out
+    Foperator   = 4,           // if operator overload
+    Fcast       = 8,           // if cast overload
+    Finline     = 0x10,        // if SCinline, and function really is inline
+    Foverload   = 0x20,        // if function can be overloaded
+    Ftypesafe   = 0x40,        // if function name needs type appended
+    Fmustoutput = 0x80,        // set for forward ref'd functions that
+                               // must be output
+    Fvirtual    = 0x100,       // if function is a virtual function
+    Fctor       = 0x200,       // if function is a constructor
+    Fdtor       = 0x400,       // if function is a destructor
+    Fnotparent  = 0x800,       // if function is down Foversym chain
+    Finlinenest = 0x1000,      // used as a marker to prevent nested
+                               // inlines from expanding
+    Flinkage    = 0x2000,      // linkage is already specified
+    Fstatic     = 0x4000,      // static member function (no this)
+    Fbitcopy    = 0x8000,      // it's a simple bitcopy (op=() or X(X&))
+    Fpure       = 0x10000,     // pure function
+    Finstance   = 0x20000,     // function is an instance of a template
+    Ffixed      = 0x40000,     // ctor has had cpp_fixconstructor() run on it,
+                               // dtor has had cpp_fixdestructor()
+    Fintro      = 0x80000,     // function doesn't hide a previous virtual function
+//  unused      = 0x100000,    // unused bit
+    Fkeeplink   = 0x200000,    // don't change linkage to default
+    Fnodebug    = 0x400000,    // do not generate debug info for this function
+    Fgen        = 0x800000,    // compiler generated function
+    Finvariant  = 0x1000000,   // __invariant function
+    Fexplicit   = 0x2000000,   // explicit constructor
+    Fsurrogate  = 0x4000000,   // surrogate call function
+};
+
+typedef unsigned func_flags3_t;
+enum
+{
+    Fvtblgen         = 1,       // generate vtbl[] when this function is defined
+    Femptyexc        = 2,       // empty exception specification (obsolete, use Tflags & TFemptyexc)
+    Fcppeh           = 4,       // uses C++ EH
+    Fnteh            = 8,       // uses NT Structured EH
+    Fdeclared        = 0x10,    // already declared function Symbol
+    Fmark            = 0x20,    // has unbalanced OPctor's
+    Fdoinline        = 0x40,    // do inline walk
+    Foverridden      = 0x80,    // ignore for overriding purposes
+    Fjmonitor        = 0x100,   // Mars synchronized function
+    Fnosideeff       = 0x200,   // function has no side effects
+    F3badoparrow     = 0x400,   // bad operator->()
+    Fmain            = 0x800,   // function is main() or wmain()
+    Fnested          = 0x1000,  // D nested function with 'this'
+    Fmember          = 0x2000,  // D member function with 'this'
+    Fnotailrecursion = 0x4000,  // no tail recursion optimizations
+    Ffakeeh          = 0x8000,  // allocate space for NT EH context sym anyway
+    Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
+};
+
+struct func_t
 {
     symlist_t Fsymtree;         // local Symbol table
     block *Fstartblock;         // list of blocks comprising function
@@ -626,55 +720,8 @@ typedef struct FUNC_S
     Srcpos Fstartline;          // starting line # of function
     Srcpos Fendline;            // line # of closing brace of function
     Symbol *F__func__;          // symbol for __func__[] string
-    unsigned Fflags;
-#       define Fpending  1      // if function has been queued for being written
-#       define Foutput   2      /* if function has been written out     */
-#       define Finline   0x10   /* if SCinline, and function really is inline */
-#       define Foverload 0x20   /* if function can be overloaded        */
-#       define Ftypesafe 0x40   /* if function name needs type appended */
-#       define Fmustoutput 0x80 /* set for forward ref'd functions that */
-                                /* must be output                       */
-#       define Finlinenest 0x1000 /* used as a marker to prevent nested */
-                                /* inlines from expanding               */
-#       define Flinkage 0x2000  /* linkage is already specified         */
-#       define Fstatic  0x4000  /* static member function (no this)     */
-#       define Foperator 4      /* if operator overload                 */
-#       define Fcast     8      /* if cast overload                     */
-#       define Fvirtual 0x100   /* if function is a virtual function    */
-#       define Fctor    0x200   /* if function is a constructor         */
-#       define Fdtor    0x400   /* if function is a destructor          */
-#       define Fnotparent 0x800 /* if function is down Foversym chain   */
-#       define Fbitcopy 0x8000  /* it's a simple bitcopy (op=() or X(X&)) */
-#       define Fpure     0x10000        // pure function
-#       define Finstance 0x20000        // function is an instance of a template
-#       define Ffixed    0x40000        // ctor has had cpp_fixconstructor() run on it,
-                                        // dtor has had cpp_fixdestructor()
-#       define Fintro    0x80000        // function doesn't hide a previous virtual function
-//#     define unused    0x100000       // unused bit
-#       define Fkeeplink 0x200000       // don't change linkage to default
-#       define Fnodebug  0x400000       // do not generate debug info for this function
-#       define Fgen      0x800000       // compiler generated function
-#       define Finvariant 0x1000000     // __invariant function
-#       define Fexplicit  0x2000000     // explicit constructor
-#       define Fsurrogate 0x4000000     // surrogate call function
-    unsigned Fflags3;
-        #define Fvtblgen        0x01    // generate vtbl[] when this function is defined
-        #define Femptyexc       0x02    // empty exception specification (obsolete, use Tflags & TFemptyexc)
-        #define Fcppeh          0x04    // uses C++ EH
-        #define Fdeclared       0x10    // already declared function Symbol
-        #define Fmark           0x20    // has unbalanced OPctor's
-        #define Fnteh           0x08    // uses NT Structured EH
-        #define Fdoinline       0x40    // do inline walk
-        #define Foverridden     0x80    // ignore for overriding purposes
-        #define Fjmonitor       0x100   // Mars synchronized function
-        #define Fnosideeff      0x200   // function has no side effects
-        #define F3badoparrow    0x400   // bad operator->()
-        #define Fmain           0x800   // function is main() or wmain()
-        #define Fnested         0x1000  // D nested function with 'this'
-        #define Fmember         0x2000  // D member function with 'this'
-        #define Fnotailrecursion 0x4000 // no tail recursion optimizations
-        #define Ffakeeh         0x8000  // allocate space for NT EH context sym anyway
-        #define Fnothrow        0x10000 // function does not throw (even if not marked 'nothrow')
+    func_flags_t Fflags;
+    func_flags3_t Fflags3;
     unsigned char Foper;        // operator number (OPxxxx) if Foperator
 
     Symbol *Fparsescope;        // use this scope to parse friend functions
@@ -692,7 +739,7 @@ typedef struct FUNC_S
     elem *Fbaseinit;            /* list of member initializers (meminit_t) */
                                 /* this field has meaning only for      */
                                 /* functions which are constructors     */
-    struct token_t *Fbody;      /* if deferred parse, this is the list  */
+    token_t *Fbody;             // if deferred parse, this is the list
                                 /* of tokens that make up the function  */
                                 /* body                                 */
                                 // also used if SCfunctempl, SCftexpspec
@@ -700,7 +747,7 @@ typedef struct FUNC_S
     union
     {
         Symbol *Ftempl;         // if Finstance this is the template that generated it
-        struct Thunk *Fthunk;   // !=NULL if this function is actually a thunk
+        Thunk *Fthunk;          // !=NULL if this function is actually a thunk
     };
     Funcsym *Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
@@ -723,13 +770,16 @@ typedef struct FUNC_S
     size_t typesTableDim;       // number used in typesTable[]
     size_t typesTableCapacity;  // allocated capacity of typesTable[]
 
-#if ELFOBJ
-    unsigned LSDAoffset;        // offset in LSDA segment of the LSDA data for this function
-#endif
-#if MACHOBJ
-    Symbol *LSDAsym;            // GCC_except_table%d
-#endif
-} func_t;
+    union
+    {
+        unsigned LSDAoffset_;   // ELFOBJ: offset in LSDA segment of the LSDA data for this function
+        #define LSDAoffset lsda.LSDAoffset_
+        Symbol *LSDAsym_;       // MACHOBJ: GCC_except_table%d
+        #define LSDAsym lsda.LSDAsym_
+    } lsda;
+
+    static unsigned sizeCheck();
+};
 
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))
 #define func_free(f)    mem_ffree(f)
@@ -738,24 +788,40 @@ typedef struct FUNC_S
  * Item in list for member initializer.
  */
 
-typedef struct MEMINIT
+struct meminit_t
 {
     list_t  MIelemlist;         /* arg list for initializer             */
     Symbol *MIsym;              /* if NULL, then this initializer is    */
                                 /* for the base class. Otherwise, this  */
                                 /* is the member that needs the ctor    */
                                 /* called for it                        */
-} meminit_t;
+};
+
+typedef unsigned baseclass_flags_t;
+enum
+{
+     BCFpublic     = 1,         // base class is public
+     BCFprotected  = 2,         // base class is protected
+     BCFprivate    = 4,         // base class is private
+
+     BCFvirtual    = 8,         // base class is virtual
+     BCFvfirst     = 0x10,      // virtual base class, and this is the
+                                // first virtual appearance of it
+     BCFnewvtbl    = 0x20,      // new vtbl generated for this base class
+     BCFvirtprim   = 0x40,      // Primary base class of a virtual base class
+     BCFdependent  = 0x80,      // base class is a dependent type
+};
+const baseclass_flags_t BCFpmask = BCFpublic | BCFprotected | BCFprivate;
 
 
 /************************************
  * Base classes are a list of these.
  */
 
-typedef struct BASECLASS
+struct baseclass_t
 {
     Classsym         *BCbase;           // base class Symbol
-    struct BASECLASS *BCnext;           // next base class
+    baseclass_t      *BCnext;           // next base class
     targ_size_t       BCoffset;         // offset from start of derived class to this
     unsigned short    BCvbtbloff;       // for BCFvirtual, offset from start of
                                         //     vbtbl[] to entry for this virtual base.
@@ -765,24 +831,15 @@ typedef struct BASECLASS
                                         // (NULL if not different from base class's vtbl
     Symbol           *BCvtbl;           // Symbol for vtbl[] array (in Smptrbase list)
                                         // Symbol for vbtbl[] array (in Svbptrbase list)
-    unsigned          BCflags;          // base class flags
-#define BCFpublic       1                   // base class is public
-#define BCFprotected    2                   // base class is protected
-#define BCFprivate      4                   // base class is private
-#define BCFpmask        (BCFpublic | BCFprotected | BCFprivate)
-
-#define BCFvirtual      8                   // base class is virtual
-#define BCFvfirst       0x10                // virtual base class, and this is the
-                                            // first virtual appearance of it
-#define BCFnewvtbl      0x20                // new vtbl generated for this base class
-#define BCFvirtprim     0x40                // Primary base class of a virtual base class
-#define BCFdependent    0x80                // base class is a dependent type
+    baseclass_flags_t BCflags;          // base class flags
     Classsym         *BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
 #if TX86
-    struct BASECLASS *BCpbase;          // parent base, NULL if did not come from a parent
+    baseclass_t      *BCpbase;          // parent base, NULL if did not come from a parent
 #endif
-} baseclass_t;
+
+    static unsigned sizeCheck();
+};
 
 #define baseclass_malloc()      ((baseclass_t *)mem_fmalloc(sizeof(baseclass_t)))
 #define baseclass_free(b)       ((void)(b))
@@ -791,16 +848,22 @@ typedef struct BASECLASS
  * For virtual tables.
  */
 
-typedef struct MPTR
-{   targ_short     MPd;
+typedef char mptr_flags_t;
+enum
+{
+    MPTRvirtual     = 1,       // it's an offset to a virtual base
+    MPTRcovariant   = 2,       // need covariant return pointer adjustment
+};
+
+struct mptr_t
+{
+    targ_short     MPd;
     targ_short     MPi;
     Symbol        *MPf;
     Symbol        *MPparent;    // immediate parent of this base class
                                 //   in Smptrbase
-    unsigned char  MPflags;
-#define MPTRvirtual     1       // it's an offset to a virtual base
-#define MPTRcovariant   2       // need covariant return pointer adjustment
-} mptr_t;
+    mptr_flags_t   MPflags;
+};
 
 #define list_mptr(l)    ((mptr_t *) list_ptr(l))
 
@@ -888,11 +951,11 @@ struct TMNF
  * Special information for class templates.
  */
 
-typedef struct TEMPLATE
+struct template_t
 {
     symlist_t     TMinstances;  // list of Symbols that are instances
     param_t      *TMptpl;       // template-parameter-list
-    struct token_t *TMbody;     // tokens making up class body
+    token_t      *TMbody;     // tokens making up class body
     unsigned TMsequence;        // sequence number at point of definition
     list_t TMmemberfuncs;       // templates for member functions (list of TMF's)
     list_t TMexplicit;          // list of TME's: primary member template explicit specializations
@@ -910,65 +973,73 @@ typedef struct TEMPLATE
                                 // classes of this template will be friends of
     list_t TMnestedfriends;     // list of TMNF's
     int TMflags2;               // !=0 means dummy template created by template_createargtab()
-} template_t;
+
+    static unsigned sizeCheck();
+};
 
 /***********************************
  * Special information for enums.
  */
 
-typedef struct ENUM
+typedef unsigned enum_flags_t;
+enum
 {
-    unsigned SEflags;
-#define SENnotagname    1       // no tag name for enum
-#define SENforward      2       // forward referenced enum
+    SENnotagname  = 1,       // no tag name for enum
+    SENforward    = 2,       // forward referenced enum
+};
 
+struct enum_t
+{
+    enum_flags_t SEflags;
     Symbol *SEalias;            // pointer to identifier E to use if
-                                /* enum was defined as:                 */
-                                /*      typedef enum { ... } E;         */
+                                // enum was defined as:
+                                //      typedef enum { ... } E;
     symlist_t SEenumlist;       // all members of enum
-} enum_t;
+};
 
 /***********************************
  * Special information for structs.
  */
 
-typedef struct STRUCT
+typedef unsigned long struct_flags_t;
+enum
+{
+    STRanonymous     = 1,          // set for unions with no tag names
+    STRglobal        = 2,          // defined at file scope
+    STRnotagname     = 4,          // struct/class with no tag name
+    STRoutdef        = 8,          // we've output the debug definition
+    STRbitfields     = 0x10,       // set if struct contains bit fields
+    STRabstract      = 0x20,       // abstract class
+    STRbitcopy       = 0x40,       // set if operator=() is merely a bit copy
+    STRanyctor       = 0x80,       // set if any constructors were defined
+                                   // by the user
+    STRnoctor        = 0x100,      // no constructors allowed
+    STRgen           = 0x200,      // if struct is an instantiation of a
+                                   // template class, and was generated by
+                                   // that template
+    STRvtblext       = 0x400,      // generate vtbl[] only when first member function
+                                   // definition is encountered (see Fvtblgen)
+    STRexport        = 0x800,      // all member functions are to be _export
+    STRpredef        = 0x1000,     // a predefined struct
+    STRunion         = 0x2000,     // actually, it's a union
+    STRclass         = 0x4000,     // it's a class, not a struct
+    STRimport        = 0x8000,     // imported class
+    STRstaticmems    = 0x10000,    // class has static members
+    STR0size         = 0x20000,    // zero sized struct
+    STRinstantiating = 0x40000,    // if currently being instantiated
+    STRexplicit      = 0x80000,    // if explicit template instantiation
+    STRgenctor0      = 0x100000,   // need to gen X::X()
+    STRnotpod        = 0x200000,   // struct is not POD
+};
+
+struct struct_t
 {
     targ_size_t Sstructsize;    // size of struct
     symlist_t Sfldlst;          // all members of struct (list freeable)
     Symbol *Sroot;              // root of binary tree Symbol table
     unsigned Salignsize;        // size of struct for alignment purposes
     unsigned char Sstructalign; // struct member alignment in effect
-    unsigned long Sflags;
-#define STRanonymous    0x01    // set for unions with no tag names
-#define STRglobal       0x02    // defined at file scope
-#define STRnotagname    0x04    // struct/class with no tag name
-#define STRoutdef       0x08    // we've output the debug definition
-#define STRbitfields    0x10    // set if struct contains bit fields
-#define STRpredef       0x1000 // a predefined struct
-#define STRunion        0x4000  // actually, it's a union
-
-#define STRabstract     0x20    // abstract class
-#define STRbitcopy      0x40    // set if operator=() is merely a bit copy
-#define STRanyctor      0x80    // set if any constructors were defined
-                                // by the user
-#define STRnoctor       0x100   // no constructors allowed
-#define STRgen          0x200   // if struct is an instantiation of a
-                                // template class, and was generated by
-                                // that template
-#define STRvtblext      0x400   // generate vtbl[] only when first member function
-                                // definition is encountered (see Fvtblgen)
-#define STRexport       0x800   // all member functions are to be _export
-#define STRclass        0x8000  // it's a class, not a struct
-#if TX86
-#define STRimport       0x40000 // imported class
-#define STRstaticmems   0x80000 // class has static members
-#endif
-#define STR0size        0x100000        // zero sized struct
-#define STRinstantiating 0x200000       // if currently being instantiated
-#define STRexplicit     0x400000        // if explicit template instantiation
-#define STRgenctor0     0x800000        // need to gen X::X()
-#define STRnotpod       0x1000000       // struct is not POD
+    struct_flags_t Sflags;
     tym_t ptrtype;              // type of pointer to refer to classes by
     unsigned short access;      // current access privilege, here so
                                 // enum declarations can get at it
@@ -1053,7 +1124,9 @@ typedef struct STRUCT
                                 // It is NULL for the
                                 // primary template class (since it would be
                                 // identical to Sarglist).
-} struct_t;
+
+    static unsigned sizeCheck();
+};
 
 #define struct_calloc() ((struct_t *) mem_fcalloc(sizeof(struct_t)))
 #define struct_free(st) ((void)(st))
@@ -1065,6 +1138,69 @@ typedef struct STRUCT
 #define list_symbol(l)          ((Symbol *) list_ptr(l))
 #define list_setsymbol(l,s)     list_ptr(l) = (s)
 #define list_Classsym(l)        ((Classsym *) list_ptr(l))
+
+enum
+{
+    SFLvalue        = 1,           // Svalue contains const expression
+    SFLimplem       = 2,           // if seen implementation of Symbol
+                                   // (function body for functions,
+                                   // initializer for variables)
+    SFLdouble       = 2,           // SCregpar or SCparameter, where float
+                                   // is really passed as a double
+    SFLfree         = 4,           // if we can symbol_free() a Symbol in
+                                   // a Symbol table[]
+    SFLmark         = 8,           // temporary marker
+    SFLexit         = 0x10,        // tyfunc: function does not return
+                                   // (ex: exit,abort,_assert,longjmp)
+    SFLtrue         = 0x200,       // value of Symbol != 0
+    SFLreplace      = SFLmark,     // variable gets replaced in inline expansion
+    SFLskipinit     = 0x10000,     // SCfield, SCmember: initializer is skipped
+    SFLnodebug      = 0x20000,     // don't generate debug info
+    SFLwasstatic    = 0x800000,    // was an uninitialized static
+    SFLweak         = 0x1000000,   // resolve to NULL if not found
+    SFLartifical    = 0x4000000,   // compiler generated symbol
+
+    // CPP
+    SFLnodtor       = 0x10,        // set if destructor for Symbol is already called
+    SFLdtorexp      = 0x80,        // Svalue has expression to tack onto dtor
+    SFLmutable      = 0x100000,    // SCmember or SCfield is mutable
+    SFLdyninit      = 0x200000,    // symbol has dynamic initializer
+    SFLtmp          = 0x400000,    // symbol is a generated temporary
+    SFLthunk        = 0x40000,     // symbol is temporary for thunk
+
+    // Possible values for protection bits
+    SFLprivate      = 0x60,
+    SFLprotected    = 0x40,
+    SFLpublic       = 0x20,
+    SFLnone         = 0x00,
+    SFLpmask        = 0x60,        // mask for the protection bits
+
+    SFLvtbl         = 0x2000,      // VEC_VTBL_LIST: Symbol is a vtable or vbtable
+
+    // OPTIMIZER and CODGEN
+    GTregcand       = 0x100,       // if Symbol is a register candidate
+    SFLdead         = 0x800,       // this variable is dead
+    GTunregister    = 0x2000000,   // 'unregister' a previous register assignment
+
+    // OPTIMIZER only
+    SFLunambig      = 0x400,       // only accessible by unambiguous reference,
+                                   // i.e. cannot be addressed via pointer
+                                   // (GTregcand is a subset of this)
+                                   // P.S. code generator turns off this
+                                   // flag if any reads are done from it.
+                                   // This is to eliminate stores to it
+                                   // that are never read.
+    SFLlivexit      = 0x1000,      // live on exit from function
+    SFLnotbasiciv   = 0x4000,      // not a basic induction variable
+    SFLnord         = SFLdouble,   // SCauto,SCregister,SCtmp: disallow redundant warnings
+
+    // CODGEN only
+    GTtried         = SFLmark,     // tried to place in register
+    GTbyte          = 0x8000,      // variable is sometimes accessed as
+    SFLread         = 0x40000,     // variable is actually read from
+                                   // (to eliminate dead stores)
+    SFLspill        = 0x80000,     // only in register part of the time
+};
 
 struct Symbol
 {
@@ -1188,75 +1324,13 @@ struct Symbol
     const char *prettyIdent;    // the symbol identifer as the user sees it
 #endif
 
-#if TARGET_OSX
+//#if TARGET_OSX
     targ_size_t Slocalgotoffset;
-#endif
+//#endif
 
     enum_SC Sclass;             // storage class (SCxxxx)
     char Sfl;                   // flavor (FLxxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
-        #define SFLmark         0x08    // temporary marker
-        #define SFLvalue        0x01    // Svalue contains const expression
-        #define SFLimplem       0x02    // if seen implementation of Symbol
-                                        // (function body for functions,
-                                        // initializer for variables)
-        #define SFLdouble       0x02    // SCregpar or SCparameter, where float
-                                        // is really passed as a double
-        #define SFLfree         0x04    // if we can symbol_free() a Symbol in
-                                        // a Symbol table[]
-        #define SFLexit         0x10    // tyfunc: function does not return
-                                        // (ex: exit,abort,_assert,longjmp)
-        #define SFLtrue         0x200   // value of Symbol != 0
-        #define SFLreplace      SFLmark // variable gets replaced in inline expansion
-        #define SFLskipinit     0x10000 // SCfield, SCmember: initializer is skipped
-        #define SFLnodebug      0x20000 // don't generate debug info
-        #define SFLwasstatic    0x800000 // was an uninitialized static
-        #define SFLweak         0x1000000 // resolve to NULL if not found
-        #define SFLartifical    0x4000000 // compiler generated symbol
-
-        // CPP
-        #define SFLnodtor       0x10    // set if destructor for Symbol is already called
-        #define SFLdtorexp      0x80    // Svalue has expression to tack onto dtor
-        #define SFLmutable      0x100000        // SCmember or SCfield is mutable
-        #define SFLdyninit      0x200000        // symbol has dynamic initializer
-        #define SFLtmp          0x400000        // symbol is a generated temporary
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        #define SFLthunk        0x40000 // symbol is temporary for thunk
-#endif
-
-        // Possible values for protection bits
-        #define SFLprivate      0x60
-        #define SFLprotected    0x40
-        #define SFLpublic       0x20
-        #define SFLnone         0x00
-        #define SFLpmask        0x60    // mask for the protection bits
-#if VEC_VTBL_LIST
-        #define SFLvtbl         0x2000  // Symbol is a vtable or vbtable
-#endif
-
-        // OPTIMIZER and CODGEN
-        #define GTregcand       0x100   // if Symbol is a register candidate
-        #define SFLdead         0x800   // this variable is dead
-        #define GTunregister    0x2000000       // 'unregister' a previous register assignment
-
-        // OPTIMIZER only
-        #define SFLunambig      0x400   // only accessible by unambiguous reference,
-                                        // i.e. cannot be addressed via pointer
-                                        // (GTregcand is a subset of this)
-                                        // P.S. code generator turns off this
-                                        // flag if any reads are done from it.
-                                        // This is to eliminate stores to it
-                                        // that are never read.
-        #define SFLlivexit      0x1000  // live on exit from function
-        #define SFLnotbasiciv   0x4000  // not a basic induction variable
-        #define SFLnord         SFLdouble // SCauto,SCregister,SCtmp: disallow redundant warnings
-
-        // CODGEN only
-        #define GTtried         SFLmark // tried to place in register
-        #define GTbyte          0x8000  // variable is sometimes accessed as
-        #define SFLread         0x40000 // variable is actually read from
-                                        // (to eliminate dead stores)
-        #define SFLspill        0x80000 // only in register part of the time
 
     vec_t       Srange;         // live range, if any
     vec_t       Slvreg;         // when symbol is in register
@@ -1290,10 +1364,17 @@ struct Symbol
     }_SXR;
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
+#if MARS
+    unsigned lnoscopestart;     // life time of var
+    unsigned lnoscopeend;       // the line after the scope
+#endif
+
     char Sident[1];             // identifier string (dynamic array)
 
     int needThis();             // !=0 if symbol needs a 'this' pointer
     bool Sisdead(bool anyiasm); // if variable is not referenced
+
+    static unsigned sizeCheck();
 };
 
 #if __DMC__
@@ -1355,7 +1436,7 @@ struct Aliassym : Symbol { };
  *      Psym            SCtemplate for template-template-argument
  */
 
-struct PARAM
+struct param_t
 {
 #ifdef DEBUG
     unsigned short      id;
@@ -1372,17 +1453,19 @@ struct PARAM
     type *Pdeftype;             // Ptype==NULL: default type for type-argument
     param_t *Pptpl;             // template-parameter-list for template-template-parameter
     Symbol *Psym;
-    PARAM *Pnext;               // next in list
+    param_t *Pnext;             // next in list
     unsigned Pflags;
     #define PFexplicit  1       // this template argument was explicit, i.e. in < >
 
-    PARAM *createTal(PARAM *);  // create template-argument-list blank from
+    param_t *createTal(param_t *); // create template-argument-list blank from
                                 // template-parameter-list
-    PARAM *search(char *id);    // look for Pident matching id
+    param_t *search(char *id);  // look for Pident matching id
     int searchn(char *id);      // look for Pident matching id, return index
     unsigned length();          // number of parameters in list
     void print();               // print this param_t
     void print_list();          // print this list of param_t's
+
+    static unsigned sizeCheck();
 };
 
 /**************************************
@@ -1446,7 +1529,16 @@ enum FL
 
 #if !MARS
 // Collect information about a source file.
-typedef struct Sfile
+typedef unsigned sfile_flags_t;
+enum
+{
+    SFonce    = 1,      // file is to be #include'd only once
+    SFhx      = 2,      // file is in an HX file and has not been loaded
+    SFtop     = 4,      // file is a top level source file
+    SFloaded  = 8,      // read from PH file
+};
+
+struct Sfile
 {
 #ifdef DEBUG
     unsigned short      id;
@@ -1457,11 +1549,7 @@ typedef struct Sfile
 #endif
 
     char     *SFname;           // name of file
-    unsigned  SFflags;
-        #define SFonce    0x01      // file is to be #include'd only once
-        #define SFhx      0x02      // file is in an HX file and has not been loaded
-        #define SFtop     0x04      // file is a top level source file
-        #define SFloaded  0x08      // read from PH file
+    sfile_flags_t  SFflags;
     list_t    SFfillist;        // file pointers of Sfile's that this Sfile is
                                 //     dependent on (i.e. they were #include'd).
                                 //     Does not include nested #include's
@@ -1474,14 +1562,16 @@ typedef struct Sfile
     Symbol   *SFtagsymdefs;     // list of tag names (C only)
     char     *SFinc_once_id;    // macro include guard identifier
     unsigned SFhashval;         // hash of file name
-} Sfile;
+
+    static unsigned sizeCheck();
+};
 
 // Source files are referred to by a pointer into pfiles[]. This is so that
 // when PH files are hydrated, only pfiles[] needs updating. Of course, this
 // means that pfiles[] cannot be reallocated to larger numbers, its size is
 // fixed at SRCFILES_MAX.
 
-typedef struct Srcfiles
+struct Srcfiles
 {
 //  Sfile *arr;         // array of Sfiles
     Sfile **pfiles;     // parallel array of pointers into arr[]
@@ -1492,7 +1582,9 @@ typedef struct Srcfiles
 #endif
     unsigned dim;       // dimension of array
     unsigned idx;       // # used in array
-} Srcfiles;
+
+    static unsigned sizeCheck();
+};
 
 #define sfile(fi)               (*srcfiles.pfiles[fi])
 #define srcfiles_name(fi)       (sfile(fi).SFname)
@@ -1534,12 +1626,15 @@ extern Symbol *rtlsym[RTLSYM_MAX];
 
 // Different goals for el_optimize()
 typedef unsigned goal_t;
-#define GOALnone        0       // evaluate for side effects only
-#define GOALvalue       1       // evaluate for value
-#define GOALflags       2       // evaluate for flags
-#define GOALagain       4
-#define GOALstruct      8
-#define GOALhandle      0x10    // don't replace handle'd objects
+enum
+{
+    GOALnone        = 0,       // evaluate for side effects only
+    GOALvalue       = 1,       // evaluate for value
+    GOALflags       = 2,       // evaluate for flags
+    GOALagain       = 4,
+    GOALstruct      = 8,
+    GOALhandle      = 0x10,    // don't replace handle'd objects
+};
 
 /* Globals returned by declar() */
 struct Declar
@@ -1553,6 +1648,8 @@ struct Declar
     param_t *ptal;
     bool explicitSpecialization;
     int hasExcSpec;             // has exception specification
+
+    static unsigned sizeCheck();
 };
 
 extern Declar gdeclar;
@@ -1579,7 +1676,8 @@ extern Declar gdeclar;
  */
 
 struct dt_t
-{   dt_t *DTnext;                       // next in list
+{
+    dt_t *DTnext;                       // next in list
     char dt;                            // type (DTxxxx)
     unsigned char Dty;                  // pointer type
     unsigned char DTn;                  // DTibytes: number of bytes
@@ -1612,18 +1710,19 @@ struct dt_t
             #define DToffset _DU._DS.DToffset_
         }_DS;
     }_DU;
+
+    static unsigned sizeCheck();
 };
 
 enum
 {
-    DT_abytes,
-    DT_azeros,  // 1
-    DT_xoff,
-    DT_nbytes,
-    DT_common,
-    DT_symsize,
-    DT_coff,
-    DT_ibytes, // 7
+    DT_abytes = 0,
+    DT_azeros = 1,
+    DT_xoff   = 2,
+    DT_nbytes = 3,
+    DT_common = 4,
+    DT_coff   = 5,
+    DT_ibytes = 6,
 };
 
 // An efficient way to clear aligned memory

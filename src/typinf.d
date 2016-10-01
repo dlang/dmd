@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _typeinf.d)
+ */
 
 module ddmd.typinf;
 
@@ -12,7 +14,6 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
-import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.globals;
 import ddmd.gluelayer;
@@ -30,6 +31,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
         torig.error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
+
     Type t = torig.merge2(); // do this since not all Type's are merge'd
     if (!t.vtinfo)
     {
@@ -44,6 +46,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
         else
             t.vtinfo = getTypeInfoDeclaration(t);
         assert(t.vtinfo);
+
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.
          */
@@ -104,8 +107,9 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
             return TypeInfoInterfaceDeclaration.create(t);
         else
             return TypeInfoClassDeclaration.create(t);
+
     default:
-        return TypeInfoDeclaration.create(t, 0);
+        return TypeInfoDeclaration.create(t);
     }
 }
 
@@ -212,18 +216,22 @@ extern (C++) bool isSpeculativeType(Type t)
 }
 
 /* ========================================================================= */
+
 /* These decide if there's an instance for them already in std.typeinfo,
  * because then the compiler doesn't need to build one.
  */
 extern (C++) static bool builtinTypeInfo(Type t)
 {
-    if (t.isTypeBasic() || t.ty == Tclass)
+    if (t.isTypeBasic() || t.ty == Tclass || t.ty == Tnull)
         return !t.mod;
     if (t.ty == Tarray)
     {
         Type next = t.nextOf();
         // strings are so common, make them builtin
-        return !t.mod && (next.isTypeBasic() !is null && !next.mod || next.ty == Tchar && next.mod == MODimmutable || next.ty == Tchar && next.mod == MODconst);
+        return !t.mod &&
+               (next.isTypeBasic() !is null && !next.mod ||
+                next.ty == Tchar && next.mod == MODimmutable ||
+                next.ty == Tchar && next.mod == MODconst);
     }
     return false;
 }

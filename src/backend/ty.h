@@ -112,179 +112,185 @@ enum TYM
     TYllong2            = 0x46, // long[2]
     TYullong2           = 0x47, // ulong[2]
 
-// MARS types
-#define TYaarray        TYnptr
-#define TYdelegate      (I64 ? TYcent : TYllong)
-#define TYdarray        (I64 ? TYucent : TYullong)
-
     TYMAX               = 0x48,
 };
 
-#define mTYbasic        0xFF    /* bit mask for basic types     */
-#define tybasic(ty)     ((ty) & mTYbasic)
+extern int TYaarray;                            // D type
 
 // These change depending on memory model
+extern int TYdelegate, TYdarray;                // D types
 extern int TYptrdiff, TYsize, TYsize_t;
 
-/* Linkage type                 */
-#define mTYnear         0x0800
-#define mTYfar          0x1000           // seg:offset style pointer
-#define mTYcs           0x2000           // in code segment
-#define mTYthread       0x4000
-#define mTYLINK         0x7800           // all linkage bits
+enum
+{
+    mTYbasic        = 0xFF,          // bit mask for basic types
 
-#define mTYloadds       0x08000          // 16 bit Windows LOADDS attribute
-#define mTYexport       0x10000
-#define mTYweak         0x00000
-#define mTYimport       0x20000
-#define mTYnaked        0x40000
-#define mTYMOD          0x78000          // all modifier bits
+   // Linkage type
+    mTYnear         = 0x0800,
+    mTYfar          = 0x1000,        // seg:offset style pointer
+    mTYcs           = 0x2000,        // in code segment
+    mTYthread       = 0x4000,
 
-/* Modifiers to basic types     */
+    // Used for symbols going in the __thread_data section for TLS variables for Mach-O 64bit
+    mTYthreadData   = 0x5000,
+    mTYLINK         = 0x7800,        // all linkage bits
 
-#define mTYarrayhandle  0x0
-#define mTYconst        0x100
-#define mTYvolatile     0x200
-#define mTYrestrict     0               // BUG: add for C99
-#define mTYmutable      0               // need to add support
-#define mTYunaligned    0               // non-zero for PowerPC
+    mTYloadds       = 0x08000,       // 16 bit Windows LOADDS attribute
+    mTYexport       = 0x10000,
+    mTYweak         = 0x00000,
+    mTYimport       = 0x20000,
+    mTYnaked        = 0x40000,
+    mTYMOD          = 0x78000,       // all modifier bits
 
-#define mTYimmutable    0x00080000       // immutable data
-#define mTYshared       0x00100000       // shared data
-#define mTYnothrow      0x00200000       // nothrow function
+    // Modifiers to basic types
 
-// Used only by C/C++ compiler
+    mTYarrayhandle  = 0x0,
+    mTYconst        = 0x100,
+    mTYvolatile     = 0x200,
+    mTYrestrict     = 0,             // BUG: add for C99
+    mTYmutable      = 0,             // need to add support
+    mTYunaligned    = 0,             // non-zero for PowerPC
+
+    mTYimmutable    = 0x00080000,    // immutable data
+    mTYshared       = 0x00100000,    // shared data
+    mTYnothrow      = 0x00200000,    // nothrow function
+
+    // Used only by C/C++ compiler
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define mTYnoret        0x01000000        // function has no return
-#define mTYtransu       0x01000000        // transparent union
+    mTYnoret        = 0x01000000,    // function has no return
+    mTYtransu       = 0x01000000,    // transparent union
 #else
-#define mTYfar16        0x01000000
+    mTYfar16        = 0x01000000,
 #endif
-#define mTYstdcall      0x02000000
-#define mTYfastcall     0x04000000
-#define mTYinterrupt    0x08000000
-#define mTYcdecl        0x10000000
-#define mTYpascal       0x20000000
-#define mTYsyscall      0x40000000
-#define mTYjava         0x80000000
+    mTYstdcall      = 0x02000000,
+    mTYfastcall     = 0x04000000,
+    mTYinterrupt    = 0x08000000,
+    mTYcdecl        = 0x10000000,
+    mTYpascal       = 0x20000000,
+    mTYsyscall      = 0x40000000,
+    mTYjava         = 0x80000000,
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define mTYTFF          0xFE000000
+    mTYTFF          = 0xFE000000,
 #else
-#define mTYTFF          0xFF000000
+    mTYTFF          = 0xFF000000,
 #endif
+};
+
+inline tym_t tybasic(tym_t ty) { return ty & mTYbasic; }
 
 /* Flags in tytab[] array       */
 extern unsigned tytab[];
-#define TYFLptr         1
-#define TYFLreal        2
-#define TYFLintegral    4
-#define TYFLcomplex     8
-#define TYFLimaginary   0x10
-#define TYFLuns         0x20
-#define TYFLmptr        0x40
-#define TYFLfv          0x80    /* TYfptr || TYvptr     */
+enum
+{
+    TYFLptr         = 1,
+    TYFLreal        = 2,
+    TYFLintegral    = 4,
+    TYFLcomplex     = 8,
+    TYFLimaginary   = 0x10,
+    TYFLuns         = 0x20,
+    TYFLmptr        = 0x40,
+    TYFLfv          = 0x80,       // TYfptr || TYvptr
 
-#define TYFLpascal      0x200       // callee cleans up stack
-#define TYFLrevparam    0x400       // function parameters are reversed
-#define TYFLnullptr     0x800
-#define TYFLshort       0x1000
-#define TYFLaggregate   0x2000
-#define TYFLfunc        0x4000
-#define TYFLref         0x8000
-#define TYFLsimd        0x20000     // SIMD vector type
-#define TYFLfarfunc     0x100       // __far functions (for segmented architectures)
-#define TYFLxmmreg      0x10000     // can be put in XMM register
+    TYFLpascal      = 0x200,      // callee cleans up stack
+    TYFLrevparam    = 0x400,      // function parameters are reversed
+    TYFLnullptr     = 0x800,
+    TYFLshort       = 0x1000,
+    TYFLaggregate   = 0x2000,
+    TYFLfunc        = 0x4000,
+    TYFLref         = 0x8000,
+    TYFLsimd        = 0x20000,    // SIMD vector type
+    TYFLfarfunc     = 0x100,      // __far functions (for segmented architectures)
+    TYFLxmmreg      = 0x10000,    // can be put in XMM register
+};
+
+/* Array to give the size in bytes of a type, -1 means error    */
+extern signed char _tysize[];
+extern signed char _tyalignsize[];
+
+// Give size of type
+#define tysize(ty) _tysize[(ty) & 0xFF]
+#define tyalignsize(ty) _tyalignsize[(ty) & 0xFF]
+
 
 /* Groupings of types   */
 
-#define tyintegral(ty)  (tytab[(ty) & 0xFF] & TYFLintegral)
+inline unsigned tyintegral(tym_t ty) { return tytab[ty & 0xFF] & TYFLintegral; }
 
-#define tyarithmetic(ty) (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex))
+inline unsigned tyarithmetic(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex); }
 
-#define tyaggregate(ty) (tytab[(ty) & 0xFF] & TYFLaggregate)
+inline unsigned tyaggregate(tym_t ty) { return tytab[ty & 0xFF] & TYFLaggregate; }
 
-#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref))
+inline unsigned tyscalar(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr | TYFLref); }
 
-#define tyfloating(ty)  (tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex))
+inline unsigned tyfloating(tym_t ty) { return tytab[ty & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex); }
 
-#define tyimaginary(ty) (tytab[(ty) & 0xFF] & TYFLimaginary)
+inline unsigned tyimaginary(tym_t ty) { return tytab[ty & 0xFF] & TYFLimaginary; }
 
-#define tycomplex(ty)   (tytab[(ty) & 0xFF] & TYFLcomplex)
+inline unsigned tycomplex(tym_t ty) { return tytab[ty & 0xFF] & TYFLcomplex; }
 
-#define tyreal(ty)      (tytab[(ty) & 0xFF] & TYFLreal)
+inline unsigned tyreal(tym_t ty) { return tytab[ty & 0xFF] & TYFLreal; }
 
 // Fits into 64 bit register
-#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= NPTRSIZE)
+inline bool ty64reg(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= NPTRSIZE; }
 
 // Can go in XMM floating point register
-#define tyxmmreg(ty)    (tytab[(ty) & 0xFF] & TYFLxmmreg)
+inline unsigned tyxmmreg(tym_t ty) { return tytab[ty & 0xFF] & TYFLxmmreg; }
 
 // Is a vector type
-#define tyvector(ty)    (tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2)
+inline bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2; }
 
 /* Types that are chars or shorts       */
-#define tyshort(ty)     (tytab[(ty) & 0xFF] & TYFLshort)
+inline unsigned tyshort(tym_t ty) { return tytab[ty & 0xFF] & TYFLshort; }
 
 /* Detect TYlong or TYulong     */
-#define tylong(ty)      (tybasic(ty) == TYlong || tybasic(ty) == TYulong)
+inline bool tylong(tym_t ty) { return tybasic(ty) == TYlong || tybasic(ty) == TYulong; }
 
 /* Use to detect a pointer type */
-#define typtr(ty)       (tytab[(ty) & 0xFF] & TYFLptr)
+inline unsigned typtr(tym_t ty) { return tytab[ty & 0xFF] & TYFLptr; }
 
 /* Use to detect a reference type */
-#define tyref(ty)       (tytab[(ty) & 0xFF] & TYFLref)
+inline unsigned tyref(tym_t ty) { return tytab[ty & 0xFF] & TYFLref; }
 
 /* Use to detect a pointer type or a member pointer     */
-#define tymptr(ty)      (tytab[(ty) & 0xFF] & (TYFLptr | TYFLmptr))
+inline unsigned tymptr(tym_t ty) { return tytab[ty & 0xFF] & (TYFLptr | TYFLmptr); }
 
 // Use to detect a nullptr type or a member pointer
-#define tynullptr(ty)      (tytab[(ty) & 0xFF] & TYFLnullptr)
+inline unsigned tynullptr(tym_t ty) { return tytab[ty & 0xFF] & TYFLnullptr; }
 
 /* Detect TYfptr or TYvptr      */
-#define tyfv(ty)        (tytab[(ty) & 0xFF] & TYFLfv)
-
-/* Array to give the size in bytes of a type, -1 means error    */
-extern signed char tysize[];
-extern signed char tyalignsize[];
-
-// Give size of type
-#define tysize(ty)      tysize[(ty) & 0xFF]
-#define tyalignsize(ty) tyalignsize[(ty) & 0xFF]
+inline unsigned tyfv(tym_t ty) { return tytab[ty & 0xFF] & TYFLfv; }
 
 /* All data types that fit in exactly 8 bits    */
-#define tybyte(ty)      (tysize(ty) == 1)
+inline bool tybyte(tym_t ty) { return tysize(ty) == 1; }
 
 /* Types that fit into a single machine register        */
-#define tyreg(ty)       (tysize(ty) <= REGSIZE)
+inline bool tyreg(tym_t ty) { return tysize(ty) <= REGSIZE; }
 
 /* Detect function type */
-#define tyfunc(ty)      (tytab[(ty) & 0xFF] & TYFLfunc)
+inline unsigned tyfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfunc; }
 
 /* Detect function type where parameters are pushed left to right    */
-#define tyrevfunc(ty)   (tytab[(ty) & 0xFF] & TYFLrevparam)
+inline unsigned tyrevfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLrevparam; }
 
 /* Detect unsigned types */
-#define tyuns(ty)       (tytab[(ty) & 0xFF] & (TYFLuns | TYFLptr))
+inline unsigned tyuns(tym_t ty) { return tytab[ty & 0xFF] & (TYFLuns | TYFLptr); }
 
 /* Target dependent info        */
 #define TYoffset TYuint         /* offset to an address         */
 
 /* Detect cpp function type (callee cleans up stack)    */
-#define typfunc(ty)     (tytab[(ty) & 0xFF] & TYFLpascal)
+inline unsigned typfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLpascal; }
 
 /* Array to convert a type to its unsigned equivalent   */
-extern const tym_t tytouns[];
-#define touns(ty)       (tytouns[(ty) & 0xFF])
+extern tym_t tytouns[];
+inline tym_t touns(tym_t ty) { return tytouns[ty & 0xFF]; }
 
 /* Determine if TYffunc or TYfpfunc (a far function) */
-#define tyfarfunc(ty)   (tytab[(ty) & 0xFF] & TYFLfarfunc)
-
-/* Determine relaxed type       */
-#define tyrelax(ty)     (_tyrelax[tybasic(ty)])
+inline unsigned tyfarfunc(tym_t ty) { return tytab[ty & 0xFF] & TYFLfarfunc; }
 
 // Determine if parameter is a SIMD vector type
-#define tysimd(ty)   (tytab[(ty) & 0xFF] & TYFLsimd)
+inline unsigned tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 
 /* Array to give the 'relaxed' type for relaxed type checking   */
 extern unsigned char _tyrelax[];
@@ -294,6 +300,10 @@ extern unsigned char _tyrelax[];
 #else
 #define type_semirelax  type_relax
 #endif
+
+/* Determine relaxed type       */
+inline unsigned tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
+
 
 /* Determine functionally equivalent type       */
 extern unsigned char tyequiv[];

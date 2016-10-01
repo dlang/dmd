@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2015 by Digital Mars
+ * Copyright (c) 1999-2016 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -13,14 +13,12 @@
 module ddmd.dinifile;
 
 import core.stdc.ctype;
-import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.posix.stdlib;
 import core.sys.windows.windows;
 
 import ddmd.errors;
 import ddmd.globals;
-import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
@@ -72,7 +70,7 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
     filename = FileName.replaceName(argv0, inifile);
     if (FileName.exists(filename))
         return filename;
-    static if (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+    version (Posix)
     {
         // Search PATH for argv0
         auto p = getenv("PATH");
@@ -139,7 +137,7 @@ private bool writeToEnv(StringTable* environment, char* nameEqValue)
  */
 void updateRealEnvironment(StringTable* environment)
 {
-    extern (C++) static int envput(StringValue* sv)
+    extern (C++) static int envput(const(StringValue)* sv)
     {
         const name = sv.toDchars();
         const namelen = strlen(name);
@@ -259,8 +257,12 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         }
 
         // Remove trailing spaces
-        while (buf.offset && isspace(buf.data[buf.offset - 1]))
-            buf.offset--;
+        const slice = buf.peekSlice();
+        auto slicelen = slice.length;
+        while (slicelen && isspace(slice[slicelen - 1]))
+            --slicelen;
+        buf.setsize(slicelen);
+
         auto p = buf.peekString();
         // The expanded line is in p.
         // Now parse it for meaning.

@@ -1,10 +1,12 @@
-// Compiler implementation of the D programming language
-// Copyright (c) 1999-2015 by Digital Mars
-// All Rights Reserved
-// written by Walter Bright
-// http://www.digitalmars.com
-// Distributed under the Boost Software License, Version 1.0.
-// http://www.boost.org/LICENSE_1_0.txt
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(DMDSRC _imphint.d)
+ */
 
 module ddmd.imphint;
 
@@ -19,7 +21,7 @@ import core.stdc.string;
  */
 extern (C++) const(char)* importHint(const(char)* s)
 {
-    static __gshared const(char)** modules = ["core.stdc.stdio", "std.stdio", "std.math", "core.vararg", null];
+    static __gshared const(char)** modules = ["core.stdc.stdio", "std.stdio", "std.math", null];
     static __gshared const(char)** names =
     [
         "printf",
@@ -30,8 +32,6 @@ extern (C++) const(char)* importHint(const(char)* s)
         "cos",
         "sqrt",
         "fabs",
-        null,
-        "__va_argsave_t",
         null
     ];
     int m = 0;

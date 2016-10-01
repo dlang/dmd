@@ -1137,6 +1137,35 @@ void test15455()
 }
 
 /****************************************/
+// 15372
+
+extern(C++) int foo15372(T)(T v);
+
+void test15372()
+{
+    version(Windows){}
+    else
+        assert(foo15372!int(1) == 1);
+}
+
+/****************************************/
+// 15802
+
+extern(C++) {
+    template Foo15802(T) {
+        static int boo(T v);
+    }
+}
+
+void test15802()
+{
+    version(Windows){}
+    else
+        assert(Foo15802!(int).boo(1) == 1);
+}
+
+
+/****************************************/
 
 void main()
 {
@@ -1176,6 +1205,8 @@ void main()
     test15579();
     test15610();
     test15455();
+    test15372();
+    test15802();
 
     printf("Success\n");
 }

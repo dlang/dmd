@@ -50,6 +50,9 @@ STATIC void pinholeopt_unittest();
 //#define JMPJMPTABLE   TARGET_WINDOS
 #define JMPJMPTABLE     0               // benchmarking shows its slower
 
+#define MINLL           0x8000000000000000LL
+#define MAXLL           0x7FFFFFFFFFFFFFFFLL
+
 /*************
  * Size in bytes of each instruction.
  * 0 means illegal instruction.
@@ -460,6 +463,7 @@ void cod3_align()
 
 code* cod3_stackadj(code* c, int nbytes)
 {
+    //printf("cod3_stackadj(%d)\n", nbytes);
     unsigned grex = I64 ? REX_W << 16 : 0;
     unsigned rm;
     if (nbytes > 0)
@@ -762,8 +766,8 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
     {
         case BCiftrue:
             jcond = TRUE;
-            bs1 = list_block(bl->Bsucc);
-            bs2 = list_block(list_next(bl->Bsucc));
+            bs1 = bl->nthSucc(0);
+            bs2 = bl->nthSucc(1);
             if (bs1 == bl->Bnext)
             {   // Swap bs1 and bs2
                 block *btmp;
@@ -803,6 +807,17 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             c = cat(c,getregs(lpadregs()));
+
+            if (config.ehmethod == EH_DWARF)
+            {
+                /* Each block must have ESP set to the same value it was at the end
+                 * of the prolog. But the unwinder calls catch blocks with ESP set
+                 * at the value it was when the throwing function was called, which
+                 * may have arguments pushed on the stack.
+                 * This instruction will reset ESP to the correct offset from EBP.
+                 */
+                c = gen1(c, ESCAPE | ESCfixesp);
+            }
             goto case_goto;
         }
 #endif
@@ -820,7 +835,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             goto case_goto;
 #endif
         case BCgoto:
-            nextb = list_block(bl->Bsucc);
+            nextb = bl->nthSucc(0);
             if ((MARS ||
                  funcsym_p->Sfunc->Fflags3 & Fnteh) &&
                 config.ehmethod != EH_DWARF &&
@@ -837,7 +852,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl->Btry &&
-                        list_block(list_next(bl->Btry->Bsucc))->BC == BCjcatch)
+                        bl->Btry->nthSucc(1)->BC == BCjcatch)
                     {
                         goto L2;        // it's a try-catch, not a try-finally
                     }
@@ -861,7 +876,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                     {   block *bf;
 
                         //printf("\tbt->Bscope_index = %d, bt->Blast_index = %d\n", bt->Bscope_index, bt->Blast_index);
-                        bf = list_block(list_next(bt->Bsucc));
+                        bf = bt->nthSucc(1);
                         // Only look at try-finally blocks
                         if (bf->BC == BCjcatch)
                             continue;
@@ -871,7 +886,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         //printf("\tbf = B%d, nextb = B%d\n", bf->Bdfoidx, nextb->Bdfoidx);
                         if (nextb->BC == BCgoto &&
                             !nextb->Belem &&
-                            bf == list_block(nextb->Bsucc))
+                            bf == nextb->nthSucc(0))
                             continue;
 
                         // call __finally
@@ -904,7 +919,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
         L3:
             bl->Bcode = NULL;
-            nextb = list_block(bl->Bsucc);
+            nextb = bl->nthSucc(0);
             goto L2;
 
         case BC_try:
@@ -1094,14 +1109,14 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             assert(!c);
             c = cat(c,getregs(iasm_regs(bl)));
             if (bl->Bsucc)
-            {   nextb = list_block(bl->Bsucc);
+            {   nextb = bl->nthSucc(0);
                 if (!bl->Bnext)
                     goto L2;
                 if (nextb != bl->Bnext &&
                     bl->Bnext &&
                     !(bl->Bnext->BC == BCgoto &&
                      !bl->Bnext->Belem &&
-                     nextb == list_block(bl->Bnext->Bsucc)))
+                     nextb == bl->Bnext->nthSucc(0)))
                 {   code *cl;
 
                     // See if already have JMP at end of block
@@ -1253,7 +1268,7 @@ void doswitch(block *b)
     code *cc = docommas(&e);
     cgstate.stackclean++;
     tym_t tys = tybasic(e->Ety);
-    int sz = tysize[tys];
+    int sz = _tysize[tys];
     bool dword = (sz == 2 * REGSIZE);
     bool mswsame = true;                // assume all msw's are the same
     targ_llong *p = b->BS.Bswitch;      // pointer to case data
@@ -1317,7 +1332,7 @@ void doswitch(block *b)
             reg2 = NOREG;
         }
         list_t bl = b->Bsucc;
-        block *bdefault = list_block(bl);
+        block *bdefault = b->nthSucc(0);
         if (dword && mswsame)
         {
             c = genc2(c,0x81,modregrm(3,7,reg2),msw);   // CMP reg2,MSW
@@ -1374,7 +1389,7 @@ void doswitch(block *b)
         if (vmin > 0 && vmin <= intsize)
             vmin = 0;
 
-        b->Btablesize = (int) (vmax - vmin + 1) * tysize[TYnptr];
+        b->Btablesize = (int) (vmax - vmin + 1) * tysize(TYnptr);
         regm_t retregs = IDXREGS;
         if (dword)
             retregs |= mMSW;
@@ -1398,19 +1413,19 @@ void doswitch(block *b)
             c = genc2(c,0x81,modregrm(3,5,reg),vmin); /* SUB reg,vmin   */
             if (dword)
             {   genc2(c,0x81,modregrm(3,3,reg2),MSREG(vmin)); // SBB reg2,vmin
-                genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+                genjmp(c,JNE,FLblock,b->nthSucc(0)); /* JNE default  */
             }
         }
         else if (dword)
         {   c = gentstreg(c,reg2);              // TEST reg2,reg2
-            genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+            genjmp(c,JNE,FLblock,b->nthSucc(0)); /* JNE default  */
         }
         if (vmax - vmin != REGMASK)     /* if there is a maximum        */
         {                               /* CMP reg,vmax-vmin            */
             c = genc2(c,0x81,modregrm(3,7,reg),vmax-vmin);
             if (I64)
                 code_orrex(c, REX_W);
-            genjmp(c,JA,FLblock,list_block(b->Bsucc));  /* JA default   */
+            genjmp(c,JA,FLblock,b->nthSucc(0));  /* JA default   */
         }
         if (I64)
         {
@@ -1460,14 +1475,14 @@ void doswitch(block *b)
                ...
              */
             code *ctable = CNIL;
-            block *bdef = list_block(b->Bsucc);
+            block *bdef = b->nthSucc(0);
             targ_llong u;
             for (u = vmin; ; u++)
             {   block *targ = bdef;
                 for (n = 0; n < ncases; n++)
                 {
                     if (p[n] == u)
-                    {   targ = list_block(list_nth(b->Bsucc, n + 1));
+                    {   targ = b->nthSucc(n + 1);
                         break;
                     }
                 }
@@ -1569,7 +1584,7 @@ void doswitch(block *b)
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             c = genc2(c,0x81,modregrm(3,7,DX),msw);
-            genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+            genjmp(c,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         ce = getregs(mCX|mDI);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -1648,7 +1663,7 @@ void doswitch(block *b)
             ce = gen1(ce,0xF2);         /* REPNE                        */
             gen1(ce,0xAF);              /* SCASW                        */
         }
-        genjmp(ce,JNE,FLblock,list_block(b->Bsucc)); /* JNE default     */
+        genjmp(ce,JNE,FLblock,b->nthSucc(0)); // JNE default
         mod = (disp > 127) ? 2 : 1;     /* 1 or 2 byte displacement     */
         if (csseg)
             gen1(ce,SEGCS);             // table is in code segment
@@ -1666,7 +1681,7 @@ void doswitch(block *b)
             ct->Iflags |= csseg ? CFcs : 0;
         }
         ce = cat(ce,ct);
-        b->Btablesize = disp + intsize + ncases * tysize[TYnptr];
+        b->Btablesize = disp + intsize + ncases * tysize(TYnptr);
     }
 
 L2: ;
@@ -1716,12 +1731,12 @@ void outjmptab(block *b)
     assert(*poffset == b->Btableoffset);        // should match precomputed value
 
     symbol *gotsym = NULL;
-    targ_size_t def = list_block(b->Bsucc)->Boffset;  // default address
+    targ_size_t def = b->nthSucc(0)->Boffset;  // default address
     for (targ_llong u = vmin; ; u++)
     {   targ_size_t targ = def;                     // default
         for (size_t n = 0; n < ncases; n++)
         {       if (p[n] == u)
-                {       targ = list_block(list_nth(b->Bsucc,n + 1))->Boffset;
+                {       targ = b->nthSucc(n + 1)->Boffset;
                         break;
                 }
         }
@@ -1769,7 +1784,7 @@ void outjmptab(block *b)
         else
         {
             objmod->reftocodeseg(jmpseg,*poffset,targ);
-            *poffset += tysize[TYnptr];
+            *poffset += tysize(TYnptr);
         }
 #else
         assert(0);
@@ -1826,7 +1841,7 @@ void outswitab(block *b)
   offset += alignbytes + sz * ncases;
   assert(*poffset == offset);
 
-  if (b->Btablesize == ncases * (REGSIZE * 2 + tysize[TYnptr]))
+  if (b->Btablesize == ncases * (REGSIZE * 2 + tysize(TYnptr)))
   {
         /* Send out MSW table   */
         p -= ncases;
@@ -1843,9 +1858,9 @@ void outswitab(block *b)
   for (n = 0; n < ncases; n++)          /* send out address table       */
   {     bl = list_next(bl);
         objmod->reftocodeseg(seg,*poffset,list_block(bl)->Boffset);
-        *poffset += tysize[TYnptr];
+        *poffset += tysize(TYnptr);
   }
-  assert(*poffset == offset + ncases * tysize[TYnptr]);
+  assert(*poffset == offset + ncases * tysize(TYnptr));
 }
 
 /*****************************
@@ -2183,7 +2198,7 @@ Lcant:
 bool cse_simple(code *c, elem *e)
 {   regm_t regm;
     unsigned reg;
-    int sz = tysize[tybasic(e->Ety)];
+    int sz = tysize(e->Ety);
 
     if (!I16 &&                                  // don't bother with 16 bit code
         e->Eoper == OPadd &&
@@ -4123,8 +4138,8 @@ code* gen_spill_reg(Symbol* s, bool toreg)
  *      i       offset into vtbl[]
  */
 
-void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
-        targ_size_t d,int i,targ_size_t d2)
+void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
+        unsigned d,int i,unsigned d2)
 {   code *c,*c1;
     targ_size_t thunkoffset;
     tym_t thunkty;
@@ -4135,10 +4150,10 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     thunkty = tybasic(sthunk->ty());
 #if TARGET_SEGMENTED
     if (tyfarfunc(thunkty))
-        p += I32 ? 8 : tysize[TYfptr];          /* far function */
+        p += I32 ? 8 : tysize(TYfptr);          /* far function */
     else
 #endif
-        p += tysize[TYnptr];
+        p += tysize(TYnptr);
 
     if (!I16)
     {
@@ -4624,11 +4639,26 @@ void assignaddrc(code *c)
         {
             if (c->Iop == (ESCAPE | ESCadjesp))
             {
-                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,c->IEV2.Vint);
+                //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,(long)c->IEV1.Vint);
                 EBPtoESP += c->IEV1.Vint;
                 c->Iop = NOP;
             }
-            if (c->Iop == (ESCAPE | ESCframeptr))
+            else if (c->Iop == (ESCAPE | ESCfixesp))
+            {
+                //printf("fix ESP\n");
+                if (hasframe)
+                {
+                    // LEA ESP,-EBPtoESP-REGSIZE[EBP]
+                    c->Iop = LEA;
+                    if (c->Irm & 8)
+                        c->Irex |= REX_R;
+                    c->Irm = modregrm(2,SP,BP);
+                    c->Iflags = CFoff;
+                    c->IFL1 = FLconst;
+                    c->IEV1.Vuns = -EBPtoESP - REGSIZE;
+                }
+            }
+            else if (c->Iop == (ESCAPE | ESCframeptr))
             {   // Convert to load of frame pointer
                 // c->Irm is the register to use
                 if (hasframe)
@@ -4819,7 +4849,7 @@ void assignaddrc(code *c)
 #if MARS
                 assert(c->IEV1.Vuns < NDP::savetop);
 #endif
-                c->IEVpointer1 = c->IEV1.Vuns * tysize[TYldouble] + NDPoff + BPoff;
+                c->IEVpointer1 = c->IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c->Iflags |= CFunambig;
                 goto L2;
             case FLoffset:
@@ -6092,6 +6122,9 @@ unsigned codout(code *c)
                         break;
 #endif
 #endif
+                    case ESCadjesp:
+                        //printf("adjust ESP %ld\n", (long)c->IEV1.Vint);
+                        break;
                 }
 #ifdef DEBUG
                 assert(calccodsize(c) == 0);
