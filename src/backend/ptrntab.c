@@ -109,6 +109,7 @@ OPTABLE0(CPUID,   0x0fa2, _I386 | _modall);
 OPTABLE0(RDMSR,   0x0f32, _I386 | _modaxdx);
 OPTABLE0(RDPMC,   0x0f33, _I386 | _modaxdx);
 OPTABLE0(RDTSC,   0x0f31, _I386 | _modaxdx);
+OPTABLE0(RDTSCP,  0x0f01f9, _I386 | _modaxdx | _modcx);
 OPTABLE0(WRMSR,   0x0f30, _I386);
 OPTABLE0(RSM,     0x0faa,_i64_bit | _I386);
 
@@ -5293,6 +5294,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("rdpmc",          0,              aptb0RDPMC )                    \
         X("rdrand",         1,              (P) aptb1RDRAND )               \
         X("rdtsc",          0,              aptb0RDTSC )                    \
+        X("rdtscp",         0,              aptb0RDTSCP )                   \
         X("rep",            ITprefix | 0,   aptb0REP )                      \
         X("repe",           ITprefix | 0,   aptb0REP )                      \
         X("repne",          ITprefix | 0,   aptb0REPNE )                    \
