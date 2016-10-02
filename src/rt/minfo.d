@@ -57,42 +57,24 @@ struct ModuleGroup
     // cycle path, and then creates it. It is a precondition that src and
     // target modules are involved in a cycle.
     //
+    // The return value is malloc'd using C, so it must be freed after use.
+    //
     // The delegate is a helper to map module info pointers to index into the modules array
-    private int[] genCyclePath(int srcidx, int targetidx,
-            scope int delegate(immutable(ModuleInfo)*) findModule)
+    private size_t[] genCyclePath(size_t srcidx, size_t targetidx, int[][] edges)
     {
         import core.bitop : bt, btc, bts;
 
-        // set up all the arrays. Use the GC, we are going to exit anyway.
-        int[] cyclePath;
-        int[] distance;
-        int[][] edges;
-        distance.length = _modules.length;
-        edges.length = _modules.length;
-        immutable nwords = (_modules.length + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
-        immutable flagbytes = nwords * size_t.sizeof;
-        auto reachable = cast(size_t*) malloc(flagbytes);
-        scope (exit)
-            .free(reachable);
-
-        foreach (i, m; _modules)
-        {
-            // use bit array to prevent duplicates
-            // https://issues.dlang.org/show_bug.cgi?id=16208
-            memset(reachable, 0, flagbytes);
-            foreach (e; m.importedModules)
-            {
-                auto impidx = findModule(e);
-                if (impidx != -1 && impidx != i)
-                    if (!bts(reachable, impidx))
-                        edges[i] ~= impidx;
-            }
-        }
+        // set up all the arrays.
+        size_t[] cyclePath = (cast(size_t*)malloc(size_t.sizeof * _modules.length * 2))[0 .. _modules.length * 2];
+        size_t totalMods;
+        int[] distance = (cast(int*)malloc(int.sizeof * _modules.length))[0 .. _modules.length];
+        scope(exit)
+            .free(distance.ptr);
 
         // determine the shortest path between two modules. Uses dijkstra
         // without a priority queue. (we can be a bit slow here, in order to
         // get a better printout).
-        void shortest(int start, int target)
+        void shortest(size_t start, size_t target)
         {
             // initial setup
             distance[] = int.max;
@@ -135,8 +117,8 @@ struct ModuleGroup
             // determine the path. This is tricky, because we have to
             // follow the edges in reverse to get back to the original. We
             // don't have a reverse mapping, so it takes a bit of looping.
-            cyclePath.length += curdist;
-            auto subpath = cyclePath[$ - curdist .. $];
+            totalMods += curdist;
+            auto subpath = cyclePath[totalMods - curdist .. totalMods];
             while (true)
             {
                 --curdist;
@@ -164,15 +146,12 @@ struct ModuleGroup
             }
         }
 
-        // a cycle starts with the source.
-        cyclePath ~= srcidx;
-
         // first get to the target
         shortest(srcidx, targetidx);
         // now get back.
         shortest(targetidx, srcidx);
 
-        return cyclePath;
+        return cyclePath[0 .. totalMods];
     }
 
     /******************************
@@ -186,6 +165,35 @@ struct ModuleGroup
     {
         import core.bitop : bts, btr, bt, BitRange;
         import rt.util.container.hashtab;
+        import rt.config : rt_configOption;
+
+        enum OnCycle
+        {
+            abort,
+            print,
+            ignore
+        }
+
+        auto onCycle = OnCycle.abort;
+
+        switch(rt_configOption("oncycle")) with(OnCycle)
+        {
+        case "abort":
+            onCycle = abort;
+            break;
+        case "print":
+            onCycle = print;
+            break;
+        case "ignore":
+            onCycle = ignore;
+            break;
+        case "":
+            // no option passed
+            break;
+        default:
+            // invalid cycle handling option.
+            throw new Error("DRT invalid cycle handling option: " ~ rt_configOption("oncycle"));
+        }
 
         debug (printModuleDependencies)
         {
@@ -205,18 +213,6 @@ struct ModuleGroup
         if (!len)
             return; // nothing to do.
 
-        // used for mapping module info to indexes.
-        HashTab!(immutable(ModuleInfo)*, int) modIndexes;
-        foreach (i, m; _modules)
-            modIndexes[m] = cast(int) i;
-
-        int findModule(immutable(ModuleInfo)* mi)
-        {
-            if (auto idx = mi in modIndexes)
-                return *idx;
-            return -1;
-        }
-
         // allocate some stack arrays that will be used throughout the process.
         immutable nwords = (len + 8 * size_t.sizeof - 1) / (8 * size_t.sizeof);
         immutable flagbytes = nwords * size_t.sizeof;
@@ -235,12 +231,82 @@ struct ModuleGroup
             memset(flags, 0, flagbytes);
         }
 
+
+        // build the edges between each module. We may need this for printing,
+        // and also allows avoiding keeping a hash around for module lookups.
+        int[][] edges = (cast(int[]*)malloc((int[]).sizeof * _modules.length))[0 .. _modules.length];
+        {
+            HashTab!(immutable(ModuleInfo)*, int) modIndexes;
+            foreach (i, m; _modules)
+                modIndexes[m] = cast(int) i;
+
+            auto reachable = cast(size_t*) malloc(flagbytes);
+            scope(exit)
+                .free(reachable);
+
+            foreach (i, m; _modules)
+            {
+                // use bit array to prevent duplicates
+                // https://issues.dlang.org/show_bug.cgi?id=16208
+                clearFlags(reachable);
+                // preallocate enough space to store all the indexes
+                int *edge = cast(int*)malloc(int.sizeof * _modules.length);
+                size_t nEdges = 0;
+                foreach (e; m.importedModules)
+                {
+                    if(auto impidx = e in modIndexes)
+                    {
+                        if (*impidx != i)
+                            if (!bts(reachable, *impidx))
+                                edge[nEdges++] = *impidx;
+                    }
+                }
+                // trim space to what is needed.
+                edges[i] = (cast(int*)realloc(edge, int.sizeof * nEdges))[0 .. nEdges];
+            }
+        }
+
+        // free all the edges after we are done
+        scope(exit)
+        {
+            foreach(e; edges)
+                if(e.ptr)
+                    .free(e.ptr);
+            .free(edges.ptr);
+        }
+
+        void buildCycleMessage(size_t sourceIdx, size_t cycleIdx, scope void delegate(string) sink)
+        {
+            version (Windows)
+                enum EOL = "\r\n";
+            else
+                enum EOL = "\n";
+
+            sink("Cyclic dependency between module ");
+            sink(_modules[sourceIdx].name);
+            sink(" and ");
+            sink(_modules[cycleIdx].name);
+            sink(EOL);
+            auto cyclePath = genCyclePath(sourceIdx, cycleIdx, edges);
+            scope(exit) .free(cyclePath.ptr);
+
+            sink(_modules[sourceIdx].name);
+            sink("* ->" ~ EOL);
+            foreach (x; cyclePath[0 .. $ - 1])
+            {
+                sink(_modules[x].name);
+                sink(bt(relevant, x) ? "* ->" ~ EOL : " ->" ~ EOL);
+            }
+            sink(_modules[sourceIdx].name);
+            sink("*" ~ EOL);
+        }
+
         // find all the non-trivial dependencies (that is, dependencies that have a
         // ctor or dtor) of a given module.  Doing this, we can 'skip over' the
         // trivial modules to get at the non-trivial ones.
         //
         // If a cycle is detected, returns the index of the module that completes the cycle.
-        int findDeps(size_t idx, size_t* reachable)
+        void findDeps(size_t idx, size_t* reachable)
         {
             static struct stackFrame
             {
@@ -264,7 +330,7 @@ struct ModuleGroup
             for (;;)
             {
                 auto m = _modules[sp.curMod];
-                if (sp.curDep >= m.importedModules.length)
+                if (sp.curDep >= edges[sp.curMod].length)
                 {
                     // return
                     if (sp == stack) // finished the algorithm
@@ -273,7 +339,7 @@ struct ModuleGroup
                 }
                 else
                 {
-                    auto midx = findModule(m.importedModules[sp.curDep]);
+                    auto midx = edges[sp.curMod][sp.curDep];
                     // if midx is -1, then this isn't part of this DSO.
                     if (midx != -1 && !bts(reachable, midx))
                     {
@@ -283,7 +349,23 @@ struct ModuleGroup
                             if (bt(ctorstart, midx))
                             {
                                 // was already started, this is a cycle.
-                                return midx;
+                                final switch(onCycle) with(OnCycle)
+                                {
+                                case abort:
+                                    string errmsg = "";
+                                    buildCycleMessage(idx, midx, (string x) {errmsg ~= x;});
+                                    throw new Error(errmsg, __FILE__, __LINE__);
+                                case ignore:
+                                    break;
+                                case print:
+                                    // print the message
+                                    buildCycleMessage(idx, midx, (string x) {
+                                                      import core.stdc.stdio : fprintf, stderr;
+                                                      fprintf(stderr, "%.*s", x.length, x.ptr);
+                                                      });
+                                    // continue on as if this is correct.
+                                    break;
+                                }
                             }
                         }
                         else if (!bt(ctordone, midx))
@@ -306,9 +388,6 @@ struct ModuleGroup
                 // next dependency
                 ++sp.curDep;
             }
-
-            // no cycles seen
-            return -1;
         }
 
         // The list of constructors that will be returned by the sorting.
@@ -331,41 +410,17 @@ struct ModuleGroup
             auto reachable = cast(size_t*) malloc(flagbytes);
             scope (exit)
                 .free(reachable);
-            auto cycleIdx = findDeps(curidx, reachable);
-            if (cycleIdx != -1)
-            {
-                auto cycleMod = _modules[cycleIdx];
-                // found a cycle
-
-                version (Windows)
-                    enum EOL = "\r\n";
-                else
-                    enum EOL = "\n";
-
-                string errmsg = "Cyclic dependency between module "
-                    ~ cycleMod.name ~ " and " ~ current.name ~ EOL;
-                auto cyclePath = genCyclePath(cycleIdx, cast(int) curidx, &findModule);
-
-                foreach (midx; cyclePath[0 .. $ - 1])
-                {
-                    errmsg ~= _modules[midx].name;
-                    errmsg ~= bt(relevant, midx) ? "* ->" ~ EOL : " ->" ~ EOL;
-                }
-                errmsg ~= cycleMod.name;
-                errmsg ~= "*" ~ EOL;
-                throw new Error(errmsg, __FILE__, __LINE__);
-            }
+            findDeps(curidx, reachable);
 
             // process the dependencies. First, we process all relevant ones
             bts(ctorstart, curidx);
             auto brange = BitRange(reachable, len);
             foreach (i; brange)
             {
-                if (i != curidx && bt(relevant, i) && !bt(ctordone, i))
-                {
-                    assert(!bt(ctorstart, i)); // sanity check, this should have been flagged a cycle earlier
+                // note, don't check for cycles here, because the config could have been set to ignore cycles.
+                // however, don't recurse if there is one, so still check for started ctor.
+                if (i != curidx && bt(relevant, i) && !bt(ctordone, i) && !bt(ctorstart, i))
                     processMod(i);
-                }
             }
 
             // now mark this node, and all nodes reachable from this module as done.
@@ -374,8 +429,9 @@ struct ModuleGroup
             foreach (i; brange)
             {
                 // Since relevant dependencies are already marked as done
-                // from recursion above, no reason to check for relevance,
-                // that is a wasted op.
+                // from recursion above (or are going to be handled up the call
+                // stack), no reason to check for relevance, that is a wasted
+                // op.
                 bts(ctordone, i);
             }
 
