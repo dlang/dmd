@@ -66,6 +66,8 @@ int except_table_num = 0;       // sequence number for GCC_except_table%d symbol
 int eh_frame_seg = 0;           // __eh_frame segment
 Symbol *eh_frame_sym = NULL;            // past end of __eh_frame
 #endif
+unsigned CIE_offset_unwind;     // CIE offset for unwind data
+unsigned CIE_offset_no_unwind;  // CIE offset for no unwind data
 
 #if ELFOBJ
 IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
@@ -77,6 +79,23 @@ static Outbuffer  *reset_symbuf;        // Keep pointers to reset symbols
 
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
+
+/***********************************
+ * Determine if generating a eh_frame with full
+ * unwinding information.
+ * This decision is done on a per-function basis.
+ * Returns:
+ *      true if unwinding needs to be done
+ */
+bool doUnwindEhFrame()
+{
+    /* FreeBSD fails when having some frames as having unwinding info and some not.
+     * (It hangs in unittests for std.datetime.)
+     * g++ on FreeBSD does not generate mixed frames, while g++ on OSX and Linux does.
+     */
+    assert(!(usednteh & ~(EHtry | EHcleanup)));
+    return (usednteh & (EHtry | EHcleanup)) || (config.exe & (EX_FREEBSD | EX_FREEBSD64));
+}
 
 #if ELFOBJ
 #define MAP_SEG2SYMIDX(seg) (SegData[seg]->SDsymidx)
@@ -652,10 +671,13 @@ void writeDebugFrameHeader(Outbuffer *buf)
  *      dfseg = SegData[] index for .eh_frame
  *      buf = write raw data here
  *      personality = "__dmd_personality_v0"
+ *      ehunwind = will have EH unwind table
+ * Returns:
+ *      offset of start of this header
  * See_Also:
  *      https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/ehframechpt.html
  */
-static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality)
+static unsigned writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality, bool ehunwind)
 {
     /* Augmentation string:
      *  z = first character, means Augmentation Data field is present
@@ -677,9 +699,9 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
 
     // Length of CIE, not including padding
     const unsigned cielen = 4 + 4 + 1 +
-        (config.ehmethod == EH_DWARF ? 5 : 3) +
+        (ehunwind ? 5 : 3) +
         1 + 1 + 1 +
-        (config.ehmethod == EH_DWARF ? 8 : 2) +
+        (ehunwind ? 8 : 2) +
         5;
 
     const unsigned pad = -cielen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
@@ -689,7 +711,7 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
     buf->write32(length);       // length of CIE, not including length and extended length fields
     buf->write32(0);            // CIE ID
     buf->writeByten(1);         // version
-    if (config.ehmethod == EH_DWARF)
+    if (ehunwind)
         buf->write("zPLR", 5);  // Augmentation String
     else
         buf->writen("zR", 3);
@@ -697,7 +719,7 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
     buf->writeByten(1);                 // code alignment factor
     buf->writeByten(0x80 - OFFSET_FAC); // data alignment factor (I64 ? -8 : -4)
     buf->writeByten(I64 ? 16 : 8);      // return address register
-    if (config.ehmethod == EH_DWARF)
+    if (ehunwind)
     {
 #if ELFOBJ
         const unsigned char personality_pointer_encoding = config.flags3 & CFG3pic
@@ -729,7 +751,11 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
     else
     {
         buf->writeByten(1);                                  // Augmentation Length
+#if ELFOBJ
         buf->writeByten(DW_EH_PE_pcrel | DW_EH_PE_sdata4);   // R: encoding of addresses in FDE
+#elif MACHOBJ
+        buf->writeByten(DW_EH_PE_pcrel | DW_EH_PE_ptr);      // R: encoding of addresses in FDE
+#endif
     }
 
     // Set CFA beginning state at function entry point
@@ -756,6 +782,7 @@ static void writeEhFrameHeader(IDXSEC dfseg, Outbuffer *buf, Symbol *personality
         buf->writeByten(DW_CFA_nop);
 
     assert(startsize + length + 4 == buf->size());
+    return startsize;
 }
 
 /*********************************************
@@ -851,10 +878,11 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
  * Params:
  *      dfseg = SegData[] index for .eh_frame
  *      sfunc = the function
+ *      ehunwind = will have EH unwind table
+ *      CIE_offset = offset of enclosing CIE
  */
-void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
+void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, unsigned CIE_offset)
 {
-    const unsigned CIE_offset = 0;                    // offset of enclosing CIE
     Outbuffer *buf = SegData[dfseg]->SDbuf;
     const unsigned startsize = buf->size();
 
@@ -893,10 +921,10 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
     const unsigned fdelen = 4 + 4
 #if ELFOBJ
         + 4 + 4
-        + (config.ehmethod == EH_DWARF ? 5 : 1) + cfa_buf.size();
+        + (ehunwind ? 5 : 1) + cfa_buf.size();
 #elif MACHOBJ
         + (I64 ? 8 + 8 : 4 + 4)                         // PC_Begin + PC_Range
-        + (config.ehmethod == EH_DWARF ? (I64 ? 9 : 5) : 1) + cfa_buf.size();
+        + (ehunwind ? (I64 ? 9 : 5) : 1) + cfa_buf.size();
 #endif
 
     const unsigned pad = -fdelen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
@@ -921,7 +949,7 @@ void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc)
 #else
     assert(0);
 #endif
-    if (config.ehmethod == EH_DWARF)
+    if (ehunwind)
     {
         int etseg = dwarf_except_table_alloc();
 #if ELFOBJ
@@ -959,12 +987,10 @@ void dwarf_initfile(const char *filename)
         eh_frame_seg = 0;
         eh_frame_sym = NULL;
 #endif
-        dwarf_except_table_alloc();
-
-        int seg = dwarf_eh_frame_alloc();
-        Outbuffer *buf = SegData[seg]->SDbuf;
-        buf->reserve(1000);
-        writeEhFrameHeader(seg, buf, getRtlsym(RTLSYM_PERSONALITY));
+        CIE_offset_unwind = ~0;
+        CIE_offset_no_unwind = ~0;
+        //dwarf_except_table_alloc();
+        dwarf_eh_frame_alloc();
     }
     if (!config.fulltypes)
         return;
@@ -1461,8 +1487,18 @@ void dwarf_func_term(Symbol *sfunc)
 
     if (config.ehmethod == EH_DWARF)
     {
+        bool ehunwind = doUnwindEhFrame();
+
         IDXSEC dfseg = dwarf_eh_frame_alloc();
-        writeEhFrameFDE(dfseg, sfunc);
+
+        Outbuffer *buf = SegData[dfseg]->SDbuf;
+        buf->reserve(1000);
+
+        unsigned *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
+        if (*poffset == ~0)
+            *poffset = writeEhFrameHeader(dfseg, buf, getRtlsym(RTLSYM_PERSONALITY), ehunwind);
+
+        writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
     }
     if (!config.fulltypes)
         return;
@@ -2884,6 +2920,9 @@ unsigned dwarf_abbrev_code(unsigned char *data, size_t nbytes)
  */
 void dwarf_except_gentables(Funcsym *sfunc, unsigned startoffset, unsigned retoffset)
 {
+    if (!doUnwindEhFrame())
+        return;
+
     int seg = dwarf_except_table_alloc();
     Outbuffer *buf = SegData[seg]->SDbuf;
     buf->reserve(100);
