@@ -1949,39 +1949,44 @@ extern (C++) class VarDeclaration : Declaration
             _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
-        if (storage_class & STCmanifest)
+        if (_init && storage_class & STCmanifest)
         {
-            version (none)
+            /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
+             * Scan initializer looking for them. Issue error if found.
+             */
+            if (ExpInitializer ei = _init.isExpInitializer())
             {
-                if ((type.ty == Tclass) && type.isMutable())
+                static bool hasInvalidEnumInitializer(Expression e)
                 {
-                    error("is mutable. Only const and immutable class enum are allowed, not %s", type.toChars());
-                }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable())
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+                    static bool arrayHasInvalidEnumInitializer(Expressions* elems)
                     {
-                        error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type.toChars());
+                        foreach (e; *elems)
+                        {
+                            if (e && hasInvalidEnumInitializer(e))
+                                return true;
+                        }
+                        return false;
                     }
-                }
-            }
-            else
-            {
-                if (type.ty == Tclass && _init)
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKclassreference)
-                        error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
-                }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct)
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+
+                    if (e.op == TOKclassreference)
+                        return true;
+                    if (e.op == TOKaddress && (cast(AddrExp)e).e1.op == TOKstructliteral)
+                        return true;
+                    if (e.op == TOKarrayliteral)
+                        return arrayHasInvalidEnumInitializer((cast(ArrayLiteralExp)e).elements);
+                    if (e.op == TOKstructliteral)
+                        return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
+                    if (e.op == TOKassocarrayliteral)
                     {
-                        error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
+                        AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
+                        return arrayHasInvalidEnumInitializer(ae.values) ||
+                               arrayHasInvalidEnumInitializer(ae.keys);
                     }
+                    return false;
                 }
+
+                if (hasInvalidEnumInitializer(ei.exp))
+                    error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
             }
         }
         else if (_init && isThreadlocal())
