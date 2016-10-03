@@ -4184,7 +4184,7 @@ code *pushParams(elem *e,unsigned stackalign)
         {   // Avoid PUSH MEM on the Pentium when optimizing for speed
             break;
         }
-        else if (movOnly(e))
+        else if (movOnly(e) || tyfloating(tym) || tyvector(tym))
             break;                      // no PUSH MEM
         else
         {   int regsize = REGSIZE;
@@ -4315,7 +4315,7 @@ code *pushParams(elem *e,unsigned stackalign)
         break;
   }
   retregs = tybyte(tym) ? BYTEREGS : allregs;
-  if (tyvector(tym))
+  if (tyvector(tym) || (tyxmmreg(tym) && config.fpxmmregs))
   {
         retregs = XMMREGS;
         c = cat(c,codelem(e,&retregs,FALSE));
