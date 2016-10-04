@@ -1083,7 +1083,7 @@ $(H3 $(LNAME2 global_symbols, Globally Defined Symbols))
 $(GRAMMAR
 $(GNAME Symbols):
 $(MULTICOLS 4,
-    $(D $(LINK2 arrays.html#strings, string)) (alias to immutable(char)[]) <!-- This is important; people want to know these things up front. -->
+    $(D $(LINK2 arrays.html#strings, string)) (alias to immutable(char)[]) $(COMMENT This is important; people want to know these things up front.)
     $(D $(LINK2 arrays.html#strings, wstring)) (alias to immutable(wchar)[])
     $(D $(LINK2 arrays.html#strings, dstring)) (alias to immutable(dchar)[])
 
