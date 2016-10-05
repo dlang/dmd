@@ -58,8 +58,6 @@ struct ModuleGroup
     // target modules are involved in a cycle.
     //
     // The return value is malloc'd using C, so it must be freed after use.
-    //
-    // The delegate is a helper to map module info pointers to index into the modules array
     private size_t[] genCyclePath(size_t srcidx, size_t targetidx, int[][] edges)
     {
         import core.bitop : bt, btc, bts;
