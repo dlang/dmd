@@ -2164,6 +2164,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      * for this, i.e. generate a sequence of if-then-else
                      */
                     sw.hasVars = 1;
+
+                    /* TODO check if v can be uninitialized at that point.
+                     * Also check if the VarExp is declared in a scope outside of this one
+                     */
+                    if (!v.isConst() && !v.isImmutable())
+                    {
+                        cs.warning("case variables have to be const or immutable");
+                    }
+
                     if (sw.isFinal)
                     {
                         cs.error("case variables not allowed in final switch statements");
