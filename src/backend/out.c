@@ -848,8 +848,11 @@ STATIC void out_regcand_walk(elem *e)
             else if (e->Eoper == OPvar)
             {
                 if (e->EV.sp.Voffset)
-                {   if (!(e->EV.sp.Voffset == 1 && tybyte(e->Ety)))
+                {   if (!(e->EV.sp.Voffset == 1 && tybyte(e->Ety)) &&
+                        !(e->EV.sp.Voffset == REGSIZE && tysize(e->Ety) == REGSIZE))
+                    {
                         e->EV.sp.Vsym->Sflags &= ~GTregcand;
+                    }
                 }
             }
             break;

@@ -1335,7 +1335,15 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             pcs->Irm = modregrm(3,0,s->Sreglsw & 7);
             if (s->Sreglsw & 8)
                 pcs->Irex |= REX_B;
-            if (e->EV.sp.Voffset == 1 && sz == 1)
+            if (e->EV.sp.Voffset == REGSIZE && sz == REGSIZE)
+            {
+                pcs->Irm = modregrm(3,0,s->Sregmsw & 7);
+                if (s->Sregmsw & 8)
+                    pcs->Irex |= REX_B;
+                else
+                    pcs->Irex &= ~REX_B;
+            }
+            else if (e->EV.sp.Voffset == 1 && sz == 1)
             {   assert(s->Sregm & BYTEREGS);
                 assert(s->Sreglsw < 4);
                 pcs->Irm |= 4;                  // use 2nd byte of register
