@@ -544,13 +544,18 @@ $(H3 $(LNAME2 order_of_static_ctor, Order of Static Construction))
 
 $(H3 $(LNAME2 override_cycle_abort, Overriding Cycle Detection Abort))
 
-        $(P You can override the cyclic detection behavior using the D Runtime switch `--DRT-oncycle=...`. The following behaviors are supported:
+        $(P You can override the cyclic detection behavior using the D Runtime
+        switch `--DRT-oncycle=...` The following behaviors are supported:
         )
 
         $(OL
             $(LI `abort` The default behavior.)
-            $(LI `print` Print all cycles detected, but do not abort execution. Order of static construction is implementation defined, and not guaranteed to be valid.)
-            $(LI `ignore` Do not abort execution or print any cycles. Order of static construction is implementation defined, and not guaranteed to be valid.)
+            $(LI `print` Print all cycles detected, but do not abort execution.
+            Order of static construction is implementation defined, and not
+            guaranteed to be valid.)
+            $(LI `ignore` Do not abort execution or print any cycles. Order of
+            static construction is implementation defined, and not guaranteed
+            to be valid.)
         )
 
 $(H3 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
