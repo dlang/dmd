@@ -26,16 +26,11 @@ $(ROOT)/unittest_assert.done: STDERR_EXP="unittest_assert msg"
 $(ROOT)/invalid_memory_operation.done: STDERR_EXP="InvalidMemoryOperationError"
 $(ROOT)/unknown_gc.done: STDERR_EXP="'unknowngc'"
 $(ROOT)/static_dtor.done: STDERR_EXP="dtor_called_more_than_once"
-$(ROOT)/static_dtor.done: NEGATE=! 
+$(ROOT)/static_dtor.done: NEGATE=!
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
-	$(NEGATE)$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
+	$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
 	@touch $@
-
-#$(ROOT)/static_dtor.done: $(ROOT)/static_dtor
-#	@echo Testing static_dtor
-#	! $(QUIET)$(TIMELIMIT)$(ROOT)/static_dtor $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
-#	@touch $@
 
 $(ROOT)/unittest_assert: DFLAGS+=-unittest
 $(ROOT)/line_trace: DFLAGS+=-L--export-dynamic
