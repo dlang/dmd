@@ -237,7 +237,7 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc)
+GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc tocvdebug)
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
@@ -273,7 +273,7 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 	rmem.h root.h stringtable.h)
 
 GLUE_SRC = s2ir.c e2ir.c \
-	toobj.c tocvdebug.c toir.h \
+	toobj.c toir.h \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
