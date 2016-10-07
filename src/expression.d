@@ -10581,6 +10581,28 @@ extern (C++) final class AddrExp : UnaExp
 
         type = e1.type.pointerTo();
 
+        bool checkAddressVar(VarDeclaration v)
+        {
+            if (v)
+            {
+                if (!v.canTakeAddressOf())
+                {
+                    error("cannot take address of %s", e1.toChars());
+                    return false;
+                }
+                if (sc.func && !sc.intypeof && !v.isDataseg())
+                {
+                    if (sc.func.setUnsafe())
+                    {
+                        const(char)* p = v.isParameter() ? "parameter" : "local";
+                        error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
         // See if this should really be a delegate
         if (e1.op == TOKdotvar)
         {
@@ -10604,6 +10626,27 @@ extern (C++) final class AddrExp : UnaExp
             // Look for misaligned pointer in @safe mode
             if (checkUnsafeAccess(sc, dve, !type.isMutable(), true))
                 return new ErrorExp();
+
+            if (dve.e1.op == TOKvar && global.params.safe)
+            {
+                VarExp ve = cast(VarExp)dve.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v)
+                {
+                    if (!checkAddressVar(v))
+                        return new ErrorExp();
+                }
+            }
+            else if ((dve.e1.op == TOKthis || dve.e1.op == TOKsuper) && global.params.safe)
+            {
+                ThisExp ve = cast(ThisExp)dve.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v && v.storage_class & STCref)
+                {
+                    if (!checkAddressVar(v))
+                        return new ErrorExp();
+                }
+            }
         }
         else if (e1.op == TOKvar)
         {
@@ -10611,19 +10654,8 @@ extern (C++) final class AddrExp : UnaExp
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v)
             {
-                if (!v.canTakeAddressOf())
-                {
-                    error("cannot take address of %s", e1.toChars());
+                if (!checkAddressVar(v))
                     return new ErrorExp();
-                }
-                if (sc.func && !sc.intypeof && !v.isDataseg())
-                {
-                    if (sc.func.setUnsafe())
-                    {
-                        const(char)* p = v.isParameter() ? "parameter" : "local";
-                        error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
-                    }
-                }
 
                 ve.checkPurity(sc, v);
             }
@@ -10673,6 +10705,16 @@ extern (C++) final class AddrExp : UnaExp
                         }
                     }
                 }
+            }
+        }
+        else if ((e1.op == TOKthis || e1.op == TOKsuper) && global.params.safe)
+        {
+            ThisExp ve = cast(ThisExp)e1;
+            VarDeclaration v = ve.var.isVarDeclaration();
+            if (v)
+            {
+                if (!checkAddressVar(v))
+                    return new ErrorExp();
             }
         }
         else if (e1.op == TOKcall)
