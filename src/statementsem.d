@@ -2170,7 +2170,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      */
                     if (!v.isConst() && !v.isImmutable())
                     {
-                        cs.warning("case variables have to be const or immutable");
+                        cs.deprecation("case variables have to be const or immutable");
                     }
 
                     if (sw.isFinal)
