@@ -967,7 +967,14 @@ class Lexer
                 return;
             case ':':
                 p++;
-                t.value = TOKcolon;
+                if (*p == ':')
+                {
+                    ++p;
+                    error("'::' is not a valid token, perhaps '.' was meant?");
+                    t.value = TOKdot;
+                }
+                else
+                    t.value = TOKcolon;
                 return;
             case '$':
                 p++;
