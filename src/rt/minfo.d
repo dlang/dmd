@@ -250,13 +250,14 @@ struct ModuleGroup
                 // preallocate enough space to store all the indexes
                 int *edge = cast(int*)malloc(int.sizeof * _modules.length);
                 size_t nEdges = 0;
-                foreach (e; m.importedModules)
+                foreach (imp; m.importedModules)
                 {
-                    if(auto impidx = e in modIndexes)
+                    if (imp is m) // self-import
+                        continue;
+                    if (auto impidx = imp in modIndexes)
                     {
-                        if (*impidx != i)
-                            if (!bts(reachable, *impidx))
-                                edge[nEdges++] = *impidx;
+                        if (!bts(reachable, *impidx))
+                            edge[nEdges++] = *impidx;
                     }
                 }
                 // trim space to what is needed.
