@@ -360,7 +360,7 @@ struct ModuleGroup
                                     // print the message
                                     buildCycleMessage(idx, midx, (string x) {
                                                       import core.stdc.stdio : fprintf, stderr;
-                                                      fprintf(stderr, "%.*s", x.length, x.ptr);
+                                                      fprintf(stderr, "%.*s", cast(int) x.length, x.ptr);
                                                       });
                                     // continue on as if this is correct.
                                     break;
