@@ -20,6 +20,7 @@ import core.stdc.stdio;
 import ddmd.backend.cdef;
 import ddmd.backend.cc;
 import ddmd.backend.cc : Symbol, block, Classsym, Blockx, code;
+import ddmd.backend.code;
 import ddmd.backend.el;
 import ddmd.backend.el : elem;
 import ddmd.backend.type;
@@ -52,8 +53,6 @@ enum LF = '\n';             // \n into \r and \r into \n.  The translator versio
                             // with the translator
 enum CR_STR = "\r";
 enum LF_STR = "\n";
-
-struct seg_data;
 
 extern __gshared
 {
