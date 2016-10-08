@@ -4923,10 +4923,11 @@ extern (C++) final class TypeSArray : TypeArray
                 e.error("%s is not an expression", e.toChars());
                 return new ErrorExp();
             }
-            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && global.params.safe)
+            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
-                e.error("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
-                return new ErrorExp();
+                // MAINTENANCE: turn into error in 2.073
+                e.deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                // return new ErrorExp();
             }
             e = e.castTo(sc, e.type.nextOf().pointerTo());
         }
@@ -5219,10 +5220,11 @@ extern (C++) final class TypeDArray : TypeArray
         }
         else if (ident == Id.ptr)
         {
-            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && global.params.safe)
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
-                e.error("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
-                return new ErrorExp();
+                // MAINTENANCE: turn into error in 2.073
+                e.deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                // return new ErrorExp();
             }
             e = e.castTo(sc, next.pointerTo());
             return e;
