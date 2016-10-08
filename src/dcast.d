@@ -1633,7 +1633,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
 
         Lok:
-            result = new CastExp(e.loc, e, tob);
+            result = new CastExp(e.loc, e, t);
             result.type = t; // Don't call semantic()
             //printf("Returning: %s\n", result->toChars());
         }
