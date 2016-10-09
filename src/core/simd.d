@@ -447,4 +447,36 @@ version ( D_SIMD )
   {
       return __simd(XMM.PCMPEQW, v1, v2);
   }
+
+  /*********************
+   * Emit prefetch instruction.
+   * Params:
+   *    address = address to be prefetched
+   *    writeFetch = true for write fetch, false for read fetch
+   *    locality = 0..3 (0 meaning least local, 3 meaning most local)
+   * Note:
+   *    The Intel mappings are:
+   *    $(TABLE
+   *    $(THDR writeFetch, Locality, Instruction)
+   *    $(TROW false, 0, 0, prefetchnta)
+   *    $(TROW false, 0, 1, prefetch2)
+   *    $(TROW false, 0, 2, prefetch1)
+   *    $(TROW false, 0, 3, prefetch0)
+   *    $(TROW false, 0, 0, prefetchw)
+   *    $(TROW false, 0, 1, prefetchw)
+   *    $(TROW false, 0, 2, prefetchw)
+   *    $(TROW false, 0, 3, prefetchw)
+   *    )
+   */
+  void prefetch(bool writeFetch, ubyte locality)(const(void)* address)
+  {
+        static if (writeFetch)
+            __prefetch(address, 4);
+        else static if (locality < 4)
+            __prefetch(address, 3 - locality);
+        else
+            static assert(0, "0..3 expected for locality");
+  }
+
+  private void __prefetch(const(void*) address, ubyte encoding);
 }
