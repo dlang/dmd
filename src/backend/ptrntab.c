@@ -2778,6 +2778,16 @@ PTRNTAB1 aptb1PREFETCHT2[] = /* PREFETCHT2 */ {
         { ASM_END }
 };
 
+PTRNTAB1 aptb1PREFETCHW[] = /* PREFETCHW */ {
+        { 0x0F0D, _1,_m8 },
+        { ASM_END }
+};
+
+PTRNTAB1 aptb1PREFETCHWT1[] = /* PREFETCHWT1 */ {
+        { 0x0F0D, _2,_m8 },
+        { ASM_END }
+};
+
 PTRNTAB2 aptb2PSADBW[] = /* PSADBW */ {
         { 0x0FF6, _r,_mm,_mmm64 },
         { PSADBW, _r,_xmm,_xmm_m128 },
@@ -5240,6 +5250,8 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("prefetcht0",     1,              (P) aptb1PREFETCHT0 )           \
         X("prefetcht1",     1,              (P) aptb1PREFETCHT1 )           \
         X("prefetcht2",     1,              (P) aptb1PREFETCHT2 )           \
+        X("prefetchw",      1,              (P) aptb1PREFETCHW )            \
+        X("prefetchwt1",    1,              (P) aptb1PREFETCHWT1 )          \
         X("psadbw",         2,              (P) aptb2PSADBW )               \
         X("pshufb",         2,              (P) aptb2PSHUFB )               \
         X("pshufd",         3,              (P) aptb3PSHUFD )               \

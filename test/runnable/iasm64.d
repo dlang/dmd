@@ -1288,6 +1288,8 @@ void test14()
         0x0F,0x18,0x55,0xD0,            // prefetcht1   -030h[RBP]
         0x0F,0x18,0x5D,0xD0,            // prefetcht2   -030h[RBP]
         0x0F,0x18,0x45,0xD0,            // prefetchnta  -030h[RBP]
+        0x0F,0x0D,0x4D,0xD0,            // prefetchw    -030h[RBP]
+        0x0F,0x0D,0x55,0xD0,            // prefetchwt1  -030h[RBP]
         0x0F,0xF6,0xCA,                 // psadbw       MM1,MM2
         0x0F,0xF6,0x5D,0xD8,            // psadbw       MM3,-028h[RBP]
 0x66,   0x0F,0xF6,0xCA,                 // psadbw       XMM1,XMM2
@@ -1659,6 +1661,8 @@ void test14()
         prefetcht1  m8[RBP]             ;
         prefetcht2  m8[RBP]             ;
         prefetchnta m8[RBP]             ;
+        prefetchw   m8[EBP]             ;
+        prefetchwt1 m8[EBP]             ;
 
         psadbw  MM1,MM2                 ;
         psadbw  MM3,m64[RBP]            ;
