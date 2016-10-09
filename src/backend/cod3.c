@@ -2993,7 +2993,8 @@ code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa
 
     if (config.wflags & WFincbp && farfunc)
         c = gen1(c,0x40 + BP);      /* INC  BP                      */
-    if (config.target_cpu < TARGET_80286 ||
+    if (!I16 ||
+        config.target_cpu < TARGET_80286 ||
         config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_WIN64) ||
         !localsize ||
         config.flags & CFGstack ||
