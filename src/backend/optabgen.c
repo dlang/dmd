@@ -42,7 +42,7 @@ int _binary[] =
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
          OPremquo,OPcmpxchg,
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
-         OPvecsto,
+         OPvecsto,OPprefetch
         };
 int _unary[] =
         {OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
@@ -115,7 +115,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPhalt,OPdctor,OPddtor,
                 OPcmpxchg,
                 OPva_start,
-                OPinp,OPoutp,OPvecsto,
+                OPinp,OPoutp,OPvecsto,OPprefetch,
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
@@ -581,6 +581,7 @@ void dotab()
         case OPvector:  X("vector",     elzot,  cdvector);
         case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
         case OPva_start: X("va_start",  elvalist, cderr);
+        case OPprefetch: X("prefetch",  elzot,  cdprefetch);
 
         default:
                 printf("opcode hole x%x\n",i);

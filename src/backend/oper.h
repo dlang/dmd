@@ -248,6 +248,7 @@ enum OPER
         OPpredec,               /* --x overloading              */
 
         OPva_start,             // va_start intrinsic (dmd)
+        OPprefetch,             // prefetch intrinsic (dmd)
 
         OPMAX                   /* 1 past last operator         */
 };

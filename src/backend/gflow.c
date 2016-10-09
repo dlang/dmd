@@ -993,6 +993,10 @@ STATIC void accumaecpx(elem *n)
                 vec_orass(KILL,go.vptrkill);       // kill all other vptr accesses
             break;
 
+        case OPprefetch:
+            accumaecpx(n->E1);                  // don't check E2
+            break;
+
         default:
             if (OTunary(op))
             {
