@@ -13,7 +13,8 @@ Source: https://github.com/dlang/dmd/blob/master/src/backend/divcoeff.c
 #include <stdio.h>
 #include <assert.h>
 
-#ifdef __UINT64_TYPE__
+// This MUST MATCH typedef targ_ullong in cdef.h.
+#if defined(__UINT64_TYPE__) && !defined(__APPLE__)
 typedef __UINT64_TYPE__ ullong;
 #elif defined(__UINTMAX_TYPE__)
 typedef __UINTMAX_TYPE__ ullong;

@@ -468,7 +468,17 @@ typedef unsigned short  targ_ushort;
 typedef int             targ_long;
 typedef unsigned        targ_ulong;
 
-#if defined(__UINT64_TYPE__)
+/** HACK: Prefer UINTMAX_TYPE on OSX (unsigned long for LP64) to workaround
+ * https://issues.dlang.org/show_bug.cgi?id=16536. In D ulong uses the mangling
+ * of unsigned long on LP64. Newer versions of XCode/clang introduced the
+ * __UINT64_TYPE__ definition so the below rules would pick unsigned long long
+ * instead. This has a different mangling on OSX and causes a mismatch w/ C++
+ * ABIs using ulong.
+ *
+ * As a proper fix we should use uint64_t on both sides, which is always unsigned long long.
+ */
+// This MUST MATCH typedef ullong in divcoeff.c.
+#if defined(__UINT64_TYPE__) && !defined(__APPLE__)
 typedef __INT64_TYPE__     targ_llong;
 typedef __UINT64_TYPE__    targ_ullong;
 #elif defined(__UINTMAX_TYPE__)
