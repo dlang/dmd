@@ -17,23 +17,33 @@ memory management was added.))
 $(BUGSTITLE Library Changes,
 
 $(LI $(LNAME2 gc-runtimeswitch-added, A runtime switch for selecting
-the GC implementation was added.)
+     the GC implementation was added.)
 
-    $(P This allows the possibility of having more than one GC implementation
-    and allowing users to select the right one based on their needs.
+    $(P This allows to select a GC at program startup.)
+    -------
+    ./my_d_exe --DRT-gc=gc:conservative # use conservative GC (default)
+    ./my_d_exe --DRT-gc=help # list available GC options
+    -------
+    $(P See $(LINK2 $(ROOT_DIR)spec/garbage.html#gc_config, gc_config) for more information about gcopt.)
+    $(P In a future release it should be possible to extend the list
+        of GCs by linking with an alternative one.
     )
 )
 
-$(LI $(LNAME2 manualgc-added, A GC implementation allowing manual
-memory management was added.)
+$(LI $(LNAME2 manualgc-added, A manual GC was added.)
 
-    $(P As part of allowing multiple GC implementations to exist and to be
-    selected at runtime, gcstub was refactored to be a selectable
-    implementation. It is usable in applications which do not rely on a garbage
-    collector to clean up memory (ie. when dynamic array resizing is not used,
-    and all memory allocated with 'new' is freed deterministically with
-    'delete').
+    $(P Use the `--DRT-gc=gc:manual` option to select the manual GC.)
+
+    $(P This GC is a thin wrapper around malloc and free and does not collect
+        any garbage. It only releases memory explicity freed using $(REF_SHORT GC.free, core,memory).
+        Builtin language constructs such as arrays or delegates that might
+        allocate GC memory can leak.  It supersedes the gcstub implementation.
     )
+
+    $(P The manual GC is useful for applications that deterministically control memory.
+        Use dmd's `-vgc` switch to keep track of hidden allocations that might leak.
+    )
+    $(P It can also be helpful to find memory corruptions with tools like valgrind.)
 )
 )
 
