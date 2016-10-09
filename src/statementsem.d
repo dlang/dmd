@@ -1448,7 +1448,16 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     if (global.params.safe)
-                        fld.tookAddressOf = 1;  // allocate a closure unless the opApply() uses 'scope'
+                    {
+                        fprintf(
+                            global.stdmsg,
+                            "%s: To enforce @safe compiler allocates a closure unless the opApply() uses 'scope'\n",
+                            loc.toChars()
+                        );
+                        fflush(global.stdmsg);
+                    }
+                    fld.tookAddressOf = 1;
+
                     assert(tab.ty == Tstruct || tab.ty == Tclass);
                     assert(sapply);
                     /* Call:
