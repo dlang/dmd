@@ -151,7 +151,7 @@ static const unsigned char inssize32[256] =
 /* For 2 byte opcodes starting with 0x0F        */
 static unsigned char inssize2[256] =
 {       M|3,M|3,M|3,M|3,        2,2,2,2,                // 00
-        2,2,M|3,2,              2,2,2,M|T|E|4,          // 08
+        2,2,M|3,2,              2,M|3,2,M|T|E|4,        // 08
         M|3,M|3,M|3,M|3,        M|3,M|3,M|3,M|3,        // 10
         M|3,2,2,2,              2,2,2,2,                // 18
         M|3,M|3,M|3,M|3,        M|3,2,M|3,2,            // 20
