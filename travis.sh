@@ -8,6 +8,13 @@ if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
 fi
 N=2
 
+# use faster ld.gold linker on linux
+if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+    mkdir linker
+    ln -s /usr/bin/ld.gold linker/ld
+    export PATH="$PWD/linker:$PATH"
+fi
+
 # clone druntime and phobos
 clone() {
     local url="$1"
