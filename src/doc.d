@@ -1758,11 +1758,12 @@ struct DocComment
                 buf.writestring(cast(char*)c);
                 if (utd.codedoc)
                 {
-                    size_t n = getCodeIndent(utd.codedoc);
+                    auto codedoc = utd.codedoc.stripLeadingNewlines;
+                    size_t n = getCodeIndent(codedoc);
                     while (n--)
                         buf.writeByte(' ');
                     buf.writestring("----\n");
-                    buf.writestring(utd.codedoc);
+                    buf.writestring(codedoc);
                     buf.writestring("----\n");
                     highlightText(sc, a, buf, o);
                 }
@@ -2735,4 +2736,12 @@ extern (C++) int utfStride(const(char)* p)
     size_t i = 0;
     utf_decodeChar(p, 4, i, c); // ignore errors, but still consume input
     return cast(int)i;
+}
+
+inout(char)* stripLeadingNewlines(inout(char)* s)
+{
+    while (s && *s == '\n' || *s == '\r')
+        s++;
+
+    return s;
 }
