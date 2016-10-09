@@ -1274,28 +1274,12 @@ elem *toElem(Expression *e, IRState *irs)
             {
                 case TYfloat:
                 case TYifloat:
-                    /* This assignment involves a conversion, which
-                     * unfortunately also converts SNAN to QNAN.
-                     */
-                    c.Vfloat = re->value;
-                    if (CTFloat::isSNaN(re->value))
-                    {
-                        // Put SNAN back
-                        c.Vuns &= 0xFFBFFFFFL;
-                    }
+                    c.Vfloat = CTFloat::toFloatPrec(re->value);
                     break;
 
                 case TYdouble:
                 case TYidouble:
-                    /* This assignment involves a conversion, which
-                     * unfortunately also converts SNAN to QNAN.
-                     */
-                    c.Vdouble = re->value;
-                    if (CTFloat::isSNaN(re->value))
-                    {
-                        // Put SNAN back
-                        c.Vullong &= 0xFFF7FFFFFFFFFFFFULL;
-                    }
+                    c.Vdouble = CTFloat::toDoublePrec(re->value);
                     break;
 
                 case TYldouble:
@@ -1330,41 +1314,13 @@ elem *toElem(Expression *e, IRState *irs)
             switch (tybasic(ty))
             {
                 case TYcfloat:
-                    c.Vcfloat.re = (float) re;
-                    if (CTFloat::isSNaN(re))
-                    {
-                        union { float f; unsigned i; } u;
-                        u.f = c.Vcfloat.re;
-                        u.i &= 0xFFBFFFFFL;
-                        c.Vcfloat.re = u.f;
-                    }
-                    c.Vcfloat.im = (float) im;
-                    if (CTFloat::isSNaN(im))
-                    {
-                        union { float f; unsigned i; } u;
-                        u.f = c.Vcfloat.im;
-                        u.i &= 0xFFBFFFFFL;
-                        c.Vcfloat.im = u.f;
-                    }
+                    c.Vcfloat.re = CTFloat::toFloatPrec(re);
+                    c.Vcfloat.im = CTFloat::toFloatPrec(im);
                     break;
 
                 case TYcdouble:
-                    c.Vcdouble.re = (double) re;
-                    if (CTFloat::isSNaN(re))
-                    {
-                        union { double d; unsigned long long i; } u;
-                        u.d = c.Vcdouble.re;
-                        u.i &= 0xFFF7FFFFFFFFFFFFULL;
-                        c.Vcdouble.re = u.d;
-                    }
-                    c.Vcdouble.im = (double) im;
-                    if (CTFloat::isSNaN(re))
-                    {
-                        union { double d; unsigned long long i; } u;
-                        u.d = c.Vcdouble.im;
-                        u.i &= 0xFFF7FFFFFFFFFFFFULL;
-                        c.Vcdouble.im = u.d;
-                    }
+                    c.Vcdouble.re = CTFloat::toDoublePrec(re);
+                    c.Vcdouble.im = CTFloat::toDoublePrec(im);
                     break;
 
                 case TYcldouble:

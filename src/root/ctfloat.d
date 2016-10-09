@@ -82,6 +82,31 @@ extern (C++) struct CTFloat
         return isNaN(r) && !(((cast(ubyte*)&r)[7]) & 0x40);
     }
 
+    /*
+     * Converting from real to double/float can turn signaling NaNs to quiet NaNs.
+     * This might lead to different NaNs as .init value in object files and failing a is b comparisons.
+     * See https://issues.dlang.org/show_bug.cgi?id=15316 and a similar older fix for e2ir.
+     * https://github.com/dlang/dmd/commit/f77efd17ecdfb65a2d6e7ea66b0be30d8e063199#diff-6e3ab8a500e476994f345ede433811bbR1197
+     */
+
+    /// converts real to float but preserves signaling NaNs
+    static float toFloatPrec(real_t r)
+    {
+        float f = r; // might convert SNAN to QNAN
+        if (isSNaN(r))
+            *(cast(uint*)&f) &= 0xFFBFFFFF; // Put SNAN back
+        return f;
+    }
+
+    /// converts real to double but preserves signaling NaNs
+    static double toDoublePrec(real_t r)
+    {
+        double d = r; // might convert SNAN to QNAN
+        if (isSNaN(r))
+            *(cast(ulong*)&d) &= 0xFFF7FFFFFFFFFFFF; // Put SNAN back
+        return d;
+    }
+
     // the implementation of longdouble for MSVC is a struct, so mangling
     //  doesn't match with the C++ header.
     // add a wrapper just for isSNaN as this is the only function called from C++

@@ -297,13 +297,15 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
 
         override void visit(RealExp e)
         {
+            import ddmd.root.ctfloat : CTFloat;
+
             //printf("RealExp.toDt(%Lg)\n", e.value);
             switch (e.type.toBasetype().ty)
             {
                 case Tfloat32:
                 case Timaginary32:
                 {
-                    auto fvalue = cast(float)e.value;
+                    auto fvalue = CTFloat.toFloatPrec(e.value);
                     dtb.nbytes(4, cast(char*)&fvalue);
                     break;
                 }
@@ -311,7 +313,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 case Tfloat64:
                 case Timaginary64:
                 {
-                    auto dvalue = cast(double)e.value;
+                    auto dvalue = CTFloat.toDoublePrec(e.value);
                     dtb.nbytes(8, cast(char*)&dvalue);
                     break;
                 }
@@ -334,23 +336,28 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
 
         override void visit(ComplexExp e)
         {
+            import ddmd.root.ctfloat : CTFloat;
+
             //printf("ComplexExp.toDt() '%s'\n", e.toChars());
+            immutable re = creall(e.value);
+            immutable im = cimagl(e.value);
+
             switch (e.type.toBasetype().ty)
             {
                 case Tcomplex32:
                 {
-                    auto fvalue = cast(float)creall(e.value);
+                    auto fvalue = CTFloat.toFloatPrec(creall(e.value));
                     dtb.nbytes(4, cast(char*)&fvalue);
-                    fvalue = cast(float)cimagl(e.value);
+                    fvalue = CTFloat.toFloatPrec(cimagl(e.value));
                     dtb.nbytes(4, cast(char*)&fvalue);
                     break;
                 }
 
                 case Tcomplex64:
                 {
-                    auto dvalue = cast(double)creall(e.value);
+                    auto dvalue = CTFloat.toDoublePrec(creall(e.value));
                     dtb.nbytes(8, cast(char*)&dvalue);
-                    dvalue = cast(double)cimagl(e.value);
+                    dvalue = CTFloat.toDoublePrec(cimagl(e.value));
                     dtb.nbytes(8, cast(char*)&dvalue);
                     break;
                 }

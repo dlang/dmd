@@ -4234,6 +4234,9 @@ extern (C++) final class TypeBasic : Type
         }
         dinteger_t value = 0;
 
+        static immutable snan = Target.RealProperties.snan;
+        assert(CTFloat.isSNaN(snan));
+
         switch (ty)
         {
         case Tchar:
@@ -4251,15 +4254,25 @@ extern (C++) final class TypeBasic : Type
         case Tfloat32:
         case Tfloat64:
         case Tfloat80:
-            return new RealExp(loc, Target.RealProperties.snan, this);
+            {
+                auto re = new RealExp(loc, 0.0, this);
+                // use memcpy to preserve SNAN
+                static assert(is(immutable typeof(re.value) == typeof(snan)));
+                memcpy(&re.value, &snan, snan.sizeof);
+                return re;
+            }
 
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
             {
-                // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
-                const cvalue = complex_t(Target.RealProperties.snan, Target.RealProperties.snan);
-                return new ComplexExp(loc, cvalue, this);
+                auto ce = new ComplexExp(loc, complex_t(0, 0), this);
+                // use memcpy to preserve SNAN
+                static assert(is(immutable typeof(ce.value.re) == typeof(snan)));
+                memcpy(&ce.value.re, &snan, snan.sizeof);
+                static assert(is(immutable typeof(ce.value.im) == typeof(snan)));
+                memcpy(&ce.value.im, &snan, snan.sizeof);
+                return ce;
             }
 
         case Tvoid:
