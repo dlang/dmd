@@ -477,6 +477,7 @@ typedef unsigned        targ_ulong;
  *
  * As a proper fix we should use uint64_t on both sides, which is always unsigned long long.
  */
+// This MUST MATCH typedef ullong in divcoeff.c.
 #if defined(__UINT64_TYPE__) && !defined(__APPLE__)
 typedef __INT64_TYPE__     targ_llong;
 typedef __UINT64_TYPE__    targ_ullong;
