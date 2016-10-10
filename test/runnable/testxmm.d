@@ -1458,6 +1458,28 @@ ubyte16 test11585(ubyte16* d)
 
 /*****************************************/
 
+int fooprefetch(byte a)
+{
+    prefetch!(false, 0)(&a);
+    prefetch!(false, 1)(&a);
+    prefetch!(false, 2)(&a);
+    prefetch!(false, 3)(&a);
+    prefetch!(true, 0)(&a);
+    prefetch!(true, 1)(&a);
+    prefetch!(true, 2)(&a);
+    prefetch!(true, 3)(&a);
+    return 3;
+}
+
+void testprefetch()
+{
+    byte b;
+    int i = fooprefetch(1);
+    assert(i == 3);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1489,6 +1511,7 @@ int main()
     test9449();
     test9449_2();
     test13988();
+    testprefetch();
 
     return 0;
 }

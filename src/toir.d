@@ -401,7 +401,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[43] core_namearray =
+    __gshared immutable char*[44] core_namearray =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -415,6 +415,7 @@ int intrinsic_op(FuncDeclaration fd)
         "4math6rndtolFNaNbNiNfeZl",
         "4math6yl2xp1FNaNbNiNfeeZe",
 
+        "4simd10__prefetchFNaNbNiNfxPvhZv",
         "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
         "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMdNhG16vZNhG16v",
         "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMfNhG16vZNhG16v",
@@ -452,7 +453,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable char*[43] core_namearray64 =
+    __gshared immutable char*[44] core_namearray64 =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -466,6 +467,7 @@ int intrinsic_op(FuncDeclaration fd)
         "4math6rndtolFNaNbNiNfeZl",
         "4math6yl2xp1FNaNbNiNfeeZe",
 
+        "4simd10__prefetchFNaNbNiNfxPvhZv",
         "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
         "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMdNhG16vZNhG16v",
         "4simd10__simd_stoFNaNbNiNfE4core4simd3XMMfNhG16vZNhG16v",
@@ -503,7 +505,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable ubyte[43] core_ioptab =
+    __gshared immutable ubyte[44] core_ioptab =
     [
         OPcos,
         OPsin,
@@ -517,6 +519,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPrndtol,
         OPyl2xp1,
 
+        OPprefetch,
         OPvector,
         OPvector,
         OPvector,

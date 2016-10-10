@@ -451,6 +451,7 @@ cd_t cdbtst;
 cd_t cdbt;
 cd_t cdbscan;
 cd_t cdpair;
+cd_t cdprefetch;
 code *longcmp (elem *,bool,unsigned,code *);
 
 /* cod5.c */

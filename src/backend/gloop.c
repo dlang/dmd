@@ -987,6 +987,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstrlen:
         case OPddtor:
         case OPinp:
+        case OPprefetch:                // don't mark E2
                 markinvar(n->E1,rd);
                 break;
         case OPcond:

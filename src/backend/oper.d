@@ -238,6 +238,7 @@ enum
         OPpredec,               // --x overloading
 
         OPva_start,             // va_start intrinsic (dmd)
+        OPprefetch,             // prefetch intrinsic (dmd)
 
         OPMAX                   // 1 past last operator
 }
@@ -305,13 +306,16 @@ int convidx(OPER op) { return op - CNVOPMIN; }
  */
 
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
-static if (__VERSION__ <= 2066):
+static if (__VERSION__ <= 2066)
     private enum computeEnumValue = OPMAX;
 
-extern __gshared ubyte[OPMAX] optab1;
-extern __gshared ubyte[OPMAX] optab2;
-extern __gshared ubyte[OPMAX] optab3;
-extern __gshared ubyte[OPMAX] opcost;
+extern (C)
+{
+    extern __gshared ubyte[OPMAX] optab1;
+    extern __gshared ubyte[OPMAX] optab2;
+    extern __gshared ubyte[OPMAX] optab3;
+    extern __gshared ubyte[OPMAX] opcost;
+}
 
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */
 enum
