@@ -200,14 +200,19 @@ short bug1977_comment5(byte i) {
   return o;
 }
 
-void testDchar() {
-    dchar d;
-    uint i;
+void testDchar(dchar d, uint i) {
+    static assert(dchar.max == 0x10FFFF);
+    /* The VRP upper limit for dchar should be uint.max, not dchar.max.
+     * Otherwise, attempts to handle out-of-range dchar values will be
+     * removed, generating a "not reachable" warning. */
+    if (d <= dchar.max)
+        return;
+
     /+
     static assert(!__traits(compiles, d = i));
     static assert(!__traits(compiles, d = i & 0x1fffff));
     +/
-    d = i % 0x110000;
+    d = i;
 }
 
 void bug1977_comment11() {
@@ -328,4 +333,10 @@ void test13001(bool unknown)
         b = i + 253;
         static assert(!__traits(compiles, b = i + 254));
     }
+}
+
+void test13010(ubyte value)
+{
+    immutable int i = value;
+    static assert(i + 1 > 0);
 }
