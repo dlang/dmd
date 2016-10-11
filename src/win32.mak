@@ -182,7 +182,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	bcomplex.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
 	divcoeff.obj dwarf.obj compress.obj varstats.obj \
-	ph2.obj util2.obj eh.obj tk.obj gslice.obj \
+	ph2.obj util2.obj eh.obj tk.obj gsroa.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -218,7 +218,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.c $C\el.c \
 	$C\evalu8.c $C\go.c $C\gflow.c $C\gdag.c \
-	$C\gother.c $C\glocal.c $C\gloop.c $C\gslice.c $C\newman.c \
+	$C\gother.c $C\glocal.c $C\gloop.c $C\gsroa.c $C\newman.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
@@ -518,8 +518,8 @@ gloop.obj : $C\gloop.c
 glue.obj : $(CH) $C\rtlsym.h mars.h module.h glue.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) glue
 
-gslice.obj : $C\gslice.c
-	$(CC) -c $(MFLAGS) $C\gslice
+gsroa.obj : $C\gsroa.c
+	$(CC) -c $(MFLAGS) $C\gsroa
 
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
