@@ -163,6 +163,8 @@ BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $
 
 TK_HDRS= $(TK)/dlist.d
 
+STRING_IMPORT_FILES= verstr.h ../res/default_ddoc_theme.ddoc
+
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 # Glue layer
@@ -293,11 +295,11 @@ backend.lib : $(BACKOBJ) $(OBJ_MSVC)
 
 LIBS= glue.lib backend.lib
 
-dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj verstr.h
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
+dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 
-$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) verstr.h
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)
+$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -J../res -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)
 
 ############################ Maintenance Targets #############################
 

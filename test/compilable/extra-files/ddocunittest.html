@@ -1,399 +1,2550 @@
-<html><head>
-        <META http-equiv="content-type" content="text/html; charset=utf-8">
-        <title>ddocunittest</title>
-        </head><body>
-        <h1>ddocunittest</h1>
-<br><br>
-<dl><dt><big><a name="foo"></a>int <u>foo</u>(int <i>a</i>, int <i>b</i>);
-</big></dt>
-<dd><u>foo</u> function - 1 example<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<font color=blue>assert</font>(<u>foo</u>(1, 1) == 2);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="bar"></a>bool <u>bar</u>();
-</big></dt>
-<dd><u>bar</u> function - 1 example<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<font color=green>// documented
-</font><font color=blue>assert</font>(<u>bar</u>());
-</pre>
-<br><br><b>Examples:</b><br>
-placeholder
-<br><br>
-</dd>
-<dt><big><a name="doo"></a>void <u>doo</u>();
-</big></dt>
-<dd><u>doo</u> function - no examples<br><br>
 
-</dd>
-<dt><big><a name="add"></a>int <u>add</u>(int <i>a</i>, int <i>b</i>);
-</big></dt>
-<dd><u>add</u> function - 3 examples
-<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><font color=blue>assert</font>(<u>add</u>(1, 1) == 2);
-</pre>
-<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<font color=green>// documented
-</font><font color=blue>assert</font>(<u>add</u>(3, 3) == 6);
-<font color=blue>assert</font>(<u>add</u>(4, 4) == 8);
-</pre>
-<br><br><b>Examples:</b><br>
-<pre class="d_code">
-<font color=green>// documented
-</font><font color=blue>assert</font>(<u>add</u>(5, 5) == 10);
-<font color=blue>assert</font>(<u>add</u>(6, 6) == 12);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="Foo"></a>class <u>Foo</u>;
-</big></dt>
-<dd>class <u>Foo</u><br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<u>Foo</u> foo = <font color=blue>new</font> <u>Foo</u>;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="SomeClass"></a>class <u>SomeClass</u>;
-</big></dt>
-<dd>some class - 1 example<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<u>SomeClass</u> sc = <font color=blue>new</font> <u>SomeClass</u>;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="Outer"></a>class <u>Outer</u>;
-</big></dt>
-<dd><u>Outer</u> - 1 example<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<u>Outer</u> outer = <font color=blue>new</font> <u>Outer</u>;
-</pre>
-<br><br>
-<dl><dt><big><a name="Outer.Inner"></a>class <u>Inner</u>;
-</big></dt>
-<dd><u>Inner</u><br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<u>Inner</u> inner = <font color=blue>new</font> <u>Inner</u>;
-</pre>
-<br><br>
-</dd>
-</dl>
-</dd>
-<dt><big><a name="foobar"></a>void <u>foobar</u>();
-</big></dt>
-<dd><u>foobar</u> - no examples<br><br>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>ddocunittest</title>
+    <style type="text/css" media="screen">
+      html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p,
+      blockquote, pre, a, abbr, address, cite, code, del, dfn, em, figure,
+      img, ins, kbd, q, s, samp, small, strong, sub, sup, var, b, u, i, dl,
+      dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption,
+      tbody, tfoot, thead, tr, th, td {
+        background: transparent none repeat scroll 0 0;
+        border: 0 none;
+        font-size: 100%;
+        margin: 0;
+        outline: 0 none;
+        padding: 0;
+        vertical-align: baseline;
+      }
 
-</dd>
-<dt><big><a name="foo.2"></a>void <u>foo</u>(int <i>x</i>);
-</big></dt>
-<dd>func - 4 examples
-<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><u>foo</u>(1);
-</pre>
+      .color_red { color: #dc322f; }
+      .color_blue { color: #268bd2; }
+      .color_green { color: #859901; }
+      .color_yellow { color: #b58901; }
+      .color_black { color: black; }
+      .color_white { color: white; }
 
-<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><u>foo</u>(2);
-</pre>
-<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<u>foo</u>(2);
-</pre>
-<br><br><b>Examples:</b><br>
-<pre class="d_code">
-<u>foo</u>(4);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooImport"></a>void <u>fooImport</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-test
-<pre class="d_code"><u>fooImport</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooStaticImport"></a>void <u>fooStaticImport</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-test
-<pre class="d_code"><u>fooStaticImport</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooPublicImport"></a>void <u>fooPublicImport</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-test
-<pre class="d_code"><u>fooPublicImport</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooSelectiveImport"></a>void <u>fooSelectiveImport</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-test
-<pre class="d_code"><u>fooSelectiveImport</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooRenamedImport"></a>void <u>fooRenamedImport</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-test
-<pre class="d_code"><u>fooRenamedImport</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooConditionalDecl1a"></a>void <u>fooConditionalDecl1a</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> x1a;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooConditionalDecl1b"></a>void <u>fooConditionalDecl1b</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> x1b;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fooConditionalDecl3a"></a>void <u>fooConditionalDecl3a</u>();
-</big></dt>
-<dd><br><br>
-</dd>
-<dt><big><a name="fooConditionalDecl3b"></a>void <u>fooConditionalDecl3b</u>();
-</big></dt>
-<dd><br><br>
-</dd>
-<dt><big><a name="barConditionalDecl4a"></a>void <u>barConditionalDecl4a</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> x4a;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="barConditionalDecl4b"></a>void <u>barConditionalDecl4b</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> x4b;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="barConditionalDecl6a"></a>void <u>barConditionalDecl6a</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> x6a;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="barConditionalDecl6b"></a>void <u>barConditionalDecl6b</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> x6b;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="foo9474"></a>void <u>foo9474</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-Example
-<pre class="d_code"><u>foo9474</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="bar9474"></a>void <u>bar9474</u>();
-</big></dt>
-<dd>doc<br><br>
-<b>Examples:</b><br>
-Example
-<pre class="d_code"><u>bar9474</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="S9474"></a>struct <u>S9474</u>;
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><u>S9474</u> s;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="autovar9474"></a>int <u>autovar9474</u>;
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> v = <u>autovar9474</u>;
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="autofun9474"></a>auto <u>autofun9474</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>int</font> n = <u>autofun9474</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="Template9474"></a>template <u>Template9474</u>()</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>alias</font> <u>Template9474</u>!() T;
-</pre>
-<br><br>
-<dl><dt><big><a name="Template9474.foo"></a>void <u>foo</u>();
-</big></dt>
-<dd>Shouldn't link following unittest to here<br><br>
+      .font_big {
+        font-size: 1.2em;
+      }
 
-</dd>
-</dl>
-</dd>
-<dt><big><a name="fooNoDescription"></a>void <u>fooNoDescription</u>();
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code"><u>fooNoDescription</u>();
-</pre>
-<br><br><b>Examples:</b><br>
-<pre class="d_code"><font color=blue>if</font> (<font color=blue>true</font>) {<u>fooNoDescription</u>(); } <font color=green>/* comment */</font>
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="foo9757"></a>void <u>foo9757</u>();
-<br><a name="bar9757"></a>void <u>bar9757</u>();
-<br><a name="baz9757"></a>void <u>baz9757</u>();
-</big></dt>
-<dd>test for bugzilla 9757<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><u>foo9757</u>(); <u>bar9757</u>();
-</pre>
-<br><br><b>Examples:</b><br>
-<pre class="d_code"><u>bar9757</u>(); <u>foo9757</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="redBlackTree"></a>auto <u>redBlackTree</u>(E)(E[] <i>elems</i>...);
-<br>auto <u>redBlackTree</u>(bool allowDuplicates, E)(E[] <i>elems</i>...);
-<br>auto <u>redBlackTree</u>(alias less, E)(E[] <i>elems</i>...);
-</big></dt>
-<dd>with template functions<br><br>
-<b>Examples:</b><br>
-<pre class="d_code">
-<font color=blue>auto</font> rbt1 = <u>redBlackTree</u>(0, 1, 5, 7);
-<font color=blue>auto</font> rbt2 = <u>redBlackTree</u>!string(<font color=red>"hello"</font>, <font color=red>"world"</font>);
-<font color=blue>auto</font> rbt3 = <u>redBlackTree</u>!<font color=blue>true</font>(0, 1, 5, 7, 5);
-<font color=blue>auto</font> rbt4 = <u>redBlackTree</u>!<font color=red>"a &gt; b"</font>(0, 1, 5, 7);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="foo.3"></a>void <u>foo</u>();
-</big></dt>
-<dd>test<br><br>
-<b>Examples:</b><br>
-<br><br>
-</dd>
-<dt><big><a name="balancedParens10519"></a>bool <u>balancedParens10519</u>(string, char, char);
-</big></dt>
-<dd><b>Examples:</b><br>
-<pre class="d_code">
-<font color=blue>auto</font> s = <font color=red>"1 + (2 * (3 + 1 / 2)"</font>;
-<font color=blue>assert</font>(!<u>balancedParens10519</u>(s, '(', ')'));
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="S12097"></a>struct <u>S12097</u>;
-<br><a name="f12097"></a>void <u>f12097</u>();
-<br><a name="T12097"></a>struct <u>T12097</u>(T);
-</big></dt>
-<dd>declaration<br><br>
-<b>Examples:</b><br>
-ddoc code 1
-<pre class="d_code">
-<font color=blue>int</font> a = 1;
-</pre>
-<br><br><b>Examples:</b><br>
-ddoc code 2
-<pre class="d_code">
-<font color=blue>int</font>[] arr;
-</pre>
-<br><br>
-<dl><dt><big><a name="S12097.foo"></a>void <u>foo</u>();
-</big></dt>
-<dd>method<br><br>
+      .ddoc_section_h {
+        font-weight: bold;
+        font-size: 13px;
+        line-height: 19.5px;
+        margin-top: 11px;
+        display: block;
+      }
 
-</dd>
-</dl>
-</dd>
-<dt><big><a name="fun14594a"></a>void <u>fun14594a</u>()();
-</big></dt>
-<dd>testA<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><u>fun14594a</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fun14594b"></a>void <u>fun14594b</u>()();
-<br>void <u>fun14594b</u>(T)(T);
-</big></dt>
-<dd>testB<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><u>fun14594b</u>(); <u>fun14594b</u>(1);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fun14594c"></a>void <u>fun14594c</u>()();
-<br>void <u>fun14594c</u>(T)(T);
-</big></dt>
-<dd>testC<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><u>fun14594c</u>(); <u>fun14594c</u>(1);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fun14594d"></a>void <u>fun14594d</u>()();
-<br>void <u>fun14594d</u>(T)(T);
-</big></dt>
-<dd>testD<br><br>
-<b>Examples:</b><br>
-<pre class="d_code"><u>fun14594d</u>();
-</pre>
-<br><br><b>Examples:</b><br>
-<pre class="d_code"><u>fun14594d</u>(1);
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fun14594e"></a>void <u>fun14594e</u>()();
-</big></dt>
-<dd>testE
-<br><br>
-concatenated doc-comment <u>fun14594e</u><br><br>
-<b>Examples:</b><br>
-doc-unittest <u>fun14594e</u>
-<pre class="d_code"><u>fun14594e</u>();
-</pre>
-<br><br>
-</dd>
-<dt><big><a name="fun14594f"></a>void <u>fun14594f</u>()();
-<br>void <u>fun14594f</u>(T)(T);
-</big></dt>
-<dd>testF
-<br><br>
-concatenated doc-comment <u>fun14594f</u><br><br>
-<b>Examples:</b><br>
-doc-unittest <u>fun14594f</u>
-<pre class="d_code"><u>fun14594f</u>();
-</pre>
-<br><br>
-</dd>
-</dl>
+      body.dlang .dlang {
+        display: inline-block;
+      }
 
-        <hr><small>Page generated by <a href="http://dlang.org/ddoc.html">Ddoc</a>. </small>
-        </body></html>
+      body.dlang .declaration .dlang {
+          display: block;
+      }
+
+      body.dlang .ddoc_header_anchor a.dlang {
+        display: block;
+        color: rgba(0, 136, 204, 1);
+        text-decoration: none;
+      }
+
+      body.dlang .ddoc_header_anchor .code {
+        color: rgba(0, 136, 204, 1);
+      }
+
+      #ddoc_main .module {
+          border-color: currentColor rgba(233, 233, 233, 1) rgba(233, 233, 233, 1);
+          border-style: none solid solid;
+          border-width: 0 1px 1px;
+          overflow-x: hidden;
+          padding: 15px;
+      }
+
+      #ddoc_main .section .section {
+        margin-top: 0;
+      }
+
+      #ddoc_main .ddoc_module_members_section {
+          padding: 1px 0 0;
+          transition: transform 0.3s ease 0s;
+      }
+
+      #ddoc_main .ddoc_member, #ddoc_main .ddoc_module_members section.intro {
+          background: #fff none repeat scroll 0 0;
+          list-style-type: none;
+          width: 100%;
+      }
+
+      #ddoc_main .ddoc_header_anchor {
+          font-size: 1.4em;
+          transition: transform 0.3s ease 0s;
+      }
+
+      #ddoc_main .ddoc_header_anchor > .code {
+          display: inline-block;
+
+      }
+
+      #ddoc_main .ddoc_decl {
+        background-color: transparent;
+        height: 100%;
+        left: 0;
+        top: 0;
+        padding: 0;
+        padding-left: 15px;
+      }
+
+      #ddoc_main .ddoc_decl .section, #ddoc_main .section.ddoc_sections {
+        background: white none repeat scroll 0 0;
+        margin: 0;
+        padding: 5px;
+        position: relative;
+        border-radius: 5px;
+      }
+
+      #ddoc_main .ddoc_decl .section h4, #ddoc_main .section.ddoc_sections h4 {
+        font-size: 13px;
+        line-height: 1.5;
+        margin-top: 21px;
+      }
+
+      #ddoc_main .section .declaration {
+          margin-top: 21px;
+      }
+
+      #ddoc_main .section .declaration .code {
+          color: rgba(0, 0, 0, 1);
+          margin-bottom: 15px;
+          padding-bottom: 6px;
+      }
+
+      #ddoc_main .declaration div .para {
+          margin-bottom: 0;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr td:first-of-type {
+        padding: 7px;
+        text-align: right;
+        vertical-align: top;
+        word-break: normal;
+        white-space: nowrap;
+      }
+
+      #ddoc_main .ddoc_params .graybox {
+        border: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox td {
+        border-color: rgba(214, 214, 214, 1);
+      }
+
+      #ddoc_main .ddoc_params .graybox tr:first-child > td {
+        border-top: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr:last-child > td {
+        border-bottom: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr > td:first-child {
+        border-left: 0 none;
+      }
+
+      #ddoc_main .ddoc_params .graybox tr > td:last-child {
+        border-right: 0 none;
+        width: 100%;
+      }
+
+      #ddoc_main em.term, #ddoc_main em.term .code {
+        color: rgba(65, 65, 65, 1);
+        font-size: 12px;
+        font-style: italic;
+        line-height: 1.5;
+      }
+
+      #ddoc_main .see-also {
+        cursor: pointer;
+        font-family: Menlo,monospace;
+      }
+
+      #ddoc_main .ddoc_decl .section > div:last-of-type {
+        margin-bottom: 15px;
+      }
+
+      #ddoc_main .ddoc_member, #ddoc_main .ddoc_module_members {
+          transition: transform 0.3s ease 0s;
+      }
+
+      #ddoc_main .code_sample {
+        background: inherit;
+      }
+
+      #ddoc_main .declaration .code-line {
+          display: block;
+          font: 1em Menlo,monospace;
+      }
+
+      #ddoc_main a[name] {
+        margin: -112px 0 0;
+        padding-top: 112px;
+      }
+
+      #ddoc_main .ddoc_decl td {
+        max-width: inherit;
+      }
+
+      #ddoc_main .declaration a {
+        color: inherit;
+      }
+
+      #ddoc_main .declaration a:hover {
+          color: rgba(0, 136, 204, 1);
+          text-decoration: underline;
+      }
+
+      body.ddoc {
+        background-color: transparent;
+        color: rgba(0, 0, 0, 1);
+        font-family: Helvetica,Arial,sans-serif;
+        font-size: 62.5%;
+        margin: 0;
+        border: 0;
+        left: 0;
+        top: 0;
+        padding: 0;
+      }
+
+      .ddoc a[name] {
+        display: block;
+        height: 0;
+        margin: -85px 0 0;
+        padding-top: 85px;
+        width: 0;
+      }
+
+      .ddoc .module {
+          border-color: transparent;
+          background-color: rgba(255, 255, 255, 1);
+          border-color: currentColor rgba(233, 233, 233, 1) rgba(233, 233, 233, 1);
+          border-image: none;
+          border-style: none solid solid;
+          border-width: 0 1px 1px;
+          box-shadow: 0 0 1px rgba(0, 0, 0, 0.07);
+          display: block;
+          margin-left: 0;
+          min-height: calc(100% - 173px);
+          overflow: auto;
+          padding-bottom: 100px;
+      }
+
+      .ddoc .content_wrapper {
+          background-color: rgba(242, 242, 242, 1);
+          margin: 0 auto;
+          max-width: 980px;
+      }
+
+      .ddoc .section {
+        padding: 15px 25px 30px;
+      }
+
+      .ddoc .section .section {
+        margin: 30px 0 0;
+        padding: 0;
+      }
+
+      .ddoc .para {
+        color: rgba(65, 65, 65, 1);
+        font-size: 1.4em;
+        line-height: 145%;
+        margin-bottom: 15px;
+      }
+
+      .ddoc .ddoc_examples .para {
+        margin-bottom: 0;
+      }
+
+      .ddoc .module_name {
+          color: rgba(0, 0, 0, 1);
+          display: block;
+          font-family: Helvetica;
+          font-size: 2.8em;
+          font-weight: 100;
+          margin-bottom: 0;
+          padding: 15px 0;
+      }
+
+      .ddoc .module a {
+          color: rgba(0, 136, 204, 1);
+          text-decoration: none;
+      }
+
+      .ddoc .code {
+        color: rgba(128, 128, 128, 1);
+        font-family: Menlo,monospace;
+        font-size: 0.85em;
+        word-wrap: break-word;
+      }
+
+      .ddoc .code i {
+        font-style: normal;
+      }
+
+      .ddoc .code .code {
+        font-size: 1em;
+      }
+
+      .ddoc .code_sample {
+        background-clip: padding-box;
+        margin: 1px 0;
+        text-align: left;
+      }
+
+      .ddoc .code_sample {
+        display: block;
+        font-size: 1.4em;
+        margin-left: 21px;
+      }
+
+      .ddoc ol .code_sample {
+        font-size: 1em;
+      }
+
+      .ddoc .code_lines {
+        counter-reset: li;
+        line-height: 1.6em;
+        list-style: outside none none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .ddoc .code_listing .code_sample div {
+        margin-left: 13px;
+        width: 93%;
+      }
+
+      .ddoc .code_listing .code_sample div .code_lines li {
+        list-style-type: none;
+        margin: 0;
+        padding-right: 10px;
+      }
+
+      .ddoc .code_sample div .code_lines li::before {
+        margin-left: -33px;
+        margin-right: 25px;
+      }
+
+      .ddoc .code_sample div .code_lines li:nth-child(n+10)::before {
+        margin-left: -39px;
+        margin-right: 25px;
+      }
+
+      .ddoc .code_sample div .code_lines li:nth-child(n+100)::before {
+        margin-left: -46px;
+        margin-right: 25px;
+      }
+
+      .ddoc .code_sample .code_lines .code {
+        color: #000;
+      }
+
+      .ddoc div.dlang {
+        margin: 10px 0 21px;
+        padding: 4px 0 2px 10px;
+      }
+
+      .ddoc div.dlang {
+          margin: 10px 0 21px;
+          padding: 4px 0 2px 10px;
+      }
+
+      .ddoc div.dlang {
+        border-left: 5px solid rgba(0, 155, 51, 0.2);
+      }
+
+      .ddoc .code_lines li::before {
+        color: rgba(128, 128, 128, 1);
+        content: counter(li, decimal);
+        counter-increment: li;
+        font-family: Menlo,monospace;
+        font-size: 0.9em;
+        margin-right: 16px;
+      }
+
+      .ddoc .code_lines li {
+        padding-left: 0;
+        white-space: pre-wrap;
+      }
+
+      .ddoc .code_lines li:only-of-type::before {
+        color: rgba(255, 255, 255, 1);
+        content: " ";
+      }
+
+      .ddoc .code_lines li:only-of-type {
+        color: rgba(255, 255, 255, 1);
+        content: " ";
+      }
+
+      .ddoc .code_lines li:nth-child(n+10) {
+        text-indent: -17px;
+      }
+
+      .ddoc .code_lines li:nth-child(n+10)::before {
+        margin-right: 12px;
+      }
+
+      .ddoc .graybox {
+        border: 1px solid rgba(233, 233, 233, 1);
+        border-collapse: collapse;
+        border-spacing: 0;
+        empty-cells: hide;
+        margin: 20px 0 36px;
+        text-align: left;
+      }
+
+      .ddoc .graybox p {
+        margin: 0;
+        min-width: 50px;
+      }
+
+      .ddoc td {
+        border: 1px solid rgba(233, 233, 233, 1);
+        margin: 0;
+        max-width: 260px;
+        padding: 5px 25px 5px 10px;
+        vertical-align: middle;
+      }
+
+      .punctuation {
+        color: rgba(0, 0, 0, 1);
+      }
+
+      .comment {
+        color: rgba(0, 131, 18, 1);
+      }
+
+      .operator {
+        color: #000;
+      }
+
+      .keyword {
+        color: rgba(170, 13, 145, 1);
+      }
+
+      .keyword_type {
+        color: rgba(170, 51, 145, 1);
+      }
+
+      .string_literal {
+        color: rgba(196, 26, 22, 1);
+      }
+
+      .ddoc_psuper_symbol {
+        color: rgba(92, 38, 153, 1);
+      }
+
+      .param {
+        color: rgba(0, 0, 0, 1);
+      }
+
+      .psymbol {
+        color: rgba(0, 0, 0, 1);
+      }
+
+      .ddoc_member_header .ddoc_header_anchor .code {
+        font-size: 1em;
+      }
+    </style>
+  </head>
+  <body id="ddoc_main" class="ddoc dlang">
+    <div class="content_wrapper">
+      <article class="module">
+        <h1 class="module_name">ddocunittest</h1>
+        <section id="module_content">
+<section class="section ddoc_module_members_section">
+  <div class="ddoc_module_members">
+    <ul class="ddoc_members">
+  <li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#foo" id="foo"><code class="code">foo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="foo"></span>int <code class="code">foo</code>(int <code class="code">a</code>, int <code class="code">b</code>);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <code class="code">foo</code> function - 1 example
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">assert</span>(<span class="psymbol">foo</span>(1, 1) == 2);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#bar" id="bar"><code class="code">bar</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="bar"></span>bool <code class="code">bar</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <code class="code">bar</code> function - 1 example
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="comment">// documented
+</span><span class="keyword">assert</span>(<span class="psymbol">bar</span>());
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div><div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    placeholder
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#doo" id="doo"><code class="code">doo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="doo"></span>void <code class="code">doo</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <code class="code">doo</code> function - no examples
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#add" id="add"><code class="code">add</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="add"></span>int <code class="code">add</code>(int <code class="code">a</code>, int <code class="code">b</code>);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <code class="code">add</code> function - 3 examples
+
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">assert</span>(<span class="psymbol">add</span>(1, 1) == 2);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="comment">// documented
+</span><span class="keyword">assert</span>(<span class="psymbol">add</span>(3, 3) == 6);
+<span class="keyword">assert</span>(<span class="psymbol">add</span>(4, 4) == 8);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div><div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="comment">// documented
+</span><span class="keyword">assert</span>(<span class="psymbol">add</span>(5, 5) == 10);
+<span class="keyword">assert</span>(<span class="psymbol">add</span>(6, 6) == 12);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Foo" id="Foo"><code class="code">Foo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Foo"></span>class <code class="code">Foo</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    class <code class="code">Foo</code>
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">Foo</span> foo = <span class="keyword">new</span> <span class="psymbol">Foo</span>;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#SomeClass" id="SomeClass"><code class="code">SomeClass</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="SomeClass"></span>class <code class="code">SomeClass</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    some class - 1 example
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">SomeClass</span> sc = <span class="keyword">new</span> <span class="psymbol">SomeClass</span>;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Outer" id="Outer"><code class="code">Outer</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Outer"></span>class <code class="code">Outer</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <code class="code">Outer</code> - 1 example
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">Outer</span> outer = <span class="keyword">new</span> <span class="psymbol">Outer</span>;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+<ul class="ddoc_members">
+  <li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Outer.Inner" id="Outer.Inner"><code class="code">Inner</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Outer.Inner"></span>class <code class="code">Inner</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <code class="code">Inner</code>
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">Inner</span> inner = <span class="keyword">new</span> <span class="psymbol">Inner</span>;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li>
+</ul>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#foobar" id="foobar"><code class="code">foobar</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="foobar"></span>void <code class="code">foobar</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    <code class="code">foobar</code> - no examples
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#foo" id="foo"><code class="code">foo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="foo.2"></span>void <code class="code">foo</code>(int <code class="code">x</code>);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    func - 4 examples
+
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">foo</span>(1);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">foo</span>(2);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">foo</span>(2);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div><div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">foo</span>(4);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooImport" id="fooImport"><code class="code">fooImport</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooImport"></span>void <code class="code">fooImport</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    test
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fooImport</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooStaticImport" id="fooStaticImport"><code class="code">fooStaticImport</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooStaticImport"></span>void <code class="code">fooStaticImport</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    test
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fooStaticImport</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooPublicImport" id="fooPublicImport"><code class="code">fooPublicImport</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooPublicImport"></span>void <code class="code">fooPublicImport</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    test
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fooPublicImport</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooSelectiveImport" id="fooSelectiveImport"><code class="code">fooSelectiveImport</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooSelectiveImport"></span>void <code class="code">fooSelectiveImport</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    test
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fooSelectiveImport</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooRenamedImport" id="fooRenamedImport"><code class="code">fooRenamedImport</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooRenamedImport"></span>void <code class="code">fooRenamedImport</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    test
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fooRenamedImport</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooConditionalDecl1a" id="fooConditionalDecl1a"><code class="code">fooConditionalDecl1a</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooConditionalDecl1a"></span>void <code class="code">fooConditionalDecl1a</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> x1a;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooConditionalDecl1b" id="fooConditionalDecl1b"><code class="code">fooConditionalDecl1b</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooConditionalDecl1b"></span>void <code class="code">fooConditionalDecl1b</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> x1b;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooConditionalDecl3a" id="fooConditionalDecl3a"><code class="code">fooConditionalDecl3a</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooConditionalDecl3a"></span>void <code class="code">fooConditionalDecl3a</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooConditionalDecl3b" id="fooConditionalDecl3b"><code class="code">fooConditionalDecl3b</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooConditionalDecl3b"></span>void <code class="code">fooConditionalDecl3b</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#barConditionalDecl4a" id="barConditionalDecl4a"><code class="code">barConditionalDecl4a</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="barConditionalDecl4a"></span>void <code class="code">barConditionalDecl4a</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> x4a;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#barConditionalDecl4b" id="barConditionalDecl4b"><code class="code">barConditionalDecl4b</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="barConditionalDecl4b"></span>void <code class="code">barConditionalDecl4b</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> x4b;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#barConditionalDecl6a" id="barConditionalDecl6a"><code class="code">barConditionalDecl6a</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="barConditionalDecl6a"></span>void <code class="code">barConditionalDecl6a</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> x6a;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#barConditionalDecl6b" id="barConditionalDecl6b"><code class="code">barConditionalDecl6b</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="barConditionalDecl6b"></span>void <code class="code">barConditionalDecl6b</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> x6b;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#foo9474" id="foo9474"><code class="code">foo9474</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="foo9474"></span>void <code class="code">foo9474</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    Example
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">foo9474</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#bar9474" id="bar9474"><code class="code">bar9474</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="bar9474"></span>void <code class="code">bar9474</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    doc
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    Example
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">bar9474</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#S9474" id="S9474"><code class="code">S9474</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="S9474"></span>struct <code class="code">S9474</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">S9474</span> s;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#autovar9474" id="autovar9474"><code class="code">autovar9474</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="autovar9474"></span>int <code class="code">autovar9474</code>;
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> v = <span class="psymbol">autovar9474</span>;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#autofun9474" id="autofun9474"><code class="code">autofun9474</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="autofun9474"></span>auto <code class="code">autofun9474</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> n = <span class="psymbol">autofun9474</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Template9474" id="Template9474"><code class="code">Template9474</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Template9474"></span>template <code class="code">Template9474</code>()
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">alias</span> <span class="psymbol">Template9474</span>!() T;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+<ul class="ddoc_members">
+  <li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#Template9474.foo" id="Template9474.foo"><code class="code">foo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="Template9474.foo"></span>void <code class="code">foo</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    Shouldn't link following unittest to here
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li>
+</ul>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fooNoDescription" id="fooNoDescription"><code class="code">fooNoDescription</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fooNoDescription"></span>void <code class="code">fooNoDescription</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fooNoDescription</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div><div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">if</span> (<span class="keyword">true</span>) {<span class="psymbol">fooNoDescription</span>(); } <span class="comment">/* comment */</span>
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#foo9757" id="foo9757"><code class="code">foo9757</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="foo9757"></span>void <code class="code">foo9757</code>();
+<br>
+<span class="ddoc_anchor" id="bar9757"></span>void <code class="code">bar9757</code>();
+<br>
+<span class="ddoc_anchor" id="baz9757"></span>void <code class="code">baz9757</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    test for bugzilla 9757
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">foo9757</span>(); <span class="psymbol">bar9757</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div><div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">bar9757</span>(); <span class="psymbol">foo9757</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#redBlackTree" id="redBlackTree"><code class="code">redBlackTree</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="redBlackTree"></span>auto <code class="code">redBlackTree</code>(E)(E[] <code class="code">elems</code>...);
+<br>
+auto <code class="code">redBlackTree</code>(bool allowDuplicates, E)(E[] <code class="code">elems</code>...);
+<br>
+auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code">elems</code>...);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    with template functions
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">auto</span> rbt1 = <span class="psymbol">redBlackTree</span>(0, 1, 5, 7);
+<span class="keyword">auto</span> rbt2 = <span class="psymbol">redBlackTree</span>!string(<span class="string_literal">"hello"</span>, <span class="string_literal">"world"</span>);
+<span class="keyword">auto</span> rbt3 = <span class="psymbol">redBlackTree</span>!<span class="keyword">true</span>(0, 1, 5, 7, 5);
+<span class="keyword">auto</span> rbt4 = <span class="psymbol">redBlackTree</span>!<span class="string_literal">"a &gt; b"</span>(0, 1, 5, 7);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#foo" id="foo"><code class="code">foo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="foo.3"></span>void <code class="code">foo</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    test
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#balancedParens10519" id="balancedParens10519"><code class="code">balancedParens10519</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="balancedParens10519"></span>bool <code class="code">balancedParens10519</code>(string, char, char);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">auto</span> s = <span class="string_literal">"1 + (2 * (3 + 1 / 2)"</span>;
+<span class="keyword">assert</span>(!<span class="psymbol">balancedParens10519</span>(s, '(', ')'));
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#S12097" id="S12097"><code class="code">S12097</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="S12097"></span>struct <code class="code">S12097</code>;
+<br>
+<span class="ddoc_anchor" id="f12097"></span>void <code class="code">f12097</code>();
+<br>
+<span class="ddoc_anchor" id="T12097"></span>struct <code class="code">T12097</code>(T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    declaration
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    ddoc code 1
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span> a = 1;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div><div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    ddoc code 2
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="keyword">int</span>[] arr;
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+<ul class="ddoc_members">
+  <li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#S12097.foo" id="S12097.foo"><code class="code">foo</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="S12097.foo"></span>void <code class="code">foo</code>();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    method
+  </p>
+</div>
+
+</section>
+
+</div>
+
+</li>
+</ul>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fun14594a" id="fun14594a"><code class="code">fun14594a</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fun14594a"></span>void <code class="code">fun14594a</code>()();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    testA
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fun14594a</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fun14594b" id="fun14594b"><code class="code">fun14594b</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fun14594b"></span>void <code class="code">fun14594b</code>()();
+<br>
+void <code class="code">fun14594b</code>(T)(T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    testB
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fun14594b</span>(); <span class="psymbol">fun14594b</span>(1);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fun14594c" id="fun14594c"><code class="code">fun14594c</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fun14594c"></span>void <code class="code">fun14594c</code>()();
+<br>
+void <code class="code">fun14594c</code>(T)(T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    testC
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fun14594c</span>(); <span class="psymbol">fun14594c</span>(1);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fun14594d" id="fun14594d"><code class="code">fun14594d</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fun14594d"></span>void <code class="code">fun14594d</code>()();
+<br>
+void <code class="code">fun14594d</code>(T)(T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    testD
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fun14594d</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div><div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fun14594d</span>(1);
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fun14594e" id="fun14594e"><code class="code">fun14594e</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fun14594e"></span>void <code class="code">fun14594e</code>()();
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    testE
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    concatenated doc-comment <code class="code">fun14594e</code>
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    doc-unittest <code class="code">fun14594e</code>
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fun14594e</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li><li class="ddoc_member">
+  <div class="ddoc_member_header">
+  <div class="ddoc_header_anchor">
+  <a href="#fun14594f" id="fun14594f"><code class="code">fun14594f</code></a>
+</div>
+</div><div class="ddoc_decl">
+  <section class="section">
+    <div class="declaration">
+      <h4>Declaration</h4>
+      <div class="dlang">
+        <p class="para">
+          <code class="code">
+            <span class="ddoc_anchor" id="fun14594f"></span>void <code class="code">fun14594f</code>()();
+<br>
+void <code class="code">fun14594f</code>(T)(T);
+
+          </code>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="ddoc_decl">
+  <section class="section ddoc_sections">
+  <div class="ddoc_summary">
+  <p class="para">
+    testF
+
+  </p>
+</div>
+<div class="ddoc_description">
+  <h4>Discussion</h4>
+  <p class="para">
+    concatenated doc-comment <code class="code">fun14594f</code>
+  </p>
+</div>
+<div class="ddoc_examples">
+  <h4>Examples</h4>
+  <p class="para">
+    doc-unittest <code class="code">fun14594f</code>
+
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code"><span class="psymbol">fun14594f</span>();
+</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+  </p>
+</div>
+</section>
+
+</div>
+
+</li>
+</ul>
+  </div>
+</section>
+</section>
+      </article>
+    </div>
+  </body>
+</html>
