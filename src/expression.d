@@ -15420,8 +15420,7 @@ extern (C++) final class InExp : BinExp
                 break;
             }
         default:
-            error("rvalue of in expression must be an associative array, not %s", e2.type.toChars());
-            goto case Terror;
+            return incompatibleTypes();
         case Terror:
             return new ErrorExp();
         }
