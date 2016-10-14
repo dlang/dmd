@@ -6456,6 +6456,7 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     /********************************************
+     * Set 'purity' field of 'this'.
      * Do this lazily, as the parameter types might be forward referenced.
      */
     void purityLevel()
@@ -6464,14 +6465,55 @@ extern (C++) final class TypeFunction : TypeNext
         if (tf.purity != PUREfwdref)
             return;
 
+        /* Determine purity level based on mutability of t
+         * and whether it is a 'ref' type or not.
+         */
+        static PURE purityOfType(bool isref, Type t)
+        {
+            if (isref)
+            {
+                if (t.mod & MODimmutable)
+                    return PUREstrong;
+                if (t.mod & (MODconst | MODwild))
+                    return PUREconst;
+                return PUREweak;
+            }
+
+            t = t.baseElemOf();
+
+            if (!t.hasPointers() || t.mod & MODimmutable)
+                return PUREstrong;
+
+            /* Accept immutable(T)[] and immutable(T)* as being strongly pure
+             */
+            if (t.ty == Tarray || t.ty == Tpointer)
+            {
+                Type tn = t.nextOf().toBasetype();
+                if (tn.mod & MODimmutable)
+                    return PUREstrong;
+                if (tn.mod & (MODconst | MODwild))
+                    return PUREconst;
+            }
+
+            /* The rest of this is too strict; fix later.
+             * For example, the only pointer members of a struct may be immutable,
+             * which would maintain strong purity.
+             * (Just like for dynamic arrays and pointers above.)
+             */
+            if (t.mod & (MODconst | MODwild))
+                return PUREconst;
+
+            /* Should catch delegates and function pointers, and fold in their purity
+             */
+            return PUREweak;
+        }
+
+        purity = PUREstrong; // assume strong until something weakens it
+
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
-        tf.purity = PUREstrong; // assume strong until something weakens it
-
-        size_t dim = Parameter.dim(tf.parameters);
-        if (!dim)
-            return;
-        for (size_t i = 0; i < dim; i++)
+        const dim = Parameter.dim(tf.parameters);
+        foreach (i; 0 .. dim)
         {
             Parameter fparam = Parameter.getNth(tf.parameters, i);
             Type t = fparam.type;
@@ -6480,57 +6522,38 @@ extern (C++) final class TypeFunction : TypeNext
 
             if (fparam.storageClass & (STClazy | STCout))
             {
-                tf.purity = PUREweak;
+                purity = PUREweak;
                 break;
             }
-            if (fparam.storageClass & STCref)
+            switch (purityOfType((fparam.storageClass & STCref) != 0, t))
             {
-                if (t.mod & MODimmutable)
+                case PUREweak:
+                    purity = PUREweak;
+                    break;
+
+                case PUREconst:
+                    purity = PUREconst;
                     continue;
-                if (t.mod & (MODconst | MODwild))
-                {
-                    tf.purity = PUREconst;
+
+                case PUREstrong:
                     continue;
-                }
-                tf.purity = PUREweak;
-                break;
+
+                default:
+                    assert(0);
             }
-
-            t = t.baseElemOf();
-            if (!t.hasPointers())
-                continue;
-            if (t.mod & MODimmutable)
-                continue;
-
-            /* Accept immutable(T)[] and immutable(T)* as being strongly pure
-             */
-            if (t.ty == Tarray || t.ty == Tpointer)
-            {
-                Type tn = t.nextOf().toBasetype();
-                if (tn.mod & MODimmutable)
-                    continue;
-                if (tn.mod & (MODconst | MODwild))
-                {
-                    tf.purity = PUREconst;
-                    continue;
-                }
-            }
-
-            /* The rest of this is too strict; fix later.
-             * For example, the only pointer members of a struct may be immutable,
-             * which would maintain strong purity.
-             */
-            if (t.mod & (MODconst | MODwild))
-            {
-                tf.purity = PUREconst;
-                continue;
-            }
-
-            /* Should catch delegates and function pointers, and fold in their purity
-             */
-            tf.purity = PUREweak; // err on the side of too strict
-            break;
+            break;              // since PUREweak, no need to check further
         }
+
+        if (purity > PUREweak && tf.nextOf())
+        {
+            /* Adjust purity based on mutability of return type.
+             * https://issues.dlang.org/show_bug.cgi?id=15862
+             */
+            const purity2 = purityOfType(tf.isref, tf.nextOf());
+            if (purity2 < purity)
+                purity = purity2;
+        }
+        tf.purity = purity;
     }
 
     /********************************************
