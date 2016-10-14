@@ -626,8 +626,14 @@ again:
         {
             case SCregpar:
             case SCparameter:
+            case SCshadowreg:
                 if (e->Eoper == OPrelconst)
-                    addrparam = TRUE;   // taking addr of param list
+                {
+                    if (I16)
+                        addrparam = TRUE;   // taking addr of param list
+                    else
+                        s->Sflags &= ~(SFLunambig | GTregcand);
+                }
                 break;
 
             case SCstatic:
@@ -835,7 +841,10 @@ STATIC void out_regcand_walk(elem *e)
                     case SCregpar:
                     case SCparameter:
                     case SCshadowreg:
-                        addrparam = TRUE;       // taking addr of param list
+                        if (I16)
+                            addrparam = TRUE;       // taking addr of param list
+                        else
+                            s->Sflags &= ~(SFLunambig | GTregcand);
                         break;
                     case SCauto:
                     case SCregister:
