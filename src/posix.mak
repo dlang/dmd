@@ -87,7 +87,7 @@ CC=$(HOST_CC) $(MODEL_FLAG)
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
 #GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
+GFLAGS = $(WARNINGS) -std=gnu++98 -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DDMDV1=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
