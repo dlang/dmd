@@ -776,7 +776,7 @@ struct Scope
     structalign_t alignment()
     {
         if (aligndecl)
-            return aligndecl.getAlignment();
+            return aligndecl.getAlignment(&this);
         else
             return STRUCTALIGN_DEFAULT;
     }

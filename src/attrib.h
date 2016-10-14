@@ -126,7 +126,6 @@ class AlignDeclaration : public AttribDeclaration
     AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void setScope(Scope *sc);
     void semantic2(Scope *sc);
     structalign_t getAlignment();
     void accept(Visitor *v) { v->visit(this); }
