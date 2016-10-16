@@ -2024,13 +2024,10 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 auto f = ve.var.isFuncDeclaration();
                 if (f)
                 {
-                    assert(f.isImportedSymbol());
                     f = f.overloadExactMatch(tb.nextOf());
                     if (f)
                     {
-                        result = new VarExp(e.loc, f, false);
-                        result.type = f.type;
-                        result = new AddrExp(e.loc, result);
+                        result = new SymOffExp(e.loc, f, false);
                         result.type = t;
                         return;
                     }

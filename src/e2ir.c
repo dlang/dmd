@@ -1100,9 +1100,21 @@ elem *toElem(Expression *e, IRState *irs)
 
             if (se->var->isImportedSymbol())
             {
-                assert(se->op == TOKvar);
+                //printf("[%s] SymbolExp.toElem(op = '%s') se->var = %s %s\n",
+                //    se->loc.toChars(),
+                //    (se->op == TOKvar ? "var" : "symoff"),
+                //    se->var->kind(), se->var->toPrettyChars());
+
+                assert(se->op == TOKvar || se->op == TOKsymoff);
                 e = el_var(toImport(se->var));
-                e = el_una(OPind,s->ty(),e);
+                if (se->op == TOKsymoff && offset)
+                    e = el_bin(OPadd, e->Ety, e, el_long(TYsize_t, offset));
+                e = el_una(OPind, s->ty(), e);
+                if (se->op == TOKsymoff)
+                    e = el_una(OPaddr, TYnptr, e);
+
+                //if (se->op == TOKsymoff)
+                //    elem_print(e);
             }
             else if (ISREF(se->var, tb))
             {
@@ -3726,6 +3738,12 @@ elem *toElem(Expression *e, IRState *irs)
                 e = addressElem(e, ae->e1->type);
                 e->Ety = totym(ae->type);
                 el_setLoc(e, ae->loc);
+
+                //if (ae->e1->op == TOKvar && ((VarExp *)ae->e1)->var->isImportedSymbol())
+                //{
+                //    printf("[%s] AddrExp::toElem('%s')\n", ae->loc.toChars(), ae->toChars());
+                //    elem_print(e);
+                //}
                 result = e;
                 return;
             }
