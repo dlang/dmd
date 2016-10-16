@@ -78,6 +78,7 @@ static void sliceStructs_Gather(SymInfo *sia, elem *e)
                             sia[si].ty0 = tybasic(e->Ety);
                         else
                             sia[si].ty1 = tybasic(e->Ety);
+                        // Cannot slice float fields if the symbol is also accessed using OPpair (see above)
                         if (sia[si].usePair && (tyfloating(sia[si].ty0) || tyfloating(sia[si].ty1)))
                             sia[si].canSlice = false;
                     }
