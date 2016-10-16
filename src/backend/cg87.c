@@ -3890,4 +3890,22 @@ __body
     return cat4(cpush,c,fixresult_complex87(e, retregs, pretregs), NULL);
 }
 
+/**********************************************
+ * Load OPpair or OPrpair into mST01
+ */
+code *loadPair87(elem *e, regm_t *pretregs)
+{
+    assert(e->Eoper == OPpair || e->Eoper == OPrpair);
+    regm_t retregs = mST0;
+    code *c1 = codelem(e->E1, &retregs, FALSE);
+    note87(e->E1, 0, 0);
+    code *c2 = codelem(e->E2, &retregs, FALSE);
+    code *c3 = makesure87(e->E1, 0, 1, 0);
+    if (e->Eoper == OPrpair)
+        c3 = genf2(c3, 0xD9, 0xC8 + 1); // FXCH ST(1)
+    retregs = mST01;
+    code *c4 = fixresult_complex87(e, retregs, pretregs);
+    return cat4(c1,c2,c3,c4);
+}
+
 #endif // !SPP
