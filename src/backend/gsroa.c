@@ -29,11 +29,16 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 /* This 'slices' a two register wide aggregate into two separate register-sized variables,
  * enabling much better enregistering.
+ * SROA (Scalar Replacement Of Aggregates) is the common term for this.
  */
 
 struct SymInfo
 {
     bool canSlice;
+    bool accessSlice;   // if Symbol was accessed as a slice
+    bool usePair;       // will use OPpair
+    tym_t ty0;          // type of first slice
+    tym_t ty1;          // type of second slice
     SYMIDX si0;
 };
 
@@ -49,15 +54,67 @@ static void sliceStructs_Gather(SymInfo *sia, elem *e)
                 if (si >= 0 && sia[si].canSlice)
                 {
                     assert(si < globsym.top);
-                    if (tysize(e->Ety) != REGSIZE ||
-                        (e->Eoffset != 0 && e->Eoffset != REGSIZE))
+                    unsigned sz = tysize(e->Ety);
+                    if (sz == 2 * REGSIZE)
+                    {
+                        // Rewrite as OPpair later
+                        sia[si].usePair = true;
+
+                        /* OPpair cannot handle XMM registers, cdpair() and fixresult()
+                         */
+                        if (tyfloating(sia[si].ty0) || tyfloating(sia[si].ty1))
+                            sia[si].canSlice = false;
+                    }
+                    else if (sz == REGSIZE &&
+                        (e->Eoffset == 0 || e->Eoffset == REGSIZE))
+                    {
+                        if (!sia[si].accessSlice)
+                        {
+                            sia[si].ty0 = TYnptr;
+                            sia[si].ty1 = TYnptr;
+                        }
+                        sia[si].accessSlice = true;
+                        if (e->Eoffset == 0)
+                            sia[si].ty0 = tybasic(e->Ety);
+                        else
+                            sia[si].ty1 = tybasic(e->Ety);
+                        // Cannot slice float fields if the symbol is also accessed using OPpair (see above)
+                        if (sia[si].usePair && (tyfloating(sia[si].ty0) || tyfloating(sia[si].ty1)))
+                            sia[si].canSlice = false;
+                    }
+                    else
                     {
                         sia[si].canSlice = false;
                     }
                 }
                 return;
             }
+
             default:
+                if (OTassign(e->Eoper))
+                {
+                    if (OTbinary(e->Eoper))
+                        sliceStructs_Gather(sia, e->E2);
+
+                    // Assignment to a whole var will disallow SROA
+                    if (e->E1->Eoper == OPvar)
+                    {
+                        elem *e1 = e->E1;
+                        SYMIDX si = e1->EV.sp.Vsym->Ssymnum;
+                        if (si >= 0 && sia[si].canSlice)
+                        {
+                            assert(si < globsym.top);
+                            if (tysize(e1->Ety) != REGSIZE ||
+                                (e1->Eoffset != 0 && e1->Eoffset != REGSIZE))
+                            {
+                                sia[si].canSlice = false;
+                            }
+                        }
+                        return;
+                    }
+                    e = e->E1;
+                    break;
+                }
                 if (OTunary(e->Eoper))
                 {
                     e = e->E1;
@@ -88,16 +145,30 @@ static void sliceStructs_Replace(SymInfo *sia, elem *e)
                 //elem_print(e);
                 if (si >= 0 && sia[si].canSlice)
                 {
-                    if (e->Eoffset == 0)  // the first slice of the symbol is the same as the original
+                    if (tysize(e->Ety) == 2 * REGSIZE)
                     {
-                        type_free(s->Stype);
-                        s->Stype = type_fake(e->Ety);
+                        // Rewrite e as (si0 OPpair si0+1)
+                        elem *e1 = el_calloc();
+                        el_copy(e1, e);
+                        e1->Ety = sia[si].ty0;
+
+                        elem *e2 = el_calloc();
+                        el_copy(e2, e);
+                        Symbol *s1 = globsym.tab[sia[si].si0 + 1]; // +1 for second slice
+                        e2->Ety = sia[si].ty1;
+                        e2->EV.sp.Vsym = s1;
+                        e2->Eoffset = 0;
+
+                        e->Eoper = OPpair;
+                        e->E1 = e1;
+                        e->E2 = e2;
+                    }
+                    else if (e->Eoffset == 0)  // the first slice of the symbol is the same as the original
+                    {
                     }
                     else
                     {
                         Symbol *s1 = globsym.tab[sia[si].si0 + 1]; // +1 for second slice
-                        type_free(s1->Stype);
-                        s1->Stype = type_fake(e->Ety);
                         e->EV.sp.Vsym = s1;
                         e->Eoffset = 0;
                         //printf("replaced with:\n");
@@ -164,6 +235,8 @@ void sliceStructs()
             case SCparameter:
                 anySlice = true;
                 sia[si].canSlice = true;
+                sia[si].accessSlice = false;
+                sia[si].usePair = false;
                 break;
 
             case SCstack:
@@ -198,6 +271,13 @@ void sliceStructs()
             sia2[si + n].canSlice = false;
             if (sia[si].canSlice)
             {
+                if (!sia[si].accessSlice)
+                {
+                    // If never did access it as a slice, don't slice
+                    sia[si].canSlice = false;
+                    continue;
+                }
+
                 /* Split slice-able symbol sold into two symbols,
                  * (sold,snew) in adjacent slots in the symbol table.
                  */
@@ -220,9 +300,9 @@ void sliceStructs()
                     sold->Spreg2 = NOREG;
                 }
                 type_free(sold->Stype);
-                sold->Stype = type_fake(TYnptr);
+                sold->Stype = type_fake(sia[si].ty0);
                 sold->Stype->Tcount++;
-                snew->Stype = type_fake(TYnptr);
+                snew->Stype = type_fake(sia[si].ty1);
                 snew->Stype->Tcount++;
 
                 SYMIDX sinew = symbol_add(snew);
@@ -236,6 +316,8 @@ void sliceStructs()
 
                 sia2[si + n].canSlice = true;
                 sia2[si + n].si0 = si + n;
+                sia2[si + n].ty0 = sia[si].ty0;
+                sia2[si + n].ty1 = sia[si].ty1;
                 ++n;
                 any = true;
             }

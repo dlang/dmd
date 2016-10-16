@@ -4390,9 +4390,32 @@ STATIC elem * el64_32(elem *e, goal_t goal)
     case OPu32_64:
     case OPs64_128:
     case OPu64_128:
+        if (tysize(ty) != tysize(e->E1->E1->Ety))
+            break;
+        e = el_selecte1(el_selecte1(e));
+        e->Ety = ty;
+        break;
+
     case OPpair:
         if (tysize(ty) != tysize(e->E1->E1->Ety))
             break;
+        if (el_sideeffect(e1->E2))
+        {
+            // Rewrite (OP64_32(a pair b)) as ((t=a),(b,t))
+            elem *a = e1->E1;
+            elem *b = e1->E2;
+            elem *t = el_alloctmp(a->Ety);
+
+            e->Eoper = OPcomma;
+            e->E1 = el_bin(OPeq,a->Ety,t,a);
+            e->E2 = e1;
+
+            e1->Eoper = OPcomma;
+            e1->E1 = b;
+            e1->E2 = el_copytree(t);
+            e1->Ety = e->Ety;
+            break;
+        }
         e = el_selecte1(el_selecte1(e));
         e->Ety = ty;
         break;
@@ -4400,6 +4423,14 @@ STATIC elem * el64_32(elem *e, goal_t goal)
     case OPrpair:
         if (tysize(ty) != tysize(e->E1->E2->Ety))
             break;
+        if (el_sideeffect(e1->E1))
+        {
+            // Rewrite (OP64_32(a rpair b)) as (a,b)
+            e = el_selecte1(e);
+            e->Eoper = OPcomma;
+            e->Ety = ty;
+            break;
+        }
         e = el_selecte2(el_selecte1(e));
         e->Ety = ty;
         break;
