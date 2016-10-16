@@ -398,6 +398,7 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         $(UL
         $(LI disable:0|1    - start disabled)
         $(LI profile:0|1    - enable profiling with summary when terminating program)
+        $(LI gc:conservative|manual - select gc implementation (default = conservative))
         $(LI initReserve:N  - initial memory to reserve in MB)
         $(LI minPoolSize:N  - initial and minimum pool size in MB)
         $(LI maxPoolSize:N  - maximum pool size in MB)
