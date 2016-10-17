@@ -23,15 +23,7 @@ import ddmd.mtype;
 import ddmd.backend.cc;
 import ddmd.backend.el;
 
-/****************************************
- * Our label symbol, with vector to keep track of forward references.
- */
-
-extern (C++) struct Label
-{
-    block *lblock;      // The block to which the label is defined.
-    block *fwdrefs;     // The first use of the label before it is defined.
-}
+extern (C++) struct Label;
 
 /***********************************************************
  */

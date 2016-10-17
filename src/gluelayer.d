@@ -58,7 +58,8 @@ else
     public import ddmd.backend.cc : block, Blockx, Symbol;
     public import ddmd.backend.type : type;
     public import ddmd.backend.el : elem;
-    public import ddmd.backend.code : code;
+
+    public alias code = ddmd.backend.type.code;
 
     extern (C++)
     {

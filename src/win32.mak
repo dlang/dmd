@@ -155,11 +155,10 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d \
 	libmscoff.d scanmscoff.d statementsem.d
 
-GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d \
-	tocvdebug.d s2ir.d
+GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d tocvdebug.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d \
 	$C/ty.d $C/type.d
 
 TK_HDRS= $(TK)/dlist.d
@@ -169,7 +168,7 @@ STRING_IMPORT_FILES= verstr.h ../res/default_ddoc_theme.ddoc
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 # Glue layer
-GLUEOBJ= e2ir.obj \
+GLUEOBJ= s2ir.obj e2ir.obj \
 	toobj.obj \
 	iasm.obj objc_glue_stubs.obj
 
@@ -201,7 +200,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	version.h visitor.h objc.d $(DMD_SRCS)
 
 # Glue layer
-GLUESRC= e2ir.c \
+GLUESRC= s2ir.c e2ir.c \
 	toobj.c toir.h \
 	irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
@@ -569,6 +568,9 @@ toobj.obj : $(CH) mars.h module.h toobj.c
 
 type.obj : $C\type.c
 	$(CC) -c $(MFLAGS) $C\type
+
+s2ir.obj : $C\rtlsym.h statement.h s2ir.c visitor.h
+	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir
 
 e2ir.obj : $C\rtlsym.h expression.h toir.h e2ir.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir
