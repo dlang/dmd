@@ -13,62 +13,12 @@ module ddmd.backend.code;
 
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
-import ddmd.backend.code_x86;
 import ddmd.backend.outbuf;
 import ddmd.backend.type;
 
 extern (C++):
 
 alias segidx_t = int;           // index into SegData[]
-
-/**********************************
- * Code data type
- */
-
-struct _Declaration;
-struct _LabelDsymbol;
-
-union evc
-{
-    targ_int    Vint;           /// also used for tmp numbers (FLtmp)
-    targ_uns    Vuns;
-    targ_long   Vlong;
-    targ_llong  Vllong;
-    targ_size_t Vsize_t;
-    struct
-    {
-        targ_size_t Vpointer;
-        int Vseg;               /// segment the pointer is in
-    }
-    Srcpos      Vsrcpos;        /// source position for OPlinnum
-    elem       *Vtor;           /// OPctor/OPdtor elem
-    block      *Vswitch;        /// when FLswitch and we have a switch table
-    code       *Vcode;          /// when code is target of a jump (FLcode)
-    block      *Vblock;         /// when block " (FLblock)
-    struct
-    {
-        targ_size_t Voffset;    /// offset from symbol
-        Symbol  *Vsym;          /// pointer to symbol table (FLfunc,FLextern)
-    }
-
-    struct
-    {
-        targ_size_t Vdoffset;   /// offset from symbol
-        _Declaration *Vdsym;    /// pointer to D symbol table
-    }
-
-    struct
-    {
-        targ_size_t Vloffset;   /// offset from symbol
-        _LabelDsymbol *Vlsym;   /// pointer to D Label
-    }
-
-    struct
-    {
-        size_t len;
-        char *bytes;
-    }                           // asm node (FLasm)
-}
 
 /************************************
  * Local sections on the stack
