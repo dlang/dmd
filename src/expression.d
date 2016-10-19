@@ -9408,7 +9408,7 @@ extern (C++) final class DelegateExp : UnaExp
         if (f.type.ty == Tfunction)
         {
             TypeFunction tf = cast(TypeFunction)f.type;
-            if (!MODimplicitConv(e1.type.mod, f.type.mod))
+            if (!MODmethodConv(e1.type.mod, f.type.mod))
             {
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, e1.type.mod, tf.mod);

@@ -653,7 +653,9 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
     Expression ealign;
-    structalign_t salign = STRUCTALIGN_DEFAULT;
+    private enum structalign_t UNKNOWN = 0;
+    static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
+    structalign_t salign = UNKNOWN;
 
     extern (D) this(Loc loc, Expression ealign, Dsymbols* decl)
     {
@@ -674,50 +676,39 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
     }
 
-    override void setScope(Scope* sc)
-    {
-        //printf("AlignDeclaration::setScope() %p\n", this);
-        if (ealign && decl)
-            Dsymbol.setScope(sc); // for forward reference
-        return AttribDeclaration.setScope(sc);
-    }
-
     override void semantic2(Scope* sc)
     {
-        getAlignment();
+        getAlignment(sc);
         super.semantic2(sc);
     }
 
-    structalign_t getAlignment()
+    structalign_t getAlignment(Scope* sc)
     {
+        if (salign != UNKNOWN)
+            return salign;
+
         if (!ealign)
-            return STRUCTALIGN_DEFAULT;
+            return salign = STRUCTALIGN_DEFAULT;
 
-        if (auto sc = _scope)
+        sc = sc.startCTFE();
+        ealign = ealign.semantic(sc);
+        ealign = resolveProperties(sc, ealign);
+        sc = sc.endCTFE();
+        ealign = ealign.ctfeInterpret();
+
+        if (ealign.op == TOKerror)
+            return salign = STRUCTALIGN_DEFAULT;
+
+        Type tb = ealign.type.toBasetype();
+        auto n = ealign.toInteger();
+
+        if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
         {
-            _scope = null;
-
-            sc = sc.startCTFE();
-            ealign = ealign.semantic(sc);
-            ealign = resolveProperties(sc, ealign);
-            sc = sc.endCTFE();
-            ealign = ealign.ctfeInterpret();
-
-            if (ealign.op == TOKerror)
-                return STRUCTALIGN_DEFAULT;
-
-            Type tb = ealign.type.toBasetype();
-            auto n = ealign.toInteger();
-
-            if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
-            {
-                .error(loc, "alignment must be an integer positive power of 2, not %s", ealign.toChars());
-                return STRUCTALIGN_DEFAULT;
-            }
-
-            salign = cast(structalign_t)n;
+            .error(loc, "alignment must be an integer positive power of 2, not %s", ealign.toChars());
+            return salign = STRUCTALIGN_DEFAULT;
         }
-        return salign;
+
+        return salign = cast(structalign_t)n;
     }
 
     override void accept(Visitor v)
