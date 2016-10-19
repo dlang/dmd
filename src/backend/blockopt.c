@@ -120,7 +120,7 @@ void block_term()
  */
 
 #if MARS
-void block_next(Blockx *bctx,enum BC bc,block *bn)
+void block_next(Blockx *bctx,int bc,block *bn)
 {
     bctx->curblock->BC = bc;
     block_last = bctx->curblock;
@@ -157,7 +157,7 @@ void block_next()
 
 #if MARS
 
-block *block_goto(Blockx *bx,enum BC bc,block *bn)
+block *block_goto(Blockx *bx,int bc,block *bn)
 {   block *b;
 
     b = bx->curblock;
