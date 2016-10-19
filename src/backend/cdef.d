@@ -822,8 +822,8 @@ union eve
         }
         struct
         {
-            elem* Eleft;        // left child for unary & binary nodes
-            elem* Eright;       // right child for binary nodes
+            elem* E1;           // left child for unary & binary nodes
+            elem* E2;           // right child for binary nodes
             Symbol* Edtor;      // OPctor: destructor
         }
         struct
