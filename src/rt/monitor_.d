@@ -57,6 +57,11 @@ extern (C) void _d_monitordelete(Object h, bool det)
 }
 
 extern (C) void _d_monitorenter(Object h)
+in
+{
+    assert(h !is null, "Synchronized object must not be null.");
+}
+body
 {
     auto m = cast(Monitor*) ensureMonitor(h);
     auto i = m.impl;
