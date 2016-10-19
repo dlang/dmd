@@ -2,7 +2,7 @@ include ../common.mak
 
 TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor chain
 ifeq ($(OS)-$(BUILD),linux-debug)
-	TESTS:=$(TESTS) line_trace
+	TESTS:=$(TESTS) line_trace rt_trap_exceptions
 endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
 	TESTS:=$(TESTS) line_trace
@@ -33,6 +33,8 @@ $(ROOT)/invalid_memory_operation.done: STDERR_EXP="InvalidMemoryOperationError"
 $(ROOT)/unknown_gc.done: STDERR_EXP="'unknowngc'"
 $(ROOT)/static_dtor.done: STDERR_EXP="dtor_called_more_than_once"
 $(ROOT)/static_dtor.done: NEGATE=!
+$(ROOT)/rt_trap_exceptions.done: STDERR_EXP="uncaught exception\nobject.Exception@rt_trap_exceptions.d(11): exception"
+$(ROOT)/rt_trap_exceptions.done: NEGATE=!
 $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | grep -qF $(STDERR_EXP)
