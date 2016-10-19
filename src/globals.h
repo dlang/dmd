@@ -152,6 +152,8 @@ struct Param
     const char *moduleDepsFile; // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
+    Strings selectedUnitTestModules; // module names whose unittests shall be selective compiled
+
     // Hidden debug switches
     bool debugb;
     bool debugc;

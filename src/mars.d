@@ -828,6 +828,22 @@ Language changes listed by -transition=id:
             }
             else if (strcmp(p + 1, "unittest") == 0)
                 global.params.useUnitTests = true;
+            else if (memcmp(p + 1, cast(char*)"unittest", 8) == 0) // selective unittest
+            {
+                // Parse:
+                //      -unittest=MODULE_NAME
+                if (p[9] == '=')
+                {
+                    if (!global.params.selectedUnitTestModules)
+                        global.params.selectedUnitTestModules = new Strings();
+                    const mname = p + 10;
+                    // printf("Selected module: %s\n", mname);
+                    global.params.selectedUnitTestModules.push(mname);
+                }
+                else
+                    goto Lerror;
+                global.params.useUnitTests = true;
+            }
             else if (p[1] == 'I')
             {
                 if (!global.params.imppath)

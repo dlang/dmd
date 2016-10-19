@@ -192,6 +192,22 @@ public:
         assert(a <= b && b <= dim);
         return data[a .. b];
     }
+
+    static if (is(T == const(char)*))
+    {
+        bool canFind(T ptr) const nothrow pure
+        {
+            for (size_t i = 0; i < dim; ++i)
+            {
+                if (strcmp(data[i], ptr) == 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
 }
 
 struct BitArray
