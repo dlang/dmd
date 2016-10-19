@@ -1,8 +1,8 @@
-// REQUIRED_ARGS:
+// REQUIRED_ARGS: -de
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11653.d(18): Error: switch case fallthrough - use 'goto case;' if intended
+fail_compilation/fail11653.d(18): Deprecation: switch case fallthrough - use 'goto case;' if intended
 ---
 */
 

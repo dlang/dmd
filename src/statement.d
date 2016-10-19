@@ -326,7 +326,7 @@ extern (C++) abstract class Statement : RootObject
                                 else
                                 {
                                     const(char)* gototype = s.isCaseStatement() ? "case" : "default";
-                                    s.error("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                    s.deprecation("switch case fallthrough - use 'goto %s;' if intended", gototype);
                                 }
                             }
                         }
