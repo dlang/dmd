@@ -12,6 +12,7 @@ module ddmd.backend.type;
 
 import ddmd.backend.cdef;
 import ddmd.backend.cc : block, Blockx, Classsym, Symbol;
+import ddmd.backend.code;
 import ddmd.backend.el : elem;
 import ddmd.backend.ty;
 
@@ -20,8 +21,6 @@ import tk.dlist;
 extern (C++):
 @nogc:
 nothrow:
-
-struct code;
 
 // type.h
 
@@ -55,8 +54,6 @@ enum
     TFvla         = 0x80,   // TYarray: variable length array
     TFemptyexc    = 0x100,  // tyfunc(): empty exception specification
 }
-
-alias targ_size_t = ulong;
 
 struct PARAM;
 alias type = TYPE;
@@ -117,6 +114,19 @@ static if (__VERSION__ <= 2066)
 
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
+
+extern __gshared
+{
+    type* tslogical;
+    type* chartype;
+    type* tsclib;
+    type* tsdlib;
+    type* tspvoid;
+    type* tspcvoid;
+    type* tsptrdiff;
+    type* tssize;
+    type* tstrace;
+}
 
 //targ_size_t type_size(type *);
 uint type_alignsize(type *);

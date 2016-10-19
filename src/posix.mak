@@ -279,7 +279,7 @@ GLUE_SRC = s2ir.c e2ir.c \
 	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d \
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
 	$C/ty.d $C/type.d
 
 TK_HDRS= $(TK)/dlist.d
