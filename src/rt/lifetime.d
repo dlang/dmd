@@ -1570,6 +1570,10 @@ body
                     {
                         info = __arrayAlloc(newsize, ti, tinext);
                     }
+
+                    if (info.base is null)
+                        goto Loverflow;
+
                     __setArrayAllocLength(info, newsize, isshared, tinext);
                     if(!isshared)
                         __insertBlkInfoCache(info, bic);
@@ -1587,6 +1591,8 @@ body
         {
             // pointer was null, need to allocate
             auto info = __arrayAlloc(newsize, ti, tinext);
+            if (info.base is null)
+                goto Loverflow;
             __setArrayAllocLength(info, newsize, isshared, tinext);
             if(!isshared)
                 __insertBlkInfoCache(info, null);
