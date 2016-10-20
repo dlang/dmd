@@ -575,7 +575,7 @@ $(H3 $(LNAME2 field-init, Field initialization inside constructor))
         ------
 
     $(P If the assignment expression for the field initialization may be invoked
-        multiple times, it would als be rejected.
+        multiple times, it would also be rejected.
     )
 
         ------
