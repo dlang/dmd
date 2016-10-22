@@ -1,16 +1,10 @@
 /**
  * D header file for POSIX.
  *
- * Copyright: Copyright Sean Kelly 2005 - 2009.
+ * Copyright: Copyright Sean Kelly 2005 - 2016.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
- */
-
-/*          Copyright Sean Kelly 2005 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.sys.posix.sys.select;
 
@@ -64,12 +58,12 @@ version( CRuntime_Glibc )
         alias c_long __fd_mask;
         enum uint __NFDBITS = 8 * __fd_mask.sizeof;
 
-        extern (D) auto __FDELT( int d )
+        extern (D) auto __FDELT( int d ) pure
         {
             return d / __NFDBITS;
         }
 
-        extern (D) auto __FDMASK( int d )
+        extern (D) auto __FDMASK( int d ) pure
         {
             return cast(__fd_mask) 1 << ( d % __NFDBITS );
         }
@@ -82,22 +76,22 @@ version( CRuntime_Glibc )
         __fd_mask[FD_SETSIZE / __NFDBITS] fds_bits;
     }
 
-    extern (D) void FD_CLR( int fd, fd_set* fdset )
+    extern (D) void FD_CLR( int fd, fd_set* fdset ) pure
     {
         fdset.fds_bits[__FDELT( fd )] &= ~__FDMASK( fd );
     }
 
-    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset )
+    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset ) pure
     {
         return (fdset.fds_bits[__FDELT( fd )] & __FDMASK( fd )) != 0;
     }
 
-    extern (D) void FD_SET( int fd, fd_set* fdset )
+    extern (D) void FD_SET( int fd, fd_set* fdset ) pure
     {
         fdset.fds_bits[__FDELT( fd )] |= __FDMASK( fd );
     }
 
-    extern (D) void FD_ZERO( fd_set* fdset )
+    extern (D) void FD_ZERO( fd_set* fdset ) pure
     {
         fdset.fds_bits[0 .. $] = 0;
     }
@@ -155,22 +149,22 @@ else version( Darwin )
         int[(FD_SETSIZE + (__DARWIN_NFDBITS - 1)) / __DARWIN_NFDBITS] fds_bits;
     }
 
-    extern (D) void FD_CLR( int fd, fd_set* fdset )
+    extern (D) void FD_CLR( int fd, fd_set* fdset ) pure
     {
         fdset.fds_bits[fd / __DARWIN_NFDBITS] &= ~(1 << (fd % __DARWIN_NFDBITS));
     }
 
-    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset )
+    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset ) pure
     {
         return (fdset.fds_bits[fd / __DARWIN_NFDBITS] & (1 << (fd % __DARWIN_NFDBITS))) != 0;
     }
 
-    extern (D) void FD_SET( int fd, fd_set* fdset )
+    extern (D) void FD_SET( int fd, fd_set* fdset ) pure
     {
         fdset.fds_bits[fd / __DARWIN_NFDBITS] |= 1 << (fd % __DARWIN_NFDBITS);
     }
 
-    extern (D) void FD_ZERO( fd_set* fdset )
+    extern (D) void FD_ZERO( fd_set* fdset ) pure
     {
         fdset.fds_bits[0 .. $] = 0;
     }
@@ -193,27 +187,27 @@ else version( FreeBSD )
         __fd_mask[(FD_SETSIZE + (_NFDBITS - 1)) / _NFDBITS] __fds_bits;
     }
 
-    extern (D) __fd_mask __fdset_mask(uint n)
+    extern (D) __fd_mask __fdset_mask(uint n) pure
     {
         return cast(__fd_mask) 1 << (n % _NFDBITS);
     }
 
-    extern (D) void FD_CLR( int n, fd_set* p )
+    extern (D) void FD_CLR( int n, fd_set* p ) pure
     {
         p.__fds_bits[n / _NFDBITS] &= ~__fdset_mask(n);
     }
 
-    extern (D) bool FD_ISSET( int n, const(fd_set)* p )
+    extern (D) bool FD_ISSET( int n, const(fd_set)* p ) pure
     {
         return (p.__fds_bits[n / _NFDBITS] & __fdset_mask(n)) != 0;
     }
 
-    extern (D) void FD_SET( int n, fd_set* p )
+    extern (D) void FD_SET( int n, fd_set* p ) pure
     {
         p.__fds_bits[n / _NFDBITS] |= __fdset_mask(n);
     }
 
-    extern (D) void FD_ZERO( fd_set* p )
+    extern (D) void FD_ZERO( fd_set* p ) pure
     {
         fd_set *_p;
         size_t _n;
@@ -247,22 +241,22 @@ else version (Solaris)
         c_long[(FD_SETSIZE + (FD_NFDBITS - 1)) / FD_NFDBITS] fds_bits;
     }
 
-    extern (D) void FD_SET(int __n, fd_set* __p)
+    extern (D) void FD_SET(int __n, fd_set* __p) pure
     {
         __p.fds_bits[__n / FD_NFDBITS] |= 1UL << (__n % FD_NFDBITS);
     }
 
-    extern (D) void FD_CLR(int __n, fd_set* __p)
+    extern (D) void FD_CLR(int __n, fd_set* __p) pure
     {
         __p.fds_bits[__n / FD_NFDBITS] &= ~(1UL << (__n % FD_NFDBITS));
     }
 
-    extern (D) bool FD_ISSET(int __n, const(fd_set)* __p)
+    extern (D) bool FD_ISSET(int __n, const(fd_set)* __p) pure
     {
         return (__p.fds_bits[__n / FD_NFDBITS] & (1UL << (__n % FD_NFDBITS))) != 0;
     }
 
-    extern (D) void FD_ZERO(fd_set* __p)
+    extern (D) void FD_ZERO(fd_set* __p) pure
     {
         __p.fds_bits[0 .. $] = 0;
     }
@@ -277,12 +271,12 @@ else version( CRuntime_Bionic )
         alias c_ulong __fd_mask;
         enum uint __NFDBITS = 8 * __fd_mask.sizeof;
 
-        extern (D) auto __FDELT( int d )
+        extern (D) auto __FDELT( int d ) pure
         {
             return d / __NFDBITS;
         }
 
-        extern (D) auto __FDMASK( int d )
+        extern (D) auto __FDMASK( int d ) pure
         {
             return cast(__fd_mask) 1 << ( d % __NFDBITS );
         }
@@ -296,22 +290,22 @@ else version( CRuntime_Bionic )
     }
 
     // These functions are generated in assembly in bionic.
-    extern (D) void FD_CLR( int fd, fd_set* fdset )
+    extern (D) void FD_CLR( int fd, fd_set* fdset ) pure
     {
         fdset.fds_bits[__FDELT( fd )] &= ~__FDMASK( fd );
     }
 
-    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset )
+    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset ) pure
     {
         return (fdset.fds_bits[__FDELT( fd )] & __FDMASK( fd )) != 0;
     }
 
-    extern (D) void FD_SET( int fd, fd_set* fdset )
+    extern (D) void FD_SET( int fd, fd_set* fdset ) pure
     {
         fdset.fds_bits[__FDELT( fd )] |= __FDMASK( fd );
     }
 
-    extern (D) void FD_ZERO( fd_set* fdset )
+    extern (D) void FD_ZERO( fd_set* fdset ) pure
     {
         fdset.fds_bits[0 .. $] = 0;
     }
@@ -324,7 +318,7 @@ else
     static assert(false, "Unsupported platform");
 }
 
-unittest
+pure unittest
 {
     debug(select) printf("core.sys.posix.sys.select unittest\n");
 
