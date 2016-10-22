@@ -171,4 +171,6 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
+/* cgxmm.c */
+bool isXMMstore(uint op);
 
