@@ -197,6 +197,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
     {
+        //printf("byvalue: %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -256,6 +257,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     foreach (VarDeclaration v; er.byref)
     {
+        //printf("byref: %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -368,6 +370,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkEscape(Scope* sc, Expression e, bool gag)
 {
+    //printf("[%s] checkEscape, e = %s\n", e.loc.toChars(), e.toChars());
     return checkEscapeImpl(sc, e, false, gag);
 }
 
@@ -591,7 +594,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
  */
 private void escapeByValue(Expression e, EscapeByResults* er)
 {
-    //printf("[%s] checkEscape, e = %s\n", e.loc.toChars(), e.toChars());
+    //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
     {
         alias visit = super.visit;
@@ -631,6 +634,13 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
                 er.byvalue.push(v);
+        }
+
+        override void visit(DotVarExp e)
+        {
+            auto t = e.e1.type.toBasetype();
+            if (t.ty == Tstruct)
+                e.e1.accept(this);
         }
 
         override void visit(DelegateExp e)
@@ -788,6 +798,8 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                         const stc = tf.parameterStorageClass(p);
                         if ((stc & (STCscope)) && (stc & STCreturn))
                             arg.accept(this);
+                        else if ((stc & (STCref)) && (stc & STCreturn))
+                            escapeByRef(arg, er);
                     }
                 }
             }
@@ -796,7 +808,12 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             {
                 DotVarExp dve = cast(DotVarExp)e.e1;
                 if (dve.var.storage_class & STCreturn || tf.isreturn)
-                    dve.e1.accept(this);
+                {
+                    if (dve.var.storage_class & STCscope)
+                        dve.e1.accept(this);
+                    else if (dve.var.storage_class & STCref)
+                        escapeByRef(dve.e1, er);
+                }
             }
         }
     }
@@ -980,7 +997,12 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                 {
                     DotVarExp dve = cast(DotVarExp)e.e1;
                     if (dve.var.storage_class & STCreturn || tf.isreturn)
-                        dve.e1.accept(this);
+                    {
+                        if (dve.var.storage_class & STCscope)
+                            escapeByValue(dve.e1, er);
+                        else if (dve.var.storage_class & STCref)
+                            dve.e1.accept(this);
+                    }
                 }
                 // If it's a delegate, check it too
                 if (e.e1.op == TOKvar && t1.ty == Tdelegate)

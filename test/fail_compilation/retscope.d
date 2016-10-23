@@ -178,3 +178,22 @@ void foo11() @safe
     p = i[];
 }
 
+/************************************************/
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(198): Error: scope variable e may not be returned
+---
+*/
+
+struct Escaper
+{
+    void* DG;
+}
+
+void* escapeDg1(scope void* d) @safe
+{
+    Escaper e;
+    e.DG = d;
+    return e.DG;
+}
