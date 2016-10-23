@@ -6513,7 +6513,7 @@ extern (C++) final class TypeFunction : TypeNext
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
         const dim = Parameter.dim(tf.parameters);
-        foreach (i; 0 .. dim)
+    Lloop: foreach (i; 0 .. dim)
         {
             Parameter fparam = Parameter.getNth(tf.parameters, i);
             Type t = fparam.type;
@@ -6529,7 +6529,7 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 case PUREweak:
                     purity = PUREweak;
-                    break;
+                    break Lloop; // since PUREweak, no need to check further
 
                 case PUREconst:
                     purity = PUREconst;
@@ -6541,7 +6541,6 @@ extern (C++) final class TypeFunction : TypeNext
                 default:
                     assert(0);
             }
-            break;              // since PUREweak, no need to check further
         }
 
         if (purity > PUREweak && tf.nextOf())
