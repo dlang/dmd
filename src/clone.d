@@ -921,6 +921,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     {
         //printf("Building __fieldPostBlit()\n");
         auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__fieldPostblit);
+        dd.generated = true;
         dd.storage_class |= STCinference;
         dd.fbody = a ? new CompoundStatement(loc, a) : null;
         sd.postblits.shift(dd);
@@ -1074,6 +1075,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     {
         //printf("Building __fieldDtor()\n");
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__fieldDtor);
+        dd.generated = true;
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.dtors.shift(dd);
@@ -1109,6 +1111,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             e = Expression.combine(ex, e);
         }
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__aggrDtor);
+        dd.generated = true;
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.members.push(dd);
