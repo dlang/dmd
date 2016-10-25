@@ -157,7 +157,7 @@ alias symlist_t = list_t;
 alias vec_t = size_t*;
 alias enum_TK = ubyte;
 
-extern __gshared Config config;
+__gshared Config config;
 
 /////////// Position in source file
 
