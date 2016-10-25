@@ -2468,7 +2468,6 @@ void Obj::pubdef(int seg,Symbol *s,targ_size_t offset)
     char *p;
     unsigned ti;
 
-    assert(offset < 100000000);
     obj.reset_symbuf->write(&s, sizeof(s));
 
     int idx = SegData[seg]->segidx;

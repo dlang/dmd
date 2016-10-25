@@ -955,10 +955,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 vd->error("size overflow");
                 return;
             }
-            if (sz64 >= 0x1000000)  // there has to be some 'reasonable' limit on the size
-            {
-                vd->error("size of x%llx exceeds max allowed size 0x100_0000", sz64);
-            }
+
             unsigned sz = (unsigned)sz64;
 
             Dsymbol *parent = vd->toParent();
