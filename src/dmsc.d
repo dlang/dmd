@@ -40,8 +40,6 @@ import ddmd.backend.type;
 extern Global global;
 +/
 
-__gshared Config config;
-
 void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
