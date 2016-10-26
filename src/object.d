@@ -3547,3 +3547,19 @@ unittest
     S[] arr;
     auto a = arr.dup;
 }
+
+unittest
+{
+    // Bugzilla 16504
+    static struct S
+    {
+        __gshared int* gp;
+        int* p;
+        // postblit and hence .dup could escape
+        this(this) { gp = p; }
+    }
+
+    int p;
+    scope arr = [S(&p)];
+    auto a = arr.dup; // dup does escape
+}
