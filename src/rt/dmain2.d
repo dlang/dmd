@@ -40,6 +40,16 @@ version (NetBSD)
     import core.stdc.fenv;
 }
 
+// not sure why we can't define this in one place, but this is to keep this
+// module from importing core.runtime.
+struct UnitTestResult
+{
+    size_t executed;
+    size_t passed;
+    bool runMain;
+    bool summarize;
+}
+
 extern (C) void _d_monitor_staticctor();
 extern (C) void _d_monitor_staticdtor();
 extern (C) void _d_critical_init();
@@ -52,7 +62,7 @@ extern (C) void rt_moduleTlsCtor();
 extern (C) void rt_moduleDtor();
 extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
-extern (C) bool runModuleUnitTests();
+extern (C) UnitTestResult runModuleUnitTests();
 extern (C) void _d_initMonoTime();
 
 version (OSX)
@@ -472,8 +482,27 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     //       thrown during cleanup, however, will abort the cleanup process.
     void runAll()
     {
-        if (rt_init() && runModuleUnitTests())
-            tryExec({ result = mainFunc(args); });
+        if (rt_init())
+        {
+            auto utResult = runModuleUnitTests();
+            assert(utResult.passed <= utResult.executed);
+            if(utResult.passed == utResult.executed)
+            {
+
+                if (utResult.summarize)
+                    .fprintf(.stderr, "%d unittests passed\n", cast(int)utResult.passed);
+                if(utResult.runMain)
+                    tryExec({ result = mainFunc(args); });
+                else
+                    result = EXIT_SUCCESS;
+            }
+            else
+            {
+                if (utResult.summarize)
+                    .fprintf(.stderr, "%d/%d unittests FAILED\n", cast(int)(utResult.executed - utResult.passed), cast(int)utResult.executed);
+                result = EXIT_FAILURE;
+            }
+        }
         else
             result = EXIT_FAILURE;
 
