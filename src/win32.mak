@@ -45,6 +45,7 @@
 # release       - release dmd (with clean)
 # trace         - release dmd with tracing options enabled
 # clean         - delete all generated files except target binary
+# fullclean     - delete all generated files including target binary
 # install       - copy build targets to install directory
 # install-clean - delete all files in the install directory
 # zip           - create ZIP archive of source code
@@ -264,7 +265,7 @@ auto-tester-build: dmd checkwhitespace dmd_frontend.exe
 dmd: reldmd
 
 release:
-	$(DMDMAKE) clean
+	$(DMDMAKE) fullclean
 	$(DMDMAKE) reldmd
 	$(DMDMAKE) clean
 
@@ -308,6 +309,10 @@ clean:
 	$(DEL) id.h id.d
 	$(DEL) verstr.h
 	$(DEL) optabgen.exe
+
+fullclean:
+	$(DMDMAKE) clean
+	$(DEL) $(TARGETEXE)
 
 install: detab install-copy
 
