@@ -111,7 +111,7 @@ code* gen_loadcse(code *c, unsigned reg, targ_uns i) { assert(0); return NULL; }
 code* cod3_stackadj(code* c, int nbytes) { assert(0); return NULL; }
 void simplify_code(code *c) { assert(0); }
 void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg) { assert(0); }
-void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw) { assert(0); }
+void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw) { assert(0); }
 
 code* cdabs      (elem* e, regm_t* pretregs) { assert(0); return NULL; }
 code* cdaddass   (elem* e, regm_t* pretregs) { assert(0); return NULL; }

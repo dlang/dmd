@@ -3274,7 +3274,7 @@ code *cdasm(elem *e,regm_t *pretregs)
     /* Assume all regs are destroyed    */
     c = getregs(ALLREGS | mES);
 #endif
-    c = genasm(c,e->EV.ss.Vstring,e->EV.ss.Vstrlen);
+    c = genasm(c,(unsigned char*)e->EV.ss.Vstring,e->EV.ss.Vstrlen);
     return cat(c,fixresult(e,(I16 ? mDX | mAX : mAX),pretregs));
 }
 

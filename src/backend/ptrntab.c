@@ -4131,11 +4131,11 @@ popcnt
  */
 
 PTRNTAB2 aptb2CRC32[] = /* CRC32 */ {
-        { 0xF20F38F0, _r        , _r32, _rm8  },
-        { 0xF20F38F0, _r|_64_bit, _r64, _rm8  },
-        { 0xF20F38F1, _r|_16_bit, _r32, _rm16 },
-        { 0xF20F38F1, _r|_32_bit, _r32, _rm32 },
-        { 0xF20F38F1, _r|_64_bit, _r64, _rm64 },
+        { (int)0xF20F38F0, _r        , _r32, _rm8  },
+        { (int)0xF20F38F0, _r|_64_bit, _r64, _rm8  },
+        { (int)0xF20F38F1, _r|_16_bit, _r32, _rm16 },
+        { (int)0xF20F38F1, _r|_32_bit, _r32, _rm32 },
+        { (int)0xF20F38F1, _r|_64_bit, _r64, _rm64 },
         { ASM_END }
 };
 

@@ -426,12 +426,12 @@ void cod3_align_bytes(size_t nbytes)
         }
         else
         {
-            static const char nops[] = {
+            static const unsigned char nops[] = {
                 0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
             }; // XCHG AX,AX
             if (n > sizeof(nops))
                 n = sizeof(nops);
-            p = nops;
+            p = (char*)nops;
         }
         objmod->write_bytes(SegData[cseg],n,const_cast<char*>(p));
         nbytes -= n;
@@ -666,27 +666,27 @@ void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg)
     *dst_float_reg   = XMM0;
 }
 
-void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
+void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw)
 {
     unsigned sz = tysize(ty);
 
     if (tyxmmreg(ty))
     {
-        static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
+        static unsigned char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
         *pseq = sequence;
     }
     else if (I64)
     {
         if (sz == REGSIZE * 2)
         {
-            static char seqmsw[] = {CX,DX,NOREG};
-            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            static unsigned char seqmsw[] = {CX,DX,NOREG};
+            static unsigned char seqlsw[] = {AX,BX,SI,DI,NOREG};
             *pseq = seqlsw;
             *pseqmsw = seqmsw;
         }
         else
         {   // R10 is reserved for the static link
-            static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
+            static unsigned char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
             *pseq = sequence;
         }
     }
@@ -694,14 +694,14 @@ void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
     {
         if (sz == REGSIZE * 2)
         {
-            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
-            static char seqmsw[] = {CX,DX,NOREG};
+            static unsigned char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            static unsigned char seqmsw[] = {CX,DX,NOREG};
             *pseq = seqlsw;
             *pseqmsw = seqmsw;
         }
         else
         {
-            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            static unsigned char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
             *pseq = sequence;
         }
     }
@@ -710,13 +710,13 @@ void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
         if (typtr(ty))
         {
             // For pointer types, try to pick index register first
-            static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
+            static unsigned char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
             *pseq = seqidx;
         }
         else
         {
             // Otherwise, try to pick index registers last
-            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            static unsigned char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
             *pseq = sequence;
         }
     }

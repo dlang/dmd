@@ -2506,7 +2506,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         pop87();
 
   if (config.target_cpu >= TARGET_80386 && clib == CLIBlmul && !I32)
-  {     static char lmul[] = {
+  {     static unsigned char lmul[] = {
             0x66,0xc1,0xe1,0x10,        // shl  ECX,16
             0x8b,0xcb,                  // mov  CX,BX           ;ECX = CX,BX
             0x66,0xc1,0xe0,0x10,        // shl  EAX,16
