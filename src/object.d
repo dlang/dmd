@@ -3188,12 +3188,8 @@ bool _xopCmp(in void*, in void*)
 {
     throw new Error("TypeInfo.compare is not implemented");
 }
-void __ctfeWrite(const string s) {}
-void __ctfeWriteln(const string s)
-{
-  __ctfeWrite(s);
-  __ctfeWrite("\n");
-}
+
+void __ctfeWrite(const string s) @nogc @safe pure nothrow {}
 
 /******************************************
  * Create RTInfo for type T
