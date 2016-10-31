@@ -1023,7 +1023,7 @@ public:
 class CommaExp : public BinExp
 {
 public:
-    const bool isGenerated;
+    bool isGenerated;
     bool allowCommaExp;
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
