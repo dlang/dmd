@@ -221,8 +221,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable))
 
-GLUE_OBJS = e2ir.o iasm.o
-
+GLUE_OBJS = iasm.o
 
 ifeq ($(D_OBJC),1)
 	GLUE_OBJS += objc_glue.o
@@ -237,7 +236,7 @@ else
 endif
 
 GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj)
+	tocvdebug s2ir toobj e2ir)
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
@@ -272,7 +271,7 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 	longdouble.h newdelete.c object.h outbuffer.h port.h \
 	rmem.h root.h stringtable.h)
 
-GLUE_SRC = e2ir.c \
+GLUE_SRC = \
 	toir.h irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c eh.c gluestub.d objc_glue.c objc_glue_stubs.c

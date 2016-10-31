@@ -385,7 +385,7 @@ void *mem_calloc(size_t u)
         return mem_calloc_debug(u,__FILE__,__LINE__);
 }
 
-void *mem_malloc(size_t u)
+void *mem_malloc(d_size_t u)
 {
         return mem_malloc_debug(u,__FILE__,__LINE__);
 }
@@ -548,7 +548,7 @@ static void mem_checkdl(struct mem_debug *dl)
 #if (__SC__ || __DMC__) && !_WIN32
     unsigned u;
     int error;
-    
+
     /* Take advantage of fact that SC's allocator stores the size of the
      * alloc in the unsigned immediately preceding the allocation.
      */
@@ -614,7 +614,7 @@ L1:
 
 /***************************/
 
-void *mem_malloc(size_t numbytes)
+void *mem_malloc(d_size_t numbytes)
 {       void *p;
 
         if (numbytes == 0)
