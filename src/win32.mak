@@ -156,7 +156,7 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	libmscoff.d scanmscoff.d statementsem.d
 
 GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d \
-	tocvdebug.d s2ir.d toobj.d e2ir.d objc_glue_stubs.d
+	tocvdebug.d s2ir.d toobj.d e2ir.d objc_glue_stubs.d eh.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
@@ -181,7 +181,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	bcomplex.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
 	divcoeff.obj dwarf.obj compress.obj varstats.obj \
-	ph2.obj util2.obj eh.obj tk.obj gsroa.obj \
+	ph2.obj util2.obj tk.obj gsroa.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -486,9 +486,6 @@ dwarf.obj : $C\dwarf.h $C\dwarf.c
 
 ee.obj : $C\ee.c
 	$(CC) -c $(MFLAGS) $C\ee
-
-eh.obj : $C\cc.h $C\code.h $C\type.h $C\dt.h eh.c
-	$(CC) -c $(MFLAGS) eh
 
 el.obj : $C\rtlsym.h $C\el.h $C\el.c
 	$(CC) -c $(MFLAGS) $C\el

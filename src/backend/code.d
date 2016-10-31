@@ -70,6 +70,14 @@ union evc
     }                           // asm node (FLasm)
 }
 
+/********************** PUBLIC FUNCTIONS *******************/
+
+code *code_calloc();
+void code_free(code *);
+void code_term();
+
+code *code_next(code *c) { return c.next; }
+
 /************************************
  * Local sections on the stack
  */
@@ -84,6 +92,27 @@ struct LocalSection
         size = 0;
         alignment = 0;
     }
+}
+
+/*******************************
+ * As we generate code, collect information about
+ * what parts of NT exception handling we need.
+ */
+
+extern __gshared uint usednteh;
+
+enum
+{
+    NTEH_try        = 1,      // used _try statement
+    NTEH_except     = 2,      // used _except statement
+    NTEHexcspec     = 4,      // had C++ exception specification
+    NTEHcleanup     = 8,      // destructors need to be called
+    NTEHtry         = 0x10,   // had C++ try statement
+    NTEHcpp         = (NTEHexcspec | NTEHcleanup | NTEHtry),
+    EHcleanup       = 0x20,   // has destructors in the 'code' instructions
+    EHtry           = 0x40,   // has BCtry or BC_try blocks
+    NTEHjmonitor    = 0x80,   // uses Mars monitor
+    NTEHpassthru    = 0x100,
 }
 
 extern __gshared LocalSection Para;
@@ -173,4 +202,17 @@ struct FuncParamRegs
 
 /* cgxmm.c */
 bool isXMMstore(uint op);
+
+extern __gshared LocalSection Alloca;
+
+/* cgcod.c */
+extern __gshared targ_size_t retoffset;
+
+/* cod3.c */
+targ_size_t cod3_spoff();
+uint calccodsize(code *c);
+targ_size_t cod3_bpoffset(Symbol *s);
+
+// nteh.c
+code *nteh_patchindex(code* c, int index);
 
