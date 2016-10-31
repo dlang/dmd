@@ -1719,7 +1719,7 @@ elem * evalu8(elem *e, goal_t goal)
                 e->EV.Vldouble = Complex_ld::abs(e1->EV.Vcldouble);
                 break;
             default:
-                e->EV.Vllong = labs(l1);
+                e->EV.Vllong = l1 < 0 ? -l1 : l1;
                 break;
         }
         break;
