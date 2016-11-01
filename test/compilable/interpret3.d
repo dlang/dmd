@@ -4250,7 +4250,7 @@ static assert({ bug6851(); return true; }());
     7876
 **************************************************/
 
-int* bug7876(int n)
+int* bug7876(int n) @system
 {
     int x;
     auto ptr = &x;
@@ -4264,7 +4264,7 @@ struct S7876
     int* p;
 }
 
-S7876 bug7876b(int n)
+S7876 bug7876b(int n) @system
 {
     int x;
     S7876 s;

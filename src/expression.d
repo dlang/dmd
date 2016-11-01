@@ -41,6 +41,7 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
+import ddmd.escape;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -1690,11 +1691,18 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             //printf("arg: %s\n", arg->toChars());
             //printf("type: %s\n", arg->type->toChars());
 
-            /* Look for arguments that cannot 'escape' from the called
-             * function.
-             */
-            if (!tf.parameterEscapes(p))
+            if (tf.parameterEscapes(p))
             {
+                /* Argument value can escape from the called function.
+                 * Check arg to see if it matters.
+                 */
+                if (global.params.safe)
+                    err |= checkParamArgumentEscape(sc, fd, p, arg, false);
+            }
+            else
+            {
+                /* Argument value cannot escape from the called function.
+                 */
                 Expression a = arg;
                 if (a.op == TOKcast)
                     a = (cast(CastExp)a).e1;
@@ -13500,7 +13508,9 @@ extern (C++) class AssignExp : BinExp
 
         type = e1.type;
         assert(type);
-        return op == TOKassign ? reorderSettingAAElem(sc) : this;
+        auto result = op == TOKassign ? reorderSettingAAElem(sc) : this;
+        checkAssignEscape(sc, result, false);
+        return result;
     }
 
     override final bool isLvalue()
