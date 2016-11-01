@@ -1596,6 +1596,12 @@ Lnextlis:
         case OPucall:
             *pdomexit |= 2;
             break;
+
+        case OPpair:
+        case OPrpair:                   // don't move these, as they do not do computation
+            movelis(n->E1,b,l,pdomexit);
+            n = n->E2;
+            goto Lnextlis;
   }
 
 L3:
