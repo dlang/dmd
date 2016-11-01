@@ -5,6 +5,7 @@
 
 #if _MSC_VER
 #include "longdouble.h"
+#define fabsl fabs
 #else
 typedef long double longdouble;
 #endif
