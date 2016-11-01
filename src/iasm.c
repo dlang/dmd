@@ -576,7 +576,7 @@ RETRY:
         {
             //printf("opflags1 = "); asm_output_flags(opflags1); printf("\n");
             PTRNTAB1 *table1;
-            for (table1 = pop->ptb.pptb1; table1->usOpcode != ASM_END;
+            for (table1 = pop->ptb.pptb1; table1->opcode != ASM_END;
                     table1++)
             {
                 //printf("table    = "); asm_output_flags(table1->usOp1); printf("\n");
@@ -584,7 +584,7 @@ RETRY:
                 //printf("bMatch1 = x%x\n", bMatch1);
                 if (bMatch1)
                 {
-                    if (table1->usOpcode == 0x68 &&
+                    if (table1->opcode == 0x68 &&
                         table1->usOp1 == _imm16
                       )
                         // Don't match PUSH imm16 in 32 bit code
@@ -622,7 +622,7 @@ RETRY:
                 }
             }
         Lfound1:
-            if (table1->usOpcode == ASM_END)
+            if (table1->opcode == ASM_END)
             {
 #ifdef DEBUG
                 if (debuga)
@@ -698,7 +698,7 @@ TYPE_SIZE_ERROR:
             //printf("opflags2 = "); asm_output_flags(opflags2); printf("\n");
             PTRNTAB2 *table2;
             for (table2 = pop->ptb.pptb2;
-                 table2->usOpcode != ASM_END;
+                 table2->opcode != ASM_END;
                  table2++)
             {
                 //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
@@ -786,7 +786,7 @@ TYPE_SIZE_ERROR:
 #endif
             }
         Lfound2:
-            if (table2->usOpcode == ASM_END)
+            if (table2->opcode == ASM_END)
             {
 #ifdef DEBUG
                 if (debuga)
@@ -828,7 +828,7 @@ TYPE_SIZE_ERROR:
         {
             PTRNTAB3 *table3;
             for (table3 = pop->ptb.pptb3;
-                 table3->usOpcode != ASM_END;
+                 table3->opcode != ASM_END;
                  table3++)
             {
                 bMatch1 = asm_match_flags(opflags1, table3->usOp1);
@@ -860,7 +860,7 @@ TYPE_SIZE_ERROR:
                 }
             }
         Lfound3:
-            if (table3->usOpcode == ASM_END)
+            if (table3->opcode == ASM_END)
             {
 #ifdef DEBUG
                 if (debuga)
@@ -904,7 +904,7 @@ TYPE_SIZE_ERROR:
         {
             PTRNTAB4 *table4;
             for (table4 = pop->ptb.pptb4;
-                 table4->usOpcode != ASM_END;
+                 table4->opcode != ASM_END;
                  table4++)
             {
                 bMatch1 = asm_match_flags(opflags1, table4->usOp1);
@@ -941,7 +941,7 @@ TYPE_SIZE_ERROR:
                 }
             }
         Lfound4:
-            if (table4->usOpcode == ASM_END)
+            if (table4->opcode == ASM_END)
             {
 #ifdef DEBUG
                 if (debuga)
@@ -1414,9 +1414,9 @@ static code *asm_emit(Loc loc,
             }
             break;
     }
-    unsigned usOpcode = ptb.pptb0->usOpcode;
+    unsigned opcode = ptb.pptb0->opcode;
 
-    pc->Iop = usOpcode;
+    pc->Iop = opcode;
     if (pc->Ivex.pfx == 0xC4)
     {
 #ifdef DEBUG
@@ -1558,7 +1558,7 @@ static code *asm_emit(Loc loc,
             goto L1;
         goto L2;
     }
-    else if ((usOpcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
+    else if ((opcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
     {
         emit(0xFF);
         emit(0xFD);
@@ -1566,13 +1566,13 @@ static code *asm_emit(Loc loc,
         goto L3;
     }
 
-    switch (usOpcode & 0xFF0000)
+    switch (opcode & 0xFF0000)
     {
         case 0:
             break;
 
         case 0x660000:
-            usOpcode &= 0xFFFF;
+            opcode &= 0xFFFF;
             goto L3;
 
         case 0xF20000:                      // REPNE
@@ -1580,11 +1580,11 @@ static code *asm_emit(Loc loc,
             // BUG: What if there's an address size prefix or segment
             // override prefix? Must the REP be adjacent to the rest
             // of the opcode?
-            usOpcode &= 0xFFFF;
+            opcode &= 0xFFFF;
             goto L3;
 
         case 0x0F0000:                      // an AMD instruction
-            puc = ((unsigned char *) &usOpcode);
+            puc = ((unsigned char *) &opcode);
             if (puc[1] != 0x0F)             // if not AMD instruction 0x0F0F
                 goto L4;
             emit(puc[2]);
@@ -1596,7 +1596,7 @@ static code *asm_emit(Loc loc,
             goto L3;
 
         default:
-            puc = ((unsigned char *) &usOpcode);
+            puc = ((unsigned char *) &opcode);
         L4:
             emit(puc[2]);
             emit(puc[1]);
@@ -1605,9 +1605,9 @@ static code *asm_emit(Loc loc,
             pc->Irm = puc[0];
             goto L3;
     }
-    if (usOpcode & 0xff00)
+    if (opcode & 0xff00)
     {
-        puc = ((unsigned char *) &(usOpcode));
+        puc = ((unsigned char *) &(opcode));
         emit(puc[1]);
         emit(puc[0]);
         pc->Iop = puc[1];
@@ -1617,7 +1617,7 @@ static code *asm_emit(Loc loc,
         }
         else
         {
-            if (usOpcode == 0xDFE0) // FSTSW AX
+            if (opcode == 0xDFE0) // FSTSW AX
             {
                 pc->Irm = puc[0];
                 goto L2;
@@ -1635,7 +1635,7 @@ static code *asm_emit(Loc loc,
     }
     else
     {
-        emit(usOpcode);
+        emit(opcode);
     }
 L3: ;
 
@@ -1784,10 +1784,10 @@ L1:
                 (amodTable1 == _rspecial && !(uRegmaskTable1 & (0x08 | 0x10))),
                 (aoptyTable2 == _rm)
                 );
-            printf("usOpcode = %x\n", usOpcode);
+            printf("opcode = %x\n", opcode);
 #endif
-            if (ptb.pptb0->usOpcode == 0x0F7E ||    // MOVD _rm32,_mm
-                ptb.pptb0->usOpcode == 0x660F7E     // MOVD _rm32,_xmm
+            if (ptb.pptb0->opcode == 0x0F7E ||    // MOVD _rm32,_mm
+                ptb.pptb0->opcode == 0x660F7E     // MOVD _rm32,_xmm
                )
             {
                 asm_make_modrm_byte(
@@ -1862,14 +1862,14 @@ L1:
                 auchOpcode[usIdx-1] += reg;
 #endif
             }
-            else if (ptb.pptb0->usOpcode == 0xF30FD6 ||
-                     ptb.pptb0->usOpcode == 0x0F12 ||
-                     ptb.pptb0->usOpcode == 0x0F16 ||
-                     ptb.pptb0->usOpcode == 0x660F50 ||
-                     ptb.pptb0->usOpcode == 0x0F50 ||
-                     ptb.pptb0->usOpcode == 0x660FD7 ||
-                     ptb.pptb0->usOpcode == MOVDQ2Q ||
-                     ptb.pptb0->usOpcode == 0x0FD7)
+            else if (ptb.pptb0->opcode == 0xF30FD6 ||
+                     ptb.pptb0->opcode == 0x0F12 ||
+                     ptb.pptb0->opcode == 0x0F16 ||
+                     ptb.pptb0->opcode == 0x660F50 ||
+                     ptb.pptb0->opcode == 0x0F50 ||
+                     ptb.pptb0->opcode == 0x660FD7 ||
+                     ptb.pptb0->opcode == MOVDQ2Q ||
+                     ptb.pptb0->opcode == 0x0FD7)
             {
                 asm_make_modrm_byte(
 #ifdef DEBUG
@@ -1907,10 +1907,10 @@ L1:
 
     case 3:
         if (aoptyTable2 == _m || aoptyTable2 == _rm ||
-            usOpcode == 0x0FC5     ||    // pextrw  _r32,  _mm,    _imm8
-            usOpcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
-            usOpcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
-            usOpcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
+            opcode == 0x0FC5     ||    // pextrw  _r32,  _mm,    _imm8
+            opcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
+            opcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
+            opcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
            )
         {
             asm_make_modrm_byte(

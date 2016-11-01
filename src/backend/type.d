@@ -128,7 +128,7 @@ extern __gshared
     type* tstrace;
 }
 
-//targ_size_t type_size(type *);
+targ_size_t type_size(type *);
 uint type_alignsize(type *);
 uint type_paramsize(type *t);
 type *type_alloc(tym_t);

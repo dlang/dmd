@@ -711,7 +711,7 @@ __body
 #define M_LN2_L         0x1.62e42fefa39ef358p-1L        // 0.693147 fldln2
     {0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L};
 #endif
-    static char opcode[7 + 1] =
+    static unsigned char opcode[7 + 1] =
         /* FLDZ,FLD1,FLDPI,FLDL2T,FLDL2E,FLDLG2,FLDLN2,0 */
         {0xEE,0xE8,0xEB,0xE9,0xEA,0xEC,0xED,0};
     int i;
@@ -3888,6 +3888,24 @@ __body
             assert(0);
     }
     return cat4(cpush,c,fixresult_complex87(e, retregs, pretregs), NULL);
+}
+
+/**********************************************
+ * Load OPpair or OPrpair into mST01
+ */
+code *loadPair87(elem *e, regm_t *pretregs)
+{
+    assert(e->Eoper == OPpair || e->Eoper == OPrpair);
+    regm_t retregs = mST0;
+    code *c1 = codelem(e->E1, &retregs, FALSE);
+    note87(e->E1, 0, 0);
+    code *c2 = codelem(e->E2, &retregs, FALSE);
+    code *c3 = makesure87(e->E1, 0, 1, 0);
+    if (e->Eoper == OPrpair)
+        c3 = genf2(c3, 0xD9, 0xC8 + 1); // FXCH ST(1)
+    retregs = mST01;
+    code *c4 = fixresult_complex87(e, retregs, pretregs);
+    return cat4(c1,c2,c3,c4);
 }
 
 #endif // !SPP

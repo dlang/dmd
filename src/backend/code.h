@@ -356,7 +356,7 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset);
 code* cod3_stackadj(code* c, int nbytes);
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);
-void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw);
+void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqmsw);
 void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void doswitch (block *b );
 void outjmptab (block *b );
@@ -509,6 +509,7 @@ code *cdconvt87(elem *e, regm_t *pretregs);
 code *cload87(elem *e, regm_t *pretregs);
 code *cdd_u64(elem *e, regm_t *pretregs);
 code *cdd_u32(elem *e, regm_t *pretregs);
+code *loadPair87(elem *e, regm_t *pretregs);
 
 #ifdef DEBUG
 #define pop87() pop87(__LINE__,__FILE__)
@@ -546,7 +547,7 @@ code *gen (code *c , code *cs );
 code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib);
-code *genasm (code *c , char *s , unsigned slen );
+code *genasm (code *c ,unsigned char *s , unsigned slen );
 code *gencsi (code *c , unsigned op , unsigned rm , unsigned FL2 , SYMIDX si );
 code *gencs (code *c , unsigned op , unsigned rm , unsigned FL2 , symbol *s );
 code *genc2 (code *c , unsigned op , unsigned rm , targ_size_t EV2 );

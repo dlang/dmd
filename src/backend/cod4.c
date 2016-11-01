@@ -3274,7 +3274,7 @@ code *cdasm(elem *e,regm_t *pretregs)
     /* Assume all regs are destroyed    */
     c = getregs(ALLREGS | mES);
 #endif
-    c = genasm(c,e->EV.ss.Vstring,e->EV.ss.Vstrlen);
+    c = genasm(c,(unsigned char*)e->EV.ss.Vstring,e->EV.ss.Vstrlen);
     return cat(c,fixresult(e,(I16 ? mDX | mAX : mAX),pretregs));
 }
 
@@ -3744,15 +3744,40 @@ code *cdpair(elem *e, regm_t *pretregs)
 
     //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     //printf("Ecount = %d\n", e->Ecount);
-    retregs = *pretregs & allregs;
-    if  (!retregs)
-        retregs = allregs;
-    regs1 = retregs & mLSW;
-    regs2 = retregs & mMSW;
+
+    retregs = *pretregs;
+    if (retregs == mPSW && tycomplex(e->Ety) && config.inline8087)
+    {
+        if (config.fpxmmregs)
+            retregs |= mXMM0 | mXMM1;
+        else
+            retregs |= mST01;
+    }
+
+    if (retregs & mST01)
+        return loadPair87(e, pretregs);
+
+    if (retregs & XMMREGS)
+    {
+        retregs &= XMMREGS;
+        unsigned reg = findreg(retregs);
+        regs1 = mask[reg];
+        regs2 = mask[findreg(retregs & ~regs1)];
+    }
+    else
+    {
+        retregs &= allregs;
+        if  (!retregs)
+            retregs = allregs;
+        regs1 = retregs & mLSW;
+        regs2 = retregs & mMSW;
+    }
     if (e->Eoper == OPrpair)
     {
-        regs1 = regs2;
-        regs2 = retregs & mLSW;
+        // swap
+        regs1 ^= regs2;
+        regs2 ^= regs1;
+        regs1 ^= regs2;
     }
     //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     c1 = codelem(e->E1, &regs1, FALSE);
