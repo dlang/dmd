@@ -90,6 +90,13 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
                 unsafeAssign(v, "variadic variable");
             }
         }
+        else
+        {
+            /* v is not 'scope', and is assigned to a parameter that may escape.
+             * Therefore, v can never be 'scope'.
+             */
+            v.doNotInferScope = true;
+        }
     }
 
     foreach (VarDeclaration v; er.byref)
@@ -190,8 +197,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     else if (e1.op == TOKthis)
         va = (cast(ThisExp)e1).var.isVarDeclaration();
 
+    // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
-    if (sc.func && sc.func.type && sc.func.type.ty == Tfunction)
+    if (va && sc.func && sc.func.type && sc.func.type.ty == Tfunction)
         inferScope = (cast(TypeFunction)sc.func.type).trust != TRUSTsystem;
 
     bool result = false;
@@ -217,7 +225,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 continue;
             }
 
-            if (va && !va.isDataseg())
+            if (va && !va.isDataseg() && !va.doNotInferScope)
             {
                 if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
@@ -237,7 +245,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             Type tb = v.type.toBasetype();
             if (tb.ty == Tarray || tb.ty == Tsarray)
             {
-                if (va && !va.isDataseg())
+                if (va && !va.isDataseg() && !va.doNotInferScope)
                 {
                     if (!va.isScope() && inferScope)
                     {   //printf("inferring scope for %s\n", va.toChars());
@@ -252,6 +260,13 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                     result = true;
                 }
             }
+        }
+        else
+        {
+            /* v is not 'scope', and we didn't check the scope of where we assigned it to.
+             * It may escape via that assignment, therefore, v can never be 'scope'.
+             */
+            v.doNotInferScope = true;
         }
     }
 
@@ -277,7 +292,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         if ((v.storage_class & (STCref | STCout)) == 0 && p == sc.func)
         {
-            if (va && !va.isDataseg())
+            if (va && !va.isDataseg() && !va.doNotInferScope)
             {
                 if (!va.isScope() && inferScope &&
                     va.type.toBasetype().ty != Tclass)  // scope classes are special
@@ -315,7 +330,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
             if ((v.storage_class & (STCref | STCout | STCscope)) && p == sc.func)
             {
-                if (va && !va.isDataseg())
+                if (va && !va.isDataseg() && !va.doNotInferScope)
                 {
                     /* Don't infer STCscope for va, because then a closure
                      * won't be generated for sc.func.
@@ -337,7 +352,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     foreach (Expression ee; er.byexp)
     {
-        if (va && !va.isDataseg())
+        if (va && !va.isDataseg() && !va.doNotInferScope)
         {
             if (!va.isScope() && inferScope)
             {   //printf("inferring scope for %s\n", va.toChars());
@@ -458,6 +473,11 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     error(e.loc, "escaping reference to variadic parameter %s", v.toChars());
                 result = false;
             }
+        }
+        else
+        {
+            //printf("no infer for %s\n", v.toChars());
+            v.doNotInferScope = true;
         }
     }
 

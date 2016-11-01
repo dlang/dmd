@@ -197,3 +197,20 @@ void* escapeDg1(scope void* d) @safe
     e.DG = d;
     return e.DG;
 }
+
+/*************************************************/
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(213): Error: scope variable p assigned to non-scope e
+---
+*/
+struct Escaper3 { void* e; }
+
+void* escape3 (scope void* p) @safe {
+    Escaper3 e;
+    scope dg = () { return e.e; };
+    e.e = p;
+    return dg();
+}
+
