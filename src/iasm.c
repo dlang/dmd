@@ -425,7 +425,6 @@ static OPND *asm_add_exp();
 static OPND *asm_and_exp();
 static OPND *asm_cond_exp();
 static opflag_t asm_determine_operand_flags(OPND *popnd);
-static code *asm_genloc(Loc loc, code *c);
 static int asm_getnum();
 
 static void asmerr(const char *, ...);
@@ -1230,7 +1229,6 @@ static code *asm_emit(Loc loc,
     ASM_OPERAND_TYPE    aoptyTmp;
     unsigned  uSizemaskTmp;
     const REG *pregSegment;
-    code    *pcPrefix = NULL;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
     ASM_MODIFIERS       amod1 = _normal, amod2 = _normal;
     unsigned            uSizemaskTable1 =0, uSizemaskTable2 =0,
@@ -2015,22 +2013,15 @@ L2:
         printf("\n");
     }
 #endif
-    pc = cat(pcPrefix, pc);
-    pc = asm_genloc(loc, pc);
-    return pc;
-}
+    CodeBuilder cdb;
 
-/*******************************
- * Prepend line number to c.
- */
-
-static code *asm_genloc(Loc loc, code *c)
-{
     if (global.params.symdebug)
     {
-        c = cat(genlinnum(NULL, Srcpos::create(loc.filename, loc.linnum, loc.charnum)), c);
+        cdb.genlinnum(Srcpos::create(loc.filename, loc.linnum, loc.charnum));
     }
-    return c;
+
+    cdb.append(pc);
+    return cdb.finish();
 }
 
 
