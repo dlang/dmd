@@ -869,7 +869,11 @@ code *cdmul(elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-        if (*pretregs & XMMREGS && oper != OPmod && tyxmmreg(tyml))
+        if (tyvector(tyml) ||
+            config.fpxmmregs && oper != OPmod && tyxmmreg(tyml) &&
+            !tyreal(e->Ety) &&  // watch out for shrinkLongDoubleConstantIfPossible()
+            !tycomplex(e->Ety) // SIMD code is not set up to deal with complex
+           )
             return orthxmm(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);

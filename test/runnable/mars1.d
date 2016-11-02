@@ -1454,6 +1454,20 @@ void writeln(int v, int[] a)
 
 ////////////////////////////////////////////////////////////////////////
 
+real binPosPow2() { return 1.0L; }
+
+real binPow2()
+{
+    return 1.0L/binPosPow2();
+}
+
+void test4()
+{
+    assert(binPow2() == 1.0L);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1504,6 +1518,7 @@ int main()
     test15272();
     test15861();
     test15629();
+    test4();
     printf("Success\n");
     return 0;
 }
