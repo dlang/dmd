@@ -2927,7 +2927,7 @@ version(unittest) unittest
 
 version (unittest)
 {
-    bool isnan(float x)
+    private bool isnan(float x)
     {
         return x != x;
     }
