@@ -2,6 +2,7 @@
 
 import std.conv;
 import std.stdio;
+import std.range;
 
 void main(string[] args)
 {
@@ -18,13 +19,8 @@ void main(string[] args)
         if (!flags[i])
             continue;
         auto prime = i + i + 3;
-        auto k     = i + prime;
-
-        while (k < flags.length)
-        {
+        foreach (k; iota(i+prime, flags.length, prime))
             flags[k] = false;
-            k       += prime;
-        }
 
         count += 1;
     }
