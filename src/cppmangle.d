@@ -1467,7 +1467,12 @@ else static if (TARGET_WINDOS)
             buf.writeByte('?');
             mangleIdent(d);
             assert((d.storage_class & STCfield) || !d.needThis());
-            if (d.parent && d.parent.isModule()) // static member
+            Dsymbol parent = d.toParent();
+            while (parent && parent.isNspace())
+            {
+                parent = parent.toParent();
+            }
+            if (parent && parent.isModule()) // static member
             {
                 buf.writeByte('3');
             }
