@@ -265,6 +265,7 @@ dmd: reldmd
 
 release:
 	$(DMDMAKE) clean
+	$(DEL) $(TARGETEXE)
 	$(DMDMAKE) reldmd
 	$(DMDMAKE) clean
 
