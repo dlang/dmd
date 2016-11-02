@@ -1726,7 +1726,7 @@ void outjmptab(block *b)
 
     /* Align start of jump table
      */
-    targ_size_t alignbytes = align(0,*poffset) - *poffset;
+    targ_size_t alignbytes = _align(0,*poffset) - *poffset;
     objmod->lidata(jmpseg,*poffset,alignbytes);
     assert(*poffset == b->Btableoffset);        // should match precomputed value
 
@@ -1826,7 +1826,7 @@ void outswitab(block *b)
         seg = JMPSEG;
   }
   offset = *poffset;
-  alignbytes = align(0,*poffset) - *poffset;
+  alignbytes = _align(0,*poffset) - *poffset;
   objmod->lidata(seg,*poffset,alignbytes);  /* any alignment bytes necessary */
   assert(*poffset == offset + alignbytes);
 
