@@ -1001,6 +1001,19 @@ void testeh3()
 }
 
 /****************************************/
+// 15576
+
+extern (C++, ns15576)
+{
+    extern __gshared int global15576;
+}
+
+void test15576()
+{
+    global15576 = 123;
+}
+
+/****************************************/
 // 15579
 
 extern (C++)
@@ -1211,6 +1224,7 @@ void main()
     testeh();
     testeh2();
     testeh3();
+    test15576();
     test15579();
     test15610();
     test15455();
