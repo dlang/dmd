@@ -1825,25 +1825,24 @@ code *cdcmp(elem *e,regm_t *pretregs)
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   if (tyfloating(tym))                  /* if floating operation        */
   {
-        retregs = mPSW;
-        if (tyxmmreg(tym) && config.fpxmmregs)
-            c = orthxmm(e,&retregs);
-        else
-            c = orth87(e,&retregs);
-        goto L3;
-  }
-#else
-  if (tyfloating(tym))                  /* if floating operation        */
-  {
-        if (config.inline8087)
+        if (config.fpxmmregs)
+        {
+            retregs = mPSW;
+            if (tyxmmreg(tym))
+                c = orthxmm(e,&retregs);
+            else
+                c = orth87(e,&retregs);
+        }
+        else if (config.inline8087)
         {   retregs = mPSW;
             c = orth87(e,&retregs);
         }
         else
-        {   int clib;
+        {
+#if TARGET_WINDOS
+            int clib;
 
             retregs = 0;                /* skip result for now          */
             if (iffalse(e2))            /* second operand is constant 0 */
@@ -1869,10 +1868,12 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     clib += CLIBdcmpexc - CLIBdcmp;
                 c = opdouble(e,&retregs,clib);
             }
+#else
+            assert(0);
+#endif
         }
         goto L3;
   }
-#endif
 
   /* If it's a signed comparison of longs, we have to call a library    */
   /* routine, because we don't know the target of the signed branch     */

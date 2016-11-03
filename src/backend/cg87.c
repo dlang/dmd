@@ -94,6 +94,10 @@ int NDP::savetop = 0;           /* # of entries used in NDP::save[]     */
 
 STATIC code *getlvalue87(code *pcs,elem *e,regm_t keepmsk)
 {
+    // the x87 instructions cannot read XMM registers
+    if (e->Eoper == OPvar || e->Eoper == OPrelconst)
+        e->EV.sp.Vsym->Sflags &= ~GTregcand;
+
     code *c = getlvalue(pcs, e, keepmsk);
     if (ADDFWAIT())
         pcs->Iflags |= CFwait;
