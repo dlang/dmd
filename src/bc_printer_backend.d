@@ -2,17 +2,51 @@ module ddmd.ctfe.bc_printer_backend;
 
 import ddmd.ctfe.bc_common;
 
+enum BCFunctionTypeEnum : byte
+{
+    undef,
+    Builtin,
+    Bytecode,
+    Compiled,
+}
+
+struct BCFunction
+{
+    void* funcDecl;
+    BCFunctionTypeEnum type;
+    int nr;
+}
+
 struct Print_BCGen
 {
     import std.conv;
 
-    uint cndJumpCount;
-    uint jmpCount;
-    ubyte parameterCount;
-    ushort temporaryCount;
-    uint labelCount;
-    bool sameLabel;
-    StackAddr sp = StackAddr(4);
+    struct FunctionState
+    {
+        uint cndJumpCount;
+        uint jmpCount;
+        ubyte parameterCount;
+        ushort temporaryCount;
+        uint labelCount;
+        bool sameLabel;
+        StackAddr sp = StackAddr(4);
+    }
+
+    FunctionState[255] functionStates;
+    uint functionStateCount;
+    uint currentFunctionStateNumber;
+
+    @property FunctionState* currentFunctionState()
+    {
+        return &functionStates[currentFunctionStateNumber ? currentFunctionStateNumber : 1];
+    }
+
+    @property string functionSuffix()
+    {
+        return currentFunctionStateNumber > 1 ? "_fn_" ~ to!string(currentFunctionStateNumber) : "";
+    }
+
+    alias currentFunctionState this;
 
     string result = "\n";
 
@@ -39,6 +73,14 @@ struct Print_BCGen
                 {
                     result ~= "Imm32(" ~ to!string(val.imm32.imm32) ~ ")";
                 }
+                else if (val.type == BCTypeEnum.i64)
+                {
+                    result ~= "Imm64(" ~ to!string(val.imm64.imm64) ~ ")";
+                }
+                else if (val.type == BCTypeEnum.Null)
+                {
+                    result ~= "Imm32(0/*null*/)";
+                }
                 else
                 {
                     assert(0, "Unexpeced Immediate of Type" ~ to!string(val.type.type));
@@ -48,20 +90,20 @@ struct Print_BCGen
 
         case BCValueType.StackValue:
             {
-                if(val.tmpIndex)
+                if (val.tmpIndex)
                 {
-                    return "tmp" ~ to!string(val.tmpIndex);
+                    return "tmp" ~ to!string(val.tmpIndex) ~ functionSuffix;
                 }
                 result ~= "StackAddr(" ~ to!string(val.stackAddr.addr) ~ "), " ~ print(val.type);
             }
             break;
         case BCValueType.Temporary:
             {
-                return "tmp" ~ to!string(val.tmpIndex);
+                return "tmp" ~ to!string(val.tmpIndex) ~ functionSuffix;
             }
         case BCValueType.Parameter:
             {
-                return "p" ~ to!string(val.param);
+                return "p" ~ to!string(val.param) ~ functionSuffix;
             }
         case BCValueType.Unknown:
             {
@@ -86,7 +128,7 @@ struct Print_BCGen
         }
         else
         {
-            result ~= "//";
+            result ~= "    //";
         }
         result ~= "auto label" ~ to!string(labelCount) ~ " = genLabel();\n";
         return BCLabel(BCAddr(labelCount));
@@ -118,21 +160,30 @@ struct Print_BCGen
     void beginFunction()
     {
         sameLabel = false;
-        result ~= "    beginFunction(" ~ ");\n";
+        currentFunctionStateNumber++;
+        result ~= "    beginFunction(" ~ ");//fn(" ~ to!string(currentFunctionStateNumber) ~ "\n";
     }
 
     void endFunction()
     {
-        result ~= "    endFunction(" ~ ");\n";
+        currentFunctionStateNumber--;
+        result ~= "    endFunction(" ~ ");\n\n";
     }
 
     BCValue genParameter(BCType bct)
     {
-        result ~= "    auto p" ~ to!string(++parameterCount) ~ " = genParameter(" ~ print(bct) ~ ");//SP[" ~ to!string(sp) ~ "]\n";
+        currentFunctionStateNumber++;
+        if (!parameterCount)
+        {
+            //write a newline when we effectivly begin a new function;
+            result ~= "\n";
+        }
+        result ~= "    auto p" ~ to!string(++parameterCount) ~ functionSuffix ~ " = genParameter(" ~ print(
+            bct) ~ ");//SP[" ~ to!string(sp) ~ "]\n";
+        currentFunctionStateNumber--;
         sp += 4;
         return BCValue(BCParameter(parameterCount, bct));
     }
-
 
     BCValue genTemporary(BCType bct)
     {
@@ -140,36 +191,35 @@ struct Print_BCGen
         auto tmpAddr = sp.addr;
         sp += align4(basicTypeSize(bct));
 
-        result ~= "    auto tmp" ~ to!string(++temporaryCount) ~ " = genTemporary(" ~ print(bct) ~ ");//SP[" ~ to!string(
-            tmpAddr) ~ "]\n";
+        result ~= "    auto tmp" ~ to!string(++temporaryCount) ~ functionSuffix ~ " = genTemporary(" ~ print(
+            bct) ~ ");//SP[" ~ to!string(tmpAddr) ~ "]\n";
         return BCValue(StackAddr(tmpAddr), bct, temporaryCount);
     }
 
     BCAddr beginJmp()
     {
         sameLabel = false;
-        result ~= "    auto jmp" ~ to!string(++jmpCount) ~ " = beginJmp();\n";
+        result ~= "    auto jmp" ~ to!string(++jmpCount) ~ functionSuffix ~ " = beginJmp();\n";
         return BCAddr(jmpCount);
     }
 
     void endJmp(BCAddr atIp, BCLabel target)
     {
         sameLabel = false;
-        result ~= "    endJmp(jmp" ~ to!string(atIp.addr) ~ ", " ~ print(target) ~ ");\n";
+        result ~= "    endJmp(jmp" ~ to!string(atIp.addr) ~ functionSuffix ~ ", " ~ print(target) ~ functionSuffix ~ ");\n";
     }
 
     void genJump(BCLabel target)
     {
-        result ~= "//genJump(" ~ print (target) ~ ";\n";
-        auto at = beginJmp();
-        endJmp(at, target);
+        sameLabel = false;
+        result ~= "    genJump(" ~ print(target) ~ ");\n";
     }
 
     CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)
     {
         sameLabel = false;
-        result ~= "    auto cndJmp" ~ to!string(++cndJumpCount) ~ " = beginCndJmp(" ~ (
-            cond ? (print(cond) ~ ", " ~ (ifTrue ? "true" : "")) : "") ~ ");\n";
+        result ~= "    auto cndJmp" ~ to!string(++cndJumpCount) ~ functionSuffix ~ " = beginCndJmp(" ~ (
+            cond ? (print(cond) ~ (ifTrue ? ", true" : "")) : "") ~ ");\n";
         return CndJmpBegin(BCAddr(cndJumpCount), cond, ifTrue);
     }
 
@@ -297,6 +347,7 @@ struct Print_BCGen
     {
         import std.algorithm : map;
         import std.range : join;
+
         sameLabel = false;
 
         result ~= "    Call(" ~ print(_result) ~ ", " ~ print(fn) ~ ", [" ~ args.map!(
@@ -336,7 +387,8 @@ struct Print_BCGen
     void Cat(BCValue _result, BCValue lhs, BCValue rhs, const uint elmSize)
     {
         sameLabel = false;
-        result ~= "    Cat(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ", " ~ to!string(elmSize) ~ ");\n";
+        result ~= "    Cat(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ", " ~ to!string(
+            elmSize) ~ ");\n";
     }
 }
 
@@ -348,7 +400,7 @@ enum genString = q{
     Ret(tmp1);
 };
 
-static assert (() {
+static assert(() {
     Print_BCGen gen;
     with (gen)
     {
