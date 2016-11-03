@@ -5457,7 +5457,6 @@ static elem *elToPair(elem *e)
     {
         case OPvar:
         {
-#if 0
             /* Rewrite complex number loads as a pair of loads
              * e => (e.0 pair e.offset)
              */
@@ -5475,7 +5474,6 @@ static elem *elToPair(elem *e)
                     e2->EV.sp.Voffset += _tysize[tybasic(ty0)];
                     return el_bin(OPpair, ty, e, e2);
             }
-#endif
             break;
         }
 
