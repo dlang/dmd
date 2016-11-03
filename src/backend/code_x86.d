@@ -63,4 +63,81 @@ struct code
     ubyte IFL1,IFL2;    // FLavors of 1st, 2nd operands
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
+
+    bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
 }
+
+/*******************
+ * Some instructions.
+ */
+
+enum
+{
+    SEGES   = 0x26,
+    SEGCS   = 0x2E,
+    SEGSS   = 0x36,
+    SEGDS   = 0x3E,
+    SEGFS   = 0x64,
+    SEGGS   = 0x65,
+
+    CALL    = 0xE8,
+    JMP     = 0xE9,    // Intra-Segment Direct
+    JMPS    = 0xEB,    // JMP SHORT
+    JCXZ    = 0xE3,
+    LOOP    = 0xE2,
+    LES     = 0xC4,
+    LEA     = 0x8D,
+    LOCK    = 0xF0,
+
+    JO      = 0x70,
+    JNO     = 0x71,
+    JC      = 0x72,
+    JB      = 0x72,
+    JNC     = 0x73,
+    JAE     = 0x73,
+    JE      = 0x74,
+    JNE     = 0x75,
+    JBE     = 0x76,
+    JA      = 0x77,
+    JS      = 0x78,
+    JNS     = 0x79,
+    JP      = 0x7A,
+    JNP     = 0x7B,
+    JL      = 0x7C,
+    JGE     = 0x7D,
+    JLE     = 0x7E,
+    JG      = 0x7F,
+
+    // NOP is used as a placeholder in the linked list of instructions, no
+    // actual code will be generated for it.
+    NOP     = SEGCS,   // don't use 0x90 because the
+                       // Windows stuff wants to output 0x90's
+
+    ASM     = SEGSS,   // string of asm bytes
+
+    ESCAPE  = SEGDS,   // marker that special information is here
+                       // (Iop2 is the type of special information)
+}
+
+
+enum ESCAPEmask = 0xFF; // code.Iop & ESCAPEmask ==> actual Iop
+
+enum
+{
+    ESClinnum   = (1 << 8),      // line number information
+    ESCctor     = (2 << 8),      // object is constructed
+    ESCdtor     = (3 << 8),      // object is destructed
+    ESCmark     = (4 << 8),      // mark eh stack
+    ESCrelease  = (5 << 8),      // release eh stack
+    ESCoffset   = (6 << 8),      // set code offset for eh
+    ESCadjesp   = (7 << 8),      // adjust ESP by IEV2.Vint
+    ESCmark2    = (8 << 8),      // mark eh stack
+    ESCrelease2 = (9 << 8),      // release eh stack
+    ESCframeptr = (10 << 8),     // replace with load of frame pointer
+    ESCdctor    = (11 << 8),     // D object is constructed
+    ESCddtor    = (12 << 8),     // D object is destructed
+    ESCadjfpu   = (13 << 8),     // adjust fpustackused by IEV2.Vint
+    ESCfixesp   = (14 << 8),     // reset ESP to end of local frame
+}
+
+

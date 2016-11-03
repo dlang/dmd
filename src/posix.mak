@@ -234,7 +234,7 @@ else
 endif
 
 GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj e2ir)
+	tocvdebug s2ir toobj e2ir eh)
 
 ifeq ($(D_OBJC),1)
 else
@@ -252,7 +252,7 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
 	divcoeff.o dwarf.o dwarfeh.o varstats.o \
-	ph2.o util2.o eh.o tk.o strtold.o \
+	ph2.o util2.o tk.o strtold.o \
 	$(TARGET_OBJS)
 
 ifeq (osx,$(OS))
