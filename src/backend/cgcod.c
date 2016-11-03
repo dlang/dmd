@@ -1831,6 +1831,9 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         unsigned size = _tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
         regm_t retregs = *pretregs;
+#ifdef DEBUG
+if (retregs == 0) printf("allocreg: file %s(%d)\n", file, line);
+#endif
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
             if (size <= REGSIZE || (retregs & XMMREGS))
@@ -2305,6 +2308,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     emask &= regcon.cse.mval;                     // make sure all bits are valid
 
     if (emask & XMMREGS && *pretregs == mPSW)
+        ;
+    else if (tyxmmreg(e->Ety) && config.fpxmmregs)
         ;
     else if (tyfloating(e->Ety) && config.inline8087)
         return comsub87(e,pretregs);
