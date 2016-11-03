@@ -202,7 +202,10 @@ endif
 
 
 FRONT_SRCS=$(addsuffix .d,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes attrib builtin canthrow clone complex cond constfold		\
+	arraytypes attrib builtin						\
+	bc bc_common bc_llvm_backend bc_macro bc_printer_backend bc_c_backend	\
+	bc_test ctfe_bc    							\
+	canthrow clone complex cond constfold					\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
 	dtemplate dversion entity errors escape expression func			\
