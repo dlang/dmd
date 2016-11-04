@@ -946,7 +946,7 @@ string printInstructions(const int* startInstructions, uint length) pure
     if (length > 4 && startInstructions[0 .. 4] == [0, 0, 0, 0])
     {
         has4ByteOffset = true;
-        length -= 4;
+        //length -= 4;
         //startInstructions += 4;
         //pos += 4;
     }

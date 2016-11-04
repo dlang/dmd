@@ -111,12 +111,12 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 {
     Expression[] _args;
     //TODO check if the functions returnType is a uint;
-    if (thisExp)
+    /*if (thisExp)
     {
         debug (ctfe)
             assert(0, "Implicit State via _this_ is not supported right now");
         return null;
-    }
+    }*/
 
     if (args)
         foreach (a; *args)
@@ -128,17 +128,16 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 }
 
 import ddmd.ctfe.bc_common;
+
 enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
-static immutable LLVM_BC_String = `
-    import ddmd.ctfe.bc_llvm_backend;
-    alias BCGenT = LLVM_BCGen;
-`;
 
-static if (UseLLVMBackend && __traits(compiles, mixin(LLVM_BC_String)))
+static if (UseLLVMBackend)
 {
-	mixin (LLVM_BC_String);
+    import ddmd.ctfe.bc_llvm_backend;
+
+    alias BCGenT = LLVM_BCGen;
 }
 else static if (UseCBackend)
 {
@@ -170,22 +169,31 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 {
     import std.stdio;
 
+    __gshared static uint recursionLevel = 0;
+    //__gshared static BCV!BCGenT bcv;
+
+    recursionLevel++;
+    debug (ctfe)
+        writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
 
-    scope bcv = new BCV!BCGenT(fd, null);
     import std.datetime : StopWatch;
-
-    //  bcv.setThis(bcv);
 
     StopWatch csw;
     csw.start;
+
+    //if (bcv is null)
+    //{
+    scope bcv = new BCV!BCGenT(fd, _this);
+    bcv.Initialize();
+    //}
     bcv.visit(fd);
-    csw.stop;
-    writeln("Generting bc for ", fd.ident.toString, " took " ~ csw.peek.usecs.to!string ~ "usecs");
+    //csw.stop;
+    //writeln("Generting bc for ", fd.ident.toString, " took " ~ csw.peek.usecs.to!string ~ "usecs");
     if (csw.peek.usecs > 500)
     {
-        writeln(fd.fbody.toString);
+        //    writeln(fd.fbody.toString);
     }
 
     debug (ctfe)
@@ -211,23 +219,25 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         writeln("BC complied: ", fd.ident.toString);
         //HACK this filters out functions which I know produce incorrect results
         //this is only so I can see where else are problems.
-        if (fd.ident == Identifier.idPool("f2"))
-        {
-            writeln(fd.ident.toString, " causes the interpreter to hang ... skipping");
-            return null;
-        }
+
         StopWatch sw;
         sw.start();
         bcv.beginArguments();
         auto bc_args = args.map!(a => bcv.genExpr(a)).array;
+        writeln("BC Args :", bc_args);
         bcv.endArguments();
 
+        if (--recursionLevel == 0)
+        {
+            recursionLevel = uint.max;
+            bcv.Finalize();
+        }
 
         static if (UseLLVMBackend)
         {
-            auto retval = BCValue.init;
-            bcv.print();
-            return null;
+            bcv.gen.print();
+
+            auto retval = bcv.gen.interpret(bc_args, &_sharedCtfeState.heap);
         }
         else static if (UseCBackend)
         {
@@ -243,8 +253,13 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
         else
         {
-            debug (ctfe)
+            // debug (ctfe)
+            {
+                import std.stdio;
+
+                writeln("I have ", _sharedCtfeState.functionCount, " functions!");
                 bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
+            }
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
         }
@@ -255,7 +270,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         assert(ft.nextOf);
 
         //debug (ctfe)
-            writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
+        writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
         {
             if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap))
             {
@@ -269,8 +284,12 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     }
     else
     {
-        //debug (ctfe)
-        //    assert(0, "CTFE Errored");
+        static if (UsePrinterBackend)
+        {
+            auto retval = BCValue.init;
+            writeln(bcv.result);
+            return null;
+        }
         return null;
 
     }
@@ -348,7 +367,7 @@ struct BCSlice
 
 struct BCPointer
 {
-    BCType elmentType;
+    BCType elementType;
     uint indirectionCount;
 }
 
@@ -422,11 +441,11 @@ struct SharedCtfeState(BCGenT)
     {
         static assert(is(typeof(BCFunction.funcDecl) == void*));
         BCFunction[ubyte.max * 4] functions;
-        uint functionCount;
+        uint functionCount = 1;
     }
     else
     {
-        pragma(msg, BCGenT, "does not support BCFunctions");
+        pragma(msg, BCGenT, " does not support BCFunctions");
     }
 
     bool addStructInProgress;
@@ -441,11 +460,11 @@ struct SharedCtfeState(BCGenT)
             }
         }
         // if we get here the type was not found and has to be registerd.
-        scope bcv = new BCV!BCGenT(null);
+        scope bcv = new BCV!BCGenT(null, null);
         auto elemType = bcv.toBCType(tsa.nextOf);
         auto arraySize = evaluateUlong(tsa.dim);
-		assert(arraySize < uint.max);
-        arrays[++arrayCount] = BCArray(elemType, cast(uint)arraySize);
+        assert(arraySize < uint.max);
+        arrays[++arrayCount] = BCArray(elemType, cast(uint) arraySize);
         return arrayCount;
     }
 
@@ -468,7 +487,7 @@ struct SharedCtfeState(BCGenT)
 
     int getStructIndex(StructDeclaration sd)
     {
-        if (!sd)
+        if (sd is null)
             return 0;
 
         foreach (i, structDeclPtr; structDeclPointers[0 .. structCount])
@@ -478,9 +497,15 @@ struct SharedCtfeState(BCGenT)
                 return cast(uint) i + 1;
             }
         }
+
         //register structType
-        scope bcv = new BCV!BCGenT(null);
-        bcv.visit(sd);
+        scope bcv = new BCV!BCGenT(null, null);
+        auto oldStructCount = structCount;
+        debug (ctfe)
+            bcv.visit(sd);
+            else
+                return 0;
+        assert(oldStructCount < structCount);
         return structCount;
     }
 
@@ -497,7 +522,7 @@ struct SharedCtfeState(BCGenT)
             }
         }
         //register structType
-        scope bcv = new BCV!BCGenT(null);
+        scope bcv = new BCV!BCGenT(null, null);
         auto elemType = bcv.toBCType(tda.nextOf);
         if (slices.length - 1 > sliceCount)
         {
@@ -563,6 +588,9 @@ struct SharedCtfeState(BCGenT)
 
                 foreach (i, memberType; _struct.memberTypes[0 .. _struct.memberTypeCount])
                 {
+                    if (memberType == type) // bail out on recursion.
+                        return 0;
+
                     _size += align4(
                         isBasicBCType(memberType) ? basicTypeSize(memberType) : this.size(
                         memberType));
@@ -617,10 +645,15 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         }
 
-        result = new StringExp(Loc(),
-            (cast(char*)(heapPtr._heap.ptr + offset + 1)), heapPtr._heap[offset]);
+        auto length = heapPtr._heap.ptr[offset];
+        //TODO consider to use allocmemory directly instead of going through druntime.
+
+        auto resultString = (cast(void*)(heapPtr._heap.ptr + offset + 1))[0 .. length].dup;
+        result = new StringExp(Loc(), resultString.ptr, length);
+
         //HACK to avoid TypePainting!
         result.type = expressionType;
+
     }
     else
         switch (expressionType.ty)
@@ -681,11 +714,12 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tbool:
         {
             assert(value.imm32 == 0 || value.imm32 == 1, "Not a valid bool");
-            return new IntegerExp(value.imm32);
+            result = new IntegerExp(value.imm32);
         }
+        break;
     case Tint32, Tuns32, Tint16, Tuns16, Tint8, Tuns8:
         {
-            return new IntegerExp(value.imm32);
+            result = new IntegerExp(value.imm32);
         }
         break;
     default:
@@ -743,6 +777,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
                 return BCType(BCTypeEnum.Char);
             case ENUMTY.Tint8:
             case ENUMTY.Tuns8:
+                //return BCType(BCTypeEnum.i8);
             case ENUMTY.Tint16:
             case ENUMTY.Tuns16:
                 //return BCType(BCTypeEnum.i16);
@@ -784,14 +819,14 @@ extern (C++) final class BCV(BCGenT) : Visitor
                 auto tsa = cast(TypeSArray) t;
                 return BCType(BCTypeEnum.Array, _sharedCtfeState.getArrayIndex(tsa));
             }
-			else if (t.ty == Tpointer && (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32))
-			{
-				return BCType(BCTypeEnum.i32Ptr);
-			}
+            else if (t.ty == Tpointer && (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32))
+            {
+                return BCType(BCTypeEnum.i32Ptr);
+            }
             IGaveUp = true;
 
             debug (ctfe)
-                assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString());
+                assert(0, "NBT Type unsupported " ~ (cast(Type)(t)).toString);
 
             return BCType.init;
         }
@@ -804,6 +839,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCBlock[void* ] labeledBlocks;
 
     BCValue[void* ] vars;
+
+    //BCValue _this;
+    Expression _this;
 
     BoolExprFixupEntry[ubyte.max] fixupTable;
     uint fixupTableCount;
@@ -840,11 +878,12 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
 public:
 
-    this(FuncDeclaration fd, typeof(this)* parent = null)
+    this(FuncDeclaration fd, Expression _this, typeof(this)* parent = null)
     {
         me = fd;
         this.parent = parent;
-        Initialize();
+        if (_this)
+            this._this = _this;
     }
 
     void beginParameters()
@@ -865,7 +904,6 @@ public:
     void endArguments()
     {
         processingArguments = false;
-        Finalize();
     }
 
     BCValue getVariable(VarDeclaration vd)
@@ -873,7 +911,13 @@ public:
         auto value = (cast(void*) vd) in vars;
         return value ? *value : BCValue.init;
     }
+    /*
+	BCValue pushOntoHeap(BCValue v)
+	{
+		assert(isBasicBCType(toBCType(v)), "For now only basicBCTypes are supported");
 
+	}
+*/
     BCValue genExpr(Expression expr)
     {
 
@@ -924,16 +968,23 @@ public:
 
     override void visit(FuncDeclaration fd)
     {
-        /*static if (is(typeof(_sharedCtfeState.functionCount)))
+		import ddmd.identifier;
+		if (fd.ident == Identifier.idPool("isRooted") || fd.ident == Identifier.idPool("__lambda2") || fd.ident == Identifier.idPool("divideRoundUp") || fd.ident == Identifier.idPool("isSameLength") || fd.ident == Identifier.idPool("wrapperParameters") || fd.ident == Identifier.idPool("wrap") || fd.ident == Identifier.idPool("args"))
+		{
+			IGaveUp = true;
+			return ;
+		}
+
+        static if (is(typeof(_sharedCtfeState.functionCount)))
         {
             if (auto i = _sharedCtfeState.getFunctionIndex(fd))
             {
-                auto bc = _sharedCtfeState.functions[i - 1].byteCode;
-                this.byteCodeArray[0 .. bc.length] = bc;
-                this.ip = cast(uint) bc.length;
-                return;
+                //     auto bc = _sharedCtfeState.functions[i - 1].byteCode;
+                //      this.byteCodeArray[0 .. bc.length] = bc;
+                //       this.ip = cast(uint) bc.length;
+                //       return;
             }
-        }*/
+        }
 
         if (auto fbody = fd.fbody.isCompoundStatement)
         {
@@ -957,9 +1008,10 @@ public:
                 writeln("ParameterType : ", parameterTypes);
             }
             import std.stdio;
-			beginFunction();
+
+            beginFunction();
             visit(fbody);
-			endFunction();
+            endFunction();
             if (IGaveUp)
             {
                 debug (ctfe)
@@ -969,8 +1021,9 @@ public:
                     else static if (UseCBackend)
                         writeln(code);
                     else static if (UseLLVMBackend)
-					    {}
-					else
+                    {
+                    }
+                    else
                         writeln(printInstructions(byteCodeArray[0 .. ip]));
                     writeln("Gave up!");
                 }
@@ -979,18 +1032,26 @@ public:
 
             static if (is(typeof(_sharedCtfeState.functions)))
             {
+
                 debug (ctfe)
                 {
                     writeln("FnCnt: ", _sharedCtfeState.functionCount);
                 }
-//                _sharedCtfeState.functions[_sharedCtfeState.functionCount++] = BCFunction(
-//                    cast(void*) fd, BCFunctionTypeEnum.Bytecode,
-//                    _sharedCtfeState.functionCount, byteCodeArray[0 .. ip].dup);
-
+                static if (is(BCGen))
+                {
+                    _sharedCtfeState.functions[_sharedCtfeState.functionCount++] = BCFunction(cast(void*) fd,
+                        BCFunctionTypeEnum.Bytecode,
+                        _sharedCtfeState.functionCount, byteCodeArray[0 .. ip].dup);
+                }
+                else
+                {
+                    _sharedCtfeState.functions[_sharedCtfeState.functionCount++] = BCFunction(cast(void*) fd,
+                        BCFunctionTypeEnum.Bytecode, _sharedCtfeState.functionCount);
+                }
             }
             else
             {
-                //     static assert(0, "No functions for old man");
+                //static assert(0, "No functions for old man");
             }
         }
     }
@@ -1080,6 +1141,7 @@ public:
                     else
                     {
                         import ddmd.ctfe.bc_macro : StringEq3Macro;
+
                         StringEq3Macro(&gen, retval, lhs, rhs);
                     }
 
@@ -1094,6 +1156,13 @@ public:
             {
                 auto ce = cast(CondExp) e;
                 auto cond = genExpr(ce.econd);
+				debug (ctfe)
+					assert(cond);
+				else if (!cond)
+				{
+					IGaveUp = true;
+					return ;
+				}
 
                 auto cj = beginCndJmp(cond ? cond.i32 : cond, false);
                 auto lhsEval = genLabel();
@@ -1113,25 +1182,35 @@ public:
             {
                 auto lhs = genExpr(e.e1);
                 auto rhs = genExpr(e.e2);
-                assert(isBasicBCType(lhs.type) && isBasicBCType(rhs.type));
-                assert(basicTypeSize(lhs.type) == basicTypeSize(rhs.type));
-                Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
+                if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type)
+                        && basicTypeSize(lhs.type) == basicTypeSize(rhs.type))
+                {
+                    //assert();
+                    Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
+                }
+                else
+                {
+                    IGaveUp = true;
+                    debug (ctfe)
+                        assert(0, "We cannot cat " ~ e.e1.toString ~ " and " ~ e.e2.toString);
+                }
             }
             break;
 
-        case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod, TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
-            auto lhs = genExpr(e.e1);
+        case TOK.TOKadd, TOK.TOKmin, TOK.TOKmul, TOK.TOKdiv, TOK.TOKmod,
+                TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
+                auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
-            if (((lhs.type.type == BCTypeEnum.i32 
+            if (((lhs.type.type == BCTypeEnum.i32
                     || lhs.type.type == BCTypeEnum.i32Ptr) && rhs.type.type == BCTypeEnum.i32)
-                    || (lhs.type.type == BCTypeEnum.i64 && rhs.type.type == BCTypeEnum.i64) )
+                    || (lhs.type.type == BCTypeEnum.i64 && rhs.type.type == BCTypeEnum.i64))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
                 /*debug (ctfe)
                         assert(!oldDiscardValue, "A lone BinExp discarding the value is strange");
                     */
-                final switch (cast(int) e.op)
+                switch (cast(int) e.op)
                 {
                 case TOK.TOKequal:
                     {
@@ -1188,8 +1267,11 @@ public:
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
-
-
+                default:
+                    {
+                        IGaveUp = true;
+                        return;
+                    }
                 }
                 discardValue = oldDiscardValue;
             }
@@ -1207,10 +1289,13 @@ public:
 
         case TOK.TOKoror:
             {
+                IGaveUp = true;
+                return;
                 const oldFixupTableCount = fixupTableCount;
                 auto lhs = genExpr(e.e1);
-                doFixup(oldFixupTableCount, null, null); 
-                fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs, true));
+                doFixup(oldFixupTableCount, null, null);
+                fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
+                    true));
 
                 //auto rhs =
             }
@@ -1251,14 +1336,17 @@ public:
         sharedCtfeState.endStruct(st);
     }
 
-	override void visit(SymOffExp se)
-	{
-		assert(toBCType(se.type).type == BCTypeEnum.i32Ptr, "only int* is supported for now");
-		auto v = getVariable(cast(VarDeclaration)se.var);
-		//retval = BCValue(v.stackAddr
-		import std.stdio;
-		writeln("Se.var.genExpr == ", v);
-	}
+    override void visit(SymOffExp se)
+    {
+        debug (ctfe)
+            assert(toBCType(se.type).type == BCTypeEnum.i32Ptr, "only int* is supported for now");
+        IGaveUp = true;
+        auto v = getVariable(cast(VarDeclaration) se.var);
+        //retval = BCValue(v.stackAddr
+        import std.stdio;
+
+        writeln("Se.var.genExpr == ", v);
+    }
 
     override void visit(IndexExp ie)
     {
@@ -1280,27 +1368,28 @@ public:
             writeln(indexed.type.type.to!string);
         }
         if (!(indexed.type.type == BCTypeEnum.String
-            || indexed.type.type == BCTypeEnum.Array
-            || indexed.type.type == BCTypeEnum.Slice)
-            )
+                || indexed.type.type == BCTypeEnum.Array || indexed.type.type == BCTypeEnum.Slice))
         {
-            debug(ctfe)
-                assert(0, "Unexpected IndexedType: " ~ to!string(indexed.type.type) ~ " ie: " ~ ie.toString);
+            debug (ctfe)
+                assert(0,
+                    "Unexpected IndexedType: " ~ to!string(indexed.type.type) ~ " ie: " ~ ie
+                    .toString);
             IGaveUp = true;
-            return ;
+            return;
         }
 
         bool isString = indexed.type.type == BCTypeEnum.String;
         //FIXME check if Slice.ElementType == Char
         //and set isString to true;
-        if (!indexed.type.typeIndex || !isString || !indexed.type.type == BCTypeEnum.Slice)
+        if (!indexed.type.typeIndex || !indexed.type.type == BCTypeEnum.Slice)
         {
             /*debug (ctfe)
-                assert(0, "IndexExp on non-strings unsupported");
+                assert(0, "IndexExp on non-strings unsupported");*/
             IGaveUp = true;
-            return;*/
+            return;
         }
         auto arrayType = (!isString ? &_sharedCtfeState.arrays[indexed.type.typeIndex - 1] : null);
+
         auto idx = genExpr(ie.e2).i32; // HACK
         debug (ctfe)
         {
@@ -1319,6 +1408,7 @@ public:
             //removeTemporary(ptr);
         }
         auto elmType = arrayType ? arrayType.elementType : BCType(BCTypeEnum.Char);
+        auto oldRetval = retval;
         retval = assignTo ? assignTo : genTemporary(elmType);
         //        if (elmType.type == BCTypeEnum.i32)
         {
@@ -1419,8 +1509,16 @@ public:
         if (fs.condition !is null && fs._body !is null)
         {
             BCLabel condEval = genLabel();
-            BCValue condExpr = genExpr(fs.condition);
-            auto condJmp = beginCndJmp(condExpr);
+            BCValue cond = genExpr(fs.condition);
+			debug (ctfe)
+				assert(cond);
+			else if (!cond)
+			{
+				IGaveUp = true;
+				return ;
+			}
+
+            auto condJmp = beginCndJmp(cond);
 
             auto _body = genBlock(fs._body);
             if (fs.increment)
@@ -1465,8 +1563,8 @@ public:
 
         }
         IGaveUp = true;
-
-        assert(0, "Cannot handleExpression: " ~ e.toString);
+        debug (ctfe)
+            assert(0, "Cannot handleExpression: " ~ e.toString);
     }
 
     override void visit(NullExp ne)
@@ -1474,8 +1572,8 @@ public:
         retval = BCValue.init;
         retval.vType = BCValueType.Immediate;
         retval.type.type = BCTypeEnum.Null;
-        debug (ctfe)
-            assert(0, "I don't really know what to do on a NullExp");
+        //debug (ctfe)
+        //    assert(0, "I don't really know what to do on a NullExp");
     }
 
     override void visit(HaltExp he)
@@ -1509,7 +1607,7 @@ public:
 
     override void visit(DotVarExp dve)
     {
-        if (dve.e1.type.ty == Tstruct)
+        if (dve.e1.type.ty == Tstruct && (cast(TypeStruct) dve.e1.type).sym)
         {
             auto structDeclPtr = ((cast(TypeStruct) dve.e1.type).sym);
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
@@ -1529,6 +1627,7 @@ public:
                     return;
                 }
                 int offset = _struct.offset(fIndex);
+                assert(offset != -1);
 
                 debug (ctfe)
                 {
@@ -1578,8 +1677,9 @@ public:
         {
             debug (ctfe)
                 assert(0, "Can only take members of a struct for now");
+            IGaveUp = true;
         }
-        IGaveUp = true;
+
     }
 
     override void visit(ArrayLiteralExp ale)
@@ -1646,6 +1746,7 @@ public:
 
     override void visit(StructLiteralExp sle)
     {
+
         debug (ctfe)
         {
             import std.stdio;
@@ -1656,7 +1757,13 @@ public:
 
         auto sd = sle.sd;
         auto idx = _sharedCtfeState.getStructIndex(sd);
-        assert(idx);
+        debug (ctfe)
+            assert(idx);
+            else if (!idx)
+            {
+                IGaveUp = true;
+                return;
+            }
         BCStruct _struct = _sharedCtfeState.structs[idx - 1];
 
         foreach (ty; _struct.memberTypes[0 .. _struct.memberTypeCount])
@@ -1672,7 +1779,7 @@ public:
             }
         }
 
-        //retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
+        retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
         /*HACK HACK HACK*/
         //incSp(); //HACK
@@ -1696,6 +1803,10 @@ public:
             _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize++] = elexpr.imm32;
         }
         Set(retval.i32, BCValue(Imm32(result.addr)));
+        debug (ctfe)
+        {
+            writeln("Done with struct ... revtval: ", retval);
+        }
         //retval = BCValue(Imm32(result.addr));
     }
 
@@ -1705,36 +1816,44 @@ public:
         assert(retval);
     }
 
+    override void visit(AddrExp ae)
+    {
+        retval = genExpr(ae.e1);
+        //Alloc()
+        //assert(0, "Dieng on Addr ?");
+    }
+
+    override void visit(ThisExp te)
+    {
+        import std.stdio;
+
+        debug (ctfe)
+        {
+            writeln("ThisExp", te.toString);
+            writeln("te.var:", te.var ? te.var.toString : "null");
+
+        }
+        retval = genExpr(_this);
+    }
+
     override void visit(PtrExp pe)
     {
-       
+
         retval = genExpr(pe.e1);
         {
             import std.stdio;
+
             writeln(retval);
         }
-         
-    }
 
+    }
 
     override void visit(ArrayLengthExp ale)
     {
         auto array = genExpr(ale.e1);
         if (array.type.type == BCTypeEnum.String || array.type.type == BCTypeEnum.Slice)
         {
-            retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
-            //BCValue arrayLength ;
-            Set(retval, getLength(array));
-
-            debug (ctfe)
-            {
-                import std.stdio;
-
-                writeln(array.stackAddr, "___", retval.stackAddr);
-            }
-
-            //Set(retval, arrayLength);
-            assignTo = retval;
+            retval = getLength(array, assignTo);
         }
         else
         {
@@ -1750,9 +1869,9 @@ public:
          */
     }
 
-    BCValue getLength(BCValue arr)
+    BCValue getLength(BCValue arr, BCValue target = BCValue.init)
     {
-        auto length = genTemporary(BCType(BCTypeEnum.i32));
+        auto length = target ? target : genTemporary(BCType(BCTypeEnum.i32));
         Load32(length, arr.i32);
         return length;
     }
@@ -1809,7 +1928,7 @@ public:
                 //iexps.push(new Expression();
             }
             auto sl = new StructLiteralExp(sds.loc, sd, &iexps);
-            visit(sl);
+            retval = genExpr(sl);
             //assert(0, "SymbolDeclarations are not supported for now" ~ .type.size.to!string);
             //auto vs = symd in syms;
 
@@ -1857,14 +1976,14 @@ public:
         if (auto ci = vd.getConstInitializer)
         {
 
-            ci.accept(this);
-            if (retval.vType == BCValueType.Immediate && retval.type == BCType(BCTypeEnum.i32))
+            auto _init = genExpr(ci);
+            if (_init.vType == BCValueType.Immediate && _init.type == BCType(BCTypeEnum.i32))
             {
-                Set(var, retval);
+                Set(var.i32, retval);
             }
-            retval = oldRetval;
-        }
 
+        }
+        retval = var;
     }
 
     override void visit(VarDeclaration vd)
@@ -1957,7 +2076,6 @@ public:
                     {
                         //StringCat(lhs, lhs, rhs);
                     }
-                    //CallBuiltin(Bultin.StringConcat, [lhs, rhs]);
                     //Alloc(lhs, combinedLength);
 
                     //_sharedCtfeState.heap.heapSize
@@ -2017,10 +2135,43 @@ public:
         }
 
         auto bct = toBCType(ie.type);
+
         //assert(bct == BCType.i32, "only 32bit is suppoorted for now");
-		auto value = evaluateUlong(ie);
-        retval = value > int.max ? BCValue(Imm64(value)): BCValue(Imm32(cast(uint)value));
+        if (bct == BCTypeEnum.i64)
+        {
+            retval = BCValue(Imm64(ie.value));
+        }
+        else
+        {
+            retval = BCValue(Imm32(cast(uint) ie.value));
+        }
+        //auto value = evaluateUlong(ie);
+        //retval = value <= int.max ? BCValue(Imm32(cast(uint) value)) : BCValue(Imm64(value));
         assert(retval.vType == BCValueType.Immediate);
+    }
+
+    override void visit(RealExp re)
+    {
+        debug (ctfe)
+        {
+            import std.stdio;
+
+            writefln("RealExp %s", re.toString);
+        }
+
+        IGaveUp = true;
+    }
+
+    override void visit(ComplexExp ce)
+    {
+        debug (ctfe)
+        {
+            import std.stdio;
+
+            writefln("ComplexExp %s", ce.toString);
+        }
+
+        IGaveUp = true;
     }
 
     override void visit(StringExp se)
@@ -2041,6 +2192,12 @@ public:
             //assert(se.string[se.len] == '\0', "string should be 0-terminated");
         }
         auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
+        auto stringAddrValue = BCValue(Imm32(stringAddr.addr));
+        if (processingArguments)
+        {
+            retval = stringAddrValue;
+            return;
+        }
 
         if (assignTo)
         {
@@ -2050,8 +2207,15 @@ public:
         {
             retval = genTemporary(BCType(BCTypeEnum.String));
         }
+        Set(retval.i32, stringAddrValue);
 
-        Set(retval.i32, BCValue(Imm32(stringAddr.addr)));
+        debug (ctfe)
+        {
+            writefln("String %s, is in %d, first uint is %d",
+                cast(char[]) se.string[0 .. se.len], stringAddr.addr,
+                _sharedCtfeState.heap._heap[stringAddr.addr]);
+        }
+
     }
 
     override void visit(CmpExp ce)
@@ -2102,7 +2266,8 @@ public:
 
     static bool canWorkWithType(const BCType bct) pure
     {
-        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i32Ptr);
+        return (bct.type == BCTypeEnum.i32 || bct.type == BCTypeEnum.i64
+            || bct.type == BCTypeEnum.i32Ptr);
     }
 
     override void visit(ConstructExp ce)
@@ -2115,7 +2280,7 @@ public:
             writefln("ConstructExp.e1: %s", ce.e1.toString);
             writefln("ConstructExp.e2: %s", ce.e2.toString);
         }
-		else if (!ce.e1.type.equivalent(ce.e2.type) && !ce.type.baseElemOf.equivalent(ce.e2.type))
+        else if (!ce.e1.type.equivalent(ce.e2.type) && !ce.type.baseElemOf.equivalent(ce.e2.type))
         {
             IGaveUp = true;
             debug (ctfe)
@@ -2124,8 +2289,8 @@ public:
         }
 
         auto lhs = genExpr(ce.e1);
-		auto rhs = genExpr(ce.e2);
-		// exit if we could not gen lhs
+        auto rhs = genExpr(ce.e2);
+        // exit if we could not gen lhs
         //FIXME that should never happen
         if (!lhs || lhs.type.type == BCType.undef)
         {
@@ -2139,24 +2304,30 @@ public:
         {
 
         }
-        else if (lhs.type.type == BCTypeEnum.String || lhs.type.type == BCTypeEnum.Slice)
+        else if (lhs.type.type == BCTypeEnum.String
+                || lhs.type.type == BCTypeEnum.Slice || lhs.type.type.Array)
         {
 
         }
-        else if (lhs.type.type == BCTypeEnum.Char || lhs.type.type == BCTypeEnum.i1)
+        else if (lhs.type.type == BCTypeEnum.Char
+                || lhs.type.type == BCTypeEnum.i8 || lhs.type.type == BCTypeEnum.i1)
         {
 
         }
-		else if (lhs.type.type == BCTypeEnum.i32Ptr)
-		{
-			
-		}
+        else if (lhs.type.type == BCTypeEnum.i32Ptr)
+        {
+
+        }
+        else if (lhs.type.type == BCTypeEnum.i64)
+        {
+            Set(lhs, rhs);
+        }
         else // we are dealing with a struct (hopefully)
         {
 
             assert(lhs.type.type == BCTypeEnum.Struct, to!string(lhs.type.type));
         }
-        
+
         // exit if we could not gen rhs
         //FIXME that should never happen
         if (!rhs)
@@ -2191,10 +2362,22 @@ public:
             // Needs to be handled diffrently
             auto dve = cast(DotVarExp) ae.e1;
             auto _struct = dve.e1;
-            assert(_struct.type.ty == Tstruct, "only structs are supported for now");
+            if (_struct.type.ty != Tstruct)
+            {
+                debug (ctfe)
+                    assert(0, "only structs are supported for now");
+                IGaveUp = true;
+                return;
+            }
             auto structDeclPtr = ((cast(TypeStruct) dve.e1.type).sym);
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
-            assert(structTypeIndex);
+            debug (ctfe)
+                assert(structTypeIndex, "could not get StructType");
+        else if (!structTypeIndex)
+                {
+                    IGaveUp = true;
+                    return;
+                }
             BCStruct bcStructType = _sharedCtfeState.structs[structTypeIndex - 1];
             auto vd = dve.var.isVarDeclaration();
             assert(vd);
@@ -2289,6 +2472,13 @@ public:
         //assert(0, "encounterd SwitchErrorStatement" ~ toString(_));
     }
 
+    override void visit(NegExp ne)
+    {
+        IGaveUp = true;
+        debug (ctfe)
+            assert(0, "NegExp (unary minus) expression not supported right now");
+    }
+
     override void visit(NotExp ne)
     {
         import ddmd.id;
@@ -2333,6 +2523,8 @@ public:
                 _uls.breakFixupCount = 0;
             }
         }
+
+		unrolledLoopState = null;
     }
 
     override void visit(ImportStatement _is)
@@ -2350,8 +2542,8 @@ public:
             {
                 if (lhs.imm32.imm32 == 0)
                 {
-                   // debug (ctfe)
-                   //     assert(0, "We should emit a error instruction here");
+                    // debug (ctfe)
+                    //     assert(0, "We should emit a error instruction here");
                 }
                 else
                 {
@@ -2372,9 +2564,9 @@ public:
         }
         else
         {
-            debug (ctfe)
+            /*debug (ctfe)
                 assert(0, "Non Integral expression in assert");
-            IGaveUp = true;
+            IGaveUp = true;*/
             return;
         }
     }
@@ -2448,8 +2640,8 @@ public:
                         && (endsSwitchBlock(cs.last))) || (_ss
                         && (endsSwitchBlock(_ss.statement))) || endsSwitchBlock(caseStmt.statement));
 
-                    beginCaseStatements[beginCaseStatementsCount++] = genLabel();
-                    genBlock(caseStmt.statement);
+                    auto caseBlock = genBlock(caseStmt.statement);
+                    beginCaseStatements[beginCaseStatementsCount++] = caseBlock.begin;
                     //If the block returns regardless there is no need for a fixup
                     if (!blockReturns)
                     {
@@ -2502,6 +2694,10 @@ public:
 
     override void visit(GotoCaseStatement gcs)
     {
+        //FIXME this is horrible broken, the index might not represent the right statement
+        // because our number can diffent from dmd's one
+        // dmd seems to sort the cases, we dont.
+
         with (switchState)
         {
             *switchFixup = SwitchFixupEntry(beginJmp(), gcs.cs.index + 1);
@@ -2518,6 +2714,21 @@ public:
         }
     }
 
+    void addUnresolvedGoto(void* ident, BCAddr jmp)
+    {
+
+        foreach (i, ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
+        {
+            if (unresolvedGoto.ident == ident)
+            {
+                unresolvedGoto.jumps[unresolvedGoto.jumpCount++] = jmp;
+                return;
+            }
+        }
+
+        unresolvedGotos[unresolvedGotoCount++] = UnresolvedGoto(ident, jmp);
+    }
+
     override void visit(GotoStatement gs)
     {
         auto ident = cast(void*) gs.ident;
@@ -2528,17 +2739,7 @@ public:
         }
         else
         {
-
-            foreach (i, ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
-            {
-                if (unresolvedGoto.ident == ident)
-                {
-                    unresolvedGoto.jumps[unresolvedGoto.jumpCount++] = beginJmp();
-                    return;
-                }
-            }
-
-            unresolvedGotos[unresolvedGotoCount++] = UnresolvedGoto(ident, beginJmp());
+            addUnresolvedGoto(ident, beginJmp());
         }
     }
 
@@ -2550,9 +2751,15 @@ public:
 
             writefln("LabelStatement %s", ls.toString);
         }
+        debug (ctfe)
+            assert(cast(void*) ls.ident !in labeledBlocks,
+                "We already enounterd a LabelStatement with this identifier");
 
-        assert(cast(void*) ls.ident !in labeledBlocks,
-            "We already enounterd a LabelStatement with this identifier");
+        if (cast(void*) ls.ident in labeledBlocks)
+        {
+            IGaveUp = true;
+            return;
+        }
         auto block = labeledBlocks[cast(void*) ls.ident] = genBlock(ls.statement);
 
         foreach (i, unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
@@ -2573,12 +2780,19 @@ public:
     {
         if (cs.ident)
         {
-            assert(cast(void*) cs.ident in labeledBlocks,
-                "We have not encounterd the label you want to jump to");
-            genJump(labeledBlocks[cast(void*) cs.ident].begin);
+            if (cast(void*) cs.ident in labeledBlocks)
+            {
+                genJump(labeledBlocks[cast(void*) cs.ident].begin);
+            }
+            else
+            {
+                addUnresolvedGoto(cast(void*) cs.ident, beginJmp());
+            }
         }
         else if (unrolledLoopState)
         {
+            IGaveUp = true;
+            return;
             unrolledLoopState.continueFixups[unrolledLoopState.continueFixupCount++] = beginJmp();
         }
         else
@@ -2591,9 +2805,19 @@ public:
     {
         if (bs.ident)
         {
-            assert(cast(void*) bs.ident in labeledBlocks,
-                "We have not encounterd the label you want to jump to");
-            genJump(labeledBlocks[cast(void*) bs.ident].end);
+            debug (ctfe)
+                assert(cast(void*) bs.ident in labeledBlocks,
+                    "We have not encounterd the label you want to jump to");
+            if (auto target = cast(void*) bs.ident in labeledBlocks)
+            {
+                genJump(target.end);
+            }
+            else
+            {
+                IGaveUp = true;
+                return;
+            }
+
         }
         else if (switchFixup)
         {
@@ -2605,7 +2829,14 @@ public:
         }
         else if (unrolledLoopState)
         {
+            debug (ctfe)
+            {
+                import std.stdio;
+
+                writeln("breakFixupCount: ", breakFixupsCount);
+            }
             unrolledLoopState.breakFixups[unrolledLoopState.breakFixupCount++] = beginJmp();
+
         }
         else
         {
@@ -2626,16 +2857,13 @@ public:
         }
         import ddmd.dinterpret;
 
-        if (!assignTo)
+        /*if (!assignTo)
         {
             IGaveUp = true;
             return;
-        }
-        retval = assignTo ? assignTo : BCValue.init;
-        retval = genExpr(ctfeInterpret(ce));
-        assert(retval);
-        return;
-        /*
+        }*/
+        retval = /*assignTo ? assignTo :*/ genTemporary(toBCType(ce.type));
+        auto oldRetval = retval;
         auto fn = _sharedCtfeState.getFunctionIndex(ce.f);
         if (!fn)
         {
@@ -2644,6 +2872,7 @@ public:
             ctfeInterpret(ce);
             fn = _sharedCtfeState.getFunctionIndex(ce.f);
         }
+
         if (fn)
         {
             //auto spBeforePush = currSp - beginSp;
@@ -2652,7 +2881,6 @@ public:
             BCValue[] args;
             foreach (arg; (*ce.arguments)[].map!(a => genExpr(a)))
             {
-                uint argField;
                 switch (arg.vType)
                 {
                 case BCValueType.Immediate:
@@ -2665,14 +2893,15 @@ public:
                     //case BCValueType.StackValue :
                     {
                         debug (ctfe)
-                            assert(0, "unsupported ATM");
+                            assert(0, "Argument unsupported ATM: " ~ arg.toString);
                         IGaveUp = true;
                         return;
                     }
                 }
             }
-            //BCValue[] args = (*ce.arguments)[].map!(a => genExpr(a)).array;
-            Call(retval, BCValue(Imm32(fn)), args);
+            retval = oldRetval;
+            Call(retval, BCValue(StackAddr(cast(short)(fn - 1)),
+                BCType(BCTypeEnum.Function)), args);
         }
         else
         {
@@ -2680,7 +2909,6 @@ public:
                 assert(0, "Could not gen Function: " ~ ce.f.toString);
             IGaveUp = true;
         }
-        */
 
     }
 
@@ -2697,7 +2925,13 @@ public:
         if (rs.exp !is null)
         {
             auto retval = genExpr(rs.exp);
-            Ret(retval);
+            if (canWorkWithType(retval.type) || retval.type == BCTypeEnum.String)
+                Ret(retval);
+            else
+            {
+                IGaveUp = true;
+                return;
+            }
         }
         else
         {
@@ -2735,12 +2969,18 @@ public:
 
             writefln("DoStatement %s", ds.toString);
         }
-
-        auto evalCond = genLabel();
+        auto doBlock = genBlock(ds._body);
         auto cond = genExpr(ds.condition);
-        auto cj = beginCndJmp(cond);
-        genBlock(ds._body);
-        endCndJmp(cj, evalCond);
+		debug (ctfe)
+			assert(cond);
+		else if (!cond)
+		{
+			IGaveUp = true;
+			return ;
+		}
+		auto cj = beginCndJmp(cond);
+
+        endCndJmp(cj, doBlock.begin);
     }
 
     override void visit(WithStatement ws)
@@ -2767,8 +3007,8 @@ public:
             writefln("Statement %s", s.toString);
         }
         IGaveUp = true;
-        //debug (ctfe)
-        assert(0, "Statement unsupported " ~ s.toString);
+        debug (ctfe)
+            assert(0, "Statement unsupported " ~ s.toString);
     }
 
     override void visit(IfStatement fs)
@@ -2795,12 +3035,22 @@ public:
 
         uint oldFixupTableCount = fixupTableCount;
         auto cond = genExpr(fs.condition);
+		debug (ctfe)
+			assert(cond);
+		else if (!cond)
+		{
+			IGaveUp = true;
+			return ;
+		}
 
-        BCBlock ifbody  = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
+        auto cj = beginCndJmp(cond);
+
+        BCBlock ifbody = fs.ifbody ? genBlock(fs.ifbody) : BCBlock.init;
         auto to_end = beginJmp();
+        auto elseLabel = genLabel();
         BCBlock elsebody = fs.elsebody ? genBlock(fs.elsebody) : BCBlock.init;
         endJmp(to_end, genLabel());
-
+        endCndJmp(cj, elseLabel);
 
         doFixup(oldFixupTableCount, ifbody ? &ifbody.begin : null,
             elsebody ? &elsebody.begin : null);
