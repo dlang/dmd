@@ -476,6 +476,93 @@ code *xmmopass(elem *e,regm_t *pretregs)
     return cat4(cr,cl,cg,co);
 }
 
+/********************************
+ * Generate code for post increment and post decrement.
+ */
+
+code *xmmpost(elem *e,regm_t *pretregs)
+{
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    tym_t ty1 = tybasic(e1->Ety);
+
+    CodeBuilder cdb;
+
+    regm_t retregs;
+    unsigned reg;
+    bool regvar = FALSE;
+    if (config.flags4 & CFG4optimized)
+    {
+        // Be careful of cases like (x = x+x+x). We cannot evaluate in
+        // x if x is in a register.
+        unsigned varreg;
+        regm_t varregm;
+        if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
+            doinreg(e1->EV.sp.Vsym,e2)          // and we can compute directly into it
+           )
+        {
+            regvar = TRUE;
+            retregs = varregm;
+            reg = varreg;                       // evaluate directly in target register
+            cdb.append(getregs(retregs));       // destroy these regs
+        }
+    }
+
+    code cs;
+    if (!regvar)
+    {
+        code *c = getlvalue(&cs,e1,0);          // get EA
+        cdb.append(c);
+        retregs = XMMREGS & ~*pretregs;
+        if (!retregs)
+            retregs = XMMREGS;
+        c = allocreg(&retregs,&reg,ty1);
+        cdb.append(c);
+        cs.Iop = xmmload(ty1);                  // MOVSD xmm,xmm_m64
+        code_newreg(&cs,reg - XMM0);
+        cdb.gen(&cs);
+    }
+
+    // Result register
+    regm_t resultregs = XMMREGS & *pretregs & ~retregs;
+    if (!resultregs)
+        resultregs = XMMREGS & ~retregs;
+    unsigned resultreg;
+    code *c = allocreg(&resultregs, &resultreg, ty1);
+    cdb.append(c);
+
+    cdb.gen2(xmmload(ty1),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
+
+    regm_t rretregs = XMMREGS & ~(*pretregs | retregs | resultregs);
+    if (!rretregs)
+        rretregs = XMMREGS & ~(retregs | resultregs);
+    c = codelem(e2,&rretregs,FALSE); // eval right leaf
+    cdb.append(c);
+    unsigned rreg = findreg(rretregs);
+
+    unsigned op = xmmoperator(e1->Ety, e->Eoper);
+    cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));  // ADD reg,rreg
+
+    if (!regvar)
+    {
+        cs.Iop = xmmstore(ty1);           // reverse operand order of MOVS[SD]
+        cdb.gen(&cs);
+    }
+
+    if (e1->Ecount ||                     // if lvalue is a CSE or
+        regvar)                           // rvalue can't be a CSE
+    {
+        cdb.append(getregs_imm(retregs)); // necessary if both lvalue and
+                                        //  rvalue are CSEs (since a reg
+                                        //  can hold only one e at a time)
+        cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
+    }
+
+    cdb.append(fixresult(e,resultregs,pretregs));
+    freenode(e1);
+    return cdb.finish();
+}
+
 /******************
  * Negate operator
  */
@@ -607,6 +694,7 @@ unsigned xmmoperator(tym_t tym, unsigned oper)
     {
         case OPadd:
         case OPaddass:
+        case OPpostinc:
             switch (tym)
             {
                 case TYfloat:
@@ -626,12 +714,15 @@ unsigned xmmoperator(tym_t tym, unsigned oper)
                 case TYllong2:
                 case TYullong2: op = PADDQ;  break;
 
-                default:        assert(0);
+                default:
+                    printf("tym = x%x\n", tym);
+                    assert(0);
             }
             break;
 
         case OPmin:
         case OPminass:
+        case OPpostdec:
             switch (tym)
             {
                 case TYfloat:

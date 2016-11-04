@@ -465,6 +465,7 @@ code *orthxmm(elem *e, regm_t *pretregs);
 code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs);
 code *xmmcnvt(elem *e,regm_t *pretregs);
 code *xmmopass(elem *e, regm_t *pretregs);
+code *xmmpost(elem *e, regm_t *pretregs);
 code *xmmneg(elem *e, regm_t *pretregs);
 unsigned xmmload(tym_t tym);
 unsigned xmmstore(tym_t tym);
