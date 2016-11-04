@@ -10627,7 +10627,7 @@ extern (C++) final class AddrExp : UnaExp
             if (checkUnsafeAccess(sc, dve, !type.isMutable(), true))
                 return new ErrorExp();
 
-            if (dve.e1.op == TOKvar && global.params.safe)
+            if (dve.e1.op == TOKvar && global.params.vsafe)
             {
                 VarExp ve = cast(VarExp)dve.e1;
                 VarDeclaration v = ve.var.isVarDeclaration();
@@ -10637,7 +10637,7 @@ extern (C++) final class AddrExp : UnaExp
                         return new ErrorExp();
                 }
             }
-            else if ((dve.e1.op == TOKthis || dve.e1.op == TOKsuper) && global.params.safe)
+            else if ((dve.e1.op == TOKthis || dve.e1.op == TOKsuper) && global.params.vsafe)
             {
                 ThisExp ve = cast(ThisExp)dve.e1;
                 VarDeclaration v = ve.var.isVarDeclaration();
@@ -10707,7 +10707,7 @@ extern (C++) final class AddrExp : UnaExp
                 }
             }
         }
-        else if ((e1.op == TOKthis || e1.op == TOKsuper) && global.params.safe)
+        else if ((e1.op == TOKthis || e1.op == TOKsuper) && global.params.vsafe)
         {
             ThisExp ve = cast(ThisExp)e1;
             VarDeclaration v = ve.var.isVarDeclaration();

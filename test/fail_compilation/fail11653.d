@@ -1,8 +1,9 @@
-// REQUIRED_ARGS:
+// REQUIRED_ARGS: -de
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11653.d(18): Error: switch case fallthrough - use 'goto case;' if intended
+fail_compilation/fail11653.d(19): Deprecation: switch case fallthrough - use 'goto case;' if intended
+fail_compilation/fail11653.d(24): Deprecation: switch case fallthrough - use 'goto default;' if intended
 ---
 */
 
@@ -18,7 +19,9 @@ void main()
         case 2: .. case 3:
             output = 2;
             break;
-        default:
+        case 4:
             output = 3;
+        default:
+            output = 4;
     }
 }

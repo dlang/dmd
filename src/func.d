@@ -567,7 +567,9 @@ extern (C++) class FuncDeclaration : Declaration
 
         storage_class |= sc.stc & ~STCref;
         ad = isThis();
-        if (ad)
+        // Don't nest structs b/c of generated methods which should not access the outer scopes.
+        // https://issues.dlang.org/show_bug.cgi?id=16627
+        if (ad && !generated)
         {
             storage_class |= ad.storage_class & (STC_TYPECTOR | STCsynchronized);
             ad.makeNested();
