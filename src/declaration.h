@@ -192,7 +192,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    void aliasSmantic(Scope *sc);
+    void aliasSemantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
     const char *kind();
     Type *getType();

@@ -4,7 +4,7 @@ extern(C) int printf(const char*, ...);
 
 /************************************************/
 // These seem to be the original tests for $ (originally 'length').
- 
+
 int x;
 
 int[] bar(int[] a)
@@ -131,7 +131,7 @@ class A3
 {
     void foo()
     {
-	printf("A.foo \n" );
+        printf("A.foo \n" );
     }
 }
 
@@ -143,8 +143,8 @@ class C3 : B3
 {
     override void foo()
     {
-	printf("C.foo \n" );
-	super.foo();
+        printf("C.foo \n" );
+        super.foo();
     }
 }
 
@@ -176,14 +176,14 @@ class Parser
 {
     void next(ref int test)
     {
-	void work (int input)
-	{
-	    printf("work(%d, %d)\n", input, test);
-	    test = 2;
-	}
+        void work (int input)
+        {
+            printf("work(%d, %d)\n", input, test);
+            test = 2;
+        }
 
-	test = 3;
-	work(4);
+        test = 3;
+        work(4);
     }
 }
 
@@ -267,13 +267,13 @@ void test9()
 
     for (int y = 0; y < 7; ++y)
     {
-	len9(a[0], a[1], a[2], a[3]);
+        len9(a[0], a[1], a[2], a[3]);
 
-	float justOne() { return 1.0f; }
+        float justOne() { return 1.0f; }
 
-	float dot = justOne();
-	if (dot < 0.0f)
-	    dot = 0.0f;
+        float dot = justOne();
+        if (dot < 0.0f)
+            dot = 0.0f;
     }
 }
 
@@ -345,17 +345,17 @@ void test12()
 {
     static class S
     {
-	static this()
-	{
-	    printf ("static constructor\n");
-	    x12 += 1;
-	}
+        static this()
+        {
+            printf ("static constructor\n");
+            x12 += 1;
+        }
 
-	this()
-	{
-	    printf ("class constructor\n");
-	    x12 += 10;
-	}
+        this()
+        {
+            printf ("class constructor\n");
+            x12 += 10;
+        }
     }
 
     assert(x12 == 1);

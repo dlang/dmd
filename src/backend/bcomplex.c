@@ -12,7 +12,7 @@ Complex_ld Complex_ld::div(Complex_ld &x, Complex_ld &y)
     longdouble r;
     longdouble den;
 
-    if (fabs(y.re) < fabs(y.im))
+    if (fabsl(y.re) < fabsl(y.im))
     {
         r = y.re / y.im;
         den = y.im + r * y.re;
@@ -42,8 +42,8 @@ longdouble Complex_ld::abs(Complex_ld &z)
 {
     longdouble x,y,ans,temp;
 
-    x = fabs(z.re);
-    y = fabs(z.im);
+    x = fabsl(z.re);
+    y = fabsl(z.im);
     if (x == 0)
         ans = y;
     else if (y == 0)
@@ -73,8 +73,8 @@ Complex_ld Complex_ld::sqrtc(Complex_ld &z)
     }
     else
     {
-        x = fabs(z.re);
-        y = fabs(z.im);
+        x = fabsl(z.re);
+        y = fabsl(z.im);
         if (x >= y)
         {
             r = y / x;

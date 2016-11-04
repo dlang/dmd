@@ -1912,6 +1912,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                     else
                     {
+                        // Discussion: https://issues.dlang.org/show_bug.cgi?id=16484
                         if (MATCHconvert < matchTiargs)
                             matchTiargs = MATCHconvert;
                     }

@@ -23,7 +23,11 @@ template Mix15857(T)
 mixin Mix15857!int;
 mixin Mix15857!string;
 
+// will find an overloadset on 2nd lookup w/ SearchImportsOnly set
+import imports.test15857a;
+
 void test15857()
 {
     foo15857(1);
+    bar15857(1);
 }

@@ -479,16 +479,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
 extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
 {
     // should sort overloads by ascending protection instead of iterating here
-    if (s.isOverloadable())
-    {
-        // Use the least protected overload to determine visibility
-        // and perform an access check after overload resolution.
-        overloadApply(s, (s2) {
-          if (s.prot().isMoreRestrictiveThan(s2.prot()))
-            s = s2;
-          return 0;
-        });
-    }
+    s = mostVisibleOverload(s);
     final switch (s.prot().kind)
     {
     case PROTundefined: return true;
@@ -519,17 +510,7 @@ extern (C++) bool symbolIsVisible(Dsymbol origin, Dsymbol s)
  */
 extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
 {
-    // should sort overloads by ascending protection instead of iterating here
-    if (s.isOverloadable())
-    {
-        // Use the least protected overload to determine visibility
-        // and perform an access check after overload resolution.
-        overloadApply(s, (s2) {
-          if (s.prot().isMoreRestrictiveThan(s2.prot()))
-            s = s2;
-          return 0;
-        });
-    }
+    s = mostVisibleOverload(s);
     final switch (s.prot().kind)
     {
     case PROTundefined: return true;
@@ -539,4 +520,84 @@ extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
     case PROTprotected: return hasProtectedAccess(sc, s);
     case PROTpublic, PROTexport: return true;
     }
+}
+
+/**
+ * Use the most visible overload to check visibility. Later perform an access
+ * check on the resolved overload.  This function is similar to overloadApply,
+ * but doesn't recurse nor resolve aliases because protection/visibility is an
+ * attribute of the alias not the aliasee.
+ */
+private Dsymbol mostVisibleOverload(Dsymbol s)
+{
+    if (!s.isOverloadable())
+        return s;
+
+    Dsymbol next, fstart = s, mostVisible = s;
+    for (; s; s = next)
+    {
+        // void func() {}
+        // private void func(int) {}
+        if (auto fd = s.isFuncDeclaration())
+            next = fd.overnext;
+        // template temp(T) {}
+        // private template temp(T:int) {}
+        else if (auto td = s.isTemplateDeclaration())
+            next = td.overnext;
+        // alias common = mod1.func1;
+        // alias common = mod2.func2;
+        else if (auto fa = s.isFuncAliasDeclaration())
+            next = fa.overnext;
+        // alias common = mod1.templ1;
+        // alias common = mod2.templ2;
+        else if (auto od = s.isOverDeclaration())
+            next = od.overnext;
+        // alias name = sym;
+        // private void name(int) {}
+        else if (auto ad = s.isAliasDeclaration())
+        {
+            assert(ad.isOverloadable, "Non overloadable Aliasee in overload list");
+            // Yet unresolved aliases store overloads in overnext.
+            if (ad.semanticRun < PASSsemanticdone)
+                next = ad.overnext;
+            else
+            {
+                /* This is a bit messy due to the complicated implementation of
+                 * alias.  Aliases aren't overloadable themselves, but if their
+                 * Aliasee is overloadable they can be converted to an overloadable
+                 * alias.
+                 *
+                 * This is done by replacing the Aliasee w/ FuncAliasDeclaration
+                 * (for functions) or OverDeclaration (for templates) which are
+                 * simply overloadable aliases w/ weird names.
+                 *
+                 * Usually aliases should not be resolved for visibility checking
+                 * b/c public aliases to private symbols are public. But for the
+                 * overloadable alias situation, the Alias (_ad_) has been moved
+                 * into it's own Aliasee, leaving a shell that we peel away here.
+                 */
+                auto aliasee = ad.toAlias();
+                if (aliasee.isFuncAliasDeclaration || aliasee.isOverDeclaration)
+                    next = aliasee;
+                else
+                {
+                    /* A simple alias can be at the end of a function or template overload chain.
+                     * It can't have further overloads b/c it would have been
+                     * converted to an overloadable alias.
+                     */
+                    assert(ad.overnext is null, "Unresolved overload of alias");
+                    break;
+                }
+            }
+            // handled by ddmd.func.overloadApply for unknown reason
+            assert(next !is ad); // should not alias itself
+            assert(next !is fstart); // should not alias the overload list itself
+        }
+        else
+            break;
+
+        if (next && mostVisible.prot().isMoreRestrictiveThan(next.prot()))
+            mostVisible = next;
+    }
+    return mostVisible;
 }

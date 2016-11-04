@@ -1164,6 +1164,15 @@ void test15802()
         assert(Foo15802!(int).boo(1) == 1);
 }
 
+/****************************************/
+// 16536 - mangling mismatch on OSX
+
+version(OSX) extern(C++) ulong pass16536(ulong);
+
+void test16536()
+{
+    version(OSX) assert(pass16536(123) == 123);
+}
 
 /****************************************/
 
@@ -1207,6 +1216,7 @@ void main()
     test15455();
     test15372();
     test15802();
+    test16536();
 
     printf("Success\n");
 }

@@ -89,11 +89,11 @@ enum CSXhalt            = 0x80;     /// assert(0)
 
 // Flags that would not be inherited beyond scope nesting
 enum SCOPEctor          = 0x0001;   /// constructor type
-enum SCOPEnoaccesscheck = 0x0002;   /// don't do access checks
 enum SCOPEcondition     = 0x0004;   /// inside static if/assert condition
 enum SCOPEdebug         = 0x0008;   /// inside debug conditional
 
 // Flags that would be inherited beyond scope nesting
+enum SCOPEnoaccesscheck = 0x0002;   /// don't do access checks
 enum SCOPEconstraint    = 0x0010;   /// inside template constraint
 enum SCOPEinvariant     = 0x0020;   /// inside invariant code
 enum SCOPErequire       = 0x0040;   /// inside in contract code
@@ -101,6 +101,7 @@ enum SCOPEensure        = 0x0060;   /// inside out contract code
 enum SCOPEcontract      = 0x0060;   /// [mask] we're inside contract code
 enum SCOPEctfe          = 0x0080;   /// inside a ctfe-only expression
 enum SCOPEcompile       = 0x0100;   /// inside __traits(compile)
+enum SCOPEignoresymbolvisibility    = 0x0200;   /// ignore symbol visibility (Bugzilla 15907)
 enum SCOPEfree          = 0x8000;   /// is on free list
 
 enum SCOPEfullinst      = 0x10000;  /// fully instantiate templates
@@ -239,7 +240,8 @@ struct Scope
         s.slabel = null;
         s.nofree = 0;
         s.fieldinit = saveFieldInit();
-        s.flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
+        s.flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint |
+                            SCOPEnoaccesscheck | SCOPEignoresymbolvisibility));
         s.lastdc = null;
         assert(&this != s);
         return s;
@@ -513,6 +515,9 @@ struct Scope
             return null;
         }
 
+        if (this.flags & SCOPEignoresymbolvisibility)
+            flags |= IgnoreSymbolVisibility;
+
         Dsymbol sold = void;
         if (global.params.bug10378 || global.params.check10378)
         {
@@ -539,7 +544,7 @@ struct Scope
              * checked by the compiler remain usable.  Once the deprecation is over,
              * this should be moved to search_correct instead.
              */
-            if (!s)
+            if (!s && !(flags & IgnoreSymbolVisibility))
             {
                 s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
                 if (!s)
@@ -565,14 +570,30 @@ struct Scope
      */
     extern (C++) static void deprecation10378(Loc loc, Dsymbol sold, Dsymbol snew)
     {
+        // Bugzilla 15857
+        //
+        // The overloadset found via the new lookup rules is either
+        // equal or a subset of the overloadset found via the old
+        // lookup rules, so it suffices to compare the dimension to
+        // check for equality.
+        OverloadSet osold, osnew;
+        if (sold && (osold = sold.isOverloadSet()) !is null &&
+            snew && (osnew = snew.isOverloadSet()) !is null &&
+            osold.a.dim == osnew.a.dim)
+            return;
+
         OutBuffer buf;
         buf.writestring("local import search method found ");
-        if (sold)
+        if (osold)
+            buf.printf("%s %s (%d overloads)", sold.kind(), sold.toPrettyChars(), cast(int) osold.a.dim);
+        else if (sold)
             buf.printf("%s %s", sold.kind(), sold.toPrettyChars());
         else
             buf.writestring("nothing");
         buf.writestring(" instead of ");
-        if (snew)
+        if (osnew)
+            buf.printf("%s %s (%d overloads)", snew.kind(), snew.toPrettyChars(), cast(int) osnew.a.dim);
+        else if (snew)
             buf.printf("%s %s", snew.kind(), snew.toPrettyChars());
         else
             buf.writestring("nothing");
@@ -755,7 +776,7 @@ struct Scope
     structalign_t alignment()
     {
         if (aligndecl)
-            return aligndecl.getAlignment();
+            return aligndecl.getAlignment(&this);
         else
             return STRUCTALIGN_DEFAULT;
     }

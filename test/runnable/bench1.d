@@ -19,12 +19,12 @@ extern(C) int atoi(const char *);
         for (loop = 0; loop < count; loop ++)
             s ~= "h";
         printf ("%d\n", s.length);
-	//printf("%.*s\n", s[0..100]);
-	assert(s.length == count * (6 + 1));
-	s.length = 3;
-	s.length = 10;
-	s.length = 0;
-	s.length = 1000;
+        //printf("%.*s\n", s[0..100]);
+        assert(s.length == count * (6 + 1));
+        s.length = 3;
+        s.length = 10;
+        s.length = 0;
+        s.length = 1000;
         return 0;
     }
 

@@ -155,20 +155,21 @@ FRONT_SRCS=access.d aggregate.d aliasthis.d apply.d argtypes.d arrayop.d	\
 	traits.d utf.d utils.d visitor.d libomf.d scanomf.d typinf.d \
 	libmscoff.d scanmscoff.d statementsem.d
 
-GLUE_SRCS=irstate.d toctype.d gluelayer.d todt.d tocsym.d toir.d
+GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d \
+	tocvdebug.d s2ir.d toobj.d e2ir.d objc_glue_stubs.d eh.d
 
-BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/rtlsym.d \
-	$C/ty.d $C/type.d
+BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
+	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
+	$C/ty.d $C/type.d $C/exh.d
 
 TK_HDRS= $(TK)/dlist.d
+
+STRING_IMPORT_FILES= verstr.h ../res/default_ddoc_theme.ddoc
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
 # Glue layer
-GLUEOBJ=glue.obj msc.obj s2ir.obj e2ir.obj \
-	toobj.obj tocvdebug.obj \
-	iasm.obj objc_glue_stubs.obj
+GLUEOBJ= iasm.obj
 
 # D back end
 BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
@@ -180,7 +181,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	bcomplex.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
 	divcoeff.obj dwarf.obj compress.obj varstats.obj \
-	ph2.obj util2.obj eh.obj tk.obj \
+	ph2.obj util2.obj tk.obj gsroa.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -198,11 +199,10 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 	version.h visitor.h objc.d $(DMD_SRCS)
 
 # Glue layer
-GLUESRC= glue.c msc.c s2ir.c e2ir.c \
-	toobj.c tocvdebug.c toir.h \
-	irstate.h iasm.c \
+GLUESRC= \
+	toir.h irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c objc_glue_stubs.c objc_glue.c \
+	tk.c eh.c objc_glue.c \
 	$(GLUE_SRCS)
 
 # D back end
@@ -216,7 +216,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
 	$C\code.c $C\symbol.c $C\debug.c $C\dt.c $C\ee.c $C\el.c \
 	$C\evalu8.c $C\go.c $C\gflow.c $C\gdag.c \
-	$C\gother.c $C\glocal.c $C\gloop.c $C\newman.c \
+	$C\gother.c $C\glocal.c $C\gloop.c $C\gsroa.c $C\newman.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\outbuf.h $C\token.h $C\tassert.h \
@@ -265,6 +265,7 @@ dmd: reldmd
 
 release:
 	$(DMDMAKE) clean
+	$(DEL) $(TARGETEXE)
 	$(DMDMAKE) reldmd
 	$(DMDMAKE) clean
 
@@ -293,11 +294,11 @@ backend.lib : $(BACKOBJ) $(OBJ_MSVC)
 
 LIBS= glue.lib backend.lib
 
-dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj verstr.h
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
+dmd_frontend.exe: $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -J../res -L/STACK:8388608 $(DFLAGS) $(FRONT_SRCS) gluelayer.d $(ROOT_SRCS) newdelete.obj -version=NoBackend
 
-$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) verstr.h
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)
+$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J. -J../res -L/STACK:8388608 $(DFLAGS) $(DMD_SRCS) $(ROOT_SRCS) newdelete.obj $(LIBS)
 
 ############################ Maintenance Targets #############################
 
@@ -486,9 +487,6 @@ dwarf.obj : $C\dwarf.h $C\dwarf.c
 ee.obj : $C\ee.c
 	$(CC) -c $(MFLAGS) $C\ee
 
-eh.obj : $C\cc.h $C\code.h $C\type.h $C\dt.h eh.c
-	$(CC) -c $(MFLAGS) eh
-
 el.obj : $C\rtlsym.h $C\el.h $C\el.c
 	$(CC) -c $(MFLAGS) $C\el
 
@@ -516,11 +514,11 @@ gloop.obj : $C\gloop.c
 glue.obj : $(CH) $C\rtlsym.h mars.h module.h glue.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) glue
 
+gsroa.obj : $C\gsroa.c
+	$(CC) -c $(MFLAGS) $C\gsroa
+
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
-
-msc.obj : $(CH) mars.h msc.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) msc
 
 mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
 	$(CC) -c $(MFLAGS) -I.;$(ROOT) $C\mscoffobj
@@ -561,20 +559,8 @@ ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_pvoid
 
-tocvdebug.obj : $(CH) $C\rtlsym.h mars.h module.h tocvdebug.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) tocvdebug
-
-toobj.obj : $(CH) mars.h module.h toobj.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toobj
-
 type.obj : $C\type.c
 	$(CC) -c $(MFLAGS) $C\type
-
-s2ir.obj : $C\rtlsym.h statement.h s2ir.c visitor.h
-	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir
-
-e2ir.obj : $C\rtlsym.h expression.h toir.h e2ir.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir
 
 util2.obj : $C\util2.c
 	$(CC) -c $(MFLAGS) $C\util2
@@ -604,4 +590,3 @@ ldfpu.obj : vcbuild\ldfpu.asm
 
 # These rules were generated by makedep, but are not currently maintained
 
-objc_glue_stubs.obj : objc.h objc_glue_stubs.c

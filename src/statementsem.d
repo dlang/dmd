@@ -505,6 +505,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             return setError();
         Expression oaggr = fs.aggr;
         if (fs.aggr.type && fs.aggr.type.toBasetype().ty == Tstruct &&
+            (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
             fs.aggr.op != TOKtype && !fs.aggr.isLvalue())
         {
             // Bugzilla 14653: Extend the life of rvalue aggregate till the end of foreach.
@@ -1447,7 +1448,16 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     if (global.params.safe)
-                        fld.tookAddressOf = 1;  // allocate a closure unless the opApply() uses 'scope'
+                    {
+                        fprintf(
+                            global.stdmsg,
+                            "%s: To enforce @safe compiler allocates a closure unless the opApply() uses 'scope'\n",
+                            loc.toChars()
+                        );
+                        fflush(global.stdmsg);
+                    }
+                    fld.tookAddressOf = 1;
+
                     assert(tab.ty == Tstruct || tab.ty == Tclass);
                     assert(sapply);
                     /* Call:
@@ -2164,6 +2174,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      * for this, i.e. generate a sequence of if-then-else
                      */
                     sw.hasVars = 1;
+
+                    /* TODO check if v can be uninitialized at that point.
+                     * Also check if the VarExp is declared in a scope outside of this one
+                     */
+                    if (!v.isConst() && !v.isImmutable())
+                    {
+                        cs.deprecation("case variables have to be const or immutable");
+                    }
+
                     if (sw.isFinal)
                     {
                         cs.error("case variables not allowed in final switch statements");
@@ -3537,7 +3556,9 @@ Statement semanticNoScope(Statement s, Scope* sc)
 // Same as semanticNoScope(), but do create a new scope
 Statement semanticScope(Statement s, Scope* sc, Statement sbreak, Statement scontinue)
 {
-    Scope* scd = sc.push();
+    auto sym = new ScopeDsymbol();
+    sym.parent = sc.scopesym;
+    Scope* scd = sc.push(sym);
     if (sbreak)
         scd.sbreak = sbreak;
     if (scontinue)

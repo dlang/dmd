@@ -105,4 +105,7 @@ void deadvar();
 void verybusyexp();
 list_t listrds(vec_t, elem *, vec_t);
 
+/* gslice.c */
+void sliceStructs();
+
 #endif /*  GO_H */

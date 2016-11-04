@@ -687,6 +687,9 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     int flags = 0;
     Dsymbol s;
 
+    if (sc.flags & SCOPEignoresymbolvisibility)
+        flags |= IgnoreSymbolVisibility;
+
     Dsymbol sold = void;
     if (global.params.bug10378 || global.params.check10378)
     {
@@ -709,7 +712,7 @@ extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
          * checked by the compiler remain usable.  Once the deprecation is over,
          * this should be moved to search_correct instead.
          */
-        if (!s)
+        if (!s && !(flags & IgnoreSymbolVisibility))
         {
             s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
             if (!s)
@@ -8641,16 +8644,20 @@ extern (C++) final class DotIdExp : UnaExp
         {
             ScopeExp ie = cast(ScopeExp)eright;
 
+            int flags = SearchLocalsOnly;
             /* Disable access to another module's private imports.
              * The check for 'is sds our current module' is because
              * the current module should have access to its own imports.
              */
-            Dsymbol s = ie.sds.search(loc, ident,
-                (ie.sds.isModule() && ie.sds != sc._module) ? IgnorePrivateImports | SearchLocalsOnly : SearchLocalsOnly);
+            if (ie.sds.isModule() && ie.sds != sc._module)
+                flags |= IgnorePrivateImports;
+            if (sc.flags & SCOPEignoresymbolvisibility)
+                flags |= IgnoreSymbolVisibility;
+            Dsymbol s = ie.sds.search(loc, ident, flags);
             /* Check for visibility before resolving aliases because public
              * aliases to private symbols are public.
              */
-            if (s && !symbolIsVisible(sc._module, s))
+            if (s && !(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc._module, s))
             {
                 if (s.isDeclaration())
                     .error(loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());
@@ -9401,7 +9408,7 @@ extern (C++) final class DelegateExp : UnaExp
         if (f.type.ty == Tfunction)
         {
             TypeFunction tf = cast(TypeFunction)f.type;
-            if (!MODimplicitConv(e1.type.mod, f.type.mod))
+            if (!MODmethodConv(e1.type.mod, f.type.mod))
             {
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, e1.type.mod, tf.mod);
@@ -10574,6 +10581,28 @@ extern (C++) final class AddrExp : UnaExp
 
         type = e1.type.pointerTo();
 
+        bool checkAddressVar(VarDeclaration v)
+        {
+            if (v)
+            {
+                if (!v.canTakeAddressOf())
+                {
+                    error("cannot take address of %s", e1.toChars());
+                    return false;
+                }
+                if (sc.func && !sc.intypeof && !v.isDataseg())
+                {
+                    if (sc.func.setUnsafe())
+                    {
+                        const(char)* p = v.isParameter() ? "parameter" : "local";
+                        error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
         // See if this should really be a delegate
         if (e1.op == TOKdotvar)
         {
@@ -10597,6 +10626,27 @@ extern (C++) final class AddrExp : UnaExp
             // Look for misaligned pointer in @safe mode
             if (checkUnsafeAccess(sc, dve, !type.isMutable(), true))
                 return new ErrorExp();
+
+            if (dve.e1.op == TOKvar && global.params.safe)
+            {
+                VarExp ve = cast(VarExp)dve.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v)
+                {
+                    if (!checkAddressVar(v))
+                        return new ErrorExp();
+                }
+            }
+            else if ((dve.e1.op == TOKthis || dve.e1.op == TOKsuper) && global.params.safe)
+            {
+                ThisExp ve = cast(ThisExp)dve.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v && v.storage_class & STCref)
+                {
+                    if (!checkAddressVar(v))
+                        return new ErrorExp();
+                }
+            }
         }
         else if (e1.op == TOKvar)
         {
@@ -10604,19 +10654,8 @@ extern (C++) final class AddrExp : UnaExp
             VarDeclaration v = ve.var.isVarDeclaration();
             if (v)
             {
-                if (!v.canTakeAddressOf())
-                {
-                    error("cannot take address of %s", e1.toChars());
+                if (!checkAddressVar(v))
                     return new ErrorExp();
-                }
-                if (sc.func && !sc.intypeof && !v.isDataseg())
-                {
-                    if (sc.func.setUnsafe())
-                    {
-                        const(char)* p = v.isParameter() ? "parameter" : "local";
-                        error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
-                    }
-                }
 
                 ve.checkPurity(sc, v);
             }
@@ -10666,6 +10705,16 @@ extern (C++) final class AddrExp : UnaExp
                         }
                     }
                 }
+            }
+        }
+        else if ((e1.op == TOKthis || e1.op == TOKsuper) && global.params.safe)
+        {
+            ThisExp ve = cast(ThisExp)e1;
+            VarDeclaration v = ve.var.isVarDeclaration();
+            if (v)
+            {
+                if (!checkAddressVar(v))
+                    return new ErrorExp();
             }
         }
         else if (e1.op == TOKcall)
@@ -15371,8 +15420,7 @@ extern (C++) final class InExp : BinExp
                 break;
             }
         default:
-            error("rvalue of in expression must be an associative array, not %s", e2.type.toChars());
-            goto case Terror;
+            return incompatibleTypes();
         case Terror:
             return new ErrorExp();
         }

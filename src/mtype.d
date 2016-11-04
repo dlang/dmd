@@ -4923,10 +4923,11 @@ extern (C++) final class TypeSArray : TypeArray
                 e.error("%s is not an expression", e.toChars());
                 return new ErrorExp();
             }
-            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && global.params.safe)
+            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
-                e.error("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
-                return new ErrorExp();
+                // MAINTENANCE: turn into error in 2.073
+                e.deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                // return new ErrorExp();
             }
             e = e.castTo(sc, e.type.nextOf().pointerTo());
         }
@@ -5219,10 +5220,11 @@ extern (C++) final class TypeDArray : TypeArray
         }
         else if (ident == Id.ptr)
         {
-            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && global.params.safe)
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
-                e.error("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
-                return new ErrorExp();
+                // MAINTENANCE: turn into error in 2.073
+                e.deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                // return new ErrorExp();
             }
             e = e.castTo(sc, next.pointerTo());
             return e;
@@ -6454,6 +6456,7 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     /********************************************
+     * Set 'purity' field of 'this'.
      * Do this lazily, as the parameter types might be forward referenced.
      */
     void purityLevel()
@@ -6462,14 +6465,55 @@ extern (C++) final class TypeFunction : TypeNext
         if (tf.purity != PUREfwdref)
             return;
 
+        /* Determine purity level based on mutability of t
+         * and whether it is a 'ref' type or not.
+         */
+        static PURE purityOfType(bool isref, Type t)
+        {
+            if (isref)
+            {
+                if (t.mod & MODimmutable)
+                    return PUREstrong;
+                if (t.mod & (MODconst | MODwild))
+                    return PUREconst;
+                return PUREweak;
+            }
+
+            t = t.baseElemOf();
+
+            if (!t.hasPointers() || t.mod & MODimmutable)
+                return PUREstrong;
+
+            /* Accept immutable(T)[] and immutable(T)* as being strongly pure
+             */
+            if (t.ty == Tarray || t.ty == Tpointer)
+            {
+                Type tn = t.nextOf().toBasetype();
+                if (tn.mod & MODimmutable)
+                    return PUREstrong;
+                if (tn.mod & (MODconst | MODwild))
+                    return PUREconst;
+            }
+
+            /* The rest of this is too strict; fix later.
+             * For example, the only pointer members of a struct may be immutable,
+             * which would maintain strong purity.
+             * (Just like for dynamic arrays and pointers above.)
+             */
+            if (t.mod & (MODconst | MODwild))
+                return PUREconst;
+
+            /* Should catch delegates and function pointers, and fold in their purity
+             */
+            return PUREweak;
+        }
+
+        purity = PUREstrong; // assume strong until something weakens it
+
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
-        tf.purity = PUREstrong; // assume strong until something weakens it
-
-        size_t dim = Parameter.dim(tf.parameters);
-        if (!dim)
-            return;
-        for (size_t i = 0; i < dim; i++)
+        const dim = Parameter.dim(tf.parameters);
+    Lloop: foreach (i; 0 .. dim)
         {
             Parameter fparam = Parameter.getNth(tf.parameters, i);
             Type t = fparam.type;
@@ -6478,57 +6522,37 @@ extern (C++) final class TypeFunction : TypeNext
 
             if (fparam.storageClass & (STClazy | STCout))
             {
-                tf.purity = PUREweak;
+                purity = PUREweak;
                 break;
             }
-            if (fparam.storageClass & STCref)
+            switch (purityOfType((fparam.storageClass & STCref) != 0, t))
             {
-                if (t.mod & MODimmutable)
+                case PUREweak:
+                    purity = PUREweak;
+                    break Lloop; // since PUREweak, no need to check further
+
+                case PUREconst:
+                    purity = PUREconst;
                     continue;
-                if (t.mod & (MODconst | MODwild))
-                {
-                    tf.purity = PUREconst;
+
+                case PUREstrong:
                     continue;
-                }
-                tf.purity = PUREweak;
-                break;
+
+                default:
+                    assert(0);
             }
-
-            t = t.baseElemOf();
-            if (!t.hasPointers())
-                continue;
-            if (t.mod & MODimmutable)
-                continue;
-
-            /* Accept immutable(T)[] and immutable(T)* as being strongly pure
-             */
-            if (t.ty == Tarray || t.ty == Tpointer)
-            {
-                Type tn = t.nextOf().toBasetype();
-                if (tn.mod & MODimmutable)
-                    continue;
-                if (tn.mod & (MODconst | MODwild))
-                {
-                    tf.purity = PUREconst;
-                    continue;
-                }
-            }
-
-            /* The rest of this is too strict; fix later.
-             * For example, the only pointer members of a struct may be immutable,
-             * which would maintain strong purity.
-             */
-            if (t.mod & (MODconst | MODwild))
-            {
-                tf.purity = PUREconst;
-                continue;
-            }
-
-            /* Should catch delegates and function pointers, and fold in their purity
-             */
-            tf.purity = PUREweak; // err on the side of too strict
-            break;
         }
+
+        if (purity > PUREweak && tf.nextOf())
+        {
+            /* Adjust purity based on mutability of return type.
+             * https://issues.dlang.org/show_bug.cgi?id=15862
+             */
+            const purity2 = purityOfType(tf.isref, tf.nextOf());
+            if (purity2 < purity)
+                purity = purity2;
+        }
+        tf.purity = purity;
     }
 
     /********************************************
@@ -7414,7 +7438,7 @@ extern (C++) abstract class TypeQualified : Type
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
-                if (sm && !symbolIsVisible(sc, sm))
+                if (sm && !(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, sm))
                 {
                     .deprecation(loc, "%s is not visible from module %s", sm.toPrettyChars(), sc._module.toChars());
                     // sm = null;
@@ -8247,7 +8271,7 @@ extern (C++) final class TypeStruct : Type
 
         Dsymbol searchSym()
         {
-            int flags = 0;
+            int flags = sc.flags & SCOPEignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
             Dsymbol sold = void;
             if (global.params.bug10378 || global.params.check10378)
             {
@@ -8274,7 +8298,7 @@ extern (C++) final class TypeStruct : Type
         {
             return noMember(sc, e, ident, flag);
         }
-        if (!symbolIsVisible(sc, s))
+        if (!(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
             .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);
@@ -9081,7 +9105,7 @@ extern (C++) final class TypeClass : Type
 
         Dsymbol searchSym()
         {
-            int flags = 0;
+            int flags = sc.flags & SCOPEignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
             Dsymbol sold = void;
             if (global.params.bug10378 || global.params.check10378)
             {
@@ -9091,7 +9115,7 @@ extern (C++) final class TypeClass : Type
             }
 
             auto s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
-            if (!s)
+            if (!s && !(flags & IgnoreSymbolVisibility))
             {
                 s = sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
                 if (s && !(flags & IgnoreErrors))
@@ -9249,7 +9273,7 @@ extern (C++) final class TypeClass : Type
 
             return noMember(sc, e, ident, flag & 1);
         }
-        if (!symbolIsVisible(sc, s))
+        if (!(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
             .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);

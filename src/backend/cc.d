@@ -13,6 +13,7 @@ module ddmd.backend.cc;
 
 import tk.dlist;
 import ddmd.backend.cdef;        // host and target compiler definition
+import ddmd.backend.code_x86;
 import ddmd.backend.type;
 import ddmd.backend.el;
 import ddmd.backend.dt;
@@ -152,12 +153,11 @@ alias Funcsym = Symbol;
 struct blklst;
 //#endif
 //typedef list_t symlist_t;       /* list of pointers to Symbols          */
-struct code;
 alias symlist_t = list_t;
 alias vec_t = size_t*;
 alias enum_TK = ubyte;
 
-extern __gshared Config config;
+__gshared Config config;
 
 /////////// Position in source file
 
@@ -552,7 +552,7 @@ struct block
     void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
     int numSucc()                    { return list_nitems(this.Bsucc); }
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
-//    void setNthSucc(int n, block *b) { list_ptr(list_nth(Bsucc, n)) = b; }
+    void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == block.sizeof); }

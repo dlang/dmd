@@ -109,6 +109,7 @@ OPTABLE0(CPUID,   0x0fa2, _I386 | _modall);
 OPTABLE0(RDMSR,   0x0f32, _I386 | _modaxdx);
 OPTABLE0(RDPMC,   0x0f33, _I386 | _modaxdx);
 OPTABLE0(RDTSC,   0x0f31, _I386 | _modaxdx);
+OPTABLE0(RDTSCP,  0x0f01f9, _I386 | _modaxdx | _modcx);
 OPTABLE0(WRMSR,   0x0f30, _I386);
 OPTABLE0(RSM,     0x0faa,_i64_bit | _I386);
 
@@ -2777,6 +2778,16 @@ PTRNTAB1 aptb1PREFETCHT2[] = /* PREFETCHT2 */ {
         { ASM_END }
 };
 
+PTRNTAB1 aptb1PREFETCHW[] = /* PREFETCHW */ {
+        { 0x0F0D, _1,_m8 },
+        { ASM_END }
+};
+
+PTRNTAB1 aptb1PREFETCHWT1[] = /* PREFETCHWT1 */ {
+        { 0x0F0D, _2,_m8 },
+        { ASM_END }
+};
+
 PTRNTAB2 aptb2PSADBW[] = /* PSADBW */ {
         { 0x0FF6, _r,_mm,_mmm64 },
         { PSADBW, _r,_xmm,_xmm_m128 },
@@ -4120,11 +4131,11 @@ popcnt
  */
 
 PTRNTAB2 aptb2CRC32[] = /* CRC32 */ {
-        { 0xF20F38F0, _r        , _r32, _rm8  },
-        { 0xF20F38F0, _r|_64_bit, _r64, _rm8  },
-        { 0xF20F38F1, _r|_16_bit, _r32, _rm16 },
-        { 0xF20F38F1, _r|_32_bit, _r32, _rm32 },
-        { 0xF20F38F1, _r|_64_bit, _r64, _rm64 },
+        { (int)0xF20F38F0, _r        , _r32, _rm8  },
+        { (int)0xF20F38F0, _r|_64_bit, _r64, _rm8  },
+        { (int)0xF20F38F1, _r|_16_bit, _r32, _rm16 },
+        { (int)0xF20F38F1, _r|_32_bit, _r32, _rm32 },
+        { (int)0xF20F38F1, _r|_64_bit, _r64, _rm64 },
         { ASM_END }
 };
 
@@ -5239,6 +5250,8 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("prefetcht0",     1,              (P) aptb1PREFETCHT0 )           \
         X("prefetcht1",     1,              (P) aptb1PREFETCHT1 )           \
         X("prefetcht2",     1,              (P) aptb1PREFETCHT2 )           \
+        X("prefetchw",      1,              (P) aptb1PREFETCHW )            \
+        X("prefetchwt1",    1,              (P) aptb1PREFETCHWT1 )          \
         X("psadbw",         2,              (P) aptb2PSADBW )               \
         X("pshufb",         2,              (P) aptb2PSHUFB )               \
         X("pshufd",         3,              (P) aptb3PSHUFD )               \
@@ -5293,6 +5306,7 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("rdpmc",          0,              aptb0RDPMC )                    \
         X("rdrand",         1,              (P) aptb1RDRAND )               \
         X("rdtsc",          0,              aptb0RDTSC )                    \
+        X("rdtscp",         0,              aptb0RDTSCP )                   \
         X("rep",            ITprefix | 0,   aptb0REP )                      \
         X("repe",           ITprefix | 0,   aptb0REP )                      \
         X("repne",          ITprefix | 0,   aptb0REPNE )                    \

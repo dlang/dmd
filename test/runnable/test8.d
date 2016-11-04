@@ -21,8 +21,8 @@ extern(C)
 
 struct Foo1
 {
-	static int x = 3;
-	int y = 4;
+        static int x = 3;
+        int y = 4;
 }
 
 void test1()
@@ -38,8 +38,8 @@ void test1()
 
 class Foo2
 {
-	static int x = 5;
-	int y = 6;
+        static int x = 5;
+        int y = 6;
 }
 
 void test2()
@@ -56,8 +56,8 @@ void test2()
 
 struct Foo3
 {
-	static int bar() { return 3; }
-	int y = 4;
+        static int bar() { return 3; }
+        int y = 4;
 }
 
 void test3()
@@ -72,8 +72,8 @@ void test3()
 
 class Foo4
 {
-	static int bar() { return 3; }
-	int y = 4;
+        static int bar() { return 3; }
+        int y = 4;
 }
 
 void test4()
@@ -89,8 +89,8 @@ void test4()
 
 struct Foo5
 {
-	int bar() { return y + 3; }
-	int y = 4;
+        int bar() { return y + 3; }
+        int y = 4;
 }
 
 void test5()
@@ -104,14 +104,14 @@ void test5()
 
 class Foo6
 {
-	int bar() { return y + 3; }
-	final int abc() { return y + 8; }
-	int y = 4;
+        int bar() { return y + 3; }
+        final int abc() { return y + 8; }
+        int y = 4;
 }
 
 class FooX6 : Foo6
 {
-	override int bar() { return y + 5; }
+        override int bar() { return y + 5; }
 }
 
 void test6()
@@ -149,9 +149,9 @@ class gap8
 {
     this(char[3] cad)
     {
-	assert(cad[0] == 0xFF);
-	assert(cad[1] == 1);
-	assert(cad[2] == 0xFF);
+        assert(cad[0] == 0xFF);
+        assert(cad[1] == 1);
+        assert(cad[2] == 0xFF);
     }
 }
 
@@ -202,7 +202,7 @@ class Foo11
 
     int bar()
     {
-	return a + b + c;
+        return a + b + c;
     }
 }
 
@@ -210,7 +210,7 @@ class Bar11 : Foo11
 {
     int abc()
     {
-	return a + b;
+        return a + b;
     }
 }
 
@@ -242,7 +242,7 @@ void test12()
 
 alias void *HWND;
 
-const HWND hWnd = cast(HWND)(null); 
+const HWND hWnd = cast(HWND)(null);
 
 void test13()
 {
@@ -271,10 +271,10 @@ void test14()
 
 void test15()
 {
-	char[30] a;
-	char[30] b;
+        char[30] a;
+        char[30] b;
 
-	assert(a !is b);
+        assert(a !is b);
 }
 
 /***********************************/
@@ -334,13 +334,13 @@ void test18()
 
     version (none)
     {
-	str[1] = "cba";
-	str[0] = "zyx";
+        str[1] = "cba";
+        str[0] = "zyx";
     }
     else
     {
-	str[1] = (cast(string)"cba").idup;
-	str[0] = (cast(string)"zyx").idup;
+        str[1] = (cast(string)"cba").idup;
+        str[0] = (cast(string)"zyx").idup;
     }
 
     // This sorts the strs
@@ -378,19 +378,19 @@ void test19()
 class A20
 {
     private:
-	static int a;
+        static int a;
 
     public:
-	int foo(B20 j) { return j.b; }
+        int foo(B20 j) { return j.b; }
 }
 
 class B20
 {
     private:
-	static int b;
+        static int b;
 
     public:
-	int bar(A20 j) { return j.a; }
+        int bar(A20 j) { return j.a; }
 }
 
 void test20()
@@ -404,7 +404,7 @@ alias int* IP;
 void test21()
 {
     int i = 5;
-    IP ip = cast(IP) &i; 
+    IP ip = cast(IP) &i;
     assert(*ip == 5);
 }
 
@@ -433,10 +433,10 @@ void Test(Rect pos)
     assert(pos.theRect.bottom == 4);
 }
 
-class Window 
+class Window
 {
-  Rect position;   
-  
+  Rect position;
+
   void createWindow()
   {
     Test(position);
@@ -460,12 +460,12 @@ struct Size
 Size computeSize()
 {
   Size foo;
-  
+
   foo.width = 12;
   foo.height = 34;
-  
+
   printf("Inside: %d,%d\n",foo.width,foo.height);
-  
+
   return foo;
 }
 
@@ -474,7 +474,7 @@ void test24()
 {
   Size bar;
   bar = computeSize();
-  
+
   printf("Outside: %d,%d\n",bar.width,bar.height);
   assert(bar.width == 12);
   assert(bar.height == 34);
@@ -487,7 +487,7 @@ void test25()
 
     while (i)
     {
-	break;
+        break;
     }
 }
 
@@ -505,7 +505,7 @@ body
 
     while (i)
     {
-	break;
+        break;
     }
     return i;
 }
@@ -518,7 +518,7 @@ class A27
 
     this()
     {
-	a = 1;
+        a = 1;
     }
 }
 
@@ -530,7 +530,7 @@ class C27 : B27
 {
     this()
     {
-	super();
+        super();
     }
 
     this(int i)
@@ -616,9 +616,9 @@ void test32()
 
     foo = new string[45];
     for (i = 0; i < 45; i++)
-	foo[i] = "hello";
+        foo[i] = "hello";
     for (i = 0; i < 45; i++)
-	assert(foo[i] == "hello");
+        assert(foo[i] == "hello");
 }
 
 
@@ -631,9 +631,9 @@ void test33()
 
     foo = new string[i];
     for (i = 0; i < 45; i++)
-	foo[i] = "hello";
+        foo[i] = "hello";
     for (i = 0; i < 45; i++)
-	assert(foo[i] == "hello");
+        assert(foo[i] == "hello");
 }
 
 
@@ -646,12 +646,12 @@ void test34()
     int i, j;
 
     for (i = 0; i < 4; i++)
-	for (j = 0; j < 3; j++)
-	    assert(a[i][j] == 0);
+        for (j = 0; j < 3; j++)
+            assert(a[i][j] == 0);
 
     for (i = 0; i < 6; i++)
-	for (j = 0; j < 5; j++)
-	    assert(b[i][j] == 16);
+        for (j = 0; j < 5; j++)
+            assert(b[i][j] == 16);
 }
 
 
@@ -681,9 +681,9 @@ string itoa(int i)
 string testa36(int i, int j, string a, string b, string c)
 {
     string s =  "string 0;" ~ itoa(i) ~
-		"string 1;" ~ itoa(j) ~
-		"string 2;" ~ itoa(i) ~
-		"string 3;";
+                "string 1;" ~ itoa(j) ~
+                "string 2;" ~ itoa(i) ~
+                "string 3;";
 
 //    string s = a ~ b ~ c;
     return s;
@@ -741,12 +741,12 @@ void test38()
        }
 
        printf("Count: %d\n", count);
-	assert(count == 1028);
+        assert(count == 1028);
     }
     catch
     {
        printf("Exception: %d\n", k);
-	assert(0);
+        assert(0);
     }
 }
 
@@ -863,21 +863,21 @@ import std.stdarg;
 import std.utf;
 
 int unFormat( bool delegate( out dchar ) getc,
-	bool delegate( dchar ) ungetc,
-	TypeInfo[] arguments,
-	void* argptr )
+        bool delegate( dchar ) ungetc,
+        TypeInfo[] arguments,
+        void* argptr )
 {
     size_t  arg = 0;
     dchar[] fmt;
 
     if( arguments[arg] is typeid( string ) )
-	fmt = toUTF32( va_arg!(string)( argptr ) );
+        fmt = toUTF32( va_arg!(string)( argptr ) );
     else if( arguments[arg] is typeid( wchar[] ) )
-	fmt = toUTF32( va_arg!(wchar[])( argptr ) );
+        fmt = toUTF32( va_arg!(wchar[])( argptr ) );
     else if( arguments[arg] is typeid( dchar[] ) )
-	fmt = va_arg!(dchar[])( argptr );
+        fmt = va_arg!(dchar[])( argptr );
     else
-	return 0;
+        return 0;
 }
 */
 
@@ -902,26 +902,26 @@ void test46()
 /***********************************/
 
 void test48()
-{ 
-  try{ 
-  }finally{ 
-    debug(p48) { } 
-  } 
+{
+  try{
+  }finally{
+    debug(p48) { }
+  }
 }
 
 /***********************************/
 
 void test49()
-{ 
-  int k = 1; 
-  if(k == 0) 
-    debug{printf("test");} 
-} 
+{
+  int k = 1;
+  if(k == 0)
+    debug{printf("test");}
+}
 
 /***********************************/
 
 void test50()
-{	int x;
+{       int x;
 
         if (x)
              version (none)

@@ -8,6 +8,13 @@ if [ $DC = gdc ] && [ ! -f $(dirname $(which gdc))/cc ]; then
 fi
 N=2
 
+# use faster ld.gold linker on linux
+if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+    mkdir linker
+    ln -s /usr/bin/ld.gold linker/ld
+    export PATH="$PWD/linker:$PATH"
+fi
+
 # clone druntime and phobos
 clone() {
     local url="$1"
@@ -58,11 +65,18 @@ test_dmd() {
     fi
 }
 
-clone https://github.com/dlang/druntime.git ../druntime $TRAVIS_BRANCH
-clone https://github.com/dlang/phobos.git ../phobos $TRAVIS_BRANCH
+for proj in druntime phobos; do
+    if [ $TRAVIS_BRANCH != master ] && [ $TRAVIS_BRANCH != stable ] &&
+           ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $TRAVIS_BRANCH > /dev/null; then
+        # use master as fallback for other repos to test feature branches
+        clone https://github.com/dlang/$proj.git ../$proj master
+    else
+        clone https://github.com/dlang/$proj.git ../$proj $TRAVIS_BRANCH
+    fi
+done
 
-build
-test
-rebuild
-rebuild
-test_dmd
+date
+for step in build test rebuild rebuild test_dmd; do
+    $step
+    date
+done

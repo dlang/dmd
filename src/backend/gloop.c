@@ -987,6 +987,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstrlen:
         case OPddtor:
         case OPinp:
+        case OPprefetch:                // don't mark E2
                 markinvar(n->E1,rd);
                 break;
         case OPcond:
@@ -1595,6 +1596,12 @@ Lnextlis:
         case OPucall:
             *pdomexit |= 2;
             break;
+
+        case OPpair:
+        case OPrpair:                   // don't move these, as they do not do computation
+            movelis(n->E1,b,l,pdomexit);
+            n = n->E2;
+            goto Lnextlis;
   }
 
 L3:

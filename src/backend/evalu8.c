@@ -1579,14 +1579,79 @@ elem * evalu8(elem *e, goal_t goal)
                 e->EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
                 break;
             case 4:
-                e->EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcfloat.re = d1;
+                    e->EV.Vcfloat.im = d2;
+                }
+                else
+                    e->EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
             case 8:
-                e->EV.Vcent.lsw = l1;
-                e->EV.Vcent.msw = l2;
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcdouble.re = d1;
+                    e->EV.Vcdouble.im = d2;
+                }
+                else
+                {
+                    e->EV.Vcent.lsw = l1;
+                    e->EV.Vcent.msw = l2;
+                }
                 break;
             default:
-                assert(0);
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcldouble.re = d1;
+                    e->EV.Vcldouble.im = d2;
+                }
+                else
+                {
+                    assert(0);
+                }
+                break;
+        }
+        break;
+
+    case OPrpair:
+        switch (_tysize[tym])
+        {
+            case 2:
+                e->EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
+                break;
+            case 4:
+                e->EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcfloat.re = d2;
+                    e->EV.Vcfloat.im = d1;
+                }
+                else
+                    e->EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                break;
+            case 8:
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcdouble.re = d2;
+                    e->EV.Vcdouble.im = d1;
+                }
+                else
+                {
+                    e->EV.Vcent.lsw = l2;
+                    e->EV.Vcent.msw = l1;
+                }
+                break;
+            default:
+                if (tyfloating(tym))
+                {
+                    e->EV.Vcldouble.re = d2;
+                    e->EV.Vcldouble.im = d1;
+                }
+                else
+                {
+                    assert(0);
+                }
+                break;
         }
         break;
 
@@ -1654,7 +1719,7 @@ elem * evalu8(elem *e, goal_t goal)
                 e->EV.Vldouble = Complex_ld::abs(e1->EV.Vcldouble);
                 break;
             default:
-                e->EV.Vllong = labs(l1);
+                e->EV.Vllong = l1 < 0 ? -l1 : l1;
                 break;
         }
         break;

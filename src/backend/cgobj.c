@@ -2421,7 +2421,7 @@ int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
         alignbytes = ((offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1)) - offset;
     }
     else
-        alignbytes = align(datasize, offset) - offset;
+        alignbytes = _align(datasize, offset) - offset;
     sdata->Soffset = offset + alignbytes;
     SegData[seg]->SDoffset = sdata->Soffset;
     return seg;

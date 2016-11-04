@@ -1040,6 +1040,16 @@ version (all)
 {
     extern (C++) bool hasNonConstPointers(Expression e)
     {
+        static bool checkArray(Expressions* elems)
+        {
+            foreach (e; *elems)
+            {
+                if (e && hasNonConstPointers(e))
+                    return true;
+            }
+            return false;
+        }
+
         if (e.type.ty == Terror)
             return false;
         if (e.op == TOKnull)
@@ -1047,22 +1057,22 @@ version (all)
         if (e.op == TOKstructliteral)
         {
             StructLiteralExp se = cast(StructLiteralExp)e;
-            return arrayHasNonConstPointers(se.elements);
+            return checkArray(se.elements);
         }
         if (e.op == TOKarrayliteral)
         {
             if (!e.type.nextOf().hasPointers())
                 return false;
             ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
-            return arrayHasNonConstPointers(ae.elements);
+            return checkArray(ae.elements);
         }
         if (e.op == TOKassocarrayliteral)
         {
             AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
-            if (ae.type.nextOf().hasPointers() && arrayHasNonConstPointers(ae.values))
+            if (ae.type.nextOf().hasPointers() && checkArray(ae.values))
                 return true;
             if ((cast(TypeAArray)ae.type).index.hasPointers())
-                return arrayHasNonConstPointers(ae.keys);
+                return checkArray(ae.keys);
             return false;
         }
         if (e.op == TOKaddress)
@@ -1075,7 +1085,7 @@ version (all)
                 {
                     int old = se.stageflags;
                     se.stageflags |= stageSearchPointers;
-                    bool ret = arrayHasNonConstPointers(se.elements);
+                    bool ret = checkArray(se.elements);
                     se.stageflags = old;
                     return ret;
                 }
@@ -1095,17 +1105,6 @@ version (all)
             if (e.op == TOKstring) // "abc".ptr is OK
                 return false;
             return true;
-        }
-        return false;
-    }
-
-    extern (C++) bool arrayHasNonConstPointers(Expressions* elems)
-    {
-        for (size_t i = 0; i < elems.dim; i++)
-        {
-            Expression e = (*elems)[i];
-            if (e && hasNonConstPointers(e))
-                return true;
         }
         return false;
     }

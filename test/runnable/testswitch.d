@@ -519,45 +519,45 @@ int bar21(int i)
 {
     switch (i)
     {
-//	case 1: return 11;
-	case 2: return 12;
-	case 3: return 13;
-	case 4: return 14;
-	case 5: return 15;
-	case 6: return 16;
-	case 7: return 17;
-	case 8: return 18;
-	case 9: return 19;
-	case 10: return 20;
-	default: break;
+//      case 1: return 11;
+        case 2: return 12;
+        case 3: return 13;
+        case 4: return 14;
+        case 5: return 15;
+        case 6: return 16;
+        case 7: return 17;
+        case 8: return 18;
+        case 9: return 19;
+        case 10: return 20;
+        default: break;
     }
 
     switch (i)
     {
-	case 11: return 21;
-	case 12: return 22;
-	case 13: return 23;
-	case 14: return 24;
-	case 15: return 25;
-	case 16: return 26;
-	case 17: return 27;
-	case 18: return 28;
-	case 19: return 29;
-	case 20: return 30;
-	default: return 31;
+        case 11: return 21;
+        case 12: return 22;
+        case 13: return 23;
+        case 14: return 24;
+        case 15: return 25;
+        case 16: return 26;
+        case 17: return 27;
+        case 18: return 28;
+        case 19: return 29;
+        case 20: return 30;
+        default: return 31;
     }
 }
 
 void test21()
 {
-//	int j = bar(12);
-//	printf("j = %d\n", j);
+//      int j = bar(12);
+//      printf("j = %d\n", j);
 
     for (int i = 2; i < 21; i++)
     {
-	int j = bar21(i);
-	//printf("j = %d\n", j);
-	assert(j == i + 10);
+        int j = bar21(i);
+        //printf("j = %d\n", j);
+        assert(j == i + 10);
     }
 }
 
@@ -567,12 +567,12 @@ int bar22(int i)
 {
     switch (i)
     {
-	case 1: return i + 1;
-	case 10: return i + 2;
-	case 20: return i + 3;
-	case 50: return i + 4;
-	case 1000: return i + 5;
-	default: return 28;
+        case 1: return i + 1;
+        case 10: return i + 2;
+        case 20: return i + 3;
+        case 50: return i + 4;
+        case 1000: return i + 5;
+        default: return 28;
     }
 }
 
@@ -597,12 +597,12 @@ long bar23(long i)
 {
     switch (i)
     {
-	case 1: return i + 1;
-	case 0x10_0000_0000L: return i + 2;
-	case 0x20_0070_0000L: return i + 3;
-	case 0x50_0000_0000L: return i + 4;
-	case 0x1000_0000_8000L: return i + 5;
-	default: return 28;
+        case 1: return i + 1;
+        case 0x10_0000_0000L: return i + 2;
+        case 0x20_0070_0000L: return i + 3;
+        case 0x50_0000_0000L: return i + 4;
+        case 0x1000_0000_8000L: return i + 5;
+        default: return 28;
     }
 }
 

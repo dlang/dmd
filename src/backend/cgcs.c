@@ -269,6 +269,7 @@ STATIC void ecom(elem **pe)
 #if TX86
     case OPinp:                 /* never CSE the I/O instruction itself */
 #endif
+    case OPprefetch:            // don't CSE E2 or the instruction
         ecom(&e->E1);
         /* FALL-THROUGH */
     case OPasm:

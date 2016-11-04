@@ -771,6 +771,7 @@ void test15372b()
 
 /****************************************/
 // 15802
+
 template <typename T>
 class Foo15802
 {
@@ -785,3 +786,14 @@ void test15802b()
 {
 	int t = Foo15802<int>::boo(1);
 }
+
+
+/****************************************/
+// 16536 - mangling mismatch on OSX
+
+#if defined(__APPLE__)
+__UINTMAX_TYPE__ pass16536(__UINTMAX_TYPE__ a)
+{
+    return a;
+}
+#endif

@@ -673,13 +673,29 @@ extern (C++) final class AliasDeclaration : Declaration
     override bool overloadInsert(Dsymbol s)
     {
         //printf("[%s] AliasDeclaration::overloadInsert('%s') s = %s %s @ [%s]\n",
-        //    loc.toChars(), toChars(), s->kind(), s->toChars(), s->loc.toChars());
+        //       loc.toChars(), toChars(), s.kind(), s.toChars(), s.loc.toChars());
 
-        /* semantic analysis is already finished, and the aliased entity
-         * is not overloadable.
+        /** Aliases aren't overloadable themselves, but if their Aliasee is
+         *  overloadable they are converted to an overloadable Alias (either
+         *  FuncAliasDeclaration or OverDeclaration).
+         *
+         *  This is done by moving the Aliasee into such an overloadable alias
+         *  which is then used to replace the existing Aliasee. The original
+         *  Alias (_this_) remains a useless shell.
+         *
+         *  This is a horrible mess. It was probably done to avoid replacing
+         *  existing AST nodes and references, but it needs a major
+         *  simplification b/c it's too complex to maintain.
+         *
+         *  A simpler approach might be to merge any colliding symbols into a
+         *  simple Overload class (an array) and then later have that resolve
+         *  all collisions.
          */
         if (semanticRun >= PASSsemanticdone)
         {
+            /* Semantic analysis is already finished, and the aliased entity
+             * is not overloadable.
+             */
             if (type)
                 return false;
 
@@ -689,14 +705,18 @@ extern (C++) final class AliasDeclaration : Declaration
             auto sa = aliassym.toAlias();
             if (auto fd = sa.isFuncDeclaration())
             {
-                aliassym = new FuncAliasDeclaration(ident, fd);
-                aliassym.parent = parent;
+                auto fa = new FuncAliasDeclaration(ident, fd);
+                fa.protection = protection;
+                fa.parent = parent;
+                aliassym = fa;
                 return aliassym.overloadInsert(s);
             }
             if (auto td = sa.isTemplateDeclaration())
             {
-                aliassym = new OverDeclaration(ident, td);
-                aliassym.parent = parent;
+                auto od = new OverDeclaration(ident, td);
+                od.protection = protection;
+                od.parent = parent;
+                aliassym = od;
                 return aliassym.overloadInsert(s);
             }
             if (auto od = sa.isOverDeclaration())
@@ -704,6 +724,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 if (sa.ident != ident || sa.parent != parent)
                 {
                     od = new OverDeclaration(ident, od);
+                    od.protection = protection;
                     od.parent = parent;
                     aliassym = od;
                 }
@@ -714,6 +735,22 @@ extern (C++) final class AliasDeclaration : Declaration
                 if (sa.ident != ident || sa.parent != parent)
                 {
                     os = new OverloadSet(ident, os);
+                    // TODO: protection is lost here b/c OverloadSets have no protection attribute
+                    // Might no be a practical issue, b/c the code below fails to resolve the overload anyhow.
+                    // ----
+                    // module os1;
+                    // import a, b;
+                    // private alias merged = foo; // private alias to overload set of a.foo and b.foo
+                    // ----
+                    // module os2;
+                    // import a, b;
+                    // public alias merged = bar; // public alias to overload set of a.bar and b.bar
+                    // ----
+                    // module bug;
+                    // import os1, os2;
+                    // void test() { merged(123); } // should only look at os2.merged
+                    //
+                    // os.protection = protection;
                     os.parent = parent;
                     aliassym = os;
                 }
@@ -835,6 +872,13 @@ extern (C++) final class AliasDeclaration : Declaration
         return s;
     }
 
+    override bool isOverloadable()
+    {
+        // assume overloadable until alias is resolved
+        return semanticRun < PASSsemanticdone ||
+            aliassym && aliassym.isOverloadable();
+    }
+
     override inout(AliasDeclaration) isAliasDeclaration() inout
     {
         return this;
@@ -918,6 +962,11 @@ extern (C++) final class OverDeclaration : Declaration
         if (s == this)
             return true;
         overnext = s;
+        return true;
+    }
+
+    override bool isOverloadable()
+    {
         return true;
     }
 
@@ -1900,39 +1949,44 @@ extern (C++) class VarDeclaration : Declaration
             _init = _init.semantic(sc, type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             inuse--;
         }
-        if (storage_class & STCmanifest)
+        if (_init && storage_class & STCmanifest)
         {
-            version (none)
+            /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
+             * Scan initializer looking for them. Issue error if found.
+             */
+            if (ExpInitializer ei = _init.isExpInitializer())
             {
-                if ((type.ty == Tclass) && type.isMutable())
+                static bool hasInvalidEnumInitializer(Expression e)
                 {
-                    error("is mutable. Only const and immutable class enum are allowed, not %s", type.toChars());
-                }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct && type.nextOf().isMutable())
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+                    static bool arrayHasInvalidEnumInitializer(Expressions* elems)
                     {
-                        error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type.toChars());
+                        foreach (e; *elems)
+                        {
+                            if (e && hasInvalidEnumInitializer(e))
+                                return true;
+                        }
+                        return false;
                     }
-                }
-            }
-            else
-            {
-                if (type.ty == Tclass && _init)
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei.exp.op == TOKclassreference)
-                        error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
-                }
-                else if (type.ty == Tpointer && type.nextOf().ty == Tstruct)
-                {
-                    ExpInitializer ei = _init.isExpInitializer();
-                    if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+
+                    if (e.op == TOKclassreference)
+                        return true;
+                    if (e.op == TOKaddress && (cast(AddrExp)e).e1.op == TOKstructliteral)
+                        return true;
+                    if (e.op == TOKarrayliteral)
+                        return arrayHasInvalidEnumInitializer((cast(ArrayLiteralExp)e).elements);
+                    if (e.op == TOKstructliteral)
+                        return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
+                    if (e.op == TOKassocarrayliteral)
                     {
-                        error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
+                        AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
+                        return arrayHasInvalidEnumInitializer(ae.values) ||
+                               arrayHasInvalidEnumInitializer(ae.keys);
                     }
+                    return false;
                 }
+
+                if (hasInvalidEnumInitializer(ei.exp))
+                    error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
             }
         }
         else if (_init && isThreadlocal())

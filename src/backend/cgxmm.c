@@ -187,7 +187,8 @@ code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs)
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
         if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
-            doinreg(e1->EV.sp.Vsym,e2)          // and we can compute directly into it
+            doinreg(e1->EV.sp.Vsym,e2) &&       // and we can compute directly into it
+            varregm & XMMREGS
            )
         {   regvar = TRUE;
             retregs = varregm;
@@ -219,7 +220,7 @@ code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs)
         cl = getlvalue(&cs,e1,RMstore | retregs);       // get lvalue (cl == CNIL if regvar)
     }
 
-    c = getregs_imm(varregm);
+    c = getregs_imm(regvar ? varregm : 0);
 
     reg = findreg(retregs & XMMREGS);
     cs.Irm |= modregrm(0,(reg - XMM0) & 7,0);

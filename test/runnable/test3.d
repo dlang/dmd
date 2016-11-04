@@ -11,7 +11,7 @@ class Foo
 
     unittest
     {
-	printf("in Foo.unittest()\n");
+        printf("in Foo.unittest()\n");
     }
 }
 

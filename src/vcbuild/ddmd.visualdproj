@@ -54,7 +54,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated</fileImppath>
+  <fileImppath>generated ..\..\res</fileImppath>
   <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -156,7 +156,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated</fileImppath>
+  <fileImppath>generated ..\..\res</fileImppath>
   <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -258,7 +258,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated</fileImppath>
+  <fileImppath>generated ..\..\res</fileImppath>
   <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -360,7 +360,7 @@
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
   <imppath />
-  <fileImppath>generated</fileImppath>
+  <fileImppath>generated ..\..\res</fileImppath>
   <outdir>generated\$(ConfigurationName)_$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
   <objname />
@@ -440,10 +440,16 @@
     <File path="..\backend\cc.d" />
     <File path="..\backend\cdef.d" />
     <File path="..\backend\cgcv.d" />
+    <File path="..\backend\code.d" />
+    <File path="..\backend\code_x86.d" />
+    <File path="..\backend\cv4.d" />
     <File path="..\backend\dt.d" />
     <File path="..\backend\el.d" />
     <File path="..\backend\global.d" />
+    <File path="..\backend\obj.d" />
     <File path="..\backend\oper.d" />
+    <File path="..\backend\outbuf.d" />
+    <File path="..\backend\rtlsym.d" />
     <File path="..\backend\ty.d" />
     <File path="..\backend\type.d" />
    </Folder>
@@ -493,12 +499,14 @@
    <File path="..\dmacro.d" />
    <File path="..\dmangle.d" />
    <File path="..\dmodule.d" />
+   <File path="..\dmsc.d" />
    <File path="..\doc.d" />
    <File path="..\dscope.d" />
    <File path="..\dstruct.d" />
    <File path="..\dsymbol.d" />
    <File path="..\dtemplate.d" />
    <File path="..\dversion.d" />
+   <File path="..\e2ir.d" />
    <File path="..\entity.d" />
    <File path="..\errors.d" />
    <File path="..\escape.d" />
@@ -531,6 +539,8 @@
    <File path="..\osmodel.mak" />
    <File path="..\parse.d" />
    <File path="..\posix.mak" />
+   <File path="..\s2ir.d" />
+   <File path="..\safe.d" />
    <File path="..\sapply.d" />
    <File path="..\scanmscoff.d" />
    <File path="..\scanomf.d" />
@@ -541,8 +551,11 @@
    <File path="..\target.d" />
    <File path="..\tocsym.d" />
    <File path="..\toctype.d" />
+   <File path="..\tocvdebug.d" />
    <File path="..\todt.d" />
+   <File path="..\toir.d" />
    <File path="..\tokens.d" />
+   <File path="..\toobj.d" />
    <File path="..\traits.d" />
    <File path="..\typinf.d" />
    <File path="..\utf.d" />
@@ -550,5 +563,6 @@
    <File path="..\visitor.d" />
    <File path="..\win32.mak" />
   </Folder>
+  <File path="..\glue.d" />
  </Folder>
 </DProject>

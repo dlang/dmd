@@ -31,6 +31,7 @@ extern void error(const char *filename, unsigned linnum, unsigned charnum, const
 
 STATIC elem * optelem(elem *,goal_t);
 STATIC elem * eldiv(elem *, goal_t goal);
+static elem * elToPair(elem *e);
 
 extern elem * evalu8(elem *, goal_t goal);
 
@@ -45,6 +46,7 @@ extern elem * evalu8(elem *, goal_t goal);
 #define ZEROLL          0LL
 
 static bool again;
+static bool topair;
 
 /*****************************
  */
@@ -2825,13 +2827,11 @@ L1:
  */
 
 STATIC elem * elind(elem *e, goal_t goal)
-{ elem *e1;
-  tym_t tym;
-
-  tym = e->Ety;
-  e1 = e->E1;
-  switch (e1->Eoper)
-  {     case OPrelconst:
+{
+    tym_t tym = e->Ety;
+    elem *e1 = e->E1;
+    switch (e1->Eoper)
+    {     case OPrelconst:
           {
             e->E1->ET = e->ET;
             e = el_selecte1(e);
@@ -2863,8 +2863,9 @@ STATIC elem * elind(elem *e, goal_t goal)
             e->E2->ET = t;
             again = 1;
             return e;
-  }
-  return e;
+    }
+    topair |= (config.fpxmmregs && tycomplex(tym));
+    return e;
 }
 
 /*****************
@@ -4390,9 +4391,32 @@ STATIC elem * el64_32(elem *e, goal_t goal)
     case OPu32_64:
     case OPs64_128:
     case OPu64_128:
+        if (tysize(ty) != tysize(e->E1->E1->Ety))
+            break;
+        e = el_selecte1(el_selecte1(e));
+        e->Ety = ty;
+        break;
+
     case OPpair:
         if (tysize(ty) != tysize(e->E1->E1->Ety))
             break;
+        if (el_sideeffect(e1->E2))
+        {
+            // Rewrite (OP64_32(a pair b)) as ((t=a),(b,t))
+            elem *a = e1->E1;
+            elem *b = e1->E2;
+            elem *t = el_alloctmp(a->Ety);
+
+            e->Eoper = OPcomma;
+            e->E1 = el_bin(OPeq,a->Ety,t,a);
+            e->E2 = e1;
+
+            e1->Eoper = OPcomma;
+            e1->E1 = b;
+            e1->E2 = el_copytree(t);
+            e1->Ety = e->Ety;
+            break;
+        }
         e = el_selecte1(el_selecte1(e));
         e->Ety = ty;
         break;
@@ -4400,6 +4424,14 @@ STATIC elem * el64_32(elem *e, goal_t goal)
     case OPrpair:
         if (tysize(ty) != tysize(e->E1->E2->Ety))
             break;
+        if (el_sideeffect(e1->E1))
+        {
+            // Rewrite (OP64_32(a rpair b)) as (a,b)
+            e = el_selecte1(e);
+            e->Eoper = OPcomma;
+            e->Ety = ty;
+            break;
+        }
         e = el_selecte2(el_selecte1(e));
         e->Ety = ty;
         break;
@@ -5347,7 +5379,8 @@ elem *doptelem(elem *e, goal_t goal)
 
     assert(!PARSER);
     do
-    {   again = 0;
+    {   again = false;
+        topair = false;
         e = optelem(e,goal & (GOALflags | GOALvalue | GOALnone));
     } while (again && goal & GOALagain && e);
 
@@ -5355,6 +5388,9 @@ elem *doptelem(elem *e, goal_t goal)
     /* something simpler, do so.                                        */
     if (goal & GOALstruct && e && tybasic(e->Ety) == TYstruct)
         e = elstruct(e, goal);
+
+    if (topair)
+        e = elToPair(e);
 
     return e;
 }
@@ -5410,6 +5446,89 @@ void postoptelem(elem *e)
         else
             break;
     }
+}
+
+/***********************************
+ * Rewrite rvalues of complex numbers to pairs of floating point numbers.
+ */
+static elem *elToPair(elem *e)
+{
+    switch (e->Eoper)
+    {
+        case OPvar:
+        {
+            /* Rewrite complex number loads as a pair of loads
+             * e => (e.0 pair e.offset)
+             */
+            tym_t ty0;
+            tym_t ty = e->Ety;
+            switch (tybasic(ty))
+            {
+                case TYcfloat:      ty0 = TYfloat  | (ty & ~mTYbasic); goto L1;
+                case TYcdouble:     ty0 = TYdouble | (ty & ~mTYbasic); goto L1;
+                L1:
+                    if (_tysize[tybasic(ty0)] < REGSIZE)
+                        break;                          // func parameters, for example, can't handle this
+                    e->Ety = ty0;
+                    elem *e2 = el_copytree(e);
+                    e2->EV.sp.Voffset += _tysize[tybasic(ty0)];
+                    return el_bin(OPpair, ty, e, e2);
+            }
+            break;
+        }
+
+        case OPind:
+        {
+            e->E1 = elToPair(e->E1);
+            /* Rewrite complex number loads as a pair of loads
+             * *e1 => (*e1 pair *(e1 + offset))
+             */
+            tym_t ty0;
+            tym_t ty = e->Ety;
+            switch (tybasic(ty))
+            {
+                case TYcfloat:      ty0 = TYfloat  | (ty & ~mTYbasic); goto L2;
+                case TYcdouble:     ty0 = TYdouble | (ty & ~mTYbasic); goto L2;
+                L2:
+                    if (_tysize[tybasic(ty0)] < REGSIZE)
+                        break;                          // func parameters, for example, can't handle this
+                    e->Ety = ty0;
+                    elem *e2 = el_copytree(e->E1);
+                    if (el_sideeffect(e2))
+                        fixside(&e->E1, &e2);
+                    e2 = el_bin(OPadd,e2->Ety,e2,el_long(TYsize, _tysize[tybasic(ty0)]));
+                    e2 = el_una(OPind, ty0, e2);
+                    return el_bin(OPpair, ty, e, e2);
+            }
+            break;
+        }
+
+        default:
+            if (OTassign(e->Eoper))
+            {
+                // Skip over OPvar and OPind lvalues
+                if (OTbinary(e->Eoper))
+                    e->E2 = elToPair(e->E2);
+                if (e->E1->Eoper == OPvar)
+                {
+                }
+                else if (e->E1->Eoper == OPind)
+                    e->E1->E1 = elToPair(e->E1->E1);
+                else
+                    e->E1 = elToPair(e->E1);
+            }
+            else if (OTunary(e->Eoper))
+            {
+                e->E1 = elToPair(e->E1);
+            }
+            else if (OTbinary(e->Eoper))
+            {
+                e->E2 = elToPair(e->E2);
+                e->E1 = elToPair(e->E1);
+            }
+            break;
+    }
+    return e;
 }
 
 #endif // !SPP
