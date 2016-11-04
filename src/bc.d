@@ -948,7 +948,7 @@ string printInstructions(const int* startInstructions, uint length) pure
         has4ByteOffset = true;
         length -= 4;
         //startInstructions += 4;
-        pos += 4;
+        //pos += 4;
     }
 
     result ~= "Length : " ~ to!string(length) ~ "\n";
@@ -1890,7 +1890,6 @@ int[] testRelJmp()
     BCGen gen;
     with (gen)
     {
-        ip += 2;
         auto result = genTemporary(i32Type);
         Set(result, BCValue(Imm32(2)));
         auto evalCond = genLabel();
@@ -1905,7 +1904,7 @@ int[] testRelJmp()
     }
 }
 
-//pragma(msg, printInstructions(testRelJmp));
+pragma(msg, printInstructions(testRelJmp));
 static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
-//import bc_test;
-//static assert(test!BCGen());
+import bc_test;
+static assert(test!BCGen());
