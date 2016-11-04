@@ -203,8 +203,9 @@ static auto isShortJump(const int offset) pure @safe
     }
 }
 
-auto ShortInst16(const LongInst i, const short imm, const bool indirect = false) pure @safe
+auto ShortInst16(const LongInst i, const int _imm, const bool indirect = false) pure @safe
 {
+    short imm = cast(short) _imm;
     return i | indirect << 6 | imm << 16;
 }
 
@@ -1283,7 +1284,7 @@ BCValue interpret(const BCGen* gen, const BCValue[] args,
     return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions);
 }
 
-auto interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr = null,
+BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr = null,
     const BCFunction* functions = null, long[] stackPtr = null, uint stackOffset = 4) pure @trusted
 {
     import std.conv;

@@ -813,6 +813,16 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     if (!fd.ctfeCode)
         ctfeCompile(fd);
 
+    // try bc-evaluator if the interpreter has not already begun
+    if (!istate && !thisarg)
+    {
+        import ddmd.ctfe.ctfe_bc;
+        if (auto e = evaluateFunction(fd, arguments, thisarg))
+        {
+            return e;
+        }
+    }
+
     Type tb = fd.type.toBasetype();
     assert(tb.ty == Tfunction);
     TypeFunction tf = cast(TypeFunction)tb;

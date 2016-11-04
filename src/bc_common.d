@@ -278,9 +278,9 @@ struct BCValue
         StackAddr stackAddr;
         HeapAddr dataSegAddr;
         Imm32 imm32;
-		Imm64 imm64;
+        Imm64 imm64;
         // instead of void*
-        int vs_offset;
+        void* voidStar;
     }
 
 @safe pure :

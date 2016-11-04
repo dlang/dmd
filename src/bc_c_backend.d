@@ -536,7 +536,7 @@ pure:
             a => toCode(a)).join(", ") ~ ");\n";
     }
 
-    void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)
+   /* void CallBuiltin(BCValue result, BCBuiltin fn, BCValue[] args)
     {
         assert(result.vType == BCValueType.StackValue);
         string resultString = (result ? toCode(result) ~ " = " : "");
@@ -550,7 +550,7 @@ pure:
             assert(0, "Unsupported builtin " ~ to!string(fn));
         }
         //emitLongInst(LongInst64(LongInst.BuiltinCall, StackAddr(cast(short)fn), StackAddr(cast(short)args.length)));
-    }
+    } */
 
     void Cat(BCValue result, BCValue lhs, BCValue rhs, const uint size)
     {
