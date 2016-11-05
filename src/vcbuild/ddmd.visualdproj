@@ -507,6 +507,7 @@
    <File path="..\dtemplate.d" />
    <File path="..\dversion.d" />
    <File path="..\e2ir.d" />
+   <File path="..\eh.d" />
    <File path="..\entity.d" />
    <File path="..\errors.d" />
    <File path="..\escape.d" />
@@ -533,6 +534,7 @@
    <File path="..\nogc.d" />
    <File path="..\nspace.d" />
    <File tool="None" path="..\objc.d" />
+   <File path="..\objc_glue_stubs.d" />
    <File path="..\objc_stubs.d" />
    <File path="..\opover.d" />
    <File path="..\optimize.d" />
