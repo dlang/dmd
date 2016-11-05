@@ -18,7 +18,7 @@ enum InstKind
 
     StackInst,
 }
-
+/+ We don't need this right now ... maybe later
 auto instKind(LongInst i)
 {
     final switch (i)
@@ -52,7 +52,7 @@ auto instKind(LongInst i)
         }
 
     }
-}
+} +/
 
 enum LongInst : ushort
 {
