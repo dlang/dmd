@@ -216,7 +216,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.datetime : StopWatch;
         import std.stdio;
 
-        writeln("BC complied: ", fd.ident.toString);
         //HACK this filters out functions which I know produce incorrect results
         //this is only so I can see where else are problems.
 
@@ -224,14 +223,14 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         sw.start();
         bcv.beginArguments();
         auto bc_args = args.map!(a => bcv.genExpr(a)).array;
-        writeln("BC Args :", bc_args);
+        writeln("BC complied: ", fd.ident.toString);
         bcv.endArguments();
-		bcv.Finalize();
+        bcv.Finalize();
 
         if (--recursionLevel == 0)
         {
             recursionLevel = uint.max;
-            
+
         }
 
         static if (UseLLVMBackend)
@@ -254,7 +253,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         }
         else
         {
-            // debug (ctfe)
+            debug (ctfe)
             {
                 import std.stdio;
 
@@ -270,8 +269,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         auto ft = cast(TypeFunction) fd.type;
         assert(ft.nextOf);
 
-        //debug (ctfe)
-        writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
+        debug (ctfe)
+            writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
         {
             if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap))
             {
@@ -969,12 +968,18 @@ public:
 
     override void visit(FuncDeclaration fd)
     {
-		import ddmd.identifier;
-		if (fd.ident == Identifier.idPool("isRooted") || fd.ident == Identifier.idPool("__lambda2") || fd.ident == Identifier.idPool("divideRoundUp") || fd.ident == Identifier.idPool("isSameLength") || fd.ident == Identifier.idPool("wrapperParameters") || fd.ident == Identifier.idPool("wrap") || fd.ident == Identifier.idPool("args"))
-		{
-			IGaveUp = true;
-			return ;
-		}
+        import ddmd.identifier;
+
+        if (fd.ident == Identifier.idPool("isRooted")
+                || fd.ident == Identifier.idPool("__lambda2")
+                || fd.ident == Identifier.idPool("divideRoundUp")
+                || fd.ident == Identifier.idPool("isSameLength")
+                || fd.ident == Identifier.idPool("wrapperParameters")
+                || fd.ident == Identifier.idPool("wrap") || fd.ident == Identifier.idPool("args"))
+        {
+            IGaveUp = true;
+            return;
+        }
 
         static if (is(typeof(_sharedCtfeState.functionCount)))
         {
@@ -1157,13 +1162,13 @@ public:
             {
                 auto ce = cast(CondExp) e;
                 auto cond = genExpr(ce.econd);
-				debug (ctfe)
-					assert(cond);
-				else if (!cond)
-				{
-					IGaveUp = true;
-					return ;
-				}
+                debug (ctfe)
+                    assert(cond);
+                    else if (!cond)
+                    {
+                        IGaveUp = true;
+                        return;
+                    }
 
                 auto cj = beginCndJmp(cond ? cond.i32 : cond, false);
                 auto lhsEval = genLabel();
@@ -1259,14 +1264,23 @@ public:
 
                 case TOK.TOKshr:
                     {
-                        //TODO throw assert error if rhs > lhs.sizeof
+                        Ge3(BCValue.init, lhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
+                        auto ej = beginCndJmp();
+                        //AssertError("Tryng to shift out of bounds");
+                        auto doShift = genLabel();
+                        endCndJmp(ej, doShift);
+
                         Rsh3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKshl:
                     {
-                        //TODO throw assert error if rhs > lhs.sizeof
+                        Ge3(BCValue.init, lhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
+                        auto ej = beginCndJmp(); // we jump if the condtion is false
+                        //AssertError("Tryng to shift out of bounds");
+                        auto doShift = genLabel();
+                        endCndJmp(ej, doShift);
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
@@ -1513,13 +1527,13 @@ public:
         {
             BCLabel condEval = genLabel();
             BCValue cond = genExpr(fs.condition);
-			debug (ctfe)
-				assert(cond, "No cond generated");
-			else if (!cond)
-			{
-				IGaveUp = true;
-				return ;
-			}
+            debug (ctfe)
+                assert(cond, "No cond generated");
+        else if (!cond)
+                {
+                    IGaveUp = true;
+                    return;
+                }
 
             auto condJmp = beginCndJmp(cond);
 
@@ -1975,19 +1989,21 @@ public:
             writefln("DeclarationExp %s discardValue %d", de.toString, discardValue);
             writefln("DeclarationExp.declaration: %x", cast(void*) de.declaration.isVarDeclaration);
         }
-		if (vd._init) {
-        if (auto ci = vd.getConstInitializer)
+        if (vd._init)
         {
-
-            auto _init = genExpr(ci);
-            if (_init.vType == BCValueType.Immediate && _init.type == BCType(BCTypeEnum.i32))
+            if (auto ci = vd.getConstInitializer)
             {
-                Set(var.i32, retval);
-            }
 
+                auto _init = genExpr(ci);
+                if (_init.vType == BCValueType.Immediate && _init.type == BCType(BCTypeEnum.i32))
+                {
+                    Set(var.i32, retval);
+                }
+
+            }
+            retval = var;
         }
-        retval = var;
-		}}
+    }
 
     override void visit(VarDeclaration vd)
     {
@@ -2527,7 +2543,7 @@ public:
             }
         }
 
-		unrolledLoopState = null;
+        unrolledLoopState = null;
     }
 
     override void visit(ImportStatement _is)
@@ -2817,7 +2833,7 @@ public:
             }
             else
             {
-				addUnresolvedGoto(cast(void*) bs.ident, beginJmp());
+                addUnresolvedGoto(cast(void*) bs.ident, beginJmp());
             }
 
         }
@@ -2973,14 +2989,14 @@ public:
         }
         auto doBlock = genBlock(ds._body);
         auto cond = genExpr(ds.condition);
-		debug (ctfe)
-			assert(cond);
-		else if (!cond)
-		{
-			IGaveUp = true;
-			return ;
-		}
-		auto cj = beginCndJmp(cond);
+        debug (ctfe)
+            assert(cond);
+            else if (!cond)
+            {
+                IGaveUp = true;
+                return;
+            }
+        auto cj = beginCndJmp(cond);
 
         endCndJmp(cj, doBlock.begin);
     }
@@ -3037,13 +3053,13 @@ public:
 
         uint oldFixupTableCount = fixupTableCount;
         auto cond = genExpr(fs.condition);
-		debug (ctfe)
-			assert(cond);
-		else if (!cond)
-		{
-			IGaveUp = true;
-			return ;
-		}
+        debug (ctfe)
+            assert(cond);
+            else if (!cond)
+            {
+                IGaveUp = true;
+                return;
+            }
 
         auto cj = beginCndJmp(cond);
 
