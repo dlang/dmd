@@ -129,7 +129,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum UseLLVMBackend = 1;
+enum UseLLVMBackend = 0;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
@@ -1511,7 +1511,7 @@ public:
             BCLabel condEval = genLabel();
             BCValue cond = genExpr(fs.condition);
 			debug (ctfe)
-				assert(cond);
+				assert(cond, "No cond generated");
 			else if (!cond)
 			{
 				IGaveUp = true;
@@ -2226,7 +2226,7 @@ public:
 
             writefln("CmpExp %s discardValue %d", ce.toString, discardValue);
         }
-        auto oldAssignTo = assignTo;
+        auto oldAssignTo = assignTo ? assignTo : genTemporary(i32Type);
         assignTo = BCValue.init;
         auto lhs = genExpr(ce.e1);
         auto rhs = genExpr(ce.e2);
@@ -2236,14 +2236,14 @@ public:
             {
             case TOK.TOKlt:
                 {
-                    Lt3(assignTo, lhs, rhs);
+                    Lt3(oldAssignTo, lhs, rhs);
                     retval = oldAssignTo;
                 }
                 break;
 
             case TOK.TOKgt:
                 {
-                    Gt3(assignTo, lhs, rhs);
+                    Gt3(oldAssignTo, lhs, rhs);
                     retval = oldAssignTo;
                 }
                 break;
