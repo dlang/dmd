@@ -633,7 +633,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     {
         import ddmd.lexer : Loc;
 
-        auto offset = value.dataSegAddr.addr;
+        auto offset = value.heapAddr.addr;
 
         debug (ctfe)
         {
@@ -664,7 +664,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             scope bcv = new BCV!BCGenT(null, null);
             auto baseType = bcv.toBCType(tda.nextOf);
             auto elmLength = align4(_sharedCtfeState.size(baseType));
-            auto arrayLength = heapPtr._heap[value.dataSegAddr.addr];
+            auto arrayLength = heapPtr._heap[value.heapAddr.addr];
             debug (ctfe)
             {
                 import std.stdio;
@@ -695,8 +695,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             foreach (idx; 0 .. arrayLength)
             {
                 elmExprs.insert(idx,
-                    toExpression(BCValue(HeapAddr(value.dataSegAddr.addr + offset)),
-                    tda.nextOf));
+                    toExpression(BCValue(HeapAddr(value.heapAddr.addr + offset)), tda.nextOf));
                 offset += elmLength;
             }
 
@@ -707,7 +706,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tsarray:
         {
             auto tsa = cast(TypeSArray) expressionType;
-            assert(heapPtr._heap[value.dataSegAddr.addr] == evaluateUlong(tsa.dim));
+            assert(heapPtr._heap[value.heapAddr.addr] == evaluateUlong(tsa.dim));
             goto default;
         }
         break;
@@ -1266,7 +1265,9 @@ public:
                     {
                         Ge3(BCValue.init, lhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
                         auto ej = beginCndJmp();
-                        //AssertError("Tryng to shift out of bounds");
+                        AssertError(bcZero,
+                            BCValue(_sharedCtfeState.heap.pushString("Tryng to shift out of bounds",
+                            28)));
                         auto doShift = genLabel();
                         endCndJmp(ej, doShift);
 
@@ -1276,9 +1277,12 @@ public:
 
                 case TOK.TOKshl:
                     {
+
                         Ge3(BCValue.init, lhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
                         auto ej = beginCndJmp(); // we jump if the condtion is false
-                        //AssertError("Tryng to shift out of bounds");
+                        AssertError(bcZero,
+                            BCValue(_sharedCtfeState.heap.pushString("Tryng to shift out of bounds",
+                            28)));
                         auto doShift = genLabel();
                         endCndJmp(ej, doShift);
                         Lsh3(retval, lhs, rhs);

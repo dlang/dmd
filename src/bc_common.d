@@ -124,7 +124,7 @@ enum BCValueType : ubyte
     StackValue = 0x4,
     Immediate = 0x8,
 
-    DataSegValue = 0x10,
+    HeapValue = 0x10,
     /// Pinned values can be returned
     /// And should be kept in the compacted heap
     //Pinned = 0x80,
@@ -276,7 +276,7 @@ struct BCValue
     union
     {
         StackAddr stackAddr;
-        HeapAddr dataSegAddr;
+        HeapAddr heapAddr;
         Imm32 imm32;
         Imm64 imm64;
         // instead of void*
@@ -314,8 +314,8 @@ struct BCValue
                 default:
                     assert(0, "No comperasion for immediate");
                 }
-            case BCValueType.DataSegValue:
-                return this.dataSegAddr == rhs.dataSegAddr;
+			case BCValueType.HeapValue:
+                return this.heapAddr == rhs.heapAddr;
 
             case BCValueType.Unknown:
                 return false;
@@ -381,9 +381,9 @@ struct BCValue
 
     this(const HeapAddr addr, const BCType type = BCType(BCTypeEnum.i32)) pure
     {
-        this.vType = BCValueType.DataSegValue;
+        this.vType = BCValueType.HeapValue;
         this.type = type;
-        this.dataSegAddr = addr;
+        this.heapAddr = addr;
     }
 }
 

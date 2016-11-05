@@ -81,9 +81,9 @@ enum LongInst : ushort
     Eq, //sets condflags
     Neq, //sets condflag
     Lt, //sets condflags
-	Le,
+    Le,
     Gt, //sets condflags
-	Ge,
+    Ge,
     Set,
     And,
     Or,
@@ -91,6 +91,8 @@ enum LongInst : ushort
     Lsh,
     Rsh,
     Mod,
+
+    Assert,
 
     // Immidate operand
     ImmAdd,
@@ -100,9 +102,9 @@ enum LongInst : ushort
     ImmEq,
     ImmNeq,
     ImmLt,
-	ImmLe,
+    ImmLe,
     ImmGt,
-	ImmGe,
+    ImmGe,
     ImmSet,
     ImmAnd,
     ImmOr,
@@ -111,7 +113,7 @@ enum LongInst : ushort
     ImmRsh,
     ImmMod,
 
-	ImmSetHigh,
+    ImmSetHigh,
 
     Call,
     HeapLoad32, ///SP[hi & 0xFFFF] = Heap[align4(SP[hi >> 16])]
@@ -134,7 +136,6 @@ enum IndirectionFlagMask = ubyte(0x40); // check 7th bit
 enum InstMask = ubyte(0x3F); // mask for bit 0-5
 //enum CondFlagMask = ~ushort(0x2FF); // mask for 8-10th bit
 enum CondFlagMask = 0b11_0000_0000;
-
 
 /** 2StackInst Layout :
 * [0-6] Instruction
@@ -322,7 +323,7 @@ struct BCGen
     StackAddr sp = StackAddr(4);
     ubyte parameterCount;
 
-    BCLabel[short.max/4] unresolvedLabels;
+    BCLabel[short.max / 4] unresolvedLabels;
 
     uint conditionsUsedFlags = 0b11111;
 
@@ -349,7 +350,7 @@ struct BCGen
     auto genTemporary(BCType bct)
     {
         auto tmpAddr = sp.addr;
-        if(isBasicBCType(bct))
+        if (isBasicBCType(bct))
         {
             sp += align4(basicTypeSize(bct));
         }
@@ -361,8 +362,13 @@ struct BCGen
         return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
     }
 
-    void Initialize() {}
-    void Finalize() {}
+    void Initialize()
+    {
+    }
+
+    void Finalize()
+    {
+    }
 
     void beginFunction()
     {
@@ -429,7 +435,8 @@ struct BCGen
         auto ifTrue = jmp.ifTrue;
 
         LongInst64 lj;
-        if ((cond.vType == BCValueType.StackValue || cond.vType == BCValueType.Parameter) && cond.type == BCType.i32)
+        if ((cond.vType == BCValueType.StackValue
+                || cond.vType == BCValueType.Parameter) && cond.type == BCType.i32)
         {
             lj = (ifTrue ? LongInst64(LongInst.JmpNZ, cond.stackAddr,
                 target.addr) : LongInst64(LongInst.JmpZ, cond.stackAddr, target.addr));
@@ -456,7 +463,7 @@ struct BCGen
         {
             auto at = beginJmp();
             endJmp(at, target);
-	}
+        }
     }
 
     void emitFlg(BCValue lhs)
@@ -468,9 +475,16 @@ struct BCGen
 
     void Alloc(BCValue heapPtr, BCValue size)
     {
-        assert(size.vType == BCValueType.StackValue && size.type.type == BCTypeEnum.i32, "Size for alloc needs to be an i32");
+        assert(size.vType == BCValueType.StackValue
+            && size.type.type == BCTypeEnum.i32, "Size for alloc needs to be an i32");
         assert(heapPtr.vType == BCValueType.StackValue);
         emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
+    }
+
+    void AssertError(BCValue value, BCValue msg)
+    {
+        assert(msg.vType == BCValueType.HeapValue);
+        emitLongInst(LongInst64(LongInst.Assert, value.stackAddr, msg.stackAddr));
     }
 
     void Not(BCValue val)
@@ -505,7 +519,7 @@ struct BCGen
         }
         else
         {
-            assert(0, "Cannot handle: "~ to!string(rhs.vType));
+            assert(0, "Cannot handle: " ~ to!string(rhs.vType));
         }
     }
 
@@ -528,18 +542,18 @@ struct BCGen
         }
     }
 
-	void Le3(BCValue result, BCValue lhs, BCValue rhs)
-	{
-		assert(result.vType == BCValueType.Unknown
-			|| result.vType == BCValueType.StackValue,
-			"The result for this must be Empty or a StackValue");
-		emitArithInstruction(LongInst.Le, lhs, rhs);
-		
-		if (result.vType == BCValueType.StackValue)
-		{
-			emitFlg(result);
-		}
-	}
+    void Le3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(result.vType == BCValueType.Unknown
+            || result.vType == BCValueType.StackValue,
+            "The result for this must be Empty or a StackValue");
+        emitArithInstruction(LongInst.Le, lhs, rhs);
+
+        if (result.vType == BCValueType.StackValue)
+        {
+            emitFlg(result);
+        }
+    }
 
     void Gt3(BCValue result, BCValue lhs, BCValue rhs)
     {
@@ -553,18 +567,17 @@ struct BCGen
         }
     }
 
-	void Ge3(BCValue result, BCValue lhs, BCValue rhs)
-	{
-		assert(result.vType == BCValueType.Unknown
-			|| result.vType == BCValueType.StackValue,
-			"The result for this must be Empty or a StackValue");
-		emitArithInstruction(LongInst.Ge, lhs, rhs);
-		if (result.vType == BCValueType.StackValue)
-		{
-			emitFlg(result);
-		}
-	}
-
+    void Ge3(BCValue result, BCValue lhs, BCValue rhs)
+    {
+        assert(result.vType == BCValueType.Unknown
+            || result.vType == BCValueType.StackValue,
+            "The result for this must be Empty or a StackValue");
+        emitArithInstruction(LongInst.Ge, lhs, rhs);
+        if (result.vType == BCValueType.StackValue)
+        {
+            emitFlg(result);
+        }
+    }
 
     void Eq3(BCValue result, BCValue lhs, BCValue rhs)
     {
@@ -721,53 +734,56 @@ struct BCGen
     {
         StackAddr oldSp = currSp();
         auto returnAddr = StackAddr(currSp());
-        StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length*4));
+        StackAddr nextSp = StackAddr(cast(short)(returnAddr.addr + args.length * 4));
         // set the argments length
-        Set(BCValue(returnAddr, i32Type), BCValue(Imm32(cast(uint)args.length)));
+        Set(BCValue(returnAddr, i32Type), BCValue(Imm32(cast(uint) args.length)));
 
-        if (args.length) foreach(i;0 .. (args.length/8)+1)
-        {
-            uint parameterFlag;
-            import std.algorithm : max;
-            immutable paramOffset = max(cast(int)i*8-1, 0);
-
-            final switch((args.length-1-(i*8))%8)
+        if (args.length)
+            foreach (i; 0 .. (args.length / 8) + 1)
             {
-                case 7 :
-                parameterFlag |= toParamCode(args[paramOffset + 7]) << (4*7);
-                goto case 6;
-                case 6 :
-                parameterFlag |= toParamCode(args[paramOffset + 6]) << (4*6);
-                goto case 5;
-                case 5 :
-                parameterFlag |= toParamCode(args[paramOffset + 5]) << (4*5);
-                goto case 4;
-                case 4 :
-                parameterFlag |= toParamCode(args[paramOffset + 4]) << (4*4);
-                goto case 3;
-                case 3 :
-                parameterFlag |= toParamCode(args[paramOffset + 3]) << (4*3);
-                goto case 2;
-                case 2 :
-                parameterFlag |= toParamCode(args[paramOffset + 2]) << (4*2);
-                goto case 1;
-                case 1 :
-                parameterFlag |= toParamCode(args[paramOffset + 1]) << (4*1);
-                goto case 0;
-                case 0 :
-                parameterFlag |= toParamCode(args[paramOffset]);
-                break;
+                uint parameterFlag;
+                import std.algorithm : max;
+
+                immutable paramOffset = max(cast(int) i * 8 - 1, 0);
+
+                final switch ((args.length - 1 - (i * 8)) % 8)
+                {
+                case 7:
+                    parameterFlag |= toParamCode(args[paramOffset + 7]) << (4 * 7);
+                    goto case 6;
+                case 6:
+                    parameterFlag |= toParamCode(args[paramOffset + 6]) << (4 * 6);
+                    goto case 5;
+                case 5:
+                    parameterFlag |= toParamCode(args[paramOffset + 5]) << (4 * 5);
+                    goto case 4;
+                case 4:
+                    parameterFlag |= toParamCode(args[paramOffset + 4]) << (4 * 4);
+                    goto case 3;
+                case 3:
+                    parameterFlag |= toParamCode(args[paramOffset + 3]) << (4 * 3);
+                    goto case 2;
+                case 2:
+                    parameterFlag |= toParamCode(args[paramOffset + 2]) << (4 * 2);
+                    goto case 1;
+                case 1:
+                    parameterFlag |= toParamCode(args[paramOffset + 1]) << (4 * 1);
+                    goto case 0;
+                case 0:
+                    parameterFlag |= toParamCode(args[paramOffset]);
+                    break;
+                }
+                incSp();
+                Set(BCValue(currSp(), i32Type), BCValue(Imm32(parameterFlag)));
+
             }
-            incSp();
-            Set(BCValue(currSp(), i32Type), BCValue(Imm32(parameterFlag)));
 
-        }
-
-        if (args.length) foreach(arg;args)
-        {
-            incSp();
-            Set(BCValue(currSp, i32Type), arg.i32);
-        }
+        if (args.length)
+            foreach (arg; args)
+            {
+                incSp();
+                Set(BCValue(currSp, i32Type), arg.i32);
+            }
 
         incSp();
 
@@ -899,7 +915,7 @@ struct BCGen
             Eq3(BCValue.init, lhsLength, bcZero);
             auto cndJmp = beginCndJmp();
             {
-                foreach(_; 0 .. size/4)
+                foreach (_; 0 .. size / 4)
                 {
                     Load32(tmp, lhsPtr);
                     Store32(dstPtr, tmp);
@@ -918,7 +934,7 @@ struct BCGen
             Eq3(BCValue.init, rhsLength, bcZero);
             auto cndJmp = beginCndJmp();
             {
-                foreach(_; 0 .. size/4)
+                foreach (_; 0 .. size / 4)
                 {
                     Load32(tmp, rhsPtr);
                     Store32(dstPtr, tmp);
@@ -975,18 +991,18 @@ string printInstructions(const int* startInstructions, uint length) pure
 
         final switch (cast(LongInst)(lw & InstMask))
         {
-			case LongInst.ImmSetHigh:
-			{
-				result ~= "SetHigh SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
-			}
-				break;
+        case LongInst.ImmSetHigh:
+            {
+                result ~= "SetHigh SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
+            }
+            break;
 
         case LongInst.ImmSet:
             {
                 result ~= "Set SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
             }
             break;
-			
+
         case LongInst.ImmAdd:
             {
                 result ~= "Add SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
@@ -1051,7 +1067,6 @@ string printInstructions(const int* startInstructions, uint length) pure
             }
             break;
 
-
         case LongInst.ImmLt:
             {
                 result ~= "Lt SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
@@ -1062,19 +1077,18 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "Gt SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
             }
             break;
-			case LongInst.ImmLe:
-			{
-				result ~= "Le SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
-			}
-				break;
-			case LongInst.ImmGe:
-			{
-				result ~= "Ge SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
-			}
-				break;
+        case LongInst.ImmLe:
+            {
+                result ~= "Le SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
+            }
+            break;
+        case LongInst.ImmGe:
+            {
+                result ~= "Ge SP[" ~ to!string(lw >> 16) ~ "], #" ~ to!string(hi) ~ "\n";
+            }
+            break;
 
-			
-			case LongInst.Add:
+        case LongInst.Add:
             {
                 result ~= "Add SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
@@ -1124,6 +1138,12 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "Mod SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
+        case LongInst.Assert:
+            {
+                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+
         case LongInst.Eq:
             {
                 result ~= "Eq SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -1151,18 +1171,18 @@ string printInstructions(const int* startInstructions, uint length) pure
                 result ~= "Gt SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
-			case LongInst.Le:
-			{
-				result ~= "Le SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
-			}
-				break;
-			case LongInst.Ge:
-			{
-				result ~= "Ge SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
-			}
-				break;
+        case LongInst.Le:
+            {
+                result ~= "Le SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
+        case LongInst.Ge:
+            {
+                result ~= "Ge SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+            }
+            break;
 
-			case LongInst.Jmp:
+        case LongInst.Jmp:
             {
                 result ~= "Jmp &" ~ to!string(hi) ~ "\n";
             }
@@ -1195,13 +1215,15 @@ string printInstructions(const int* startInstructions, uint length) pure
 
         case LongInst.HeapLoad32:
             {
-                result ~= "HeapLoad32 SP[" ~ to!string(hi & 0xFFFF) ~ "], HEAP[SP[" ~ to!string(hi >> 16) ~ "]]\n";
+                result ~= "HeapLoad32 SP[" ~ to!string(hi & 0xFFFF) ~ "], HEAP[SP[" ~ to!string(
+                    hi >> 16) ~ "]]\n";
             }
             break;
 
         case LongInst.HeapStore32:
             {
-                result ~= "HeapStore32 HEAP[SP[" ~ to!string(hi & 0xFFFF) ~ "]], SP[" ~ to!string(hi >> 16) ~ "]\n";
+                result ~= "HeapStore32 HEAP[SP[" ~ to!string(hi & 0xFFFF) ~ "]], SP[" ~ to!string(
+                    hi >> 16) ~ "]\n";
             }
             break;
 
@@ -1287,15 +1309,17 @@ BCValue interpret(const BCGen* gen, const BCValue[] args,
     return interpret_(gen.byteCodeArray[0 .. gen.ip], args, heapPtr, functions);
 }
 
-BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr = null,
-    const BCFunction* functions = null, long[] stackPtr = null, uint stackOffset = 4) pure @trusted
+BCValue interpret_(const int[] byteCode, const BCValue[] args,
+    BCHeap* heapPtr = null, const BCFunction* functions = null,
+    long[] stackPtr = null, uint stackOffset = 4) pure @trusted
 {
     import std.conv;
-	import std.stdio;
-	if (!__ctfe)
-	{
-		debug writeln("Args: ", args, "BC:", byteCode.printInstructions);
-	}
+    import std.stdio;
+
+    if (!__ctfe)
+    {
+        debug writeln("Args: ", args, "BC:", byteCode.printInstructions);
+    }
     auto stack = stackPtr ? stackPtr : new long[](ushort.max / 4);
 
     ulong dataSegHigh = 0; /// 56bit wide of the dataSegOffset
@@ -1318,7 +1342,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
         {
         case BCTypeEnum.i32:
             {
-                *(stack.ptr + stackOffset/4) = arg.imm32;
+                *(stack.ptr + stackOffset / 4) = arg.imm32;
                 stackOffset += uint.sizeof;
             }
             break;
@@ -1347,9 +1371,10 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
         import std.range;
 
         debug (bc_stack)
-            foreach (si; 0 .. stackOffset+8)
+            foreach (si; 0 .. stackOffset + 8)
             {
-                if (!__ctfe) {
+                if (!__ctfe)
+                {
                     printf("StackIndex %d, Content %x\t".ptr, si, stack[cast(uint) si]);
                     printf("HeapIndex %d, Content %x\n".ptr, si, heapPtr._heap[cast(uint) si]);
                 }
@@ -1450,11 +1475,11 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
                 (*lhsStackRef) = hi;
             }
             break;
-		case LongInst.ImmSetHigh:
-			{
-			  *lhsStackRef = (*lhsStackRef & 0x00_00_00_00_FF_FF_FF_FF) | (ulong(hi) << 32UL);
-			}
-				break;
+        case LongInst.ImmSetHigh:
+            {
+                *lhsStackRef = (*lhsStackRef & 0x00_00_00_00_FF_FF_FF_FF) | (ulong(hi) << 32UL);
+            }
+            break;
         case LongInst.ImmEq:
             {
 
@@ -1480,7 +1505,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
                     cond = false;
                 }
             }
-                break;
+            break;
         case LongInst.ImmLt:
             {
                 if ((*lhsStackRef) < hi)
@@ -1507,32 +1532,32 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
 
             }
             break;
-			case LongInst.ImmLe:
-			{
-				if ((*lhsStackRef) <= hi)
-				{
-					cond = true;
-				}
-				else
-				{
-					cond = false;
-				}
-				
-			}
-				break;
-			case LongInst.ImmGe:
-			{
-				if ((*lhsStackRef) >= hi)
-				{
-					cond = true;
-				}
-				else
-				{
-					cond = false;
-				}
-				
-			}
-				break;
+        case LongInst.ImmLe:
+            {
+                if ((*lhsStackRef) <= hi)
+                {
+                    cond = true;
+                }
+                else
+                {
+                    cond = false;
+                }
+
+            }
+            break;
+        case LongInst.ImmGe:
+            {
+                if ((*lhsStackRef) >= hi)
+                {
+                    cond = true;
+                }
+                else
+                {
+                    cond = false;
+                }
+
+            }
+            break;
 
         case LongInst.Add:
             {
@@ -1586,7 +1611,10 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
                 (*lhsRef) %= *rhs;
             }
             break;
-
+        case LongInst.Assert:
+            {
+                assert(0, "Not Implemented yet");
+            }
         case LongInst.Eq:
             {
                 if ((*lhsRef) == *rhs)
@@ -1618,8 +1646,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
             {
                 (*lhsRef) = *rhs;
             }
-			break;
-			
+            break;
 
         case LongInst.Lt:
             {
@@ -1647,34 +1674,32 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
 
             }
             break;
-			case LongInst.Le:
-			{
-				if ((*lhsRef) <= *rhs)
-				{
-					cond = true;
-				}
-				else
-				{
-					cond = false;
-				}
-				
-			}
-				break;
-			case LongInst.Ge:
-			{
-				if ((*lhsRef) >= *rhs)
-				{
-					cond = true;
-				}
-				else
-				{
-					cond = false;
-				}
-				
-			}
-				break;
+        case LongInst.Le:
+            {
+                if ((*lhsRef) <= *rhs)
+                {
+                    cond = true;
+                }
+                else
+                {
+                    cond = false;
+                }
 
+            }
+            break;
+        case LongInst.Ge:
+            {
+                if ((*lhsRef) >= *rhs)
+                {
+                    cond = true;
+                }
+                else
+                {
+                    cond = false;
+                }
 
+            }
+            break;
 
         case LongInst.Jmp:
             {
@@ -1834,7 +1859,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args, BCHeap* heapPtr =
             break;
         case LongInst.BuiltinCall:
             {
-                    assert(0, "Unsupported right now: BCBuiltin");
+                assert(0, "Unsupported right now: BCBuiltin");
             }
         case LongInst.Call:
             {
@@ -1910,4 +1935,5 @@ int[] testRelJmp()
 pragma(msg, printInstructions(testRelJmp));
 static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
 import bc_test;
+
 static assert(test!BCGen());
