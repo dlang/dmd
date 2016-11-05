@@ -129,7 +129,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 
 import ddmd.ctfe.bc_common;
 
-enum UseLLVMBackend = 0;
+enum UseLLVMBackend = 1;
 enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
@@ -2814,8 +2814,7 @@ public:
             }
             else
             {
-                IGaveUp = true;
-                return;
+				addUnresolvedGoto(cast(void*) bs.ident, beginJmp());
             }
 
         }
