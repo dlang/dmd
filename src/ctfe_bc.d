@@ -226,11 +226,12 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         auto bc_args = args.map!(a => bcv.genExpr(a)).array;
         writeln("BC Args :", bc_args);
         bcv.endArguments();
+		bcv.Finalize();
 
         if (--recursionLevel == 0)
         {
             recursionLevel = uint.max;
-            bcv.Finalize();
+            
         }
 
         static if (UseLLVMBackend)
@@ -1258,12 +1259,14 @@ public:
 
                 case TOK.TOKshr:
                     {
+                        //TODO throw assert error if rhs > lhs.sizeof
                         Rsh3(retval, lhs, rhs);
                     }
                     break;
 
                 case TOK.TOKshl:
                     {
+                        //TODO throw assert error if rhs > lhs.sizeof
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
@@ -1972,7 +1975,7 @@ public:
             writefln("DeclarationExp %s discardValue %d", de.toString, discardValue);
             writefln("DeclarationExp.declaration: %x", cast(void*) de.declaration.isVarDeclaration);
         }
-
+		if (vd._init) {
         if (auto ci = vd.getConstInitializer)
         {
 
@@ -1984,7 +1987,7 @@ public:
 
         }
         retval = var;
-    }
+		}}
 
     override void visit(VarDeclaration vd)
     {

@@ -134,25 +134,26 @@ enum IndirectionFlagMask = ubyte(0x40); // check 7th bit
 enum InstMask = ubyte(0x3F); // mask for bit 0-5
 //enum CondFlagMask = ~ushort(0x2FF); // mask for 8-10th bit
 enum CondFlagMask = 0b11_0000_0000;
-/*
- * 64BitInst :
- * [0 .. 6] Instruction
- * [6 .. 9] Flags (* Bit 6 is true for 64BitInst
- *
- *
- */
 
-/* Only for ImmInstructions
-* Layaout :
+
+/** 2StackInst Layout :
 * [0-6] Instruction
 * [6-8] Flags
-* *****************
+* -----------------
+* [8-12] CondFlag (or Padding)
+* [12-32] Padding
+* [32-48] StackOffset (lhs)
+* [48-64] StackOffset (rhs)
+* *************************
+* ImmInstructions Layout :
+* [0-6] Instruction
+* [6-8] Flags
+* ------------------------
 * [8-12] CondFlag (or Padding)
 * [12-16] Padding
 * [16-32] StackOffset (lhs)
 * [32-64] Imm32 (rhs)
 */
-
 struct LongInst64
 {
     uint lw;
