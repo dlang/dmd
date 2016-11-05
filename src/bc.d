@@ -43,7 +43,7 @@ auto instKind(LongInst i)
         }
 
     case LongInst.ImmAdd, LongInst.ImmSub, LongInst.ImmDiv, LongInst.ImmMul,
-				LongInst.ImmEq, LongInst.ImmNeq, LongInst.ImmLt, LongInst.ImmLe, LongInst.ImmGt, LongInst.ImmGe, LongInst.ImmSet,
+			LongInst.ImmEq, LongInst.ImmNeq, LongInst.ImmLt, LongInst.ImmLe, LongInst.ImmGt, LongInst.ImmGe, LongInst.ImmSet,
             LongInst.ImmAnd, LongInst.ImmOr, LongInst.ImmXor, LongInst.ImmLsh,
             LongInst.ImmRsh, LongInst.ImmMod, LongInst.Call, LongInst.BuiltinCall,
 			LongInst.ImmSetHigh:
@@ -451,9 +451,11 @@ struct BCGen
     void genJump(BCLabel target)
     {
         assert(target.addr);
-        auto at = beginJmp();
-        if (at != target.addr)
+        if (ip != target.addr)
+        {
+            auto at = beginJmp();
             endJmp(at, target);
+	}
     }
 
     void emitFlg(BCValue lhs)
