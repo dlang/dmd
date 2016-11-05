@@ -362,6 +362,50 @@ void test7976() {
 
 /***************************************/
 
+cfloat foo15f(ifloat re, float im)
+{
+    return re + im;
+}
+
+cfloat bar15f(float re, ifloat im)
+{
+    return re + im;
+}
+
+cdouble foo15(idouble re, double im)
+{
+    return re + im;
+}
+
+cdouble bar15(double re, idouble im)
+{
+    return re + im;
+}
+
+creal foo15r(ireal re, real im)
+{
+    return re + im;
+}
+
+creal bar15r(real re, ireal im)
+{
+    return re + im;
+}
+
+void test15()
+{
+    assert(foo15f(1.0fi, 2.0f) == 2.0f + 1.0fi);
+    assert(bar15f(1.0f, 2.0fi) == 1.0f + 2.0fi);
+
+    assert(foo15(1.0i, 2.0) == 2.0 + 1.0i);
+    assert(bar15(1.0, 2.0i) == 1.0 + 2.0i);
+
+    assert(foo15r(1.0Li, 2.0L) == 2.0L + 1.0Li);
+    assert(bar15r(1.0L, 2.0Li) == 1.0L + 2.0Li);
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -387,6 +431,7 @@ int main(char[][] args)
     test10677();
     test7806();
     test7976();
+    test15();
 
     printf("Success!\n");
     return 0;
