@@ -3298,7 +3298,7 @@ unittest
 }
 
 /// Provide the .dup array property.
-@property auto dup(T)(scope T[] a)
+@property auto dup(T)(T[] a)
     if (!is(const(T) : T))
 {
     import core.internal.traits : Unconst;
@@ -3314,7 +3314,7 @@ unittest
 
 /// ditto
 // const overload to support implicit conversion to immutable (unique result, see DIP29)
-@property T[] dup(T)(scope const(T)[] a)
+@property T[] dup(T)(const(T)[] a)
     if (is(const(T) : T))
 {
     // wrap unsafe _dup in @trusted to preserve @safe postblit
@@ -3326,7 +3326,7 @@ unittest
 
 
 /// Provide the .idup array property.
-@property immutable(T)[] idup(T)(scope T[] a)
+@property immutable(T)[] idup(T)(T[] a)
 {
     static assert(is(T : immutable(T)), "Cannot implicitly convert type "~T.stringof~
                   " to immutable in idup.");
@@ -3339,17 +3339,17 @@ unittest
 }
 
 /// ditto
-@property immutable(T)[] idup(T:void)(scope const(T)[] a)
+@property immutable(T)[] idup(T:void)(const(T)[] a)
 {
     return a.dup;
 }
 
-private U[] _trustedDup(T, U)(scope T[] a) @trusted
+private U[] _trustedDup(T, U)(T[] a) @trusted
 {
     return _dup!(T, U)(a);
 }
 
-private U[] _dup(T, U)(scope T[] a) // pure nothrow depends on postblit
+private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
 {
     if (__ctfe)
     {
@@ -3542,4 +3542,20 @@ unittest
 
     S[] arr;
     auto a = arr.dup;
+}
+
+unittest
+{
+    // Bugzilla 16504
+    static struct S
+    {
+        __gshared int* gp;
+        int* p;
+        // postblit and hence .dup could escape
+        this(this) { gp = p; }
+    }
+
+    int p;
+    scope arr = [S(&p)];
+    auto a = arr.dup; // dup does escape
 }
