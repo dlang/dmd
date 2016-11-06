@@ -93,9 +93,7 @@
     <ClCompile Include="..\backend\ph2.c" />
     <ClCompile Include="..\backend\util2.c" />
     <ClCompile Include="..\backend\varstats.c" />
-    <ClCompile Include="..\eh.c" />
     <ClCompile Include="..\iasm.c" />
-    <ClCompile Include="..\objc_glue_stubs.c" />
     <ClCompile Include="..\tk.c" />
     <ClCompile Include="..\backend\aa.c" />
     <ClCompile Include="..\backend\bcomplex.c" />

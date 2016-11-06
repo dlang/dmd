@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\eh.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\iasm.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -215,9 +212,6 @@
     </ClCompile>
     <ClCompile Include="..\backend\varstats.c">
       <Filter>src\backend</Filter>
-    </ClCompile>
-    <ClCompile Include="..\objc_glue_stubs.c">
-      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\backend\compress.c">
       <Filter>src\backend</Filter>
