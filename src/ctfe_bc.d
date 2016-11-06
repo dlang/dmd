@@ -2528,9 +2528,10 @@ public:
 
         foreach (stmt; *uls.statements)
         {
+            auto block = genBlock(stmt);
+
             if (end--)
             {
-                auto block = genBlock(stmt);
                 foreach (fixup; _uls.continueFixups[0 .. _uls.continueFixupCount])
                 {
                     endJmp(fixup, block.end);
@@ -2539,10 +2540,14 @@ public:
             }
             else
             {
-                auto block = genBlock(stmt);
+                //FIXME Be aware that a break fixup has to be checked aginst the ip
+                //TODO investigate why
                 foreach (fixup; _uls.breakFixups[0 .. _uls.breakFixupCount])
                 {
-                    endJmp(fixup, block.begin);
+                    //HACK the will leave a nop in the bcgen
+                    //but it will break llvm or other potential backends;
+                    if (ip != block.begin.addr)
+                        endJmp(fixup, block.begin);
                 }
                 _uls.breakFixupCount = 0;
             }
