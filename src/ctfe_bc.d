@@ -1627,6 +1627,7 @@ public:
         }
         else
         {
+            IGaveUp = true;
         }
     }
 
@@ -1837,8 +1838,22 @@ public:
 
     override void visit(DollarExp de)
     {
-        retval = getLength(currentIndexed);
-        assert(retval);
+        if (currentIndexed.type == BCTypeEnum.Array
+                || currentIndexed.type == BCTypeEnum.Array
+                || currentIndexed.type == BCTypeEnum.String)
+        {
+            retval = getLength(currentIndexed);
+            assert(retval);
+        }
+        else
+        {
+            debug (ctfe)
+            {
+                assert(0, "We could not find an indexed variable for " ~ de.toString);
+            }
+            IGaveUp = true;
+            return;
+        }
     }
 
     override void visit(AddrExp ae)
@@ -1896,9 +1911,19 @@ public:
 
     BCValue getLength(BCValue arr, BCValue target = BCValue.init)
     {
-        auto length = target ? target : genTemporary(BCType(BCTypeEnum.i32));
-        Load32(length, arr.i32);
-        return length;
+        if (arr)
+        {
+            auto length = target ? target : genTemporary(BCType(BCTypeEnum.i32));
+            Load32(length, arr.i32);
+            return length;
+        }
+        else
+        {
+            debug (ctfe)
+                assert(0, "cannot get length without a valid arr");
+            IGaveUp = true;
+            return BCValue.init;
+        }
     }
 
     override void visit(VarExp ve)

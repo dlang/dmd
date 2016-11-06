@@ -443,7 +443,7 @@ string xfoo8285(string s)
     return s;
 }
 
-static assert(xfoo8285(xbaz8285()) == "ab");
+static assert(xbaz8285() == "ab");
 
 /**************************************************
   'this' parameter bug revealed during refactoring
