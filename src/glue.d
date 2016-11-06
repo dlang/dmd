@@ -974,7 +974,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (global.params.mscoff)
             {
-                objmod.includelib("LIBCMT");
+                if (global.params.mscrtlib && global.params.mscrtlib[0])
+                    objmod.includelib(global.params.mscrtlib);
                 objmod.includelib("OLDNAMES");
             }
             else if (config.exe == EX_WIN32)
@@ -989,7 +990,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             if (global.params.mscoff)
             {
                 objmod.includelib("uuid");
-                objmod.includelib("LIBCMT");
+                if (global.params.mscrtlib && global.params.mscrtlib[0])
+                    objmod.includelib(global.params.mscrtlib);
                 objmod.includelib("OLDNAMES");
                 objmod.ehsections();   // initialize exception handling sections
             }
@@ -1007,7 +1009,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             if (global.params.mscoff)
             {
                 objmod.includelib("uuid");
-                objmod.includelib("LIBCMT");
+                if (global.params.mscrtlib && global.params.mscrtlib[0])
+                    objmod.includelib(global.params.mscrtlib);
                 objmod.includelib("OLDNAMES");
                 objmod.ehsections();   // initialize exception handling sections
             }
