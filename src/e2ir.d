@@ -170,7 +170,7 @@ elem *callfunc(Loc loc,
     int op;
     elem *eresult = ehidden;
 
-    debug
+    debug(E2IR)
     {
         printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
             directcall, tret.toChars(), ec, fd);
