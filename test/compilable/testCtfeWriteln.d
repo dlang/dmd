@@ -11,18 +11,19 @@ result == 91
 */
 int sum_of_sq(int x) pure nothrow @safe
 {
+    import std.conv;
+
     int result = 0;
     foreach (i; 0 .. x)
     {
-        import std.conv;
         __ctfeWrite(to!string(i));
         __ctfeWrite("^^2 == ");
        int power = i ^^ 2;
-        __ctfeWriteln(power);
+        __ctfeWrite(power.to!string ~ "\n");
         result += power;
     }
     __ctfeWrite("result == ");
-    __ctfeWriteln(to!string(result));
+    __ctfeWrite(to!string(result) ~ "\n");
     return result;
 
 }
