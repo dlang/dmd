@@ -4609,11 +4609,14 @@ code *cdpost(elem *e,regm_t *pretregs)
 
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        return post87(e,pretregs);
-#else
+        if (config.fpxmmregs && tyxmmreg(tyml) &&
+            !tycomplex(tyml) // SIMD code is not set up to deal with complex
+           )
+            return xmmpost(e,pretregs);
+
         if (config.inline8087)
-                return post87(e,pretregs);
+            return post87(e,pretregs);
+#if TARGET_WINDOS
         assert(sz <= 8);
         c1 = getlvalue(&cs,e->E1,DOUBLEREGS);
         freenode(e->E1);
