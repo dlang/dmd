@@ -500,11 +500,8 @@ struct BCGen
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i32Ptr
-            || lhs.type == BCTypeEnum.Char || lhs.type == BCTypeEnum.i1,
+            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char || lhs.type == BCTypeEnum.i1,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
-        assert(rhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.Char
-            || lhs.type == BCTypeEnum.i1,
-            "only i32 is supported for now, not: " ~ to!string(rhs.type.type));
 
         immutable bool isIndirect = lhs.type == BCTypeEnum.i32Ptr;
         if (rhs.vType == BCValueType.Immediate)
