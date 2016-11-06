@@ -93,6 +93,7 @@ enum LongInst : ushort
     Mod,
 
     Assert,
+    AssertCnd,
 
     // Immidate operand
     ImmAdd,
@@ -484,7 +485,17 @@ struct BCGen
     void AssertError(BCValue value, BCValue msg)
     {
         assert(msg.vType == BCValueType.HeapValue);
-        emitLongInst(LongInst64(LongInst.Assert, value.stackAddr, msg.stackAddr));
+        auto _msg = genTemporary(i32Type);
+        Set(_msg, BCValue(Imm32(msg.heapAddr.addr)));
+        if (value)
+        {
+            emitLongInst(LongInst64(LongInst.Assert, value.stackAddr, _msg.stackAddr));
+        }
+        else
+        {
+            emitLongInst(LongInst64(LongInst.AssertCnd, value.stackAddr, _msg.stackAddr));
+        }
+
     }
 
     void Not(BCValue val)
@@ -500,7 +511,8 @@ struct BCGen
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i32Ptr
-            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char || lhs.type == BCTypeEnum.i1,
+            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char
+            || lhs.type == BCTypeEnum.i1,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
 
         immutable bool isIndirect = lhs.type == BCTypeEnum.i32Ptr;
@@ -1137,10 +1149,14 @@ string printInstructions(const int* startInstructions, uint length) pure
             break;
         case LongInst.Assert:
             {
-                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
+                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], HEAP[SP[" ~ to!string(hi >> 16) ~ "]]\n";
             }
             break;
-
+        case LongInst.AssertCnd:
+            {
+                result ~= "AssertCnd HEAP[SP[" ~ to!string(hi >> 16) ~ "]]\n";
+            }
+            break;
         case LongInst.Eq:
             {
                 result ~= "Eq SP[" ~ to!string(hi & 0xFFFF) ~ "], SP[" ~ to!string(hi >> 16) ~ "]\n";
@@ -1611,6 +1627,15 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
         case LongInst.Assert:
             {
                 assert(0, "Not Implemented yet");
+            }
+        case LongInst.AssertCnd:
+            {
+                if (!cond)
+                {
+                    BCValue retval = BCValue(HeapAddr((*rhs) & uint.max));
+                    retval.vType = BCValueType.Error;
+                    return retval;
+                }
             }
         case LongInst.Eq:
             {

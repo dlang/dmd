@@ -125,6 +125,8 @@ enum BCValueType : ubyte
     Immediate = 0x8,
 
     HeapValue = 0x10,
+
+	Error = 0xFF,
     /// Pinned values can be returned
     /// And should be kept in the compacted heap
     //Pinned = 0x80,
@@ -319,6 +321,9 @@ struct BCValue
 
             case BCValueType.Unknown:
                 return false;
+				case BCValueType.Error:
+					return false;
+
             }
 
         }
