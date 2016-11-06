@@ -975,6 +975,7 @@ public:
                 || fd.ident == Identifier.idPool("isSameLength")
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("wrap")
+                || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
             IGaveUp = true;
