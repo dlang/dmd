@@ -160,7 +160,7 @@ GLUE_SRCS=irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d \
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
-	$C/ty.d $C/type.d $C/exh.d
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d
 
 TK_HDRS= $(TK)/dlist.d
 
@@ -202,7 +202,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 GLUESRC= \
 	toir.h irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c objc_glue.c \
+	tk.c objc_glue.d \
 	$(GLUE_SRCS)
 
 # D back end
