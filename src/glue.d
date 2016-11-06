@@ -955,12 +955,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 global.params.isOpenBSD || global.params.isSolaris)
             {
                 objmod.external_def("_main");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else if (global.params.mscoff)
             {
                 objmod.external_def("main");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else if (config.exe == EX_WIN32)
             {
@@ -969,6 +967,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             }
             objmod.includelib(libname);
             s.Sclass = SCglobal;
+        }
+        else if (strcmp(s.Sident.ptr, "rt_init") == 0 && fd.linkage == LINKc)
+        {
+            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+                global.params.isOpenBSD || global.params.isSolaris ||
+                global.params.mscoff)
+            {
+                objmod.ehsections();   // initialize exception handling sections
+            }
         }
         else if (strcmp(s.Sident.ptr, "main") == 0 && fd.linkage == LINKc)
         {
@@ -991,7 +998,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 objmod.includelib("uuid");
                 objmod.includelib("LIBCMT");
                 objmod.includelib("OLDNAMES");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else
             {
@@ -1009,7 +1015,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 objmod.includelib("uuid");
                 objmod.includelib("LIBCMT");
                 objmod.includelib("OLDNAMES");
-                objmod.ehsections();   // initialize exception handling sections
             }
             else
             {
