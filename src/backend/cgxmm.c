@@ -94,24 +94,43 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
  */
 
 code *orthxmm(elem *e, regm_t *pretregs)
-{   elem *e1 = e->E1;
+{
+    //printf("orthxmm(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    elem *e1 = e->E1;
     elem *e2 = e->E2;
-    regm_t retregs = *pretregs & XMMREGS;
-    if (!retregs)
-        retregs = XMMREGS;
-    code *c = codelem(e1,&retregs,FALSE); // eval left leaf
-    unsigned reg = findreg(retregs);
-    regm_t rretregs = XMMREGS & ~retregs;
-    code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
-
-    unsigned op = xmmoperator(e1->Ety, e->Eoper);
-    unsigned rreg = findreg(rretregs);
 
     // float + ifloat is not actually addition
     if ((e->Eoper == OPadd || e->Eoper == OPmin) &&
         ((tyreal(e1->Ety) && tyimaginary(e2->Ety)) ||
          (tyreal(e2->Ety) && tyimaginary(e1->Ety))))
     {
+        regm_t retregs = *pretregs & XMMREGS;
+        if (!retregs)
+            retregs = XMMREGS;
+
+        unsigned reg;
+        regm_t rretregs;
+        unsigned rreg;
+        if (tyreal(e1->Ety))
+        {
+            reg = findreg(retregs);
+            rreg = findreg(retregs & ~mask[reg]);
+            retregs = mask[reg];
+            rretregs = mask[rreg];
+        }
+        else
+        {
+            // Pick the second register, not the first
+            rreg = findreg(retregs);
+            rretregs = mask[rreg];
+            reg = findreg(retregs & ~rretregs);
+            retregs = mask[reg];
+        }
+        assert(retregs && rretregs);
+
+        code *c = codelem(e1,&retregs,FALSE); // eval left leaf
+        code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
+
         retregs |= rretregs;
         c = cat(c, cr);
         if (e->Eoper == OPmin)
@@ -132,6 +151,17 @@ code *orthxmm(elem *e, regm_t *pretregs)
             c = cat(c, fixresult(e,retregs,pretregs));
         return c;
     }
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+    code *c = codelem(e1,&retregs,FALSE); // eval left leaf
+    unsigned reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
+
+    unsigned rreg = findreg(rretregs);
+    unsigned op = xmmoperator(e1->Ety, e->Eoper);
 
     /* We should take advantage of mem addressing modes for OP XMM,MEM
      * but we do not at the moment.
