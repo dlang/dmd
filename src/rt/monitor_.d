@@ -155,11 +155,6 @@ version (Windows)
     {
         pragma(lib, "snn.lib");
     }
-    else version (CRuntime_Microsoft)
-    {
-        pragma(lib, "libcmt.lib");
-        pragma(lib, "oldnames.lib");
-    }
     import core.sys.windows.windows;
 
     alias Mutex = CRITICAL_SECTION;
