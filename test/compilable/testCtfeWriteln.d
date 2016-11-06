@@ -18,12 +18,14 @@ int sum_of_sq(int x) pure nothrow @safe
     {
         __ctfeWrite(to!string(i));
         __ctfeWrite("^^2 == ");
-       int power = i ^^ 2;
-        __ctfeWrite(power.to!string ~ "\n");
+        int power = i ^^ 2;
+        __ctfeWrite(power.to!string);
+        __ctfeWrite("\n");
         result += power;
     }
     __ctfeWrite("result == ");
-    __ctfeWrite(to!string(result) ~ "\n");
+    __ctfeWrite(to!string(result));
+    __ctfeWrite("\n");
     return result;
 
 }

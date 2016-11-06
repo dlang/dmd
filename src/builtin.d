@@ -187,10 +187,13 @@ extern (C++) Expression builtin_ctfeWrite(Loc loc, FuncDeclaration fd, Expressio
 {
     import std.stdio : fprintf;
     Expression arg0 = (*arguments)[0];
-    assert(arg0.op == TOKstring);
+    if (arg0.op != TOKstring)
+    {
+        arg0.toStringExp();
+    }
     auto se = cast(StringExp)arg0;
     fprintf(global.stdmsg, "%.*s".ptr, se.len, se.string);
-    return null;
+    return arg0;
 }
 
 public extern (C++) void builtin_init()
@@ -292,7 +295,7 @@ public extern (C++) void builtin_init()
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
     // void function(const string)
-    add_builtin("_D6object13__ctfeWriteFxAyaZv", &builtin_ctfeWrite);
+    add_builtin("_D6object11__ctfeWriteFNaNbNiNfxAyaZv", &builtin_ctfeWrite);
 }
 
 /**********************************
