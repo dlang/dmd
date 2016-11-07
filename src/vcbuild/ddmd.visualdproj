@@ -445,6 +445,7 @@
     <File path="..\backend\cv4.d" />
     <File path="..\backend\dt.d" />
     <File path="..\backend\el.d" />
+    <File path="..\backend\exh.d" />
     <File path="..\backend\global.d" />
     <File path="..\backend\obj.d" />
     <File path="..\backend\oper.d" />
