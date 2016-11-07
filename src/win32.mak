@@ -202,7 +202,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 GLUESRC= \
 	toir.h irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c objc_glue.c \
+	tk.c objc_glue.d \
 	$(GLUE_SRCS)
 
 # D back end

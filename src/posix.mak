@@ -223,10 +223,6 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 
 GLUE_OBJS = iasm.o
 
-ifeq ($(D_OBJC),1)
-	GLUE_OBJS += objc_glue.o
-endif
-
 ifeq (osx,$(OS))
     FRONT_SRCS += libmach.d scanmach.d
 else
@@ -237,6 +233,7 @@ GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym 
 	tocvdebug s2ir toobj e2ir eh)
 
 ifeq ($(D_OBJC),1)
+	GLUE_SRCS += objc_glue.d
 else
 	GLUE_SRCS += objc_glue_stubs.d
 endif
@@ -277,7 +274,7 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 GLUE_SRC = \
 	toir.h irstate.h iasm.c \
 	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c eh.c gluestub.d objc_glue.c
+	tk.c gluestub.d objc_glue.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
