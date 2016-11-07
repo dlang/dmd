@@ -647,7 +647,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 {
     Expression result;
 
-    if (value.vType == BCValueTypeError)
+    if (value.vType == BCValueType.Error)
     {
         assert(value.type == i32Type);
         assert(value.imm32, "Errors are 1 based indexes");
@@ -1306,7 +1306,7 @@ public:
 
                         Lt3(BCValue.init, rhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
                         AssertError(BCValue.init,
-                            _sharedCtfeState.addError(e.loc, "Tryng to shift out of bounds"));
+                            _sharedCtfeState.addError(e.loc, "Trying to shift more then"));
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
