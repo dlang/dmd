@@ -3020,6 +3020,11 @@ extern (C++) class FuncDeclaration : Declaration
         return ident == Id.DllMain && linkage != LINKc && !isMember();
     }
 
+    final bool isRtInit()
+    {
+        return ident == Id.rt_init && linkage == LINKc && !isMember() && !isNested();
+    }
+
     override final bool isExport()
     {
         return protection.kind == PROTexport;
