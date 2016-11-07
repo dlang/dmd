@@ -654,7 +654,7 @@ Expression toExpression(const BCValue value, Type expressionType,
         import ddmd.ctfeexpr : CTFEExp;
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
-        error(err.loc, err.msg);
+        error(err.loc, err.msg.ptr);
         return CTFEExp.cantexp;
     }
 
