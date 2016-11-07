@@ -289,6 +289,7 @@ Msgtable[] msgtable =
     { "DllMain" },
     { "tls_get_addr", "___tls_get_addr" },
     { "entrypoint", "__entrypoint" },
+    { "rt_init" },
 
     // varargs implementation
     { "va_start" },

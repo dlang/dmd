@@ -968,7 +968,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             objmod.includelib(libname);
             s.Sclass = SCglobal;
         }
-        else if (strcmp(s.Sident.ptr, "rt_init") == 0 && fd.linkage == LINKc)
+        else if (fd.isRtInit())
         {
             if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
                 global.params.isOpenBSD || global.params.isSolaris ||
@@ -977,7 +977,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 objmod.ehsections();   // initialize exception handling sections
             }
         }
-        else if (strcmp(s.Sident.ptr, "main") == 0 && fd.linkage == LINKc)
+        else if (fd.isCMain())
         {
             if (global.params.mscoff)
             {
