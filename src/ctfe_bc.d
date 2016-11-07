@@ -451,12 +451,13 @@ struct SharedCtfeState(BCGenT)
     }
 
     bool addStructInProgress;
-    
+
     import ddmd.tokens : Loc;
+
     BCValue addError(Loc loc, string msg)
     {
         errors[errorCount++] = RetainedError(loc, msg);
-        auto retval =  BCValue(Imm32(errorCount));
+        auto retval = BCValue(Imm32(errorCount));
         retval.vType = BCValueType.Error;
         return retval;
     }
@@ -638,6 +639,7 @@ struct SharedCtfeState(BCGenT)
 struct RetainedError // Name is still undecided
 {
     import ddmd.tokens : Loc;
+
     Loc loc;
     string msg;
 }
@@ -652,8 +654,10 @@ Expression toExpression(const BCValue value, Type expressionType,
         assert(value.type == i32Type);
         assert(value.imm32, "Errors are 1 based indexes");
         import ddmd.ctfeexpr : CTFEExp;
+
         auto err = _sharedCtfeState.errors[value.imm32 - 1];
         import ddmd.errors;
+
         error(err.loc, err.msg.ptr);
         return CTFEExp.cantexp;
     }
@@ -1004,6 +1008,7 @@ public:
                 || fd.ident == Identifier.idPool("isSameLength")
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
+                
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
@@ -1296,7 +1301,7 @@ public:
                     {
                         Lt3(BCValue.init, rhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
                         AssertError(BCValue.init,
-                            _sharedCtfeState.addError(e.loc, "Tryng to shift out of bounds"));
+                            _sharedCtfeState.addError(e.loc, "shift out of bounds"));
                         Rsh3(retval, lhs, rhs);
                     }
                     break;
@@ -1306,7 +1311,7 @@ public:
 
                         Lt3(BCValue.init, rhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
                         AssertError(BCValue.init,
-                            _sharedCtfeState.addError(e.loc, "Trying to shift more then"));
+                            _sharedCtfeState.addError(e.loc, "shift out of bounds"));
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
@@ -2580,7 +2585,10 @@ public:
             {
                 foreach (fixup; _uls.continueFixups[0 .. _uls.continueFixupCount])
                 {
-                    endJmp(fixup, block.end);
+                    //HACK the will leave a nop in the bcgen
+                    //but it will break llvm or other potential backends;
+                    if (fixup.addr != block.end.addr)
+                        endJmp(fixup, block.end);
                 }
                 _uls.continueFixupCount = 0;
             }
@@ -2592,7 +2600,7 @@ public:
                 {
                     //HACK the will leave a nop in the bcgen
                     //but it will break llvm or other potential backends;
-                    if (ip != block.begin.addr)
+                    if (fixup.addr != block.begin.addr)
                         endJmp(fixup, block.begin);
                 }
                 _uls.breakFixupCount = 0;

@@ -482,11 +482,10 @@ struct BCGen
         emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
     }
 
-    void AssertError(BCValue value, BCValue msg)
+    void AssertError(BCValue value, BCValue err)
     {
-        assert(msg.vType == BCValueType.HeapValue);
         auto _msg = genTemporary(i32Type);
-        Set(_msg, BCValue(Imm32(msg.heapAddr.addr)));
+        Set(_msg, BCValue(Imm32(err.imm32)));
         if (value)
         {
             emitLongInst(LongInst64(LongInst.Assert, value.stackAddr, _msg.stackAddr));
@@ -1637,6 +1636,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     return retval;
                 }
             }
+			break;
         case LongInst.Eq:
             {
                 if ((*lhsRef) == *rhs)
