@@ -1632,7 +1632,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             {
                 if (!cond)
                 {
-                    BCValue retval = BCValue(HeapAddr((*rhs) & uint.max));
+                    BCValue retval = BCValue(Imm32((*rhs) & uint.max));
                     retval.vType = BCValueType.Error;
                     return retval;
                 }

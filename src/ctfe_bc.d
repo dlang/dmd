@@ -436,6 +436,8 @@ struct SharedCtfeState(BCGenT)
     uint sliceCount;
     BCPointer[ubyte.max * 4] pointers;
     uint pointerCount;
+    RetainedError[ubyte.max * 4] errors;
+    uint errorCount;
 
     static if (is(BCFunction))
     {
@@ -449,6 +451,15 @@ struct SharedCtfeState(BCGenT)
     }
 
     bool addStructInProgress;
+    
+    import ddmd.tokens : Loc;
+    BCValue addError(Loc loc, string msg)
+    {
+        errors[errorCount++] = RetainedError(loc, msg);
+        auto retval =  BCValue(Imm32(errorCount));
+        retval.vType = BCValueType.Error;
+        return retval;
+    }
 
     int getArrayIndex(TypeSArray tsa)
     {
@@ -624,17 +635,26 @@ struct SharedCtfeState(BCGenT)
     }
 }
 
+struct RetainedError // Name is still undecided
+{
+    import ddmd.tokens : Loc;
+    Loc loc;
+    string msg;
+}
+
 Expression toExpression(const BCValue value, Type expressionType,
     const BCHeap* heapPtr = &_sharedCtfeState.heap)
 {
     Expression result;
 
-    if (value.vType == BCValueType.Error)
+    if (value.vType == BCValueTypeError)
     {
+        assert(value.type == i32Type);
+        assert(value.imm32, "Errors are 1 based indexes");
         import ddmd.ctfeexpr : CTFEExp;
-
-        //auto length = heapPtr._heap.ptr[offset];
-        //auto resultString = (cast(void*)(heapPtr._heap.ptr + offset + 1))[0 .. length].dup;
+        auto err = _sharedCtfeState.errors[value.imm32 - 1];
+        import ddmd.errors;
+        error(err.loc, err.msg);
         return CTFEExp.cantexp;
     }
 
@@ -1276,8 +1296,7 @@ public:
                     {
                         Lt3(BCValue.init, rhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
                         AssertError(BCValue.init,
-                            BCValue(_sharedCtfeState.heap.pushString("Tryng to shift out of bounds",
-                            28)));
+                            _sharedCtfeState.addError(e.loc, "Tryng to shift out of bounds"));
                         Rsh3(retval, lhs, rhs);
                     }
                     break;
@@ -1287,8 +1306,7 @@ public:
 
                         Lt3(BCValue.init, rhs, BCValue(Imm32(basicTypeSize(lhs.type) * 8)));
                         AssertError(BCValue.init,
-                            BCValue(_sharedCtfeState.heap.pushString("Tryng to shift out of bounds",
-                            28)));
+                            _sharedCtfeState.addError(e.loc, "Tryng to shift out of bounds"));
                         Lsh3(retval, lhs, rhs);
                     }
                     break;
