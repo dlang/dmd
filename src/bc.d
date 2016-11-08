@@ -1358,6 +1358,15 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                 stackOffset += uint.sizeof;
             }
             break;
+        case BCTypeEnum.i64:
+            {
+                *(stack.ptr + stackOffset / 4) = arg.imm64;
+                stackOffset += uint.sizeof;
+                //TODO find out why adding ulong.sizeof does not work here
+                //make variable-sized stack possible ... if it should be needed
+
+            }
+            break;
         case BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Array:
             {
 
@@ -1636,7 +1645,7 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
                     return retval;
                 }
             }
-			break;
+            break;
         case LongInst.Eq:
             {
                 if ((*lhsRef) == *rhs)
