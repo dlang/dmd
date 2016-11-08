@@ -16,6 +16,30 @@ void test1()
   }
 }
 
+void test2()
+{
+    struct S0(T) { T[2] v = T(1); }
+    struct S1(T) { T[4] v = T(1); }
+
+    {
+        S0!real s3;
+        assert(s3.v == [1, 1]);
+        S0!float s1;
+        assert(s1.v == [1, 1]);
+        S0!uint s2;
+        assert(s2.v == [1, 1]);
+    }
+    {
+        import std.stdio: writeln;
+        S1!real s3;
+        assert(s3.v == [1, 1, 1, 1]);
+        S1!float s1;
+        assert(s1.v == [1, 1, 1, 1]);
+        S1!uint s2;
+        assert(s2.v == [1, 1, 1, 1]);
+    }
+}
+
 /******************************************/
 // 10629
 
@@ -165,6 +189,7 @@ void test15664()
 int main()
 {
     test1();
+    test2();
     test11672();
     test15664();
 
