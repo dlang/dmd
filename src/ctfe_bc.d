@@ -754,6 +754,11 @@ Expression toExpression(const BCValue value, Type expressionType,
             result = new IntegerExp(value.imm32);
         }
         break;
+    case Tint64, Tuns64:
+        {
+            result = new IntegerExp(value.imm64);
+        }
+        break;
     default:
         {
             debug (ctfe)
@@ -1004,11 +1009,12 @@ public:
 
         if (fd.ident == Identifier.idPool("isRooted")
                 || fd.ident == Identifier.idPool("__lambda2")
-                || fd.ident == Identifier.idPool("divideRoundUp")
                 || fd.ident == Identifier.idPool("isSameLength")
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
+
                 
+
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
