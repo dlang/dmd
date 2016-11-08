@@ -105,6 +105,10 @@ struct Print_BCGen
             {
                 return "p" ~ to!string(val.param) ~ functionSuffix;
             }
+			case BCValueType.Error:
+			{
+				return "Imm32(" ~ to!string(val.imm32) ~ ")/*Error*/";
+			}
         case BCValueType.Unknown:
             {
                 return "BCValue.init";
@@ -390,6 +394,11 @@ struct Print_BCGen
         result ~= "    Cat(" ~ print(_result) ~ ", " ~ print(lhs) ~ ", " ~ print(rhs) ~ ", " ~ to!string(
             elmSize) ~ ");\n";
     }
+
+	void AssertError(BCValue value, BCValue err)
+	{
+		result ~= "    AssertError(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
+	}
 }
 
 enum genString = q{
