@@ -42,7 +42,7 @@ import ddmd.opover;
 import ddmd.root.aav;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
-import ddmd.root.speller;
+import root.speller;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
