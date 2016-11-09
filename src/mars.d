@@ -81,10 +81,12 @@ private  void usage()
     static if (TARGET_WINDOS)
     {
         const(char)* m32mscoff = "\n  -m32mscoff       generate 32 bit code and write MS-COFF object files";
+        const(char)* mscrtlib  = "\n  -mscrtlib=<name> MS C runtime library to reference from main/WinMain/DllMain";
     }
     else
     {
         const(char)* m32mscoff = "";
+        const(char)* mscrtlib  = "";
     }
     logo();
     printf("
@@ -144,7 +146,8 @@ Where:
   -m64             generate 64 bit code
   -main            add default main() (e.g. for unittesting)
   -man             open web browser on manual page
-  -map             generate linker .map file
+  -map             generate linker .map file" ~
+  "%s" /* placeholder for mscrtlib */ ~ "
   -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
   -O               optimize
   -o-              do not write object file
@@ -171,7 +174,7 @@ Where:
   -wi              warnings as messages (compilation will continue)
   -X               generate JSON file
   -Xf=<filename>   write JSON file to filename
-", FileName.canonicalName(global.inifilename), fpic, m32mscoff);
+", FileName.canonicalName(global.inifilename), fpic, m32mscoff, mscrtlib);
 }
 
 /// DMD-generated module `__entrypoint` where the C main resides
@@ -486,6 +489,17 @@ private int tryMain(size_t argc, const(char)** argv)
                 else
                 {
                     error(Loc(), "-m32mscoff can only be used on windows");
+                }
+            }
+            else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
+            {
+                static if (TARGET_WINDOS)
+                {
+                    global.params.mscrtlib = p + 10;
+                }
+                else
+                {
+                    error(Loc(), "-mscrtlib");
                 }
             }
             else if (memcmp(p + 1, cast(char*)"profile", 7) == 0)
@@ -1007,6 +1021,11 @@ Language changes listed by -transition=id:
     {
         if (global.params.lib && global.params.dll)
             error(Loc(), "cannot mix -lib and -shared");
+    }
+    static if (TARGET_WINDOS)
+    {
+        if (!global.params.mscrtlib)
+            global.params.mscrtlib = "libcmt";
     }
     if (global.params.useArrayBounds == BOUNDSCHECKdefault)
     {
