@@ -22,11 +22,14 @@ UDFLAGS=-m$(MODEL) -conf= -O -release -dip25 -w -Isrc -Iimport
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 #CFLAGS=/O2 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
-CFLAGS=/Z7 /Zl /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
+CFLAGS=/Z7 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
 
 DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
 GCSTUB=lib\gcstub$(MODEL).obj
+
+# do not preselect a C runtime (extracted from the line above to make the auto tester happy)
+CFLAGS=$(CFLAGS) /Zl
 
 DOCFMT=
 
