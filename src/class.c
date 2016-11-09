@@ -1009,7 +1009,7 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
 
             //printf("\t[%d] = %s\n", i, fd->toChars());
             if (ident == fd->ident &&
-                fd->type->covariant(tf) == 1)
+                fd->type->covariant(tf, fd->loc) == 1)
             {   //printf("fd->parent->isClassDeclaration() = %p\n", fd->parent->isClassDeclaration());
                 if (!fdmatch)
                     goto Lfd;

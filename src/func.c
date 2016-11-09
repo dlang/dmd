@@ -1737,7 +1737,7 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
 
     if (fd->ident == ident)
     {
-        int cov = type->covariant(fd->type);
+        int cov = type->covariant(fd->type, this->loc);
         if (cov)
         {   ClassDeclaration *cd1 = toParent()->isClassDeclaration();
             ClassDeclaration *cd2 = fd->toParent()->isClassDeclaration();
@@ -1784,7 +1784,7 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
                 continue;
             }
 
-            int cov = type->covariant(fdv->type);
+            int cov = type->covariant(fdv->type, this->loc);
             //printf("\tbaseclass cov = %d\n", cov);
             switch (cov)
             {
@@ -1848,7 +1848,7 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
         return FALSE;
 
     if (type && f->type &&      // can be NULL for overloaded constructors
-        f->type->covariant(type) &&
+        f->type->covariant(type, this->loc) &&
         !isFuncAliasDeclaration())
     {
         //printf("\tfalse: conflict %s\n", kind());

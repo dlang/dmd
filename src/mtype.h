@@ -197,7 +197,7 @@ struct Type : Object
     virtual Type *syntaxCopy();
     int equals(Object *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
-    int covariant(Type *t);
+    int covariant(Type *t, Loc loc);
     char *toChars();
     static char needThisPrefix();
     static void init();

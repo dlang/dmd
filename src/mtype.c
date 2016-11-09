@@ -2676,7 +2676,7 @@ Type *TypeFunction::syntaxCopy()
  *      3       cannot determine covariance because of forward references
  */
 
-int Type::covariant(Type *t)
+int Type::covariant(Type *t, Loc loc)
 {
 #if 0
     printf("Type::covariant(t = %s) %s\n", t->toChars(), toChars());
@@ -2754,7 +2754,14 @@ int Type::covariant(Type *t)
             return 3;   // forward references
         }
     }
-    if (t1n->ty == t2n->ty && t1n->implicitConvTo(t2n))
+
+    if (t1n->ty != t2n->ty)
+    {
+        deprecation(loc, "%s overrides but is not covariant for %s",
+            t1->toChars(), t2->toChars());
+    }
+
+    if (t1n->implicitConvTo(t2n))
         goto Lcovariant;
 
     goto Lnotcovariant;
