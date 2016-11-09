@@ -2112,6 +2112,43 @@ elem * evalu8(elem *e, goal_t goal)
         }
 #endif
         return e;
+
+    case OPvecfill:
+        switch (tybasic(e->Ety))
+        {
+            case TYfloat4:
+                for (int i = 0; i < 4; ++i)
+                    e->EV.Vfloat4[i] = e1->EV.Vfloat;
+                break;
+            case TYdouble2:
+                for (int i = 0; i < 2; ++i)
+                    e->EV.Vdouble2[i] = e1->EV.Vdouble;
+                break;
+            case TYschar16:
+            case TYuchar16:
+                for (int i = 0; i < 16; ++i)
+                    ((targ_uchar *)&e->EV.Vcent)[i] = (targ_uchar)i1;
+                break;
+            case TYshort8:
+            case TYushort8:
+                for (int i = 0; i < 8; ++i)
+                    ((targ_ushort *)&e->EV.Vcent)[i] = (targ_ushort)i1;
+                break;
+            case TYlong4:
+            case TYulong4:
+                for (int i = 0; i < 4; ++i)
+                    ((targ_ulong *)&e->EV.Vcent)[i] = (targ_ulong)i1;
+                break;
+            case TYllong2:
+            case TYullong2:
+                for (int i = 0; i < 2; ++i)
+                    ((targ_ullong *)&e->EV.Vcent)[i] = (targ_ullong)l1;
+                break;
+            default:
+                assert(0);
+        }
+        break;
+
     default:
         return e;
   }

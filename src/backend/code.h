@@ -471,6 +471,7 @@ unsigned xmmload(tym_t tym);
 unsigned xmmstore(tym_t tym);
 code *cdvector(elem *e, regm_t *pretregs);
 code *cdvecsto(elem *e, regm_t *pretregs);
+code *cdvecfill(elem *e, regm_t *pretregs);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);

@@ -11367,8 +11367,8 @@ extern (C++) final class VectorExp : UnaExp
                 result |= checkElem((cast(ArrayLiteralExp)e1).getElement(i));
             }
         }
-        else
-            result = checkElem(e1);
+        else if (e1.type.ty == Tvoid)
+            checkElem(e1);
 
         return result ? new ErrorExp() : this;
     }

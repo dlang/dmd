@@ -61,7 +61,7 @@ int _unary[] =
          OPctor,OPdtor,OPsetjmp,OPvoid,
          OPbsf,OPbsr,OPbswap,OPpopcnt,
          OPddtor,
-         OPvector,
+         OPvector,OPvecfill,
          OPva_start,
          OPsqrt,OPsin,OPcos,OPinp,
          OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
@@ -144,7 +144,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPnullptr,
                 OProl,OPror,
                 OPsqrt,OPsin,OPcos,OPscale,
-                OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
+                OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,OPvecfill,
                 };
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs16_d,
@@ -155,6 +155,7 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPu16_d,OPb_8,
                 OPnullptr,
                 OPnp_fp,OPvp_fp,OPcvp_fp,
+                OPvecfill,
                 };
 int _lvalue[] = {OPvar,OPind,OPcomma,OPbit};
 
@@ -580,6 +581,7 @@ void dotab()
         case OPpopcnt:  X("popcnt",     evalu8, cdpopcnt);
         case OPvector:  X("vector",     elzot,  cdvector);
         case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
+        case OPvecfill: X("vecfill",    elzot,  cdvecfill);
         case OPva_start: X("va_start",  elvalist, cderr);
         case OPprefetch: X("prefetch",  elzot,  cdprefetch);
 

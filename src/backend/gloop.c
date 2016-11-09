@@ -1056,6 +1056,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPvp_fp: /* BUG for MacHandles */
         case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
         case OPcvp_fp:
+        case OPvecfill:
                 markinvar(n->E1,rd);
                 if (isLI(n->E1))        /* if child is LI               */
                         makeLI(n);
