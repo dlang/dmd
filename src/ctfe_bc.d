@@ -756,7 +756,8 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tint64, Tuns64:
         {
-            result = new IntegerExp(value.imm64);
+           // result = new IntegerExp(value.imm64);
+           // for now bail out on 64bit values
         }
         break;
     default:
@@ -1250,7 +1251,7 @@ public:
             auto rhs = genExpr(e.e2);
             if (((lhs.type.type == BCTypeEnum.i32
                     || lhs.type.type == BCTypeEnum.i32Ptr) && rhs.type.type == BCTypeEnum.i32)
-                    || (lhs.type.type == BCTypeEnum.i64 && rhs.type.type == BCTypeEnum.i64))
+                    || (lhs.type.type == BCTypeEnum.i64 && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.i32)))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
