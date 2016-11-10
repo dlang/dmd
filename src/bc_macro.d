@@ -153,10 +153,10 @@ void ArraySizeForStringLengthMacro(BCGen)(BCGen* gen, BCValue result, BCValue st
 	Add3(result, tmp2, tmp5);
 }
 /** This Macro is hand translated from 
-auto strcat(const uint[] a, const uint[] b, uint aLength = 0, uint bLength = 0)
+auto strcat(const uint[] a, const uint[] b)
 {
-	aLength = a[0];
-	bLength = b[0];
+	uint aLength = a[0];
+	uint bLength = b[0];
 	uint resultLength = a[0] + b[0];
 	uint[] result;
 	result.length = neededArraySize(resultLength);
@@ -167,7 +167,7 @@ auto strcat(const uint[] a, const uint[] b, uint aLength = 0, uint bLength = 0)
 	{
 		result[resultPosition++] = ca;
 	}
-	auto bMinusOne = !(bLength & 3);
+
         immutable uint offset = aLength & 3;
         if (offset)
         {
@@ -187,6 +187,7 @@ auto strcat(const uint[] a, const uint[] b, uint aLength = 0, uint bLength = 0)
         }
 	else
 	{
+	auto bMinusOne = !(bLength & 3);
 		foreach (p, cb; b[1..$ - bMinusOne])
 		{
 			result[resultPosition++] = cb;
@@ -199,11 +200,45 @@ void StringCat3Macro(BCGen)(BCGen* gen, BCValue _result, BCValue lhs, BCValue rh
 {
 	auto aLength = genTemporary(i32Type);
 	auto bLength = genTemporary(i32Type);
-	Load32(aLength, lhs);
-	Load32(bLength, rhs);
+	Load32(aLength, lhs.i32);
+	Load32(bLength, rhs.i32);
 
 	auto resultLength = genTemporary(i32Type);
 	Add3(resultLength, aLength, bLength);
 
+	auto allocSize = genTemporary(i32Type);
+	ArraySizeForStringLengthMacro(gen, allocSize, resultLength);
+	Alloc(_result, allocSize);
+	Store32(_result, resultLength);
+	auto resultPosition = genTemporary(i32Type);
+	Add3(resultPosition, resultPosition, bcFour);
 
+	auto offset = genTemporary(i32Type);
+	And3(offset, aLength, BCValue(Imm32(3)));
+
+	auto offsetZero = genTemporary(i32Type);
+	Eq3(offsetZero, offset, bcZero);
+
+	auto aPosition = genTemporary(i32Type);
+	Add3(aPosition, lhs.i32, bcFour);
+	auto aEnd = genTemporary(i32Type);
+	ArraySizeForStringLengthMacro(gen, aEnd, resultLength);
+	Sub3(aEnd, aEnd, offsetZero);
+
+	Ge3(BCValue.init, aPosition, aEnd);
+	// Or do we have to switch the loop condition ?
+	auto aCopyLoop = beginCndJmp();
+	{
+		auto aCopyElement = genTemporary(i32Type);
+		Load32(aCopyElement, aPosition);
+		Add3(aPosition, aPosition, bcFour);
+		Store32(resultPosition, aCopyElement);
+		Add3(resultPosition, resultPosition, bcFour);
+	}
+	endCndJmp(aCopyLoop, genLabel());
+
+	auto withOffset = beginCndJmp(offsetZero);
+	{
+
+	}
 }
