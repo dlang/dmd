@@ -10600,7 +10600,7 @@ extern (C++) final class AddrExp : UnaExp
                 }
                 if (sc.func && !sc.intypeof && !v.isDataseg())
                 {
-                    if (sc.func.setUnsafe())
+                    if (!global.params.safe && sc.func.setUnsafe())
                     {
                         const(char)* p = v.isParameter() ? "parameter" : "local";
                         error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
