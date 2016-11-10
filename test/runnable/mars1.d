@@ -207,7 +207,7 @@ void test11565()
 
 ///////////////////////
 
-int array1[3] = [1:1,2,0:3];
+int[3] array1 = [1:1,2,0:3];
 
 void testarrayinit()
 {
@@ -1467,6 +1467,41 @@ void test4()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=13474
+
+
+double sumKBN(double s = 0.0)
+{
+    import std.math : fabs;
+    double c = 0.0;
+        foreach(double x; [1, 1e100, 1, -1e100])
+        {
+            x = multiply(x);
+            double t = s + x;
+            if(s.fabs >= x.fabs)
+            {
+                double y = s-t;
+                c += y+x;
+            }
+            else
+            {
+                double y = x-t;
+                c += y+s;
+            }
+            s = t;
+        }
+    return s + c;
+}
+
+double multiply(double a) { return a * 10000; }
+
+void test13474()
+{
+    double r = 20000;
+    assert(r == sumKBN());
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -1519,6 +1554,7 @@ int main()
     test15861();
     test15629();
     test4();
+    test13474();
     printf("Success\n");
     return 0;
 }
