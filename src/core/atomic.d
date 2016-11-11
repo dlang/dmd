@@ -166,10 +166,10 @@ version( CoreDdoc )
 else version( AsmX86_32 )
 {
     // Uses specialized asm for fast fetch and add operations
-    private HeadUnshared!(T) atomicFetchAdd(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
-        if( T.sizeof <= 4 && V1.sizeof <= 4)
+    private HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+        if( T.sizeof <= 4 )
     {
-        size_t tmp = mod; // convert all operands to size_t
+        size_t tmp = mod;
         asm pure nothrow @nogc @trusted
         {
             mov EAX, tmp;
@@ -187,8 +187,8 @@ else version( AsmX86_32 )
         return cast(T)tmp;
     }
 
-    private HeadUnshared!(T) atomicFetchSub(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
-        if( T.sizeof <= 4 && V1.sizeof <= 4)
+    private HeadUnshared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+        if( T.sizeof <= 4)
     {
         return atomicFetchAdd(val, -mod);
     }
@@ -654,15 +654,15 @@ else version( AsmX86_32 )
 else version( AsmX86_64 )
 {
     // Uses specialized asm for fast fetch and add operations
-    private HeadUnshared!(T) atomicFetchAdd(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @trusted
-        if( __traits(isIntegral, T) && __traits(isIntegral, V1) )
+    private HeadUnshared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+        if( __traits(isIntegral, T) )
     in
     {
         assert( atomicValueIsProperlyAligned(val));
     }
     body
     {
-        size_t tmp = mod; // convert all operands to size_t
+        size_t tmp = mod;
         asm pure nothrow @nogc @trusted
         {
             mov RAX, tmp;
@@ -681,8 +681,8 @@ else version( AsmX86_64 )
         return cast(T)tmp;
     }
 
-    private HeadUnshared!(T) atomicFetchSub(T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
-        if( __traits(isIntegral, T) && __traits(isIntegral, V1) )
+    private HeadUnshared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+        if( __traits(isIntegral, T) )
     {
         return atomicFetchAdd(val, -mod);
     }
@@ -1531,5 +1531,18 @@ version( unittest )
             assert(atomicOp!"-="(u64, 1) == 3);
             assert(atomicOp!"-="(i64, 1) == 7);
         }
+    }
+
+    pure nothrow @nogc @safe unittest // issue 16651
+    {
+        shared ulong a = 2;
+        uint b = 1;
+        atomicOp!"-="( a, b );
+        assert(a == 1);
+
+        shared uint c = 2;
+        ubyte d = 1;
+        atomicOp!"-="( c, d );
+        assert(c == 1);
     }
 }
