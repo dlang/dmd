@@ -745,7 +745,7 @@ class TypeInfo_Vector : TypeInfo
 class TypeInfo_Function : TypeInfo
 {
     override string toString() const
-    {      
+    {
         import core.demangle : demangleType;
 
         alias SafeDemangleFunctionType = char[] function (const(char)[] buf, char[] dst = null) @safe nothrow pure;
