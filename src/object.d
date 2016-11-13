@@ -746,7 +746,12 @@ class TypeInfo_Function : TypeInfo
 {
     override string toString() const
     {
-        return cast(string)(next.toString() ~ "()");
+        import core.demangle : demangleType;
+
+        alias SafeDemangleFunctionType = char[] function (const(char)[] buf, char[] dst = null) @safe nothrow pure;
+        SafeDemangleFunctionType demangle = ( () @trusted => cast(SafeDemangleFunctionType)(&demangleType) ) ();
+
+        return (() @trusted => cast(string)(demangle(deco))) ();
     }
 
     override bool opEquals(Object o)
@@ -770,7 +775,26 @@ class TypeInfo_Function : TypeInfo
     }
 
     TypeInfo next;
+
+    /**
+    * Mangled function type string
+    */
     string deco;
+}
+
+unittest
+{
+    abstract class C
+    {
+       void func();
+       void func(int a);
+       int func(int a, int b);
+    }
+
+    alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
+    assert(typeid(functionTypes[0]).toString() == "void function()");
+    assert(typeid(functionTypes[1]).toString() == "void function(int)");
+    assert(typeid(functionTypes[2]).toString() == "int function(int, int)");
 }
 
 class TypeInfo_Delegate : TypeInfo
