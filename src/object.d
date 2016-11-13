@@ -745,8 +745,13 @@ class TypeInfo_Vector : TypeInfo
 class TypeInfo_Function : TypeInfo
 {
     override string toString() const
-    {
-        return cast(string)(next.toString() ~ "()");
+    {      
+        import core.demangle : demangleType;
+
+        alias SafeDemangleFunctionType = char[] function (const(char)[] buf, char[] dst = null) @safe nothrow pure;
+        SafeDemangleFunctionType demangle = ( () @trusted => cast(SafeDemangleFunctionType)(&demangleType) ) ();
+
+        return (() @trusted => cast(string)(demangle(deco))) ();
     }
 
     override bool opEquals(Object o)
@@ -770,6 +775,10 @@ class TypeInfo_Function : TypeInfo
     }
 
     TypeInfo next;
+
+    /**
+    * Mangled function type string
+    */
     string deco;
 }
 
