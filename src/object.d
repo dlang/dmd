@@ -784,11 +784,11 @@ class TypeInfo_Function : TypeInfo
 
 unittest
 {
-    class C
+    abstract class C
     {
-       void func() {}
-       void func(int a) {}
-       int func(int a, int b) { return 0; }
+       void func();
+       void func(int a);
+       int func(int a, int b);
     }
 
     alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
