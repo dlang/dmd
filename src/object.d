@@ -782,6 +782,21 @@ class TypeInfo_Function : TypeInfo
     string deco;
 }
 
+unittest
+{
+    class C
+    {
+       void func() {}
+       void func(int a) {}
+       int func(int a, int b) { return 0; }
+    }
+
+    alias functionTypes = typeof(__traits(getVirtualFunctions, C, "func"));
+    assert(typeid(functionTypes[0]).toString() == "void function()");
+    assert(typeid(functionTypes[1]).toString() == "void function(int)");
+    assert(typeid(functionTypes[2]).toString() == "int function(int, int)");
+}
+
 class TypeInfo_Delegate : TypeInfo
 {
     override string toString() const
