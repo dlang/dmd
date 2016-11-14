@@ -285,6 +285,15 @@ struct BCValue
         void* voidStar;
     }
 
+    string toString() const pure
+    {
+        import std.format : format;
+
+        return format("\nvType: %s\tType: %s\tstackAddr: %s\timm32 %s\t",
+            vType, type.type, stackAddr, imm32);
+    }
+
+
 @safe pure :
     bool opCast(T : bool)()
     {
@@ -337,14 +346,6 @@ struct BCValue
         result = this;
         result.type.type = BCTypeEnum.i32;
         return result;
-    }
-
-    string toString() const pure
-    {
-        import std.format : format;
-
-        return format("\nvType: %s\tType: %s\tstackAddr: %s\timm32 %s\t",
-            vType, type.type, stackAddr, imm32);
     }
 
     this(const Imm32 imm32) pure

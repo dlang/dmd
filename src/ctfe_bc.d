@@ -182,7 +182,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     StopWatch csw;
     csw.start;
+    if (fd && fd.ident && (fd.ident.toString == "_ArrayEq"
+            || fd.ident.toString == "uIntArrayToString"))
+        return null;
 
+    writeln("trying ", fd.ident.toString);
     //if (bcv is null)
     //{
     scope bcv = new BCV!BCGenT(fd, _this);
@@ -756,8 +760,8 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tint64, Tuns64:
         {
-           // result = new IntegerExp(value.imm64);
-           // for now bail out on 64bit values
+            // result = new IntegerExp(value.imm64);
+            // for now bail out on 64bit values
         }
         break;
     default:
@@ -857,9 +861,23 @@ extern (C++) final class BCV(BCGenT) : Visitor
                 auto tsa = cast(TypeSArray) t;
                 return BCType(BCTypeEnum.Array, _sharedCtfeState.getArrayIndex(tsa));
             }
-            else if (t.ty == Tpointer && (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32))
+            else if (t.ty == Tpointer)
             {
-                return BCType(BCTypeEnum.i32Ptr);
+                if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
+                    return BCType(BCTypeEnum.i32Ptr);
+                else
+                {
+                    uint indirectionCount = 1;
+                    Type baseType = t.nextOf;
+                    while (baseType.ty == Tpointer)
+                    {
+                        indirectionCount++;
+                        baseType = baseType.nextOf;
+                    }
+                    _sharedCtfeState.pointers[_sharedCtfeState.pointerCount++] = BCPointer(
+                        toBCType(baseType), indirectionCount);
+                    return BCType(BCTypeEnum.Ptr, _sharedCtfeState.pointerCount);
+                }
             }
             IGaveUp = true;
 
@@ -1251,7 +1269,8 @@ public:
             auto rhs = genExpr(e.e2);
             if (((lhs.type.type == BCTypeEnum.i32
                     || lhs.type.type == BCTypeEnum.i32Ptr) && rhs.type.type == BCTypeEnum.i32)
-                    || (lhs.type.type == BCTypeEnum.i64 && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.i32)))
+                    || (lhs.type.type == BCTypeEnum.i64
+                    && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.i32)))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -2497,9 +2516,69 @@ public:
             Store32(ptr, rhs);
             retval = rhs;
         }
+        else if (ae.e1.op == TOKarraylength)
+        {
+            auto ale = cast(ArrayLengthExp) ae.e1;
+
+            // We are assigning to an arrayLength
+            // This means possibly allocation and copying
+            auto arrayPtr = genExpr(ale.e1);
+            BCValue oldLength = genTemporary(i32Type);
+            BCValue newLength = genExpr(ae.e2);
+            auto effectiveSize = genTemporary(i32Type);
+            auto elemType = toBCType(ale.e1.type);
+            auto elemSize = align4(basicTypeSize(elemType));
+            Mul3(effectiveSize, newLength, BCValue(Imm32(elemSize)));
+            Add3(effectiveSize, effectiveSize, bcFour);
+
+            auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
+            typeof(beginCndJmp()) jmp1;
+            typeof(beginCndJmp()) jmp2;
+            {
+                Load32(oldLength, arrayPtr);
+                Le3(BCValue.init, oldLength, newLength);
+                jmp1 = beginCndJmp(BCValue.init, true);
+                {
+                    auto newArrayPtr = genTemporary(i32Type);
+                    Alloc(newArrayPtr, effectiveSize);
+                    Store32(newArrayPtr, newLength);
+
+                    auto copyPtr = genTemporary(i32Type);
+
+                    Add3(copyPtr, newArrayPtr, bcFour);
+                    Add3(arrayPtr.i32, arrayPtr.i32, bcFour);
+                    // copy old Array
+                    auto tmpElem = genTemporary(i32Type);
+                    auto LcopyLoop = genLabel();
+                    jmp2 = beginCndJmp(oldLength);
+                    {
+                        Sub3(oldLength, oldLength, bcOne);
+                        foreach (_; 0 .. elemSize / 4)
+                        {
+                            Load32(tmpElem, arrayPtr.i32);
+                            Store32(copyPtr, tmpElem);
+                            Add3(arrayPtr.i32, arrayPtr.i32, bcFour);
+                            Add3(copyPtr, copyPtr, bcFour);
+                        }
+                        genJump(LcopyLoop);
+                    }
+                    endCndJmp(jmp2, genLabel());
+
+                    Set(arrayPtr.i32, newArrayPtr);
+                }
+            }
+            auto LarrayDoesNotExsist = genLabel();
+            endCndJmp(arrayExsitsJmp, LarrayDoesNotExsist);
+            {
+                auto newArrayPtr = genTemporary(i32Type);
+                Alloc(newArrayPtr, effectiveSize);
+                Store32(newArrayPtr, newLength);
+            }
+            auto Lend = genLabel();
+            endCndJmp(jmp1, Lend);
+        }
         else
         {
-
             auto lhs = genExpr(ae.e1);
             assignTo = lhs;
             auto rhs = genExpr(ae.e2);
@@ -3014,8 +3093,9 @@ public:
         if (rs.exp !is null)
         {
             auto retval = genExpr(rs.exp);
-            if (canWorkWithType(retval.type) || retval.type == BCTypeEnum.String)
-                Ret(retval);
+            if (retval.type == BCTypeEnum.i32 || retval.type == BCTypeEnum.Slice
+                    || retval.type == BCTypeEnum.Array || retval.type == BCTypeEnum.String)
+                Ret(retval.i32);
             else
             {
                 IGaveUp = true;
