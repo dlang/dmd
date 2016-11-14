@@ -706,7 +706,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             {
                 import std.stdio;
 
-                writeln("value ", value);
+                writeln("value ", value.toString);
             }
             debug (ctfe)
             {
@@ -714,9 +714,8 @@ Expression toExpression(const BCValue value, Type expressionType,
 
                 foreach (idx; 0 .. heapPtr.heapSize)
                 {
-                    writefln("%x %c", heapPtr._heap[idx],
-                        heapPtr._heap[idx] != 0 ? cast(char) heapPtr._heap[idx] : ' ');
-                }
+                   // writefln("%d %x", idx, heapPtr._heap[idx]);
+                } 
             }
 
             Expressions* elmExprs = new Expressions();
@@ -732,12 +731,12 @@ Expression toExpression(const BCValue value, Type expressionType,
             foreach (idx; 0 .. arrayLength)
             {
                 elmExprs.insert(idx,
-                    toExpression(BCValue(HeapAddr(value.heapAddr.addr + offset)), tda.nextOf));
+                    toExpression(BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))), tda.nextOf));
                 offset += elmLength;
             }
 
-            //result = new ArrayLiteralExp(Loc.init, elmExprs);
-
+            result = new ArrayLiteralExp(Loc.init, elmExprs);
+            result.type = expressionType;
         }
         break;
     case Tsarray:
@@ -1455,6 +1454,8 @@ public:
         bool isString = indexed.type.type == BCTypeEnum.String;
         //FIXME check if Slice.ElementType == Char
         //and set isString to true;
+        auto idx = genExpr(ie.e2).i32; // HACK
+        BCArray* arrayType;
         if (!indexed.type.typeIndex || !indexed.type.type == BCTypeEnum.Slice)
         {
             /*debug (ctfe)
@@ -1462,20 +1463,36 @@ public:
             IGaveUp = true;
             return;
         }
-        auto arrayType = (!isString ? &_sharedCtfeState.arrays[indexed.type.typeIndex - 1] : null);
-
-        auto idx = genExpr(ie.e2).i32; // HACK
-        debug (ctfe)
+        if (indexed.type.type == BCTypeEnum.Array)
         {
-            import std.stdio;
+            auto _arrayType = (
+                !isString ? &_sharedCtfeState.arrays[indexed.type.typeIndex - 1] : null);
 
-            if (arrayType)
-                writeln("arrayType: ", *arrayType);
+            debug (ctfe)
+            {
+                import std.stdio;
+
+                if (_arrayType)
+                    writeln("arrayType: ", *_arrayType);
+
+                arrayType = _arrayType;
+            }
+        }
+        else if (indexed.type.type == BCTypeEnum.Slice)
+        {
+            auto sliceType = &_sharedCtfeState.arrays[indexed.type.typeIndex - 1];
+            debug (ctfe)
+            {
+                import std.stdio;
+
+                if (sliceType)
+                    writeln("sliceType ", *sliceType);
+
+            }
 
         }
-
         auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-        Add3(ptr, indexed.i32, bcOne);
+        Add3(ptr, indexed.i32, bcFour);
         //We set the ptr already to the beginning of the array;
         scope (exit)
         {
@@ -2576,6 +2593,24 @@ public:
             }
             auto Lend = genLabel();
             endCndJmp(jmp1, Lend);
+        }
+        else if (ae.e1.op == TOKindex)
+        {
+            auto ie = cast(IndexExp)ae.e1;
+            auto indexed = genExpr(ie.e1);
+            auto index = genExpr(ie.e2);
+            auto length = getLength(indexed);
+            Gt3(BCValue.init, length, index);
+            AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc, "ArrayIndex out of bounds"));
+            auto effectiveAddr = genTemporary(i32Type);
+            auto elemType = toBCType(ie.e1.type.nextOf);
+            auto elemSize = align4(basicTypeSize(elemType));
+            Mul3(effectiveAddr, index, BCValue(Imm32(elemSize)));
+            Add3(effectiveAddr, effectiveAddr, indexed.i32);
+            Add3(effectiveAddr, effectiveAddr, bcFour);
+            assert(elemSize == 4, "only 32 bit array loads are supported right now");
+            auto rhs = genExpr(ae.e2);
+            Store32(effectiveAddr, rhs.i32);
         }
         else
         {

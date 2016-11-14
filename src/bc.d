@@ -1148,12 +1148,12 @@ string printInstructions(const int* startInstructions, uint length) pure
             break;
         case LongInst.Assert:
             {
-                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], HEAP[SP[" ~ to!string(hi >> 16) ~ "]]\n";
+                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], ErrNo SP[" ~ to!string(hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.AssertCnd:
             {
-                result ~= "AssertCnd HEAP[SP[" ~ to!string(hi >> 16) ~ "]]\n";
+                result ~= "AssertCnd ErrNo SP[" ~ to!string(hi >> 16) ~ "]]\n";
             }
             break;
         case LongInst.Eq:
