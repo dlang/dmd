@@ -8,6 +8,8 @@
  * Source:      $(DMDSRC _toelfdebug.d)
  */
 
+module ddmd.toelfdebug;
+
 import ddmd.denum;
 import ddmd.dstruct;
 import ddmd.dclass;

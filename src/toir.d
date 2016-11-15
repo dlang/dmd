@@ -37,24 +37,23 @@ import ddmd.dmodule;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
+import ddmd.toctype;
+import ddmd.e2ir;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.identifier;
 import ddmd.id;
 import ddmd.irstate;
 import ddmd.mtype;
 import ddmd.target;
+import ddmd.tocsym;
+
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
 
 
 extern (C++):
-
-bool ISREF(Declaration var, Type tb);
-bool ISWIN64REF(Declaration var);
-
-type *Type_toCtype(Type t);
-uint totym(Type tx);
-Symbol *toSymbol(Dsymbol s);
-void toTraceGC(IRState *irs, elem *e, Loc *loc);
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.

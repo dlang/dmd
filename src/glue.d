@@ -42,6 +42,7 @@ import ddmd.dmodule;
 import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
+import ddmd.e2ir;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
@@ -50,38 +51,24 @@ import ddmd.identifier;
 import ddmd.id;
 import ddmd.irstate;
 import ddmd.lib;
+import ddmd.mars;
 import ddmd.mtype;
+import ddmd.objc;
+import ddmd.s2ir;
 import ddmd.statement;
 import ddmd.target;
+import ddmd.tocsym;
+import ddmd.toctype;
+import ddmd.toir;
+import ddmd.toobj;
+import ddmd.utils;
 
 extern (C++):
 
-void clearStringTab();
-RET retStyle(TypeFunction tf);
-
-elem *addressElem(elem *e, Type t, bool alwaysCopy = false);
-void Statement_toIR(Statement s, IRState *irs);
-void insertFinallyBlockCalls(block *startblock);
-elem *toEfilename(Module m);
-Symbol *toSymbol(Dsymbol s);
-void buildClosure(FuncDeclaration fd, IRState *irs);
-Symbol *toStringSymbol(const(char)* str, size_t len, size_t pad);
-
 alias symbols = Array!(Symbol*);
-Dsymbols *Dsymbols_create();
-Expressions *Expressions_create();
-type *Type_toCtype(Type t);
-void toObjFile(Dsymbol ds, bool multiobj);
-void genModuleInfo(Module m);
-void genObjFile(Module m, bool multiobj);
-void objc_Module_genmoduleinfo_classes();
-Symbol *toModuleAssert(Module m);
-Symbol *toModuleUnittest(Module m);
-Symbol *toModuleArray(Module m);
-Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(char)* suffix);
+alias toSymbol = ddmd.tocsym.toSymbol;
 
-void writeFile(Loc loc, File *f);
-void ensurePathToNameExists(Loc loc, const(char)* name);
+void objc_Module_genmoduleinfo_classes();
 
 //extern
 __gshared
