@@ -645,12 +645,12 @@ unsigned xmmload(tym_t tym)
         case TYuint:
         case TYint:
         case TYlong:
-        case TYulong:
+        case TYulong:   op = LODD;  break;       // MOVD
         case TYfloat:
         case TYcfloat:
         case TYifloat:  op = LODSS; break;       // MOVSS
         case TYllong:
-        case TYullong:
+        case TYullong:  op = LODQ;  break;       // MOVQ
         case TYdouble:
         case TYcdouble:
         case TYidouble: op = LODSD; break;       // MOVSD
@@ -684,13 +684,13 @@ unsigned xmmstore(tym_t tym)
         case TYuint:
         case TYint:
         case TYlong:
-        case TYulong:
+        case TYulong:   op = STOD;  break;       // MOVD
         case TYfloat:
         case TYifloat:  op = STOSS; break;       // MOVSS
+        case TYllong:
+        case TYullong:  op = STOQ;  break;       // MOVQ
         case TYdouble:
         case TYidouble:
-        case TYllong:
-        case TYullong:
         case TYcdouble:
         case TYcfloat:  op = STOSD; break;       // MOVSD
 
@@ -1120,6 +1120,186 @@ code *cdvecsto(elem *e, regm_t *pretregs)
     assert(isXMMstore(op));
 #endif
     return xmmeq(e, op, op1, op2, pretregs);
+}
+
+/***************
+ * Generate code for OPvecfill.
+ * OPvecfill takes the single value in e1 and
+ * fills the vector type with it.
+ */
+code *cdvecfill(elem *e, regm_t *pretregs)
+{
+    //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+
+    CodeBuilder cdb;
+    code *c;
+    code cs;
+
+    elem *e1 = e->E1;
+#if 0
+    if ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar)
+    {
+        cr = getlvalue(&cs, e1, RMload | retregs);     // get addressing mode
+    }
+    else
+    {
+        unsigned rretregs = XMMREGS & ~retregs;
+        cr = scodelem(op2, &rretregs, retregs, TRUE);
+        unsigned rreg = findreg(rretregs) - XMM0;
+        cs.Irm = modregrm(3,0,rreg & 7);
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        if (rreg & 8)
+            cs.Irex |= REX_B;
+    }
+#endif
+
+    unsigned reg;
+    unsigned rreg;
+    switch (tybasic(e->Ety))
+    {
+        case TYfloat4:
+            // SHUFPS XMM0,XMM0,0    0F C6 /r ib
+            c = codelem(e1,&retregs,FALSE); // eval left leaf
+            cdb.append(c);
+            reg = findreg(retregs) - XMM0;
+            cdb.append(getregs(retregs));
+            cs.Iop = SHUFPS;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+
+        case TYdouble2:
+            // UNPCKLPD XMM0,XMM0     66 0F 14 /r
+            c = codelem(e1,&retregs,FALSE); // eval left leaf
+            cdb.append(c);
+            reg = findreg(retregs) - XMM0;
+            cdb.append(getregs(retregs));
+            cs.Iop = UNPCKLPD;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+            break;
+
+        case TYschar16:
+        case TYuchar16:
+        {
+            /* MOVD      XMM0,r
+             * PUNPCKLBW XMM0,XMM0
+             * PUNPCKLWD XMM0,XMM0
+             * PSHUFD    XMM0,XMM0,0
+             */
+            regm_t regm = ALLREGS;
+            c = codelem(e1,&regm,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned r = findreg(regm);
+
+            c = allocreg(&retregs,&reg, e->Ety);
+            cdb.append(c);
+            reg -= XMM0;
+            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+
+            cs.Iop = PUNPCKLBW;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+            cs.Iop = PUNPCKLWD;
+            cdb.gen(&cs);
+
+            cs.Iop = PSHUFD;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        case TYshort8:
+        case TYushort8:
+        {
+            /* MOVD      XMM0,r
+             * PUNPCKLWD XMM0,XMM0
+             * PSHUFD    XMM0,XMM0,0
+             */
+            regm_t regm = ALLREGS;
+            c = codelem(e1,&regm,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned r = findreg(regm);
+
+            c = allocreg(&retregs,&reg, e->Ety);
+            cdb.append(c);
+            reg -= XMM0;
+            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+
+            cs.Iop = PUNPCKLWD;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+
+            cs.Iop = PSHUFD;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        case TYlong4:
+        case TYulong4:
+        {
+            /* MOVD      XMM1,r
+             * PSHUFD    XMM0,XMM1,0
+             */
+            regm_t regm = ALLREGS;
+            c = codelem(e1,&regm,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned r = findreg(regm);
+
+            c = allocreg(&retregs,&reg, e->Ety);
+            cdb.append(c);
+            reg -= XMM0;
+            cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVD reg,r
+
+            cs.Iop = PSHUFD;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        case TYllong2:
+        case TYullong2:
+        {
+            /* MOVQ XMM0,mem128
+             * PUNPCKLQDQ XMM0,XMM0
+             */
+            c = codelem(e1,&retregs,FALSE); // eval left leaf
+            cdb.append(c);
+            unsigned reg = findreg(retregs);
+            reg -= XMM0;
+            //cdb.gen2(LODD,modregxrmx(3,reg,r));     // MOVQ reg,r
+
+            cs.Iop = PUNPCKLQDQ;
+            cs.Irm = modregxrmx(3,reg,reg);
+            cs.Iflags = 0;
+            cdb.gen(&cs);
+            break;
+        }
+
+        default:
+            assert(0);
+    }
+
+    c = fixresult(e,retregs,pretregs);
+    cdb.append(c);
+    return cdb.finish();
 }
 
 #endif // !SPP
