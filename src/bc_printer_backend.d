@@ -105,10 +105,10 @@ struct Print_BCGen
             {
                 return "p" ~ to!string(val.param) ~ functionSuffix;
             }
-			case BCValueType.Error:
-			{
-				return "Imm32(" ~ to!string(val.imm32) ~ ")/*Error*/";
-			}
+        case BCValueType.Error:
+            {
+                return "Imm32(" ~ to!string(val.imm32) ~ ")/*Error*/";
+            }
         case BCValueType.Unknown:
             {
                 return "BCValue.init";
@@ -376,10 +376,10 @@ struct Print_BCGen
         result ~= "    Alloc(" ~ print(heapPtr) ~ ", " ~ print(size) ~ ");\n";
     }
 
-    void Not(BCValue val)
+    void Not(BCValue _result, BCValue val)
     {
         sameLabel = false;
-        result ~= "    Not(" ~ print(val) ~ ");\n";
+        result ~= "    Not(" ~ print(_result) ~ ", " ~ print(val) ~ ");\n";
     }
 
     void Ret(BCValue val)
@@ -395,10 +395,10 @@ struct Print_BCGen
             elmSize) ~ ");\n";
     }
 
-	void AssertError(BCValue value, BCValue err)
-	{
-		result ~= "    AssertError(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
-	}
+    void AssertError(BCValue value, BCValue err)
+    {
+        result ~= "    AssertError(" ~ print(value) ~ ", " ~ print(err) ~ ");\n";
+    }
 }
 
 enum genString = q{

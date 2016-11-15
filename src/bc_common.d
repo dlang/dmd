@@ -435,7 +435,7 @@ template ensureIsBCGen(BCGenT)
     static assert(is(typeof(BCGenT.genJump(BCLabel.init)) == void ), BCGenT.stringof ~ " is missing void genJump(BCLabel target)");
     static assert(is(typeof(BCGenT.emitFlg(BCValue.init)) == void ), BCGenT.stringof ~ " is missing void emitFlg(BCValue lhs)");
     static assert(is(typeof(BCGenT.Alloc(BCValue.init, BCValue.init)) == void ), BCGenT.stringof ~ " is missing void Alloc(BCValue heapPtr, BCValue size)");
-    static assert(is(typeof(BCGenT.Not(BCValue.init)) == void ), BCGenT.stringof ~ " is missing void Not(BCValue val)");
+    static assert(is(typeof(BCGenT.Not(BCValue.init, BCValue.init)) == void ), BCGenT.stringof ~ " is missing void Not(BCValue result, BCValue val)");
     static assert(is(typeof(BCGenT.Set(BCValue.init, BCValue.init)) == void ), BCGenT.stringof ~ " is missing void Set(BCValue lhs, BCValue rhs)");
     static assert(is(typeof(BCGenT.Lt3(BCValue.init, BCValue.init, BCValue.init)) == void ), BCGenT.stringof ~ " is missing void Lt3(BCValue result, BCValue lhs, BCValue rhs)");
     static assert(is(typeof(BCGenT.Gt3(BCValue.init, BCValue.init, BCValue.init)) == void ), BCGenT.stringof ~ " is missing void Gt3(BCValue result, BCValue lhs, BCValue rhs)");

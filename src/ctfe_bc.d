@@ -130,7 +130,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -714,8 +714,8 @@ Expression toExpression(const BCValue value, Type expressionType,
 
                 foreach (idx; 0 .. heapPtr.heapSize)
                 {
-                   // writefln("%d %x", idx, heapPtr._heap[idx]);
-                } 
+                    // writefln("%d %x", idx, heapPtr._heap[idx]);
+                }
             }
 
             Expressions* elmExprs = new Expressions();
@@ -731,7 +731,9 @@ Expression toExpression(const BCValue value, Type expressionType,
             foreach (idx; 0 .. arrayLength)
             {
                 elmExprs.insert(idx,
-                    toExpression(BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))), tda.nextOf));
+                    toExpression(
+                    BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))),
+                    tda.nextOf));
                 offset += elmLength;
             }
 
@@ -1942,6 +1944,11 @@ public:
         retval = genExpr(_this);
     }
 
+    override void visit(ComExp ce)
+    {
+        Not(retval, genExpr(ce.e1));
+    }
+
     override void visit(PtrExp pe)
     {
 
@@ -2171,6 +2178,13 @@ public:
         case TOK.TOKminass:
             {
                 Sub3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
+
+        case TOK.TOKorass:
+            {
+                Or3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;
@@ -2596,12 +2610,13 @@ public:
         }
         else if (ae.e1.op == TOKindex)
         {
-            auto ie = cast(IndexExp)ae.e1;
+            auto ie = cast(IndexExp) ae.e1;
             auto indexed = genExpr(ie.e1);
             auto index = genExpr(ie.e2);
             auto length = getLength(indexed);
             Gt3(BCValue.init, length, index);
-            AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc, "ArrayIndex out of bounds"));
+            AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc,
+                "ArrayIndex out of bounds"));
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
             auto elemSize = align4(basicTypeSize(elemType));

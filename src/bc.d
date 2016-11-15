@@ -23,7 +23,7 @@ auto instKind(LongInst i)
 {
     final switch (i)
     {
-    case  /*LongInst.Prt,*/ LongInst.RelJmp, LongInst.Ret, LongInst.Not,
+    case  /*LongInst.Prt,*/ LongInst.RelJmp, LongInst.Ret, LongInstc,
             LongInst.Flg, LongInst.Drb, LongInst.Mod4:
         {
             return InstKind.ShortInst;
@@ -497,8 +497,16 @@ struct BCGen
 
     }
 
-    void Not(BCValue val)
+    void Not(BCValue result, BCValue val)
     {
+        if (result != val)
+        {
+            Set(result, val);
+            val = result;
+        }
+        if (val.vType == BCValueType.Immediate)
+            val = pushOntoStack(val);
+
         byteCodeArray[ip] = ShortInst16(LongInst.Not, val.stackAddr);
         ip += 2;
     }
@@ -1148,7 +1156,8 @@ string printInstructions(const int* startInstructions, uint length) pure
             break;
         case LongInst.Assert:
             {
-                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], ErrNo SP[" ~ to!string(hi >> 16) ~ "]\n";
+                result ~= "Assert SP[" ~ to!string(hi & 0xFFFF) ~ "], ErrNo SP[" ~ to!string(
+                    hi >> 16) ~ "]\n";
             }
             break;
         case LongInst.AssertCnd:
