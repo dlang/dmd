@@ -367,7 +367,7 @@ struct Print_BCGen
     void Store32(BCValue to, BCValue from)
     {
         sameLabel = false;
-        result ~= "    Store(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
+        result ~= "    Store32(" ~ print(to) ~ ", " ~ print(from) ~ ");\n";
     }
 
     void Alloc(BCValue heapPtr, BCValue size)
