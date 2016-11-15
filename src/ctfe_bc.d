@@ -130,7 +130,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -2700,9 +2700,8 @@ public:
         }
         else
         {
-            IGaveUp = true;
-            debug (ctfe)
-                assert(0, "Not expression not supported right now");
+            retval = assignTo ? assignTo : genTemporary(i32Type);
+            Eq3(retval, genExpr(ne.e1), bcZero);
         }
 
     }

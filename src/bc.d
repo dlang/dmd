@@ -808,7 +808,8 @@ struct BCGen
 
     void Load32(BCValue _to, BCValue from)
     {
-        assert(_to.vType == BCValueType.StackValue, "to has the vType " ~ to!string(_to.vType));
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (from.vType != BCValueType.StackValue)
         {
             from = pushOntoStack(from);
@@ -818,7 +819,8 @@ struct BCGen
 
     void Store32(BCValue _to, BCValue value)
     {
-        assert(_to.vType == BCValueType.StackValue, "to has the vType " ~ to!string(_to.vType));
+        assert(_to.vType == BCValueType.StackValue
+            || _to.vType == BCValueType.Parameter, "to has the vType " ~ to!string(_to.vType));
         if (value.vType != BCValueType.StackValue)
         {
             value = pushOntoStack(value);
