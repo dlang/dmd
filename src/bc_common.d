@@ -294,7 +294,7 @@ struct BCValue
 
     string toString() const pure
     {
-        import std.format : format;
+        import std.format;
 
         return format("\nvType: %s\tType: %s\tstackAddr: %s\timm32 %s\t",
             vType, type.type, stackAddr, imm32);

@@ -409,12 +409,4 @@ enum genString = q{
     Ret(tmp1);
 };
 
-static assert(() {
-    Print_BCGen gen;
-    with (gen)
-    {
-        mixin(genString);
-    }
-    return gen;
-}().result == genString);
 static assert(ensureIsBCGen!Print_BCGen);
