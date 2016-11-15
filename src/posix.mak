@@ -229,7 +229,7 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc \
+GLUE_SRCS=$(addsuffix .d, irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh)
 
 ifeq ($(D_OBJC),1)

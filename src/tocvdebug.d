@@ -10,7 +10,8 @@
 
 module ddmd.tocvdebug;
 
-version (Windows):
+version (Windows)
+{
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -1053,4 +1054,29 @@ int cvMember(Dsymbol s, ubyte *p)
     scope v = new CVMember(p);
     s.accept(v);
     return v.result;
+}
+
+}
+else
+{
+    import ddmd.denum;
+    import ddmd.dstruct;
+    import ddmd.dclass;
+
+    /****************************
+     * Stub them out.
+     */
+
+    extern (C++) void toDebug(EnumDeclaration ed)
+    {
+        //printf("EnumDeclaration::toDebug('%s')\n", ed.toChars());
+    }
+
+    extern (C++) void toDebug(StructDeclaration sd)
+    {
+    }
+
+    extern (C++) void toDebug(ClassDeclaration cd)
+    {
+    }
 }

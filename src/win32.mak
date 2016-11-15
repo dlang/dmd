@@ -201,7 +201,7 @@ SRCS = aggregate.h aliasthis.h arraytypes.h	\
 # Glue layer
 GLUESRC= \
 	toir.h irstate.h iasm.c \
-	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
+	libelf.d scanelf.d libmach.d scanmach.d \
 	tk.c objc_glue.d \
 	$(GLUE_SRCS)
 
