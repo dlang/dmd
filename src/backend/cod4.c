@@ -335,7 +335,7 @@ code *cdeq(elem *e,regm_t *pretregs)
   tym_t tyml = tybasic(e1->Ety);              /* type of lvalue               */
   regm_t retregs = *pretregs;
 
-    if (tyxmmreg(tyml) && config.fpxmmregs)
+    if ((tyxmmreg(tyml) || tyxmmreg(tybasic(e2->Ety))) && config.fpxmmregs)
         return xmmeq(e, e->Eoper, e1, e2, pretregs);
 
     if (tyfloating(tyml) && config.inline8087)
@@ -3275,7 +3275,7 @@ code *cdasm(elem *e,regm_t *pretregs)
     /* Assume all regs are destroyed    */
     c = getregs(ALLREGS | mES);
 #endif
-    c = genasm(c,(unsigned char *)e->EV.ss.Vstring,e->EV.ss.Vstrlen);
+    c = genasm(c,(unsigned char*)e->EV.ss.Vstring,e->EV.ss.Vstrlen);
     return cat(c,fixresult(e,(I16 ? mDX | mAX : mAX),pretregs));
 }
 

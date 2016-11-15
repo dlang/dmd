@@ -222,7 +222,8 @@ enum
         OPgot,                  // load pointer to global offset table
         OPvector,               // SIMD vector operations
         OPvecsto,               // SIMD vector store operations
-        OPvecfill,              // fill SIMD vector with E1
+        OPvecfill,              // broadcast fill SIMD vector with E1
+        OPvecunsto,             // OPeq, but for storing an unaligned vector
 
         OPinp,                  // input from I/O port
         OPoutp,                 // output to I/O port

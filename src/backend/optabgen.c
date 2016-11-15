@@ -42,7 +42,7 @@ int _binary[] =
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
          OPremquo,OPcmpxchg,
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
-         OPvecsto,OPprefetch
+         OPvecsto,OPvecunsto,OPprefetch
         };
 int _unary[] =
         {OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
@@ -74,7 +74,7 @@ int _assoc[] = {OPadd,OPand,OPor,OPxor,OPmul};
 int _assign[] =
         {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
          OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
-         OPnegass,OPvecsto,OPcmpxchg,
+         OPnegass,OPvecsto,OPvecunsto,OPcmpxchg,
         };
 int _wid[] =
         {OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
@@ -104,7 +104,7 @@ int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPcall,OPucall,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPnegass,
                 OPbtc,OPbtr,OPbts,
-                OPvecsto,OPcmpxchg,
+                OPvecsto,OPvecunsto,OPcmpxchg,
              };
 int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
@@ -115,13 +115,13 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPhalt,OPdctor,OPddtor,
                 OPcmpxchg,
                 OPva_start,
-                OPinp,OPoutp,OPvecsto,OPprefetch,
+                OPinp,OPoutp,OPvecsto,OPvecunsto,OPprefetch,
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
                 OPcall,OPcallns,OPinfo,OPmemset,
-                OPvecsto,OPcmpxchg,
+                OPvecsto,OPvecunsto,OPcmpxchg,
                 };
 int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPabs,OPrndtol,OPrint,
@@ -582,6 +582,7 @@ void dotab()
         case OPvector:  X("vector",     elzot,  cdvector);
         case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
         case OPvecfill: X("vecfill",    elzot,  cdvecfill);
+        case OPvecunsto: X("vecunsto",  eleq,   cdeq);
         case OPva_start: X("va_start",  elvalist, cderr);
         case OPprefetch: X("prefetch",  elzot,  cdprefetch);
 
