@@ -19,11 +19,10 @@ import ddmd.backend.type;
 import ddmd.declaration;
 import ddmd.dstruct;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.id;
 import ddmd.mtype;
 import ddmd.visitor;
-
-extern extern (C++) uint totym(Type tx);
 
 extern (C++) final class ToCtypeVisitor : Visitor
 {

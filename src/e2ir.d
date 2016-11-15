@@ -37,14 +37,22 @@ import ddmd.errors;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
+import ddmd.glue;
 import ddmd.id;
 import ddmd.init;
 import ddmd.irstate;
+import ddmd.mars;
 import ddmd.mtype;
+import ddmd.s2ir;
+import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.target;
+import ddmd.tocsym;
+import ddmd.toctype;
 import ddmd.toir;
 import ddmd.tokens;
+import ddmd.toobj;
+import ddmd.typinf;
 import ddmd.visitor;
 
 import ddmd.backend.cc;
@@ -65,35 +73,9 @@ import ddmd.backend.type;
 extern (C++):
 
 alias Elems = Array!(elem *);
-RET retStyle(TypeFunction tf);
 
-elem *addressElem(elem *e, Type t, bool alwaysCopy = false);
-elem *array_toPtr(Type t, elem *e);
-VarDeclarations *VarDeclarations_create();
-type *Type_toCtype(Type t);
-uint totym(Type tx);
-Symbol *toSymbol(Dsymbol s);
-elem *toElem(Expression e, IRState *irs);
-elem *toElemDtor(Expression e, IRState *irs);
-elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol *sym, bool fillHoles);
-Symbol *toStringSymbol(const(char) *str, size_t len, size_t sz);
-Symbol *toStringSymbol(StringExp se);
-void toObjFile(Dsymbol ds, bool multiobj);
-Symbol *toModuleAssert(Module m);
-Symbol *toModuleUnittest(Module m);
-Symbol *toModuleArray(Module m);
-Symbol *toImport(Dsymbol ds);
-Symbol *toInitializer(AggregateDeclaration ad);
-Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags);
-Symbol* toSymbol(StructLiteralExp sle);
-Symbol* toSymbol(ClassReferenceExp cre);
-elem *filelinefunction(IRState *irs, Expression e);
-void toTraceGC(IRState *irs, elem *e, Loc *loc);
-void genTypeInfo(Type t, Scope *sc);
-void setClosureVarOffset(FuncDeclaration fd);
-
-int callSideEffectLevel(FuncDeclaration f);
-int callSideEffectLevel(Type t);
+alias toSymbol = ddmd.tocsym.toSymbol;
+alias toSymbol = ddmd.glue.toSymbol;
 
 void objc_callfunc_setupMethodSelector(Type tret, FuncDeclaration fd, Type t, elem *ehidden, elem **esel);
 void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction tf);
@@ -101,10 +83,6 @@ void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
 
 void* mem_malloc(size_t);
 
-// s2ir.d
-void elem_setLoc(elem *e, Loc loc);
-void block_setLoc(block *b, Loc loc);
-void srcpos_setLoc(Srcpos *s, Loc loc);
 
 @property int REGSIZE() { return _tysize[TYnptr]; }
 
@@ -170,7 +148,7 @@ elem *callfunc(Loc loc,
     int op;
     elem *eresult = ehidden;
 
-    debug(E2IR)
+    version (none)
     {
         printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
             directcall, tret.toChars(), ec, fd);
@@ -502,7 +480,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
  * Take address of an elem.
  */
 
-elem *addressElem(elem *e, Type t, bool alwaysCopy)
+elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
 {
     //printf("addressElem()\n");
 
