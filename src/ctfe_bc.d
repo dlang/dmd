@@ -178,6 +178,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
 
+    _sharedCtfeState.heap.initHeap();
     import std.datetime : StopWatch;
 
     StopWatch csw;
@@ -191,7 +192,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //{
     scope bcv = new BCV!BCGenT(fd, _this);
     bcv.Initialize();
-    _sharedCtfeState.heap.initHeap();
     //}
     bcv.visit(fd);
     //csw.stop;
