@@ -456,7 +456,12 @@ Symbol *toImport(Symbol *sym)
     import core.stdc.stdlib : alloca;
     char *id = cast(char *) alloca(6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1);
     int idlen;
-    if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
+    if (config.exe != EX_WIN32 && config.exe != EX_WIN64)
+    {
+        id = n;
+        idlen = cast(int)strlen(n);
+    }
+    else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
         if (config.exe == EX_WIN64)
             idlen = sprintf(id,"__imp_%s",n);
