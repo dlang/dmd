@@ -191,6 +191,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //{
     scope bcv = new BCV!BCGenT(fd, _this);
     bcv.Initialize();
+    _sharedCtfeState.heap.initHeap();
     //}
     bcv.visit(fd);
     //csw.stop;
