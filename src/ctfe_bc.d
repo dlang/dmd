@@ -2563,6 +2563,7 @@ public:
             Mul3(effectiveSize, newLength, BCValue(Imm32(elemSize)));
             Add3(effectiveSize, effectiveSize, bcFour);
 
+            typeof(beginJmp()) jmp;
             auto arrayExsitsJmp = beginCndJmp(arrayPtr.i32);
             typeof(beginCndJmp()) jmp1;
             typeof(beginCndJmp()) jmp2;
@@ -2597,6 +2598,7 @@ public:
                     endCndJmp(jmp2, genLabel());
 
                     Set(arrayPtr.i32, newArrayPtr);
+                    jmp = beginJmp();
                 }
             }
             auto LarrayDoesNotExsist = genLabel();
@@ -2605,9 +2607,11 @@ public:
                 auto newArrayPtr = genTemporary(i32Type);
                 Alloc(newArrayPtr, effectiveSize);
                 Store32(newArrayPtr, newLength);
+                Set(arrayPtr.i32, newArrayPtr);
             }
             auto Lend = genLabel();
             endCndJmp(jmp1, Lend);
+            endJmp(jmp, Lend);
         }
         else if (ae.e1.op == TOKindex)
         {
