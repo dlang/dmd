@@ -549,12 +549,12 @@ struct SharedCtfeState(BCGenT)
         auto elemType = bcv.toBCType(tda.nextOf);
         if (slices.length - 1 > sliceCount)
         {
-            slices[++sliceCount] = BCSlice(elemType);
+            slices[sliceCount++] = BCSlice(elemType);
             return sliceCount;
         }
         else
         {
-            debug (ctfe)
+            //debug (ctfe)
                 assert(0, "SliceTypeArray overflowed");
             return 0;
         }
@@ -1442,6 +1442,8 @@ public:
         }
 
         auto indexed = genExpr(ie.e1);
+		auto length = getLength(indexed);
+
         currentIndexed = indexed;
         debug (ctfe)
         {
@@ -1464,16 +1466,13 @@ public:
         //FIXME check if Slice.ElementType == Char
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
+		Gt3(BCValue.init, length, idx);
+		AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
+				"ArrayIndex out of bounds"));
 		BCArray* arrayType;
 		BCSlice* sliceType;
-        if (!indexed.type.typeIndex || !indexed.type.type == BCTypeEnum.Slice)
-        {
-            /*debug (ctfe)
-                assert(0, "IndexExp on non-strings unsupported");*/
-            IGaveUp = true;
-            return;
-        }
-        if (indexed.type.type == BCTypeEnum.Array)
+
+		if (indexed.type.type == BCTypeEnum.Array)
         {
             auto _arrayType = (
                 !isString ? &_sharedCtfeState.arrays[indexed.type.typeIndex - 1] : null);
@@ -1494,7 +1493,7 @@ public:
             debug (ctfe)
             {
                 import std.stdio;
-
+				writeln(_sharedCtfeState.slices[0 .. 4]);
                 if (sliceType)
                     writeln("sliceType ", *sliceType);
 
@@ -1525,7 +1524,9 @@ public:
             if (!isString)
             {
                 int elmSize = sharedCtfeState.size(elmType);
+				writeln("elmSize:", elmSize);
                 assert(cast(int) elmSize > -1);
+                //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, BCValue(Imm32(elmSize)));
                 Add3(ptr, ptr, offset);
                 Load32(retval, ptr);
@@ -1815,15 +1816,19 @@ public:
         {
             writeln("Adding array of Type:  ", arrayType);
         }
+
         _sharedCtfeState.arrays[_sharedCtfeState.arrayCount++] = arrayType;
         if (!oldInsideArrayLiteralExp)
             retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
         /*HACK HACK HACK*/
         incSp(); //HACK
 
-        HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize++);
+		HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
+		_sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = cast(uint) ale.elements.dim;
+		_sharedCtfeState.heap.heapSize += uint.sizeof;
 
-        auto result = BCValue(currSp, BCType(BCTypeEnum.Array));
+        
+		auto heapAdd = align4(_sharedCtfeState.size(elmType));
 
         foreach (elem; *ale.elements)
         {
@@ -1831,10 +1836,11 @@ public:
             assert(elexpr.type.type == BCTypeEnum.i32
                 && elexpr.vType == BCValueType.Immediate,
                 "ArrayElement is not an Imm32 " ~ to!string(elexpr.vType));
-            _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize++] = elexpr.imm32;
+			_sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
+			_sharedCtfeState.heap.heapSize += heapAdd;
         }
         if (!oldInsideArrayLiteralExp)
-            Set(retval.i32, BCValue(Imm32(arrayAddr.addr)));
+           retval = BCValue(Imm32(arrayAddr.addr));
 
         debug (ctfe)
         {
@@ -1883,7 +1889,7 @@ public:
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
         /*HACK HACK HACK*/
-        //incSp(); //HACK
+        incSp(); //HACK
         auto result = HeapAddr(_sharedCtfeState.heap.heapSize);
         //Alloc(result,
         foreach (elem; *sle.elements)

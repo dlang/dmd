@@ -241,6 +241,8 @@ struct Print_BCGen
 
     void Set(BCValue lhs, BCValue rhs)
     {
+		if (lhs == rhs)
+			return;
         sameLabel = false;
         result ~= "    Set(" ~ print(lhs) ~ ", " ~ print(rhs) ~ ");\n";
     }
