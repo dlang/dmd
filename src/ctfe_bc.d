@@ -177,9 +177,12 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
-
+	import std.datetime : StopWatch;
+	StopWatch hiw;
+	hiw.start();
     _sharedCtfeState.heap.initHeap();
-    import std.datetime : StopWatch;
+	hiw.stop();
+	writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
 
     StopWatch csw;
     csw.start;
@@ -194,8 +197,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     bcv.Initialize();
     //}
     bcv.visit(fd);
-    //csw.stop;
-    //writeln("Generting bc for ", fd.ident.toString, " took " ~ csw.peek.usecs.to!string ~ "usecs");
+    csw.stop;
+    writeln("Generting bc for ", fd.ident.toString, " took " ~ csw.peek.usecs.to!string ~ " usecs");
     if (csw.peek.usecs > 500)
     {
         //    writeln(fd.fbody.toString);
@@ -274,11 +277,14 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         auto ft = cast(TypeFunction) fd.type;
         assert(ft.nextOf);
 
-        debug (ctfe)
             writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
         {
+		StopWatch esw;
+ 		esw.start();
             if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap))
             {
+		esw.stop();
+		writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
                 return exp;
             }
             else
@@ -1458,7 +1464,8 @@ public:
         //FIXME check if Slice.ElementType == Char
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
-        BCArray* arrayType;
+		BCArray* arrayType;
+		BCSlice* sliceType;
         if (!indexed.type.typeIndex || !indexed.type.type == BCTypeEnum.Slice)
         {
             /*debug (ctfe)
@@ -1483,7 +1490,7 @@ public:
         }
         else if (indexed.type.type == BCTypeEnum.Slice)
         {
-            auto sliceType = &_sharedCtfeState.arrays[indexed.type.typeIndex - 1];
+            sliceType = &_sharedCtfeState.slices[indexed.type.typeIndex - 1];
             debug (ctfe)
             {
                 import std.stdio;
@@ -1501,7 +1508,7 @@ public:
         {
             //removeTemporary(ptr);
         }
-        auto elmType = arrayType ? arrayType.elementType : BCType(BCTypeEnum.Char);
+        auto elmType = arrayType ? arrayType.elementType : (sliceType ? sliceType.elementType : BCType(BCTypeEnum.Char));
         auto oldRetval = retval;
         retval = assignTo ? assignTo : genTemporary(elmType);
         //        if (elmType.type == BCTypeEnum.i32)
@@ -1519,7 +1526,6 @@ public:
             {
                 int elmSize = sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
-                elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, BCValue(Imm32(elmSize)));
                 Add3(ptr, ptr, offset);
                 Load32(retval, ptr);
@@ -3152,6 +3158,10 @@ public:
                 Ret(retval.i32);
             else
             {
+				debug(ctfe)
+				{
+					assert(0, "could not handle returnStatement with BCType " ~ to!string(retval.type.type));
+				}
                 IGaveUp = true;
                 return;
             }
