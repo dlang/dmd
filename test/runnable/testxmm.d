@@ -1586,6 +1586,34 @@ void test16448()
 
 /*****************************************/
 
+struct Sunsto
+{
+  align (1): // make sure f4 is misaligned
+    byte b;
+    union
+    {
+        float4 f4;
+        ubyte[16] a;
+    }
+}
+
+ubyte[16] foounsto()
+{
+    float4 vf = 6;
+    Sunsto s;
+    s.f4 = vf * 2;
+
+    return s.a;
+}
+
+void testOPvecunsto()
+{
+    auto a = foounsto();
+    assert(a == [0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65]);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1619,6 +1647,7 @@ int main()
     test13988();
     testprefetch();
     test16448();
+    testOPvecunsto();
 
     return 0;
 }

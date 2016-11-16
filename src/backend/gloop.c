@@ -929,6 +929,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPpostinc: case OPpostdec:
         case OPcall:
         case OPvecsto:
+        case OPvecunsto:
         case OPcmpxchg:
                         markinvar(n->E2,rd);
         case OPnegass:

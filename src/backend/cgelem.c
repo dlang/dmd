@@ -3289,6 +3289,16 @@ STATIC elem * eleq(elem *e, goal_t goal)
     if (e1->Eoper == OPcomma || OTassign(e1->Eoper))
         return cgel_lvalue(e);
 
+    if (tyvector(e1->Ety) &&
+        e->Eoper == OPeq &&
+        e1->Eoper == OPvar)
+    {
+        Symbol *s = e1->EV.sp.Vsym;
+        if (s->Salignsize() != 16 ||
+            e1->EV.sp.Voffset & (16 - 1))
+            e->Eoper = OPvecunsto;
+    }
+
 #if 0  // Doesn't work too well, removed
     // Replace (*p++ = e2) with ((*p = e2),*p++)
     if (OPTIMIZER && e1->Eoper == OPind &&
