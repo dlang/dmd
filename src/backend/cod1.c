@@ -4746,8 +4746,8 @@ code *loaddata(elem *e,regm_t *pretregs)
         reg = e->EV.sp.Voffset ? e->EV.sp.Vsym->Spreg2 : e->EV.sp.Vsym->Spreg;
         forregs = mask[reg];
 #ifdef DEBUG
-        if (debugr)
-            printf("%s is fastpar and using register %s\n", e->EV.sp.Vsym->Sident, regm_str(forregs));
+//        if (debugr)
+//            printf("%s is fastpar and using register %s\n", e->EV.sp.Vsym->Sident, regm_str(forregs));
 #endif
         mfuncreg &= ~forregs;
         regcon.used |= forregs;
@@ -4802,7 +4802,7 @@ code *loaddata(elem *e,regm_t *pretregs)
         // Can't load from registers directly to XMM regs
         //e->EV.sp.Vsym->Sflags &= ~GTregcand;
 
-        op = xmmload(tym);
+        op = xmmload(tym, xmmIsAligned(e));
         if (e->Eoper == OPvar)
         {   symbol *s = e->EV.sp.Vsym;
             if (s->Sfl == FLreg && !(mask[s->Sreglsw] & XMMREGS))
