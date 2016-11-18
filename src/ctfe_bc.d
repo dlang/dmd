@@ -232,10 +232,11 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         sw.start();
         bcv.beginArguments();
         auto bc_args = args.map!(a => bcv.genExpr(a)).array;
+        if (bcv.IGaveUp)
+            return null;
         writeln("BC complied: ", fd.ident.toString);
         bcv.endArguments();
         bcv.Finalize();
-
         if (--recursionLevel == 0)
         {
             recursionLevel = uint.max;
