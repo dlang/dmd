@@ -177,12 +177,13 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         writeln("recursionLevel: ", recursionLevel);
     //writeln("Evaluating function: ", fd.toString);
     import ddmd.identifier;
-	import std.datetime : StopWatch;
-	StopWatch hiw;
-	hiw.start();
+    import std.datetime : StopWatch;
+
+    StopWatch hiw;
+    hiw.start();
     _sharedCtfeState.heap.initHeap();
-	hiw.stop();
-	writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
+    hiw.stop();
+    writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
 
     StopWatch csw;
     csw.start;
@@ -277,14 +278,14 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         auto ft = cast(TypeFunction) fd.type;
         assert(ft.nextOf);
 
-            writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
+        writeln("Executing bc took " ~ sw.peek.usecs.to!string ~ " us");
         {
-		StopWatch esw;
- 		esw.start();
+            StopWatch esw;
+            esw.start();
             if (auto exp = toExpression(retval, ft.nextOf, &_sharedCtfeState.heap))
             {
-		esw.stop();
-		writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
+                esw.stop();
+                writeln("Converting to AST Expression took " ~ esw.peek.usecs.to!string ~ "us");
                 return exp;
             }
             else
@@ -555,7 +556,7 @@ struct SharedCtfeState(BCGenT)
         else
         {
             //debug (ctfe)
-                assert(0, "SliceTypeArray overflowed");
+            assert(0, "SliceTypeArray overflowed");
             return 0;
         }
     }
@@ -997,11 +998,17 @@ public:
             {
                 import std.stdio;
 
-                writeln("Arguments ", arguments);
+                //    writeln("Arguments ", arguments);
             }
             if (processedArgs != arguments.length)
             {
+
+                processingArguments = false;
                 assignTo = arguments[processedArgs++];
+                assert(expr);
+                expr.accept(this);
+                processingArguments = true;
+
             }
             else
             {
@@ -1010,10 +1017,12 @@ public:
             }
             assert(arguments.length <= parameterTypes.length, "passed too many arguments");
         }
+        else
+        {
 
-        if (expr)
-            expr.accept(this);
-
+            if (expr)
+                expr.accept(this);
+        }
         debug (ctfe)
         {
             writeln("expr: ", expr.toString, " == ", retval);
@@ -1275,10 +1284,7 @@ public:
                 TOK.TOKand, TOK.TOKor, TOK.TOKshr, TOK.TOKshl:
                 auto lhs = genExpr(e.e1);
             auto rhs = genExpr(e.e2);
-            if (((lhs.type.type == BCTypeEnum.i32
-                    || lhs.type.type == BCTypeEnum.i32Ptr) && rhs.type.type == BCTypeEnum.i32)
-                    || (lhs.type.type == BCTypeEnum.i64
-                    && (rhs.type.type == BCTypeEnum.i64 || rhs.type.type == BCTypeEnum.i32)))
+            if (canHandleBinExpTypes(lhs.type.type, rhs.type.type))
             {
                 const oldDiscardValue = discardValue;
                 discardValue = false;
@@ -1367,6 +1373,7 @@ public:
                 }
                 return;
             }
+
             break;
 
         case TOK.TOKoror:
@@ -1381,6 +1388,7 @@ public:
 
                 //auto rhs =
             }
+
             break;
         case TOK.TOKandand:
             {
@@ -1442,7 +1450,7 @@ public:
         }
 
         auto indexed = genExpr(ie.e1);
-		auto length = getLength(indexed);
+        auto length = getLength(indexed);
 
         currentIndexed = indexed;
         debug (ctfe)
@@ -1466,13 +1474,12 @@ public:
         //FIXME check if Slice.ElementType == Char
         //and set isString to true;
         auto idx = genExpr(ie.e2).i32; // HACK
-		Gt3(BCValue.init, length, idx);
-		AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc,
-				"ArrayIndex out of bounds"));
-		BCArray* arrayType;
-		BCSlice* sliceType;
+        Gt3(BCValue.init, length, idx);
+        AssertError(BCValue.init, _sharedCtfeState.addError(ie.loc, "ArrayIndex out of bounds"));
+        BCArray* arrayType;
+        BCSlice* sliceType;
 
-		if (indexed.type.type == BCTypeEnum.Array)
+        if (indexed.type.type == BCTypeEnum.Array)
         {
             auto _arrayType = (
                 !isString ? &_sharedCtfeState.arrays[indexed.type.typeIndex - 1] : null);
@@ -1493,7 +1500,8 @@ public:
             debug (ctfe)
             {
                 import std.stdio;
-				writeln(_sharedCtfeState.slices[0 .. 4]);
+
+                writeln(_sharedCtfeState.slices[0 .. 4]);
                 if (sliceType)
                     writeln("sliceType ", *sliceType);
 
@@ -1507,7 +1515,8 @@ public:
         {
             //removeTemporary(ptr);
         }
-        auto elmType = arrayType ? arrayType.elementType : (sliceType ? sliceType.elementType : BCType(BCTypeEnum.Char));
+        auto elmType = arrayType ? arrayType.elementType : (
+            sliceType ? sliceType.elementType : BCType(BCTypeEnum.Char));
         auto oldRetval = retval;
         retval = assignTo ? assignTo : genTemporary(elmType);
         //        if (elmType.type == BCTypeEnum.i32)
@@ -1524,7 +1533,6 @@ public:
             if (!isString)
             {
                 int elmSize = sharedCtfeState.size(elmType);
-				writeln("elmSize:", elmSize);
                 assert(cast(int) elmSize > -1);
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
                 Mul3(offset, idx, BCValue(Imm32(elmSize)));
@@ -1823,12 +1831,11 @@ public:
         /*HACK HACK HACK*/
         incSp(); //HACK
 
-		HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
-		_sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = cast(uint) ale.elements.dim;
-		_sharedCtfeState.heap.heapSize += uint.sizeof;
+        HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
+        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = cast(uint) ale.elements.dim;
+        _sharedCtfeState.heap.heapSize += uint.sizeof;
 
-        
-		auto heapAdd = align4(_sharedCtfeState.size(elmType));
+        auto heapAdd = align4(_sharedCtfeState.size(elmType));
 
         foreach (elem; *ale.elements)
         {
@@ -1836,11 +1843,11 @@ public:
             assert(elexpr.type.type == BCTypeEnum.i32
                 && elexpr.vType == BCValueType.Immediate,
                 "ArrayElement is not an Imm32 " ~ to!string(elexpr.vType));
-			_sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
-			_sharedCtfeState.heap.heapSize += heapAdd;
+            _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
+            _sharedCtfeState.heap.heapSize += heapAdd;
         }
         if (!oldInsideArrayLiteralExp)
-           retval = BCValue(Imm32(arrayAddr.addr));
+            retval = BCValue(Imm32(arrayAddr.addr));
 
         debug (ctfe)
         {
@@ -2153,6 +2160,13 @@ public:
 
     }
 
+    static bool canHandleBinExpTypes(const BCTypeEnum lhs, const BCTypeEnum rhs) pure
+    {
+        return (lhs == BCTypeEnum.i32 || lhs == BCTypeEnum.i32Ptr)
+            && rhs == BCTypeEnum.i32 || lhs == BCTypeEnum.i64
+            && (rhs == BCTypeEnum.i64 || rhs == BCTypeEnum.i32);
+    }
+
     override void visit(BinAssignExp e)
     {
         debug (ctfe)
@@ -2198,6 +2212,30 @@ public:
         case TOK.TOKorass:
             {
                 Or3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
+        case TOK.TOKandass:
+            {
+                And3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
+        case TOK.TOKxorass:
+            {
+                Xor3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
+        case TOK.TOKmulass:
+            {
+                Mul3(lhs, lhs, rhs);
+                retval = lhs;
+            }
+            break;
+        case TOK.TOKdivass:
+            {
+                Div3(lhs, lhs, rhs);
                 retval = lhs;
             }
             break;
@@ -3164,10 +3202,12 @@ public:
                 Ret(retval.i32);
             else
             {
-				debug(ctfe)
-				{
-					assert(0, "could not handle returnStatement with BCType " ~ to!string(retval.type.type));
-				}
+                debug (ctfe)
+                {
+                    assert(0,
+                        "could not handle returnStatement with BCType " ~ to!string(
+                        retval.type.type));
+                }
                 IGaveUp = true;
                 return;
             }
