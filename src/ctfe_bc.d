@@ -1828,11 +1828,9 @@ public:
         _sharedCtfeState.arrays[_sharedCtfeState.arrayCount++] = arrayType;
         if (!oldInsideArrayLiteralExp)
             retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
-        /*HACK HACK HACK*/
-        incSp(); //HACK
 
         HeapAddr arrayAddr = HeapAddr(_sharedCtfeState.heap.heapSize);
-        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = cast(uint) ale.elements.dim;
+        _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = arrayLength;
         _sharedCtfeState.heap.heapSize += uint.sizeof;
 
         auto heapAdd = align4(_sharedCtfeState.size(elmType));
@@ -1842,13 +1840,14 @@ public:
             auto elexpr = genExpr(elem);
             assert(elexpr.type.type == BCTypeEnum.i32
                 && elexpr.vType == BCValueType.Immediate,
-                "ArrayElement is not an Imm32 " ~ to!string(elexpr.vType));
+                "ArrayElement is not an Immediate but an " ~ to!string(elexpr.vType));
             _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
             _sharedCtfeState.heap.heapSize += heapAdd;
         }
-        if (!oldInsideArrayLiteralExp)
-            retval = BCValue(Imm32(arrayAddr.addr));
+//        if (!oldInsideArrayLiteralExp)
 
+        retval = BCValue(Imm32(arrayAddr.addr));
+        writeln("ArrayLiteralRetVal = ", retval.imm32);
         debug (ctfe)
         {
             import std.stdio;
@@ -2556,7 +2555,7 @@ public:
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             debug (ctfe)
                 assert(structTypeIndex, "could not get StructType");
-        else if (!structTypeIndex)
+            else if (!structTypeIndex)
                 {
                     IGaveUp = true;
                     return;
