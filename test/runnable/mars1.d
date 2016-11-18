@@ -1454,6 +1454,29 @@ void writeln(int v, int[] a)
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=16699
+
+ulong[1] parseDateRange()
+{
+    try
+    {
+        ulong[1] result;
+        result[0] = 6;
+        return result;
+    }
+    finally
+    {
+    }
+}
+
+void test16699()
+{
+    ulong[1] range = parseDateRange();
+    assert(range[0] == 6);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1504,6 +1527,7 @@ int main()
     test15272();
     test15861();
     test15629();
+    test16699();
     printf("Success\n");
     return 0;
 }

@@ -3226,7 +3226,7 @@ void elem_print(elem *e)
   else
   {
         if ((e->Eoper == OPstrpar || e->Eoper == OPstrctor || e->Eoper == OPstreq) ||
-            e->Ety == TYstruct)
+            e->Ety == TYstruct || e->Ety == TYarray)
             if (e->ET)
                 dbg_printf("%d ", (int)type_size(e->ET));
         WRTYxx(e->Ety);
