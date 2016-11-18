@@ -267,8 +267,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 import std.stdio;
 
                 writeln("I have ", _sharedCtfeState.functionCount, " functions!");
-                bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
+				bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
+
             }
+
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
                 &_sharedCtfeState.heap, _sharedCtfeState.functions.ptr);
         }
@@ -1801,11 +1803,6 @@ public:
             writefln("ArrayLiteralExp %s insideArrayLiteralExp %d",
                 ale.toString, insideArrayLiteralExp);
         }
-        else
-        {
-            IGaveUp = true;
-            return;
-        }
 
         retval = assignTo ? assignTo : genTemporary(toBCType(ale.type));
 
@@ -1847,12 +1844,11 @@ public:
 //        if (!oldInsideArrayLiteralExp)
 
         retval = BCValue(Imm32(arrayAddr.addr));
-        writeln("ArrayLiteralRetVal = ", retval.imm32);
         debug (ctfe)
         {
             import std.stdio;
 
-            writeln("ale.type:", retval.type.type);
+        writeln("ArrayLiteralRetVal = ", retval.imm32);
         }
         auto insideArrayLiteralExp = oldInsideArrayLiteralExp;
     }
