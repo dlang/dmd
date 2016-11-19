@@ -479,4 +479,63 @@ version ( D_SIMD )
   }
 
   private void __prefetch(const(void*) address, ubyte encoding);
+
+  /*************************************
+   * Load unaligned vector from address.
+   * This is a compiler intrinsic.
+   * Params:
+   *    p = pointer to vector
+   * Returns:
+   *    vector
+   */
+
+  V loadUnaligned(V)(const V* p)
+        if (is(V == void16) ||
+            is(V == byte16) ||
+            is(V == ubyte16) ||
+            is(V == short8) ||
+            is(V == ushort8) ||
+            is(V == int4) ||
+            is(V == uint4) ||
+            is(V == long2) ||
+            is(V == ulong2))
+  {
+        pragma(inline, true);
+        static if (is(V == double2))
+            return cast(V)__simd(XMM.LODUPD, *cast(const void16*)p);
+        else static if (is(V == float4))
+            return cast(V)__simd(XMM.LODUPS, *cast(const void16*)p);
+        else
+            return cast(V)__simd(XMM.LODDQU, *cast(const void16*)p);
+  }
+
+  /*************************************
+   * Store vector to unaligned address.
+   * This is a compiler intrinsic.
+   * Params:
+   *    p = pointer to vector
+   *    value = value to store
+   * Returns:
+   *    value
+   */
+
+  V storeUnaligned(V)(V* p, V value)
+        if (is(V == void16) ||
+            is(V == byte16) ||
+            is(V == ubyte16) ||
+            is(V == short8) ||
+            is(V == ushort8) ||
+            is(V == int4) ||
+            is(V == uint4) ||
+            is(V == long2) ||
+            is(V == ulong2))
+  {
+        pragma(inline, true);
+        static if (is(V == double2))
+            return cast(V)__simd_sto(XMM.STOUPD, *cast(void16*)p, value);
+        else static if (is(V == float4))
+            return cast(V)__simd_sto(XMM.STOUPS, *cast(void16*)p, value);
+        else
+            return cast(V)__simd_sto(XMM.STODQU, *cast(void16*)p, value);
+  }
 }
