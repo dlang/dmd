@@ -1,4 +1,5 @@
 module ddmd.ctfe.bc_common;
+import ddmd.root.rmem;
 
 struct CndJmpBegin
 {
@@ -125,7 +126,7 @@ enum BCValueType : ubyte
 
     HeapValue = 0x10,
 
-    Error = 0xFF,/// Pinned values can be returned
+    Error = 0xFF, /// Pinned values can be returned
     /// And should be kept in the compacted heap
     //Pinned = 0x80,
 }
@@ -161,7 +162,7 @@ struct BCHeap
 
     void initHeap()
     {
-        _heap = new uint[](2 ^^ 24);
+        _heap = (cast(uint*)(allocmemory((2 ^^ 24) * uint.sizeof)))[0 .. 2 ^^ 24];
         heapMax = (2 ^^ 24) - 32;
     }
 
@@ -202,6 +203,7 @@ struct BCHeap
             heapSize++;
         }
 
+        heapSize = align4(heapSize);
         return result;
     }
 }
