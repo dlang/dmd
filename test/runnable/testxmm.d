@@ -1460,14 +1460,22 @@ ubyte16 test11585(ubyte16* d)
 
 int fooprefetch(byte a)
 {
-    prefetch!(false, 0)(&a);
-    prefetch!(false, 1)(&a);
-    prefetch!(false, 2)(&a);
-    prefetch!(false, 3)(&a);
-    prefetch!(true, 0)(&a);
-    prefetch!(true, 1)(&a);
-    prefetch!(true, 2)(&a);
-    prefetch!(true, 3)(&a);
+    /* These should be run only if the CPUID PRFCHW
+     * bit 0 of cpuid.{EAX = 7, ECX = 0}.ECX
+     * Unfortunately, that bit isn't yet set by core.cpuid
+     * so disable for the moment.
+     */
+    version (none)
+    {
+        prefetch!(false, 0)(&a);
+        prefetch!(false, 1)(&a);
+        prefetch!(false, 2)(&a);
+        prefetch!(false, 3)(&a);
+        prefetch!(true, 0)(&a);
+        prefetch!(true, 1)(&a);
+        prefetch!(true, 2)(&a);
+        prefetch!(true, 3)(&a);
+    }
     return 3;
 }
 
