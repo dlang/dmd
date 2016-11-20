@@ -171,7 +171,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
     __gshared static uint recursionLevel = 0;
     //__gshared static BCV!BCGenT bcv;
-
+    writefln("%x", cast(void*) fd.vthis);
     recursionLevel++;
     debug (ctfe)
         writeln("recursionLevel: ", recursionLevel);
@@ -233,7 +233,10 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         bcv.beginArguments();
         auto bc_args = args.map!(a => bcv.genExpr(a)).array;
         if (bcv.IGaveUp)
+        {
+            writeln("Ctfe died on argument processing");
             return null;
+        }
         writeln("BC complied: ", fd.ident.toString);
         bcv.endArguments();
         bcv.Finalize();
@@ -268,7 +271,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 import std.stdio;
 
                 writeln("I have ", _sharedCtfeState.functionCount, " functions!");
-				bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
+                bcv.gen.byteCodeArray[0 .. bcv.ip].printInstructions.writeln();
 
             }
 
@@ -305,6 +308,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             writeln(bcv.result);
             return null;
         }
+        writeln("Gavup!");
         return null;
 
     }
@@ -755,7 +759,9 @@ Expression toExpression(const BCValue value, Type expressionType,
     case Tsarray:
         {
             auto tsa = cast(TypeSArray) expressionType;
-            assert(heapPtr._heap[value.heapAddr.addr] == evaluateUlong(tsa.dim));
+            assert(heapPtr._heap[value.heapAddr.addr] == evaluateUlong(tsa.dim),
+                "static arrayLength mismatch: " ~ to!string(heapPtr._heap[value.heapAddr.addr]) ~ " != " ~ to!string(
+                evaluateUlong(tsa.dim)));
             goto default;
         }
         break;
@@ -1016,9 +1022,9 @@ public:
             else
             {
                 IGaveUp = true;
+                assert(0, "passed too many arguments");
 
             }
-            assert(arguments.length <= parameterTypes.length, "passed too many arguments");
         }
         else
         {
@@ -1050,14 +1056,20 @@ public:
                 || fd.ident == Identifier.idPool("__lambda2")
                 || fd.ident == Identifier.idPool("isSameLength")
                 || fd.ident == Identifier.idPool("wrapperParameters")
-                || fd.ident == Identifier.idPool("bug4910") // this one is strange
-
+                || fd.ident == Identifier.idPool("defaultMatrix") // this one is strange
                 
-
+                || fd.ident == Identifier.idPool("bug4910") // this one is strange
+                
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
             IGaveUp = true;
+            debug (ctfe)
+            {
+                import std.stdio;
+
+                writeln("Bailout on known function");
+            }
             return;
         }
 
@@ -1361,6 +1373,8 @@ public:
                 default:
                     {
                         IGaveUp = true;
+                        debug (ctfe)
+                            assert(0, "Binary Expression " ~ to!string(e.op) ~ " unsupported");
                         return;
                     }
                 }
@@ -1380,10 +1394,15 @@ public:
             break;
 
         case TOK.TOKoror:
+        case TOK.TOKandand:
             {
                 IGaveUp = true;
-                return;
+                debug (ctfe)
+                {
+                    assert(0, "|| and && are unsupported at the moment");
+                }
                 const oldFixupTableCount = fixupTableCount;
+                return;
                 auto lhs = genExpr(e.e1);
                 doFixup(oldFixupTableCount, null, null);
                 fixupTable[fixupTableCount++] = BoolExprFixupEntry(beginCndJmp(lhs,
@@ -1392,11 +1411,6 @@ public:
                 //auto rhs =
             }
 
-            break;
-        case TOK.TOKandand:
-            {
-
-            }
             break;
         default:
             {
@@ -1576,7 +1590,7 @@ public:
         //              writeln("ie.e2: ", genExpr(ie.e2).value.toString);
     }
 
-    BCBlock genBlock(Statement stmt)
+    BCBlock genBlock(Statement stmt, bool setCurrent = true)
     {
         BCBlock result;
         auto oldBlock = currentBlock;
@@ -1588,19 +1602,24 @@ public:
 
             writeln("Calling genBlock on : ", stmt.toString);
         }
-        currentBlock = &result;
+        if (setCurrent)
+        {
+            currentBlock = &result;
+        }
         result.begin = genLabel();
         stmt.accept(this);
         result.end = genLabel();
 
         // Now let's fixup thoose breaks
-        foreach (Jmp; breakFixups[oldBreakFixupsCount .. breakFixupsCount])
+        if (setCurrent)
         {
-            endJmp(Jmp, result.end);
+            foreach (Jmp; breakFixups[oldBreakFixupsCount .. breakFixupsCount])
+            {
+                endJmp(Jmp, result.end);
+            }
+            currentBlock = oldBlock;
+            breakFixupsCount = oldBreakFixupsCount;
         }
-        currentBlock = oldBlock;
-        breakFixupsCount = oldBreakFixupsCount;
-
         return result;
     }
 
@@ -1715,6 +1734,8 @@ public:
         else
         {
             IGaveUp = true;
+            debug (ctfe)
+                assert(0, "We don't handle [xx .. yy] for now");
         }
     }
 
@@ -1842,14 +1863,14 @@ public:
             _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
             _sharedCtfeState.heap.heapSize += heapAdd;
         }
-//        if (!oldInsideArrayLiteralExp)
+        //        if (!oldInsideArrayLiteralExp)
 
         retval = BCValue(Imm32(arrayAddr.addr));
         debug (ctfe)
         {
             import std.stdio;
 
-        writeln("ArrayLiteralRetVal = ", retval.imm32);
+            writeln("ArrayLiteralRetVal = ", retval.imm32);
         }
         auto insideArrayLiteralExp = oldInsideArrayLiteralExp;
     }
@@ -2552,7 +2573,7 @@ public:
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             debug (ctfe)
                 assert(structTypeIndex, "could not get StructType");
-            else if (!structTypeIndex)
+        else if (!structTypeIndex)
                 {
                     IGaveUp = true;
                     return;
