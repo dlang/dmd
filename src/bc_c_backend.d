@@ -173,10 +173,10 @@ pure:
         endJmp(beginJmp(), target);
     }
 
-    CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifFalse = true)
+    CndJmpBegin beginCndJmp(BCValue cond = BCValue.init, bool ifTrue = false)
     {
         sameLabel = false;
-        string prefix = ifFalse ? "!" : "";
+        string prefix = ifTrue ? "" : "!";
         if (cond.vType == BCValueType.StackValue && cond.type == BCType.i32)
         {
             code ~= "\tif (" ~ prefix ~ "(" ~ toCode(cond) ~ "))\n\t";
@@ -187,7 +187,7 @@ pure:
         }
         auto labelAt = beginJmp();
 
-        return CndJmpBegin(labelAt, cond, ifFalse);
+        return CndJmpBegin(labelAt, cond, ifTrue);
     }
 
     void endCndJmp(CndJmpBegin jmp, BCLabel target)
