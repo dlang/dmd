@@ -639,7 +639,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 {
                     // If the non-aggregate expression ae->e1 is indexable or sliceable,
                     // convert it to the corresponding concrete expression.
-                    if (t1b.ty == Tpointer || t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Taarray || t1b.ty == Ttuple || ae.e1.op == TOKtype)
+                    if (t1b.ty == Tpointer || t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Taarray ||
+                        t1b.ty == Ttuple || t1b.ty == Tvector || ae.e1.op == TOKtype)
                     {
                         // Convert to SliceExp
                         if (maybeSlice)
