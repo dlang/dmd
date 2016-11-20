@@ -2479,15 +2479,25 @@ unsigned dwarf_typidx(type *t)
         }
 
         // SIMD vector types
+        case TYfloat8:
         case TYfloat4:   tbase = tsfloat;  goto Lvector;
+        case TYdouble4:
         case TYdouble2:  tbase = tsdouble; goto Lvector;
+        case TYschar32:
         case TYschar16:  tbase = tsschar;  goto Lvector;
+        case TYuchar32:
         case TYuchar16:  tbase = tsuchar;  goto Lvector;
+        case TYshort16:
         case TYshort8:   tbase = tsshort;  goto Lvector;
+        case TYushort16:
         case TYushort8:  tbase = tsushort; goto Lvector;
+        case TYlong8:
         case TYlong4:    tbase = tslong;   goto Lvector;
+        case TYulong8:
         case TYulong4:   tbase = tsulong;  goto Lvector;
+        case TYllong4:
         case TYllong2:   tbase = tsllong;  goto Lvector;
+        case TYullong4:
         case TYullong2:  tbase = tsullong; goto Lvector;
         Lvector:
         {
