@@ -37,7 +37,7 @@ struct C_BCGen
         return (
             (
             (fname is null) ? "((BCValue[] args, BCHeap* heapPtr) @safe {\n"
-            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ intrinsicFunctions ~ "\n\tint stackOffset;\n\tBCValue retval;\n\tint[" ~ to!string(
+            : "BCValue " ~ fname ~ "(BCValue[] args) {\n") ~ (requireIntrinsics ? intrinsicFunctions : "") ~ "\n\tint stackOffset;\n\tBCValue retval;\n\tint[" ~ to!string(
             align4(sp + 400)) ~ "] stack;\n\tint cond;\n\n" ~ q{
         foreach(i, arg;args)
         {

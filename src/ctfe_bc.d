@@ -2845,10 +2845,7 @@ public:
             {
                 // need to do an a check
                 // Eq3(BCValue.init, lhs, BValue(Imm32(0))
-                debug (ctfe)
-                    assert(0, "We need to check this");
-                IGaveUp = true;
-                return;
+                AssertError(lhs, _sharedCtfeState.addError(ae.loc, "Assert Failed"));
             }
 
         }
@@ -3253,7 +3250,8 @@ public:
         }
         immutable oldDiscardValue = discardValue;
         discardValue = true;
-        genExpr(es.exp);
+        if (es.exp)
+            genExpr(es.exp);
         discardValue = oldDiscardValue;
     }
 
@@ -3274,7 +3272,7 @@ public:
                 IGaveUp = true;
                 return;
             }
-        auto cj = beginCndJmp(cond);
+        auto cj = beginCndJmp(cond, false);
 
         endCndJmp(cj, doBlock.begin);
     }

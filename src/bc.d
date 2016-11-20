@@ -1645,8 +1645,13 @@ BCValue interpret_(const int[] byteCode, const BCValue[] args,
             break;
         case LongInst.Assert:
             {
-                assert(0, "Not Implemented yet");
-            }
+                if (*lhsRef == 0)
+                {
+                    BCValue retval = BCValue(Imm32((*rhs) & uint.max));
+                    retval.vType = BCValueType.Error;
+                    return retval;
+                }
+            } break;
         case LongInst.AssertCnd:
             {
                 if (!cond)
