@@ -3272,7 +3272,7 @@ public:
                 IGaveUp = true;
                 return;
             }
-        auto cj = beginCndJmp(cond, false);
+        auto cj = beginCndJmp(cond, true);
 
         endCndJmp(cj, doBlock.begin);
     }
