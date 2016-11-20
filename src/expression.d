@@ -11501,6 +11501,14 @@ extern (C++) final class SliceExp : UnaExp
                 return new ErrorExp();
             }
         }
+        else if (t1b.ty == Tvector)
+        {
+            // Convert e1 to corresponding static array
+            TypeVector tv1 = cast(TypeVector)t1b;
+            t1b = tv1.basetype;
+            t1b = t1b.castMod(tv1.mod);
+            e1.type = t1b;
+        }
         else
         {
             error("%s cannot be sliced with []", t1b.ty == Tvoid ? e1.toChars() : t1b.toChars());
@@ -12202,6 +12210,15 @@ extern (C++) final class IndexExp : BinExp
         // Note that unlike C we do not implement the int[ptr]
 
         Type t1b = e1.type.toBasetype();
+
+        if (t1b.ty == Tvector)
+        {
+            // Convert e1 to corresponding static array
+            TypeVector tv1 = cast(TypeVector)t1b;
+            t1b = tv1.basetype;
+            t1b = t1b.castMod(tv1.mod);
+            e1.type = t1b;
+        }
 
         /* Run semantic on e2
          */
