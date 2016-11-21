@@ -1057,9 +1057,13 @@ public:
                 || fd.ident == Identifier.idPool("isSameLength")
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("defaultMatrix") // this one is strange
+
                 
+
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
+
                 
+
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
@@ -1832,10 +1836,16 @@ public:
         insideArrayLiteralExp = true;
 
         auto elmType = toBCType(ale.type.nextOf);
-        assert(elmType.type == BCTypeEnum.i32
-            || elmType.type == BCTypeEnum.Struct,
-            "can only deal with int[] and uint[]  or Structs atm. given:" ~ to!string(elmType.type));
-
+        if (elmType.type != BCTypeEnum.i32 && elmType.type != BCTypeEnum.Struct)
+        {
+            IGaveUp = true;
+            debug (ctfe)
+            {
+                assert(0,
+                    "can only deal with int[] and uint[]  or Structs atm. given:" ~ to!string(
+                    elmType.type));
+            }
+        }
         auto arrayLength = cast(uint) ale.elements.dim;
         //_sharedCtfeState.getArrayIndex(ale.type);
         auto arrayType = BCArray(elmType, arrayLength);
@@ -1857,11 +1867,17 @@ public:
         foreach (elem; *ale.elements)
         {
             auto elexpr = genExpr(elem);
-            assert(elexpr.type.type == BCTypeEnum.i32
-                && elexpr.vType == BCValueType.Immediate,
-                "ArrayElement is not an Immediate but an " ~ to!string(elexpr.vType));
-            _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
-            _sharedCtfeState.heap.heapSize += heapAdd;
+            if (elexpr.type.type == BCTypeEnum.i32 && elexpr.vType == BCValueType.Immediate)
+            {
+                _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = elexpr.imm32;
+                _sharedCtfeState.heap.heapSize += heapAdd;
+            }
+            else
+            {
+                debug (ctfe)
+                    assert(0, "ArrayElement is not an Immediate but an " ~ to!string(elexpr.vType));
+                IGaveUp = true;
+            }
         }
         //        if (!oldInsideArrayLiteralExp)
 
@@ -2695,7 +2711,12 @@ public:
             Mul3(effectiveAddr, index, BCValue(Imm32(elemSize)));
             Add3(effectiveAddr, effectiveAddr, indexed.i32);
             Add3(effectiveAddr, effectiveAddr, bcFour);
-            assert(elemSize == 4, "only 32 bit array loads are supported right now");
+            if (elemSize != 4)
+            {
+                IGaveUp = true;
+                debug (ctfe)
+                    assert(0, "only 32 bit array loads are supported right now");
+            }
             auto rhs = genExpr(ae.e2);
             Store32(effectiveAddr, rhs.i32);
         }
@@ -3264,17 +3285,27 @@ public:
             writefln("DoStatement %s", ds.toString);
         }
         auto doBlock = genBlock(ds._body);
-        auto cond = genExpr(ds.condition);
-        debug (ctfe)
-            assert(cond);
-            else if (!cond)
-            {
-                IGaveUp = true;
-                return;
-            }
-        auto cj = beginCndJmp(cond, true);
+        if (ds.condition.isBool(true))
+        {
+            genJump(doBlock.begin);
+        }
+        else if (ds.condition.isBool(false))
+        {
+        }
+        else
+        {
+            auto cond = genExpr(ds.condition);
+            debug (ctfe)
+                assert(cond);
+        else if (!cond)
+                {
+                    IGaveUp = true;
+                    return;
+                }
 
-        endCndJmp(cj, doBlock.begin);
+            auto cj = beginCndJmp(cond, true);
+            endCndJmp(cj, doBlock.begin);
+        }
     }
 
     override void visit(WithStatement ws)
