@@ -3202,6 +3202,8 @@ Lagain:
     {
         if (t1.ty != t2.ty)
         {
+            if (t1.ty == Tvector || t2.ty == Tvector)
+                goto Lincompatible;
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
             t1 = e1.type;
