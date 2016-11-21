@@ -46,6 +46,7 @@ import ddmd.statement;
 import ddmd.staticassert;
 import ddmd.target;
 import ddmd.tocsym;
+import ddmd.tocvdebug;
 import ddmd.todt;
 import ddmd.tokens;
 import ddmd.typinf;
@@ -70,9 +71,6 @@ extern (C++):
 alias toSymbol = ddmd.tocsym.toSymbol;
 alias toSymbol = ddmd.glue.toSymbol;
 
-void toDebug(EnumDeclaration ed);
-void toDebug(StructDeclaration sd);
-void toDebug(ClassDeclaration cd);
 
 /* ================================================================== */
 
