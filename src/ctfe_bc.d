@@ -191,7 +191,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             || fd.ident.toString == "uIntArrayToString"))
         return null;
 
-    writeln("trying ", fd.ident.toString);
+    writeln("trying ", fd.toString);
     //if (bcv is null)
     //{
     scope bcv = new BCV!BCGenT(fd, _this);
@@ -2132,13 +2132,14 @@ public:
             debug (ctfe)
                 assert(0, "Alias Declaration " ~ toString(as) ~ " is unsupported");
         }
-        debug (ctfe)
-            assert(vd, "DeclarationExps are expected to be VariableDeclarations");
-            else if (!vd)
-            {
-                IGaveUp = true;
-                return;
-            }
+        if (!vd)
+        {
+            debug (ctfe)
+                assert(vd, "DeclarationExps are expected to be VariableDeclarations");
+
+            IGaveUp = true;
+            return;
+        }
         visit(vd);
         auto var = retval;
         debug (ctfe)
@@ -2569,6 +2570,8 @@ public:
         discardValue = false;
         debug (ctfe)
         {
+            import std.stdio;
+
             writeln("ae.e1.op ", to!string(ae.e1.op));
         }
 
@@ -2638,6 +2641,13 @@ public:
             // We are assigning to an arrayLength
             // This means possibly allocation and copying
             auto arrayPtr = genExpr(ale.e1);
+            if (!arrayPtr)
+            {
+                IGaveUp = true;
+                debug (ctfe)
+                    assert(0, "I don't have an array to load the length from :(");
+                return;
+            }
             BCValue oldLength = genTemporary(i32Type);
             BCValue newLength = genExpr(ae.e2);
             auto effectiveSize = genTemporary(i32Type);
@@ -2700,7 +2710,22 @@ public:
         {
             auto ie = cast(IndexExp) ae.e1;
             auto indexed = genExpr(ie.e1);
+            if (!indexed)
+            {
+                IGaveUp = true;
+                debug (ctfe)
+                    assert(0, "could not fetch indexed_var in " ~ ae.toString);
+                return;
+            }
             auto index = genExpr(ie.e2);
+            if (!index)
+            {
+                IGaveUp = true;
+                debug (ctfe)
+                    assert(0, "could not fetch index in " ~ ae.toString);
+                return;
+            }
+
             auto length = getLength(indexed);
             Gt3(BCValue.init, length, index);
             AssertError(BCValue.init, _sharedCtfeState.addError(ae.loc,
