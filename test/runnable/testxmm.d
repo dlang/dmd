@@ -11,6 +11,57 @@ import std.stdio;
 alias TypeTuple(T...) = T;
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16087
+
+static assert(void16.alignof == 16);
+static assert(double2.alignof == 16);
+static assert(float4.alignof == 16);
+static assert(byte16.alignof == 16);
+static assert(ubyte16.alignof == 16);
+static assert(short8.alignof == 16);
+static assert(ushort8.alignof == 16);
+static assert(int4.alignof == 16);
+static assert(uint4.alignof == 16);
+static assert(long2.alignof == 16);
+static assert(ulong2.alignof == 16);
+
+static assert(void16.sizeof == 16);
+static assert(double2.sizeof == 16);
+static assert(float4.sizeof == 16);
+static assert(byte16.sizeof == 16);
+static assert(ubyte16.sizeof == 16);
+static assert(short8.sizeof == 16);
+static assert(ushort8.sizeof == 16);
+static assert(int4.sizeof == 16);
+static assert(uint4.sizeof == 16);
+static assert(long2.sizeof == 16);
+static assert(ulong2.sizeof == 16);
+
+static assert(void32.alignof == 32);
+static assert(double4.alignof == 32);
+static assert(float8.alignof == 32);
+static assert(byte32.alignof == 32);
+static assert(ubyte32.alignof == 32);
+static assert(short16.alignof == 32);
+static assert(ushort16.alignof == 32);
+static assert(int8.alignof == 32);
+static assert(uint8.alignof == 32);
+static assert(long4.alignof == 32);
+static assert(ulong4.alignof == 32);
+
+static assert(void32.sizeof == 32);
+static assert(double4.sizeof == 32);
+static assert(float8.sizeof == 32);
+static assert(byte32.sizeof == 32);
+static assert(ubyte32.sizeof == 32);
+static assert(short16.sizeof == 32);
+static assert(ushort16.sizeof == 32);
+static assert(int8.sizeof == 32);
+static assert(uint8.sizeof == 32);
+static assert(long4.sizeof == 32);
+static assert(ulong4.sizeof == 32);
+
+/*****************************************/
 
 void test1()
 {
@@ -1325,7 +1376,7 @@ void test12852()
 
 void test9449()
 {
-    ubyte16 table[1];
+    ubyte16[1] table;
 }
 
 /*****************************************/
