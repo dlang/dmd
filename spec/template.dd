@@ -550,7 +550,7 @@ $(GNAME TemplateAliasParameterDefault):
             alias q = T.p;
         }
 
-        void test()
+        void main()
         {
             alias bar = Bar!(Foo);
             bar.q = 3;  // sets Foo.p to 3
@@ -561,18 +561,18 @@ $(GNAME TemplateAliasParameterDefault):
         $(LI Global names
 
         ------
-        int x;
+        __gshared int x;
 
         template Foo(alias X)
         {
             static int* p = &X;
         }
 
-        void test()
+        void main()
         {
             alias bar = Foo!(x);
             *bar.p = 3;       // set x to 3
-            static int y;
+            __gshared int y;
             alias abc = Foo!(y);
             *abc.p = 3;       // set y to 3
         }
@@ -589,7 +589,7 @@ $(GNAME TemplateAliasParameterDefault):
             alias y = X.toString;
         }
 
-        void test()
+        void main()
         {
             alias bar = Foo!(std.string);
             bar.y(3);   // calls std.string.toString(3)
@@ -600,7 +600,7 @@ $(GNAME TemplateAliasParameterDefault):
         $(LI Template names
 
         ------
-        int x;
+        __gshared int x;
 
         template Foo(alias X)
         {
@@ -612,7 +612,7 @@ $(GNAME TemplateAliasParameterDefault):
             alias abc = T!(x);
         }
 
-        void test()
+        void main()
         {
             alias bar = Bar!(Foo);
             *bar.abc.p = 3;  // sets x to 3
@@ -623,7 +623,7 @@ $(GNAME TemplateAliasParameterDefault):
         $(LI Template instance names
 
         ------
-        int x;
+        __gshared int x;
 
         template Foo(alias X)
         {
@@ -635,7 +635,7 @@ $(GNAME TemplateAliasParameterDefault):
             alias q = T.p;
         }
 
-        void test()
+        void main()
         {
             alias foo = Foo!(x);
             alias bar = Bar!(foo);
@@ -653,7 +653,7 @@ $(GNAME TemplateAliasParameterDefault):
             static string s = Y;
         }
 
-        void test()
+        void main()
         {
             alias foo = Foo!(3, "bar");
             writeln(foo.i, foo.s);  // prints 3bar
