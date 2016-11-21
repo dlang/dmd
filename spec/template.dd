@@ -561,18 +561,18 @@ $(GNAME TemplateAliasParameterDefault):
         $(LI Global names
 
         ------
-        __gshared int x;
+        shared int x;
 
         template Foo(alias X)
         {
-            static int* p = &X;
+            auto p = &X;
         }
 
         void main()
         {
             alias bar = Foo!(x);
             *bar.p = 3;       // set x to 3
-            __gshared int y;
+            static shared int y;
             alias abc = Foo!(y);
             *abc.p = 3;       // set y to 3
         }
@@ -600,11 +600,11 @@ $(GNAME TemplateAliasParameterDefault):
         $(LI Template names
 
         ------
-        __gshared int x;
+        shared int x;
 
         template Foo(alias X)
         {
-            static int* p = &X;
+            auto p = &X;
         }
 
         template Bar(alias T)
@@ -623,11 +623,11 @@ $(GNAME TemplateAliasParameterDefault):
         $(LI Template instance names
 
         ------
-        __gshared int x;
+        shared int x;
 
         template Foo(alias X)
         {
-            static int* p = &X;
+            auto p = &X;
         }
 
         template Bar(alias T)
