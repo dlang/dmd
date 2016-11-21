@@ -758,6 +758,7 @@ void dotytab()
     static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
                                  TYfloat4,TYdouble2,
+                                 TYfloat8,TYdouble4,
                                };
     static tym_t _imaginary[] = {
                                  TYifloat,TYidouble,TYildouble,
@@ -770,7 +771,10 @@ void dotytab()
                                  TYlong,TYulong,TYllong,TYullong,TYdchar,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
-                                 TYchar16, TYcent, TYucent };
+                                 TYschar32,TYuchar32,TYshort16,TYushort16,
+                                 TYlong8,TYulong8,TYllong4,TYullong4,
+                                 TYchar16,TYcent,TYucent,
+                               };
     static tym_t _ref[]      = { TYnref,TYref };
     static tym_t _func[]     = { TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc };
     static tym_t _ref_nflat[] = { TYfref };
@@ -795,11 +799,17 @@ void dotytab()
                                  TYfloat4,TYdouble2,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
+                                 TYfloat8,TYdouble4,
+                                 TYschar32,TYuchar32,TYshort16,TYushort16,
+                                 TYlong8,TYulong8,TYllong4,TYullong4,
                              };
     static tym_t _simd[] = {
                                  TYfloat4,TYdouble2,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
+                                 TYfloat8,TYdouble4,
+                                 TYschar32,TYuchar32,TYshort16,TYushort16,
+                                 TYlong8,TYulong8,TYllong4,TYullong4,
                              };
 
     static struct
@@ -858,6 +868,17 @@ void dotytab()
 "unsigned long[4]",      TYulong4,    TYulong4,  TYulong4,    16,     0,      0,
 "long long[2]",          TYllong2,    TYullong2, TYllong2,    16,     0,      0,
 "unsigned long long[2]", TYullong2,   TYullong2, TYullong2,   16,     0,      0,
+
+"float[8]",              TYfloat8,    TYfloat8,  TYfloat8,    32,     0,      0,
+"double[4]",             TYdouble4,   TYdouble4, TYdouble4,   32,     0,      0,
+"signed char[32]",       TYschar32,   TYuchar32, TYschar32,   32,     0,      0,
+"unsigned char[32]",     TYuchar32,   TYuchar32, TYuchar32,   32,     0,      0,
+"short[16]",             TYshort16,   TYushort16, TYshort16,  32,     0,      0,
+"unsigned short[16]",    TYushort16,  TYushort16, TYushort16, 32,     0,      0,
+"long[8]",               TYlong8,     TYulong8,  TYlong8,     32,     0,      0,
+"unsigned long[8]",      TYulong8,    TYulong8,  TYulong8,    32,     0,      0,
+"long long[4]",          TYllong4,    TYullong4, TYllong4,    32,     0,      0,
+"unsigned long long[4]", TYullong4,   TYullong4, TYullong4,   32,     0,      0,
 
 "nullptr_t",    TYnullptr,      TYnullptr, TYptr,       2,  0x20,       0x100,
 "*",            TYnptr,         TYnptr,    TYnptr,      2,  0x20,       0x100,

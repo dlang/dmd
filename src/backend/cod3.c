@@ -642,6 +642,17 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYulong4:
         case TYllong2:
         case TYullong2:
+
+        case TYfloat8:
+        case TYdouble4:
+        case TYschar32:
+        case TYuchar32:
+        case TYshort16:
+        case TYushort16:
+        case TYlong8:
+        case TYulong8:
+        case TYllong4:
+        case TYullong4:
             if (!config.fpxmmregs)
             {   printf("SIMD operations not supported on this platform\n");
                 exit(1);
