@@ -246,7 +246,7 @@ extern (C++) final class StructInitializer : Initializer
 
     override Initializer semantic(Scope* sc, Type t, NeedInterpret needInterpret)
     {
-        //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
+        //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
         t = t.toBasetype();
         if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
             t = t.nextOf().toBasetype();
@@ -329,7 +329,7 @@ extern (C++) final class StructInitializer : Initializer
                     continue;
                 }
                 value[i] = iz;
-                (*elements)[fieldi] = ex;
+                (*elements)[fieldi] = doCopyOrMove(sc, ex);
                 ++fieldi;
             }
             if (errors)
