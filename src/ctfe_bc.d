@@ -2590,13 +2590,13 @@ public:
             }
             auto structDeclPtr = ((cast(TypeStruct) dve.e1.type).sym);
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
-            debug (ctfe)
-                assert(structTypeIndex, "could not get StructType");
-        else if (!structTypeIndex)
-                {
-                    IGaveUp = true;
-                    return;
-                }
+            if (!structTypeIndex)
+            {
+                IGaveUp = true;
+                debug (ctfe)
+                    assert(0, "could not get StructType");
+                return;
+            }
             BCStruct bcStructType = _sharedCtfeState.structs[structTypeIndex - 1];
             auto vd = dve.var.isVarDeclaration();
             assert(vd);

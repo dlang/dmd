@@ -348,7 +348,7 @@ struct BCGen
         ip += 2;
     }
 
-    auto genTemporary(BCType bct)
+    BCValue genTemporary(BCType bct)
     {
         auto tmpAddr = sp.addr;
         if (isBasicBCType(bct))
@@ -403,7 +403,7 @@ struct BCGen
         return sp;
     }
 
-    auto endJmp(BCAddr atIp, BCLabel target)
+    void endJmp(BCAddr atIp, BCLabel target)
     {
         if (auto offset = isShortJump(target.addr - atIp))
         {
@@ -417,7 +417,7 @@ struct BCGen
         }
     }
 
-    auto genLabel()
+    BCLabel genLabel()
     {
         return BCLabel(ip);
     }
