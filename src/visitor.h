@@ -58,6 +58,7 @@ class ImportStatement;
 class Type;
 class TypeError;
 class TypeNext;
+class TypeDeduced;
 class TypeBasic;
 class TypeVector;
 class TypeArray;
@@ -280,6 +281,7 @@ class PrettyFuncInitExp;
 class ClassReferenceExp;
 class VoidInitExp;
 class ThrownExceptionExp;
+class CTFEExp;
 
 class TemplateParameter;
 class TemplateTypeParameter;
@@ -365,6 +367,7 @@ public:
     virtual void visit(TypeTuple *t) { visit((Type *)t); }
     virtual void visit(TypeSlice *t) { visit((TypeNext *)t); }
     virtual void visit(TypeNull *t) { visit((Type *)t); }
+    virtual void visit(TypeDeduced *t) { visit((Type *)t); }
 
     virtual void visit(Dsymbol *) { assert(0); }
 
@@ -566,6 +569,7 @@ public:
     virtual void visit(ClassReferenceExp *e) { visit((Expression *)e); }
     virtual void visit(VoidInitExp *e) { visit((Expression *)e); }
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
+    virtual void visit(CTFEExp *e) { visit((Expression *)e); }
 
     virtual void visit(TemplateParameter *) { assert(0); }
     virtual void visit(TemplateTypeParameter *tp) { visit((TemplateParameter *)tp); }
