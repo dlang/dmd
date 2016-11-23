@@ -87,7 +87,7 @@ CC=$(HOST_CC) $(MODEL_FLAG)
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
 #GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
+GFLAGS = $(WARNINGS) -std=gnu++98 -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DDMDV1=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
@@ -226,11 +226,13 @@ impcnvgen : mtype.h impcnvgen.c
 # The "-dirty" part is only present when the repository had uncommitted changes
 # at the moment it was compiled (only files already tracked by git are taken
 # into account, untracked files don't affect the dirty state).
+ifeq ($(VERSION),)
 VERSION := $(shell cat ../VERSION1)
 ifneq (1,$(RELEASE))
 VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
        test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
 VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
+endif
 endif
 $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
                && printf \"$(VERSION)\" > verstr.h )
