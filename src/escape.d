@@ -490,12 +490,28 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.storage_class & (STCref | STCout)) == 0 && p == sc.func)
+        if ((v.storage_class & (STCref | STCout)) == 0)
         {
-            if (!gag)
-                error(e.loc, "escaping reference to local variable %s", v.toChars());
-            result = true;
-            continue;
+            if (p == sc.func)
+            {
+                if (!gag)
+                    error(e.loc, "escaping reference to local variable %s", v.toChars());
+                result = true;
+                continue;
+            }
+            FuncDeclaration fd = p.isFuncDeclaration();
+            if (fd && sc.func.flags & FUNCFLAGreturnInprocess)
+            {
+                /* Code like:
+                 *   int x;
+                 *   auto dg = () { return &x; }
+                 * Making it:
+                 *   auto dg = () return { return &x; }
+                 * Because dg.ptr points to x, this is returning dt.ptr+offset
+                 */
+                sc.func.storage_class |= STCreturn;
+            }
+
         }
 
         /* Check for returning a ref variable by 'ref', but should be 'return ref'

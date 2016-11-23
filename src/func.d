@@ -2223,7 +2223,18 @@ extern (C++) class FuncDeclaration : Declaration
             f.isnogc = true;
         }
 
-        flags &= ~(FUNCFLAGreturnInprocess | FUNCFLAGinferScope);
+        if (flags & FUNCFLAGreturnInprocess)
+        {
+            flags &= ~FUNCFLAGreturnInprocess;
+            if (storage_class & STCreturn)
+            {
+                if (type == f)
+                    f = cast(TypeFunction)f.copy();
+                f.isreturn = true;
+            }
+        }
+
+        flags &= ~FUNCFLAGinferScope;
 
         // Infer STCscope
         if (parameters)

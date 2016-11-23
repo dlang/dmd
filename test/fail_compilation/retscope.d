@@ -237,6 +237,8 @@ TEST_OUTPUT:
 ---
 fail_compilation/retscope.d(247): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
 fail_compilation/retscope.d(247): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
 ---
 */
 
@@ -245,5 +247,6 @@ void escape4() @safe
     alias FunDG = void* delegate () @safe;
     int x = 42;
     scope FunDG f = () return { return &x; };
+    scope FunDG g = ()        { return &x; };
 }
 
