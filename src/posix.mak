@@ -229,7 +229,7 @@ else
     FRONT_SRCS += libelf.d scanelf.d
 endif
 
-GLUE_SRCS=$(addsuffix .d, irstate toelfdebug toctype glue gluelayer todt tocsym toir dmsc \
+GLUE_SRCS=$(addsuffix .d, irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh)
 
 ifeq ($(D_OBJC),1)
@@ -278,7 +278,7 @@ GLUE_SRC = \
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d
+	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d
 
 TK_HDRS= $(TK)/dlist.d
 

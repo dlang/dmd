@@ -4390,6 +4390,16 @@ extern (C++) final class TypeVector : Type
         {
             printf("TypeVector::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
+        if (ident == Id.ptr && e.op == TOKcall)
+        {
+            /* The trouble with TOKcall is the return ABI for float[4] is different from
+             * __vector(float[4]), and a type paint won't do.
+             */
+            e = new AddrExp(e.loc, e);
+            e = e.semantic(sc);
+            e = e.castTo(sc, basetype.nextOf().pointerTo());
+            return e;
+        }
         if (ident == Id.array)
         {
             //e = e->castTo(sc, basetype);
@@ -4398,7 +4408,7 @@ extern (C++) final class TypeVector : Type
             e.type = basetype;
             return e;
         }
-        if (ident == Id._init || ident == Id.offsetof || ident == Id.stringof)
+        if (ident == Id._init || ident == Id.offsetof || ident == Id.stringof || ident == Id.__xalignof)
         {
             // init should return a new VectorExp (Bugzilla 12776)
             // offsetof does not work on a cast expression, so use e directly

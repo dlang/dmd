@@ -75,7 +75,7 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
         c = movregconst(c,r,p[1],0);
         c = genfltreg(c,0x89,r,4);            // MOV floatreg+4,r
 
-        unsigned op = xmmload(TYdouble);
+        unsigned op = xmmload(TYdouble, true);
         c = genfltreg(c,op,xreg - XMM0,0);     // MOVSD XMMreg,floatreg
     }
     else
@@ -209,7 +209,8 @@ code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs)
     if (!(retregs & XMMREGS))
         retregs = XMMREGS;              // pick any XMM reg
 
-    cs.Iop = (op == OPeq) ? xmmstore(tyml) : op;
+    bool aligned = xmmIsAligned(e1);
+    cs.Iop = (op == OPeq) ? xmmstore(tyml, aligned) : op;
     regvar = FALSE;
     varregm = 0;
     if (config.flags4 & CFG4optimized)
@@ -478,7 +479,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
         if (!retregs)
             retregs = XMMREGS & ~rretregs;
         cg = allocreg(&retregs,&reg,ty1);
-        cs.Iop = xmmload(ty1);                  // MOVSD xmm,xmm_m64
+        cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cg = gen(cg,&cs);
     }
@@ -488,7 +489,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
 
     if (!regvar)
     {
-        cs.Iop = xmmstore(ty1);           // reverse operand order of MOVS[SD]
+        cs.Iop = xmmstore(ty1,true);      // reverse operand order of MOVS[SD]
         gen(co,&cs);
     }
 
@@ -548,7 +549,7 @@ code *xmmpost(elem *e,regm_t *pretregs)
             retregs = XMMREGS;
         c = allocreg(&retregs,&reg,ty1);
         cdb.append(c);
-        cs.Iop = xmmload(ty1);                  // MOVSD xmm,xmm_m64
+        cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cdb.gen(&cs);
     }
@@ -561,7 +562,7 @@ code *xmmpost(elem *e,regm_t *pretregs)
     code *c = allocreg(&resultregs, &resultreg, ty1);
     cdb.append(c);
 
-    cdb.gen2(xmmload(ty1),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
+    cdb.gen2(xmmload(ty1,true),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
 
     regm_t rretregs = XMMREGS & ~(*pretregs | retregs | resultregs);
     if (!rretregs)
@@ -575,7 +576,7 @@ code *xmmpost(elem *e,regm_t *pretregs)
 
     if (!regvar)
     {
-        cs.Iop = xmmstore(ty1);           // reverse operand order of MOVS[SD]
+        cs.Iop = xmmstore(ty1,true);      // reverse operand order of MOVS[SD]
         cdb.gen(&cs);
     }
 
@@ -636,9 +637,12 @@ code *xmmneg(elem *e,regm_t *pretregs)
  * Get correct load operator based on type.
  * It is important to use the right one even if the number of bits moved is the same,
  * as there are performance consequences for using the wrong one.
+ * Params:
+ *      tym = type of data to load
+ *      aligned = for vectors, true if aligned to 16 bytes
  */
 
-unsigned xmmload(tym_t tym)
+unsigned xmmload(tym_t tym, bool aligned)
 {   unsigned op;
     switch (tybasic(tym))
     {
@@ -655,8 +659,8 @@ unsigned xmmload(tym_t tym)
         case TYcdouble:
         case TYidouble: op = LODSD; break;       // MOVSD
 
-        case TYfloat4:  op = LODAPS; break;      // MOVAPS
-        case TYdouble2: op = LODAPD; break;      // MOVAPD
+        case TYfloat4:  op = aligned ? LODAPS : LODUPS; break;      // MOVAPS / MOVUPS
+        case TYdouble2: op = aligned ? LODAPD : LODUPD; break;      // MOVAPD / MOVUPD
         case TYschar16:
         case TYuchar16:
         case TYshort8:
@@ -664,7 +668,7 @@ unsigned xmmload(tym_t tym)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = LODDQA; break;      // MOVDQA
+        case TYullong2: op = aligned ? LODDQA : LODDQU; break;      // MOVDQA / MOVDQU
 
         default:
             printf("tym = x%x\n", tym);
@@ -677,7 +681,7 @@ unsigned xmmload(tym_t tym)
  * Get correct store operator based on type.
  */
 
-unsigned xmmstore(tym_t tym)
+unsigned xmmstore(tym_t tym, bool aligned)
 {   unsigned op;
     switch (tybasic(tym))
     {
@@ -694,8 +698,8 @@ unsigned xmmstore(tym_t tym)
         case TYcdouble:
         case TYcfloat:  op = STOSD; break;       // MOVSD
 
-        case TYfloat4:  op = STOAPS; break;      // MOVAPS
-        case TYdouble2: op = STOAPD; break;      // MOVAPD
+        case TYfloat4:  op = aligned ? STOAPS : STOUPS; break;      // MOVAPS / MOVUPS
+        case TYdouble2: op = aligned ? STOAPD : STOUPD; break;      // MOVAPD / MOVUPD
         case TYschar16:
         case TYuchar16:
         case TYshort8:
@@ -703,7 +707,7 @@ unsigned xmmstore(tym_t tym)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = STODQA; break;      // MOVDQA
+        case TYullong2: op = aligned ? STODQA : STODQU; break;      // MOVDQA / MOVDQU
 
         default:
             printf("tym = x%x\n", tym);
@@ -711,6 +715,7 @@ unsigned xmmstore(tym_t tym)
     }
     return op;
 }
+
 
 /************************************
  * Get correct XMM operator based on type and operator.
@@ -1300,6 +1305,27 @@ code *cdvecfill(elem *e, regm_t *pretregs)
     c = fixresult(e,retregs,pretregs);
     cdb.append(c);
     return cdb.finish();
+}
+
+/*******************************************
+ * Determine if lvalue e is a vector aligned on a 16 byte boundary.
+ * Assume it to be aligned unless can prove it is not.
+ * Params:
+ *      e = lvalue
+ * Returns:
+ *      false if definitely not aligned
+ */
+
+bool xmmIsAligned(elem *e)
+{
+    if (tyvector(e->Ety) && e->Eoper == OPvar)
+    {
+        Symbol *s = e->EV.sp.Vsym;
+        if (s->Salignsize() < 16 ||
+            e->EV.sp.Voffset & (16 - 1))
+            return false;       // definitely not aligned
+    }
+    return true;        // assume aligned
 }
 
 #endif // !SPP

@@ -11,6 +11,57 @@ import std.stdio;
 alias TypeTuple(T...) = T;
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16087
+
+static assert(void16.alignof == 16);
+static assert(double2.alignof == 16);
+static assert(float4.alignof == 16);
+static assert(byte16.alignof == 16);
+static assert(ubyte16.alignof == 16);
+static assert(short8.alignof == 16);
+static assert(ushort8.alignof == 16);
+static assert(int4.alignof == 16);
+static assert(uint4.alignof == 16);
+static assert(long2.alignof == 16);
+static assert(ulong2.alignof == 16);
+
+static assert(void16.sizeof == 16);
+static assert(double2.sizeof == 16);
+static assert(float4.sizeof == 16);
+static assert(byte16.sizeof == 16);
+static assert(ubyte16.sizeof == 16);
+static assert(short8.sizeof == 16);
+static assert(ushort8.sizeof == 16);
+static assert(int4.sizeof == 16);
+static assert(uint4.sizeof == 16);
+static assert(long2.sizeof == 16);
+static assert(ulong2.sizeof == 16);
+
+static assert(void32.alignof == 32);
+static assert(double4.alignof == 32);
+static assert(float8.alignof == 32);
+static assert(byte32.alignof == 32);
+static assert(ubyte32.alignof == 32);
+static assert(short16.alignof == 32);
+static assert(ushort16.alignof == 32);
+static assert(int8.alignof == 32);
+static assert(uint8.alignof == 32);
+static assert(long4.alignof == 32);
+static assert(ulong4.alignof == 32);
+
+static assert(void32.sizeof == 32);
+static assert(double4.sizeof == 32);
+static assert(float8.sizeof == 32);
+static assert(byte32.sizeof == 32);
+static assert(ubyte32.sizeof == 32);
+static assert(short16.sizeof == 32);
+static assert(ushort16.sizeof == 32);
+static assert(int8.sizeof == 32);
+static assert(uint8.sizeof == 32);
+static assert(long4.sizeof == 32);
+static assert(ulong4.sizeof == 32);
+
+/*****************************************/
 
 void test1()
 {
@@ -1325,7 +1376,7 @@ void test12852()
 
 void test9449()
 {
-    ubyte16 table[1];
+    ubyte16[1] table;
 }
 
 /*****************************************/
@@ -1460,14 +1511,22 @@ ubyte16 test11585(ubyte16* d)
 
 int fooprefetch(byte a)
 {
-    prefetch!(false, 0)(&a);
-    prefetch!(false, 1)(&a);
-    prefetch!(false, 2)(&a);
-    prefetch!(false, 3)(&a);
-    prefetch!(true, 0)(&a);
-    prefetch!(true, 1)(&a);
-    prefetch!(true, 2)(&a);
-    prefetch!(true, 3)(&a);
+    /* These should be run only if the CPUID PRFCHW
+     * bit 0 of cpuid.{EAX = 7, ECX = 0}.ECX
+     * Unfortunately, that bit isn't yet set by core.cpuid
+     * so disable for the moment.
+     */
+    version (none)
+    {
+        prefetch!(false, 0)(&a);
+        prefetch!(false, 1)(&a);
+        prefetch!(false, 2)(&a);
+        prefetch!(false, 3)(&a);
+        prefetch!(true, 0)(&a);
+        prefetch!(true, 1)(&a);
+        prefetch!(true, 2)(&a);
+        prefetch!(true, 3)(&a);
+    }
     return 3;
 }
 
@@ -1585,6 +1644,70 @@ void test16448()
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16703
+
+float index(float4 f4, size_t i)
+{
+    return f4[i];
+    //return (*cast(float[4]*)&f4)[2];
+}
+
+float[4] slice(float4 f4)
+{
+    return f4[];
+}
+
+float slice2(float4 f4, size_t lwr, size_t upr, size_t i)
+{
+    float[] fa = f4[lwr .. upr];
+    return fa[i];
+}
+
+void test16703()
+{
+    float4 f4 = [1,2,3,4];
+    assert(index(f4, 0) == 1);
+    assert(index(f4, 1) == 2);
+    assert(index(f4, 2) == 3);
+    assert(index(f4, 3) == 4);
+
+    float[4] fsa = slice(f4);
+    assert(fsa == [1.0f,2,3,4]);
+
+    assert(slice2(f4, 1, 3, 0) == 2);
+    assert(slice2(f4, 1, 3, 1) == 3);
+}
+
+/*****************************************/
+
+struct Sunsto
+{
+  align (1): // make sure f4 is misaligned
+    byte b;
+    union
+    {
+        float4 f4;
+        ubyte[16] a;
+    }
+}
+
+ubyte[16] foounsto()
+{
+    float4 vf = 6;
+    Sunsto s;
+    s.f4 = vf * 2;
+    vf = s.f4;
+
+    return s.a;
+}
+
+void testOPvecunsto()
+{
+    auto a = foounsto();
+    assert(a == [0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65]);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -1619,6 +1742,8 @@ int main()
     test13988();
     testprefetch();
     test16448();
+    test16703();
+    testOPvecunsto();
 
     return 0;
 }

@@ -100,7 +100,12 @@ TypeIdentifier getThrowable()
     tid.addIdent(Id.Throwable);
     return tid;
 }
-
+/**
+ * BE stands for BlockExit.
+ *
+ * It indicates If a statement does transfer controlflow to another Block.
+ * A Block is a sequence of statements enclosed in {  }
+ */
 enum BE : int
 {
     BEnone = 0,
@@ -236,7 +241,7 @@ extern (C++) abstract class Statement : RootObject
     }
 
     /* ============================================== */
-    /* Only valid after semantic analysis
+    /** Only valid after semantic analysis
      * If 'mustNotThrow' is true, generate an error if it throws
      */
     final int blockExit(FuncDeclaration func, bool mustNotThrow)
