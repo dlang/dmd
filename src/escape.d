@@ -427,6 +427,7 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
     {
+        //printf("byvalue %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -483,6 +484,7 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
     foreach (VarDeclaration v; er.byref)
     {
+        //printf("byref %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -540,6 +542,7 @@ private bool checkEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
     foreach (Expression ee; er.byexp)
     {
+        //printf("byexp %s\n", ee.toChars());
         if (!gag)
             error(ee.loc, "escaping reference to stack allocated value returned by %s", ee.toChars());
         result = true;
@@ -795,8 +798,12 @@ private void escapeByValue(Expression e, EscapeByResults* er)
              */
             Type t1 = e.e1.type.toBasetype();
             TypeFunction tf;
+            TypeDelegate dg;
             if (t1.ty == Tdelegate)
+            {
+                dg = cast(TypeDelegate)t1;
                 tf = cast(TypeFunction)(cast(TypeDelegate)t1).next;
+            }
             else if (t1.ty == Tfunction)
                 tf = cast(TypeFunction)t1;
             else
@@ -834,6 +841,15 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                     else if (dve.var.storage_class & STCref)
                         escapeByRef(dve.e1, er);
                 }
+            }
+
+            /* If returning the result of a delegate call, the .ptr
+             * field of the delegate must be checked.
+             */
+            if (dg)
+            {
+                if (tf.isreturn)
+                    e.e1.accept(this);
             }
         }
     }

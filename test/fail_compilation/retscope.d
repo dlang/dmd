@@ -214,3 +214,18 @@ void* escape3 (scope void* p) @safe {
     return dg();
 }
 
+/**************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(230): Error: scope variable ptr may not be returned
+---
+*/
+
+alias dg_t = void* delegate () return scope @safe;
+
+void* funretscope(scope dg_t ptr) @safe
+{
+    return ptr();
+}
