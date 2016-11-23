@@ -7246,18 +7246,23 @@ extern (C++) final class TypeidExp : Expression
             printf("TypeidExp::semantic() %s\n", toChars());
         }
 
+        Expression dummy = new IntegerExp(33);
         Expression e;
         auto id = Identifier.idPool("__typeidImplT");
-        auto tempinst = new TemplateInstance(loc, id, parseTemplateArguments());
+
+        auto tiargs = new Objects();
+        (*tiargs)[0] = dummy.type;
+        auto tempinst = new TemplateInstance(loc, id, tiargs);
         e = new ScopeExp(loc, tempinst);
 
         auto arguments = new Expressions();
         arguments.setDim(2);
-        (*arguments)[0] = new IntegerExp(33);
+        (*arguments)[0] = dummy;
         e = new CallExp(loc, e, arguments);
 
         return e;
-        /*Type ta = isType(obj);
+        /*
+        Type ta = isType(obj);
         Expression ea = isExpression(obj);
         Dsymbol sa = isDsymbol(obj);
         //printf("ta %p ea %p sa %p\n", ta, ea, sa);
@@ -7315,8 +7320,7 @@ extern (C++) final class TypeidExp : Expression
                 e = e.semantic(sc);
             }
         }
-        return e;
-        */
+        return e;*/
     }
 
     override void accept(Visitor v)
