@@ -7245,7 +7245,19 @@ extern (C++) final class TypeidExp : Expression
         {
             printf("TypeidExp::semantic() %s\n", toChars());
         }
-        Type ta = isType(obj);
+
+        Expression e;
+        auto id = Identifier.idPool("__typeidImplT");
+        auto tempinst = new TemplateInstance(loc, id, parseTemplateArguments());
+        e = new ScopeExp(loc, tempinst);
+
+        auto arguments = new Expressions();
+        arguments.setDim(2);
+        (*arguments)[0] = new IntegerExp(33);
+        e = new CallExp(loc, e, arguments);
+
+        return e;
+        /*Type ta = isType(obj);
         Expression ea = isExpression(obj);
         Dsymbol sa = isDsymbol(obj);
         //printf("ta %p ea %p sa %p\n", ta, ea, sa);
@@ -7280,8 +7292,7 @@ extern (C++) final class TypeidExp : Expression
         Expression e;
         if (ea && ta.toBasetype().ty == Tclass)
         {
-            /* Get the dynamic type, which is .classinfo
-             */
+            // Get the dynamic type, which is .classinfo
             ea = ea.semantic(sc);
             e = new TypeidExp(ea.loc, ea);
             e.type = Type.typeinfoclass.type;
@@ -7305,6 +7316,7 @@ extern (C++) final class TypeidExp : Expression
             }
         }
         return e;
+        */
     }
 
     override void accept(Visitor v)
@@ -11501,6 +11513,14 @@ extern (C++) final class SliceExp : UnaExp
                 return new ErrorExp();
             }
         }
+        else if (t1b.ty == Tvector)
+        {
+            // Convert e1 to corresponding static array
+            TypeVector tv1 = cast(TypeVector)t1b;
+            t1b = tv1.basetype;
+            t1b = t1b.castMod(tv1.mod);
+            e1.type = t1b;
+        }
         else
         {
             error("%s cannot be sliced with []", t1b.ty == Tvoid ? e1.toChars() : t1b.toChars());
@@ -12202,6 +12222,15 @@ extern (C++) final class IndexExp : BinExp
         // Note that unlike C we do not implement the int[ptr]
 
         Type t1b = e1.type.toBasetype();
+
+        if (t1b.ty == Tvector)
+        {
+            // Convert e1 to corresponding static array
+            TypeVector tv1 = cast(TypeVector)t1b;
+            t1b = tv1.basetype;
+            t1b = t1b.castMod(tv1.mod);
+            e1.type = t1b;
+        }
 
         /* Run semantic on e2
          */
