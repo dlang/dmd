@@ -2026,7 +2026,10 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
         appendthis = (cast(byte *)buf.ptr)[0..4];
     }
     else
-        assert(0);      // invalid utf character - should we throw an exception instead?
+    {
+        import core.exception;
+        onUnicodeError("Invalid UTF-8 sequence", 0);      // invalid utf character
+    }
 
     //
     // TODO: This always assumes the array type is shared, because we do not
