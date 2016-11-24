@@ -7245,49 +7245,11 @@ extern (C++) final class TypeidExp : Expression
         {
             printf("TypeidExp::semantic() %s\n", toChars());
         }
-/*
-        printf("1");
-        Expression dummy = new IntegerExp(33);
-        Expression e;
-        auto id = Identifier.idPool("__typeidImplT");
 
-        printf("2");
-        auto tiargs = new Objects();
-        (*tiargs)[0] = dummy.type;
-        auto tempinst = new TemplateInstance(loc, id, tiargs);
-        e = new ScopeExp(loc, tempinst);
-
-        auto arguments = new Expressions();
-        arguments.setDim(2);
-        (*arguments)[0] = dummy;
-        e = new CallExp(loc, e, arguments);
-        e.printAST(0);
-
-        return e;
-        */
-
-        Expression dummy = new IntegerExp(33);
-        Expression lucy;
-        auto id = Identifier.idPool("__typeidImplT");
-        Type ta = isType(obj);
-
-        auto tiargs = new Objects();
-        tiargs.push(ta);
-        auto tempinst = new TemplateInstance(loc, id, tiargs);
-        lucy = new ScopeExp(loc, tempinst);
-
-        auto arguments = new Expressions();
-        //arguments.push(dummy);
-        lucy = new CallExp(loc, lucy, arguments);
-        lucy.semantic(sc);
-
-        return lucy;
-/*
         Type ta = isType(obj);
         Expression ea = isExpression(obj);
         Dsymbol sa = isDsymbol(obj);
-        //printf("ta %p ea %p sa %p\n", ta, ea, sa);
-
+        
         if (ta)
         {
             ta.resolve(loc, sc, &ea, &ta, &sa, true);
@@ -7315,33 +7277,21 @@ extern (C++) final class TypeidExp : Expression
         if (global.params.vcomplex)
             ta.checkComplexTransition(loc);
 
+
         Expression e;
-        if (ea && ta.toBasetype().ty == Tclass)
-        {
-            // Get the dynamic type, which is .classinfo
-            ea = ea.semantic(sc);
-            e = new TypeidExp(ea.loc, ea);
-            e.type = Type.typeinfoclass.type;
-        }
-        else if (ta.ty == Terror)
-        {
-            e = new ErrorExp();
-        }
-        else
-        {
-            // Handle this in the glue layer
-            e = new TypeidExp(loc, ta);
-            e.type = getTypeInfoType(ta, sc);
+        auto id = Identifier.idPool("__typeidImplT");
 
-            semanticTypeInfo(sc, ta);
+        auto tiargs = new Objects();
+        tiargs.push(ta);
+        auto tempinst = new TemplateInstance(loc, id, tiargs);
+        e = new ScopeExp(loc, tempinst);
 
-            if (ea)
-            {
-                e = new CommaExp(loc, ea, e); // execute ea
-                e = e.semantic(sc);
-            }
-        }
-        return e;*/
+        auto arguments = new Expressions();
+        //arguments.push(...);
+        e = new CallExp(loc, e, arguments);
+        e.semantic(sc);
+
+        return e;
     }
 
     override void accept(Visitor v)
