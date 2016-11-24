@@ -7245,11 +7245,13 @@ extern (C++) final class TypeidExp : Expression
         {
             printf("TypeidExp::semantic() %s\n", toChars());
         }
-
+/*
+        printf("1");
         Expression dummy = new IntegerExp(33);
         Expression e;
         auto id = Identifier.idPool("__typeidImplT");
 
+        printf("2");
         auto tiargs = new Objects();
         (*tiargs)[0] = dummy.type;
         auto tempinst = new TemplateInstance(loc, id, tiargs);
@@ -7259,9 +7261,28 @@ extern (C++) final class TypeidExp : Expression
         arguments.setDim(2);
         (*arguments)[0] = dummy;
         e = new CallExp(loc, e, arguments);
+        e.printAST(0);
 
         return e;
-        /*
+        */
+
+        Expression dummy = new IntegerExp(33);
+        Expression lucy;
+        auto id = Identifier.idPool("__typeidImplT");
+        Type ta = isType(obj);
+
+        auto tiargs = new Objects();
+        tiargs.push(ta);
+        auto tempinst = new TemplateInstance(loc, id, tiargs);
+        lucy = new ScopeExp(loc, tempinst);
+
+        auto arguments = new Expressions();
+        //arguments.push(dummy);
+        lucy = new CallExp(loc, lucy, arguments);
+        lucy.semantic(sc);
+
+        return lucy;
+/*
         Type ta = isType(obj);
         Expression ea = isExpression(obj);
         Dsymbol sa = isDsymbol(obj);
