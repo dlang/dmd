@@ -2027,7 +2027,7 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
     }
     else
     {
-        import core.exception;
+        import core.exception : onUnicodeError;
         onUnicodeError("Invalid UTF-8 sequence", 0);      // invalid utf character
     }
 
@@ -2037,6 +2037,22 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
     return _d_arrayappendT(typeid(shared char[]), x, appendthis);
+}
+
+unittest
+{
+    import core.exception : UnicodeException;
+
+    try
+    {
+        string ret;
+        int i = -1;
+        ret ~= i;
+    }
+    catch(UnicodeException e)
+    {
+        assert(e.msg == "Invalid UTF-8 sequence");
+    }
 }
 
 
