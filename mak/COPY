@@ -122,6 +122,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\dlfcn.d \
 	$(IMPDIR)\core\sys\posix\fcntl.d \
 	$(IMPDIR)\core\sys\posix\grp.d \
+	$(IMPDIR)\core\sys\posix\iconv.d \
 	$(IMPDIR)\core\sys\posix\inttypes.d \
 	$(IMPDIR)\core\sys\posix\netdb.d \
 	$(IMPDIR)\core\sys\posix\poll.d \
