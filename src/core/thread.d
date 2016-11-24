@@ -4429,6 +4429,9 @@ private:
 
             static if( __traits( compiles, mmap ) )
             {
+                // Allocate PAGESIZE more for the memory guard
+                sz += PAGESIZE;
+
                 m_pmem = mmap( null,
                                sz,
                                PROT_READ | PROT_WRITE,
@@ -4458,13 +4461,31 @@ private:
             {
                 m_ctxt.bstack = m_pmem + sz;
                 m_ctxt.tstack = m_pmem + sz;
+                void* guard = m_pmem;
             }
             else
             {
                 m_ctxt.bstack = m_pmem;
                 m_ctxt.tstack = m_pmem;
+                void* guard = m_pmem + sz - PAGESIZE;
             }
             m_size = sz;
+
+            static if( __traits( compiles, mmap ) )
+            {
+                // Mark end of stack
+                for ( ubyte* g = cast(ubyte*)guard; g < guard + PAGESIZE; g+= 32)
+                    g[0 .. 32] = cast(ubyte[]) "END OF FIBER -- END OF FIBER -- ";
+
+                // protect end of stack
+                if ( mprotect(guard, PAGESIZE, PROT_NONE) == -1 )
+                    abort();
+            }
+            else
+            {
+                // Supported only for mmap allocated memory - results are
+                // undefined if applied to memory not obtained by mmap
+            }
         }
 
         Thread.add( m_ctxt );
