@@ -2043,16 +2043,24 @@ unittest
 {
     import core.exception : UnicodeException;
 
-    try
+    static void assertThrown(T : Throwable = Exception, E)(lazy E expr, string msg)
+    {
+        try
+            expr;
+        catch (T e) {
+            assert(e.msg == msg);
+            return;
+        }
+    }
+
+    static void f()
     {
         string ret;
         int i = -1;
         ret ~= i;
     }
-    catch(UnicodeException e)
-    {
-        assert(e.msg == "Invalid UTF-8 sequence");
-    }
+
+    assertThrown!UnicodeException(f(), "Invalid UTF-8 sequence");
 }
 
 
