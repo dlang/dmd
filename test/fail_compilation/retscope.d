@@ -250,3 +250,20 @@ void escape4() @safe
     scope FunDG g = ()        { return &x; };
 }
 
+/**************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(267): Error: cannot take address of scope local p in @safe function escape5
+---
+*/
+
+void escape5() @safe
+{
+    int* q;
+    scope int* p;
+    scope int** pp = &q; // ok
+    pp = &p; // error
+}
+

@@ -10600,9 +10600,18 @@ extern (C++) final class AddrExp : UnaExp
                 }
                 if (sc.func && !sc.intypeof && !v.isDataseg())
                 {
-                    if (!global.params.safe && sc.func.setUnsafe())
+                    const(char)* p = v.isParameter() ? "parameter" : "local";
+                    if (global.params.safe)
                     {
-                        const(char)* p = v.isParameter() ? "parameter" : "local";
+                        v.storage_class &= ~STCmaybescope;
+                        if (v.storage_class & STCscope && sc.func.setUnsafe())
+                        {
+                            error("cannot take address of scope %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
+                            return false;
+                        }
+                    }
+                    else if (sc.func.setUnsafe())
+                    {
                         error("cannot take address of %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
                         return false;
                     }
