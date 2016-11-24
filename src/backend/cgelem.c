@@ -1124,7 +1124,8 @@ L1:
   /* Disallow the optimization on doubles. The - operator is not        */
   /* rearrangable by K+R, and can cause floating point problems if      */
   /* converted to an add ((a + 1.0) - 1.0 shouldn't be folded).         */
-  if (cnst(e2) && !tyfloating(e2->Ety))
+  if (cnst(e2) && !tyfloating(e2->Ety) &&
+      !tyvector(e2->Ety)) // don't do vectors until we get constant folding for them
   {     e->E2 = el_una(OPneg,e2->Ety,e2);
         e->Eoper = OPadd;
         return optelem(e,GOALvalue);

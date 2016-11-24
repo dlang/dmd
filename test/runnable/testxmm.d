@@ -1457,6 +1457,15 @@ ubyte16 test11585(ubyte16* d)
 }
 
 /*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=13927
+
+void test13927(ulong2 a)
+{
+    ulong2 b = [long.min, long.min];
+    auto tmp = a - b;
+}
+
+/*****************************************/
 
 int main()
 {
