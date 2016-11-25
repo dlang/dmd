@@ -1013,8 +1013,6 @@ union eve
         targ_llong      Vllong;
         targ_ullong     Vullong;
         Cent            Vcent;
-        targ_float      Vfloat4[4];
-        targ_double     Vdouble2[2];
         targ_float      Vfloat;
         targ_double     Vdouble;
         targ_ldouble    Vldouble;
@@ -1024,6 +1022,19 @@ union eve
         targ_size_t     Vpointer;
         targ_ptrdiff_t  Vptrdiff;
         targ_uchar      Vreg;   // register number for OPreg elems
+
+        // 16 byte vector types
+        targ_float      Vfloat4[4];   // float[4]
+        targ_double     Vdouble2[2];  // double[2]
+        targ_schar      Vschar16[16]; // byte[16]
+        targ_uchar      Vuchar16[16]; // ubyte[16]
+        targ_short      Vshort8[8];   // short[8]
+        targ_ushort     Vushort8[8];  // ushort[8]
+        targ_long       Vlong4[4];    // int[4]
+        targ_ulong      Vulong4[4];   // uint[4]
+        targ_llong      Vllong2[2];   // long[2]
+        targ_ullong     Vullong2[2];  // ulong[2]
+
         struct                  // 48 bit 386 far pointer
         {   targ_long   Voff;
             targ_ushort Vseg;
