@@ -1221,6 +1221,7 @@ $(GNAME InOutX):
     $(D lazy)
     $(D out)
     $(D ref)
+    $(D return ref)
     $(D scope)
 
 $(GNAME FunctionAttributes):
@@ -1240,6 +1241,7 @@ $(GNAME MemberFunctionAttribute):
     $(D const)
     $(D immutable)
     $(D inout)
+    $(D return)
     $(D shared)
     $(GLINK FunctionAttribute)
 )

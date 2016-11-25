@@ -30,6 +30,7 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 nothrow, $(D nothrow))
     $(RELATIVE_LINK2 pure, $(D pure))
     $(RELATIVE_LINK2 ref, $(D ref))
+    $(RELATIVE_LINK2 return, $(D return))
 
 $(GNAME Property):
     $(D @) $(GLINK PropertyIdentifier)
@@ -558,6 +559,10 @@ $(H3 $(LNAME2 pure, $(D pure) Attribute))
 $(H3 $(LNAME2 ref, $(D ref) Attribute))
 
     $(P See $(DDSUBLINK spec/function, ref-functions, Ref Functions).)
+
+$(H3 $(LNAME2 return, $(D return) Attribute))
+
+    $(P See $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).)
 
 $(H3 $(LNAME2 override, $(D override) Attribute))
 
