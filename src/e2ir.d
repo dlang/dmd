@@ -187,6 +187,13 @@ elem *callfunc(Loc loc,
     op = fd ? intrinsic_op(fd) : -1;
     if (arguments)
     {
+        if (op == OPvector)
+        {
+            Expression arg = (*arguments)[0];
+            if (arg.op != TOKint64)
+                arg.error("simd operator must be an integer constant, not '%s'", arg.toChars());
+        }
+
         for (size_t i = 0; i < arguments.dim; i++)
         {
         Lagain:
