@@ -214,3 +214,56 @@ void* escape3 (scope void* p) @safe {
     return dg();
 }
 
+/**************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(230): Error: scope variable ptr may not be returned
+---
+*/
+
+alias dg_t = void* delegate () return scope @safe;
+
+void* funretscope(scope dg_t ptr) @safe
+{
+    return ptr();
+}
+
+/*****************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(247): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(247): Error: cannot implicitly convert expression (__lambda1) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+fail_compilation/retscope.d(248): Error: cannot implicitly convert expression (__lambda2) of type void* delegate() pure nothrow @nogc return @safe to void* delegate() @safe
+---
+*/
+
+void escape4() @safe
+{
+    alias FunDG = void* delegate () @safe;
+    int x = 42;
+    scope FunDG f = () return { return &x; };
+    scope FunDG g = ()        { return &x; };
+}
+
+/**************************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(267): Error: cannot take address of scope local p in @safe function escape5
+---
+*/
+
+void escape5() @safe
+{
+    int* q;
+    scope int* p;
+    scope int** pp = &q; // ok
+    pp = &p; // error
+}
+

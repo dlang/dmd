@@ -750,8 +750,11 @@ extern (C++) class FuncDeclaration : Declaration
             error("functions cannot be scope");
         }
 
-        if (f.isreturn && !needThis())
+        if (f.isreturn && !needThis() && !isNested())
         {
+            /* Non-static nested functions have a hidden 'this' pointer to which
+             * the 'return' applies
+             */
             error("static member has no 'this' to which 'return' can apply");
         }
 
@@ -2220,7 +2223,18 @@ extern (C++) class FuncDeclaration : Declaration
             f.isnogc = true;
         }
 
-        flags &= ~(FUNCFLAGreturnInprocess | FUNCFLAGinferScope);
+        if (flags & FUNCFLAGreturnInprocess)
+        {
+            flags &= ~FUNCFLAGreturnInprocess;
+            if (storage_class & STCreturn)
+            {
+                if (type == f)
+                    f = cast(TypeFunction)f.copy();
+                f.isreturn = true;
+            }
+        }
+
+        flags &= ~FUNCFLAGinferScope;
 
         // Infer STCscope
         if (parameters)
