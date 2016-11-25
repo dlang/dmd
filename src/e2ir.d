@@ -3873,22 +3873,22 @@ elem *toElem(Expression e, IRState *irs)
 
                         case Tint64:
                         case Tuns64:
-                            (cast(targ_ullong *)&e.EV.Vcent)[i] = elem.toInteger();
+                            e.EV.Vullong2[i] = elem.toInteger();
                             break;
 
                         case Tint32:
                         case Tuns32:
-                            (cast(targ_ulong *)&e.EV.Vcent)[i] = cast(uint)elem.toInteger();
+                            e.EV.Vulong4[i] = cast(uint)elem.toInteger();
                             break;
 
                         case Tint16:
                         case Tuns16:
-                            (cast(targ_ushort *)&e.EV.Vcent)[i] = cast(ushort)elem.toInteger();
+                            e.EV.Vushort8[i] = cast(ushort)elem.toInteger();
                             break;
 
                         case Tint8:
                         case Tuns8:
-                            (cast(targ_uchar *)&e.EV.Vcent)[i] = cast(ubyte)elem.toInteger();
+                            e.EV.Vuchar16[i] = cast(ubyte)elem.toInteger();
                             break;
 
                         default:
