@@ -169,6 +169,7 @@ struct Srcpos
 //    struct Sfile **Sfilptr;     // file
 //    #define srcpos_sfile(p)     (**(p).Sfilptr)
 //    #define srcpos_name(p)      (srcpos_sfile(p).SFname)
+//    short Sfilnum;              // file number
 //#endif
 
     version (MARS)
@@ -187,9 +188,6 @@ struct Srcpos
             return sp;
         }
     }
-//#if M_UNIX
-    short Sfilnum;              // file number
-//#endif
 
     void print(const(char)* func);
 

@@ -65,22 +65,24 @@ struct elem
     enum IDelem = 0x4C45;   // 'EL'
     //elem_debug(e) assert((e)->id == IDelem)
 
+    version (OSX) // workaround https://issues.dlang.org/show_bug.cgi?id=16466
+        align(16) eve EV; // variants for each type of elem
+    else
+        eve EV;           // variants for each type of elem
+
     ubyte Eoper;        // operator (OPxxxx)
     ubyte Ecount;       // # of parents of this elem - 1,
                         // always 0 until CSE elimination is done
     eflags_t Eflags;
 
-    version (OSX) // workaround https://issues.dlang.org/show_bug.cgi?id=16466
-        align(16) eve EV; // variants for each type of elem
-    else
-        eve EV;           // variants for each type of elem
     union
     {
         // PARSER
         struct
         {
+            version (SCPP)
+                Symbol* Emember;       // if PEFmember, this is the member
             pef_flags_t PEFflags;
-            Symbol* Emember;       // if PEFmember, this is the member
         }
 
         // OPTIMIZER
