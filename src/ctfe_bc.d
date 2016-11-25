@@ -1199,7 +1199,6 @@ public:
                     "++ does not make sense as on an Immediate Value");
 
                 discardValue = oldDiscardValue;
-                if (wasAssignTo || !discardValue)
                     Set(retval, expr);
 
                 Add3(expr, expr, BCValue(Imm32(1)));
@@ -1222,7 +1221,6 @@ public:
                     "-- does not make sense as on an Immediate Value");
 
                 discardValue = oldDiscardValue;
-                if (wasAssignTo || !discardValue)
                     Set(retval, expr);
 
                 Sub3(expr, expr, BCValue(Imm32(1)));
@@ -1530,7 +1528,6 @@ public:
 
         }
         auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-        Add3(ptr, indexed.i32, bcFour);
         //We set the ptr already to the beginning of the array;
         scope (exit)
         {
@@ -1553,6 +1550,7 @@ public:
 
             if (!isString)
             {
+                Add3(ptr, indexed.i32, bcFour);
                 int elmSize = sharedCtfeState.size(elmType);
                 assert(cast(int) elmSize > -1);
                 //elmSize = (elmSize / 4 > 0 ? elmSize / 4 : 1);
@@ -1567,6 +1565,7 @@ public:
                 //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
                 //Load32(arrayLength, indexed.i32);
                 //Lt3(inBounds,  idx, arrayLength);
+                Add3(ptr, indexed.i32, bcOne);
 
                 auto modv = genTemporary(BCType(BCTypeEnum.i32));
                 Mod3(modv, idx, bcFour);
@@ -2425,7 +2424,7 @@ public:
             retval = genTemporary(BCType(BCTypeEnum.String));
         }
         Set(retval.i32, stringAddrValue);
-
+        retval = stringAddrValue;
         debug (ctfe)
         {
             writefln("String %s, is in %d, first uint is %d",
