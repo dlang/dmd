@@ -400,7 +400,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[44] core_namearray =
+    __gshared immutable char*[46] core_namearray =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -436,7 +436,9 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop13volatileStoreFNbNiNfPttZv",
 
         "5bitop3bsfFNaNbNiNfkZi",
+        "5bitop3bsfFNaNbNiNfmZi",
         "5bitop3bsrFNaNbNiNfkZi",
+        "5bitop3bsrFNaNbNiNfmZi",
         "5bitop3btcFNaNbNiPkkZi",
         "5bitop3btrFNaNbNiPkkZi",
         "5bitop3btsFNaNbNiPkkZi",
@@ -452,7 +454,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable char*[44] core_namearray64 =
+    __gshared immutable char*[46] core_namearray64 =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -487,7 +489,9 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop13volatileStoreFNbNiNfPmmZv",
         "5bitop13volatileStoreFNbNiNfPttZv",
 
+        "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsfFNaNbNiNfmZi",
+        "5bitop3bsrFNaNbNiNfkZi",
         "5bitop3bsrFNaNbNiNfmZi",
         "5bitop3btcFNaNbNiPmmZi",
         "5bitop3btrFNaNbNiPmmZi",
@@ -504,7 +508,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable ubyte[44] core_ioptab =
+    __gshared immutable ubyte[46] core_ioptab =
     [
         OPcos,
         OPsin,
@@ -540,6 +544,8 @@ int intrinsic_op(FuncDeclaration fd)
         OPeq,
 
         OPbsf,
+        OPbsf,
+        OPbsr,
         OPbsr,
         OPbtc,
         OPbtr,
@@ -618,7 +624,17 @@ int intrinsic_op(FuncDeclaration fd)
             cast(const(char)**)(global.params.is64bit ? core_namearray64.ptr : core_namearray.ptr),
             cast(int)core_namearray.length);
         if (i != -1)
-            return core_ioptab[i];
+        {
+            int op = core_ioptab[i];
+            if (!global.params.is64bit &&
+                (op == OPbsf || op == OPbsr) &&
+                op == core_ioptab[i - 1])
+            {
+                // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
+                op = -1;
+            }
+            return op;
+        }
 
         if (global.params.is64bit &&
             fd.toParent().isTemplateInstance() &&
