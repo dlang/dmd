@@ -68,21 +68,24 @@ struct elem
 #define elem_debug(e)
 #endif
 
+    union eve EV;               // variants for each type of elem
+
     unsigned char Eoper;        // operator (OPxxxx)
     unsigned char Ecount;       // # of parents of this elem - 1,
                                 // always 0 until CSE elimination is done
     eflags_t Eflags;
 
-    union eve EV;               // variants for each type of elem
     union
     {
         // PARSER
         struct
         {
-            pef_flags_t PEFflags_;
-            #define PEFflags _EU._EP.PEFflags_
+#if SCPP
             Symbol *Emember_;                   // if PEFmember, this is the member
             #define Emember _EU._EP.Emember_
+#endif
+            pef_flags_t PEFflags_;
+            #define PEFflags _EU._EP.PEFflags_
         }_EP;
 
         // OPTIMIZER
