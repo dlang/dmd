@@ -3863,39 +3863,41 @@ elem *toElem(Expression e, IRState *irs)
                 e.Eoper = OPconst;
                 e.Ety = totym(ve.type);
 
-                for (size_t i = 0; i < ve.dim; i++)
+                foreach (const i; 0 .. ve.dim)
                 {
                     Expression elem = (cast(ArrayLiteralExp)ve.e1).getElement(i);
+                    const complex = elem.toComplex();
+                    const integer = elem.toInteger();
                     switch (elem.type.toBasetype().ty)
                     {
                         case Tfloat32:
                             // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                            e.EV.Vfloat4[i] = elem.toComplex().re;
+                            e.EV.Vfloat8[i] = complex.re;
                             break;
 
                         case Tfloat64:
                             // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                            e.EV.Vdouble2[i] = elem.toComplex().re;
+                            e.EV.Vdouble4[i] = complex.re;
                             break;
 
                         case Tint64:
                         case Tuns64:
-                            e.EV.Vullong2[i] = elem.toInteger();
+                            e.EV.Vullong4[i] = integer;
                             break;
 
                         case Tint32:
                         case Tuns32:
-                            e.EV.Vulong4[i] = cast(uint)elem.toInteger();
+                            e.EV.Vulong8[i] = cast(uint)integer;
                             break;
 
                         case Tint16:
                         case Tuns16:
-                            e.EV.Vushort8[i] = cast(ushort)elem.toInteger();
+                            e.EV.Vushort16[i] = cast(ushort)integer;
                             break;
 
                         case Tint8:
                         case Tuns8:
-                            e.EV.Vuchar16[i] = cast(ubyte)elem.toInteger();
+                            e.EV.Vuchar32[i] = cast(ubyte)integer;
                             break;
 
                         default:
