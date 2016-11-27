@@ -1109,36 +1109,31 @@ Language changes listed by -transition=id:
         fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
     }
     //printf("%d source files\n",files.dim);
+
     // Build import search path
-    if (global.params.imppath)
+
+    static Strings* buildPath(Strings* imppath)
     {
-        for (size_t i = 0; i < global.params.imppath.dim; i++)
+        Strings* result = null;
+        if (imppath)
         {
-            const(char)* path = (*global.params.imppath)[i];
-            Strings* a = FileName.splitPath(path);
-            if (a)
+            foreach (const path; *imppath)
             {
-                if (!global.path)
-                    global.path = new Strings();
-                global.path.append(a);
+                Strings* a = FileName.splitPath(path);
+                if (a)
+                {
+                    if (!result)
+                        result = new Strings();
+                    result.append(a);
+                }
             }
         }
+        return result;
     }
-    // Build string import search path
-    if (global.params.fileImppath)
-    {
-        for (size_t i = 0; i < global.params.fileImppath.dim; i++)
-        {
-            const(char)* path = (*global.params.fileImppath)[i];
-            Strings* a = FileName.splitPath(path);
-            if (a)
-            {
-                if (!global.filePath)
-                    global.filePath = new Strings();
-                global.filePath.append(a);
-            }
-        }
-    }
+
+    global.path = buildPath(global.params.imppath);
+    global.filePath = buildPath(global.params.fileImppath);
+
     if (global.params.addMain)
     {
         files.push(cast(char*)global.main_d); // a dummy name, we never actually look up this file
