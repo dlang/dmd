@@ -4310,6 +4310,16 @@ PTRNTAB1  aptb1XSAVE64[] = /* XSAVE64 */ {
         { ASM_END }
 };
 
+PTRNTAB1  aptb1XSAVEC[] = /* XSAVEC */ {
+        { 0x0FC7, _4, _m512 },
+        { ASM_END }
+};
+
+PTRNTAB1  aptb1XSAVEC64[] = /* XSAVEC64 */ {
+        { 0x0FC7, _4|_64_bit, _m512 }, // TODO: REX_W override is implicit
+        { ASM_END }
+};
+
 PTRNTAB1  aptb1XSAVEOPT[] = /* XSAVEOPT */ {
         { 0x0FAE, _6, _m512 },
         { ASM_END }
@@ -5724,6 +5734,8 @@ PTRNTAB2 aptb2SHA256MSG2[] = /* SHA256MSG2 */ {
         X("xrstor64",       ITfloat | 1,    (P) aptb1XRSTOR64 )             \
         X("xsave",          ITfloat | 1,    (P) aptb1XSAVE )                \
         X("xsave64",        ITfloat | 1,    (P) aptb1XSAVE64 )              \
+        X("xsavec",         ITfloat | 1,    (P) aptb1XSAVEC )               \
+        X("xsavec64",       ITfloat | 1,    (P) aptb1XSAVEC64 )             \
         X("xsaveopt",       ITfloat | 1,    (P) aptb1XSAVEOPT )             \
         X("xsaveopt64",     ITfloat | 1,    (P) aptb1XSAVEOPT64 )           \
         X("xsetbv",         0,              aptb0XSETBV)                    \

@@ -4828,6 +4828,8 @@ void test61()
         0x48, 0x0F, 0xAE, 0x28,                   // xrstor64   [RAX]
         0x0F, 0xAE, 0x20,                         // xsave      [RAX]
         0x48, 0x0F, 0xAE, 0x20,                   // xsave64    [RAX]
+        0x0F, 0xC7, 0x21,                         // xsavec     [RCX]
+        0x48, 0x0F, 0xC7, 0x21,                   // xsavec64   [RCX]
         0x0F, 0xAE, 0x30,                         // xsaveopt   [RAX]
         0x48, 0x0F, 0xAE, 0x30,                   // xsaveopt64 [RAX]
         0xC5, 0xF8, 0xAE, 0x10,                   // vldmxcsr   [RAX]
@@ -5614,6 +5616,8 @@ void test61()
         xrstor64   [RAX];
         xsave      [RAX];
         xsave64    [RAX];
+        xsavec     [RCX];
+        xsavec64   [RCX];
         xsaveopt   [RAX];
         xsaveopt64 [RAX];
         vldmxcsr   [RAX];
