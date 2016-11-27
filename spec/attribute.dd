@@ -676,20 +676,20 @@ $(H3 $(LNAME2 abstract, $(D abstract) Attribute))
 
 $(P
         An abstract member function must be overridden by a derived class.
-        Only virtual member functions may be declared abstract; non-virtual 
-        member functions and free-standing functions cannot be declared 
+        Only virtual member functions may be declared abstract; non-virtual
+        member functions and free-standing functions cannot be declared
         abstract.
 )
 
 $(P
         Classes become abstract if any of its virtual member functions
         are declared abstract or if they are defined within an
-        abstract attribute. 
+        abstract attribute.
         Note that an abstract class may also contain non-virtual member functions.
 )
 
 $(P
-        Classes defined within an abstract attribute or with abstract member 
+        Classes defined within an abstract attribute or with abstract member
         functions cannot be instantiated directly.
         They can only be instantiated as a base class of
         another, non-abstract, class.
