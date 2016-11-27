@@ -2043,6 +2043,10 @@ unittest
 {
     import core.exception : UnicodeException;
 
+    /* Using inline try {} catch {} blocks fails to catch the UnicodeException
+     * thrown.
+     * https://issues.dlang.org/show_bug.cgi?id=16799
+     */
     static void assertThrown(T : Throwable = Exception, E)(lazy E expr, string msg)
     {
         try
