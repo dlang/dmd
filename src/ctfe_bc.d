@@ -17,6 +17,8 @@ import ddmd.arraytypes : Expressions;
 
 import std.conv : to;
 
+
+//TODO replace this with blockExit information!
 static private
 {
     ScopeStatement reduceNestedScopeAndCompoundStatements(ScopeStatement _ss) pure
