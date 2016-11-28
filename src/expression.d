@@ -10675,19 +10675,6 @@ extern (C++) final class AddrExp : UnaExp
                 }
             }
         }
-<<<<<<< HEAD
-        else if ((e1.op == TOKthis || e1.op == TOKsuper) && global.params.vsafe)
-        {
-            ThisExp ve = cast(ThisExp)e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v)
-            {
-                if (!checkAddressVar(v))
-                    return new ErrorExp();
-            }
-        }
-=======
->>>>>>> parent of c871b7b... Merge pull request #6172 from WalterBright/fix16589
         else if (e1.op == TOKcall)
         {
             CallExp ce = cast(CallExp)e1;

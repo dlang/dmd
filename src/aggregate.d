@@ -333,8 +333,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // There's unresolvable forward reference.
         if (type != Type.terror)
             error(loc, "no size because of forward reference");
-        type = Type.terror;
-        errors = true;
+        // Don't cache errors from speculative semantic, might be resolvable later.
+        // https://issues.dlang.org/show_bug.cgi?id=16574
+        if (!global.gag)
+        {
+            type = Type.terror;
+            errors = true;
+        }
         return false;
     }
 
