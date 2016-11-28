@@ -103,6 +103,7 @@ Where:
 <option>:
   @<cmdfile>       read arguments from cmdfile
   -allinst         generate code for all template instantiations
+  -assert=[on|off] Turn asserts on/off, regardless of the compilation mode
   -betterC         omit generating some runtime information and helper functions
   -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off
   -c               do not link
@@ -367,6 +368,8 @@ private int tryMain(size_t argc, const(char)** argv)
             printf("arguments[%d] = '%s'\n", i, arguments[i]);
         }
     }
+
+    byte assert_flag; // 0 => Default, < 0 => No, > 0 => Yes
     for (size_t i = 1; i < arguments.dim; i++)
     {
         const(char)* p = arguments[i];
@@ -374,6 +377,15 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (strcmp(p + 1, "allinst") == 0)
                 global.params.allInst = true;
+            else if (strncmp(p + 1, "assert", "assert".length) == 0)
+            {
+                if (strcmp(p, "-assert=on") == 0)
+                    assert_flag = 1;
+                else if (strcmp(p, "-assert=off") == 0)
+                    assert_flag = -1;
+                else
+                    goto Lerror;
+            }
             else if (strcmp(p + 1, "de") == 0)
                 global.params.useDeprecated = 0;
             else if (strcmp(p + 1, "d") == 0)
@@ -1103,6 +1115,9 @@ Language changes listed by -transition=id:
             //fatal();
         }
     }
+
+    if (assert_flag != 0)
+        global.params.useAssert = assert_flag > 0 ? true : false;
 
     // Predefined version identifiers
     addDefaultVersionIdentifiers();
