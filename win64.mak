@@ -457,6 +457,9 @@ $(IMPDIR)\core\sys\linux\fcntl.d : src\core\sys\linux\fcntl.d
 $(IMPDIR)\core\sys\linux\link.d : src\core\sys\linux\link.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sched.d : src\core\sys\linux\sched.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\termios.d : src\core\sys\linux\termios.d
 	copy $** $@
 

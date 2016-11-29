@@ -86,6 +86,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\execinfo.d \
 	$(IMPDIR)\core\sys\linux\fcntl.d \
 	$(IMPDIR)\core\sys\linux\link.d \
+	$(IMPDIR)\core\sys\linux\sched.d \
 	$(IMPDIR)\core\sys\linux\termios.d \
 	$(IMPDIR)\core\sys\linux\time.d \
 	$(IMPDIR)\core\sys\linux\timerfd.d \
