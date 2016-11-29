@@ -1559,7 +1559,7 @@ public:
         //              writeln("ie.e2: ", genExpr(ie.e2).value.toString);
     }
 
-    BCBlock genBlock(Statement stmt, bool setCurrent = true)
+    BCBlock genBlock(Statement stmt, bool setCurrent = false)
     {
         BCBlock result;
         auto oldBlock = currentBlock;
@@ -1620,7 +1620,7 @@ public:
 
             auto condJmp = beginCndJmp(cond);
 
-            auto _body = genBlock(fs._body);
+            auto _body = genBlock(fs._body, true);
             if (fs.increment)
             {
                 fs.increment.accept(this);
@@ -3216,7 +3216,7 @@ public:
 
             writefln("DoStatement %s", ds.toString);
         }
-        auto doBlock = genBlock(ds._body);
+        auto doBlock = genBlock(ds._body, true);
         if (ds.condition.isBool(true))
         {
             genJump(doBlock.begin);
