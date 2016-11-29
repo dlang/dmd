@@ -893,7 +893,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue currentIndexed;
 
     BCAddr[ubyte.max] breakFixups;
-    uint breakFixupsCount;
+    uint breakFixupCount;
 
     BCValue retval;
     BCValue assignTo;
@@ -1563,7 +1563,7 @@ public:
     {
         BCBlock result;
         auto oldBlock = currentBlock;
-        const oldBreakFixupsCount = breakFixupsCount;
+        const oldbreakFixupCount = breakFixupCount;
 
         debug (ctfe)
         {
@@ -1582,12 +1582,12 @@ public:
         // Now let's fixup thoose breaks
         if (setCurrent)
         {
-            foreach (Jmp; breakFixups[oldBreakFixupsCount .. breakFixupsCount])
+            foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
             {
                 endJmp(Jmp, result.end);
             }
             currentBlock = oldBlock;
-            breakFixupsCount = oldBreakFixupsCount;
+            breakFixupCount = oldbreakFixupCount;
         }
         return result;
     }
@@ -3126,14 +3126,14 @@ public:
             {
                 import std.stdio;
 
-                writeln("breakFixupCount: ", breakFixupsCount);
+                writeln("breakFixupCount: ", breakFixupCount);
             }
             unrolledLoopState.breakFixups[unrolledLoopState.breakFixupCount++] = beginJmp();
 
         }
         else
         {
-            breakFixups[breakFixupsCount++] = beginJmp();
+            breakFixups[breakFixupCount++] = beginJmp();
         }
 
     }
