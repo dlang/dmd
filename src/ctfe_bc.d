@@ -3101,9 +3101,6 @@ public:
     {
         if (bs.ident)
         {
-            debug (ctfe)
-                assert(cast(void*) bs.ident in labeledBlocks,
-                    "We have not encounterd the label you want to jump to");
             if (auto target = cast(void*) bs.ident in labeledBlocks)
             {
                 genJump(target.end);
@@ -3144,65 +3141,12 @@ public:
     {
         debug (ctfe)
         {
+            assert(0, "We don't handle CallExp yet " ~ ce.toString);
         }
         else
         {
             IGaveUp = true;
             return;
-        }
-        import ddmd.dinterpret;
-
-        /*if (!assignTo)
-        {
-            IGaveUp = true;
-            return;
-        }*/
-        retval = /*assignTo ? assignTo :*/ genTemporary(toBCType(ce.type));
-        auto oldRetval = retval;
-        auto fn = _sharedCtfeState.getFunctionIndex(ce.f);
-        if (!fn)
-        {
-            import ddmd.dinterpret;
-
-            ctfeInterpret(ce);
-            fn = _sharedCtfeState.getFunctionIndex(ce.f);
-        }
-
-        if (fn)
-        {
-            //auto spBeforePush = currSp - beginSp;
-            import std.algorithm : map;
-
-            BCValue[] args;
-            foreach (arg; (*ce.arguments)[].map!(a => genExpr(a)))
-            {
-                switch (arg.vType)
-                {
-                case BCValueType.Immediate:
-                    {
-                        assert(arg.type.type == BCTypeEnum.i32);
-                        args ~= arg;
-                    }
-                    break;
-                default:
-                    //case BCValueType.StackValue :
-                    {
-                        debug (ctfe)
-                            assert(0, "Argument unsupported ATM: " ~ arg.toString);
-                        IGaveUp = true;
-                        return;
-                    }
-                }
-            }
-            retval = oldRetval;
-            Call(retval, BCValue(StackAddr(cast(short)(fn - 1)),
-                BCType(BCTypeEnum.Function)), args);
-        }
-        else
-        {
-            debug (ctfe)
-                assert(0, "Could not gen Function: " ~ ce.f.toString);
-            IGaveUp = true;
         }
 
     }
