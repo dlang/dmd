@@ -3093,6 +3093,7 @@ public:
         }
         else
         {
+            assert(currentBlock, "ContinueStatement has no block to continue from" ~ cs.toString);
             genJump(currentBlock.begin);
         }
     }
