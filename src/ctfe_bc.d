@@ -17,47 +17,6 @@ import ddmd.arraytypes : Expressions;
 
 import std.conv : to;
 
-
-//TODO replace this with blockExit information!
-static private
-{
-    ScopeStatement reduceNestedScopeAndCompoundStatements(ScopeStatement _ss) pure
-    {
-        if (_ss is null)
-            return null;
-
-        for (;;)
-        {
-            auto _cs = reduceNestedCompundAndScopeStatements(_ss.statement.isCompoundStatement);
-            auto __ss = ((_cs
-                && _cs.last) ? _cs.last.isScopeStatement : _ss.statement.isScopeStatement);
-            if (__ss)
-                _ss = __ss;
-            else
-                return _ss;
-        }
-    }
-
-    CompoundStatement reduceNestedCompundAndScopeStatements(CompoundStatement cs) pure
-    {
-        if (cs is null)
-            return null;
-
-        while (cs.statements.dim == 1)
-        {
-            auto _ss = reduceNestedScopeAndCompoundStatements((*cs.statements)[0].isScopeStatement);
-            auto _cs = (
-                _ss ? _ss.statement.isCompoundStatement : ((*cs.statements)[0].isCompoundStatement));
-            if (_cs)
-                cs = _cs;
-            else
-                return cs;
-        }
-
-        return cs;
-    }
-}
-
 struct UnresolvedGoto
 {
     void* ident;
@@ -668,6 +627,7 @@ struct RetainedError // Name is still undecided
 Expression toExpression(const BCValue value, Type expressionType,
     const BCHeap* heapPtr = &_sharedCtfeState.heap)
 {
+    import ddmd.parse : Loc;
     Expression result;
 
     if (value.vType == BCValueType.Error)
@@ -736,7 +696,6 @@ Expression toExpression(const BCValue value, Type expressionType,
             }
 
             Expressions* elmExprs = new Expressions();
-            import ddmd.parse : Loc;
 
             uint offset = 4;
             debug (ctfe)
@@ -782,6 +741,11 @@ Expression toExpression(const BCValue value, Type expressionType,
         {
             // result = new IntegerExp(value.imm64);
             // for now bail out on 64bit values
+        }
+        break;
+    case Tpointer :
+        {
+            result = new PtrExp(Loc.init, new IntegerExp(value.imm32));
         }
         break;
     default:
@@ -2015,6 +1979,22 @@ public:
 
     }
 
+    override void visit(NewExp ne)
+    {
+        auto ptr = genTemporary(i32Type);
+        auto size = genTemporary(i32Type);
+        Set(size, BCValue(Imm32(basicTypeSize(toBCType(ne.newtype)))));
+
+        Alloc(ptr, size);
+        retval = ptr;
+        {
+            import std.stdio;
+
+            writeln(retval);
+        }
+
+    }
+
     override void visit(ArrayLengthExp ale)
     {
         auto array = genExpr(ale.e1);
@@ -2953,27 +2933,9 @@ public:
                 auto jump = beginCndJmp();
                 if (caseStmt.statement)
                 {
-                    auto cs = reduceNestedCompundAndScopeStatements(
-                        caseStmt.statement.isCompoundStatement);
-                    auto _ss = reduceNestedScopeAndCompoundStatements(
-                        caseStmt.statement.isScopeStatement);
+	           import ddmd.statement : BE;
 
-                    if (!cs && _ss)
-                    {
-                        cs = reduceNestedCompundAndScopeStatements(
-                            _ss.statement.isCompoundStatement);
-                    }
-
-                    static bool endsSwitchBlock(Statement stmt) pure
-                    {
-                        return stmt.isBreakStatement || stmt.isReturnStatement
-                            || stmt.isGotoCaseStatement || stmt.isGotoDefaultStatement;
-                    }
-
-                    bool blockReturns = ((cs && cs.last
-                        && (endsSwitchBlock(cs.last))) || (_ss
-                        && (endsSwitchBlock(_ss.statement))) || endsSwitchBlock(caseStmt.statement));
-
+	            bool blockReturns = !!(caseStmt.statement.blockExit(me, false) & BEany);
                     auto caseBlock = genBlock(caseStmt.statement);
                     beginCaseStatements[beginCaseStatementsCount++] = caseBlock.begin;
                     //If the block returns regardless there is no need for a fixup

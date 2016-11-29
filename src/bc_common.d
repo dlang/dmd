@@ -158,7 +158,7 @@ struct BCHeap
     HeapEntry[] entries;
     uint[] _heap = new uint[](2 ^^ 15);
     uint heapMax = (2 ^^ 15) - 32;
-    uint heapSize;
+    uint heapSize = 4;
 
     void initHeap()
     {
