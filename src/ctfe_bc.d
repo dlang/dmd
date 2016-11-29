@@ -17,11 +17,17 @@ import ddmd.arraytypes : Expressions;
 
 import std.conv : to;
 
+struct BCBlockJump
+{
+    BCAddr at;
+    bool toBegin;
+}
+
 struct UnresolvedGoto
 {
     void* ident;
-    BCAddr[ubyte.max] jumps;
-    uint jumpCount;
+    BCBlockJump[ubyte.max] jumps;
+    uint jumpCount = 1;
 }
 
 struct SwitchFixupEntry
@@ -628,6 +634,7 @@ Expression toExpression(const BCValue value, Type expressionType,
     const BCHeap* heapPtr = &_sharedCtfeState.heap)
 {
     import ddmd.parse : Loc;
+
     Expression result;
 
     if (value.vType == BCValueType.Error)
@@ -743,7 +750,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             // for now bail out on 64bit values
         }
         break;
-    case Tpointer :
+    case Tpointer:
         {
             result = new PtrExp(Loc.init, new IntegerExp(value.imm32));
         }
@@ -1165,7 +1172,7 @@ public:
                     "++ does not make sense as on an Immediate Value");
 
                 discardValue = oldDiscardValue;
-                    Set(retval, expr);
+                Set(retval, expr);
 
                 Add3(expr, expr, BCValue(Imm32(1)));
 
@@ -1187,7 +1194,7 @@ public:
                     "-- does not make sense as on an Immediate Value");
 
                 discardValue = oldDiscardValue;
-                    Set(retval, expr);
+                Set(retval, expr);
 
                 Sub3(expr, expr, BCValue(Imm32(1)));
             }
@@ -2933,9 +2940,9 @@ public:
                 auto jump = beginCndJmp();
                 if (caseStmt.statement)
                 {
-	           import ddmd.statement : BE;
+                    import ddmd.statement : BE;
 
-	            bool blockReturns = !!(caseStmt.statement.blockExit(me, false) & BEany);
+                    bool blockReturns = !!(caseStmt.statement.blockExit(me, false) & BEany);
                     auto caseBlock = genBlock(caseStmt.statement);
                     beginCaseStatements[beginCaseStatementsCount++] = caseBlock.begin;
                     //If the block returns regardless there is no need for a fixup
@@ -3009,10 +3016,9 @@ public:
             switchFixupTableCount++;
         }
     }
-
-    void addUnresolvedGoto(void* ident, BCAddr jmp)
+    /// if jmp.toBegin is true jump to the begging of the block, otherwise jump to the end
+    void addUnresolvedGoto(void* ident, BCBlockJump jmp)
     {
-
         foreach (i, ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
         {
             if (unresolvedGoto.ident == ident)
@@ -3035,7 +3041,7 @@ public:
         }
         else
         {
-            addUnresolvedGoto(ident, beginJmp());
+            addUnresolvedGoto(ident, BCBlockJump(beginJmp(), true));
         }
     }
 
@@ -3058,12 +3064,12 @@ public:
         }
         auto block = labeledBlocks[cast(void*) ls.ident] = genBlock(ls.statement);
 
-        foreach (i, unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
+        foreach (i, const ref unresolvedGoto; unresolvedGotos[0 .. unresolvedGotoCount])
         {
             if (unresolvedGoto.ident == cast(void*) ls.ident)
             {
                 foreach (jmp; unresolvedGoto.jumps[0 .. unresolvedGoto.jumpCount])
-                    endJmp(jmp, block.begin);
+                    jmp.toBegin ? endJmp(jmp.at, block.begin) : endJmp(jmp.at, block.end);
 
                 // write the last one into here and decrease the count
                 unresolvedGotos[i] = unresolvedGotos[unresolvedGotoCount--];
@@ -3076,13 +3082,13 @@ public:
     {
         if (cs.ident)
         {
-            if (cast(void*) cs.ident in labeledBlocks)
+            if (auto target = cast(void*) cs.ident in labeledBlocks)
             {
-                genJump(labeledBlocks[cast(void*) cs.ident].begin);
+                genJump(target.begin);
             }
             else
             {
-                addUnresolvedGoto(cast(void*) cs.ident, beginJmp());
+                addUnresolvedGoto(cast(void*) cs.ident, BCBlockJump(beginJmp(), true));
             }
         }
         else if (unrolledLoopState)
@@ -3108,7 +3114,7 @@ public:
             }
             else
             {
-                addUnresolvedGoto(cast(void*) bs.ident, beginJmp());
+                addUnresolvedGoto(cast(void*) bs.ident, BCBlockJump(beginJmp(), false));
             }
 
         }
