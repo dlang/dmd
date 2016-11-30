@@ -2862,32 +2862,13 @@ public:
         auto lhs = genExpr(ae.e1);
         if (lhs.type.type == BCTypeEnum.i32)
         {
-            if (lhs.vType == BCValueType.Immediate)
-            {
-                if (lhs.imm32.imm32 == 0)
-                {
-                    // debug (ctfe)
-                    //     assert(0, "We should emit a error instruction here");
-                }
-                else
-                {
-                    // We can safely ignore an assert(!0)
-                }
-
-            }
-            else
-            {
-                // need to do an a check
-                // Eq3(BCValue.init, lhs, BValue(Imm32(0))
-                AssertError(lhs, _sharedCtfeState.addError(ae.loc, "Assert Failed"));
-            }
-
+                AssertError(lhs, _sharedCtfeState.addError(ae.loc, ae.msg.toString));
         }
         else
         {
-            /*debug (ctfe)
+            debug (ctfe)
                 assert(0, "Non Integral expression in assert");
-            IGaveUp = true;*/
+            IGaveUp = true;
             return;
         }
     }
