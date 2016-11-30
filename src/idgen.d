@@ -359,6 +359,18 @@ Msgtable[] msgtable =
     { "getVirtualIndex" },
     { "getPointerBitmap" },
 
+    // Template parameter introspection traits
+    { "isTemplateTypeParam" },
+    { "isTemplateValueParam" },
+    { "isTemplateAliasParam" },
+    { "isTemplateThisParam" },
+    { "isTemplateVariadicParam" },
+    { "getTemplateParamCount" },
+    { "getTemplateParamIdent" },
+    { "getTemplateParamType" },
+    { "getTemplateParamSpec" },
+    { "getTemplateParamDefault" },
+
     // For C++ mangling
     { "allocator" },
     { "basic_string" },
