@@ -71,7 +71,7 @@ const(uint) basicTypeSize(const BCTypeEnum bct) @safe pure
 
 bool isBasicBCType(BCTypeEnum bct) @safe pure
 {
-    return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array || bct == BCType.Slice);
+    return !(bct == BCTypeEnum.Struct || bct == BCTypeEnum.Array || bct == BCType.Slice || bct == BCTypeEnum.undef);
 }
 
 enum BCTypeEnum : ubyte

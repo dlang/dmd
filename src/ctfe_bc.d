@@ -531,7 +531,6 @@ struct SharedCtfeState(BCGenT)
         {
             //debug (ctfe)
             assert(0, "SliceTypeArray overflowed");
-            return 0;
         }
     }
 
@@ -1396,15 +1395,6 @@ public:
         }
 
     }
-
-    /*override void visit(AssertExp ae)
-    {
-        auto asserted = genExpr(ae.e1);
-        Neq3(BCValue.init, asserted, 0);
-        auto j = beginJmp();
-        // Have to do emitError here
-        endJmp(j);
-    }*/
 
     override void visit(StructDeclaration sd)
     {
@@ -2720,7 +2710,7 @@ public:
                 "ArrayIndex out of bounds"));
             auto effectiveAddr = genTemporary(i32Type);
             auto elemType = toBCType(ie.e1.type.nextOf);
-            auto elemSize = align4(basicTypeSize(elemType));
+            auto elemSize = align4(_sharedCtfeState.size(elemType));
             Mul3(effectiveAddr, index, BCValue(Imm32(elemSize)));
             Add3(effectiveAddr, effectiveAddr, indexed.i32);
             Add3(effectiveAddr, effectiveAddr, bcFour);
@@ -2862,7 +2852,7 @@ public:
         auto lhs = genExpr(ae.e1);
         if (lhs.type.type == BCTypeEnum.i32)
         {
-                AssertError(lhs, _sharedCtfeState.addError(ae.loc, ae.msg.toString));
+                AssertError(lhs, _sharedCtfeState.addError(ae.loc, ae.msg ? ae.msg.toString : "Assert Failed"));
         }
         else
         {

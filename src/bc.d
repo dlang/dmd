@@ -363,6 +363,14 @@ struct BCGen
         return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
     }
 
+    BCValue genTemporary(uint size, BCType bct)
+    {
+        auto tmpAddr = sp.addr;
+        sp += align4(size);
+
+        return BCValue(StackAddr(tmpAddr), bct, ++temporaryCount);
+    }
+
     void Initialize()
     {
     }
