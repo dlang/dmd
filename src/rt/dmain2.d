@@ -600,7 +600,7 @@ extern (C) void _d_print_throwable(Throwable t)
                 {
                     WideCharToMultiByte(codepage, 0,
                         buf.ptr, cast(int)buf.len, sptr, slen, null, null);
-                    WriteFile(hStdErr, sptr, cast(DWORD)buf.len, null, null);
+                    WriteFile(hStdErr, sptr, slen, null, null);
                     free(sptr);
                 }
                 buf.free();
