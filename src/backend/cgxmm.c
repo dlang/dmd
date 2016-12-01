@@ -1328,4 +1328,21 @@ bool xmmIsAligned(elem *e)
     return true;        // assume aligned
 }
 
+/**************************************
+ * VEX prefixes can be 2 or 3 bytes.
+ * If it must be 3 bytes, set the CFvex3 flag.
+ */
+
+void checkSetVex3(code *c)
+{
+    // See Intel Vol. 2A 2.3.5.6
+    if (c->Ivex.w || !c->Ivex.x || !c->Ivex.b || c->Ivex.mmmm > 0x1 ||
+        !I64 && (c->Ivex.r || !(c->Ivex.vvvv & 8))
+       )
+    {
+        c->Iflags |= CFvex3;
+    }
+}
+
+
 #endif // !SPP
