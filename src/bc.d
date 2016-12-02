@@ -526,8 +526,7 @@ struct BCGen
         assert(lhs.vType.StackValue, "only StackValues are supported as lhs");
         // FIXME remove the lhs.type == BCTypeEnum.Char as soon as we convert correctly.
         assert(lhs.type == BCTypeEnum.i32 || lhs.type == BCTypeEnum.i32Ptr
-            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char
-            || lhs.type == BCTypeEnum.i1,
+            || lhs.type == BCTypeEnum.i64 || lhs.type == BCTypeEnum.Char,
             "only i32 or i32Ptr is supported for now not: " ~ to!string(lhs.type.type));
 
         immutable bool isIndirect = lhs.type == BCTypeEnum.i32Ptr;
@@ -897,7 +896,7 @@ struct BCGen
 
         version (boundscheck)
         {
-            auto condResult = genTemporary(BCType.i1).value;
+            auto condResult = genTemporary(BCType.i32).value;
             Lt3(condResult, idx, arrayLength);
             Assert(condResult, "Index ", idx, " is bigger then ArrayLength ", arrayLength);
         }
@@ -1987,7 +1986,6 @@ int[] testRelJmp()
     }
 }
 
-pragma(msg, printInstructions(testRelJmp));
 static assert(interpret_(testRelJmp(), []) == BCValue(Imm32(12)));
 //import bc_test;
 

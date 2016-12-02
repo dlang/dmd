@@ -1709,7 +1709,7 @@ public:
     {
         if (dve.e1.type.ty == Tstruct && (cast(TypeStruct) dve.e1.type).sym)
         {
-            auto structDeclPtr = ((cast(TypeStruct) dve.e1.type).sym);
+            auto structDeclPtr = (cast(TypeStruct) dve.e1.type).sym;
             auto structTypeIndex = _sharedCtfeState.getStructIndex(structDeclPtr);
             if (structTypeIndex)
             {
@@ -1740,10 +1740,8 @@ public:
                     BCType(BCTypeEnum.i32));
 
                 auto lhs = genExpr(dve.e1);
+                assert(lhs.type == BCTypeEnum.Struct);
 
-                //assert(lhs.type == BCTypeEnum.Struct);
-                // temporary hack :)
-                lhs.type = BCTypeEnum.i32;
 
                 if (!(lhs.vType == BCValueType.StackValue
                         || lhs.vType == BCValueType.Parameter || lhs.vType == BCValueType.Temporary))
@@ -1756,12 +1754,8 @@ public:
                     return;
                 }
 
-                //auto ptr = genTemporary(BCType(BCTypeEnum.i32Ptr));
-                /// we have to add the size of the length to the ptr
-                //Add3(ptr, lhs, offset);
-                //HACK to make pointer arith work
                 auto ptr = genTemporary(BCType(BCTypeEnum.i32));
-                Add3(ptr, lhs, BCValue(Imm32(offset)));
+                Add3(ptr, lhs.i32, BCValue(Imm32(offset)));
                 Load32(retval.i32, ptr);
 
                 debug (ctfe)
@@ -2033,7 +2027,7 @@ public:
     override void visit(VarExp ve)
     {
         /* IMPORTANT FIXME
-         * consider using a small chche for the last used vars
+         * consider using a small cache for the last used vars
          * and avoid AA lookup cost for frequently referenced vars
          */
 
@@ -2129,7 +2123,14 @@ public:
         }
         if (vd._init)
         {
-            if (auto ci = vd.getConstInitializer)
+            if (vd._init.isVoidInitializer)
+            {
+                debug(ctfe)
+                    assert(0, "We don't support void initialisation at this point");
+                IGaveUp = true;
+                return ;
+            }
+            else if (auto ci = vd.getConstInitializer)
             {
 
                 auto _init = genExpr(ci);
@@ -2487,7 +2488,7 @@ public:
         auto rhs = genExpr(ce.e2);
         // exit if we could not gen lhs
         //FIXME that should never happen
-        if (!lhs || lhs.type.type == BCType.undef)
+        if (!lhs || lhs.type.type == BCType.Undef)
         {
             IGaveUp = true;
             debug (ctfe)
@@ -2505,7 +2506,7 @@ public:
 
         }
         else if (lhs.type.type == BCTypeEnum.Char
-                || lhs.type.type == BCTypeEnum.i8 || lhs.type.type == BCTypeEnum.i1)
+                || lhs.type.type == BCTypeEnum.i8)
         {
 
         }
