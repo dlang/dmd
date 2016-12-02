@@ -146,7 +146,8 @@ Where:
   -m64             generate 64 bit code
   -main            add default main() (e.g. for unittesting)
   -man             open web browser on manual page
-  -map             generate linker .map file" ~
+  -map             generate linker .map file
+  -mavx            use AVX instruction set" ~
   "%s" /* placeholder for mscrtlib */ ~ "
   -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
   -O               optimize
@@ -478,6 +479,10 @@ private int tryMain(size_t argc, const(char)** argv)
                 {
                     global.params.mscoff = true;
                 }
+            }
+            else if (strcmp(p + 1, "mavx") == 0)
+            {
+                global.params.avx = true;
             }
             else if (strcmp(p + 1, "m32mscoff") == 0)
             {
