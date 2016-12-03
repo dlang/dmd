@@ -2720,8 +2720,8 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
     Type att1 = null;
     Type att2 = null;
 
-    //if (t1) printf("\tt1 = %s\n", t1->toChars());
-    //if (t2) printf("\tt2 = %s\n", t2->toChars());
+    //if (t1) printf("\tt1 = %s\n", t1.toChars());
+    //if (t2) printf("\tt2 = %s\n", t2.toChars());
     debug
     {
         if (!t2)
@@ -3182,7 +3182,12 @@ Lagain:
     {
         // Bugzilla 13841, all vector types should have no common types between
         // different vectors, even though their sizes are same.
-        goto Lincompatible;
+        auto tv1 = cast(TypeVector)t1;
+        auto tv2 = cast(TypeVector)t2;
+        if (!tv1.basetype.equals(tv2.basetype))
+            goto Lincompatible;
+
+        goto LmodCompare;
     }
     else if (t1.ty == Tvector && t2.ty != Tvector && e2.implicitConvTo(t1))
     {
@@ -3211,6 +3216,7 @@ Lagain:
             goto Lagain;
         }
         assert(t1.ty == t2.ty);
+LmodCompare:
         if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
             goto Lincompatible;
         ubyte mod = MODmerge(t1.mod, t2.mod);
