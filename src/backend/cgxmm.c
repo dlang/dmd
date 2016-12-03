@@ -29,7 +29,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-unsigned xmmoperator(tym_t tym, unsigned oper);
+static unsigned xmmoperator(tym_t tym, unsigned oper);
 
 /*******************************************
  * Is operator a store operator?
@@ -172,12 +172,14 @@ code *orthxmm(elem *e, regm_t *pretregs)
         retregs = mPSW;
         cg = NULL;
         code *cc = gen2(CNIL,op,modregxrmx(3,rreg-XMM0,reg-XMM0));
+        checkSetVex(cc, e1->Ety);
         return cat4(c,cr,cg,cc);
     }
     else
         cg = getregs(retregs);
 
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    checkSetVex(co, e1->Ety);
     if (retregs != *pretregs)
         co = cat(co,fixresult(e,retregs,pretregs));
 
@@ -486,6 +488,7 @@ code *xmmopass(elem *e,regm_t *pretregs)
 
     unsigned op = xmmoperator(e1->Ety, e->Eoper);
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    checkSetVex(co, e1->Ety);
 
     if (!regvar)
     {
@@ -573,6 +576,7 @@ code *xmmpost(elem *e,regm_t *pretregs)
 
     unsigned op = xmmoperator(e1->Ety, e->Eoper);
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));  // ADD reg,rreg
+    checkSetVex(cdb.last(), e1->Ety);
 
     if (!regvar)
     {
@@ -721,7 +725,7 @@ unsigned xmmstore(tym_t tym, bool aligned)
  * Get correct XMM operator based on type and operator.
  */
 
-unsigned xmmoperator(tym_t tym, unsigned oper)
+static unsigned xmmoperator(tym_t tym, unsigned oper)
 {
     tym = tybasic(tym);
     unsigned op;
@@ -1344,5 +1348,58 @@ void checkSetVex3(code *c)
     }
 }
 
+/*************************************
+ * Determine if operation should be rewritten as a VEX
+ * operation; and do so.
+ * Params:
+ *      c = code
+ *      ty = type of operand
+ */
+
+void checkSetVex(code *c, tym_t ty)
+{
+    if (config.avx || tysize(ty) == 32)
+    {
+        unsigned vreg = (c->Irm >> 3) & 7;
+        if (c->Irex & REX_R)
+            vreg |= 8;
+        switch (c->Iop)
+        {
+            case COMISS:
+            case COMISD:
+            case UCOMISS:
+            case UCOMISD:
+                vreg = 0;       // for 2 operand vex instructions
+                break;
+        }
+
+        unsigned op = 0xC4000000 | (c->Iop & 0xFF);
+        switch (c->Iop & 0xFFFFFF00)
+        {
+            #define MM_PP(mm, pp) ((mm << 16) | (pp << 8))
+            case 0x00000F00: op |= MM_PP(1,0); break;
+            case 0x00660F00: op |= MM_PP(1,1); break;
+            case 0x00F30F00: op |= MM_PP(1,2); break;
+            case 0x00F20F00: op |= MM_PP(1,3); break;
+            case 0x660F3800: op |= MM_PP(2,1); break;
+            case 0x660F3A00: op |= MM_PP(3,1); break;
+            default:
+                printf("Iop = %x\n", c->Iop);
+                assert(0);
+            #undef MM_PP
+        }
+        c->Iop = op;
+        c->Ivex.r = !(c->Irex & REX_R);
+        c->Ivex.x = !(c->Irex & REX_X);
+        c->Ivex.b = !(c->Irex & REX_B);
+        c->Ivex.w = (c->Irex & REX_W) != 0;
+        c->Ivex.l = (tysize(ty) == 32);
+
+        c->Ivex.vvvv = ~vreg;
+
+        c->Iflags |= CFvex;
+        checkSetVex3(c);
+    }
+}
 
 #endif // !SPP
