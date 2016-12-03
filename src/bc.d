@@ -484,9 +484,13 @@ struct BCGen
 
     void Alloc(BCValue heapPtr, BCValue size)
     {
-        assert(size.vType == BCValueType.StackValue
-            && size.type.type == BCTypeEnum.i32, "Size for alloc needs to be an i32");
-        assert(heapPtr.vType == BCValueType.StackValue);
+        assert(size.type.type == BCTypeEnum.i32, "Size for alloc needs to be an i32");
+        if (size.vType == BCValueType.Immediate)
+        {
+            size = pushOntoStack(size);
+        }
+        assert(size.vType == BCValueType.StackValue || size.vType == BCValueType.Parameter);
+        assert(heapPtr.vType == BCValueType.StackValue || heapPtr.vType == BCValueType.Parameter);
         emitLongInst(LongInst64(LongInst.Alloc, heapPtr.stackAddr, size.stackAddr));
     }
 

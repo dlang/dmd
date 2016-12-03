@@ -96,7 +96,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -813,6 +813,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
 
     uint processedArgs;
     bool processingArguments;
+    bool insideArgumentProcessing;
     bool processingParameters;
     bool insideArrayLiteralExp;
 
@@ -982,11 +983,13 @@ public:
     void beginArguments()
     {
         processingArguments = true;
+        insideArgumentProcessing = true;
     }
 
     void endArguments()
     {
         processingArguments = false;
+        insideArgumentProcessing = false;
     }
 
     BCValue getVariable(VarDeclaration vd)
@@ -1909,10 +1912,18 @@ public:
                 return;
             }
         }
+        auto heap = _sharedCtfeState.heap;
+        auto size = align4(_sharedCtfeState.size(BCType(BCTypeEnum.Struct, idx)));
 
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
+        if (!insideArgumentProcessing)
+            Alloc(retval, BCValue(Imm32(size)));
+        else 
+        {
+            retval = BCValue(HeapAddr(heap.heapSize));
+            heap.heapSize += size;
+        }
 
-        Alloc(retval, BCValue(Imm32(_sharedCtfeState.size(BCType(BCTypeEnum.Struct, idx)))));
         uint offset = 0;
         BCValue fieldAddr = genTemporary(i32Type);
         foreach (elem; *sle.elements)
@@ -1930,9 +1941,18 @@ public:
                 IGaveUp = true;
                 return;
             }
-            Add3(fieldAddr, retval.i32, BCValue(Imm32(offset)));
-            Store32(fieldAddr, elexpr);
+            if (!insideArgumentProcessing)
+            {
+                Add3(fieldAddr, retval.i32, BCValue(Imm32(offset)));
+                Store32(fieldAddr, elexpr);
+            }
+            else
+            {
+                assert(elexpr.vType == BCValueType.Immediate, "Arguments have to be immediates");
+                heap._heap[retval.heapAddr + offset] = elexpr.imm32; 
+            }
             offset += align4(_sharedCtfeState.size(elexpr.type));
+
         }
         //if (!processingArguments) Set(retval.i32, result.i32);
         debug (ctfe)
