@@ -545,6 +545,7 @@ struct SharedCtfeState(BCGenT)
         auto elemType = bcv.toBCType(tda.nextOf);
         if (slices.length - 1 > sliceCount)
         {
+            dArrayTypePointers[sliceCount] = tda;
             slices[sliceCount++] = BCSlice(elemType);
             return sliceCount;
         }
