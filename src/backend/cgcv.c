@@ -2185,6 +2185,17 @@ L1:
         case TYllong4:   size = 32; next = dttab4[TYllong];  goto Larray;
         case TYullong4:  size = 32; next = dttab4[TYullong]; goto Larray;
 
+        case TYfloat16:  size = 64; next = dttab4[TYfloat];  goto Larray;
+        case TYdouble8:  size = 64; next = dttab4[TYdouble]; goto Larray;
+        case TYschar64:  size = 64; next = dttab4[TYschar];  goto Larray;
+        case TYuchar64:  size = 64; next = dttab4[TYuchar];  goto Larray;
+        case TYshort32:  size = 64; next = dttab4[TYshort];  goto Larray;
+        case TYushort32: size = 64; next = dttab4[TYushort]; goto Larray;
+        case TYlong16:   size = 64; next = dttab4[TYlong];   goto Larray;
+        case TYulong16:  size = 64; next = dttab4[TYulong];  goto Larray;
+        case TYllong8:   size = 64; next = dttab4[TYllong];  goto Larray;
+        case TYullong8:  size = 64; next = dttab4[TYullong]; goto Larray;
+
         default:
 #ifdef DEBUG
             WRTYxx(tym);

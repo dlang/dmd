@@ -124,7 +124,19 @@ enum TYM
     TYllong4            = 0x50, // long[4]
     TYullong4           = 0x51, // ulong[4]
 
-    TYMAX               = 0x52,
+    // SIMD 64 byte vector types        // D type
+    TYfloat16           = 0x52, // float[16]
+    TYdouble8           = 0x53, // double[8]
+    TYschar64           = 0x54, // byte[64]
+    TYuchar64           = 0x55, // ubyte[64]
+    TYshort32           = 0x56, // short[32]
+    TYushort32          = 0x57, // ushort[32]
+    TYlong16            = 0x58, // int[16]
+    TYulong16           = 0x59, // uint[16]
+    TYllong8            = 0x5A, // long[8]
+    TYullong8           = 0x5B, // ulong[8]
+
+    TYMAX               = 0x5C,
 };
 
 extern int TYaarray;                            // D type
