@@ -1530,7 +1530,8 @@ static code *asm_emit(Loc loc,
 
         /* Check if a 3-byte vex is needed.
          */
-        if (pc->Ivex.w || !pc->Ivex.x || !pc->Ivex.b || pc->Ivex.mmmm > 0x1)
+        checkSetVex3(pc);
+        if (pc->Iflags & CFvex3)
         {
 #ifdef DEBUG
             memmove(&auchOpcode[oIdx+3], &auchOpcode[oIdx], usIdx-oIdx);
