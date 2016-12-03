@@ -114,6 +114,7 @@ struct Param
     bool bug10378;          // use pre-bugzilla 10378 search strategy
     bool vsafe;             // shows places with hidden change in semantics needed
                             // for better @safe guarantees
+    bool avx;               // use AVX instruction set
     bool showGaggedErrors;  // print gagged errors anyway
 
     BOUNDSCHECK useArrayBounds;
