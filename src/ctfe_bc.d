@@ -44,7 +44,7 @@ struct BoolExprFixupEntry
 {
     BCAddr unconditional;
     CndJmpBegin conditional;
- 
+
     this(BCAddr unconditional) pure
     {
         this.unconditional = unconditional;
@@ -168,8 +168,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //}
     bcv.visit(fd);
     csw.stop;
-    writeln("Creating and Initialzing bcGen took ", isw.peek.usecs.to!string," usecs");
-    writeln("Generting bc for ", fd.ident.toString, " took ", csw.peek.usecs.to!string," usecs");
+    writeln("Creating and Initialzing bcGen took ", isw.peek.usecs.to!string, " usecs");
+    writeln("Generting bc for ", fd.ident.toString, " took ", csw.peek.usecs.to!string,
+        " usecs");
     if (csw.peek.usecs > 500)
     {
         //    writeln(fd.fbody.toString);
@@ -706,14 +707,15 @@ Expression toExpression(const BCValue value, Type expressionType,
             BCStruct _struct = _sharedCtfeState.structs[si - 1];
             Expressions* elmExprs = new Expressions();
             uint offset = 0;
-            foreach(idx, member;_struct.memberTypes)
-            { 
+            foreach (idx, member; _struct.memberTypes)
+            {
                 elmExprs.insert(idx,
                     toExpression(
                     BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))),
                     ts.fields[idx].type));
             }
-        } break;
+        }
+        break;
     case Tarray:
         {
             auto tda = cast(TypeDArray) expressionType;
@@ -890,9 +892,9 @@ extern (C++) final class BCV(BCGenT) : Visitor
                     return BCType(BCTypeEnum.i32Ptr);
                 //else if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
                 //{
-                    //return BCType(BCTypeEnum.Ptr, pi);
+                //return BCType(BCTypeEnum.Ptr, pi);
                 //}
-                else
+            else
                 {
                     uint indirectionCount = 1;
                     Type baseType = t.nextOf;
@@ -1063,6 +1065,7 @@ public:
     override void visit(FuncDeclaration fd)
     {
         import ddmd.identifier;
+
         //HACK this filters out functions which I know produce incorrect results
         //this is only so I can see where else are problems.
 
@@ -1072,6 +1075,7 @@ public:
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("defaultMatrix")
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
+                
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
@@ -1293,7 +1297,7 @@ public:
                 if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type)
                         && basicTypeSize(lhs.type) == basicTypeSize(rhs.type))
                 {
-                     Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
+                    Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
                 }
                 else
                 {
@@ -1773,7 +1777,6 @@ public:
                 auto lhs = genExpr(dve.e1);
                 assert(lhs.type == BCTypeEnum.Struct);
 
-
                 if (!(lhs.vType == BCValueType.StackValue
                         || lhs.vType == BCValueType.Parameter || lhs.vType == BCValueType.Temporary))
                 {
@@ -1918,7 +1921,7 @@ public:
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
         if (!insideArgumentProcessing)
             Alloc(retval, BCValue(Imm32(size)));
-        else 
+        else
         {
             retval = BCValue(HeapAddr(heap.heapSize));
             heap.heapSize += size;
@@ -1933,11 +1936,14 @@ public:
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
             }
-            if (elexpr.type != BCTypeEnum.i32 && (elexpr.vType != BCValueType.Immediate || elexpr.vType != BCValueType.StackValue))
+            if (elexpr.type != BCTypeEnum.i32
+                    && (elexpr.vType != BCValueType.Immediate
+                    || elexpr.vType != BCValueType.StackValue))
             {
                 debug (ctfe)
                     assert(0,
-                        "StructLiteralExp-Element " ~ elexpr.type.type.to!string ~ " is currently not handeled");
+                        "StructLiteralExp-Element " ~ elexpr.type.type.to!string
+                        ~ " is currently not handeled");
                 IGaveUp = true;
                 return;
             }
@@ -1949,7 +1955,7 @@ public:
             else
             {
                 assert(elexpr.vType == BCValueType.Immediate, "Arguments have to be immediates");
-                heap._heap[retval.heapAddr + offset] = elexpr.imm32; 
+                heap._heap[retval.heapAddr + offset] = elexpr.imm32;
             }
             offset += align4(_sharedCtfeState.size(elexpr.type));
 
@@ -2169,10 +2175,10 @@ public:
         {
             if (vd._init.isVoidInitializer)
             {
-                debug(ctfe)
+                debug (ctfe)
                     assert(0, "We don't support void initialisation at this point");
                 IGaveUp = true;
-                return ;
+                return;
             }
             else if (auto ci = vd.getConstInitializer)
             {
@@ -2551,8 +2557,7 @@ public:
         {
 
         }
-        else if (lhs.type.type == BCTypeEnum.Char
-                || lhs.type.type == BCTypeEnum.i8)
+        else if (lhs.type.type == BCTypeEnum.Char || lhs.type.type == BCTypeEnum.i8)
         {
 
         }
@@ -2899,7 +2904,8 @@ public:
         auto lhs = genExpr(ae.e1);
         if (lhs.type.type == BCTypeEnum.i32)
         {
-                AssertError(lhs, _sharedCtfeState.addError(ae.loc, ae.msg ? ae.msg.toString : "Assert Failed"));
+            AssertError(lhs, _sharedCtfeState.addError(ae.loc,
+                ae.msg ? ae.msg.toString : "Assert Failed"));
         }
         else
         {
@@ -2944,7 +2950,7 @@ public:
                     assert(0, "StringSwitches unsupported for now " ~ ss.toString);
                 return;
             }
-            if(ss.cases.dim > beginCaseStatements.length)
+            if (ss.cases.dim > beginCaseStatements.length)
                 assert(0, "We will not have enough array space to store all cases for gotos");
 
             foreach (i, caseStmt; *(ss.cases))
