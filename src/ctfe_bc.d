@@ -77,7 +77,6 @@ struct SwitchState
 Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression thisExp)
 {
     Expression[] _args;
-    //TODO check if the functions returnType is a uint;
     /*if (thisExp)
     {
         debug (ctfe)
@@ -196,9 +195,6 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         import std.range;
         import std.datetime : StopWatch;
         import std.stdio;
-
-        //HACK this filters out functions which I know produce incorrect results
-        //this is only so I can see where else are problems.
 
         StopWatch sw;
         sw.start();
@@ -784,8 +780,6 @@ Expression toExpression(const BCValue value, Type expressionType,
 
 extern (C++) final class BCV(BCGenT) : Visitor
 {
-    uint fetchVariableTimeUs;
-
     BCGenT gen;
     alias gen this;
 
@@ -1040,12 +1034,14 @@ public:
     override void visit(FuncDeclaration fd)
     {
         import ddmd.identifier;
+        //HACK this filters out functions which I know produce incorrect results
+        //this is only so I can see where else are problems.
 
         if (fd.ident == Identifier.idPool("isRooted")
                 || fd.ident == Identifier.idPool("__lambda2")
                 || fd.ident == Identifier.idPool("isSameLength")
                 || fd.ident == Identifier.idPool("wrapperParameters")
-                || fd.ident == Identifier.idPool("defaultMatrix") // this one is strange
+                || fd.ident == Identifier.idPool("defaultMatrix")
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
@@ -1268,8 +1264,7 @@ public:
                 if (canWorkWithType(lhs.type) && canWorkWithType(rhs.type)
                         && basicTypeSize(lhs.type) == basicTypeSize(rhs.type))
                 {
-                    //assert();
-                    Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
+                     Cat(retval, lhs, rhs, basicTypeSize(lhs.type));
                 }
                 else
                 {
@@ -1561,10 +1556,6 @@ public:
                 assert(0, "Type of IndexExp unsupported " ~ ie.e1.type.toString);
         }*/
         }
-        // *lhsRef = DS[aligin4(rhs)]
-
-        //              writeln("ie.e1: ", genExpr(ie.e1).value.toString);
-        //              writeln("ie.e2: ", genExpr(ie.e2).value.toString);
     }
 
     BCBlock genBlock(Statement stmt, bool setCurrent = false)
@@ -2283,9 +2274,6 @@ public:
                     {
                         //StringCat(lhs, lhs, rhs);
                     }
-                    //Alloc(lhs, combinedLength);
-
-                    //_sharedCtfeState.heap.heapSize
                 }
                 else
                 {
