@@ -701,19 +701,21 @@ Expression toExpression(const BCValue value, Type expressionType,
     {
     case Tstruct:
         {
-            auto ts = (cast(TypeStruct) expressionType).sym;
-            auto si = _sharedCtfeState.getStructIndex(ts);
+            auto sd = (cast(TypeStruct) expressionType).sym;
+            auto si = _sharedCtfeState.getStructIndex(sd);
             assert(si);
             BCStruct _struct = _sharedCtfeState.structs[si - 1];
             Expressions* elmExprs = new Expressions();
             uint offset = 0;
-            foreach (idx, member; _struct.memberTypes)
+            foreach (idx, member; _struct.memberTypes[0 .. _struct.memberTypeCount])
             {
-                elmExprs.insert(idx,
-                    toExpression(
-                    BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))),
-                    ts.fields[idx].type));
+                Expression elm = new IntegerExp(*(heapPtr._heap.ptr + value.heapAddr.addr + offset));
+                elm.type = sd.fields[idx].type;
+                elmExprs.insert(idx, elm);
+                offset += align4(_sharedCtfeState.size(member));
             }
+            result = new StructLiteralExp(Loc(), sd, elmExprs);
+            result.type = expressionType;
         }
         break;
     case Tarray:
@@ -757,7 +759,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 offset += elmLength;
             }
 
-            result = new ArrayLiteralExp(Loc.init, elmExprs);
+            result = new ArrayLiteralExp(Loc(), elmExprs);
             result.type = expressionType;
         }
         break;
