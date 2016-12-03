@@ -2999,7 +2999,9 @@ public:
             }
         }
 
-        unresolvedGotos[unresolvedGotoCount++] = UnresolvedGoto(ident, jmp);
+        unresolvedGotos[unresolvedGotoCount].ident = ident;
+        unresolvedGotos[unresolvedGotoCount++].jumps[0] = jmp;
+
     }
 
     override void visit(GotoStatement gs)
