@@ -96,7 +96,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -414,6 +414,7 @@ struct SharedCtfeState(BCGenT)
     StructDeclaration[ubyte.max * 4] structDeclPointers;
     TypeSArray[ubyte.max * 4] sArrayTypePointers;
     TypeDArray[ubyte.max * 4] dArrayTypePointers;
+    TypePointer[ubyte.max * 4] pointerTypePointers;
 
     BCStruct[ubyte.max * 4] structs;
     uint structCount;
@@ -505,6 +506,27 @@ struct SharedCtfeState(BCGenT)
         return structCount;
     }
 
+    int getPointerIndex(TypePointer pt)
+    {
+        if (pt is null)
+            return 0;
+
+        foreach (i, pointerTypePtr; pointerTypePointers[0 .. pointerCount])
+        {
+            if (pointerTypePtr == pt)
+            {
+                return cast(uint) i + 1;
+            }
+        }
+
+        //register pointerType
+        scope bcv = new BCV!BCGenT(null, null);
+        auto oldPointerCount = pointerCount;
+        bcv.visit(pt);
+        assert(oldPointerCount < pointerCount);
+        return pointerCount;
+    }
+
     int getSliceIndex(TypeDArray tda)
     {
         if (!tda)
@@ -579,7 +601,7 @@ struct SharedCtfeState(BCGenT)
             {
                 uint _size;
                 assert(type.typeIndex <= structCount);
-                BCStruct _struct = structs[type.typeIndex];
+                BCStruct _struct = structs[type.typeIndex - 1];
 
                 foreach (i, memberType; _struct.memberTypes[0 .. _struct.memberTypeCount])
                 {
@@ -865,6 +887,10 @@ extern (C++) final class BCV(BCGenT) : Visitor
             {
                 if (t.nextOf.ty == Tint32 || t.nextOf.ty == Tuns32)
                     return BCType(BCTypeEnum.i32Ptr);
+                //else if (auto pi =_sharedCtfeState.getPointerIndex(cast(TypePointer)t))
+                //{
+                    //return BCType(BCTypeEnum.Ptr, pi);
+                //}
                 else
                 {
                     uint indirectionCount = 1;
@@ -1886,10 +1912,9 @@ public:
 
         retval = assignTo ? assignTo.i32 : genTemporary(BCType(BCTypeEnum.i32));
 
-        /*HACK HACK HACK*/
-        incSp(); //HACK
-        auto result = HeapAddr(_sharedCtfeState.heap.heapSize);
-        //Alloc(result,
+        Alloc(retval, BCValue(Imm32(_sharedCtfeState.size(BCType(BCTypeEnum.Struct, idx)))));
+        uint offset = 0;
+        BCValue fieldAddr = genTemporary(i32Type);
         foreach (elem; *sle.elements)
         {
             auto elexpr = genExpr(elem);
@@ -1897,22 +1922,24 @@ public:
             {
                 writeln("elExpr: ", elexpr.toString, " elem ", elem.toString);
             }
-            /*if (elexpr.type != BCTypeEnum.i32 && elexpr.vType != BCValueType.Immediate)
+            if (elexpr.type != BCTypeEnum.i32 && (elexpr.vType != BCValueType.Immediate || elexpr.vType != BCValueType.StackValue))
             {
                 debug (ctfe)
                     assert(0,
                         "StructLiteralExp-Element " ~ elexpr.type.type.to!string ~ " is currently not handeled");
                 IGaveUp = true;
                 return;
-            }*/
-            _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize++] = elexpr.imm32;
+            }
+            Add3(fieldAddr, retval.i32, BCValue(Imm32(offset)));
+            Store32(fieldAddr, elexpr);
+            offset += align4(_sharedCtfeState.size(elexpr.type));
         }
-        Set(retval.i32, BCValue(Imm32(result.addr)));
+        //if (!processingArguments) Set(retval.i32, result.i32);
         debug (ctfe)
         {
             writeln("Done with struct ... revtval: ", retval);
         }
-        //retval = BCValue(Imm32(result.addr));
+        //retval = result.i32;
     }
 
     override void visit(DollarExp de)
@@ -2519,8 +2546,8 @@ public:
         }
         else // we are dealing with a struct (hopefully)
         {
-
             assert(lhs.type.type == BCTypeEnum.Struct, to!string(lhs.type.type));
+
         }
 
         // exit if we could not gen rhs
@@ -2897,8 +2924,8 @@ public:
                     assert(0, "StringSwitches unsupported for now " ~ ss.toString);
                 return;
             }
-            assert(ss.cases.dim <= beginCaseStatements.length,
-                "We will not have enough array space to store all cases for gotos");
+            if(ss.cases.dim > beginCaseStatements.length)
+                assert(0, "We will not have enough array space to store all cases for gotos");
 
             foreach (i, caseStmt; *(ss.cases))
             {
