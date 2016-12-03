@@ -44,7 +44,7 @@ struct BoolExprFixupEntry
 {
     BCAddr unconditional;
     CndJmpBegin conditional;
-
+ 
     this(BCAddr unconditional) pure
     {
         this.unconditional = unconditional;
@@ -153,7 +153,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     writeln("Initalizing heap took " ~ hiw.peek.usecs.to!string ~ " usecs");
 
     StopWatch csw;
-    csw.start;
+    StopWatch isw;
     if (fd && fd.ident && (fd.ident.toString == "_ArrayEq"
             || fd.ident.toString == "uIntArrayToString"))
         return null;
@@ -161,12 +161,16 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     writeln("trying ", fd.toString);
     //if (bcv is null)
     //{
+    isw.start();
     scope bcv = new BCV!BCGenT(fd, _this);
     bcv.Initialize();
+    isw.stop();
+    csw.start();
     //}
     bcv.visit(fd);
     csw.stop;
-    writeln("Generting bc for ", fd.ident.toString, " took " ~ csw.peek.usecs.to!string ~ " usecs");
+    writeln("Creating and Initialzing bcGen took ", isw.peek.usecs.to!string," usecs");
+    writeln("Generting bc for ", fd.ident.toString, " took ", csw.peek.usecs.to!string," usecs");
     if (csw.peek.usecs > 500)
     {
         //    writeln(fd.fbody.toString);
@@ -179,6 +183,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
 
         bcv.vars.keys.each!(k => (cast(VarDeclaration) k).print);
         bcv.vars.writeln;
+        writeln("Initializing bcGen took " ~ isw.peek.usecs.to!string ~ "usecs");
         writeln("Generting bc took " ~ csw.peek.usecs.to!string ~ "usecs");
 
         writeln(" stackUsage = ", (bcv.sp - 4).to!string ~ " byte");
@@ -499,10 +504,7 @@ struct SharedCtfeState(BCGenT)
         //register structType
         scope bcv = new BCV!BCGenT(null, null);
         auto oldStructCount = structCount;
-        debug (ctfe)
-            bcv.visit(sd);
-            else
-                return 0;
+        bcv.visit(sd);
         assert(oldStructCount < structCount);
         return structCount;
     }
@@ -678,6 +680,22 @@ Expression toExpression(const BCValue value, Type expressionType,
     else
         switch (expressionType.ty)
     {
+    case Tstruct:
+        {
+            auto ts = (cast(TypeStruct) expressionType).sym;
+            auto si = _sharedCtfeState.getStructIndex(ts);
+            assert(si);
+            BCStruct _struct = _sharedCtfeState.structs[si - 1];
+            Expressions* elmExprs = new Expressions();
+            uint offset = 0;
+            foreach(idx, member;_struct.memberTypes)
+            { 
+                elmExprs.insert(idx,
+                    toExpression(
+                    BCValue(Imm32(*(heapPtr._heap.ptr + value.heapAddr.addr + offset))),
+                    ts.fields[idx].type));
+            }
+        } break;
     case Tarray:
         {
             auto tda = cast(TypeDArray) expressionType;
@@ -766,12 +784,10 @@ Expression toExpression(const BCValue value, Type expressionType,
 
 extern (C++) final class BCV(BCGenT) : Visitor
 {
+    uint fetchVariableTimeUs;
 
     BCGenT gen;
     alias gen this;
-
-    BCAddr headJmp;
-    BCLabel headLabel;
 
     // for now!
     BCValue[] arguments;
@@ -905,6 +921,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
     BCValue assignTo;
 
     bool discardValue = false;
+
     void doFixup(uint oldFixupTableCount, BCLabel* ifTrue, BCLabel* ifFalse)
     {
         foreach (fixup; fixupTable[oldFixupTableCount .. fixupTableCount])
@@ -1029,13 +1046,7 @@ public:
                 || fd.ident == Identifier.idPool("isSameLength")
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("defaultMatrix") // this one is strange
-
-                
-
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
-
-                
-
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
@@ -2026,11 +2037,6 @@ public:
 
     override void visit(VarExp ve)
     {
-        /* IMPORTANT FIXME
-         * consider using a small cache for the last used vars
-         * and avoid AA lookup cost for frequently referenced vars
-         */
-
         auto vd = ve.var.isVarDeclaration;
         auto symd = ve.var.isSymbolDeclaration;
 
@@ -2168,9 +2174,14 @@ public:
             incSp();
         }
 
-        vars[cast(void*) vd] = var;
+        setVariable(vd, var);
         retval = var;
 
+    }
+
+    void setVariable(VarDeclaration vd, BCValue var)
+    {
+        vars[cast(void*) vd] = var;
     }
 
     static bool canHandleBinExpTypes(const BCTypeEnum lhs, const BCTypeEnum rhs) pure
