@@ -96,7 +96,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 0;
+enum UsePrinterBackend = 1;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -1605,6 +1605,7 @@ public:
             import std.stdio;
 
             writeln("Calling genBlock on : ", stmt.toString);
+            writeln("SetCurrent : ", setCurrent);
         }
         if (setCurrent)
         {
@@ -1616,8 +1617,10 @@ public:
 
         // Now let's fixup thoose breaks
         if (setCurrent)
-        {
-            foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
+        { debug(ctfe) {
+import std.stdio;
+            writeln("oldFixupCount : ", oldbreakFixupCount, "  breakFixupCount : ", breakFixupCount);
+}            foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
             {
                 endJmp(Jmp, result.end);
             }
@@ -1664,7 +1667,6 @@ public:
             genJump(condEval);
             auto afterJmp = genLabel();
             endCndJmp(condJmp, afterJmp);
-
         }
         else if (fs.condition !is null  /* && fs._body is null*/ )
         {
@@ -1678,7 +1680,7 @@ public:
         }
         else
         { // fs.condition is null && fs._body !is null
-            auto _body = genBlock(fs._body);
+            auto _body = genBlock(fs._body, true);
             if (fs.increment)
             {
                 fs.increment.accept(this);
@@ -2444,7 +2446,7 @@ public:
         }
         auto stringAddr = _sharedCtfeState.heap.pushString(se.string, cast(uint) se.len);
         auto stringAddrValue = BCValue(Imm32(stringAddr.addr));
-        if (processingArguments)
+        if (insideArgumentProcessing)
         {
             retval = stringAddrValue;
             return;
@@ -3255,6 +3257,10 @@ public:
         auto doBlock = genBlock(ds._body, true);
         if (ds.condition.isBool(true))
         {
+            //FIXME we can get into a really bad situation here.
+            // because a break from the doBlock will end up exactly here
+            // this is bad because we emit an unconditional jump here and void the break 
+            
             genJump(doBlock.begin);
         }
         else if (ds.condition.isBool(false))

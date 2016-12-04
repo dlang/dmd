@@ -192,6 +192,7 @@ pure:
 
     void endCndJmp(CndJmpBegin jmp, BCLabel target)
     {
+        sameLabel = false;
         endJmp(jmp.at, target);
     }
 
