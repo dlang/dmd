@@ -1644,7 +1644,14 @@ public:
 
         if (fs.condition !is null && fs._body !is null)
         {
+            if (fs.condition.isBool(true))
+            {
+                infiniteLoop(fs._body, fs.increment);
+                return;
+            }
+
             BCLabel condEval = genLabel();
+
             BCValue cond = genExpr(fs.condition);
             debug (ctfe)
                 assert(cond, "No cond generated");
