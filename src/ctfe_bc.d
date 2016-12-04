@@ -96,7 +96,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expressions* args, Expression th
 import ddmd.ctfe.bc_common;
 
 enum UseLLVMBackend = 0;
-enum UsePrinterBackend = 1;
+enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 
 static if (UseLLVMBackend)
@@ -1080,7 +1080,9 @@ public:
                 || fd.ident == Identifier.idPool("wrapperParameters")
                 || fd.ident == Identifier.idPool("defaultMatrix")
                 || fd.ident == Identifier.idPool("bug4910") // this one is strange
+
                 
+
                 || fd.ident == Identifier.idPool("extSeparatorPos")
                 || fd.ident == Identifier.idPool("args") || fd.ident == Identifier.idPool("check"))
         {
@@ -1596,19 +1598,12 @@ public:
         }
     }
 
-    BCBlock genBlock(Statement stmt, bool setCurrent = false)
+    BCBlock genBlock(Statement stmt, bool setCurrent = false, bool infiniteLoop = false)
     {
         BCBlock result;
         auto oldBlock = currentBlock;
         const oldbreakFixupCount = breakFixupCount;
 
-        debug (ctfe)
-        {
-            import std.stdio;
-
-            writeln("Calling genBlock on : ", stmt.toString);
-            writeln("SetCurrent : ", setCurrent);
-        }
         if (setCurrent)
         {
             currentBlock = &result;
@@ -1620,14 +1615,17 @@ public:
         // Now let's fixup thoose breaks
         if (setCurrent)
         {
-            if (insideInfiniteLoop) {} // TODO do the jump change here
-            foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
+            if (!infiniteLoop)
             {
-                endJmp(Jmp, result.end);
+                foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
+                {
+                    endJmp(Jmp, result.end);
+                }
+                breakFixupCount = oldbreakFixupCount;
             }
             currentBlock = oldBlock;
-            breakFixupCount = oldbreakFixupCount;
         }
+
         return result;
     }
 
@@ -3255,20 +3253,26 @@ public:
 
             writefln("DoStatement %s", ds.toString);
         }
-        auto doBlock = genBlock(ds._body, true);
         if (ds.condition.isBool(true))
         {
-            //FIXME we can get into a really bad situation here.
-            // because a break from the doBlock will end up exactly here
-            // this is bad because we emit an unconditional jump here and void the break 
-            
+            auto oldBreakFixupCount = breakFixupCount;
+            auto doBlock = genBlock(ds._body, true, true);
             genJump(doBlock.begin);
+            auto after_jmp = genLabel();
+            foreach (Jmp; breakFixups[oldBreakFixupCount .. breakFixupCount])
+            {
+                endJmp(Jmp, after_jmp);
+            }
+
         }
         else if (ds.condition.isBool(false))
         {
+            auto doBlock = genBlock(ds._body, true, false);
         }
         else
         {
+            auto doBlock = genBlock(ds._body, true, false);
+
             auto cond = genExpr(ds.condition);
             debug (ctfe)
                 assert(cond);
