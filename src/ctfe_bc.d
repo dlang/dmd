@@ -827,6 +827,8 @@ extern (C++) final class BCV(BCGenT) : Visitor
     UnrolledLoopState* unrolledLoopState;
     SwitchState* switchState = new SwitchState();
     SwitchFixupEntry* switchFixup;
+    bool insideInfiniteLoop;
+    typeof(gen.beginJmp()) infiniteLoopFixupJmp;
 
     FuncDeclaration me;
     bool inReturnStatement;
@@ -1617,10 +1619,9 @@ public:
 
         // Now let's fixup thoose breaks
         if (setCurrent)
-        { debug(ctfe) {
-import std.stdio;
-            writeln("oldFixupCount : ", oldbreakFixupCount, "  breakFixupCount : ", breakFixupCount);
-}            foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
+        {
+            if (insideInfiniteLoop) {} // TODO do the jump change here
+            foreach (Jmp; breakFixups[oldbreakFixupCount .. breakFixupCount])
             {
                 endJmp(Jmp, result.end);
             }
