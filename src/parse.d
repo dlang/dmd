@@ -2867,7 +2867,9 @@ final class Parser : Lexer
                             error("scope cannot be ref or out");
 
                         Token* t;
-                        if (tpl && token.value == TOKidentifier && (t = peek(&token), (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot)))
+                        if (tpl && token.value == TOKidentifier
+                            && (t = peek(&token)) !is null
+                            && (t.value == TOKcomma || t.value == TOKrparen || t.value == TOKdotdotdot))
                         {
                             Identifier id = Identifier.generateId("__T");
                             const loc = token.loc;
