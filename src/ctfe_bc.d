@@ -162,6 +162,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     //{
     isw.start();
     scope bcv = new BCV!BCGenT(fd, _this);
+    pragma(msg, "size of ", typeof(bcv), __traits(classInstanceSize, typeof(bcv)));
     bcv.Initialize();
     isw.stop();
     csw.start();
@@ -827,8 +828,6 @@ extern (C++) final class BCV(BCGenT) : Visitor
     UnrolledLoopState* unrolledLoopState;
     SwitchState* switchState = new SwitchState();
     SwitchFixupEntry* switchFixup;
-    bool insideInfiniteLoop;
-    typeof(gen.beginJmp()) infiniteLoopFixupJmp;
 
     FuncDeclaration me;
     bool inReturnStatement;
@@ -1679,12 +1678,7 @@ public:
         }
         else
         { // fs.condition is null && fs._body !is null
-            auto _body = genBlock(fs._body, true);
-            if (fs.increment)
-            {
-                fs.increment.accept(this);
-            }
-            genJump(_body.begin);
+            infiniteLoop(fs._body, fs.increment);
         }
 
     }
@@ -3230,6 +3224,20 @@ public:
         retval.type = toBCType(ce.type);
     }
 
+    void infiniteLoop(Statement _body, Expression increment = null)
+    {
+        auto oldBreakFixupCount = breakFixupCount;
+        auto block = genBlock(_body, true, true);
+        if (increment)
+            increment.accept(this);
+        genJump(block.begin);
+        auto after_jmp = genLabel();
+        foreach (Jmp; breakFixups[oldBreakFixupCount .. breakFixupCount])
+        {
+            endJmp(Jmp, after_jmp);
+        }
+    }
+
     override void visit(ExpStatement es)
     {
         debug (ctfe)
@@ -3255,19 +3263,11 @@ public:
         }
         if (ds.condition.isBool(true))
         {
-            auto oldBreakFixupCount = breakFixupCount;
-            auto doBlock = genBlock(ds._body, true, true);
-            genJump(doBlock.begin);
-            auto after_jmp = genLabel();
-            foreach (Jmp; breakFixups[oldBreakFixupCount .. breakFixupCount])
-            {
-                endJmp(Jmp, after_jmp);
-            }
-
+            infiniteLoop(ds._body);
         }
         else if (ds.condition.isBool(false))
         {
-            auto doBlock = genBlock(ds._body, true, false);
+            genBlock(ds._body, true, false);
         }
         else
         {
